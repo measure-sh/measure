@@ -33,6 +33,7 @@ measure is a comprehensive, flexible and open source observability platform for 
 | Color contrast issues | x  | x  | x  | x  |
 | Session replays with auto sensitive data redaction | x  | x  | x  | x  |
 | Bug reports | x  | x  | x  | x  |
+| Live debugging | x  | x  | x  | x  |
 | Heatmaps  | x  | x  | x  | x  |
 | User journey visualisation  | x  | x  | x  | x  |
 | Alerting  | x  | x  | x  | x  |
