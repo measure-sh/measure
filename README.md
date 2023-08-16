@@ -41,12 +41,24 @@ measure is a comprehensive, flexible and open source observability platform for 
 | JIRA integration  | x  | x  | x  | x  |
 | Self hosting  | x  | x  | x  | x  |
 | User feedback with sentiment analysis (in-app + stores) | x  | x  | x  | x  |
+| Screenshot detection  | x  | x  | x  | x  |
+| SSL pinning detection  | x  | x  | x  | x  |
+| Video recording detection  | x  | x  | x  | x  |
 | Weak encryption detection  | x  | x  | x  | x  |
+| Pwned password detection  | x  | x  | x  | x  |
 | Plaintext sensitive data storage detection  | x  | x  | x  | x  |
 | Rooted device detection  | x  | x  | x  | x  |
 | Emulator detection  | x  | x  | x  | x  |
-| Reverse engineering attempt detection  | x  | x  | x  | x  |
+| Reverse engineering detection  | x  | x  | x  | x  |
+| Modded app detection  | x  | x  | x  | x  |
+| GPS spoofing detection  | x  | x  | x  | x  |
+| VPN detection | x  | x  | x  | x  |
+| Device fingerprinting | x  | x  | x  | x  |
+| Cloned app detection | x  | x  | x  | x  |
+| Bot detection | x  | x  | x  | x  |
+| Bot farm detection | x  | x  | x  | x  |
 | Issue triaging with code owners  | x  | x  | x  | x  |
+| Device blacklist database  | x  | x  | x  | x  |
 | BigQuery integration  | x  | x  | x  | x  |
 | Redshift integration  | x  | x  | x  | x  |
 | Snowflake integration  | x  | x  | x  | x  |
