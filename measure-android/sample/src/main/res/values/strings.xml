@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Measure Android</string>
+    <string name="single_exception">Raise single exception</string>
+    <string name="chained_exceptions">Raise chained exception</string>
 </resources>
