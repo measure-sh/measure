@@ -7,10 +7,12 @@ import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.verify
 import sh.measure.sample.MeasureClient
+import sh.measure.sample.logger.Logger
 
 internal class UnhandledExceptionCollectorTest {
 
     private val client = mock<MeasureClient>()
+    private val logger = mock<Logger>()
     private var originalDefaultHandler: Thread.UncaughtExceptionHandler? = null
 
     @Before
@@ -21,7 +23,7 @@ internal class UnhandledExceptionCollectorTest {
     @Test
     fun `registers UnhandledExceptionCollector as an uncaught exception handler`() {
         // When
-        val collector = UnhandledExceptionCollector(client).apply { register() }
+        val collector = UnhandledExceptionCollector(logger, client).apply { register() }
         val currentDefaultHandler = Thread.getDefaultUncaughtExceptionHandler()
 
         // Then
@@ -30,7 +32,7 @@ internal class UnhandledExceptionCollectorTest {
 
     @Test
     fun `parses uncaught exceptions, parses it into ExceptionData and reports it to MeasureClient`() {
-        val collector = UnhandledExceptionCollector(client).apply { register() }
+        val collector = UnhandledExceptionCollector(logger, client).apply { register() }
 
         // Given
         val thread = Thread.currentThread()
@@ -50,7 +52,7 @@ internal class UnhandledExceptionCollectorTest {
         Thread.setDefaultUncaughtExceptionHandler { _, _ ->
             originalHandlerCalled = true
         }
-        val collector = UnhandledExceptionCollector(client).apply { register() }
+        val collector = UnhandledExceptionCollector(logger, client).apply { register() }
 
         // Given
         val thread = Thread.currentThread()

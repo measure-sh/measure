@@ -49,8 +49,6 @@ internal data class ExceptionData(
      * Whether the exception was handled or not.
      */
     val handled: Boolean
-
-
 )
 
 /**
@@ -67,7 +65,6 @@ internal data class MeasureException(
      * A message which describes the exception.
      */
     val message: String? = null,
-
 
     /**
      * A list of stack frames for the exception.

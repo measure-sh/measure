@@ -2,6 +2,7 @@ package sh.measure.sample.exceptions
 
 import sh.measure.sample.MeasureClient
 import sh.measure.sample.logger.LogLevel
+import sh.measure.sample.logger.Logger
 import java.lang.Thread.UncaughtExceptionHandler
 
 /**
@@ -14,6 +15,7 @@ import java.lang.Thread.UncaughtExceptionHandler
  * Note that the original [UncaughtExceptionHandler] is always called.
  */
 internal class UnhandledExceptionCollector(
+    private val logger: Logger,
     private val client: MeasureClient,
 ) : UncaughtExceptionHandler {
 
@@ -24,7 +26,7 @@ internal class UnhandledExceptionCollector(
      * Registers [UnhandledExceptionCollector] as the [UncaughtExceptionHandler].
      */
     fun register() {
-        client.log(LogLevel.Debug, "Registering exception handler")
+        logger.log(LogLevel.Debug, "Registering exception handler")
         Thread.setDefaultUncaughtExceptionHandler(this)
     }
 
@@ -34,7 +36,7 @@ internal class UnhandledExceptionCollector(
             client.captureException(event)
         } catch (e: Throwable) {
             // Prevent an infinite loop of exceptions if the above code fails.
-            client.log(LogLevel.Error, "Failed to track exception", e)
+            logger.log(LogLevel.Error, "Failed to track exception", e)
         } finally {
             // Call the original handler so that we do not swallow any exceptions.
             originalHandler?.uncaughtException(thread, throwable)

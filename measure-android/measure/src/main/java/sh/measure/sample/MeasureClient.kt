@@ -1,26 +1,47 @@
 package sh.measure.sample
 
+import android.content.Context
 import kotlinx.serialization.json.Json
+import sh.measure.sample.context.MeasureContext
+import sh.measure.sample.events.EventTracker
+import sh.measure.sample.events.EventType
+import sh.measure.sample.events.LoggingEventSink
+import sh.measure.sample.events.MeasureEventFactory
 import sh.measure.sample.exceptions.ExceptionData
-import sh.measure.sample.logger.LogLevel
+import sh.measure.sample.exceptions.UnhandledExceptionCollector
 import sh.measure.sample.logger.Logger
+import sh.measure.sample.resource.ResourceFactory
 
 /**
  * Maintains global state and provides a way for different components to communicate with each
  * other.
  */
-internal class MeasureClient(private val logger: Logger) {
+internal class MeasureClient(private val logger: Logger, context: Context) {
+    private val resource = ResourceFactory.create(logger, context)
+    private val measureContext = MeasureContext()
+    private val eventTracker = EventTracker()
 
-    fun log(level: LogLevel, message: String, throwable: Throwable? = null) {
-        logger.log(level, message, throwable)
+    fun init() {
+        eventTracker.apply {
+            addEventSink(LoggingEventSink(logger))
+        }
+        UnhandledExceptionCollector(logger, this).register()
     }
 
     fun captureException(exceptionData: ExceptionData) {
-        // Fire a event with exception data.
-        // Add resource attributes - eg. device, os, app info, etc.
-        // Add context attributes - user info, resumed activity, network info, rooted device,
-        // Application in foreground/background, last gesture, memory usage, battery level,
-        // etc.
-        logger.log(LogLevel.Fatal, Json.encodeToString(ExceptionData.serializer(), exceptionData))
+        val event = MeasureEventFactory.createMeasureEvent(
+            type = EventType.EXCEPTION,
+            resource = resource,
+            attributes = Json.encodeToJsonElement(ExceptionData.serializer(), exceptionData),
+            sessionId = "session_id",
+            context = measureContext.getJsonElement(),
+        )
+        eventTracker.track(event)
     }
 }
+
+
+
+
+
+
