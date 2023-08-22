@@ -1,26 +1,35 @@
 package sh.measure.sample.events
 
 import kotlinx.serialization.json.JsonElement
+import sh.measure.sample.id.IdProvider
 import sh.measure.sample.resource.Resource
-import java.util.UUID
+import sh.measure.sample.time.DateProvider
 
 /**
  * Factory for creating [MeasureEvent]s.
  */
-internal class MeasureEventFactory {
+internal class MeasureEventFactory(
+    private val idProvider: IdProvider, private val dateProvider: DateProvider
+) {
 
     companion object {
         fun createMeasureEvent(
             type: String,
+            bodyValue: JsonElement,
             resource: Resource,
-            attributes: JsonElement,
-            sessionId: String,
-            context: JsonElement?,
+            idProvider: IdProvider,
+            dateProvider: DateProvider,
             id: String? = null,
-            timestamp: String? = null
+            timestamp: Long? = null,
+            attributes: JsonElement? = null
         ): MeasureEvent {
-            return MeasureEventFactory().createMeasureEvent(
-                type, resource, attributes, sessionId, context, id, timestamp
+            return MeasureEventFactory(idProvider, dateProvider).createMeasureEvent(
+                eventType = type,
+                bodyValue = bodyValue,
+                resource = resource,
+                attributes = attributes,
+                id = id,
+                timestamp = timestamp
             )
         }
     }
@@ -30,24 +39,22 @@ internal class MeasureEventFactory {
      * ID if not provided in the arguments.
      */
     private fun createMeasureEvent(
-        type: String,
+        eventType: String,
+        bodyValue: JsonElement,
         resource: Resource,
-        attributes: JsonElement,
-        sessionId: String,
-        context: JsonElement?,
+        attributes: JsonElement?,
         id: String? = null,
-        timestamp: String? = null,
+        timestamp: Long? = null,
     ): MeasureEvent {
         return MeasureEvent(
-            id = id ?: UUID.randomUUID()
-                .toString(), // TODO(abhay): Create an abstraction over ID generation
-            timestamp = timestamp ?: System.currentTimeMillis()
-                .toString(), // TODO(abhay): Create an abstraction over timestamp creation and use ISO 8601 format
-            type = type,
+            id = id ?: idProvider.createId(),
+            timestamp = timestamp ?: dateProvider.currentTimeSinceEpochInMillis,
+            body = EventBody(
+                type = eventType,
+                value = bodyValue,
+            ),
             resource = resource,
-            attributes = attributes,
-            session_id = sessionId,
-            context = context
+            attributes = attributes
         )
     }
 }
