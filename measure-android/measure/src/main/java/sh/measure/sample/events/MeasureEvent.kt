@@ -15,10 +15,21 @@ internal class MeasureEvent(
     val id: String,
 
     /**
-     * Represents a type of event in Measure.
-     * Event types are well known and are used to identify the schema of [attributes].
+     * The timestamp when the event was created.
      */
-    val type: String,
+    val timestamp: Long,
+
+    /**
+     * Also known as log level. Used only for logs taken from Android logcat.
+     *
+     * Always one of: debug, info, warn, error, fatal
+     */
+    val severity_text: String? = null,
+
+    /**
+     * Attributes for the event.
+     */
+    val body: EventBody,
 
     /**
      * A set of attributes which contain the resource information.
@@ -26,22 +37,13 @@ internal class MeasureEvent(
     val resource: Resource,
 
     /**
-     * Attributes for the event.
-     */
-    val attributes: JsonElement,
-
-    /**
      * Serialized map of context attributes.
      */
-    val context: JsonElement?,
+    val attributes: JsonElement?,
+)
 
-    /**
-     * The timestamp when the event was created.
-     */
-    val timestamp: String,
-
-    /**
-     * A session ID to associate the event with a session.
-     */
-    val session_id: String
+@Serializable
+internal data class EventBody(
+    val type: String,
+    val value: JsonElement
 )

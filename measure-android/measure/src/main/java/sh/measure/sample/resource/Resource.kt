@@ -8,10 +8,10 @@ import sh.measure.sample.logger.LogLevel
 import sh.measure.sample.logger.Logger
 
 /**
- * Factory to create [Resource].
+ * Factory to create a [Resource].
  */
 internal class ResourceFactory private constructor(
-    private val logger: Logger, private val context: Context
+    private val logger: Logger, private val context: Context, private val sessionId: String,
 ) {
     private val configuration = context.resources.configuration
     private val packageManager = context.packageManager
@@ -25,13 +25,17 @@ internal class ResourceFactory private constructor(
     }
 
     companion object {
-        fun create(logger: Logger, context: Context): Resource {
-            return ResourceFactory(logger, context).create()
+        /**
+         * Generates a new session ID and initializes all the fields of the [Resource].
+         */
+        fun create(logger: Logger, context: Context, sessionId: String): Resource {
+            return ResourceFactory(logger, context, sessionId).create()
         }
     }
 
     private fun create(): Resource {
         return Resource(
+            session_id = sessionId,
             device_name = Build.DEVICE,
             device_model = Build.MODEL,
             device_manufacturer = Build.MANUFACTURER,
@@ -48,9 +52,7 @@ internal class ResourceFactory private constructor(
             app_version = packageInfo.versionName,
             app_build = getBuildVersionCode(),
             app_unique_id = context.packageName,
-            app_first_install_time = getFirstInstallTime(),
-            app_last_update_time = getLastUpdateTime(),
-            measure_version = getMeasureVersion()
+            measure_sdk_version = getMeasureVersion()
         )
     }
 
@@ -103,22 +105,6 @@ internal class ResourceFactory private constructor(
         }
     }
 
-    private fun getLastUpdateTime(): String? {
-        val lastUpdateTime = packageInfo.lastUpdateTime
-        if (lastUpdateTime > 0) {
-            return lastUpdateTime.toString()
-        }
-        return null
-    }
-
-    private fun getFirstInstallTime(): String? {
-        val firstInstallTime = packageInfo.firstInstallTime
-        if (firstInstallTime > 0) {
-            return firstInstallTime.toString()
-        }
-        return null
-    }
-
     private fun getMeasureVersion(): String? {
         // TODO(abhay): get measure SDK version using a gradle plugin
         return null
@@ -131,6 +117,8 @@ internal class ResourceFactory private constructor(
  */
 @Serializable
 data class Resource(
+    // session info
+    val session_id: String? = null,
     // device info
     val device_name: String? = null,
     val device_model: String? = null,
@@ -149,8 +137,8 @@ data class Resource(
     // app info
     val app_version: String? = null,
     val app_build: String? = null,
-    val app_unique_id: String? = null, // applicationId,
-    val app_first_install_time: String? = null,
-    val app_last_update_time: String? = null,
-    val measure_version: String? = null,
+    val app_unique_id: String? = null, // package name,
+    val app_first_install_time: Long? = null,
+    val app_last_update_time: Long? = null,
+    val measure_sdk_version: String? = null,
 )

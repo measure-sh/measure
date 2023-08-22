@@ -37,15 +37,16 @@ internal class EventTrackerTest {
     private fun createFakeMeasureEvent(): MeasureEvent {
         return MeasureEvent(
             id = "id",
-            type = EventType.EXCEPTION,
-            resource = Resource(),
-            attributes = Json.encodeToJsonElement(
-                ExceptionData.serializer(),
-                ExceptionData(exceptions = listOf(), true)
+            body = EventBody(
+                EventType.EXCEPTION,
+                Json.encodeToJsonElement(
+                    ExceptionData.serializer(),
+                    ExceptionData(exceptions = listOf(), true)
+                )
             ),
-            session_id = "session_id",
-            context = null,
-            timestamp = "timestamp"
+            resource = Resource(),
+            attributes = null,
+            timestamp = 0L
         )
     }
 }
