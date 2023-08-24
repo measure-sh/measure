@@ -7,30 +7,61 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 )
 
-func main() {
+var serverConfig ServerConfig
+var server Server
 
+func main() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
-	connectionString := os.Getenv("POSTGRES_CONNECTION_STRING")
-
-	if connectionString == "" {
+	pgConnectionString := os.Getenv("POSTGRES_CONNECTION_STRING")
+	if pgConnectionString == "" {
 		log.Fatal("\"POSTGRES_CONNECTION_STRING\" environment variable not detected")
 	}
 
-	// create a new connection pool
-	pool, err := pgxpool.New(context.Background(), connectionString)
+	chHost := os.Getenv("CLICKHOUSE_HOSTNAME")
+	chPort := os.Getenv("CLICKHOUSE_PORT")
+	chDbName := os.Getenv("CLICKHOUSE_DB_NAME")
+	chDbUsername := os.Getenv("CLICKHOUSE_DB_USERNAME")
+	chDbPassword := os.Getenv("CLICKHOUSE_DB_PASSWORD")
 
-	if err != nil {
-		log.Fatalf("Unable to create connection pool: %v\n", err)
+	if chHost == "" {
+		log.Fatal("\"CLICKHOUSE_HOSTNAME\" environment variable not detected")
 	}
-	defer pool.Close()
+
+	if chPort == "" {
+		log.Fatal("\"CLICKHOUSE_PORT\" environment variable not detected")
+	}
+
+	if chDbName == "" {
+		log.Fatal("\"CLICKHOUSE_DB_NAME\" environment variable not detected")
+	}
+
+	if chDbUsername == "" {
+		log.Fatal("\"CLICKHOUSE_DB_USERNAME\" environment variable not detected")
+	}
+
+	if chDbPassword == "" {
+		log.Fatal("\"CLICKHOUSE_DB_PASSWORD\" environment variable not detected")
+	}
+
+	serverConfig = *NewServerConfig()
+	serverConfig.pg.connectionString = pgConnectionString
+	serverConfig.ch.host = chHost
+	serverConfig.ch.port = chPort
+	serverConfig.ch.name = chDbName
+	serverConfig.ch.username = chDbUsername
+	serverConfig.ch.password = chDbPassword
+	server = *new(Server).Configure(&serverConfig)
+	pgPool := server.pgPool
+
+	defer server.pgPool.Close()
+	defer server.chPool.Close()
 
 	r := gin.Default()
 	r.GET("/ping", func(c *gin.Context) {
@@ -42,7 +73,7 @@ func main() {
 	r.GET("/employees", func(c *gin.Context) {
 		var name string
 		var department string
-		err = pool.QueryRow(context.Background(), "select name, department from employees where id=$1", 3).Scan(&name, &department)
+		err = pgPool.QueryRow(context.Background(), "select type from dummy where type=$1", "type-a").Scan(&name)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "QueryRow failed: %v\n", err)
 			return
@@ -53,5 +84,14 @@ func main() {
 		})
 	})
 
+	r.PUT("/events", authorize(), putEvent)
+
+	r.POST("/events", authorize(), postEvent)
+
+	// time.AfterFunc(3*time.Second, func() {
+	// 	fmt.Println(server.pgPool, server.chPool)
+	// })
+
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080
+
 }
