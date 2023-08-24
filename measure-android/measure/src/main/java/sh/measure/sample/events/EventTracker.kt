@@ -1,20 +1,21 @@
 package sh.measure.sample.events
 
-import kotlinx.serialization.json.Json
-import sh.measure.sample.logger.LogLevel
-import sh.measure.sample.logger.Logger
+internal interface IEventTracker {
+    fun addEventSink(sink: EventSink)
+    fun track(event: MeasureEvent)
+}
 
 /**
  * Allows tracking events, transforming them and passing them on to a [EventSink].
  */
-internal class EventTracker {
+internal class EventTracker : IEventTracker {
     private val _sinks: MutableList<EventSink> = mutableListOf()
 
-    fun addEventSink(sink: EventSink) {
+    override fun addEventSink(sink: EventSink) {
         _sinks.add(sink)
     }
 
-    fun track(event: MeasureEvent) {
+    override fun track(event: MeasureEvent) {
         _sinks.forEach { sink -> sink.send(event) }
     }
 }
@@ -25,13 +26,4 @@ internal class EventTracker {
  */
 internal interface EventSink {
     fun send(event: MeasureEvent)
-}
-
-/**
- * A sink that logs events to console using a [Logger].
- */
-internal class LoggingEventSink(private val logger: Logger) : EventSink {
-    override fun send(event: MeasureEvent) {
-        logger.log(LogLevel.Info, Json.encodeToString(MeasureEvent.serializer(), event))
-    }
 }
