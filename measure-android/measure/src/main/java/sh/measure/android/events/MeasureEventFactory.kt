@@ -15,7 +15,7 @@ internal class MeasureEventFactory(
     companion object {
         fun createMeasureEvent(
             type: String,
-            bodyValue: JsonElement,
+            value: JsonElement,
             resource: Resource,
             idProvider: IdProvider,
             dateProvider: DateProvider,
@@ -25,7 +25,7 @@ internal class MeasureEventFactory(
         ): MeasureEvent {
             return MeasureEventFactory(idProvider, dateProvider).createMeasureEvent(
                 eventType = type,
-                bodyValue = bodyValue,
+                bodyValue = value,
                 resource = resource,
                 attributes = attributes,
                 id = id,

@@ -45,7 +45,7 @@ internal class MeasureClient(private val logger: Logger, context: Context) {
     fun captureException(exceptionData: ExceptionData) {
         val event = MeasureEventFactory.createMeasureEvent(
             type = EventType.EXCEPTION,
-            bodyValue = Json.encodeToJsonElement(ExceptionData.serializer(), exceptionData),
+            value = Json.encodeToJsonElement(ExceptionData.serializer(), exceptionData),
             resource = resource,
             idProvider = idProvider,
             dateProvider = dateProvider

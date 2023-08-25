@@ -2,7 +2,7 @@ package sh.measure.android.events
 
 internal interface IEventTracker {
     fun addEventSink(sink: EventSink)
-    fun track(event: MeasureEvent)
+    fun track(event: MeasureEvent, immediate: Boolean = false)
 }
 
 /**
@@ -15,7 +15,7 @@ internal class EventTracker : IEventTracker {
         _sinks.add(sink)
     }
 
-    override fun track(event: MeasureEvent) {
+    override fun track(event: MeasureEvent, immediate: Boolean) {
         _sinks.forEach { sink -> sink.send(event) }
     }
 }
