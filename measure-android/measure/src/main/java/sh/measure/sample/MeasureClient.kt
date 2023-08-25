@@ -30,7 +30,7 @@ internal class MeasureClient(private val logger: Logger, context: Context) {
 
     // TODO(abhay): Replace with the real server URL. Ideally configured via a Gradle property.
     private val httpClient: HttpClient = HttpClientOkHttp(
-        logger, baseUrl = "ENTER_URL_HERE"
+        logger, baseUrl = "https://www.example.com/"
     )
     private val eventTracker = EventTracker()
 
