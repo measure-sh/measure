@@ -1,4 +1,4 @@
-package sh.measure.sample.logger
+package sh.measure.android.logger
 
 /**
  * Interface for internal logging in Measure SDK.

@@ -1,4 +1,4 @@
-package sh.measure.sample.events
+package sh.measure.android.events
 
 /**
  * All event types supported by Measure.

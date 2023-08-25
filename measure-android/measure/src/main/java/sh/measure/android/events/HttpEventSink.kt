@@ -1,9 +1,9 @@
-package sh.measure.sample.events
+package sh.measure.android.events
 
 import kotlinx.serialization.Serializable
-import sh.measure.sample.logger.LogLevel
-import sh.measure.sample.logger.Logger
-import sh.measure.sample.network.HttpClient
+import sh.measure.android.logger.LogLevel
+import sh.measure.android.logger.Logger
+import sh.measure.android.network.HttpClient
 
 /**
  * The number of events needed in a batch to be sent to server.

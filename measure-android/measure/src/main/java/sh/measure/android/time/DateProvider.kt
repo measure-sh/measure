@@ -1,4 +1,4 @@
-package sh.measure.sample.time
+package sh.measure.android.time
 
 import android.os.SystemClock
 

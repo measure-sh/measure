@@ -1,8 +1,8 @@
-package sh.measure.sample.events
+package sh.measure.android.events
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
-import sh.measure.sample.resource.Resource
+import sh.measure.android.resource.Resource
 
 /**
  * Represents an event in Measure.

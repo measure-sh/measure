@@ -1,4 +1,4 @@
-package sh.measure.sample.exceptions
+package sh.measure.android.exceptions
 
 import kotlinx.serialization.Serializable
 

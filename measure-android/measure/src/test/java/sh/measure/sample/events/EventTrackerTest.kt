@@ -4,8 +4,13 @@ import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
-import sh.measure.sample.exceptions.ExceptionData
-import sh.measure.sample.resource.Resource
+import sh.measure.android.events.EventBody
+import sh.measure.android.events.EventSink
+import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventType
+import sh.measure.android.events.MeasureEvent
+import sh.measure.android.exceptions.ExceptionData
+import sh.measure.android.resource.Resource
 
 internal class EventTrackerTest {
 

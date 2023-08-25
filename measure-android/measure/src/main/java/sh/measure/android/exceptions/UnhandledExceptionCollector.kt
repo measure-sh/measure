@@ -1,8 +1,8 @@
-package sh.measure.sample.exceptions
+package sh.measure.android.exceptions
 
-import sh.measure.sample.MeasureClient
-import sh.measure.sample.logger.LogLevel
-import sh.measure.sample.logger.Logger
+import sh.measure.android.MeasureClient
+import sh.measure.android.logger.LogLevel
+import sh.measure.android.logger.Logger
 import java.lang.Thread.UncaughtExceptionHandler
 
 /**

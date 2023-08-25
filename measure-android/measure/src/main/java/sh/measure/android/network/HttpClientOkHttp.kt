@@ -1,4 +1,4 @@
-package sh.measure.sample.network
+package sh.measure.android.network
 
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
@@ -12,9 +12,9 @@ import okhttp3.RequestBody
 import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
 import okio.BufferedSink
-import sh.measure.sample.events.EventsRequest
-import sh.measure.sample.logger.LogLevel
-import sh.measure.sample.logger.Logger
+import sh.measure.android.events.EventsRequest
+import sh.measure.android.logger.LogLevel
+import sh.measure.android.logger.Logger
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 

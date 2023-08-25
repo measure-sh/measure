@@ -1,9 +1,9 @@
-package sh.measure.sample.events
+package sh.measure.android.events
 
 import kotlinx.serialization.json.JsonElement
-import sh.measure.sample.id.IdProvider
-import sh.measure.sample.resource.Resource
-import sh.measure.sample.time.DateProvider
+import sh.measure.android.id.IdProvider
+import sh.measure.android.resource.Resource
+import sh.measure.android.time.DateProvider
 
 /**
  * Factory for creating [MeasureEvent]s.

@@ -1,6 +1,7 @@
 package sh.measure.sample
 
 import android.app.Application
+import sh.measure.android.Measure
 
 class SampleApplication: Application() {
 

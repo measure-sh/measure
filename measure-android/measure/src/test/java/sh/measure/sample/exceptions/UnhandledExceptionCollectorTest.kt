@@ -6,8 +6,10 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.verify
-import sh.measure.sample.MeasureClient
-import sh.measure.sample.logger.Logger
+import sh.measure.android.MeasureClient
+import sh.measure.android.exceptions.ExceptionFactory
+import sh.measure.android.exceptions.UnhandledExceptionCollector
+import sh.measure.android.logger.Logger
 
 internal class UnhandledExceptionCollectorTest {
 

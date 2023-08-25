@@ -1,4 +1,4 @@
-package sh.measure.sample.events
+package sh.measure.android.events
 
 internal interface IEventTracker {
     fun addEventSink(sink: EventSink)

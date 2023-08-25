@@ -1,11 +1,11 @@
-package sh.measure.sample.resource
+package sh.measure.android.resource
 
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import kotlinx.serialization.Serializable
-import sh.measure.sample.logger.LogLevel
-import sh.measure.sample.logger.Logger
+import sh.measure.android.logger.LogLevel
+import sh.measure.android.logger.Logger
 
 /**
  * Factory to create a [Resource].

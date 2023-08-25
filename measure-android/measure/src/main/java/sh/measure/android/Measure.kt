@@ -1,8 +1,8 @@
-package sh.measure.sample
+package sh.measure.android
 
 import android.content.Context
-import sh.measure.sample.logger.AndroidLogger
-import sh.measure.sample.logger.LogLevel
+import sh.measure.android.logger.AndroidLogger
+import sh.measure.android.logger.LogLevel
 
 class Measure {
     companion object {

@@ -1,4 +1,4 @@
-package sh.measure.sample.id
+package sh.measure.android.id
 
 import java.util.UUID
 

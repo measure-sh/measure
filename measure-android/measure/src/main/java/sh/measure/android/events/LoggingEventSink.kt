@@ -1,8 +1,8 @@
-package sh.measure.sample.events
+package sh.measure.android.events
 
 import kotlinx.serialization.json.Json
-import sh.measure.sample.logger.LogLevel
-import sh.measure.sample.logger.Logger
+import sh.measure.android.logger.LogLevel
+import sh.measure.android.logger.Logger
 
 /**
  * A sink that logs events to console using a [Logger].
