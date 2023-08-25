@@ -4,6 +4,8 @@ plugins {
     kotlin("plugin.serialization")
 }
 
+apply(from = "publish_local.gradle")
+
 android {
     namespace = "sh.measure.android"
     compileSdk = 33
