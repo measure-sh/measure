@@ -1,12 +1,17 @@
 package sh.measure.android
 
 import android.content.Context
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
-import sh.measure.android.events.EventTracker
+import sh.measure.android.database.DbClient
+import sh.measure.android.database.SqliteDbClient
+import sh.measure.android.debug.DebugHeartbeatCollector
+import sh.measure.android.events.DefaultTracker
 import sh.measure.android.events.EventType
-import sh.measure.android.events.HttpEventSink
-import sh.measure.android.events.LoggingEventSink
 import sh.measure.android.events.MeasureEventFactory
+import sh.measure.android.events.sinks.DbSink
+import sh.measure.android.events.sinks.HttpSink
+import sh.measure.android.events.sinks.LoggingSink
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.exceptions.UnhandledExceptionCollector
 import sh.measure.android.id.IdProvider
@@ -22,7 +27,7 @@ import sh.measure.android.time.DateProvider
  * Maintains global state and provides a way for different components to communicate with each
  * other.
  */
-internal class MeasureClient(private val logger: Logger, context: Context) {
+internal class MeasureClient(private val logger: Logger, private val context: Context) {
     private val idProvider: IdProvider = UUIDProvider()
     private val dateProvider: DateProvider = AndroidDateProvider
     private val resource =
@@ -32,14 +37,17 @@ internal class MeasureClient(private val logger: Logger, context: Context) {
     private val httpClient: HttpClient = HttpClientOkHttp(
         logger, baseUrl = "https://www.example.com/"
     )
-    private val eventTracker = EventTracker()
+    private val dbClient: DbClient = SqliteDbClient(logger, context)
+    private val defaultTracker = DefaultTracker()
 
     fun init() {
-        eventTracker.apply {
-            addEventSink(LoggingEventSink(logger))
-            addEventSink(HttpEventSink(logger, httpClient))
+        defaultTracker.apply {
+            addEventSink(LoggingSink(logger))
+            addEventSink(HttpSink(logger, httpClient, dbClient))
+            addEventSink(DbSink(logger, dbClient))
         }
         UnhandledExceptionCollector(logger, this).register()
+        DebugHeartbeatCollector(context, this).register()
     }
 
     fun captureException(exceptionData: ExceptionData) {
@@ -50,6 +58,17 @@ internal class MeasureClient(private val logger: Logger, context: Context) {
             idProvider = idProvider,
             dateProvider = dateProvider
         )
-        eventTracker.track(event)
+        defaultTracker.track(event)
+    }
+
+    fun captureHeartbeat() {
+        val event = MeasureEventFactory.createMeasureEvent(
+            type = EventType.STRING,
+            value = Json.encodeToJsonElement(String.serializer(), "Heartbeat"),
+            resource = resource,
+            idProvider = idProvider,
+            dateProvider = dateProvider
+        )
+        defaultTracker.track(event)
     }
 }

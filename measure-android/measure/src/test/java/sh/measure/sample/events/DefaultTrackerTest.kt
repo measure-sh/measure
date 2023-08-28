@@ -4,34 +4,34 @@ import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
+import sh.measure.android.events.DefaultTracker
 import sh.measure.android.events.EventBody
-import sh.measure.android.events.EventSink
-import sh.measure.android.events.EventTracker
 import sh.measure.android.events.EventType
 import sh.measure.android.events.MeasureEvent
+import sh.measure.android.events.sinks.Sink
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.resource.Resource
 
-internal class EventTrackerTest {
+internal class DefaultTrackerTest {
 
-    private lateinit var eventTracker: EventTracker
-    private lateinit var fakeEventSink1: FakeEventSink
-    private lateinit var fakeEventSink2: FakeEventSink
+    private lateinit var defaultTracker: DefaultTracker
+    private lateinit var fakeEventSink1: FakeSink
+    private lateinit var fakeEventSink2: FakeSink
 
     @Before
     fun setUp() {
-        eventTracker = EventTracker()
-        fakeEventSink1 = FakeEventSink()
-        fakeEventSink2 = FakeEventSink()
+        defaultTracker = DefaultTracker()
+        fakeEventSink1 = FakeSink()
+        fakeEventSink2 = FakeSink()
     }
 
     @Test
     fun `sends events to all registered event sinks`() {
-        eventTracker.addEventSink(fakeEventSink1)
-        eventTracker.addEventSink(fakeEventSink2)
+        defaultTracker.addEventSink(fakeEventSink1)
+        defaultTracker.addEventSink(fakeEventSink2)
 
         val measureEvent = createFakeMeasureEvent()
-        eventTracker.track(measureEvent)
+        defaultTracker.track(measureEvent)
 
         assertEquals(1, fakeEventSink1.getReceivedEvents().size)
         assertEquals(1, fakeEventSink2.getReceivedEvents().size)
@@ -56,10 +56,10 @@ internal class EventTrackerTest {
     }
 }
 
-internal class FakeEventSink : EventSink {
+internal class FakeSink : Sink {
     private val receivedEvents: MutableList<MeasureEvent> = mutableListOf()
 
-    override fun send(event: MeasureEvent) {
+    override fun offer(event: MeasureEvent, immediate: Boolean) {
         receivedEvents.add(event)
     }
 
