@@ -129,22 +129,33 @@ internal class SqliteDbClient(private val logger: Logger, context: Context) : Db
     }
 
     override fun getUnSyncedEvents(): List<MeasureEvent> {
+        logger.log(LogLevel.Debug, "Fetching un-synced events from database")
         val events = mutableListOf<MeasureEvent>()
 
-        readableDatabase.use { db ->
-            val cursor: Cursor = db.query(
-                TABLE_ENTRIES, arrayOf(COLUMN_DATA), "$COLUMN_SYNCED = 0", null, null, null, null
-            )
-            cursor.use {
-                while (it.moveToNext()) {
-                    val dataColumnIndex = it.getColumnIndex(COLUMN_DATA)
-                    assert(dataColumnIndex != -1)
-                    val data = it.getString(dataColumnIndex)
-                    events.add(Json.decodeFromString(MeasureEvent.serializer(), data))
+        try {
+            readableDatabase.use { db ->
+                val cursor: Cursor = db.query(
+                    TABLE_ENTRIES,
+                    arrayOf(COLUMN_DATA),
+                    "$COLUMN_SYNCED = 0",
+                    null,
+                    null,
+                    null,
+                    null
+                )
+                cursor.use {
+                    while (it.moveToNext()) {
+                        val dataColumnIndex = it.getColumnIndex(COLUMN_DATA)
+                        assert(dataColumnIndex != -1)
+                        val data = it.getString(dataColumnIndex)
+                        events.add(Json.decodeFromString(MeasureEvent.serializer(), data))
+                    }
                 }
             }
+        } catch (e: SQLiteException) {
+            logger.log(LogLevel.Error, "Failed to fetch un-synced events from database", e)
         }
-
+        logger.log(LogLevel.Error, "Fetched ${events.count()} un-synced events from database")
         return events
     }
 }
