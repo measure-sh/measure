@@ -1,6 +1,6 @@
 # SQL Statements
 
-In this directory, you'll find all the SQL statements being used to develop Measure's backend databases. Keeping all SQL statements at one place while in-development is helpful for referencing.
+In this directory, you'll find all the adhoq SQL queries being used to develop Measure's backend databases. All queries are for reference and ease of access. They are not directly accessed or executed by any app.
 
 ## Linting
 

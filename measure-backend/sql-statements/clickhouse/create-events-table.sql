@@ -37,10 +37,10 @@ create table if not exists events_test_1
     `body.gesture_long_click.target_id` FixedString(32),
     `body.gesture_long_click.touch_down_time` DateTime('UTC'),
     `body.gesture_long_click.touch_up_time` DateTime('UTC'),
-    `body.gesture_long_click.width` UInt8,
-    `body.gesture_long_click.height` UInt8,
-    `body.gesture_long_click.x` UInt8,
-    `body.gesture_long_click.y` UInt8,
+    `body.gesture_long_click.width` UInt16,
+    `body.gesture_long_click.height` UInt16,
+    `body.gesture_long_click.x` UInt16,
+    `body.gesture_long_click.y` UInt16,
     /* gesture_click */
     `body.gesture_click.target` FixedString(128),
     `body.gesture_click.target_user_readable_name` FixedString(128),
@@ -62,7 +62,7 @@ create table if not exists events_test_1
     `body.gesture_scroll.end_x` UInt16,
     `body.gesture_scroll.end_y` UInt16,
     `body.gesture_scroll.velocity_px` UInt16,
-    `body.gesture_scroll.angle` UInt16,
+    `body.gesture_scroll.direction` UInt16,
     /* http_request */
     `body.http_request.request_id` UUID,
     `body.http_request.request_url` String,
@@ -78,7 +78,9 @@ create table if not exists events_test_1
     `body.http_response.latency_ms` UInt16,
     `body.http_response.status_code` UInt16,
     `body.http_response.response_body` String,
-    `body.http_response.response_headers` Map(String, String)
+    `body.http_response.response_headers` Map(String, String),
+    /* attributes */
+    `attributes` Map(String, String)
 
 )
 engine = MergeTree

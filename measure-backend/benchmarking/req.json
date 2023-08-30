@@ -1,0 +1,49 @@
+{
+	"timestamp": "2023-08-24T14:51:38.000000534Z",
+	"severity_text": "info",
+	"body": {
+		"type": "http_request",
+		"request_id": "ffcf24b6-7cea-4fac-a2bf-131321843ccc",
+		"request_url": "https://example.com/foo/bar/baz",
+		"method": "GET",
+		"http_protocol_version": "1.1",
+		"request_body_size": 1024,
+		"request_body": "bla bla bla",
+		"request_headers": {
+			"content-type": "application/json",
+			"authorization": "bearer some-secret-here"
+		}
+		
+	},
+	"resource": {
+		"session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
+		"device_name": "samsung",
+		"device_model": "s23",
+		"device_manufacturer": "foxconn",
+		"device_type": "phone",
+		"device_is_foldable": false,
+		"device_is_physical": true,
+		"device_density_dpi": 230,
+		"device_width_px": 2000,
+		"device_height_px": 4000,
+		"device_density": 2,
+		"os_name": "Android",
+		"platform": "Android",
+		"app_version": "1.2.3",
+		"app_build": "123456",
+		"app_unique_id": "sh.measure.whatever",
+		"measure_sdk_version": "0.0.1"
+	},
+	"attributes": {
+		"key-1": "value 1",
+		"key-2": "value 2",
+		"key-3": "value 3",
+		"key-4": "value 4",
+		"key-5": "value 5",
+		"key-6": "value 6",
+		"key-7": "value 7",
+		"key-8": "value 8",
+		"key-9": "value 9",
+		"key-10": "value 10"
+	}
+}
