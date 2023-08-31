@@ -11,6 +11,8 @@ github.com/ClickHouse/clickhouse-go/v2 v2.13.3 h1:/esk41SjVLIDQs2rkOmRKXJ1FIFArI
 github.com/ClickHouse/clickhouse-go/v2 v2.13.3/go.mod h1:yoCB//XLqbyqaYvXzdbIdmMafOSomU3erh3r06NLCZU=
 github.com/ClickHouse/clickhouse-go/v2 v2.13.4-0.20230829124605-14c2ee97014d h1:tNXRhT0ESPkWHOsR3uUCB3m0P6Cvv5M87zBfBZN9Oo0=
 github.com/ClickHouse/clickhouse-go/v2 v2.13.4-0.20230829124605-14c2ee97014d/go.mod h1:u1AUh8E0XqN1sU1EDzbiGLTI4KWOd+lOHimNSsdyJec=
+github.com/ClickHouse/clickhouse-go/v2 v2.13.4 h1:NcvYN9ONZn3vlPMfQVUBSG5LKz+1y2wk4vaaz5QZXIg=
+github.com/ClickHouse/clickhouse-go/v2 v2.13.4/go.mod h1:u1AUh8E0XqN1sU1EDzbiGLTI4KWOd+lOHimNSsdyJec=
 github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d/go.mod h1:3eOhrUMpNV+6aFIbp5/iudMxNCF27Vw2OZgy4xEx0Fg=
 github.com/andybalholm/brotli v1.0.5 h1:8uQZIdzKmjc/iuPu7O2ioW48L81FgatrcpfFmiq/cCs=
 github.com/andybalholm/brotli v1.0.5/go.mod h1:fO7iG3H7G2nSZ7m0zPUDn85XEX2GTukHGRSepvi9Eig=

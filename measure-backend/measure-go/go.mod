@@ -3,7 +3,7 @@ module measure-go
 go 1.21.0
 
 require (
-	github.com/ClickHouse/clickhouse-go/v2 v2.13.4-0.20230829124605-14c2ee97014d
+	github.com/ClickHouse/clickhouse-go/v2 v2.13.4
 	github.com/gin-gonic/gin v1.9.1
 	github.com/google/uuid v1.3.1
 	github.com/jackc/pgx/v5 v5.4.3
