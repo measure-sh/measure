@@ -11,5 +11,5 @@ FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 COPY --from=builder /go/bin/app /app
 ENTRYPOINT /app
-LABEL Name=trygin Version=0.0.1
+LABEL Name=measure-go Version=0.0.1
 EXPOSE 8080

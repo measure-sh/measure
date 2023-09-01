@@ -70,6 +70,7 @@ type ExceptionUnit struct {
 }
 
 type EventRequestBodyString struct {
+	Type   string `json:"type"`
 	String string `json:"string"`
 }
 
@@ -80,6 +81,7 @@ type EventRequestBodyException struct {
 }
 
 type EventRequestBodyGestureLongClick struct {
+	Type                   string    `json:"type"`
 	Target                 string    `json:"target"`
 	TargetUserReadableName string    `json:"target_user_readable_name"`
 	TargetID               string    `json:"target_id"`
@@ -92,6 +94,7 @@ type EventRequestBodyGestureLongClick struct {
 }
 
 type EventRequestBodyGestureClick struct {
+	Type                   string    `json:"type"`
 	Target                 string    `json:"target"`
 	TargetUserReadableName string    `json:"target_user_readable_name"`
 	TargetID               string    `json:"target_id"`
@@ -104,6 +107,7 @@ type EventRequestBodyGestureClick struct {
 }
 
 type EventRequestBodyGestureScroll struct {
+	Type                   string    `json:"type"`
 	Target                 string    `json:"target"`
 	TargetUserReadableName string    `json:"target_user_readable_name"`
 	TargetID               string    `json:"target_id"`
@@ -118,7 +122,8 @@ type EventRequestBodyGestureScroll struct {
 }
 
 type EventRequestBodyHTTPRequest struct {
-	RequestID           uuid.UUID         `json:"request_id"`
+	Type                string            `json:"type"`
+	RequestID           string            `json:"request_id"`
 	RequestURL          string            `json:"request_url"`
 	Method              string            `json:"method"`
 	HTTPProtocolVersion string            `json:"http_protocol_version"`
@@ -128,7 +133,8 @@ type EventRequestBodyHTTPRequest struct {
 }
 
 type EventRequestBodyHTTPResponse struct {
-	RequestID       uuid.UUID         `json:"request_id"`
+	Type            string            `json:"type"`
+	RequestID       string            `json:"request_id"`
 	RequestURL      string            `json:"request_url"`
 	Method          string            `json:"method"`
 	LatencyMS       uint16            `json:"latency_ms"`
@@ -146,7 +152,7 @@ type EventRequest struct {
 	Attributes   map[string]string    `json:"attributes"`
 }
 
-func putEvent(c *gin.Context) {
+func postEvent(c *gin.Context) {
 	token, exists := c.Get("token")
 
 	if !exists {
@@ -196,22 +202,7 @@ func validateEvent(event *EventRequest) error {
 	return nil
 }
 
-func postEvent(c *gin.Context) {
-	var eventRequest EventRequest
-	if err := c.ShouldBindJSON(&eventRequest); err != nil {
-		fmt.Println(err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	err := validateEvent(&eventRequest)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	eventRequest.ID = uuid.New()
-
+func populate(eventRequest *EventRequest) {
 	if eventRequest.Body.EventRequestBodyException == nil {
 		eventRequest.Body.EventRequestBodyException = new(EventRequestBodyException)
 	}
@@ -239,6 +230,25 @@ func postEvent(c *gin.Context) {
 	if eventRequest.Body.EventRequestBodyHTTPResponse == nil {
 		eventRequest.Body.EventRequestBodyHTTPResponse = new(EventRequestBodyHTTPResponse)
 	}
+}
+
+func putEvent(c *gin.Context) {
+	var eventRequest EventRequest
+	if err := c.ShouldBindJSON(&eventRequest); err != nil {
+		fmt.Println(err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := validateEvent(&eventRequest)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	eventRequest.ID = uuid.New()
+
+	populate(&eventRequest)
 
 	// format maps into {"foo": "bar"} format
 	requestHeaders := mapToString(eventRequest.Body.EventRequestBodyHTTPRequest.RequestHeaders)
@@ -474,5 +484,5 @@ func postEvent(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusAccepted, eventRequest)
+	c.JSON(http.StatusAccepted, gin.H{"ok": "accepted"})
 }
