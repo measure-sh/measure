@@ -7,18 +7,12 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 )
 
 var serverConfig ServerConfig
 var server Server
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
 	serverConfig = *NewServerConfig()
 
 	pgDSN := os.Getenv("POSTGRES_DSN")
@@ -51,7 +45,7 @@ func main() {
 	r.GET("/employees", func(c *gin.Context) {
 		var name string
 		var department string
-		err = pgPool.QueryRow(context.Background(), "select type from dummy where type=$1", "type-a").Scan(&name)
+		err := pgPool.QueryRow(context.Background(), "select type from dummy where type=$1", "type-a").Scan(&name)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "QueryRow failed: %v\n", err)
 			return
@@ -67,5 +61,4 @@ func main() {
 	r.POST("/events", authorize(), postEvent)
 
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080
-
 }
