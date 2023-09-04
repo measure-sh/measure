@@ -19,14 +19,14 @@ const maxAttrCount = 10
 const timeFormat = "2006-01-02 15:04:05.999999999"
 
 type EventRequestBody struct {
-	Type string `json:"type"`
-	*EventRequestBodyException
-	*EventRequestBodyString
-	*EventRequestBodyGestureLongClick
-	*EventRequestBodyGestureScroll
-	*EventRequestBodyGestureClick
-	*EventRequestBodyHTTPRequest
-	*EventRequestBodyHTTPResponse
+	Type             string                           `json:"type"`
+	Exception        EventRequestBodyException        `json:"exception"`
+	String           EventRequestBodyString           `json:"string"`
+	GestureLongClick EventRequestBodyGestureLongClick `json:"gesture_long_click"`
+	GestureScroll    EventRequestBodyGestureScroll    `json:"gesture_scroll"`
+	GestureClick     EventRequestBodyGestureClick     `json:"gesture_click"`
+	HTTPRequest      EventRequestBodyHTTPRequest      `json:"http_request"`
+	HTTPResponse     EventRequestBodyHTTPResponse     `json:"http_response"`
 }
 
 type EventRequestResource struct {
@@ -70,18 +70,15 @@ type ExceptionUnit struct {
 }
 
 type EventRequestBodyString struct {
-	Type   string `json:"type"`
 	String string `json:"string"`
 }
 
 type EventRequestBodyException struct {
-	Type       string `json:"type"`
 	Exceptions string `json:"exceptions"`
 	Handled    bool   `json:"handled"`
 }
 
 type EventRequestBodyGestureLongClick struct {
-	Type                   string    `json:"type"`
 	Target                 string    `json:"target"`
 	TargetUserReadableName string    `json:"target_user_readable_name"`
 	TargetID               string    `json:"target_id"`
@@ -94,7 +91,6 @@ type EventRequestBodyGestureLongClick struct {
 }
 
 type EventRequestBodyGestureClick struct {
-	Type                   string    `json:"type"`
 	Target                 string    `json:"target"`
 	TargetUserReadableName string    `json:"target_user_readable_name"`
 	TargetID               string    `json:"target_id"`
@@ -107,7 +103,6 @@ type EventRequestBodyGestureClick struct {
 }
 
 type EventRequestBodyGestureScroll struct {
-	Type                   string    `json:"type"`
 	Target                 string    `json:"target"`
 	TargetUserReadableName string    `json:"target_user_readable_name"`
 	TargetID               string    `json:"target_id"`
@@ -122,7 +117,6 @@ type EventRequestBodyGestureScroll struct {
 }
 
 type EventRequestBodyHTTPRequest struct {
-	Type                string            `json:"type"`
 	RequestID           string            `json:"request_id"`
 	RequestURL          string            `json:"request_url"`
 	Method              string            `json:"method"`
@@ -133,7 +127,6 @@ type EventRequestBodyHTTPRequest struct {
 }
 
 type EventRequestBodyHTTPResponse struct {
-	Type            string            `json:"type"`
 	RequestID       string            `json:"request_id"`
 	RequestURL      string            `json:"request_url"`
 	Method          string            `json:"method"`
@@ -202,36 +195,6 @@ func validateEvent(event *EventRequest) error {
 	return nil
 }
 
-func populate(eventRequest *EventRequest) {
-	if eventRequest.Body.EventRequestBodyException == nil {
-		eventRequest.Body.EventRequestBodyException = new(EventRequestBodyException)
-	}
-
-	if eventRequest.Body.EventRequestBodyString == nil {
-		eventRequest.Body.EventRequestBodyString = new(EventRequestBodyString)
-	}
-
-	if eventRequest.Body.EventRequestBodyGestureLongClick == nil {
-		eventRequest.Body.EventRequestBodyGestureLongClick = new(EventRequestBodyGestureLongClick)
-	}
-
-	if eventRequest.Body.EventRequestBodyGestureClick == nil {
-		eventRequest.Body.EventRequestBodyGestureClick = new(EventRequestBodyGestureClick)
-	}
-
-	if eventRequest.Body.EventRequestBodyGestureScroll == nil {
-		eventRequest.Body.EventRequestBodyGestureScroll = new(EventRequestBodyGestureScroll)
-	}
-
-	if eventRequest.Body.EventRequestBodyHTTPRequest == nil {
-		eventRequest.Body.EventRequestBodyHTTPRequest = new(EventRequestBodyHTTPRequest)
-	}
-
-	if eventRequest.Body.EventRequestBodyHTTPResponse == nil {
-		eventRequest.Body.EventRequestBodyHTTPResponse = new(EventRequestBodyHTTPResponse)
-	}
-}
-
 func putEvent(c *gin.Context) {
 	var eventRequest EventRequest
 	if err := c.ShouldBindJSON(&eventRequest); err != nil {
@@ -248,21 +211,19 @@ func putEvent(c *gin.Context) {
 
 	eventRequest.ID = uuid.New()
 
-	populate(&eventRequest)
-
 	// format maps into {"foo": "bar"} format
-	requestHeaders := mapToString(eventRequest.Body.EventRequestBodyHTTPRequest.RequestHeaders)
-	responseHeaders := mapToString(eventRequest.Body.EventRequestBodyHTTPResponse.ResponseHeaders)
+	requestHeaders := mapToString(eventRequest.Body.HTTPRequest.RequestHeaders)
+	responseHeaders := mapToString(eventRequest.Body.HTTPResponse.ResponseHeaders)
 	attributes := mapToString(eventRequest.Attributes)
 
 	// format datetime into clickouse compatible format
 	eventTimestamp := eventRequest.Timestamp.Format(timeFormat)
-	gestureLongClickTouchDownTime := eventRequest.Body.EventRequestBodyGestureLongClick.TouchDownTime.Format(timeFormat)
-	gestureLongClickTouchUpTime := eventRequest.Body.EventRequestBodyGestureLongClick.TouchUpTime.Format(timeFormat)
-	gestureClickTouchDownTime := eventRequest.Body.EventRequestBodyGestureClick.TouchDownTime.Format(timeFormat)
-	gestureClickTouchUpTime := eventRequest.Body.EventRequestBodyGestureClick.TouchUpTime.Format(timeFormat)
-	gestureScrollTouchDownTime := eventRequest.Body.EventRequestBodyGestureScroll.TouchDownTime.Format(timeFormat)
-	gestureScrollTouchUpTime := eventRequest.Body.EventRequestBodyGestureScroll.TouchUpTime.Format(timeFormat)
+	gestureLongClickTouchDownTime := eventRequest.Body.GestureLongClick.TouchDownTime.Format(timeFormat)
+	gestureLongClickTouchUpTime := eventRequest.Body.GestureLongClick.TouchUpTime.Format(timeFormat)
+	gestureClickTouchDownTime := eventRequest.Body.GestureClick.TouchDownTime.Format(timeFormat)
+	gestureClickTouchUpTime := eventRequest.Body.GestureClick.TouchUpTime.Format(timeFormat)
+	gestureScrollTouchDownTime := eventRequest.Body.GestureScroll.TouchDownTime.Format(timeFormat)
+	gestureScrollTouchUpTime := eventRequest.Body.GestureScroll.TouchUpTime.Format(timeFormat)
 
 	query := fmt.Sprintf(`insert into events_test_1
 		(
@@ -429,51 +390,52 @@ func putEvent(c *gin.Context) {
 		eventRequest.Resource.AppUniqueID,
 		eventRequest.Resource.MeasureSDKVersion,
 		eventRequest.Body.Type,
-		eventRequest.Body.EventRequestBodyString,
-		eventRequest.Body.EventRequestBodyException.Exceptions,
-		eventRequest.Body.Handled,
-		eventRequest.Body.EventRequestBodyGestureLongClick.Target,
-		eventRequest.Body.EventRequestBodyGestureLongClick.TargetUserReadableName,
-		eventRequest.Body.EventRequestBodyGestureLongClick.TargetID,
+		eventRequest.Body.String.String,
+		eventRequest.Body.Exception.Exceptions,
+		eventRequest.Body.Exception.Handled,
+		eventRequest.Body.GestureLongClick.Target,
+		eventRequest.Body.GestureLongClick.TargetUserReadableName,
+		eventRequest.Body.GestureLongClick.TargetID,
+
 		gestureLongClickTouchDownTime,
 		gestureLongClickTouchUpTime,
-		eventRequest.Body.EventRequestBodyGestureLongClick.Width,
-		eventRequest.Body.EventRequestBodyGestureLongClick.Height,
-		eventRequest.Body.EventRequestBodyGestureLongClick.X,
-		eventRequest.Body.EventRequestBodyGestureLongClick.Y,
-		eventRequest.Body.EventRequestBodyGestureClick.Target,
-		eventRequest.Body.EventRequestBodyGestureClick.TargetUserReadableName,
-		eventRequest.Body.EventRequestBodyGestureClick.TargetID,
+		eventRequest.Body.GestureLongClick.Width,
+		eventRequest.Body.GestureLongClick.Height,
+		eventRequest.Body.GestureLongClick.X,
+		eventRequest.Body.GestureLongClick.Y,
+		eventRequest.Body.GestureClick.Target,
+		eventRequest.Body.GestureClick.TargetUserReadableName,
+		eventRequest.Body.GestureClick.TargetID,
 		gestureClickTouchDownTime,
 		gestureClickTouchUpTime,
-		eventRequest.Body.EventRequestBodyGestureClick.Width,
-		eventRequest.Body.EventRequestBodyGestureClick.Height,
-		eventRequest.Body.EventRequestBodyGestureClick.X,
-		eventRequest.Body.EventRequestBodyGestureClick.Y,
-		eventRequest.Body.EventRequestBodyGestureScroll.Target,
-		eventRequest.Body.EventRequestBodyGestureScroll.TargetUserReadableName,
-		eventRequest.Body.EventRequestBodyGestureScroll.TargetID,
+		eventRequest.Body.GestureClick.Width,
+		eventRequest.Body.GestureClick.Height,
+		eventRequest.Body.GestureClick.X,
+		eventRequest.Body.GestureClick.Y,
+		eventRequest.Body.GestureScroll.Target,
+		eventRequest.Body.GestureScroll.TargetUserReadableName,
+		eventRequest.Body.GestureScroll.TargetID,
 		gestureScrollTouchDownTime,
 		gestureScrollTouchUpTime,
-		eventRequest.Body.EventRequestBodyGestureScroll.X,
-		eventRequest.Body.EventRequestBodyGestureScroll.Y,
-		eventRequest.Body.EventRequestBodyGestureScroll.EndX,
-		eventRequest.Body.EventRequestBodyGestureScroll.EndY,
-		eventRequest.Body.EventRequestBodyGestureScroll.VelocityPX,
-		eventRequest.Body.EventRequestBodyGestureScroll.Direction,
-		eventRequest.Body.EventRequestBodyHTTPRequest.RequestID,
-		eventRequest.Body.EventRequestBodyHTTPRequest.RequestURL,
-		eventRequest.Body.EventRequestBodyHTTPRequest.Method,
-		eventRequest.Body.EventRequestBodyHTTPRequest.HTTPProtocolVersion,
-		eventRequest.Body.EventRequestBodyHTTPRequest.RequestBodySize,
-		eventRequest.Body.EventRequestBodyHTTPRequest.RequestBody,
+		eventRequest.Body.GestureScroll.X,
+		eventRequest.Body.GestureScroll.Y,
+		eventRequest.Body.GestureScroll.EndX,
+		eventRequest.Body.GestureScroll.EndY,
+		eventRequest.Body.GestureScroll.VelocityPX,
+		eventRequest.Body.GestureScroll.Direction,
+		eventRequest.Body.HTTPRequest.RequestID,
+		eventRequest.Body.HTTPRequest.RequestURL,
+		eventRequest.Body.HTTPRequest.Method,
+		eventRequest.Body.HTTPRequest.HTTPProtocolVersion,
+		eventRequest.Body.HTTPRequest.RequestBodySize,
+		eventRequest.Body.HTTPRequest.RequestBody,
 		requestHeaders,
-		eventRequest.Body.EventRequestBodyHTTPResponse.RequestID,
-		eventRequest.Body.EventRequestBodyHTTPResponse.RequestURL,
-		eventRequest.Body.EventRequestBodyHTTPResponse.Method,
-		eventRequest.Body.EventRequestBodyHTTPResponse.LatencyMS,
-		eventRequest.Body.EventRequestBodyHTTPResponse.StatusCode,
-		eventRequest.Body.EventRequestBodyHTTPResponse.ResponseBody,
+		eventRequest.Body.HTTPResponse.RequestID,
+		eventRequest.Body.HTTPResponse.RequestURL,
+		eventRequest.Body.HTTPResponse.Method,
+		eventRequest.Body.HTTPResponse.LatencyMS,
+		eventRequest.Body.HTTPResponse.StatusCode,
+		eventRequest.Body.HTTPResponse.ResponseBody,
 		responseHeaders,
 		attributes,
 	)
