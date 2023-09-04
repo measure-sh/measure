@@ -130,7 +130,7 @@ Use the `exception` body type for errors and crashes.
 
 ##### Gesture Long Click
 
-Use the `gesture_long_click` body type for longer gestures.
+Use the `gesture_long_click` body type for longer click gestures.
 
 ```json
 [{
