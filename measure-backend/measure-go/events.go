@@ -21,7 +21,7 @@ const timeFormat = "2006-01-02 15:04:05.999999999"
 type EventRequestBody struct {
 	Type             string                           `json:"type"`
 	Exception        EventRequestBodyException        `json:"exception"`
-	String           EventRequestBodyString           `json:"string"`
+	String           string                           `json:"string"`
 	GestureLongClick EventRequestBodyGestureLongClick `json:"gesture_long_click"`
 	GestureScroll    EventRequestBodyGestureScroll    `json:"gesture_scroll"`
 	GestureClick     EventRequestBodyGestureClick     `json:"gesture_click"`
@@ -380,7 +380,7 @@ func putEvent(c *gin.Context) {
 
 		// body
 		eventRequest.Body.Type,
-		eventRequest.Body.String.String,
+		eventRequest.Body.String,
 		eventRequest.Body.Exception.Exceptions,
 		eventRequest.Body.Exception.Handled,
 		eventRequest.Body.GestureLongClick.Target,
