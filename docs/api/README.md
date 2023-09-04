@@ -11,29 +11,29 @@ Measure APIs are built following sound REST API design principles. Find all the 
 
 Lists all common request headers that must be present in each API request.
 
-<detail>
+<details>
 <summary>Request Headers</summary>
 
 | **Name**        | **Value**                       |
 | --------------- | ------------------------------- |
 | `Authorization` | Bearer &lt;measure-api-key&gt;  |
 | `Content-Type`  | application/json; charset=utf-8 |
-</detail>
+</details>
 
 ## Status Codes & Troubleshooting
 
 List of common status codes for success and errors.
 
-<detail>
+<details>
 <summary>Status Codes</summary>
 
 | **Name**                    | **Signifies**                                                                                                  |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `202 Accepted`              | Request was accepted and will be processed                                                                     |
 | `400 Bad Request`           | Request body is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
-| `401 Unauthorized`          | Either the Measure API key is not present or it has expired.                                                   |
-| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this error to your server administrator.               |
-</detail>
+| `401 Unauthorized`          | Either the Measure API key is not present or has expired.                                                   |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.               |
+</details>
 
 ## Resources
 
