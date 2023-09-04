@@ -211,20 +211,6 @@ func putEvent(c *gin.Context) {
 
 	eventRequest.ID = uuid.New()
 
-	// format maps into {"foo": "bar"} format
-	requestHeaders := mapToString(eventRequest.Body.HTTPRequest.RequestHeaders)
-	responseHeaders := mapToString(eventRequest.Body.HTTPResponse.ResponseHeaders)
-	attributes := mapToString(eventRequest.Attributes)
-
-	// format datetime into clickouse compatible format
-	eventTimestamp := eventRequest.Timestamp.Format(timeFormat)
-	gestureLongClickTouchDownTime := eventRequest.Body.GestureLongClick.TouchDownTime.Format(timeFormat)
-	gestureLongClickTouchUpTime := eventRequest.Body.GestureLongClick.TouchUpTime.Format(timeFormat)
-	gestureClickTouchDownTime := eventRequest.Body.GestureClick.TouchDownTime.Format(timeFormat)
-	gestureClickTouchUpTime := eventRequest.Body.GestureClick.TouchUpTime.Format(timeFormat)
-	gestureScrollTouchDownTime := eventRequest.Body.GestureScroll.TouchDownTime.Format(timeFormat)
-	gestureScrollTouchUpTime := eventRequest.Body.GestureScroll.TouchUpTime.Format(timeFormat)
-
 	query := fmt.Sprintf(`insert into events_test_1
 		(
 			id,
@@ -369,8 +355,10 @@ func putEvent(c *gin.Context) {
 			%v
 		);`,
 		eventRequest.ID,
-		eventTimestamp,
+		eventRequest.Timestamp.Format(timeFormat),
 		eventRequest.SeverityText,
+
+		// resource
 		eventRequest.Resource.SessionID,
 		eventRequest.Resource.DeviceName,
 		eventRequest.Resource.DeviceModel,
@@ -389,6 +377,8 @@ func putEvent(c *gin.Context) {
 		eventRequest.Resource.AppBuild,
 		eventRequest.Resource.AppUniqueID,
 		eventRequest.Resource.MeasureSDKVersion,
+
+		// body
 		eventRequest.Body.Type,
 		eventRequest.Body.String.String,
 		eventRequest.Body.Exception.Exceptions,
@@ -396,9 +386,8 @@ func putEvent(c *gin.Context) {
 		eventRequest.Body.GestureLongClick.Target,
 		eventRequest.Body.GestureLongClick.TargetUserReadableName,
 		eventRequest.Body.GestureLongClick.TargetID,
-
-		gestureLongClickTouchDownTime,
-		gestureLongClickTouchUpTime,
+		eventRequest.Body.GestureLongClick.TouchDownTime.Format(timeFormat),
+		eventRequest.Body.GestureLongClick.TouchUpTime.Format(timeFormat),
 		eventRequest.Body.GestureLongClick.Width,
 		eventRequest.Body.GestureLongClick.Height,
 		eventRequest.Body.GestureLongClick.X,
@@ -406,8 +395,8 @@ func putEvent(c *gin.Context) {
 		eventRequest.Body.GestureClick.Target,
 		eventRequest.Body.GestureClick.TargetUserReadableName,
 		eventRequest.Body.GestureClick.TargetID,
-		gestureClickTouchDownTime,
-		gestureClickTouchUpTime,
+		eventRequest.Body.GestureClick.TouchDownTime.Format(timeFormat),
+		eventRequest.Body.GestureClick.TouchUpTime.Format(timeFormat),
 		eventRequest.Body.GestureClick.Width,
 		eventRequest.Body.GestureClick.Height,
 		eventRequest.Body.GestureClick.X,
@@ -415,8 +404,8 @@ func putEvent(c *gin.Context) {
 		eventRequest.Body.GestureScroll.Target,
 		eventRequest.Body.GestureScroll.TargetUserReadableName,
 		eventRequest.Body.GestureScroll.TargetID,
-		gestureScrollTouchDownTime,
-		gestureScrollTouchUpTime,
+		eventRequest.Body.GestureScroll.TouchDownTime.Format(timeFormat),
+		eventRequest.Body.GestureScroll.TouchUpTime.Format(timeFormat),
 		eventRequest.Body.GestureScroll.X,
 		eventRequest.Body.GestureScroll.Y,
 		eventRequest.Body.GestureScroll.EndX,
@@ -429,15 +418,17 @@ func putEvent(c *gin.Context) {
 		eventRequest.Body.HTTPRequest.HTTPProtocolVersion,
 		eventRequest.Body.HTTPRequest.RequestBodySize,
 		eventRequest.Body.HTTPRequest.RequestBody,
-		requestHeaders,
+		mapToString(eventRequest.Body.HTTPRequest.RequestHeaders),
 		eventRequest.Body.HTTPResponse.RequestID,
 		eventRequest.Body.HTTPResponse.RequestURL,
 		eventRequest.Body.HTTPResponse.Method,
 		eventRequest.Body.HTTPResponse.LatencyMS,
 		eventRequest.Body.HTTPResponse.StatusCode,
 		eventRequest.Body.HTTPResponse.ResponseBody,
-		responseHeaders,
-		attributes,
+		mapToString(eventRequest.Body.HTTPResponse.ResponseHeaders),
+
+		// attributes
+		mapToString(eventRequest.Attributes),
 	)
 
 	if err := server.chPool.AsyncInsert(context.Background(), query, false); err != nil {
