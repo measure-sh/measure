@@ -5,7 +5,7 @@ Measure APIs are built following sound REST API design principles. Find all the 
 ## Usage Notes
 
 1. All endpoints expects a Measure API key in `Authorization: Bearer <api-key>` format  in request headers.
-2. All endpoints set `Content-Type: application/json` in request & response headers.
+2. All endpoints set `Content-Type: application/json; charset=utf-8` in request & response headers.
 
 ## Request Headers
 
