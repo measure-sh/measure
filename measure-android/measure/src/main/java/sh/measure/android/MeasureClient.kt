@@ -33,9 +33,8 @@ internal class MeasureClient(private val logger: Logger, private val context: Co
     private val resource =
         ResourceFactory.create(logger, context, sessionId = idProvider.createId())
 
-    // TODO(abhay): Replace with the real server URL. Ideally configured via a Gradle property.
     private val httpClient: HttpClient = HttpClientOkHttp(
-        logger, baseUrl = "https://www.example.com/"
+        logger, baseUrl = Config.MEASURE_BASE_URL, secretToken = Config.MEASURE_SECRET_TOKEN
     )
     private val dbClient: DbClient = SqliteDbClient(logger, context)
     private val defaultTracker = DefaultTracker()
@@ -61,10 +60,10 @@ internal class MeasureClient(private val logger: Logger, private val context: Co
         defaultTracker.track(event)
     }
 
-    fun captureHeartbeat() {
+    fun captureHeartbeat(string: String) {
         val event = MeasureEventFactory.createMeasureEvent(
             type = EventType.STRING,
-            value = Json.encodeToJsonElement(String.serializer(), "Heartbeat"),
+            value = Json.encodeToJsonElement(String.serializer(), string),
             resource = resource,
             idProvider = idProvider,
             dateProvider = dateProvider

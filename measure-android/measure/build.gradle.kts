@@ -2,9 +2,25 @@ plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     kotlin("plugin.serialization")
+    id("com.github.gmazzo.buildconfig") version "4.1.2"
 }
 
 apply(from = "publish_local.gradle")
+
+buildConfig {
+    packageName("sh.measure.android")
+    useKotlinOutput { internalVisibility = true }
+    buildConfigField(
+        type = "String",
+        name = "MEASURE_BASE_URL",
+        value = "\"${properties["MEASURE_BASE_URL"]?.toString() ?: ""}\"",
+    )
+    buildConfigField(
+        type = "String",
+        name = "MEASURE_SECRET_TOKEN",
+        value = "\"${properties["MEASURE_SECRET_TOKEN"]?.toString() ?: ""}\"",
+    )
+}
 
 android {
     namespace = "sh.measure.android"

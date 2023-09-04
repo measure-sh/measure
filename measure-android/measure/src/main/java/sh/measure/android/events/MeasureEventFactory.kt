@@ -1,6 +1,9 @@
 package sh.measure.android.events
 
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.encodeToJsonElement
 import sh.measure.android.id.IdProvider
 import sh.measure.android.resource.Resource
 import sh.measure.android.time.DateProvider
@@ -48,10 +51,11 @@ internal class MeasureEventFactory(
     ): MeasureEvent {
         return MeasureEvent(
             id = id ?: idProvider.createId(),
-            timestamp = timestamp ?: dateProvider.currentTimeSinceEpochInMillis,
-            body = EventBody(
-                type = eventType,
-                value = bodyValue,
+            timestamp = timestamp ?: dateProvider.currentTimeSinceEpochInNanos,
+            body = JsonObject(
+                mapOf(
+                    "type" to Json.encodeToJsonElement(eventType), eventType to bodyValue
+                )
             ),
             resource = resource,
             attributes = attributes
