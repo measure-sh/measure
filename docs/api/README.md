@@ -72,7 +72,7 @@ List of resources.
   }
   ```
 
-#### Body
+#### Request Body
 
 ##### String
 
