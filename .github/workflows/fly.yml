@@ -8,13 +8,14 @@ jobs:
   deploy:
     name: Deploy app
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: measure-backend/measure-go
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Setup flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Navigate to correct directory
-        run: cd measure-backend/measure-go
       - name: Deploy to fly.io
         run: flyctl deploy --remote-only
         env:
