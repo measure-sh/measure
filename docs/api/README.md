@@ -56,7 +56,7 @@ List of resources.
 - Send 1 or more events in a JSON array.
 - You can mix multiple body type events in a single request, that is, `string`, or `http_request`.
 - The maximum number of attributes in a single event is capped to **10**.
-- Make sure `timestamp` is in nanoseconds precision - `"2023-08-24T14:51:38.000000534Z"`
+- Ensure `timestamp` is in nanosecond precision - `"2023-08-24T14:51:38.000000534Z"`
 - Successful response always return a `202 Accepted` with the following response
 
   ```json
