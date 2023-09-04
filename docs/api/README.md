@@ -39,16 +39,16 @@ List of common status codes for success and errors.
 
 List of resources.
 
-- [**Events**]() - Each log entry, interactive gesture, network call and so on originating from mobile devices is an event.
-  - [string]()
-  - [exception]()
-  - [gesture_long_click]()
-  - [gesture_scroll]()
-  - [gesture_click]()
-  - [http_request]()
-  - [http_response]()
-- [**Metrics**]() - Any aggregated measures of compute, memory, energy & more consumed is a metric.
-- [**Config**]() - SDK or app specific configurations to best fit your customer and business needs.
+- [**Events**](#put-events) - Each log entry, interactive gesture, network call and so on originating from mobile devices is an event.
+  - [string](#string)
+  - [exception](#exception)
+  - [gesture_long_click](#gesture-long-click)
+  - [gesture_scroll](#gesture-scroll)
+  - [gesture_click](#gesture-click)
+  - [http_request](#http-request)
+  - [http_response](#http-response)
+- [**Metrics**](#metrics) - Any aggregated measures of compute, memory, energy & more consumed is a metric.
+- [**Config**](#config) - SDK or app specific configurations to best fit your customer and business needs.
 
 ### PUT `/events`
 
