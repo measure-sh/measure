@@ -14,7 +14,7 @@ jobs:
       - name: Setup flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
       - name: Navigate to correct directory
-        uses: cd measure-backend/measure-go
+        run: cd measure-backend/measure-go
       - name: Deploy to fly.io
         run: flyctl deploy --remote-only
         env:
