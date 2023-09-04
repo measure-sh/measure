@@ -27,7 +27,7 @@ List of common status codes for success and errors.
 <details>
 <summary>Status Codes</summary>
 
-| **Name**                    | **Signifies**                                                                                                  |
+| **Status**                    | **Signifies**                                                                                                  |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `202 Accepted`              | Request was accepted and will be processed                                                                     |
 | `400 Bad Request`           | Request body is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
