@@ -41,9 +41,9 @@ internal class MeasureClient(private val logger: Logger, private val context: Co
 
     fun init() {
         defaultTracker.apply {
-            addEventSink(LoggingSink(logger))
-            addEventSink(HttpSink(logger, httpClient, dbClient))
             addEventSink(DbSink(logger, dbClient))
+            addEventSink(HttpSink(logger, httpClient, dbClient))
+            addEventSink(LoggingSink(logger))
         }
         UnhandledExceptionCollector(logger, this).register()
         DebugHeartbeatCollector(context, this).register()
