@@ -70,6 +70,8 @@ measure is a comprehensive, flexible and open source observability platform for 
  - [ ] Login/Signup API
  - [ ] RBAC
  - [ ] SSO
+ - [ ] Metering
+ - [ ] Billing
  - [ ] Team management
  - [ ] App management
  - [ ] API key management
@@ -84,6 +86,7 @@ measure is a comprehensive, flexible and open source observability platform for 
  - [ ] Crash rate
  - [ ] ANRs
  - [ ] App adoption rate
+ - [ ] Auto data deletion after retention period
  - [ ] Kotlin/Java crashesSaaS - managed clickhouse, managed postgres, managed queue, managed worker server, managed app server, managed email provider, slack bot
  - [ ] Self hosting - docker with clickhouse, postgres, queue, worker server, app server, email provider config
 
