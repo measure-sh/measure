@@ -20,6 +20,7 @@ import sh.measure.android.logger.Logger
 import sh.measure.android.network.HttpClient
 import sh.measure.android.network.HttpClientOkHttp
 import sh.measure.android.resource.ResourceFactory
+import sh.measure.android.resource.SessionProvider
 import sh.measure.android.time.AndroidDateProvider
 import sh.measure.android.time.DateProvider
 
@@ -30,9 +31,8 @@ import sh.measure.android.time.DateProvider
 internal class MeasureClient(private val logger: Logger, private val context: Context) {
     private val idProvider: IdProvider = UUIDProvider()
     private val dateProvider: DateProvider = AndroidDateProvider
-    private val resource =
-        ResourceFactory.create(logger, context, sessionId = idProvider.createId(), Config)
-
+    private val sessionProvider: SessionProvider = SessionProvider(idProvider)
+    private val resource = ResourceFactory.create(logger, context, sessionProvider, Config)
     private val httpClient: HttpClient = HttpClientOkHttp(
         logger, baseUrl = Config.MEASURE_BASE_URL, secretToken = Config.MEASURE_SECRET_TOKEN
     )

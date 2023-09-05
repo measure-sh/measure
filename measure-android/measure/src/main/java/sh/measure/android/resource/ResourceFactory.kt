@@ -13,7 +13,7 @@ import sh.measure.android.logger.Logger
 internal class ResourceFactory private constructor(
     private val logger: Logger,
     private val context: Context,
-    private val sessionId: String,
+    private val sessionProvider: SessionProvider,
     private val config: Config
 ) {
     private val configuration = context.resources.configuration
@@ -31,14 +31,19 @@ internal class ResourceFactory private constructor(
         /**
          * Generates a new session ID and initializes all the fields of the [Resource].
          */
-        fun create(logger: Logger, context: Context, sessionId: String, config: Config): Resource {
-            return ResourceFactory(logger, context, sessionId, config).create()
+        fun create(
+            logger: Logger,
+            context: Context,
+            sessionProvider: SessionProvider,
+            config: Config
+        ): Resource {
+            return ResourceFactory(logger, context, sessionProvider, config).create()
         }
     }
 
     private fun create(): Resource {
         return Resource(
-            session_id = sessionId,
+            session_id = sessionProvider.sessionId,
             device_name = Build.DEVICE,
             device_model = Build.MODEL,
             device_manufacturer = Build.MANUFACTURER,
