@@ -54,6 +54,7 @@ measure is a comprehensive, flexible and open source observability platform for 
  - [ ] Team management
  - [ ] App management
  - [ ] API key management
+ - [ ] Billing + Metering page
  - [ ] Dashboard
  - [ ] App start time viewer
  - [ ] Crash viewer
