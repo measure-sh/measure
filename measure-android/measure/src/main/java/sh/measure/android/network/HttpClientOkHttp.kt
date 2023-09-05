@@ -58,7 +58,7 @@ internal class HttpClientOkHttp(
         }
 
         logger.log(LogLevel.Debug, "Sending events to server: ${events.count()}")
-        val request = Request.Builder().url(baseUrl + PATH_EVENTS).post(requestBody).build()
+        val request = Request.Builder().url(baseUrl + PATH_EVENTS).put(requestBody).build()
         client.newCall(request).enqueue(CallbackAdapter(logger, callback))
     }
 }
