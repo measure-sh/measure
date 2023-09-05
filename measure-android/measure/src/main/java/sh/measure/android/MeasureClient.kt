@@ -31,7 +31,7 @@ internal class MeasureClient(private val logger: Logger, private val context: Co
     private val idProvider: IdProvider = UUIDProvider()
     private val dateProvider: DateProvider = AndroidDateProvider
     private val resource =
-        ResourceFactory.create(logger, context, sessionId = idProvider.createId())
+        ResourceFactory.create(logger, context, sessionId = idProvider.createId(), Config)
 
     private val httpClient: HttpClient = HttpClientOkHttp(
         logger, baseUrl = Config.MEASURE_BASE_URL, secretToken = Config.MEASURE_SECRET_TOKEN

@@ -12,6 +12,11 @@ buildConfig {
     useKotlinOutput { internalVisibility = true }
     buildConfigField(
         type = "String",
+        name = "MEASURE_SDK_VERSION",
+        value = "\"${properties["MEASURE_SDK_VERSION"]?.toString() ?: ""}\"",
+    )
+    buildConfigField(
+        type = "String",
         name = "MEASURE_BASE_URL",
         value = "\"${properties["MEASURE_BASE_URL"]?.toString() ?: ""}\"",
     )

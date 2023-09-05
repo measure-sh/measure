@@ -8,7 +8,7 @@ project.afterEvaluate {
     publishToMavenLocal {
         def groupId = "sh.measure"
         def artifactId = "android"
-        def versionName = "0.0.1"
+        def versionName = "\"${properties["MEASURE_SDK_VERSION"]?.toString() ?: ""}\""
         publishing {
             publications {
                 LibraryRelease(MavenPublication) {
