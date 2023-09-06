@@ -29,7 +29,7 @@ internal class MeasureEvent(
     /**
      * Attributes for the event.
      */
-    val body: EventBody,
+    val body: JsonElement,
 
     /**
      * A set of attributes which contain the resource information.
@@ -40,10 +40,4 @@ internal class MeasureEvent(
      * Serialized map of context attributes.
      */
     val attributes: JsonElement?,
-)
-
-@Serializable
-internal data class EventBody(
-    val type: String,
-    val value: JsonElement
 )

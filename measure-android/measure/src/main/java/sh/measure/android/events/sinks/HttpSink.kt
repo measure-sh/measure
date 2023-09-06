@@ -16,10 +16,10 @@ private const val QUEUE_CAPACITY = BATCH_SIZE * 3
  * A sink that sends data to server in batches using a [HttpClient]. This sink is thread-safe. It
  * uses a blocking queue to store events.
  *
- * TODO(abhay): the only reason to use a executor here to to run the db.insertEvent in a separate
- *  thread. The HTTP request is already done async by the HttpClient. We also have an executor
- *  created in DbSink. We can probably use a single executor for writing to db.  But sharing the
- *  executor between the two sinks is a bit problematic at the moment.
+ * TODO(abhay): the only reason to use a executor here to to run the db.deleteSyncedEvents in a
+ *  separate thread. The HTTP request is already done async by the HttpClient. We also have an
+ *  executor created in DbSink. We can probably use a single executor for writing to db.  But
+ *  sharing the executor between the two sinks is a bit problematic at the moment.
  *
  * @param logger The logger to use for logging
  * @param httpClient The HTTP client to use for sending data to the server.

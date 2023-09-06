@@ -20,6 +20,7 @@ import sh.measure.android.logger.Logger
 import sh.measure.android.network.HttpClient
 import sh.measure.android.network.HttpClientOkHttp
 import sh.measure.android.resource.ResourceFactory
+import sh.measure.android.resource.SessionProvider
 import sh.measure.android.time.AndroidDateProvider
 import sh.measure.android.time.DateProvider
 
@@ -30,21 +31,19 @@ import sh.measure.android.time.DateProvider
 internal class MeasureClient(private val logger: Logger, private val context: Context) {
     private val idProvider: IdProvider = UUIDProvider()
     private val dateProvider: DateProvider = AndroidDateProvider
-    private val resource =
-        ResourceFactory.create(logger, context, sessionId = idProvider.createId())
-
-    // TODO(abhay): Replace with the real server URL. Ideally configured via a Gradle property.
+    private val sessionProvider: SessionProvider = SessionProvider(idProvider)
+    private val resource = ResourceFactory.create(logger, context, sessionProvider, Config)
     private val httpClient: HttpClient = HttpClientOkHttp(
-        logger, baseUrl = "https://www.example.com/"
+        logger, baseUrl = Config.MEASURE_BASE_URL, secretToken = Config.MEASURE_SECRET_TOKEN
     )
     private val dbClient: DbClient = SqliteDbClient(logger, context)
     private val defaultTracker = DefaultTracker()
 
     fun init() {
         defaultTracker.apply {
-            addEventSink(LoggingSink(logger))
-            addEventSink(HttpSink(logger, httpClient, dbClient))
             addEventSink(DbSink(logger, dbClient))
+            addEventSink(HttpSink(logger, httpClient, dbClient))
+            addEventSink(LoggingSink(logger))
         }
         UnhandledExceptionCollector(logger, this).register()
         DebugHeartbeatCollector(context, this).register()
@@ -61,10 +60,10 @@ internal class MeasureClient(private val logger: Logger, private val context: Co
         defaultTracker.track(event)
     }
 
-    fun captureHeartbeat() {
+    fun captureHeartbeat(string: String) {
         val event = MeasureEventFactory.createMeasureEvent(
             type = EventType.STRING,
-            value = Json.encodeToJsonElement(String.serializer(), "Heartbeat"),
+            value = Json.encodeToJsonElement(String.serializer(), string),
             resource = resource,
             idProvider = idProvider,
             dateProvider = dateProvider

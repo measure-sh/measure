@@ -5,12 +5,13 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import sh.measure.android.events.DefaultTracker
-import sh.measure.android.events.EventBody
 import sh.measure.android.events.EventType
 import sh.measure.android.events.MeasureEvent
+import sh.measure.android.events.MeasureEventFactory
 import sh.measure.android.events.sinks.Sink
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.resource.Resource
+import sh.measure.android.time.DateProvider
 
 internal class DefaultTrackerTest {
 
@@ -40,19 +41,26 @@ internal class DefaultTrackerTest {
     }
 
     private fun createFakeMeasureEvent(): MeasureEvent {
-        return MeasureEvent(
-            id = "id",
-            body = EventBody(
-                EventType.EXCEPTION,
-                Json.encodeToJsonElement(
-                    ExceptionData.serializer(),
-                    ExceptionData(exceptions = listOf(), true)
-                )
+        return MeasureEventFactory.createMeasureEvent(id = "id",
+            value = Json.encodeToJsonElement(
+                ExceptionData.serializer(), ExceptionData(exceptions = listOf(), true)
             ),
+            type = EventType.EXCEPTION,
             resource = Resource(),
             attributes = null,
-            timestamp = 0L
-        )
+            dateProvider = object : DateProvider {
+                override val currentTimeSinceEpochInMillis: Long
+                    get() = 1693819118084
+                override val currentTimeSinceEpochInNanos: Long
+                    get() = 1693819118084
+                override val uptimeInMillis: Long
+                    get() = 1693819118084
+            },
+            idProvider = object : sh.measure.android.id.IdProvider {
+                override fun createId(): String {
+                    return "id"
+                }
+            })
     }
 }
 

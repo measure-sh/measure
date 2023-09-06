@@ -2,10 +2,12 @@ package sh.measure.android.network
 
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToStream
 import okhttp3.Call
 import okhttp3.Callback
+import okhttp3.Interceptor.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -21,7 +23,7 @@ import java.util.concurrent.TimeUnit
 
 private const val CONNECTION_TIMEOUT_MS = 5_000L
 private const val CALL_TIMEOUT_MS = 10_000L
-private const val CONTENT_TYPE_JSON = "application/json"
+private const val CONTENT_TYPE_JSON = "application/json; charset=utf-8"
 private const val PATH_EVENTS = "/events"
 
 /**
@@ -30,16 +32,17 @@ private const val PATH_EVENTS = "/events"
  * TODO(abhay): This is temporary. We can use HttpUrlConnection instead and remove the OkHttp
  *  dependency. For now this helps in testing things out quickly.
  */
-internal class HttpClientOkHttp(private val logger: Logger, private val baseUrl: String) :
-    HttpClient {
+internal class HttpClientOkHttp(
+    private val logger: Logger, private val baseUrl: String, secretToken: String
+) : HttpClient {
 
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-        .callTimeout(CALL_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-        .addInterceptor(HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BASIC
-        })
-        .build()
+    private val client =
+        OkHttpClient.Builder().connectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            .callTimeout(CALL_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            .addInterceptor(SecretTokenHeaderInterceptor(secretToken))
+            .addInterceptor(HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            }).build()
 
 
     @OptIn(ExperimentalSerializationApi::class)
@@ -49,13 +52,13 @@ internal class HttpClientOkHttp(private val logger: Logger, private val baseUrl:
 
             override fun writeTo(sink: BufferedSink) {
                 Json.encodeToStream(
-                    EventsRequest.serializer(), EventsRequest(events), sink.outputStream()
+                    ListSerializer(MeasureEvent.serializer()), events, sink.outputStream()
                 )
             }
         }
 
         logger.log(LogLevel.Debug, "Sending events to server: ${events.count()}")
-        val request = Request.Builder().url(baseUrl + PATH_EVENTS).post(requestBody).build()
+        val request = Request.Builder().url(baseUrl + PATH_EVENTS).put(requestBody).build()
         client.newCall(request).enqueue(CallbackAdapter(logger, callback))
     }
 }
@@ -82,8 +85,3 @@ internal class CallbackAdapter(private val logger: Logger, private val callback:
         }
     }
 }
-
-@Serializable
-internal class EventsRequest(
-    val events: List<MeasureEvent>
-)

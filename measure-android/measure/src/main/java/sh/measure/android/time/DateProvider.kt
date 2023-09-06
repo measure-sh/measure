@@ -7,10 +7,11 @@ import android.os.SystemClock
  */
 interface DateProvider {
     val currentTimeSinceEpochInMillis: Long
+    val currentTimeSinceEpochInNanos: Long
     val uptimeInMillis: Long
 }
 
-object AndroidDateProvider : DateProvider {
+internal object AndroidDateProvider : DateProvider {
 
     /**
      * The standard "wall" clock (time and date) expressing milliseconds since the epoch. The
@@ -19,6 +20,10 @@ object AndroidDateProvider : DateProvider {
      */
     override val currentTimeSinceEpochInMillis = System.currentTimeMillis()
 
+    /**
+     * Same as [currentTimeSinceEpochInMillis], but in nanoseconds.
+     */
+    override val currentTimeSinceEpochInNanos = currentTimeSinceEpochInMillis.toNanos()
 
     /**
      * Milliseconds since the system was booted. This clock stops when the system enters
@@ -30,4 +35,7 @@ object AndroidDateProvider : DateProvider {
      */
     override val uptimeInMillis = SystemClock.uptimeMillis()
 
+    private fun Long.toNanos(): Long {
+        return this * 1_000_000
+    }
 }
