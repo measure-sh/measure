@@ -34,7 +34,7 @@ create table if not exists events_test_1
     /* gesture_long_click */
     `body.gesture_long_click.target` FixedString(128),
     `body.gesture_long_click.target_user_readable_name` FixedString(128),
-    `body.gesture_long_click.target_id` FixedString(32),
+    `body.gesture_long_click.target_id` FixedString(128),
     `body.gesture_long_click.touch_down_time` DateTime('UTC'),
     `body.gesture_long_click.touch_up_time` DateTime('UTC'),
     `body.gesture_long_click.width` UInt16,
