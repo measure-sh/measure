@@ -12,8 +12,35 @@ import (
 	"github.com/google/uuid"
 )
 
-// maxAttrCount is the count of the maximum allowed event attributes
-const maxAttrCount = 10
+// maximum character limits for event fields
+const (
+	maxSeverityTextChars               = 10
+	maxDeviceNameChars                 = 32
+	maxDeviceModelChars                = 32
+	maxDeviceManufacturerChars         = 32
+	maxDeviceTypeChars                 = 32
+	maxOSNameChars                     = 32
+	maxOSVersionChars                  = 32
+	maxPlatformChars                   = 32
+	maxAppVersionChars                 = 32
+	maxAppBuildChars                   = 32
+	maxAppUniqueIDChars                = 128
+	maxMeasureSDKVersion               = 16
+	maxBodyType                        = 32
+	maxGestureLongClickTargetChars     = 128
+	maxGestureLongClickTargetNameChars = 128
+	maxGestureLongClickTargetIDChars   = 128
+	maxGestureScrollTargetChars        = 128
+	maxGestureScrollTargetNameChars    = 128
+	maxGestureScrollTargetIDChars      = 128
+	maxGestureClickTargetChars         = 128
+	maxGestureClickTargetNameChars     = 128
+	maxGestureClickTargetIDChars       = 128
+	maxHTTPRequestMethodChars          = 16
+	maxHTTPRequestProtocolVersionChars = 16
+	maxHTTPResponseMethodChars         = 16
+	maxAttrCount                       = 10
+)
 
 // timeFormat is the format of datetime in nanoseconds when
 // converting datetime values before inserting into database
@@ -219,6 +246,89 @@ type EventRequest struct {
 	Attributes   map[string]string    `json:"attributes"`
 }
 
+func (e *EventRequest) validate() error {
+	if len(e.SeverityText) > maxSeverityTextChars {
+		return fmt.Errorf(`"severity_text" exceeds maximum allowed characters of (%d)`, maxSeverityTextChars)
+	}
+	if len(e.Resource.DeviceName) > maxDeviceNameChars {
+		return fmt.Errorf(`"resource.device_name" exceeds maximum allowed characters of (%d)`, maxDeviceNameChars)
+	}
+	if len(e.Resource.DeviceModel) > maxDeviceModelChars {
+		return fmt.Errorf(`"resource.device_model" exceeds maximum allowed characters of (%d)`, maxDeviceModelChars)
+	}
+	if len(e.Resource.DeviceManufacturer) > maxDeviceManufacturerChars {
+		return fmt.Errorf(`"resource.device_manufacturer" exceeds maximum allowed characters of (%d)`, maxDeviceManufacturerChars)
+	}
+	if len(e.Resource.DeviceType) > maxDeviceTypeChars {
+		return fmt.Errorf(`"resource.device_type" exceeds maximum allowed characters of (%d)`, maxDeviceTypeChars)
+	}
+	if len(e.Resource.OSName) > maxOSNameChars {
+		return fmt.Errorf(`"resource.os_name" exceeds maximum allowed characters of (%d)`, maxOSNameChars)
+	}
+	if len(e.Resource.OSVersion) > maxOSVersionChars {
+		return fmt.Errorf(`"resource.os_version" exceeds maximum allowed characters of (%d)`, maxOSVersionChars)
+	}
+	if len(e.Resource.Platform) > maxPlatformChars {
+		return fmt.Errorf(`"resource.platform" exceeds maximum allowed characters of (%d)`, maxPlatformChars)
+	}
+	if len(e.Resource.AppVersion) > maxAppVersionChars {
+		return fmt.Errorf(`"resource.app_version" exceeds maximum allowed characters of (%d)`, maxAppVersionChars)
+	}
+	if len(e.Resource.AppBuild) > maxAppBuildChars {
+		return fmt.Errorf(`"resource.app_build" exceeds maximum allowed characters of (%d)`, maxAppBuildChars)
+	}
+	if len(e.Resource.AppUniqueID) > maxAppUniqueIDChars {
+		return fmt.Errorf(`"resource.app_unique_id" exceeds maximum allowed characters of (%d)`, maxAppUniqueIDChars)
+	}
+	if len(e.Resource.MeasureSDKVersion) > maxMeasureSDKVersion {
+		return fmt.Errorf(`"resource.measure_sdk_version" exceeds maximum allowed characters of (%d)`, maxMeasureSDKVersion)
+	}
+	if len(e.Body.Type) > maxBodyType {
+		return fmt.Errorf(`"body.type" exceeds maximum allowed characters of (%d)`, maxBodyType)
+	}
+	if len(e.Body.GestureLongClick.Target) > maxGestureLongClickTargetChars {
+		return fmt.Errorf(`"body.gesture_long_click.target" exceeds maximum allowed characters of (%d)`, maxGestureLongClickTargetChars)
+	}
+	if len(e.Body.GestureLongClick.TargetUserReadableName) > maxGestureLongClickTargetNameChars {
+		return fmt.Errorf(`"body.gesture_long_click.target_user_readable_name" exceeds maximum allowed characters of (%d)`, maxGestureLongClickTargetNameChars)
+	}
+	if len(e.Body.GestureLongClick.TargetID) > maxGestureLongClickTargetIDChars {
+		return fmt.Errorf(`"body.gesture_long_click.target_id" exceeds maximum allowed characters of (%d)`, maxGestureLongClickTargetIDChars)
+	}
+	if len(e.Body.GestureClick.Target) > maxGestureClickTargetChars {
+		return fmt.Errorf(`"body.gesture_click.target" exceeds maximum allowed characters of (%d)`, maxGestureClickTargetChars)
+	}
+	if len(e.Body.GestureClick.TargetUserReadableName) > maxGestureClickTargetNameChars {
+		return fmt.Errorf(`"body.gesture_click.target_user_readable_name" exceeds maximum allowed characters of (%d)`, maxGestureClickTargetNameChars)
+	}
+	if len(e.Body.GestureClick.TargetID) > maxGestureClickTargetIDChars {
+		return fmt.Errorf(`"body.gesture_click.target_id" exceeds maximum allowed characters of (%d)`, maxGestureClickTargetIDChars)
+	}
+	if len(e.Body.GestureScroll.Target) > maxGestureScrollTargetChars {
+		return fmt.Errorf(`"body.gesture_scroll.target" exceeds maximum allowed characters of (%d)`, maxGestureScrollTargetChars)
+	}
+	if len(e.Body.GestureScroll.TargetUserReadableName) > maxGestureScrollTargetNameChars {
+		return fmt.Errorf(`"body.gesture_scroll.target_user_readable_name" exceeds maximum allowed characters of (%d)`, maxGestureScrollTargetNameChars)
+	}
+	if len(e.Body.GestureScroll.TargetID) > maxGestureScrollTargetIDChars {
+		return fmt.Errorf(`"body.gesture_scroll.target_id" exceeds maximum allowed characters of (%d)`, maxGestureScrollTargetIDChars)
+	}
+	if len(e.Body.HTTPRequest.Method) > maxHTTPRequestMethodChars {
+		return fmt.Errorf(`"body.http_request.method" exceeds maximum allowed characters of (%d)`, maxHTTPRequestMethodChars)
+	}
+	if len(e.Body.HTTPRequest.HTTPProtocolVersion) > maxHTTPRequestProtocolVersionChars {
+		return fmt.Errorf(`"body.http_request.http_protocol_version" exceeds maximum allowed characters of (%d)`, maxHTTPRequestProtocolVersionChars)
+	}
+	if len(e.Body.HTTPResponse.Method) > maxHTTPResponseMethodChars {
+		return fmt.Errorf(`"body.http_response.method" exceeds maximum allowed characters of (%d)`, maxHTTPResponseMethodChars)
+	}
+	if len(e.Attributes) > maxAttrCount {
+		return fmt.Errorf(`"attributes" exceeds maximum count of (%d)`, maxAttrCount)
+	}
+
+	return nil
+}
+
 func postEvent(c *gin.Context) {
 	token, exists := c.Get("token")
 
@@ -256,17 +366,6 @@ func postEvent(c *gin.Context) {
 	fmt.Println(eventTypes)
 
 	c.Status(http.StatusOK)
-}
-
-func validateEvent(event *EventRequest) error {
-	// should not exceed beyond allowed
-	// length of event attrs.
-	if len(event.Attributes) > maxAttrCount {
-		err := fmt.Errorf("exceeded maximum count of (%d) attributes", maxAttrCount)
-		return err
-	}
-
-	return nil
 }
 
 func makeInsertQuery(table string, eventRequest []EventRequest) string {
@@ -357,7 +456,8 @@ func putEvent(c *gin.Context) {
 	}
 
 	for _, event := range eventRequest {
-		err := validateEvent(&event)
+		err := event.validate()
+
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
