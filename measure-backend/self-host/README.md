@@ -8,7 +8,7 @@ Measure can run on Linux, macOS and Windows.
 
 > ### Requirements
 >
-> Make sure you have [Docker](https://docker.com/) running on your machine. You can follow the official installation instructions on [docker.com](https://docs.docker.com/get-docker/.)
+> Make sure you have [Docker](https://docker.com/) running on your machine. You can follow the official instructions on [docker.com](https://docs.docker.com/get-docker/.) to know how to install and run docker.
 
 #### 1. Clone the repository
 
