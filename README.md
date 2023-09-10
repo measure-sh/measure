@@ -1,7 +1,9 @@
 # measure
-measure is a comprehensive, flexible and open source observability platform for mobile apps.
+measure is an open source observability platform for mobile teams. 
 
-# V1 roadmap
+Our first product is `Rewind`.
+
+# Rewind (MVP) roadmap
 ## Android SDK
  - [ ] Kotlin/Java crashes
  - [ ] NDK crashes
@@ -18,24 +20,18 @@ measure is a comprehensive, flexible and open source observability platform for 
  - [ ] Dart crashes
  - [ ] App Hangs
 
-### Perf traces
- - [ ] App start time
- - [ ] Network request time
- - [ ] Network payload size
- - [ ] Network error rate
- - [ ] DB query time
- - [ ] Slow frames
- - [ ] Custom trace
-
 ### Logs
  - [ ] Stdout logs
  - [ ] Custom logs
 
 ### Session replays
- - [ ] Crashes + perf traces + Logs
+ - [ ] Crashes
+ - [ ] Logs
  - [ ] Tap gesture
  - [ ] Scroll gesture
  - [ ] Drag gesture
+ - [ ] Network requests
+ - [ ] DB queries
  - [ ] Screenshots
 
 ## Web app
@@ -56,16 +52,7 @@ measure is a comprehensive, flexible and open source observability platform for 
  - [ ] API key management
  - [ ] Billing + Metering page
  - [ ] Dashboard
- - [ ] App start time viewer
- - [ ] Crash viewer
- - [ ] Network traces viewer
- - [ ] DB traces viewer
- - [ ] Slow frames viewer
- - [ ] Custom trace viewer
- - [ ] Logs viewer
  - [ ] Session replay viewer
- - [ ] Alerts - email
- - [ ] Alerts - slack
 
 ## Backend
  - [ ] Login/Signup API
@@ -78,18 +65,26 @@ measure is a comprehensive, flexible and open source observability platform for 
  - [ ] API key management
  - [ ] Events
  - [ ] Crashes
- - [ ] Network traces
- - [ ] DB traces
- - [ ] Slow frames
- - [ ] Logs
- - [ ] Custom traces
- - [ ] Session replays
- - [ ] Crash rate
  - [ ] ANRs
- - [ ] App adoption rate
+ - [ ] Network calls
+ - [ ] DB queries
+ - [ ] Logs
+ - [ ] Session replays
  - [ ] Auto data deletion after retention period
- - [ ] Kotlin/Java crashesSaaS - managed clickhouse, managed postgres, managed queue, managed worker server, managed app server, managed email provider, slack bot
- - [ ] Self hosting - docker with clickhouse, postgres, queue, worker server, app server, email provider config
+ - [ ] Self hosting - docker with clickhouse, postgres, golang server + instructions to get API key of managed services and plug them in
+
+## Stack
+- Supabase for Postgres
+- Fly.io for golang server deployments
+- Clickhouse for analytics
+- Resend for email
+- S3 for storage
+- Supabase/Clerk for auth (TBD)
+- Managed provider for logging (TBD)
+- Managed provider for log search (TBD)
+- Android only for MVP (TBD)
+
+
 
 
 
