@@ -57,6 +57,7 @@ func main() {
 	})
 
 	r.PUT("/events", authorize(), putEvent)
+	r.PUT("/exceptions", authorize(), putException)
 
 	r.POST("/events", authorize(), postEvent)
 
