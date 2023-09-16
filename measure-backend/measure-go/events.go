@@ -368,10 +368,15 @@ func postEvent(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func makeInsertQuery(table string, eventRequest []EventRequest) string {
-	valueArgs := make([]string, 0, len(columns))
+func makeInsertQuery(table string, columns []string, eventRequest []EventRequest) (string, []interface{}) {
+	values := []string{}
+	valueArgs := []interface{}{}
+
+	placeholder := "(toUUID(?),?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?)"
+
 	for _, event := range eventRequest {
-		valueArgs = append(valueArgs, fmt.Sprintf(`(toUUID('%v'),'%s','%s',toUUID('%v'),'%s','%s','%s','%s',%t,%t,%d,%d,%d,%d,'%s','%s','%s','%s','%s','%s','%s','%s','%s','%s',%t,'%s','%s','%s','%s','%s',%d,%d,%d,%d,'%s','%s','%s','%s','%s',%d,%d,%d,%d,'%s','%s','%s','%s','%s',%d,%d,%d,%d,%d,%d,toUUID('%v'),'%s','%s','%s',%d,'%s',%v,toUUID('%v'),'%s','%s',%d,%d,'%s',%v,%v)`,
+		values = append(values, placeholder)
+		valueArgs = append(valueArgs,
 			uuid.New(),
 			event.Timestamp.Format(timeFormat),
 			event.SeverityText,
@@ -441,10 +446,12 @@ func makeInsertQuery(table string, eventRequest []EventRequest) string {
 			event.Body.HTTPResponse.ResponseBody,
 			mapToString(event.Body.HTTPResponse.ResponseHeaders),
 			mapToString(event.Attributes),
-		))
+		)
 	}
-	stmt := fmt.Sprintf(`insert into %s (%s) values %s;`, table, strings.Join(columns, ","), strings.Join(valueArgs, ","))
-	return stmt
+
+	query := fmt.Sprintf("insert into %s (%s) values %s;", table, strings.Join(columns, ","), strings.Join(values, ", "))
+
+	return query, valueArgs
 }
 
 func putEvent(c *gin.Context) {
@@ -464,9 +471,9 @@ func putEvent(c *gin.Context) {
 		}
 	}
 
-	stmt := makeInsertQuery("events_test_1", eventRequest)
+	query, args := makeInsertQuery("events_test_1", columns, eventRequest)
 
-	if err := server.chPool.AsyncInsert(context.Background(), stmt, false); err != nil {
+	if err := server.chPool.AsyncInsert(context.Background(), query, false, args...); err != nil {
 		fmt.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
