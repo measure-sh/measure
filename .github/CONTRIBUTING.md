@@ -1,6 +1,6 @@
 # Measure Contribution Guidelines
 
-## General worflow
+## General workflow
 - Every feature or bug must have a task in the [project board](https://github.com/orgs/measure-sh/projects/5)
 - Each task gets converted to an issue
 - Pull requests must be opened against an existing issue (which in turn contains a linked task in the board)
