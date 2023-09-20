@@ -124,7 +124,7 @@ export default function Home() {
         <div className="py-24"/>
         <p className="font-display font-regular text-black text-6xl max-w-4xl text-center">Early access</p>
         <div className="py-2"/>
-        <p className="font-sans text-black text-xl leading-relaxed max-w-4xl text-center">Monitoring mobile apps in production doesn't have to be hard. Sign up to get early access to measure!</p>
+        <p className="font-sans text-black text-xl leading-relaxed max-w-4xl text-center">Monitoring mobile apps in production doesn&apos;t have to be hard. Sign up to get early access to measure!</p>
         <div className="py-6"/>
         <EmailWaitlist/>
         <div className="py-24"/>
