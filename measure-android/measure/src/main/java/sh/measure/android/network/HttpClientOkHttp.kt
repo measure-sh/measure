@@ -1,13 +1,11 @@
 package sh.measure.android.network
 
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToStream
 import okhttp3.Call
 import okhttp3.Callback
-import okhttp3.Interceptor.*
+import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -15,16 +13,16 @@ import okhttp3.RequestBody
 import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
 import okio.BufferedSink
-import sh.measure.android.events.MeasureEvent
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.session.SessionReport
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 private const val CONNECTION_TIMEOUT_MS = 5_000L
 private const val CALL_TIMEOUT_MS = 10_000L
 private const val CONTENT_TYPE_JSON = "application/json; charset=utf-8"
-private const val PATH_EVENTS = "/events"
+private const val PATH_SESSION = "/sessions"
 
 /**
  * An HTTP client that uses OkHttp to send data to the server.
@@ -44,26 +42,26 @@ internal class HttpClientOkHttp(
                 level = HttpLoggingInterceptor.Level.BODY
             }).build()
 
-
     @OptIn(ExperimentalSerializationApi::class)
-    override fun sendEvents(events: List<MeasureEvent>, callback: HttpCallback?) {
+    override fun sendSessionReport(sessionRequest: SessionReport, callback: Transport.Callback?) {
         val requestBody = object : RequestBody() {
-            override fun contentType() = CONTENT_TYPE_JSON.toMediaType()
+            override fun contentType(): MediaType {
+                return CONTENT_TYPE_JSON.toMediaType()
+            }
 
             override fun writeTo(sink: BufferedSink) {
-                Json.encodeToStream(
-                    ListSerializer(MeasureEvent.serializer()), events, sink.outputStream()
-                )
+                Json.encodeToStream(sessionRequest, sink.outputStream())
             }
-        }
 
-        logger.log(LogLevel.Debug, "Sending events to server: ${events.count()}")
-        val request = Request.Builder().url(baseUrl + PATH_EVENTS).put(requestBody).build()
+        }
+        val request = Request.Builder().url("$baseUrl$PATH_SESSION")
+            .addHeader("Content-Type", CONTENT_TYPE_JSON).put(requestBody).build()
+
         client.newCall(request).enqueue(CallbackAdapter(logger, callback))
     }
 }
 
-internal class CallbackAdapter(private val logger: Logger, private val callback: HttpCallback?) :
+internal class CallbackAdapter(private val logger: Logger, private val callback: Transport.Callback?) :
     Callback {
     override fun onFailure(call: Call, e: IOException) {
         logger.log(LogLevel.Error, "Error sending events", e)
@@ -71,7 +69,7 @@ internal class CallbackAdapter(private val logger: Logger, private val callback:
 
     override fun onResponse(call: Call, response: Response) {
         when (response.code) {
-            200 -> {
+            202 -> {
                 logger.log(LogLevel.Debug, "Events sent successfully")
                 callback?.onSuccess()
             }

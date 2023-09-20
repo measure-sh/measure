@@ -1,21 +1,21 @@
-package sh.measure.sample.exceptions
+package sh.measure.android.exceptions
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
-import org.mockito.kotlin.verify
-import sh.measure.android.MeasureClient
-import sh.measure.android.exceptions.ExceptionFactory
-import sh.measure.android.exceptions.UnhandledExceptionCollector
-import sh.measure.android.logger.Logger
+import org.mockito.Mockito.verify
+import sh.measure.android.fakes.FakeTimeProvider
+import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.tracker.SignalTracker
 
 internal class UnhandledExceptionCollectorTest {
 
-    private val client = mock<MeasureClient>()
-    private val logger = mock<Logger>()
     private var originalDefaultHandler: Thread.UncaughtExceptionHandler? = null
+    private val logger = NoopLogger()
+    private val timeProvider = FakeTimeProvider()
+    private val signalTracker = mock<SignalTracker>()
 
     @Before
     fun setUp() {
@@ -25,7 +25,8 @@ internal class UnhandledExceptionCollectorTest {
     @Test
     fun `registers UnhandledExceptionCollector as an uncaught exception handler`() {
         // When
-        val collector = UnhandledExceptionCollector(logger, client).apply { register() }
+        val collector =
+            UnhandledExceptionCollector(logger, signalTracker, timeProvider).apply { register() }
         val currentDefaultHandler = Thread.getDefaultUncaughtExceptionHandler()
 
         // Then
@@ -33,19 +34,24 @@ internal class UnhandledExceptionCollectorTest {
     }
 
     @Test
-    fun `parses uncaught exceptions, parses it into ExceptionData and reports it to MeasureClient`() {
-        val collector = UnhandledExceptionCollector(logger, client).apply { register() }
+    fun `tracks uncaught exceptions`() {
+        val collector =
+            UnhandledExceptionCollector(logger, signalTracker, timeProvider).apply { register() }
 
         // Given
         val thread = Thread.currentThread()
         val exception = RuntimeException("Test exception")
-        val expectedExceptionData = ExceptionFactory.createExceptionData(exception, handled = false)
+        val expectedException = ExceptionFactory.createMeasureException(
+            exception, handled = false, timeProvider.currentTimeSinceEpochInMillis, thread
+        )
 
         // When
         collector.uncaughtException(thread, exception)
 
         // Then
-        verify(client).captureException(expectedExceptionData)
+        verify(signalTracker).trackUnhandledException(
+            measureException = expectedException
+        )
     }
 
     @Test
@@ -54,7 +60,8 @@ internal class UnhandledExceptionCollectorTest {
         Thread.setDefaultUncaughtExceptionHandler { _, _ ->
             originalHandlerCalled = true
         }
-        val collector = UnhandledExceptionCollector(logger, client).apply { register() }
+        val collector =
+            UnhandledExceptionCollector(logger, signalTracker, timeProvider).apply { register() }
 
         // Given
         val thread = Thread.currentThread()

@@ -19,6 +19,13 @@ class ExceptionDemoActivity : AppCompatActivity() {
                 CustomException(message = "This is a nested custom exception")
             )
         }
+        findViewById<Button>(R.id.btn_oom_exception).setOnClickListener {
+            val list = mutableListOf<ByteArray>()
+            while (true) {
+                val byteArray = ByteArray(1024 * 1024 * 100) // Allocate 100MB of memory
+                list.add(byteArray)
+            }
+        }
     }
 }
 

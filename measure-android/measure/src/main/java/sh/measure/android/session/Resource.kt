@@ -1,4 +1,4 @@
-package sh.measure.android.resource
+package sh.measure.android.session
 
 import kotlinx.serialization.Serializable
 
@@ -8,8 +8,6 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class Resource(
-    // session info
-    val session_id: String? = null,
     // device info
     val device_name: String? = null,
     val device_model: String? = null,
@@ -20,7 +18,7 @@ data class Resource(
     val device_density_dpi: Int? = null,
     val device_width_px: Int? = null,
     val device_height_px: Int? = null,
-    val device_density: Double? = null,
+    val device_density: Float? = null,
     // os info
     val os_name: String? = null,
     val os_version: String? = null,
@@ -29,7 +27,5 @@ data class Resource(
     val app_version: String? = null,
     val app_build: String? = null,
     val app_unique_id: String? = null, // package name,
-    val app_first_install_time: Long? = null,
-    val app_last_update_time: Long? = null,
     val measure_sdk_version: String? = null,
 )

@@ -1,12 +1,7 @@
 package sh.measure.android.network
 
-import sh.measure.android.events.MeasureEvent
+import sh.measure.android.session.SessionReport
 
 internal interface HttpClient {
-    fun sendEvents(events: List<MeasureEvent>, callback: HttpCallback? = null)
-}
-
-internal interface HttpCallback {
-    fun onSuccess() {}
-    fun onFailure() {}
+    fun sendSessionReport(sessionRequest: SessionReport, callback: Transport.Callback?)
 }

@@ -5,13 +5,13 @@ import android.os.SystemClock
 /**
  * Provides time from different clocks.
  */
-interface DateProvider {
+interface TimeProvider {
     val currentTimeSinceEpochInMillis: Long
     val currentTimeSinceEpochInNanos: Long
     val uptimeInMillis: Long
 }
 
-internal object AndroidDateProvider : DateProvider {
+internal class AndroidTimeProvider : TimeProvider {
 
     /**
      * The standard "wall" clock (time and date) expressing milliseconds since the epoch. The

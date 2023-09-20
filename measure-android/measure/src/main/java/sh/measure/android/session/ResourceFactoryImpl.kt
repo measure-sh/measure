@@ -1,4 +1,4 @@
-package sh.measure.android.resource
+package sh.measure.android.session
 
 import android.content.Context
 import android.content.pm.PackageManager
@@ -7,15 +7,16 @@ import sh.measure.android.Config
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 
+interface ResourceFactory {
+    fun create(): Resource
+}
+
 /**
  * Factory to create a [Resource].
  */
-internal class ResourceFactory private constructor(
-    private val logger: Logger,
-    private val context: Context,
-    private val sessionProvider: SessionProvider,
-    private val config: Config
-) {
+internal class ResourceFactoryImpl(
+    private val logger: Logger, private val context: Context, private val config: Config
+) : ResourceFactory {
     private val configuration = context.resources.configuration
     private val packageManager = context.packageManager
     private val resources = context.resources
@@ -27,23 +28,8 @@ internal class ResourceFactory private constructor(
         packageManager.getPackageInfo(context.packageName, 0)
     }
 
-    companion object {
-        /**
-         * Generates a new session ID and initializes all the fields of the [Resource].
-         */
-        fun create(
-            logger: Logger,
-            context: Context,
-            sessionProvider: SessionProvider,
-            config: Config
-        ): Resource {
-            return ResourceFactory(logger, context, sessionProvider, config).create()
-        }
-    }
-
-    private fun create(): Resource {
+    override fun create(): Resource {
         return Resource(
-            session_id = sessionProvider.sessionId,
             device_name = Build.DEVICE,
             device_model = Build.MODEL,
             device_manufacturer = Build.MANUFACTURER,
@@ -53,7 +39,7 @@ internal class ResourceFactory private constructor(
             device_density_dpi = configuration.densityDpi,
             device_width_px = resources.displayMetrics.widthPixels,
             device_height_px = resources.displayMetrics.heightPixels,
-            device_density = resources.displayMetrics.density.toDouble(),
+            device_density = resources.displayMetrics.density,
             os_name = "android",
             os_version = Build.VERSION.SDK_INT.toString(),
             platform = "android",
@@ -113,7 +99,5 @@ internal class ResourceFactory private constructor(
         }
     }
 
-    private fun getMeasureVersion(): String {
-        return config.MEASURE_SDK_VERSION
-    }
+    private fun getMeasureVersion() = config.MEASURE_SDK_VERSION
 }
