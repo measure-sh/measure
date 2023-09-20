@@ -1,91 +1,108 @@
-package sh.measure.sample.exceptions
+package sh.measure.android.exceptions
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import sh.measure.android.exceptions.ExceptionFactory
+import sh.measure.android.fakes.FakeTimeProvider
 
 class ExceptionFactoryTest {
 
+    private val timeProvider = FakeTimeProvider()
+
     @Test
-    fun `creates a single exception in ExceptionData when exception has no cause`() {
+    fun `creates a single exception in MeasureException when exception has no cause`() {
         // Given
         val exception = IllegalArgumentException("Test exception")
+        val thread = Thread.currentThread()
 
         // When
-        val exceptionData = ExceptionFactory.createExceptionData(exception, handled = true)
+        val measureException = ExceptionFactory.createMeasureException(
+            exception, handled = true, timeProvider.currentTimeSinceEpochInMillis, thread
+        )
 
         // Then
-        val measureExceptions = exceptionData.exceptions
-        assertEquals(1, measureExceptions.size)
+        val exceptionUnits = measureException.exceptions
+        assertEquals(1, exceptionUnits.size)
 
-        val measureException = measureExceptions[0]
-        assertEquals("java.lang.IllegalArgumentException", measureException.type)
-        assertEquals("Test exception", measureException.message)
-        assertTrue(measureException.stackframes.isNotEmpty())
+        val exceptionUnit = exceptionUnits[0]
+        assertEquals("java.lang.IllegalArgumentException", exceptionUnit.type)
+        assertEquals("Test exception", exceptionUnit.message)
+        assertTrue(exceptionUnit.frames.isNotEmpty())
     }
 
     @Test
-    fun `creates two exceptions in ExceptionData when exception has a cause`() {
+    fun `creates two exceptions in MeasureException when exception has a cause`() {
         // Given
         val exception =
             IllegalArgumentException("Test exception").initCause(RuntimeException("Cause"))
+        val thread = Thread.currentThread()
 
         // When
-        val exceptionData = ExceptionFactory.createExceptionData(exception, handled = true)
+        val measureException = ExceptionFactory.createMeasureException(
+            exception, handled = true, timeProvider.currentTimeSinceEpochInMillis, thread
+        )
 
         // Then
-        val measureExceptions = exceptionData.exceptions
-        assertEquals(2, measureExceptions.size)
+        val exceptions = measureException.exceptions
+        assertEquals(2, exceptions.size)
 
-        val measureException = measureExceptions[0]
-        assertEquals("java.lang.IllegalArgumentException", measureException.type)
-        assertEquals("Test exception", measureException.message)
-        assertTrue(measureException.stackframes.isNotEmpty())
+        val exceptionUnit = exceptions[0]
+        assertEquals("java.lang.IllegalArgumentException", exceptionUnit.type)
+        assertEquals("Test exception", exceptionUnit.message)
+        assertTrue(exceptionUnit.frames.isNotEmpty())
 
-        val causeException = measureExceptions[1]
+        val causeException = exceptions[1]
         assertEquals("java.lang.RuntimeException", causeException.type)
         assertEquals("Cause", causeException.message)
-        assertTrue(causeException.stackframes.isNotEmpty())
+        assertTrue(causeException.frames.isNotEmpty())
     }
 
 
     @Test
-    fun `creates stackframes in ExceptionData equal to the size of stacktrace`() {
+    fun `creates frames in MeasureException equal to the size of stacktrace`() {
         // Given
         val exception = IllegalArgumentException("Test exception")
-        val stackframesSize = exception.stackTrace.size
+        val framesSize = exception.stackTrace.size
+        val thread = Thread.currentThread()
 
         // When
-        val exceptionData = ExceptionFactory.createExceptionData(exception, handled = true)
+        val measureException = ExceptionFactory.createMeasureException(
+            exception, handled = true, timeProvider.currentTimeSinceEpochInMillis, thread
+        )
 
         // Then
-        val stackframes = exceptionData.exceptions.first().stackframes
-        assertEquals(stackframesSize, stackframes.size)
+        val frames = measureException.exceptions.first().frames
+        assertEquals(framesSize, frames.size)
     }
 
     @Test
     fun `sets handled to true when the exception is handled`() {
         // Given
         val exception = IllegalArgumentException("Test exception")
+        val thread = Thread.currentThread()
 
         // When
-        val exceptionData = ExceptionFactory.createExceptionData(exception, handled = true)
+        val measureException = ExceptionFactory.createMeasureException(
+            exception, handled = true, timeProvider.currentTimeSinceEpochInMillis, thread
+        )
 
         // Then
-        assertTrue(exceptionData.handled)
+        assertTrue(measureException.handled)
     }
 
     @Test
     fun `sets handled to false when the exception is unhandled`() {
         // Given
         val exception = IllegalArgumentException("Test exception")
+        val thread = Thread.currentThread()
 
         // When
-        val exceptionData = ExceptionFactory.createExceptionData(exception, handled = false)
+        val measureException = ExceptionFactory.createMeasureException(
+            exception, handled = false, timeProvider.currentTimeSinceEpochInMillis, thread
+        )
 
         // Then
-        assertFalse(exceptionData.handled)
+        assertFalse(measureException.handled)
     }
 }
