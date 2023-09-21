@@ -1,32 +1,17 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"log"
-	"net/http"
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
 // maximum character limits for event fields
 const (
+	maxTypeChars                       = 32
 	maxSeverityTextChars               = 10
-	maxDeviceNameChars                 = 32
-	maxDeviceModelChars                = 32
-	maxDeviceManufacturerChars         = 32
-	maxDeviceTypeChars                 = 32
-	maxOSNameChars                     = 32
-	maxOSVersionChars                  = 32
-	maxPlatformChars                   = 32
-	maxAppVersionChars                 = 32
-	maxAppBuildChars                   = 32
-	maxAppUniqueIDChars                = 128
-	maxMeasureSDKVersion               = 16
-	maxBodyType                        = 32
 	maxGestureLongClickTargetChars     = 128
 	maxGestureLongClickTargetNameChars = 128
 	maxGestureLongClickTargetIDChars   = 128
@@ -49,9 +34,9 @@ const timeFormat = "2006-01-02 15:04:05.999999999"
 // list of events table columns
 var columns = []string{
 	"id",
+	"type",
+	"session_id",
 	"timestamp",
-	"severity_text",
-	"resource.session_id",
 	"resource.device_name",
 	"resource.device_model",
 	"resource.device_manufacturer",
@@ -69,117 +54,135 @@ var columns = []string{
 	"resource.app_build",
 	"resource.app_unique_id",
 	"resource.measure_sdk_version",
-	"body.type",
-	"body.string",
-	"body.exception.exceptions",
-	"body.exception.handled",
-	"body.gesture_long_click.target",
-	"body.gesture_long_click.target_user_readable_name",
-	"body.gesture_long_click.target_id",
-	"body.gesture_long_click.touch_down_time",
-	"body.gesture_long_click.touch_up_time",
-	"body.gesture_long_click.width",
-	"body.gesture_long_click.height",
-	"body.gesture_long_click.x",
-	"body.gesture_long_click.y",
-	"body.gesture_click.target",
-	"body.gesture_click.target_user_readable_name",
-	"body.gesture_click.target_id",
-	"body.gesture_click.touch_down_time",
-	"body.gesture_click.touch_up_time",
-	"body.gesture_click.width",
-	"body.gesture_click.height",
-	"body.gesture_click.x",
-	"body.gesture_click.y",
-	"body.gesture_scroll.target",
-	"body.gesture_scroll.target_user_readable_name",
-	"body.gesture_scroll.target_id",
-	"body.gesture_scroll.touch_down_time",
-	"body.gesture_scroll.touch_up_time",
-	"body.gesture_scroll.x",
-	"body.gesture_scroll.y",
-	"body.gesture_scroll.end_x",
-	"body.gesture_scroll.end_y",
-	"body.gesture_scroll.velocity_px",
-	"body.gesture_scroll.direction",
-	"body.http_request.request_id",
-	"body.http_request.request_url",
-	"body.http_request.method",
-	"body.http_request.http_protocol_version",
-	"body.http_request.request_body_size",
-	"body.http_request.request_body",
-	"body.http_request.request_headers",
-	"body.http_response.request_id",
-	"body.http_response.request_url",
-	"body.http_response.method",
-	"body.http_response.latency_ms",
-	"body.http_response.status_code",
-	"body.http_response.response_body",
-	"body.http_response.response_headers",
+	"exception.thread_name",
+	"exception.handled",
+	"exception.exceptions",
+	"exception.threads",
+	"string.severity_text",
+	"string.string",
+	"gesture_long_click.target",
+	"gesture_long_click.target_user_readable_name",
+	"gesture_long_click.target_id",
+	"gesture_long_click.touch_down_time",
+	"gesture_long_click.touch_up_time",
+	"gesture_long_click.width",
+	"gesture_long_click.height",
+	"gesture_long_click.x",
+	"gesture_long_click.y",
+	"gesture_click.target",
+	"gesture_click.target_user_readable_name",
+	"gesture_click.target_id",
+	"gesture_click.touch_down_time",
+	"gesture_click.touch_up_time",
+	"gesture_click.width",
+	"gesture_click.height",
+	"gesture_click.x",
+	"gesture_click.y",
+	"gesture_scroll.target",
+	"gesture_scroll.target_user_readable_name",
+	"gesture_scroll.target_id",
+	"gesture_scroll.touch_down_time",
+	"gesture_scroll.touch_up_time",
+	"gesture_scroll.x",
+	"gesture_scroll.y",
+	"gesture_scroll.end_x",
+	"gesture_scroll.end_y",
+	"gesture_scroll.velocity_px",
+	"gesture_scroll.direction",
+	"http_request.request_id",
+	"http_request.request_url",
+	"http_request.method",
+	"http_request.http_protocol_version",
+	"http_request.request_body_size",
+	"http_request.request_body",
+	"http_request.request_headers",
+	"http_response.request_id",
+	"http_response.request_url",
+	"http_response.method",
+	"http_response.latency_ms",
+	"http_response.status_code",
+	"http_response.response_body",
+	"http_response.response_headers",
 	"attributes",
 }
 
-type EventRequestBody struct {
-	Type             string                           `json:"type"`
-	Exception        EventRequestBodyException        `json:"exception"`
-	String           string                           `json:"string"`
-	GestureLongClick EventRequestBodyGestureLongClick `json:"gesture_long_click"`
-	GestureScroll    EventRequestBodyGestureScroll    `json:"gesture_scroll"`
-	GestureClick     EventRequestBodyGestureClick     `json:"gesture_click"`
-	HTTPRequest      EventRequestBodyHTTPRequest      `json:"http_request"`
-	HTTPResponse     EventRequestBodyHTTPResponse     `json:"http_response"`
+type Frame struct {
+	LineNum    int    `json:"line_num" binding:"required"`
+	ColNum     int    `json:"col_num" binding:"required"`
+	ModuleName string `json:"module_name"`
+	FileName   string `json:"file_name"`
+	ClassName  string `json:"class_name"`
+	MethodName string `json:"method_name"`
 }
 
-type EventRequestResource struct {
-	SessionID          uuid.UUID `json:"session_id" binding:"required"`
-	DeviceName         string    `json:"device_name"`
-	DeviceModel        string    `json:"device_model"`
-	DeviceManufacturer string    `json:"device_manufacturer"`
-	DeviceType         string    `json:"device_type"`
-	DeviceIsFoldable   bool      `json:"device_is_foldable"`
-	DeviceIsPhysical   bool      `json:"device_is_physical"`
-	DeviceDensityDPI   uint16    `json:"device_density_dpi"`
-	DeviceWidthPX      uint16    `json:"device_width_px"`
-	DeviceHeightPX     uint16    `json:"device_height_px"`
-	DeviceDensity      uint8     `json:"device_density"`
-	OSName             string    `json:"os_name"`
-	OSVersion          string    `json:"os_version"`
-	Platform           string    `json:"platform"`
-	AppVersion         string    `json:"app_version"`
-	AppBuild           string    `json:"app_build"`
-	AppUniqueID        string    `json:"app_unique_id"`
-	MeasureSDKVersion  string    `json:"measure_sdk_version"`
+func (f *Frame) encode() string {
+	return fmt.Sprintf("(%d, %d, '%s', '%s', '%s', '%s')", f.LineNum, f.ColNum, f.ModuleName, f.FileName, f.ClassName, f.MethodName)
 }
 
-// StackFrame and ExcpetionUnit types are not being used
-// right now. We store exceptions are string for now.
-// FIXME: need to optimize this later
-type StackFrame struct {
-	Filename  string `json:"filename"`
-	Method    string `json:"method"`
-	LineNum   uint16 `json:"line_num"`
-	ColumnNum uint16 `json:"column_num"`
-	ClassName string `json:"class_name"`
-	Module    string `json:"module"`
+type Frames []Frame
+
+func (frames Frames) encode() string {
+	var collection []string
+	for _, frame := range frames {
+		collection = append(collection, frame.encode())
+	}
+	return fmt.Sprintf("[%s]", strings.Join(collection, ", "))
 }
 
 type ExceptionUnit struct {
-	ThreadID    string       `json:"thread_id"`
-	Type        string       `json:"type"`
-	Message     string       `json:"message"`
-	Stackframes []StackFrame `json:"stackframes"`
+	Type    string `json:"type" binding:"required"`
+	Message string `json:"message"`
+	Frames  Frames `json:"frames" binding:"required"`
 }
 
-type EventRequestBodyString struct {
-	String string `json:"string"`
+func (eu *ExceptionUnit) encode() string {
+	return fmt.Sprintf("('%s', '%s', %s)", eu.Type, eu.Message, eu.Frames.encode())
 }
 
-type EventRequestBodyException struct {
-	Exceptions string `json:"exceptions"`
-	Handled    bool   `json:"handled"`
+type ExceptionUnits []ExceptionUnit
+
+func (exceptionUnits ExceptionUnits) encode() string {
+	var units []string
+	for _, exceptionUnit := range exceptionUnits {
+		units = append(units, exceptionUnit.encode())
+	}
+
+	return fmt.Sprintf("[%s]", strings.Join(units, ", "))
 }
 
-type EventRequestBodyGestureLongClick struct {
+type Thread struct {
+	Name   string `json:"name" binding:"required"`
+	Frames Frames `json:"frames" binding:"required"`
+}
+
+func (thread *Thread) encode() string {
+	return fmt.Sprintf("('%s', %s)", thread.Name, thread.Frames.encode())
+}
+
+type Threads []Thread
+
+func (threads Threads) encode() string {
+	var collection []string
+	for _, thread := range threads {
+		collection = append(collection, thread.encode())
+	}
+
+	return fmt.Sprintf("[%s]", strings.Join(collection, ", "))
+}
+
+type Exception struct {
+	ThreadName string         `json:"thread_name" binding:"required"`
+	Handled    bool           `json:"handled" binding:"required"`
+	Exceptions ExceptionUnits `json:"exceptions" binding:"required"`
+	Threads    Threads        `json:"threads" binding:"required"`
+}
+
+type LogString struct {
+	SeverityText string `json:"severity_text" binding:"required"`
+	String       string `json:"string" binding:"required"`
+}
+
+type GestureLongClick struct {
 	Target                 string    `json:"target"`
 	TargetUserReadableName string    `json:"target_user_readable_name"`
 	TargetID               string    `json:"target_id"`
@@ -191,19 +194,7 @@ type EventRequestBodyGestureLongClick struct {
 	Y                      uint16    `json:"y"`
 }
 
-type EventRequestBodyGestureClick struct {
-	Target                 string    `json:"target"`
-	TargetUserReadableName string    `json:"target_user_readable_name"`
-	TargetID               string    `json:"target_id"`
-	TouchDownTime          time.Time `json:"touch_down_time"`
-	TouchUpTime            time.Time `json:"touch_up_time"`
-	Width                  uint16    `json:"width"`
-	Height                 uint16    `json:"height"`
-	X                      uint16    `json:"x"`
-	Y                      uint16    `json:"y"`
-}
-
-type EventRequestBodyGestureScroll struct {
+type GestureScroll struct {
 	Target                 string    `json:"target"`
 	TargetUserReadableName string    `json:"target_user_readable_name"`
 	TargetID               string    `json:"target_id"`
@@ -217,7 +208,19 @@ type EventRequestBodyGestureScroll struct {
 	Direction              uint16    `json:"direction"`
 }
 
-type EventRequestBodyHTTPRequest struct {
+type GestureClick struct {
+	Target                 string    `json:"target"`
+	TargetUserReadableName string    `json:"target_user_readable_name"`
+	TargetID               string    `json:"target_id"`
+	TouchDownTime          time.Time `json:"touch_down_time"`
+	TouchUpTime            time.Time `json:"touch_up_time"`
+	Width                  uint16    `json:"width"`
+	Height                 uint16    `json:"height"`
+	X                      uint16    `json:"x"`
+	Y                      uint16    `json:"y"`
+}
+
+type HTTPRequest struct {
 	RequestID           string            `json:"request_id"`
 	RequestURL          string            `json:"request_url"`
 	Method              string            `json:"method"`
@@ -227,7 +230,7 @@ type EventRequestBodyHTTPRequest struct {
 	RequestHeaders      map[string]string `json:"request_headers"`
 }
 
-type EventRequestBodyHTTPResponse struct {
+type HTTPResponse struct {
 	RequestID       string            `json:"request_id"`
 	RequestURL      string            `json:"request_url"`
 	Method          string            `json:"method"`
@@ -237,214 +240,158 @@ type EventRequestBodyHTTPResponse struct {
 	ResponseHeaders map[string]string `json:"response_headers"`
 }
 
-type EventRequest struct {
-	ID           uuid.UUID            `json:"id"`
-	Timestamp    time.Time            `json:"timestamp" binding:"required"`
-	SeverityText string               `json:"severity_text"`
-	Body         EventRequestBody     `json:"body" binding:"required"`
-	Resource     EventRequestResource `json:"resource" binding:"required"`
-	Attributes   map[string]string    `json:"attributes"`
+type EventField struct {
+	Timestamp        time.Time         `json:"timestamp" binding:"required"`
+	Type             string            `json:"type" binding:"required"`
+	Exception        Exception         `json:"exception,omitempty"`
+	LogString        LogString         `json:"string,omitempty"`
+	GestureLongClick GestureLongClick  `json:"gesture_long_click,omitempty"`
+	GestureScroll    GestureScroll     `json:"gesture_scroll,omitempty"`
+	GestureClick     GestureClick      `json:"gesture_click,omitempty"`
+	HTTPRequest      HTTPRequest       `json:"http_request,omitempty"`
+	HTTPResponse     HTTPResponse      `json:"http_response,omitempty"`
+	Attributes       map[string]string `json:"attributes"`
 }
 
-func (e *EventRequest) validate() error {
-	if len(e.SeverityText) > maxSeverityTextChars {
-		return fmt.Errorf(`"severity_text" exceeds maximum allowed characters of (%d)`, maxSeverityTextChars)
+func (e *EventField) isException() bool {
+	return e.Type == "exception"
+}
+
+func (e *EventField) validate() error {
+	if len(e.Type) > maxTypeChars {
+		return fmt.Errorf(`"events[].type" exceeds maximum allowed characters of (%d)`, maxTypeChars)
 	}
-	if len(e.Resource.DeviceName) > maxDeviceNameChars {
-		return fmt.Errorf(`"resource.device_name" exceeds maximum allowed characters of (%d)`, maxDeviceNameChars)
+	if len(e.LogString.SeverityText) > maxSeverityTextChars {
+		return fmt.Errorf(`"events[].string.severity_text" exceeds maximum allowed characters of (%d)`, maxSeverityTextChars)
 	}
-	if len(e.Resource.DeviceModel) > maxDeviceModelChars {
-		return fmt.Errorf(`"resource.device_model" exceeds maximum allowed characters of (%d)`, maxDeviceModelChars)
+	if len(e.GestureLongClick.Target) > maxGestureLongClickTargetChars {
+		return fmt.Errorf(`"events[].gesture_long_click.target" exceeds maximum allowed characters of (%d)`, maxGestureLongClickTargetChars)
 	}
-	if len(e.Resource.DeviceManufacturer) > maxDeviceManufacturerChars {
-		return fmt.Errorf(`"resource.device_manufacturer" exceeds maximum allowed characters of (%d)`, maxDeviceManufacturerChars)
+	if len(e.GestureLongClick.TargetUserReadableName) > maxGestureLongClickTargetNameChars {
+		return fmt.Errorf(`"events[].gesture_long_click.target_user_readable_name" exceeds maximum allowed characters of (%d)`, maxGestureLongClickTargetNameChars)
 	}
-	if len(e.Resource.DeviceType) > maxDeviceTypeChars {
-		return fmt.Errorf(`"resource.device_type" exceeds maximum allowed characters of (%d)`, maxDeviceTypeChars)
+	if len(e.GestureLongClick.TargetID) > maxGestureLongClickTargetIDChars {
+		return fmt.Errorf(`"events[].gesture_long_click.target_id" exceeds maximum allowed characters of (%d)`, maxGestureLongClickTargetIDChars)
 	}
-	if len(e.Resource.OSName) > maxOSNameChars {
-		return fmt.Errorf(`"resource.os_name" exceeds maximum allowed characters of (%d)`, maxOSNameChars)
+	if len(e.GestureClick.Target) > maxGestureClickTargetChars {
+		return fmt.Errorf(`"events[].gesture_click.target" exceeds maximum allowed characters of (%d)`, maxGestureClickTargetChars)
 	}
-	if len(e.Resource.OSVersion) > maxOSVersionChars {
-		return fmt.Errorf(`"resource.os_version" exceeds maximum allowed characters of (%d)`, maxOSVersionChars)
+	if len(e.GestureClick.TargetUserReadableName) > maxGestureClickTargetNameChars {
+		return fmt.Errorf(`"events[].gesture_click.target_user_readable_name" exceeds maximum allowed characters of (%d)`, maxGestureClickTargetNameChars)
 	}
-	if len(e.Resource.Platform) > maxPlatformChars {
-		return fmt.Errorf(`"resource.platform" exceeds maximum allowed characters of (%d)`, maxPlatformChars)
+	if len(e.GestureClick.TargetID) > maxGestureClickTargetIDChars {
+		return fmt.Errorf(`"events[].gesture_click.target_id" exceeds maximum allowed characters of (%d)`, maxGestureClickTargetIDChars)
 	}
-	if len(e.Resource.AppVersion) > maxAppVersionChars {
-		return fmt.Errorf(`"resource.app_version" exceeds maximum allowed characters of (%d)`, maxAppVersionChars)
+	if len(e.GestureScroll.Target) > maxGestureScrollTargetChars {
+		return fmt.Errorf(`"events[].gesture_scroll.target" exceeds maximum allowed characters of (%d)`, maxGestureScrollTargetChars)
 	}
-	if len(e.Resource.AppBuild) > maxAppBuildChars {
-		return fmt.Errorf(`"resource.app_build" exceeds maximum allowed characters of (%d)`, maxAppBuildChars)
+	if len(e.GestureScroll.TargetUserReadableName) > maxGestureScrollTargetNameChars {
+		return fmt.Errorf(`"events[].gesture_scroll.target_user_readable_name" exceeds maximum allowed characters of (%d)`, maxGestureScrollTargetNameChars)
 	}
-	if len(e.Resource.AppUniqueID) > maxAppUniqueIDChars {
-		return fmt.Errorf(`"resource.app_unique_id" exceeds maximum allowed characters of (%d)`, maxAppUniqueIDChars)
+	if len(e.GestureScroll.TargetID) > maxGestureScrollTargetIDChars {
+		return fmt.Errorf(`"events[].gesture_scroll.target_id" exceeds maximum allowed characters of (%d)`, maxGestureScrollTargetIDChars)
 	}
-	if len(e.Resource.MeasureSDKVersion) > maxMeasureSDKVersion {
-		return fmt.Errorf(`"resource.measure_sdk_version" exceeds maximum allowed characters of (%d)`, maxMeasureSDKVersion)
+	if len(e.HTTPRequest.Method) > maxHTTPRequestMethodChars {
+		return fmt.Errorf(`"events[].http_request.method" exceeds maximum allowed characters of (%d)`, maxHTTPRequestMethodChars)
 	}
-	if len(e.Body.Type) > maxBodyType {
-		return fmt.Errorf(`"body.type" exceeds maximum allowed characters of (%d)`, maxBodyType)
+	if len(e.HTTPRequest.HTTPProtocolVersion) > maxHTTPRequestProtocolVersionChars {
+		return fmt.Errorf(`"events[].http_request.http_protocol_version" exceeds maximum allowed characters of (%d)`, maxHTTPRequestProtocolVersionChars)
 	}
-	if len(e.Body.GestureLongClick.Target) > maxGestureLongClickTargetChars {
-		return fmt.Errorf(`"body.gesture_long_click.target" exceeds maximum allowed characters of (%d)`, maxGestureLongClickTargetChars)
-	}
-	if len(e.Body.GestureLongClick.TargetUserReadableName) > maxGestureLongClickTargetNameChars {
-		return fmt.Errorf(`"body.gesture_long_click.target_user_readable_name" exceeds maximum allowed characters of (%d)`, maxGestureLongClickTargetNameChars)
-	}
-	if len(e.Body.GestureLongClick.TargetID) > maxGestureLongClickTargetIDChars {
-		return fmt.Errorf(`"body.gesture_long_click.target_id" exceeds maximum allowed characters of (%d)`, maxGestureLongClickTargetIDChars)
-	}
-	if len(e.Body.GestureClick.Target) > maxGestureClickTargetChars {
-		return fmt.Errorf(`"body.gesture_click.target" exceeds maximum allowed characters of (%d)`, maxGestureClickTargetChars)
-	}
-	if len(e.Body.GestureClick.TargetUserReadableName) > maxGestureClickTargetNameChars {
-		return fmt.Errorf(`"body.gesture_click.target_user_readable_name" exceeds maximum allowed characters of (%d)`, maxGestureClickTargetNameChars)
-	}
-	if len(e.Body.GestureClick.TargetID) > maxGestureClickTargetIDChars {
-		return fmt.Errorf(`"body.gesture_click.target_id" exceeds maximum allowed characters of (%d)`, maxGestureClickTargetIDChars)
-	}
-	if len(e.Body.GestureScroll.Target) > maxGestureScrollTargetChars {
-		return fmt.Errorf(`"body.gesture_scroll.target" exceeds maximum allowed characters of (%d)`, maxGestureScrollTargetChars)
-	}
-	if len(e.Body.GestureScroll.TargetUserReadableName) > maxGestureScrollTargetNameChars {
-		return fmt.Errorf(`"body.gesture_scroll.target_user_readable_name" exceeds maximum allowed characters of (%d)`, maxGestureScrollTargetNameChars)
-	}
-	if len(e.Body.GestureScroll.TargetID) > maxGestureScrollTargetIDChars {
-		return fmt.Errorf(`"body.gesture_scroll.target_id" exceeds maximum allowed characters of (%d)`, maxGestureScrollTargetIDChars)
-	}
-	if len(e.Body.HTTPRequest.Method) > maxHTTPRequestMethodChars {
-		return fmt.Errorf(`"body.http_request.method" exceeds maximum allowed characters of (%d)`, maxHTTPRequestMethodChars)
-	}
-	if len(e.Body.HTTPRequest.HTTPProtocolVersion) > maxHTTPRequestProtocolVersionChars {
-		return fmt.Errorf(`"body.http_request.http_protocol_version" exceeds maximum allowed characters of (%d)`, maxHTTPRequestProtocolVersionChars)
-	}
-	if len(e.Body.HTTPResponse.Method) > maxHTTPResponseMethodChars {
-		return fmt.Errorf(`"body.http_response.method" exceeds maximum allowed characters of (%d)`, maxHTTPResponseMethodChars)
+	if len(e.HTTPResponse.Method) > maxHTTPResponseMethodChars {
+		return fmt.Errorf(`"events[].http_response.method" exceeds maximum allowed characters of (%d)`, maxHTTPResponseMethodChars)
 	}
 	if len(e.Attributes) > maxAttrCount {
-		return fmt.Errorf(`"attributes" exceeds maximum count of (%d)`, maxAttrCount)
+		return fmt.Errorf(`"events[].attributes" exceeds maximum count of (%d)`, maxAttrCount)
 	}
 
 	return nil
 }
 
-func postEvent(c *gin.Context) {
-	token, exists := c.Get("token")
-
-	if !exists {
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
-	}
-
-	log.Printf("token is %v\n", token)
-
-	// insert event into postgres db
-
-	// insert event into clickhouse
-
-	rows, err := server.chPool.Query(context.Background(), "select trip_id from trips limit 10;")
-
-	if err != nil {
-		log.Printf("Unable to query ClickHouse: %v", err)
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	eventTypes := make([]uint32, 0)
-
-	for rows.Next() {
-		var eventType uint32
-		err = rows.Scan(&eventType)
-		if err != nil {
-			fmt.Print(err)
-			return
-		}
-		eventTypes = append(eventTypes, eventType)
-	}
-
-	fmt.Println(eventTypes)
-
-	c.Status(http.StatusOK)
-}
-
-func makeInsertQuery(table string, columns []string, eventRequest []EventRequest) (string, []interface{}) {
+func makeInsertQuery(table string, columns []string, session *Session) (string, []interface{}) {
 	values := []string{}
 	valueArgs := []interface{}{}
 
-	placeholder := "(toUUID(?),?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?)"
+	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?)"
 
-	for _, event := range eventRequest {
+	for _, event := range session.Events {
+		exceptions := "[]"
+		threads := "[]"
+		if event.isException() {
+			exceptions = event.Exception.Exceptions.encode()
+			threads = event.Exception.Threads.encode()
+		}
 		values = append(values, placeholder)
 		valueArgs = append(valueArgs,
 			uuid.New(),
+			event.Type,
+			session.SessionID,
 			event.Timestamp.Format(timeFormat),
-			event.SeverityText,
-			event.Resource.SessionID,
-			event.Resource.DeviceName,
-			event.Resource.DeviceModel,
-			event.Resource.DeviceManufacturer,
-			event.Resource.DeviceType,
-			event.Resource.DeviceIsFoldable,
-			event.Resource.DeviceIsPhysical,
-			event.Resource.DeviceDensityDPI,
-			event.Resource.DeviceWidthPX,
-			event.Resource.DeviceHeightPX,
-			event.Resource.DeviceDensity,
-			event.Resource.OSName,
-			event.Resource.OSVersion,
-			event.Resource.Platform,
-			event.Resource.AppVersion,
-			event.Resource.AppBuild,
-			event.Resource.AppUniqueID,
-			event.Resource.MeasureSDKVersion,
-			event.Body.Type,
-			event.Body.String,
-			event.Body.Exception.Exceptions,
-			event.Body.Exception.Handled,
-			event.Body.GestureLongClick.Target,
-			event.Body.GestureLongClick.TargetUserReadableName,
-			event.Body.GestureLongClick.TargetID,
-			event.Body.GestureLongClick.TouchDownTime.Format(timeFormat),
-			event.Body.GestureLongClick.TouchUpTime.Format(timeFormat),
-			event.Body.GestureLongClick.Width,
-			event.Body.GestureLongClick.Height,
-			event.Body.GestureLongClick.X,
-			event.Body.GestureLongClick.Y,
-			event.Body.GestureClick.Target,
-			event.Body.GestureClick.TargetUserReadableName,
-			event.Body.GestureClick.TargetID,
-			event.Body.GestureClick.TouchDownTime.Format(timeFormat),
-			event.Body.GestureClick.TouchUpTime.Format(timeFormat),
-			event.Body.GestureClick.Width,
-			event.Body.GestureClick.Height,
-			event.Body.GestureClick.X,
-			event.Body.GestureClick.Y,
-			event.Body.GestureScroll.Target,
-			event.Body.GestureScroll.TargetUserReadableName,
-			event.Body.GestureScroll.TargetID,
-			event.Body.GestureScroll.TouchDownTime.Format(timeFormat),
-			event.Body.GestureScroll.TouchUpTime.Format(timeFormat),
-			event.Body.GestureScroll.X,
-			event.Body.GestureScroll.Y,
-			event.Body.GestureScroll.EndX,
-			event.Body.GestureScroll.EndY,
-			event.Body.GestureScroll.VelocityPX,
-			event.Body.GestureScroll.Direction,
-			event.Body.HTTPRequest.RequestID,
-			event.Body.HTTPRequest.RequestURL,
-			event.Body.HTTPRequest.Method,
-			event.Body.HTTPRequest.HTTPProtocolVersion,
-			event.Body.HTTPRequest.RequestBodySize,
-			event.Body.HTTPRequest.RequestBody,
-			mapToString(event.Body.HTTPRequest.RequestHeaders),
-			event.Body.HTTPResponse.RequestID,
-			event.Body.HTTPResponse.RequestURL,
-			event.Body.HTTPResponse.Method,
-			event.Body.HTTPResponse.LatencyMS,
-			event.Body.HTTPResponse.StatusCode,
-			event.Body.HTTPResponse.ResponseBody,
-			mapToString(event.Body.HTTPResponse.ResponseHeaders),
+			session.Resource.DeviceName,
+			session.Resource.DeviceModel,
+			session.Resource.DeviceManufacturer,
+			session.Resource.DeviceType,
+			session.Resource.DeviceIsFoldable,
+			session.Resource.DeviceIsPhysical,
+			session.Resource.DeviceDensityDPI,
+			session.Resource.DeviceWidthPX,
+			session.Resource.DeviceHeightPX,
+			session.Resource.DeviceDensity,
+			session.Resource.OSName,
+			session.Resource.OSVersion,
+			session.Resource.Platform,
+			session.Resource.AppVersion,
+			session.Resource.AppBuild,
+			session.Resource.AppUniqueID,
+			session.Resource.MeasureSDKVersion,
+			event.Exception.ThreadName,
+			event.Exception.Handled,
+			exceptions,
+			threads,
+			event.LogString.SeverityText,
+			event.LogString.String,
+			event.GestureLongClick.Target,
+			event.GestureLongClick.TargetUserReadableName,
+			event.GestureLongClick.TargetID,
+			event.GestureLongClick.TouchDownTime.Format(timeFormat),
+			event.GestureLongClick.TouchUpTime.Format(timeFormat),
+			event.GestureLongClick.Width,
+			event.GestureLongClick.Height,
+			event.GestureLongClick.X,
+			event.GestureLongClick.Y,
+			event.GestureClick.Target,
+			event.GestureClick.TargetUserReadableName,
+			event.GestureClick.TargetID,
+			event.GestureClick.TouchDownTime.Format(timeFormat),
+			event.GestureClick.TouchUpTime.Format(timeFormat),
+			event.GestureClick.Width,
+			event.GestureClick.Height,
+			event.GestureClick.X,
+			event.GestureClick.Y,
+			event.GestureScroll.Target,
+			event.GestureScroll.TargetUserReadableName,
+			event.GestureScroll.TargetID,
+			event.GestureScroll.TouchDownTime.Format(timeFormat),
+			event.GestureScroll.TouchUpTime.Format(timeFormat),
+			event.GestureScroll.X,
+			event.GestureScroll.Y,
+			event.GestureScroll.EndX,
+			event.GestureScroll.EndY,
+			event.GestureScroll.VelocityPX,
+			event.GestureScroll.Direction,
+			event.HTTPRequest.RequestID,
+			event.HTTPRequest.RequestURL,
+			event.HTTPRequest.Method,
+			event.HTTPRequest.HTTPProtocolVersion,
+			event.HTTPRequest.RequestBodySize,
+			event.HTTPRequest.RequestBody,
+			mapToString(event.HTTPRequest.RequestHeaders),
+			event.HTTPResponse.RequestID,
+			event.HTTPResponse.RequestURL,
+			event.HTTPResponse.Method,
+			event.HTTPResponse.LatencyMS,
+			event.HTTPResponse.StatusCode,
+			event.HTTPResponse.ResponseBody,
+			mapToString(event.HTTPResponse.ResponseHeaders),
 			mapToString(event.Attributes),
 		)
 	}
@@ -452,32 +399,4 @@ func makeInsertQuery(table string, columns []string, eventRequest []EventRequest
 	query := fmt.Sprintf("insert into %s (%s) values %s;", table, strings.Join(columns, ","), strings.Join(values, ", "))
 
 	return query, valueArgs
-}
-
-func putEvent(c *gin.Context) {
-	var eventRequest []EventRequest
-	if err := c.ShouldBindJSON(&eventRequest); err != nil {
-		fmt.Println(err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	for _, event := range eventRequest {
-		err := event.validate()
-
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-	}
-
-	query, args := makeInsertQuery("events_test_1", columns, eventRequest)
-
-	if err := server.chPool.AsyncInsert(context.Background(), query, false, args...); err != nil {
-		fmt.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusAccepted, gin.H{"ok": "accepted"})
 }
