@@ -60,7 +60,7 @@ const EmailWaitlist: FC = () => {
   return (
     <div id="email-waitlist" className="flex flex-col items-center">
         <form onSubmit={handleSubmit} className="flex flex-col md:flex-row items-center">
-            <input id="email" type="email" placeholder="Your email address" className="w-4xl border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400"value={email} onChange={(event) => setEmail(event.target.value)} />
+            <input id="email" type="email" placeholder="Your email address" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400"value={email} onChange={(event) => setEmail(event.target.value)} />
             <div className="py-2 md:px-2"/>
             <button type="submit" disabled={apiStatus === ApiStatus.PENDING || apiStatus === ApiStatus.SUCCESS || email.length === 0} className={`outline-none hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display text-black border border-black rounded-md transition-colors duration-100 py-2 px-4 ${(apiStatus === ApiStatus.PENDING || apiStatus == ApiStatus.SUCCESS) ? 'pointer-events-none' : 'pointer-events-auto'}`}>{buttonText}</button>
         </form>
