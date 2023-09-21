@@ -11,6 +11,7 @@ variable: '--font-body'})
 export const metadata: Metadata = {
   title: 'Measure',
   description: 'Open source mobile app monitoring | Alternative to Firebase Crashlytics, Instabug, Sentry, Embrace',
+  viewport: { width: "device-width", initialScale: 1, minimumScale:1 }
 }
 
 export default function RootLayout({
