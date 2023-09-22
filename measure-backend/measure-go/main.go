@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"log"
 	"os"
 
@@ -30,7 +28,6 @@ func main() {
 	}
 
 	server = *new(Server).Configure(&serverConfig)
-	pgPool := server.pgPool
 
 	defer server.pgPool.Close()
 	defer server.chPool.Close()
@@ -42,23 +39,7 @@ func main() {
 		})
 	})
 
-	r.GET("/employees", func(c *gin.Context) {
-		var name string
-		var department string
-		err := pgPool.QueryRow(context.Background(), "select type from dummy where type=$1", "type-a").Scan(&name)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "QueryRow failed: %v\n", err)
-			return
-		}
-		c.JSON(200, gin.H{
-			"name":       name,
-			"department": department,
-		})
-	})
-
-	r.PUT("/events", authorize(), putEvent)
-
-	r.POST("/events", authorize(), postEvent)
+	r.PUT("/sessions", authorize(), putSession)
 
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080
 }
