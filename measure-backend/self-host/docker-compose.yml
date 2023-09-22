@@ -26,6 +26,7 @@ services:
     image: clickhouse/clickhouse-server
     ports:
       - "9000:9000/tcp"
+      - "8123:8123"
     ulimits:
       nofile: 262144
     volumes:
