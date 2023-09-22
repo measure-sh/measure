@@ -5,15 +5,15 @@ export default function Home() {
   return (
     <main className="flex flex-col items-center justify-between selection:bg-yellow-200/75">
       <Header/>
-      <div className="flex flex-col items-center md:w-4/5 px-16">
+      <div className="flex flex-col items-center md:w-4/5 2xl:w-3/5 px-16">
         <div className="py-24"/>
         <p className="font-display font-regular text-black text-8xl max-w-6xl text-center">measure</p>
         <div className="py-2"/>
         <p className="text-lg leading-relaxed font-sans text-black max-w-2xl text-center">open source monitoring platform for mobile teams</p>
         <div className="py-4 md:py-12"/>
-        <div className="border border-black w-96 md:w-2/6 aspect-square md:w-full md:h-screen bg-yellow-200"/>
+        <div className="border border-black aspect-square w-96 md:w-full bg-yellow-200"/>
         <div className="py-12 md:py-16"/>
-        <div className="flex flex-col md:flex-row items-center">
+        <div className="flex flex-col md:flex-row md:w-full items-center">
           <div className="flex flex-col md:w-3/6 items-center md:items-start">
             <p className="text-4xl font-display font-regular text-black">Measure what matters</p>
             <div className="py-2"/>
@@ -23,7 +23,7 @@ export default function Home() {
           <div className="border border-black w-96 md:w-2/6 aspect-square bg-violet-200"/>
         </div>
         <div className="py-12"/>
-        <div className="flex flex-col md:flex-row items-center">
+        <div className="flex flex-col md:flex-row md:w-full items-center">
           <div className="flex flex-col md:w-3/6 items-center md:items-start">
             <p className="text-4xl font-display font-regular text-black">Crashes</p>
             <div className="py-2"/>
@@ -33,7 +33,7 @@ export default function Home() {
           <div className="border border-black w-96 md:w-2/6 aspect-square bg-pink-200"/>
         </div>
         <div className="py-12"/>
-        <div className="flex flex-col md:flex-row items-center">
+        <div className="flex flex-col md:flex-row md:w-full items-center">
           <div className="flex flex-col md:w-3/6 items-center md:items-start">
             <p className="text-4xl font-display font-regular text-black">ANRs & App hangs</p>
             <div className="py-2"/>
@@ -43,7 +43,7 @@ export default function Home() {
           <div className="border border-black w-96 md:w-2/6 aspect-square bg-orange-200"/>
         </div>
         <div className="py-12"/>
-        <div className="flex flex-col md:flex-row items-center">
+        <div className="flex flex-col md:flex-row md:w-full items-center">
           <div className="flex flex-col md:w-3/6 items-center md:items-start">
             <p className="text-4xl font-regular text-black font-display">Performance</p>
             <div className="py-2"/>
@@ -53,7 +53,7 @@ export default function Home() {
           <div className="border border-black w-96 md:w-2/6 aspect-square bg-blue-200"/>
         </div>
         <div className="py-12"/>
-        <div className="flex flex-col md:flex-row items-center">
+        <div className="flex flex-col md:flex-row md:w-full items-center">
           <div className="flex flex-col md:w-3/6 items-center md:items-start">
             <p className="text-4xl font-display font-regular text-black ">Logs</p>
             <div className="py-2"/>
@@ -63,7 +63,7 @@ export default function Home() {
           <div className="border border-black w-96 md:w-2/6 aspect-square bg-green-200"/>
         </div>
         <div className="py-12"/>
-        <div className="flex flex-col md:flex-row items-center">
+        <div className="flex flex-col md:flex-row md:w-full items-center">
           <div className="flex flex-col md:w-3/6 items-center md:items-start">
             <p className="text-4xl font-display font-regular text-black">Session replays</p>
             <div className="py-2"/>
@@ -73,7 +73,7 @@ export default function Home() {
           <div className="border border-black w-96 md:w-2/6 aspect-square bg-purple-200"/>
         </div>
         <div className="py-12"/>
-        <div className="flex flex-col md:flex-row items-center">
+        <div className="flex flex-col md:flex-row md:w-full items-center">
           <div className="flex flex-col md:w-3/6 items-center md:items-start">
             <p className="text-4xl font-display font-regular text-black">AI assistance</p>
             <div className="py-2"/>
@@ -83,7 +83,7 @@ export default function Home() {
           <div className="border border-black w-96 md:w-2/6 aspect-square bg-rose-200"/>
         </div>
         <div className="py-12"/>
-        <div className="flex flex-col md:flex-row items-center">
+        <div className="flex flex-col md:flex-row md:w-full items-center">
           <div className="flex flex-col md:w-3/6 items-center md:items-start">
             <p className="text-4xl font-display font-regular text-black">Open source</p>
             <div className="py-2"/>
