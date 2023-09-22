@@ -54,5 +54,13 @@ func putSession(c *gin.Context) {
 		return
 	}
 
+	_, err := server.pgPool.Exec(context.Background(), `insert into sessions (id, timestamp, event_count) values ($1, $2, $3);`, uuid.New(), time.Now(), len(session.Events))
+
+	if err != nil {
+		fmt.Println(`failed to write session to db`, err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": `failed to record the session`})
+		return
+	}
+
 	c.JSON(http.StatusAccepted, gin.H{"ok": "accepted"})
 }
