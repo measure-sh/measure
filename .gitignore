@@ -1,0 +1,5 @@
+# macOS
+.DS_Store
+
+# node/bun
+node_modules
