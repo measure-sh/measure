@@ -3,23 +3,23 @@ package main
 import "fmt"
 
 type Resource struct {
-	DeviceName         string `json:"device_name"`
-	DeviceModel        string `json:"device_model"`
-	DeviceManufacturer string `json:"device_manufacturer"`
-	DeviceType         string `json:"device_type"`
-	DeviceIsFoldable   bool   `json:"device_is_foldable"`
-	DeviceIsPhysical   bool   `json:"device_is_physical"`
-	DeviceDensityDPI   uint16 `json:"device_density_dpi"`
-	DeviceWidthPX      uint16 `json:"device_width_px"`
-	DeviceHeightPX     uint16 `json:"device_height_px"`
-	DeviceDensity      uint8  `json:"device_density"`
-	OSName             string `json:"os_name"`
-	OSVersion          string `json:"os_version"`
-	Platform           string `json:"platform"`
-	AppVersion         string `json:"app_version"`
-	AppBuild           string `json:"app_build"`
-	AppUniqueID        string `json:"app_unique_id"`
-	MeasureSDKVersion  string `json:"measure_sdk_version"`
+	DeviceName         string  `json:"device_name"`
+	DeviceModel        string  `json:"device_model"`
+	DeviceManufacturer string  `json:"device_manufacturer"`
+	DeviceType         string  `json:"device_type"`
+	DeviceIsFoldable   bool    `json:"device_is_foldable"`
+	DeviceIsPhysical   bool    `json:"device_is_physical"`
+	DeviceDensityDPI   uint16  `json:"device_density_dpi"`
+	DeviceWidthPX      uint16  `json:"device_width_px"`
+	DeviceHeightPX     uint16  `json:"device_height_px"`
+	DeviceDensity      float32 `json:"device_density"`
+	OSName             string  `json:"os_name"`
+	OSVersion          string  `json:"os_version"`
+	Platform           string  `json:"platform"`
+	AppVersion         string  `json:"app_version"`
+	AppBuild           string  `json:"app_build"`
+	AppUniqueID        string  `json:"app_unique_id"`
+	MeasureSDKVersion  string  `json:"measure_sdk_version"`
 }
 
 func (r *Resource) validate() error {

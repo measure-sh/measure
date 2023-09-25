@@ -17,7 +17,7 @@ create table if not exists events_test_2
     `resource.device_density_dpi` UInt16,
     `resource.device_width_px` UInt16,
     `resource.device_height_px` UInt16,
-    `resource.device_density` UInt8,
+    `resource.device_density` Float32,
     `resource.os_name` FixedString(32),
     `resource.os_version` FixedString(32),
     `resource.platform` LowCardinality(FixedString(32)),
