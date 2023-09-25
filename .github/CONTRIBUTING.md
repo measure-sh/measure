@@ -7,7 +7,28 @@
 - Pull requests must be opened against an existing issue (which in turn contains a linked task in the board)
 - All pull requests must be reviewed and approved by at least 1 maintainer before merging
 
+## Local environment setup
+
+After cloning the repostiory, run the following commands for the best contribution experience. All core maintainers **MUST** follow these steps.
+
+In the repo root, run
+
+```sh
+npm install
+npm prepare
+```
+
+The above commands would install the required dependencies and setup git hooks as intended. This is a one-time setup, unless you do a fresh clone again.
+
+> ⚠ NOTE
+>
+> You would need [node](https://nodejs.org/) to run the above commands. We recommend you always stick to the `lts` version of node.
+> If you need to setup node, we recommend you use [fnm (Fast Node Manager)](https://github.com/Schniz/fnm) to manage node version(s). Follow [fnm's installation instructions](https://github.com/Schniz/fnm?tab=readme-ov-file#installation).
+
+
 ## Writing commit messages
+
+All commits landing in any branch are first linted in your local environment and then in CI.
 
 - Follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for all commits.
 - Stick to present tense for the commit message language
