@@ -8,7 +8,6 @@ services:
     environment:
       - POSTGRES_DSN=postgres://postgres:postgres@postgres:5432/postgres
       - CLICKHOUSE_DSN=clickhouse://default:@clickhouse:9000/default
-      - GIN_MODE=release
     depends_on:
       - clickhouse
       - postgres
