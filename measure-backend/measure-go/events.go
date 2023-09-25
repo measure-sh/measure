@@ -107,8 +107,8 @@ var columns = []string{
 }
 
 type Frame struct {
-	LineNum    int    `json:"line_num" binding:"required"`
-	ColNum     int    `json:"col_num" binding:"required"`
+	LineNum    int    `json:"line_num"`
+	ColNum     int    `json:"col_num"`
 	ModuleName string `json:"module_name"`
 	FileName   string `json:"file_name"`
 	ClassName  string `json:"class_name"`
