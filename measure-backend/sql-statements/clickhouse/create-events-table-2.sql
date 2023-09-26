@@ -28,8 +28,9 @@ create table if not exists events_test_2
     /* exceptions */
     `exception.thread_name` LowCardinality(String),
     `exception.handled` Bool,
-    `exception.exceptions` Array(Tuple(LowCardinality(String), LowCardinality(String), Array(Tuple(Int32, Int32, LowCardinality(String), LowCardinality(String), LowCardinality(String), LowCardinality(String))))),
-    `exception.threads` Array(Tuple(LowCardinality(String), Array(Tuple(Int32, Int32, LowCardinality(String), LowCardinality(String), LowCardinality(String), LowCardinality(String))))),
+    /* uses undescore because clickhouse treats dot as a nested data structure and tries to match the length of exception.exceptions & exception.threads */
+    `exception_exceptions` Array(Tuple(LowCardinality(String), LowCardinality(String), Array(Tuple(Int32, Int32, LowCardinality(String), LowCardinality(String), LowCardinality(String), LowCardinality(String))))),
+    `exception_threads` Array(Tuple(LowCardinality(String), Array(Tuple(Int32, Int32, LowCardinality(String), LowCardinality(String), LowCardinality(String), LowCardinality(String))))),
     /* string */
     `string.severity_text` LowCardinality(FixedString(10)),
     `string.string` String,
