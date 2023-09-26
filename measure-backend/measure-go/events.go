@@ -56,8 +56,8 @@ var columns = []string{
 	"resource.measure_sdk_version",
 	"exception.thread_name",
 	"exception.handled",
-	"exception.exceptions",
-	"exception.threads",
+	"exception_exceptions",
+	"exception_threads",
 	"string.severity_text",
 	"string.string",
 	"gesture_long_click.target",
@@ -116,7 +116,23 @@ type Frame struct {
 }
 
 func (f *Frame) encode() string {
-	return fmt.Sprintf("(%d, %d, '%s', '%s', '%s', '%s')", f.LineNum, f.ColNum, f.ModuleName, f.FileName, f.ClassName, f.MethodName)
+	moduleName := f.ModuleName
+	fileName := f.FileName
+	className := f.ClassName
+	methodName := f.MethodName
+	if f.ModuleName == "" {
+		moduleName = "__blank__"
+	}
+	if f.FileName == "" {
+		fileName = "__blank__"
+	}
+	if f.ClassName == "" {
+		className = "__blank__"
+	}
+	if f.MethodName == "" {
+		methodName = "__blank__"
+	}
+	return fmt.Sprintf("(%d, %d, '%s', '%s', '%s', '%s')", f.LineNum, f.ColNum, moduleName, fileName, className, methodName)
 }
 
 type Frames []Frame
