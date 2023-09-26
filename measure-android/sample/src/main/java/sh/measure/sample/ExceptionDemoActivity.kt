@@ -13,7 +13,6 @@ class ExceptionDemoActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btn_single_exception).setOnClickListener {
             throw IllegalAccessException("This is a new exception")
         }
-
         findViewById<Button>(R.id.btn_chained_exception).setOnClickListener {
             throw IOException("This is a test exception").initCause(
                 CustomException(message = "This is a nested custom exception")
@@ -26,6 +25,13 @@ class ExceptionDemoActivity : AppCompatActivity() {
                 list.add(byteArray)
             }
         }
+        findViewById<Button>(R.id.btn_stack_overflow_exception).setOnClickListener {
+            recursiveFunction()
+        }
+    }
+
+    private fun recursiveFunction() {
+        recursiveFunction()
     }
 }
 

@@ -11,7 +11,7 @@ class ExceptionFactoryTest {
     private val timeProvider = FakeTimeProvider()
 
     @Test
-    fun `creates a single exception in MeasureException when exception has no cause`() {
+    fun `creates a single exception when exception has no cause`() {
         // Given
         val exception = IllegalArgumentException("Test exception")
         val thread = Thread.currentThread()
@@ -32,7 +32,7 @@ class ExceptionFactoryTest {
     }
 
     @Test
-    fun `creates two exceptions in MeasureException when exception has a cause`() {
+    fun `creates two exceptions when exception has a cause`() {
         // Given
         val exception =
             IllegalArgumentException("Test exception").initCause(RuntimeException("Cause"))
@@ -56,24 +56,6 @@ class ExceptionFactoryTest {
         assertEquals("java.lang.RuntimeException", causeException.type)
         assertEquals("Cause", causeException.message)
         assertTrue(causeException.frames.isNotEmpty())
-    }
-
-
-    @Test
-    fun `creates frames in MeasureException equal to the size of stacktrace`() {
-        // Given
-        val exception = IllegalArgumentException("Test exception")
-        val framesSize = exception.stackTrace.size
-        val thread = Thread.currentThread()
-
-        // When
-        val measureException = ExceptionFactory.createMeasureException(
-            exception, handled = true, timeProvider.currentTimeSinceEpochInMillis, thread
-        )
-
-        // Then
-        val frames = measureException.exceptions.first().frames
-        assertEquals(framesSize, frames.size)
     }
 
     @Test
