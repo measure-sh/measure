@@ -42,7 +42,8 @@ All commits landing in any branch are first linted in your local environment and
   - **android** for commits related to Android SDK
   - **webapp** for commits related to dashboard web app
   - **backend** for commits related to backend infrastructure
-- Try not to exceed exceed **72** characters for commit header message
+- Try not to exceed **72** characters for commit header message
+- Try not to exceed **100** characters for each line in body. Break each line with newlines to remain under 100 characters.
 - Make sure commit message headers are in lowercase
 - Make sure commit message body & footer are always sandwiched with a single blank line
 
@@ -67,6 +68,14 @@ All commits landing in any branch are first linted in your local environment and
   Add android symbolication of unhandled exceptions
   ```
 
+- Exceeding `body-max-line-length`
+
+  ```
+  fix(backend): frames not ingesting
+
+  this is a really really really long line that is exceeding the allowed limit of max characters per line
+  ```
+
 ### ✅ Good Commits
 
 - Correct `type`
@@ -87,4 +96,13 @@ All commits landing in any branch are first linted in your local environment and
   feat(backend): add exception symbolication
 
   Add android symbolication of unhandled exceptions
+  ```
+
+- Each body line is within limits
+
+  ```
+  fix(backend): frames not ingesting
+
+  this is a really really really long line that is
+  exceeding the allowed limit of max characters per line
   ```
