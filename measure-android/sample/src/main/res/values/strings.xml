@@ -3,4 +3,5 @@
     <string name="single_exception">Raise single exception</string>
     <string name="chained_exceptions">Raise chained exception</string>
     <string name="oom_exception">Raise OOM exception</string>
+    <string name="stack_overflow_exception">Raise StackOverflow exception</string>
 </resources>

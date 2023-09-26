@@ -25,4 +25,10 @@
         android:layout_height="wrap_content"
         android:text="@string/oom_exception" />
 
+    <Button
+        android:id="@+id/btn_stack_overflow_exception"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/stack_overflow_exception" />
+
 </LinearLayout>

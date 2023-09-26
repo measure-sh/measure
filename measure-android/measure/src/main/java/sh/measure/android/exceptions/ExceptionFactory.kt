@@ -16,7 +16,7 @@ internal object ExceptionFactory {
             val exception = ExceptionUnit(
                 type = error.javaClass.name,
                 message = error.message,
-                frames = error.stackTrace.map {
+                frames = error.stackTrace.trimStackTrace().map {
                     Frame(
                         class_name = it.className,
                         method_name = it.methodName,
@@ -29,17 +29,26 @@ internal object ExceptionFactory {
             error = error.cause
         }
 
-        val threads = Thread.getAllStackTraces()
-            .filter { it.key.name != thread.name && it.value.isNotEmpty() }.map {
-                MeasureThread(name = it.key.name, frames = it.value.map { stackTraceElement ->
-                    Frame(
-                        class_name = stackTraceElement.className,
-                        method_name = stackTraceElement.methodName,
-                        file_name = stackTraceElement.fileName,
-                        line_num = stackTraceElement.lineNumber,
-                    )
-                })
+        // Get stack trace for all threads.
+        val allStackTraces = Thread.getAllStackTraces()
+        val threads = mutableListOf<MeasureThread>()
+        var count = 0
+        for ((t, stackTrace) in allStackTraces) {
+            if (t.name != thread.name && stackTrace.isNotEmpty() && count <= MAX_THREADS_IN_EXCEPTION) {
+                val measureThread = MeasureThread(
+                    name = t.name,
+                    frames = stackTrace.trimStackTrace().map { stackTraceElement ->
+                            Frame(
+                                class_name = stackTraceElement.className,
+                                method_name = stackTraceElement.methodName,
+                                file_name = stackTraceElement.fileName,
+                                line_num = stackTraceElement.lineNumber,
+                            )
+                        })
+                threads.add(measureThread)
             }
+            count++
+        }
         return MeasureException(timestamp, thread.name, exceptions, threads, handled)
     }
 }
