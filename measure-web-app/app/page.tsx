@@ -1,5 +1,9 @@
+"use client"
+
 import Header from './components/header'
 import EmailWaitlist from './components/email_waitlist'
+import Lottie from "lottie-react";
+import heroAnim from "./animations/measure_hero.json";
 
 export default function Home() {
   return (
@@ -10,8 +14,8 @@ export default function Home() {
         <p className="font-display font-regular text-black text-8xl max-w-6xl text-center">measure</p>
         <div className="py-2"/>
         <p className="text-lg leading-relaxed font-sans text-black max-w-2xl text-center">open source app monitoring for mobile teams</p>
-        <div className="py-4 md:py-12"/>
-        <div className="border border-black aspect-square w-96 md:w-full bg-yellow-200"/>
+        <div className="py-4 md:py-4"/>
+        <Lottie animationData={heroAnim} loop={true} className="aspect-square w-96 md:w-3/4"/>
         <div className="py-12 md:py-16"/>
         <div className="flex flex-col md:flex-row md:w-full items-center">
           <div className="flex flex-col md:w-3/6 items-center md:items-start">
