@@ -42,6 +42,20 @@ func putSession(c *gin.Context) {
 		return
 	}
 
+	var existing string
+	if err := server.pgPool.QueryRow(context.Background(), `select id from sessions limit 1;`).Scan(&existing); err != nil {
+		if err.Error() != "no rows in result set" {
+			fmt.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	if existing == session.SessionID.String() {
+		c.JSON(http.StatusAccepted, gin.H{"ok": "accepted, known session"})
+		return
+	}
+
 	if err := session.validate(); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -54,7 +68,7 @@ func putSession(c *gin.Context) {
 		return
 	}
 
-	_, err := server.pgPool.Exec(context.Background(), `insert into sessions (id, timestamp, event_count) values ($1, $2, $3);`, uuid.New(), time.Now(), len(session.Events))
+	_, err := server.pgPool.Exec(context.Background(), `insert into sessions (id, timestamp, event_count) values ($1, $2, $3);`, session.SessionID, time.Now(), len(session.Events))
 
 	if err != nil {
 		fmt.Println(`failed to write session to db`, err.Error())
