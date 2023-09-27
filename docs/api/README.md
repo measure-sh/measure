@@ -9,6 +9,7 @@ Measure APIs are built following sound REST API design principles. Find all the 
 - [Status Codes \& Troubleshooting](#status-codes--troubleshooting)
 - [Resources \& Endpoints](#resources--endpoints)
   - [PUT `/sessions`](#put-sessions)
+    - [Response Body](#response-body)
     - [Request Body](#request-body)
       - [Session Reference](#session-reference)
       - [Resource Reference](#resource-reference)
@@ -65,10 +66,23 @@ This single, unified endopint accepts everything that was captured in a single M
 - The maximum number of attributes allowed in a single event is capped to **10**.
 - Ensure each event `timestamp` is in nanosecond precision - `"2023-08-24T14:51:38.000000534Z"`
 - Successful response always return a `202 Accepted` with the following response
+- Previously seen sessions matching by `session_id` won't be processed.
+
+#### Response Body
+
+- For new sessions
 
   ```json
   {
     "ok": "accepted"
+  }
+  ```
+
+- For already seen sessions
+
+  ```json
+  {
+    "ok": "accepted, known session"
   }
   ```
 
