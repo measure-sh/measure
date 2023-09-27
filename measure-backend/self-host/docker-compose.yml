@@ -13,7 +13,7 @@ services:
       - postgres
 
   postgres:
-    image: postgres
+    image: postgres:15
     ports:
       - "5432:5432"
     environment:
@@ -22,7 +22,7 @@ services:
       - postgres-volume:/var/lib/postgresql/data
 
   clickhouse:
-    image: clickhouse/clickhouse-server
+    image: clickhouse/clickhouse-server:23
     ports:
       - "9000:9000/tcp"
       - "8123:8123"
@@ -30,7 +30,7 @@ services:
       nofile: 262144
     volumes:
       - clickhouse-volume:/var/lib/clickhouse
-      - clickhouse-volume:/var/log/clickhouse-server/logs
+      - clickhouse-volume:/var/log/clickhouse-server
 
 volumes:
   clickhouse-volume:
