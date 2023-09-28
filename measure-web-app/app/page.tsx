@@ -19,7 +19,7 @@ export default function Home() {
         <div className="py-12 md:py-16"/>
         <div className="flex flex-col md:flex-row md:w-full items-center">
           <div className="flex flex-col md:w-3/6 items-center md:items-start">
-            <p className="text-4xl font-display font-regular text-black">App health at a glance</p>
+            <p className="text-4xl font-regular text-black font-display text-center md:text-left">App health at a glance</p>
             <div className="py-2"/>
             <p className="text-lg text-center md:text-left leading-relaxed font-sans text-black">Monitor core user flows and important metrics to stay on top of app health. Filter by various system or custom attributes to dive deeper.</p>
           </div>
@@ -29,7 +29,7 @@ export default function Home() {
         <div className="py-12"/>
         <div className="flex flex-col md:flex-row md:w-full items-center">
           <div className="flex flex-col md:w-3/6 items-center md:items-start">
-            <p className="text-4xl font-display font-regular text-black">Crash debugging simplified</p>
+            <p className="text-4xl font-regular text-black font-display text-center md:text-left">Crash debugging simplified</p>
             <div className="py-2"/>
             <p className="text-lg text-center md:text-left leading-relaxed font-sans text-black">Track crashes and app hangs automatically, prioritise them by impact and use detailed event timelines to zoom in on production issues.</p>
           </div>
@@ -39,7 +39,7 @@ export default function Home() {
         <div className="py-12"/>
         <div className="flex flex-col md:flex-row md:w-full items-center">
           <div className="flex flex-col md:w-3/6 items-center md:items-start">
-            <p className="text-4xl font-regular text-black font-display">Buttery smooth performance </p>
+            <p className="text-4xl font-regular text-black font-display text-center md:text-left">Buttery smooth performance</p>
             <div className="py-2"/>
             <p className="text-lg text-center md:text-left leading-relaxed font-sans text-black">Automatically trace app startups, app hangs, network calls, database queries and slow page loads. Use custom traces to measure what matters in any part of your app.</p>
           </div>
@@ -49,7 +49,7 @@ export default function Home() {
         <div className="py-12"/>
         <div className="flex flex-col md:flex-row md:w-full items-center">
           <div className="flex flex-col md:w-3/6 items-center md:items-start">
-            <p className="text-4xl font-display font-regular text-black ">Detailed logging</p>
+            <p className="text-4xl font-regular text-black font-display text-center md:text-left">Detailed logging</p>
             <div className="py-2"/>
             <p className="text-lg text-center md:text-left leading-relaxed font-sans text-black">Capture standard output/Logcat output automatically. Add custom logs anywhere in your code for easy debugging in production.</p>
           </div>
@@ -59,7 +59,7 @@ export default function Home() {
         <div className="py-12"/>
         <div className="flex flex-col md:flex-row md:w-full items-center">
           <div className="flex flex-col md:w-3/6 items-center md:items-start">
-            <p className="text-4xl font-display font-regular text-black">Built by and for mobile devs</p>
+            <p className="text-4xl font-regular text-black font-display text-center md:text-left">Built by and for mobile devs</p>
             <div className="py-2"/>
             <p className="text-lg text-center md:text-left leading-relaxed font-sans text-black">Open source platform with a welcoming community. Built by mobile devs who have shipped apps to hundreds of millions of users since the early days of iOS and Android.</p>
           </div>
