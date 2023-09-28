@@ -10,7 +10,7 @@ export default function Home() {
     <main className="flex flex-col items-center justify-between selection:bg-yellow-200/75">
       <Header/>
       <div className="flex flex-col items-center md:w-4/5 2xl:w-3/5 px-16">
-        <div className="py-24"/>
+        <div className="py-16"/>
         <p className="font-display font-regular text-black text-8xl max-w-6xl text-center">measure</p>
         <div className="py-2"/>
         <p className="text-lg leading-relaxed font-sans text-black max-w-2xl text-center">open source app monitoring for mobile teams</p>
