@@ -1,6 +1,8 @@
-package sh.measure.android.time
+package sh.measure.android.utils
 
 import android.os.SystemClock
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 /**
  * Provides time from different clocks.
@@ -38,4 +40,9 @@ internal class AndroidTimeProvider : TimeProvider {
     private fun Long.toNanos(): Long {
         return this * 1_000_000
     }
+}
+
+internal fun Long.iso8601Timestamp(): String {
+    val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS'Z'", Locale.US)
+    return sdf.format(this)
 }

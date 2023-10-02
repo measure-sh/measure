@@ -2,341 +2,172 @@ package sh.measure.android.storage
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.encodeToJsonElement
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.verify
+import org.mockito.Mockito.`when`
 import org.robolectric.RuntimeEnvironment
-import sh.measure.android.exceptions.MeasureException
-import sh.measure.android.exceptions.ExceptionFactory
+import sh.measure.android.events.Event
 import sh.measure.android.fakes.FakeResourceFactory
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.session.Resource
 import sh.measure.android.session.Session
 import sh.measure.android.session.SessionReport
-import sh.measure.android.session.SignalReport
-import sh.measure.android.session.events
-import sh.measure.android.session.iso8601Timestamp
-import sh.measure.android.storage.SessionContract.SessionTable
-import sh.measure.android.storage.SessionContract.SignalsTable
-import sh.measure.android.tracker.EventType
-import sh.measure.android.tracker.SignalType
+import sh.measure.android.utils.iso8601Timestamp
+import java.io.File
+import kotlin.io.path.pathString
 
 @RunWith(AndroidJUnit4::class)
-class StorageImplTest {
-
-    private val db =
-        SqliteDbHelper(logger = NoopLogger(), context = RuntimeEnvironment.getApplication())
-
-    private val storage: Storage = StorageImpl(logger = NoopLogger(), db = db)
+internal class StorageImplTest {
+    private val logger = NoopLogger()
+    private val dbHelper = mock<DbHelper>()
+    private val fileHelper = mock<FileHelperImpl>()
+    private val storage: Storage = StorageImpl(logger, fileHelper, dbHelper)
+    private val tempDirPath =
+        RuntimeEnvironment.getTempDirectory().createIfNotExists("test").pathString
 
     @Test
-    fun `inserts a session into sessions table with synced & crashed default to false`() {
+    fun `Storage delegates to db and file helper to create session`() {
         val session =
             Session(id = "id", startTime = 9876543210, resource = FakeResourceFactory().create())
         // When
-        storage.saveSession(session)
+        storage.createSession(session)
 
         // Then
-        db.writableDatabase.let {
-            it.rawQuery("SELECT * FROM ${SessionTable.TABLE_NAME}", null)
-                .use { cursor ->
-                    assertTrue(cursor.moveToFirst())
-                    assertEquals(
-                        session.id,
-                        cursor.getString(cursor.getColumnIndex(SessionTable.COLUMN_SESSION_ID))
-                    )
-                    assertEquals(
-                        session.startTime,
-                        cursor.getLong(cursor.getColumnIndex(SessionTable.COLUMN_SESSION_START_TIME))
-                    )
-                    assertEquals(
-                        Json.encodeToString(Resource.serializer(), session.resource),
-                        cursor.getString(cursor.getColumnIndex(SessionTable.COLUMN_RESOURCE))
-                    )
-                    assertEquals(
-                        false,
-                        cursor.getInt(cursor.getColumnIndex(SessionTable.COLUMN_CRASHED)) == 1
-                    )
-                    assertEquals(
-                        false, cursor.getInt(cursor.getColumnIndex(SessionTable.COLUMN_SYNCED)) == 1
-                    )
-                }
-        }
+        verify(dbHelper).createSession(session.toContentValues())
+        verify(fileHelper).createSessionFiles(session.id)
     }
 
     @Test
-    fun `deletes session from sessions table`() {
-        // Given
-        val session =
-            Session(id = "id", startTime = 9876543210, resource = FakeResourceFactory().create())
-        storage.saveSession(session)
-
+    fun `Storage serializes and writes resource to file`() {
+        val resource = FakeResourceFactory().resource
+        val resourceFile = File(tempDirPath, "resource.json")
+        `when`(fileHelper.getResourceFile("id")).thenReturn(resourceFile)
         // When
-        storage.deleteSession(session.id)
+        storage.createResource(resource, "id")
 
         // Then
-        db.writableDatabase.let {
-            it.rawQuery("SELECT * FROM ${SessionTable.TABLE_NAME}", null)
-                .use { cursor ->
-                    assertFalse(cursor.moveToFirst())
-                }
-        }
-    }
-
-    @Test
-    fun `saves unhandled exception and marks the session as crashed`() {
-        // Given
-        val session =
-            Session(id = "id", startTime = 9876543210, resource = FakeResourceFactory().create())
-        val signal = Signal(
-            sessionId = session.id,
-            timestamp = 9876543210.iso8601Timestamp(),
-            signalType = SignalType.EVENT,
-            dataType = EventType.EXCEPTION,
-            data = Json.encodeToString(
-                MeasureException.serializer(), ExceptionFactory.createMeasureException(
-                    RuntimeException("Test exception"),
-                    handled = false,
-                    9876543210,
-                    Thread.currentThread()
-                )
-            )
-        )
-        storage.saveSession(session)
-
-        // When
-        storage.saveUnhandledException(signal)
-
-        // Verify session is marked as crashed
-        db.writableDatabase.let {
-            it.rawQuery("SELECT * FROM ${SessionTable.TABLE_NAME}", null)
-                .use { cursor ->
-                    assertTrue(cursor.moveToFirst())
-                    assertEquals(
-                        true, cursor.getInt(cursor.getColumnIndex(SessionTable.COLUMN_CRASHED)) == 1
-                    )
-                }
-        }
-        // Verify signal is saved
-        db.writableDatabase.let {
-            it.rawQuery("SELECT * FROM ${SignalsTable.TABLE_NAME}", null)
-                .use { cursor ->
-                    assertTrue(cursor.moveToFirst())
-                    assertEquals(
-                        signal.sessionId,
-                        cursor.getString(cursor.getColumnIndex(SignalsTable.COLUMN_SESSION_ID))
-                    )
-                    assertEquals(
-                        signal.timestamp,
-                        cursor.getString(cursor.getColumnIndex(SignalsTable.COLUMN_TIMESTAMP))
-                    )
-                    assertEquals(
-                        signal.signalType,
-                        cursor.getString(cursor.getColumnIndex(SignalsTable.COLUMN_SIGNAL_TYPE))
-                    )
-                    assertEquals(
-                        signal.dataType,
-                        cursor.getString(cursor.getColumnIndex(SignalsTable.COLUMN_DATA_TYPE))
-                    )
-                    assertEquals(
-                        signal.data,
-                        cursor.getString(cursor.getColumnIndex(SignalsTable.COLUMN_DATA))
-                    )
-                }
-        }
-    }
-
-    @Test
-    fun `returns session report from session & signals table for a given session ID`() {
-        // Given
-        val session = Session(
-            id = "id", startTime = 9876543210, resource = FakeResourceFactory().create()
-        )
-        val exception = IllegalArgumentException("Test exception")
-        val thread = Thread.currentThread()
-        val signal = ExceptionFactory.createMeasureException(
-            exception, handled = true, 1231231, thread
-        ).toSignal("id")
-        prePopulateSession(session)
-        prePopulateSignal(signal)
-
-        // When
-        val result: SessionReport? = storage.getSessionReport(signal.sessionId)
-        assertNotNull(result)
-        val sessionReport = result!!
-
-        // Then
-        assertEquals(session.id, sessionReport.session_id)
-        assertEquals(listOf(signal.toSignalReport()).events(), sessionReport.events)
         assertEquals(
-            Json.encodeToJsonElement(Resource.serializer(), session.resource),
-            sessionReport.resource
+            resource, Json.decodeFromString(Resource.serializer(), resourceFile.readText())
         )
-        assertEquals(session.startTime.iso8601Timestamp(), sessionReport.timestamp)
     }
 
     @Test
-    fun `clears the session and it's signals for given session ID`() {
-        // Given
-        val signal = Signal(
-            sessionId = "id",
-            timestamp = 9876543210.iso8601Timestamp(),
-            signalType = "entryType",
-            dataType = "dataType",
-            data = "data"
-        )
-        val session = Session(
-            id = signal.sessionId, startTime = 9876543210, resource = FakeResourceFactory().create()
-        )
-        prePopulateSignal(signal)
-        prePopulateSession(session)
-
+    fun `Storage delegates to db to return unsynced sessions`() {
+        val sessionId = "id"
+        `when`(dbHelper.getUnsyncedSessions()).thenReturn(listOf(sessionId))
         // When
-        storage.deleteSessionAndSignals(signal.sessionId)
+        val syncedSessions = storage.getUnsyncedSessions()
 
         // Then
-        db.writableDatabase.let {
-            it.rawQuery("SELECT * FROM ${SignalsTable.TABLE_NAME}", null)
-                .use { cursor ->
-                    assertFalse(cursor.moveToFirst())
-                }
-        }
-        db.writableDatabase.let {
-            it.rawQuery("SELECT * FROM ${SessionTable.TABLE_NAME}", null)
-                .use { cursor ->
-                    assertFalse(cursor.moveToFirst())
-                }
-        }
+        assertEquals(listOf(sessionId), syncedSessions)
     }
 
     @Test
-    fun `deletes session without crashes, except the current session`() {
-        // Given
-        val session1 = Session(
-            id = "id1", startTime = 9876543210, resource = FakeResourceFactory().create()
-        )
-        val activeSession = Session(
-            id = "id2", startTime = 9876543290, resource = FakeResourceFactory().create()
-        )
-        val exception = IllegalArgumentException("Test exception")
-        val thread = Thread.currentThread()
-        val signal1 = ExceptionFactory.createMeasureException(
-            exception, handled = true, 1231231, thread
-        ).toSignal("id1")
-        val signal2 = ExceptionFactory.createMeasureException(
-            exception, handled = true, 1231231, thread
-        ).toSignal("id2")
-        prePopulateSession(session1)
-        prePopulateSession(activeSession)
-        prePopulateSignal(signal1)
-        prePopulateSignal(signal2)
-
+    fun `Storage deletes session from db and files`() {
+        val sessionId = "id"
         // When
-        storage.deleteSessionsWithoutCrash(activeSession.id)
-
-        // Verify session1 is deleted
-        db.writableDatabase.let {
-            it.rawQuery(
-                "SELECT * FROM ${SessionTable.TABLE_NAME} WHERE ${SessionTable.COLUMN_SESSION_ID} = ?",
-                arrayOf(session1.id)
-            ).use { cursor ->
-                assertFalse(cursor.moveToFirst())
-            }
-        }
-
-        // Verify all signals for session1 are deleted
-        db.writableDatabase.let {
-            it.rawQuery(
-                "SELECT * FROM ${SignalsTable.TABLE_NAME} WHERE ${SignalsTable.COLUMN_SESSION_ID} = ?",
-                arrayOf(session1.id)
-            ).use { cursor ->
-                assertFalse(cursor.moveToFirst())
-            }
-        }
-        // Verify activeSession is not deleted
-        db.writableDatabase.let {
-            it.rawQuery(
-                "SELECT * FROM ${SessionTable.TABLE_NAME} WHERE ${SessionTable.COLUMN_SESSION_ID} = ?",
-                arrayOf(activeSession.id)
-            ).use { cursor ->
-                assertTrue(cursor.moveToFirst())
-            }
-        }
-        // Verify signals for activeSession are not deleted
-        db.writableDatabase.let {
-            it.rawQuery(
-                "SELECT * FROM ${SignalsTable.TABLE_NAME} WHERE ${SignalsTable.COLUMN_SESSION_ID} = ?",
-                arrayOf(activeSession.id)
-            ).use { cursor ->
-                assertTrue(cursor.moveToFirst())
-            }
-        }
-    }
-
-    @Test
-    fun `returns all crashed sessions that are not synced yet`() {
-        // Given
-        val session1 = Session(
-            id = "id1", startTime = 9876543210, resource = FakeResourceFactory().create()
-        )
-        val session2 = Session(
-            id = "id2", startTime = 9876543290, resource = FakeResourceFactory().create()
-        )
-        val session3 = Session(
-            id = "id3", startTime = 9876543299, resource = FakeResourceFactory().create()
-        )
-        val exception = IllegalArgumentException("Test exception")
-        val thread = Thread.currentThread()
-        val signal1 = ExceptionFactory.createMeasureException(
-            exception, handled = true, 1231231, thread
-        ).toSignal("id1")
-        val signal2 = ExceptionFactory.createMeasureException(
-            exception, handled = true, 1231231, thread
-        ).toSignal("id2")
-        val signal3 = ExceptionFactory.createMeasureException(
-            exception, handled = true, 1231231, thread
-        ).toSignal("id3")
-        prePopulateSession(session1, crashed = true)
-        prePopulateSession(session2, crashed = true)
-        prePopulateSession(session3, crashed = false)
-        prePopulateSignal(signal1)
-        prePopulateSignal(signal2)
-        prePopulateSignal(signal3)
-
-        // When
-        val result = storage.getUnsyncedSessions()
-        assertNotNull(result)
+        storage.deleteSession(sessionId)
 
         // Then
-        assertEquals(2, result.size)
-        assertEquals(session1.id, result[0])
-        assertEquals(session2.id, result[1])
+        verify(dbHelper).deleteSession(sessionId)
+        verify(fileHelper).deleteSession(sessionId)
     }
 
-    private fun prePopulateSignal(signal: Signal) {
-        val contentValues = signal.toContentValues()
-        db.writableDatabase.use {
-            it.insert(
-                SignalsTable.TABLE_NAME, null, contentValues
-            )
-        }
+    @Test
+    fun `Storage deletes synced sessions from db and files`() {
+        val sessionId1 = "id1"
+        val sessionId2 = "id2"
+        `when`(dbHelper.getSyncedSessions()).thenReturn(listOf(sessionId1, sessionId2))
+        // When
+        storage.deleteSyncedSessions()
+
+        // Then
+        verify(dbHelper).deleteSessions(listOf(sessionId1, sessionId2))
+        verify(fileHelper).deleteSession(sessionId1)
+        verify(fileHelper).deleteSession(sessionId2)
     }
 
-    private fun prePopulateSession(session: Session, crashed: Boolean = false) {
-        val contentValues = session.toContentValues(crashed = crashed)
-        db.writableDatabase.use {
-            it.insert(
-                SessionTable.TABLE_NAME, null, contentValues
-            )
-        }
-    }
-
-    private fun Signal.toSignalReport(): SignalReport {
-        return SignalReport(
-            timestamp = timestamp,
-            signalType = signalType,
-            dataType = dataType,
-            data = Json.parseToJsonElement(data)
+    @Test
+    fun `Storage writes the event to event log, when event log file is empty`() {
+        val sessionId = "id"
+        val data: JsonElement = Json.encodeToJsonElement("data")
+        val event = Event(
+            timestamp = 9876543210.iso8601Timestamp(), type = "event", data = data
         )
+        `when`(fileHelper.isEventLogEmpty(sessionId)).thenReturn(true)
+        val eventLogFile = File(tempDirPath, "event_log")
+        `when`(fileHelper.getEventLogFile(sessionId)).thenReturn(
+            eventLogFile
+        )
+
+        // When
+        storage.storeEvent(event, sessionId)
+
+        // Then
+        assertEquals(
+            """
+                {"timestamp": "1970-04-25T12:59:03.000000210Z","type": "event","event": "data"}
+            """.trimIndent(), eventLogFile.readText()
+        )
+    }
+
+    @Test
+    fun `Storage appends event to event log, when event log file is not empty`() {
+        val sessionId = "id"
+        val data: JsonElement = Json.encodeToJsonElement("data")
+        val event = Event(
+            timestamp = 9876543210.iso8601Timestamp(), type = "event", data = data
+        )
+        `when`(fileHelper.isEventLogEmpty(sessionId)).thenReturn(false)
+        val eventLogFile = File(tempDirPath, "event_log")
+        `when`(fileHelper.getEventLogFile(sessionId)).thenReturn(
+            eventLogFile
+        )
+
+        // When
+        storage.storeEvent(event, sessionId)
+
+        // Then
+        assertEquals(
+            """
+               
+               {"timestamp": "1970-04-25T12:59:03.000000210Z","type": "event","event": "data"}
+            """.trimIndent(), eventLogFile.readText()
+        )
+    }
+
+    @Test
+    fun `Storage returns the session report`() {
+        // Given
+        val sessionId = "id"
+        val time: Long = 1231231
+        `when`(dbHelper.getSessionStartTime(sessionId)).thenReturn(time)
+        val eventLogFile = File(tempDirPath, "event_log")
+        eventLogFile.writeText(
+            """
+                {"timestamp": "1970-04-25T12:59:03.000000210Z","type": "event","event": "data"}
+            """.trimIndent()
+        )
+        val eventJsonFile = File(tempDirPath, "events.json")
+        val resourceFile = File(tempDirPath, "resource.json")
+        `when`(fileHelper.getEventLogFile(sessionId)).thenReturn(eventLogFile)
+        `when`(fileHelper.getEventsJsonFile(sessionId)).thenReturn(eventJsonFile)
+        `when`(fileHelper.getResourceFile(sessionId)).thenReturn(resourceFile)
+        val expectedSessionReport = SessionReport(
+            session_id = sessionId,
+            timestamp = time.iso8601Timestamp(),
+            resourceFile = resourceFile,
+            eventsFile = eventJsonFile
+        )
+
+        // When
+        val sessionReport = storage.getSessionReport(sessionId)
+
+        assertEquals(expectedSessionReport, sessionReport)
     }
 }

@@ -11,7 +11,7 @@ class ExceptionFactoryTest {
     private val timeProvider = FakeTimeProvider()
 
     @Test
-    fun `creates a single exception when exception has no cause`() {
+    fun `ExceptionFactory creates a single exception when exception has no cause`() {
         // Given
         val exception = IllegalArgumentException("Test exception")
         val thread = Thread.currentThread()
@@ -32,7 +32,7 @@ class ExceptionFactoryTest {
     }
 
     @Test
-    fun `creates two exceptions when exception has a cause`() {
+    fun `ExceptionFactory creates two exceptions when exception has a cause`() {
         // Given
         val exception =
             IllegalArgumentException("Test exception").initCause(RuntimeException("Cause"))
@@ -59,7 +59,7 @@ class ExceptionFactoryTest {
     }
 
     @Test
-    fun `sets handled to true when the exception is handled`() {
+    fun `ExceptionFactory sets handled to true when the exception is handled`() {
         // Given
         val exception = IllegalArgumentException("Test exception")
         val thread = Thread.currentThread()
@@ -74,7 +74,7 @@ class ExceptionFactoryTest {
     }
 
     @Test
-    fun `sets handled to false when the exception is unhandled`() {
+    fun `ExceptionFactory sets handled to false when the exception is unhandled`() {
         // Given
         val exception = IllegalArgumentException("Test exception")
         val thread = Thread.currentThread()

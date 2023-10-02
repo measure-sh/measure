@@ -1,6 +1,6 @@
 package sh.measure.android.fakes
 
-import sh.measure.android.time.TimeProvider
+import sh.measure.android.utils.TimeProvider
 
 internal class FakeTimeProvider(private val date: Long = 0) : TimeProvider {
     override val currentTimeSinceEpochInMillis: Long
