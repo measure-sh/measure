@@ -26,7 +26,7 @@ class SessionProviderTest {
     }
 
     @Test
-    fun `creates a session, caches it in memory and persists it to storage`() {
+    fun `SessionProvider creates a session and caches it in memory`() {
         val expectedSession = Session(
             idProvider.id, timeProvider.currentTimeSinceEpochInMillis, resourceFactory.resource
         )

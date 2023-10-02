@@ -3,8 +3,8 @@ package sh.measure.android.exceptions
 import sh.measure.android.MeasureClient
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import sh.measure.android.time.TimeProvider
-import sh.measure.android.tracker.SignalTracker
+import sh.measure.android.utils.TimeProvider
+import sh.measure.android.events.EventTracker
 import java.lang.Thread.UncaughtExceptionHandler
 
 /**
@@ -18,7 +18,7 @@ import java.lang.Thread.UncaughtExceptionHandler
  */
 internal class UnhandledExceptionCollector(
     private val logger: Logger,
-    private val signalTracker: SignalTracker,
+    private val eventTracker: EventTracker,
     private val timeProvider: TimeProvider,
 ) : UncaughtExceptionHandler {
 
@@ -42,7 +42,7 @@ internal class UnhandledExceptionCollector(
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
                 thread = thread,
             )
-            signalTracker.trackUnhandledException(measureException)
+            eventTracker.trackUnhandledException(measureException)
         } catch (e: Throwable) {
             // Prevent an infinite loop of exceptions if the above code fails.
             logger.log(LogLevel.Error, "Failed to track exception", e)

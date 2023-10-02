@@ -3,10 +3,9 @@ package sh.measure.android.exceptions
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.json.Json
-import sh.measure.android.session.iso8601Timestamp
-import sh.measure.android.storage.Signal
-import sh.measure.android.tracker.EventType
-import sh.measure.android.tracker.SignalType
+import sh.measure.android.events.Event
+import sh.measure.android.utils.iso8601Timestamp
+import sh.measure.android.events.EventType
 
 /**
  * Represents an exception in Measure. This is used to track handled and unhandled exceptions.
@@ -38,17 +37,7 @@ internal data class MeasureException(
      * Whether the exception was handled or not.
      */
     val handled: Boolean
-) {
-    fun toSignal(sessionId: String): Signal {
-        return Signal(
-            sessionId = sessionId,
-            timestamp = timestamp.iso8601Timestamp(),
-            signalType = SignalType.EVENT,
-            dataType = EventType.EXCEPTION,
-            data = Json.encodeToString(serializer(), this)
-        )
-    }
-}
+)
 
 @Serializable
 internal data class MeasureThread(

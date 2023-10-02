@@ -1,4 +1,4 @@
-package sh.measure.android.tracker
+package sh.measure.android.events
 
 object EventType {
     const val STRING = "string"

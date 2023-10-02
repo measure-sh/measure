@@ -6,14 +6,14 @@ import org.junit.Test
 class TrimStackTraceKtTest {
 
     @Test
-    fun `when stacktrace is empty, returns empty stacktrace`() {
+    fun `TrimStackTrace returns empty stacktrace, when stacktrace is empty`() {
         val stackTrace = emptyArray<StackTraceElement>()
         val trimmedStackTrace = stackTrace.trimStackTrace()
         assertArrayEquals(stackTrace, trimmedStackTrace)
     }
 
     @Test
-    fun `when stacktrace is within maxSize and no repeats, returns the stacktrace unchanged`() {
+    fun `TrimStackTrace returns the stacktrace unchanged, when stacktrace is within maxSize and no repeats`() {
         val stackTrace = arrayOf(
             StackTraceElement("Class1", "method1", "file1", 1),
             StackTraceElement("Class2", "method2", "file2", 2),
@@ -24,7 +24,7 @@ class TrimStackTraceKtTest {
     }
 
     @Test
-    fun `when stacktrace contains consecutive repeats more than maxRepeats, trims the stacktrace`() {
+    fun `TrimStackTrace trims the repeats, when stacktrace contains consecutive repeats more than maxRepeats`() {
         val stackTrace = arrayOf(
             StackTraceElement("Class1", "method1", "file1", 1),
             StackTraceElement("Class1", "method1", "file1", 1),
@@ -50,7 +50,7 @@ class TrimStackTraceKtTest {
     }
 
     @Test
-    fun `when stacktrace exceeds maxSize, removes the middle frames`() {
+    fun `TrimStackTrace removes the middle frames, when stacktrace exceeds maxSize, `() {
         val stackTrace = arrayOf(
             StackTraceElement("Class1", "method1", "file1", 1),
             StackTraceElement("Class2", "method2", "file2", 2),

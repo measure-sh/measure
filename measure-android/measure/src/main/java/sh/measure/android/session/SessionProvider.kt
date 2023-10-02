@@ -1,9 +1,9 @@
 package sh.measure.android.session
 
-import sh.measure.android.id.IdProvider
+import sh.measure.android.utils.IdProvider
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import sh.measure.android.time.TimeProvider
+import sh.measure.android.utils.TimeProvider
 
 internal interface ISessionManager {
     val session: Session
@@ -25,6 +25,5 @@ internal class SessionProvider(
             startTime = timeProvider.currentTimeSinceEpochInMillis,
             resource = resourceFactory.create()
         )
-        logger.log(LogLevel.Debug, "Session created: ${session.id}")
     }
 }
