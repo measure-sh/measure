@@ -1,5 +1,7 @@
 package sh.measure.android
 
+import android.content.Context
+import sh.measure.android.anr.AnrCollector
 import sh.measure.android.events.EventTracker
 import sh.measure.android.exceptions.UnhandledExceptionCollector
 import sh.measure.android.logger.LogLevel
@@ -13,6 +15,7 @@ import sh.measure.android.utils.TimeProvider
  */
 internal class MeasureClient(
     private val logger: Logger,
+    private val context: Context,
     private val timeProvider: TimeProvider,
     private val eventTracker: EventTracker,
     private val sessionController: SessionController
@@ -30,6 +33,7 @@ internal class MeasureClient(
 
     private fun onSessionCreated() {
         UnhandledExceptionCollector(logger, eventTracker, timeProvider).register()
+        AnrCollector(logger, context, timeProvider, eventTracker).register()
         sessionController.syncSessions()
         sessionController.deleteSyncedSessions()
     }

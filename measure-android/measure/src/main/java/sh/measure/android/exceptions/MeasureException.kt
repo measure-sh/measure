@@ -32,7 +32,13 @@ internal data class MeasureException(
     /**
      * Whether the exception was handled or not.
      */
-    val handled: Boolean
+    val handled: Boolean,
+
+    /**
+     * Whether is exception represents an ANR or not.
+     */
+    @Transient
+    val isAnr: Boolean = false,
 )
 
 @Serializable

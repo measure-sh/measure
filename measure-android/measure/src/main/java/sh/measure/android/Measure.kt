@@ -41,14 +41,13 @@ class Measure {
             val idProvider = UUIDProvider()
             val config = Config
             val resourceFactory = ResourceFactoryImpl(logger, context, config)
-            val sessionProvider = SessionProvider(
-                logger, timeProvider, idProvider, resourceFactory
-            )
+            val sessionProvider = SessionProvider(timeProvider, idProvider, resourceFactory)
             val sessionController: SessionController = SessionControllerImpl(
                 logger, sessionProvider, storage, transport, executorService
             )
             MeasureClient(
                 logger,
+                context = context,
                 timeProvider = timeProvider,
                 eventTracker = MeasureEventTracker(logger, sessionController),
                 sessionController = sessionController,

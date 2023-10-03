@@ -8,7 +8,11 @@ internal object ExceptionFactory {
      * @param handled Whether the exception was handled or not.
      */
     fun createMeasureException(
-        throwable: Throwable, handled: Boolean, timestamp: Long, thread: Thread
+        throwable: Throwable,
+        handled: Boolean,
+        timestamp: Long,
+        thread: Thread,
+        isAnr: Boolean = false
     ): MeasureException {
         val exceptions = mutableListOf<ExceptionUnit>()
         var error: Throwable? = throwable
@@ -49,6 +53,6 @@ internal object ExceptionFactory {
             }
             count++
         }
-        return MeasureException(timestamp, thread.name, exceptions, threads, handled)
+        return MeasureException(timestamp, thread.name, exceptions, threads, handled, isAnr)
     }
 }
