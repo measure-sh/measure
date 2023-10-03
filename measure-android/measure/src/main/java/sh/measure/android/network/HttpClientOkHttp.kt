@@ -84,7 +84,7 @@ internal class HttpClientOkHttp(
             }
         }
         val request: Request =
-            Request.Builder().url("$baseUrl$PATH_SESSION").post(requestBody).build()
+            Request.Builder().url("$baseUrl$PATH_SESSION").put(requestBody).build()
         client.newCall(request).enqueue(CallbackAdapter(logger, callback))
     }
 }
