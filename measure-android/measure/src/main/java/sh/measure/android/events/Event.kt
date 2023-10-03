@@ -13,7 +13,7 @@ data class Event(
 
 internal fun MeasureException.toEvent(): Event {
     return Event(
-        type = EventType.EXCEPTION,
+        type = if (isAnr) EventType.ANR else EventType.EXCEPTION,
         timestamp = timestamp.iso8601Timestamp(),
         data = Json.encodeToJsonElement(MeasureException.serializer(), this)
     )

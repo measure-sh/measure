@@ -4,4 +4,6 @@
     <string name="chained_exceptions">Raise chained exception</string>
     <string name="oom_exception">Raise OOM exception</string>
     <string name="stack_overflow_exception">Raise StackOverflow exception</string>
+    <string name="infinite_loop">Infinite Loop</string>
+    <string name="deadlock">Deadlock</string>
 </resources>

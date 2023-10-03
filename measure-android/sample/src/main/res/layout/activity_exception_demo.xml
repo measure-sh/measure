@@ -31,4 +31,16 @@
         android:layout_height="wrap_content"
         android:text="@string/stack_overflow_exception" />
 
+    <Button
+        android:id="@+id/btn_infinite_loop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/infinite_loop" />
+
+    <Button
+        android:id="@+id/btn_deadlock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/deadlock" />
+
 </LinearLayout>

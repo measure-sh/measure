@@ -10,7 +10,6 @@ import sh.measure.android.fakes.NoopLogger
 
 class SessionProviderTest {
     private lateinit var sessionProvider: SessionProvider
-    private val logger = NoopLogger()
     private val idProvider = FakeIdProvider()
     private val timeProvider = FakeTimeProvider()
     private val resourceFactory = FakeResourceFactory()
@@ -18,7 +17,6 @@ class SessionProviderTest {
     @Before
     fun setup() {
         sessionProvider = SessionProvider(
-            logger = logger,
             idProvider = idProvider,
             resourceFactory = resourceFactory,
             timeProvider = timeProvider,
