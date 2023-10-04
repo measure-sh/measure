@@ -96,8 +96,9 @@ internal class StorageImplTest {
     fun `Storage writes the event to event log, when event log file is empty`() {
         val sessionId = "id"
         val data: JsonElement = Json.encodeToJsonElement("data")
+        val timestamp = 9876543210.iso8601Timestamp()
         val event = Event(
-            timestamp = 9876543210.iso8601Timestamp(), type = "event", data = data
+            timestamp = timestamp, type = "event", data = data
         )
         `when`(fileHelper.isEventLogEmpty(sessionId)).thenReturn(true)
         val eventLogFile = File(tempDirPath, "event_log")
@@ -111,7 +112,7 @@ internal class StorageImplTest {
         // Then
         assertEquals(
             """
-                {"timestamp": "1970-04-25T12:59:03.000000210Z","type": "event","event": "data"}
+                {"timestamp": "$timestamp","type": "event","event": "data"}
             """.trimIndent(), eventLogFile.readText()
         )
     }
@@ -120,8 +121,9 @@ internal class StorageImplTest {
     fun `Storage appends event to event log, when event log file is not empty`() {
         val sessionId = "id"
         val data: JsonElement = Json.encodeToJsonElement("data")
+        val timestamp = 9876543210.iso8601Timestamp()
         val event = Event(
-            timestamp = 9876543210.iso8601Timestamp(), type = "event", data = data
+            timestamp = timestamp, type = "event", data = data
         )
         `when`(fileHelper.isEventLogEmpty(sessionId)).thenReturn(false)
         val eventLogFile = File(tempDirPath, "event_log")
@@ -136,7 +138,7 @@ internal class StorageImplTest {
         assertEquals(
             """
                
-               {"timestamp": "1970-04-25T12:59:03.000000210Z","type": "event","event": "data"}
+               {"timestamp": "$timestamp","type": "event","event": "data"}
             """.trimIndent(), eventLogFile.readText()
         )
     }
