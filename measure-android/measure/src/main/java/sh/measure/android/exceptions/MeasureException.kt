@@ -2,10 +2,6 @@ package sh.measure.android.exceptions
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import kotlinx.serialization.json.Json
-import sh.measure.android.events.Event
-import sh.measure.android.utils.iso8601Timestamp
-import sh.measure.android.events.EventType
 
 /**
  * Represents an exception in Measure. This is used to track handled and unhandled exceptions.

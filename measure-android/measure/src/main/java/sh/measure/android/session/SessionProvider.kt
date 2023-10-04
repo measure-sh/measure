@@ -1,21 +1,18 @@
 package sh.measure.android.session
 
 import sh.measure.android.utils.IdProvider
-import sh.measure.android.logger.LogLevel
-import sh.measure.android.logger.Logger
 import sh.measure.android.utils.TimeProvider
 
-internal interface ISessionManager {
+internal interface ISessionProvider {
     val session: Session
     fun createSession()
 }
 
 internal class SessionProvider(
-    private val logger: Logger,
     private val timeProvider: TimeProvider,
     private val idProvider: IdProvider,
     private val resourceFactory: ResourceFactory,
-) : ISessionManager {
+) : ISessionProvider {
     override lateinit var session: Session
         private set
 

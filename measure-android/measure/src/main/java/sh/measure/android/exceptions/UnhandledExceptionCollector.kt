@@ -1,10 +1,10 @@
 package sh.measure.android.exceptions
 
 import sh.measure.android.MeasureClient
+import sh.measure.android.events.EventTracker
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.TimeProvider
-import sh.measure.android.events.EventTracker
 import java.lang.Thread.UncaughtExceptionHandler
 
 /**

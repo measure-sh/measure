@@ -1,8 +1,8 @@
 package sh.measure.android
 
 import android.content.Context
+import sh.measure.android.events.MeasureEventTracker
 import sh.measure.android.executors.MeasureExecutorServiceImpl
-import sh.measure.android.utils.UUIDProvider
 import sh.measure.android.logger.AndroidLogger
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.network.HttpClient
@@ -13,14 +13,14 @@ import sh.measure.android.session.ResourceFactoryImpl
 import sh.measure.android.session.SessionController
 import sh.measure.android.session.SessionControllerImpl
 import sh.measure.android.session.SessionProvider
+import sh.measure.android.storage.DbHelper
+import sh.measure.android.storage.FileHelper
 import sh.measure.android.storage.FileHelperImpl
 import sh.measure.android.storage.SqliteDbHelper
 import sh.measure.android.storage.Storage
 import sh.measure.android.storage.StorageImpl
 import sh.measure.android.utils.AndroidTimeProvider
-import sh.measure.android.events.MeasureEventTracker
-import sh.measure.android.storage.DbHelper
-import sh.measure.android.storage.FileHelper
+import sh.measure.android.utils.UUIDProvider
 
 class Measure {
     companion object {

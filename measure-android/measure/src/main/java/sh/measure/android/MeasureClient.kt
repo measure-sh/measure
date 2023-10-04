@@ -1,11 +1,11 @@
 package sh.measure.android
 
+import sh.measure.android.events.EventTracker
 import sh.measure.android.exceptions.UnhandledExceptionCollector
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.session.SessionController
 import sh.measure.android.utils.TimeProvider
-import sh.measure.android.events.EventTracker
 
 /**
  * Maintains global state and provides a way for different components to communicate with each
