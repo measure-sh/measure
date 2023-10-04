@@ -1,5 +1,8 @@
 # macOS
 .DS_Store
 
+# .idea
+.idea/
+
 # node/bun
 node_modules
