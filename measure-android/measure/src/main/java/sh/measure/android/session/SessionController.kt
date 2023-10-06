@@ -7,6 +7,8 @@ import sh.measure.android.logger.Logger
 import sh.measure.android.mainHandler
 import sh.measure.android.network.Transport
 import sh.measure.android.storage.Storage
+import sh.measure.android.storage.UnsyncedSession
+import sh.measure.android.utils.iso8601Timestamp
 import sh.measure.android.utils.runAllowDiskWrites
 import java.util.concurrent.RejectedExecutionException
 
@@ -57,7 +59,9 @@ internal class SessionControllerImpl(
     private val logger: Logger,
     private val sessionProvider: SessionProvider,
     private val storage: Storage,
-    private val transport: Transport, private val executorService: MeasureExecutorService
+    private val transport: Transport,
+    private val executorService: MeasureExecutorService,
+    private val sessionReportGenerator: SessionReportGenerator
 ) : SessionController {
     override val session: Session
         get() = sessionProvider.session
@@ -92,12 +96,12 @@ internal class SessionControllerImpl(
     override fun syncSessions() {
         try {
             executorService.submit {
-                storage.getUnsyncedSessions().filter { it != session.id }.forEach { sessionId ->
-                    logger.log(LogLevel.Debug, "Sending unsynced session report: $sessionId")
-                    storage.getSessionReport(sessionId).let {
-                        transport.sendSessionReport(it, object : Transport.Callback {
+                storage.getUnsyncedSessions().filter { it.id != session.id }.forEach { session ->
+                    sessionReportGenerator.getSessionReport(session).let { report ->
+                        logger.log(LogLevel.Debug, "Sending unsynced session report: ${session.id}")
+                        transport.sendSessionReport(report, object : Transport.Callback {
                             override fun onSuccess() {
-                                storage.deleteSession(sessionId)
+                                storage.deleteSession(session.id)
                             }
                         })
                     }
@@ -115,11 +119,12 @@ internal class SessionControllerImpl(
         // process terminates in the event of a crash.
         runAllowDiskWrites {
             try {
-                val activeSessionId = session.id
-                storage.getSessionReport(activeSessionId).let {
+                val session =
+                    UnsyncedSession(session.id, session.startTime.iso8601Timestamp(), session.pid)
+                sessionReportGenerator.getSessionReport(session).let {
                     transport.sendSessionReport(it, object : Transport.Callback {
                         override fun onSuccess() {
-                            storage.deleteSession(activeSessionId)
+                            storage.deleteSession(sessionId = session.id)
                         }
                     })
                 }

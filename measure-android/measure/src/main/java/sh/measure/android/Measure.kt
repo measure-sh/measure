@@ -3,6 +3,8 @@ package sh.measure.android
 import android.content.Context
 import sh.measure.android.events.MeasureEventTracker
 import sh.measure.android.executors.MeasureExecutorServiceImpl
+import sh.measure.android.exitinfo.ExitInfoProvider
+import sh.measure.android.exitinfo.ExitInfoProviderImpl
 import sh.measure.android.logger.AndroidLogger
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.network.HttpClient
@@ -13,6 +15,7 @@ import sh.measure.android.session.ResourceFactoryImpl
 import sh.measure.android.session.SessionController
 import sh.measure.android.session.SessionControllerImpl
 import sh.measure.android.session.SessionProvider
+import sh.measure.android.session.SessionReportGenerator
 import sh.measure.android.storage.DbHelper
 import sh.measure.android.storage.FileHelper
 import sh.measure.android.storage.FileHelperImpl
@@ -20,6 +23,8 @@ import sh.measure.android.storage.SqliteDbHelper
 import sh.measure.android.storage.Storage
 import sh.measure.android.storage.StorageImpl
 import sh.measure.android.utils.AndroidTimeProvider
+import sh.measure.android.utils.PidProvider
+import sh.measure.android.utils.PidProviderImpl
 import sh.measure.android.utils.UUIDProvider
 
 class Measure {
@@ -35,15 +40,18 @@ class Measure {
             val storage: Storage = StorageImpl(logger, fileHelper, db)
             val httpClient: HttpClient =
                 HttpClientOkHttp(logger, Config.MEASURE_BASE_URL, Config.MEASURE_SECRET_TOKEN)
-            val transport: Transport =
-                TransportImpl(logger, httpClient)
+            val transport: Transport = TransportImpl(logger, httpClient)
             val timeProvider = AndroidTimeProvider()
             val idProvider = UUIDProvider()
             val config = Config
             val resourceFactory = ResourceFactoryImpl(logger, context, config)
-            val sessionProvider = SessionProvider(timeProvider, idProvider, resourceFactory)
+            val exitInfoProvider: ExitInfoProvider = ExitInfoProviderImpl(context, logger)
+            val pidProvider: PidProvider = PidProviderImpl()
+            val sessionReportGenerator = SessionReportGenerator(logger, storage, exitInfoProvider)
+            val sessionProvider =
+                SessionProvider(timeProvider, idProvider, pidProvider, resourceFactory)
             val sessionController: SessionController = SessionControllerImpl(
-                logger, sessionProvider, storage, transport, executorService
+                logger, sessionProvider, storage, transport, executorService, sessionReportGenerator
             )
             MeasureClient(
                 logger,

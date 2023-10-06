@@ -11,13 +11,15 @@ internal object SessionDbConstants {
         const val COLUMN_SESSION_ID = "session_id"
         const val COLUMN_SESSION_START_TIME = "session_start_time"
         const val COLUMN_SYNCED = "synced"
+        const val COLUMN_PROCESS_ID = "pid"
     }
 
     const val CREATE_SESSION_TABLE = """
         CREATE TABLE ${SessionTable.TABLE_NAME} (
             ${SessionTable.COLUMN_SESSION_ID} TEXT PRIMARY KEY NOT NULL,
             ${SessionTable.COLUMN_SESSION_START_TIME} TEXT NOT NULL,
-            ${SessionTable.COLUMN_SYNCED} INTEGER NOT NULL
+            ${SessionTable.COLUMN_SYNCED} INTEGER NOT NULL,
+            ${SessionTable.COLUMN_PROCESS_ID} INTEGER NOT NULL
         )
     """
 }

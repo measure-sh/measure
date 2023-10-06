@@ -1,6 +1,7 @@
 package sh.measure.android.session
 
 import sh.measure.android.utils.IdProvider
+import sh.measure.android.utils.PidProvider
 import sh.measure.android.utils.TimeProvider
 
 internal interface ISessionProvider {
@@ -11,6 +12,7 @@ internal interface ISessionProvider {
 internal class SessionProvider(
     private val timeProvider: TimeProvider,
     private val idProvider: IdProvider,
+    private val pidProvider: PidProvider,
     private val resourceFactory: ResourceFactory,
 ) : ISessionProvider {
     override lateinit var session: Session
@@ -20,7 +22,8 @@ internal class SessionProvider(
         session = Session(
             id = idProvider.createId(),
             startTime = timeProvider.currentTimeSinceEpochInMillis,
-            resource = resourceFactory.create()
+            resource = resourceFactory.create(),
+            pid = pidProvider.getPid()
         )
     }
 }
