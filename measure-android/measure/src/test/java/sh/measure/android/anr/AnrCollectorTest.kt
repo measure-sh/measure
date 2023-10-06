@@ -27,7 +27,7 @@ class AnrCollectorTest {
         anrCollector.onAppNotResponding(anrError)
 
         // Then
-        verify(eventTracker).trackUnhandledException(
+        verify(eventTracker).trackAnr(
             ExceptionFactory.createMeasureException(
                 throwable = anrError,
                 handled = false,

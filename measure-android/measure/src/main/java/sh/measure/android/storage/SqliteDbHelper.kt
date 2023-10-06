@@ -9,6 +9,7 @@ import okio.use
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.SessionDbConstants.CREATE_SESSION_TABLE
+import sh.measure.android.storage.SessionDbConstants.SessionTable
 
 internal interface DbHelper {
     fun createSession(contentValues: ContentValues)
@@ -16,7 +17,7 @@ internal interface DbHelper {
     fun getSessionStartTime(sessionId: String): Long
     fun getSyncedSessions(): List<String>
     fun deleteSessions(sessionIds: List<String>)
-    fun getUnsyncedSessions(): List<String>
+    fun getUnsyncedSessions(): List<UnsyncedSession>
 }
 
 /**
@@ -55,7 +56,7 @@ internal class SqliteDbHelper(private val logger: Logger, context: Context) : Db
     override fun createSession(contentValues: ContentValues) {
         logger.log(LogLevel.Debug, "Creating session in database")
         val result = writableDatabase.insert(
-            SessionDbConstants.SessionTable.TABLE_NAME, null, contentValues
+            SessionTable.TABLE_NAME, null, contentValues
         )
         if (result != -1L) {
             logger.log(LogLevel.Debug, "Session created in db")
@@ -66,9 +67,7 @@ internal class SqliteDbHelper(private val logger: Logger, context: Context) : Db
 
     override fun deleteSession(sessionId: String) {
         val result = writableDatabase.delete(
-            SessionDbConstants.SessionTable.TABLE_NAME,
-            "${SessionDbConstants.SessionTable.COLUMN_SESSION_ID} = ?",
-            arrayOf(sessionId)
+            SessionTable.TABLE_NAME, "${SessionTable.COLUMN_SESSION_ID} = ?", arrayOf(sessionId)
         )
         if (result == 1) {
             logger.log(LogLevel.Debug, "Deleted session from database: $sessionId")
@@ -79,9 +78,9 @@ internal class SqliteDbHelper(private val logger: Logger, context: Context) : Db
 
     override fun getSessionStartTime(sessionId: String): Long {
         return writableDatabase.query(
-            SessionDbConstants.SessionTable.TABLE_NAME,
-            arrayOf(SessionDbConstants.SessionTable.COLUMN_SESSION_START_TIME),
-            "${SessionDbConstants.SessionTable.COLUMN_SESSION_ID} = ?",
+            SessionTable.TABLE_NAME,
+            arrayOf(SessionTable.COLUMN_SESSION_START_TIME),
+            "${SessionTable.COLUMN_SESSION_ID} = ?",
             arrayOf(sessionId),
             null,
             null,
@@ -89,7 +88,7 @@ internal class SqliteDbHelper(private val logger: Logger, context: Context) : Db
         ).use {
             if (it.moveToFirst()) {
                 val sessionStartTimeIndex =
-                    it.getColumnIndex(SessionDbConstants.SessionTable.COLUMN_SESSION_START_TIME)
+                    it.getColumnIndex(SessionTable.COLUMN_SESSION_START_TIME)
                 it.getLong(sessionStartTimeIndex)
             } else {
                 logger.log(LogLevel.Error, "Session $sessionId doesn't exist")
@@ -101,17 +100,16 @@ internal class SqliteDbHelper(private val logger: Logger, context: Context) : Db
     override fun getSyncedSessions(): List<String> {
         val syncedSessions = mutableListOf<String>()
         readableDatabase.query(
-            SessionDbConstants.SessionTable.TABLE_NAME,
-            arrayOf(SessionDbConstants.SessionTable.COLUMN_SESSION_ID),
-            "${SessionDbConstants.SessionTable.COLUMN_SYNCED} = ?",
+            SessionTable.TABLE_NAME,
+            arrayOf(SessionTable.COLUMN_SESSION_ID),
+            "${SessionTable.COLUMN_SYNCED} = ?",
             arrayOf("1"),
             null,
             null,
             null
         ).use { cursor ->
             while (cursor.moveToNext()) {
-                val sessionIdIndex =
-                    cursor.getColumnIndex(SessionDbConstants.SessionTable.COLUMN_SESSION_ID)
+                val sessionIdIndex = cursor.getColumnIndex(SessionTable.COLUMN_SESSION_ID)
                 syncedSessions.add(cursor.getString(sessionIdIndex))
             }
         }
@@ -121,31 +119,34 @@ internal class SqliteDbHelper(private val logger: Logger, context: Context) : Db
     override fun deleteSessions(sessionIds: List<String>) {
         // delete all sessions with ids in sessionIds
         writableDatabase.delete(
-            SessionDbConstants.SessionTable.TABLE_NAME,
-            "${SessionDbConstants.SessionTable.COLUMN_SESSION_ID} IN (${
+            SessionTable.TABLE_NAME, "${SessionTable.COLUMN_SESSION_ID} IN (${
                 sessionIds.joinToString(
                     ","
                 )
-            })",
-            null
+            })", null
         )
     }
 
-    override fun getUnsyncedSessions(): List<String> {
-        val unsyncedSessions = mutableListOf<String>()
+    override fun getUnsyncedSessions(): List<UnsyncedSession> {
+        val unsyncedSessions = mutableListOf<UnsyncedSession>()
         readableDatabase.query(
-            SessionDbConstants.SessionTable.TABLE_NAME,
-            arrayOf(SessionDbConstants.SessionTable.COLUMN_SESSION_ID),
-            "${SessionDbConstants.SessionTable.COLUMN_SYNCED} = ?",
-            arrayOf("0"),
-            null,
-            null,
-            null
+            SessionTable.TABLE_NAME, arrayOf(
+                SessionTable.COLUMN_SESSION_ID,
+                SessionTable.COLUMN_SESSION_START_TIME,
+                SessionTable.COLUMN_PROCESS_ID
+            ), "${SessionTable.COLUMN_SYNCED} = ?", arrayOf("0"), null, null, null
         ).use { cursor ->
             while (cursor.moveToNext()) {
-                val sessionIdIndex =
-                    cursor.getColumnIndex(SessionDbConstants.SessionTable.COLUMN_SESSION_ID)
-                unsyncedSessions.add(cursor.getString(sessionIdIndex))
+                val idIndex = cursor.getColumnIndex(SessionTable.COLUMN_SESSION_ID)
+                val startTimeIndex =
+                    cursor.getColumnIndex(SessionTable.COLUMN_SESSION_START_TIME)
+                val processIdIndex = cursor.getColumnIndex(SessionTable.COLUMN_PROCESS_ID)
+                val unsyncedSession = UnsyncedSession(
+                    cursor.getString(idIndex),
+                    cursor.getString(startTimeIndex),
+                    cursor.getInt(processIdIndex)
+                )
+                unsyncedSessions.add(unsyncedSession)
             }
         }
         return unsyncedSessions

@@ -20,4 +20,9 @@ internal data class Session(
      * Whether the session has been synced or not.
      */
     val synced: Boolean = false,
+
+    /**
+     * The process id of the session.
+     */
+    val pid: Int = 0,
 )

@@ -8,7 +8,6 @@ import kotlinx.serialization.json.encodeToStream
 import okio.appendingSink
 import okio.buffer
 import okio.sink
-import okio.source
 import okio.use
 import org.jetbrains.annotations.TestOnly
 import sh.measure.android.events.Event
@@ -16,9 +15,7 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.session.Resource
 import sh.measure.android.session.Session
-import sh.measure.android.session.SessionReport
 import sh.measure.android.storage.SessionDbConstants.SessionTable
-import sh.measure.android.utils.iso8601Timestamp
 import java.io.File
 
 /**
@@ -26,12 +23,15 @@ import java.io.File
  */
 internal interface Storage {
     fun createSession(session: Session)
-    fun getSessionReport(sessionId: String): SessionReport
-    fun getUnsyncedSessions(): List<String>
+    fun getUnsyncedSessions(): List<UnsyncedSession>
     fun deleteSession(sessionId: String)
     fun deleteSyncedSessions()
     fun createResource(resource: Resource, sessionId: String)
     fun storeEvent(event: Event, sessionId: String)
+    fun getSessionStartTime(sessionId: String): Long
+    fun getResourceFile(id: String): File
+    fun getEventsFile(sessionId: String): File
+    fun getEventLogFile(sessionId: String): File
 }
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -54,20 +54,7 @@ internal class StorageImpl(
         }
     }
 
-    override fun getSessionReport(sessionId: String): SessionReport {
-        logger.log(LogLevel.Debug, "Getting session report for session: $sessionId")
-        val sessionStartTime = getSessionStartTime(sessionId)
-        val eventsFile = createEventsJsonFile(sessionId)
-        val resourceFile = fileHelper.getResourceFile(sessionId)
-        return SessionReport(
-            session_id = sessionId,
-            timestamp = sessionStartTime.iso8601Timestamp(),
-            eventsFile = eventsFile,
-            resourceFile = resourceFile
-        )
-    }
-
-    override fun getUnsyncedSessions(): List<String> {
+    override fun getUnsyncedSessions(): List<UnsyncedSession> {
         return db.getUnsyncedSessions()
     }
 
@@ -110,30 +97,24 @@ internal class StorageImpl(
         logger.log(LogLevel.Debug, "Saved ${event.type} for session: $sessionId")
     }
 
-    private fun deleteSessionFromDb(sessionId: String) {
-        db.deleteSession(sessionId)
-    }
-
-    private fun getSessionStartTime(sessionId: String): Long {
+    override fun getSessionStartTime(sessionId: String): Long {
         return db.getSessionStartTime(sessionId)
     }
 
-    private fun createEventsJsonFile(sessionId: String): File {
-        logger.log(LogLevel.Debug, "Creating events.json file for session: $sessionId")
-        fileHelper.getEventLogFile(sessionId).source().buffer().use { source ->
-            fileHelper.getEventsJsonFile(sessionId).sink().buffer().use { sink ->
-                sink.writeUtf8("[")
-                var line = source.readUtf8Line()
-                while (line != null) {
-                    sink.writeUtf8(line)
-                    line = source.readUtf8Line()
-                    if (line != null) sink.writeUtf8(",")
-                }
-                sink.writeUtf8("]")
-            }
-        }
-        logger.log(LogLevel.Debug, "Created events.json file for session: $sessionId")
+    override fun getResourceFile(id: String): File {
+        return fileHelper.getResourceFile(id)
+    }
+
+    override fun getEventsFile(sessionId: String): File {
         return fileHelper.getEventsJsonFile(sessionId)
+    }
+
+    override fun getEventLogFile(sessionId: String): File {
+        return fileHelper.getEventLogFile(sessionId)
+    }
+
+    private fun deleteSessionFromDb(sessionId: String) {
+        db.deleteSession(sessionId)
     }
 }
 
@@ -143,6 +124,7 @@ internal fun Session.toContentValues(): ContentValues {
         put(SessionTable.COLUMN_SESSION_ID, id)
         put(SessionTable.COLUMN_SESSION_START_TIME, startTime)
         put(SessionTable.COLUMN_SYNCED, synced)
+        put(SessionTable.COLUMN_PROCESS_ID, pid)
     }
 }
 

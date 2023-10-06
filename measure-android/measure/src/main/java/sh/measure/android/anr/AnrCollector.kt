@@ -27,7 +27,7 @@ internal class AnrCollector(
 
     override fun onAppNotResponding(error: AnrError) {
         logger.log(LogLevel.Error, "ANR detected", error)
-        tracker.trackUnhandledException(toMeasureException(error))
+        tracker.trackAnr(toMeasureException(error))
     }
 
     private fun toMeasureException(anr: AnrError): MeasureException {

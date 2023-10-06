@@ -16,7 +16,6 @@ import sh.measure.android.fakes.FakeResourceFactory
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.session.Resource
 import sh.measure.android.session.Session
-import sh.measure.android.session.SessionReport
 import sh.measure.android.utils.iso8601Timestamp
 import java.io.File
 import kotlin.io.path.pathString
@@ -58,13 +57,17 @@ internal class StorageImplTest {
 
     @Test
     fun `Storage delegates to db to return unsynced sessions`() {
-        val sessionId = "id"
-        `when`(dbHelper.getUnsyncedSessions()).thenReturn(listOf(sessionId))
+        val unsyncedSessions = listOf(
+            UnsyncedSession(
+                "id", "1231231", 0
+            )
+        )
+        `when`(dbHelper.getUnsyncedSessions()).thenReturn(unsyncedSessions)
         // When
         val syncedSessions = storage.getUnsyncedSessions()
 
         // Then
-        assertEquals(listOf(sessionId), syncedSessions)
+        assertEquals(unsyncedSessions, syncedSessions)
     }
 
     @Test
@@ -144,32 +147,54 @@ internal class StorageImplTest {
     }
 
     @Test
-    fun `Storage returns the session report`() {
-        // Given
+    fun `Storage delegates to db to get session start time`() {
         val sessionId = "id"
-        val time: Long = 1231231
-        `when`(dbHelper.getSessionStartTime(sessionId)).thenReturn(time)
-        val eventLogFile = File(tempDirPath, "event_log")
-        eventLogFile.writeText(
-            """
-                {"timestamp": "1970-04-25T12:59:03.000000210Z","type": "event","event": "data"}
-            """.trimIndent()
-        )
-        val eventJsonFile = File(tempDirPath, "events.json")
-        val resourceFile = File(tempDirPath, "resource.json")
-        `when`(fileHelper.getEventLogFile(sessionId)).thenReturn(eventLogFile)
-        `when`(fileHelper.getEventsJsonFile(sessionId)).thenReturn(eventJsonFile)
-        `when`(fileHelper.getResourceFile(sessionId)).thenReturn(resourceFile)
-        val expectedSessionReport = SessionReport(
-            session_id = sessionId,
-            timestamp = time.iso8601Timestamp(),
-            resourceFile = resourceFile,
-            eventsFile = eventJsonFile
-        )
+        val startTime = 9876543210L
+        `when`(dbHelper.getSessionStartTime(sessionId)).thenReturn(startTime)
 
         // When
-        val sessionReport = storage.getSessionReport(sessionId)
+        val actualStartTime = storage.getSessionStartTime(sessionId)
 
-        assertEquals(expectedSessionReport, sessionReport)
+        // Then
+        assertEquals(startTime, actualStartTime)
+    }
+
+    @Test
+    fun `Storage delegates to file helper return resource file`() {
+        val sessionId = "id"
+        val resourceFile = File(tempDirPath, "resource.json")
+        `when`(fileHelper.getResourceFile(sessionId)).thenReturn(resourceFile)
+
+        // When
+        val actualResourceFile = storage.getResourceFile(sessionId)
+
+        // Then
+        assertEquals(resourceFile, actualResourceFile)
+    }
+
+    @Test
+    fun `Storage delegates to file helper to return events file`() {
+        val sessionId = "id"
+        val eventsFile = File(tempDirPath, "events.json")
+        `when`(fileHelper.getEventsJsonFile(sessionId)).thenReturn(eventsFile)
+
+        // When
+        val actualEventsFile = storage.getEventsFile(sessionId)
+
+        // Then
+        assertEquals(eventsFile, actualEventsFile)
+    }
+
+    @Test
+    fun `Storage delegates to file helper to return event log file`() {
+        val sessionId = "id"
+        val eventsFile = File(tempDirPath, "events.json")
+        `when`(fileHelper.getEventLogFile(sessionId)).thenReturn(eventsFile)
+
+        // When
+        val actualEventsFile = storage.getEventLogFile(sessionId)
+
+        // Then
+        assertEquals(eventsFile, actualEventsFile)
     }
 }
