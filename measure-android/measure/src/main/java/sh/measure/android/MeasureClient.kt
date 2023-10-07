@@ -25,10 +25,17 @@ internal class MeasureClient(
 
         // TODO(abhay): this is not ideal, we're going to be waiting for the sdk to do multiple
         //  IO operations before we can do anything else, we might even miss early crashes.
-        sessionController.createSession {
-            logger.log(LogLevel.Debug, "Session created: $it")
-            onSessionCreated()
-        }
+        sessionController.createSession(
+            onSuccess = {
+                logger.log(LogLevel.Debug, "Session created: $it")
+                onSessionCreated()
+            },
+            onError = {
+                logger.log(
+                    LogLevel.Error, "Error creating session, unable to initialize Measure SDK"
+                )
+            },
+        )
     }
 
     private fun onSessionCreated() {
