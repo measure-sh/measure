@@ -51,7 +51,13 @@ class Measure {
             val sessionProvider =
                 SessionProvider(timeProvider, idProvider, pidProvider, resourceFactory)
             val sessionController: SessionController = SessionControllerImpl(
-                logger, sessionProvider, storage, transport, executorService, sessionReportGenerator
+                logger,
+                sessionProvider,
+                storage,
+                transport,
+                executorService,
+                sessionReportGenerator,
+                mainHandler
             )
             MeasureClient(
                 logger,

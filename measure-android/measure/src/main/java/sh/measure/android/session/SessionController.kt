@@ -1,10 +1,10 @@
 package sh.measure.android.session
 
+import android.os.Handler
 import sh.measure.android.events.Event
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import sh.measure.android.mainHandler
 import sh.measure.android.network.Transport
 import sh.measure.android.storage.Storage
 import sh.measure.android.storage.UnsyncedSession
@@ -24,9 +24,12 @@ internal interface SessionController {
     /**
      * Creates a new [Session].
      *
-     * @param onSessionCreated Callback to be invoked when the session is created.
+     * @param onSuccess Callback to be invoked when the session is created.
      */
-    fun createSession(onSessionCreated: (sessionId: String) -> Unit)
+    fun createSession(
+        onSuccess: (sessionId: String) -> Unit,
+        onError: () -> Unit
+    )
 
     /**
      * Deletes all [Session]s which did not end with a crash.
@@ -61,23 +64,31 @@ internal class SessionControllerImpl(
     private val storage: Storage,
     private val transport: Transport,
     private val executorService: MeasureExecutorService,
-    private val sessionReportGenerator: SessionReportGenerator
+    private val sessionReportGenerator: SessionReportGenerator,
+    private val mainHandler: Handler
 ) : SessionController {
     override val session: Session
         get() = sessionProvider.session
 
-    override fun createSession(onSessionCreated: (sessionId: String) -> Unit) {
+    override fun createSession(
+        onSuccess: (sessionId: String) -> Unit,
+        onError: () -> Unit
+    ) {
         try {
             executorService.submit {
                 sessionProvider.createSession()
                 storage.createSession(session)
                 storage.createResource(session.resource, session.id)
                 mainHandler.post {
-                    onSessionCreated(session.id)
+                    onSuccess(session.id)
                 }
             }
         } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Debug, "Failed to create session, executor service is closed", e)
+            onError()
+            logger.log(LogLevel.Error, "Failed to create session, executor service is closed", e)
+        } catch (e: Exception) {
+            onError()
+            logger.log(LogLevel.Error, "Failed to create session", e)
         }
     }
 
@@ -87,9 +98,9 @@ internal class SessionControllerImpl(
                 storage.deleteSyncedSessions()
             }
         } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Debug, "Failed to delete sessions without crash", e)
+            logger.log(LogLevel.Error, "Failed to delete unsynced sessions", e)
         } catch (e: NullPointerException) {
-            logger.log(LogLevel.Debug, "Failed to delete sessions without crash", e)
+            logger.log(LogLevel.Error, "Failed to delete unsynced sessions", e)
         }
     }
 
