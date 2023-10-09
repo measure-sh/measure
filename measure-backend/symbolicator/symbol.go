@@ -18,7 +18,10 @@ import (
 	"github.com/google/uuid"
 )
 
-const retraceRegex = `(?:.*?%c\\.%m\\(%s(?::%l)?\\).*?)|(?:(?:.*?[:\"] +)?%c(?::.*)?)|(?:.*?\"type\":.*?%c.*?)`
+// Modified version of the default regex taken from Retrace's official documentation
+//
+// For more info, see: https://developer.android.com/tools/retrace
+const retraceRegex = `(?:.*?%c\.%m\(%s(?::%l)?\).*?)|(?:(?:.*?[:"] +)?%c(?::.*)?)|(?:.*?"type":.*?%c.*?)`
 
 type SymbolicateReq struct {
 	Id           uuid.UUID        `json:"id" binding:"required"`
@@ -56,7 +59,6 @@ func symbolicate(c *gin.Context) {
 		return
 	}
 
-	// fmt.Println("symbolication request", req)
 	mappingFilePath := filepath.Join("/data", "mappings", req.Key)
 	_, err := os.Stat(mappingFilePath)
 	if err != nil {
@@ -81,8 +83,6 @@ func symbolicate(c *gin.Context) {
 		}
 	}
 
-	// 1. download the symbol file from object store
-
 	exceptionFilePath := filepath.Join("/data", "exceptions", fmt.Sprintf(`%s.json`, req.SessionID))
 	indented, err := json.MarshalIndent(*req.SymbolEvents, "", "  ")
 	if err != nil {
@@ -96,10 +96,9 @@ func symbolicate(c *gin.Context) {
 		return
 	}
 
-	cmd := exec.Command("retrace", mappingFilePath, exceptionFilePath, "--regex", fmt.Sprintf(`"%s"`, retraceRegex))
+	cmd := exec.Command("retrace", mappingFilePath, exceptionFilePath, "--regex", retraceRegex)
 	fmt.Println("retrace command:", cmd.String())
 	bytes, err := cmd.Output()
-
 	output := string(bytes)
 
 	fmt.Println("retrace output", output)

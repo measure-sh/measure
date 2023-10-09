@@ -189,16 +189,28 @@ func symbolicate(s *Session) (*SymbolicationResult, error) {
 	return &symbolResult, nil
 }
 
+// mergeEvent copies each field from SymbolFrame to the origin session's
+// underlying Frame struct
 func mergeEvent(s *SymbolEvent, d *EventField) {
 	for i, exception := range d.Exception.Exceptions {
 		for j := range exception.Frames {
-			exception.Frames[j] = Frame(s.SymbolException.Exceptions[i].Frames[j])
+			exception.Frames[j].ClassName = s.SymbolException.Exceptions[i].Frames[j].ClassName
+			exception.Frames[j].FileName = s.SymbolException.Exceptions[i].Frames[j].FileName
+			exception.Frames[j].MethodName = s.SymbolException.Exceptions[i].Frames[j].MethodName
+			exception.Frames[j].ModuleName = s.SymbolException.Exceptions[i].Frames[j].ModuleName
+			exception.Frames[j].LineNum = s.SymbolException.Exceptions[i].Frames[j].LineNum
+			exception.Frames[j].ColNum = s.SymbolException.Exceptions[i].Frames[j].ColNum
 		}
 	}
 
 	for i, thread := range d.Exception.Threads {
 		for j := range thread.Frames {
-			thread.Frames[j] = Frame(s.SymbolException.Threads[i].Frames[j])
+			thread.Frames[j].ClassName = s.SymbolException.Threads[i].Frames[j].ClassName
+			thread.Frames[j].FileName = s.SymbolException.Threads[i].Frames[j].FileName
+			thread.Frames[j].MethodName = s.SymbolException.Threads[i].Frames[j].MethodName
+			thread.Frames[j].ModuleName = s.SymbolException.Threads[i].Frames[j].ModuleName
+			thread.Frames[j].LineNum = s.SymbolException.Threads[i].Frames[j].LineNum
+			thread.Frames[j].ColNum = s.SymbolException.Threads[i].Frames[j].ColNum
 		}
 	}
 }
