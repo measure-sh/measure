@@ -5,12 +5,30 @@ services:
       context: ../measure-go
     ports:
       - "8080:8080"
-    environment:
-      - POSTGRES_DSN=postgres://postgres:postgres@postgres:5432/postgres
-      - CLICKHOUSE_DSN=clickhouse://default:@clickhouse:9000/default
+    env_file:
+      - ../measure-go/.env
+    develop:
+      watch:
+        - path: ../measure-go
+          action: rebuild
     depends_on:
       - clickhouse
       - postgres
+      - symbolicator
+
+  symbolicator:
+    build:
+      context: ../symbolicator
+    ports:
+      - "8181:8181"
+    env_file:
+      - ../symbolicator/.env
+    volumes:
+      - symbolicator-volume:/data
+    develop:
+      watch:
+        - path: ../symbolicator
+          action: rebuild
 
   postgres:
     image: postgres:15
@@ -35,3 +53,4 @@ services:
 volumes:
   clickhouse-volume:
   postgres-volume:
+  symbolicator-volume:

@@ -273,6 +273,14 @@ func (e *EventField) isException() bool {
 	return e.Type == "exception"
 }
 
+func (e *EventField) isANR() bool {
+	return e.Type == "anr"
+}
+
+func (e *EventField) symbolicatable() bool {
+	return e.isANR() || e.isException()
+}
+
 func (e *EventField) validate() error {
 	if len(e.Type) > maxTypeChars {
 		return fmt.Errorf(`"events[].type" exceeds maximum allowed characters of (%d)`, maxTypeChars)
