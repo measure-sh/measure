@@ -97,11 +97,8 @@ func symbolicate(c *gin.Context) {
 	}
 
 	cmd := exec.Command("retrace", mappingFilePath, exceptionFilePath, "--regex", retraceRegex)
-	fmt.Println("retrace command:", cmd.String())
 	bytes, err := cmd.Output()
 	output := string(bytes)
-
-	fmt.Println("retrace output", output)
 
 	if err != nil {
 		log.Println("retrace exec failed", err, output)

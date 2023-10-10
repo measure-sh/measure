@@ -82,7 +82,7 @@ func symbolicate(s *Session) (*SymbolicationResult, error) {
 	var id uuid.UUID
 	var mappingType string
 	var key string
-	if err := server.pgPool.QueryRow(context.Background(), `select id, type, key from mapping_files where app_id = $1 and version_name = $2 and version_code = $3 limit 1;`, s.Resource.AppUniqueID, s.Resource.AppVersion, s.Resource.AppBuild).Scan(&id, &mappingType, &key); err != nil {
+	if err := server.pgPool.QueryRow(context.Background(), `select id, mapping_type, key from mapping_files where app_id = $1 and version_name = $2 and version_code = $3 limit 1;`, s.Resource.AppUniqueID, s.Resource.AppVersion, s.Resource.AppBuild).Scan(&id, &mappingType, &key); err != nil {
 		if err.Error() != "no rows in result set" {
 			return nil, nil
 		} else {
@@ -182,7 +182,7 @@ func symbolicate(s *Session) (*SymbolicationResult, error) {
 
 	for seq, idx := range eventIdxs {
 		symbolicatedEvent := symbolResultEvents[seq]
-		fmt.Printf(`symbolicated event: %+v`, symbolicatedEvent)
+		fmt.Printf(`symbolicated event: %+v\n`, symbolicatedEvent)
 		mergeEvent(&symbolicatedEvent, &s.Events[idx])
 	}
 

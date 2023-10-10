@@ -340,7 +340,7 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 	for _, event := range session.Events {
 		exceptions := "[]"
 		threads := "[]"
-		if event.isException() {
+		if event.symbolicatable() {
 			exceptions = event.Exception.Exceptions.encode()
 			threads = event.Exception.Threads.encode()
 		}

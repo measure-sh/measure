@@ -95,7 +95,11 @@ func putSession(c *gin.Context) {
 	}
 
 	if session.needsSymbolication() {
-		symbolicate(session)
+		if _, err := symbolicate(session); err != nil {
+			fmt.Println("symbolication failed with error", err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not upload session, failed to symbolicate"})
+			return
+		}
 	}
 
 	query, args := makeInsertQuery("events_test_2", columns, session)
