@@ -82,7 +82,7 @@ func symbolicate(s *Session) (*SymbolicationResult, error) {
 	var id uuid.UUID
 	var mappingType string
 	var key string
-	if err := server.pgPool.QueryRow(context.Background(), `select id, type, key from mapping_files where app_id = $1 and version_name = $2 and version_code = $3 and upload_status = $4 limit 1;`, s.Resource.AppUniqueID, s.Resource.AppVersion, s.Resource.AppBuild, mappingUploadDone).Scan(&id, &mappingType, &key); err != nil {
+	if err := server.pgPool.QueryRow(context.Background(), `select id, type, key from mapping_files where app_id = $1 and version_name = $2 and version_code = $3 limit 1;`, s.Resource.AppUniqueID, s.Resource.AppVersion, s.Resource.AppBuild).Scan(&id, &mappingType, &key); err != nil {
 		if err.Error() != "no rows in result set" {
 			return nil, nil
 		} else {
