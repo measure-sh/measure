@@ -1,14 +1,14 @@
 "use client"
 
-import Header from './components/header'
-import EmailWaitlist from './components/email_waitlist'
 import Lottie from "lottie-react";
 import heroAnim from "./animations/measure_hero.json";
+import EmailWaitlist from './components/email_waitlist'
+import LandingHeader from './components/landing_header'
 
 export default function Home() {
   return (
     <main className="flex flex-col items-center justify-between selection:bg-yellow-200/75">
-      <Header/>
+      <LandingHeader/>
       <div className="flex flex-col items-center md:w-4/5 2xl:w-3/5 px-16">
         <div className="py-16"/>
         <p className="font-display font-regular text-black text-8xl max-w-6xl text-center">measure</p>
