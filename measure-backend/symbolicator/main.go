@@ -17,6 +17,10 @@ func createDataDirs() {
 	if err := os.MkdirAll("/data/exceptions", 0750); err != nil {
 		log.Fatal("failed to create /data/exceptions dir", err)
 	}
+	// create app exit traces path
+	if err := os.MkdirAll("/data/app_exit_traces", 0750); err != nil {
+		log.Fatal("failed to create /data/app_exit_traces dir", err)
+	}
 }
 
 func main() {

@@ -53,25 +53,31 @@ type SymbolException struct {
 	Threads    []SymbolThread        `json:"threads"`
 }
 
-type SymbolEvent struct {
+type SymbolExceptionEvent struct {
 	Type            string          `json:"type"`
 	SymbolException SymbolException `json:"exception"`
 }
 
+type SymbolAppExitEvent struct {
+	Trace string `json:"trace"`
+}
+
 type SymbolicationRequest struct {
-	Id           uuid.UUID     `json:"id"`
-	SessionID    uuid.UUID     `json:"session_id"`
-	MappingType  string        `json:"mapping_type"`
-	Key          string        `json:"key"`
-	SymbolEvents []SymbolEvent `json:"events"`
+	Id                    uuid.UUID              `json:"id"`
+	SessionID             uuid.UUID              `json:"session_id"`
+	MappingType           string                 `json:"mapping_type"`
+	Key                   string                 `json:"key"`
+	SymbolExceptionEvents []SymbolExceptionEvent `json:"exception_events"`
+	SymbolAppExitEvents   []SymbolAppExitEvent   `json:"app_exit_events"`
 }
 
 type SymbolicationResult struct {
-	Id          uuid.UUID `json:"id"`
-	SessionID   uuid.UUID `json:"session_id"`
-	MappingType string    `json:"mapping_type"`
-	Key         string    `json:"key"`
-	Events      string    `json:"events"`
+	Id              uuid.UUID            `json:"id"`
+	SessionID       uuid.UUID            `json:"session_id"`
+	MappingType     string               `json:"mapping_type"`
+	Key             string               `json:"key"`
+	ExceptionEvents string               `json:"exception_events"`
+	AppExitEvents   []SymbolAppExitEvent `json:"app_exit_events"`
 }
 
 func symbolicate(s *Session) (*SymbolicationResult, error) {
@@ -89,49 +95,62 @@ func symbolicate(s *Session) (*SymbolicationResult, error) {
 			return nil, err
 		}
 	}
-	payload := new(SymbolicationRequest)
-	payload.SessionID = s.SessionID
-	payload.Id = id
-	payload.MappingType = mappingType
-	payload.Key = key
 
-	var symbolEvents []SymbolEvent
+	var symbolExceptionEvents []SymbolExceptionEvent
+	var symbolAppExitEvents []SymbolAppExitEvent
 
 	for _, event := range obfuscatedEvents {
-		var symbolExceptionsUnits []SymbolExceptionUnit
-		for _, exceptionUnit := range event.Exception.Exceptions {
-			var symbolFrames []SymbolFrame
-			for _, frame := range exceptionUnit.Frames {
-				symbolFrames = append(symbolFrames, SymbolFrame(frame))
+		if event.isANR() || event.isException() {
+			var symbolExceptionsUnits []SymbolExceptionUnit
+			for _, exceptionUnit := range event.Exception.Exceptions {
+				var symbolFrames []SymbolFrame
+				for _, frame := range exceptionUnit.Frames {
+					symbolFrames = append(symbolFrames, SymbolFrame(frame))
+				}
+				symbolExceptionsUnits = append(symbolExceptionsUnits, SymbolExceptionUnit{
+					Type:    exceptionUnit.Type,
+					Message: exceptionUnit.Message,
+					Frames:  symbolFrames,
+				})
 			}
-			symbolExceptionsUnits = append(symbolExceptionsUnits, SymbolExceptionUnit{
-				Type:    exceptionUnit.Type,
-				Message: exceptionUnit.Message,
-				Frames:  symbolFrames,
+			var symbolThreads []SymbolThread
+			for _, thread := range event.Exception.Threads {
+				var symbolFrames []SymbolFrame
+				for _, frame := range thread.Frames {
+					symbolFrames = append(symbolFrames, SymbolFrame(frame))
+				}
+				symbolThreads = append(symbolThreads, SymbolThread{
+					Name:   thread.Name,
+					Frames: symbolFrames,
+				})
+			}
+			symbolExceptionEvents = append(symbolExceptionEvents, SymbolExceptionEvent{
+				Type: event.Type,
+				SymbolException: SymbolException{
+					ThreadName: event.Exception.ThreadName,
+					Exceptions: symbolExceptionsUnits,
+					Threads:    symbolThreads,
+				},
 			})
 		}
-		var symbolThreads []SymbolThread
-		for _, thread := range event.Exception.Threads {
-			var symbolFrames []SymbolFrame
-			for _, frame := range thread.Frames {
-				symbolFrames = append(symbolFrames, SymbolFrame(frame))
-			}
-			symbolThreads = append(symbolThreads, SymbolThread{
-				Name:   thread.Name,
-				Frames: symbolFrames,
+
+		if event.isAppExit() {
+			symbolAppExitEvents = append(symbolAppExitEvents, SymbolAppExitEvent{
+				Trace: event.AppExit.Trace,
 			})
 		}
-		symbolEvents = append(symbolEvents, SymbolEvent{
-			Type: event.Type,
-			SymbolException: SymbolException{
-				ThreadName: event.Exception.ThreadName,
-				Exceptions: symbolExceptionsUnits,
-				Threads:    symbolThreads,
-			},
-		})
 	}
 
-	payload.SymbolEvents = symbolEvents
+	payload := &SymbolicationRequest{
+		Id:                    id,
+		SessionID:             s.SessionID,
+		MappingType:           mappingType,
+		Key:                   key,
+		SymbolExceptionEvents: symbolExceptionEvents,
+		SymbolAppExitEvents:   symbolAppExitEvents,
+	}
+
+	fmt.Println("symbolication payload", payload)
 
 	symbolicateUrl, err := url.JoinPath(os.Getenv("SYMBOLICATOR_ORIGIN"), "symbolicate")
 	if err != nil {
@@ -167,23 +186,36 @@ func symbolicate(s *Session) (*SymbolicationResult, error) {
 		return nil, err
 	}
 
-	var symbolResultEvents []SymbolEvent
-	if err := json.Unmarshal([]byte(symbolResult.Events), &symbolResultEvents); err != nil {
+	exceptionEventIdxs := []int{}
+	appExitEventIdxs := []int{}
+	for idx, event := range s.Events {
+		if !event.symbolicatable() {
+			continue
+		}
+		if event.isANR() || event.isException() {
+			exceptionEventIdxs = append(exceptionEventIdxs, idx)
+		}
+		if event.isAppExit() {
+			appExitEventIdxs = append(appExitEventIdxs, idx)
+		}
+	}
+
+	var symbolResultEvents []SymbolExceptionEvent
+	if err := json.Unmarshal([]byte(symbolResult.ExceptionEvents), &symbolResultEvents); err != nil {
 		fmt.Println("failed to unmarshal symbolicated events", err)
 		return nil, err
 	}
 
-	eventIdxs := []int{}
-	for idx, event := range s.Events {
-		if event.symbolicatable() {
-			eventIdxs = append(eventIdxs, idx)
-		}
+	for seq, idx := range exceptionEventIdxs {
+		symbolicatedExceptionEvent := symbolResultEvents[seq]
+		fmt.Printf("symbolicated exception event: %+v\n", symbolicatedExceptionEvent)
+		mergeExceptionEvent(&symbolicatedExceptionEvent, &s.Events[idx])
 	}
 
-	for seq, idx := range eventIdxs {
-		symbolicatedEvent := symbolResultEvents[seq]
-		fmt.Printf(`symbolicated event: %+v\n`, symbolicatedEvent)
-		mergeEvent(&symbolicatedEvent, &s.Events[idx])
+	for seq, idx := range appExitEventIdxs {
+		symbolicatedAppExitEvent := symbolAppExitEvents[seq]
+		fmt.Printf("symbolicated app_exit event: %+v\n", symbolicatedAppExitEvent)
+		mergeAppExitEvent(&symbolicatedAppExitEvent, &s.Events[idx])
 	}
 
 	return &symbolResult, nil
@@ -191,7 +223,7 @@ func symbolicate(s *Session) (*SymbolicationResult, error) {
 
 // mergeEvent copies each field from SymbolFrame to the origin session's
 // underlying Frame struct
-func mergeEvent(s *SymbolEvent, d *EventField) {
+func mergeExceptionEvent(s *SymbolExceptionEvent, d *EventField) {
 	for i, exception := range d.Exception.Exceptions {
 		for j := range exception.Frames {
 			exception.Frames[j].ClassName = s.SymbolException.Exceptions[i].Frames[j].ClassName
@@ -213,4 +245,8 @@ func mergeEvent(s *SymbolEvent, d *EventField) {
 			thread.Frames[j].ColNum = s.SymbolException.Threads[i].Frames[j].ColNum
 		}
 	}
+}
+
+func mergeAppExitEvent(s *SymbolAppExitEvent, d *EventField) {
+	d.AppExit.Trace = s.Trace
 }

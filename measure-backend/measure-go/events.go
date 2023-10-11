@@ -11,6 +11,8 @@ import (
 // maximum character limits for event fields
 const (
 	maxTypeChars                       = 32
+	maxAppExitReasonChars              = 64
+	maxAppExitImportanceChars          = 32
 	maxSeverityTextChars               = 10
 	maxGestureLongClickTargetChars     = 128
 	maxGestureLongClickTargetNameChars = 128
@@ -58,6 +60,12 @@ var columns = []string{
 	"exception.handled",
 	"exception_exceptions",
 	"exception_threads",
+	"app_exit.reason",
+	"app_exit.importance",
+	"app_exit.trace",
+	"app_exit.process_name",
+	"app_exit.pid",
+	"app_exit.timestamp",
 	"string.severity_text",
 	"string.string",
 	"gesture_long_click.target",
@@ -193,6 +201,15 @@ type Exception struct {
 	Threads    Threads        `json:"threads" binding:"required"`
 }
 
+type AppExit struct {
+	Reason      string    `json:"reason" binding:"required"`
+	Importance  string    `json:"importance" binding:"required"`
+	Trace       string    `json:"trace"`
+	ProcessName string    `json:"process_name" binding:"required"`
+	PID         string    `json:"pid" binding:"required"`
+	Timestamp   time.Time `json:"timestamp" binding:"required"`
+}
+
 type LogString struct {
 	SeverityText string `json:"severity_text" binding:"required"`
 	String       string `json:"string" binding:"required"`
@@ -260,6 +277,7 @@ type EventField struct {
 	Timestamp        time.Time         `json:"timestamp" binding:"required"`
 	Type             string            `json:"type" binding:"required"`
 	Exception        Exception         `json:"exception,omitempty"`
+	AppExit          AppExit           `json:"app_exit,omitempty"`
 	LogString        LogString         `json:"string,omitempty"`
 	GestureLongClick GestureLongClick  `json:"gesture_long_click,omitempty"`
 	GestureScroll    GestureScroll     `json:"gesture_scroll,omitempty"`
@@ -277,13 +295,31 @@ func (e *EventField) isANR() bool {
 	return e.Type == "anr"
 }
 
+func (e *EventField) isAppExit() bool {
+	return e.Type == "app_exit"
+}
+
 func (e *EventField) symbolicatable() bool {
-	return e.isANR() || e.isException()
+	if e.isANR() || e.isException() {
+		return true
+	}
+
+	if e.isAppExit() && e.AppExit.Trace != "" {
+		return true
+	}
+
+	return false
 }
 
 func (e *EventField) validate() error {
 	if len(e.Type) > maxTypeChars {
 		return fmt.Errorf(`"events[].type" exceeds maximum allowed characters of (%d)`, maxTypeChars)
+	}
+	if len(e.AppExit.Reason) > maxAppExitReasonChars {
+		return fmt.Errorf(`"events[].app_exit.reason" exceeds maximum allowed characters of (%d)`, maxAppExitReasonChars)
+	}
+	if len(e.AppExit.Importance) > maxAppExitImportanceChars {
+		return fmt.Errorf(`"events[].app_exit.importance exceeds maximum allowed characters of (%d)`, maxAppExitImportanceChars)
 	}
 	if len(e.LogString.SeverityText) > maxSeverityTextChars {
 		return fmt.Errorf(`"events[].string.severity_text" exceeds maximum allowed characters of (%d)`, maxSeverityTextChars)
@@ -335,7 +371,7 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 	values := []string{}
 	valueArgs := []interface{}{}
 
-	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?)"
+	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?)"
 
 	for _, event := range session.Events {
 		exceptions := "[]"
@@ -371,6 +407,12 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			event.Exception.Handled,
 			exceptions,
 			threads,
+			event.AppExit.Reason,
+			event.AppExit.Importance,
+			event.AppExit.Trace,
+			event.AppExit.ProcessName,
+			event.AppExit.PID,
+			event.AppExit.Timestamp,
 			event.LogString.SeverityText,
 			event.LogString.String,
 			event.GestureLongClick.Target,

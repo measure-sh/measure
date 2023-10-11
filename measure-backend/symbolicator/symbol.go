@@ -3,11 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -18,17 +18,29 @@ import (
 	"github.com/google/uuid"
 )
 
-// Modified version of the default regex taken from Retrace's official documentation
+// Retrace's official default regex customized to fit our needs
 //
 // For more info, see: https://developer.android.com/tools/retrace
 const retraceRegex = `(?:.*?%c\.%m\(%s(?::%l)?\).*?)|(?:(?:.*?[:"] +)?%c(?::.*)?)|(?:.*?"type":.*?%c.*?)`
 
+type SymbolAppExitEvent struct {
+	Trace string `json:"trace"`
+}
+
 type SymbolicateReq struct {
-	Id           uuid.UUID        `json:"id" binding:"required"`
-	SessionID    uuid.UUID        `json:"session_id" binding:"required"`
-	MappingType  string           `json:"mapping_type" binding:"required"`
-	Key          string           `json:"key" binding:"required"`
-	SymbolEvents *json.RawMessage `json:"events" binding:"required"`
+	Id                    uuid.UUID            `json:"id" binding:"required"`
+	SessionID             uuid.UUID            `json:"session_id" binding:"required"`
+	MappingType           string               `json:"mapping_type" binding:"required"`
+	Key                   string               `json:"key" binding:"required"`
+	SymbolExceptionEvents *json.RawMessage     `json:"exception_events"`
+	SymbolAppExitEvents   []SymbolAppExitEvent `json:"app_exit_events"`
+}
+
+func (s *SymbolicateReq) validate() error {
+	if s.SymbolExceptionEvents == nil && len(s.SymbolAppExitEvents) < 1 {
+		return fmt.Errorf("symbolication request does not contain any symbolicatble events")
+	}
+	return nil
 }
 
 func downloadMapping(s *SymbolicateReq, f *os.File) error {
@@ -59,6 +71,12 @@ func symbolicate(c *gin.Context) {
 		return
 	}
 
+	if err := req.validate(); err != nil {
+		msg := "symbolication request validation failed"
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		return
+	}
+
 	mappingFilePath := filepath.Join("/data", "mappings", req.Key)
 	_, err := os.Stat(mappingFilePath)
 	if err != nil {
@@ -83,34 +101,69 @@ func symbolicate(c *gin.Context) {
 		}
 	}
 
-	exceptionFilePath := filepath.Join("/data", "exceptions", fmt.Sprintf(`%s.json`, req.SessionID))
-	indented, err := json.MarshalIndent(*req.SymbolEvents, "", "  ")
-	if err != nil {
-		msg := `failed to marshal & indent exception events`
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg, "details": err.Error()})
-		return
-	}
-	if err := os.WriteFile(exceptionFilePath, indented, 0644); err != nil {
-		fmt.Println("failed to create exception file")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create excpetion file", "details": err.Error()})
-		return
+	var exceptionResults string
+	if req.SymbolExceptionEvents != nil {
+		exceptionFilePath := filepath.Join("/data", "exceptions", fmt.Sprintf(`%s.json`, req.SessionID))
+		indented, err := json.MarshalIndent(*req.SymbolExceptionEvents, "", "  ")
+		if err != nil {
+			msg := `failed to marshal & indent exception events`
+			fmt.Println(msg, err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg, "details": err.Error()})
+			return
+		}
+		if err := os.WriteFile(exceptionFilePath, indented, 0644); err != nil {
+			fmt.Println("failed to create exception file")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create excpetion file", "details": err.Error()})
+			return
+		}
+
+		cmd := exec.Command("retrace", mappingFilePath, exceptionFilePath, "--regex", retraceRegex)
+		bytes, err := cmd.Output()
+		if err != nil {
+			msg := "exception retrace exec failed"
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg, "details": err.Error(), "stdout": exceptionResults})
+			return
+		}
+		exceptionResults = string(bytes)
 	}
 
-	cmd := exec.Command("retrace", mappingFilePath, exceptionFilePath, "--regex", retraceRegex)
-	bytes, err := cmd.Output()
-	output := string(bytes)
+	var appExitResults []SymbolAppExitEvent
+	appExitCount := len(req.SymbolAppExitEvents)
+	if appExitCount > 0 {
+		appExitFilePath := filepath.Join("/data", "app_exit_traces", fmt.Sprintf(`%s.txt`, req.SessionID))
+		for index, appExitEvent := range req.SymbolAppExitEvents {
+			if err := os.WriteFile(appExitFilePath, []byte(appExitEvent.Trace), 0644); err != nil {
+				fmt.Println("failed to create app exit trace file")
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create app exit trace file", "details": err.Error()})
+				return
+			}
 
-	if err != nil {
-		log.Println("retrace exec failed", err, output)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "retrace exec failed", "details": err.Error(), "stdout": output})
-		return
+			cmd := exec.Command("retrace", mappingFilePath, appExitFilePath)
+			bytes, err := cmd.Output()
+			if err != nil {
+				msg := "app_exit retrace exec failed"
+				fmt.Println(msg, err.Error())
+				c.JSON(http.StatusInternalServerError, gin.H{"error": msg, "details": err.Error()})
+				return
+			}
+
+			// if not the last item, leave some breathing room
+			if index != appExitCount-1 {
+				time.Sleep(time.Millisecond * 300)
+			}
+
+			appExitResults = append(appExitResults, SymbolAppExitEvent{
+				Trace: string(bytes),
+			})
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"id":           req.Id,
-		"session_id":   req.SessionID,
-		"mapping_type": req.MappingType,
-		"key":          req.Key,
-		"events":       output,
+		"id":               req.Id,
+		"session_id":       req.SessionID,
+		"mapping_type":     req.MappingType,
+		"key":              req.Key,
+		"exception_events": exceptionResults,
+		"app_exit_events":  appExitResults,
 	})
 }

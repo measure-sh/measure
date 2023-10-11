@@ -50,8 +50,17 @@ func (s *Session) hasANRs() bool {
 	return false
 }
 
+func (s *Session) hasAppExits() bool {
+	for _, event := range s.Events {
+		if event.isAppExit() {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Session) needsSymbolication() bool {
-	if s.hasExceptions() || s.hasANRs() {
+	if s.hasExceptions() || s.hasANRs() || s.hasAppExits() {
 		return true
 	}
 	return false
@@ -60,7 +69,7 @@ func (s *Session) needsSymbolication() bool {
 func (s *Session) getObfuscatedEvents() []EventField {
 	var obfuscatedEvents []EventField
 	for _, event := range s.Events {
-		if event.isException() || event.isANR() {
+		if event.symbolicatable() {
 			obfuscatedEvents = append(obfuscatedEvents, event)
 		}
 	}
