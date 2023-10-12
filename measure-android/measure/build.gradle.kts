@@ -70,6 +70,7 @@ dependencies {
     implementation(platform("com.squareup.okhttp3:okhttp-bom:4.11.0"))
     implementation("com.squareup.okhttp3:okhttp")
     implementation("com.squareup.okhttp3:logging-interceptor")
+    implementation("com.squareup.curtains:curtains:1.2.4")
 
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
     testImplementation("junit:junit:4.13.2")
