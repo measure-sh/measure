@@ -37,6 +37,6 @@ internal class WindowInterceptor {
 
 }
 
-interface WindowTouchInterceptor {
+internal interface WindowTouchInterceptor {
     fun intercept(motionEvent: MotionEvent, window: Window)
 }
