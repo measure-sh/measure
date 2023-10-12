@@ -80,19 +80,19 @@ type SymbolicationResult struct {
 	AppExitEvents   []SymbolAppExitEvent `json:"app_exit_events"`
 }
 
-func symbolicate(s *Session) (*SymbolicationResult, error) {
+func symbolicate(s *Session) error {
 	obfuscatedEvents := s.getObfuscatedEvents()
 	if len(obfuscatedEvents) < 1 {
-		return nil, nil
+		return nil
 	}
 	var id uuid.UUID
 	var mappingType string
 	var key string
 	if err := server.pgPool.QueryRow(context.Background(), `select id, mapping_type, key from mapping_files where app_id = $1 and version_name = $2 and version_code = $3 limit 1;`, s.Resource.AppUniqueID, s.Resource.AppVersion, s.Resource.AppBuild).Scan(&id, &mappingType, &key); err != nil {
 		if err.Error() != "no rows in result set" {
-			return nil, nil
+			return nil
 		} else {
-			return nil, err
+			return err
 		}
 	}
 
@@ -150,23 +150,21 @@ func symbolicate(s *Session) (*SymbolicationResult, error) {
 		SymbolAppExitEvents:   symbolAppExitEvents,
 	}
 
-	fmt.Println("symbolication payload", payload)
-
 	symbolicateUrl, err := url.JoinPath(os.Getenv("SYMBOLICATOR_ORIGIN"), "symbolicate")
 	if err != nil {
 		fmt.Println("could not form URL for symbolicator", err.Error())
-		return nil, err
+		return err
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {
 		fmt.Println("failed to create symbolication request", err.Error())
-		return nil, err
+		return err
 	}
 
 	req, err := http.NewRequest("POST", symbolicateUrl, bytes.NewBuffer(data))
 	if err != nil {
 		fmt.Println(err)
-		return nil, err
+		return err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -174,7 +172,7 @@ func symbolicate(s *Session) (*SymbolicationResult, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println(err)
-		return nil, err
+		return err
 	}
 	defer resp.Body.Close()
 	fmt.Println("symbolicator response status", resp.Status)
@@ -183,7 +181,7 @@ func symbolicate(s *Session) (*SymbolicationResult, error) {
 	err = json.NewDecoder(resp.Body).Decode(&symbolResult)
 	if err != nil {
 		fmt.Println("failed to read symbolicator response", err)
-		return nil, err
+		return err
 	}
 
 	exceptionEventIdxs := []int{}
@@ -203,22 +201,20 @@ func symbolicate(s *Session) (*SymbolicationResult, error) {
 	var symbolResultEvents []SymbolExceptionEvent
 	if err := json.Unmarshal([]byte(symbolResult.ExceptionEvents), &symbolResultEvents); err != nil {
 		fmt.Println("failed to unmarshal symbolicated events", err)
-		return nil, err
+		return err
 	}
 
 	for seq, idx := range exceptionEventIdxs {
 		symbolicatedExceptionEvent := symbolResultEvents[seq]
-		fmt.Printf("symbolicated exception event: %+v\n", symbolicatedExceptionEvent)
 		mergeExceptionEvent(&symbolicatedExceptionEvent, &s.Events[idx])
 	}
 
 	for seq, idx := range appExitEventIdxs {
-		symbolicatedAppExitEvent := symbolAppExitEvents[seq]
-		fmt.Printf("symbolicated app_exit event: %+v\n", symbolicatedAppExitEvent)
+		symbolicatedAppExitEvent := symbolResult.AppExitEvents[seq]
 		mergeAppExitEvent(&symbolicatedAppExitEvent, &s.Events[idx])
 	}
 
-	return &symbolResult, nil
+	return nil
 }
 
 // mergeEvent copies each field from SymbolFrame to the origin session's
