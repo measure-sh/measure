@@ -9,8 +9,8 @@ import okio.sink
 import okio.source
 import okio.use
 import sh.measure.android.events.EventType
-import sh.measure.android.exitinfo.ExitInfo
-import sh.measure.android.exitinfo.ExitInfoProvider
+import sh.measure.android.appexit.AppExit
+import sh.measure.android.appexit.AppExitProvider
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.Storage
@@ -21,14 +21,14 @@ import java.io.File
 internal class SessionReportGenerator(
     private val logger: Logger,
     private val storage: Storage,
-    private val exitInfoProvider: ExitInfoProvider
+    private val appExitProvider: AppExitProvider
 ) {
 
     fun getSessionReport(session: UnsyncedSession): SessionReport {
         logger.log(LogLevel.Debug, "Getting session report for session: ${session.id}")
         val sessionStartTime = getSessionStartTime(session.id)
-        val exitInfo = exitInfoProvider.get(session.processId)
-        val eventsFile = createEventsJsonFile(session.id, exitInfo)
+        val appExit = appExitProvider.get(session.processId)
+        val eventsFile = createEventsJsonFile(session.id, appExit)
         val resourceFile = storage.getResourceFile(session.id)
         return SessionReport(
             session_id = session.id,
@@ -42,7 +42,7 @@ internal class SessionReportGenerator(
         return storage.getSessionStartTime(sessionId)
     }
 
-    private fun createEventsJsonFile(sessionId: String, exitInfo: ExitInfo?): File {
+    private fun createEventsJsonFile(sessionId: String, appExit: AppExit?): File {
         logger.log(LogLevel.Debug, "Creating events.json file for session: $sessionId")
         val eventsFile = storage.getEventsFile(sessionId)
         storage.getEventLogFile(sessionId).source().buffer().use { source ->
@@ -56,8 +56,8 @@ internal class SessionReportGenerator(
                         sink.writeUtf8(",")
                         continue
                     }
-                    if (exitInfo != null) {
-                        addExitInfo(sink, exitInfo)
+                    if (appExit != null) {
+                        appAppExit(sink, appExit)
                     }
                 }
                 sink.writeUtf8("]")
@@ -68,14 +68,14 @@ internal class SessionReportGenerator(
     }
 
     @OptIn(ExperimentalSerializationApi::class)
-    private fun addExitInfo(sink: BufferedSink, exitInfo: ExitInfo) {
+    private fun appAppExit(sink: BufferedSink, appExit: AppExit) {
         sink.writeUtf8(",")
         sink.writeUtf8("{")
-        sink.writeUtf8("\"timestamp\": \"${exitInfo.timestamp}\",")
-        sink.writeUtf8("\"type\": \"${EventType.EXIT_INFO}\",")
-        sink.writeUtf8("\"${EventType.EXIT_INFO}\": ")
+        sink.writeUtf8("\"timestamp\": \"${appExit.timestamp}\",")
+        sink.writeUtf8("\"type\": \"${EventType.APP_EXIT}\",")
+        sink.writeUtf8("\"${EventType.APP_EXIT}\": ")
         Json.encodeToStream(
-            Json.encodeToJsonElement(ExitInfo.serializer(), exitInfo),
+            Json.encodeToJsonElement(AppExit.serializer(), appExit),
             sink.outputStream()
         )
         sink.writeUtf8("}")

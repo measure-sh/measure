@@ -1,4 +1,4 @@
-package sh.measure.android.exitinfo
+package sh.measure.android.appexit
 
 import android.app.ActivityManager
 import android.app.ApplicationExitInfo
@@ -11,16 +11,17 @@ import okio.buffer
 import okio.source
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.utils.iso8601Timestamp
 import java.io.InputStream
 
-internal interface ExitInfoProvider {
-    fun get(pid: Int): ExitInfo?
+internal interface AppExitProvider {
+    fun get(pid: Int): AppExit?
 }
 
-internal class ExitInfoProviderImpl(private val context: Context, private val logger: Logger) :
-    ExitInfoProvider {
+internal class AppExitProviderImpl(private val context: Context, private val logger: Logger) :
+    AppExitProvider {
 
-    override fun get(pid: Int): ExitInfo? {
+    override fun get(pid: Int): AppExit? {
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
             return null
         }
@@ -29,7 +30,7 @@ internal class ExitInfoProviderImpl(private val context: Context, private val lo
                 context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
             val historicalExitReason =
                 activityManager.getHistoricalProcessExitReasons(null, pid, 1).firstOrNull()
-            historicalExitReason?.toExitInfo()
+            historicalExitReason?.toAppExit()
         } catch (e: Exception) {
             logger.log(LogLevel.Error, "Failed to get exit info for pid: $pid", e)
             null
@@ -37,11 +38,11 @@ internal class ExitInfoProviderImpl(private val context: Context, private val lo
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    fun ApplicationExitInfo.toExitInfo(): ExitInfo {
-        return ExitInfo(
+    fun ApplicationExitInfo.toAppExit(): AppExit {
+        return AppExit(
             reason = getReasonName(reason),
             importance = getImportanceName(importance),
-            timestamp = timestamp,
+            timestamp = timestamp.iso8601Timestamp(),
             trace = getTraceString(traceInputStream),
             process_name = processName,
             pid = pid.toString(),
@@ -52,7 +53,7 @@ internal class ExitInfoProviderImpl(private val context: Context, private val lo
         if (traceInputStream == null) {
             return null
         }
-        logger.log(LogLevel.Debug, "Adding ApplicationExitInfo trace")
+        logger.log(LogLevel.Debug, "Adding AppExit trace")
         return traceInputStream.extractContent().bufferedReader().useLines { lines ->
             lines.joinToString("\n")
         }

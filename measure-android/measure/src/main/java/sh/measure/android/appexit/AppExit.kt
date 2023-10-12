@@ -1,4 +1,4 @@
-package sh.measure.android.exitinfo
+package sh.measure.android.appexit
 
 import android.app.ActivityManager
 import android.app.ApplicationExitInfo
@@ -11,7 +11,7 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 @RequiresApi(Build.VERSION_CODES.R)
-data class ExitInfo(
+data class AppExit(
     /**
      * @see [ApplicationExitInfo.getReason]
      */
@@ -23,9 +23,9 @@ data class ExitInfo(
     val importance: String,
 
     /**
-     * @see [ApplicationExitInfo.getTimestamp]
+     * @see [ApplicationExitInfo.getTimestamp] converted to ISO-8601 format.
      */
-    val timestamp: Long,
+    val timestamp: String,
 
     /**
      * @see [ApplicationExitInfo.getTraceInputStream]
