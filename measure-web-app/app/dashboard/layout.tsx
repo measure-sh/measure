@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from 'next/navigation';
 import { useRouter } from 'next/navigation';
+import TeamSwitcher from "../components/team_switcher";
 
 const menuItems = [
     {
@@ -38,7 +39,10 @@ export default function DashboardLayout({
     return (
         <div className="flex flex-col md:flex-row flex-1">
             <aside className="border-black border-r w-full md:w-60">
-                <nav className="flex flex-col p-4 md:h-screen">
+                <nav className="flex flex-col p-2 md:h-screen">
+                    <div className="py-4"/>
+                    <TeamSwitcher items={['Anup', 'Measure','LeftShift']}/>
+                    <div className="py-4"/>
                     <ul>
                         {menuItems.map(({ href, title }) => (
                             <li key={title}>
