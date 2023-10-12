@@ -115,7 +115,7 @@ internal class StorageImplTest {
         // Then
         assertEquals(
             """
-                {"timestamp": "$timestamp","type": "event","event": "data"}
+                {"timestamp":"$timestamp","type":"event","event":"data"}
             """.trimIndent(), eventLogFile.readText()
         )
     }
@@ -140,8 +140,8 @@ internal class StorageImplTest {
         // Then
         assertEquals(
             """
-               
-               {"timestamp": "$timestamp","type": "event","event": "data"}
+
+               {"timestamp":"$timestamp","type":"event","event":"data"}
             """.trimIndent(), eventLogFile.readText()
         )
     }
