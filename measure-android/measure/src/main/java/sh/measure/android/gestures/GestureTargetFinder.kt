@@ -1,5 +1,6 @@
 package sh.measure.android.gestures
 
+import android.content.res.Resources
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -9,12 +10,12 @@ internal data class Target(
 )
 
 internal object GestureTargetFinder {
-    fun findScrollable(view: ViewGroup, event: MotionEvent): View? {
-        return findScrollableRecursively(view, event.x, event.y)
+    fun findScrollable(view: ViewGroup, event: MotionEvent): Target? {
+        return findScrollableRecursively(view, event.x, event.y)?.toTarget()
     }
 
-    fun findClickable(view: ViewGroup, event: MotionEvent): View? {
-        return findClickableRecursively(view, event.x, event.y)
+    fun findClickable(view: ViewGroup, event: MotionEvent): Target? {
+        return findClickableRecursively(view, event.x, event.y)?.toTarget()
     }
 
     private fun findScrollableRecursively(viewGroup: ViewGroup, x: Float, y: Float): View? {
@@ -79,4 +80,32 @@ internal object GestureTargetFinder {
     private fun isViewClickable(view: View) = view.isClickable
     private fun isViewPressed(view: View) = view.isPressed
     private fun isScrollContainer(view: View) = view.isScrollContainer
+
+    private fun View.toTarget(): Target? {
+        val viewId = id
+        val target = Target(
+            className = javaClass.name,
+            id = null,
+            width = width.toFloat(),
+            height = height.toFloat()
+        )
+        if (viewId == View.NO_ID || viewId <= 0 || viewId ushr 24 == 0) {
+            return target
+        }
+        return try {
+            val resources = resources ?: return null
+            val packageName = when (viewId and -0x1000000) {
+                0x7f000000 -> "app"
+                0x01000000 -> "android"
+                else -> resources.getResourcePackageName(viewId)
+            }
+            val typeName = resources.getResourceTypeName(viewId)
+            val id = resources.getResourceEntryName(viewId)
+            target.copy(
+                className = "$packageName.$typeName", id = id
+            )
+        } catch (e: Resources.NotFoundException) {
+            target
+        }
+    }
 }

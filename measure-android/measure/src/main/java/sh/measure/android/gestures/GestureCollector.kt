@@ -1,8 +1,6 @@
 package sh.measure.android.gestures
 
-import android.content.res.Resources
 import android.view.MotionEvent
-import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import sh.measure.android.events.EventTracker
@@ -69,7 +67,7 @@ internal class GestureCollector(
                 )
             )
 
-            is DetectedGesture.Scroll -> tracker.trackSwipe(
+            is DetectedGesture.Scroll -> tracker.trackScroll(
                 Scroll(
                     target = target.className,
                     target_id = target.id,
@@ -88,7 +86,7 @@ internal class GestureCollector(
     private fun getTarget(
         gesture: DetectedGesture, window: Window, motionEvent: MotionEvent
     ): Target? {
-        val view = when (gesture) {
+        return when (gesture) {
             is DetectedGesture.Scroll -> {
                 GestureTargetFinder.findScrollable(
                     window.decorView as ViewGroup, motionEvent
@@ -100,37 +98,6 @@ internal class GestureCollector(
                     window.decorView as ViewGroup, motionEvent
                 )
             }
-        }
-        return view?.toTarget()
-    }
-
-    private fun View.toTarget(): Target? {
-        val viewId = id
-        val target = Target(
-            className = javaClass.name,
-            id = null,
-            width = width.toFloat(),
-            height = height.toFloat()
-        )
-
-        if (viewId == View.NO_ID || viewId <= 0 || viewId ushr 24 == 0) {
-            return target
-        }
-
-        return try {
-            val resources = resources ?: return null
-            val packageName = when (viewId and -0x1000000) {
-                0x7f000000 -> "app"
-                0x01000000 -> "android"
-                else -> resources.getResourcePackageName(viewId)
-            }
-            val typeName = resources.getResourceTypeName(viewId)
-            val id = resources.getResourceEntryName(viewId)
-            target.copy(
-                className = "$packageName.$typeName", id = id
-            )
-        } catch (e: Resources.NotFoundException) {
-            target
         }
     }
 }

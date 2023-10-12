@@ -13,7 +13,7 @@ internal interface EventTracker {
     fun trackAnr(measureException: MeasureException)
     fun trackClick(click: Click)
     fun trackLongClick(longClick: LongClick)
-    fun trackSwipe(swipe: Scroll)
+    fun trackScroll(scroll: Scroll)
 }
 
 // TODO: refactor to make serialization happen on background thread.
@@ -43,8 +43,8 @@ internal class MeasureEventTracker(
         sessionController.storeEvent(longClick.toEvent())
     }
 
-    override fun trackSwipe(swipe: Scroll) {
+    override fun trackScroll(scroll: Scroll) {
         logger.log(LogLevel.Debug, "Tracking swipe")
-        sessionController.storeEvent(swipe.toEvent())
+        sessionController.storeEvent(scroll.toEvent())
     }
 }
