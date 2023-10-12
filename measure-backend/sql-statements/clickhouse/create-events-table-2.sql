@@ -31,6 +31,13 @@ create table if not exists events_test_2
     /* delimits with underscore because clickhouse treats dot as a nested data structure and tries to match the length of exception.exceptions & exception.threads */
     `exception_exceptions` Array(Tuple(LowCardinality(String), LowCardinality(String), Array(Tuple(Int32, Int32, LowCardinality(String), LowCardinality(String), LowCardinality(String), LowCardinality(String))))),
     `exception_threads` Array(Tuple(LowCardinality(String), Array(Tuple(Int32, Int32, LowCardinality(String), LowCardinality(String), LowCardinality(String), LowCardinality(String))))),
+    /* app_exit */
+    `app_exit.reason` LowCardinality(FixedString(64)),
+    `app_exit.importance` LowCardinality(FixedString(32)),
+    `app_exit.trace` String,
+    `app_exit.process_name` String,
+    `app_exit.pid` String,
+    `app_exit.timestamp` DateTime('UTC'),
     /* string */
     `string.severity_text` LowCardinality(FixedString(10)),
     `string.string` String,

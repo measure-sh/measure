@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"log"
+	"os"
+	"strconv"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
@@ -12,6 +14,7 @@ import (
 type Server struct {
 	pgPool *pgxpool.Pool
 	chPool driver.Conn
+	config *ServerConfig
 }
 
 type PostgresConfig struct {
@@ -25,18 +28,54 @@ type ClickhouseConfig struct {
 }
 
 type ServerConfig struct {
-	pg PostgresConfig
-	ch ClickhouseConfig
+	pg                     PostgresConfig
+	ch                     ClickhouseConfig
+	mappingFileMaxSize     uint64
+	symbolsBucket          string
+	symbolsBucketRegion    string
+	symbolsAccessKey       string
+	symbolsSecretAccessKey string
 }
 
 func NewServerConfig() *ServerConfig {
+	mappingFileMaxSize, err := strconv.ParseUint(os.Getenv("MAPPING_FILE_MAX_SIZE"), 10, 64)
+	if err != nil {
+		log.Println("using default value of MAPPING_FILE_MAX_SIZE")
+		mappingFileMaxSize = 524_288_000
+	}
+
+	symbolsBucket := os.Getenv("SYMBOLS_S3_BUCKET")
+	if symbolsBucket == "" {
+		log.Println("SYMBOLS_S3_BUCKET env var not set, mapping file uploads won't work")
+	}
+
+	symbolsBucketRegion := os.Getenv("SYMBOLS_S3_BUCKET_REGION")
+	if symbolsBucketRegion == "" {
+		log.Println("SYMBOLS_S3_BUCKET_REGION env var not set, mapping file uploads won't work")
+	}
+
+	symbolsAccessKey := os.Getenv("SYMBOLS_ACCESS_KEY")
+	if symbolsAccessKey == "" {
+		log.Println("SYMBOLS_ACCESS_KEY env var not set, mapping file uploads won't work")
+	}
+
+	symbolsSecretAccessKey := os.Getenv("SYMBOLS_SECRET_ACCESS_KEY")
+	if symbolsSecretAccessKey == "" {
+		log.Println("SYMBOLS_SECRET_ACCESS_KEY env var not set, mapping file uploads won't work")
+	}
+
 	return &ServerConfig{
 		pg: PostgresConfig{
-			dsn: "postgresql://postgres:postgres@localhost:54322/default",
+			dsn: "postgresql://postgres:postgres@localhost:5432/default",
 		},
 		ch: ClickhouseConfig{
 			dsn: "clickhouse://default:@127.0.0.1:9000/default",
 		},
+		mappingFileMaxSize:     mappingFileMaxSize,
+		symbolsBucket:          symbolsBucket,
+		symbolsBucketRegion:    symbolsBucketRegion,
+		symbolsAccessKey:       symbolsAccessKey,
+		symbolsSecretAccessKey: symbolsSecretAccessKey,
 	}
 }
 
@@ -59,5 +98,6 @@ func (s *Server) Configure(serverConfig *ServerConfig) *Server {
 	return &Server{
 		pgPool: pgPool,
 		chPool: chPool,
+		config: serverConfig,
 	}
 }
