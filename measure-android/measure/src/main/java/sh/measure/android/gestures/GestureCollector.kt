@@ -42,43 +42,15 @@ internal class GestureCollector(
 
         when (gesture) {
             is DetectedGesture.Click -> tracker.trackClick(
-                Click(
-                    target = target.className,
-                    target_id = target.id,
-                    width = target.width,
-                    height = target.height,
-                    x = gesture.x,
-                    y = gesture.y,
-                    touch_down_time = gesture.touchDownTime,
-                    touch_up_time = gesture.touchUpTime
-                )
+                ClickEvent.fromDetectedGesture(gesture, target)
             )
 
             is DetectedGesture.LongClick -> tracker.trackLongClick(
-                LongClick(
-                    target = target.className,
-                    target_id = target.id,
-                    width = target.width,
-                    height = target.height,
-                    x = gesture.x,
-                    y = gesture.y,
-                    touch_down_time = gesture.touchDownTime,
-                    touch_up_time = gesture.touchUpTime
-                )
+                LongClickEvent.fromDetectedGesture(gesture, target)
             )
 
             is DetectedGesture.Scroll -> tracker.trackScroll(
-                Scroll(
-                    target = target.className,
-                    target_id = target.id,
-                    startX = gesture.startX,
-                    startY = gesture.startY,
-                    endX = gesture.endX,
-                    endY = gesture.endY,
-                    touch_down_time = gesture.touchDownTime,
-                    touch_up_time = gesture.touchUpTime,
-                    direction = gesture.direction.name.lowercase()
-                )
+                ScrollEvent.fromDetectedGesture(gesture, target)
             )
         }
     }
@@ -101,4 +73,3 @@ internal class GestureCollector(
         }
     }
 }
-

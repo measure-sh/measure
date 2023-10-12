@@ -7,6 +7,9 @@ import kotlinx.serialization.json.encodeToStream
 import okio.BufferedSink
 import sh.measure.android.appexit.AppExit
 import sh.measure.android.exceptions.MeasureException
+import sh.measure.android.gestures.ClickEvent
+import sh.measure.android.gestures.LongClickEvent
+import sh.measure.android.gestures.ScrollEvent
 import sh.measure.android.utils.iso8601Timestamp
 
 data class Event(
@@ -43,5 +46,29 @@ internal fun AppExit.toEvent(): Event {
         type = EventType.APP_EXIT,
         timestamp = timestamp,
         data = Json.encodeToJsonElement(AppExit.serializer(), this)
+    )
+}
+
+internal fun ClickEvent.toEvent(): Event {
+    return Event(
+        timestamp = touch_up_time,
+        type = EventType.CLICK,
+        data = Json.encodeToJsonElement(ClickEvent.serializer(), this)
+    )
+}
+
+internal fun LongClickEvent.toEvent(): Event {
+    return Event(
+        timestamp = touch_up_time,
+        type = EventType.LONG_CLICK,
+        data = Json.encodeToJsonElement(LongClickEvent.serializer(), this)
+    )
+}
+
+internal fun ScrollEvent.toEvent(): Event {
+    return Event(
+        timestamp = touch_up_time,
+        type = EventType.SCROLL,
+        data = Json.encodeToJsonElement(ScrollEvent.serializer(), this)
     )
 }
