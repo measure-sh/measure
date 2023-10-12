@@ -93,17 +93,9 @@ internal object GestureTargetFinder {
             return target
         }
         return try {
-            val resources = resources ?: return null
-            val packageName = when (viewId and -0x1000000) {
-                0x7f000000 -> "app"
-                0x01000000 -> "android"
-                else -> resources.getResourcePackageName(viewId)
-            }
-            val typeName = resources.getResourceTypeName(viewId)
+            val resources = resources ?: return target
             val id = resources.getResourceEntryName(viewId)
-            target.copy(
-                className = "$packageName.$typeName", id = id
-            )
+            target.copy(id = id)
         } catch (e: Resources.NotFoundException) {
             target
         }
