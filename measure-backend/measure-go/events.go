@@ -20,6 +20,7 @@ const (
 	maxGestureScrollTargetChars        = 128
 	maxGestureScrollTargetNameChars    = 128
 	maxGestureScrollTargetIDChars      = 128
+	maxGestureScrollDirectionChars     = 8
 	maxGestureClickTargetChars         = 128
 	maxGestureClickTargetNameChars     = 128
 	maxGestureClickTargetIDChars       = 128
@@ -69,7 +70,6 @@ var columns = []string{
 	"string.severity_text",
 	"string.string",
 	"gesture_long_click.target",
-	"gesture_long_click.target_user_readable_name",
 	"gesture_long_click.target_id",
 	"gesture_long_click.touch_down_time",
 	"gesture_long_click.touch_up_time",
@@ -78,7 +78,6 @@ var columns = []string{
 	"gesture_long_click.x",
 	"gesture_long_click.y",
 	"gesture_click.target",
-	"gesture_click.target_user_readable_name",
 	"gesture_click.target_id",
 	"gesture_click.touch_down_time",
 	"gesture_click.touch_up_time",
@@ -87,7 +86,6 @@ var columns = []string{
 	"gesture_click.x",
 	"gesture_click.y",
 	"gesture_scroll.target",
-	"gesture_scroll.target_user_readable_name",
 	"gesture_scroll.target_id",
 	"gesture_scroll.touch_down_time",
 	"gesture_scroll.touch_up_time",
@@ -95,7 +93,6 @@ var columns = []string{
 	"gesture_scroll.y",
 	"gesture_scroll.end_x",
 	"gesture_scroll.end_y",
-	"gesture_scroll.velocity_px",
 	"gesture_scroll.direction",
 	"http_request.request_id",
 	"http_request.request_url",
@@ -217,40 +214,36 @@ type LogString struct {
 
 type GestureLongClick struct {
 	Target                 string    `json:"target"`
-	TargetUserReadableName string    `json:"target_user_readable_name"`
 	TargetID               string    `json:"target_id"`
 	TouchDownTime          time.Time `json:"touch_down_time"`
 	TouchUpTime            time.Time `json:"touch_up_time"`
 	Width                  uint16    `json:"width"`
 	Height                 uint16    `json:"height"`
-	X                      uint16    `json:"x"`
-	Y                      uint16    `json:"y"`
+	X                      float32   `json:"x"`
+	Y                      float32   `json:"y"`
 }
 
 type GestureScroll struct {
 	Target                 string    `json:"target"`
-	TargetUserReadableName string    `json:"target_user_readable_name"`
 	TargetID               string    `json:"target_id"`
 	TouchDownTime          time.Time `json:"touch_down_time"`
 	TouchUpTime            time.Time `json:"touch_up_time"`
-	X                      uint16    `json:"x"`
-	Y                      uint16    `json:"y"`
-	EndX                   uint16    `json:"end_x"`
-	EndY                   uint16    `json:"end_y"`
-	VelocityPX             uint16    `json:"velocity_px"`
-	Direction              uint16    `json:"direction"`
+	X                      float32   `json:"x"`
+	Y                      float32   `json:"y"`
+	EndX                   float32   `json:"end_x"`
+	EndY                   float32   `json:"end_y"`
+	Direction              string    `json:"direction"`
 }
 
 type GestureClick struct {
 	Target                 string    `json:"target"`
-	TargetUserReadableName string    `json:"target_user_readable_name"`
 	TargetID               string    `json:"target_id"`
 	TouchDownTime          time.Time `json:"touch_down_time"`
 	TouchUpTime            time.Time `json:"touch_up_time"`
 	Width                  uint16    `json:"width"`
 	Height                 uint16    `json:"height"`
-	X                      uint16    `json:"x"`
-	Y                      uint16    `json:"y"`
+	X                      float32   `json:"x"`
+	Y                      float32   `json:"y"`
 }
 
 type HTTPRequest struct {
@@ -327,17 +320,11 @@ func (e *EventField) validate() error {
 	if len(e.GestureLongClick.Target) > maxGestureLongClickTargetChars {
 		return fmt.Errorf(`"events[].gesture_long_click.target" exceeds maximum allowed characters of (%d)`, maxGestureLongClickTargetChars)
 	}
-	if len(e.GestureLongClick.TargetUserReadableName) > maxGestureLongClickTargetNameChars {
-		return fmt.Errorf(`"events[].gesture_long_click.target_user_readable_name" exceeds maximum allowed characters of (%d)`, maxGestureLongClickTargetNameChars)
-	}
 	if len(e.GestureLongClick.TargetID) > maxGestureLongClickTargetIDChars {
 		return fmt.Errorf(`"events[].gesture_long_click.target_id" exceeds maximum allowed characters of (%d)`, maxGestureLongClickTargetIDChars)
 	}
 	if len(e.GestureClick.Target) > maxGestureClickTargetChars {
 		return fmt.Errorf(`"events[].gesture_click.target" exceeds maximum allowed characters of (%d)`, maxGestureClickTargetChars)
-	}
-	if len(e.GestureClick.TargetUserReadableName) > maxGestureClickTargetNameChars {
-		return fmt.Errorf(`"events[].gesture_click.target_user_readable_name" exceeds maximum allowed characters of (%d)`, maxGestureClickTargetNameChars)
 	}
 	if len(e.GestureClick.TargetID) > maxGestureClickTargetIDChars {
 		return fmt.Errorf(`"events[].gesture_click.target_id" exceeds maximum allowed characters of (%d)`, maxGestureClickTargetIDChars)
@@ -345,12 +332,12 @@ func (e *EventField) validate() error {
 	if len(e.GestureScroll.Target) > maxGestureScrollTargetChars {
 		return fmt.Errorf(`"events[].gesture_scroll.target" exceeds maximum allowed characters of (%d)`, maxGestureScrollTargetChars)
 	}
-	if len(e.GestureScroll.TargetUserReadableName) > maxGestureScrollTargetNameChars {
-		return fmt.Errorf(`"events[].gesture_scroll.target_user_readable_name" exceeds maximum allowed characters of (%d)`, maxGestureScrollTargetNameChars)
-	}
 	if len(e.GestureScroll.TargetID) > maxGestureScrollTargetIDChars {
 		return fmt.Errorf(`"events[].gesture_scroll.target_id" exceeds maximum allowed characters of (%d)`, maxGestureScrollTargetIDChars)
 	}
+	if len(e.GestureScroll.Direction) > maxGestureScrollDirectionChars {
+        return fmt.Errorf(`"events[].gesture_scroll.direction" exceeds maximum allowed characters of (%d)`, maxGestureScrollDirectionChars)
+    }
 	if len(e.HTTPRequest.Method) > maxHTTPRequestMethodChars {
 		return fmt.Errorf(`"events[].http_request.method" exceeds maximum allowed characters of (%d)`, maxHTTPRequestMethodChars)
 	}
@@ -371,7 +358,7 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 	values := []string{}
 	valueArgs := []interface{}{}
 
-	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?)"
+	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?)"
 
 	for _, event := range session.Events {
 		exceptions := "[]"
@@ -416,7 +403,6 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			event.LogString.SeverityText,
 			event.LogString.String,
 			event.GestureLongClick.Target,
-			event.GestureLongClick.TargetUserReadableName,
 			event.GestureLongClick.TargetID,
 			event.GestureLongClick.TouchDownTime.Format(timeFormat),
 			event.GestureLongClick.TouchUpTime.Format(timeFormat),
@@ -425,7 +411,6 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			event.GestureLongClick.X,
 			event.GestureLongClick.Y,
 			event.GestureClick.Target,
-			event.GestureClick.TargetUserReadableName,
 			event.GestureClick.TargetID,
 			event.GestureClick.TouchDownTime.Format(timeFormat),
 			event.GestureClick.TouchUpTime.Format(timeFormat),
@@ -434,7 +419,6 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			event.GestureClick.X,
 			event.GestureClick.Y,
 			event.GestureScroll.Target,
-			event.GestureScroll.TargetUserReadableName,
 			event.GestureScroll.TargetID,
 			event.GestureScroll.TouchDownTime.Format(timeFormat),
 			event.GestureScroll.TouchUpTime.Format(timeFormat),
@@ -442,7 +426,6 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			event.GestureScroll.Y,
 			event.GestureScroll.EndX,
 			event.GestureScroll.EndY,
-			event.GestureScroll.VelocityPX,
 			event.GestureScroll.Direction,
 			event.HTTPRequest.RequestID,
 			event.HTTPRequest.RequestURL,
