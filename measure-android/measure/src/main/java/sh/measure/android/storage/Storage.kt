@@ -3,7 +3,6 @@ package sh.measure.android.storage
 import android.content.ContentValues
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.encodeToStream
 import okio.appendingSink
 import okio.buffer
@@ -34,7 +33,6 @@ internal interface Storage {
     fun getEventLogFile(sessionId: String): File
 }
 
-@OptIn(ExperimentalSerializationApi::class)
 internal class StorageImpl(
     private val logger: Logger,
     private val fileHelper: FileHelper,
@@ -46,6 +44,7 @@ internal class StorageImpl(
         fileHelper.createSessionFiles(session.id)
     }
 
+    @OptIn(ExperimentalSerializationApi::class)
     override fun createResource(resource: Resource, sessionId: String) {
         logger.log(LogLevel.Debug, "Saving resource: $resource")
         val resourceFile = fileHelper.getResourceFile(sessionId)
@@ -87,12 +86,7 @@ internal class StorageImpl(
         // Adds a new line to mark the start of a new event if the file is not empty.
         fileHelper.getEventLogFile(sessionId).appendingSink().buffer().use {
             if (!isFileEmpty) it.writeUtf8("\n")
-            it.writeUtf8("{")
-            it.writeUtf8("\"timestamp\": \"${event.timestamp}\",")
-            it.writeUtf8("\"type\": \"${event.type}\",")
-            it.writeUtf8("\"${event.type}\": ")
-            Json.encodeToStream(JsonElement.serializer(), event.data, it.outputStream())
-            it.writeUtf8("}")
+            event.write(it)
         }
         logger.log(LogLevel.Debug, "Saved ${event.type} for session: $sessionId")
     }
