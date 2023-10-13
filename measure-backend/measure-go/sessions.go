@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -18,6 +19,9 @@ type Session struct {
 }
 
 func (s *Session) validate() error {
+	if len(s.Events) < 1 {
+		return errors.New("events[] contains zero events")
+	}
 	if err := s.Resource.validate(); err != nil {
 		return err
 	}
