@@ -29,27 +29,30 @@ func joinNonEmptyStrings(delim string, strs ...string) string {
 // various parts laid out in a struct.
 //
 // input i should be of the form
-// "class.method(file:lineno)"
-//
-// "lineno" is optional. for this case, input i should be of
-// the form
-// "class.method(file)"
+// - "class.method(file:lineno)"
+// - "class.method(file)"
+// - "class.method"
 //
 // Returns error if the input is insufficient or if the parse
 // operation fails
 func UnmarshalRetraceFrame(i string) (retraceFrame RetraceFrame, err error) {
 	// last char should be ')'
-	lastCharErr := "invalid input, last char should be ')'"
 	parenErr := "invalid input, no parenthesis found"
 	invalid := "invalid input"
 	empty := "input is empty"
+
+	// foo.bar.baz.method
 
 	if len(i) < 1 {
 		return retraceFrame, errors.New(empty)
 	}
 
+	// file or line num absent
+	// example: foo.bar.baz.method
 	if i[len(i)-1] != ')' {
-		return retraceFrame, fmt.Errorf(`%s in frame "%s"`, lastCharErr, i)
+		retraceFrame.ClassName = i[:strings.LastIndex(i, ".")]
+		retraceFrame.MethodName = i[strings.LastIndex(i, ".")+1:]
+		return retraceFrame, nil
 	}
 
 	if strings.Count(i, "(") != 1 {
