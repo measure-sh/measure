@@ -6,7 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 
 internal data class Target(
-    val className: String, val id: String?, val width: Float?, val height: Float?
+    val className: String, val id: String?, val width: Int?, val height: Int?
 )
 
 internal object GestureTargetFinder {
@@ -86,8 +86,8 @@ internal object GestureTargetFinder {
         val target = Target(
             className = javaClass.name,
             id = null,
-            width = width.toFloat(),
-            height = height.toFloat()
+            width = width,
+            height = height
         )
         if (viewId == View.NO_ID || viewId <= 0 || viewId ushr 24 == 0) {
             return target

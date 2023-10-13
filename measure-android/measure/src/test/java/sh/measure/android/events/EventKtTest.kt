@@ -85,8 +85,8 @@ class EventKtTest {
         val click = ClickEvent(
             target = "android.widget.Button",
             target_id = "button",
-            width = 100f,
-            height = 50f,
+            width = 100,
+            height = 50,
             x = 10f,
             y = 20f,
             touch_down_time = "1970-01-01T13:25:22.631000000Z",
@@ -105,8 +105,8 @@ class EventKtTest {
         val longClick = LongClickEvent(
             target = "android.widget.Button",
             target_id = "button",
-            width = 100f,
-            height = 50f,
+            width = 100,
+            height = 50,
             x = 10f,
             y = 20f,
             touch_down_time = "1970-01-01T13:25:22.631000000Z",

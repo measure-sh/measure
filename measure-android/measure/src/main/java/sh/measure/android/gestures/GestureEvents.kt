@@ -7,8 +7,8 @@ import sh.measure.android.utils.iso8601Timestamp
 internal data class ClickEvent(
     val target: String,
     val target_id: String?,
-    val width: Float?,
-    val height: Float?,
+    val width: Int?,
+    val height: Int?,
     val x: Float,
     val y: Float,
     val touch_down_time: String,
@@ -34,8 +34,8 @@ internal data class ClickEvent(
 internal data class LongClickEvent(
     val target: String,
     val target_id: String?,
-    val width: Float?,
-    val height: Float?,
+    val width: Int?,
+    val height: Int?,
     val x: Float,
     val y: Float,
     val touch_down_time: String,
