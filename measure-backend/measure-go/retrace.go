@@ -39,17 +39,22 @@ func joinNonEmptyStrings(delim string, strs ...string) string {
 // operation fails
 func UnmarshalRetraceFrame(i string) (retraceFrame RetraceFrame, err error) {
 	// last char should be ')'
-	lastCharErr := "invalid input, last char should be ')'"
 	parenErr := "invalid input, no parenthesis found"
 	invalid := "invalid input"
 	empty := "input is empty"
+
+	// foo.bar.baz.method
 
 	if len(i) < 1 {
 		return retraceFrame, errors.New(empty)
 	}
 
+	// file or line num absent
+	// example: foo.bar.baz.method
 	if i[len(i)-1] != ')' {
-		return retraceFrame, fmt.Errorf(`%s in frame "%s"`, lastCharErr, i)
+		retraceFrame.ClassName = i[:strings.LastIndex(i, ".")]
+		retraceFrame.MethodName = i[strings.LastIndex(i, ".")+1:]
+		return retraceFrame, nil
 	}
 
 	if strings.Count(i, "(") != 1 {
