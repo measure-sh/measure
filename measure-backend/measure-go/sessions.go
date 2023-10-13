@@ -104,7 +104,7 @@ func putSession(c *gin.Context) {
 	}
 
 	if session.needsSymbolication() {
-		if _, err := symbolicate(session); err != nil {
+		if err := symbolicate(session); err != nil {
 			fmt.Println("symbolication failed with error", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not upload session, failed to symbolicate"})
 			return
