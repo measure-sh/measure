@@ -12,7 +12,7 @@ class ClickEventTest {
             x = 10f, y = 20f, touchDownTime = 0L, touchUpTime = 0L
         )
         val target = Target(
-            className = "android.widget.Button", id = "button", width = 100f, height = 50f
+            className = "android.widget.Button", id = "button", width = 100, height = 50
         )
         val result = ClickEvent.fromDetectedGesture(
             gesture = detectedGesture, target = target
@@ -37,7 +37,7 @@ internal class LongClickEventTest {
             x = 10f, y = 20f, touchDownTime = 0L, touchUpTime = 0L
         )
         val target = Target(
-            className = "android.widget.Button", id = "button", width = 100f, height = 50f
+            className = "android.widget.Button", id = "button", width = 100, height = 50
         )
         val result = LongClickEvent.fromDetectedGesture(
             gesture = detectedGesture, target = target
@@ -68,7 +68,7 @@ internal class ScrollEventTest {
             direction = Direction.Up
         )
         val target = Target(
-            className = "android.widget.ScrollView", id = "scroll_view", width = 100f, height = 50f
+            className = "android.widget.ScrollView", id = "scroll_view", width = 100, height = 50
         )
         val result = ScrollEvent.fromDetectedGesture(
             gesture = detectedGesture, target = target
