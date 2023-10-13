@@ -1,16 +1,14 @@
 package sh.measure.android.session
 
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.encodeToStream
 import okio.BufferedSink
+import okio.Closeable
 import okio.buffer
 import okio.sink
 import okio.source
 import okio.use
-import sh.measure.android.events.EventType
-import sh.measure.android.exitinfo.ExitInfo
-import sh.measure.android.exitinfo.ExitInfoProvider
+import sh.measure.android.appexit.AppExit
+import sh.measure.android.appexit.AppExitProvider
+import sh.measure.android.events.toEvent
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.Storage
@@ -21,14 +19,14 @@ import java.io.File
 internal class SessionReportGenerator(
     private val logger: Logger,
     private val storage: Storage,
-    private val exitInfoProvider: ExitInfoProvider
+    private val appExitProvider: AppExitProvider
 ) {
 
     fun getSessionReport(session: UnsyncedSession): SessionReport {
         logger.log(LogLevel.Debug, "Getting session report for session: ${session.id}")
         val sessionStartTime = getSessionStartTime(session.id)
-        val exitInfo = exitInfoProvider.get(session.processId)
-        val eventsFile = createEventsJsonFile(session.id, exitInfo)
+        val appExit = appExitProvider.get(session.processId)
+        val eventsFile = createEventsJsonFile(session.id, appExit)
         val resourceFile = storage.getResourceFile(session.id)
         return SessionReport(
             session_id = session.id,
@@ -42,42 +40,53 @@ internal class SessionReportGenerator(
         return storage.getSessionStartTime(sessionId)
     }
 
-    private fun createEventsJsonFile(sessionId: String, exitInfo: ExitInfo?): File {
+    private fun createEventsJsonFile(sessionId: String, appExit: AppExit?): File {
         logger.log(LogLevel.Debug, "Creating events.json file for session: $sessionId")
         val eventsFile = storage.getEventsFile(sessionId)
-        storage.getEventLogFile(sessionId).source().buffer().use { source ->
-            eventsFile.sink().buffer().use { sink ->
-                sink.writeUtf8("[")
-                var line = source.readUtf8Line()
-                while (line != null) {
-                    sink.writeUtf8(line)
-                    line = source.readUtf8Line()
-                    if (line != null) {
-                        sink.writeUtf8(",")
-                        continue
-                    }
-                    if (exitInfo != null) {
-                        addExitInfo(sink, exitInfo)
-                    }
-                }
-                sink.writeUtf8("]")
+        val eventLogFile = storage.getEventLogFile(sessionId)
+
+        eventLogFile.source().buffer().use { source ->
+            val writer = ArrayWriter(eventsFile.sink().buffer())
+
+            // write first line
+            val firstLine = source.readUtf8Line()
+            if (firstLine != null) {
+                writer.writeFirstObject(firstLine)
+            } else if (appExit != null) {
+                writer.writeFirstObject(appExit.toEvent().toJson())
             }
+
+            // write the rest of the event log
+            while (!source.exhausted()) {
+                val line = source.readUtf8Line() ?: break
+                writer.writeObject(line)
+            }
+
+            // write app exit if not already added
+            if (firstLine != null && appExit != null) {
+                writer.writeObject(appExit.toEvent().toJson())
+            }
+            writer.close()
         }
+
         logger.log(LogLevel.Debug, "Created events.json file for session: $sessionId")
         return eventsFile
     }
+}
 
-    @OptIn(ExperimentalSerializationApi::class)
-    private fun addExitInfo(sink: BufferedSink, exitInfo: ExitInfo) {
+private class ArrayWriter(private val sink: BufferedSink) : Closeable {
+    fun writeFirstObject(value: String) {
+        sink.writeUtf8("[")
+        sink.writeUtf8(value)
+    }
+
+    fun writeObject(value: String) {
         sink.writeUtf8(",")
-        sink.writeUtf8("{")
-        sink.writeUtf8("\"timestamp\": \"${exitInfo.timestamp}\",")
-        sink.writeUtf8("\"type\": \"${EventType.EXIT_INFO}\",")
-        sink.writeUtf8("\"${EventType.EXIT_INFO}\": ")
-        Json.encodeToStream(
-            Json.encodeToJsonElement(ExitInfo.serializer(), exitInfo),
-            sink.outputStream()
-        )
-        sink.writeUtf8("}")
+        sink.writeUtf8(value)
+    }
+
+    override fun close() {
+        sink.writeUtf8("]")
+        sink.close()
     }
 }

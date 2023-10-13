@@ -3,8 +3,8 @@ package sh.measure.android
 import android.content.Context
 import sh.measure.android.events.MeasureEventTracker
 import sh.measure.android.executors.MeasureExecutorServiceImpl
-import sh.measure.android.exitinfo.ExitInfoProvider
-import sh.measure.android.exitinfo.ExitInfoProviderImpl
+import sh.measure.android.appexit.AppExitProvider
+import sh.measure.android.appexit.AppExitProviderImpl
 import sh.measure.android.logger.AndroidLogger
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.network.HttpClient
@@ -45,9 +45,9 @@ class Measure {
             val idProvider = UUIDProvider()
             val config = Config
             val resourceFactory = ResourceFactoryImpl(logger, context, config)
-            val exitInfoProvider: ExitInfoProvider = ExitInfoProviderImpl(context, logger)
+            val appExitProvider: AppExitProvider = AppExitProviderImpl(context, logger)
             val pidProvider: PidProvider = PidProviderImpl()
-            val sessionReportGenerator = SessionReportGenerator(logger, storage, exitInfoProvider)
+            val sessionReportGenerator = SessionReportGenerator(logger, storage, appExitProvider)
             val sessionProvider =
                 SessionProvider(timeProvider, idProvider, pidProvider, resourceFactory)
             val sessionController: SessionController = SessionControllerImpl(
