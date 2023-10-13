@@ -29,11 +29,9 @@ func joinNonEmptyStrings(delim string, strs ...string) string {
 // various parts laid out in a struct.
 //
 // input i should be of the form
-// "class.method(file:lineno)"
-//
-// "lineno" is optional. for this case, input i should be of
-// the form
-// "class.method(file)"
+// - "class.method(file:lineno)"
+// - "class.method(file)"
+// - "class.method"
 //
 // Returns error if the input is insufficient or if the parse
 // operation fails
