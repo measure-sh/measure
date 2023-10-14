@@ -79,7 +79,7 @@ func (s *Session) getObfuscatedEvents() []EventField {
 func putSession(c *gin.Context) {
 	session := new(Session)
 	if err := c.ShouldBindJSON(&session); err != nil {
-		fmt.Println(err)
+		fmt.Println("gin binding err:", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse session payload"})
 		return
 	}
@@ -112,8 +112,8 @@ func putSession(c *gin.Context) {
 	}
 
 	query, args := makeInsertQuery("events_test_2", columns, session)
-	if err := server.chPool.AsyncInsert(context.Background(), query, false, args...); err != nil {
-		fmt.Println(err)
+	if err := server.chPool.AsyncInsert(context.Background(), query, true, args...); err != nil {
+		fmt.Println("clickhouse insert err:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
