@@ -47,25 +47,24 @@ internal class SessionReportGenerator(
 
         eventLogFile.source().buffer().use { source ->
             val writer = ArrayWriter(eventsFile.sink().buffer())
-
-            // write first line
             val firstLine = source.readUtf8Line()
+            writer.start()
+            // write first object
             if (firstLine != null) {
                 writer.writeFirstObject(firstLine)
             } else if (appExit != null) {
                 writer.writeFirstObject(appExit.toEvent().toJson())
             }
-
             // write the rest of the event log
             while (!source.exhausted()) {
                 val line = source.readUtf8Line() ?: break
                 writer.writeObject(line)
             }
-
             // write app exit if not already added
             if (firstLine != null && appExit != null) {
                 writer.writeObject(appExit.toEvent().toJson())
             }
+            // close the array and the file
             writer.close()
         }
 
@@ -75,8 +74,11 @@ internal class SessionReportGenerator(
 }
 
 private class ArrayWriter(private val sink: BufferedSink) : Closeable {
-    fun writeFirstObject(value: String) {
+    fun start() {
         sink.writeUtf8("[")
+    }
+
+    fun writeFirstObject(value: String) {
         sink.writeUtf8(value)
     }
 
