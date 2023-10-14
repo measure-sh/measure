@@ -125,8 +125,8 @@ class EventKtTest {
         val scroll = ScrollEvent(
             target = "android.widget.ScrollView",
             target_id = "scroll_view",
-            start_x = 10f,
-            start_y = 20f,
+            x = 10f,
+            y = 20f,
             end_x = 30f,
             end_y = 40f,
             direction = Direction.Down.name.lowercase(),

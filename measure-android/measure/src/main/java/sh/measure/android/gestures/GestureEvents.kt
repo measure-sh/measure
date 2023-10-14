@@ -61,8 +61,8 @@ internal data class LongClickEvent(
 internal data class ScrollEvent(
     val target: String,
     val target_id: String?,
-    val start_x: Float,
-    val start_y: Float,
+    val x: Float,
+    val y: Float,
     val end_x: Float,
     val end_y: Float,
     val direction: String,
@@ -74,8 +74,8 @@ internal data class ScrollEvent(
             return ScrollEvent(
                 target = target.className,
                 target_id = target.id,
-                start_x = gesture.startX,
-                start_y = gesture.startY,
+                x = gesture.x,
+                y = gesture.y,
                 end_x = gesture.endX,
                 end_y = gesture.endY,
                 touch_down_time = gesture.touchDownTime.iso8601Timestamp(),

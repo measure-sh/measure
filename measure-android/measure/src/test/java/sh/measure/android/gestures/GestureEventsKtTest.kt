@@ -59,8 +59,8 @@ internal class ScrollEventTest {
     @Test
     fun `maps DetectedGesture to Scroll`() {
         val detectedGesture = DetectedGesture.Scroll(
-            startX = 10f,
-            startY = 20f,
+            x = 10f,
+            y = 20f,
             endX = 30f,
             endY = 40f,
             touchDownTime = 0L,
@@ -75,8 +75,8 @@ internal class ScrollEventTest {
         )
         Assert.assertEquals(target.className, result.target)
         Assert.assertEquals(target.id, result.target_id)
-        Assert.assertEquals(detectedGesture.startX, result.start_x)
-        Assert.assertEquals(detectedGesture.startY, result.start_y)
+        Assert.assertEquals(detectedGesture.x, result.x)
+        Assert.assertEquals(detectedGesture.y, result.y)
         Assert.assertEquals(detectedGesture.endX, result.end_x)
         Assert.assertEquals(detectedGesture.endY, result.end_y)
         Assert.assertEquals(detectedGesture.direction.name.lowercase(), result.direction)
