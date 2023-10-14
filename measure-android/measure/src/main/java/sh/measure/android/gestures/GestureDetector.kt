@@ -21,8 +21,8 @@ internal sealed class DetectedGesture {
     ) : DetectedGesture()
 
     internal data class Scroll(
-        val startX: Float,
-        val startY: Float,
+        val x: Float,
+        val y: Float,
         val endX: Float,
         val endY: Float,
         val direction: Direction,
@@ -78,8 +78,8 @@ internal object GestureDetector {
                 }
             } else {
                 DetectedGesture.Scroll(
-                    startX = startTouchX,
-                    startY = startTouchY,
+                    x = startTouchX,
+                    y = startTouchY,
                     endX = motionEvent.x,
                     endY = motionEvent.y,
                     touchDownTime = startTouchEventTime,
