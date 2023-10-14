@@ -112,7 +112,7 @@ func putSession(c *gin.Context) {
 	}
 
 	query, args := makeInsertQuery("events_test_2", columns, session)
-	if err := server.chPool.AsyncInsert(context.Background(), query, true, args...); err != nil {
+	if err := server.chPool.AsyncInsert(context.Background(), query, false, args...); err != nil {
 		fmt.Println("clickhouse insert err:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
