@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.session.SessionReport
 
@@ -23,12 +24,26 @@ internal class TransportImpl(
     override fun sendSessionReportMultipart(
         sessionReport: SessionReport, callback: Transport.Callback?
     ) {
-        httpClient.sendSessionReportMultipart(sessionReport, callback)
+        try {
+            httpClient.sendSessionReportMultipart(sessionReport, callback)
+        } catch (e: Exception) {
+            logger.log(LogLevel.Error, "Failed to send session report", e)
+            callback?.onFailure()
+        }
     }
 
     override fun sendSessionReport(sessionReport: SessionReport, callback: Transport.Callback?) {
-        val request = getSessionRequest(sessionReport)
-        httpClient.sendSessionReport(request, callback)
+        try {
+            val request = getSessionRequest(sessionReport)
+            logger.log(
+                LogLevel.Debug,
+                Json.encodeToString(SessionReportRequest.serializer(), request)
+            )
+            httpClient.sendSessionReport(request, callback)
+        } catch (e: Exception) {
+            logger.log(LogLevel.Error, "Failed to send session report", e)
+            callback?.onFailure()
+        }
     }
 
     private fun getSessionRequest(sessionReport: SessionReport): SessionReportRequest {
