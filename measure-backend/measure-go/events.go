@@ -57,6 +57,10 @@ var columns = []string{
 	"resource.app_build",
 	"resource.app_unique_id",
 	"resource.measure_sdk_version",
+	"anr.thread_name",
+	"anr.handled",
+	"anr_exceptions",
+	"anr_threads",
 	"exception.thread_name",
 	"exception.handled",
 	"exception_exceptions",
@@ -191,6 +195,13 @@ func (threads Threads) encode() string {
 	return fmt.Sprintf("[%s]", strings.Join(collection, ", "))
 }
 
+type ANR struct {
+	ThreadName string         `json:"thread_name" binding:"required"`
+	Handled    bool           `json:"handled" binding:"required"`
+	Exceptions ExceptionUnits `json:"exceptions" binding:"required"`
+	Threads    Threads        `json:"threads" binding:"required"`
+}
+
 type Exception struct {
 	ThreadName string         `json:"thread_name" binding:"required"`
 	Handled    bool           `json:"handled" binding:"required"`
@@ -213,37 +224,37 @@ type LogString struct {
 }
 
 type GestureLongClick struct {
-	Target                 string    `json:"target"`
-	TargetID               string    `json:"target_id"`
-	TouchDownTime          time.Time `json:"touch_down_time"`
-	TouchUpTime            time.Time `json:"touch_up_time"`
-	Width                  uint16    `json:"width"`
-	Height                 uint16    `json:"height"`
-	X                      float32   `json:"x"`
-	Y                      float32   `json:"y"`
+	Target        string    `json:"target"`
+	TargetID      string    `json:"target_id"`
+	TouchDownTime time.Time `json:"touch_down_time"`
+	TouchUpTime   time.Time `json:"touch_up_time"`
+	Width         uint16    `json:"width"`
+	Height        uint16    `json:"height"`
+	X             float32   `json:"x"`
+	Y             float32   `json:"y"`
 }
 
 type GestureScroll struct {
-	Target                 string    `json:"target"`
-	TargetID               string    `json:"target_id"`
-	TouchDownTime          time.Time `json:"touch_down_time"`
-	TouchUpTime            time.Time `json:"touch_up_time"`
-	X                      float32   `json:"x"`
-	Y                      float32   `json:"y"`
-	EndX                   float32   `json:"end_x"`
-	EndY                   float32   `json:"end_y"`
-	Direction              string    `json:"direction"`
+	Target        string    `json:"target"`
+	TargetID      string    `json:"target_id"`
+	TouchDownTime time.Time `json:"touch_down_time"`
+	TouchUpTime   time.Time `json:"touch_up_time"`
+	X             float32   `json:"x"`
+	Y             float32   `json:"y"`
+	EndX          float32   `json:"end_x"`
+	EndY          float32   `json:"end_y"`
+	Direction     string    `json:"direction"`
 }
 
 type GestureClick struct {
-	Target                 string    `json:"target"`
-	TargetID               string    `json:"target_id"`
-	TouchDownTime          time.Time `json:"touch_down_time"`
-	TouchUpTime            time.Time `json:"touch_up_time"`
-	Width                  uint16    `json:"width"`
-	Height                 uint16    `json:"height"`
-	X                      float32   `json:"x"`
-	Y                      float32   `json:"y"`
+	Target        string    `json:"target"`
+	TargetID      string    `json:"target_id"`
+	TouchDownTime time.Time `json:"touch_down_time"`
+	TouchUpTime   time.Time `json:"touch_up_time"`
+	Width         uint16    `json:"width"`
+	Height        uint16    `json:"height"`
+	X             float32   `json:"x"`
+	Y             float32   `json:"y"`
 }
 
 type HTTPRequest struct {
@@ -269,6 +280,7 @@ type HTTPResponse struct {
 type EventField struct {
 	Timestamp        time.Time         `json:"timestamp" binding:"required"`
 	Type             string            `json:"type" binding:"required"`
+	ANR              ANR               `json:"anr,omitempty"`
 	Exception        Exception         `json:"exception,omitempty"`
 	AppExit          AppExit           `json:"app_exit,omitempty"`
 	LogString        LogString         `json:"string,omitempty"`
@@ -336,8 +348,8 @@ func (e *EventField) validate() error {
 		return fmt.Errorf(`"events[].gesture_scroll.target_id" exceeds maximum allowed characters of (%d)`, maxGestureScrollTargetIDChars)
 	}
 	if len(e.GestureScroll.Direction) > maxGestureScrollDirectionChars {
-        return fmt.Errorf(`"events[].gesture_scroll.direction" exceeds maximum allowed characters of (%d)`, maxGestureScrollDirectionChars)
-    }
+		return fmt.Errorf(`"events[].gesture_scroll.direction" exceeds maximum allowed characters of (%d)`, maxGestureScrollDirectionChars)
+	}
 	if len(e.HTTPRequest.Method) > maxHTTPRequestMethodChars {
 		return fmt.Errorf(`"events[].http_request.method" exceeds maximum allowed characters of (%d)`, maxHTTPRequestMethodChars)
 	}
@@ -358,14 +370,20 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 	values := []string{}
 	valueArgs := []interface{}{}
 
-	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?)"
+	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?)"
 
 	for _, event := range session.Events {
-		exceptions := "[]"
-		threads := "[]"
-		if event.symbolicatable() {
-			exceptions = event.Exception.Exceptions.encode()
-			threads = event.Exception.Threads.encode()
+		anrExceptions := "[]"
+		anrThreads := "[]"
+		exceptionExceptions := "[]"
+		exceptionThreads := "[]"
+		if event.isANR() {
+			anrExceptions = event.ANR.Exceptions.encode()
+			anrThreads = event.ANR.Threads.encode()
+		}
+		if event.isException() {
+			exceptionExceptions = event.Exception.Exceptions.encode()
+			exceptionThreads = event.Exception.Threads.encode()
 		}
 		values = append(values, placeholder)
 		valueArgs = append(valueArgs,
@@ -390,10 +408,14 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			session.Resource.AppBuild,
 			session.Resource.AppUniqueID,
 			session.Resource.MeasureSDKVersion,
+			event.ANR.ThreadName,
+			event.ANR.Handled,
+			anrExceptions,
+			anrThreads,
 			event.Exception.ThreadName,
 			event.Exception.Handled,
-			exceptions,
-			threads,
+			exceptionExceptions,
+			exceptionThreads,
 			event.AppExit.Reason,
 			event.AppExit.Importance,
 			event.AppExit.Trace,

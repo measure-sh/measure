@@ -25,6 +25,12 @@ create table if not exists events_test_2
     `resource.app_build` FixedString(32),
     `resource.app_unique_id` FixedString(128),
     `resource.measure_sdk_version` FixedString(16),
+    /* anr */
+    `anr.thread_name` LowCardinality(String),
+    `anr.handled` Bool,
+    /* delimits with underscore because clickhouse treats dot as a nested data structure and tries to match the length of exception.exceptions & exception.threads */
+    `anr_exceptions` Array(Tuple(LowCardinality(String), LowCardinality(String), Array(Tuple(Int32, Int32, LowCardinality(String), LowCardinality(String), LowCardinality(String), LowCardinality(String))))),
+    `anr_threads` Array(Tuple(LowCardinality(String), Array(Tuple(Int32, Int32, LowCardinality(String), LowCardinality(String), LowCardinality(String), LowCardinality(String))))),
     /* exceptions */
     `exception.thread_name` LowCardinality(String),
     `exception.handled` Bool,

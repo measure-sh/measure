@@ -55,9 +55,20 @@ type SymbolException struct {
 	Threads    []SymbolThread        `json:"threads"`
 }
 
+type SymbolANR struct {
+	ThreadName string                `json:"thread_name"`
+	Exceptions []SymbolExceptionUnit `json:"exceptions"`
+	Threads    []SymbolThread        `json:"threads"`
+}
+
 type SymbolExceptionEvent struct {
 	Type            string          `json:"type"`
 	SymbolException SymbolException `json:"exception"`
+}
+
+type SymbolANREvent struct {
+	Type      string    `json:"type"`
+	SymbolANR SymbolANR `json:"anr"`
 }
 
 type SymbolAppExitEvent struct {
@@ -69,6 +80,7 @@ type SymbolicationRequest struct {
 	SessionID             uuid.UUID              `json:"session_id"`
 	MappingType           string                 `json:"mapping_type"`
 	Key                   string                 `json:"key"`
+	SymbolANREvents       []SymbolANREvent       `json:"anr_events"`
 	SymbolExceptionEvents []SymbolExceptionEvent `json:"exception_events"`
 	SymbolAppExitEvents   []SymbolAppExitEvent   `json:"app_exit_events"`
 }
@@ -78,6 +90,7 @@ type SymbolicationResult struct {
 	SessionID       uuid.UUID            `json:"session_id"`
 	MappingType     string               `json:"mapping_type"`
 	Key             string               `json:"key"`
+	ANREvents       string               `json:"anr_events"`
 	ExceptionEvents string               `json:"exception_events"`
 	AppExitEvents   []SymbolAppExitEvent `json:"app_exit_events"`
 }
@@ -98,11 +111,46 @@ func symbolicate(s *Session) error {
 		}
 	}
 
+	var symbolANREvents []SymbolANREvent
 	var symbolExceptionEvents []SymbolExceptionEvent
 	var symbolAppExitEvents []SymbolAppExitEvent
 
 	for _, event := range obfuscatedEvents {
-		if event.isANR() || event.isException() {
+		if event.isANR() {
+			var symbolExceptionsUnits []SymbolExceptionUnit
+			for _, exceptionUnit := range event.ANR.Exceptions {
+				var symbolFrames []SymbolFrame
+				for _, frame := range exceptionUnit.Frames {
+					symbolFrames = append(symbolFrames, SymbolFrame(frame))
+				}
+				symbolExceptionsUnits = append(symbolExceptionsUnits, SymbolExceptionUnit{
+					Type:    exceptionUnit.Type,
+					Message: exceptionUnit.Message,
+					Frames:  symbolFrames,
+				})
+			}
+			var symbolThreads []SymbolThread
+			for _, thread := range event.ANR.Threads {
+				var symbolFrames []SymbolFrame
+				for _, frame := range thread.Frames {
+					symbolFrames = append(symbolFrames, SymbolFrame(frame))
+				}
+				symbolThreads = append(symbolThreads, SymbolThread{
+					Name:   thread.Name,
+					Frames: symbolFrames,
+				})
+			}
+			symbolANREvents = append(symbolANREvents, SymbolANREvent{
+				Type: event.Type,
+				SymbolANR: SymbolANR{
+					ThreadName: event.ANR.ThreadName,
+					Exceptions: symbolExceptionsUnits,
+					Threads:    symbolThreads,
+				},
+			})
+
+		}
+		if event.isException() {
 			var symbolExceptionsUnits []SymbolExceptionUnit
 			for _, exceptionUnit := range event.Exception.Exceptions {
 				var symbolFrames []SymbolFrame
@@ -148,6 +196,7 @@ func symbolicate(s *Session) error {
 		SessionID:             s.SessionID,
 		MappingType:           mappingType,
 		Key:                   key,
+		SymbolANREvents:       symbolANREvents,
 		SymbolExceptionEvents: symbolExceptionEvents,
 		SymbolAppExitEvents:   symbolAppExitEvents,
 	}
@@ -186,11 +235,15 @@ func symbolicate(s *Session) error {
 		return err
 	}
 
+	anrEventIdxs := []int{}
 	exceptionEventIdxs := []int{}
 	appExitEventIdxs := []int{}
 	for idx, event := range s.Events {
 		if !event.symbolicatable() {
 			continue
+		}
+		if event.isANR() {
+			anrEventIdxs = append(anrEventIdxs, idx)
 		}
 		if event.isANR() || event.isException() {
 			exceptionEventIdxs = append(exceptionEventIdxs, idx)
@@ -200,14 +253,25 @@ func symbolicate(s *Session) error {
 		}
 	}
 
-	var symbolResultEvents []SymbolExceptionEvent
-	if err := json.Unmarshal([]byte(symbolResult.ExceptionEvents), &symbolResultEvents); err != nil {
-		fmt.Println("failed to unmarshal symbolicated events", err)
+	var symbolANRResultEvents []SymbolANREvent
+	if err := json.Unmarshal([]byte(symbolResult.ANREvents), &symbolANRResultEvents); err != nil {
+		fmt.Println("failed to unmarshal symbolicated anr events", err)
 		return err
 	}
 
+	var symbolExceptionResultEvents []SymbolExceptionEvent
+	if err := json.Unmarshal([]byte(symbolResult.ExceptionEvents), &symbolExceptionResultEvents); err != nil {
+		fmt.Println("failed to unmarshal symbolicated exception events", err)
+		return err
+	}
+
+	for seq, idx := range anrEventIdxs {
+		symbolicatedANREvent := symbolANRResultEvents[seq]
+		mergeANREvent(&symbolicatedANREvent, &s.Events[idx])
+	}
+
 	for seq, idx := range exceptionEventIdxs {
-		symbolicatedExceptionEvent := symbolResultEvents[seq]
+		symbolicatedExceptionEvent := symbolExceptionResultEvents[seq]
 		mergeExceptionEvent(&symbolicatedExceptionEvent, &s.Events[idx])
 	}
 
@@ -217,6 +281,32 @@ func symbolicate(s *Session) error {
 	}
 
 	return nil
+}
+
+// mergeEvent copies each field from SymbolFrame to the origin session's
+// underlying Frame struct
+func mergeANREvent(s *SymbolANREvent, d *EventField) {
+	for i, exception := range d.ANR.Exceptions {
+		for j := range exception.Frames {
+			exception.Frames[j].ClassName = s.SymbolANR.Exceptions[i].Frames[j].ClassName
+			exception.Frames[j].FileName = s.SymbolANR.Exceptions[i].Frames[j].FileName
+			exception.Frames[j].MethodName = s.SymbolANR.Exceptions[i].Frames[j].MethodName
+			exception.Frames[j].ModuleName = s.SymbolANR.Exceptions[i].Frames[j].ModuleName
+			exception.Frames[j].LineNum = s.SymbolANR.Exceptions[i].Frames[j].LineNum
+			exception.Frames[j].ColNum = s.SymbolANR.Exceptions[i].Frames[j].ColNum
+		}
+	}
+
+	for i, thread := range d.Exception.Threads {
+		for j := range thread.Frames {
+			thread.Frames[j].ClassName = s.SymbolANR.Threads[i].Frames[j].ClassName
+			thread.Frames[j].FileName = s.SymbolANR.Threads[i].Frames[j].FileName
+			thread.Frames[j].MethodName = s.SymbolANR.Threads[i].Frames[j].MethodName
+			thread.Frames[j].ModuleName = s.SymbolANR.Threads[i].Frames[j].ModuleName
+			thread.Frames[j].LineNum = s.SymbolANR.Threads[i].Frames[j].LineNum
+			thread.Frames[j].ColNum = s.SymbolANR.Threads[i].Frames[j].ColNum
+		}
+	}
 }
 
 // mergeEvent copies each field from SymbolFrame to the origin session's
