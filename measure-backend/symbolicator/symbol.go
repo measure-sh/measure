@@ -39,7 +39,7 @@ type SymbolicateReq struct {
 
 func (s *SymbolicateReq) validate() error {
 	if s.SymbolExceptionEvents == nil && s.SymbolANREvents == nil && len(s.SymbolAppExitEvents) < 1 {
-		return fmt.Errorf("symbolication request does not contain any symbolicatble events")
+		return fmt.Errorf("symbolication request does not contain any symbolicatable events")
 	}
 	return nil
 }
