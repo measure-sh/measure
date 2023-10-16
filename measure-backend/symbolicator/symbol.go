@@ -32,13 +32,14 @@ type SymbolicateReq struct {
 	SessionID             uuid.UUID            `json:"session_id" binding:"required"`
 	MappingType           string               `json:"mapping_type" binding:"required"`
 	Key                   string               `json:"key" binding:"required"`
+	SymbolANREvents       *json.RawMessage     `json:"anr_events"`
 	SymbolExceptionEvents *json.RawMessage     `json:"exception_events"`
 	SymbolAppExitEvents   []SymbolAppExitEvent `json:"app_exit_events"`
 }
 
 func (s *SymbolicateReq) validate() error {
-	if s.SymbolExceptionEvents == nil && len(s.SymbolAppExitEvents) < 1 {
-		return fmt.Errorf("symbolication request does not contain any symbolicatble events")
+	if s.SymbolExceptionEvents == nil && s.SymbolANREvents == nil && len(s.SymbolAppExitEvents) < 1 {
+		return fmt.Errorf("symbolication request does not contain any symbolicatable events")
 	}
 	return nil
 }
@@ -99,6 +100,32 @@ func symbolicate(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": msg, "details": err.Error()})
 			return
 		}
+	}
+
+	var anrResults string
+	if req.SymbolANREvents != nil {
+		anrFilePath := filepath.Join("/data", "anrs", fmt.Sprintf(`%s.json`, req.SessionID))
+		indented, err := json.MarshalIndent(*req.SymbolANREvents, "", "  ")
+		if err != nil {
+			msg := `failed to marshal & indent anr events`
+			fmt.Println(msg, err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg, "details": err.Error()})
+			return
+		}
+		if err := os.WriteFile(anrFilePath, indented, 0644); err != nil {
+			fmt.Println("failed to create anr file")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create anr file", "details": err.Error()})
+			return
+		}
+
+		cmd := exec.Command("retrace", mappingFilePath, anrFilePath, "--regex", retraceRegex)
+		bytes, err := cmd.Output()
+		if err != nil {
+			msg := "anr retrace exec failed"
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg, "details": err.Error(), "stdout": anrResults})
+			return
+		}
+		anrResults = string(bytes)
 	}
 
 	var exceptionResults string
@@ -163,6 +190,7 @@ func symbolicate(c *gin.Context) {
 		"session_id":       req.SessionID,
 		"mapping_type":     req.MappingType,
 		"key":              req.Key,
+		"anr_events":       anrResults,
 		"exception_events": exceptionResults,
 		"app_exit_events":  appExitResults,
 	})
