@@ -245,7 +245,7 @@ func symbolicate(s *Session) error {
 		if event.isANR() {
 			anrEventIdxs = append(anrEventIdxs, idx)
 		}
-		if event.isANR() || event.isException() {
+		if event.isException() {
 			exceptionEventIdxs = append(exceptionEventIdxs, idx)
 		}
 		if event.isAppExit() {
@@ -254,15 +254,19 @@ func symbolicate(s *Session) error {
 	}
 
 	var symbolANRResultEvents []SymbolANREvent
-	if err := json.Unmarshal([]byte(symbolResult.ANREvents), &symbolANRResultEvents); err != nil {
-		fmt.Println("failed to unmarshal symbolicated anr events", err)
-		return err
+	if symbolResult.ANREvents != "" {
+		if err := json.Unmarshal([]byte(symbolResult.ANREvents), &symbolANRResultEvents); err != nil {
+			fmt.Println("failed to unmarshal symbolicated anr events", err)
+			return err
+		}
 	}
 
 	var symbolExceptionResultEvents []SymbolExceptionEvent
-	if err := json.Unmarshal([]byte(symbolResult.ExceptionEvents), &symbolExceptionResultEvents); err != nil {
-		fmt.Println("failed to unmarshal symbolicated exception events", err)
-		return err
+	if symbolResult.ExceptionEvents != "" {
+		if err := json.Unmarshal([]byte(symbolResult.ExceptionEvents), &symbolExceptionResultEvents); err != nil {
+			fmt.Println("failed to unmarshal symbolicated exception events", err)
+			return err
+		}
 	}
 
 	for seq, idx := range anrEventIdxs {
