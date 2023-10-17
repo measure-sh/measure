@@ -2,6 +2,7 @@ import Dropdown from "@/app/components/dropdown";
 import InfoCircleAppAdoption from "@/app/components/info_circle_app_adoption";
 import InfoCircleAppStartTime from "@/app/components/info_circle_app_start_time";
 import InfoCircleExceptionRate from "@/app/components/info_circle_exception_rate";
+import UserFlow from "@/app/components/user_flow";
 
 export default function Overview() {
   const today = new Date();
@@ -25,7 +26,9 @@ export default function Overview() {
         <Dropdown items={['Version 13.2.1', 'Version 13.2.2','Version 13.3.7']}/>
       </div>
       <div className="py-8"/>
-      <div className="border border-black w-full h-96"/>
+      <div className="border border-black text-black font-sans text-sm w-full h-screen">
+        <UserFlow/>
+      </div>
       <div className="py-8"/>
       <div className="flex flex-wrap gap-x-32 gap-y-16 items-center">
         <InfoCircleAppAdoption title="App adoption" value={20} users={40000} totalUsers={200000}/>
