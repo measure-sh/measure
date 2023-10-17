@@ -28,7 +28,7 @@ export default function Overview() {
       <div className="border border-black w-full h-96"/>
       <div className="py-8"/>
       <div className="flex flex-wrap gap-x-32 gap-y-16 items-center">
-        <InfoCircleAppAdoption title="App adoption" value={81}/>
+        <InfoCircleAppAdoption title="App adoption" value={20} users={40000} totalUsers={200000}/>
         <InfoCircleExceptionRate title="Crash free users" value={98.5} delta={0.73}/>
         <InfoCircleExceptionRate title="Perceived crash free rate" value={91.3} delta={-0.51}/>
         <InfoCircleExceptionRate title="ANR free users" value={98.5} delta={0.73}/>
