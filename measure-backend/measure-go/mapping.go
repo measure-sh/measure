@@ -122,37 +122,37 @@ func (m *MappingFile) checksum() error {
 	return nil
 }
 
-func (m *MappingFile) validate() (error, int) {
+func (m *MappingFile) validate() (int, error) {
 	if m.AppID == "" {
-		return errors.New(`missing field "app_id"`), http.StatusBadRequest
+		return http.StatusBadRequest, errors.New(`missing field "app_id"`)
 	}
 
 	if m.VersionName == "" {
-		return errors.New(`missing field "version_name"`), http.StatusBadRequest
+		return http.StatusBadRequest, errors.New(`missing field "version_name"`)
 	}
 
 	if m.VersionCode == "" {
-		return errors.New(`missing field "version_code"`), http.StatusBadRequest
+		return http.StatusBadRequest, errors.New(`missing field "version_code"`)
 	}
 
 	if m.Type == "" {
-		return errors.New(`missing field "type"`), http.StatusBadRequest
+		return http.StatusBadRequest, errors.New(`missing field "type"`)
 	}
 
 	if !slices.Contains(validTypes, m.Type) {
 		msg := fmt.Sprintf(`invalid type "%s". valid types are: %s`, m.Type, strings.Join(validTypes, ", "))
-		return errors.New(msg), http.StatusBadRequest
+		return http.StatusBadRequest, errors.New(msg)
 	}
 
 	if m.File.Size < 1 {
-		return errors.New(`"mapping_file" does not any contain data`), http.StatusBadRequest
+		return http.StatusBadRequest, errors.New(`"mapping_file" does not any contain data`)
 	}
 
 	if m.File.Size > int64(server.config.mappingFileMaxSize) {
-		return fmt.Errorf(`"%s" file size exceeding %d bytes`, m.File.Filename, server.config.mappingFileMaxSize), http.StatusRequestEntityTooLarge
+		return http.StatusRequestEntityTooLarge, fmt.Errorf(`"%s" file size exceeding %d bytes`, m.File.Filename, server.config.mappingFileMaxSize)
 	}
 
-	return nil, 0
+	return 0, nil
 }
 
 func putMapping(c *gin.Context) {
@@ -171,7 +171,7 @@ func putMapping(c *gin.Context) {
 		File:        file,
 	}
 
-	if err, statusCode := mappingFile.validate(); err != nil {
+	if statusCode, err := mappingFile.validate(); err != nil {
 		fmt.Println(`put mapping file request validation error: `, err.Error())
 		c.JSON(statusCode, gin.H{"error": err.Error()})
 		return
