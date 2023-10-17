@@ -1,0 +1,52 @@
+{
+    "events": [
+        {
+            "gesture_scroll": {
+                "direction": "up",
+                "end_x": 555.95215,
+                "end_y": 871.92993,
+                "start_x": 544.9768,
+                "start_y": 1415.9546,
+                "target": "androidx.viewpager2.widget.ViewPager2$RecyclerViewImpl",
+                "target_id": null,
+                "touch_down_time": "1970-01-01T07:48:12.370000000Z",
+                "touch_up_time": "1970-01-01T07:48:12.534000000Z"
+            },
+            "timestamp": "1970-01-01T07:48:12.534000000Z",
+            "type": "gesture_scroll"
+        },
+        {
+            "app_exit": {
+                "importance": "CACHED",
+                "pid": "16114",
+                "process_name": "org.wikipedia.dev",
+                "reason": "USER_REQUESTED",
+                "timestamp": "2023-10-14T00:56:37.291000000Z",
+                "trace": null
+            },
+            "timestamp": "2023-10-14T00:56:37.291000000Z",
+            "type": "app_exit"
+        }
+    ],
+    "resource": {
+        "app_build": "50453",
+        "app_unique_id": "org.wikipedia.dev",
+        "app_version": "2.7.50453-dev-2023-10-14",
+        "device_density": 2.75,
+        "device_density_dpi": 440,
+        "device_height_px": 2154,
+        "device_is_foldable": true,
+        "device_is_physical": false,
+        "device_manufacturer": "Google",
+        "device_model": "sdk_gphone64_arm64",
+        "device_name": "emu64a",
+        "device_type": "phone",
+        "device_width_px": 1080,
+        "measure_sdk_version": "0.0.1-SNAPSHOT",
+        "os_name": "android",
+        "os_version": "33",
+        "platform": "android"
+    },
+    "session_id": "07e697ed-2b25-46f1-8126-9f8ffcd161af",
+    "timestamp": "2023-10-14T00:56:13.557000000Z"
+}

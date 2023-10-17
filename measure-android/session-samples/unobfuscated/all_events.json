@@ -1,0 +1,797 @@
+{
+    "events": [
+        {
+            "gesture_click": {
+                "height": 198,
+                "target": "com.google.android.material.bottomnavigation.BottomNavigationItemView",
+                "target_id": "nav_tab_reading_lists",
+                "touch_down_time": "1970-01-01T07:50:29.645000000Z",
+                "touch_up_time": "1970-01-01T07:50:29.697000000Z",
+                "width": 216,
+                "x": 384.96094,
+                "y": 2012.8912
+            },
+            "timestamp": "1970-01-01T07:50:29.697000000Z",
+            "type": "gesture_click"
+        },
+        {
+            "gesture_click": {
+                "height": 198,
+                "target": "com.google.android.material.bottomnavigation.BottomNavigationItemView",
+                "target_id": "nav_tab_search",
+                "touch_down_time": "1970-01-01T07:50:29.966000000Z",
+                "touch_up_time": "1970-01-01T07:50:30.023000000Z",
+                "width": 216,
+                "x": 496.95557,
+                "y": 2028.88
+            },
+            "timestamp": "1970-01-01T07:50:30.023000000Z",
+            "type": "gesture_click"
+        },
+        {
+            "gesture_click": {
+                "height": 198,
+                "target": "com.google.android.material.bottomnavigation.BottomNavigationItemView",
+                "target_id": "nav_tab_edits",
+                "touch_down_time": "1970-01-01T07:50:30.315000000Z",
+                "touch_up_time": "1970-01-01T07:50:30.375000000Z",
+                "width": 216,
+                "x": 688.9746,
+                "y": 2071.9006
+            },
+            "timestamp": "1970-01-01T07:50:30.375000000Z",
+            "type": "gesture_click"
+        },
+        {
+            "gesture_click": {
+                "height": 198,
+                "target": "android.widget.FrameLayout",
+                "target_id": "nav_more_container",
+                "touch_down_time": "1970-01-01T07:50:30.663000000Z",
+                "touch_up_time": "1970-01-01T07:50:30.724000000Z",
+                "width": 216,
+                "x": 901.95557,
+                "y": 2076.914
+            },
+            "timestamp": "1970-01-01T07:50:30.724000000Z",
+            "type": "gesture_click"
+        },
+        {
+            "gesture_click": {
+                "height": 132,
+                "target": "android.widget.LinearLayout",
+                "target_id": "main_drawer_donate_container",
+                "touch_down_time": "1970-01-01T07:50:31.107000000Z",
+                "touch_up_time": "1970-01-01T07:50:31.172000000Z",
+                "width": 1080,
+                "x": 91.988525,
+                "y": 2042.2445
+            },
+            "timestamp": "1970-01-01T07:50:31.172000000Z",
+            "type": "gesture_click"
+        },
+        {
+            "gesture_click": {
+                "height": 198,
+                "target": "android.widget.FrameLayout",
+                "target_id": "nav_more_container",
+                "touch_down_time": "1970-01-01T07:50:32.970000000Z",
+                "touch_up_time": "1970-01-01T07:50:33.027000000Z",
+                "width": 216,
+                "x": 965.9619,
+                "y": 2023.9343
+            },
+            "timestamp": "1970-01-01T07:50:33.027000000Z",
+            "type": "gesture_click"
+        },
+        {
+            "gesture_click": {
+                "height": 132,
+                "target": "android.widget.LinearLayout",
+                "target_id": "main_drawer_settings_container",
+                "touch_down_time": "1970-01-01T07:50:33.625000000Z",
+                "touch_up_time": "1970-01-01T07:50:33.678000000Z",
+                "width": 1080,
+                "x": 240.96313,
+                "y": 1959.9115
+            },
+            "timestamp": "1970-01-01T07:50:33.678000000Z",
+            "type": "gesture_click"
+        },
+        {
+            "gesture_scroll": {
+                "direction": "up",
+                "end_x": 464.98535,
+                "end_y": 786.97266,
+                "start_x": 491.97876,
+                "start_y": 1724.8901,
+                "target": "androidx.recyclerview.widget.RecyclerView",
+                "target_id": "recycler_view",
+                "touch_down_time": "1970-01-01T07:50:34.512000000Z",
+                "touch_up_time": "1970-01-01T07:50:34.614000000Z"
+            },
+            "timestamp": "1970-01-01T07:50:34.614000000Z",
+            "type": "gesture_scroll"
+        },
+        {
+            "gesture_scroll": {
+                "direction": "down",
+                "end_x": 341.98242,
+                "end_y": 946.9281,
+                "start_x": 315.97778,
+                "start_y": 536.97876,
+                "target": "androidx.recyclerview.widget.RecyclerView",
+                "target_id": "recycler_view",
+                "touch_down_time": "1970-01-01T07:50:35.010000000Z",
+                "touch_up_time": "1970-01-01T07:50:35.119000000Z"
+            },
+            "timestamp": "1970-01-01T07:50:35.119000000Z",
+            "type": "gesture_scroll"
+        },
+        {
+            "gesture_click": {
+                "height": 154,
+                "target": "androidx.appcompat.widget.AppCompatImageButton",
+                "target_id": null,
+                "touch_down_time": "1970-01-01T07:50:35.874000000Z",
+                "touch_up_time": "1970-01-01T07:50:35.919000000Z",
+                "width": 154,
+                "x": 96.96533,
+                "y": 189.96826
+            },
+            "timestamp": "1970-01-01T07:50:35.919000000Z",
+            "type": "gesture_click"
+        },
+        {
+            "gesture_long_click": {
+                "height": 198,
+                "target": "com.google.android.material.bottomnavigation.BottomNavigationItemView",
+                "target_id": "nav_tab_reading_lists",
+                "touch_down_time": "1970-01-01T07:50:38.000000000Z",
+                "touch_up_time": "1970-01-01T07:50:38.561000000Z",
+                "width": 216,
+                "x": 325.96436,
+                "y": 2071.9006
+            },
+            "timestamp": "1970-01-01T07:50:38.561000000Z",
+            "type": "gesture_long_click"
+        },
+        {
+            "gesture_click": {
+                "height": 198,
+                "target": "com.google.android.material.bottomnavigation.BottomNavigationItemView",
+                "target_id": "nav_tab_explore",
+                "touch_down_time": "1970-01-01T07:50:38.831000000Z",
+                "touch_up_time": "1970-01-01T07:50:38.891000000Z",
+                "width": 216,
+                "x": 96.96533,
+                "y": 2055.9119
+            },
+            "timestamp": "1970-01-01T07:50:38.891000000Z",
+            "type": "gesture_click"
+        },
+        {
+            "gesture_click": {
+                "height": 132,
+                "target": "com.google.android.material.button.MaterialButton",
+                "target_id": "view_card_offline_button_retry",
+                "touch_down_time": "1970-01-01T07:50:40.306000000Z",
+                "touch_up_time": "1970-01-01T07:50:40.352000000Z",
+                "width": 195,
+                "x": 555.95215,
+                "y": 807.97485
+            },
+            "timestamp": "1970-01-01T07:50:40.352000000Z",
+            "type": "gesture_click"
+        },
+        {
+            "exception": {
+                "_id": "123123",
+                "exceptions": [
+                    {
+                        "_id": "a",
+                        "frames": [
+                            {
+                                "class_name": "android.app.ActivityThread",
+                                "file_name": "ActivityThread.java",
+                                "line_num": 1991,
+                                "method_name": "throwRemoteServiceException"
+                            }
+                        ],
+                        "message": "shell-induced crash",
+                        "type": "android.app.RemoteServiceException$CrashedByAdbException"
+                    },
+                    {
+                        "_id": "b",
+                        "frames": [
+                            {
+                                "class_name": "android.app.ActivityThread",
+                                "file_name": "ActivityThread.java",
+                                "line_num": 1991,
+                                "method_name": "throwRemoteServiceException"
+                            }
+                        ],
+                        "message": "shell-induced crash",
+                        "type": "android.app.RemoteServiceException$CrashedByAdbException"
+                    }
+
+                ],
+                "handled": false,
+                "thread_name": "main",
+                "threads": [
+                    {
+                        "_id": "a",
+                        "frames": [
+                            {
+                                "class_name": "jdk.internal.misc.Unsafe",
+                                "file_name": "Unsafe.java",
+                                "line_num": -2,
+                                "method_name": "park"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.LockSupport",
+                                "file_name": "LockSupport.java",
+                                "line_num": 357,
+                                "method_name": "parkNanos"
+                            }
+                        ],
+                        "name": "DefaultDispatcher-worker-2"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "jdk.internal.misc.Unsafe",
+                                "file_name": "Unsafe.java",
+                                "line_num": -2,
+                                "method_name": "park"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.LockSupport",
+                                "file_name": "LockSupport.java",
+                                "line_num": 234,
+                                "method_name": "parkNanos"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.SynchronousQueue$TransferStack",
+                                "file_name": "SynchronousQueue.java",
+                                "line_num": 463,
+                                "method_name": "awaitFulfill"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.SynchronousQueue$TransferStack",
+                                "file_name": "SynchronousQueue.java",
+                                "line_num": 361,
+                                "method_name": "transfer"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.SynchronousQueue",
+                                "file_name": "SynchronousQueue.java",
+                                "line_num": 939,
+                                "method_name": "poll"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1062,
+                                "method_name": "getTask"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1123,
+                                "method_name": "runWorker"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor$Worker",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 637,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": 1012,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "OkHttp Dispatcher"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "jdk.internal.misc.Unsafe",
+                                "file_name": "Unsafe.java",
+                                "line_num": -2,
+                                "method_name": "park"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.LockSupport",
+                                "file_name": "LockSupport.java",
+                                "line_num": 234,
+                                "method_name": "parkNanos"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.SynchronousQueue$TransferStack",
+                                "file_name": "SynchronousQueue.java",
+                                "line_num": 463,
+                                "method_name": "awaitFulfill"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.SynchronousQueue$TransferStack",
+                                "file_name": "SynchronousQueue.java",
+                                "line_num": 361,
+                                "method_name": "transfer"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.SynchronousQueue",
+                                "file_name": "SynchronousQueue.java",
+                                "line_num": 939,
+                                "method_name": "poll"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1062,
+                                "method_name": "getTask"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1123,
+                                "method_name": "runWorker"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor$Worker",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 637,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": 1012,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "OkHttp Dispatcher"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "jdk.internal.misc.Unsafe",
+                                "file_name": "Unsafe.java",
+                                "line_num": -2,
+                                "method_name": "park"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.LockSupport",
+                                "file_name": "LockSupport.java",
+                                "line_num": 194,
+                                "method_name": "park"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject",
+                                "file_name": "AbstractQueuedSynchronizer.java",
+                                "line_num": 2081,
+                                "method_name": "await"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+                                "file_name": "ScheduledThreadPoolExecutor.java",
+                                "line_num": 1176,
+                                "method_name": "take"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+                                "file_name": "ScheduledThreadPoolExecutor.java",
+                                "line_num": 905,
+                                "method_name": "take"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1063,
+                                "method_name": "getTask"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1123,
+                                "method_name": "runWorker"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor$Worker",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 637,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": 1012,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "RxCachedThreadScheduler-1"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "jdk.internal.misc.Unsafe",
+                                "file_name": "Unsafe.java",
+                                "line_num": -2,
+                                "method_name": "park"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.LockSupport",
+                                "file_name": "LockSupport.java",
+                                "line_num": 357,
+                                "method_name": "parkNanos"
+                            },
+                            {
+                                "class_name": "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker",
+                                "file_name": "CoroutineScheduler.kt",
+                                "line_num": 838,
+                                "method_name": "park"
+                            },
+                            {
+                                "class_name": "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker",
+                                "file_name": "CoroutineScheduler.kt",
+                                "line_num": 783,
+                                "method_name": "tryPark"
+                            },
+                            {
+                                "class_name": "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker",
+                                "file_name": "CoroutineScheduler.kt",
+                                "line_num": 731,
+                                "method_name": "runWorker"
+                            },
+                            {
+                                "class_name": "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker",
+                                "file_name": "CoroutineScheduler.kt",
+                                "line_num": 684,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "DefaultDispatcher-worker-1"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "jdk.internal.misc.Unsafe",
+                                "file_name": "Unsafe.java",
+                                "line_num": -2,
+                                "method_name": "park"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.LockSupport",
+                                "file_name": "LockSupport.java",
+                                "line_num": 194,
+                                "method_name": "park"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject",
+                                "file_name": "AbstractQueuedSynchronizer.java",
+                                "line_num": 2081,
+                                "method_name": "await"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+                                "file_name": "ScheduledThreadPoolExecutor.java",
+                                "line_num": 1176,
+                                "method_name": "take"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+                                "file_name": "ScheduledThreadPoolExecutor.java",
+                                "line_num": 905,
+                                "method_name": "take"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1063,
+                                "method_name": "getTask"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1123,
+                                "method_name": "runWorker"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor$Worker",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 637,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "com.google.android.gms.common.util.concurrent.zza",
+                                "file_name": "com.google.android.gms:play-services-basement@@18.1.0",
+                                "line_num": 2,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": 1012,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "TAG"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "jdk.internal.misc.Unsafe",
+                                "file_name": "Unsafe.java",
+                                "line_num": -2,
+                                "method_name": "park"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.LockSupport",
+                                "file_name": "LockSupport.java",
+                                "line_num": 194,
+                                "method_name": "park"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject",
+                                "file_name": "AbstractQueuedSynchronizer.java",
+                                "line_num": 2081,
+                                "method_name": "await"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+                                "file_name": "ScheduledThreadPoolExecutor.java",
+                                "line_num": 1176,
+                                "method_name": "take"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+                                "file_name": "ScheduledThreadPoolExecutor.java",
+                                "line_num": 905,
+                                "method_name": "take"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1063,
+                                "method_name": "getTask"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1123,
+                                "method_name": "runWorker"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor$Worker",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 637,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "com.google.android.gms.common.util.concurrent.zza",
+                                "file_name": "com.google.android.gms:play-services-basement@@18.1.0",
+                                "line_num": 2,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": 1012,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "Firebase-Messaging-Topics-Io"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "jdk.internal.misc.Unsafe",
+                                "file_name": "Unsafe.java",
+                                "line_num": -2,
+                                "method_name": "park"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.LockSupport",
+                                "file_name": "LockSupport.java",
+                                "line_num": 234,
+                                "method_name": "parkNanos"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject",
+                                "file_name": "AbstractQueuedSynchronizer.java",
+                                "line_num": 2211,
+                                "method_name": "await"
+                            },
+                            {
+                                "class_name": "okio.AsyncTimeout$Companion",
+                                "file_name": "AsyncTimeout.kt",
+                                "line_num": 308,
+                                "method_name": "awaitTimeout$okio"
+                            },
+                            {
+                                "class_name": "okio.AsyncTimeout$Watchdog",
+                                "file_name": "AsyncTimeout.kt",
+                                "line_num": 186,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "Okio Watchdog"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "jdk.internal.misc.Unsafe",
+                                "file_name": "Unsafe.java",
+                                "line_num": -2,
+                                "method_name": "park"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.LockSupport",
+                                "file_name": "LockSupport.java",
+                                "line_num": 357,
+                                "method_name": "parkNanos"
+                            },
+                            {
+                                "class_name": "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker",
+                                "file_name": "CoroutineScheduler.kt",
+                                "line_num": 838,
+                                "method_name": "park"
+                            },
+                            {
+                                "class_name": "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker",
+                                "file_name": "CoroutineScheduler.kt",
+                                "line_num": 783,
+                                "method_name": "tryPark"
+                            },
+                            {
+                                "class_name": "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker",
+                                "file_name": "CoroutineScheduler.kt",
+                                "line_num": 731,
+                                "method_name": "runWorker"
+                            },
+                            {
+                                "class_name": "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker",
+                                "file_name": "CoroutineScheduler.kt",
+                                "line_num": 684,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "DefaultDispatcher-worker-4"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "jdk.internal.misc.Unsafe",
+                                "file_name": "Unsafe.java",
+                                "line_num": -2,
+                                "method_name": "park"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.LockSupport",
+                                "file_name": "LockSupport.java",
+                                "line_num": 234,
+                                "method_name": "parkNanos"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject",
+                                "file_name": "AbstractQueuedSynchronizer.java",
+                                "line_num": 2123,
+                                "method_name": "awaitNanos"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ArrayBlockingQueue",
+                                "file_name": "ArrayBlockingQueue.java",
+                                "line_num": 432,
+                                "method_name": "poll"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1062,
+                                "method_name": "getTask"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1123,
+                                "method_name": "runWorker"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor$Worker",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 637,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "dl",
+                                "file_name": "chromium-TrichromeWebViewGoogle6432.apk-stable-506007134",
+                                "line_num": 42,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": 1012,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "CrAsyncTask #2"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "android.os.MessageQueue",
+                                "file_name": "MessageQueue.java",
+                                "line_num": -2,
+                                "method_name": "nativePollOnce"
+                            },
+                            {
+                                "class_name": "android.os.MessageQueue",
+                                "file_name": "MessageQueue.java",
+                                "line_num": 335,
+                                "method_name": "next"
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "file_name": "Looper.java",
+                                "line_num": 161,
+                                "method_name": "loopOnce"
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "file_name": "Looper.java",
+                                "line_num": 288,
+                                "method_name": "loop"
+                            },
+                            {
+                                "class_name": "android.os.HandlerThread",
+                                "file_name": "HandlerThread.java",
+                                "line_num": 67,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "ConnectivityThread"
+                    }
+                ]
+            },
+            "timestamp": "2023-10-14T00:58:35.215000000Z",
+            "type": "exception"
+        },
+        {
+            "app_exit": {
+                "importance": "FOREGROUND",
+                "pid": "16469",
+                "process_name": "org.wikipedia.dev",
+                "reason": "CRASH",
+                "timestamp": "2023-10-14T00:59:05.407000000Z",
+                "trace": null
+            },
+            "timestamp": "2023-10-14T00:59:05.407000000Z",
+            "type": "app_exit"
+        }
+    ],
+    "resource": {
+        "app_build": "50453",
+        "app_unique_id": "org.wikipedia.dev",
+        "app_version": "2.7.50453-dev-2023-10-14",
+        "device_density": 2.75,
+        "device_density_dpi": 440,
+        "device_height_px": 2154,
+        "device_is_foldable": true,
+        "device_is_physical": false,
+        "device_manufacturer": "Google",
+        "device_model": "sdk_gphone64_arm64",
+        "device_name": "emu64a",
+        "device_type": "phone",
+        "device_width_px": 1080,
+        "measure_sdk_version": "0.0.1-SNAPSHOT",
+        "os_name": "android",
+        "os_version": "33",
+        "platform": "android"
+    },
+    "session_id": "0ae466fa-d010-4cc8-9980-788f72d640a6",
+    "timestamp": "2023-10-14T00:58:35.215000000Z"
+}

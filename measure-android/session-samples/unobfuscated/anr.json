@@ -1,0 +1,491 @@
+{
+    "events": [
+        {
+            "gesture_click": {
+                "height": 132,
+                "target": "com.google.android.material.button.MaterialButton",
+                "target_id": "btn_infinite_loop",
+                "touch_down_time": "1970-01-01T08:14:55.817000000Z",
+                "touch_up_time": "1970-01-01T08:14:55.880000000Z",
+                "width": 398,
+                "x": 496.95557,
+                "y": 1410.9412
+            },
+            "timestamp": "1970-01-01T08:14:55.880000000Z",
+            "type": "gesture_click"
+        },
+        {
+            "anr": {
+                "exceptions": [
+                    {
+                        "frames": [
+                            {
+                                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                                "file_name": "ExceptionDemoActivity.kt",
+                                "line_num": 46,
+                                "method_name": "infiniteLoop"
+                            },
+                            {
+                                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                                "file_name": "ExceptionDemoActivity.kt",
+                                "line_num": 38,
+                                "method_name": "onCreate$lambda$4"
+                            },
+                            {
+                                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                                "line_num": 0,
+                                "method_name": "$r8$lambda$3rHWr05q6AS4xKQVFee84ItKeF8"
+                            },
+                            {
+                                "class_name": "sh.measure.sample.ExceptionDemoActivity$$ExternalSyntheticLambda4",
+                                "line_num": 2,
+                                "method_name": "onClick"
+                            },
+                            {
+                                "class_name": "android.view.View",
+                                "file_name": "View.java",
+                                "line_num": 7506,
+                                "method_name": "performClick"
+                            },
+                            {
+                                "class_name": "com.google.android.material.button.MaterialButton",
+                                "file_name": "MaterialButton.java",
+                                "line_num": 1211,
+                                "method_name": "performClick"
+                            },
+                            {
+                                "class_name": "android.view.View",
+                                "file_name": "View.java",
+                                "line_num": 7483,
+                                "method_name": "performClickInternal"
+                            },
+                            {
+                                "class_name": "android.view.View",
+                                "line_num": 0,
+                                "method_name": "-$$Nest$mperformClickInternal"
+                            },
+                            {
+                                "class_name": "android.view.View$PerformClick",
+                                "file_name": "View.java",
+                                "line_num": 29334,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "android.os.Handler",
+                                "file_name": "Handler.java",
+                                "line_num": 942,
+                                "method_name": "handleCallback"
+                            },
+                            {
+                                "class_name": "android.os.Handler",
+                                "file_name": "Handler.java",
+                                "line_num": 99,
+                                "method_name": "dispatchMessage"
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "file_name": "Looper.java",
+                                "line_num": 201,
+                                "method_name": "loopOnce"
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "file_name": "Looper.java",
+                                "line_num": 288,
+                                "method_name": "loop"
+                            },
+                            {
+                                "class_name": "android.app.ActivityThread",
+                                "file_name": "ActivityThread.java",
+                                "line_num": 7872,
+                                "method_name": "main"
+                            },
+                            {
+                                "class_name": "java.lang.reflect.Method",
+                                "file_name": "Method.java",
+                                "line_num": -2,
+                                "method_name": "invoke"
+                            },
+                            {
+                                "class_name": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
+                                "file_name": "RuntimeInit.java",
+                                "line_num": 548,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "com.android.internal.os.ZygoteInit",
+                                "file_name": "ZygoteInit.java",
+                                "line_num": 936,
+                                "method_name": "main"
+                            }
+                        ],
+                        "message": "Application Not Responding for at least 5000 ms.",
+                        "type": "sh.measure.android.anr.AnrError"
+                    }
+                ],
+                "handled": false,
+                "thread_name": "main",
+                "threads": [
+                    {
+                        "frames": [
+                            {
+                                "class_name": "jdk.internal.misc.Unsafe",
+                                "file_name": "Unsafe.java",
+                                "line_num": -2,
+                                "method_name": "park"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.LockSupport",
+                                "file_name": "LockSupport.java",
+                                "line_num": 234,
+                                "method_name": "parkNanos"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.SynchronousQueue$TransferStack",
+                                "file_name": "SynchronousQueue.java",
+                                "line_num": 463,
+                                "method_name": "awaitFulfill"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.SynchronousQueue$TransferStack",
+                                "file_name": "SynchronousQueue.java",
+                                "line_num": 361,
+                                "method_name": "transfer"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.SynchronousQueue",
+                                "file_name": "SynchronousQueue.java",
+                                "line_num": 939,
+                                "method_name": "poll"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1062,
+                                "method_name": "getTask"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1123,
+                                "method_name": "runWorker"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor$Worker",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 637,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": 1012,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "OkHttp Dispatcher"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "jdk.internal.misc.Unsafe",
+                                "file_name": "Unsafe.java",
+                                "line_num": -2,
+                                "method_name": "park"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.LockSupport",
+                                "file_name": "LockSupport.java",
+                                "line_num": 194,
+                                "method_name": "park"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject",
+                                "file_name": "AbstractQueuedSynchronizer.java",
+                                "line_num": 2081,
+                                "method_name": "await"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+                                "file_name": "ScheduledThreadPoolExecutor.java",
+                                "line_num": 1176,
+                                "method_name": "take"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+                                "file_name": "ScheduledThreadPoolExecutor.java",
+                                "line_num": 905,
+                                "method_name": "take"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1063,
+                                "method_name": "getTask"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1123,
+                                "method_name": "runWorker"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor$Worker",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 637,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": 1012,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "measure-thread-#0"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "android.os.MessageQueue",
+                                "file_name": "MessageQueue.java",
+                                "line_num": -2,
+                                "method_name": "nativePollOnce"
+                            },
+                            {
+                                "class_name": "android.os.MessageQueue",
+                                "file_name": "MessageQueue.java",
+                                "line_num": 335,
+                                "method_name": "next"
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "file_name": "Looper.java",
+                                "line_num": 161,
+                                "method_name": "loopOnce"
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "file_name": "Looper.java",
+                                "line_num": 288,
+                                "method_name": "loop"
+                            },
+                            {
+                                "class_name": "android.os.HandlerThread",
+                                "file_name": "HandlerThread.java",
+                                "line_num": 67,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "LeakCanary-Heap-Dump"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "jdk.internal.misc.Unsafe",
+                                "file_name": "Unsafe.java",
+                                "line_num": -2,
+                                "method_name": "park"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.LockSupport",
+                                "file_name": "LockSupport.java",
+                                "line_num": 234,
+                                "method_name": "parkNanos"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject",
+                                "file_name": "AbstractQueuedSynchronizer.java",
+                                "line_num": 2211,
+                                "method_name": "await"
+                            },
+                            {
+                                "class_name": "okio.AsyncTimeout$Companion",
+                                "file_name": "AsyncTimeout.kt",
+                                "line_num": 320,
+                                "method_name": "awaitTimeout$okio"
+                            },
+                            {
+                                "class_name": "okio.AsyncTimeout$Watchdog",
+                                "file_name": "AsyncTimeout.kt",
+                                "line_num": 186,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "Okio Watchdog"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "java.lang.Object",
+                                "file_name": "Object.java",
+                                "line_num": -2,
+                                "method_name": "wait"
+                            },
+                            {
+                                "class_name": "java.lang.Object",
+                                "file_name": "Object.java",
+                                "line_num": 442,
+                                "method_name": "wait"
+                            },
+                            {
+                                "class_name": "java.lang.Object",
+                                "file_name": "Object.java",
+                                "line_num": 568,
+                                "method_name": "wait"
+                            },
+                            {
+                                "class_name": "java.lang.Daemons$ReferenceQueueDaemon",
+                                "file_name": "Daemons.java",
+                                "line_num": 232,
+                                "method_name": "runInternal"
+                            },
+                            {
+                                "class_name": "java.lang.Daemons$Daemon",
+                                "file_name": "Daemons.java",
+                                "line_num": 140,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": 1012,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "ReferenceQueueDaemon"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "java.lang.Object",
+                                "file_name": "Object.java",
+                                "line_num": -2,
+                                "method_name": "wait"
+                            },
+                            {
+                                "class_name": "java.lang.Object",
+                                "file_name": "Object.java",
+                                "line_num": 442,
+                                "method_name": "wait"
+                            },
+                            {
+                                "class_name": "java.lang.Object",
+                                "file_name": "Object.java",
+                                "line_num": 568,
+                                "method_name": "wait"
+                            },
+                            {
+                                "class_name": "java.lang.Daemons$FinalizerWatchdogDaemon",
+                                "file_name": "Daemons.java",
+                                "line_num": 385,
+                                "method_name": "sleepUntilNeeded"
+                            },
+                            {
+                                "class_name": "java.lang.Daemons$FinalizerWatchdogDaemon",
+                                "file_name": "Daemons.java",
+                                "line_num": 365,
+                                "method_name": "runInternal"
+                            },
+                            {
+                                "class_name": "java.lang.Daemons$Daemon",
+                                "file_name": "Daemons.java",
+                                "line_num": 140,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": 1012,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "FinalizerWatchdogDaemon"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "dalvik.system.VMStack",
+                                "file_name": "VMStack.java",
+                                "line_num": -2,
+                                "method_name": "getThreadStackTrace"
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": 1841,
+                                "method_name": "getStackTrace"
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": 1909,
+                                "method_name": "getAllStackTraces"
+                            },
+                            {
+                                "class_name": "sh.measure.android.exceptions.ExceptionFactory",
+                                "file_name": "ExceptionFactory.kt",
+                                "line_num": 37,
+                                "method_name": "createMeasureException"
+                            },
+                            {
+                                "class_name": "sh.measure.android.anr.AnrCollector",
+                                "file_name": "AnrCollector.kt",
+                                "line_num": 34,
+                                "method_name": "toMeasureException"
+                            },
+                            {
+                                "class_name": "sh.measure.android.anr.AnrCollector",
+                                "file_name": "AnrCollector.kt",
+                                "line_num": 30,
+                                "method_name": "onAppNotResponding"
+                            },
+                            {
+                                "class_name": "sh.measure.android.anr.ANRWatchDog",
+                                "file_name": "ANRWatchDog.kt",
+                                "line_num": 101,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "Thread-2"
+                    }
+                ]
+            },
+            "timestamp": "2023-10-14T01:23:08.405000000Z",
+            "type": "anr"
+        },
+        {
+            "app_exit": {
+                "importance": "FOREGROUND",
+                "pid": "18421",
+                "process_name": "sh.measure.sample",
+                "reason": "ANR",
+                "timestamp": "2023-10-14T01:23:30.417000000Z",
+                "trace": "DALVIK THREADS (24):\n\"Signal Catcher\" daemon prio=10 tid=2 Runnable\n  native: #00 pc 000000000053a6e0  /apex/com.android.art/lib64/libart.so (art::DumpNativeStack(std::__1::basic_ostream<char, std::__1::char_traits<char> >&, int, BacktraceMap*, char const*, art::ArtMethod*, void*, bool)+128) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #01 pc 00000000006f0e84  /apex/com.android.art/lib64/libart.so (art::Thread::DumpStack(std::__1::basic_ostream<char, std::__1::char_traits<char> >&, bool, BacktraceMap*, bool) const+236) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #02 pc 00000000006fe710  /apex/com.android.art/lib64/libart.so (art::DumpCheckpoint::Run(art::Thread*)+208) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #03 pc 0000000000364248  /apex/com.android.art/lib64/libart.so (art::ThreadList::RunCheckpoint(art::Closure*, art::Closure*)+440) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #04 pc 00000000006fceb0  /apex/com.android.art/lib64/libart.so (art::ThreadList::Dump(std::__1::basic_ostream<char, std::__1::char_traits<char> >&, bool)+280) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #05 pc 00000000006fc8a4  /apex/com.android.art/lib64/libart.so (art::ThreadList::DumpForSigQuit(std::__1::basic_ostream<char, std::__1::char_traits<char> >&)+292) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #06 pc 00000000006d5974  /apex/com.android.art/lib64/libart.so (art::Runtime::DumpForSigQuit(std::__1::basic_ostream<char, std::__1::char_traits<char> >&)+184) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #07 pc 00000000006e1a20  /apex/com.android.art/lib64/libart.so (art::SignalCatcher::HandleSigQuit()+468) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #08 pc 0000000000574230  /apex/com.android.art/lib64/libart.so (art::SignalCatcher::Run(void*)+264) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #09 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #10 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"main\" prio=5 tid=1 Suspended\n  at sh.measure.sample.ExceptionDemoActivity.infiniteLoop(ExceptionDemoActivity.kt:46)\n  at sh.measure.sample.ExceptionDemoActivity.onCreate$lambda$4(ExceptionDemoActivity.kt:38)\n  at sh.measure.sample.ExceptionDemoActivity.$r8$lambda$3rHWr05q6AS4xKQVFee84ItKeF8(unavailable:0)\n  at sh.measure.sample.ExceptionDemoActivity$$ExternalSyntheticLambda4.onClick(unavailable:2)\n  at android.view.View.performClick(View.java:7506)\n  at com.google.android.material.button.MaterialButton.performClick(MaterialButton.java:1211)\n  at android.view.View.performClickInternal(View.java:7483)\n  at android.view.View.-$$Nest$mperformClickInternal(unavailable:0)\n  at android.view.View$PerformClick.run(View.java:29334)\n  at android.os.Handler.handleCallback(Handler.java:942)\n  at android.os.Handler.dispatchMessage(Handler.java:99)\n  at android.os.Looper.loopOnce(Looper.java:201)\n  at android.os.Looper.loop(Looper.java:288)\n  at android.app.ActivityThread.main(ActivityThread.java:7872)\n  at java.lang.reflect.Method.invoke(Native method)\n  at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n  at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n\n\"ADB-JDWP Connection Control Thread\" daemon prio=0 tid=4 WaitingInMainDebuggerLoop\n  native: #00 pc 00000000000a34b8  /apex/com.android.runtime/lib64/bionic/libc.so (__ppoll+8) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 000000000005dc1c  /apex/com.android.runtime/lib64/bionic/libc.so (poll+92) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #02 pc 00000000000099e4  /apex/com.android.art/lib64/libadbconnection.so (adbconnection::AdbConnectionState::RunPollLoop(art::Thread*)+724) (BuildId: 3952e992b55a158a16b3d569cf8894e7)\n  native: #03 pc 00000000000080ac  /apex/com.android.art/lib64/libadbconnection.so (adbconnection::CallbackFunction(void*)+1320) (BuildId: 3952e992b55a158a16b3d569cf8894e7)\n  native: #04 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #05 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"perfetto_hprof_listener\" prio=10 tid=5 Native (still starting up)\n  native: #00 pc 00000000000a20f4  /apex/com.android.runtime/lib64/bionic/libc.so (read+4) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 000000000001d840  /apex/com.android.art/lib64/libperfetto_hprof.so (void* std::__1::__thread_proxy<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct> >, ArtPlugin_Initialize::$_34> >(void*)+260) (BuildId: 525cc92a7dc49130157aeb74f6870364)\n  native: #02 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #03 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"Jit thread pool worker thread 0\" daemon prio=5 tid=6 Native\n  native: #00 pc 000000000004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 000000000047cc80  /apex/com.android.art/lib64/libart.so (art::ConditionVariable::WaitHoldingLocks(art::Thread*)+140) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #02 pc 000000000047cb18  /apex/com.android.art/lib64/libart.so (art::ThreadPool::GetTask(art::Thread*)+120) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #03 pc 00000000006199e4  /apex/com.android.art/lib64/libart.so (art::ThreadPoolWorker::Run()+136) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #04 pc 00000000006198c4  /apex/com.android.art/lib64/libart.so (art::ThreadPoolWorker::Callback(void*)+160) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #05 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #06 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"HeapTaskDaemon\" daemon prio=5 tid=7 WaitingForTaskProcessor\n  native: #00 pc 000000000004df60  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+32) (BuildId: 013D  31f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 000000000048771c  /apex/com.android.art/lib64/libart.so (art::ConditionVariable::TimedWait(art::Thread*, long, int)+252) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #02 pc 000000000046cf20  /apex/com.android.art/lib64/libart.so (art::gc::TaskProcessor::GetTask(art::Thread*)+196) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #03 pc 000000000046ce10  /apex/com.android.art/lib64/libart.so (art::gc::TaskProcessor::RunAllTasks(art::Thread*)+32) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  at dalvik.system.VMRuntime.runHeapTasks(Native method)\n  at java.lang.Daemons$HeapTaskDaemon.runInternal(Daemons.java:609)\n  at java.lang.Daemons$Daemon.run(Daemons.java:140)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"ReferenceQueueDaemon\" daemon prio=5 tid=8 Waiting\n  at java.lang.Object.wait(Native method)\n  - waiting on <0x0d3436af> (a java.lang.Class<java.lang.ref.ReferenceQueue>)\n  at java.lang.Object.wait(Object.java:442)\n  at java.lang.Object.wait(Object.java:568)\n  at java.lang.Daemons$ReferenceQueueDaemon.runInternal(Daemons.java:232)\n  - locked <0x0d3436af> (a java.lang.Class<java.lang.ref.ReferenceQueue>)\n  at java.lang.Daemons$Daemon.run(Daemons.java:140)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"FinalizerDaemon\" daemon prio=5 tid=9 Waiting\n  at java.lang.Object.wait(Native method)\n  - waiting on <0x023ecabc> (a java.lang.Object)\n  at java.lang.Object.wait(Object.java:442)\n  at java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:203)\n  - locked <0x023ecabc> (a java.lang.Object)\n  at java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:224)\n  at java.lang.Daemons$FinalizerDaemon.runInternal(Daemons.java:300)\n  at java.lang.Daemons$Daemon.run(Daemons.java:140)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"FinalizerWatchdogDaemon\" daemon prio=5 tid=10 Sleeping\n  at java.lang.Thread.sleep(Native method)\n  - sleeping on <0x0fe9ca45> (a java.lang.Object)\n  at java.lang.Thread.sleep(Thread.java:450)\n  - locked <0x0fe9ca45> (a java.lang.Object)\n  at java.lang.Thread.sleep(Thread.java:355)\n  at java.lang.Daemons$FinalizerWatchdogDaemon.sleepForNanos(Daemons.java:438)\n  at java.lang.Daemons$FinalizerWatchdogDaemon.waitForProgress(Daemons.java:480)\n  at java.lang.Daemons$FinalizerWatchdogDaemon.runInternal(Daemons.java:369)\n  at java.lang.Daemons$Daemon.run(Daemons.java:140)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"binder:18421_1\" prio=5 tid=11 Native\n  native: #00 pc 00000000000a23d8  /apex/com.android.runtime/lib64/bionic/libc.so (__ioctl+8) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 000000000005b50c  /apex/com.android.runtime/lib64/bionic/libc.so (ioctl+156) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #02 pc 0000000000094690  /system/lib64/libbinder.so (android::IPCThreadState::joinThreadPool(bool)+316) (BuildId: ee18e52b95e38eaab55a9a48518c8c3b)\n  native: #03 pc 0000000000094540  /system/lib64/libbinder.so (android::PoolThread::threadLoop()+24) (BuildId: ee18e52b95e38eaab55a9a48518c8c3b)\n  native: #04 pc 00000000000148e8  /system/lib64/libutils.so (android::Thread::_threadLoop(void*)+528) (BuildId: 5a0d720732600c94ad8354a1188e9f52)\n  native: #05 pc 00000000000c8918  /system/lib64/libandroid_runtime.so (android::AndroidRuntime::javaThreadShell(void*)+140) (BuildId: a31474ac581b716d4588f8c97eb06009)\n  native: #06 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #07 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"binder:18421_2\" prio=5 tid=12 Native\n  native: #00 pc 00000000000a23d8  /apex/com.android.runtime/lib64/bionic/libc.so (__ioctl+8) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 000000000005b50c  /apex/com.android.runtime/lib64/bionic/libc.so (ioctl+156) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #02 pc 0000000000094690  /system/lib64/libbinder.so (android::IPCThreadState::joinThreadPool(bool)+316) (BuildId: ee18e52b95e38eaab55a9a48518c8c3b)\n  native: #03 pc 0000000000094540  /system/lib64/libbinder.so (android::PoolThread::threadLoop()+24) (BuildId: ee18e52b95e38eaab55a9a48518c8c3b)\n  native: #04 pc 00000000000148e8  /system/lib64/libutils.so (android::Thread::_threadLoop(void*)+528) (BuildId: 5a0d720732600c94ad8354a1188e9f52)\n  native: #05 pc 00000000000c8918  /system/lib64/libandroid_runtime.so (android::AndroidRuntime::javaThreadShell(void*)+140) (BuildId: a31474ac581b716d4588f8c97eb06009)\n  native: #06 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #07 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"binder:18421_3\" prio=5 tid=13 Native\n  native: #00 pc 00000000000a23d8  /apex/com.android.runtime/lib64/bionic/libc.so (__ioctl+8) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 000000000005b50c  /apex/com.android.runtime/lib64/bionic/libc.so (ioctl+156) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #02 pc 0000000000094690  /system/lib64/libbinder.so (android::IPCThreadState::joinThreadPool(bool)+316) (BuildId: ee18e52b95e38eaab55a9a48518c8c3b)\n  native: #03 pc 0000000000094540  /system/lib64/libbinder.so (android::PoolThread::threadLoop()+24) (BuildId: ee18e52b95e38eaab55a9a48518c8c3b)\n  native: #04 pc 00000000000148e8  /system/lib64/libutils.so (android::Thread::_threadLoop(void*)+528) (BuildId: 5a0d720732600c94ad8354a1188e9f52)\n  native: #05 pc 00000000000c8918  /system/lib64/libandroid_runtime.so (android::AndroidRuntime::javaThreadShell(void*)+140) (BuildId: a31474ac581b716d4588f8c97eb06009)\n  native: #06 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #07 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"binder:18421_4\" prio=5 tid=14 Native\n  native: #00 pc 00000000000a23d8  /apex/com.android.runtime/lib64/bionic/libc.so (__ioctl+8) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 000000000005b50c  /apex/com.android.runtime/lib64/bionic/libc.so (ioctl+156) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #02 pc 0000000000094690  /system/lib64/libbinder.so (android::IPCThreadState::joinThreadPool(bool)+316) (BuildId: ee18e52b95e38eaab55a9a48518c8c3b)\n  native: #03 pc 0000000000094540  /system/lib64/libbinder.so (android::PoolThread::threadLoop()+24) (BuildId: ee18e52b95e38eaab55a9a48518c8c3b)\n  native: #04 pc 00000000000148e8  /system/lib64/libutils.so (android::Thread::_threadLoop(void*)+528) (BuildId: 5a0d720732600c94ad8354a1188e9f52)\n  native: #05 pc 00000000000c8918  /system/lib64/libandroid_runtime.so (android::AndroidRuntime::javaThreadShell(void*)+140) (BuildId: a31474ac581b716d4588f8c97eb06009)\n  native: #06 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #07 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"Profile Saver\" daemon prio=5 tid=15 Native\n  native: #00 pc 000000000004df60  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+32) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 000000000048771c  /apex/com.android.art/lib64/libart.so (art::ConditionVariable::TimedWait(art::Thread*, long, int)+252) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #02 pc 000000000054380c  /apex/com.android.art/lib64/libart.so (art::ProfileSaver::Run()+524) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #03 pc 0000000000538fc0  /apex/com.android.art/lib64/libart.so (art::ProfileSaver::RunProfileSaverThread(void*)+148) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #04 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #05 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"LeakCanary-Heap-Dump\" prio=5 tid=16 Native\n  native: #00 pc 00000000000a33b8  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+8) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 0000000000010dfc  /system/lib64/libutils.so (android::Looper::pollOnce(int, int*, int*, void**)+176) (BuildId: 5a0d720732600c94ad8354a1188e9f52)\n  native: #02 pc 000000000015a56c  /system/lib64/libandroid_runtime.so (android::android_os_MessageQueue_nativePollOnce(_JNIEnv*, _jobject*, long, int)+44) (BuildId: a31474ac581b716d4588f8c97eb06009)\n  at android.os.MessageQueue.nativePollOnce(Native method)\n  at android.os.MessageQueue.next(MessageQueue.java:335)\n  at android.os.Looper.loopOnce(Looper.java:161)\n  at android.os.Looper.loop(Looper.java:288)\n  at android.os.HandlerThread.run(HandlerThread.java:67)\n\n\"RenderThread\" daemon prio=7 tid=17 Native\n  native: #00 pc 00000000000a33b8  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+8) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 0000000000010dfc  /system/lib64/libutils.so (android::Looper::pollOnce(int, int*, int*, void**)+176) (BuildId: 5a0d720732600c94ad8354a1188e9f52)\n  native: #02 pc 000000000057c4c0  /system/lib64/libhwui.so (android::uirenderer::renderthread::RenderThread::threadLoop()+220) (BuildId: 5e787210ce0f171dbee073e4a14a376c)\n  native: #03 pc 00000000000148e8  /system/lib64/libutils.so (android::Thread::_threadLoop(void*)+528) (BuildId: 5a0d720732600c94ad8354a1188e9f52)\n  native: #04 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #05 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"measure-thread-#0\" prio=5 tid=18 Waiting\n  at jdk.internal.misc.Unsafe.park(Native method)\n  - waiting on an unknown object\n  at java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)\n  at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)\n  at java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)\n  at java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)\n  at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)\n  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)\n  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"Thread-2\" prio=5 tid=19 Sleeping\n  at java.lang.Thread.sleep(Native method)\n  - sleeping on <0x088a559a> (a java.lang.Object)\n  at java.lang.Thread.sleep(Thread.java:450)\n  - locked <0x088a559a> (a java.lang.Object)\n  at java.lang.Thread.sleep(Thread.java:355)\n  at sh.measure.android.anr.ANRWatchDog.run(ANRWatchDog.kt:70)\n\n\"OkHttp Dispatcher\" prio=5 tid=20 TimedWaiting\n  at jdk.internal.misc.Unsafe.park(Native method)\n  - waiting on an unknown object\n  at java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)\n  at java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)\n  at java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)\n  at java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)\n  at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)\n  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)\n  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"Okio Watchdog\" daemon prio=5 tid=21 TimedWaiting\n  at jdk.internal.misc.Unsafe.park(Native method)\n  - waiting on an unknown object\n  at java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)\n  at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2211)\n  at okio.AsyncTimeout$Companion.awaitTimeout$okio(AsyncTimeout.kt:308)\n  at okio.AsyncTimeout$Watchdog.run(AsyncTimeout.kt:186)\n\n\"OkHttp TaskRunner\" daemon prio=5 tid=22 TimedWaiting\n  at java.lang.Object.wait(Native method)\n  - waiting on <0x08178ecb> (a okhttp3.internal.concurrent.TaskRunner)\n  at okhttp3.internal.concurrent.TaskRunner$RealBackend.coordinatorWait(TaskRunner.kt:294)\n  at okhttp3.internal.concurrent.TaskRunner.awaitTaskToRun(TaskRunner.kt:218)\n  at okhttp3.internal.concurrent.TaskRunner$runnable$1.run(TaskRunner.kt:59)\n  - locked <0x08178ecb> (a okhttp3.internal.concurrent.TaskRunner)\n  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1137)\n  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"hwuiTask1\" daemon prio=6 tid=23 Native\n  native: #00 pc 000000000004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 0000000000052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex(void volatile*, bool, int, bool, timespec const*)+144) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #02 pc 00000000000b56cc  /apex/com.android.runtime/lib64/bionic/libc.so (pthread_cond_wait+76) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #03 pc 00000000000699e0  /system/lib64/libc++.so (std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&)+20) (BuildId: 6ae0290e5bfb8abb216bde2a4ee48d9e)\n  native: #04 pc 0000000000250af8  /system/lib64/libhwui.so (android::uirenderer::CommonPool::workerLoop()+96) (BuildId: 5e787210ce0f171dbee073e4a14a376c)\n  native: #05 pc 0000000000250d5c  /system/lib64/libhwui.so (android::uirenderer::CommonPool::CommonPool()::$_0::operator()() const (.__uniq.99815402873434996937524029735804459536)+188) (BuildId: 5e787210ce0f171dbee073e4a14a376c)\n  native: #06 pc 0000000000250c9c  /system/lib64/libhwui.so (void* std::__1::__thread_proxy<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct> >, android::uirenderer::CommonPool::CommonPool()::$_0> >(void*) (.__uniq.99815402873434996937524029735804459536)+40) (BuildId: 5e787210ce0f171dbee073e4a14a376c)\n  native: #07 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #08 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"hwuiTask0\" daemon prio=6 tid=24 Native\n  native: #00 pc 000000000004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 0000000000052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex(void volatile*, bool, int, bool, timespec const*)+144) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #02 pc 00000000000b56cc  /apex/com.android.runtime/lib64/bionic/libc.so (pthread_cond_wait+76) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #03 pc 00000000000699e0  /system/lib64/libc++.so (std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&)+20) (BuildId: 6ae0290e5bfb8abb216bde2a4ee48d9e)\n  native: #04 pc 0000000000250af8  /system/lib64/libhwui.so (android::uirenderer::CommonPool::workerLoop()+96) (BuildId: 5e787210ce0f171dbee073e4a14a376c)\n  native: #05 pc 0000000000250d5c  /system/lib64/libhwui.so (android::uirenderer::CommonPool::CommonPool()::$_0::operator()() const (.__uniq.99815402873434996937524029735804459536)+188) (BuildId: 5e787210ce0f171dbee073e4a14a376c)\n  native: #06 pc 0000000000250c9c  /system/lib64/libhwui.so (void* std::__1::__thread_proxy<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct> >, android::uirenderer::CommonPool::CommonPool()::$_0> >(void*) (.__uniq.99815402873434996937524029735804459536)+40) (BuildId: 5e787210ce0f171dbee073e4a14a376c)\n  native: #07 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #08 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"binder:18421_5\" prio=5 tid=25 Native\n  native: #00 pc 00000000000a23d8  /apex/com.android.runtime/lib64/bionic/libc.so (__ioctl+8) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 000000000005b50c  /apex/com.android.runtime/lib64/bionic/libc.so (ioctl+156) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #02 pc 0000000000094690  /system/lib64/libbinder.so (android::IPCThreadState::joinThreadPool(bool)+316) (BuildId: ee18e52b95e38eaab55a9a48518c8c3b)\n  native: #03 pc 0000000000094540  /system/lib64/libbinder.so (android::PoolThread::threadLoop()+24) (BuildId: ee18e52b95e38eaab55a9a48518c8c3b)\n  native: #04 pc 00000000000148e8  /system/lib64/libutils.so (android::Thread::_threadLoop(void*)+528) (BuildId: 5a0d720732600c94ad8354a1188e9f52)\n  native: #05 pc 00000000000c8918  /system/lib64/libandroid_runtime.so (android::AndroidRuntime::javaThreadShell(void*)+140) (BuildId: a31474ac581b716d4588f8c97eb06009)\n  native: #06 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #07 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"binder:18421_4\" prio=5 (not attached)\n  native: #00 pc 000000000004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 0000000000052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex(void volatile*, bool, int, bool, timespec const*)+144) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #02 pc 00000000000b56cc  /apex/com.android.runtime/lib64/bionic/libc.so (pthread_cond_wait+76) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #03 pc 00000000000699e0  /system/lib64/libc++.so (std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&)+20) (BuildId: 6ae0290e5bfb8abb216bde2a4ee48d9e)\n  native: #04 pc 00000000000a048c  /system/lib64/libgui.so (android::AsyncWorker::run()+112) (BuildId: 383a37b5342fd0249afb25e7134deb33)\n  native: #05 pc 00000000000a0878  /system/lib64/libgui.so (void* std::__1::__thread_proxy<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct> >, void (android::AsyncWorker::*)(), android::AsyncWorker*> >(void*)+80) (BuildId: 383a37b5342fd0249afb25e7134deb33)\n  native: #06 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #07 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n\n----- end 18421 -----\n"
+            },
+            "timestamp": "2023-10-14T01:23:30.417000000Z",
+            "type": "app_exit"
+        }
+    ],
+    "resource": {
+        "app_build": "1",
+        "app_unique_id": "sh.measure.sample",
+        "app_version": "1.0",
+        "device_density": 2.75,
+        "device_density_dpi": 440,
+        "device_height_px": 2154,
+        "device_is_foldable": true,
+        "device_is_physical": false,
+        "device_manufacturer": "Google",
+        "device_model": "sdk_gphone64_arm64",
+        "device_name": "emu64a",
+        "device_type": "phone",
+        "device_width_px": 1080,
+        "measure_sdk_version": "0.0.1-SNAPSHOT",
+        "os_name": "android",
+        "os_version": "33",
+        "platform": "android"
+    },
+    "session_id": "a2bdf2be-5df3-47c7-9e95-f1b0b798eaa0",
+    "timestamp": "2023-10-14T01:23:08.405000000Z"
+}
