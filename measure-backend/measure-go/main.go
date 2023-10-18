@@ -39,7 +39,7 @@ func main() {
 		})
 	})
 
-	r.PUT("/sessions", authorize(), putSession)
+	r.PUT("/sessions", authorize(), countSessionSize(), putSession)
 	r.PUT("/mappings", authorize(), putMapping)
 
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080
