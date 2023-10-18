@@ -114,7 +114,7 @@ func (s *Session) uploadAttachments() error {
 
 func (s *Session) saveWithContext(c *gin.Context) error {
 	bytesIn := c.MustGet("bytesIn")
-	_, err := server.pgPool.Exec(context.Background(), `insert into sessions (id, event_count, bytes_in, timestamp) values ($1, $2, $3, $4);`, s.SessionID, len(s.Events), bytesIn, time.Now())
+	_, err := server.pgPool.Exec(context.Background(), `insert into sessions (id, event_count, attachment_count, bytes_in, timestamp) values ($1, $2, $3, $4, $5);`, s.SessionID, len(s.Events), len(s.Attachments), bytesIn, time.Now())
 
 	if err != nil {
 		fmt.Println(`failed to write session to db`, err.Error())
