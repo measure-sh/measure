@@ -102,7 +102,7 @@ func (s *Session) getObfuscatedEvents() []EventField {
 
 func (s *Session) uploadAttachments() error {
 	for _, attachment := range s.Attachments {
-		uploadOutput, err := attachment.upload()
+		uploadOutput, err := attachment.upload(s)
 		if err != nil {
 			return err
 		}

@@ -43,7 +43,7 @@ func (a *Attachment) validate() error {
 	return nil
 }
 
-func (a *Attachment) upload() (*s3manager.UploadOutput, error) {
+func (a *Attachment) upload(s *Session) (*s3manager.UploadOutput, error) {
 	id := uuid.New()
 	ext := a.Extension
 	if ext == "" {
@@ -64,6 +64,7 @@ func (a *Attachment) upload() (*s3manager.UploadOutput, error) {
 		Metadata: map[string]*string{
 			"original_file_name": aws.String(a.Name),
 			"attachment_type":    aws.String(a.Type),
+			"session_id":         aws.String(s.SessionID.String()),
 		},
 	})
 
