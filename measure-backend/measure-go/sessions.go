@@ -11,10 +11,11 @@ import (
 )
 
 type Session struct {
-	SessionID uuid.UUID    `json:"session_id" binding:"required"`
-	Timestamp time.Time    `json:"timestamp" binding:"required"`
-	Resource  Resource     `json:"resource" binding:"required"`
-	Events    []EventField `json:"events" binding:"required"`
+	SessionID   uuid.UUID    `json:"session_id" binding:"required"`
+	Timestamp   time.Time    `json:"timestamp" binding:"required"`
+	Resource    Resource     `json:"resource" binding:"required"`
+	Events      []EventField `json:"events" binding:"required"`
+	Attachments []Attachment `json:"attachments"`
 }
 
 func (s *Session) validate() error {
@@ -23,9 +24,17 @@ func (s *Session) validate() error {
 	}
 
 	for _, event := range s.Events {
-		err := event.validate()
-		if err != nil {
+		if err := event.validate(); err != nil {
 			return err
+		}
+
+	}
+
+	if s.hasAttachments() {
+		for _, attachment := range s.Attachments {
+			if err := attachment.validate(); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -59,6 +68,10 @@ func (s *Session) hasAppExits() bool {
 	return false
 }
 
+func (s *Session) hasAttachments() bool {
+	return len(s.Attachments) > 0
+}
+
 func (s *Session) needsSymbolication() bool {
 	if s.hasExceptions() || s.hasANRs() || s.hasAppExits() {
 		return true
@@ -74,6 +87,18 @@ func (s *Session) getObfuscatedEvents() []EventField {
 		}
 	}
 	return obfuscatedEvents
+}
+
+func (s *Session) uploadAttachments() error {
+	for _, attachment := range s.Attachments {
+		uploadOutput, err := attachment.upload()
+		if err != nil {
+			return err
+		}
+		fmt.Printf("upload output of %s, location is %s\n", attachment.Name, uploadOutput.Location)
+	}
+
+	return nil
 }
 
 func putSession(c *gin.Context) {
@@ -107,6 +132,14 @@ func putSession(c *gin.Context) {
 		if err := symbolicate(session); err != nil {
 			fmt.Println("symbolication failed with error", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not upload session, failed to symbolicate"})
+			return
+		}
+	}
+
+	if session.hasAttachments() {
+		if err := session.uploadAttachments(); err != nil {
+			fmt.Println("error uploading attachment", err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload attachment(s)"})
 			return
 		}
 	}
