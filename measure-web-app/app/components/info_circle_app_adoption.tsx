@@ -14,7 +14,7 @@ const InfoCircleAppAdoption = ({ value, users, totalUsers, title }: InfoCircleAp
     return (
       <div className="group relative">
         <div className="flex flex-col items-center">
-            <div className={`flex flex-col items-center justify-center w-64 aspect-square rounded-full border border-black border-4`}>
+            <div className={`flex flex-col items-center justify-center w-64 aspect-square rounded-full border border-black border-4 hover:bg-neutral-800/25 transition-colors duration-100`}>
                 <p className="text-black font-sans text-xl">{value}%</p>
                 <div className="py-1"/>
                 <p className="text-black font-sans text-sm">{formatter.format(users)}/{formatter.format(totalUsers)} users</p>

@@ -11,7 +11,7 @@ const InfoCircleAppStartTime = ({ value, delta, title }: InfoCircleAppStartTimeP
     return (
       <div className="group relative">
         <div className="flex flex-col items-center">
-            <div className={`flex flex-col items-center justify-center w-64 aspect-square rounded-full border border-4 ${value < 800? 'border-green-400': value < 1200? 'border-yellow-400': 'border-red-400'}`}>
+            <div className={`flex flex-col items-center justify-center w-64 aspect-square rounded-full border border-4 transition-colors duration-100 ${value < 800? 'border-green-400 hover:bg-green-400/25': value < 1200? 'border-yellow-400 hover:bg-yellow-400/25': 'border-red-400 hover:bg-red-400/25'}`}>
                 <p className="text-black font-sans text-xl">{value}ms</p>
                 <div className="py-1"/>
                 <p className={`font-sans text-sm ${delta < 0? 'text-green-600': delta > 0? 'text-red-400': 'opacity-0'}`}>{delta>0? '+':''}{delta}ms</p>
