@@ -8,51 +8,113 @@ const data = {
   "nodes": [
     {
       "id": "Home Screen",
-      "nodeColor": "hsl(142, 69%, 58%)"
+      "nodeColor": "hsl(142, 69%, 58%)",
+      "issues": {
+        "crashes": [],
+        "anrs":[]
+      }
     },
     {
       "id": "Order History",
-      "nodeColor": "hsl(142, 69%, 58%)"
+      "nodeColor": "hsl(142, 69%, 58%)",
+      "issues": {
+        "crashes": [],
+        "anrs":[]
+      }
     },
     {
       "id": "Order Status",
-      "nodeColor": "hsl(142, 69%, 58%)"
+      "nodeColor": "hsl(142, 69%, 58%)",
+      "issues": {
+        "crashes": [],
+        "anrs":[]
+      }
     },
     {
       "id": "Support",
-      "nodeColor": "hsl(142, 69%, 58%)"
+      "nodeColor": "hsl(142, 69%, 58%)",
+      "issues": {
+        "crashes": [],
+        "anrs":[]
+      }
     },
     {
       "id": "List Of Items",
-      "nodeColor": "hsl(142, 69%, 58%)"
+      "nodeColor": "hsl(142, 69%, 58%)",
+      "issues": {
+        "crashes": [],
+        "anrs":[]
+      }
     },
     {
       "id": "Sales Offer",
-      "nodeColor": "hsl(142, 69%, 58%)"
+      "nodeColor": "hsl(142, 69%, 58%)",
+      "issues": {
+        "crashes": [],
+        "anrs":[]
+      }
     },
     {
       "id": "View Item Images",
-      "nodeColor": "hsl(142, 69%, 58%)"
+      "nodeColor": "hsl(142, 69%, 58%)",
+      "issues": {
+        "crashes": [],
+        "anrs":[]
+      }
     },
     {
       "id": "View Item Detail",
-      "nodeColor": "hsl(142, 69%, 58%)"
+      "nodeColor": "hsl(142, 69%, 58%)",
+      "issues": {
+        "crashes": [],
+        "anrs":[]
+      }
     },
     {
       "id": "Cyber Monday Sale Items List",
-      "nodeColor": "hsl(0, 72%, 51%)"
+      "nodeColor": "hsl(0, 72%, 51%)",
+      "issues": {
+        "crashes": [{
+          "title": "NullPointerException.java",
+          "count": 37893
+        }, 
+        {
+          "title": "LayoutInflaterException.java",
+          "count": 12674
+        }],
+        "anrs":[{
+          "title": "CyberMondayActivity.java",
+          "count": 97321
+        }, 
+        {
+          "title": "CyberMondayFragment.kt",
+          "count": 8005
+        }]
+      }
     },
     {
       "id": "Add To Cart",
-      "nodeColor": "hsl(142, 69%, 58%)"
+      "nodeColor": "hsl(142, 69%, 58%)",
+      "issues": {
+        "crashes": [],
+        "anrs":[]
+      }
     },
     {
       "id": "Pay",
-      "nodeColor": "hsl(142, 69%, 58%)"
+      "nodeColor": "hsl(142, 69%, 58%)",
+      "issues": {
+        "crashes": [],
+        "anrs":[]
+      }
     },
     {
       "id": "Explore Discounts",
-      "nodeColor": "hsl(142, 69%, 58%)"
+      "nodeColor": "hsl(142, 69%, 58%)",
+      "issues": {
+        "crashes": [],
+        "anrs":[]
+      }
     }
   ],
   "links": [
@@ -129,6 +191,7 @@ const data = {
   ]
 }
 
+const formatter = Intl.NumberFormat('en', { notation: 'compact' });
 
 const UserFlow = () => {
     return (
@@ -160,6 +223,42 @@ const UserFlow = () => {
       labelOrientation="horizontal"
       labelPadding={16}
       labelTextColor="#000000"
+      nodeTooltip={({
+        node
+      }) => <div className="pointer-events-none z-50 rounded-md p-4 bg-neutral-800">
+               <p className="font-sans text-white">{node.label}</p>
+               {node.issues.crashes.length > 0 && 
+                <div>
+                  <div className="py-2"/>
+                  <p className="font-sans text-white">Crashes:</p>
+                  <ul className="list-disc">
+                      {node.issues.crashes.map(({ title, count }) => (
+                          <li key={title}>
+                              <span className="font-sans text-white text-xs">{title} - {formatter.format(count)}</span>
+                          </li>
+                      ))}
+                  </ul>
+                </div>
+               }
+               {node.issues.crashes.length > 0 && 
+                <div>
+                  <div className="py-2"/>
+                  <p className="font-sans text-white">ANRs:</p>
+                  <ul className="list-disc">
+                      {node.issues.anrs.map(({ title, count }) => (
+                          <li key={title}>
+                              <span className="font-sans text-white text-xs">{title} - {formatter.format(count)}</span>
+                          </li>
+                      ))}
+                  </ul>
+                </div>
+               }
+            </div>}
+      linkTooltip={({
+        link
+      }) => <div className="pointer-events-none z-50 rounded-md p-4 bg-neutral-800">
+               <p className="font-sans text-white">{link.source.label} &gt; {link.target.label} - {formatter.format(link.value)} </p>
+            </div>}
   />
   );
 };
