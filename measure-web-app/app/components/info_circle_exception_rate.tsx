@@ -21,7 +21,7 @@ const InfoCircleExceptionRate = ({ value, delta, title, tooltipMsgLine1, tooltip
             <div className="py-2"/>
             <p className="text-black font-display text-lg">{title}</p>
         </div>
-        <span className="pointer-events-none z-50 max-w-xl absolute font-sans text-sm text-white rounded-md p-4 bg-neutral-800 -top-24 left-0 w-max opacity-0 transition-opacity group-hover:opacity-100">{tooltipMsgLine1}<br/><br/>{tooltipMsgLine2}</span>
+        <span className="pointer-events-none z-50 max-w-xl absolute font-sans text-sm text-white rounded-md p-4 bg-neutral-800 -top-44 left-0 w-max opacity-0 transition-opacity group-hover:opacity-100">{tooltipMsgLine1}<br/><br/>{tooltipMsgLine2}</span>
       </div>
   );
 };
