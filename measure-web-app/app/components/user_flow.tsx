@@ -134,7 +134,7 @@ const UserFlow = () => {
     return (
       <ResponsiveSankey
       data={data}
-      margin={{ top: 40, right: 160, bottom: 40, left: 50 }}
+      margin={{ top: 80, right: 120, bottom: 80, left: 120 }}
       align="justify"
       colors={({nodeColor}) => nodeColor}
       nodeOpacity={1}
