@@ -32,10 +32,10 @@ export default function Overview() {
       <div className="py-8"/>
       <div className="flex flex-wrap gap-x-32 gap-y-16 items-center">
         <InfoCircleAppAdoption title="App adoption" value={20} users={40000} totalUsers={200000}/>
-        <InfoCircleExceptionRate title="Crash free users" value={98.5} delta={0.73}/>
-        <InfoCircleExceptionRate title="Perceived crash free rate" value={91.3} delta={-0.51}/>
-        <InfoCircleExceptionRate title="ANR free users" value={98.5} delta={0.73}/>
-        <InfoCircleExceptionRate title="Perceived ANR free rate" value={91.3} delta={0.27}/>
+        <InfoCircleExceptionRate title="Crash free users" tooltipMsgLine1="Crash free users = (1 - Users who experienced a crash in selected app version / Total users of selected app version) * 100" tooltipMsgLine2="Delta value = ((Crash free users for selected app version - Crash free users across all app versions) / Crash free users across all app versions) * 100" value={98.5} delta={0.73}/>
+        <InfoCircleExceptionRate title="Perceived crash free users" tooltipMsgLine1="Perceived crash free users = (1 - Users who experienced a visible crash in selected app version / Total users of selected app version) * 100" tooltipMsgLine2="Delta value = ((Perceived crash free users in selected app version - Perceived crash free users across all app versions) / Perceived crash free users across all app versions) * 100" value={91.3} delta={-0.51}/>
+        <InfoCircleExceptionRate title="ANR free users" tooltipMsgLine1="ANR free users = (1 - Users who experienced an ANR in selected app version / Total users of selected app version) * 100" tooltipMsgLine2="Delta value = ((ANR free users in selected app version - ANR free users across all app versions) / ANR free users across all app versions) * 100" value={98.5} delta={0.73}/>
+        <InfoCircleExceptionRate title="Perceived ANR free users" tooltipMsgLine1="Perceived ANR free users = (1 - Users who experienced a visible ANR in selected app version / Total users of selected app version) * 100" tooltipMsgLine2="Delta value = ((Perceived ANR free users in selected app version - Perceived ANR free users across all app versions) / Perceived ANR free users across all app versions) * 100" value={91.3} delta={0.27}/>
         <InfoCircleAppStartTime title="App start time" value={700} delta={-200}/>
       </div>
     </main>
