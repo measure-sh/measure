@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -15,6 +16,16 @@ type Session struct {
 	Timestamp time.Time    `json:"timestamp" binding:"required"`
 	Resource  Resource     `json:"resource" binding:"required"`
 	Events    []EventField `json:"events" binding:"required"`
+}
+
+type ByteCounter struct {
+	Count int64
+}
+
+func (bc *ByteCounter) Write(p []byte) (int, error) {
+	n := len(p)
+	bc.Count += int64(n)
+	return n, nil
 }
 
 func (s *Session) validate() error {
@@ -76,6 +87,30 @@ func (s *Session) getObfuscatedEvents() []EventField {
 	return obfuscatedEvents
 }
 
+func (s *Session) saveWithContext(c *gin.Context) error {
+	bytesIn := c.MustGet("bytesIn")
+	_, err := server.pgPool.Exec(context.Background(), `insert into sessions (id, event_count, bytes_in, timestamp) values ($1, $2, $3, $4);`, s.SessionID, len(s.Events), bytesIn, time.Now())
+
+	if err != nil {
+		fmt.Println(`failed to write session to db`, err.Error())
+		return err
+	}
+	return nil
+}
+
+func countSessionSize() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		bc := &ByteCounter{}
+		c.Request.Body = io.NopCloser(io.TeeReader(c.Request.Body, bc))
+
+		c.Next()
+
+		c.Set("bytesIn", bc.Count)
+		session := c.MustGet("session").(*Session)
+		session.saveWithContext(c)
+	}
+}
+
 func putSession(c *gin.Context) {
 	session := new(Session)
 	if err := c.ShouldBindJSON(&session); err != nil {
@@ -118,13 +153,6 @@ func putSession(c *gin.Context) {
 		return
 	}
 
-	_, err := server.pgPool.Exec(context.Background(), `insert into sessions (id, event_count, timestamp) values ($1, $2, $3);`, session.SessionID, len(session.Events), time.Now())
-
-	if err != nil {
-		fmt.Println(`failed to write session to db`, err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": `failed to record the session`})
-		return
-	}
-
+	c.Set("session", session)
 	c.JSON(http.StatusAccepted, gin.H{"ok": "accepted"})
 }
