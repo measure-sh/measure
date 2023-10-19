@@ -56,7 +56,7 @@ export default function DashboardLayout({
                     <button className="m-4 mt-8 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200  border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4" onClick={() => router.push('/')}>Logout</button>
                 </nav>
             </aside>
-            <main className="flex-1">{children}</main>
+            <main>{children}</main>
         </div>
 
         {/* Side nav and main content layout on small screens */}
@@ -77,7 +77,7 @@ export default function DashboardLayout({
                     <button className="m-4 mt-8 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200  border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4" onClick={() => router.push('/')}>Logout</button>
                 </nav>
             </aside>
-            <main className="flex-1">{children}</main>
+            <main>{children}</main>
         </div>
       </div>
     );
