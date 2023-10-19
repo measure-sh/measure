@@ -1,5 +1,6 @@
 import Dropdown from "@/app/components/dropdown";
 import InfoCircleAppAdoption from "@/app/components/info_circle_app_adoption";
+import InfoCircleAppSize from "@/app/components/info_circle_app_size";
 import InfoCircleAppStartTime from "@/app/components/info_circle_app_start_time";
 import InfoCircleExceptionRate from "@/app/components/info_circle_exception_rate";
 import UserFlow from "@/app/components/user_flow";
@@ -32,6 +33,7 @@ export default function Overview() {
       <div className="py-8"/>
       <div className="flex flex-wrap gap-x-32 gap-y-16 items-center">
         <InfoCircleAppAdoption title="App adoption" value={20} users={40000} totalUsers={200000}/>
+        <InfoCircleAppSize title="App size" value={20} delta={3.18}/>
         <InfoCircleExceptionRate title="Crash free users" tooltipMsgLine1="Crash free users = (1 - Users who experienced a crash in selected app version / Total users of selected app version) * 100" tooltipMsgLine2="Delta value = ((Crash free users for selected app version - Crash free users across all app versions) / Crash free users across all app versions) * 100" value={98.5} delta={0.73}/>
         <InfoCircleExceptionRate title="Perceived crash free users" tooltipMsgLine1="Perceived crash free users = (1 - Users who experienced a visible crash in selected app version / Total users of selected app version) * 100" tooltipMsgLine2="Delta value = ((Perceived crash free users in selected app version - Perceived crash free users across all app versions) / Perceived crash free users across all app versions) * 100" value={91.3} delta={-0.51}/>
         <InfoCircleExceptionRate title="Multiple crash free users" tooltipMsgLine1="Multiple crash free users = (1 - Users who experienced at least 2 crashes in selected app version / Total users of selected app version) * 100" tooltipMsgLine2="Delta value = ((Mulitple crash free users in selected app version - Multiple crash free users across all app versions) / Multiple crash free users across all app versions) * 100" value={76.37} delta={+0.62}/>
