@@ -13,7 +13,7 @@ export default function Overview() {
   const startDate = `${sevenDaysAgo.getFullYear()}-${(sevenDaysAgo.getMonth()+1).toString().padStart(2, '0')}-${sevenDaysAgo.getDate().toString().padStart(2, '0')}`;
 
   return (
-    <main className="flex flex-col selection:bg-yellow-200/75 items-start p-16">
+    <div className="flex flex-col selection:bg-yellow-200/75 items-start p-16">
       <div className="py-4"/>
       <p className="font-display font-regular text-black text-4xl max-w-6xl text-center">Overview</p>
       <div className="py-4"/>
@@ -44,6 +44,6 @@ export default function Overview() {
         <InfoCircleAppStartTime title="App warm launch time" launchType="Warm" value={600} delta={-1270}/>
         <InfoCircleAppStartTime title="App hot launch time" launchType="Hot" value={300} delta={-50}/>
       </div>
-    </main>
+    </div>
   )
 }
