@@ -24,6 +24,7 @@ type Attachment struct {
 	Extension string    `json:"extension"`
 	Blob      string    `json:"blob" binding:"required"`
 	Key       string    `json:"key"`
+	Location  string    `json:"location"`
 	Timestamp time.Time `json:"timestamp" binding:"required"`
 }
 
@@ -43,13 +44,16 @@ func (a *Attachment) validate() error {
 	return nil
 }
 
-func (a *Attachment) upload(s *Session) (*s3manager.UploadOutput, error) {
-	id := uuid.New()
-	ext := a.Extension
-	if ext == "" {
-		ext = "txt"
+func (a *Attachment) Prepare() Attachment {
+	a.ID = uuid.New()
+	if a.Extension == "" {
+		a.Extension = "txt"
 	}
-	key := fmt.Sprintf(`attachments/%s.%s`, id, ext)
+	a.Key = fmt.Sprintf(`attachments/%s.%s`, a.ID, a.Extension)
+	return *a
+}
+
+func (a *Attachment) upload(s *Session) (*s3manager.UploadOutput, error) {
 	b64Decoder := base64.NewDecoder(base64.StdEncoding, strings.NewReader(a.Blob))
 	awsConfig := &aws.Config{
 		Region:      aws.String(server.config.attachmentsBucketRegion),
@@ -59,7 +63,7 @@ func (a *Attachment) upload(s *Session) (*s3manager.UploadOutput, error) {
 	uploader := s3manager.NewUploader(awsSession)
 	result, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(server.config.attachmentsBucket),
-		Key:    aws.String(key),
+		Key:    aws.String(a.Key),
 		Body:   b64Decoder,
 		Metadata: map[string]*string{
 			"original_file_name": aws.String(a.Name),
@@ -71,10 +75,6 @@ func (a *Attachment) upload(s *Session) (*s3manager.UploadOutput, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	a.ID = id
-	a.Key = key
-	a.Extension = ext
 
 	return result, nil
 }

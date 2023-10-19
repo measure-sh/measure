@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -17,16 +18,6 @@ type Session struct {
 	Resource    Resource     `json:"resource" binding:"required"`
 	Events      []EventField `json:"events" binding:"required"`
 	Attachments []Attachment `json:"attachments"`
-}
-
-type ByteCounter struct {
-	Count int64
-}
-
-func (bc *ByteCounter) Write(p []byte) (int, error) {
-	n := len(p)
-	bc.Count += int64(n)
-	return n, nil
 }
 
 func (s *Session) validate() error {
@@ -101,12 +92,14 @@ func (s *Session) getObfuscatedEvents() []EventField {
 }
 
 func (s *Session) uploadAttachments() error {
-	for _, attachment := range s.Attachments {
-		uploadOutput, err := attachment.upload(s)
+	for i, a := range s.Attachments {
+		a = a.Prepare()
+		result, err := a.upload(s)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("upload output of %s, location is %s\n", attachment.Name, uploadOutput.Location)
+		a.Location = result.Location
+		s.Attachments[i] = a
 	}
 
 	return nil
@@ -114,35 +107,66 @@ func (s *Session) uploadAttachments() error {
 
 func (s *Session) saveWithContext(c *gin.Context) error {
 	bytesIn := c.MustGet("bytesIn")
-	_, err := server.pgPool.Exec(context.Background(), `insert into sessions (id, event_count, attachment_count, bytes_in, timestamp) values ($1, $2, $3, $4, $5);`, s.SessionID, len(s.Events), len(s.Attachments), bytesIn, time.Now())
+	tx, err := server.pgPool.Begin(context.Background())
+	if err != nil {
+		return err
+	}
 
+	defer tx.Rollback(context.Background())
+
+	_, err = tx.Exec(context.Background(), `insert into sessions (id, event_count, attachment_count, bytes_in, timestamp) values ($1, $2, $3, $4, $5);`, s.SessionID, len(s.Events), len(s.Attachments), bytesIn, time.Now())
 	if err != nil {
 		fmt.Println(`failed to write session to db`, err.Error())
+		return err
+	}
+
+	// if attachments are present, insert them first
+	if s.hasAttachments() {
+		sql := `insert into sessions_attachments (id, session_id, name, extension, type, key, location, timestamp) values `
+		var values [][]interface{}
+		for _, a := range s.Attachments {
+			values = append(values, []interface{}{a.ID, s.SessionID, a.Name, a.Extension, a.Type, a.Key, a.Location, a.Timestamp})
+		}
+		var args []interface{}
+		for i, row := range values {
+			if i > 0 {
+				sql += ", "
+			}
+			sql += "("
+			for j, value := range row {
+				if j > 0 {
+					sql += ", "
+				}
+				sql += "$" + strconv.Itoa(i*len(row)+j+1)
+				args = append(args, value)
+			}
+			sql += ")"
+		}
+
+		_, err := tx.Exec(context.Background(), sql, args...)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = tx.Commit(context.Background())
+	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func countSessionSize() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		bc := &ByteCounter{}
-		c.Request.Body = io.NopCloser(io.TeeReader(c.Request.Body, bc))
-
-		c.Next()
-
-		c.Set("bytesIn", bc.Count)
-		session := c.MustGet("session").(*Session)
-		session.saveWithContext(c)
-	}
-}
-
 func putSession(c *gin.Context) {
+	bc := &ByteCounter{}
+	c.Request.Body = io.NopCloser(io.TeeReader(c.Request.Body, bc))
 	session := new(Session)
 	if err := c.ShouldBindJSON(&session); err != nil {
 		fmt.Println("gin binding err:", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse session payload"})
 		return
 	}
+
+	c.Set("bytesIn", bc.Count)
 
 	var existing string
 	if err := server.pgPool.QueryRow(context.Background(), `select id from sessions where id = $1 limit 1;`, session.SessionID).Scan(&existing); err != nil {
@@ -185,7 +209,11 @@ func putSession(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	if err := session.saveWithContext(c); err != nil {
+		fmt.Println("failed to save session", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save session"})
+		return
+	}
 
-	c.Set("session", session)
 	c.JSON(http.StatusAccepted, gin.H{"ok": "accepted"})
 }
