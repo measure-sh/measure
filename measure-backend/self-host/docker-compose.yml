@@ -14,20 +14,18 @@ services:
     depends_on:
       - clickhouse
       - postgres
-      - symbolicator
+      - symbolicator-retrace
 
-  symbolicator:
+  symbolicator-retrace:
     build:
-      context: ../symbolicator
+      context: ../symbolicator-retrace
     ports:
       - "8181:8181"
     env_file:
-      - ../symbolicator/.env
-    volumes:
-      - symbolicator-volume:/data
+      - ../symbolicator-retrace/.env
     develop:
       watch:
-        - path: ../symbolicator
+        - path: ../symbolicator-retrace
           action: rebuild
 
   postgres:
@@ -53,4 +51,3 @@ services:
 volumes:
   clickhouse-volume:
   postgres-volume:
-  symbolicator-volume:
