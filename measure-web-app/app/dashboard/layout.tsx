@@ -38,7 +38,7 @@ export default function DashboardLayout({
 
     return (
       <div>
-        // Side nav and main content layout on normal+ size screens
+        {/* Side nav and main content layout on normal+ size screens */}
         <div className="hidden md:flex">
             <aside className="border-black border-r sticky top-0 h-screen">
                 <nav className="flex flex-col p-2 h-full w-60">
@@ -59,7 +59,7 @@ export default function DashboardLayout({
             <main className="flex-1">{children}</main>
         </div>
 
-        // Side nav and main content layout on small screens
+        {/* Side nav and main content layout on small screens */}
         <div className="flex flex-col md:hidden">
             <aside className="border-black border-r">
                 <nav className="flex flex-col p-2 h-full w-screen">
