@@ -31,7 +31,7 @@ export default function Overview() {
         <UserFlow/>
       </div>
       <div className="py-8"/>
-      <div className="flex flex-wrap gap-x-32 gap-y-16 items-center">
+      <div className="flex flex-wrap  gap-x-16 md:gap-x-32 gap-y-16 items-center">
         <InfoCircleAppAdoption title="App adoption" value={20} users={40000} totalUsers={200000}/>
         <InfoCircleAppSize title="App size" value={20} delta={3.18}/>
         <InfoCircleExceptionRate title="Crash free users" tooltipMsgLine1="Crash free users = (1 - Users who experienced a crash in selected app version / Total users of selected app version) * 100" tooltipMsgLine2="Delta value = ((Crash free users for selected app version - Crash free users across all app versions) / Crash free users across all app versions) * 100" value={98.5} delta={0.73}/>
