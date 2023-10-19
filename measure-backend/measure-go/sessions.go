@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 type Session struct {
@@ -157,6 +159,17 @@ func (s *Session) saveWithContext(c *gin.Context) error {
 	return nil
 }
 
+func (s *Session) known(id uuid.UUID) (bool, error) {
+	var known string
+	if err := server.pgPool.QueryRow(context.Background(), `select id from sessions where id = $1;`, s.SessionID).Scan(&known); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
 func putSession(c *gin.Context) {
 	bc := &ByteCounter{}
 	c.Request.Body = io.NopCloser(io.TeeReader(c.Request.Body, bc))
@@ -169,16 +182,11 @@ func putSession(c *gin.Context) {
 
 	c.Set("bytesIn", bc.Count)
 
-	var existing string
-	if err := server.pgPool.QueryRow(context.Background(), `select id from sessions where id = $1 limit 1;`, session.SessionID).Scan(&existing); err != nil {
-		if err.Error() != "no rows in result set" {
-			fmt.Println(err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-	}
-
-	if existing == session.SessionID.String() {
+	if known, err := session.known(session.SessionID); err != nil {
+		fmt.Println("failed to check existing session", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to ingest session"})
+		return
+	} else if known {
 		c.JSON(http.StatusAccepted, gin.H{"ok": "accepted, known session"})
 		return
 	}
