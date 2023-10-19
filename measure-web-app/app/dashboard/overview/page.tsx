@@ -38,7 +38,9 @@ export default function Overview() {
         <InfoCircleExceptionRate title="ANR free users" tooltipMsgLine1="ANR free users = (1 - Users who experienced an ANR in selected app version / Total users of selected app version) * 100" tooltipMsgLine2="Delta value = ((ANR free users in selected app version - ANR free users across all app versions) / ANR free users across all app versions) * 100" value={98.5} delta={0.73}/>
         <InfoCircleExceptionRate title="Perceived ANR free users" tooltipMsgLine1="Perceived ANR free users = (1 - Users who experienced a visible ANR in selected app version / Total users of selected app version) * 100" tooltipMsgLine2="Delta value = ((Perceived ANR free users in selected app version - Perceived ANR free users across all app versions) / Perceived ANR free users across all app versions) * 100" value={91.3} delta={0.27}/>
         <InfoCircleExceptionRate title="Multiple ANR free users" tooltipMsgLine1="Multiple ANR free users = (1 - Users who experienced at least 2 ANRs in selected app version / Total users of selected app version) * 100" tooltipMsgLine2="Delta value = ((Mulitple ANR free users in selected app version - Multiple ANR free users across all app versions) / Multiple ANR free users across all app versions) * 100" value={97.88} delta={-3.13}/>
-        <InfoCircleAppStartTime title="App start time" value={700} delta={-200}/>
+        <InfoCircleAppStartTime title="App cold launch time" launchType="Cold" value={900} delta={-200}/>
+        <InfoCircleAppStartTime title="App warm launch time" launchType="Warm" value={600} delta={-1270}/>
+        <InfoCircleAppStartTime title="App hot launch time" launchType="Hot" value={300} delta={-50}/>
       </div>
     </main>
   )
