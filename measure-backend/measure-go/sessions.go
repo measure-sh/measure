@@ -114,13 +114,14 @@ func (s *Session) saveWithContext(c *gin.Context) error {
 
 	defer tx.Rollback(context.Background())
 
+	// insert the session
 	_, err = tx.Exec(context.Background(), `insert into sessions (id, event_count, attachment_count, bytes_in, timestamp) values ($1, $2, $3, $4, $5);`, s.SessionID, len(s.Events), len(s.Attachments), bytesIn, time.Now())
 	if err != nil {
 		fmt.Println(`failed to write session to db`, err.Error())
 		return err
 	}
 
-	// if attachments are present, insert them first
+	// if attachments are present, insert them
 	if s.hasAttachments() {
 		sql := `insert into sessions_attachments (id, session_id, name, extension, type, key, location, timestamp) values `
 		var values [][]interface{}
