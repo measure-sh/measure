@@ -28,13 +28,17 @@ type ClickhouseConfig struct {
 }
 
 type ServerConfig struct {
-	pg                     PostgresConfig
-	ch                     ClickhouseConfig
-	mappingFileMaxSize     uint64
-	symbolsBucket          string
-	symbolsBucketRegion    string
-	symbolsAccessKey       string
-	symbolsSecretAccessKey string
+	pg                         PostgresConfig
+	ch                         ClickhouseConfig
+	mappingFileMaxSize         uint64
+	symbolsBucket              string
+	symbolsBucketRegion        string
+	symbolsAccessKey           string
+	symbolsSecretAccessKey     string
+	attachmentsBucket          string
+	attachmentsBucketRegion    string
+	attachmentsAccessKey       string
+	attachmentsSecretAccessKey string
 }
 
 func NewServerConfig() *ServerConfig {
@@ -64,6 +68,26 @@ func NewServerConfig() *ServerConfig {
 		log.Println("SYMBOLS_SECRET_ACCESS_KEY env var not set, mapping file uploads won't work")
 	}
 
+	attachmentsBucket := os.Getenv("ATTACHMENTS_S3_BUCKET")
+	if attachmentsBucket == "" {
+		log.Println("ATTACHMENTS_S3_BUCKET env var not set, session attachment uploads won't work")
+	}
+
+	attachmentsBucketRegion := os.Getenv("ATTACHMENTS_S3_BUCKET_REGION")
+	if attachmentsBucketRegion == "" {
+		log.Println("ATTACHMENTS_S3_BUCKET_REGION env var not set, session attachment uploads won't work")
+	}
+
+	attachmentsAccessKey := os.Getenv("ATTACHMENTS_ACCESS_KEY")
+	if attachmentsAccessKey == "" {
+		log.Println("ATTACHMENTS_ACCESS_KEY env var not set, session attachment uploads won't work")
+	}
+
+	attachmentsSecretAccessKey := os.Getenv("ATTACHMENTS_SECRET_ACCESS_KEY")
+	if attachmentsSecretAccessKey == "" {
+		log.Println("ATTACHMENTS_SECRET_ACCESS_KEY env var not set, session attachment uploads won't work")
+	}
+
 	return &ServerConfig{
 		pg: PostgresConfig{
 			dsn: "postgresql://postgres:postgres@localhost:5432/default",
@@ -71,11 +95,15 @@ func NewServerConfig() *ServerConfig {
 		ch: ClickhouseConfig{
 			dsn: "clickhouse://default:@127.0.0.1:9000/default",
 		},
-		mappingFileMaxSize:     mappingFileMaxSize,
-		symbolsBucket:          symbolsBucket,
-		symbolsBucketRegion:    symbolsBucketRegion,
-		symbolsAccessKey:       symbolsAccessKey,
-		symbolsSecretAccessKey: symbolsSecretAccessKey,
+		mappingFileMaxSize:         mappingFileMaxSize,
+		symbolsBucket:              symbolsBucket,
+		symbolsBucketRegion:        symbolsBucketRegion,
+		symbolsAccessKey:           symbolsAccessKey,
+		symbolsSecretAccessKey:     symbolsSecretAccessKey,
+		attachmentsBucket:          attachmentsBucket,
+		attachmentsBucketRegion:    attachmentsBucketRegion,
+		attachmentsAccessKey:       attachmentsAccessKey,
+		attachmentsSecretAccessKey: attachmentsSecretAccessKey,
 	}
 }
 

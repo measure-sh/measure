@@ -2,30 +2,24 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 type Session struct {
-	SessionID uuid.UUID    `json:"session_id" binding:"required"`
-	Timestamp time.Time    `json:"timestamp" binding:"required"`
-	Resource  Resource     `json:"resource" binding:"required"`
-	Events    []EventField `json:"events" binding:"required"`
-}
-
-type ByteCounter struct {
-	Count int64
-}
-
-func (bc *ByteCounter) Write(p []byte) (int, error) {
-	n := len(p)
-	bc.Count += int64(n)
-	return n, nil
+	SessionID   uuid.UUID    `json:"session_id" binding:"required"`
+	Timestamp   time.Time    `json:"timestamp" binding:"required"`
+	Resource    Resource     `json:"resource" binding:"required"`
+	Events      []EventField `json:"events" binding:"required"`
+	Attachments []Attachment `json:"attachments"`
 }
 
 func (s *Session) validate() error {
@@ -34,9 +28,17 @@ func (s *Session) validate() error {
 	}
 
 	for _, event := range s.Events {
-		err := event.validate()
-		if err != nil {
+		if err := event.validate(); err != nil {
 			return err
+		}
+
+	}
+
+	if s.hasAttachments() {
+		for _, attachment := range s.Attachments {
+			if err := attachment.validate(); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -70,6 +72,10 @@ func (s *Session) hasAppExits() bool {
 	return false
 }
 
+func (s *Session) hasAttachments() bool {
+	return len(s.Attachments) > 0
+}
+
 func (s *Session) needsSymbolication() bool {
 	if s.hasExceptions() || s.hasANRs() || s.hasAppExits() {
 		return true
@@ -87,31 +93,86 @@ func (s *Session) getObfuscatedEvents() []EventField {
 	return obfuscatedEvents
 }
 
+func (s *Session) uploadAttachments() error {
+	for i, a := range s.Attachments {
+		a = a.Prepare()
+		result, err := a.upload(s)
+		if err != nil {
+			return err
+		}
+		a.Location = result.Location
+		s.Attachments[i] = a
+	}
+
+	return nil
+}
+
 func (s *Session) saveWithContext(c *gin.Context) error {
 	bytesIn := c.MustGet("bytesIn")
-	_, err := server.pgPool.Exec(context.Background(), `insert into sessions (id, event_count, bytes_in, timestamp) values ($1, $2, $3, $4);`, s.SessionID, len(s.Events), bytesIn, time.Now())
+	tx, err := server.pgPool.Begin(context.Background())
+	if err != nil {
+		return err
+	}
 
+	defer tx.Rollback(context.Background())
+
+	// insert the session
+	_, err = tx.Exec(context.Background(), `insert into sessions (id, event_count, attachment_count, bytes_in, timestamp) values ($1, $2, $3, $4, $5);`, s.SessionID, len(s.Events), len(s.Attachments), bytesIn, time.Now())
 	if err != nil {
 		fmt.Println(`failed to write session to db`, err.Error())
+		return err
+	}
+
+	// if attachments are present, insert them
+	if s.hasAttachments() {
+		sql := `insert into sessions_attachments (id, session_id, name, extension, type, key, location, timestamp) values `
+		var values [][]interface{}
+		for _, a := range s.Attachments {
+			values = append(values, []interface{}{a.ID, s.SessionID, a.Name, a.Extension, a.Type, a.Key, a.Location, a.Timestamp})
+		}
+		var args []interface{}
+		for i, row := range values {
+			if i > 0 {
+				sql += ", "
+			}
+			sql += "("
+			for j, value := range row {
+				if j > 0 {
+					sql += ", "
+				}
+				sql += "$" + strconv.Itoa(i*len(row)+j+1)
+				args = append(args, value)
+			}
+			sql += ")"
+		}
+
+		_, err := tx.Exec(context.Background(), sql, args...)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = tx.Commit(context.Background())
+	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func countSessionSize() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		bc := &ByteCounter{}
-		c.Request.Body = io.NopCloser(io.TeeReader(c.Request.Body, bc))
-
-		c.Next()
-
-		c.Set("bytesIn", bc.Count)
-		session := c.MustGet("session").(*Session)
-		session.saveWithContext(c)
+func (s *Session) known(id uuid.UUID) (bool, error) {
+	var known string
+	if err := server.pgPool.QueryRow(context.Background(), `select id from sessions where id = $1;`, s.SessionID).Scan(&known); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
 	}
+	return true, nil
 }
 
 func putSession(c *gin.Context) {
+	bc := &ByteCounter{}
+	c.Request.Body = io.NopCloser(io.TeeReader(c.Request.Body, bc))
 	session := new(Session)
 	if err := c.ShouldBindJSON(&session); err != nil {
 		fmt.Println("gin binding err:", err)
@@ -119,16 +180,13 @@ func putSession(c *gin.Context) {
 		return
 	}
 
-	var existing string
-	if err := server.pgPool.QueryRow(context.Background(), `select id from sessions where id = $1 limit 1;`, session.SessionID).Scan(&existing); err != nil {
-		if err.Error() != "no rows in result set" {
-			fmt.Println(err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-	}
+	c.Set("bytesIn", bc.Count)
 
-	if existing == session.SessionID.String() {
+	if known, err := session.known(session.SessionID); err != nil {
+		fmt.Println("failed to check existing session", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to ingest session"})
+		return
+	} else if known {
 		c.JSON(http.StatusAccepted, gin.H{"ok": "accepted, known session"})
 		return
 	}
@@ -146,13 +204,25 @@ func putSession(c *gin.Context) {
 		}
 	}
 
+	if session.hasAttachments() {
+		if err := session.uploadAttachments(); err != nil {
+			fmt.Println("error uploading attachment", err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload attachment(s)"})
+			return
+		}
+	}
+
 	query, args := makeInsertQuery("events_test_2", columns, session)
 	if err := server.chPool.AsyncInsert(context.Background(), query, false, args...); err != nil {
 		fmt.Println("clickhouse insert err:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	if err := session.saveWithContext(c); err != nil {
+		fmt.Println("failed to save session", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save session"})
+		return
+	}
 
-	c.Set("session", session)
 	c.JSON(http.StatusAccepted, gin.H{"ok": "accepted"})
 }
