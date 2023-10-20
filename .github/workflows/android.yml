@@ -1,12 +1,14 @@
 name: Android CI
 
 on:
+  pull_request:
+    paths:
+      - 'measure-android/**'
   push:
-    pull_request:
-      branches:
-        - main
-      paths:
-        - 'measure-android/**'
+    branches:
+      - 'main'
+    paths:
+      - 'measure-android/**'
 
 env:
   JAVA_VERSION: 17
