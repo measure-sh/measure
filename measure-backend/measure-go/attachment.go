@@ -49,7 +49,7 @@ func (a *Attachment) Prepare() Attachment {
 	if a.Extension == "" {
 		a.Extension = "txt"
 	}
-	a.Key = fmt.Sprintf(`attachments/%s.%s`, a.ID, a.Extension)
+	a.Key = fmt.Sprintf(`%s/%s.%s`, a.Type, a.ID, a.Extension)
 	return *a
 }
 
