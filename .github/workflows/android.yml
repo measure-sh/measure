@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - 'main'
-      - 'fix-android-ci'
     paths:
       - 'measure-android/**'
 
