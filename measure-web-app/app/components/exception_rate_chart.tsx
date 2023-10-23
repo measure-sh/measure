@@ -155,7 +155,7 @@ const ExceptionRateChart = () => {
     return (
       <ResponsiveLine
         data={data}
-        margin={{ top: 80, right: 120, bottom: 80, left: 120 }}
+        margin={{ top: 40, right: 160, bottom: 80, left: 120 }}
         xFormat="time:%Y-%m-%d"
         xScale={{
           format: '%Y-%m-%d',

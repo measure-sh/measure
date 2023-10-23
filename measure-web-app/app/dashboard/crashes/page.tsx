@@ -29,7 +29,7 @@ export default function Overview() {
         <CheckboxDropdown title="App versions" items={['Version 13.2.1', 'Version 13.2.2','Version 13.3.7']}/>
       </div>
       <div className="py-8"/>
-      <div className="border border-black text-black font-sans text-sm w-full h-[40rem]">
+      <div className="border border-black text-black font-sans text-sm w-full h-[30rem]">
         <ExceptionRateChart/>
       </div>
       <div className="py-8"/>
