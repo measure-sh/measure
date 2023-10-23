@@ -8,4 +8,6 @@ object EventType {
     const val CLICK: String = "gesture_click"
     const val LONG_CLICK: String = "gesture_long_click"
     const val SCROLL: String = "gesture_scroll"
+    const val LIFECYCLE_ACTIVITY: String = "lifecycle_activity"
+    const val LIFECYCLE_FRAGMENT: String = "lifecycle_fragment"
 }

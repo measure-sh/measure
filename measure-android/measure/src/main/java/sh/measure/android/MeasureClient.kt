@@ -1,11 +1,13 @@
 package sh.measure.android
 
+import android.app.Application
 import android.content.Context
 import sh.measure.android.anr.AnrCollector
 import sh.measure.android.events.EventTracker
 import sh.measure.android.exceptions.UnhandledExceptionCollector
 import sh.measure.android.gestures.GestureCollector
 import sh.measure.android.gestures.WindowInterceptor
+import sh.measure.android.lifecycle.LifecycleCollector
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.session.SessionController
@@ -48,6 +50,7 @@ internal class MeasureClient(
         UnhandledExceptionCollector(logger, eventTracker, timeProvider).register()
         AnrCollector(logger, context, timeProvider, eventTracker).register()
         GestureCollector(logger, eventTracker, windowInterceptor).register()
+        LifecycleCollector(context as Application, eventTracker, timeProvider).register()
         sessionController.syncSessions()
         sessionController.deleteSyncedSessions()
     }
