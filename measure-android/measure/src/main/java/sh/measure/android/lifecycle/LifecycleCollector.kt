@@ -2,31 +2,28 @@ package sh.measure.android.lifecycle
 
 import android.app.Activity
 import android.app.Application
-import android.content.Context
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
-import androidx.fragment.app.FragmentManager
 import sh.measure.android.events.EventTracker
 import sh.measure.android.utils.TimeProvider
+import sh.measure.android.utils.isClassAvailable
 import sh.measure.android.utils.iso8601Timestamp
 
 internal class LifecycleCollector(
     private val application: Application,
     private val eventTracker: EventTracker,
     private val timeProvider: TimeProvider
-) : ActivityLifecycleAdapter, FragmentLifecycleAdapter() {
+) : ActivityLifecycleAdapter {
+    private val fragmentLifecycleCollector by lazy {
+        FragmentLifecycleCollector(eventTracker, timeProvider)
+    }
 
     fun register() {
         application.registerActivityLifecycleCallbacks(this)
     }
 
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
-        if (savedInstanceState == null && activity is FragmentActivity) {
-            activity.supportFragmentManager.registerFragmentLifecycleCallbacks(
-                this, true
-            )
-        }
+        registerFragmentLifecycleCollector(activity)
         eventTracker.trackActivityLifecycleEvent(
             ActivityLifecycleEvent(
                 type = ActivityLifecycleName.CREATED,
@@ -36,6 +33,19 @@ internal class LifecycleCollector(
             )
         )
     }
+
+    private fun registerFragmentLifecycleCollector(
+        activity: Activity
+    ) {
+        if (isAndroidXFragmentAvailable() && activity is FragmentActivity) {
+            activity.supportFragmentManager.registerFragmentLifecycleCallbacks(
+                fragmentLifecycleCollector, true
+            )
+        }
+    }
+
+    private fun isAndroidXFragmentAvailable() =
+        isClassAvailable("androidx.fragment.app.FragmentActivity")
 
     override fun onActivityResumed(activity: Activity) {
         eventTracker.trackActivityLifecycleEvent(
@@ -65,52 +75,10 @@ internal class LifecycleCollector(
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
             )
         )
-        if (activity is FragmentActivity) {
-            activity.supportFragmentManager.unregisterFragmentLifecycleCallbacks(this)
+        if (isAndroidXFragmentAvailable() && activity is FragmentActivity) {
+            activity.supportFragmentManager.unregisterFragmentLifecycleCallbacks(
+                fragmentLifecycleCollector
+            )
         }
-    }
-
-    override fun onFragmentAttached(fm: FragmentManager, f: Fragment, context: Context) {
-        eventTracker.trackFragmentLifecycleEvent(
-            FragmentLifecycleEvent(
-                type = FragmentLifecycleName.ATTACHED,
-                parent_activity = f.activity?.javaClass?.name,
-                class_name = f.javaClass.name,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-            )
-        )
-    }
-
-    override fun onFragmentResumed(fm: FragmentManager, f: Fragment) {
-        eventTracker.trackFragmentLifecycleEvent(
-            FragmentLifecycleEvent(
-                type = FragmentLifecycleName.RESUMED,
-                parent_activity = f.activity?.javaClass?.name,
-                class_name = f.javaClass.name,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-            )
-        )
-    }
-
-    override fun onFragmentPaused(fm: FragmentManager, f: Fragment) {
-        eventTracker.trackFragmentLifecycleEvent(
-            FragmentLifecycleEvent(
-                type = FragmentLifecycleName.PAUSED,
-                parent_activity = f.activity?.javaClass?.name,
-                class_name = f.javaClass.name,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-            )
-        )
-    }
-
-    override fun onFragmentDetached(fm: FragmentManager, f: Fragment) {
-        eventTracker.trackFragmentLifecycleEvent(
-            FragmentLifecycleEvent(
-                type = FragmentLifecycleName.DETACHED,
-                parent_activity = f.activity?.javaClass?.name,
-                class_name = f.javaClass.name,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-            )
-        )
     }
 }

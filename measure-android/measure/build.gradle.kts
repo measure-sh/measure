@@ -63,7 +63,7 @@ android {
 }
 
 dependencies {
-    implementation("androidx.fragment:fragment-ktx:1.2.5")
+    compileOnly("androidx.fragment:fragment-ktx:1.2.5")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
 
     implementation("androidx.annotation:annotation:1.7.0")

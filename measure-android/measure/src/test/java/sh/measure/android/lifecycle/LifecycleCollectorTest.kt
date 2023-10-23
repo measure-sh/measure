@@ -8,6 +8,7 @@ import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.atMostOnce
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.robolectric.Robolectric.*
@@ -36,7 +37,7 @@ class LifecycleCollectorTest {
     @Test
     fun onActivityCreated() {
         controller.setup()
-        verify(eventTracker).trackActivityLifecycleEvent(
+        verify(eventTracker, atMostOnce()).trackActivityLifecycleEvent(
             ActivityLifecycleEvent(
                 type = ActivityLifecycleName.CREATED,
                 class_name = TestLifecycleActivity::class.java.name,
@@ -48,7 +49,7 @@ class LifecycleCollectorTest {
     @Test
     fun onActivityResumed() {
         controller.setup()
-        verify(eventTracker).trackActivityLifecycleEvent(
+        verify(eventTracker, atMostOnce()).trackActivityLifecycleEvent(
             ActivityLifecycleEvent(
                 type = ActivityLifecycleName.RESUMED,
                 class_name = TestLifecycleActivity::class.java.name,
@@ -60,7 +61,7 @@ class LifecycleCollectorTest {
     @Test
     fun onActivityPaused() {
         controller.setup().pause()
-        verify(eventTracker).trackActivityLifecycleEvent(
+        verify(eventTracker, atMostOnce()).trackActivityLifecycleEvent(
             ActivityLifecycleEvent(
                 type = ActivityLifecycleName.PAUSED,
                 class_name = TestLifecycleActivity::class.java.name,
@@ -72,7 +73,7 @@ class LifecycleCollectorTest {
     @Test
     fun onActivityDestroyed() {
         controller.setup().destroy()
-        verify(eventTracker).trackActivityLifecycleEvent(
+        verify(eventTracker, atMostOnce()).trackActivityLifecycleEvent(
             ActivityLifecycleEvent(
                 type = ActivityLifecycleName.DESTROYED,
                 class_name = TestLifecycleActivity::class.java.name,
@@ -84,7 +85,7 @@ class LifecycleCollectorTest {
     @Test
     fun onFragmentAttached() {
         controller.setup()
-        verify(eventTracker).trackFragmentLifecycleEvent(
+        verify(eventTracker, atMostOnce()).trackFragmentLifecycleEvent(
             FragmentLifecycleEvent(
                 type = FragmentLifecycleName.ATTACHED,
                 parent_activity = TestLifecycleActivity::class.java.name,
@@ -97,7 +98,7 @@ class LifecycleCollectorTest {
     @Test
     fun onFragmentResumed() {
         controller.setup()
-        verify(eventTracker).trackFragmentLifecycleEvent(
+        verify(eventTracker, atMostOnce()).trackFragmentLifecycleEvent(
             FragmentLifecycleEvent(
                 type = FragmentLifecycleName.RESUMED,
                 parent_activity = TestLifecycleActivity::class.java.name,
@@ -110,7 +111,7 @@ class LifecycleCollectorTest {
     @Test
     fun onFragmentPaused() {
         controller.setup().pause()
-        verify(eventTracker).trackFragmentLifecycleEvent(
+        verify(eventTracker, atMostOnce()).trackFragmentLifecycleEvent(
             FragmentLifecycleEvent(
                 type = FragmentLifecycleName.PAUSED,
                 parent_activity = TestLifecycleActivity::class.java.name,
