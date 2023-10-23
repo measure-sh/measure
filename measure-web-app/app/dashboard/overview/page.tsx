@@ -13,7 +13,7 @@ export default function Overview() {
   const startDate = `${sevenDaysAgo.getFullYear()}-${(sevenDaysAgo.getMonth()+1).toString().padStart(2, '0')}-${sevenDaysAgo.getDate().toString().padStart(2, '0')}`;
 
   return (
-    <div className="flex flex-col selection:bg-yellow-200/75 items-start p-16">
+    <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
       <div className="py-4"/>
       <p className="font-display font-regular text-black text-4xl max-w-6xl text-center">Overview</p>
       <div className="py-4"/>
@@ -27,11 +27,11 @@ export default function Overview() {
         <Dropdown items={['Version 13.2.1', 'Version 13.2.2','Version 13.3.7']}/>
       </div>
       <div className="py-8"/>
-      <div className="border border-black text-black font-sans text-sm w-full h-screen">
+      <div className="border border-black text-black font-sans text-sm w-5/6 h-screen">
         <UserFlow/>
       </div>
       <div className="py-8"/>
-      <div className="flex flex-wrap  gap-x-16 md:gap-x-32 gap-y-16">
+      <div className="flex flex-wrap gap-16 w-5/6">
         <InfoCircleAppAdoption title="App adoption" value={20} users={40000} totalUsers={200000}/>
         <InfoCircleAppSize title="App size" value={20} delta={3.18}/>
         <InfoCircleExceptionRate title="Crash free users" tooltipMsgLine1="Crash free users = (1 - Users who experienced a crash in selected app version / Total users of selected app version) * 100" tooltipMsgLine2="Delta value = ((Crash free users for selected app version - Crash free users across all app versions) / Crash free users across all app versions) * 100" value={98.5} delta={0.73}/>
