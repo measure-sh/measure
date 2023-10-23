@@ -34,9 +34,7 @@ internal class LifecycleCollector(
         )
     }
 
-    private fun registerFragmentLifecycleCollector(
-        activity: Activity
-    ) {
+    private fun registerFragmentLifecycleCollector(activity: Activity) {
         if (isAndroidXFragmentAvailable() && activity is FragmentActivity) {
             activity.supportFragmentManager.registerFragmentLifecycleCallbacks(
                 fragmentLifecycleCollector, true
