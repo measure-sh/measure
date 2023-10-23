@@ -19,7 +19,7 @@ export default function Overview() {
       <div className="py-4"/>
       <p className="font-display font-regular text-black text-4xl max-w-6xl text-center">Crashes</p>
       <div className="py-4"/>
-      <div className="flex flex-wrap gap-x-16 gap-y-4 items-center">
+      <div className="flex flex-wrap gap-8 items-center w-5/6">
         <Dropdown items={['Readly prod', 'Readly alpha','Readly debug']}/>
         <div className="flex flex-row items-center">
           <input type="date" value={startDate} className="font-display text-black border border-black rounded-md p-2"/>
@@ -27,9 +27,17 @@ export default function Overview() {
           <input type="date" value={endDate} className="font-display text-black border border-black rounded-md p-2"/>
         </div>
         <CheckboxDropdown title="App versions" items={['Version 13.2.1', 'Version 13.2.2','Version 13.3.7']}/>
+        <CheckboxDropdown title="Country" items={['India', 'China','USA']}/>
+        <CheckboxDropdown title="Network provider" items={['Airtel', 'Jio','Vodafone']}/>
+        <CheckboxDropdown title="Network type" items={['Wifi', '2G','3G', '4G', '5G']}/>
+        <div>
+          <p className="font-sans text-black"> Free search: Search by any string such as User ID, Crash string, Device name etc</p>
+          <div className="py-1"/>
+          <input id="search-string" type="text" placeholder="Enter search string" className="w-full border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400"/>
+        </div>
       </div>
-      <div className="py-8"/>
-      <div className="border border-black text-black font-sans text-sm w-full h-[36rem]">
+      <div className="py-6"/>
+      <div className="border border-black text-black font-sans text-sm w-5/6 h-[36rem]">
         <ExceptionRateChart/>
       </div>
       <div className="py-8"/>
