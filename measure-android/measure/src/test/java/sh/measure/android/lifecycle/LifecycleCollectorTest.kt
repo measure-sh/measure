@@ -35,7 +35,7 @@ class LifecycleCollectorTest {
     }
 
     @Test
-    fun onActivityCreated() {
+    fun `tracks activity onCreate event`() {
         controller.setup()
         verify(eventTracker, atMostOnce()).trackActivityLifecycleEvent(
             ActivityLifecycleEvent(
@@ -47,7 +47,27 @@ class LifecycleCollectorTest {
     }
 
     @Test
-    fun onActivityResumed() {
+    fun `tracks activity onCreate event with savedInstanceState when activity is recreated`() {
+        controller.setup().recreate()
+        verify(eventTracker).trackActivityLifecycleEvent(
+            ActivityLifecycleEvent(
+                type = ActivityLifecycleName.CREATED,
+                class_name = TestLifecycleActivity::class.java.name,
+                timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+            )
+        )
+        verify(eventTracker).trackActivityLifecycleEvent(
+            ActivityLifecycleEvent(
+                type = ActivityLifecycleName.CREATED,
+                class_name = TestLifecycleActivity::class.java.name,
+                saved_instance_state = true,
+                timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+            )
+        )
+    }
+
+    @Test
+    fun `tracks activity onResume`() {
         controller.setup()
         verify(eventTracker, atMostOnce()).trackActivityLifecycleEvent(
             ActivityLifecycleEvent(
@@ -59,7 +79,7 @@ class LifecycleCollectorTest {
     }
 
     @Test
-    fun onActivityPaused() {
+    fun `tracks activity onPause`() {
         controller.setup().pause()
         verify(eventTracker, atMostOnce()).trackActivityLifecycleEvent(
             ActivityLifecycleEvent(
@@ -71,7 +91,7 @@ class LifecycleCollectorTest {
     }
 
     @Test
-    fun onActivityDestroyed() {
+    fun `tracks activity onDestroy`() {
         controller.setup().destroy()
         verify(eventTracker, atMostOnce()).trackActivityLifecycleEvent(
             ActivityLifecycleEvent(
@@ -83,7 +103,7 @@ class LifecycleCollectorTest {
     }
 
     @Test
-    fun onFragmentAttached() {
+    fun `tracks fragment onAttached`() {
         controller.setup()
         verify(eventTracker, atMostOnce()).trackFragmentLifecycleEvent(
             FragmentLifecycleEvent(
@@ -96,7 +116,7 @@ class LifecycleCollectorTest {
     }
 
     @Test
-    fun onFragmentResumed() {
+    fun `tracks fragment onResumed`() {
         controller.setup()
         verify(eventTracker, atMostOnce()).trackFragmentLifecycleEvent(
             FragmentLifecycleEvent(
@@ -109,7 +129,7 @@ class LifecycleCollectorTest {
     }
 
     @Test
-    fun onFragmentPaused() {
+    fun `tracks fragment onPaused`() {
         controller.setup().pause()
         verify(eventTracker, atMostOnce()).trackFragmentLifecycleEvent(
             FragmentLifecycleEvent(
@@ -123,7 +143,7 @@ class LifecycleCollectorTest {
 
     @Test
     @Ignore("onDetached seems to not get called in tests")
-    fun onFragmentDetached() {
+    fun `tracks fragment onDetached`() {
     }
 }
 

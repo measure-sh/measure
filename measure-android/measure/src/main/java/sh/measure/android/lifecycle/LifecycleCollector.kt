@@ -29,6 +29,7 @@ internal class LifecycleCollector(
                 type = ActivityLifecycleName.CREATED,
                 class_name = activity.javaClass.name,
                 intent = activity.intent.dataString,
+                saved_instance_state = savedInstanceState != null,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
             )
         )

@@ -11,6 +11,7 @@ data class ActivityLifecycleEvent(
     val type: String,
     val class_name: String,
     val intent: String? = null,
+    val saved_instance_state: Boolean = false,
     @Transient val timestamp: String = "",
 ) {
     fun toEvent(): Event {
