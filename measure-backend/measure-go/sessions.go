@@ -175,8 +175,6 @@ func (s *Session) getMappingKey() (string, error) {
 func (s *Session) EncodeForSymbolication() (CodecMap, []SymbolicationUnit) {
 	var symbolicationUnits []SymbolicationUnit
 	codecMap := make(CodecMap)
-	framePrefix := "\tat "
-	genericPrefix := ": "
 
 	for eventIdx, event := range s.Events {
 		if event.isException() {
@@ -184,29 +182,29 @@ func (s *Session) EncodeForSymbolication() (CodecMap, []SymbolicationUnit) {
 				if len(ex.Frames) > 0 {
 					idException := uuid.New()
 					unitEx := NewCodecMapVal()
-					unitEx.Type = "exception"
+					unitEx.Type = TypeException
 					unitEx.Event = eventIdx
 					unitEx.Exception = exceptionIdx
-					unitEx.Frames = "swap"
+					unitEx.Frames = TransformSwap
 					codecMap[idException] = *unitEx
 					su := new(SymbolicationUnit)
 					su.ID = idException
 					for _, frame := range ex.Frames {
-						su.Values = append(su.Values, MarshalRetraceFrame(frame, framePrefix))
+						su.Values = append(su.Values, MarshalRetraceFrame(frame, FramePrefix))
 					}
 					symbolicationUnits = append(symbolicationUnits, *su)
 				}
 				if len(ex.Type) > 0 {
 					idExceptionType := uuid.New()
 					unitExType := NewCodecMapVal()
-					unitExType.Type = "exception"
+					unitExType.Type = TypeException
 					unitExType.Event = eventIdx
 					unitExType.Exception = exceptionIdx
-					unitExType.ExceptionType = "swap"
+					unitExType.ExceptionType = TransformSwap
 					codecMap[idExceptionType] = *unitExType
 					su := new(SymbolicationUnit)
 					su.ID = idExceptionType
-					su.Values = []string{genericPrefix + ex.Type}
+					su.Values = []string{GenericPrefix + ex.Type}
 					symbolicationUnits = append(symbolicationUnits, *su)
 				}
 			}
@@ -214,15 +212,15 @@ func (s *Session) EncodeForSymbolication() (CodecMap, []SymbolicationUnit) {
 				if len(ex.Frames) > 0 {
 					idThread := uuid.New()
 					unitTh := NewCodecMapVal()
-					unitTh.Type = "exception"
+					unitTh.Type = TypeException
 					unitTh.Event = eventIdx
 					unitTh.Thread = threadIdx
-					unitTh.Frames = "swap"
+					unitTh.Frames = TransformSwap
 					codecMap[idThread] = *unitTh
 					su := new(SymbolicationUnit)
 					su.ID = idThread
 					for _, frame := range ex.Frames {
-						su.Values = append(su.Values, MarshalRetraceFrame(frame, framePrefix))
+						su.Values = append(su.Values, MarshalRetraceFrame(frame, FramePrefix))
 					}
 					symbolicationUnits = append(symbolicationUnits, *su)
 				}
@@ -234,29 +232,29 @@ func (s *Session) EncodeForSymbolication() (CodecMap, []SymbolicationUnit) {
 				if len(ex.Frames) > 0 {
 					idException := uuid.New()
 					unitEx := NewCodecMapVal()
-					unitEx.Type = "anr"
+					unitEx.Type = TypeANR
 					unitEx.Event = eventIdx
 					unitEx.Exception = exceptionIdx
-					unitEx.Frames = "swap"
+					unitEx.Frames = TransformSwap
 					codecMap[idException] = *unitEx
 					su := new(SymbolicationUnit)
 					su.ID = idException
 					for _, frame := range ex.Frames {
-						su.Values = append(su.Values, MarshalRetraceFrame(frame, framePrefix))
+						su.Values = append(su.Values, MarshalRetraceFrame(frame, FramePrefix))
 					}
 					symbolicationUnits = append(symbolicationUnits, *su)
 				}
 				if len(ex.Type) > 0 {
 					idExceptionType := uuid.New()
 					unitExType := NewCodecMapVal()
-					unitExType.Type = "anr"
+					unitExType.Type = TypeANR
 					unitExType.Event = eventIdx
 					unitExType.Exception = exceptionIdx
-					unitExType.ExceptionType = "swap"
+					unitExType.ExceptionType = TransformSwap
 					codecMap[idExceptionType] = *unitExType
 					su := new(SymbolicationUnit)
 					su.ID = idExceptionType
-					su.Values = []string{genericPrefix + ex.Type}
+					su.Values = []string{GenericPrefix + ex.Type}
 					symbolicationUnits = append(symbolicationUnits, *su)
 				}
 			}
@@ -264,15 +262,15 @@ func (s *Session) EncodeForSymbolication() (CodecMap, []SymbolicationUnit) {
 				if len(ex.Frames) > 0 {
 					idThread := uuid.New()
 					unitTh := NewCodecMapVal()
-					unitTh.Type = "anr"
+					unitTh.Type = TypeANR
 					unitTh.Event = eventIdx
 					unitTh.Thread = threadIdx
-					unitTh.Frames = "swap"
+					unitTh.Frames = TransformSwap
 					codecMap[idThread] = *unitTh
 					su := new(SymbolicationUnit)
 					su.ID = idThread
 					for _, frame := range ex.Frames {
-						su.Values = append(su.Values, MarshalRetraceFrame(frame, framePrefix))
+						su.Values = append(su.Values, MarshalRetraceFrame(frame, FramePrefix))
 					}
 					symbolicationUnits = append(symbolicationUnits, *su)
 				}
@@ -283,13 +281,13 @@ func (s *Session) EncodeForSymbolication() (CodecMap, []SymbolicationUnit) {
 			if len(event.AppExit.Trace) > 0 {
 				idAppExit := uuid.New()
 				unitAE := NewCodecMapVal()
-				unitAE.Type = "app_exit"
+				unitAE.Type = TypeAppExit
 				unitAE.Event = eventIdx
-				unitAE.Trace = "swap"
+				unitAE.Trace = TransformSwap
 				codecMap[idAppExit] = *unitAE
 				su := new(SymbolicationUnit)
 				su.ID = idAppExit
-				su.Values = []string{genericPrefix + event.AppExit.Trace}
+				su.Values = []string{GenericPrefix + event.AppExit.Trace}
 				symbolicationUnits = append(symbolicationUnits, *su)
 			}
 		}
@@ -299,17 +297,15 @@ func (s *Session) EncodeForSymbolication() (CodecMap, []SymbolicationUnit) {
 }
 
 func (s *Session) DecodeFromSymbolication(codecMap CodecMap, symbolicationUnits []SymbolicationUnit) {
-	framePrefix := "\tat "
-	genericPrefix := ": "
 	for _, su := range symbolicationUnits {
 		codecMapVal := codecMap[su.ID]
 		switch codecMapVal.Type {
-		case "exception":
-			if codecMapVal.Frames == "swap" {
+		case TypeException:
+			if codecMapVal.Frames == TransformSwap {
 				if codecMapVal.Exception > -1 {
 					var frames Frames
 					for _, value := range su.Values {
-						frame, err := UnmarshalRetraceFrame(value, framePrefix)
+						frame, err := UnmarshalRetraceFrame(value, FramePrefix)
 						if err != nil {
 							fmt.Println("failed to unmarshal retrace frame", err)
 							continue
@@ -327,7 +323,7 @@ func (s *Session) DecodeFromSymbolication(codecMap CodecMap, symbolicationUnits 
 				if codecMapVal.Thread > -1 {
 					var frames Frames
 					for _, value := range su.Values {
-						frame, err := UnmarshalRetraceFrame(value, framePrefix)
+						frame, err := UnmarshalRetraceFrame(value, FramePrefix)
 						if err != nil {
 							fmt.Println("failed to unmarshal retrace frame", err)
 							continue
@@ -343,16 +339,16 @@ func (s *Session) DecodeFromSymbolication(codecMap CodecMap, symbolicationUnits 
 				}
 			}
 
-			if codecMapVal.ExceptionType == "swap" {
-				exceptionType := strings.TrimPrefix(su.Values[0], genericPrefix)
+			if codecMapVal.ExceptionType == TransformSwap {
+				exceptionType := strings.TrimPrefix(su.Values[0], GenericPrefix)
 				s.Events[codecMapVal.Event].Exception.Exceptions[codecMapVal.Exception].Type = exceptionType
 			}
-		case "anr":
-			if codecMapVal.Frames == "swap" {
+		case TypeANR:
+			if codecMapVal.Frames == TransformSwap {
 				if codecMapVal.Exception > -1 {
 					var frames Frames
 					for _, value := range su.Values {
-						frame, err := UnmarshalRetraceFrame(value, framePrefix)
+						frame, err := UnmarshalRetraceFrame(value, FramePrefix)
 						if err != nil {
 							fmt.Println("failed to unmarshal retrace frame", err)
 							continue
@@ -371,7 +367,7 @@ func (s *Session) DecodeFromSymbolication(codecMap CodecMap, symbolicationUnits 
 				if codecMapVal.Thread > -1 {
 					var frames Frames
 					for _, value := range su.Values {
-						frame, err := UnmarshalRetraceFrame(value, framePrefix)
+						frame, err := UnmarshalRetraceFrame(value, FramePrefix)
 						if err != nil {
 							fmt.Println("failed to unmarshal retrace frame", err)
 							continue
@@ -387,13 +383,13 @@ func (s *Session) DecodeFromSymbolication(codecMap CodecMap, symbolicationUnits 
 				}
 			}
 
-			if codecMapVal.ExceptionType == "swap" {
-				exceptionType := strings.TrimPrefix(su.Values[0], genericPrefix)
+			if codecMapVal.ExceptionType == TransformSwap {
+				exceptionType := strings.TrimPrefix(su.Values[0], GenericPrefix)
 				s.Events[codecMapVal.Event].ANR.Exceptions[codecMapVal.Exception].Type = exceptionType
 			}
-		case "app_exit":
-			if codecMapVal.Trace == "swap" {
-				s.Events[codecMapVal.Event].AppExit.Trace = strings.TrimPrefix(su.Values[0], genericPrefix)
+		case TypeAppExit:
+			if codecMapVal.Trace == TransformSwap {
+				s.Events[codecMapVal.Event].AppExit.Trace = strings.TrimPrefix(su.Values[0], GenericPrefix)
 			}
 		default:
 			continue
