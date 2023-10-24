@@ -339,18 +339,6 @@ func (e *EventField) isAppExit() bool {
 	return e.Type == "app_exit"
 }
 
-func (e *EventField) symbolicatable() bool {
-	if e.isANR() || e.isException() {
-		return true
-	}
-
-	if e.isAppExit() && e.AppExit.Trace != "" {
-		return true
-	}
-
-	return false
-}
-
 func (e *EventField) validate() error {
 	if len(e.Type) > maxTypeChars {
 		return fmt.Errorf(`"events[].type" exceeds maximum allowed characters of (%d)`, maxTypeChars)

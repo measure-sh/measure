@@ -25,10 +25,10 @@ fun Route.symbolicate() {
     val symbolsAccessKey = env.config.property("s3.symbols_access_key").getString()
     val symbolsSecretKey = env.config.property("s3.symbols_secret_access_key").getString()
 
-    get("/symbolicate") {
+    post("/symbolicate") {
         val request = call.receive<SymbolicateRequest>()
         val s3 = configureS3(s3Region, symbolsAccessKey, symbolsSecretKey)
-        val mappingFile = downloadMappingFile(call, s3, request, s3Bucket) ?: return@get
+        val mappingFile = downloadMappingFile(call, s3, request, s3Bucket) ?: return@post
         val stringRetrace = createStringRetrace(mappingFile.toPath())
         val retraced = request.data.map { dataUnit ->
             dataUnit.copy(

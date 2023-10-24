@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -81,16 +82,6 @@ func (s *Session) needsSymbolication() bool {
 		return true
 	}
 	return false
-}
-
-func (s *Session) getObfuscatedEvents() []EventField {
-	var obfuscatedEvents []EventField
-	for _, event := range s.Events {
-		if event.symbolicatable() {
-			obfuscatedEvents = append(obfuscatedEvents, event)
-		}
-	}
-	return obfuscatedEvents
 }
 
 func (s *Session) uploadAttachments() error {
@@ -168,6 +159,246 @@ func (s *Session) known(id uuid.UUID) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (s *Session) getMappingKey() (string, error) {
+	var key string
+	if err := server.pgPool.QueryRow(context.Background(), `select key from mapping_files where app_id = $1 and version_name = $2 and version_code = $3 and mapping_type = 'proguard' limit 1;`, s.Resource.AppUniqueID, s.Resource.AppVersion, s.Resource.AppBuild).Scan(&key); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", nil
+		}
+		return "", err
+	}
+	return key, nil
+}
+
+func (s *Session) EncodeForSymbolication() (CodecMap, []SymbolicationUnit) {
+	var symbolicationUnits []SymbolicationUnit
+	codecMap := make(CodecMap)
+	framePrefix := "\tat "
+	genericPrefix := ": "
+
+	for eventIdx, event := range s.Events {
+		if event.isException() {
+			for exceptionIdx, ex := range event.Exception.Exceptions {
+				if len(ex.Frames) > 0 {
+					idException := uuid.New()
+					unitEx := NewCodecMapVal()
+					unitEx.Type = "exception"
+					unitEx.Event = eventIdx
+					unitEx.Exception = exceptionIdx
+					unitEx.Frames = "swap"
+					codecMap[idException] = *unitEx
+					su := new(SymbolicationUnit)
+					su.ID = idException
+					for _, frame := range ex.Frames {
+						su.Values = append(su.Values, MarshalRetraceFrame(frame, framePrefix))
+					}
+					symbolicationUnits = append(symbolicationUnits, *su)
+				}
+				if len(ex.Type) > 0 {
+					idExceptionType := uuid.New()
+					unitExType := NewCodecMapVal()
+					unitExType.Type = "exception"
+					unitExType.Event = eventIdx
+					unitExType.Exception = exceptionIdx
+					unitExType.ExceptionType = "swap"
+					codecMap[idExceptionType] = *unitExType
+					su := new(SymbolicationUnit)
+					su.ID = idExceptionType
+					su.Values = []string{genericPrefix + ex.Type}
+					symbolicationUnits = append(symbolicationUnits, *su)
+				}
+			}
+			for threadIdx, ex := range event.Exception.Threads {
+				if len(ex.Frames) > 0 {
+					idThread := uuid.New()
+					unitTh := NewCodecMapVal()
+					unitTh.Type = "exception"
+					unitTh.Event = eventIdx
+					unitTh.Thread = threadIdx
+					unitTh.Frames = "swap"
+					codecMap[idThread] = *unitTh
+					su := new(SymbolicationUnit)
+					su.ID = idThread
+					for _, frame := range ex.Frames {
+						su.Values = append(su.Values, MarshalRetraceFrame(frame, framePrefix))
+					}
+					symbolicationUnits = append(symbolicationUnits, *su)
+				}
+			}
+		}
+
+		if event.isANR() {
+			for exceptionIdx, ex := range event.ANR.Exceptions {
+				if len(ex.Frames) > 0 {
+					idException := uuid.New()
+					unitEx := NewCodecMapVal()
+					unitEx.Type = "anr"
+					unitEx.Event = eventIdx
+					unitEx.Exception = exceptionIdx
+					unitEx.Frames = "swap"
+					codecMap[idException] = *unitEx
+					su := new(SymbolicationUnit)
+					su.ID = idException
+					for _, frame := range ex.Frames {
+						su.Values = append(su.Values, MarshalRetraceFrame(frame, framePrefix))
+					}
+					symbolicationUnits = append(symbolicationUnits, *su)
+				}
+				if len(ex.Type) > 0 {
+					idExceptionType := uuid.New()
+					unitExType := NewCodecMapVal()
+					unitExType.Type = "anr"
+					unitExType.Event = eventIdx
+					unitExType.Exception = exceptionIdx
+					unitExType.ExceptionType = "swap"
+					codecMap[idExceptionType] = *unitExType
+					su := new(SymbolicationUnit)
+					su.ID = idExceptionType
+					su.Values = []string{genericPrefix + ex.Type}
+					symbolicationUnits = append(symbolicationUnits, *su)
+				}
+			}
+			for threadIdx, ex := range event.ANR.Threads {
+				if len(ex.Frames) > 0 {
+					idThread := uuid.New()
+					unitTh := NewCodecMapVal()
+					unitTh.Type = "anr"
+					unitTh.Event = eventIdx
+					unitTh.Thread = threadIdx
+					unitTh.Frames = "swap"
+					codecMap[idThread] = *unitTh
+					su := new(SymbolicationUnit)
+					su.ID = idThread
+					for _, frame := range ex.Frames {
+						su.Values = append(su.Values, MarshalRetraceFrame(frame, framePrefix))
+					}
+					symbolicationUnits = append(symbolicationUnits, *su)
+				}
+			}
+		}
+
+		if event.isAppExit() {
+			if len(event.AppExit.Trace) > 0 {
+				idAppExit := uuid.New()
+				unitAE := NewCodecMapVal()
+				unitAE.Type = "app_exit"
+				unitAE.Event = eventIdx
+				unitAE.Trace = "swap"
+				codecMap[idAppExit] = *unitAE
+				su := new(SymbolicationUnit)
+				su.ID = idAppExit
+				su.Values = []string{genericPrefix + event.AppExit.Trace}
+				symbolicationUnits = append(symbolicationUnits, *su)
+			}
+		}
+	}
+
+	return codecMap, symbolicationUnits
+}
+
+func (s *Session) DecodeFromSymbolication(codecMap CodecMap, symbolicationUnits []SymbolicationUnit) {
+	framePrefix := "\tat "
+	genericPrefix := ": "
+	for _, su := range symbolicationUnits {
+		codecMapVal := codecMap[su.ID]
+		switch codecMapVal.Type {
+		case "exception":
+			if codecMapVal.Frames == "swap" {
+				if codecMapVal.Exception > -1 {
+					var frames Frames
+					for _, value := range su.Values {
+						frame, err := UnmarshalRetraceFrame(value, framePrefix)
+						if err != nil {
+							fmt.Println("failed to unmarshal retrace frame", err)
+							continue
+						}
+						frames = append(frames, Frame{
+							ClassName:  frame.ClassName,
+							LineNum:    frame.LineNum,
+							FileName:   frame.FileName,
+							MethodName: frame.MethodName,
+						})
+					}
+					s.Events[codecMapVal.Event].Exception.Exceptions[codecMapVal.Exception].Frames = frames
+				}
+
+				if codecMapVal.Thread > -1 {
+					var frames Frames
+					for _, value := range su.Values {
+						frame, err := UnmarshalRetraceFrame(value, framePrefix)
+						if err != nil {
+							fmt.Println("failed to unmarshal retrace frame", err)
+							continue
+						}
+						frames = append(frames, Frame{
+							ClassName:  frame.ClassName,
+							LineNum:    frame.LineNum,
+							FileName:   frame.FileName,
+							MethodName: frame.MethodName,
+						})
+					}
+					s.Events[codecMapVal.Event].Exception.Threads[codecMapVal.Thread].Frames = frames
+				}
+			}
+
+			if codecMapVal.ExceptionType == "swap" {
+				exceptionType := strings.TrimPrefix(su.Values[0], genericPrefix)
+				s.Events[codecMapVal.Event].Exception.Exceptions[codecMapVal.Exception].Type = exceptionType
+			}
+		case "anr":
+			if codecMapVal.Frames == "swap" {
+				if codecMapVal.Exception > -1 {
+					var frames Frames
+					for _, value := range su.Values {
+						frame, err := UnmarshalRetraceFrame(value, framePrefix)
+						if err != nil {
+							fmt.Println("failed to unmarshal retrace frame", err)
+							continue
+						}
+						fmt.Println("anr frame", frame)
+						frames = append(frames, Frame{
+							ClassName:  frame.ClassName,
+							LineNum:    frame.LineNum,
+							FileName:   frame.FileName,
+							MethodName: frame.MethodName,
+						})
+					}
+					s.Events[codecMapVal.Event].ANR.Exceptions[codecMapVal.Exception].Frames = frames
+				}
+
+				if codecMapVal.Thread > -1 {
+					var frames Frames
+					for _, value := range su.Values {
+						frame, err := UnmarshalRetraceFrame(value, framePrefix)
+						if err != nil {
+							fmt.Println("failed to unmarshal retrace frame", err)
+							continue
+						}
+						frames = append(frames, Frame{
+							ClassName:  frame.ClassName,
+							LineNum:    frame.LineNum,
+							FileName:   frame.FileName,
+							MethodName: frame.MethodName,
+						})
+					}
+					s.Events[codecMapVal.Event].ANR.Threads[codecMapVal.Thread].Frames = frames
+				}
+			}
+
+			if codecMapVal.ExceptionType == "swap" {
+				exceptionType := strings.TrimPrefix(su.Values[0], genericPrefix)
+				s.Events[codecMapVal.Event].ANR.Exceptions[codecMapVal.Exception].Type = exceptionType
+			}
+		case "app_exit":
+			if codecMapVal.Trace == "swap" {
+				s.Events[codecMapVal.Event].AppExit.Trace = strings.TrimPrefix(su.Values[0], genericPrefix)
+			}
+		default:
+			continue
+		}
+	}
 }
 
 func putSession(c *gin.Context) {
