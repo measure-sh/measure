@@ -92,8 +92,6 @@ export default function Overview() {
         </div>
         <CheckboxDropdown title="App versions" items={['Version 13.2.1', 'Version 13.2.2','Version 13.3.7']}/>
         <CheckboxDropdown title="Country" items={['India', 'China','USA']}/>
-        <CheckboxDropdown title="Network provider" items={['Airtel', 'Jio','Vodafone']}/>
-        <CheckboxDropdown title="Network type" items={['Wifi', '2G','3G', '4G', '5G']}/>
         <div>
           <p className="font-sans text-black"> Free search: Search by any string such as User ID, Crash string, Device name etc</p>
           <div className="py-1"/>
