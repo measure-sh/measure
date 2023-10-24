@@ -35,6 +35,19 @@ const (
 	maxAttrCount                       = 10
 )
 
+const TypeANR = "anr"
+const TypeException = "exception"
+const TypeAppExit = "app_exit"
+const TypeString = "string"
+const TypeGestureLongClick = "gesture_long_click"
+const TypeGestureClick = "gesture_click"
+const TypeGestureScroll = "gesture_scroll"
+const TypeHTTPRequest = "http_request"
+const TypeHTTPResponse = "http_response"
+const TypeLifecycleActivity = "lifecycle_activity"
+const TypeLifecycleFragment = "lifecycle_fragment"
+const TypeLifecycleApp = "lifecycle_app"
+
 // timeFormat is the format of datetime in nanoseconds when
 // converting datetime values before inserting into database
 const timeFormat = "2006-01-02 15:04:05.999999999"
@@ -328,15 +341,15 @@ type EventField struct {
 }
 
 func (e *EventField) isException() bool {
-	return e.Type == "exception"
+	return e.Type == TypeException
 }
 
 func (e *EventField) isANR() bool {
-	return e.Type == "anr"
+	return e.Type == TypeANR
 }
 
 func (e *EventField) isAppExit() bool {
-	return e.Type == "app_exit"
+	return e.Type == TypeAppExit
 }
 
 func (e *EventField) validate() error {
