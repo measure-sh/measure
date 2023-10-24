@@ -352,6 +352,26 @@ func (e *EventField) isAppExit() bool {
 	return e.Type == TypeAppExit
 }
 
+func (e *EventField) isGestureClick() bool {
+	return e.Type == TypeGestureClick
+}
+
+func (e *EventField) isGestureLongClick() bool {
+	return e.Type == TypeGestureLongClick
+}
+
+func (e *EventField) isGestureScroll() bool {
+	return e.Type == TypeGestureScroll
+}
+
+func (e *EventField) isLifecycleActivity() bool {
+	return e.Type == TypeLifecycleActivity
+}
+
+func (e *EventField) isLifecycleFragment() bool {
+	return e.Type == TypeLifecycleFragment
+}
+
 func (e *EventField) validate() error {
 	if len(e.Type) > maxTypeChars {
 		return fmt.Errorf(`"events[].type" exceeds maximum allowed characters of (%d)`, maxTypeChars)

@@ -32,7 +32,6 @@ func (s *Session) validate() error {
 		if err := event.validate(); err != nil {
 			return err
 		}
-
 	}
 
 	if s.hasAttachments() {
@@ -73,12 +72,57 @@ func (s *Session) hasAppExits() bool {
 	return false
 }
 
+func (s *Session) hasGestureLongClicks() bool {
+	for _, event := range s.Events {
+		if event.isGestureLongClick() {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Session) hasGestureScrolls() bool {
+	for _, event := range s.Events {
+		if event.isGestureScroll() {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Session) hasGestureClicks() bool {
+	for _, event := range s.Events {
+		if event.isGestureClick() {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Session) hasLifecycleActivities() bool {
+	for _, event := range s.Events {
+		if event.isLifecycleActivity() {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Session) hasLifecycleFragments() bool {
+	for _, event := range s.Events {
+		if event.isLifecycleFragment() {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Session) hasAttachments() bool {
 	return len(s.Attachments) > 0
 }
 
 func (s *Session) needsSymbolication() bool {
-	if s.hasExceptions() || s.hasANRs() || s.hasAppExits() {
+	if s.hasExceptions() || s.hasANRs() || s.hasAppExits() || s.hasGestureLongClicks() || s.hasGestureScrolls() || s.hasGestureClicks() || s.hasLifecycleActivities() || s.hasLifecycleFragments() {
 		return true
 	}
 	return false
@@ -291,6 +335,94 @@ func (s *Session) EncodeForSymbolication() (CodecMap, []SymbolicationUnit) {
 				symbolicationUnits = append(symbolicationUnits, *su)
 			}
 		}
+
+		if event.isGestureLongClick() {
+			if len(event.GestureLongClick.Target) > 0 {
+				idGestureLongClick := uuid.New()
+				unitGLC := NewCodecMapVal()
+				unitGLC.Type = TypeGestureLongClick
+				unitGLC.Event = eventIdx
+				unitGLC.Target = TransformSwap
+				codecMap[idGestureLongClick] = *unitGLC
+				su := new(SymbolicationUnit)
+				su.ID = idGestureLongClick
+				su.Values = []string{GenericPrefix + event.GestureLongClick.Target}
+				symbolicationUnits = append(symbolicationUnits, *su)
+			}
+		}
+
+		if event.isGestureScroll() {
+			if len(event.GestureScroll.Target) > 0 {
+				idGestureScroll := uuid.New()
+				unitGS := NewCodecMapVal()
+				unitGS.Type = TypeGestureScroll
+				unitGS.Event = eventIdx
+				unitGS.Target = TransformSwap
+				codecMap[idGestureScroll] = *unitGS
+				su := new(SymbolicationUnit)
+				su.ID = idGestureScroll
+				su.Values = []string{GenericPrefix + event.GestureScroll.Target}
+				symbolicationUnits = append(symbolicationUnits, *su)
+			}
+		}
+
+		if event.isGestureClick() {
+			if len(event.GestureClick.Target) > 0 {
+				idGestureClick := uuid.New()
+				unitGC := NewCodecMapVal()
+				unitGC.Type = TypeGestureClick
+				unitGC.Event = eventIdx
+				unitGC.Target = TransformSwap
+				codecMap[idGestureClick] = *unitGC
+				su := new(SymbolicationUnit)
+				su.ID = idGestureClick
+				su.Values = []string{GenericPrefix + event.GestureClick.Target}
+				symbolicationUnits = append(symbolicationUnits, *su)
+			}
+		}
+
+		if event.isLifecycleActivity() {
+			if len(event.LifecycleActivity.ClassName) > 0 {
+				idLifecycleActivity := uuid.New()
+				unitLA := NewCodecMapVal()
+				unitLA.Type = TypeLifecycleActivity
+				unitLA.Event = eventIdx
+				unitLA.ClassName = TransformSwap
+				codecMap[idLifecycleActivity] = *unitLA
+				su := new(SymbolicationUnit)
+				su.ID = idLifecycleActivity
+				su.Values = []string{GenericPrefix + event.LifecycleActivity.ClassName}
+				symbolicationUnits = append(symbolicationUnits, *su)
+			}
+		}
+
+		if event.isLifecycleFragment() {
+			if len(event.LifecycleFragment.ClassName) > 0 {
+				idLifecycleFragment := uuid.New()
+				unitLF := NewCodecMapVal()
+				unitLF.Type = TypeLifecycleFragment
+				unitLF.Event = eventIdx
+				unitLF.ClassName = TransformSwap
+				codecMap[idLifecycleFragment] = *unitLF
+				su := new(SymbolicationUnit)
+				su.ID = idLifecycleFragment
+				su.Values = []string{GenericPrefix + event.LifecycleFragment.ClassName}
+				symbolicationUnits = append(symbolicationUnits, *su)
+			}
+
+			if len(event.LifecycleFragment.ParentActivity) > 0 {
+				idLifecycleFragment := uuid.New()
+				unitLF := NewCodecMapVal()
+				unitLF.Type = TypeLifecycleFragment
+				unitLF.Event = eventIdx
+				unitLF.ParentActivity = TransformSwap
+				codecMap[idLifecycleFragment] = *unitLF
+				su := new(SymbolicationUnit)
+				su.ID = idLifecycleFragment
+				su.Values = []string{GenericPrefix + event.LifecycleFragment.ParentActivity}
+				symbolicationUnits = append(symbolicationUnits, *su)
+			}
+		}
 	}
 
 	return codecMap, symbolicationUnits
@@ -390,6 +522,29 @@ func (s *Session) DecodeFromSymbolication(codecMap CodecMap, symbolicationUnits 
 		case TypeAppExit:
 			if codecMapVal.Trace == TransformSwap {
 				s.Events[codecMapVal.Event].AppExit.Trace = strings.TrimPrefix(su.Values[0], GenericPrefix)
+			}
+		case TypeGestureLongClick:
+			if codecMapVal.Target == TransformSwap {
+				s.Events[codecMapVal.Event].GestureLongClick.Target = strings.TrimPrefix(su.Values[0], GenericPrefix)
+			}
+		case TypeGestureScroll:
+			if codecMapVal.Target == TransformSwap {
+				s.Events[codecMapVal.Event].GestureScroll.Target = strings.TrimPrefix(su.Values[0], GenericPrefix)
+			}
+		case TypeGestureClick:
+			if codecMapVal.Target == TransformSwap {
+				s.Events[codecMapVal.Event].GestureClick.Target = strings.TrimPrefix(su.Values[0], GenericPrefix)
+			}
+		case TypeLifecycleActivity:
+			if codecMapVal.ClassName == TransformSwap {
+				s.Events[codecMapVal.Event].LifecycleActivity.ClassName = strings.TrimPrefix(su.Values[0], GenericPrefix)
+			}
+		case TypeLifecycleFragment:
+			if codecMapVal.ClassName == TransformSwap {
+				s.Events[codecMapVal.Event].LifecycleFragment.ClassName = strings.TrimPrefix(su.Values[0], GenericPrefix)
+			}
+			if codecMapVal.ParentActivity == TransformSwap {
+				s.Events[codecMapVal.Event].LifecycleFragment.ParentActivity = strings.TrimPrefix(su.Values[0], GenericPrefix)
 			}
 		default:
 			continue
