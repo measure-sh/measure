@@ -27,6 +27,11 @@ const (
 	maxHTTPRequestMethodChars          = 16
 	maxHTTPRequestProtocolVersionChars = 16
 	maxHTTPResponseMethodChars         = 16
+	maxLifecycleActivityTypeChars      = 32
+	maxLifecycleActivityClassNameChars = 128
+	maxLifecycleFragmentTypeChars      = 32
+	maxLifecycleFragmentClassNameChars = 128
+	maxLifecycleAppTypeChars           = 32
 	maxAttrCount                       = 10
 )
 
@@ -112,6 +117,15 @@ var columns = []string{
 	"http_response.status_code",
 	"http_response.response_body",
 	"http_response.response_headers",
+	"lifecycle_activity.type",
+	"lifecycle_activity.class_name",
+	"lifecycle_activity.intent",
+	"lifecycle_activity.saved_instance_state",
+	"lifecycle_fragment.type",
+	"lifecycle_fragment.class_name",
+	"lifecycle_fragment.parent_activity",
+	"lifecycle_fragment.tag",
+	"lifecycle_app.type",
 	"attributes",
 }
 
@@ -277,19 +291,40 @@ type HTTPResponse struct {
 	ResponseHeaders map[string]string `json:"response_headers"`
 }
 
+type LifecycleActivity struct {
+	Type               string `json:"type" binding:"required"`
+	ClassName          string `json:"class_name" binding:"required"`
+	Intent             string `json:"intent"`
+	SavedInstanceState bool   `json:"saved_instance_state"`
+}
+
+type LifecycleFragment struct {
+	Type           string `json:"type" binding:"required"`
+	ClassName      string `json:"class_name" binding:"required"`
+	ParentActivity string `json:"parent_activity"`
+	Tag            string `json:"tag"`
+}
+
+type LifecycleApp struct {
+	Type string `json:"type" binding:"required"`
+}
+
 type EventField struct {
-	Timestamp        time.Time         `json:"timestamp" binding:"required"`
-	Type             string            `json:"type" binding:"required"`
-	ANR              ANR               `json:"anr,omitempty"`
-	Exception        Exception         `json:"exception,omitempty"`
-	AppExit          AppExit           `json:"app_exit,omitempty"`
-	LogString        LogString         `json:"string,omitempty"`
-	GestureLongClick GestureLongClick  `json:"gesture_long_click,omitempty"`
-	GestureScroll    GestureScroll     `json:"gesture_scroll,omitempty"`
-	GestureClick     GestureClick      `json:"gesture_click,omitempty"`
-	HTTPRequest      HTTPRequest       `json:"http_request,omitempty"`
-	HTTPResponse     HTTPResponse      `json:"http_response,omitempty"`
-	Attributes       map[string]string `json:"attributes"`
+	Timestamp         time.Time         `json:"timestamp" binding:"required"`
+	Type              string            `json:"type" binding:"required"`
+	ANR               ANR               `json:"anr,omitempty"`
+	Exception         Exception         `json:"exception,omitempty"`
+	AppExit           AppExit           `json:"app_exit,omitempty"`
+	LogString         LogString         `json:"string,omitempty"`
+	GestureLongClick  GestureLongClick  `json:"gesture_long_click,omitempty"`
+	GestureScroll     GestureScroll     `json:"gesture_scroll,omitempty"`
+	GestureClick      GestureClick      `json:"gesture_click,omitempty"`
+	HTTPRequest       HTTPRequest       `json:"http_request,omitempty"`
+	HTTPResponse      HTTPResponse      `json:"http_response,omitempty"`
+	LifecycleActivity LifecycleActivity `json:"lifecycle_activity,omitempty"`
+	LifecycleFragment LifecycleFragment `json:"lifecycle_fragment,omitempty"`
+	LifecycleApp      LifecycleApp      `json:"lifecycle_app,omitempty"`
+	Attributes        map[string]string `json:"attributes"`
 }
 
 func (e *EventField) isException() bool {
@@ -359,6 +394,22 @@ func (e *EventField) validate() error {
 	if len(e.HTTPResponse.Method) > maxHTTPResponseMethodChars {
 		return fmt.Errorf(`"events[].http_response.method" exceeds maximum allowed characters of (%d)`, maxHTTPResponseMethodChars)
 	}
+	if len(e.LifecycleActivity.Type) > maxLifecycleActivityTypeChars {
+		return fmt.Errorf(`"events[].lifecycle_activity.type" exceeds maximum allowed characters of (%d)`, maxLifecycleActivityTypeChars)
+	}
+	if len(e.LifecycleActivity.ClassName) > maxLifecycleActivityClassNameChars {
+		return fmt.Errorf(`"events[].lifecycle_activity.class_name" exceeds maximum allowed characters of (%d)`, maxLifecycleActivityClassNameChars)
+	}
+	if len(e.LifecycleFragment.Type) > maxLifecycleFragmentTypeChars {
+		return fmt.Errorf(`"events[].lifecycle_fragment.type" exceeds maximum allowed characters of (%d)`, maxLifecycleFragmentTypeChars)
+	}
+	if len(e.LifecycleFragment.ClassName) > maxLifecycleFragmentClassNameChars {
+		return fmt.Errorf(`"events[].lifecycle_fragment.class_name" exceeds maximum allowed characters of (%d)`, maxLifecycleFragmentClassNameChars)
+	}
+	if len(e.LifecycleApp.Type) > maxLifecycleAppTypeChars {
+		return fmt.Errorf(`"events[].lifecycle_app.type" exceeds maximum allowed characters of (%d)`, maxLifecycleAppTypeChars)
+	}
+
 	if len(e.Attributes) > maxAttrCount {
 		return fmt.Errorf(`"events[].attributes" exceeds maximum count of (%d)`, maxAttrCount)
 	}
@@ -370,7 +421,7 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 	values := []string{}
 	valueArgs := []interface{}{}
 
-	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?)"
+	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
 	for _, event := range session.Events {
 		anrExceptions := "[]"
@@ -463,6 +514,15 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			event.HTTPResponse.StatusCode,
 			event.HTTPResponse.ResponseBody,
 			mapToString(event.HTTPResponse.ResponseHeaders),
+			event.LifecycleActivity.Type,
+			event.LifecycleActivity.ClassName,
+			event.LifecycleActivity.Intent,
+			event.LifecycleActivity.SavedInstanceState,
+			event.LifecycleFragment.Type,
+			event.LifecycleFragment.ClassName,
+			event.LifecycleFragment.ParentActivity,
+			event.LifecycleFragment.Tag,
+			event.LifecycleApp.Type,
 			mapToString(event.Attributes),
 		)
 	}

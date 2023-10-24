@@ -91,6 +91,18 @@ create table if not exists events_test_2
     `http_response.status_code` UInt16,
     `http_response.response_body` String,
     `http_response.response_headers` Map(String, String),
+    /* lifecycle_activity */
+    `lifecycle_activity.type` FixedString(32),
+    `lifecycle_activity.class_name` FixedString(128),
+    `lifecycle_activity.intent` String,
+    `lifecycle_activity.saved_instance_state` Bool,
+    /* lifecycle_fragment */
+    `lifecycle_fragment.type` FixedString(32),
+    `lifecycle_fragment.class_name` FixedString(128),
+    `lifecycle_fragment.parent_activity` String,
+    `lifecycle_fragment.tag` String,
+    /* lifecycle_app */
+    `lifecycle_app.type` FixedString(32),
     /* attributes */
     `attributes` Map(String, String)
 )
