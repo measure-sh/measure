@@ -1,6 +1,7 @@
 import CheckboxDropdown from "@/app/components/checkbox_dropdown";
 import Dropdown from "@/app/components/dropdown";
 import ExceptionRateChart from "@/app/components/exception_rate_chart";
+import FilterPill from "@/app/components/filter_pill";
 import InfoCircleAppAdoption from "@/app/components/info_circle_app_adoption";
 import InfoCircleAppSize from "@/app/components/info_circle_app_size";
 import InfoCircleAppStartTime from "@/app/components/info_circle_app_start_time";
@@ -97,6 +98,14 @@ export default function Overview() {
           <div className="py-1"/>
           <input id="search-string" type="text" placeholder="crash: NullPointerException, userId: abcde123, deviceName: Samsung Galaxy" className="w-full border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400"/>
         </div>
+      </div>
+      <div className="py-4"/>
+      <div className="flex flex-wrap gap-2 items-center w-5/6">
+          <FilterPill title="Readly Prod"/>
+          <FilterPill title="Version 13.2.1"/>
+          <FilterPill title="Version 13.2.2"/>
+          <FilterPill title="India"/>
+          <FilterPill title="userID: abcde123"/>
       </div>
       <div className="py-6"/>
       <div className="border border-black text-black font-sans text-sm w-full h-[36rem]">
