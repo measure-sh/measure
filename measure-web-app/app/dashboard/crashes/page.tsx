@@ -92,10 +92,10 @@ export default function Overview() {
         </div>
         <CheckboxDropdown title="App versions" items={['Version 13.2.1', 'Version 13.2.2','Version 13.3.7']}/>
         <CheckboxDropdown title="Country" items={['India', 'China','USA']}/>
-        <div>
-          <p className="font-sans text-black"> Free search: Search by any string such as User ID, Crash string, Device name etc</p>
+        <div className="w-full">
+          <p className="font-sans text-black">Search by any field such as crash string, userId, device name etc</p>
           <div className="py-1"/>
-          <input id="search-string" type="text" placeholder="Enter search string" className="w-full border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400"/>
+          <input id="search-string" type="text" placeholder="crash: NullPointerException, userId: abcde123, deviceName: Samsung Galaxy" className="w-full border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400"/>
         </div>
       </div>
       <div className="py-6"/>
