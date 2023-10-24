@@ -4,6 +4,10 @@ import android.app.Activity
 import android.app.Application
 import android.os.Bundle
 
+/**
+ * An empty implementation of [Application.ActivityLifecycleCallbacks] that can be used to
+ * keep it's implementors clean.
+ */
 internal interface ActivityLifecycleAdapter : Application.ActivityLifecycleCallbacks {
     override fun onActivityPreCreated(activity: Activity, savedInstanceState: Bundle?) {}
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}

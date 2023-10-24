@@ -63,6 +63,7 @@ android {
 }
 
 dependencies {
+    // Compile only, as we don't want to include the fragment dependency in the final artifact.
     compileOnly("androidx.fragment:fragment-ktx:1.2.5")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
 

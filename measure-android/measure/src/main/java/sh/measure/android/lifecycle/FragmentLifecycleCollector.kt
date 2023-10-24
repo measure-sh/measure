@@ -7,6 +7,9 @@ import sh.measure.android.events.EventTracker
 import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.iso8601Timestamp
 
+/**
+ * Tracks [Fragment] lifecycle events.
+ */
 internal class FragmentLifecycleCollector(
     private val eventTracker: EventTracker, private val timeProvider: TimeProvider
 ) : FragmentLifecycleAdapter() {

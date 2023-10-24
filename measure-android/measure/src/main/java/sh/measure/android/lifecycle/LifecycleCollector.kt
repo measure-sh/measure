@@ -3,16 +3,18 @@ package sh.measure.android.lifecycle
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import sh.measure.android.events.EventTracker
 import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.isClassAvailable
 import sh.measure.android.utils.iso8601Timestamp
 
+/**
+ * Tracks [Activity], Application and [Fragment] lifecycle events.
+ */
 internal class LifecycleCollector(
-    private val application: Application,
-    private val eventTracker: EventTracker,
-    private val timeProvider: TimeProvider
+    private val application: Application, private val eventTracker: EventTracker, private val timeProvider: TimeProvider
 ) : ActivityLifecycleAdapter {
     private val fragmentLifecycleCollector by lazy {
         FragmentLifecycleCollector(eventTracker, timeProvider)
@@ -106,6 +108,5 @@ internal class LifecycleCollector(
         }
     }
 
-    private fun isAndroidXFragmentAvailable() =
-        isClassAvailable("androidx.fragment.app.FragmentActivity")
+    private fun isAndroidXFragmentAvailable() = isClassAvailable("androidx.fragment.app.FragmentActivity")
 }
