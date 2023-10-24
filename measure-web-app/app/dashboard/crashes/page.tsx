@@ -102,6 +102,7 @@ export default function Overview() {
       <div className="py-4"/>
       <div className="flex flex-wrap gap-2 items-center w-5/6">
           <FilterPill title="Readly Prod"/>
+          <FilterPill title="17 Oct 2023 to  24 Oct 2023"/>
           <FilterPill title="Version 13.2.1"/>
           <FilterPill title="Version 13.2.2"/>
           <FilterPill title="India"/>
