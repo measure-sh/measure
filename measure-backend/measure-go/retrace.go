@@ -26,7 +26,8 @@ func joinNonEmptyStrings(delim string, strs ...string) string {
 }
 
 // UnmarshalRetraceFrame parses a Retrace stackframe and returns the
-// various parts laid out in a struct.
+// various parts laid out in a struct. If `p` is a non-empty string,
+// `p` would be stripped from `i` first.
 //
 // input i should be of the form
 // - "class.method(file:lineno)"
@@ -35,16 +36,18 @@ func joinNonEmptyStrings(delim string, strs ...string) string {
 //
 // Returns error if the input is insufficient or if the parse
 // operation fails
-func UnmarshalRetraceFrame(i string) (retraceFrame RetraceFrame, err error) {
-	// last char should be ')'
+func UnmarshalRetraceFrame(i string, p string) (retraceFrame RetraceFrame, err error) {
 	parenErr := "invalid input, no parenthesis found"
 	invalid := "invalid input"
 	empty := "input is empty"
 
 	// foo.bar.baz.method
-
 	if len(i) < 1 {
 		return retraceFrame, errors.New(empty)
+	}
+
+	if len(p) > 0 {
+		i = strings.TrimPrefix(i, p)
 	}
 
 	// file or line num absent
@@ -94,23 +97,24 @@ func UnmarshalRetraceFrame(i string) (retraceFrame RetraceFrame, err error) {
 	return retraceFrame, nil
 }
 
-// MarshalRetraceFrame serializes & returns a SymbolFrame to a Retrace
-// compatible stackframe string.
+// MarshalRetraceFrame serializes & returns a Frame to a Retrace
+// compatible stackframe string. If `p` is a non-empty string
+// it would be prefixed in the output stackframe string.
 //
-// The `ModuleName` and `ColNum` fields of the SymbolFrame struct
+// The `ModuleName` and `ColNum` fields of the Frame struct
 // is always ignored.
 //
 // If `LineNum` is 0, line number is not delimited with the FileName.
 // Output in that case, is of the format.
 // "class.method(file)"
-func MarshalRetraceFrame(sf SymbolFrame) string {
-	className := sf.ClassName
-	methodName := sf.MethodName
-	fileName := sf.FileName
+func MarshalRetraceFrame(f Frame, p string) string {
+	className := f.ClassName
+	methodName := f.MethodName
+	fileName := f.FileName
 	var lineNum = ""
 
-	if sf.LineNum != 0 {
-		lineNum = strconv.Itoa(sf.LineNum)
+	if f.LineNum != 0 {
+		lineNum = strconv.Itoa(f.LineNum)
 	}
 
 	codeInfo := joinNonEmptyStrings(".", className, methodName)
@@ -120,5 +124,5 @@ func MarshalRetraceFrame(sf SymbolFrame) string {
 		fileInfo = fmt.Sprintf(`(%s)`, fileInfo)
 	}
 
-	return fmt.Sprintf(`%s%s`, codeInfo, fileInfo)
+	return fmt.Sprintf(`%s%s%s`, p, codeInfo, fileInfo)
 }
