@@ -17,6 +17,7 @@ internal class LifecycleCollector(
     private val fragmentLifecycleCollector by lazy {
         FragmentLifecycleCollector(eventTracker, timeProvider)
     }
+    private val startedActivities = mutableSetOf<String>()
 
     fun register() {
         application.registerActivityLifecycleCallbacks(this)
@@ -33,6 +34,19 @@ internal class LifecycleCollector(
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
             )
         )
+    }
+
+    override fun onActivityStarted(activity: Activity) {
+        if (startedActivities.isEmpty()) {
+            eventTracker.trackApplicationLifecycleEvent(
+                ApplicationLifecycleEvent(
+                    type = ApplicationLifecycleName.FOREGROUND,
+                    timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+                )
+            )
+        }
+        val hash = Integer.toHexString(System.identityHashCode(activity))
+        startedActivities.add(hash)
     }
 
     override fun onActivityResumed(activity: Activity) {
@@ -53,6 +67,19 @@ internal class LifecycleCollector(
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
             )
         )
+    }
+
+    override fun onActivityStopped(activity: Activity) {
+        val hash = Integer.toHexString(System.identityHashCode(activity))
+        startedActivities.remove(hash)
+        if (startedActivities.isEmpty()) {
+            eventTracker.trackApplicationLifecycleEvent(
+                ApplicationLifecycleEvent(
+                    type = ApplicationLifecycleName.BACKGROUND,
+                    timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+                )
+            )
+        }
     }
 
     override fun onActivityDestroyed(activity: Activity) {

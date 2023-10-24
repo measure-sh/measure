@@ -11,6 +11,7 @@ import org.junit.runner.RunWith
 import org.mockito.Mockito.atMostOnce
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
+import org.mockito.kotlin.never
 import org.robolectric.Robolectric.*
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.android.controller.ActivityController
@@ -144,6 +145,45 @@ class LifecycleCollectorTest {
     @Test
     @Ignore("onDetached seems to not get called in tests")
     fun `tracks fragment onDetached`() {
+    }
+
+    @Test
+    fun `tracks application background event when all activities are stopped`() {
+        controller.setup().stop()
+        verify(eventTracker, atMostOnce()).trackApplicationLifecycleEvent(
+            ApplicationLifecycleEvent(
+                type = ApplicationLifecycleName.BACKGROUND,
+                timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+            )
+        )
+    }
+
+    @Test
+    fun `tracks application background event when first activity starts`() {
+        controller.setup()
+        verify(eventTracker, atMostOnce()).trackApplicationLifecycleEvent(
+            ApplicationLifecycleEvent(
+                type = ApplicationLifecycleName.FOREGROUND,
+                timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+            )
+        )
+    }
+
+    @Test
+    fun `does not trigger application lifecycle events on configuration change`() {
+        controller.setup().configurationChange()
+        verify(eventTracker, atMostOnce()).trackApplicationLifecycleEvent(
+            ApplicationLifecycleEvent(
+                type = ApplicationLifecycleName.FOREGROUND,
+                timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+            )
+        )
+        verify(eventTracker, never()).trackApplicationLifecycleEvent(
+            ApplicationLifecycleEvent(
+                type = ApplicationLifecycleName.BACKGROUND,
+                timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+            )
+        )
     }
 }
 

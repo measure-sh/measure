@@ -5,6 +5,7 @@ import sh.measure.android.gestures.ClickEvent
 import sh.measure.android.gestures.LongClickEvent
 import sh.measure.android.gestures.ScrollEvent
 import sh.measure.android.lifecycle.ActivityLifecycleEvent
+import sh.measure.android.lifecycle.ApplicationLifecycleEvent
 import sh.measure.android.lifecycle.FragmentLifecycleEvent
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
@@ -18,6 +19,7 @@ internal interface EventTracker {
     fun trackScroll(scroll: ScrollEvent)
     fun trackActivityLifecycleEvent(event: ActivityLifecycleEvent)
     fun trackFragmentLifecycleEvent(event: FragmentLifecycleEvent)
+    fun trackApplicationLifecycleEvent(event: ApplicationLifecycleEvent)
 }
 
 // TODO: refactor to make serialization happen on background thread.
@@ -62,6 +64,13 @@ internal class MeasureEventTracker(
     override fun trackFragmentLifecycleEvent(event: FragmentLifecycleEvent) {
         logger.log(
             LogLevel.Debug, "Tracking fragment lifecycle event ${event.type}"
+        )
+        sessionController.storeEvent(event.toEvent())
+    }
+
+    override fun trackApplicationLifecycleEvent(event: ApplicationLifecycleEvent) {
+        logger.log(
+            LogLevel.Debug, "Tracking application lifecycle event ${event.type}"
         )
         sessionController.storeEvent(event.toEvent())
     }

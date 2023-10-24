@@ -17,6 +17,7 @@ internal class FragmentLifecycleCollector(
                 parent_activity = f.activity?.javaClass?.name,
                 class_name = f.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+                tag_name = f.tag
             )
         )
     }
@@ -28,6 +29,7 @@ internal class FragmentLifecycleCollector(
                 parent_activity = f.activity?.javaClass?.name,
                 class_name = f.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+                tag_name = f.tag
             )
         )
     }
@@ -39,6 +41,7 @@ internal class FragmentLifecycleCollector(
                 parent_activity = f.activity?.javaClass?.name,
                 class_name = f.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+                tag_name = f.tag
             )
         )
     }
@@ -50,6 +53,7 @@ internal class FragmentLifecycleCollector(
                 parent_activity = f.activity?.javaClass?.name,
                 class_name = f.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+                tag_name = f.tag
             )
         )
     }
