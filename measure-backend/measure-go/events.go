@@ -27,6 +27,11 @@ const (
 	maxHTTPRequestMethodChars          = 16
 	maxHTTPRequestProtocolVersionChars = 16
 	maxHTTPResponseMethodChars         = 16
+	maxLifecycleActivityTypeChars      = 32
+	maxLifecycleActivityClassNameChars = 128
+	maxLifecycleFragmentTypeChars      = 32
+	maxLifecycleFragmentClassNameChars = 128
+	maxLifecycleAppTypeChars           = 32
 	maxAttrCount                       = 10
 )
 
@@ -287,21 +292,21 @@ type HTTPResponse struct {
 }
 
 type LifecycleActivity struct {
-    Type               string `json:"type" binding:"required"`
-    ClassName          string `json:"class_name" binding:"required"`
-    Intent             string `json:"intent"`
-    SavedInstanceState bool   `json:"saved_instance_state"`
+	Type               string `json:"type" binding:"required"`
+	ClassName          string `json:"class_name" binding:"required"`
+	Intent             string `json:"intent"`
+	SavedInstanceState bool   `json:"saved_instance_state"`
 }
 
 type LifecycleFragment struct {
-    Type               string `json:"type" binding:"required"`
-    ClassName          string `json:"class_name" binding:"required"`
-    ParentActivity     string `json:"parent_activity"`
-    Tag                string `json:"tag"`
+	Type           string `json:"type" binding:"required"`
+	ClassName      string `json:"class_name" binding:"required"`
+	ParentActivity string `json:"parent_activity"`
+	Tag            string `json:"tag"`
 }
 
 type LifecycleApp struct {
-    Type               string `json:"type" binding:"required"`
+	Type string `json:"type" binding:"required"`
 }
 
 type EventField struct {
@@ -389,6 +394,22 @@ func (e *EventField) validate() error {
 	if len(e.HTTPResponse.Method) > maxHTTPResponseMethodChars {
 		return fmt.Errorf(`"events[].http_response.method" exceeds maximum allowed characters of (%d)`, maxHTTPResponseMethodChars)
 	}
+	if len(e.LifecycleActivity.Type) > maxLifecycleActivityTypeChars {
+		return fmt.Errorf(`"events[].lifecycle_activity.type" exceeds maximum allowed characters of (%d)`, maxLifecycleActivityTypeChars)
+	}
+	if len(e.LifecycleActivity.ClassName) > maxLifecycleActivityClassNameChars {
+		return fmt.Errorf(`"events[].lifecycle_activity.class_name" exceeds maximum allowed characters of (%d)`, maxLifecycleActivityClassNameChars)
+	}
+	if len(e.LifecycleFragment.Type) > maxLifecycleFragmentTypeChars {
+		return fmt.Errorf(`"events[].lifecycle_fragment.type" exceeds maximum allowed characters of (%d)`, maxLifecycleFragmentTypeChars)
+	}
+	if len(e.LifecycleFragment.ClassName) > maxLifecycleFragmentClassNameChars {
+		return fmt.Errorf(`"events[].lifecycle_fragment.class_name" exceeds maximum allowed characters of (%d)`, maxLifecycleFragmentClassNameChars)
+	}
+	if len(e.LifecycleApp.Type) > maxLifecycleAppTypeChars {
+		return fmt.Errorf(`"events[].lifecycle_app.type" exceeds maximum allowed characters of (%d)`, maxLifecycleAppTypeChars)
+	}
+
 	if len(e.Attributes) > maxAttrCount {
 		return fmt.Errorf(`"events[].attributes" exceeds maximum count of (%d)`, maxAttrCount)
 	}
@@ -497,7 +518,7 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			event.LifecycleActivity.ClassName,
 			event.LifecycleActivity.Intent,
 			event.LifecycleActivity.SavedInstanceState,
-            event.LifecycleFragment.Type,
+			event.LifecycleFragment.Type,
 			event.LifecycleFragment.ClassName,
 			event.LifecycleFragment.ParentActivity,
 			event.LifecycleFragment.Tag,
