@@ -112,6 +112,10 @@ var columns = []string{
 	"http_response.status_code",
 	"http_response.response_body",
 	"http_response.response_headers",
+	"lifecycle_activity.type",
+	"lifecycle_activity.class_name",
+	"lifecycle_activity.intent",
+	"lifecycle_activity.saved_instance_state",
 	"attributes",
 }
 
@@ -277,19 +281,27 @@ type HTTPResponse struct {
 	ResponseHeaders map[string]string `json:"response_headers"`
 }
 
+type LifecycleActivity struct {
+    Type               string `json:"type" binding:"required"`
+    ClassName          string `json:"class_name" binding:"required"`
+    Intent             string `json:"intent"`
+    SavedInstanceState bool   `json:"saved_instance_state"`
+}
+
 type EventField struct {
-	Timestamp        time.Time         `json:"timestamp" binding:"required"`
-	Type             string            `json:"type" binding:"required"`
-	ANR              ANR               `json:"anr,omitempty"`
-	Exception        Exception         `json:"exception,omitempty"`
-	AppExit          AppExit           `json:"app_exit,omitempty"`
-	LogString        LogString         `json:"string,omitempty"`
-	GestureLongClick GestureLongClick  `json:"gesture_long_click,omitempty"`
-	GestureScroll    GestureScroll     `json:"gesture_scroll,omitempty"`
-	GestureClick     GestureClick      `json:"gesture_click,omitempty"`
-	HTTPRequest      HTTPRequest       `json:"http_request,omitempty"`
-	HTTPResponse     HTTPResponse      `json:"http_response,omitempty"`
-	Attributes       map[string]string `json:"attributes"`
+	Timestamp         time.Time         `json:"timestamp" binding:"required"`
+	Type              string            `json:"type" binding:"required"`
+	ANR               ANR               `json:"anr,omitempty"`
+	Exception         Exception         `json:"exception,omitempty"`
+	AppExit           AppExit           `json:"app_exit,omitempty"`
+	LogString         LogString         `json:"string,omitempty"`
+	GestureLongClick  GestureLongClick  `json:"gesture_long_click,omitempty"`
+	GestureScroll     GestureScroll     `json:"gesture_scroll,omitempty"`
+	GestureClick      GestureClick      `json:"gesture_click,omitempty"`
+	HTTPRequest       HTTPRequest       `json:"http_request,omitempty"`
+	HTTPResponse      HTTPResponse      `json:"http_response,omitempty"`
+	LifecycleActivity LifecycleActivity `json:"lifecycle_activity,omitempty"`
+	Attributes        map[string]string `json:"attributes"`
 }
 
 func (e *EventField) isException() bool {
@@ -370,7 +382,7 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 	values := []string{}
 	valueArgs := []interface{}{}
 
-	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?)"
+	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?)"
 
 	for _, event := range session.Events {
 		anrExceptions := "[]"
@@ -463,6 +475,10 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			event.HTTPResponse.StatusCode,
 			event.HTTPResponse.ResponseBody,
 			mapToString(event.HTTPResponse.ResponseHeaders),
+			event.LifecycleActivity.Type,
+			event.LifecycleActivity.ClassName,
+			event.LifecycleActivity.Intent,
+			event.LifecycleActivity.SavedInstanceState,
 			mapToString(event.Attributes),
 		)
 	}
