@@ -29,6 +29,7 @@ internal class LifecycleCollector(
             ActivityLifecycleEvent(
                 type = ActivityLifecycleName.CREATED,
                 class_name = activity.javaClass.name,
+                // TODO(abhay): evaluate for sensitive data
                 intent = activity.intent.dataString,
                 saved_instance_state = savedInstanceState != null,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
