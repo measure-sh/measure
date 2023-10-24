@@ -116,6 +116,11 @@ var columns = []string{
 	"lifecycle_activity.class_name",
 	"lifecycle_activity.intent",
 	"lifecycle_activity.saved_instance_state",
+	"lifecycle_fragment.type",
+	"lifecycle_fragment.class_name",
+	"lifecycle_fragment.parent_activity",
+	"lifecycle_fragment.tag",
+	"lifecycle_app.type",
 	"attributes",
 }
 
@@ -288,6 +293,17 @@ type LifecycleActivity struct {
     SavedInstanceState bool   `json:"saved_instance_state"`
 }
 
+type LifecycleFragment struct {
+    Type               string `json:"type" binding:"required"`
+    ClassName          string `json:"class_name" binding:"required"`
+    ParentActivity     string `json:"parent_activity"`
+    Tag                string `json:"tag"`
+}
+
+type LifecycleApp struct {
+    Type               string `json:"type" binding:"required"`
+}
+
 type EventField struct {
 	Timestamp         time.Time         `json:"timestamp" binding:"required"`
 	Type              string            `json:"type" binding:"required"`
@@ -301,6 +317,8 @@ type EventField struct {
 	HTTPRequest       HTTPRequest       `json:"http_request,omitempty"`
 	HTTPResponse      HTTPResponse      `json:"http_response,omitempty"`
 	LifecycleActivity LifecycleActivity `json:"lifecycle_activity,omitempty"`
+	LifecycleFragment LifecycleFragment `json:"lifecycle_fragment,omitempty"`
+	LifecycleApp      LifecycleApp      `json:"lifecycle_app,omitempty"`
 	Attributes        map[string]string `json:"attributes"`
 }
 
@@ -382,7 +400,7 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 	values := []string{}
 	valueArgs := []interface{}{}
 
-	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?)"
+	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
 	for _, event := range session.Events {
 		anrExceptions := "[]"
@@ -479,6 +497,11 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			event.LifecycleActivity.ClassName,
 			event.LifecycleActivity.Intent,
 			event.LifecycleActivity.SavedInstanceState,
+            event.LifecycleFragment.Type,
+			event.LifecycleFragment.ClassName,
+			event.LifecycleFragment.ParentActivity,
+			event.LifecycleFragment.Tag,
+			event.LifecycleApp.Type,
 			mapToString(event.Attributes),
 		)
 	}
