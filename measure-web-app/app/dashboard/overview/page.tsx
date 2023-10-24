@@ -17,7 +17,7 @@ export default function Overview() {
       <div className="py-4"/>
       <p className="font-display font-regular text-black text-4xl max-w-6xl text-center">Overview</p>
       <div className="py-4"/>
-      <div className="flex flex-wrap gap-x-16 gap-y-4 items-center">
+      <div className="flex flex-wrap gap-8 items-center">
         <Dropdown items={['Readly prod', 'Readly alpha','Readly debug']}/>
         <div className="flex flex-row items-center">
           <input type="date" value={startDate} className="font-display text-black border border-black rounded-md p-2"/>
