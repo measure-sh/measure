@@ -1,0 +1,32 @@
+{
+  "events": [
+    {
+      "lifecycle_app": {
+        "type": "foreground"
+      },
+      "timestamp": "2023-10-24T15:25:15.813000000Z",
+      "type": "lifecycle_app"
+    }
+  ],
+  "resource": {
+    "app_build": "50453",
+    "app_unique_id": "org.wikipedia.dev",
+    "app_version": "2.7.50453-dev-2023-10-14",
+    "device_density": 2.75,
+    "device_density_dpi": 440,
+    "device_height_px": 2154,
+    "device_is_foldable": true,
+    "device_is_physical": false,
+    "device_manufacturer": "Google",
+    "device_model": "sdk_gphone64_arm64",
+    "device_name": "emu64a",
+    "device_type": "phone",
+    "device_width_px": 1080,
+    "measure_sdk_version": "0.0.1-SNAPSHOT",
+    "os_name": "android",
+    "os_version": "33",
+    "platform": "android"
+  },
+  "session_id": "f1fd8bb0-e226-429f-9ff5-43d8f355c542",
+  "timestamp": "2023-10-14T00:55:26.660000000Z"
+}
