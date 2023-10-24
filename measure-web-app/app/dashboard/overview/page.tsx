@@ -1,4 +1,5 @@
 import Dropdown from "@/app/components/dropdown";
+import FilterPill from "@/app/components/filter_pill";
 import InfoCircleAppAdoption from "@/app/components/info_circle_app_adoption";
 import InfoCircleAppSize from "@/app/components/info_circle_app_size";
 import InfoCircleAppStartTime from "@/app/components/info_circle_app_start_time";
@@ -25,6 +26,12 @@ export default function Overview() {
           <input type="date" value={endDate} className="font-display text-black border border-black rounded-md p-2"/>
         </div>
         <Dropdown items={['Version 13.2.1', 'Version 13.2.2','Version 13.3.7']}/>
+      </div>
+      <div className="py-4"/>
+      <div className="flex flex-wrap gap-2 items-center w-5/6">
+          <FilterPill title="Readly Prod"/>
+          <FilterPill title="17 Oct 2023 to  24 Oct 2023"/>
+          <FilterPill title="Version 13.2.1"/>
       </div>
       <div className="py-8"/>
       <div className="border border-black text-black font-sans text-sm w-5/6 h-screen">
