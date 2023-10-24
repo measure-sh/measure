@@ -35,17 +35,6 @@ internal class LifecycleCollector(
         )
     }
 
-    private fun registerFragmentLifecycleCollector(activity: Activity) {
-        if (isAndroidXFragmentAvailable() && activity is FragmentActivity) {
-            activity.supportFragmentManager.registerFragmentLifecycleCallbacks(
-                fragmentLifecycleCollector, true
-            )
-        }
-    }
-
-    private fun isAndroidXFragmentAvailable() =
-        isClassAvailable("androidx.fragment.app.FragmentActivity")
-
     override fun onActivityResumed(activity: Activity) {
         eventTracker.trackActivityLifecycleEvent(
             ActivityLifecycleEvent(
@@ -80,4 +69,15 @@ internal class LifecycleCollector(
             )
         }
     }
+
+    private fun registerFragmentLifecycleCollector(activity: Activity) {
+        if (isAndroidXFragmentAvailable() && activity is FragmentActivity) {
+            activity.supportFragmentManager.registerFragmentLifecycleCallbacks(
+                fragmentLifecycleCollector, true
+            )
+        }
+    }
+
+    private fun isAndroidXFragmentAvailable() =
+        isClassAvailable("androidx.fragment.app.FragmentActivity")
 }
