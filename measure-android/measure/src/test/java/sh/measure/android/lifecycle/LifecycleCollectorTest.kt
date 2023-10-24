@@ -40,7 +40,7 @@ class LifecycleCollectorTest {
         controller.setup()
         verify(eventTracker, atMostOnce()).trackActivityLifecycleEvent(
             ActivityLifecycleEvent(
-                type = ActivityLifecycleName.CREATED,
+                type = ActivityLifecycleType.CREATED,
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
             )
@@ -52,14 +52,14 @@ class LifecycleCollectorTest {
         controller.setup().recreate()
         verify(eventTracker).trackActivityLifecycleEvent(
             ActivityLifecycleEvent(
-                type = ActivityLifecycleName.CREATED,
+                type = ActivityLifecycleType.CREATED,
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
             )
         )
         verify(eventTracker).trackActivityLifecycleEvent(
             ActivityLifecycleEvent(
-                type = ActivityLifecycleName.CREATED,
+                type = ActivityLifecycleType.CREATED,
                 class_name = TestLifecycleActivity::class.java.name,
                 saved_instance_state = true,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
@@ -72,7 +72,7 @@ class LifecycleCollectorTest {
         controller.setup()
         verify(eventTracker, atMostOnce()).trackActivityLifecycleEvent(
             ActivityLifecycleEvent(
-                type = ActivityLifecycleName.RESUMED,
+                type = ActivityLifecycleType.RESUMED,
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
             )
@@ -84,7 +84,7 @@ class LifecycleCollectorTest {
         controller.setup().pause()
         verify(eventTracker, atMostOnce()).trackActivityLifecycleEvent(
             ActivityLifecycleEvent(
-                type = ActivityLifecycleName.PAUSED,
+                type = ActivityLifecycleType.PAUSED,
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
             )
@@ -96,7 +96,7 @@ class LifecycleCollectorTest {
         controller.setup().destroy()
         verify(eventTracker, atMostOnce()).trackActivityLifecycleEvent(
             ActivityLifecycleEvent(
-                type = ActivityLifecycleName.DESTROYED,
+                type = ActivityLifecycleType.DESTROYED,
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
             )
@@ -108,7 +108,7 @@ class LifecycleCollectorTest {
         controller.setup()
         verify(eventTracker, atMostOnce()).trackFragmentLifecycleEvent(
             FragmentLifecycleEvent(
-                type = FragmentLifecycleName.ATTACHED,
+                type = FragmentLifecycleType.ATTACHED,
                 parent_activity = TestLifecycleActivity::class.java.name,
                 class_name = TestFragment::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
@@ -121,7 +121,7 @@ class LifecycleCollectorTest {
         controller.setup()
         verify(eventTracker, atMostOnce()).trackFragmentLifecycleEvent(
             FragmentLifecycleEvent(
-                type = FragmentLifecycleName.RESUMED,
+                type = FragmentLifecycleType.RESUMED,
                 parent_activity = TestLifecycleActivity::class.java.name,
                 class_name = TestFragment::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
@@ -134,7 +134,7 @@ class LifecycleCollectorTest {
         controller.setup().pause()
         verify(eventTracker, atMostOnce()).trackFragmentLifecycleEvent(
             FragmentLifecycleEvent(
-                type = FragmentLifecycleName.PAUSED,
+                type = FragmentLifecycleType.PAUSED,
                 parent_activity = TestLifecycleActivity::class.java.name,
                 class_name = TestFragment::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
@@ -152,7 +152,7 @@ class LifecycleCollectorTest {
         controller.setup().stop()
         verify(eventTracker, atMostOnce()).trackApplicationLifecycleEvent(
             ApplicationLifecycleEvent(
-                type = ApplicationLifecycleName.BACKGROUND,
+                type = AppLifecycleType.BACKGROUND,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
             )
         )
@@ -163,7 +163,7 @@ class LifecycleCollectorTest {
         controller.setup()
         verify(eventTracker, atMostOnce()).trackApplicationLifecycleEvent(
             ApplicationLifecycleEvent(
-                type = ApplicationLifecycleName.FOREGROUND,
+                type = AppLifecycleType.FOREGROUND,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
             )
         )
@@ -174,13 +174,13 @@ class LifecycleCollectorTest {
         controller.setup().configurationChange()
         verify(eventTracker, atMostOnce()).trackApplicationLifecycleEvent(
             ApplicationLifecycleEvent(
-                type = ApplicationLifecycleName.FOREGROUND,
+                type = AppLifecycleType.FOREGROUND,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
             )
         )
         verify(eventTracker, never()).trackApplicationLifecycleEvent(
             ApplicationLifecycleEvent(
-                type = ApplicationLifecycleName.BACKGROUND,
+                type = AppLifecycleType.BACKGROUND,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
             )
         )

@@ -10,5 +10,5 @@ object EventType {
     const val SCROLL: String = "gesture_scroll"
     const val LIFECYCLE_ACTIVITY: String = "lifecycle_activity"
     const val LIFECYCLE_FRAGMENT: String = "lifecycle_fragment"
-    const val LIFECYCLE_APPLICATION: String = "lifecycle_application"
+    const val LIFECYCLE_APP: String = "lifecycle_app"
 }

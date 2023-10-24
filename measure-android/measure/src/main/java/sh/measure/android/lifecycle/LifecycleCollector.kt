@@ -27,7 +27,7 @@ internal class LifecycleCollector(
         registerFragmentLifecycleCollector(activity)
         eventTracker.trackActivityLifecycleEvent(
             ActivityLifecycleEvent(
-                type = ActivityLifecycleName.CREATED,
+                type = ActivityLifecycleType.CREATED,
                 class_name = activity.javaClass.name,
                 // TODO(abhay): evaluate for sensitive data
                 intent = activity.intent.dataString,
@@ -41,7 +41,7 @@ internal class LifecycleCollector(
         if (startedActivities.isEmpty()) {
             eventTracker.trackApplicationLifecycleEvent(
                 ApplicationLifecycleEvent(
-                    type = ApplicationLifecycleName.FOREGROUND,
+                    type = AppLifecycleType.FOREGROUND,
                     timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
                 )
             )
@@ -53,7 +53,7 @@ internal class LifecycleCollector(
     override fun onActivityResumed(activity: Activity) {
         eventTracker.trackActivityLifecycleEvent(
             ActivityLifecycleEvent(
-                type = ActivityLifecycleName.RESUMED,
+                type = ActivityLifecycleType.RESUMED,
                 class_name = activity.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
             )
@@ -63,7 +63,7 @@ internal class LifecycleCollector(
     override fun onActivityPaused(activity: Activity) {
         eventTracker.trackActivityLifecycleEvent(
             ActivityLifecycleEvent(
-                type = ActivityLifecycleName.PAUSED,
+                type = ActivityLifecycleType.PAUSED,
                 class_name = activity.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
             )
@@ -76,7 +76,7 @@ internal class LifecycleCollector(
         if (startedActivities.isEmpty()) {
             eventTracker.trackApplicationLifecycleEvent(
                 ApplicationLifecycleEvent(
-                    type = ApplicationLifecycleName.BACKGROUND,
+                    type = AppLifecycleType.BACKGROUND,
                     timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
                 )
             )
@@ -86,7 +86,7 @@ internal class LifecycleCollector(
     override fun onActivityDestroyed(activity: Activity) {
         eventTracker.trackActivityLifecycleEvent(
             ActivityLifecycleEvent(
-                type = ActivityLifecycleName.DESTROYED,
+                type = ActivityLifecycleType.DESTROYED,
                 class_name = activity.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
             )

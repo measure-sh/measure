@@ -28,7 +28,7 @@ data class FragmentLifecycleEvent(
     val type: String,
     val class_name: String,
     val parent_activity: String?,
-    val tag_name: String? = null,
+    val tag: String? = null,
     @Transient val timestamp: String = "",
 ) {
     fun toEvent(): Event {
@@ -47,26 +47,26 @@ data class ApplicationLifecycleEvent(
 ) {
     fun toEvent(): Event {
         return Event(
-            type = EventType.LIFECYCLE_APPLICATION,
+            type = EventType.LIFECYCLE_APP,
             timestamp = timestamp,
             data = Json.encodeToJsonElement(serializer(), this)
         )
     }
 }
 
-object ApplicationLifecycleName {
+object AppLifecycleType {
     const val FOREGROUND = "foreground"
     const val BACKGROUND = "background"
 }
 
-object ActivityLifecycleName {
+object ActivityLifecycleType {
     const val CREATED = "created"
     const val RESUMED = "resumed"
     const val PAUSED = "paused"
     const val DESTROYED = "destroyed"
 }
 
-object FragmentLifecycleName {
+object FragmentLifecycleType {
     const val ATTACHED = "attached"
     const val RESUMED = "resumed"
     const val PAUSED = "paused"

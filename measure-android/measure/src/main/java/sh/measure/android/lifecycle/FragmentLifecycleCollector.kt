@@ -13,7 +13,7 @@ internal class FragmentLifecycleCollector(
     override fun onFragmentAttached(fm: FragmentManager, f: Fragment, context: Context) {
         eventTracker.trackFragmentLifecycleEvent(
             FragmentLifecycleEvent(
-                type = FragmentLifecycleName.ATTACHED,
+                type = FragmentLifecycleType.ATTACHED,
                 parent_activity = f.activity?.javaClass?.name,
                 class_name = f.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
@@ -25,7 +25,7 @@ internal class FragmentLifecycleCollector(
     override fun onFragmentResumed(fm: FragmentManager, f: Fragment) {
         eventTracker.trackFragmentLifecycleEvent(
             FragmentLifecycleEvent(
-                type = FragmentLifecycleName.RESUMED,
+                type = FragmentLifecycleType.RESUMED,
                 parent_activity = f.activity?.javaClass?.name,
                 class_name = f.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
@@ -37,7 +37,7 @@ internal class FragmentLifecycleCollector(
     override fun onFragmentPaused(fm: FragmentManager, f: Fragment) {
         eventTracker.trackFragmentLifecycleEvent(
             FragmentLifecycleEvent(
-                type = FragmentLifecycleName.PAUSED,
+                type = FragmentLifecycleType.PAUSED,
                 parent_activity = f.activity?.javaClass?.name,
                 class_name = f.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
@@ -49,7 +49,7 @@ internal class FragmentLifecycleCollector(
     override fun onFragmentDetached(fm: FragmentManager, f: Fragment) {
         eventTracker.trackFragmentLifecycleEvent(
             FragmentLifecycleEvent(
-                type = FragmentLifecycleName.DETACHED,
+                type = FragmentLifecycleType.DETACHED,
                 parent_activity = f.activity?.javaClass?.name,
                 class_name = f.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
