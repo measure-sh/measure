@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -352,7 +353,120 @@ func (e *EventField) isAppExit() bool {
 	return e.Type == TypeAppExit
 }
 
+func (e *EventField) isString() bool {
+	return e.Type == TypeString
+}
+
+func (e *EventField) isGestureLongClick() bool {
+	return e.Type == TypeGestureLongClick
+}
+
+func (e *EventField) isGestureScroll() bool {
+	return e.Type == TypeGestureScroll
+}
+
+func (e *EventField) isGestureClick() bool {
+	return e.Type == TypeGestureClick
+}
+
+func (e *EventField) isHTTPRequest() bool {
+	return e.Type == TypeHTTPRequest
+}
+
+func (e *EventField) isHTTPResponse() bool {
+	return e.Type == TypeHTTPResponse
+}
+
+func (e *EventField) isLifecycleActivity() bool {
+	return e.Type == TypeLifecycleActivity
+}
+
+func (e *EventField) isLifecycleFragment() bool {
+	return e.Type == TypeLifecycleFragment
+}
+
+func (e *EventField) isLifecycleApp() bool {
+	return e.Type == TypeLifecycleApp
+}
+
 func (e *EventField) validate() error {
+	validTypes := []string{TypeANR, TypeException, TypeAppExit, TypeString, TypeGestureLongClick, TypeGestureScroll, TypeGestureClick, TypeHTTPRequest, TypeHTTPResponse, TypeLifecycleActivity, TypeLifecycleFragment, TypeLifecycleApp}
+	if !slices.Contains(validTypes, e.Type) {
+		return fmt.Errorf(`"events[].type" is not a valid type`)
+	}
+	// validate all required fields of each type
+	if e.isANR() {
+		if len(e.ANR.Exceptions) < 1 || len(e.ANR.Threads) < 1 || e.ANR.ThreadName == "" {
+			return fmt.Errorf(`anr event is invalid`)
+		}
+	}
+
+	if e.isException() {
+		if len(e.Exception.Exceptions) < 1 || len(e.Exception.Threads) < 1 || e.Exception.ThreadName == "" {
+			return fmt.Errorf(`exception event is invalid`)
+		}
+	}
+
+	if e.isAppExit() {
+		if len(e.AppExit.Reason) < 1 || len(e.AppExit.Importance) < 1 || len(e.AppExit.ProcessName) < 1 || len(e.AppExit.ProcessName) < 1 || e.AppExit.Timestamp.IsZero() {
+			return fmt.Errorf(`app_exit event is invalid`)
+		}
+	}
+
+	if e.isString() {
+		if len(e.LogString.String) < 1 {
+			return fmt.Errorf(`string event is invalid`)
+		}
+	}
+
+	if e.isGestureLongClick() {
+		if e.GestureLongClick.X < 0 || e.GestureLongClick.Y < 0 {
+			return fmt.Errorf(`gesture_long_click event is invalid`)
+		}
+	}
+
+	if e.isGestureScroll() {
+		if e.GestureScroll.X < 0 || e.GestureScroll.Y < 0 {
+			return fmt.Errorf(`gesture_scroll event is invalid`)
+		}
+	}
+
+	if e.isGestureClick() {
+		if e.GestureClick.X < 0 || e.GestureClick.Y < 0 {
+			return fmt.Errorf(`gesture_click event is invalid`)
+		}
+	}
+
+	if e.isHTTPRequest() {
+		if e.HTTPRequest.RequestID == "" || e.HTTPRequest.RequestURL == "" || e.HTTPRequest.Method == "" {
+			return fmt.Errorf(`http_request event is invalid`)
+		}
+	}
+
+	if e.isHTTPResponse() {
+		if e.HTTPResponse.RequestID == "" || e.HTTPResponse.RequestURL == "" || e.HTTPResponse.Method == "" {
+			return fmt.Errorf(`http_response event is invalid`)
+		}
+	}
+
+	if e.isLifecycleActivity() {
+		if e.LifecycleActivity.Type == "" || e.LifecycleActivity.ClassName == "" {
+			return fmt.Errorf(`lifecycle_activity event is invalid`)
+		}
+	}
+
+	if e.isLifecycleFragment() {
+		if e.LifecycleFragment.Type == "" || e.LifecycleFragment.ClassName == "" {
+			return fmt.Errorf(`lifecycle_fragment event is invalid`)
+		}
+	}
+
+	if e.isLifecycleApp() {
+		if e.LifecycleApp.Type == "" {
+			return fmt.Errorf(`lifecycle_app event is invalid`)
+		}
+	}
+
 	if len(e.Type) > maxTypeChars {
 		return fmt.Errorf(`"events[].type" exceeds maximum allowed characters of (%d)`, maxTypeChars)
 	}
