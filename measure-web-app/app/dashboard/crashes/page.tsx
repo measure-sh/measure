@@ -2,11 +2,6 @@ import CheckboxDropdown from "@/app/components/checkbox_dropdown";
 import Dropdown from "@/app/components/dropdown";
 import ExceptionRateChart from "@/app/components/exception_rate_chart";
 import FilterPill from "@/app/components/filter_pill";
-import InfoCircleAppAdoption from "@/app/components/info_circle_app_adoption";
-import InfoCircleAppSize from "@/app/components/info_circle_app_size";
-import InfoCircleAppStartTime from "@/app/components/info_circle_app_start_time";
-import InfoCircleExceptionRate from "@/app/components/info_circle_exception_rate";
-import UserFlow from "@/app/components/user_flow";
 import Link from "next/link";
 
 const crashes = [
