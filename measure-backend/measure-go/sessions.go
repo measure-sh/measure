@@ -122,7 +122,7 @@ func (s *Session) hasAttachments() bool {
 }
 
 func (s *Session) needsSymbolication() bool {
-	if s.hasExceptions() || s.hasANRs() || s.hasAppExits() || s.hasGestureLongClicks() || s.hasGestureScrolls() || s.hasGestureClicks() || s.hasLifecycleActivities() || s.hasLifecycleFragments() {
+	if s.hasExceptions() || s.hasANRs() || s.hasAppExits() || s.hasLifecycleActivities() || s.hasLifecycleFragments() {
 		return true
 	}
 	return false
@@ -336,51 +336,6 @@ func (s *Session) EncodeForSymbolication() (CodecMap, []SymbolicationUnit) {
 			}
 		}
 
-		if event.isGestureLongClick() {
-			if len(event.GestureLongClick.Target) > 0 {
-				idGestureLongClick := uuid.New()
-				unitGLC := NewCodecMapVal()
-				unitGLC.Type = TypeGestureLongClick
-				unitGLC.Event = eventIdx
-				unitGLC.Target = TransformSwap
-				codecMap[idGestureLongClick] = *unitGLC
-				su := new(SymbolicationUnit)
-				su.ID = idGestureLongClick
-				su.Values = []string{GenericPrefix + event.GestureLongClick.Target}
-				symbolicationUnits = append(symbolicationUnits, *su)
-			}
-		}
-
-		if event.isGestureScroll() {
-			if len(event.GestureScroll.Target) > 0 {
-				idGestureScroll := uuid.New()
-				unitGS := NewCodecMapVal()
-				unitGS.Type = TypeGestureScroll
-				unitGS.Event = eventIdx
-				unitGS.Target = TransformSwap
-				codecMap[idGestureScroll] = *unitGS
-				su := new(SymbolicationUnit)
-				su.ID = idGestureScroll
-				su.Values = []string{GenericPrefix + event.GestureScroll.Target}
-				symbolicationUnits = append(symbolicationUnits, *su)
-			}
-		}
-
-		if event.isGestureClick() {
-			if len(event.GestureClick.Target) > 0 {
-				idGestureClick := uuid.New()
-				unitGC := NewCodecMapVal()
-				unitGC.Type = TypeGestureClick
-				unitGC.Event = eventIdx
-				unitGC.Target = TransformSwap
-				codecMap[idGestureClick] = *unitGC
-				su := new(SymbolicationUnit)
-				su.ID = idGestureClick
-				su.Values = []string{GenericPrefix + event.GestureClick.Target}
-				symbolicationUnits = append(symbolicationUnits, *su)
-			}
-		}
-
 		if event.isLifecycleActivity() {
 			if len(event.LifecycleActivity.ClassName) > 0 {
 				idLifecycleActivity := uuid.New()
@@ -522,18 +477,6 @@ func (s *Session) DecodeFromSymbolication(codecMap CodecMap, symbolicationUnits 
 		case TypeAppExit:
 			if codecMapVal.Trace == TransformSwap {
 				s.Events[codecMapVal.Event].AppExit.Trace = strings.TrimPrefix(su.Values[0], GenericPrefix)
-			}
-		case TypeGestureLongClick:
-			if codecMapVal.Target == TransformSwap {
-				s.Events[codecMapVal.Event].GestureLongClick.Target = strings.TrimPrefix(su.Values[0], GenericPrefix)
-			}
-		case TypeGestureScroll:
-			if codecMapVal.Target == TransformSwap {
-				s.Events[codecMapVal.Event].GestureScroll.Target = strings.TrimPrefix(su.Values[0], GenericPrefix)
-			}
-		case TypeGestureClick:
-			if codecMapVal.Target == TransformSwap {
-				s.Events[codecMapVal.Event].GestureClick.Target = strings.TrimPrefix(su.Values[0], GenericPrefix)
 			}
 		case TypeLifecycleActivity:
 			if codecMapVal.ClassName == TransformSwap {
