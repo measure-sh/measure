@@ -240,7 +240,7 @@ const UserFlow = () => {
                   </ul>
                 </div>
                }
-               {node.issues.crashes.length > 0 && 
+               {node.issues.anrs.length > 0 && 
                 <div>
                   <div className="py-2"/>
                   <p className="font-sans text-white">ANRs:</p>
