@@ -17,3 +17,4 @@ dependencyResolutionManagement {
 rootProject.name = "measure-android"
 include(":sample")
 include(":measure")
+include(":no-fragment-test")
