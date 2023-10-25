@@ -118,7 +118,7 @@ export default function Overview() {
         </div>
         <div className="table-row-group">
           {crashes.map(({ id, title, count, percentage }) => (
-              <Link key={id} href={`/dashboard/overview/crashes/${id}`} className="table-row hover:bg-yellow-200 active:bg-yellow-300">
+              <Link key={id} href={`/dashboard/crashes/${id}`} className="table-row hover:bg-yellow-200 active:bg-yellow-300">
                 <div className="table-cell border border-black p-2 hover:bg-yellow-200 active:bg-yellow-300">{title}</div>
                 <div className="table-cell border border-black p-2 text-center">{count} instances</div>
                 <div className="table-cell border border-black p-2 text-center">{percentage}%</div>
