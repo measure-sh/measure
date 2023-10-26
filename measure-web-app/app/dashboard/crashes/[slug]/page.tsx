@@ -1,3 +1,4 @@
+import Accordion from "@/app/components/accordion";
 import CheckboxDropdown from "@/app/components/checkbox_dropdown";
 import Dropdown from "@/app/components/dropdown";
 import ExceptionCountChart from "@/app/components/exception_count_chart";
@@ -58,6 +59,124 @@ const sessions = [
   },
 ];
 
+const stackTraces = [
+  {
+    title: "UI thread",
+    text: `FATAL EXCEPTION: main
+    java.lang.RuntimeException: Unable to start activity ComponentInfo{com.testing.ringer/com.testing.ringer.RingerActivity}: java.lang.NullPointerException
+       at android.app.ActivityThread.performLaunchActivity(ActivityThread.java:1872)
+       at android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:1893)
+       at android.app.ActivityThread.access$1500(ActivityThread.java:135)
+       at android.app.ActivityThread$H.handleMessage(ActivityThread.java:1054)
+       at android.os.Handler.dispatchMessage(Handler.java:99)
+       at android.os.Looper.loop(Looper.java:150)
+       at android.app.ActivityThread.main(ActivityThread.java:4385)
+       at java.lang.reflect.Method.invokeNative(Native Method)
+       at java.lang.reflect.Method.invoke(Method.java:507)
+       at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:849)
+       at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:607)
+       at dalvik.system.NativeStart.main(Native Method)
+    Caused by: java.lang.NullPointerException
+       at com.testing.ringer.RingerActivity.onCreate(RingerActivity.java:23)
+       at android.app.Instrumentation.callActivityOnCreate(Instrumentation.java:1072)
+       at android.app.ActivityThread.performLaunchActivity(ActivityThread.java:1836)
+       ... 11 more`,
+    active: true,
+  },
+  {
+    title: "Thread 1",
+    text: `FATAL EXCEPTION: main
+    java.lang.RuntimeException: Unable to start activity ComponentInfo{com.testing.ringer/com.testing.ringer.RingerActivity}: java.lang.NullPointerException
+       at android.app.ActivityThread.performLaunchActivity(ActivityThread.java:1872)
+       at android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:1893)
+       at android.app.ActivityThread.access$1500(ActivityThread.java:135)
+       at android.app.ActivityThread$H.handleMessage(ActivityThread.java:1054)
+       at android.os.Handler.dispatchMessage(Handler.java:99)
+       at android.os.Looper.loop(Looper.java:150)
+       at android.app.ActivityThread.main(ActivityThread.java:4385)
+       at java.lang.reflect.Method.invokeNative(Native Method)
+       at java.lang.reflect.Method.invoke(Method.java:507)
+       at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:849)
+       at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:607)
+       at dalvik.system.NativeStart.main(Native Method)
+    Caused by: java.lang.NullPointerException
+       at com.testing.ringer.RingerActivity.onCreate(RingerActivity.java:23)
+       at android.app.Instrumentation.callActivityOnCreate(Instrumentation.java:1072)
+       at android.app.ActivityThread.performLaunchActivity(ActivityThread.java:1836)
+       ... 11 more`,
+    active: false,
+  },
+  {
+    title: "Thread 2",
+    text: `FATAL EXCEPTION: main
+    java.lang.RuntimeException: Unable to start activity ComponentInfo{com.testing.ringer/com.testing.ringer.RingerActivity}: java.lang.NullPointerException
+       at android.app.ActivityThread.performLaunchActivity(ActivityThread.java:1872)
+       at android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:1893)
+       at android.app.ActivityThread.access$1500(ActivityThread.java:135)
+       at android.app.ActivityThread$H.handleMessage(ActivityThread.java:1054)
+       at android.os.Handler.dispatchMessage(Handler.java:99)
+       at android.os.Looper.loop(Looper.java:150)
+       at android.app.ActivityThread.main(ActivityThread.java:4385)
+       at java.lang.reflect.Method.invokeNative(Native Method)
+       at java.lang.reflect.Method.invoke(Method.java:507)
+       at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:849)
+       at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:607)
+       at dalvik.system.NativeStart.main(Native Method)
+    Caused by: java.lang.NullPointerException
+       at com.testing.ringer.RingerActivity.onCreate(RingerActivity.java:23)
+       at android.app.Instrumentation.callActivityOnCreate(Instrumentation.java:1072)
+       at android.app.ActivityThread.performLaunchActivity(ActivityThread.java:1836)
+       ... 11 more`,
+    active: false,
+  },
+  {
+    title: "Thread 3",
+    text: `FATAL EXCEPTION: main
+    java.lang.RuntimeException: Unable to start activity ComponentInfo{com.testing.ringer/com.testing.ringer.RingerActivity}: java.lang.NullPointerException
+       at android.app.ActivityThread.performLaunchActivity(ActivityThread.java:1872)
+       at android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:1893)
+       at android.app.ActivityThread.access$1500(ActivityThread.java:135)
+       at android.app.ActivityThread$H.handleMessage(ActivityThread.java:1054)
+       at android.os.Handler.dispatchMessage(Handler.java:99)
+       at android.os.Looper.loop(Looper.java:150)
+       at android.app.ActivityThread.main(ActivityThread.java:4385)
+       at java.lang.reflect.Method.invokeNative(Native Method)
+       at java.lang.reflect.Method.invoke(Method.java:507)
+       at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:849)
+       at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:607)
+       at dalvik.system.NativeStart.main(Native Method)
+    Caused by: java.lang.NullPointerException
+       at com.testing.ringer.RingerActivity.onCreate(RingerActivity.java:23)
+       at android.app.Instrumentation.callActivityOnCreate(Instrumentation.java:1072)
+       at android.app.ActivityThread.performLaunchActivity(ActivityThread.java:1836)
+       ... 11 more`,
+    active: false,
+  },
+  {
+    title: "Thread 4",
+    text: `FATAL EXCEPTION: main
+    java.lang.RuntimeException: Unable to start activity ComponentInfo{com.testing.ringer/com.testing.ringer.RingerActivity}: java.lang.NullPointerException
+       at android.app.ActivityThread.performLaunchActivity(ActivityThread.java:1872)
+       at android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:1893)
+       at android.app.ActivityThread.access$1500(ActivityThread.java:135)
+       at android.app.ActivityThread$H.handleMessage(ActivityThread.java:1054)
+       at android.os.Handler.dispatchMessage(Handler.java:99)
+       at android.os.Looper.loop(Looper.java:150)
+       at android.app.ActivityThread.main(ActivityThread.java:4385)
+       at java.lang.reflect.Method.invokeNative(Native Method)
+       at java.lang.reflect.Method.invoke(Method.java:507)
+       at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:849)
+       at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:607)
+       at dalvik.system.NativeStart.main(Native Method)
+    Caused by: java.lang.NullPointerException
+       at com.testing.ringer.RingerActivity.onCreate(RingerActivity.java:23)
+       at android.app.Instrumentation.callActivityOnCreate(Instrumentation.java:1072)
+       at android.app.ActivityThread.performLaunchActivity(ActivityThread.java:1836)
+       ... 11 more`,
+    active: false,
+  },
+]
+
 export default function CrashDetails({ params }: { params: { slug: string } }) {
   const today = new Date();
   const endDate = `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
@@ -113,28 +232,14 @@ export default function CrashDetails({ params }: { params: { slug: string } }) {
       </div>
       <div className="py-8"/>
       <p className="text-black font-display text-3xl"> Stack trace</p>
-      <div className="py-4"/>
-      <p className="text-black font-sans border border-black p-2 whitespace-pre-wrap">
-          {`FATAL EXCEPTION: main
-          java.lang.RuntimeException: Unable to start activity ComponentInfo{com.testing.ringer/com.testing.ringer.RingerActivity}: java.lang.NullPointerException
-             at android.app.ActivityThread.performLaunchActivity(ActivityThread.java:1872)
-             at android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:1893)
-             at android.app.ActivityThread.access$1500(ActivityThread.java:135)
-             at android.app.ActivityThread$H.handleMessage(ActivityThread.java:1054)
-             at android.os.Handler.dispatchMessage(Handler.java:99)
-             at android.os.Looper.loop(Looper.java:150)
-             at android.app.ActivityThread.main(ActivityThread.java:4385)
-             at java.lang.reflect.Method.invokeNative(Native Method)
-             at java.lang.reflect.Method.invoke(Method.java:507)
-             at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:849)
-             at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:607)
-             at dalvik.system.NativeStart.main(Native Method)
-          Caused by: java.lang.NullPointerException
-             at com.testing.ringer.RingerActivity.onCreate(RingerActivity.java:23)
-             at android.app.Instrumentation.callActivityOnCreate(Instrumentation.java:1072)
-             at android.app.ActivityThread.performLaunchActivity(ActivityThread.java:1836)
-             ... 11 more`}
-      </p>
+      <div className="py-2"/>
+      <div>
+          {stackTraces.map((stackTrace, index) => (
+            <Accordion key={index} title={stackTrace.title} id={`stackTraces-${index}`} active={stackTrace.active}>
+              {stackTrace.text}
+            </Accordion>
+          ))}
+        </div>
       <div className="py-8"/>
       <p className="text-black font-display text-3xl"> Latest Sessions with NullpointerException.java</p>
       <div className="py-4"/>
