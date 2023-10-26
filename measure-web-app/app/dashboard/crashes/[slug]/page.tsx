@@ -1,6 +1,6 @@
 import CheckboxDropdown from "@/app/components/checkbox_dropdown";
 import Dropdown from "@/app/components/dropdown";
-import ExceptionRateChart from "@/app/components/exception_rate_chart";
+import ExceptionCountChart from "@/app/components/exception_count_chart";
 import FilterPill from "@/app/components/filter_pill";
 import UserFlowCrashDetails from "@/app/components/user_flow_crash_details";
 import Link from "next/link";
@@ -104,7 +104,7 @@ export default function CrashDetails({ params }: { params: { slug: string } }) {
       <div className="py-6"/>
       <div className="flex flex-col md:flex-row w-full">
         <div className="border border-black text-black font-sans text-sm w-full h-[24rem]">
-          <ExceptionRateChart/>
+          <ExceptionCountChart/>
         </div>
         <div className="p-2"/>
         <div className="border border-black text-black font-sans text-sm w-full h-[24rem]">
