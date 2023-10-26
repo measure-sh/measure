@@ -8,42 +8,52 @@ import Link from "next/link";
 const sessions = [
   {
     id: 'asldkfjlk34343',
+    userId: 'dlsfjldsjf3434',
     dateTime: '24 Oct 2023, 1.32 PM'
   },
   {
     id: 'sldfkjsklf898',
+    userId: 'nvcmv8998',
     dateTime: '24 Oct 2023, 12.45 PM'
   },
   {
     id: 'asafdasfd9900',
+    userId: 'sldjflds787',
     dateTime: '24 Oct 2023, 12.30 PM'
   },
   {
     id: 'bnflkjfg8989',
+    userId: 'svdlifu87987',
     dateTime: '23 Oct 2023, 10.05 PM'
   },
   {
     id: 'cbcmvncmvn89898',
+    userId: 'blkhf234',
     dateTime: '23 Oct 2023, 9.45 PM'
   },
   {
     id: 'sldkjkjdf8989',
+    userId: 'kjgdf7879',
     dateTime: '23 Oct 2023, 11.13 AM'
   },
   {
     id: 'sbxcbvcv898',
+    userId: 'asdf8787',
     dateTime: '22 Oct 2023, 9.06 PM'
   },
   {
     id: 'asdfsdgsdg90909',
+    userId: 'asvjhjhf23434',
     dateTime: '22 Oct 2023, 6.03 PM'
   },
   {
     id: 'ckvjdfsfjh78aswe',
+    userId: 'asvjhjhf23434',
     dateTime: '22 Oct 2023, 3.07 PM'
   },
   {
     id: 'askjbljhdkfe5435',
+    userId: 'jklj78979',
     dateTime: '22 Oct 2023, 10.53 AM'
   },
 ];
@@ -131,14 +141,16 @@ export default function CrashDetails({ params }: { params: { slug: string } }) {
       <div className="table text-black font-sans border border-black w-full">
         <div className="table-header-group border border-black">
           <div className="table-row">
-            <div className="table-cell border border-black p-2 font-display">Session ID</div>
+            <div className="table-cell border border-black p-2 font-display text-center">Session ID</div>
+            <div className="table-cell border border-black p-2 font-display text-center">User ID</div>
             <div className="table-cell border border-black p-2 font-display text-center">Session time</div>
           </div>
         </div>
         <div className="table-row-group">
-          {sessions.map(({id, dateTime }) => (
+          {sessions.map(({id, userId, dateTime }) => (
               <Link key={id} href={`/dashboard/crashes/${params.slug}/sesssions/${id}`} className="table-row hover:bg-yellow-200 active:bg-yellow-300">
-                <div className="table-cell border border-black p-2">{id}</div>
+                <div className="table-cell border border-black p-2 text-center">{id}</div>
+                <div className="table-cell border border-black p-2 text-center">{userId}</div>
                 <div className="table-cell border border-black p-2 text-center">{dateTime}</div>
               </Link>
           ))}
