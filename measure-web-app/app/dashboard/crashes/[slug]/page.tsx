@@ -253,7 +253,7 @@ export default function CrashDetails({ params }: { params: { slug: string } }) {
         </div>
         <div className="table-row-group">
           {sessions.map(({id, userId, dateTime }) => (
-              <Link key={id} href={`/dashboard/crashes/${params.slug}/sesssions/${id}`} className="table-row hover:bg-yellow-200 active:bg-yellow-300">
+              <Link key={id} href={`/dashboard/sessions/${id}`} className="table-row hover:bg-yellow-200 active:bg-yellow-300">
                 <div className="table-cell border border-black p-2 text-center">{id}</div>
                 <div className="table-cell border border-black p-2 text-center">{userId}</div>
                 <div className="table-cell border border-black p-2 text-center">{dateTime}</div>
