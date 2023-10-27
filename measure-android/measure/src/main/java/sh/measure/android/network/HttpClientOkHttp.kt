@@ -1,6 +1,7 @@
 package sh.measure.android.network
 
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToStream
 import okhttp3.Call
@@ -59,11 +60,9 @@ internal class HttpClientOkHttp(
         logger.log(LogLevel.Debug, "Sending session report: ${sessionReport.session_id}")
         val requestBody = MultipartBody.Builder().setType(MultipartBody.FORM)
             .addFormDataPart(name = "session_id", value = sessionReport.session_id)
-            .addFormDataPart(name = "timestamp", value = sessionReport.timestamp).addPart(
-                createJsonPart(
-                    name = "resource", filename = "resource.json", file = sessionReport.resourceFile
-                )
-            ).addPart(
+            .addFormDataPart(name = "timestamp", value = sessionReport.timestamp)
+            .addFormDataPart(name = "resource", value = Json.encodeToString(sessionReport.resource))
+            .addPart(
                 createJsonPart(
                     name = "events", filename = "events.json", file = sessionReport.eventsFile
                 )
@@ -98,7 +97,7 @@ internal class CallbackAdapter(private val logger: Logger, private val callback:
     override fun onResponse(call: Call, response: Response) {
         when (response.code) {
             202 -> {
-                logger.log(LogLevel.Debug, "Events sent successfully")
+                logger.log(LogLevel.Debug, "Session sent successfully")
                 callback?.onSuccess()
             }
 

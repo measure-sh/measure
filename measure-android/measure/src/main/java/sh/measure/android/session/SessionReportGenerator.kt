@@ -1,5 +1,7 @@
 package sh.measure.android.session
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.encodeToJsonElement
 import okio.BufferedSink
 import okio.Closeable
 import okio.buffer
@@ -12,7 +14,6 @@ import sh.measure.android.events.toEvent
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.Storage
-import sh.measure.android.storage.UnsyncedSession
 import sh.measure.android.utils.iso8601Timestamp
 import java.io.File
 
@@ -22,22 +23,18 @@ internal class SessionReportGenerator(
     private val appExitProvider: AppExitProvider
 ) {
 
-    fun getSessionReport(session: UnsyncedSession): SessionReport {
+    fun getSessionReport(session: Session): SessionReport {
         logger.log(LogLevel.Debug, "Getting session report for session: ${session.id}")
-        val sessionStartTime = getSessionStartTime(session.id)
-        val appExit = appExitProvider.get(session.processId)
+        val sessionStartTime = session.startTime.iso8601Timestamp()
+        val appExit = appExitProvider.get(session.pid)
         val eventsFile = createEventsJsonFile(session.id, appExit)
-        val resourceFile = storage.getResourceFile(session.id)
+        val resource = storage.getResource(session.id)
         return SessionReport(
             session_id = session.id,
-            timestamp = sessionStartTime.iso8601Timestamp(),
+            timestamp = sessionStartTime,
             eventsFile = eventsFile,
-            resourceFile = resourceFile
+            resource = Json.encodeToJsonElement(resource)
         )
-    }
-
-    private fun getSessionStartTime(sessionId: String): Long {
-        return storage.getSessionStartTime(sessionId)
     }
 
     private fun createEventsJsonFile(sessionId: String, appExit: AppExit?): File {

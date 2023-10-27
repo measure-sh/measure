@@ -1,5 +1,8 @@
 package sh.measure.android.session
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 internal data class Session(
     /**
      * A unique identifier for the session.
@@ -15,11 +18,6 @@ internal data class Session(
      * The resource associated with the session.
      */
     val resource: Resource,
-
-    /**
-     * Whether the session has been synced or not.
-     */
-    val synced: Boolean = false,
 
     /**
      * The process id of the session.

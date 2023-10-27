@@ -5,11 +5,12 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import org.junit.Assert.*
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
-import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
+import org.mockito.kotlin.verify
 import org.robolectric.RuntimeEnvironment
 import sh.measure.android.events.Event
 import sh.measure.android.fakes.FakeResourceFactory
@@ -23,76 +24,83 @@ import kotlin.io.path.pathString
 @RunWith(AndroidJUnit4::class)
 internal class StorageImplTest {
     private val logger = NoopLogger()
-    private val dbHelper = mock<DbHelper>()
     private val fileHelper = mock<FileHelperImpl>()
-    private val storage: Storage = StorageImpl(logger, fileHelper, dbHelper)
-    private val tempDirPath =
-        RuntimeEnvironment.getTempDirectory().createIfNotExists("test").pathString
+    private lateinit var storage: Storage
+    private lateinit var tempDirPath: String
+
+    @Before
+    fun setUp() {
+        storage = StorageImpl(logger, fileHelper)
+        tempDirPath = RuntimeEnvironment.getTempDirectory().createIfNotExists("test").pathString
+    }
 
     @Test
-    fun `Storage delegates to db and file helper to create session`() {
-        val session =
-            Session(id = "id", startTime = 9876543210, resource = FakeResourceFactory().create())
-        // When
-        storage.createSession(session)
+    fun `Storage delegates to file helper to create session files and persists session to session file`() {
+        val session = createFakeSession("session-id")
+        val file = File(tempDirPath, "session.json")
+        `when`(fileHelper.getSessionFile(session.id)).thenReturn(file)
 
-        // Then
-        verify(dbHelper).createSession(session.toContentValues())
+        storage.storeSession(session)
+
         verify(fileHelper).createSessionFiles(session.id)
-    }
-
-    @Test
-    fun `Storage serializes and writes resource to file`() {
-        val resource = FakeResourceFactory().resource
-        val resourceFile = File(tempDirPath, "resource.json")
-        `when`(fileHelper.getResourceFile("id")).thenReturn(resourceFile)
-        // When
-        storage.createResource(resource, "id")
-
-        // Then
         assertEquals(
-            resource, Json.decodeFromString(Resource.serializer(), resourceFile.readText())
+            Json.encodeToString(Session.serializer(), session), file.readText()
         )
     }
 
     @Test
-    fun `Storage delegates to db to return unsynced sessions`() {
-        val unsyncedSessions = listOf(
-            UnsyncedSession(
-                "id", "1231231", 0
-            )
-        )
-        `when`(dbHelper.getUnsyncedSessions()).thenReturn(unsyncedSessions)
+    fun `Storage returns resource if exists`() {
+        val sessionId = "session-id"
+        val resource = FakeResourceFactory().resource
+        val session = createFakeSession(sessionId, resource)
+        val sessionFile = File(tempDirPath, "session.json")
+        `when`(fileHelper.getSessionFile(session.id)).thenReturn(sessionFile)
+        sessionFile.writeText(Json.encodeToJsonElement(session).toString())
+
         // When
-        val syncedSessions = storage.getUnsyncedSessions()
+        val actualResource = storage.getResource(sessionId)
 
         // Then
-        assertEquals(unsyncedSessions, syncedSessions)
+        assertEquals(resource, actualResource)
     }
 
     @Test
-    fun `Storage deletes session from db and files`() {
-        val sessionId = "id"
-        // When
+    fun `Storage returns all sessions if available`() {
+        val session1 = createFakeSession("session1")
+        val session2 = createFakeSession("session2")
+        val dir1 = createFakeSessionDir(session1)
+        val dir2 = createFakeSessionDir(session2)
+        // write session to file
+        val sessionFile1 = File(dir1, "session.json")
+        sessionFile1.writeText(Json.encodeToJsonElement(session1).toString())
+        val sessionFile2 = File(dir2, "session.json")
+        sessionFile2.writeText(Json.encodeToJsonElement(session2).toString())
+
+        `when`(fileHelper.getAllSessionDirs()).thenReturn(listOf(dir1, dir2))
+        `when`(fileHelper.getSessionFile(session1.id)).thenReturn(sessionFile1)
+        `when`(fileHelper.getSessionFile(session2.id)).thenReturn(sessionFile2)
+
+        val sessions = storage.getAllSessions()
+
+        assertEquals(2, sessions.size)
+        assertTrue(sessions.contains(session1))
+        assertTrue(sessions.contains(session2))
+    }
+
+    @Test
+    fun `Storage returns empty sessions if no sessions available`() {
+        `when`(fileHelper.getAllSessionDirs()).thenReturn(listOf())
+
+        val sessions = storage.getAllSessions()
+
+        assertEquals(0, sessions.size)
+    }
+
+    @Test
+    fun `Storage delegates to file helper to delete session`() {
+        val sessionId = "session-id"
         storage.deleteSession(sessionId)
-
-        // Then
-        verify(dbHelper).deleteSession(sessionId)
         verify(fileHelper).deleteSession(sessionId)
-    }
-
-    @Test
-    fun `Storage deletes synced sessions from db and files`() {
-        val sessionId1 = "id1"
-        val sessionId2 = "id2"
-        `when`(dbHelper.getSyncedSessions()).thenReturn(listOf(sessionId1, sessionId2))
-        // When
-        storage.deleteSyncedSessions()
-
-        // Then
-        verify(dbHelper).deleteSessions(listOf(sessionId1, sessionId2))
-        verify(fileHelper).deleteSession(sessionId1)
-        verify(fileHelper).deleteSession(sessionId2)
     }
 
     @Test
@@ -147,29 +155,8 @@ internal class StorageImplTest {
     }
 
     @Test
-    fun `Storage delegates to db to get session start time`() {
-        val sessionId = "id"
-        val startTime = 9876543210L
-        `when`(dbHelper.getSessionStartTime(sessionId)).thenReturn(startTime)
+    fun `Storage delegates to file helper return resource`() {
 
-        // When
-        val actualStartTime = storage.getSessionStartTime(sessionId)
-
-        // Then
-        assertEquals(startTime, actualStartTime)
-    }
-
-    @Test
-    fun `Storage delegates to file helper return resource file`() {
-        val sessionId = "id"
-        val resourceFile = File(tempDirPath, "resource.json")
-        `when`(fileHelper.getResourceFile(sessionId)).thenReturn(resourceFile)
-
-        // When
-        val actualResourceFile = storage.getResourceFile(sessionId)
-
-        // Then
-        assertEquals(resourceFile, actualResourceFile)
     }
 
     @Test
@@ -196,5 +183,22 @@ internal class StorageImplTest {
 
         // Then
         assertEquals(eventsFile, actualEventsFile)
+    }
+
+    private fun createFakeSessionDir(session: Session): File {
+        val sessionDir = File(tempDirPath, session.id)
+        sessionDir.mkdirs()
+        return sessionDir
+    }
+
+    private fun createFakeSession(
+        id: String, resource: Resource = FakeResourceFactory().resource
+    ): Session {
+        return Session(
+            id = id,
+            startTime = 0,
+            resource = resource,
+            pid = 0,
+        )
     }
 }

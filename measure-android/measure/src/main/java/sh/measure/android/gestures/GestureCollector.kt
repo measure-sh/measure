@@ -10,15 +10,17 @@ import sh.measure.android.logger.Logger
 internal class GestureCollector(
     private val logger: Logger,
     private val tracker: EventTracker,
-    private val windowInterceptor: WindowInterceptor
 ) {
     fun register() {
         logger.log(LogLevel.Debug, "Registering gesture collector")
-        windowInterceptor.registerInterceptor(object : WindowTouchInterceptor {
-            override fun intercept(motionEvent: MotionEvent, window: Window) {
-                trackGesture(motionEvent, window)
-            }
-        })
+        WindowInterceptor().apply {
+            init()
+            registerInterceptor(object : WindowTouchInterceptor {
+                override fun intercept(motionEvent: MotionEvent, window: Window) {
+                    trackGesture(motionEvent, window)
+                }
+            })
+        }
     }
 
     private fun trackGesture(motionEvent: MotionEvent, window: Window) {

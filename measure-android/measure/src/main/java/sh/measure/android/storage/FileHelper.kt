@@ -8,14 +8,15 @@ import java.io.IOException
 
 internal const val MEASURE_DIR_NAME = "measure"
 internal const val SESSIONS_DIR_NAME = "sessions"
+
 internal const val EVENT_LOG_FILE_NAME = "event_log"
 internal const val EVENTS_JSON_FILE_NAME = "events.json"
-internal const val RESOURCE_FILE_NAME = "resource.json"
+internal const val SESSION_FILE_NAME = "session.json"
 
 /**
  * Helper class for file operations.
  */
-interface FileHelper {
+internal interface FileHelper {
     /**
      * Create resource and events files for the given session id.
      */
@@ -37,14 +38,19 @@ interface FileHelper {
     fun getEventsJsonFile(sessionId: String): File
 
     /**
-     * Returns the resource file for the given session id.
-     */
-    fun getResourceFile(sessionId: String): File
-
-    /**
      * Returns the event log file for the given session id.
      */
     fun getEventLogFile(sessionId: String): File
+
+    /**
+     * Returns a list of unsynced sessions.
+     */
+    fun getAllSessionDirs(): List<File>
+
+    /**
+     * Returns the session file for the given session id.
+     */
+    fun getSessionFile(sessionId: String): File
 }
 
 /**
@@ -54,7 +60,7 @@ interface FileHelper {
  * - /measure/sessions/{session_id}/
  * - /measure/sessions/{session_id}/event_log
  * - /measure/sessions/{session_id}/events.json
- * - /measure/sessions/{session_id}/resource.json
+ * - /measure/sessions/{session_id}/session.json
  */
 internal class FileHelperImpl(private val logger: Logger, private val context: Context) :
     FileHelper {
@@ -66,9 +72,9 @@ internal class FileHelperImpl(private val logger: Logger, private val context: C
             dir.mkdirs()
         }
         try {
-            getResourceFile(sessionId).createNewFile()
             getEventLogFile(sessionId).createNewFile()
             getEventsJsonFile(sessionId).createNewFile()
+            getSessionFile(sessionId).createNewFile()
         } catch (e: IOException) {
             logger.log(LogLevel.Error, "Failed to create resource and events files", e)
             // remove the session dir to keep the state consistent
@@ -79,7 +85,11 @@ internal class FileHelperImpl(private val logger: Logger, private val context: C
     }
 
     override fun deleteSession(sessionId: String) {
-        getSessionDir(sessionId).deleteRecursively()
+        if (getSessionDir(sessionId).deleteRecursively()) {
+            logger.log(LogLevel.Debug, "Deleted session: $sessionId")
+        } else {
+            logger.log(LogLevel.Error, "Failed to delete session: $sessionId")
+        }
     }
 
     override fun getEventsJsonFile(sessionId: String): File {
@@ -90,12 +100,16 @@ internal class FileHelperImpl(private val logger: Logger, private val context: C
         return getEventLogFile(sessionId).length() == 0L
     }
 
-    override fun getResourceFile(sessionId: String): File {
-        return File(getResourceFilePath(sessionId))
-    }
-
     override fun getEventLogFile(sessionId: String): File {
         return File(getEventLogFilePath(sessionId))
+    }
+
+    override fun getAllSessionDirs(): List<File> {
+        return File(getSessionsDirPath()).listFiles()?.toList() ?: emptyList()
+    }
+
+    override fun getSessionFile(sessionId: String): File {
+        return File(getSessionFilePath(sessionId))
     }
 
     private fun getSessionsDirPath(): String {
@@ -118,7 +132,7 @@ internal class FileHelperImpl(private val logger: Logger, private val context: C
         return "${getSessionsDirPath()}/$sessionId"
     }
 
-    private fun getResourceFilePath(sessionId: String): String {
-        return "${getSessionDirPath(sessionId)}/$RESOURCE_FILE_NAME"
+    private fun getSessionFilePath(sessionId: String): String {
+        return "${getSessionDirPath(sessionId)}/$SESSION_FILE_NAME"
     }
 }
