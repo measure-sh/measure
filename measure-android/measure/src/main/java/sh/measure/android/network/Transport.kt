@@ -50,7 +50,7 @@ internal class TransportImpl(
         return SessionReportRequest(
             session_id = sessionReport.session_id,
             timestamp = sessionReport.timestamp,
-            resource = Json.parseToJsonElement(sessionReport.resourceFile.readText()),
+            resource = sessionReport.resource,
             events = Json.parseToJsonElement(sessionReport.eventsFile.readText()) as JsonArray
         )
     }
