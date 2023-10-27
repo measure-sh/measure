@@ -97,7 +97,7 @@ internal class CallbackAdapter(private val logger: Logger, private val callback:
     override fun onResponse(call: Call, response: Response) {
         when (response.code) {
             202 -> {
-                logger.log(LogLevel.Debug, "Events sent successfully")
+                logger.log(LogLevel.Debug, "Session sent successfully")
                 callback?.onSuccess()
             }
 
