@@ -3,6 +3,8 @@ package sh.measure.android
 import android.app.Application
 import android.content.Context
 import sh.measure.android.anr.AnrCollector
+import sh.measure.android.cold_launch.ColdLaunchCollector
+import sh.measure.android.cold_launch.LaunchState
 import sh.measure.android.events.EventTracker
 import sh.measure.android.exceptions.UnhandledExceptionCollector
 import sh.measure.android.gestures.GestureCollector
@@ -27,8 +29,11 @@ internal class MeasureClient(
         logger.log(LogLevel.Debug, "Initializing session")
         sessionController.createSession()
         UnhandledExceptionCollector(logger, eventTracker, timeProvider).register()
+        ColdLaunchCollector(
+            context as Application, logger, eventTracker, timeProvider, LaunchState
+        ).register()
         AnrCollector(logger, context, timeProvider, eventTracker).register()
-        LifecycleCollector(context as Application, eventTracker, timeProvider).register()
+        LifecycleCollector(context, eventTracker, timeProvider).register()
         GestureCollector(logger, eventTracker, timeProvider).register()
 
         // TODO: do this after app launch is completed to not mess up the app startup time.

@@ -6,4 +6,5 @@
     <string name="stack_overflow_exception">Raise StackOverflow exception</string>
     <string name="infinite_loop">Infinite Loop</string>
     <string name="deadlock">Deadlock</string>
+    <string name="navigate">Navigate</string>
 </resources>

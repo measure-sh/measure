@@ -1,5 +1,6 @@
 package sh.measure.android.fakes
 
+import sh.measure.android.cold_launch.ColdLaunchEvent
 import sh.measure.android.events.EventTracker
 import sh.measure.android.exceptions.MeasureException
 import sh.measure.android.gestures.ClickEvent
@@ -19,6 +20,7 @@ internal class FakeEventTracker: EventTracker {
     val trackedActivityLifecycleEvents = mutableListOf<ActivityLifecycleEvent>()
     val trackedFragmentLifecycleEvents = mutableListOf<FragmentLifecycleEvent>()
     val trackedApplicationLifecycleEvents = mutableListOf<ApplicationLifecycleEvent>()
+    val trackedStartupTTIDEvents = mutableListOf<ColdLaunchEvent>()
 
     override fun trackUnhandledException(measureException: MeasureException) {
         trackedUnhandledExceptions.add(measureException)
@@ -50,5 +52,9 @@ internal class FakeEventTracker: EventTracker {
 
     override fun trackApplicationLifecycleEvent(event: ApplicationLifecycleEvent) {
         trackedApplicationLifecycleEvents.add(event)
+    }
+
+    override fun trackColdLaunch(event: ColdLaunchEvent) {
+        trackedStartupTTIDEvents.add(event)
     }
 }

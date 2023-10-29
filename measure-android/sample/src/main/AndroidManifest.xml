@@ -3,7 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <application
-        android:name="sh.measure.sample.SampleApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -15,13 +14,17 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="33">
         <activity
-            android:name="sh.measure.sample.ExceptionDemoActivity"
+            android:name=".ExceptionDemoActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".SecondActivity"
+            android:exported="false" />
     </application>
 
 </manifest>
