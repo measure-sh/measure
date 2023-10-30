@@ -232,7 +232,7 @@ const SessionReplay = () => {
             axisTop={null}
             axisRight={null}
             axisBottom={{
-                format: '%Y-%m-%d %H:%M:%S',
+                format: '%H:%M:%S',
                 tickValues: 'every 1 minutes',
                 legendPosition: 'middle'
             }}
@@ -302,7 +302,7 @@ const SessionReplay = () => {
             axisTop={null}
             axisRight={null}
             axisBottom={{
-                format: '%Y-%m-%d %H:%M:%S',
+                format: '%H:%M:%S',
                 tickValues: 'every 1 minutes',
                 legendPosition: 'middle'
             }}
@@ -370,7 +370,7 @@ const SessionReplay = () => {
             axisTop={null}
             axisRight={null}
             axisBottom={{
-                format: '%Y-%m-%d %H:%M:%S',
+                format: '%H:%M:%S',
                 tickValues: 'every 1 minutes',
                 legendPosition: 'middle'
             }}
@@ -419,7 +419,7 @@ const SessionReplay = () => {
             axisTop={null}
             axisRight={null}
             axisBottom={{
-                format: '%Y-%m-%d %H:%M:%S',
+                format: '%H:%M:%S',
                 tickValues: 'every 1 minutes',
                 legendPosition: 'middle'
             }}
@@ -468,7 +468,7 @@ const SessionReplay = () => {
             axisTop={null}
             axisRight={null}
             axisBottom={{
-                format: '%Y-%m-%d %H:%M:%S',
+                format: '%H:%M:%S',
                 tickValues: 'every 1 minutes',
                 legendPosition: 'middle'
             }}
@@ -517,7 +517,7 @@ const SessionReplay = () => {
             axisTop={null}
             axisRight={null}
             axisBottom={{
-                format: '%Y-%m-%d %H:%M:%S',
+                format: '%H:%M:%S',
                 tickValues: 'every 1 minutes',
                 legendPosition: 'middle'
             }}
@@ -555,7 +555,7 @@ const SessionReplay = () => {
             axisTop={null}
             axisRight={null}
             axisBottom={{
-                format: '%Y-%m-%d %H:%M:%S',
+                format: '%H:%M:%S',
                 tickValues: 'every 1 minutes',
                 legendPosition: 'middle'
             }}
