@@ -72,7 +72,7 @@ internal class ColdLaunchCollector(
             firstDrawComplete = true
             mainHandler.postAtFrontOfQueueAsync {
                 val completeUptime = SystemClock.uptimeMillis()
-                val ttid = completeUptime - startUptime
+                val duration = completeUptime - startUptime
                 val event = ColdLaunchEvent(
                     start_uptime = startUptime,
                     start_uptime_mechanism = startUptimeMechanism,
@@ -80,7 +80,7 @@ internal class ColdLaunchCollector(
                     launch_complete_uptime_mechanism = LaunchCompleteMechanism.FIRST_DRAW,
                     first_visible_activity = createdActivity.name,
                     intent = createdActivity.intent,
-                    ttid = ttid,
+                    duration = duration,
                     timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
                 )
                 eventTracker.trackColdLaunch(event)

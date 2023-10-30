@@ -34,9 +34,9 @@ internal data class ColdLaunchEvent(
     val intent: String?,
     /**
      * The time taken for the app to launch in milliseconds. This is calculated
-     * as [launch_complete_uptime] - [start_uptime].
+     * as [launch_complete_uptime] - [start_uptime]. Also known as TTID.
      */
-    val ttid: Long,
+    val duration: Long,
 
     /**
      * The timestamp when the event was created.

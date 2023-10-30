@@ -78,7 +78,7 @@ internal class MeasureEventTracker(
     }
 
     override fun trackColdLaunch(event: ColdLaunchEvent) {
-        logger.log(LogLevel.Debug, "Tracking cold launch (${event.ttid}ms)")
+        logger.log(LogLevel.Debug, "Tracking cold launch (${event.duration}ms)")
         sessionController.storeEvent(event.toEvent())
     }
 }
