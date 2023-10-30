@@ -13,6 +13,14 @@
 
     <application>
         <activity android:name="sh.measure.android.gestures.GestureTestActivity" />
+        <activity android:name="sh.measure.android.TestActivity" />
+
+        <!-- disable auto initialization of Measure for tests -->
+        <provider
+            android:name="sh.measure.android.MeasureInitProvider"
+            android:authorities="${applicationId}.MeasureInitProvider"
+            android:enabled="false"
+            android:exported="false" />
     </application>
 </manifest>
 

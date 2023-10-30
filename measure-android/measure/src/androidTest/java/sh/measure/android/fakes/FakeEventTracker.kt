@@ -20,7 +20,7 @@ internal class FakeEventTracker: EventTracker {
     val trackedActivityLifecycleEvents = mutableListOf<ActivityLifecycleEvent>()
     val trackedFragmentLifecycleEvents = mutableListOf<FragmentLifecycleEvent>()
     val trackedApplicationLifecycleEvents = mutableListOf<ApplicationLifecycleEvent>()
-    val trackedStartupTTIDEvents = mutableListOf<ColdLaunchEvent>()
+    val trackedColdLaunchEvents = mutableListOf<ColdLaunchEvent>()
 
     override fun trackUnhandledException(measureException: MeasureException) {
         trackedUnhandledExceptions.add(measureException)
@@ -55,6 +55,6 @@ internal class FakeEventTracker: EventTracker {
     }
 
     override fun trackColdLaunch(event: ColdLaunchEvent) {
-        trackedStartupTTIDEvents.add(event)
+        trackedColdLaunchEvents.add(event)
     }
 }
