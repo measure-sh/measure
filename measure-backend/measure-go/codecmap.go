@@ -9,17 +9,18 @@ const GenericPrefix = ": "
 const TransformSwap = "swap"
 
 type CodecMapVal struct {
-	Event          int
-	Type           string
-	ExceptionType  string
-	ANR            int
-	Exception      int
-	Thread         int
-	Frames         string
-	Target         string
-	Trace          string
-	ClassName      string
-	ParentActivity string
+	Event                int
+	Type                 string
+	ExceptionType        string
+	ANR                  int
+	Exception            int
+	Thread               int
+	Frames               string
+	Target               string
+	Trace                string
+	ClassName            string
+	ParentActivity       string
+	FirstVisibleActivity string
 }
 
 type CodecMap map[uuid.UUID]CodecMapVal
