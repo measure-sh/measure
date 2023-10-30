@@ -66,8 +66,7 @@ internal class ColdLaunchCollector(
         if (firstDrawComplete) return
         if (createdActivity.hasSavedState) return
         if (!isForegroundProcess()) return
-        val startUptime = launchInfo.startUptimePair?.first ?: return
-        val startUptimeMechanism = launchInfo.startUptimePair?.second ?: return
+        val (startUptime, startUptimeMechanism) = launchInfo.startUptimePair ?: return
 
         activity.window.onNextDraw {
             firstDrawComplete = true
