@@ -1,0 +1,50 @@
+{
+  "session_id": "b8f5ddb1-997e-4f2b-9e29-8a5988c86433",
+  "timestamp": "2023-10-30T21:00:07.158000000Z",
+  "resource": {
+    "device_name": "emu64a",
+    "device_model": "sdk_gphone64_arm64",
+    "device_manufacturer": "Google",
+    "device_type": "phone",
+    "device_is_foldable": true,
+    "device_is_physical": false,
+    "device_density_dpi": 440,
+    "device_width_px": 1080,
+    "device_height_px": 2154,
+    "device_density": 2.75,
+    "os_name": "android",
+    "os_version": "33",
+    "platform": "android",
+    "app_version": "1.0",
+    "app_build": "1",
+    "app_unique_id": "sh.measure.sample",
+    "measure_sdk_version": "0.0.1-SNAPSHOT"
+  },
+  "events": [
+    {
+      "timestamp": "2023-10-30T21:00:07.158000000Z",
+      "type": "cold_launch",
+      "cold_launch": {
+        "start_uptime": 6577298,
+        "start_uptime_mechanism": "process_start_requested_uptime",
+        "launch_complete_uptime": 6578600,
+        "launch_complete_uptime_mechanism": "first_draw",
+        "first_visible_activity": "sh.measure.sample.ExceptionDemoActivity",
+        "intent": null,
+        "duration": 1302
+      }
+    },
+    {
+      "timestamp": "2023-10-30T21:00:17.570000000Z",
+      "type": "app_exit",
+      "app_exit": {
+        "reason": "USER_REQUESTED",
+        "importance": "CACHED",
+        "timestamp": "2023-10-30T21:00:17.570000000Z",
+        "trace": null,
+        "process_name": "sh.measure.sample",
+        "pid": "10751"
+      }
+    }
+  ]
+}

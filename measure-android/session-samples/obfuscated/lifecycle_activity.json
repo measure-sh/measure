@@ -11,9 +11,9 @@
     }
   ],
   "resource": {
-    "app_build": "50453",
-    "app_unique_id": "org.wikipedia.dev",
-    "app_version": "2.7.50453-dev-2023-10-14",
+    "app_build": "1",
+    "app_unique_id": "sh.measure.sample",
+    "app_version": "1.0",
     "device_density": 2.75,
     "device_density_dpi": 440,
     "device_height_px": 2154,
@@ -29,6 +29,6 @@
     "os_version": "33",
     "platform": "android"
   },
-  "session_id": "f1fd8bb0-e226-429f-9ff5-43d8f355c542",
-  "timestamp": "2023-10-14T00:55:26.660000000Z"
+  "session_id": "2089e2da-37df-4ee4-8240-75a8a0a5ba67",
+  "timestamp": "2023-10-16T14:41:52.498000000Z"
 }
