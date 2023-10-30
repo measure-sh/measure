@@ -77,7 +77,7 @@ internal class ColdLaunchCollector(
                     start_uptime = startUptime,
                     start_uptime_mechanism = startUptimeMechanism,
                     launch_complete_uptime = completeUptime,
-                    launch_complete_uptime_mechanism = LaunchCompleteMechanismType.FIRST_DRAW,
+                    launch_complete_uptime_mechanism = LaunchCompleteMechanism.FIRST_DRAW,
                     first_visible_activity = createdActivity.name,
                     intent = createdActivity.intent,
                     ttid = ttid,

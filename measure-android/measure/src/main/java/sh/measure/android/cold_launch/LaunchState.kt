@@ -21,16 +21,16 @@ internal object LaunchState {
             VERSION.SDK_INT >= VERSION_CODES.TIRAMISU -> {
                 Pair(
                     Process.getStartRequestedUptimeMillis(),
-                    LaunchStartTimeMechanism.PROCESS_START_REQUESTED_UPTIME
+                    StartUptimeMechanism.PROCESS_START_REQUESTED_UPTIME
                 )
             }
 
             VERSION.SDK_INT >= VERSION_CODES.N -> {
-                Pair(Process.getStartUptimeMillis(), LaunchStartTimeMechanism.PROCESS_START_UPTIME)
+                Pair(Process.getStartUptimeMillis(), StartUptimeMechanism.PROCESS_START_UPTIME)
             }
 
             contentProviderLoadTime != null -> {
-                Pair(contentProviderLoadTime!!, LaunchStartTimeMechanism.CONTENT_PROVIDER)
+                Pair(contentProviderLoadTime!!, StartUptimeMechanism.CONTENT_PROVIDER)
             }
 
             else -> {
@@ -46,7 +46,7 @@ internal object LaunchState {
 /**
  * The mechanism using which the start uptime is calculated.
  */
-internal object LaunchStartTimeMechanism {
+internal object StartUptimeMechanism {
     /**
      * Measured at the time of [MeasureInitProvider] initialization.
      */
@@ -66,6 +66,6 @@ internal object LaunchStartTimeMechanism {
 /**
  * The mechanism using which the launch was marked as complete.
  */
-internal object LaunchCompleteMechanismType {
+internal object LaunchCompleteMechanism {
     const val FIRST_DRAW = "first_draw"
 }
