@@ -33,8 +33,6 @@ const (
 	maxLifecycleFragmentTypeChars         = 32
 	maxLifecycleFragmentClassNameChars    = 128
 	maxLifecycleAppTypeChars              = 32
-	maxLaunchStartUptimeMechanismChars    = 32
-	maxLaunchCompleteUptimeMechanismChars = 32
 	maxLaunchFirstVisibleActivityChars    = 128
 	maxAttrCount                          = 10
 )
@@ -145,9 +143,11 @@ var columns = []string{
 	"lifecycle_fragment.tag",
 	"lifecycle_app.type",
 	"cold_launch.start_uptime",
-	"cold_launch.start_uptime_mechanism",
-	"cold_launch.launch_complete_uptime",
-	"cold_launch.launch_complete_uptime_mechanism",
+	"cold_launch.su_is_process_start_requested",
+	"cold_launch.su_is_process_start_uptime",
+	"cold_launch.su_is_content_provider_init",
+	"cold_launch.end_uptime",
+	"cold_launch.eu_is_first_draw",
 	"cold_launch.first_visible_activity",
 	"cold_launch.intent",
 	"cold_launch.duration",
@@ -336,9 +336,11 @@ type LifecycleApp struct {
 
 type ColdLaunch struct {
     StartUptime                     uint32 `json:"start_uptime" binding:"required"`
-    StartUptimeMechanism            string `json:"start_uptime_mechanism" binding:"required"`
-    LaunchCompleteUptime            uint32 `json:"launch_complete_uptime" binding:"required"`
-    LaunchCompleteUptimeMechanism   string `json:"launch_complete_uptime_mechanism" binding:"required"`
+    SUIsProcessStartRequested       bool   `json:"su_is_process_start_requested" binding:"required"`
+    SUIsProcessStartUptime          bool   `json:"su_is_process_start_uptime" binding:"required"`
+    SUIsContentProviderInit         bool   `json:"su_is_content_provider_init" binding:"required"`
+    EndUptime                       uint32 `json:"end_uptime" binding:"required"`
+    EUIsFirstDraw                   bool   `json:"eu_is_first_draw" binding:"required"`
     FirstVisibleActivity            string `json:"first_visible_activity" binding:"required"`
     Duration                        uint32 `json:"duration" binding:"required"`
     Intent                          string `json:"intent"`
@@ -497,25 +499,27 @@ func (e *EventField) validate() error {
        if e.ColdLaunch.StartUptime <= 0 {
            return fmt.Errorf("ColdLaunch.StartUptime is invalid")
        }
-
-       if e.ColdLaunch.StartUptimeMechanism == "" {
-           return fmt.Errorf("ColdLaunch.StartUptimeMechanism is required")
+       if e.ColdLaunch.EndUptime <= 0 {
+           return fmt.Errorf("ColdLaunch.EndUptime is invalid")
        }
-
-       if e.ColdLaunch.LaunchCompleteUptime <= 0 {
-           return fmt.Errorf("ColdLaunch.LaunchCompleteUptime is invalid")
-       }
-
-       if e.ColdLaunch.LaunchCompleteUptimeMechanism == "" {
-           return fmt.Errorf("ColdLaunch.LaunchCompleteUptimeMechanism is required")
-       }
-
        if e.ColdLaunch.FirstVisibleActivity == "" {
            return fmt.Errorf("ColdLaunch.FirstVisibleActivity is required")
        }
-
        if e.ColdLaunch.Duration <= 0 {
            return fmt.Errorf("ColdLaunch.Duration is invalid")
+       }
+       startupMechanismsSet := 0
+       if e.ColdLaunch.SUIsProcessStartRequested {
+           startupMechanismsSet++
+       }
+       if e.ColdLaunch.SUIsProcessStartUptime {
+           startupMechanismsSet++
+       }
+       if e.ColdLaunch.SUIsContentProviderInit {
+           startupMechanismsSet++
+       }
+       if startupMechanismsSet != 1 {
+           return fmt.Errorf("One StartUptime mechanism must be set, but %d were set", startupMechanismsSet)
        }
     }
 
@@ -576,12 +580,6 @@ func (e *EventField) validate() error {
 	if len(e.LifecycleApp.Type) > maxLifecycleAppTypeChars {
 		return fmt.Errorf(`"events[].lifecycle_app.type" exceeds maximum allowed characters of (%d)`, maxLifecycleAppTypeChars)
 	}
-	if len(e.ColdLaunch.StartUptimeMechanism) > maxLaunchStartUptimeMechanismChars {
-	    return fmt.Errorf(`"events[].cold_launch.start_uptime_mechanism" exceeds maximum allowed characters of (%d)`, maxLaunchStartUptimeMechanismChars)
-	}
-    if len(e.ColdLaunch.LaunchCompleteUptimeMechanism) > maxLaunchCompleteUptimeMechanismChars {
-        return fmt.Errorf(`"events[].cold_launch.launch_complete_uptime_mechanism" exceeds maximum allowed characters of (%d)`, maxLaunchCompleteUptimeMechanismChars)
-    }
     if len(e.ColdLaunch.FirstVisibleActivity) > maxLaunchFirstVisibleActivityChars {
          return fmt.Errorf(`"events[].cold_launch.first_visible_activity" exceeds maximum allowed characters of (%d)`, maxLaunchFirstVisibleActivityChars)
     }
@@ -597,7 +595,7 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 	values := []string{}
 	valueArgs := []interface{}{}
 
-	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
 	for _, event := range session.Events {
 		anrExceptions := "[]"
@@ -700,9 +698,11 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			event.LifecycleFragment.Tag,
 			event.LifecycleApp.Type,
 			event.ColdLaunch.StartUptime,
-			event.ColdLaunch.StartUptimeMechanism,
-			event.ColdLaunch.LaunchCompleteUptime,
-			event.ColdLaunch.LaunchCompleteUptimeMechanism,
+			event.ColdLaunch.SUIsProcessStartRequested,
+			event.ColdLaunch.SUIsProcessStartUptime,
+			event.ColdLaunch.SUIsContentProviderInit,
+			event.ColdLaunch.EndUptime,
+			event.ColdLaunch.EUIsFirstDraw,
 			event.ColdLaunch.FirstVisibleActivity,
 			event.ColdLaunch.Intent,
 			event.ColdLaunch.Duration,
