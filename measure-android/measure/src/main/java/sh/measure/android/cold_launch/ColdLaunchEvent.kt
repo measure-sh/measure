@@ -32,12 +32,12 @@ internal data class ColdLaunchEvent(
     /**
      * The uptime in milliseconds when the user likely sees the first meaningful content on the screen.
      */
-    val launch_complete_uptime: Long,
+    val end_uptime: Long,
 
     /**
-     * Whether [launch_complete_uptime] is measured on first draw.
+     * Whether [end_uptime] is measured on first draw.
      */
-    val lcu_is_first_draw: Boolean,
+    val eu_is_first_draw: Boolean,
 
     /**
      * The name of the first activity that which was visible.
@@ -51,7 +51,7 @@ internal data class ColdLaunchEvent(
 
     /**
      * The time taken for the app to launch in milliseconds. This is calculated
-     * as [launch_complete_uptime] - [start_uptime]. Also known as TTID.
+     * as [end_uptime] - [start_uptime]. Also known as TTID.
      */
     val duration: Long,
 
