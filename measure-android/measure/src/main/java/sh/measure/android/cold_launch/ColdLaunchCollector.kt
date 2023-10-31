@@ -8,6 +8,9 @@ import android.os.Process
 import android.os.SystemClock
 import curtains.onNextDraw
 import sh.measure.android.MeasureInitProvider
+import sh.measure.android.cold_launch.StartUptimeMechanism.CONTENT_PROVIDER
+import sh.measure.android.cold_launch.StartUptimeMechanism.PROCESS_START_REQUESTED_UPTIME
+import sh.measure.android.cold_launch.StartUptimeMechanism.PROCESS_START_UPTIME
 import sh.measure.android.events.EventTracker
 import sh.measure.android.lifecycle.ActivityLifecycleAdapter
 import sh.measure.android.logger.LogLevel
@@ -75,9 +78,11 @@ internal class ColdLaunchCollector(
                 val duration = completeUptime - startUptime
                 val event = ColdLaunchEvent(
                     start_uptime = startUptime,
-                    start_uptime_mechanism = startUptimeMechanism,
+                    su_is_process_start_uptime = startUptimeMechanism == PROCESS_START_UPTIME,
+                    su_is_process_start_requested = startUptimeMechanism == PROCESS_START_REQUESTED_UPTIME,
+                    su_is_content_provider_init = startUptimeMechanism == CONTENT_PROVIDER,
                     launch_complete_uptime = completeUptime,
-                    launch_complete_uptime_mechanism = LaunchCompleteMechanism.FIRST_DRAW,
+                    lcu_is_first_draw = true,
                     first_visible_activity = createdActivity.name,
                     intent = createdActivity.intent,
                     duration = duration,
