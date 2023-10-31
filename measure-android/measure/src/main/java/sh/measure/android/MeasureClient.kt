@@ -29,7 +29,7 @@ internal class MeasureClient(
         UnhandledExceptionCollector(logger, eventTracker, timeProvider).register()
         AnrCollector(logger, context, timeProvider, eventTracker).register()
         LifecycleCollector(context as Application, eventTracker, timeProvider).register()
-        GestureCollector(logger, eventTracker).register()
+        GestureCollector(logger, eventTracker, timeProvider).register()
 
         // TODO: do this after app launch is completed to not mess up the app startup time.
         sessionController.syncAllSessions()
