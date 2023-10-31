@@ -26,9 +26,11 @@
       "type": "cold_launch",
       "cold_launch": {
         "start_uptime": 6577298,
-        "start_uptime_mechanism": "process_start_requested_uptime",
-        "launch_complete_uptime": 6578600,
-        "launch_complete_uptime_mechanism": "first_draw",
+        "su_is_process_start_uptime": true,
+        "su_is_process_start_requested": false,
+        "su_is_content_provider_init": false,
+        "end_uptime": 6578600,
+        "eu_is_first_draw": true,
         "first_visible_activity": "sh.measure.sample.ExceptionDemoActivity",
         "intent": null,
         "duration": 1302
