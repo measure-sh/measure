@@ -519,7 +519,7 @@ func (e *EventField) validate() error {
            startupMechanismsSet++
        }
        if startupMechanismsSet != 1 {
-           return fmt.Errorf("One StartUptime mechanism must be set, but %d were set", startupMechanismsSet)
+           return fmt.Errorf("events[].cold_launch invalid start uptime mechanism, (1) expected, but (%d) set", startupMechanismsSet)
        }
     }
 
