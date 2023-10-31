@@ -45,7 +45,7 @@ const CheckboxDropdown: React.FC<CheckboxDropdownProps> = ({ title, items }) => 
   };
 
   return (
-    <div className="z-50 relative inline-block text-left" ref={dropdownRef} >
+    <div className="relative inline-block text-left" ref={dropdownRef} >
       <div>
         <button
           type="button"
@@ -58,7 +58,7 @@ const CheckboxDropdown: React.FC<CheckboxDropdownProps> = ({ title, items }) => 
       </div>
 
       {isOpen && (
-        <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
+        <div className="z-50 origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
           <div
             role="menu"
             aria-orientation="vertical"
