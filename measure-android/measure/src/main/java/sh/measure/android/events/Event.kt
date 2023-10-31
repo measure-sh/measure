@@ -51,7 +51,7 @@ internal fun AppExit.toEvent(): Event {
 
 internal fun ClickEvent.toEvent(): Event {
     return Event(
-        timestamp = touch_up_time,
+        timestamp = timestamp.iso8601Timestamp(),
         type = EventType.CLICK,
         data = Json.encodeToJsonElement(ClickEvent.serializer(), this)
     )
@@ -59,7 +59,7 @@ internal fun ClickEvent.toEvent(): Event {
 
 internal fun LongClickEvent.toEvent(): Event {
     return Event(
-        timestamp = touch_up_time,
+        timestamp = timestamp.iso8601Timestamp(),
         type = EventType.LONG_CLICK,
         data = Json.encodeToJsonElement(LongClickEvent.serializer(), this)
     )
@@ -67,7 +67,7 @@ internal fun LongClickEvent.toEvent(): Event {
 
 internal fun ScrollEvent.toEvent(): Event {
     return Event(
-        timestamp = touch_up_time,
+        timestamp = timestamp.iso8601Timestamp(),
         type = EventType.SCROLL,
         data = Json.encodeToJsonElement(ScrollEvent.serializer(), this)
     )

@@ -3,6 +3,7 @@ package sh.measure.android.gestures
 import android.content.Context
 import android.view.MotionEvent
 import android.view.ViewConfiguration
+import sh.measure.android.utils.TimeProvider
 import kotlin.math.abs
 
 internal sealed class DetectedGesture {
@@ -11,6 +12,7 @@ internal sealed class DetectedGesture {
         val y: Float,
         val touchDownTime: Long,
         val touchUpTime: Long,
+        val timestamp: Long
     ) : DetectedGesture()
 
     internal data class LongClick(
@@ -18,6 +20,7 @@ internal sealed class DetectedGesture {
         val y: Float,
         val touchDownTime: Long,
         val touchUpTime: Long,
+        val timestamp: Long
     ) : DetectedGesture()
 
     internal data class Scroll(
@@ -27,7 +30,8 @@ internal sealed class DetectedGesture {
         val endY: Float,
         val direction: Direction,
         val touchDownTime: Long,
-        val touchUpTime: Long
+        val touchUpTime: Long,
+        val timestamp: Long
     ) : DetectedGesture()
 }
 
@@ -41,7 +45,11 @@ internal object GestureDetector {
     private var startTouchEventTime = 0L
     private var touchSlopPx = 0
 
-    fun detect(context: Context, motionEvent: MotionEvent): DetectedGesture? {
+    fun detect(
+        context: Context,
+        motionEvent: MotionEvent,
+        timeProvider: TimeProvider
+    ): DetectedGesture? {
         // Ignore multi-touch gestures, this is not supported.
         if (motionEvent.pointerCount > 1) {
             return null
@@ -66,14 +74,16 @@ internal object GestureDetector {
                         x = motionEvent.x,
                         y = motionEvent.y,
                         touchDownTime = startTouchEventTime,
-                        touchUpTime = motionEvent.eventTime
+                        touchUpTime = motionEvent.eventTime,
+                        timestamp = timeProvider.currentTimeSinceEpochInMillis
                     )
                 } else {
                     DetectedGesture.Click(
                         x = motionEvent.x,
                         y = motionEvent.y,
                         touchDownTime = startTouchEventTime,
-                        touchUpTime = motionEvent.eventTime
+                        touchUpTime = motionEvent.eventTime,
+                        timestamp = timeProvider.currentTimeSinceEpochInMillis
                     )
                 }
             } else {
@@ -84,7 +94,8 @@ internal object GestureDetector {
                     endY = motionEvent.y,
                     touchDownTime = startTouchEventTime,
                     touchUpTime = motionEvent.eventTime,
-                    direction = calculateDirection(motionEvent, startTouchX, startTouchY)
+                    direction = calculateDirection(motionEvent, startTouchX, startTouchY),
+                    timestamp = timeProvider.currentTimeSinceEpochInMillis
                 )
             }
         }

@@ -5,8 +5,8 @@
                 "height": 132,
                 "target": "com.google.android.material.button.MaterialButton",
                 "target_id": "btn_deadlock",
-                "touch_down_time": "1970-01-01T09:30:31.193000000Z",
-                "touch_up_time": "1970-01-01T09:30:31.258000000Z",
+                "touch_down_time": 34231193,
+                "touch_up_time": 34231258,
                 "width": 311,
                 "x": 441.97998,
                 "y": 1495.8984

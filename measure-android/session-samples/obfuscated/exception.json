@@ -5,8 +5,8 @@
                 "height": 132,
                 "target": "com.google.android.material.button.MaterialButton",
                 "target_id": "btn_oom_exception",
-                "touch_down_time": "1970-01-01T09:27:56.050000000Z",
-                "touch_up_time": "1970-01-01T09:27:56.123000000Z",
+                "touch_down_time": 34231193,
+                "touch_up_time": 34231258,
                 "width": 579,
                 "x": 409.9768,
                 "y": 1134.9316
@@ -192,7 +192,7 @@
                                 "method_name": "main"
                             }
                         ],
-                        "message": "Failed to allocate a 104857616 byte allocation with 25149440 free bytes and 88MB until OOM, target footprint 133215904, growth limit 201326592"
+                        "message": "Failed to allocate a 104857616 byte allocation with 25149440 free bytes and 88MB until OOM, target footprint 133215904, growth limit 201326592",
                         "type": "java.lang.OutOfMemoryError"
                     }
                 ],

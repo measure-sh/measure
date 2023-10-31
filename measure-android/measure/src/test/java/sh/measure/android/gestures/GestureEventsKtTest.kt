@@ -2,14 +2,13 @@ package sh.measure.android.gestures
 
 import org.junit.Assert
 import org.junit.Test
-import sh.measure.android.utils.iso8601Timestamp
 
 class ClickEventTest {
 
     @Test
     fun `maps DetectedGesture to Click`() {
         val detectedGesture = DetectedGesture.Click(
-            x = 10f, y = 20f, touchDownTime = 0L, touchUpTime = 0L
+            x = 10f, y = 20f, touchDownTime = 0L, touchUpTime = 0L, timestamp = 0L
         )
         val target = Target(
             className = "android.widget.Button", id = "button", width = 100, height = 50
@@ -23,10 +22,8 @@ class ClickEventTest {
         Assert.assertEquals(target.height, result.height)
         Assert.assertEquals(detectedGesture.x, result.x)
         Assert.assertEquals(detectedGesture.y, result.y)
-        Assert.assertEquals(
-            detectedGesture.touchDownTime.iso8601Timestamp(), result.touch_down_time
-        )
-        Assert.assertEquals(detectedGesture.touchUpTime.iso8601Timestamp(), result.touch_up_time)
+        Assert.assertEquals(detectedGesture.touchDownTime, result.touch_down_time)
+        Assert.assertEquals(detectedGesture.touchUpTime, result.touch_up_time)
     }
 }
 
@@ -34,7 +31,7 @@ internal class LongClickEventTest {
     @Test
     fun `maps DetectedGesture to LongClick`() {
         val detectedGesture = DetectedGesture.LongClick(
-            x = 10f, y = 20f, touchDownTime = 0L, touchUpTime = 0L
+            x = 10f, y = 20f, touchDownTime = 0L, touchUpTime = 0L, timestamp = 0L
         )
         val target = Target(
             className = "android.widget.Button", id = "button", width = 100, height = 50
@@ -48,10 +45,8 @@ internal class LongClickEventTest {
         Assert.assertEquals(target.height, result.height)
         Assert.assertEquals(detectedGesture.x, result.x)
         Assert.assertEquals(detectedGesture.y, result.y)
-        Assert.assertEquals(
-            detectedGesture.touchDownTime.iso8601Timestamp(), result.touch_down_time
-        )
-        Assert.assertEquals(detectedGesture.touchUpTime.iso8601Timestamp(), result.touch_up_time)
+        Assert.assertEquals(detectedGesture.touchDownTime, result.touch_down_time)
+        Assert.assertEquals(detectedGesture.touchUpTime, result.touch_up_time)
     }
 }
 
@@ -65,7 +60,8 @@ internal class ScrollEventTest {
             endY = 40f,
             touchDownTime = 0L,
             touchUpTime = 0L,
-            direction = Direction.Up
+            direction = Direction.Up,
+            timestamp = 0L
         )
         val target = Target(
             className = "android.widget.ScrollView", id = "scroll_view", width = 100, height = 50
@@ -80,9 +76,7 @@ internal class ScrollEventTest {
         Assert.assertEquals(detectedGesture.endX, result.end_x)
         Assert.assertEquals(detectedGesture.endY, result.end_y)
         Assert.assertEquals(detectedGesture.direction.name.lowercase(), result.direction)
-        Assert.assertEquals(
-            detectedGesture.touchDownTime.iso8601Timestamp(), result.touch_down_time
-        )
-        Assert.assertEquals(detectedGesture.touchUpTime.iso8601Timestamp(), result.touch_up_time)
+        Assert.assertEquals(detectedGesture.timestamp, result.timestamp)
+        Assert.assertEquals(detectedGesture.touchUpTime, result.touch_up_time)
     }
 }

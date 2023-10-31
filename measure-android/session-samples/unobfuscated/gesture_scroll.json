@@ -9,8 +9,8 @@
                 "start_y": 1415.9546,
                 "target": "androidx.viewpager2.widget.ViewPager2$RecyclerViewImpl",
                 "target_id": null,
-                "touch_down_time": "1970-01-01T07:48:12.370000000Z",
-                "touch_up_time": "1970-01-01T07:48:12.534000000Z"
+                "touch_down_time": 28071579,
+                "touch_up_time": 28071632
             },
             "timestamp": "1970-01-01T07:48:12.534000000Z",
             "type": "gesture_scroll"

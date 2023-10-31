@@ -254,8 +254,8 @@ type LogString struct {
 type GestureLongClick struct {
 	Target        string    `json:"target"`
 	TargetID      string    `json:"target_id"`
-	TouchDownTime time.Time `json:"touch_down_time"`
-	TouchUpTime   time.Time `json:"touch_up_time"`
+	TouchDownTime uint32    `json:"touch_down_time"`
+	TouchUpTime   uint32    `json:"touch_up_time"`
 	Width         uint16    `json:"width"`
 	Height        uint16    `json:"height"`
 	X             float32   `json:"x"`
@@ -265,8 +265,8 @@ type GestureLongClick struct {
 type GestureScroll struct {
 	Target        string    `json:"target"`
 	TargetID      string    `json:"target_id"`
-	TouchDownTime time.Time `json:"touch_down_time"`
-	TouchUpTime   time.Time `json:"touch_up_time"`
+	TouchDownTime uint32    `json:"touch_down_time"`
+	TouchUpTime   uint32    `json:"touch_up_time"`
 	X             float32   `json:"x"`
 	Y             float32   `json:"y"`
 	EndX          float32   `json:"end_x"`
@@ -277,8 +277,8 @@ type GestureScroll struct {
 type GestureClick struct {
 	Target        string    `json:"target"`
 	TargetID      string    `json:"target_id"`
-	TouchDownTime time.Time `json:"touch_down_time"`
-	TouchUpTime   time.Time `json:"touch_up_time"`
+	TouchDownTime uint32    `json:"touch_down_time"`
+	TouchUpTime   uint32    `json:"touch_up_time"`
 	Width         uint16    `json:"width"`
 	Height        uint16    `json:"height"`
 	X             float32   `json:"x"`
@@ -592,24 +592,24 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			event.LogString.String,
 			event.GestureLongClick.Target,
 			event.GestureLongClick.TargetID,
-			event.GestureLongClick.TouchDownTime.Format(timeFormat),
-			event.GestureLongClick.TouchUpTime.Format(timeFormat),
+			event.GestureLongClick.TouchDownTime,
+			event.GestureLongClick.TouchUpTime,
 			event.GestureLongClick.Width,
 			event.GestureLongClick.Height,
 			event.GestureLongClick.X,
 			event.GestureLongClick.Y,
 			event.GestureClick.Target,
 			event.GestureClick.TargetID,
-			event.GestureClick.TouchDownTime.Format(timeFormat),
-			event.GestureClick.TouchUpTime.Format(timeFormat),
+			event.GestureClick.TouchDownTime,
+			event.GestureClick.TouchUpTime,
 			event.GestureClick.Width,
 			event.GestureClick.Height,
 			event.GestureClick.X,
 			event.GestureClick.Y,
 			event.GestureScroll.Target,
 			event.GestureScroll.TargetID,
-			event.GestureScroll.TouchDownTime.Format(timeFormat),
-			event.GestureScroll.TouchUpTime.Format(timeFormat),
+			event.GestureScroll.TouchDownTime,
+			event.GestureScroll.TouchUpTime,
 			event.GestureScroll.X,
 			event.GestureScroll.Y,
 			event.GestureScroll.EndX,

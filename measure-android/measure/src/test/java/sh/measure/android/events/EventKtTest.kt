@@ -81,7 +81,8 @@ class EventKtTest {
 
     @Test
     fun `Click toEvent() returns an event of type gesture_click`() {
-        val touchUpTime = "1970-01-01T13:25:25.631000000Z"
+        val timestamp = 0L
+        val timestampIso = timestamp.iso8601Timestamp()
         val click = ClickEvent(
             target = "android.widget.Button",
             target_id = "button",
@@ -89,19 +90,21 @@ class EventKtTest {
             height = 50,
             x = 10f,
             y = 20f,
-            touch_down_time = "1970-01-01T13:25:22.631000000Z",
-            touch_up_time = touchUpTime
+            touch_down_time = 28071579,
+            touch_up_time = 28071632,
+            timestamp = 0L
         )
 
         val event = click.toEvent()
 
-        assertEquals(touchUpTime, event.timestamp)
+        assertEquals(timestampIso, event.timestamp)
         assertEquals(EventType.CLICK, event.type)
     }
 
     @Test
     fun `LongClick toEvent() returns an event of type gesture_long_click`() {
-        val touchUpTime = "1970-01-01T13:25:25.631000000Z"
+        val timestamp = 0L
+        val timestampIso = timestamp.iso8601Timestamp()
         val longClick = LongClickEvent(
             target = "android.widget.Button",
             target_id = "button",
@@ -109,19 +112,21 @@ class EventKtTest {
             height = 50,
             x = 10f,
             y = 20f,
-            touch_down_time = "1970-01-01T13:25:22.631000000Z",
-            touch_up_time = touchUpTime
+            touch_down_time = 28071579,
+            touch_up_time = 28071632,
+            timestamp = timestamp
         )
 
         val event = longClick.toEvent()
 
-        assertEquals(touchUpTime, event.timestamp)
+        assertEquals(timestampIso, event.timestamp)
         assertEquals(EventType.LONG_CLICK, event.type)
     }
 
     @Test
     fun `Scroll toEvent() returns an event of type gesture_scroll`() {
-        val touchUpTime = "1970-01-01T13:25:25.631000000Z"
+        val timestamp = 0L
+        val timestampIso = timestamp.iso8601Timestamp()
         val scroll = ScrollEvent(
             target = "android.widget.ScrollView",
             target_id = "scroll_view",
@@ -130,13 +135,14 @@ class EventKtTest {
             end_x = 30f,
             end_y = 40f,
             direction = Direction.Down.name.lowercase(),
-            touch_down_time = "1970-01-01T13:25:22.631000000Z",
-            touch_up_time = touchUpTime
+            touch_down_time = 28071579,
+            touch_up_time = 28071632,
+            timestamp = timestamp
         )
 
         val event = scroll.toEvent()
 
-        assertEquals(touchUpTime, event.timestamp)
+        assertEquals(timestampIso, event.timestamp)
         assertEquals(EventType.SCROLL, event.type)
     }
 }

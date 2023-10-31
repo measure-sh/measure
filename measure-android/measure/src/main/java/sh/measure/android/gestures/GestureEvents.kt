@@ -1,7 +1,7 @@
 package sh.measure.android.gestures
 
 import kotlinx.serialization.Serializable
-import sh.measure.android.utils.iso8601Timestamp
+import kotlinx.serialization.Transient
 
 @Serializable
 internal data class ClickEvent(
@@ -11,8 +11,10 @@ internal data class ClickEvent(
     val height: Int?,
     val x: Float,
     val y: Float,
-    val touch_down_time: String,
-    val touch_up_time: String,
+    val touch_down_time: Long,
+    val touch_up_time: Long,
+    @Transient
+    val timestamp: Long = -1
 ) {
     companion object {
         fun fromDetectedGesture(gesture: DetectedGesture.Click, target: Target): ClickEvent {
@@ -23,8 +25,9 @@ internal data class ClickEvent(
                 height = target.height,
                 x = gesture.x,
                 y = gesture.y,
-                touch_down_time = gesture.touchDownTime.iso8601Timestamp(),
-                touch_up_time = gesture.touchUpTime.iso8601Timestamp()
+                touch_down_time = gesture.touchDownTime,
+                touch_up_time = gesture.touchUpTime,
+                timestamp = gesture.timestamp
             )
         }
     }
@@ -38,8 +41,10 @@ internal data class LongClickEvent(
     val height: Int?,
     val x: Float,
     val y: Float,
-    val touch_down_time: String,
-    val touch_up_time: String,
+    val touch_down_time: Long,
+    val touch_up_time: Long,
+    @Transient
+    val timestamp: Long = -1
 ) {
     companion object {
         fun fromDetectedGesture(gesture: DetectedGesture.LongClick, target: Target): LongClickEvent {
@@ -50,8 +55,9 @@ internal data class LongClickEvent(
                 height = target.height,
                 x = gesture.x,
                 y = gesture.y,
-                touch_down_time = gesture.touchDownTime.iso8601Timestamp(),
-                touch_up_time = gesture.touchUpTime.iso8601Timestamp()
+                touch_down_time = gesture.touchDownTime,
+                touch_up_time = gesture.touchUpTime,
+                timestamp = gesture.timestamp
             )
         }
     }
@@ -66,8 +72,10 @@ internal data class ScrollEvent(
     val end_x: Float,
     val end_y: Float,
     val direction: String,
-    val touch_down_time: String,
-    val touch_up_time: String,
+    val touch_down_time: Long,
+    val touch_up_time: Long,
+    @Transient
+    val timestamp: Long = -1
 ) {
     companion object {
         fun fromDetectedGesture(gesture: DetectedGesture.Scroll, target: Target): ScrollEvent {
@@ -78,9 +86,10 @@ internal data class ScrollEvent(
                 y = gesture.y,
                 end_x = gesture.endX,
                 end_y = gesture.endY,
-                touch_down_time = gesture.touchDownTime.iso8601Timestamp(),
-                touch_up_time = gesture.touchUpTime.iso8601Timestamp(),
-                direction = gesture.direction.name.lowercase()
+                touch_down_time = gesture.touchDownTime,
+                touch_up_time = gesture.touchUpTime,
+                direction = gesture.direction.name.lowercase(),
+                timestamp = gesture.timestamp
             )
         }
     }

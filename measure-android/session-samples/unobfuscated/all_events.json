@@ -5,97 +5,13 @@
                 "height": 198,
                 "target": "com.google.android.material.bottomnavigation.BottomNavigationItemView",
                 "target_id": "nav_tab_reading_lists",
-                "touch_down_time": "1970-01-01T07:50:29.645000000Z",
-                "touch_up_time": "1970-01-01T07:50:29.697000000Z",
+                "touch_down_time": 28229645,
+                "touch_up_time": 28229697,
                 "width": 216,
                 "x": 384.96094,
                 "y": 2012.8912
             },
             "timestamp": "1970-01-01T07:50:29.697000000Z",
-            "type": "gesture_click"
-        },
-        {
-            "gesture_click": {
-                "height": 198,
-                "target": "com.google.android.material.bottomnavigation.BottomNavigationItemView",
-                "target_id": "nav_tab_search",
-                "touch_down_time": "1970-01-01T07:50:29.966000000Z",
-                "touch_up_time": "1970-01-01T07:50:30.023000000Z",
-                "width": 216,
-                "x": 496.95557,
-                "y": 2028.88
-            },
-            "timestamp": "1970-01-01T07:50:30.023000000Z",
-            "type": "gesture_click"
-        },
-        {
-            "gesture_click": {
-                "height": 198,
-                "target": "com.google.android.material.bottomnavigation.BottomNavigationItemView",
-                "target_id": "nav_tab_edits",
-                "touch_down_time": "1970-01-01T07:50:30.315000000Z",
-                "touch_up_time": "1970-01-01T07:50:30.375000000Z",
-                "width": 216,
-                "x": 688.9746,
-                "y": 2071.9006
-            },
-            "timestamp": "1970-01-01T07:50:30.375000000Z",
-            "type": "gesture_click"
-        },
-        {
-            "gesture_click": {
-                "height": 198,
-                "target": "android.widget.FrameLayout",
-                "target_id": "nav_more_container",
-                "touch_down_time": "1970-01-01T07:50:30.663000000Z",
-                "touch_up_time": "1970-01-01T07:50:30.724000000Z",
-                "width": 216,
-                "x": 901.95557,
-                "y": 2076.914
-            },
-            "timestamp": "1970-01-01T07:50:30.724000000Z",
-            "type": "gesture_click"
-        },
-        {
-            "gesture_click": {
-                "height": 132,
-                "target": "android.widget.LinearLayout",
-                "target_id": "main_drawer_donate_container",
-                "touch_down_time": "1970-01-01T07:50:31.107000000Z",
-                "touch_up_time": "1970-01-01T07:50:31.172000000Z",
-                "width": 1080,
-                "x": 91.988525,
-                "y": 2042.2445
-            },
-            "timestamp": "1970-01-01T07:50:31.172000000Z",
-            "type": "gesture_click"
-        },
-        {
-            "gesture_click": {
-                "height": 198,
-                "target": "android.widget.FrameLayout",
-                "target_id": "nav_more_container",
-                "touch_down_time": "1970-01-01T07:50:32.970000000Z",
-                "touch_up_time": "1970-01-01T07:50:33.027000000Z",
-                "width": 216,
-                "x": 965.9619,
-                "y": 2023.9343
-            },
-            "timestamp": "1970-01-01T07:50:33.027000000Z",
-            "type": "gesture_click"
-        },
-        {
-            "gesture_click": {
-                "height": 132,
-                "target": "android.widget.LinearLayout",
-                "target_id": "main_drawer_settings_container",
-                "touch_down_time": "1970-01-01T07:50:33.625000000Z",
-                "touch_up_time": "1970-01-01T07:50:33.678000000Z",
-                "width": 1080,
-                "x": 240.96313,
-                "y": 1959.9115
-            },
-            "timestamp": "1970-01-01T07:50:33.678000000Z",
             "type": "gesture_click"
         },
         {
@@ -107,82 +23,25 @@
                 "start_y": 1724.8901,
                 "target": "androidx.recyclerview.widget.RecyclerView",
                 "target_id": "recycler_view",
-                "touch_down_time": "1970-01-01T07:50:34.512000000Z",
-                "touch_up_time": "1970-01-01T07:50:34.614000000Z"
+                "touch_down_time": 28234512,
+                "touch_up_time": 28234614
             },
             "timestamp": "1970-01-01T07:50:34.614000000Z",
             "type": "gesture_scroll"
-        },
-        {
-            "gesture_scroll": {
-                "direction": "down",
-                "end_x": 341.98242,
-                "end_y": 946.9281,
-                "start_x": 315.97778,
-                "start_y": 536.97876,
-                "target": "androidx.recyclerview.widget.RecyclerView",
-                "target_id": "recycler_view",
-                "touch_down_time": "1970-01-01T07:50:35.010000000Z",
-                "touch_up_time": "1970-01-01T07:50:35.119000000Z"
-            },
-            "timestamp": "1970-01-01T07:50:35.119000000Z",
-            "type": "gesture_scroll"
-        },
-        {
-            "gesture_click": {
-                "height": 154,
-                "target": "androidx.appcompat.widget.AppCompatImageButton",
-                "target_id": null,
-                "touch_down_time": "1970-01-01T07:50:35.874000000Z",
-                "touch_up_time": "1970-01-01T07:50:35.919000000Z",
-                "width": 154,
-                "x": 96.96533,
-                "y": 189.96826
-            },
-            "timestamp": "1970-01-01T07:50:35.919000000Z",
-            "type": "gesture_click"
         },
         {
             "gesture_long_click": {
                 "height": 198,
                 "target": "com.google.android.material.bottomnavigation.BottomNavigationItemView",
                 "target_id": "nav_tab_reading_lists",
-                "touch_down_time": "1970-01-01T07:50:38.000000000Z",
-                "touch_up_time": "1970-01-01T07:50:38.561000000Z",
+                "touch_down_time": 28238000,
+                "touch_up_time": 28238561,
                 "width": 216,
                 "x": 325.96436,
                 "y": 2071.9006
             },
             "timestamp": "1970-01-01T07:50:38.561000000Z",
             "type": "gesture_long_click"
-        },
-        {
-            "gesture_click": {
-                "height": 198,
-                "target": "com.google.android.material.bottomnavigation.BottomNavigationItemView",
-                "target_id": "nav_tab_explore",
-                "touch_down_time": "1970-01-01T07:50:38.831000000Z",
-                "touch_up_time": "1970-01-01T07:50:38.891000000Z",
-                "width": 216,
-                "x": 96.96533,
-                "y": 2055.9119
-            },
-            "timestamp": "1970-01-01T07:50:38.891000000Z",
-            "type": "gesture_click"
-        },
-        {
-            "gesture_click": {
-                "height": 132,
-                "target": "com.google.android.material.button.MaterialButton",
-                "target_id": "view_card_offline_button_retry",
-                "touch_down_time": "1970-01-01T07:50:40.306000000Z",
-                "touch_up_time": "1970-01-01T07:50:40.352000000Z",
-                "width": 195,
-                "x": 555.95215,
-                "y": 807.97485
-            },
-            "timestamp": "1970-01-01T07:50:40.352000000Z",
-            "type": "gesture_click"
         },
         {
             "exception": {
