@@ -2,7 +2,9 @@ package sh.measure.android.utils
 
 import android.os.SystemClock
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Locale
+import java.util.TimeZone
 
 /**
  * Provides time from different clocks.
@@ -43,6 +45,9 @@ internal class AndroidTimeProvider : TimeProvider {
 }
 
 internal fun Long.iso8601Timestamp(): String {
-    val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS'Z'", Locale.US)
-    return sdf.format(this)
+    val calendar: Calendar = Calendar.getInstance(TimeZone.getTimeZone(TimeZone.getDefault().id))
+    calendar.timeInMillis = this
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSSS'Z'", Locale.getDefault())
+    dateFormat.timeZone = TimeZone.getTimeZone("UTC");
+    return dateFormat.format(calendar.time)
 }
