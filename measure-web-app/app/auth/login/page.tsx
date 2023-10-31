@@ -1,26 +1,51 @@
-"use client"
-
-import { useState, useEffect } from "react"
+import crypto from "node:crypto"
 import Messages from "../sign-up/messages"
 import GoogleSignIn from "./google-sign-in"
 
-export default function Login({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
+async function genNonce() {
+  const nonce = crypto.randomBytes(16).toString("base64")
+  const encoder = new TextEncoder()
+  const encodedNonce = encoder.encode(nonce)
+  const hash = await crypto.subtle.digest("SHA-256", encodedNonce)
+  const bytes = new Uint8Array(hash)
+  const hashedNonce = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join("")
+  return { nonce, hashedNonce }
+}
+
+export default async function Login({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
   const error = searchParams["error"]
   const message = searchParams["message"]
   const initial = !Boolean(error || message)
-  const [isClient, setIsClient] = useState(false)
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
+  const { nonce, hashedNonce } = await genNonce()
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       {/* a fixed max-width is best as the google sign-in button has a max width constraint */}
       <div className="w-full space-y-8" style={{ maxWidth: "400px" }}>
-        {initial && isClient && (
-          <GoogleSignIn />
+        {initial && (
+          <>
+            <div id="g_id_onload"
+              data-client_id="873640940318-hm5iu5okbj0eecrha1a3blmk0ekfr4ii.apps.googleusercontent.com"
+              data-context="signin"
+              data-ux_mode="popup"
+              data-nonce={hashedNonce}
+              data-login_uri={`http://localhost:3000/auth/callback/google?nonce=${nonce}`}
+              data-auto_select="true"
+              data-itp_support="true">
+            </div>
+
+            <div className="g_id_signin"
+              data-type="standard"
+              data-shape="rectangular"
+              data-theme="outline"
+              data-text="signin_with"
+              data-size="large"
+              data-logo_alignment="center"
+              data-width="400">
+            </div>
+          </>
         )}
-        {initial && !isClient && (
-          <p className="font-display text-center text-gray-300" style={{ height: "4.5rem" }}>Loading social logins...</p>
+        {initial && (
+          <GoogleSignIn />
         )}
         <p className="text-center text-lg font-display text-gray-400 before:line-through before:content-['\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0'] after:line-through after:content-['\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0']">
           <span className="ms-4 me-4">or continue with</span>
