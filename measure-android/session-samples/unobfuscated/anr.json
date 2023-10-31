@@ -5,8 +5,8 @@
                 "height": 132,
                 "target": "com.google.android.material.button.MaterialButton",
                 "target_id": "btn_infinite_loop",
-                "touch_down_time": "1970-01-01T08:14:55.817000000Z",
-                "touch_up_time": "1970-01-01T08:14:55.880000000Z",
+                "touch_down_time": 29695817,
+                "touch_up_time": 29695880,
                 "width": 398,
                 "x": 496.95557,
                 "y": 1410.9412
