@@ -61,7 +61,7 @@ export default function Team() {
             <div key={id} className="table-row font-sans text-black">
               <div className="table-cell p-4 pl-0 text-lg">{email}</div>
               <div className="table-cell p-4 w-52"><Dropdown items={['Owner', 'Admin','Developer', 'Viewer']}/></div>
-              <div className="table-cell p-4 text-center"><button className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4">Remove</button></div>
+              <div className="table-cell p-4"><button className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4">Remove</button></div>
             </div>
         ))}
       </div>
