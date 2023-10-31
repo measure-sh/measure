@@ -192,7 +192,7 @@
                                 "method_name": "main"
                             }
                         ],
-                        "message": "Failed to allocate a 104857616 byte allocation with 25149440 free bytes and 88MB until OOM, target footprint 133215904, growth limit 201326592"
+                        "message": "Failed to allocate a 104857616 byte allocation with 25149440 free bytes and 88MB until OOM, target footprint 133215904, growth limit 201326592",
                         "type": "java.lang.OutOfMemoryError"
                     }
                 ],
