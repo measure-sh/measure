@@ -49,7 +49,7 @@ export default async function Login({ searchParams }: { searchParams: { [key: st
         {initial && (
           <>
             <GoogleSignIn />
-            <p className="text-center text-lg font-display text-gray-400 before:line-through before:content-['\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0'] after:line-through after:content-['\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0']">
+            <p className="text-center text-lg font-display before:line-through before:content-['\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0'] after:line-through after:content-['\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0']">
               <span className="ms-4 me-4">or continue with</span>
             </p>
             <form className="mt-8 space-y-6" action="/auth/sign-up" method="post">
