@@ -57,7 +57,6 @@ internal class SessionControllerImpl(
             executorService.submit {
                 storage.getAllSessions().filter { it.id != session.id }.forEach { session ->
                     sessionReportGenerator.getSessionReport(session).let { report ->
-                        logger.log(LogLevel.Debug, "exception: ${session.id}")
                         transport.sendSessionReport(report, object : Transport.Callback {
                             override fun onSuccess() {
                                 storage.deleteSession(session.id)
@@ -67,9 +66,9 @@ internal class SessionControllerImpl(
                 }
             }
         } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Debug, "Failed to sync sessions", e)
+            logger.log(LogLevel.Error, "Failed to sync sessions", e)
         } catch (e: NullPointerException) {
-            logger.log(LogLevel.Debug, "Failed to sync sessions", e)
+            logger.log(LogLevel.Error, "Failed to sync sessions", e)
         }
     }
 

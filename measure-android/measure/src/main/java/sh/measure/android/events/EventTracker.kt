@@ -1,5 +1,6 @@
 package sh.measure.android.events
 
+import sh.measure.android.cold_launch.ColdLaunchEvent
 import sh.measure.android.exceptions.MeasureException
 import sh.measure.android.gestures.ClickEvent
 import sh.measure.android.gestures.LongClickEvent
@@ -20,6 +21,7 @@ internal interface EventTracker {
     fun trackActivityLifecycleEvent(event: ActivityLifecycleEvent)
     fun trackFragmentLifecycleEvent(event: FragmentLifecycleEvent)
     fun trackApplicationLifecycleEvent(event: ApplicationLifecycleEvent)
+    fun trackColdLaunch(event: ColdLaunchEvent)
 }
 
 // TODO: refactor to make serialization happen on background thread.
@@ -72,6 +74,11 @@ internal class MeasureEventTracker(
         logger.log(
             LogLevel.Debug, "Tracking application lifecycle event ${event.type}"
         )
+        sessionController.storeEvent(event.toEvent())
+    }
+
+    override fun trackColdLaunch(event: ColdLaunchEvent) {
+        logger.log(LogLevel.Debug, "Tracking cold launch (${event.duration}ms)")
         sessionController.storeEvent(event.toEvent())
     }
 }

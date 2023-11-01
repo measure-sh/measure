@@ -1,5 +1,6 @@
 package sh.measure.sample
 
+import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -15,7 +16,6 @@ class ExceptionDemoActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_exception_demo)
-
         findViewById<Button>(R.id.btn_single_exception).setOnClickListener {
             throw IllegalAccessException("This is a new exception")
         }
@@ -39,6 +39,9 @@ class ExceptionDemoActivity : AppCompatActivity() {
         }
         findViewById<Button>(R.id.btn_deadlock).setOnClickListener {
             deadLock()
+        }
+        findViewById<Button>(R.id.btn_navigate).setOnClickListener {
+            startActivity(Intent(this, SecondActivity::class.java))
         }
     }
 

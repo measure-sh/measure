@@ -54,5 +54,6 @@ object Measure {
             eventTracker = MeasureEventTracker(logger, sessionController),
             sessionController = sessionController,
         ).init()
+        logger.log(LogLevel.Debug, "Measure initialization completed")
     }
 }

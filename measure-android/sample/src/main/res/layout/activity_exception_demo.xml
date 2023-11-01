@@ -43,4 +43,10 @@
         android:layout_height="wrap_content"
         android:text="@string/deadlock" />
 
+    <Button
+        android:id="@+id/btn_navigate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/navigate" />
+
 </LinearLayout>
