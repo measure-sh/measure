@@ -117,12 +117,21 @@ func (s *Session) hasLifecycleFragments() bool {
 	return false
 }
 
+func (s *Session) hasColdLaunch() bool {
+	for _, event := range s.Events {
+		if event.isColdLaunch() {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Session) hasAttachments() bool {
 	return len(s.Attachments) > 0
 }
 
 func (s *Session) needsSymbolication() bool {
-	if s.hasExceptions() || s.hasANRs() || s.hasAppExits() || s.hasLifecycleActivities() || s.hasLifecycleFragments() {
+	if s.hasExceptions() || s.hasANRs() || s.hasAppExits() || s.hasLifecycleActivities() || s.hasLifecycleFragments() || s.hasColdLaunch() {
 		return true
 	}
 	return false
@@ -378,6 +387,21 @@ func (s *Session) EncodeForSymbolication() (CodecMap, []SymbolicationUnit) {
 				symbolicationUnits = append(symbolicationUnits, *su)
 			}
 		}
+
+		if event.isColdLaunch() {
+		    if len(event.ColdLaunch.FirstVisibleActivity) > 0 {
+                idColdLaunch := uuid.New()
+                unitCL := NewCodecMapVal()
+                unitCL.Type = TypeColdLaunch
+                unitCL.Event = eventIdx
+                unitCL.FirstVisibleActivity = TransformSwap
+                codecMap[idColdLaunch] = *unitCL
+                su := new(SymbolicationUnit)
+                su.ID = idColdLaunch
+                su.Values = []string{GenericPrefix + event.ColdLaunch.FirstVisibleActivity}
+                symbolicationUnits = append(symbolicationUnits, *su)
+            }
+		}
 	}
 
 	return codecMap, symbolicationUnits
@@ -489,6 +513,10 @@ func (s *Session) DecodeFromSymbolication(codecMap CodecMap, symbolicationUnits 
 			if codecMapVal.ParentActivity == TransformSwap {
 				s.Events[codecMapVal.Event].LifecycleFragment.ParentActivity = strings.TrimPrefix(su.Values[0], GenericPrefix)
 			}
+		case TypeColdLaunch:
+        	if codecMapVal.FirstVisibleActivity == TransformSwap {
+                s.Events[codecMapVal.Event].ColdLaunch.FirstVisibleActivity = strings.TrimPrefix(su.Values[0], GenericPrefix)
+        	}
 		default:
 			continue
 		}

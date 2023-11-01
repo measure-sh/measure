@@ -11,29 +11,30 @@ import (
 
 // maximum character limits for event fields
 const (
-	maxTypeChars                       = 32
-	maxAppExitReasonChars              = 64
-	maxAppExitImportanceChars          = 32
-	maxSeverityTextChars               = 10
-	maxGestureLongClickTargetChars     = 128
-	maxGestureLongClickTargetNameChars = 128
-	maxGestureLongClickTargetIDChars   = 128
-	maxGestureScrollTargetChars        = 128
-	maxGestureScrollTargetNameChars    = 128
-	maxGestureScrollTargetIDChars      = 128
-	maxGestureScrollDirectionChars     = 8
-	maxGestureClickTargetChars         = 128
-	maxGestureClickTargetNameChars     = 128
-	maxGestureClickTargetIDChars       = 128
-	maxHTTPRequestMethodChars          = 16
-	maxHTTPRequestProtocolVersionChars = 16
-	maxHTTPResponseMethodChars         = 16
-	maxLifecycleActivityTypeChars      = 32
-	maxLifecycleActivityClassNameChars = 128
-	maxLifecycleFragmentTypeChars      = 32
-	maxLifecycleFragmentClassNameChars = 128
-	maxLifecycleAppTypeChars           = 32
-	maxAttrCount                       = 10
+	maxTypeChars                          = 32
+	maxAppExitReasonChars                 = 64
+	maxAppExitImportanceChars             = 32
+	maxSeverityTextChars                  = 10
+	maxGestureLongClickTargetChars        = 128
+	maxGestureLongClickTargetNameChars    = 128
+	maxGestureLongClickTargetIDChars      = 128
+	maxGestureScrollTargetChars           = 128
+	maxGestureScrollTargetNameChars       = 128
+	maxGestureScrollTargetIDChars         = 128
+	maxGestureScrollDirectionChars        = 8
+	maxGestureClickTargetChars            = 128
+	maxGestureClickTargetNameChars        = 128
+	maxGestureClickTargetIDChars          = 128
+	maxHTTPRequestMethodChars             = 16
+	maxHTTPRequestProtocolVersionChars    = 16
+	maxHTTPResponseMethodChars            = 16
+	maxLifecycleActivityTypeChars         = 32
+	maxLifecycleActivityClassNameChars    = 128
+	maxLifecycleFragmentTypeChars         = 32
+	maxLifecycleFragmentClassNameChars    = 128
+	maxLifecycleAppTypeChars              = 32
+	maxLaunchFirstVisibleActivityChars    = 128
+	maxAttrCount                          = 10
 )
 
 const TypeANR = "anr"
@@ -48,6 +49,7 @@ const TypeHTTPResponse = "http_response"
 const TypeLifecycleActivity = "lifecycle_activity"
 const TypeLifecycleFragment = "lifecycle_fragment"
 const TypeLifecycleApp = "lifecycle_app"
+const TypeColdLaunch = "cold_launch"
 
 // timeFormat is the format of datetime in nanoseconds when
 // converting datetime values before inserting into database
@@ -140,6 +142,15 @@ var columns = []string{
 	"lifecycle_fragment.parent_activity",
 	"lifecycle_fragment.tag",
 	"lifecycle_app.type",
+	"cold_launch.start_uptime",
+	"cold_launch.su_is_process_start_requested",
+	"cold_launch.su_is_process_start_uptime",
+	"cold_launch.su_is_content_provider_init",
+	"cold_launch.end_uptime",
+	"cold_launch.eu_is_first_draw",
+	"cold_launch.first_visible_activity",
+	"cold_launch.intent",
+	"cold_launch.duration",
 	"attributes",
 }
 
@@ -323,6 +334,18 @@ type LifecycleApp struct {
 	Type string `json:"type" binding:"required"`
 }
 
+type ColdLaunch struct {
+    StartUptime                     uint32 `json:"start_uptime" binding:"required"`
+    SUIsProcessStartRequested       bool   `json:"su_is_process_start_requested" binding:"required"`
+    SUIsProcessStartUptime          bool   `json:"su_is_process_start_uptime" binding:"required"`
+    SUIsContentProviderInit         bool   `json:"su_is_content_provider_init" binding:"required"`
+    EndUptime                       uint32 `json:"end_uptime" binding:"required"`
+    EUIsFirstDraw                   bool   `json:"eu_is_first_draw" binding:"required"`
+    FirstVisibleActivity            string `json:"first_visible_activity" binding:"required"`
+    Duration                        uint32 `json:"duration" binding:"required"`
+    Intent                          string `json:"intent"`
+}
+
 type EventField struct {
 	Timestamp         time.Time         `json:"timestamp" binding:"required"`
 	Type              string            `json:"type" binding:"required"`
@@ -338,6 +361,7 @@ type EventField struct {
 	LifecycleActivity LifecycleActivity `json:"lifecycle_activity,omitempty"`
 	LifecycleFragment LifecycleFragment `json:"lifecycle_fragment,omitempty"`
 	LifecycleApp      LifecycleApp      `json:"lifecycle_app,omitempty"`
+	ColdLaunch        ColdLaunch        `json:"cold_launch,omitempty"`
 	Attributes        map[string]string `json:"attributes"`
 }
 
@@ -389,8 +413,12 @@ func (e *EventField) isLifecycleApp() bool {
 	return e.Type == TypeLifecycleApp
 }
 
+func (e *EventField) isColdLaunch() bool {
+	return e.Type == TypeColdLaunch
+}
+
 func (e *EventField) validate() error {
-	validTypes := []string{TypeANR, TypeException, TypeAppExit, TypeString, TypeGestureLongClick, TypeGestureScroll, TypeGestureClick, TypeHTTPRequest, TypeHTTPResponse, TypeLifecycleActivity, TypeLifecycleFragment, TypeLifecycleApp}
+	validTypes := []string{TypeANR, TypeException, TypeAppExit, TypeString, TypeGestureLongClick, TypeGestureScroll, TypeGestureClick, TypeHTTPRequest, TypeHTTPResponse, TypeLifecycleActivity, TypeLifecycleFragment, TypeLifecycleApp, TypeColdLaunch}
 	if !slices.Contains(validTypes, e.Type) {
 		return fmt.Errorf(`"events[].type" is not a valid type`)
 	}
@@ -467,6 +495,34 @@ func (e *EventField) validate() error {
 		}
 	}
 
+    if e.isColdLaunch() {
+       if e.ColdLaunch.StartUptime <= 0 {
+           return fmt.Errorf("ColdLaunch.StartUptime is invalid")
+       }
+       if e.ColdLaunch.EndUptime <= 0 {
+           return fmt.Errorf("ColdLaunch.EndUptime is invalid")
+       }
+       if e.ColdLaunch.FirstVisibleActivity == "" {
+           return fmt.Errorf("ColdLaunch.FirstVisibleActivity is required")
+       }
+       if e.ColdLaunch.Duration <= 0 {
+           return fmt.Errorf("ColdLaunch.Duration is invalid")
+       }
+       startupMechanismsSet := 0
+       if e.ColdLaunch.SUIsProcessStartRequested {
+           startupMechanismsSet++
+       }
+       if e.ColdLaunch.SUIsProcessStartUptime {
+           startupMechanismsSet++
+       }
+       if e.ColdLaunch.SUIsContentProviderInit {
+           startupMechanismsSet++
+       }
+       if startupMechanismsSet != 1 {
+           return fmt.Errorf("events[].cold_launch invalid start uptime mechanism, (1) expected, but (%d) set", startupMechanismsSet)
+       }
+    }
+
 	if len(e.Type) > maxTypeChars {
 		return fmt.Errorf(`"events[].type" exceeds maximum allowed characters of (%d)`, maxTypeChars)
 	}
@@ -524,6 +580,9 @@ func (e *EventField) validate() error {
 	if len(e.LifecycleApp.Type) > maxLifecycleAppTypeChars {
 		return fmt.Errorf(`"events[].lifecycle_app.type" exceeds maximum allowed characters of (%d)`, maxLifecycleAppTypeChars)
 	}
+    if len(e.ColdLaunch.FirstVisibleActivity) > maxLaunchFirstVisibleActivityChars {
+         return fmt.Errorf(`"events[].cold_launch.first_visible_activity" exceeds maximum allowed characters of (%d)`, maxLaunchFirstVisibleActivityChars)
+    }
 
 	if len(e.Attributes) > maxAttrCount {
 		return fmt.Errorf(`"events[].attributes" exceeds maximum count of (%d)`, maxAttrCount)
@@ -536,7 +595,7 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 	values := []string{}
 	valueArgs := []interface{}{}
 
-	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
 	for _, event := range session.Events {
 		anrExceptions := "[]"
@@ -638,6 +697,15 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			event.LifecycleFragment.ParentActivity,
 			event.LifecycleFragment.Tag,
 			event.LifecycleApp.Type,
+			event.ColdLaunch.StartUptime,
+			event.ColdLaunch.SUIsProcessStartRequested,
+			event.ColdLaunch.SUIsProcessStartUptime,
+			event.ColdLaunch.SUIsContentProviderInit,
+			event.ColdLaunch.EndUptime,
+			event.ColdLaunch.EUIsFirstDraw,
+			event.ColdLaunch.FirstVisibleActivity,
+			event.ColdLaunch.Intent,
+			event.ColdLaunch.Duration,
 			mapToString(event.Attributes),
 		)
 	}

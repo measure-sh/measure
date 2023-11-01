@@ -103,6 +103,16 @@ create table if not exists events_test_2
     `lifecycle_fragment.tag` String,
     /* lifecycle_app */
     `lifecycle_app.type` FixedString(32),
+    /* cold launch */
+    `cold_launch.start_uptime` UInt32,
+    `cold_launch.su_is_process_start_requested` Bool,
+    `cold_launch.su_is_process_start_uptime` Bool,
+    `cold_launch.su_is_content_provider_init` Bool,
+    `cold_launch.end_uptime` UInt32,
+    `cold_launch.eu_is_first_draw` Bool,
+    `cold_launch.first_visible_activity` FixedString(128),
+    `cold_launch.intent` String,
+    `cold_launch.duration` UInt32,
     /* attributes */
     `attributes` Map(String, String)
 )
