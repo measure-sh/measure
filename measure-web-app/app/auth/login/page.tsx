@@ -26,7 +26,7 @@ export default async function Login({ searchParams }: { searchParams: { [key: st
         {initial && (
           <>
             <div id="g_id_onload"
-              data-client_id={process.env.NEXT_PUBLIC_MEASURE_GOOGLE_OAUTH_CLIENT_ID}
+              data-client_id={process.env.MEASURE_GOOGLE_OAUTH_CLIENT_ID}
               data-context="signin"
               data-ux_mode="popup"
               data-nonce={hashedNonce}
