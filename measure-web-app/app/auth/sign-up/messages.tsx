@@ -17,7 +17,7 @@ export default function Messages() {
       )}
       {message && (
         <>
-          <p className="mt-2 p-4">We've sent a magic link to your inbox.</p>
+          <p className="mt-2 p-4">We&apos;ve sent a magic link to your inbox.</p>
           <p className="mt-2 p-4 text-black">{message}</p>
         </>
       )}
