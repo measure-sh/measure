@@ -7,6 +7,7 @@ import okio.appendingSink
 import okio.buffer
 import okio.sink
 import okio.use
+import sh.measure.android.attachment.AttachmentInfo
 import sh.measure.android.events.Event
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
@@ -17,10 +18,12 @@ import java.io.IOException
 
 internal const val MEASURE_DIR_NAME = "measure"
 internal const val SESSIONS_DIR_NAME = "sessions"
+internal const val ATTACHMENTS_DIR_NAME = "attachments"
 
 internal const val EVENT_LOG_FILE_NAME = "event_log"
 internal const val EVENTS_JSON_FILE_NAME = "events.json"
 internal const val SESSION_FILE_NAME = "session.json"
+internal const val ATTACHMENTS_LOG_FILE_NAME = "attachments_log"
 
 /**
  * Stores sessions, resources and events to persistent storage.
@@ -49,6 +52,27 @@ internal class StorageImpl(private val logger: Logger, private val rootDirPath: 
         return Json.decodeFromString(Session.serializer(), sessionFile.readText()).resource
     }
 
+    override fun storeAttachmentInfo(info: AttachmentInfo, sessionId: String) {
+        logger.log(LogLevel.Debug, "Saving attachment for session: $sessionId")
+        val file = File(info.absolutePath)
+        if (!file.exists() || file.name != info.name || file.extension != info.extension) {
+            logger.log(
+                LogLevel.Error,
+                "The attachment at ${info.absolutePath} does not exist or does not match the attachment info."
+            )
+            return
+        }
+
+        val attachmentsFile = getAttachmentsFile(sessionId)
+        val isFileEmpty = isFileEmpty(attachmentsFile)
+        attachmentsFile.appendingSink().buffer().use {
+            val attachmentJson = Json.encodeToString(AttachmentInfo.serializer(), info)
+            if (!isFileEmpty) it.writeUtf8("\n")
+            it.writeUtf8(attachmentJson)
+        }
+        logger.log(LogLevel.Debug, "Saved attachment for session: $sessionId")
+    }
+
     override fun getAllSessions(): List<Session> {
         return getAllSessionDirs().map {
             val sessionId = it.nameWithoutExtension
@@ -69,7 +93,7 @@ internal class StorageImpl(private val logger: Logger, private val rootDirPath: 
 
     override fun storeEvent(event: Event, sessionId: String) {
         logger.log(LogLevel.Debug, "Saving ${event.type} for session: $sessionId")
-        val isFileEmpty = isEventLogEmpty(sessionId)
+        val isFileEmpty = isFileEmpty(getEventLogFile(sessionId))
 
         // write event to events file in format expected by server:
         // {"timestamp": "2021-03-03T12:00:00.000Z","type": "exception","exception": {...}}
@@ -107,6 +131,8 @@ internal class StorageImpl(private val logger: Logger, private val rootDirPath: 
             getEventLogFile(sessionId).createNewFile()
             getEventsJsonFile(sessionId).createNewFile()
             getSessionFile(sessionId).createNewFile()
+            getAttachmentsDir(sessionId).mkdirs()
+            getAttachmentsFile(sessionId).createNewFile()
         } catch (e: IOException) {
             logger.log(LogLevel.Error, "Failed to create resource and events files", e)
             // remove the session dir to keep the state consistent
@@ -116,12 +142,27 @@ internal class StorageImpl(private val logger: Logger, private val rootDirPath: 
         }
     }
 
+    private fun getAttachmentsFile(sessionId: String): File {
+        return File(getAttachmentsFilePath(sessionId))
+    }
+
+    private fun getAttachmentsFilePath(sessionId: String) =
+        "${getAttachmentsDirPath(sessionId)}/$ATTACHMENTS_LOG_FILE_NAME"
+
+    private fun getAttachmentsDir(sessionId: String): File {
+        return File(getAttachmentsDirPath(sessionId))
+    }
+
+    private fun getAttachmentsDirPath(sessionId: String): String {
+        return "${getSessionDirPath(sessionId)}/$ATTACHMENTS_DIR_NAME"
+    }
+
     private fun getEventsJsonFile(sessionId: String): File {
         return File(getEventsJsonFilePath(sessionId))
     }
 
-    private fun isEventLogEmpty(sessionId: String): Boolean {
-        return getEventLogFile(sessionId).length() == 0L
+    private fun isFileEmpty(file: File): Boolean {
+        return file.length() == 0L
     }
 
     private fun getAllSessionDirs(): List<File> {

@@ -9,6 +9,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RuntimeEnvironment
+import sh.measure.android.attachment.AttachmentInfo
 import sh.measure.android.events.Event
 import sh.measure.android.fakes.FakeResourceFactory
 import sh.measure.android.fakes.NoopLogger
@@ -42,6 +43,9 @@ internal class StorageImplTest {
         // |   |   |-- session.json
         // |   |   |-- events.json
         // |   |   |-- event_log
+        // |   |   |-- attachments/
+        // |   |   |   |-- attachments.json
+        // |   |   |   |-- {name}.{extension}
         val measureDir = File(rootDirPath, MEASURE_DIR_NAME)
         assertTrue(measureDir.exists())
         val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/${session.id}")
@@ -52,6 +56,10 @@ internal class StorageImplTest {
         assertTrue(eventsFile.exists())
         val eventLogFile = File(sessionDir, EVENT_LOG_FILE_NAME)
         assertTrue(eventLogFile.exists())
+        val attachmentsDir = File(sessionDir, ATTACHMENTS_DIR_NAME)
+        assertTrue(attachmentsDir.exists())
+        val attachmentsFile = File(attachmentsDir, ATTACHMENTS_LOG_FILE_NAME)
+        assertTrue(attachmentsFile.exists())
     }
 
     @Test
@@ -163,6 +171,113 @@ internal class StorageImplTest {
         val eventLogFile = File(sessionDir, EVENT_LOG_FILE_NAME)
         // Then
         assertEquals(eventLogFile, actualEventLogFile)
+    }
+
+    @Test
+    fun `Storage stores each attachment on a new line to attachments log file, given the attachment exists at absolutePath`() {
+        val sessionId = "id"
+        val attachmentPath = "$rootDirPath/attachment.txt"
+        val attachment = AttachmentInfo(
+            absolutePath = attachmentPath,
+            name = "file",
+            extension = "txt",
+            type = "type",
+            timestamp = 0L,
+        )
+        File(attachmentPath).writeText("test attachment")
+        storage.initSession(createFakeSession(sessionId))
+
+        // When
+
+        storage.storeAttachmentInfo(attachment, sessionId)
+        storage.storeAttachmentInfo(attachment, sessionId)
+
+        // Then
+        val measureDir = File(rootDirPath, MEASURE_DIR_NAME)
+        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/${sessionId}")
+        val attachmentDir = File(sessionDir, ATTACHMENTS_DIR_NAME)
+        val attachmentsLogFile = File(attachmentDir, ATTACHMENTS_LOG_FILE_NAME)
+        assertEquals(
+            """
+                {"absolutePath":"${attachment.absolutePath}","name":"${attachment.name}","extension":"${attachment.extension}","type":"${attachment.type}","timestamp":${attachment.timestamp}}
+                {"absolutePath":"${attachment.absolutePath}","name":"${attachment.name}","extension":"${attachment.extension}","type":"${attachment.type}","timestamp":${attachment.timestamp}}
+            """.trimIndent(), attachmentsLogFile.readText()
+        )
+    }
+
+    @Test
+    fun `Storage does not store attachment to attachments log file, if the name of file doesn't match the info`() {
+        val sessionId = "id"
+        val filePath = "$rootDirPath/attachment.txt"
+        val attachment = AttachmentInfo(
+            absolutePath = filePath,
+            name = "file",
+            extension = "txt",
+            type = "type",
+            timestamp = 0L,
+        )
+        File(filePath).writeText("test attachment")
+        storage.initSession(createFakeSession(sessionId))
+
+        // When
+        storage.storeAttachmentInfo(attachment, sessionId)
+
+        // Then
+        val measureDir = File(rootDirPath, MEASURE_DIR_NAME)
+        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/${sessionId}")
+        val attachmentDir = File(sessionDir, ATTACHMENTS_DIR_NAME)
+        val attachmentsLogFile = File(attachmentDir, ATTACHMENTS_LOG_FILE_NAME)
+        assertEquals("", attachmentsLogFile.readText())
+    }
+
+    @Test
+    fun `Storage does not store attachment to attachments log file, if the extension of file doesn't match the info`() {
+        val sessionId = "id"
+        val filePath = "$rootDirPath/attachment.txt"
+        val attachment = AttachmentInfo(
+            absolutePath = filePath,
+            name = "attachment",
+            extension = "png",
+            type = "type",
+            timestamp = 0L,
+        )
+        File(filePath).writeText("test attachment")
+        storage.initSession(createFakeSession(sessionId))
+
+        // When
+        storage.storeAttachmentInfo(attachment, sessionId)
+
+        // Then
+        val measureDir = File(rootDirPath, MEASURE_DIR_NAME)
+        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/${sessionId}")
+        val attachmentDir = File(sessionDir, ATTACHMENTS_DIR_NAME)
+        val attachmentsLogFile = File(attachmentDir, ATTACHMENTS_LOG_FILE_NAME)
+        assertEquals("", attachmentsLogFile.readText())
+    }
+
+    @Test
+    fun `Storage does not store attachment to attachments log file, if the attachment does not exist at absolutePath`() {
+        val sessionId = "id"
+        val attachment = AttachmentInfo(
+            absolutePath = "no_file_on_this_path",
+            name = "file",
+            extension = "txt",
+            type = "type",
+            timestamp = 0L,
+        )
+        storage.initSession(createFakeSession(sessionId))
+
+        // When
+
+        storage.storeAttachmentInfo(attachment, sessionId)
+        storage.storeAttachmentInfo(attachment, sessionId)
+
+        // Then
+        val measureDir = File(rootDirPath, MEASURE_DIR_NAME)
+        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/${sessionId}")
+        val attachmentDir = File(sessionDir, ATTACHMENTS_DIR_NAME)
+        val attachmentsLogFile = File(attachmentDir, ATTACHMENTS_LOG_FILE_NAME)
+        assertEquals("", attachmentsLogFile.readText())
     }
 
     private fun createFakeSession(
