@@ -1,6 +1,5 @@
 package sh.measure.android.exceptions
 
-import sh.measure.android.MeasureClient
 import sh.measure.android.events.EventTracker
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
