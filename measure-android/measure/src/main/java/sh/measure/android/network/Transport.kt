@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import sh.measure.android.attachment.AttachmentPacket
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.session.SessionReport
@@ -51,12 +52,17 @@ internal class TransportImpl(
             session_id = sessionReport.session_id,
             timestamp = sessionReport.timestamp,
             resource = sessionReport.resource,
-            events = Json.parseToJsonElement(sessionReport.eventsFile.readText()) as JsonArray
+            events = Json.parseToJsonElement(sessionReport.eventsFile.readText()) as JsonArray,
+            attachments = sessionReport.attachments,
         )
     }
 }
 
 @Serializable
 internal data class SessionReportRequest(
-    val session_id: String, val timestamp: String, val resource: JsonElement, val events: JsonArray
+    val session_id: String,
+    val timestamp: String,
+    val resource: JsonElement,
+    val events: JsonArray,
+    val attachments: List<AttachmentPacket>,
 )
