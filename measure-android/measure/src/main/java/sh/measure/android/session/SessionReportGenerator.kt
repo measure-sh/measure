@@ -10,6 +10,8 @@ import okio.source
 import okio.use
 import sh.measure.android.appexit.AppExit
 import sh.measure.android.appexit.AppExitProvider
+import sh.measure.android.attachment.AttachmentInfo
+import sh.measure.android.attachment.AttachmentPacket
 import sh.measure.android.events.toEvent
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
@@ -29,11 +31,13 @@ internal class SessionReportGenerator(
         val appExit = appExitProvider.get(session.pid)
         val eventsFile = createEventsJsonFile(session.id, appExit)
         val resource = storage.getResource(session.id)
+        val attachments = storage.getAllAttachmentsInfo(session.id).mapNotNull { it.toAttachmentPacket() }
         return SessionReport(
             session_id = session.id,
             timestamp = sessionStartTime,
             eventsFile = eventsFile,
-            resource = Json.encodeToJsonElement(resource)
+            resource = Json.encodeToJsonElement(resource),
+            attachments = attachments
         )
     }
 
@@ -67,6 +71,22 @@ internal class SessionReportGenerator(
 
         logger.log(LogLevel.Debug, "Created events.json file for session: $sessionId")
         return eventsFile
+    }
+
+    private fun AttachmentInfo.toAttachmentPacket(): AttachmentPacket? {
+        val file = File(absolutePath)
+        if (!file.exists()) {
+            logger.log(LogLevel.Error, "Attachment file not found: $absolutePath")
+            return null
+        }
+        val blob = file.source().buffer().readByteString().base64()
+        return AttachmentPacket(
+            timestamp = timestamp.iso8601Timestamp(),
+            name = name,
+            type = type,
+            extension = extension,
+            blob = blob
+        )
     }
 }
 
