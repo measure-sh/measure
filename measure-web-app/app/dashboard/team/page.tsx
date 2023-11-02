@@ -1,4 +1,7 @@
+"use client"
+
 import Dropdown from "@/app/components/dropdown";
+import { useState } from "react";
 
 const teamMembers = [
   {
@@ -40,10 +43,20 @@ const teamMembers = [
 ];
 
 export default function Team() {
+  const defaultTeamName = "Anup's team"
+  const [saveTeamNameButtonDisabled, setSaveTeamNameButtonDisabled] = useState(true);
+
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
       <div className="py-4"/>
       <p className="font-display font-regular text-black text-4xl max-w-6xl text-center">Team</p>
+      <div className="py-4"/>
+      <p className="font-sans text-black max-w-6xl text-center">Team name</p>
+      <div className="py-1"/>
+      <div className="flex flex-row items-center">
+        <input id="change-team-name-input" type="text" defaultValue={defaultTeamName} onChange={(event) => event.target.value === defaultTeamName? setSaveTeamNameButtonDisabled(true): setSaveTeamNameButtonDisabled(false)} className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400"/>
+        <button disabled={saveTeamNameButtonDisabled} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display text-black disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Save</button>
+      </div>
       <div className="py-4"/>
       <p className="font-sans text-black max-w-6xl text-center">Invite team members</p>
       <div className="py-1"/>
