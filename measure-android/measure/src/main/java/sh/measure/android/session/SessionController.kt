@@ -16,7 +16,7 @@ internal interface SessionController {
     /**
      * Creates a new [Session].
      */
-    fun createSession()
+    fun initSession()
 
     /**
      * Sends all unsynced [Session]s, which ended in a crash, to the server.
@@ -45,10 +45,10 @@ internal class SessionControllerImpl(
     private val session: Session
         get() = sessionProvider.session
 
-    override fun createSession() {
+    override fun initSession() {
         sessionProvider.createSession()
         runAllowDiskWrites {
-            storage.storeSession(session)
+            storage.initSession(session)
         }
     }
 
