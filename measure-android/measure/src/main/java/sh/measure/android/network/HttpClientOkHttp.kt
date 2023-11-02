@@ -14,9 +14,11 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
 import okio.BufferedSink
+import sh.measure.android.attachment.AttachmentPacket
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.session.SessionReport
@@ -57,8 +59,21 @@ internal class HttpClientOkHttp(
             return Part.create(headers, body)
         }
 
+        fun createAttachmentPart(attachment: AttachmentPacket) : Part {
+            val headers = Headers.headersOf(
+                "Content-Disposition", """
+                        form-data; 
+                        name="${attachment.name}";  
+                        type="${attachment.type}"; 
+                        extension="${attachment.extension ?: ""}";
+                        timestamp="${attachment.timestamp}"
+                """.trimIndent()
+            )
+            return Part.create(headers, attachment.blob.toRequestBody())
+        }
+
         logger.log(LogLevel.Debug, "Sending session report: ${sessionReport.session_id}")
-        val requestBody = MultipartBody.Builder().setType(MultipartBody.FORM)
+        val requestBodyBuilder = MultipartBody.Builder().setType(MultipartBody.FORM)
             .addFormDataPart(name = "session_id", value = sessionReport.session_id)
             .addFormDataPart(name = "timestamp", value = sessionReport.timestamp)
             .addFormDataPart(name = "resource", value = Json.encodeToString(sessionReport.resource))
@@ -66,7 +81,11 @@ internal class HttpClientOkHttp(
                 createJsonPart(
                     name = "events", filename = "events.json", file = sessionReport.eventsFile
                 )
-            ).build()
+            )
+        sessionReport.attachments.forEach { attachment ->
+            requestBodyBuilder.addPart(createAttachmentPart(attachment))
+        }
+        val requestBody = requestBodyBuilder.build()
         val request: Request =
             Request.Builder().url("$baseUrl$PATH_SESSION").post(requestBody).build()
         client.newCall(request).enqueue(CallbackAdapter(logger, callback))
