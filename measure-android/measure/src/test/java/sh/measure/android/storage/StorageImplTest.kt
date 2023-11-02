@@ -4,6 +4,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.encodeToJsonElement
+import okio.buffer
+import okio.sink
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -188,7 +190,6 @@ internal class StorageImplTest {
         storage.initSession(createFakeSession(sessionId))
 
         // When
-
         storage.storeAttachmentInfo(attachment, sessionId)
         storage.storeAttachmentInfo(attachment, sessionId)
 
@@ -268,7 +269,6 @@ internal class StorageImplTest {
         storage.initSession(createFakeSession(sessionId))
 
         // When
-
         storage.storeAttachmentInfo(attachment, sessionId)
         storage.storeAttachmentInfo(attachment, sessionId)
 
@@ -278,6 +278,55 @@ internal class StorageImplTest {
         val attachmentDir = File(sessionDir, ATTACHMENTS_DIR_NAME)
         val attachmentsLogFile = File(attachmentDir, ATTACHMENTS_LOG_FILE_NAME)
         assertEquals("", attachmentsLogFile.readText())
+    }
+
+    @Test
+    fun `Storage returns empty list if no attachments are available`() {
+        val sessionId = "id"
+        storage.initSession(createFakeSession(sessionId))
+
+        // When
+        val attachments = storage.getAllAttachmentsInfo(sessionId)
+
+        // Then
+        assertEquals(0, attachments.size)
+    }
+
+    @Test
+    fun `Storage returns all attachments if attachments are available`() {
+        val sessionId = "id"
+        storage.initSession(createFakeSession(sessionId))
+        val attachmentsDir =
+            "$rootDirPath/${MEASURE_DIR_NAME}/$SESSIONS_DIR_NAME/$sessionId/${ATTACHMENTS_DIR_NAME}"
+        val attachment1 = AttachmentInfo(
+            absolutePath = "$attachmentsDir/attachment1.txt",
+            name = "attachment1",
+            extension = "txt",
+            type = "type",
+            timestamp = 0L,
+        )
+        val attachment2 = AttachmentInfo(
+            absolutePath = "$attachmentsDir/attachment2.txt",
+            name = "attachment2",
+            extension = "txt",
+            type = "type",
+            timestamp = 0L,
+        )
+        File(attachmentsDir, "${attachment1.name}.${attachment1.extension}").writeText("test attachment 1")
+        File(attachmentsDir, "${attachment2.name}.${attachment2.extension}").writeText("test attachment 2")
+        File(attachmentsDir, ATTACHMENTS_LOG_FILE_NAME).sink().buffer().use {
+            it.writeUtf8(Json.encodeToString(AttachmentInfo.serializer(), attachment1))
+            it.writeUtf8("\n")
+            it.writeUtf8(Json.encodeToString(AttachmentInfo.serializer(), attachment2))
+        }
+
+        // When
+        val attachments = storage.getAllAttachmentsInfo(sessionId)
+
+        // Then
+        assertEquals(2, attachments.size)
+        assertTrue(attachments.contains(attachment1))
+        assertTrue(attachments.contains(attachment2))
     }
 
     private fun createFakeSession(
