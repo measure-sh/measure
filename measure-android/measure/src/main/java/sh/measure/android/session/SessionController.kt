@@ -1,5 +1,6 @@
 package sh.measure.android.session
 
+import sh.measure.android.attachment.AttachmentInfo
 import sh.measure.android.events.Event
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
@@ -32,6 +33,11 @@ internal interface SessionController {
      * Stores an [Event] in persistent storage synchronously.
      */
     fun storeEventSync(event: Event)
+
+    /**
+     * Stores an [AttachmentInfo] in persistent storage.
+     */
+    fun storeAttachment(attachmentInfo: AttachmentInfo)
 }
 
 internal class SessionControllerImpl(
@@ -86,6 +92,18 @@ internal class SessionControllerImpl(
 
     override fun storeEventSync(event: Event) {
         storeEventInternal(event)
+    }
+
+    override fun storeAttachment(attachmentInfo: AttachmentInfo) {
+        try {
+            executorService.submit {
+                storage.storeAttachmentInfo(attachmentInfo, session.id)
+            }
+        } catch (e: RejectedExecutionException) {
+            logger.log(LogLevel.Debug, "Failed to store attachment ${attachmentInfo.name}", e)
+        } catch (e: NullPointerException) {
+            logger.log(LogLevel.Debug, "Failed to store attachment ${attachmentInfo.name}", e)
+        }
     }
 
     private fun storeEventInternal(event: Event) {

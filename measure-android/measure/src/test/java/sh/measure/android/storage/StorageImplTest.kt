@@ -181,7 +181,7 @@ internal class StorageImplTest {
         val attachmentPath = "$rootDirPath/attachment.txt"
         val attachment = AttachmentInfo(
             absolutePath = attachmentPath,
-            name = "file",
+            name = "attachment",
             extension = "txt",
             type = "type",
             timestamp = 0L,

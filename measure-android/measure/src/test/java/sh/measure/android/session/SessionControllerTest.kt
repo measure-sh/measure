@@ -9,6 +9,8 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
+import sh.measure.android.attachment.AttachmentInfo
+import sh.measure.android.attachment.AttachmentType
 import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeResourceFactory
@@ -129,6 +131,26 @@ class SessionControllerTest {
         verify(storage).storeEvent(event, activeSession.id)
     }
 
+    @Test
+    fun `SessionController delegates to storage to store attachment for active session`() {
+        val attachmentInfo = AttachmentInfo(
+            name = "attachment-name",
+            type = AttachmentType.METHOD_TRACE,
+            extension = "trace",
+            absolutePath = "absolute-path",
+            timestamp = 0L,
+        )
+        // setup mocks
+        val activeSession = createFakeSession("session-id")
+        `when`(sessionProvider.session).thenReturn(activeSession)
+
+        // When
+        sessionController.storeAttachment(attachmentInfo)
+
+        // Then
+        verify(storage).storeAttachmentInfo(attachmentInfo, activeSession.id)
+    }
+
     private fun createFakeSession(sessionId: String, startTime: Long = 0): Session {
         return Session(
             id = sessionId,
@@ -143,7 +165,8 @@ class SessionControllerTest {
             session_id = id,
             timestamp = startTime.iso8601Timestamp(),
             eventsFile = mock(),
-            resource = Json.encodeToJsonElement(FakeResourceFactory().resource)
+            resource = Json.encodeToJsonElement(FakeResourceFactory().resource),
+            attachments = emptyList(),
         )
     }
 }
