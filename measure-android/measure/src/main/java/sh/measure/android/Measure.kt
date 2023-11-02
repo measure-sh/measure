@@ -6,6 +6,7 @@ import sh.measure.android.anr.AnrCollector
 import sh.measure.android.appexit.AppExitProvider
 import sh.measure.android.appexit.AppExitProviderImpl
 import sh.measure.android.cold_launch.ColdLaunchCollector
+import sh.measure.android.cold_launch.ColdLaunchTraceImpl
 import sh.measure.android.cold_launch.LaunchState
 import sh.measure.android.events.EventTracker
 import sh.measure.android.events.MeasureEventTracker
@@ -57,10 +58,13 @@ object Measure {
         // Init session
         sessionController.initSession()
 
+        // Start launch trace, this trace ends in the ColdLaunchCollector.
+        val coldLaunchTrace = ColdLaunchTraceImpl(storage, sessionProvider.session.id).apply { start() }
+
         // Register data collectors
         UnhandledExceptionCollector(logger, eventTracker, timeProvider).register()
         ColdLaunchCollector(
-            context as Application, logger, eventTracker, timeProvider, LaunchState
+            context as Application, logger, eventTracker, timeProvider, LaunchState, coldLaunchTrace
         ).register()
         AnrCollector(logger, context, timeProvider, eventTracker).register()
         LifecycleCollector(context, eventTracker, timeProvider).register()

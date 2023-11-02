@@ -1,5 +1,6 @@
 package sh.measure.android.fakes
 
+import sh.measure.android.attachment.AttachmentInfo
 import sh.measure.android.cold_launch.ColdLaunchEvent
 import sh.measure.android.events.EventTracker
 import sh.measure.android.exceptions.MeasureException
@@ -21,6 +22,7 @@ internal class FakeEventTracker: EventTracker {
     val trackedFragmentLifecycleEvents = mutableListOf<FragmentLifecycleEvent>()
     val trackedApplicationLifecycleEvents = mutableListOf<ApplicationLifecycleEvent>()
     val trackedColdLaunchEvents = mutableListOf<ColdLaunchEvent>()
+    val trackedAttachments = mutableListOf<AttachmentInfo>()
 
     override fun trackUnhandledException(measureException: MeasureException) {
         trackedUnhandledExceptions.add(measureException)
@@ -56,5 +58,9 @@ internal class FakeEventTracker: EventTracker {
 
     override fun trackColdLaunch(event: ColdLaunchEvent) {
         trackedColdLaunchEvents.add(event)
+    }
+
+    override fun storeAttachment(attachmentInfo: AttachmentInfo) {
+        trackedAttachments.add(attachmentInfo)
     }
 }

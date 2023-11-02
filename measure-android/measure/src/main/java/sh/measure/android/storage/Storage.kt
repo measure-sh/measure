@@ -38,6 +38,7 @@ internal interface Storage {
     fun getResource(sessionId: String): Resource
     fun storeAttachmentInfo(info: AttachmentInfo, sessionId: String)
     fun getAllAttachmentsInfo(sessionId: String): List<AttachmentInfo>
+    fun getAttachmentsDirPath(sessionId: String): String
 }
 
 internal class StorageImpl(private val logger: Logger, private val rootDirPath: String) : Storage {
@@ -56,10 +57,10 @@ internal class StorageImpl(private val logger: Logger, private val rootDirPath: 
     override fun storeAttachmentInfo(info: AttachmentInfo, sessionId: String) {
         logger.log(LogLevel.Debug, "Saving attachment for session: $sessionId")
         val file = File(info.absolutePath)
-        if (!file.exists() || file.name != info.name || file.extension != info.extension) {
+        if (!file.exists() || file.nameWithoutExtension != info.name || file.extension != info.extension) {
             logger.log(
                 LogLevel.Error,
-                "The attachment at ${info.absolutePath} does not exist or does not match the attachment info."
+                "Attachment ${info.name} does not exist or does not match the attachment info."
             )
             return
         }
@@ -164,7 +165,7 @@ internal class StorageImpl(private val logger: Logger, private val rootDirPath: 
         return File(getAttachmentsDirPath(sessionId))
     }
 
-    private fun getAttachmentsDirPath(sessionId: String): String {
+    override fun getAttachmentsDirPath(sessionId: String): String {
         return "${getSessionDirPath(sessionId)}/$ATTACHMENTS_DIR_NAME"
     }
 

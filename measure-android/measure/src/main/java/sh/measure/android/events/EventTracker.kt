@@ -1,5 +1,6 @@
 package sh.measure.android.events
 
+import sh.measure.android.attachment.AttachmentInfo
 import sh.measure.android.cold_launch.ColdLaunchEvent
 import sh.measure.android.exceptions.MeasureException
 import sh.measure.android.gestures.ClickEvent
@@ -22,6 +23,7 @@ internal interface EventTracker {
     fun trackFragmentLifecycleEvent(event: FragmentLifecycleEvent)
     fun trackApplicationLifecycleEvent(event: ApplicationLifecycleEvent)
     fun trackColdLaunch(event: ColdLaunchEvent)
+    fun storeAttachment(attachmentInfo: AttachmentInfo)
 }
 
 // TODO: refactor to make serialization happen on background thread.
@@ -80,5 +82,10 @@ internal class MeasureEventTracker(
     override fun trackColdLaunch(event: ColdLaunchEvent) {
         logger.log(LogLevel.Debug, "Tracking cold launch (${event.duration}ms)")
         sessionController.storeEvent(event.toEvent())
+    }
+
+    override fun storeAttachment(attachmentInfo: AttachmentInfo) {
+        logger.log(LogLevel.Debug, "Storing attachment ${attachmentInfo.name}")
+        sessionController.storeAttachment(attachmentInfo)
     }
 }

@@ -8,6 +8,8 @@ import android.os.Process
 import android.os.SystemClock
 import curtains.onNextDraw
 import sh.measure.android.MeasureInitProvider
+import sh.measure.android.attachment.AttachmentInfo
+import sh.measure.android.attachment.AttachmentType
 import sh.measure.android.cold_launch.StartUptimeMechanism.CONTENT_PROVIDER
 import sh.measure.android.cold_launch.StartUptimeMechanism.PROCESS_START_REQUESTED_UPTIME
 import sh.measure.android.cold_launch.StartUptimeMechanism.PROCESS_START_UPTIME
@@ -47,6 +49,7 @@ internal class ColdLaunchCollector(
     private val eventTracker: EventTracker,
     private val timeProvider: TimeProvider,
     private val launchInfo: LaunchState,
+    private val trace: ColdLaunchTrace,
 ) : ActivityLifecycleAdapter {
 
     private var firstDrawComplete = false
@@ -89,6 +92,16 @@ internal class ColdLaunchCollector(
                     timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
                 )
                 eventTracker.trackColdLaunch(event)
+                trace.stop()
+                eventTracker.storeAttachment(
+                    AttachmentInfo(
+                        name = trace.config.name,
+                        type = AttachmentType.METHOD_TRACE,
+                        extension = trace.config.extension,
+                        absolutePath = trace.config.absolutePath,
+                        timestamp = timeProvider.currentTimeSinceEpochInMillis
+                    )
+                )
                 unregisterLifecycleCallbacks()
             }
         }
