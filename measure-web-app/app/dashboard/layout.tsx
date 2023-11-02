@@ -61,7 +61,7 @@ export default function DashboardLayout({
 
         {/* Side nav and main content layout on small screens */}
         <div className="flex flex-col md:hidden">
-            <aside className="border-black border-r">
+            <aside>
                 <nav className="flex flex-col p-2 h-full w-screen">
                     <div className="py-4"/>
                     <TeamSwitcher items={['Anup', 'Measure','LeftShift']}/>
