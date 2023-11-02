@@ -2,6 +2,7 @@
 
 import Lottie from "lottie-react";
 import heroAnim from "./animations/measure_hero.json";
+import appHealth from "./animations/measure_app_health.json"
 import EmailWaitlist from './components/email_waitlist'
 import LandingHeader from './components/landing_header'
 
@@ -24,7 +25,8 @@ export default function Home() {
             <p className="text-lg text-center md:text-left leading-relaxed font-sans text-black">Monitor core user flows and important metrics to stay on top of app health. Filter by various system or custom attributes to dive deeper.</p>
           </div>
           <div className="py-4 md:py-0 md:w-1/6"/>
-          <div className="border border-black w-96 md:w-2/6 aspect-square bg-violet-200"/>
+          <Lottie animationData={appHealth} loop={true} className="aspect-square w-96 md:w-2/6"/>
+          {/* <div className="border border-black w-96 md:w-2/6 aspect-square bg-violet-200"/> */}
         </div>
         <div className="py-12"/>
         <div className="flex flex-col md:flex-row md:w-full items-center">
