@@ -1,10 +1,18 @@
 package sh.measure.android
 
+import android.app.Application
 import android.content.Context
+import sh.measure.android.anr.AnrCollector
 import sh.measure.android.appexit.AppExitProvider
 import sh.measure.android.appexit.AppExitProviderImpl
+import sh.measure.android.cold_launch.ColdLaunchCollector
+import sh.measure.android.cold_launch.LaunchState
+import sh.measure.android.events.EventTracker
 import sh.measure.android.events.MeasureEventTracker
+import sh.measure.android.exceptions.UnhandledExceptionCollector
 import sh.measure.android.executors.MeasureExecutorServiceImpl
+import sh.measure.android.gestures.GestureCollector
+import sh.measure.android.lifecycle.LifecycleCollector
 import sh.measure.android.logger.AndroidLogger
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.network.HttpClient
@@ -16,8 +24,6 @@ import sh.measure.android.session.SessionController
 import sh.measure.android.session.SessionControllerImpl
 import sh.measure.android.session.SessionProvider
 import sh.measure.android.session.SessionReportGenerator
-import sh.measure.android.storage.FileHelper
-import sh.measure.android.storage.FileHelperImpl
 import sh.measure.android.storage.Storage
 import sh.measure.android.storage.StorageImpl
 import sh.measure.android.utils.AndroidTimeProvider
@@ -30,8 +36,7 @@ object Measure {
         checkMainThread()
         val logger = AndroidLogger().apply { log(LogLevel.Debug, "Initializing Measure") }
         val executorService = MeasureExecutorServiceImpl()
-        val fileHelper: FileHelper = FileHelperImpl(logger, context)
-        val storage: Storage = StorageImpl(logger, fileHelper)
+        val storage: Storage = StorageImpl(logger, context.filesDir.path)
         val httpClient: HttpClient =
             HttpClientOkHttp(logger, Config.MEASURE_BASE_URL, Config.MEASURE_SECRET_TOKEN)
         val transport: Transport = TransportImpl(logger, httpClient)
@@ -47,13 +52,22 @@ object Measure {
         val sessionController: SessionController = SessionControllerImpl(
             logger, sessionProvider, storage, transport, executorService, sessionReportGenerator
         )
-        MeasureClient(
-            logger,
-            context = context,
-            timeProvider = timeProvider,
-            eventTracker = MeasureEventTracker(logger, sessionController),
-            sessionController = sessionController,
-        ).init()
+        val eventTracker: EventTracker = MeasureEventTracker(logger, sessionController)
+
+        // Init session
+        sessionController.initSession()
+
+        // Register data collectors
+        UnhandledExceptionCollector(logger, eventTracker, timeProvider).register()
+        ColdLaunchCollector(
+            context as Application, logger, eventTracker, timeProvider, LaunchState
+        ).register()
+        AnrCollector(logger, context, timeProvider, eventTracker).register()
+        LifecycleCollector(context, eventTracker, timeProvider).register()
+        GestureCollector(logger, eventTracker, timeProvider).register()
+
+        // TODO: do this after app launch is completed to not mess up the app startup time.
+        sessionController.syncAllSessions()
         logger.log(LogLevel.Debug, "Measure initialization completed")
     }
 }

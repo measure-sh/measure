@@ -8,9 +8,6 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.`when`
-import org.mockito.kotlin.verify
 import org.robolectric.RuntimeEnvironment
 import sh.measure.android.events.Event
 import sh.measure.android.fakes.FakeResourceFactory
@@ -24,61 +21,68 @@ import kotlin.io.path.pathString
 @RunWith(AndroidJUnit4::class)
 internal class StorageImplTest {
     private val logger = NoopLogger()
-    private val fileHelper = mock<FileHelperImpl>()
     private lateinit var storage: Storage
-    private lateinit var tempDirPath: String
+    private lateinit var rootDirPath: String
 
     @Before
     fun setUp() {
-        storage = StorageImpl(logger, fileHelper)
-        tempDirPath = RuntimeEnvironment.getTempDirectory().createIfNotExists("test").pathString
+        rootDirPath = RuntimeEnvironment.getTempDirectory().createIfNotExists("test").pathString
+        storage = StorageImpl(logger, rootDirPath)
     }
 
     @Test
-    fun `Storage delegates to file helper to create session files and persists session to session file`() {
+    fun `Storage creates session directory and files on initialization`() {
         val session = createFakeSession("session-id")
-        val file = File(tempDirPath, "session.json")
-        `when`(fileHelper.getSessionFile(session.id)).thenReturn(file)
+        storage.initSession(session)
 
-        storage.storeSession(session)
+        // Expected directory structure:
+        // measure/
+        // |-- sessions/
+        // |   |-- {session_id}/
+        // |   |   |-- session.json
+        // |   |   |-- events.json
+        // |   |   |-- event_log
+        val measureDir = File(rootDirPath, MEASURE_DIR_NAME)
+        assertTrue(measureDir.exists())
+        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/${session.id}")
+        assertTrue(sessionDir.exists())
+        val sessionFile = File(sessionDir, SESSION_FILE_NAME)
+        assertTrue(sessionFile.exists())
+        val eventsFile = File(sessionDir, EVENTS_JSON_FILE_NAME)
+        assertTrue(eventsFile.exists())
+        val eventLogFile = File(sessionDir, EVENT_LOG_FILE_NAME)
+        assertTrue(eventLogFile.exists())
+    }
 
-        verify(fileHelper).createSessionFiles(session.id)
-        assertEquals(
-            Json.encodeToString(Session.serializer(), session), file.readText()
-        )
+    @Test
+    fun `Storage persists session on initialization`() {
+        val session = createFakeSession("session-id")
+        storage.initSession(session)
+        val measureDir = File(rootDirPath, MEASURE_DIR_NAME)
+        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/${session.id}")
+        val sessionFile = File(sessionDir, SESSION_FILE_NAME)
+
+        assertEquals(session, Json.decodeFromString(Session.serializer(), sessionFile.readText()))
     }
 
     @Test
     fun `Storage returns resource if exists`() {
-        val sessionId = "session-id"
-        val resource = FakeResourceFactory().resource
-        val session = createFakeSession(sessionId, resource)
-        val sessionFile = File(tempDirPath, "session.json")
-        `when`(fileHelper.getSessionFile(session.id)).thenReturn(sessionFile)
-        sessionFile.writeText(Json.encodeToJsonElement(session).toString())
+        val session = createFakeSession("session-id")
+        storage.initSession(session)
 
         // When
-        val actualResource = storage.getResource(sessionId)
+        val actualResource = storage.getResource(session.id)
 
         // Then
-        assertEquals(resource, actualResource)
+        assertEquals(session.resource, actualResource)
     }
 
     @Test
     fun `Storage returns all sessions if available`() {
         val session1 = createFakeSession("session1")
         val session2 = createFakeSession("session2")
-        val dir1 = createFakeSessionDir(session1)
-        val dir2 = createFakeSessionDir(session2)
-        // write session to file
-        val sessionFile1 = File(dir1, "session.json")
-        sessionFile1.writeText(Json.encodeToJsonElement(session1).toString())
-        val sessionFile2 = File(dir2, "session.json")
-        sessionFile2.writeText(Json.encodeToJsonElement(session2).toString())
-
-        `when`(fileHelper.getAllSessionDirs()).thenReturn(listOf(dir1, dir2))
-        `when`(fileHelper.getSessionFile(session1.id)).thenReturn(sessionFile1)
-        `when`(fileHelper.getSessionFile(session2.id)).thenReturn(sessionFile2)
+        storage.initSession(session1)
+        storage.initSession(session2)
 
         val sessions = storage.getAllSessions()
 
@@ -89,106 +93,76 @@ internal class StorageImplTest {
 
     @Test
     fun `Storage returns empty sessions if no sessions available`() {
-        `when`(fileHelper.getAllSessionDirs()).thenReturn(listOf())
-
         val sessions = storage.getAllSessions()
 
         assertEquals(0, sessions.size)
     }
 
     @Test
-    fun `Storage delegates to file helper to delete session`() {
+    fun `Storage deletes session directory`() {
         val sessionId = "session-id"
+        storage.initSession(createFakeSession(sessionId))
+
         storage.deleteSession(sessionId)
-        verify(fileHelper).deleteSession(sessionId)
+
+        val measureDir = File(rootDirPath, MEASURE_DIR_NAME)
+        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/${sessionId}")
+        assertFalse(sessionDir.exists())
     }
 
     @Test
-    fun `Storage writes the event to event log, when event log file is empty`() {
+    fun `Storage stores each event on a new line in event log file`() {
         val sessionId = "id"
         val data: JsonElement = Json.encodeToJsonElement("data")
         val timestamp = 9876543210.iso8601Timestamp()
         val event = Event(
             timestamp = timestamp, type = "event", data = data
         )
-        `when`(fileHelper.isEventLogEmpty(sessionId)).thenReturn(true)
-        val eventLogFile = File(tempDirPath, "event_log")
-        `when`(fileHelper.getEventLogFile(sessionId)).thenReturn(
-            eventLogFile
-        )
+        storage.initSession(createFakeSession(sessionId))
 
         // When
         storage.storeEvent(event, sessionId)
+        storage.storeEvent(event, sessionId)
 
         // Then
+        val measureDir = File(rootDirPath, MEASURE_DIR_NAME)
+        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/${sessionId}")
+        val eventLogFile = File(sessionDir, EVENT_LOG_FILE_NAME)
         assertEquals(
             """
+                {"timestamp":"$timestamp","type":"event","event":"data"}
                 {"timestamp":"$timestamp","type":"event","event":"data"}
             """.trimIndent(), eventLogFile.readText()
         )
     }
 
+
     @Test
-    fun `Storage appends event to event log, when event log file is not empty`() {
+    fun `Storage delegates returns events json file`() {
         val sessionId = "id"
-        val data: JsonElement = Json.encodeToJsonElement("data")
-        val timestamp = 9876543210.iso8601Timestamp()
-        val event = Event(
-            timestamp = timestamp, type = "event", data = data
-        )
-        `when`(fileHelper.isEventLogEmpty(sessionId)).thenReturn(false)
-        val eventLogFile = File(tempDirPath, "event_log")
-        `when`(fileHelper.getEventLogFile(sessionId)).thenReturn(
-            eventLogFile
-        )
-
-        // When
-        storage.storeEvent(event, sessionId)
-
-        // Then
-        assertEquals(
-            """
-
-               {"timestamp":"$timestamp","type":"event","event":"data"}
-            """.trimIndent(), eventLogFile.readText()
-        )
-    }
-
-    @Test
-    fun `Storage delegates to file helper return resource`() {
-
-    }
-
-    @Test
-    fun `Storage delegates to file helper to return events file`() {
-        val sessionId = "id"
-        val eventsFile = File(tempDirPath, "events.json")
-        `when`(fileHelper.getEventsJsonFile(sessionId)).thenReturn(eventsFile)
 
         // When
         val actualEventsFile = storage.getEventsFile(sessionId)
 
+        val measureDir = File(rootDirPath, MEASURE_DIR_NAME)
+        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/${sessionId}")
+        val eventsFile = File(sessionDir, EVENTS_JSON_FILE_NAME)
         // Then
         assertEquals(eventsFile, actualEventsFile)
     }
 
     @Test
-    fun `Storage delegates to file helper to return event log file`() {
+    fun `Storage returns event log file`() {
         val sessionId = "id"
-        val eventsFile = File(tempDirPath, "events.json")
-        `when`(fileHelper.getEventLogFile(sessionId)).thenReturn(eventsFile)
 
         // When
-        val actualEventsFile = storage.getEventLogFile(sessionId)
+        val actualEventLogFile = storage.getEventLogFile(sessionId)
 
+        val measureDir = File(rootDirPath, MEASURE_DIR_NAME)
+        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/${sessionId}")
+        val eventLogFile = File(sessionDir, EVENT_LOG_FILE_NAME)
         // Then
-        assertEquals(eventsFile, actualEventsFile)
-    }
-
-    private fun createFakeSessionDir(session: Session): File {
-        val sessionDir = File(tempDirPath, session.id)
-        sessionDir.mkdirs()
-        return sessionDir
+        assertEquals(eventLogFile, actualEventLogFile)
     }
 
     private fun createFakeSession(

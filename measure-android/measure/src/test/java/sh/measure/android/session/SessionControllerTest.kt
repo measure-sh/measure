@@ -47,11 +47,11 @@ class SessionControllerTest {
         `when`(sessionProvider.session).thenReturn(session)
 
         // When
-        sessionController.createSession()
+        sessionController.initSession()
 
         // Then
         verify(sessionProvider).createSession()
-        verify(storage).storeSession(session)
+        verify(storage).initSession(session)
     }
 
     @Test
