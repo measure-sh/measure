@@ -37,6 +37,7 @@ internal interface Storage {
     fun getEventLogFile(sessionId: String): File
     fun getResource(sessionId: String): Resource
     fun storeAttachmentInfo(info: AttachmentInfo, sessionId: String)
+    fun getAllAttachmentsInfo(sessionId: String): List<AttachmentInfo>
 }
 
 internal class StorageImpl(private val logger: Logger, private val rootDirPath: String) : Storage {
@@ -63,7 +64,7 @@ internal class StorageImpl(private val logger: Logger, private val rootDirPath: 
             return
         }
 
-        val attachmentsFile = getAttachmentsFile(sessionId)
+        val attachmentsFile = getAttachmentsLogFile(sessionId)
         val isFileEmpty = isFileEmpty(attachmentsFile)
         attachmentsFile.appendingSink().buffer().use {
             val attachmentJson = Json.encodeToString(AttachmentInfo.serializer(), info)
@@ -71,6 +72,16 @@ internal class StorageImpl(private val logger: Logger, private val rootDirPath: 
             it.writeUtf8(attachmentJson)
         }
         logger.log(LogLevel.Debug, "Saved attachment for session: $sessionId")
+    }
+
+    override fun getAllAttachmentsInfo(sessionId: String): List<AttachmentInfo> {
+        val attachmentsFile = getAttachmentsLogFile(sessionId)
+        if (!attachmentsFile.exists()) {
+            return emptyList()
+        }
+        return attachmentsFile.readLines().map {
+            Json.decodeFromString(AttachmentInfo.serializer(), it)
+        }
     }
 
     override fun getAllSessions(): List<Session> {
@@ -132,7 +143,7 @@ internal class StorageImpl(private val logger: Logger, private val rootDirPath: 
             getEventsJsonFile(sessionId).createNewFile()
             getSessionFile(sessionId).createNewFile()
             getAttachmentsDir(sessionId).mkdirs()
-            getAttachmentsFile(sessionId).createNewFile()
+            getAttachmentsLogFile(sessionId).createNewFile()
         } catch (e: IOException) {
             logger.log(LogLevel.Error, "Failed to create resource and events files", e)
             // remove the session dir to keep the state consistent
@@ -142,11 +153,11 @@ internal class StorageImpl(private val logger: Logger, private val rootDirPath: 
         }
     }
 
-    private fun getAttachmentsFile(sessionId: String): File {
-        return File(getAttachmentsFilePath(sessionId))
+    private fun getAttachmentsLogFile(sessionId: String): File {
+        return File(getAttachmentsLogFilePath(sessionId))
     }
 
-    private fun getAttachmentsFilePath(sessionId: String) =
+    private fun getAttachmentsLogFilePath(sessionId: String) =
         "${getAttachmentsDirPath(sessionId)}/$ATTACHMENTS_LOG_FILE_NAME"
 
     private fun getAttachmentsDir(sessionId: String): File {
