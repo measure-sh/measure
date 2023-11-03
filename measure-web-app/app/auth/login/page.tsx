@@ -23,8 +23,8 @@ export default async function Login({ searchParams }: { searchParams: { [key: st
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      {/* a fixed max-width is best as the google sign-in button has a max width constraint */}
-      <div className="w-full space-y-8" style={{ maxWidth: "400px" }}>
+      {/* a fixed max-width is best as the google sign-in button has a width constraint */}
+      <div className="w-full space-y-8" style={{ width: "400px" }}>
         {initial && (
           <>
             <div id="g_id_onload"
