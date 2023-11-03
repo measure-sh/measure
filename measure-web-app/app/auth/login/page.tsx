@@ -1,6 +1,7 @@
 import crypto from "node:crypto"
 import Messages from "../sign-up/messages"
 import GoogleSignIn from "./google-sign-in"
+import GitHubSignIn from "./github-sign-in"
 
 async function genNonce() {
   const nonce = crypto.randomBytes(16).toString("base64")
@@ -46,6 +47,7 @@ export default async function Login({ searchParams }: { searchParams: { [key: st
             </div>
           </>
         )}
+        {initial && <GitHubSignIn />}
         {initial && (
           <>
             <GoogleSignIn />
