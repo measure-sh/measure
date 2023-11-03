@@ -239,7 +239,7 @@ export default function CrashDetails({ params }: { params: { slug: string } }) {
               {stackTrace.text}
             </Accordion>
           ))}
-        </div>
+      </div>
       <div className="py-8"/>
       <p className="text-black font-display text-3xl"> Latest Sessions with NullpointerException.java</p>
       <div className="py-4"/>
