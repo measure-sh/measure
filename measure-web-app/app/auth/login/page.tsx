@@ -18,6 +18,7 @@ export default async function Login({ searchParams }: { searchParams: { [key: st
   const message = searchParams["message"]
   const initial = !Boolean(error || message)
   const { nonce, hashedNonce } = await genNonce()
+  console.log(`created nonce: [${nonce}] & hashedNonce: [${hashedNonce}]`)
   const origin = process?.env?.NEXT_PUBLIC_SITE_URL
 
   return (
