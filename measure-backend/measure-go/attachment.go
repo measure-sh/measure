@@ -15,7 +15,7 @@ import (
 	"github.com/google/uuid"
 )
 
-var attachmentTypes = []string{"screenshot"}
+var attachmentTypes = []string{"screenshot", "android_method_trace"}
 
 type Attachment struct {
 	ID        uuid.UUID `json:"id"`
