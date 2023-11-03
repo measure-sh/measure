@@ -66,6 +66,12 @@ export default function Apps() {
       <p className="font-sans">First Version: v1.0.3</p>
       <p className="font-sans">Latest Version: v3.1.2</p>
       <div className="py-8"/>
+      <p className="font-display font-regular text-black text-xl max-w-6xl text-center">API key</p>
+      <div className="flex flex-row items-center">
+        <input id="api-key-input" type="text" value="sldkfjslkjljlk45466" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400"/>
+        <button className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4">Copy</button>
+      </div>
+      <div className="py-8"/>
       <p className="font-display font-regular text-black text-2xl max-w-6xl text-center">Add new app</p>
       <div>
           {addAppSteps.map((text, index) => (
