@@ -9,7 +9,7 @@ create table if not exists mapping_files (
     fnv1_hash varchar(34) not null,
     file_size int default 0,
     last_updated timestamptz not null
-)
+);
 
 comment on column mapping_files.id is 'unique id for each mapping file';
 comment on column mapping_files.app_id is 'unique identifier of the app';
