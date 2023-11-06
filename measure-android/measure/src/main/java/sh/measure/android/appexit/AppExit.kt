@@ -5,6 +5,7 @@ import android.app.ApplicationExitInfo
 import android.os.Build
 import androidx.annotation.RequiresApi
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 /**
  * Represents the data that is collected when an application exits.
@@ -41,4 +42,7 @@ data class AppExit(
      * @see [ApplicationExitInfo.getPid]
      */
     val pid: String,
+
+    @Transient
+    val thread_name: String = "",
 )
