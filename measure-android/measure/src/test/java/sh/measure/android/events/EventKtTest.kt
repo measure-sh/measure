@@ -33,7 +33,8 @@ class EventKtTest {
         val event = Event(
             timestamp = "2021-09-09T09:09:09.009Z",
             type = "test",
-            data = Json.encodeToJsonElement(String.serializer(), "data")
+            data = Json.encodeToJsonElement(String.serializer(), "data"),
+            thread_name = "thread"
         )
 
         val buffer = Buffer().apply {
@@ -43,7 +44,7 @@ class EventKtTest {
         }
 
         assertEquals(
-            "{\"timestamp\":\"2021-09-09T09:09:09.009Z\",\"type\":\"test\",\"test\":\"data\"}",
+            "{\"timestamp\":\"2021-09-09T09:09:09.009Z\",\"type\":\"test\",\"test\":\"data\",\"thread_name\":\"thread\"}",
             buffer.readUtf8()
         )
     }

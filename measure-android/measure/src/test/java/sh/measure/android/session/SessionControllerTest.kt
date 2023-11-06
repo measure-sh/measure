@@ -119,7 +119,8 @@ class SessionControllerTest {
         val event = Event(
             type = EventType.STRING,
             timestamp = 0L.iso8601Timestamp(),
-            data = Json.encodeToJsonElement("test")
+            data = Json.encodeToJsonElement("test"),
+            thread_name = "thread",
         )
         // setup mocks
         val activeSession = createFakeSession("session-id")

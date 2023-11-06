@@ -34,6 +34,8 @@ data class Event(
         sink.writeUtf8("\"type\":\"${type}\",")
         sink.writeUtf8("\"${type}\":")
         Json.encodeToStream(JsonElement.serializer(), data, sink.outputStream())
+        sink.writeUtf8(",")
+        sink.writeUtf8("\"thread_name\":\"${thread_name}\"")
         sink.writeUtf8("}")
     }
 }
