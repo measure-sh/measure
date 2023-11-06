@@ -11,31 +11,31 @@ import (
 
 // maximum character limits for event fields
 const (
-	maxTypeChars                          = 32
-	maxThreadNameChars                    = 32
-	maxAppExitReasonChars                 = 64
-	maxAppExitImportanceChars             = 32
-	maxSeverityTextChars                  = 10
-	maxGestureLongClickTargetChars        = 128
-	maxGestureLongClickTargetNameChars    = 128
-	maxGestureLongClickTargetIDChars      = 128
-	maxGestureScrollTargetChars           = 128
-	maxGestureScrollTargetNameChars       = 128
-	maxGestureScrollTargetIDChars         = 128
-	maxGestureScrollDirectionChars        = 8
-	maxGestureClickTargetChars            = 128
-	maxGestureClickTargetNameChars        = 128
-	maxGestureClickTargetIDChars          = 128
-	maxHTTPRequestMethodChars             = 16
-	maxHTTPRequestProtocolVersionChars    = 16
-	maxHTTPResponseMethodChars            = 16
-	maxLifecycleActivityTypeChars         = 32
-	maxLifecycleActivityClassNameChars    = 128
-	maxLifecycleFragmentTypeChars         = 32
-	maxLifecycleFragmentClassNameChars    = 128
-	maxLifecycleAppTypeChars              = 32
-	maxLaunchFirstVisibleActivityChars    = 128
-	maxAttrCount                          = 10
+	maxTypeChars                       = 32
+	maxThreadNameChars                 = 32
+	maxAppExitReasonChars              = 64
+	maxAppExitImportanceChars          = 32
+	maxSeverityTextChars               = 10
+	maxGestureLongClickTargetChars     = 128
+	maxGestureLongClickTargetNameChars = 128
+	maxGestureLongClickTargetIDChars   = 128
+	maxGestureScrollTargetChars        = 128
+	maxGestureScrollTargetNameChars    = 128
+	maxGestureScrollTargetIDChars      = 128
+	maxGestureScrollDirectionChars     = 8
+	maxGestureClickTargetChars         = 128
+	maxGestureClickTargetNameChars     = 128
+	maxGestureClickTargetIDChars       = 128
+	maxHTTPRequestMethodChars          = 16
+	maxHTTPRequestProtocolVersionChars = 16
+	maxHTTPResponseMethodChars         = 16
+	maxLifecycleActivityTypeChars      = 32
+	maxLifecycleActivityClassNameChars = 128
+	maxLifecycleFragmentTypeChars      = 32
+	maxLifecycleFragmentClassNameChars = 128
+	maxLifecycleAppTypeChars           = 32
+	maxLaunchFirstVisibleActivityChars = 128
+	maxAttrCount                       = 10
 )
 
 const TypeANR = "anr"
@@ -265,37 +265,37 @@ type LogString struct {
 }
 
 type GestureLongClick struct {
-	Target        string    `json:"target"`
-	TargetID      string    `json:"target_id"`
-	TouchDownTime uint32    `json:"touch_down_time"`
-	TouchUpTime   uint32    `json:"touch_up_time"`
-	Width         uint16    `json:"width"`
-	Height        uint16    `json:"height"`
-	X             float32   `json:"x"`
-	Y             float32   `json:"y"`
+	Target        string  `json:"target"`
+	TargetID      string  `json:"target_id"`
+	TouchDownTime uint32  `json:"touch_down_time"`
+	TouchUpTime   uint32  `json:"touch_up_time"`
+	Width         uint16  `json:"width"`
+	Height        uint16  `json:"height"`
+	X             float32 `json:"x"`
+	Y             float32 `json:"y"`
 }
 
 type GestureScroll struct {
-	Target        string    `json:"target"`
-	TargetID      string    `json:"target_id"`
-	TouchDownTime uint32    `json:"touch_down_time"`
-	TouchUpTime   uint32    `json:"touch_up_time"`
-	X             float32   `json:"x"`
-	Y             float32   `json:"y"`
-	EndX          float32   `json:"end_x"`
-	EndY          float32   `json:"end_y"`
-	Direction     string    `json:"direction"`
+	Target        string  `json:"target"`
+	TargetID      string  `json:"target_id"`
+	TouchDownTime uint32  `json:"touch_down_time"`
+	TouchUpTime   uint32  `json:"touch_up_time"`
+	X             float32 `json:"x"`
+	Y             float32 `json:"y"`
+	EndX          float32 `json:"end_x"`
+	EndY          float32 `json:"end_y"`
+	Direction     string  `json:"direction"`
 }
 
 type GestureClick struct {
-	Target        string    `json:"target"`
-	TargetID      string    `json:"target_id"`
-	TouchDownTime uint32    `json:"touch_down_time"`
-	TouchUpTime   uint32    `json:"touch_up_time"`
-	Width         uint16    `json:"width"`
-	Height        uint16    `json:"height"`
-	X             float32   `json:"x"`
-	Y             float32   `json:"y"`
+	Target        string  `json:"target"`
+	TargetID      string  `json:"target_id"`
+	TouchDownTime uint32  `json:"touch_down_time"`
+	TouchUpTime   uint32  `json:"touch_up_time"`
+	Width         uint16  `json:"width"`
+	Height        uint16  `json:"height"`
+	X             float32 `json:"x"`
+	Y             float32 `json:"y"`
 }
 
 type HTTPRequest struct {
@@ -337,15 +337,15 @@ type LifecycleApp struct {
 }
 
 type ColdLaunch struct {
-    StartUptime                     uint32 `json:"start_uptime" binding:"required"`
-    SUIsProcessStartRequested       bool   `json:"su_is_process_start_requested" binding:"required"`
-    SUIsProcessStartUptime          bool   `json:"su_is_process_start_uptime" binding:"required"`
-    SUIsContentProviderInit         bool   `json:"su_is_content_provider_init" binding:"required"`
-    EndUptime                       uint32 `json:"end_uptime" binding:"required"`
-    EUIsFirstDraw                   bool   `json:"eu_is_first_draw" binding:"required"`
-    FirstVisibleActivity            string `json:"first_visible_activity" binding:"required"`
-    Duration                        uint32 `json:"duration" binding:"required"`
-    Intent                          string `json:"intent"`
+	StartUptime               uint32 `json:"start_uptime" binding:"required"`
+	SUIsProcessStartRequested bool   `json:"su_is_process_start_requested" binding:"required"`
+	SUIsProcessStartUptime    bool   `json:"su_is_process_start_uptime" binding:"required"`
+	SUIsContentProviderInit   bool   `json:"su_is_content_provider_init" binding:"required"`
+	EndUptime                 uint32 `json:"end_uptime" binding:"required"`
+	EUIsFirstDraw             bool   `json:"eu_is_first_draw" binding:"required"`
+	FirstVisibleActivity      string `json:"first_visible_activity" binding:"required"`
+	Duration                  uint32 `json:"duration" binding:"required"`
+	Intent                    string `json:"intent"`
 }
 
 type EventField struct {
@@ -425,12 +425,12 @@ func (e *EventField) validate() error {
 	if !slices.Contains(validTypes, e.Type) {
 		return fmt.Errorf(`"events[].type" is not a valid type`)
 	}
-	if (e.timestamp == "") {
-        return fmt.Errorf(`events[].timestamp is invalid`)
-    }
-    if (e.thread_name == "") {
-        return fmt.Errorf(`events[].thread_name is invalid`)
-    }
+	if e.Timestamp.IsZero() {
+		return fmt.Errorf(`events[].timestamp is invalid. Must be a valid ISO 8601 timestamp`)
+	}
+	if e.ThreadName == "" {
+		return fmt.Errorf(`events[].thread_name is invalid`)
+	}
 	// validate all required fields of each type
 	if e.isANR() {
 		if len(e.ANR.Exceptions) < 1 || len(e.ANR.Threads) < 1 || e.ANR.ThreadName == "" {
@@ -504,40 +504,40 @@ func (e *EventField) validate() error {
 		}
 	}
 
-    if e.isColdLaunch() {
-       if e.ColdLaunch.StartUptime <= 0 {
-           return fmt.Errorf("ColdLaunch.StartUptime is invalid")
-       }
-       if e.ColdLaunch.EndUptime <= 0 {
-           return fmt.Errorf("ColdLaunch.EndUptime is invalid")
-       }
-       if e.ColdLaunch.FirstVisibleActivity == "" {
-           return fmt.Errorf("ColdLaunch.FirstVisibleActivity is required")
-       }
-       if e.ColdLaunch.Duration <= 0 {
-           return fmt.Errorf("ColdLaunch.Duration is invalid")
-       }
-       startupMechanismsSet := 0
-       if e.ColdLaunch.SUIsProcessStartRequested {
-           startupMechanismsSet++
-       }
-       if e.ColdLaunch.SUIsProcessStartUptime {
-           startupMechanismsSet++
-       }
-       if e.ColdLaunch.SUIsContentProviderInit {
-           startupMechanismsSet++
-       }
-       if startupMechanismsSet != 1 {
-           return fmt.Errorf("events[].cold_launch invalid start uptime mechanism, (1) expected, but (%d) set", startupMechanismsSet)
-       }
-    }
+	if e.isColdLaunch() {
+		if e.ColdLaunch.StartUptime <= 0 {
+			return fmt.Errorf("ColdLaunch.StartUptime is invalid")
+		}
+		if e.ColdLaunch.EndUptime <= 0 {
+			return fmt.Errorf("ColdLaunch.EndUptime is invalid")
+		}
+		if e.ColdLaunch.FirstVisibleActivity == "" {
+			return fmt.Errorf("ColdLaunch.FirstVisibleActivity is required")
+		}
+		if e.ColdLaunch.Duration <= 0 {
+			return fmt.Errorf("ColdLaunch.Duration is invalid")
+		}
+		startupMechanismsSet := 0
+		if e.ColdLaunch.SUIsProcessStartRequested {
+			startupMechanismsSet++
+		}
+		if e.ColdLaunch.SUIsProcessStartUptime {
+			startupMechanismsSet++
+		}
+		if e.ColdLaunch.SUIsContentProviderInit {
+			startupMechanismsSet++
+		}
+		if startupMechanismsSet != 1 {
+			return fmt.Errorf("events[].cold_launch invalid start uptime mechanism, (1) expected, but (%d) set", startupMechanismsSet)
+		}
+	}
 
 	if len(e.Type) > maxTypeChars {
 		return fmt.Errorf(`"events[].type" exceeds maximum allowed characters of (%d)`, maxTypeChars)
 	}
 	if len(e.ThreadName) > maxThreadNameChars {
-        return fmt.Errorf(`"events[].thread_name" exceeds maximum allowed characters of (%d)`, maxThreadNameChars)
-    }
+		return fmt.Errorf(`"events[].thread_name" exceeds maximum allowed characters of (%d)`, maxThreadNameChars)
+	}
 	if len(e.AppExit.Reason) > maxAppExitReasonChars {
 		return fmt.Errorf(`"events[].app_exit.reason" exceeds maximum allowed characters of (%d)`, maxAppExitReasonChars)
 	}
@@ -592,9 +592,9 @@ func (e *EventField) validate() error {
 	if len(e.LifecycleApp.Type) > maxLifecycleAppTypeChars {
 		return fmt.Errorf(`"events[].lifecycle_app.type" exceeds maximum allowed characters of (%d)`, maxLifecycleAppTypeChars)
 	}
-    if len(e.ColdLaunch.FirstVisibleActivity) > maxLaunchFirstVisibleActivityChars {
-         return fmt.Errorf(`"events[].cold_launch.first_visible_activity" exceeds maximum allowed characters of (%d)`, maxLaunchFirstVisibleActivityChars)
-    }
+	if len(e.ColdLaunch.FirstVisibleActivity) > maxLaunchFirstVisibleActivityChars {
+		return fmt.Errorf(`"events[].cold_launch.first_visible_activity" exceeds maximum allowed characters of (%d)`, maxLaunchFirstVisibleActivityChars)
+	}
 
 	if len(e.Attributes) > maxAttrCount {
 		return fmt.Errorf(`"events[].attributes" exceeds maximum count of (%d)`, maxAttrCount)
