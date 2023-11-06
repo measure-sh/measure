@@ -13,15 +13,7 @@ data class ActivityLifecycleEvent(
     val intent: String? = null,
     val saved_instance_state: Boolean = false,
     @Transient val timestamp: String = "",
-) {
-    fun toEvent(): Event {
-        return Event(
-            type = EventType.LIFECYCLE_ACTIVITY,
-            timestamp = timestamp,
-            data = Json.encodeToJsonElement(serializer(), this)
-        )
-    }
-}
+)
 
 @Serializable
 data class FragmentLifecycleEvent(
@@ -30,29 +22,13 @@ data class FragmentLifecycleEvent(
     val parent_activity: String?,
     val tag: String? = null,
     @Transient val timestamp: String = "",
-) {
-    fun toEvent(): Event {
-        return Event(
-            type = EventType.LIFECYCLE_FRAGMENT,
-            timestamp = timestamp,
-            data = Json.encodeToJsonElement(serializer(), this)
-        )
-    }
-}
+)
 
 @Serializable
 data class ApplicationLifecycleEvent(
     val type: String,
     @Transient val timestamp: String = "",
-) {
-    fun toEvent(): Event {
-        return Event(
-            type = EventType.LIFECYCLE_APP,
-            timestamp = timestamp,
-            data = Json.encodeToJsonElement(serializer(), this)
-        )
-    }
-}
+)
 
 object AppLifecycleType {
     const val FOREGROUND = "foreground"

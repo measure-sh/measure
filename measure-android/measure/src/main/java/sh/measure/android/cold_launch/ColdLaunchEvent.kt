@@ -59,12 +59,4 @@ internal data class ColdLaunchEvent(
      * The timestamp when the event was created.
      */
     @Transient val timestamp: String = ""
-) {
-    fun toEvent(): Event {
-        return Event(
-            type = EventType.COLD_LAUNCH,
-            timestamp = timestamp,
-            data = Json.encodeToJsonElement(serializer(), this)
-        )
-    }
-}
+)
