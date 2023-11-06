@@ -28,6 +28,7 @@ import sh.measure.android.session.SessionReportGenerator
 import sh.measure.android.storage.Storage
 import sh.measure.android.storage.StorageImpl
 import sh.measure.android.utils.AndroidTimeProvider
+import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.PidProvider
 import sh.measure.android.utils.PidProviderImpl
 import sh.measure.android.utils.UUIDProvider
@@ -45,7 +46,8 @@ object Measure {
         val idProvider = UUIDProvider()
         val config = Config
         val resourceFactory = ResourceFactoryImpl(logger, context, config)
-        val appExitProvider: AppExitProvider = AppExitProviderImpl(context, logger)
+        val currentThread = CurrentThread()
+        val appExitProvider: AppExitProvider = AppExitProviderImpl(context, logger, currentThread)
         val pidProvider: PidProvider = PidProviderImpl()
         val sessionReportGenerator = SessionReportGenerator(logger, storage, appExitProvider)
         val sessionProvider =

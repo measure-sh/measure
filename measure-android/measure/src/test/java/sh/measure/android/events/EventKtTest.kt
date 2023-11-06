@@ -18,11 +18,12 @@ class EventKtTest {
         val event = Event(
             timestamp = "2021-09-09T09:09:09.009Z",
             type = "test",
-            data = Json.encodeToJsonElement(String.serializer(), "data")
+            data = Json.encodeToJsonElement(String.serializer(), "data"),
+            thread_name = "thread"
         )
         val result = event.toJson()
         assertEquals(
-            "{\"timestamp\":\"2021-09-09T09:09:09.009Z\",\"type\":\"test\",\"test\":\"data\"}",
+            "{\"timestamp\":\"2021-09-09T09:09:09.009Z\",\"type\":\"test\",\"test\":\"data\",\"thread_name\":\"thread\"}",
             result
         )
     }
@@ -51,14 +52,16 @@ class EventKtTest {
     fun `MeasureException toEvent() returns an event of type Exception, when exception is not an ANR`() {
         val timestamp = 0L
         val timestampIso = timestamp.iso8601Timestamp()
-        val event = ExceptionFactory.createMeasureException(
+        val exception = ExceptionFactory.createMeasureException(
             throwable = Exception("Test exception"),
             handled = false,
             timestamp = timestamp,
             thread = Thread.currentThread(),
             isAnr = false
-        ).toEvent()
+        )
+        val event = exception.toEvent()
 
+        assertEquals(exception.thread_name, event.thread_name)
         assertEquals(timestampIso, event.timestamp)
         assertEquals(EventType.EXCEPTION, event.type)
     }
@@ -67,14 +70,16 @@ class EventKtTest {
     fun `MeasureException toEvent() returns an event of type ANR, when exception is an ANR`() {
         val timestamp = 0L
         val timestampIso = timestamp.iso8601Timestamp()
-        val event = ExceptionFactory.createMeasureException(
+        val exception = ExceptionFactory.createMeasureException(
             throwable = Exception("Test exception"),
             handled = false,
             timestamp = timestamp,
             thread = Thread.currentThread(),
             isAnr = true
-        ).toEvent()
+        )
+        val event = exception.toEvent()
 
+        assertEquals(exception.thread_name, event.thread_name)
         assertEquals(timestampIso, event.timestamp)
         assertEquals(EventType.ANR, event.type)
     }
