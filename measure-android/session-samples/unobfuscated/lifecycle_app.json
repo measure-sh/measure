@@ -5,7 +5,8 @@
         "type": "foreground"
       },
       "timestamp": "2023-10-24T15:25:15.813000000Z",
-      "type": "lifecycle_app"
+      "type": "lifecycle_app",
+      "thread_name": "main"
     }
   ],
   "resource": {

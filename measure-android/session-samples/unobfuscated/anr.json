@@ -12,7 +12,8 @@
                 "y": 1410.9412
             },
             "timestamp": "1970-01-01T08:14:55.880000000Z",
-            "type": "gesture_click"
+            "type": "gesture_click",
+            "thread_name": "main"
         },
         {
             "anr": {
@@ -120,7 +121,8 @@
                             }
                         ],
                         "message": "Application Not Responding for at least 5000 ms.",
-                        "type": "sh.measure.android.anr.AnrError"
+                        "type": "sh.measure.android.anr.AnrError",
+                        "thread_name": "main"
                     }
                 ],
                 "handled": false,

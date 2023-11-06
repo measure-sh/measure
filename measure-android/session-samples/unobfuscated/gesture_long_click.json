@@ -12,7 +12,8 @@
                 "y": 2039.9231
             },
             "timestamp": "1970-01-01T07:48:58.378000000Z",
-            "type": "gesture_long_click"
+            "type": "gesture_long_click",
+            "thread_name": "main"
         },
         {
             "app_exit": {
@@ -24,7 +25,8 @@
                 "trace": null
             },
             "timestamp": "2023-10-14T00:57:19.386000000Z",
-            "type": "app_exit"
+            "type": "app_exit",
+            "thread_name": "main"
         }
     ],
     "resource": {

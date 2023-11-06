@@ -34,7 +34,8 @@
         "first_visible_activity": "sh.measure.sample.ExceptionDemoActivity",
         "intent": null,
         "duration": 1302
-      }
+      },
+      "thread_name": "main"
     },
     {
       "timestamp": "2023-10-30T21:00:17.570000000Z",
@@ -45,7 +46,8 @@
         "timestamp": "2023-10-30T21:00:17.570000000Z",
         "trace": null,
         "process_name": "sh.measure.sample",
-        "pid": "10751"
+        "pid": "10751",
+        "thread_name": "main"
       }
     }
   ]

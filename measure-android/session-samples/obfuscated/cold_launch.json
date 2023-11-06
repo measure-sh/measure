@@ -24,6 +24,7 @@
     {
       "timestamp": "2023-10-30T21:00:07.158000000Z",
       "type": "cold_launch",
+      "thread_name": "main",
       "cold_launch": {
         "start_uptime": 6577298,
         "su_is_process_start_uptime": true,
@@ -45,7 +46,8 @@
         "timestamp": "2023-10-30T21:00:17.570000000Z",
         "trace": null,
         "process_name": "sh.measure.sample",
-        "pid": "10751"
+        "pid": "10751",
+        "thread_name": "main"
       }
     }
   ]

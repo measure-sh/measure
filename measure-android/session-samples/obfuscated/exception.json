@@ -12,7 +12,8 @@
                 "y": 1134.9316
             },
             "timestamp": "1970-01-01T09:27:56.123000000Z",
-            "type": "gesture_click"
+            "type": "gesture_click",
+            "thread_name": "main"
         },
         {
             "exception": {
@@ -519,7 +520,8 @@
                 ]
             },
             "timestamp": "2023-10-16T14:41:33.208000000Z",
-            "type": "exception"
+            "type": "exception",
+            "thread_name": "main"
         },
         {
             "app_exit": {
@@ -531,7 +533,8 @@
                 "trace": null
             },
             "timestamp": "2023-10-16T14:41:39.121000000Z",
-            "type": "app_exit"
+            "type": "app_exit",
+            "thread_name": "main"
         }
     ],
     "resource": {
