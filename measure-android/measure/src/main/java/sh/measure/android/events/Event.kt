@@ -115,6 +115,6 @@ internal fun ColdLaunchEvent.toEvent(): Event {
         type = EventType.COLD_LAUNCH,
         timestamp = timestamp,
         data = Json.encodeToJsonElement(ColdLaunchEvent.serializer(), this),
-        thread_name = "threadName"
+        thread_name = thread_name
     )
 }

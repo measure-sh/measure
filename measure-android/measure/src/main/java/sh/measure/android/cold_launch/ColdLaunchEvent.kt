@@ -3,9 +3,6 @@ package sh.measure.android.cold_launch
 import android.os.Process
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import kotlinx.serialization.json.Json
-import sh.measure.android.events.Event
-import sh.measure.android.events.EventType
 
 @Serializable
 internal data class ColdLaunchEvent(
@@ -58,5 +55,10 @@ internal data class ColdLaunchEvent(
     /**
      * The timestamp when the event was created.
      */
-    @Transient val timestamp: String = ""
+    @Transient val timestamp: String = "",
+
+    /**
+     * The name of the thread on which the event was created.
+     */
+    @Transient val thread_name: String = ""
 )

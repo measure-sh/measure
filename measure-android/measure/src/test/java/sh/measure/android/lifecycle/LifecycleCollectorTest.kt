@@ -57,6 +57,7 @@ class LifecycleCollectorTest {
                 type = ActivityLifecycleType.CREATED,
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+                thread_name = currentThread.name,
             )
         )
         verify(eventTracker).trackActivityLifecycleEvent(
@@ -65,6 +66,7 @@ class LifecycleCollectorTest {
                 class_name = TestLifecycleActivity::class.java.name,
                 saved_instance_state = true,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+                thread_name = currentThread.name,
             )
         )
     }
@@ -77,6 +79,7 @@ class LifecycleCollectorTest {
                 type = ActivityLifecycleType.RESUMED,
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+                thread_name = currentThread.name,
             )
         )
     }
@@ -89,6 +92,7 @@ class LifecycleCollectorTest {
                 type = ActivityLifecycleType.PAUSED,
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+                thread_name = currentThread.name,
             )
         )
     }
@@ -101,6 +105,7 @@ class LifecycleCollectorTest {
                 type = ActivityLifecycleType.DESTROYED,
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+                thread_name = currentThread.name,
             )
         )
     }
@@ -114,6 +119,7 @@ class LifecycleCollectorTest {
                 parent_activity = TestLifecycleActivity::class.java.name,
                 class_name = TestFragment::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+                thread_name = currentThread.name,
             )
         )
     }
@@ -127,6 +133,7 @@ class LifecycleCollectorTest {
                 parent_activity = TestLifecycleActivity::class.java.name,
                 class_name = TestFragment::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+                thread_name = currentThread.name,
             )
         )
     }

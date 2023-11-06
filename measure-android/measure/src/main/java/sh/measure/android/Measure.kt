@@ -36,6 +36,8 @@ import sh.measure.android.utils.UUIDProvider
 object Measure {
     fun init(context: Context) {
         checkMainThread()
+        val application = context as Application
+
         val logger = AndroidLogger().apply { log(LogLevel.Debug, "Initializing Measure") }
         val executorService = MeasureExecutorServiceImpl()
         val storage: Storage = StorageImpl(logger, context.filesDir.path)
@@ -66,7 +68,7 @@ object Measure {
         // Register data collectors
         UnhandledExceptionCollector(logger, eventTracker, timeProvider).register()
         ColdLaunchCollector(
-            context as Application, logger, eventTracker, timeProvider, LaunchState, coldLaunchTrace
+            application, logger, eventTracker, timeProvider, LaunchState, coldLaunchTrace, currentThread
         ).register()
         AnrCollector(logger, context, timeProvider, eventTracker).register()
         LifecycleCollector(context, eventTracker, timeProvider, currentThread).register()
