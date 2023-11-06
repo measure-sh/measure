@@ -61,7 +61,7 @@ internal fun ClickEvent.toEvent(): Event {
         timestamp = timestamp.iso8601Timestamp(),
         type = EventType.CLICK,
         data = Json.encodeToJsonElement(ClickEvent.serializer(), this),
-        thread_name = "threadName"
+        thread_name = thread_name
     )
 }
 
@@ -70,7 +70,7 @@ internal fun LongClickEvent.toEvent(): Event {
         timestamp = timestamp.iso8601Timestamp(),
         type = EventType.LONG_CLICK,
         data = Json.encodeToJsonElement(LongClickEvent.serializer(), this),
-        thread_name = "threadName"
+        thread_name = thread_name
     )
 }
 
@@ -79,7 +79,7 @@ internal fun ScrollEvent.toEvent(): Event {
         timestamp = timestamp.iso8601Timestamp(),
         type = EventType.SCROLL,
         data = Json.encodeToJsonElement(ScrollEvent.serializer(), this),
-        thread_name = "threadName"
+        thread_name = thread_name
     )
 }
 
@@ -88,7 +88,7 @@ internal fun ApplicationLifecycleEvent.toEvent(): Event {
         type = EventType.LIFECYCLE_APP,
         timestamp = timestamp,
         data = Json.encodeToJsonElement(ApplicationLifecycleEvent.serializer(), this),
-        thread_name = "threadName"
+        thread_name = thread_name
     )
 }
 
@@ -97,7 +97,7 @@ internal fun ActivityLifecycleEvent.toEvent(): Event {
         type = EventType.LIFECYCLE_ACTIVITY,
         timestamp = timestamp,
         data = Json.encodeToJsonElement(ActivityLifecycleEvent.serializer(), this),
-        thread_name = "threadName"
+        thread_name = thread_name
     )
 }
 
@@ -106,7 +106,7 @@ internal fun FragmentLifecycleEvent.toEvent(): Event {
         type = EventType.LIFECYCLE_FRAGMENT,
         timestamp = timestamp,
         data = Json.encodeToJsonElement(FragmentLifecycleEvent.serializer(), this),
-        thread_name = "threadName"
+        thread_name = thread_name
     )
 }
 

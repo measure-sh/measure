@@ -69,8 +69,8 @@ object Measure {
             context as Application, logger, eventTracker, timeProvider, LaunchState, coldLaunchTrace
         ).register()
         AnrCollector(logger, context, timeProvider, eventTracker).register()
-        LifecycleCollector(context, eventTracker, timeProvider).register()
-        GestureCollector(logger, eventTracker, timeProvider).register()
+        LifecycleCollector(context, eventTracker, timeProvider, currentThread).register()
+        GestureCollector(logger, eventTracker, timeProvider, currentThread).register()
 
         // TODO: do this after app launch is completed to not mess up the app startup time.
         sessionController.syncAllSessions()

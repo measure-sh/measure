@@ -13,6 +13,7 @@ data class ActivityLifecycleEvent(
     val intent: String? = null,
     val saved_instance_state: Boolean = false,
     @Transient val timestamp: String = "",
+    @Transient val thread_name: String = "",
 )
 
 @Serializable
@@ -22,12 +23,14 @@ data class FragmentLifecycleEvent(
     val parent_activity: String?,
     val tag: String? = null,
     @Transient val timestamp: String = "",
+    @Transient val thread_name: String = "",
 )
 
 @Serializable
 data class ApplicationLifecycleEvent(
     val type: String,
     @Transient val timestamp: String = "",
+    @Transient val thread_name: String = "",
 )
 
 object AppLifecycleType {

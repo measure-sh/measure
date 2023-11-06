@@ -6,12 +6,14 @@ import android.view.Window
 import sh.measure.android.events.EventTracker
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.TimeProvider
 
 internal class GestureCollector(
     private val logger: Logger,
     private val tracker: EventTracker,
-    private val timeProvider: TimeProvider
+    private val timeProvider: TimeProvider,
+    private val currentThread: CurrentThread,
 ) {
     fun register() {
         logger.log(LogLevel.Debug, "Registering gesture collector")
@@ -26,7 +28,7 @@ internal class GestureCollector(
     }
 
     private fun trackGesture(motionEvent: MotionEvent, window: Window) {
-        val gesture = GestureDetector.detect(window.context, motionEvent, timeProvider)
+        val gesture = GestureDetector.detect(window.context, motionEvent, timeProvider, currentThread)
         if (gesture == null || motionEvent.action != MotionEvent.ACTION_UP) {
             return
         }

@@ -88,6 +88,7 @@ class EventKtTest {
     fun `Click toEvent() returns an event of type gesture_click`() {
         val timestamp = 0L
         val timestampIso = timestamp.iso8601Timestamp()
+        val threadName = "thread"
         val click = ClickEvent(
             target = "android.widget.Button",
             target_id = "button",
@@ -97,11 +98,13 @@ class EventKtTest {
             y = 20f,
             touch_down_time = 28071579,
             touch_up_time = 28071632,
-            timestamp = 0L
+            timestamp = 0L,
+            thread_name = threadName
         )
 
         val event = click.toEvent()
 
+        assertEquals(threadName, event.thread_name)
         assertEquals(timestampIso, event.timestamp)
         assertEquals(EventType.CLICK, event.type)
     }
@@ -110,6 +113,7 @@ class EventKtTest {
     fun `LongClick toEvent() returns an event of type gesture_long_click`() {
         val timestamp = 0L
         val timestampIso = timestamp.iso8601Timestamp()
+        val threadName = "thread"
         val longClick = LongClickEvent(
             target = "android.widget.Button",
             target_id = "button",
@@ -119,11 +123,13 @@ class EventKtTest {
             y = 20f,
             touch_down_time = 28071579,
             touch_up_time = 28071632,
-            timestamp = timestamp
+            timestamp = timestamp,
+            thread_name = threadName
         )
 
         val event = longClick.toEvent()
 
+        assertEquals(threadName, event.thread_name)
         assertEquals(timestampIso, event.timestamp)
         assertEquals(EventType.LONG_CLICK, event.type)
     }
@@ -132,6 +138,7 @@ class EventKtTest {
     fun `Scroll toEvent() returns an event of type gesture_scroll`() {
         val timestamp = 0L
         val timestampIso = timestamp.iso8601Timestamp()
+        val threadName = "thread"
         val scroll = ScrollEvent(
             target = "android.widget.ScrollView",
             target_id = "scroll_view",
@@ -142,11 +149,13 @@ class EventKtTest {
             direction = Direction.Down.name.lowercase(),
             touch_down_time = 28071579,
             touch_up_time = 28071632,
-            timestamp = timestamp
+            timestamp = timestamp,
+            thread_name = threadName
         )
 
         val event = scroll.toEvent()
 
+        assertEquals(threadName, event.thread_name)
         assertEquals(timestampIso, event.timestamp)
         assertEquals(EventType.SCROLL, event.type)
     }

@@ -17,6 +17,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.android.controller.ActivityController
 import sh.measure.android.events.EventTracker
 import sh.measure.android.fakes.FakeTimeProvider
+import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.iso8601Timestamp
 
 @RunWith(AndroidJUnit4::class)
@@ -25,12 +26,13 @@ class LifecycleCollectorTest {
     private lateinit var lifecycleCollector: LifecycleCollector
     private val eventTracker: EventTracker = mock()
     private val timeProvider = FakeTimeProvider()
+    private val currentThread = CurrentThread()
     private lateinit var controller: ActivityController<TestLifecycleActivity>
 
     @Before
     fun setUp() {
         lifecycleCollector = LifecycleCollector(
-            RuntimeEnvironment.getApplication(), eventTracker, timeProvider
+            RuntimeEnvironment.getApplication(), eventTracker, timeProvider, currentThread
         ).apply { register() }
         controller = buildActivity(TestLifecycleActivity::class.java)
     }

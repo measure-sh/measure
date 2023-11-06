@@ -8,7 +8,12 @@ class ClickEventTest {
     @Test
     fun `maps DetectedGesture to Click`() {
         val detectedGesture = DetectedGesture.Click(
-            x = 10f, y = 20f, touchDownTime = 0L, touchUpTime = 0L, timestamp = 0L
+            x = 10f,
+            y = 20f,
+            touchDownTime = 0L,
+            touchUpTime = 0L,
+            timestamp = 0L,
+            threadName = "threadName"
         )
         val target = Target(
             className = "android.widget.Button", id = "button", width = 100, height = 50
@@ -24,6 +29,7 @@ class ClickEventTest {
         Assert.assertEquals(detectedGesture.y, result.y)
         Assert.assertEquals(detectedGesture.touchDownTime, result.touch_down_time)
         Assert.assertEquals(detectedGesture.touchUpTime, result.touch_up_time)
+        Assert.assertEquals(detectedGesture.threadName, result.thread_name)
     }
 }
 
@@ -31,7 +37,12 @@ internal class LongClickEventTest {
     @Test
     fun `maps DetectedGesture to LongClick`() {
         val detectedGesture = DetectedGesture.LongClick(
-            x = 10f, y = 20f, touchDownTime = 0L, touchUpTime = 0L, timestamp = 0L
+            x = 10f,
+            y = 20f,
+            touchDownTime = 0L,
+            touchUpTime = 0L,
+            timestamp = 0L,
+            threadName = "threadName"
         )
         val target = Target(
             className = "android.widget.Button", id = "button", width = 100, height = 50
@@ -47,6 +58,7 @@ internal class LongClickEventTest {
         Assert.assertEquals(detectedGesture.y, result.y)
         Assert.assertEquals(detectedGesture.touchDownTime, result.touch_down_time)
         Assert.assertEquals(detectedGesture.touchUpTime, result.touch_up_time)
+        Assert.assertEquals(detectedGesture.threadName, result.thread_name)
     }
 }
 
@@ -61,7 +73,8 @@ internal class ScrollEventTest {
             touchDownTime = 0L,
             touchUpTime = 0L,
             direction = Direction.Up,
-            timestamp = 0L
+            timestamp = 0L,
+            threadName = "threadName"
         )
         val target = Target(
             className = "android.widget.ScrollView", id = "scroll_view", width = 100, height = 50
@@ -78,5 +91,6 @@ internal class ScrollEventTest {
         Assert.assertEquals(detectedGesture.direction.name.lowercase(), result.direction)
         Assert.assertEquals(detectedGesture.timestamp, result.timestamp)
         Assert.assertEquals(detectedGesture.touchUpTime, result.touch_up_time)
+        Assert.assertEquals(detectedGesture.threadName, result.thread_name)
     }
 }
