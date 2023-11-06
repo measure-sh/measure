@@ -8,6 +8,7 @@ create table if not exists events_test_2
     `type` LowCardinality(FixedString(32)),
     `session_id` UUID,
     `timestamp` DateTime64(9, 'UTC'),
+    `thread_name` FixedString(32),
     `resource.device_name` FixedString(32),
     `resource.device_model` FixedString(32),
     `resource.device_manufacturer` FixedString(32),

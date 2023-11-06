@@ -12,6 +12,7 @@ import (
 // maximum character limits for event fields
 const (
 	maxTypeChars                          = 32
+	maxThreadNameChars                    = 32
 	maxAppExitReasonChars                 = 64
 	maxAppExitImportanceChars             = 32
 	maxSeverityTextChars                  = 10
@@ -61,6 +62,7 @@ var columns = []string{
 	"type",
 	"session_id",
 	"timestamp",
+	"thread_name",
 	"resource.device_name",
 	"resource.device_model",
 	"resource.device_manufacturer",
@@ -349,6 +351,7 @@ type ColdLaunch struct {
 type EventField struct {
 	Timestamp         time.Time         `json:"timestamp" binding:"required"`
 	Type              string            `json:"type" binding:"required"`
+	ThreadName        string            `json:"thread_name",omitempty`
 	ANR               ANR               `json:"anr,omitempty"`
 	Exception         Exception         `json:"exception,omitempty"`
 	AppExit           AppExit           `json:"app_exit,omitempty"`
@@ -526,6 +529,9 @@ func (e *EventField) validate() error {
 	if len(e.Type) > maxTypeChars {
 		return fmt.Errorf(`"events[].type" exceeds maximum allowed characters of (%d)`, maxTypeChars)
 	}
+	if len(e.ThreadName) > maxThreadNameChars {
+        return fmt.Errorf(`"events[].thread_name" exceeds maximum allowed characters of (%d)`, maxThreadNameChars)
+    }
 	if len(e.AppExit.Reason) > maxAppExitReasonChars {
 		return fmt.Errorf(`"events[].app_exit.reason" exceeds maximum allowed characters of (%d)`, maxAppExitReasonChars)
 	}
@@ -595,7 +601,7 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 	values := []string{}
 	valueArgs := []interface{}{}
 
-	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
 	for _, event := range session.Events {
 		anrExceptions := "[]"
@@ -616,6 +622,7 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			event.Type,
 			session.SessionID,
 			event.Timestamp.Format(timeFormat),
+			event.ThreadName,
 			session.Resource.DeviceName,
 			session.Resource.DeviceModel,
 			session.Resource.DeviceManufacturer,
