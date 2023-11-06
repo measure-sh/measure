@@ -30,7 +30,7 @@ internal class SessionReportGenerator(
         val sessionStartTime = session.startTime.iso8601Timestamp()
         val appExit = appExitProvider.get(session.pid)
         val eventsFile = createEventsJsonFile(session.id, appExit)
-        val resource = storage.getResource(session.id)
+        val resource = session.resource
         val attachments = storage.getAllAttachmentsInfo(session.id).mapNotNull { it.toAttachmentPacket() }
         return SessionReport(
             session_id = session.id,

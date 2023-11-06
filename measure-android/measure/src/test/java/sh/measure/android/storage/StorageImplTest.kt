@@ -76,18 +76,6 @@ internal class StorageImplTest {
     }
 
     @Test
-    fun `Storage returns resource if exists`() {
-        val session = createFakeSession("session-id")
-        storage.initSession(session)
-
-        // When
-        val actualResource = storage.getResource(session.id)
-
-        // Then
-        assertEquals(session.resource, actualResource)
-    }
-
-    @Test
     fun `Storage returns all sessions if available`() {
         val session1 = createFakeSession("session1")
         val session2 = createFakeSession("session2")

@@ -11,7 +11,6 @@ import sh.measure.android.attachment.AttachmentInfo
 import sh.measure.android.events.Event
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import sh.measure.android.session.Resource
 import sh.measure.android.session.Session
 import java.io.File
 import java.io.IOException
@@ -35,7 +34,6 @@ internal interface Storage {
     fun getAllSessions(): List<Session>
     fun getEventsFile(sessionId: String): File
     fun getEventLogFile(sessionId: String): File
-    fun getResource(sessionId: String): Resource
     fun storeAttachmentInfo(info: AttachmentInfo, sessionId: String)
     fun getAllAttachmentsInfo(sessionId: String): List<AttachmentInfo>
     fun getAttachmentsDirPath(sessionId: String): String
@@ -47,11 +45,6 @@ internal class StorageImpl(private val logger: Logger, private val rootDirPath: 
         logger.log(LogLevel.Debug, "Saving session: ${session.id}")
         createSessionFiles(session.id)
         persistSession(session)
-    }
-
-    override fun getResource(sessionId: String): Resource {
-        val sessionFile = getSessionFile(sessionId)
-        return Json.decodeFromString(Session.serializer(), sessionFile.readText()).resource
     }
 
     override fun storeAttachmentInfo(info: AttachmentInfo, sessionId: String) {
