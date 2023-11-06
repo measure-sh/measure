@@ -351,7 +351,7 @@ type ColdLaunch struct {
 type EventField struct {
 	Timestamp         time.Time         `json:"timestamp" binding:"required"`
 	Type              string            `json:"type" binding:"required"`
-	ThreadName        string            `json:"thread_name",omitempty`
+	ThreadName        string            `json:"thread_name" binding:"required"`
 	ANR               ANR               `json:"anr,omitempty"`
 	Exception         Exception         `json:"exception,omitempty"`
 	AppExit           AppExit           `json:"app_exit,omitempty"`
@@ -425,6 +425,12 @@ func (e *EventField) validate() error {
 	if !slices.Contains(validTypes, e.Type) {
 		return fmt.Errorf(`"events[].type" is not a valid type`)
 	}
+	if (e.timestamp == "") {
+        return fmt.Errorf(`events[].timestamp is invalid`)
+    }
+    if (e.thread_name == "") {
+        return fmt.Errorf(`events[].thread_name is invalid`)
+    }
 	// validate all required fields of each type
 	if e.isANR() {
 		if len(e.ANR.Exceptions) < 1 || len(e.ANR.Threads) < 1 || e.ANR.ThreadName == "" {

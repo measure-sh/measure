@@ -140,8 +140,8 @@ internal class StorageImplTest {
         val eventLogFile = File(sessionDir, EVENT_LOG_FILE_NAME)
         assertEquals(
             """
-                {"timestamp":"$timestamp","type":"event","event":"data", "thread_name":"thread"}
-                {"timestamp":"$timestamp","type":"event","event":"data", "thread_name":"thread"}
+                {"timestamp":"$timestamp","type":"event","event":"data","thread_name":"thread"}
+                {"timestamp":"$timestamp","type":"event","event":"data","thread_name":"thread"}
             """.trimIndent(), eventLogFile.readText()
         )
     }
