@@ -16,6 +16,7 @@ import sh.measure.android.fakes.FakeEventTracker
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.test.R
+import sh.measure.android.utils.CurrentThread
 
 @RunWith(AndroidJUnit4::class)
 @LargeTest
@@ -23,6 +24,7 @@ internal class GestureCollectorTest {
     private val logger = NoopLogger()
     private val timeProvider = FakeTimeProvider()
     private lateinit var tracker: FakeEventTracker
+    private val currentThread = CurrentThread()
 
     @Before
     fun setup() {
@@ -31,7 +33,7 @@ internal class GestureCollectorTest {
 
     @Test
     fun tracks_clicks_on_clickable_views() {
-        GestureCollector(logger, tracker, timeProvider).register()
+        GestureCollector(logger, tracker, timeProvider, currentThread).register()
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.button)).perform(click())
         Assert.assertEquals(1, tracker.trackedClicks.size)
@@ -39,7 +41,7 @@ internal class GestureCollectorTest {
 
     @Test
     fun ignores_clicks_on_non_clickable_views() {
-        GestureCollector(logger, tracker, timeProvider).register()
+        GestureCollector(logger, tracker, timeProvider, currentThread).register()
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.text)).perform(click())
         Assert.assertEquals(0, tracker.trackedClicks.size)
@@ -47,7 +49,7 @@ internal class GestureCollectorTest {
 
     @Test
     fun tracks_long_clicks_on_clickable_views() {
-        GestureCollector(logger, tracker, timeProvider).register()
+        GestureCollector(logger, tracker, timeProvider, currentThread).register()
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.button)).perform(longClick())
         Assert.assertEquals(1, tracker.trackedLongClicks.size)
@@ -55,7 +57,7 @@ internal class GestureCollectorTest {
 
     @Test
     fun ignores_long_clicks_on_non_clickable_views() {
-        GestureCollector(logger, tracker, timeProvider).register()
+        GestureCollector(logger, tracker, timeProvider, currentThread).register()
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.text)).perform(longClick())
         Assert.assertEquals(0, tracker.trackedClicks.size)
@@ -63,7 +65,7 @@ internal class GestureCollectorTest {
 
     @Test
     fun tracks_scroll_on_scrollable_views() {
-        GestureCollector(logger, tracker, timeProvider).register()
+        GestureCollector(logger, tracker, timeProvider, currentThread).register()
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.scroll_view)).perform(swipeUp())
         Assert.assertEquals(1, tracker.trackedScrolls.size)
@@ -71,7 +73,7 @@ internal class GestureCollectorTest {
 
     @Test
     fun ignores_scrolls_on_non_scrollable_views() {
-        GestureCollector(logger, tracker, timeProvider).register()
+        GestureCollector(logger, tracker, timeProvider, currentThread).register()
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.text)).perform(swipeUp())
         Assert.assertEquals(0, tracker.trackedScrolls.size)

@@ -10,7 +10,8 @@
                 "trace": null
             },
             "timestamp": "2023-10-14T00:55:38.388000000Z",
-            "type": "app_exit"
+            "type": "app_exit",
+            "thread_name": "main"
         }
     ],
     "resource": {

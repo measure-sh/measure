@@ -557,7 +557,8 @@
                 ]
             },
             "timestamp": "2023-10-14T00:57:23.823000000Z",
-            "type": "exception"
+            "type": "exception",
+            "thread_name": "main"
         },
         {
             "app_exit": {
@@ -569,7 +570,8 @@
                 "trace": null
             },
             "timestamp": "2023-10-14T00:58:18.756000000Z",
-            "type": "app_exit"
+            "type": "app_exit",
+            "thread_name": "main"
         }
     ],
     "resource": {

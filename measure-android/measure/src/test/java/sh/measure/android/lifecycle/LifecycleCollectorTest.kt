@@ -17,6 +17,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.android.controller.ActivityController
 import sh.measure.android.events.EventTracker
 import sh.measure.android.fakes.FakeTimeProvider
+import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.iso8601Timestamp
 
 @RunWith(AndroidJUnit4::class)
@@ -25,12 +26,13 @@ class LifecycleCollectorTest {
     private lateinit var lifecycleCollector: LifecycleCollector
     private val eventTracker: EventTracker = mock()
     private val timeProvider = FakeTimeProvider()
+    private val currentThread = CurrentThread()
     private lateinit var controller: ActivityController<TestLifecycleActivity>
 
     @Before
     fun setUp() {
         lifecycleCollector = LifecycleCollector(
-            RuntimeEnvironment.getApplication(), eventTracker, timeProvider
+            RuntimeEnvironment.getApplication(), eventTracker, timeProvider, currentThread
         ).apply { register() }
         controller = buildActivity(TestLifecycleActivity::class.java)
     }
@@ -55,6 +57,7 @@ class LifecycleCollectorTest {
                 type = ActivityLifecycleType.CREATED,
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+                thread_name = currentThread.name,
             )
         )
         verify(eventTracker).trackActivityLifecycleEvent(
@@ -63,6 +66,7 @@ class LifecycleCollectorTest {
                 class_name = TestLifecycleActivity::class.java.name,
                 saved_instance_state = true,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+                thread_name = currentThread.name,
             )
         )
     }
@@ -75,6 +79,7 @@ class LifecycleCollectorTest {
                 type = ActivityLifecycleType.RESUMED,
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+                thread_name = currentThread.name,
             )
         )
     }
@@ -87,6 +92,7 @@ class LifecycleCollectorTest {
                 type = ActivityLifecycleType.PAUSED,
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+                thread_name = currentThread.name,
             )
         )
     }
@@ -99,6 +105,7 @@ class LifecycleCollectorTest {
                 type = ActivityLifecycleType.DESTROYED,
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+                thread_name = currentThread.name,
             )
         )
     }
@@ -112,6 +119,7 @@ class LifecycleCollectorTest {
                 parent_activity = TestLifecycleActivity::class.java.name,
                 class_name = TestFragment::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+                thread_name = currentThread.name,
             )
         )
     }
@@ -125,6 +133,7 @@ class LifecycleCollectorTest {
                 parent_activity = TestLifecycleActivity::class.java.name,
                 class_name = TestFragment::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+                thread_name = currentThread.name,
             )
         )
     }

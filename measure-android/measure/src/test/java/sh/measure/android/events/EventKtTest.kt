@@ -18,11 +18,12 @@ class EventKtTest {
         val event = Event(
             timestamp = "2021-09-09T09:09:09.009Z",
             type = "test",
-            data = Json.encodeToJsonElement(String.serializer(), "data")
+            data = Json.encodeToJsonElement(String.serializer(), "data"),
+            thread_name = "thread"
         )
         val result = event.toJson()
         assertEquals(
-            "{\"timestamp\":\"2021-09-09T09:09:09.009Z\",\"type\":\"test\",\"test\":\"data\"}",
+            "{\"timestamp\":\"2021-09-09T09:09:09.009Z\",\"type\":\"test\",\"test\":\"data\",\"thread_name\":\"thread\"}",
             result
         )
     }
@@ -32,7 +33,8 @@ class EventKtTest {
         val event = Event(
             timestamp = "2021-09-09T09:09:09.009Z",
             type = "test",
-            data = Json.encodeToJsonElement(String.serializer(), "data")
+            data = Json.encodeToJsonElement(String.serializer(), "data"),
+            thread_name = "thread"
         )
 
         val buffer = Buffer().apply {
@@ -42,7 +44,7 @@ class EventKtTest {
         }
 
         assertEquals(
-            "{\"timestamp\":\"2021-09-09T09:09:09.009Z\",\"type\":\"test\",\"test\":\"data\"}",
+            "{\"timestamp\":\"2021-09-09T09:09:09.009Z\",\"type\":\"test\",\"test\":\"data\",\"thread_name\":\"thread\"}",
             buffer.readUtf8()
         )
     }
@@ -51,14 +53,16 @@ class EventKtTest {
     fun `MeasureException toEvent() returns an event of type Exception, when exception is not an ANR`() {
         val timestamp = 0L
         val timestampIso = timestamp.iso8601Timestamp()
-        val event = ExceptionFactory.createMeasureException(
+        val exception = ExceptionFactory.createMeasureException(
             throwable = Exception("Test exception"),
             handled = false,
             timestamp = timestamp,
             thread = Thread.currentThread(),
             isAnr = false
-        ).toEvent()
+        )
+        val event = exception.toEvent()
 
+        assertEquals(exception.thread_name, event.thread_name)
         assertEquals(timestampIso, event.timestamp)
         assertEquals(EventType.EXCEPTION, event.type)
     }
@@ -67,14 +71,16 @@ class EventKtTest {
     fun `MeasureException toEvent() returns an event of type ANR, when exception is an ANR`() {
         val timestamp = 0L
         val timestampIso = timestamp.iso8601Timestamp()
-        val event = ExceptionFactory.createMeasureException(
+        val exception = ExceptionFactory.createMeasureException(
             throwable = Exception("Test exception"),
             handled = false,
             timestamp = timestamp,
             thread = Thread.currentThread(),
             isAnr = true
-        ).toEvent()
+        )
+        val event = exception.toEvent()
 
+        assertEquals(exception.thread_name, event.thread_name)
         assertEquals(timestampIso, event.timestamp)
         assertEquals(EventType.ANR, event.type)
     }
@@ -83,6 +89,7 @@ class EventKtTest {
     fun `Click toEvent() returns an event of type gesture_click`() {
         val timestamp = 0L
         val timestampIso = timestamp.iso8601Timestamp()
+        val threadName = "thread"
         val click = ClickEvent(
             target = "android.widget.Button",
             target_id = "button",
@@ -92,11 +99,13 @@ class EventKtTest {
             y = 20f,
             touch_down_time = 28071579,
             touch_up_time = 28071632,
-            timestamp = 0L
+            timestamp = 0L,
+            thread_name = threadName
         )
 
         val event = click.toEvent()
 
+        assertEquals(threadName, event.thread_name)
         assertEquals(timestampIso, event.timestamp)
         assertEquals(EventType.CLICK, event.type)
     }
@@ -105,6 +114,7 @@ class EventKtTest {
     fun `LongClick toEvent() returns an event of type gesture_long_click`() {
         val timestamp = 0L
         val timestampIso = timestamp.iso8601Timestamp()
+        val threadName = "thread"
         val longClick = LongClickEvent(
             target = "android.widget.Button",
             target_id = "button",
@@ -114,11 +124,13 @@ class EventKtTest {
             y = 20f,
             touch_down_time = 28071579,
             touch_up_time = 28071632,
-            timestamp = timestamp
+            timestamp = timestamp,
+            thread_name = threadName
         )
 
         val event = longClick.toEvent()
 
+        assertEquals(threadName, event.thread_name)
         assertEquals(timestampIso, event.timestamp)
         assertEquals(EventType.LONG_CLICK, event.type)
     }
@@ -127,6 +139,7 @@ class EventKtTest {
     fun `Scroll toEvent() returns an event of type gesture_scroll`() {
         val timestamp = 0L
         val timestampIso = timestamp.iso8601Timestamp()
+        val threadName = "thread"
         val scroll = ScrollEvent(
             target = "android.widget.ScrollView",
             target_id = "scroll_view",
@@ -137,11 +150,13 @@ class EventKtTest {
             direction = Direction.Down.name.lowercase(),
             touch_down_time = 28071579,
             touch_up_time = 28071632,
-            timestamp = timestamp
+            timestamp = timestamp,
+            thread_name = threadName
         )
 
         val event = scroll.toEvent()
 
+        assertEquals(threadName, event.thread_name)
         assertEquals(timestampIso, event.timestamp)
         assertEquals(EventType.SCROLL, event.type)
     }

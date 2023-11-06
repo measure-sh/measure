@@ -8,7 +8,8 @@
         "type": "paused"
       },
       "timestamp": "2023-10-24T15:25:15.813000000Z",
-      "type": "lifecycle_fragment"
+      "type": "lifecycle_fragment",
+      "thread_name": "main"
     }
   ],
   "resource": {

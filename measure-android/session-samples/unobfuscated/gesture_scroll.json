@@ -13,7 +13,8 @@
                 "touch_up_time": 28071632
             },
             "timestamp": "1970-01-01T07:48:12.534000000Z",
-            "type": "gesture_scroll"
+            "type": "gesture_scroll",
+            "thread_name": "main"
         },
         {
             "app_exit": {
@@ -25,7 +26,8 @@
                 "trace": null
             },
             "timestamp": "2023-10-14T00:56:37.291000000Z",
-            "type": "app_exit"
+            "type": "app_exit",
+            "thread_name": "main"
         }
     ],
     "resource": {
@@ -47,6 +49,6 @@
         "os_version": "33",
         "platform": "android"
     },
-    "session_id": "07e697ed-2b25-46f1-8126-9f8ffcd161af",
+    "session_id": "07e697ed-2b25-46f1-8126-9f8cccd162af",
     "timestamp": "2023-10-14T00:56:13.557000000Z"
 }

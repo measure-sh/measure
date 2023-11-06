@@ -10,12 +10,11 @@ import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.mock
-import org.mockito.kotlin.verify
 import sh.measure.android.TestActivity
 import sh.measure.android.fakes.FakeEventTracker
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.utils.AndroidTimeProvider
+import sh.measure.android.utils.CurrentThread
 
 @RunWith(AndroidJUnit4::class)
 @LargeTest
@@ -40,6 +39,7 @@ internal class ColdLaunchCollectorTest {
                 timeProvider = AndroidTimeProvider(),
                 launchInfo = LaunchState,
                 trace = trace,
+                currentThread = CurrentThread()
             ).register()
             scenario.moveToState(State.CREATED)
             scenario.moveToState(State.STARTED)

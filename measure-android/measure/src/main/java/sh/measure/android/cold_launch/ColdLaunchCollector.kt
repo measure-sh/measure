@@ -19,6 +19,7 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.mainHandler
 import sh.measure.android.postAtFrontOfQueueAsync
+import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.iso8601Timestamp
 
@@ -50,6 +51,7 @@ internal class ColdLaunchCollector(
     private val timeProvider: TimeProvider,
     private val launchInfo: LaunchState,
     private val trace: ColdLaunchTrace,
+    private val currentThread: CurrentThread,
 ) : ActivityLifecycleAdapter {
 
     private var firstDrawComplete = false
@@ -90,6 +92,7 @@ internal class ColdLaunchCollector(
                     intent = createdActivity.intent,
                     duration = duration,
                     timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+                    thread_name = currentThread.name
                 )
                 eventTracker.trackColdLaunch(event)
                 trace.stop()

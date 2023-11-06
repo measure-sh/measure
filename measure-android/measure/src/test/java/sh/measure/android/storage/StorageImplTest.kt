@@ -126,7 +126,7 @@ internal class StorageImplTest {
         val data: JsonElement = Json.encodeToJsonElement("data")
         val timestamp = 9876543210.iso8601Timestamp()
         val event = Event(
-            timestamp = timestamp, type = "event", data = data
+            timestamp = timestamp, type = "event", data = data, thread_name = "thread"
         )
         storage.initSession(createFakeSession(sessionId))
 
@@ -140,8 +140,8 @@ internal class StorageImplTest {
         val eventLogFile = File(sessionDir, EVENT_LOG_FILE_NAME)
         assertEquals(
             """
-                {"timestamp":"$timestamp","type":"event","event":"data"}
-                {"timestamp":"$timestamp","type":"event","event":"data"}
+                {"timestamp":"$timestamp","type":"event","event":"data","thread_name":"thread"}
+                {"timestamp":"$timestamp","type":"event","event":"data","thread_name":"thread"}
             """.trimIndent(), eventLogFile.readText()
         )
     }

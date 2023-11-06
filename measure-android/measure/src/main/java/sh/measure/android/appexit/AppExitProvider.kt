@@ -11,6 +11,7 @@ import okio.buffer
 import okio.source
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.iso8601Timestamp
 import java.io.InputStream
 
@@ -18,8 +19,9 @@ internal interface AppExitProvider {
     fun get(pid: Int): AppExit?
 }
 
-internal class AppExitProviderImpl(private val context: Context, private val logger: Logger) :
-    AppExitProvider {
+internal class AppExitProviderImpl(
+    private val context: Context, private val logger: Logger, val currentThread: CurrentThread
+) : AppExitProvider {
 
     override fun get(pid: Int): AppExit? {
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
@@ -30,7 +32,7 @@ internal class AppExitProviderImpl(private val context: Context, private val log
                 context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
             val historicalExitReason =
                 activityManager.getHistoricalProcessExitReasons(null, pid, 1).firstOrNull()
-            historicalExitReason?.toAppExit()
+            historicalExitReason?.toAppExit(currentThread.name)
         } catch (e: Exception) {
             logger.log(LogLevel.Error, "Failed to get exit info for pid: $pid", e)
             null
@@ -38,7 +40,7 @@ internal class AppExitProviderImpl(private val context: Context, private val log
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    fun ApplicationExitInfo.toAppExit(): AppExit {
+    fun ApplicationExitInfo.toAppExit(threadName: String): AppExit {
         return AppExit(
             reason = getReasonName(reason),
             importance = getImportanceName(importance),
@@ -46,6 +48,7 @@ internal class AppExitProviderImpl(private val context: Context, private val log
             trace = getTraceString(traceInputStream),
             process_name = processName,
             pid = pid.toString(),
+            thread_name = threadName
         )
     }
 

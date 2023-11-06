@@ -28,6 +28,7 @@ import sh.measure.android.session.SessionReportGenerator
 import sh.measure.android.storage.Storage
 import sh.measure.android.storage.StorageImpl
 import sh.measure.android.utils.AndroidTimeProvider
+import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.PidProvider
 import sh.measure.android.utils.PidProviderImpl
 import sh.measure.android.utils.UUIDProvider
@@ -35,6 +36,8 @@ import sh.measure.android.utils.UUIDProvider
 object Measure {
     fun init(context: Context) {
         checkMainThread()
+        val application = context as Application
+
         val logger = AndroidLogger().apply { log(LogLevel.Debug, "Initializing Measure") }
         val executorService = MeasureExecutorServiceImpl()
         val storage: Storage = StorageImpl(logger, context.filesDir.path)
@@ -45,7 +48,8 @@ object Measure {
         val idProvider = UUIDProvider()
         val config = Config
         val resourceFactory = ResourceFactoryImpl(logger, context, config)
-        val appExitProvider: AppExitProvider = AppExitProviderImpl(context, logger)
+        val currentThread = CurrentThread()
+        val appExitProvider: AppExitProvider = AppExitProviderImpl(context, logger, currentThread)
         val pidProvider: PidProvider = PidProviderImpl()
         val sessionReportGenerator = SessionReportGenerator(logger, storage, appExitProvider)
         val sessionProvider =
@@ -64,11 +68,11 @@ object Measure {
         // Register data collectors
         UnhandledExceptionCollector(logger, eventTracker, timeProvider).register()
         ColdLaunchCollector(
-            context as Application, logger, eventTracker, timeProvider, LaunchState, coldLaunchTrace
+            application, logger, eventTracker, timeProvider, LaunchState, coldLaunchTrace, currentThread
         ).register()
         AnrCollector(logger, context, timeProvider, eventTracker).register()
-        LifecycleCollector(context, eventTracker, timeProvider).register()
-        GestureCollector(logger, eventTracker, timeProvider).register()
+        LifecycleCollector(context, eventTracker, timeProvider, currentThread).register()
+        GestureCollector(logger, eventTracker, timeProvider, currentThread).register()
 
         // TODO: do this after app launch is completed to not mess up the app startup time.
         sessionController.syncAllSessions()
