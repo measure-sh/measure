@@ -20,7 +20,7 @@ data class Event(
     val timestamp: String,
     val type: String,
     val data: JsonElement,
-    val thread_name: String? = "", // TODO: remove default value
+    val thread_name: String?
 ) {
     fun toJson(): String {
         val serializedData = Json.encodeToString(JsonElement.serializer(), data)
