@@ -1,3 +1,6 @@
+"use client"
+
+import React, { useState } from 'react';
 import CheckboxDropdown from "@/app/components/checkbox_dropdown";
 import Dropdown from "@/app/components/dropdown";
 import ExceptionRateChart from "@/app/components/exception_rate_chart";
@@ -69,10 +72,21 @@ const crashes = [
 
 export default function Overview() {
   const today = new Date();
-  const endDate = `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+  var initialEndDate = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+  const [endDate, setEndDate] = useState(initialEndDate);
 
   const sevenDaysAgo = new Date(today.setDate(today.getDate() - 7));
-  const startDate = `${sevenDaysAgo.getFullYear()}-${(sevenDaysAgo.getMonth()+1).toString().padStart(2, '0')}-${sevenDaysAgo.getDate().toString().padStart(2, '0')}`;
+  var initialStartDate = `${sevenDaysAgo.getFullYear()}-${(sevenDaysAgo.getMonth() + 1).toString().padStart(2, '0')}-${sevenDaysAgo.getDate().toString().padStart(2, '0')}`;
+  const [startDate, setStartDate] = useState(initialStartDate);
+
+  var apps = ['Readly prod', 'Readly alpha', 'Readly debug'];
+  const [selectedApp, setSelectedApp] = useState(apps[0]);
+
+  var versions = ['Version 13.2.1', 'Version 13.2.2', 'Version 13.3.7'];
+  const [selectedVersions, setSelectedVersions] = useState(new Array<string>());
+
+  var countries = ['India', 'China', 'USA'];
+  const [selectedCountries, setSelectedCountries] = useState(new Array<string>());
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
@@ -80,14 +94,14 @@ export default function Overview() {
       <p className="font-display font-regular text-black text-4xl max-w-6xl text-center">Crashes</p>
       <div className="py-4"/>
       <div className="flex flex-wrap gap-8 items-center w-5/6">
-        <Dropdown items={['Readly prod', 'Readly alpha','Readly debug']}/>
+        <Dropdown items={apps} onChangeSelectedItem={(item) => setSelectedApp(item)} />
         <div className="flex flex-row items-center">
-          <input type="date" value={startDate} className="font-display text-black border border-black rounded-md p-2"/>
+          <input type="date" defaultValue={startDate} className="font-display text-black border border-black rounded-md p-2" onChange={(e) => setStartDate(e.target.value)} />
           <p className="text-black font-display px-2">to</p>
-          <input type="date" value={endDate} className="font-display text-black border border-black rounded-md p-2"/>
+          <input type="date" defaultValue={endDate} className="font-display text-black border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
         </div>
-        <CheckboxDropdown title="App versions" items={['Version 13.2.1', 'Version 13.2.2','Version 13.3.7']}/>
-        <CheckboxDropdown title="Country" items={['India', 'China','USA']}/>
+        <CheckboxDropdown title="App versions" items={versions} onChangeSelectedItems={(items) => setSelectedVersions(items)}/>
+        <CheckboxDropdown title="Country" items={countries} onChangeSelectedItems={(items) => setSelectedCountries(items)}/>
         <div className="w-full">
           <p className="font-sans text-black">Search by any field such as crash string, userId, device name etc</p>
           <div className="py-1"/>
@@ -96,12 +110,10 @@ export default function Overview() {
       </div>
       <div className="py-4"/>
       <div className="flex flex-wrap gap-2 items-center w-5/6">
-          <FilterPill title="Readly Prod"/>
-          <FilterPill title="17 Oct 2023 to  24 Oct 2023"/>
-          <FilterPill title="Version 13.2.1"/>
-          <FilterPill title="Version 13.2.2"/>
-          <FilterPill title="India"/>
-          <FilterPill title="userID: abcde123"/>
+        <FilterPill title={selectedApp} />
+        <FilterPill title={`${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}`} />
+        {selectedVersions.length > 0 && <FilterPill title={Array.from(selectedVersions).join(', ')}/>}
+        {selectedCountries.length > 0 &&<FilterPill title={Array.from(selectedCountries).join(', ')}/>}
       </div>
       <div className="py-6"/>
       <div className="border border-black text-black font-sans text-sm w-full h-[36rem]">
