@@ -41,7 +41,7 @@ export default function Overview() {
       <div className="py-4" />
       <div className="flex flex-wrap gap-2 items-center w-5/6">
         <FilterPill title={selectedApp} />
-        <FilterPill title={`${startDate} to ${endDate}`} />
+        <FilterPill title={`${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}`} />
         <FilterPill title={selectedVersion} />
       </div>
       <div className="py-8" />
