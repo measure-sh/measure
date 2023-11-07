@@ -1,3 +1,6 @@
+"use client"
+
+import React, { useState } from 'react';
 import Accordion from "@/app/components/accordion";
 import CheckboxDropdown from "@/app/components/checkbox_dropdown";
 import Dropdown from "@/app/components/dropdown";
@@ -179,10 +182,36 @@ const stackTraces = [
 
 export default function CrashDetails({ params }: { params: { slug: string } }) {
   const today = new Date();
-  const endDate = `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+  var initialEndDate = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+  const [endDate, setEndDate] = useState(initialEndDate);
 
   const sevenDaysAgo = new Date(today.setDate(today.getDate() - 7));
-  const startDate = `${sevenDaysAgo.getFullYear()}-${(sevenDaysAgo.getMonth()+1).toString().padStart(2, '0')}-${sevenDaysAgo.getDate().toString().padStart(2, '0')}`;
+  var initialStartDate = `${sevenDaysAgo.getFullYear()}-${(sevenDaysAgo.getMonth() + 1).toString().padStart(2, '0')}-${sevenDaysAgo.getDate().toString().padStart(2, '0')}`;
+  const [startDate, setStartDate] = useState(initialStartDate);
+
+  var apps = ['Readly prod', 'Readly alpha', 'Readly debug'];
+  const [selectedApp, setSelectedApp] = useState(apps[0]);
+
+  var versions = ['Version 13.2.1', 'Version 13.2.2', 'Version 13.3.7'];
+  const [selectedVersions, setSelectedVersions] = useState(new Array<string>());
+
+  var countries = ['India', 'China', 'USA'];
+  const [selectedCountries, setSelectedCountries] = useState(new Array<string>());
+
+  var networkProviders = ['Airtel', 'Jio','Vodafone'];
+  const [selectedNetworkProviders, setSelectedNetworkProviders] = useState(new Array<string>());
+
+  var networkTypes = ['Wifi', '5G','4G', '3G', '2G', 'Edge'];
+  const [selectedNetworkTypes, setSelectedNetworkTypes] = useState(new Array<string>());
+
+  var locales = ['en-in', 'en-us','en-uk'];
+  const [selectedLocales, setSelectedLocales] = useState(new Array<string>());
+
+  var deviceManufacturers = ['Samsung', 'Huawei','Motorola'];
+  const [selectedDeviceManufacturers, setSelectedDeviceManufacturers] = useState(new Array<string>());
+
+  var deviceNames = ['Samsung Galaxy Note 2', 'Motorola Razor V2','Huawei P30 Pro']
+  const [selectedDeviceNames, setSelectedDeviceNames] = useState(new Array<string>());
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
@@ -190,19 +219,19 @@ export default function CrashDetails({ params }: { params: { slug: string } }) {
       <p className="font-display font-regular text-black text-4xl max-w-6xl text-center">NullPointerException.java</p>
       <div className="py-4"/>
       <div className="flex flex-wrap gap-8 items-center w-5/6">
-        <Dropdown items={['Readly prod', 'Readly alpha','Readly debug']}/>
+        <Dropdown items={apps} onChangeSelectedItem={(item) => setSelectedApp(item)} />
         <div className="flex flex-row items-center">
           <input type="date" value={startDate} className="font-display text-black border border-black rounded-md p-2"/>
           <p className="text-black font-display px-2">to</p>
           <input type="date" value={endDate} className="font-display text-black border border-black rounded-md p-2"/>
         </div>
-        <CheckboxDropdown title="App versions" items={['Version 13.2.1', 'Version 13.2.2','Version 13.3.7']}/>
-        <CheckboxDropdown title="Country" items={['India', 'China','USA']}/>
-        <CheckboxDropdown title="Network Provider" items={['Airtel', 'Jio','Vodafone']}/>
-        <CheckboxDropdown title="Network type" items={['Wifi', '5G','4G', '3G', '2G', 'Edge']}/>
-        <CheckboxDropdown title="Locale" items={['en-in', 'en-us','en-uk']}/>
-        <CheckboxDropdown title="Device Manufacturer" items={['Samsung', 'Huawei','Motorola']}/>
-        <CheckboxDropdown title="Device Name" items={['Samsung Galaxy Note 2', 'Motorola Razor V2','Huawei P30 Pro']}/>
+        <CheckboxDropdown title="App versions" items={versions} onChangeSelectedItems={(items) => setSelectedVersions(items)}/>
+        <CheckboxDropdown title="Country" items={countries} onChangeSelectedItems={(items) => setSelectedCountries(items)}/>
+        <CheckboxDropdown title="Network Provider" items={networkProviders} onChangeSelectedItems={(items) => setSelectedNetworkProviders(items)}/>
+        <CheckboxDropdown title="Network type" items={networkTypes} onChangeSelectedItems={(items) => setSelectedNetworkTypes(items)}/>
+        <CheckboxDropdown title="Locale" items={locales} onChangeSelectedItems={(items) => setSelectedLocales(items)}/>
+        <CheckboxDropdown title="Device Manufacturer" items={deviceManufacturers} onChangeSelectedItems={(items) => setSelectedDeviceManufacturers(items)}/>
+        <CheckboxDropdown title="Device Name" items={deviceNames} onChangeSelectedItems={(items) => setSelectedDeviceNames(items)}/>
         <div className="w-full">
           <p className="font-sans text-black">Filter by any field such as userId, device name etc</p>
           <div className="py-1"/>
@@ -211,14 +240,15 @@ export default function CrashDetails({ params }: { params: { slug: string } }) {
       </div>
       <div className="py-4"/>
       <div className="flex flex-wrap gap-2 items-center w-5/6">
-          <FilterPill title="Readly Prod"/>
-          <FilterPill title="17 Oct 2023 to  24 Oct 2023"/>
-          <FilterPill title="Version 13.2.1"/>
-          <FilterPill title="Version 13.2.2"/>
-          <FilterPill title="India"/>
-          <FilterPill title="Airtel"/>
-          <FilterPill title="3G"/>
-          <FilterPill title="Samsung"/>
+        <FilterPill title={selectedApp} />
+        <FilterPill title={`${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}`} />
+        {selectedVersions.length > 0 && <FilterPill title={Array.from(selectedVersions).join(', ')}/>}
+        {selectedCountries.length > 0 && <FilterPill title={Array.from(selectedCountries).join(', ')}/>}
+        {selectedNetworkProviders.length > 0 && <FilterPill title={Array.from(selectedNetworkProviders).join(', ')}/>}
+        {selectedNetworkTypes.length > 0 && <FilterPill title={Array.from(selectedNetworkTypes).join(', ')}/>}
+        {selectedLocales.length > 0 && <FilterPill title={Array.from(selectedLocales).join(', ')}/>}
+        {selectedDeviceManufacturers.length > 0 && <FilterPill title={Array.from(selectedDeviceManufacturers).join(', ')}/>}
+        {selectedDeviceNames.length > 0 && <FilterPill title={Array.from(selectedDeviceNames).join(', ')}/>}
       </div>
       <div className="py-6"/>
       <div className="flex flex-col md:flex-row w-full">
