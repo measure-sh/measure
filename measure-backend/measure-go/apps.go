@@ -3,10 +3,8 @@ package main
 import (
 	"math/rand"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 func getAppJourney(c *gin.Context) {
