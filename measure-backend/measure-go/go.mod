@@ -1,6 +1,6 @@
 module measure-backend/measure-go
 
-go 1.21.0
+go 1.21
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.14.3
