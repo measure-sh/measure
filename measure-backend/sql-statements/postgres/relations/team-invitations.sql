@@ -1,5 +1,5 @@
 create table if not exists team_invitations (
-    id uuid primary key not null,
+    id uuid primary key not null default gen_random_uuid(),
     team_id uuid not null,
     user_id uuid references auth.users(id) on delete cascade,
     email varchar(256) not null,
@@ -8,7 +8,7 @@ create table if not exists team_invitations (
     invite_sent_count int default 0,
     last_invite_sent_at timestamptz not null,
     invite_expires_at timestamptz not null,
-    created_at timestamptz not null
+    created_at timestamptz not null default current_timestamp
 );
 
 comment on column team_invitations.id is 'unique id for each team member invite';

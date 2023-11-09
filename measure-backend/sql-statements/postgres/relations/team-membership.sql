@@ -1,10 +1,10 @@
 create table if not exists team_membership (
-    id uuid primary key not null,
+    id uuid primary key not null default gen_random_uuid(),
     team_id uuid references teams(id) on delete cascade,
     user_id uuid references auth.users(id) on delete cascade,
     role varchar(256) references roles(name) on delete cascade,
     role_updated_at timestamptz not null,
-    created_at timestamptz not null
+    created_at timestamptz not null default current_timestamp
 );
 
 comment on column team_membership.id is 'unique id for each team membership';

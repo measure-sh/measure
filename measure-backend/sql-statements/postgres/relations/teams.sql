@@ -1,7 +1,7 @@
 create table if not exists teams (
-    id uuid primary key not null,
+    id uuid primary key not null default gen_random_uuid(),
     name varchar(256) not null,
-    created_at timestamptz not null,
+    created_at timestamptz not null default now(),
     updated_at timestamptz not null
 );
 
