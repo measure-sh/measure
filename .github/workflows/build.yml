@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ["1.19", "1.20", "1.21.x"]
+        go-version: ["1.21.x"]
     defaults:
       run:
         working-directory: measure-backend/measure-go
