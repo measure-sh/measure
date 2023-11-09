@@ -3,7 +3,9 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -33,6 +35,13 @@ func main() {
 	defer server.chPool.Close()
 
 	r := gin.Default()
+	cors := cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000", "https://measure.sh"},
+		AllowMethods:     []string{"GET", "OPTIONS"},
+		AllowHeaders:     []string{"Authorization"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	})
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",
@@ -41,8 +50,8 @@ func main() {
 
 	r.PUT("/sessions", authorize(), putSession)
 	r.PUT("/mappings", authorize(), putMapping)
-	r.GET("/apps/:id/journey", authorize(), getAppJourney)
-	r.GET("/apps/:id/metrics", authorize(), getAppMetrics)
+	r.Use(cors).GET("/apps/:id/journey", authorize(), getAppJourney)
+	r.Use(cors).GET("/apps/:id/metrics", authorize(), getAppMetrics)
 
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080
 }
