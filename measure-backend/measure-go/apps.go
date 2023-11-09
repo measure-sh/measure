@@ -16,6 +16,10 @@ func getAppJourney(c *gin.Context) {
 
 	var data string
 	randomInt := rand.Intn(100)
+	if randomInt > 70 {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "API server is experiencing intermittent issues"})
+		return
+	}
 	if randomInt%2 == 0 {
 		data = data1
 	} else {
@@ -31,6 +35,10 @@ func getAppMetrics(c *gin.Context) {
 
 	var data string
 	randomInt := rand.Intn(100)
+	if randomInt > 70 {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "API server is experiencing intermittent issues"})
+		return
+	}
 	if randomInt%2 == 0 {
 		data = data1
 	} else {
