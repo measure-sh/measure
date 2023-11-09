@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 )
@@ -80,12 +79,12 @@ func UnmarshalRetraceFrame(i string, p string) (retraceFrame RetraceFrame, err e
 
 	var lineNum int
 
-	if len(lineNumStr) < 1 {
-		lineNum = int(math.NaN())
+	if lineNumStr == "" {
+		lineNum = 0
 	} else {
 		lineNum, err = strconv.Atoi(lineNumStr)
 		if err != nil {
-			lineNum = int(math.NaN())
+			return retraceFrame, err
 		}
 	}
 
