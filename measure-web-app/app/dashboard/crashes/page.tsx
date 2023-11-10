@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CheckboxDropdown from "@/app/components/checkbox_dropdown";
 import Dropdown from "@/app/components/dropdown";
 import ExceptionRateChart from "@/app/components/exception_rate_chart";
@@ -71,14 +71,6 @@ const crashes = [
 ];
 
 export default function Overview() {
-  const today = new Date();
-  var initialEndDate = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
-  const [endDate, setEndDate] = useState(initialEndDate);
-
-  const sevenDaysAgo = new Date(today.setDate(today.getDate() - 7));
-  var initialStartDate = `${sevenDaysAgo.getFullYear()}-${(sevenDaysAgo.getMonth() + 1).toString().padStart(2, '0')}-${sevenDaysAgo.getDate().toString().padStart(2, '0')}`;
-  const [startDate, setStartDate] = useState(initialStartDate);
-
   var apps = ['Readly prod', 'Readly alpha', 'Readly debug'];
   const [selectedApp, setSelectedApp] = useState(apps[0]);
 
@@ -87,6 +79,21 @@ export default function Overview() {
 
   var countries = ['India', 'China', 'USA'];
   const [selectedCountries, setSelectedCountries] = useState(new Array<string>());
+
+  const today = new Date();
+  var initialEndDate = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+  const [endDate, setEndDate] = useState(initialEndDate);
+  const [formattedEndDate, setFormattedEndDate] = useState(endDate);
+
+  const sevenDaysAgo = new Date(today.setDate(today.getDate() - 7));
+  var initialStartDate = `${sevenDaysAgo.getFullYear()}-${(sevenDaysAgo.getMonth() + 1).toString().padStart(2, '0')}-${sevenDaysAgo.getDate().toString().padStart(2, '0')}`;
+  const [startDate, setStartDate] = useState(initialStartDate);
+  const [formattedStartDate, setFormattedStartDate] = useState(startDate);
+
+  useEffect(() => {
+    setFormattedStartDate(new Date(startDate).toLocaleDateString());
+    setFormattedEndDate(new Date(endDate).toLocaleDateString());
+  }, [startDate, endDate]);
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
@@ -111,7 +118,7 @@ export default function Overview() {
       <div className="py-4"/>
       <div className="flex flex-wrap gap-2 items-center w-5/6">
         <FilterPill title={selectedApp} />
-        <FilterPill title={`${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}`} />
+        <FilterPill title={`${formattedStartDate} to ${formattedEndDate}`} />
         {selectedVersions.length > 0 && <FilterPill title={Array.from(selectedVersions).join(', ')}/>}
         {selectedCountries.length > 0 &&<FilterPill title={Array.from(selectedCountries).join(', ')}/>}
       </div>
