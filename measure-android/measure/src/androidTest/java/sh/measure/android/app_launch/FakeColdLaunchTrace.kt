@@ -1,4 +1,4 @@
-package sh.measure.android.cold_launch
+package sh.measure.android.app_launch
 
 import sh.measure.android.method_trace.MethodTraceConfig
 

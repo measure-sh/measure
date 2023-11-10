@@ -1,7 +1,9 @@
 package sh.measure.android.events
 
+import sh.measure.android.app_launch.ColdLaunchEvent
+import sh.measure.android.app_launch.HotLaunchEvent
+import sh.measure.android.app_launch.WarmLaunchEvent
 import sh.measure.android.attachment.AttachmentInfo
-import sh.measure.android.cold_launch.ColdLaunchEvent
 import sh.measure.android.exceptions.MeasureException
 import sh.measure.android.gestures.ClickEvent
 import sh.measure.android.gestures.LongClickEvent
@@ -23,6 +25,8 @@ internal interface EventTracker {
     fun trackFragmentLifecycleEvent(event: FragmentLifecycleEvent)
     fun trackApplicationLifecycleEvent(event: ApplicationLifecycleEvent)
     fun trackColdLaunch(event: ColdLaunchEvent)
+    fun trackWarmLaunchEvent(event: WarmLaunchEvent)
+    fun trackHotLaunchEvent(event: HotLaunchEvent)
     fun storeAttachment(attachmentInfo: AttachmentInfo)
 }
 
@@ -80,7 +84,17 @@ internal class MeasureEventTracker(
     }
 
     override fun trackColdLaunch(event: ColdLaunchEvent) {
-        logger.log(LogLevel.Debug, "Tracking cold launch (${event.duration}ms)")
+        logger.log(LogLevel.Debug, "Tracking cold launch")
+        sessionController.storeEvent(event.toEvent())
+    }
+
+    override fun trackWarmLaunchEvent(event: WarmLaunchEvent) {
+        logger.log(LogLevel.Debug, "Tracking warm launch")
+        sessionController.storeEvent(event.toEvent())
+    }
+
+    override fun trackHotLaunchEvent(event: HotLaunchEvent) {
+        logger.log(LogLevel.Debug, "Tracking hot launch")
         sessionController.storeEvent(event.toEvent())
     }
 
