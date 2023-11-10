@@ -45,9 +45,7 @@ export default function Overview() {
         <FilterPill title={selectedVersion} />
       </div>
       <div className="py-8" />
-      <div className="border border-black text-black font-sans text-sm w-5/6 h-screen">
-        <UserFlow />
-      </div>
+      <UserFlow authToken="abcde123" appId={selectedApp} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />
       <div className="py-8" />
       <div className="flex flex-wrap gap-16 w-5/6">
         <InfoCircleAppAdoption title="App adoption" value={20} users={40000} totalUsers={200000} />
