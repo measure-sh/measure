@@ -22,12 +22,14 @@ internal class AndroidTimeProvider : TimeProvider {
      * wall clock can be set by the user or the phone network (see setCurrentTimeMillis(long)),
      * so the time may jump backwards or forwards unpredictably.
      */
-    override val currentTimeSinceEpochInMillis = System.currentTimeMillis()
+    override val currentTimeSinceEpochInMillis
+        get() = System.currentTimeMillis()
 
     /**
      * Same as [currentTimeSinceEpochInMillis], but in nanoseconds.
      */
-    override val currentTimeSinceEpochInNanos = currentTimeSinceEpochInMillis.toNanos()
+    override val currentTimeSinceEpochInNanos
+        get() = currentTimeSinceEpochInMillis.toNanos()
 
     /**
      * Milliseconds since the system was booted. This clock stops when the system enters
@@ -37,7 +39,8 @@ internal class AndroidTimeProvider : TimeProvider {
      * [SystemClock] is guaranteed to be monotonic, and is suitable for interval timing. But cannot
      * be used to denote "wall clock" time.
      */
-    override val uptimeInMillis = SystemClock.uptimeMillis()
+    override val uptimeInMillis
+        get() = SystemClock.uptimeMillis()
 
     private fun Long.toNanos(): Long {
         return this * 1_000_000
