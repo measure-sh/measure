@@ -389,18 +389,46 @@ func (s *Session) EncodeForSymbolication() (CodecMap, []SymbolicationUnit) {
 		}
 
 		if event.isColdLaunch() {
-		    if len(event.ColdLaunch.FirstVisibleActivity) > 0 {
-                idColdLaunch := uuid.New()
-                unitCL := NewCodecMapVal()
-                unitCL.Type = TypeColdLaunch
-                unitCL.Event = eventIdx
-                unitCL.FirstVisibleActivity = TransformSwap
-                codecMap[idColdLaunch] = *unitCL
-                su := new(SymbolicationUnit)
-                su.ID = idColdLaunch
-                su.Values = []string{GenericPrefix + event.ColdLaunch.FirstVisibleActivity}
-                symbolicationUnits = append(symbolicationUnits, *su)
-            }
+			if len(event.ColdLaunch.LaunchedActivity) > 0 {
+				idColdLaunch := uuid.New()
+				unitCL := NewCodecMapVal()
+				unitCL.Type = TypeColdLaunch
+				unitCL.Event = eventIdx
+				unitCL.LaunchedActivity = TransformSwap
+				codecMap[idColdLaunch] = *unitCL
+				su := new(SymbolicationUnit)
+				su.ID = idColdLaunch
+				su.Values = []string{GenericPrefix + event.ColdLaunch.LaunchedActivity}
+				symbolicationUnits = append(symbolicationUnits, *su)
+			}
+		}
+		if event.isWarmLaunch() {
+			if len(event.WarmLaunch.LaunchedActivity) > 0 {
+				idWarmLaunch := uuid.New()
+				unitCL := NewCodecMapVal()
+				unitCL.Type = TypeWarmLaunch
+				unitCL.Event = eventIdx
+				unitCL.LaunchedActivity = TransformSwap
+				codecMap[idWarmLaunch] = *unitCL
+				su := new(SymbolicationUnit)
+				su.ID = idWarmLaunch
+				su.Values = []string{GenericPrefix + event.WarmLaunch.LaunchedActivity}
+				symbolicationUnits = append(symbolicationUnits, *su)
+			}
+		}
+		if event.isHotLaunch() {
+			if len(event.HotLaunch.LaunchedActivity) > 0 {
+				idHotLaunch := uuid.New()
+				unitCL := NewCodecMapVal()
+				unitCL.Type = TypeHotLaunch
+				unitCL.Event = eventIdx
+				unitCL.LaunchedActivity = TransformSwap
+				codecMap[idHotLaunch] = *unitCL
+				su := new(SymbolicationUnit)
+				su.ID = idHotLaunch
+				su.Values = []string{GenericPrefix + event.HotLaunch.LaunchedActivity}
+				symbolicationUnits = append(symbolicationUnits, *su)
+			}
 		}
 	}
 
@@ -514,9 +542,18 @@ func (s *Session) DecodeFromSymbolication(codecMap CodecMap, symbolicationUnits 
 				s.Events[codecMapVal.Event].LifecycleFragment.ParentActivity = strings.TrimPrefix(su.Values[0], GenericPrefix)
 			}
 		case TypeColdLaunch:
-        	if codecMapVal.FirstVisibleActivity == TransformSwap {
-                s.Events[codecMapVal.Event].ColdLaunch.FirstVisibleActivity = strings.TrimPrefix(su.Values[0], GenericPrefix)
-        	}
+			if codecMapVal.LaunchedActivity == TransformSwap {
+				s.Events[codecMapVal.Event].ColdLaunch.LaunchedActivity = strings.TrimPrefix(su.Values[0], GenericPrefix)
+			}
+		case TypeWarmLaunch:
+			if codecMapVal.LaunchedActivity == TransformSwap {
+				s.Events[codecMapVal.Event].WarmLaunch.LaunchedActivity = strings.TrimPrefix(su.Values[0], GenericPrefix)
+			}
+		case TypeHotLaunch:
+			if codecMapVal.LaunchedActivity == TransformSwap {
+				s.Events[codecMapVal.Event].HotLaunch.LaunchedActivity = strings.TrimPrefix(su.Values[0], GenericPrefix)
+			}
+
 		default:
 			continue
 		}

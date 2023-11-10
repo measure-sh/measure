@@ -34,7 +34,9 @@ const (
 	maxLifecycleFragmentTypeChars      = 32
 	maxLifecycleFragmentClassNameChars = 128
 	maxLifecycleAppTypeChars           = 32
-	maxLaunchFirstVisibleActivityChars = 128
+	maxColdLaunchLaunchedActivityChars = 128
+	maxWarmLaunchLaunchedActivityChars = 128
+	maxHotLaunchLaunchedActivityChars  = 128
 	maxAttrCount                       = 10
 )
 
@@ -51,6 +53,8 @@ const TypeLifecycleActivity = "lifecycle_activity"
 const TypeLifecycleFragment = "lifecycle_fragment"
 const TypeLifecycleApp = "lifecycle_app"
 const TypeColdLaunch = "cold_launch"
+const TypeWarmLaunch = "warm_launch"
+const TypeHotLaunch = "hot_launch"
 
 // timeFormat is the format of datetime in nanoseconds when
 // converting datetime values before inserting into database
@@ -144,15 +148,23 @@ var columns = []string{
 	"lifecycle_fragment.parent_activity",
 	"lifecycle_fragment.tag",
 	"lifecycle_app.type",
-	"cold_launch.start_uptime",
-	"cold_launch.su_is_process_start_requested",
-	"cold_launch.su_is_process_start_uptime",
-	"cold_launch.su_is_content_provider_init",
-	"cold_launch.end_uptime",
-	"cold_launch.eu_is_first_draw",
-	"cold_launch.first_visible_activity",
-	"cold_launch.intent",
-	"cold_launch.duration",
+	"cold_launch.process_start_uptime",
+	"cold_launch.process_start_requested_uptime",
+	"cold_launch.content_provider_attach_uptime",
+	"cold_launch.on_next_draw_uptime",
+	"cold_launch.launched_activity",
+	"cold_launch.has_saved_state",
+	"cold_launch.intent_data",
+	"warm_launch.app_visible_uptime",
+	"warm_launch.on_next_draw_uptime",
+	"warm_launch.launched_activity",
+	"warm_launch.has_saved_state",
+	"warm_launch.intent_data",
+	"hot_launch.app_visible_uptime",
+	"hot_launch.on_next_draw_uptime",
+	"hot_launch.launched_activity",
+	"hot_launch.has_saved_state",
+	"hot_launch.intent_data",
 	"attributes",
 }
 
@@ -337,15 +349,29 @@ type LifecycleApp struct {
 }
 
 type ColdLaunch struct {
-	StartUptime               uint32 `json:"start_uptime" binding:"required"`
-	SUIsProcessStartRequested bool   `json:"su_is_process_start_requested" binding:"required"`
-	SUIsProcessStartUptime    bool   `json:"su_is_process_start_uptime" binding:"required"`
-	SUIsContentProviderInit   bool   `json:"su_is_content_provider_init" binding:"required"`
-	EndUptime                 uint32 `json:"end_uptime" binding:"required"`
-	EUIsFirstDraw             bool   `json:"eu_is_first_draw" binding:"required"`
-	FirstVisibleActivity      string `json:"first_visible_activity" binding:"required"`
-	Duration                  uint32 `json:"duration" binding:"required"`
-	Intent                    string `json:"intent"`
+	ProcessStartUptime          uint32 `json:"process_start_uptime"`
+	ProcessStartRequestedUptime uint32 `json:"process_start_requested_uptime"`
+	ContentProviderAttachUptime uint32 `json:"content_provider_attach_uptime"`
+	OnNextDrawUptime            uint32 `json:"on_next_draw_uptime" binding:"required"`
+	LaunchedActivity            string `json:"launched_activity" binding:"required"`
+	HasSavedState               bool   `json:"has_saved_state" binding:"required"`
+	IntentData                  string `json:"intent_data"`
+}
+
+type WarmLaunch struct {
+	AppVisibleUptime uint32 `json:"app_visible_uptime"`
+	OnNextDrawUptime uint32 `json:"on_next_draw_uptime" binding:"required"`
+	LaunchedActivity string `json:"launched_activity" binding:"required"`
+	HasSavedState    bool   `json:"has_saved_state" binding:"required"`
+	IntentData       string `json:"intent_data"`
+}
+
+type HotLaunch struct {
+	AppVisibleUptime uint32 `json:"app_visible_uptime"`
+	OnNextDrawUptime uint32 `json:"on_next_draw_uptime" binding:"required"`
+	LaunchedActivity string `json:"launched_activity" binding:"required"`
+	HasSavedState    bool   `json:"has_saved_state" binding:"required"`
+	IntentData       string `json:"intent_data"`
 }
 
 type EventField struct {
@@ -365,6 +391,8 @@ type EventField struct {
 	LifecycleFragment LifecycleFragment `json:"lifecycle_fragment,omitempty"`
 	LifecycleApp      LifecycleApp      `json:"lifecycle_app,omitempty"`
 	ColdLaunch        ColdLaunch        `json:"cold_launch,omitempty"`
+	WarmLaunch        WarmLaunch        `json:"warm_launch,omitempty"`
+	HotLaunch         HotLaunch         `json:"hot_launch,omitempty"`
 	Attributes        map[string]string `json:"attributes"`
 }
 
@@ -420,8 +448,16 @@ func (e *EventField) isColdLaunch() bool {
 	return e.Type == TypeColdLaunch
 }
 
+func (e *EventField) isWarmLaunch() bool {
+	return e.Type == TypeWarmLaunch
+}
+
+func (e *EventField) isHotLaunch() bool {
+	return e.Type == TypeHotLaunch
+}
+
 func (e *EventField) validate() error {
-	validTypes := []string{TypeANR, TypeException, TypeAppExit, TypeString, TypeGestureLongClick, TypeGestureScroll, TypeGestureClick, TypeHTTPRequest, TypeHTTPResponse, TypeLifecycleActivity, TypeLifecycleFragment, TypeLifecycleApp, TypeColdLaunch}
+	validTypes := []string{TypeANR, TypeException, TypeAppExit, TypeString, TypeGestureLongClick, TypeGestureScroll, TypeGestureClick, TypeHTTPRequest, TypeHTTPResponse, TypeLifecycleActivity, TypeLifecycleFragment, TypeLifecycleApp, TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch}
 	if !slices.Contains(validTypes, e.Type) {
 		return fmt.Errorf(`"events[].type" is not a valid type`)
 	}
@@ -505,30 +541,38 @@ func (e *EventField) validate() error {
 	}
 
 	if e.isColdLaunch() {
-		if e.ColdLaunch.StartUptime <= 0 {
-			return fmt.Errorf("ColdLaunch.StartUptime is invalid")
+		if e.ColdLaunch.ProcessStartUptime <= 0 && e.ColdLaunch.ContentProviderAttachUptime <= 0 && e.ColdLaunch.ProcessStartRequestedUptime <= 0 {
+			return fmt.Errorf(`one of cold_launch.process_start_uptime, cold_launch.process_start_requested_uptime, cold_launch.content_provider_attach_uptime must be greater than 0`)
 		}
-		if e.ColdLaunch.EndUptime <= 0 {
-			return fmt.Errorf("ColdLaunch.EndUptime is invalid")
+		if e.ColdLaunch.OnNextDrawUptime <= 0 {
+			return fmt.Errorf(`cold_launch.on_next_draw_uptime must be greater than 0`)
 		}
-		if e.ColdLaunch.FirstVisibleActivity == "" {
-			return fmt.Errorf("ColdLaunch.FirstVisibleActivity is required")
+		if e.ColdLaunch.LaunchedActivity == "" {
+			return fmt.Errorf(`cold_launch.launched_activity must not be empty`)
 		}
-		if e.ColdLaunch.Duration <= 0 {
-			return fmt.Errorf("ColdLaunch.Duration is invalid")
+	}
+
+	if e.isWarmLaunch() {
+		if e.WarmLaunch.AppVisibleUptime <= 0 {
+			return fmt.Errorf(`warm_launch.app_visible_uptime must be greater than 0`)
 		}
-		startupMechanismsSet := 0
-		if e.ColdLaunch.SUIsProcessStartRequested {
-			startupMechanismsSet++
+		if e.WarmLaunch.OnNextDrawUptime <= 0 {
+			return fmt.Errorf(`warm_launch.on_next_draw_uptime must be greater than 0`)
 		}
-		if e.ColdLaunch.SUIsProcessStartUptime {
-			startupMechanismsSet++
+		if e.WarmLaunch.LaunchedActivity == "" {
+			return fmt.Errorf(`warm_launch.launched_activity must not be empty`)
 		}
-		if e.ColdLaunch.SUIsContentProviderInit {
-			startupMechanismsSet++
+	}
+
+	if e.isHotLaunch() {
+		if e.HotLaunch.AppVisibleUptime <= 0 {
+			return fmt.Errorf(`hot_launch.app_visible_uptime must be greater than 0`)
 		}
-		if startupMechanismsSet != 1 {
-			return fmt.Errorf("events[].cold_launch invalid start uptime mechanism, (1) expected, but (%d) set", startupMechanismsSet)
+		if e.HotLaunch.OnNextDrawUptime <= 0 {
+			return fmt.Errorf(`hot_launch.on_next_draw_uptime must be greater than 0`)
+		}
+		if e.HotLaunch.LaunchedActivity == "" {
+			return fmt.Errorf(`hot_launch.launched_activity must not be empty`)
 		}
 	}
 
@@ -592,8 +636,14 @@ func (e *EventField) validate() error {
 	if len(e.LifecycleApp.Type) > maxLifecycleAppTypeChars {
 		return fmt.Errorf(`"events[].lifecycle_app.type" exceeds maximum allowed characters of (%d)`, maxLifecycleAppTypeChars)
 	}
-	if len(e.ColdLaunch.FirstVisibleActivity) > maxLaunchFirstVisibleActivityChars {
-		return fmt.Errorf(`"events[].cold_launch.first_visible_activity" exceeds maximum allowed characters of (%d)`, maxLaunchFirstVisibleActivityChars)
+	if len(e.ColdLaunch.LaunchedActivity) == maxColdLaunchLaunchedActivityChars {
+		return fmt.Errorf(`events[].cold_launch.launched_activity exceeds maximum allowed characters of (%d)`, maxColdLaunchLaunchedActivityChars)
+	}
+	if len(e.WarmLaunch.LaunchedActivity) == maxWarmLaunchLaunchedActivityChars {
+		return fmt.Errorf(`events[].warm_launch.launched_activity exceeds maximum allowed characters of (%d)`, maxWarmLaunchLaunchedActivityChars)
+	}
+	if len(e.HotLaunch.LaunchedActivity) == maxHotLaunchLaunchedActivityChars {
+		return fmt.Errorf(`events[].hot_launch.launched_activity exceeds maximum allowed characters of (%d)`, maxHotLaunchLaunchedActivityChars)
 	}
 
 	if len(e.Attributes) > maxAttrCount {
@@ -607,7 +657,7 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 	values := []string{}
 	valueArgs := []interface{}{}
 
-	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
 	for _, event := range session.Events {
 		anrExceptions := "[]"
@@ -710,15 +760,23 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			event.LifecycleFragment.ParentActivity,
 			event.LifecycleFragment.Tag,
 			event.LifecycleApp.Type,
-			event.ColdLaunch.StartUptime,
-			event.ColdLaunch.SUIsProcessStartRequested,
-			event.ColdLaunch.SUIsProcessStartUptime,
-			event.ColdLaunch.SUIsContentProviderInit,
-			event.ColdLaunch.EndUptime,
-			event.ColdLaunch.EUIsFirstDraw,
-			event.ColdLaunch.FirstVisibleActivity,
-			event.ColdLaunch.Intent,
-			event.ColdLaunch.Duration,
+			event.ColdLaunch.ProcessStartUptime,
+			event.ColdLaunch.ProcessStartRequestedUptime,
+			event.ColdLaunch.ContentProviderAttachUptime,
+			event.ColdLaunch.OnNextDrawUptime,
+			event.ColdLaunch.LaunchedActivity,
+			event.ColdLaunch.HasSavedState,
+			event.ColdLaunch.IntentData,
+			event.WarmLaunch.AppVisibleUptime,
+			event.WarmLaunch.OnNextDrawUptime,
+			event.WarmLaunch.LaunchedActivity,
+			event.WarmLaunch.HasSavedState,
+			event.WarmLaunch.IntentData,
+			event.HotLaunch.AppVisibleUptime,
+			event.HotLaunch.OnNextDrawUptime,
+			event.HotLaunch.LaunchedActivity,
+			event.HotLaunch.HasSavedState,
+			event.HotLaunch.IntentData,
 			mapToString(event.Attributes),
 		)
 	}
