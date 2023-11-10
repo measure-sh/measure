@@ -105,15 +105,25 @@ create table if not exists events_test_2
     /* lifecycle_app */
     `lifecycle_app.type` FixedString(32),
     /* cold launch */
-    `cold_launch.start_uptime` UInt32,
-    `cold_launch.su_is_process_start_requested` Bool,
-    `cold_launch.su_is_process_start_uptime` Bool,
-    `cold_launch.su_is_content_provider_init` Bool,
-    `cold_launch.end_uptime` UInt32,
-    `cold_launch.eu_is_first_draw` Bool,
-    `cold_launch.first_visible_activity` FixedString(128),
-    `cold_launch.intent` String,
-    `cold_launch.duration` UInt32,
+    `cold_launch.process_start_uptime` UInt32,
+    `cold_launch.process_start_requested_uptime` UInt32,
+    `cold_launch.content_provider_attach_uptime` UInt32,
+    `cold_launch.on_next_draw_uptime` UInt32,
+    `cold_launch.launched_activity` FixedString(128),
+    `cold_launch.has_saved_state` Bool,
+    `cold_launch.intent_data` String,
+    /* warm launch */
+    `warm_launch.app_visible_uptime` UInt32,
+    `warm_launch.on_next_draw_uptime` UInt32,
+    `warm_launch.launched_activity` FixedString(128),
+    `warm_launch.has_saved_state` Bool,
+    `warm_launch.intent_data` String,
+    /* hot launch */
+    `hot_launch.app_visible_uptime` UInt32,
+    `hot_launch.on_next_draw_uptime` UInt32,
+    `hot_launch.launched_activity` FixedString(128),
+    `hot_launch.has_saved_state` Bool,
+    `hot_launch.intent_data` String,
     /* attributes */
     `attributes` Map(String, String)
 )
