@@ -12,4 +12,6 @@ object EventType {
     const val LIFECYCLE_FRAGMENT: String = "lifecycle_fragment"
     const val LIFECYCLE_APP: String = "lifecycle_app"
     const val COLD_LAUNCH: String = "cold_launch"
+    const val WARM_LAUNCH: String = "warm_launch"
+    const val HOT_LAUNCH: String = "hot_launch"
 }

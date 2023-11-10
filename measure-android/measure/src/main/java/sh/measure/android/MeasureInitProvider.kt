@@ -8,7 +8,7 @@ import android.database.Cursor
 import android.net.Uri
 import android.os.SystemClock
 import android.util.Log
-import sh.measure.android.cold_launch.LaunchState
+import sh.measure.android.app_launch.LaunchState
 
 /**
  * A content provider used to initialise Measure SDK.
@@ -32,7 +32,7 @@ internal class MeasureInitProvider : ContentProvider() {
         check(MeasureInitProvider::class.java.name != info.authority) {
             "An applicationId is required to fulfill the manifest placeholder."
         }
-        LaunchState.contentProviderLoadTime = SystemClock.uptimeMillis()
+        LaunchState.contentLoaderAttachUptime = SystemClock.uptimeMillis()
         super.attachInfo(context, info)
     }
 

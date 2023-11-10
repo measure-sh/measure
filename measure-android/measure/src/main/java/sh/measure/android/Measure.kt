@@ -3,11 +3,10 @@ package sh.measure.android
 import android.app.Application
 import android.content.Context
 import sh.measure.android.anr.AnrCollector
+import sh.measure.android.app_launch.AppLaunchCollector
+import sh.measure.android.app_launch.ColdLaunchTraceImpl
 import sh.measure.android.appexit.AppExitProvider
 import sh.measure.android.appexit.AppExitProviderImpl
-import sh.measure.android.cold_launch.ColdLaunchCollector
-import sh.measure.android.cold_launch.ColdLaunchTraceImpl
-import sh.measure.android.cold_launch.LaunchState
 import sh.measure.android.events.EventTracker
 import sh.measure.android.events.MeasureEventTracker
 import sh.measure.android.exceptions.UnhandledExceptionCollector
@@ -63,19 +62,21 @@ object Measure {
         sessionController.initSession()
 
         // Start launch trace, this trace ends in the ColdLaunchCollector.
-        val coldLaunchTrace = ColdLaunchTraceImpl(storage, sessionProvider.session.id).apply { start() }
+        val coldLaunchTrace = ColdLaunchTraceImpl(
+            storage, sessionProvider.session.id, eventTracker, timeProvider
+        ).apply { start() }
 
         // Register data collectors
         UnhandledExceptionCollector(logger, eventTracker, timeProvider).register()
-        ColdLaunchCollector(
-            application, logger, eventTracker, timeProvider, LaunchState, coldLaunchTrace, currentThread
-        ).register()
         AnrCollector(logger, context, timeProvider, eventTracker).register()
-        LifecycleCollector(context, eventTracker, timeProvider, currentThread).register()
-        GestureCollector(logger, eventTracker, timeProvider, currentThread).register()
-
-        // TODO: do this after app launch is completed to not mess up the app startup time.
-        sessionController.syncAllSessions()
+        AppLaunchCollector(
+            logger, application, timeProvider, coldLaunchTrace, eventTracker,
+            coldLaunchListener = {
+                LifecycleCollector(context, eventTracker, timeProvider, currentThread).register()
+                GestureCollector(logger, eventTracker, timeProvider, currentThread).register()
+                sessionController.syncAllSessions()
+            },
+        ).register()
         logger.log(LogLevel.Debug, "Measure initialization completed")
     }
 }

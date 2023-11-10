@@ -5,8 +5,10 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.encodeToStream
 import okio.BufferedSink
+import sh.measure.android.app_launch.ColdLaunchEvent
+import sh.measure.android.app_launch.HotLaunchEvent
+import sh.measure.android.app_launch.WarmLaunchEvent
 import sh.measure.android.appexit.AppExit
-import sh.measure.android.cold_launch.ColdLaunchEvent
 import sh.measure.android.exceptions.MeasureException
 import sh.measure.android.gestures.ClickEvent
 import sh.measure.android.gestures.LongClickEvent
@@ -115,8 +117,26 @@ internal fun FragmentLifecycleEvent.toEvent(): Event {
 internal fun ColdLaunchEvent.toEvent(): Event {
     return Event(
         type = EventType.COLD_LAUNCH,
-        timestamp = timestamp,
+        timestamp = timestamp.iso8601Timestamp(),
         data = Json.encodeToJsonElement(ColdLaunchEvent.serializer(), this),
+        thread_name = thread_name
+    )
+}
+
+internal fun WarmLaunchEvent.toEvent(): Event {
+    return Event(
+        type = EventType.WARM_LAUNCH,
+        timestamp = timestamp.iso8601Timestamp(),
+        data = Json.encodeToJsonElement(WarmLaunchEvent.serializer(), this),
+        thread_name = thread_name
+    )
+}
+
+internal fun HotLaunchEvent.toEvent(): Event {
+    return Event(
+        type = EventType.HOT_LAUNCH,
+        timestamp = timestamp.iso8601Timestamp(),
+        data = Json.encodeToJsonElement(HotLaunchEvent.serializer(), this),
         thread_name = thread_name
     )
 }
