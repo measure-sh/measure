@@ -57,6 +57,18 @@ const emptyData = {
   "multiple_anr_free_users": {
     "value": 0,
     "delta": 0
+  },
+  "app_cold_launch": {
+    "value": 0,
+    "delta": 0
+  },
+  "app_warm_launch": {
+    "value": 0,
+    "delta": 0
+  },
+  "app_hot_launch": {
+    "value": 0,
+    "delta": 0
   }
 }
 
@@ -89,9 +101,9 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ authToken, appId, sta
         <InfoCircleExceptionRate message={message} title="ANR free users" tooltipMsgLine1="ANR free users = (1 - Users who experienced an ANR in selected app version / Total users of selected app version) * 100" tooltipMsgLine2="Delta value = ((ANR free users in selected app version - ANR free users across all app versions) / ANR free users across all app versions) * 100" value={data.anr_free_users.value} delta={data.anr_free_users.delta} />
         <InfoCircleExceptionRate message={message} title="Perceived ANR free users" tooltipMsgLine1="Perceived ANR free users = (1 - Users who experienced a visible ANR in selected app version / Total users of selected app version) * 100" tooltipMsgLine2="Delta value = ((Perceived ANR free users in selected app version - Perceived ANR free users across all app versions) / Perceived ANR free users across all app versions) * 100" value={data.perceived_anr_free_users.value} delta={data.perceived_anr_free_users.delta} />
         <InfoCircleExceptionRate message={message} title="Multiple ANR free users" tooltipMsgLine1="Multiple ANR free users = (1 - Users who experienced at least 2 ANRs in selected app version / Total users of selected app version) * 100" tooltipMsgLine2="Delta value = ((Mulitple ANR free users in selected app version - Multiple ANR free users across all app versions) / Multiple ANR free users across all app versions) * 100" value={data.multiple_anr_free_users.value} delta={data.multiple_anr_free_users.delta} />
-        <InfoCircleAppStartTime title="App cold launch time" launchType="Cold" value={900} delta={-200} />
-        <InfoCircleAppStartTime title="App warm launch time" launchType="Warm" value={600} delta={-1270} />
-        <InfoCircleAppStartTime title="App hot launch time" launchType="Hot" value={300} delta={-50} />
+        <InfoCircleAppStartTime message={message} title="App cold launch time" launchType="Cold" value={data.app_cold_launch.value} delta={data.app_cold_launch.delta} />
+        <InfoCircleAppStartTime message={message} title="App warm launch time" launchType="Warm" value={data.app_warm_launch.value} delta={data.app_warm_launch.delta} />
+        <InfoCircleAppStartTime message={message} title="App hot launch time" launchType="Hot" value={data.app_hot_launch.value} delta={data.app_hot_launch.delta} />
       </div>
   );
 };
