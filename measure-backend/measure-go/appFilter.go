@@ -38,15 +38,19 @@ func (af *AppFilter) validate() error {
 
 	// time validations
 	if af.To.Before(af.From) {
-		return fmt.Errorf("`from` and `to` time range is invalid")
+		return fmt.Errorf("`to` must be later time than `from`")
+	}
+
+	if af.From.After(time.Now().UTC()) {
+		return fmt.Errorf("`from` cannot be later than now")
 	}
 
 	if af.From.IsZero() && !af.To.IsZero() {
-		return fmt.Errorf("`from` and `to` time range is invalid")
+		return fmt.Errorf("both `from` and `to` time must be set")
 	}
 
 	if af.To.IsZero() && !af.From.IsZero() {
-		return fmt.Errorf("`from` and `to` time range is invalid")
+		return fmt.Errorf("both `from` and `to` time must be set")
 	}
 
 	return nil
