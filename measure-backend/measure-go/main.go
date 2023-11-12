@@ -48,10 +48,14 @@ func main() {
 		})
 	})
 
+	// SDK routes
 	r.PUT("/sessions", authorize(), putSession)
 	r.PUT("/mappings", authorize(), putMapping)
+
+	// dashboard routes
 	r.Use(cors).GET("/apps/:id/journey", authorize(), getAppJourney)
 	r.Use(cors).GET("/apps/:id/metrics", authorize(), getAppMetrics)
+	r.Use(cors).GET("/teams", authorize(), getTeams)
 
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080
 }
