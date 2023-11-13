@@ -21,7 +21,11 @@ async function getMetricsOverviewData( authToken: string, appId:string, startDat
       "Authorization": `Bearer ${authToken}`
     }
   };
-  return await fetch(`${origin}/apps/${appId}/metrics?appVersion=${appVersion}&startDate=${startDate}&endDate=${endDate}`, opts);
+
+  const serverFormattedStartDate = new Date(startDate).toISOString()
+  const serverFormattedEndDate = new Date(endDate).toISOString()
+  const fakeUUID = 'e2d2f609-7425-4077-a7ff-1d09e62c84d6'
+  return await fetch(`${origin}/apps/${fakeUUID}/metrics?appVersion=${appVersion}&startDate=${serverFormattedStartDate}&endDate=${serverFormattedEndDate}`, opts);
 }
 
 const emptyData = {
