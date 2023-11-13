@@ -121,3 +121,203 @@ func getAppMetrics(c *gin.Context) {
 
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
+
+func getAppFilters(c *gin.Context) {
+	appId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `app id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	appFiltersMap := map[string]string{
+		"59ba1c7f-2a42-4b7f-b9cb-735d25146675": `{
+			"version": ["13.2.1", "13.2.2", "13.3.7"],
+			"country": [
+			  {
+				"code": "IN",
+				"name": "India"
+			  },
+			  {
+				"code": "CN",
+				"name": "China"
+			  },
+			  {
+				"code": "US",
+				"name": "USA"
+			  }
+			],
+			"network_provider": ["Airtel", "Jio", "Vodafone"],
+			"network_type": ["WiFi", "5G", "4G", "3G", "2G", "Edge"],
+			"locale": ["en_IN", "en_US", "en_UK"],
+			"device_manufacturer": ["Samsung", "Huawei", "Motorola"],
+			"device_name": ["Samsung Galaxy Note 2", "Motorola Razor V2", "Huawei P30 Pro"]
+		  }`,
+		"243f3214-0f41-4361-8ef3-21d8f5d99a70": `{
+			"version": ["13.2.1", "13.2.2", "13.3.9", "13.3.10"],
+			"country": [
+			  {
+				"code": "IN",
+				"name": "India"
+			  },
+			  {
+				"code": "CN",
+				"name": "China"
+			  },
+			  {
+				"code": "US",
+				"name": "USA"
+			  }
+			],
+			"network_provider": ["Airtel", "Jio", "Vodafone"],
+			"network_type": ["WiFi", "4G", "3G", "2G"],
+			"locale": ["en_IN", "en_US", "en_UK", "zh_HK"],
+			"device_manufacturer": ["Samsung", "Huawei", "Motorola"],
+			"device_name": ["Samsung Galaxy Note 2", "Motorola Razor V2", "Huawei P30 Pro"]
+		  }`,
+		"bae4fb9e-07cd-4435-a42e-d99986830c2c": `{
+			"version": ["13.3.9", "13.3.12"],
+			"country": [
+			  {
+				"code": "IN",
+				"name": "India"
+			  },
+			  {
+				"code": "CN",
+				"name": "China"
+			  }
+			],
+			"network_provider": ["Airtel", "Jio", "Vodafone"],
+			"network_type": ["WiFi", "4G", "2G"],
+			"locale": ["en_IN", "en_UK", "zh_HK"],
+			"device_manufacturer": ["Samsung", "Huawei", "Lenovo"],
+			"device_name": ["Samsung Galaxy Note 2", "Lenovo Legion Y90", "Huawei P30 Pro"]
+		  }`,
+		"c6643110-d3e5-4b1c-bfcc-75b46b52ae79": `{
+			"version": ["2.2.1", "2.3.2", "3.1.0"],
+			"country": [
+			  {
+				"code": "IT",
+				"name": "Italy"
+			  },
+			  {
+				"code": "CN",
+				"name": "China"
+			  },
+			  {
+				"code": "DE",
+				"name": "Germany"
+			  }
+			],
+			"network_provider": ["Airtel", "Jio", "Vodafone", "Wind Tre", "TIM", "FASTWEB", "Iliad", "Telekom", "O₂"],
+			"network_type": ["WiFi", "5G", "4G", "3G", "2G", "Edge"],
+			"locale": ["en_IN", "en_US", "en_UK", "it-IT", "en_HK", "zh_HK", "zh_Hans_HK", "ii_CN", "de_DE", "en_DE", "dsb_DE", "hsb_DE"],
+			"device_manufacturer": ["Vivo", "Honor", "Oppo", "Huawei", "Xiaomi", "Lenovo", "Samsung"],
+			"device_name": ["Samsung Galaxy Note 2", "Motorola Razor V2", "Huawei P30 Pro", "Vivo X900 Pro+", "Oppo Find X6 Pro", "Honor Magic5 Pro", "Xiaomi 13 Pro", "Lenovo Legion Y90", "Samsung Galaxy S23 Ultra"]
+		  }`,
+		"e2abe28a-f6bc-4f57-88fe-81f10d1c5afc": `{
+			"version": ["2.2.1", "2.3.2", "3.1.4"],
+			"country": [
+			  {
+				"code": "IT",
+				"name": "Italy"
+			  },
+			  {
+				"code": "CN",
+				"name": "China"
+			  },
+			  {
+				"code": "DE",
+				"name": "Germany"
+			  }
+			],
+			"network_provider": ["Vodafone", "Wind Tre", "TIM", "FASTWEB", "Iliad", "Telekom", "O₂"],
+			"network_type": ["WiFi", "5G", "4G", "3G"],
+			"locale": ["en_IN", "en_US", "it-IT", "en_HK", "zh_HK", "zh_Hans_HK", "ii_CN", "de_DE", "en_DE", "dsb_DE", "hsb_DE"],
+			"device_manufacturer": ["Vivo", "Honor", "Oppo", "Xiaomi", "Lenovo", "Samsung"],
+			"device_name": ["Samsung Galaxy Note 2", "Vivo X900 Pro+", "Oppo Find X6 Pro", "Honor Magic5 Pro", "Xiaomi 13 Pro", "Lenovo Legion Y90", "Samsung Galaxy S23 Ultra"]
+		  }`,
+		"b17f7003-4ab6-4b1a-a5d8-ed5a72cb4569": `{
+			"version": ["2.2.1", "2.3.2", "3.1.1"],
+			"country": [
+			  {
+				"code": "CN",
+				"name": "China"
+			  },
+			  {
+				"code": "DE",
+				"name": "Germany"
+			  }
+			],
+			"network_provider": ["Vodafone", "Wind Tre", "TIM", "FASTWEB", "Telekom", "O₂"],
+			"network_type": ["WiFi", "4G", "3G", "2G", "Edge"],
+			"locale": ["en_IN", "en_US", "en_UK", "it-IT", "en_HK", "zh_HK", "zh_Hans_HK", "ii_CN", "de_DE", "en_DE", "dsb_DE", "hsb_DE"],
+			"device_manufacturer": ["Vivo", "Honor", "Oppo", "Huawei", "Lenovo", "Samsung"],
+			"device_name": ["Samsung Galaxy Note 2", "Motorola Razor V2", "Huawei P30 Pro", "Vivo X900 Pro+", "Oppo Find X6 Pro", "Honor Magic5 Pro", "Lenovo Legion Y90", "Samsung Galaxy S23 Ultra"]
+		  }`,
+		"20014be8-aaa9-4e56-8810-9f1a48ec1099": `{
+			"version": ["3.2.1", "3.3.2", "3.5.1", "3.5.2"],
+			"country": [
+			  {
+				"code": "EE",
+				"name": "Estonia"
+			  },
+			  {
+				"code": "CH",
+				"name": "Switzerland"
+			  }
+			],
+			"network_provider": ["Telia", "Elisa", "Tele2", "Swisscom", "Sunrise", "Salt"],
+			"network_type": ["WiFi", "5G", "4G", "3G", "2G", "Edge"],
+			"locale": ["en_IN", "en_US", "en_CA", "it-CH", "rm_CH", "gsw_CH", "et_EE"],
+			"device_manufacturer": ["Vivo", "Honor", "Oppo", "Huawei", "Lenovo", "Samsung", "Realme", "OnePlus", "Nokia"],
+			"device_name": ["Huawei P30 Pro", "OnePlus 11 Pro", "Vivo X900 Pro+", "Noia X30", "Oppo Find X6 Pro", "Honor Magic5 Pro", "Lenovo Legion Y90", "Samsung Galaxy S23 Ultra"]
+		  }`,
+		"463c959c-94c2-4f49-bd2b-6caab360c152": `{
+			"version": ["3.3.2", "3.5.1", "3.5.2", "3.5.3"],
+			"country": [
+			  {
+				"code": "EE",
+				"name": "Estonia"
+			  },
+			  {
+				"code": "CH",
+				"name": "Switzerland"
+			  }
+			],
+			"network_provider": ["Telia", "Elisa", "Tele2", "Swisscom", "Sunrise", "Salt"],
+			"network_type": ["5G", "4G", "3G", "2G"],
+			"locale": ["en_CA", "it-CH", "rm_CH", "gsw_CH", "et_EE"],
+			"device_manufacturer": ["Honor", "Oppo", "Huawei", "Lenovo", "Samsung", "Realme", "OnePlus", "Nokia"],
+			"device_name": ["Huawei P30 Pro", "OnePlus 11 Pro", "Noia X30", "Oppo Find X6 Pro", "Honor Magic5 Pro", "Lenovo Legion Y90", "Samsung Galaxy S23 Ultra"]
+		  }`,
+		"2a7f230e-6d5e-4036-b4e6-1102c22f4433": `{
+			"version": ["3.5.1", "3.5.2", "3.5.3", "3.6.0"],
+			"country": [
+			  {
+				"code": "EE",
+				"name": "Estonia"
+			  },
+			  {
+				"code": "CH",
+				"name": "Switzerland"
+			  }
+			],
+			"network_provider": ["Telia", "Elisa", "Tele2", "Swisscom", "Sunrise", "Salt"],
+			"network_type": ["WiFi", "5G", "4G", "2G", "Edge"],
+			"locale": ["en_IN", "en_US", "en_CA", "it-CH", "rm_CH", "gsw_CH", "et_EE"],
+			"device_manufacturer": ["Vivo", "Honor", "Oppo", "Huawei", "Realme", "OnePlus", "Nokia"],
+			"device_name": ["Huawei P30 Pro", "OnePlus 11 Pro", "Vivo X900 Pro+", "Noia X30", "Oppo Find X6 Pro", "Honor Magic5 Pro"]
+		  }`,
+	}
+
+	appFilters := appFiltersMap[appId.String()]
+
+	if appFilters == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("no app filters exists for app [%s]", appId.String())})
+	} else {
+		c.Data(http.StatusOK, "application/json", []byte(appFilters))
+	}
+
+}
