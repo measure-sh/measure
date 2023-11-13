@@ -348,6 +348,18 @@ These headers must be present in each request.
     "multiple_anr_free_users": {
       "value": 97.26,
       "delta": -2.85
+    },
+    "app_cold_launch": {
+      "value": 937,
+      "delta": 34
+    },
+    "app_warm_launch": {
+      "value": 600,
+      "delta": -87
+    },
+    "app_hot_launch": {
+      "value": 250,
+      "delta": -55
     }
   }
   ```
