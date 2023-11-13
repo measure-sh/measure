@@ -716,7 +716,7 @@ Use the `lifecycle_app` type for Android's app lifecycle events.
 
 #### **`cold_launch`**
 
-Use the `cold_launch` type for HTTP responses.
+Use the `cold_launch` type for tracking app launch time.
 
 | Field                           | Type    | Optional | Comment                                                                            |
 | ------------------------------- | ------- | -------- | ---------------------------------------------------------------------------------- |
