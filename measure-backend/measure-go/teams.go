@@ -76,7 +76,7 @@ func getApps(c *gin.Context) {
 	teamId, err := uuid.Parse(c.Param("id"))
 
 	if err != nil {
-		msg := `team id is invalid or missing bal bla`
+		msg := `team id is invalid or missing`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
@@ -84,7 +84,7 @@ func getApps(c *gin.Context) {
 	app := appMap[teamId.String()]
 
 	if app == "" {
-		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("no app exists for team %s", teamId.String())})
+		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("no apps exists for team [%s]", teamId.String())})
 	} else {
 		c.Data(http.StatusOK, "application/json", []byte(app))
 	}
