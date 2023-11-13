@@ -22,7 +22,7 @@ import (
 
 type MappingFile struct {
 	ID           uuid.UUID
-	AppID        string
+	AppUniqueID  string
 	VersionName  string
 	VersionCode  string
 	Type         string
@@ -45,7 +45,7 @@ func (m *MappingFile) shouldUpsert() (bool, *uuid.UUID, error) {
 	var id uuid.UUID
 	var key string
 	var existingHash string
-	if err := server.pgPool.QueryRow(context.Background(), "select id, key, fnv1_hash from mapping_files where app_id = $1 and version_name = $2 and version_code = $3 and mapping_type = $4;", m.AppID, m.VersionName, m.VersionCode, m.Type).Scan(&id, &key, &existingHash); err != nil {
+	if err := server.pgPool.QueryRow(context.Background(), "select id, key, fnv1_hash from mapping_files where app_unique_id = $1 and version_name = $2 and version_code = $3 and mapping_type = $4;", m.AppUniqueID, m.VersionName, m.VersionCode, m.Type).Scan(&id, &key, &existingHash); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return true, nil, nil
 		} else {
@@ -68,7 +68,7 @@ func (m *MappingFile) upload() (*s3manager.UploadOutput, error) {
 	}
 	metadata := map[string]*string{
 		"original_file_name": &m.File.Filename,
-		"app_id":             &m.AppID,
+		"app_unique_id":      &m.AppUniqueID,
 		"version_name":       &m.VersionName,
 		"version_code":       &m.VersionCode,
 		"type":               &m.Type,
@@ -87,7 +87,7 @@ func (m *MappingFile) upload() (*s3manager.UploadOutput, error) {
 }
 
 func (m *MappingFile) insert() error {
-	if _, err := server.pgPool.Exec(context.Background(), "insert into mapping_files (id, app_id, version_name, version_code, mapping_type, key, location, fnv1_hash, file_size, last_updated) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);", m.ID, m.AppID, m.VersionName, m.VersionCode, m.Type, m.Key, m.Location, m.ContentHash, m.File.Size, time.Now()); err != nil {
+	if _, err := server.pgPool.Exec(context.Background(), "insert into mapping_files (id, app_unique_id, version_name, version_code, mapping_type, key, location, fnv1_hash, file_size, last_updated) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);", m.ID, m.AppUniqueID, m.VersionName, m.VersionCode, m.Type, m.Key, m.Location, m.ContentHash, m.File.Size, time.Now()); err != nil {
 		return err
 	}
 
@@ -123,8 +123,8 @@ func (m *MappingFile) checksum() error {
 }
 
 func (m *MappingFile) validate() (int, error) {
-	if m.AppID == "" {
-		return http.StatusBadRequest, errors.New(`missing field "app_id"`)
+	if m.AppUniqueID == "" {
+		return http.StatusBadRequest, errors.New(`missing field "app_unique_id"`)
 	}
 
 	if m.VersionName == "" {
@@ -164,7 +164,7 @@ func putMapping(c *gin.Context) {
 	}
 	mappingFile := &MappingFile{
 		ID:          uuid.New(),
-		AppID:       c.PostForm("app_id"),
+		AppUniqueID: c.PostForm("app_unique_id"),
 		VersionName: c.PostForm("version_name"),
 		VersionCode: c.PostForm("version_code"),
 		Type:        c.PostForm("type"),
@@ -241,7 +241,7 @@ func uploadToStorage(f *multipart.File, k string, m map[string]*string) (*s3mana
 		Body:   *f,
 		Metadata: map[string]*string{
 			"original_file_name": aws.String(*m["original_file_name"]),
-			"app_id":             aws.String(*m["app_id"]),
+			"app_unique_id":      aws.String(*m["app_unique_id"]),
 			"version_name":       aws.String(*m["version_name"]),
 			"version_code":       aws.String(*m["version_code"]),
 			"mapping_type":       aws.String(*m["type"]),
