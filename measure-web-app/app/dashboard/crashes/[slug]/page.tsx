@@ -228,9 +228,9 @@ export default function CrashDetails({ params }: { params: { slug: string } }) {
       <div className="flex flex-wrap gap-8 items-center w-5/6">
         <Dropdown items={apps} onChangeSelectedItem={(item) => setSelectedApp(item)} />
         <div className="flex flex-row items-center">
-          <input type="date" defaultValue={startDate} className="font-display text-black border border-black rounded-md p-2" onChange={(e) => setStartDate(e.target.value)} />
+          <input type="date" defaultValue={startDate} max={endDate} className="font-display text-black border border-black rounded-md p-2" onChange={(e) => setStartDate(e.target.value)} />
           <p className="text-black font-display px-2">to</p>
-          <input type="date" defaultValue={endDate} className="font-display text-black border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
+          <input type="date" defaultValue={endDate} min={startDate} className="font-display text-black border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
         </div>
         <CheckboxDropdown title="App versions" items={versions} onChangeSelectedItems={(items) => setSelectedVersions(items)}/>
         <CheckboxDropdown title="Country" items={countries} onChangeSelectedItems={(items) => setSelectedCountries(items)}/>
