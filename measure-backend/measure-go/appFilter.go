@@ -56,14 +56,14 @@ func (af *AppFilter) validate() error {
 	return nil
 }
 
-// hasVersion returns true if the request set
-// a version otherwise false
+// hasVersion returns true if the request sets
+// a version, otherwise false
 func (af *AppFilter) hasVersion() bool {
 	return af.Version != ""
 }
 
-// hasTimeRange return true if the request set
-// a valid time range otherwise false
+// hasTimeRange returns true if the request sets
+// a valid time range, otherwise false
 func (af *AppFilter) hasTimeRange() bool {
 	return !af.From.IsZero() && !af.To.IsZero()
 }
