@@ -1,0 +1,73 @@
+name: API Server
+on:
+  push:
+    paths:
+      - "measure-backend/measure-go/**"
+  pull_request:
+    paths:
+      - "measure-backend/measure-go/**"
+
+jobs:
+  build:
+    name: Build API server
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.21.x"]
+    defaults:
+      run:
+        working-directory: measure-backend/measure-go
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Display go version
+        run: go version
+      - name: Install dependencies
+        run: go get .
+      - name: Build with ${{ matrix.go-version }}
+        run: go build -v ./...
+
+  test:
+    name: Test API server
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.21.x"]
+    defaults:
+      run:
+        working-directory: measure-backend/measure-go
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Display go version
+        run: go version
+      - name: Install dependencies
+        run: go get .
+      - name: Test with ${{ matrix.go-version }}
+        run: go test
+
+  deploy:
+    name: Deploy API server
+    if: github.ref == 'refs/heads/main'
+    needs: [build, test]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: measure-backend/measure-go
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Deploy to fly.io
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
