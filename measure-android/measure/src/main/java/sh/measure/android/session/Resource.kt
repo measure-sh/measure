@@ -19,6 +19,7 @@ data class Resource(
     val device_width_px: Int? = null,
     val device_height_px: Int? = null,
     val device_density: Float? = null,
+    val device_locale: String? = null,
     // os info
     val os_name: String? = null,
     val os_version: String? = null,
