@@ -7,8 +7,8 @@ import UserFlow from "@/app/components/user_flow";
 import MetricsOverview from '@/app/components/metrics_overview';
 
 export default function Overview() {
-  var apps = ['Readly prod', 'Readly alpha', 'Readly debug'];
-  const [selectedApp, setSelectedApp] = useState(apps[0]);
+  var apps = [{'id':'59ba1c7f-2a42-4b7f-b9cb-735d25146675', 'name': 'Readly prod'}, {'id':'243f3214-0f41-4361-8ef3-21d8f5d99a70', 'name': 'Readly alpha'}, {'id':'bae4fb9e-07cd-4435-a42e-d99986830c2c', 'name': 'Readly debug'}];
+  const [selectedApp, setSelectedApp] = useState(apps[0].id);
 
   var versions = ['Version 13.2.1', 'Version 13.2.2', 'Version 13.3.7'];
   const [selectedVersion, setSelectedVersion] = useState(versions[0]);
@@ -34,7 +34,7 @@ export default function Overview() {
       <p className="font-display font-regular text-black text-4xl max-w-6xl text-center">Overview</p>
       <div className="py-4" />
       <div className="flex flex-wrap gap-8 items-center">
-        <Dropdown items={apps} onChangeSelectedItem={(item) => setSelectedApp(item)} />
+        <Dropdown items={apps.map((e) => e.name)} onChangeSelectedItem={(item) => setSelectedApp(apps.find((e) => e.name === item)!.id)} />
         <div className="flex flex-row items-center">
           <input type="date" defaultValue={startDate} max={endDate} className="font-display text-black border border-black rounded-md p-2" onChange={(e) => setStartDate(e.target.value)} />
           <p className="text-black font-display px-2">to</p>
@@ -44,7 +44,7 @@ export default function Overview() {
       </div>
       <div className="py-4" />
       <div className="flex flex-wrap gap-2 items-center w-5/6">
-        <FilterPill title={selectedApp} />
+        <FilterPill title={apps.find((e) => e.id === selectedApp)!.name} />
         <FilterPill title={`${formattedStartDate} to ${formattedEndDate}`} />
         <FilterPill title={selectedVersion} />
       </div>
