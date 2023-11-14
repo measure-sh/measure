@@ -7,10 +7,12 @@ import UserFlow from "@/app/components/user_flow";
 import MetricsOverview from '@/app/components/metrics_overview';
 
 export default function Overview() {
+  const [isUpdatingFilters, setUpdatingFilters] = useState(true);
+
   var apps = [{'id':'59ba1c7f-2a42-4b7f-b9cb-735d25146675', 'name': 'Readly prod'}, {'id':'243f3214-0f41-4361-8ef3-21d8f5d99a70', 'name': 'Readly alpha'}, {'id':'bae4fb9e-07cd-4435-a42e-d99986830c2c', 'name': 'Readly debug'}];
   const [selectedApp, setSelectedApp] = useState(apps[0].id);
 
-  var versions = ['Version 13.2.1', 'Version 13.2.2', 'Version 13.3.7'];
+  const [versions, setVersions] = useState([] as string[]);
   const [selectedVersion, setSelectedVersion] = useState(versions[0]);
   
   const today = new Date();
@@ -28,6 +30,31 @@ export default function Overview() {
     setFormattedEndDate(new Date(endDate).toLocaleDateString());
   }, [startDate, endDate]);
 
+  const getFilters = async (authToken:string, appId:string, ) => {
+    setUpdatingFilters(true)
+
+    const origin = "https://frosty-fog-7165.fly.dev"
+    const opts = {
+      headers: {
+        "Authorization": `Bearer ${authToken}`
+      }
+    };
+
+    const res = await fetch(`${origin}/apps/${appId}/filters`, opts);
+    if(!res.ok) {
+      throw("error fetching filters")
+    } 
+    const data = await res.json()
+
+    setVersions(data.version)
+    setSelectedVersion(data.version[0])
+    setUpdatingFilters(false)
+  }
+
+  useEffect(() => {
+    getFilters("abcde123", selectedApp)
+  }, [selectedApp]);
+
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
       <div className="py-4" />
@@ -40,18 +67,18 @@ export default function Overview() {
           <p className="text-black font-display px-2">to</p>
           <input type="date" defaultValue={endDate} min={startDate} className="font-display text-black border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
         </div>
-        <Dropdown items={versions} onChangeSelectedItem={(item) => setSelectedVersion(item)} />
+        {!isUpdatingFilters && <Dropdown items={versions} onChangeSelectedItem={(item) => setSelectedVersion(item)} />}
       </div>
       <div className="py-4" />
       <div className="flex flex-wrap gap-2 items-center w-5/6">
         <FilterPill title={apps.find((e) => e.id === selectedApp)!.name} />
         <FilterPill title={`${formattedStartDate} to ${formattedEndDate}`} />
-        <FilterPill title={selectedVersion} />
+        {!isUpdatingFilters && <FilterPill title={selectedVersion} />}
       </div>
       <div className="py-8" />
-      <UserFlow authToken="abcde123" appId={selectedApp} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />
+      {!isUpdatingFilters && <UserFlow authToken="abcde123" appId={selectedApp} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />}
       <div className="py-8" />
-      <MetricsOverview authToken="abcde123" appId={selectedApp} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />
+      {!isUpdatingFilters && <MetricsOverview authToken="abcde123" appId={selectedApp} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />}
     </div>
   )
 }
