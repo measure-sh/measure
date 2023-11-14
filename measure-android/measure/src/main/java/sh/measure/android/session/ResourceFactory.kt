@@ -7,6 +7,7 @@ import sh.measure.android.Config
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.network_change.NetworkInfoProvider
+import java.util.Locale
 
 interface ResourceFactory {
     fun create(): Resource
@@ -45,6 +46,7 @@ internal class ResourceFactoryImpl(
             device_width_px = resources.displayMetrics.widthPixels,
             device_height_px = resources.displayMetrics.heightPixels,
             device_density = resources.displayMetrics.density,
+            device_locale = getDeviceLocale().toLanguageTag(),
             os_name = "android",
             os_version = Build.VERSION.SDK_INT.toString(),
             platform = "android",
@@ -106,6 +108,10 @@ internal class ResourceFactoryImpl(
             logger.log(LogLevel.Error, "Error detecting emulator", e)
             null
         }
+    }
+
+    private fun getDeviceLocale(): Locale {
+        return Locale.getDefault()
     }
 
     private fun getMeasureVersion() = config.MEASURE_SDK_VERSION
