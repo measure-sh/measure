@@ -46,6 +46,7 @@ export default function DashboardLayout({
     const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading);
     const [authToken, setAuthToken] = useState("abcde123");
     const [teams, setTeams] = useState(emptyTeams);
+    const [selectedTeam, setSelectedTeam] = useState(teams[0].id)
 
     const getTeams = async (authToken:string) => {
       setTeamsApiStatus(TeamsApiStatus.Loading)
@@ -84,7 +85,7 @@ export default function DashboardLayout({
                 <div className="py-4"/>
                 {teamsApiStatus === TeamsApiStatus.Loading && <p className="text-lg text-center font-display">Loading teams...</p>}
                 {teamsApiStatus === TeamsApiStatus.Error && <p className="text-lg text-center font-display">Error fetching teams. Please try again.</p>}
-                {teamsApiStatus === TeamsApiStatus.Success && <TeamSwitcher items={teams.map((e) => e.name)}/>}
+                {teamsApiStatus === TeamsApiStatus.Success && <TeamSwitcher items={teams.map((e) => e.name)} onChangeSelectedItem={(item) => setSelectedTeam(teams.find((e) => e.name === item)!.id)}/>}
                 {teamsApiStatus === TeamsApiStatus.Success && <div className="py-4"/>}
                 {teamsApiStatus === TeamsApiStatus.Success &&
                   <ul>
@@ -108,7 +109,7 @@ export default function DashboardLayout({
               <div className="py-4"/>
                 {teamsApiStatus === TeamsApiStatus.Loading && <p className="text-lg text-center font-display">Updating...</p>}
                 {teamsApiStatus === TeamsApiStatus.Error && <p className="text-lg text-center font-display">Error fetching teams. Please try again.</p>}
-                {teamsApiStatus === TeamsApiStatus.Success && <TeamSwitcher items={teams.map((e) => e.name)}/>}
+                {teamsApiStatus === TeamsApiStatus.Success && <TeamSwitcher items={teams.map((e) => e.name)} onChangeSelectedItem={(item) => setSelectedTeam(teams.find((e) => e.name === item)!.id)}/>}
                 {teamsApiStatus === TeamsApiStatus.Success && <div className="py-4"/>}
                 {teamsApiStatus === TeamsApiStatus.Success &&
                   <ul>
