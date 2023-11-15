@@ -4,9 +4,11 @@ import React, { useEffect, useRef, useState } from 'react';
 
 interface TeamSwitcherProps {
   items: string[];
+  initialItemIndex?: number;
+  onChangeSelectedItem?: (item: string) => void;
 }
 
-const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items }) => {
+const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0, onChangeSelectedItem }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const TeamSwitcherRef = useRef<HTMLDivElement | null>(null);
@@ -47,6 +49,9 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items }) => {
   const selectItem = (item: string) => {
     setSelectedItem(item);
     setIsOpen(false);
+    if(onChangeSelectedItem) {
+      onChangeSelectedItem(item);
+    }
   };
 
   return (
@@ -55,10 +60,9 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items }) => {
         <button
           type="button"
           onClick={toggleTeamSwitcher}
-          className="aspect-square w-full text-black text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300"
-        >
+          className="aspect-square w-full text-black text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
           <div className="flex flex-row items-center">
-            <p className="pl-4">{selectedItem ? selectedItem : items[0]}</p>
+            <p className="pl-4">{selectedItem ? selectedItem : items[initialItemIndex]}</p>
             <p className="pl-3 pr-4 text-sm">⏷</p>
           </div>
         </button>
