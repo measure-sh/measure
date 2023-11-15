@@ -7,7 +7,13 @@ import UserFlow from "@/app/components/user_flow";
 import MetricsOverview from '@/app/components/metrics_overview';
 
 export default function Overview() {
-  const [isUpdatingFilters, setUpdatingFilters] = useState(true);
+  enum FiltersApiStatus {
+    Loading,
+    Success,
+    Error
+  }
+  
+  const [filtersApiStatus, setFiltersApiStatus] = useState(FiltersApiStatus.Loading);
 
   var apps = [{'id':'59ba1c7f-2a42-4b7f-b9cb-735d25146675', 'name': 'Readly prod'}, {'id':'243f3214-0f41-4361-8ef3-21d8f5d99a70', 'name': 'Readly alpha'}, {'id':'bae4fb9e-07cd-4435-a42e-d99986830c2c', 'name': 'Readly debug'}];
   const [selectedApp, setSelectedApp] = useState(apps[0].id);
@@ -31,7 +37,7 @@ export default function Overview() {
   }, [startDate, endDate]);
 
   const getFilters = async (authToken:string, appId:string, ) => {
-    setUpdatingFilters(true)
+    setFiltersApiStatus(FiltersApiStatus.Loading)
 
     const origin = "https://frosty-fog-7165.fly.dev"
     const opts = {
@@ -42,13 +48,13 @@ export default function Overview() {
 
     const res = await fetch(`${origin}/apps/${appId}/filters`, opts);
     if(!res.ok) {
-      throw("error fetching filters")
+      setFiltersApiStatus(FiltersApiStatus.Error)
     } 
     const data = await res.json()
 
     setVersions(data.version)
     setSelectedVersion(data.version[0])
-    setUpdatingFilters(false)
+    setFiltersApiStatus(FiltersApiStatus.Success)
   }
 
   useEffect(() => {
@@ -67,18 +73,20 @@ export default function Overview() {
           <p className="text-black font-display px-2">to</p>
           <input type="date" defaultValue={endDate} min={startDate} className="font-display text-black border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
         </div>
-        {!isUpdatingFilters && <Dropdown items={versions} onChangeSelectedItem={(item) => setSelectedVersion(item)} />}
+        {filtersApiStatus === FiltersApiStatus.Success && <Dropdown items={versions} onChangeSelectedItem={(item) => setSelectedVersion(item)} />}
       </div>
       <div className="py-4" />
       <div className="flex flex-wrap gap-2 items-center w-5/6">
         <FilterPill title={apps.find((e) => e.id === selectedApp)!.name} />
         <FilterPill title={`${formattedStartDate} to ${formattedEndDate}`} />
-        {!isUpdatingFilters && <FilterPill title={selectedVersion} />}
+        {filtersApiStatus === FiltersApiStatus.Success && <FilterPill title={selectedVersion} />}
       </div>
       <div className="py-8" />
-      {!isUpdatingFilters && <UserFlow authToken="abcde123" appId={selectedApp} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />}
+      {filtersApiStatus === FiltersApiStatus.Loading && <p className="text-lg font-display">Updating filters...</p>}
+      {filtersApiStatus === FiltersApiStatus.Error && <p className="text-lg font-display">Error fetching filters, please try again</p>}
+      {filtersApiStatus === FiltersApiStatus.Success && <UserFlow authToken="abcde123" appId={selectedApp} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />}
       <div className="py-8" />
-      {!isUpdatingFilters && <MetricsOverview authToken="abcde123" appId={selectedApp} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />}
+      {filtersApiStatus === FiltersApiStatus.Success && <MetricsOverview authToken="abcde123" appId={selectedApp} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />}
     </div>
   )
 }
