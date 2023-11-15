@@ -57,8 +57,10 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items }) => {
           onClick={toggleTeamSwitcher}
           className="aspect-square w-full text-black text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300"
         >
-          <span className="pl-4">{selectedItem ? selectedItem : items[0]}</span>
-          <span className="pl-3 pr-4 text-sm">⏷</span>
+          <div className="flex flex-row items-center">
+            <p className="pl-4">{selectedItem ? selectedItem : items[0]}</p>
+            <p className="pl-3 pr-4 text-sm">⏷</p>
+          </div>
         </button>
       </div>
 
