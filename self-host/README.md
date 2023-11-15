@@ -2,27 +2,70 @@
 
 Measure is designed from the ground up for easy self-hosting. Follow along to know how to run Measure on your own infrastructure.
 
-## Using Docker
+## Prerequisites
 
-Measure can run on Linux, macOS and Windows.
+- [Docker v24+](https://www.docker.com/)
+- [Supabase v1.112.0+](https://supabase.com/)
 
-> ### Requirements
->
-> Make sure you have [Docker](https://docker.com/) running on your machine. You can follow the official instructions on [docker.com](https://docs.docker.com/get-docker/.) to know how to install and run docker.
+## Installing Docker
 
-### 1. Clone the repository
+If you don't already have docker running, follow the official instructions on [docker.com](https://docs.docker.com/get-docker/) to install and run docker.
 
-    git clone git@github.com:measure-sh/measure.git
+## Installing Supabase
 
-### 2. Navigate to `measure-backend/self-host`
+If you don't have [supabase/cli](https://github.com/supabase/cli) installed, follow the instructions on the [README](https://github.com/supabase/cli/blob/main/README.md) page to install it first.
 
-    cd measure-backend/self-host
+If you are on `macOS`, you can install supabase-cli using homebrew.
 
-### 3. Launch Measure using docker compose
+```sh
+brew install supabase/tap/supabase
+```
 
-    docker compose up
+> Make sure to keep the supabase cli updated
 
-Give a few minutes for the docker containers to become ready. You should see logs similar to these.
+## 1. Clone the repository
+
+```sh
+git clone git@github.com:measure-sh/measure.git
+```
+
+## 2. Navigate to `./self-host`
+
+```sh
+cd self-host
+```
+
+## 3. Copy the supabase environment file
+
+```sh
+cp .env.example .env
+```
+
+## 4. Modify the variables in `.env`
+
+Configure the following variables:
+
+- `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID`
+- `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET`
+- `SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID`
+- `SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_SECRET`
+
+
+## 5. Start supabase
+
+```sh
+supabase start
+```
+
+It might take a few seconds for all the supabase containers to start and get healthy.
+
+## 6. Start measure
+
+```sh
+docker compose up
+```
+
+Give a minute for the docker containers to become ready. You should see logs similar to this.
 
 ```sh
 measure-postgres-1    | 2023-09-27 00:16:40.499 UTC [1] LOG:  starting PostgreSQL 15.4 (Debian 15.4-1.pgdg120+1) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 12.2.0-14) 12.2.0, 64-bit
@@ -38,16 +81,17 @@ measure-api-1         |  - using env:   export GIN_MODE=release
 measure-api-1         |  - using code:  gin.SetMode(gin.ReleaseMode)
 ```
 
-### 4. Open dashboard
+### 7. Open dashboard
 
-Navigate to [http://localhost:9999](http://localhost:9999) to visit the dashboard.
+Navigate to [http://localhost:3000](http://localhost:3000) to open Measure dashboard.
 
-### 5. Teardown & cleanup
+### 8. Teardown & cleanup
 
 To shutdown the containers, run.
 
 ```sh
 docker compose down
+supabase stop
 ```
 
 Any events or logs will be persisted the next time you run `docker compose up` again.
