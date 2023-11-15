@@ -49,6 +49,7 @@ export default function Overview() {
     const res = await fetch(`${origin}/apps/${appId}/filters`, opts);
     if(!res.ok) {
       setFiltersApiStatus(FiltersApiStatus.Error)
+      return
     } 
     const data = await res.json()
 
