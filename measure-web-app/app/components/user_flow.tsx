@@ -64,6 +64,7 @@ const UserFlow: React.FC<UserFlowProps> = ({ authToken, appId, startDate, endDat
   useEffect(() => {
     getData(authToken, appId, startDate, endDate, appVersion)
   }, [authToken, appId, startDate, endDate, appVersion]);
+  
   return (
     <div className="flex items-center justify-center border border-black text-black font-sans text-sm w-5/6 h-screen">
       { journeyApiStatus === JourneyApiStatus.Loading && <p className="text-lg">Updating data...</p> }
