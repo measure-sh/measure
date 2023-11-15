@@ -21,7 +21,7 @@ If you are on `macOS`, you can install supabase-cli using homebrew.
 brew install supabase/tap/supabase
 ```
 
-> Make sure to keep the supabase cli updated
+> Make sure to keep the supabase cli updated by running `brew upgrade` periodically
 
 ## 1. Clone the repository
 
