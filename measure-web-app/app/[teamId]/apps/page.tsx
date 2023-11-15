@@ -52,7 +52,7 @@ const addAppSteps = [
   }
 ]
 
-export default function Apps() {
+export default function Apps({ params }: { params: { teamId: string } }) {
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
       <div className="py-4"/>

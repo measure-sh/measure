@@ -42,7 +42,7 @@ const teamMembers = [
   }
 ];
 
-export default function Team() {
+export default function Team({ params }: { params: { teamId: string } }) {
   const defaultTeamName = "Anup's team"
   const [saveTeamNameButtonDisabled, setSaveTeamNameButtonDisabled] = useState(true);
 

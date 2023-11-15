@@ -6,7 +6,7 @@ import FilterPill from "@/app/components/filter_pill";
 import UserFlow from "@/app/components/user_flow";
 import MetricsOverview from '@/app/components/metrics_overview';
 
-export default function Overview() {
+export default function Overview({ params }: { params: { teamId: string } }) {
   enum FiltersApiStatus {
     Loading,
     Success,

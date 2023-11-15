@@ -6,29 +6,6 @@ import { usePathname } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import TeamSwitcher from "../components/team_switcher";
 
-const menuItems = [
-    {
-      href: '/dashboard/overview',
-      title: 'Overview',
-    },
-    {
-      href: '/dashboard/crashes',
-      title: 'Crashes',
-    },
-    {
-      href: '/dashboard/anrs',
-      title: 'ANRs',
-    },
-    {
-      href: '/dashboard/team',
-      title: 'Team',
-    },
-    {
-      href: '/dashboard/apps',
-      title: 'Apps',
-    },
-  ];
-
 export default function DashboardLayout({
     children,
 }: {
@@ -43,10 +20,36 @@ export default function DashboardLayout({
 
     const emptyTeams = [{'id':'', 'name':''}]
 
+    var menuItems = [
+      {
+        hrefSuffix: `overview`,
+        title: 'Overview',
+      },
+      {
+        hrefSuffix: 'crashes',
+        title: 'Crashes',
+      },
+      {
+        hrefSuffix: 'anrs',
+        title: 'ANRs',
+      },
+      {
+        hrefSuffix: 'team',
+        title: 'Team',
+      },
+      {
+        hrefSuffix: 'apps',
+        title: 'Apps',
+      },
+    ];
+
     const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading);
     const [authToken, setAuthToken] = useState("abcde123");
     const [teams, setTeams] = useState(emptyTeams);
     const [selectedTeam, setSelectedTeam] = useState(teams[0].id)
+
+    const pathName = usePathname();
+    const router = useRouter();
 
     const getTeams = async (authToken:string) => {
       setTeamsApiStatus(TeamsApiStatus.Loading)
@@ -66,15 +69,20 @@ export default function DashboardLayout({
       }
 
       setTeamsApiStatus(TeamsApiStatus.Success)
-      setTeams(await res.json())
+      const data = await res.json()
+      setTeams(data)
+      setSelectedTeam(data.find((e:{id:string, name:string}) => pathName.includes(e.id)).id)
     }
 
     useEffect(() => {
       getTeams(authToken)
     }, [authToken]);
 
-    const pathName = usePathname();
-    const router = useRouter();
+    const onTeamChanged = (item:string) => {
+      const selectedTeamId = teams.find((e) => e.name === item)!.id
+      const newPath = pathName.replace(/^\/[^\/]*/, '/' + selectedTeamId);
+      router.push(newPath)
+    }
 
     return (
       <div>
@@ -83,15 +91,16 @@ export default function DashboardLayout({
             <aside className="border-black border-r sticky top-0 h-screen">
               <nav className="flex flex-col p-2 h-full w-60">
                 <div className="py-4"/>
-                {teamsApiStatus === TeamsApiStatus.Loading && <p className="text-lg text-center font-display">Loading teams...</p>}
-                {teamsApiStatus === TeamsApiStatus.Error && <p className="text-lg text-center font-display">Error fetching teams. Please try again.</p>}
-                {teamsApiStatus === TeamsApiStatus.Success && <TeamSwitcher items={teams.map((e) => e.name)} onChangeSelectedItem={(item) => setSelectedTeam(teams.find((e) => e.name === item)!.id)}/>}
+                {teamsApiStatus === TeamsApiStatus.Loading && <p className="flex items-center justify-center self-center w-32 aspect-square text-xl font-display border border-black rounded-full">Updating...</p>}
+                {teamsApiStatus === TeamsApiStatus.Error && <p className="flex items-center justify-center self-center w-32 aspect-square text-xl font-display border border-black rounded-full">Error</p>}
+                {teamsApiStatus === TeamsApiStatus.Error && <p className="text-lg text-center font-display pt-4">Please refresh page to try again.</p>}
+                {teamsApiStatus === TeamsApiStatus.Success && <TeamSwitcher items={teams.map((e) => e.name)} initialItemIndex={teams.findIndex((e) => e.id === selectedTeam)} onChangeSelectedItem={(item) => onTeamChanged(item)}/>}
                 {teamsApiStatus === TeamsApiStatus.Success && <div className="py-4"/>}
                 {teamsApiStatus === TeamsApiStatus.Success &&
                   <ul>
-                      {menuItems.map(({ href, title }) => (
+                      {menuItems.map(({ hrefSuffix, title }) => (
                           <li key={title}>
-                              <Link href={href} className={`m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4 ${pathName.includes(href) && 'bg-neutral-950 text-white focus-visible:text-black hover:text-black'}`}>{title}</Link>
+                              <Link href={`/${selectedTeam}/${hrefSuffix}`} className={`m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4 ${pathName.includes(hrefSuffix) && 'bg-neutral-950 text-white focus-visible:text-black hover:text-black'}`}>{title}</Link>
                           </li>
                       ))}
                   </ul>}
@@ -107,15 +116,16 @@ export default function DashboardLayout({
             <aside>
               <nav className="flex flex-col p-2 h-full w-screen">
               <div className="py-4"/>
-                {teamsApiStatus === TeamsApiStatus.Loading && <p className="text-lg text-center font-display">Updating...</p>}
-                {teamsApiStatus === TeamsApiStatus.Error && <p className="text-lg text-center font-display">Error fetching teams. Please try again.</p>}
-                {teamsApiStatus === TeamsApiStatus.Success && <TeamSwitcher items={teams.map((e) => e.name)} onChangeSelectedItem={(item) => setSelectedTeam(teams.find((e) => e.name === item)!.id)}/>}
+              {teamsApiStatus === TeamsApiStatus.Loading && <p className="flex items-center justify-center self-center w-32 aspect-square text-xl font-display border border-black rounded-full">Updating...</p>}
+                {teamsApiStatus === TeamsApiStatus.Error && <p className="flex items-center justify-center self-center w-32 aspect-square text-xl font-display border border-black rounded-full">Error</p>}
+                {teamsApiStatus === TeamsApiStatus.Error && <p className="text-lg text-center font-display pt-4">Please refresh page to try again.</p>}
+                {teamsApiStatus === TeamsApiStatus.Success && <TeamSwitcher items={teams.map((e) => e.name)} initialItemIndex={teams.findIndex((e) => e.id === selectedTeam)} onChangeSelectedItem={(item) => onTeamChanged(item)}/>}
                 {teamsApiStatus === TeamsApiStatus.Success && <div className="py-4"/>}
                 {teamsApiStatus === TeamsApiStatus.Success &&
                   <ul>
-                      {menuItems.map(({ href, title }) => (
+                      {menuItems.map(({ hrefSuffix, title }) => (
                           <li key={title}>
-                              <Link href={href} className={`m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4 ${pathName.includes(href) && 'bg-neutral-950 text-white focus-visible:text-black hover:text-black'}`}>{title}</Link>
+                              <Link href={`/${selectedTeam}/${hrefSuffix}`} className={`m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4 ${pathName.includes(hrefSuffix) && 'bg-neutral-950 text-white focus-visible:text-black hover:text-black'}`}>{title}</Link>
                           </li>
                       ))}
                   </ul>}
