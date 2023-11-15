@@ -2,14 +2,14 @@ name: measure
 services:
   api:
     build:
-      context: ../measure-go
+      context: ../measure-backend/measure-go
     ports:
       - "8080:8080"
     env_file:
-      - ../measure-go/.env
+      - ../measure-backend/measure-go/.env
     develop:
       watch:
-        - path: ../measure-go
+        - path: ../measure-backend/measure-go
           action: rebuild
     depends_on:
       - clickhouse
@@ -19,30 +19,30 @@ services:
 
   symbolicator-retrace:
     build:
-      context: ../symbolicator-retrace
+      context: ../measure-backend/symbolicator-retrace
     ports:
       - "8181:8181"
     env_file:
-      - ../symbolicator-retrace/.env
+      - ../measure-backend/symbolicator-retrace/.env
     volumes:
       - symbolicator-volume:/data
     develop:
       watch:
-        - path: ../symbolicator-retrace
+        - path: ../measure-backend/symbolicator-retrace
           action: rebuild
 
   # symbolicator:
   #   build:
-  #     context: ../symbolicator
+  #     context: ../measure-backend/symbolicator
   #   ports:
   #     - "8181:8181"
   #   env_file:
-  #     - ../symbolicator/.env
+  #     - ../measure-backend/symbolicator/.env
   #   volumes:
   #     - symbolicator-volume:/data
   #   develop:
   #     watch:
-  #       - path: ../symbolicator
+  #       - path: ../measure-backend/symbolicator
   #         action: rebuild
 
   postgres:
