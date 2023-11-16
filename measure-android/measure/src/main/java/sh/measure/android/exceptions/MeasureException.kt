@@ -2,6 +2,8 @@ package sh.measure.android.exceptions
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import sh.measure.android.network_change.NetworkType
+import sh.measure.android.network_change.NetworkGeneration
 
 /**
  * Represents an exception in Measure. This is used to track handled and unhandled exceptions.
@@ -33,6 +35,23 @@ internal data class MeasureException(
      * Whether the exception was handled or not.
      */
     val handled: Boolean,
+
+    /**
+     * The [NetworkType] that was active when the exception occurred.
+     */
+    val network_type: String?,
+
+    /**
+     * The network provider that was active when the exception occurred. Only set for cellular
+     * networks.
+     */
+    val network_provider: String?,
+
+    /**
+     * The [NetworkGeneration] that was active when the exception occurred. Only set for cellular
+     * networks.
+     */
+    val network_generation: String?,
 
     /**
      * Whether is exception represents an ANR or not.

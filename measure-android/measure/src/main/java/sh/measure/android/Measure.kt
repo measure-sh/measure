@@ -19,6 +19,9 @@ import sh.measure.android.network.HttpClient
 import sh.measure.android.network.HttpClientOkHttp
 import sh.measure.android.network.Transport
 import sh.measure.android.network.TransportImpl
+import sh.measure.android.network_change.NetworkChangesCollector
+import sh.measure.android.network_change.NetworkInfoProvider
+import sh.measure.android.network_change.NetworkInfoProviderImpl
 import sh.measure.android.session.ResourceFactoryImpl
 import sh.measure.android.session.SessionController
 import sh.measure.android.session.SessionControllerImpl
@@ -30,6 +33,8 @@ import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.PidProvider
 import sh.measure.android.utils.PidProviderImpl
+import sh.measure.android.utils.SystemServiceProvider
+import sh.measure.android.utils.SystemServiceProviderImpl
 import sh.measure.android.utils.UUIDProvider
 
 object Measure {
@@ -46,9 +51,13 @@ object Measure {
         val timeProvider = AndroidTimeProvider()
         val idProvider = UUIDProvider()
         val config = Config
-        val resourceFactory = ResourceFactoryImpl(logger, context, config)
+        val systemServiceProvider: SystemServiceProvider = SystemServiceProviderImpl(context)
+        val networkInfoProvider: NetworkInfoProvider =
+            NetworkInfoProviderImpl(context, logger, systemServiceProvider)
+        val resourceFactory = ResourceFactoryImpl(logger, context, config, networkInfoProvider)
         val currentThread = CurrentThread()
-        val appExitProvider: AppExitProvider = AppExitProviderImpl(context, logger, currentThread)
+        val appExitProvider: AppExitProvider =
+            AppExitProviderImpl(logger, currentThread, systemServiceProvider)
         val pidProvider: PidProvider = PidProviderImpl()
         val sessionReportGenerator = SessionReportGenerator(logger, storage, appExitProvider)
         val sessionProvider =
@@ -67,13 +76,18 @@ object Measure {
         ).apply { start() }
 
         // Register data collectors
-        UnhandledExceptionCollector(logger, eventTracker, timeProvider).register()
-        AnrCollector(logger, context, timeProvider, eventTracker).register()
+        UnhandledExceptionCollector(logger, eventTracker, timeProvider, networkInfoProvider)
+            .register()
+        AnrCollector(logger, systemServiceProvider, networkInfoProvider, timeProvider, eventTracker)
+            .register()
         AppLaunchCollector(
             logger, application, timeProvider, coldLaunchTrace, eventTracker,
             coldLaunchListener = {
                 LifecycleCollector(context, eventTracker, timeProvider, currentThread).register()
                 GestureCollector(logger, eventTracker, timeProvider, currentThread).register()
+                NetworkChangesCollector(
+                    context, systemServiceProvider, logger, eventTracker, timeProvider, currentThread
+                ).register()
                 sessionController.syncAllSessions()
             },
         ).register()

@@ -6,6 +6,7 @@ import android.os.Build
 import sh.measure.android.Config
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.network_change.NetworkInfoProvider
 
 interface ResourceFactory {
     fun create(): Resource
@@ -15,7 +16,10 @@ interface ResourceFactory {
  * Factory to create a [Resource].
  */
 internal class ResourceFactoryImpl(
-    private val logger: Logger, private val context: Context, private val config: Config
+    private val logger: Logger,
+    private val context: Context,
+    private val config: Config,
+    private val networkInfoProvider: NetworkInfoProvider,
 ) : ResourceFactory {
     private val configuration = context.resources.configuration
     private val packageManager = context.packageManager
@@ -29,6 +33,7 @@ internal class ResourceFactoryImpl(
     }
 
     override fun create(): Resource {
+        val networkType = networkInfoProvider.getNetworkType()
         return Resource(
             device_name = Build.DEVICE,
             device_model = Build.MODEL,
@@ -46,9 +51,13 @@ internal class ResourceFactoryImpl(
             app_version = packageInfo.versionName,
             app_build = getBuildVersionCode(),
             app_unique_id = context.packageName,
-            measure_sdk_version = getMeasureVersion()
+            network_type = networkType,
+            network_generation = networkInfoProvider.getNetworkGeneration(networkType),
+            network_provider_name = networkInfoProvider.getNetworkProvider(networkType),
+            measure_sdk_version = getMeasureVersion(),
         )
     }
+
 
     // Using heuristics from:
     // https://android-developers.googleblog.com/2023/06/detecting-if-device-is-foldable-tablet.html

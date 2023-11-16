@@ -3,6 +3,7 @@ package sh.measure.android.exceptions
 import sh.measure.android.events.EventTracker
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.network_change.NetworkInfoProvider
 import sh.measure.android.utils.TimeProvider
 import java.lang.Thread.UncaughtExceptionHandler
 
@@ -19,6 +20,7 @@ internal class UnhandledExceptionCollector(
     private val logger: Logger,
     private val eventTracker: EventTracker,
     private val timeProvider: TimeProvider,
+    private val networkInfoProvider: NetworkInfoProvider
 ) : UncaughtExceptionHandler {
 
     private val originalHandler: UncaughtExceptionHandler? =
@@ -35,11 +37,15 @@ internal class UnhandledExceptionCollector(
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
         logger.log(LogLevel.Debug, "Unhandled exception received")
         try {
+            val networkType = networkInfoProvider.getNetworkType()
             val measureException = ExceptionFactory.createMeasureException(
                 throwable,
                 handled = false,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
                 thread = thread,
+                networkType = networkType,
+                networkGeneration = networkInfoProvider.getNetworkGeneration(networkType),
+                networkProvider = networkInfoProvider.getNetworkProvider(networkType)
             )
             eventTracker.trackUnhandledException(measureException)
         } catch (e: Throwable) {

@@ -8,6 +8,9 @@ import org.junit.Test
 import sh.measure.android.app_launch.ColdLaunchEvent
 import sh.measure.android.app_launch.HotLaunchEvent
 import sh.measure.android.app_launch.WarmLaunchEvent
+import sh.measure.android.network_change.NetworkChangeEvent
+import sh.measure.android.network_change.NetworkGeneration
+import sh.measure.android.network_change.NetworkType
 import sh.measure.android.exceptions.ExceptionFactory
 import sh.measure.android.gestures.ClickEvent
 import sh.measure.android.gestures.Direction
@@ -61,6 +64,9 @@ class EventKtTest {
             handled = false,
             timestamp = timestamp,
             thread = Thread.currentThread(),
+            networkType = null,
+            networkGeneration = null,
+            networkProvider = null,
             isAnr = false
         )
         val event = exception.toEvent()
@@ -79,6 +85,9 @@ class EventKtTest {
             handled = false,
             timestamp = timestamp,
             thread = Thread.currentThread(),
+            networkType = null,
+            networkGeneration = null,
+            networkProvider = null,
             isAnr = true
         )
         val event = exception.toEvent()
@@ -229,5 +238,26 @@ class EventKtTest {
         assertEquals(threadName, event.thread_name)
         assertEquals(timestampIso, event.timestamp)
         assertEquals(EventType.HOT_LAUNCH, event.type)
+    }
+
+    @Test
+    fun `ConnectivityChange toEvent() returns an event of type network_type_change`() {
+        val timestamp = 0L
+        val timestampIso = timestamp.iso8601Timestamp()
+        val threadName = "thread"
+        val connectivityChange = NetworkChangeEvent(
+            previous_network_type = NetworkType.WIFI,
+            network_type = NetworkType.CELLULAR,
+            previous_network_generation = null,
+            network_generation = NetworkGeneration.FIFTH_GEN,
+            network_provider = null,
+            timestamp = timestamp,
+            thread_name = threadName
+        )
+        val event = connectivityChange.toEvent()
+
+        assertEquals(threadName, event.thread_name)
+        assertEquals(timestampIso, event.timestamp)
+        assertEquals(EventType.NETWORK_CHANGE, event.type)
     }
 }

@@ -1,23 +1,27 @@
 package sh.measure.android.anr
 
-import android.content.Context
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.verify
 import sh.measure.android.events.EventTracker
 import sh.measure.android.exceptions.ExceptionFactory
+import sh.measure.android.fakes.FakeNetworkInfoProvider
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.utils.SystemServiceProvider
 
 class AnrCollectorTest {
     private val logger = NoopLogger()
     private val timeProvider = FakeTimeProvider()
+    private val networkInfoProvider = FakeNetworkInfoProvider()
     private val eventTracker = mock<EventTracker>()
-    private val context = mock<Context>()
+    private val systemServiceProvider = mock<SystemServiceProvider>()
 
     @Test
     fun `AnrCollector tracks exception using event tracker, when ANR is detected`() {
-        val anrCollector = AnrCollector(logger, context, timeProvider, eventTracker)
+        val anrCollector = AnrCollector(
+            logger, systemServiceProvider, networkInfoProvider, timeProvider, eventTracker
+        )
         val thread = Thread.currentThread()
         val message = "ANR"
         val timestamp = timeProvider.currentTimeSinceEpochInMillis
@@ -33,6 +37,9 @@ class AnrCollectorTest {
                 handled = false,
                 timestamp = anrError.timestamp,
                 thread = thread,
+                networkType = networkInfoProvider.getNetworkType(),
+                networkGeneration = networkInfoProvider.getNetworkGeneration(networkInfoProvider.getNetworkType()),
+                networkProvider = networkInfoProvider.getNetworkProvider(networkInfoProvider.getNetworkType()),
                 isAnr = true
             )
         )

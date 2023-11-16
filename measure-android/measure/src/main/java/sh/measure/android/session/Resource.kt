@@ -27,5 +27,8 @@ data class Resource(
     val app_version: String? = null,
     val app_build: String? = null,
     val app_unique_id: String? = null, // package name,
+    val network_type: String? = null,
+    val network_generation: String? = null,
+    val network_provider_name: String? = null,
     val measure_sdk_version: String? = null,
 )

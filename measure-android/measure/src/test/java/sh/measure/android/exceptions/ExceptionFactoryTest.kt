@@ -18,7 +18,7 @@ class ExceptionFactoryTest {
 
         // When
         val measureException = ExceptionFactory.createMeasureException(
-            exception, handled = true, timeProvider.currentTimeSinceEpochInMillis, thread
+            exception, handled = true, timeProvider.currentTimeSinceEpochInMillis, thread, null, null, null
         )
 
         // Then
@@ -40,7 +40,7 @@ class ExceptionFactoryTest {
 
         // When
         val measureException = ExceptionFactory.createMeasureException(
-            exception, handled = true, timeProvider.currentTimeSinceEpochInMillis, thread
+            exception, handled = true, timeProvider.currentTimeSinceEpochInMillis, thread, null, null, null
         )
 
         // Then
@@ -66,7 +66,7 @@ class ExceptionFactoryTest {
 
         // When
         val measureException = ExceptionFactory.createMeasureException(
-            exception, handled = true, timeProvider.currentTimeSinceEpochInMillis, thread
+            exception, handled = true, timeProvider.currentTimeSinceEpochInMillis, thread, null, null, null
         )
 
         // Then
@@ -81,10 +81,33 @@ class ExceptionFactoryTest {
 
         // When
         val measureException = ExceptionFactory.createMeasureException(
-            exception, handled = false, timeProvider.currentTimeSinceEpochInMillis, thread
+            exception, handled = false, timeProvider.currentTimeSinceEpochInMillis, thread, null, null, null
         )
 
         // Then
         assertFalse(measureException.handled)
+    }
+
+    @Test
+    fun `ExceptionFactory sets network info`() {
+        // Given
+        val exception = IllegalArgumentException("Test exception")
+        val thread = Thread.currentThread()
+
+        // When
+        val measureException = ExceptionFactory.createMeasureException(
+            exception,
+            handled = false,
+            timeProvider.currentTimeSinceEpochInMillis,
+            thread = thread,
+            networkType = "network_type",
+            networkGeneration = "network_gen",
+            networkProvider = "network_provider"
+        )
+
+        // Then
+        assertEquals("network_type", measureException.network_type)
+        assertEquals("network_gen", measureException.network_generation)
+        assertEquals("network_provider", measureException.network_provider)
     }
 }

@@ -1,5 +1,7 @@
 package sh.measure.android.fakes
 
+import sh.measure.android.network_change.NetworkGeneration
+import sh.measure.android.network_change.NetworkType
 import sh.measure.android.session.Resource
 import sh.measure.android.session.ResourceFactory
 
@@ -28,5 +30,8 @@ private fun fakeResource() = Resource(
     app_version = "app_version",
     app_build = "app_build",
     app_unique_id = "app_unique_id",
+    network_type = NetworkType.WIFI,
+    network_generation = NetworkGeneration.FIFTH_GEN,
+    network_provider_name = "Android",
     measure_sdk_version = "measure_sdk_version"
 )
