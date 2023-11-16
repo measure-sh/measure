@@ -68,8 +68,8 @@ const UserFlow: React.FC<UserFlowProps> = ({ authToken, appId, startDate, endDat
   return (
     <div className="flex items-center justify-center border border-black text-black font-sans text-sm w-5/6 h-screen">
       { journeyApiStatus === JourneyApiStatus.Loading && <p className="text-lg">Updating data...</p> }
-      { journeyApiStatus === JourneyApiStatus.Error && <p className="text-lg">Error fetching data. Please try again.</p> }
-      {  journeyApiStatus === JourneyApiStatus.Success 
+      { journeyApiStatus === JourneyApiStatus.Error && <p className="text-lg">Error fetching data. Please refresh page or change filters to try again.</p> }
+      { journeyApiStatus === JourneyApiStatus.Success 
                       && <ResponsiveSankey
                             data={data}
                             margin={{ top: 80, right: 120, bottom: 80, left: 120 }}
