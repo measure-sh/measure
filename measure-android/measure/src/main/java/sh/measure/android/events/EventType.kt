@@ -14,4 +14,5 @@ object EventType {
     const val COLD_LAUNCH: String = "cold_launch"
     const val WARM_LAUNCH: String = "warm_launch"
     const val HOT_LAUNCH: String = "hot_launch"
+    const val NETWORK_CHANGE: String = "network_change"
 }

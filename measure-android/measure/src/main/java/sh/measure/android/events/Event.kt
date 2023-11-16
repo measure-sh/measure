@@ -9,6 +9,7 @@ import sh.measure.android.app_launch.ColdLaunchEvent
 import sh.measure.android.app_launch.HotLaunchEvent
 import sh.measure.android.app_launch.WarmLaunchEvent
 import sh.measure.android.appexit.AppExit
+import sh.measure.android.network_change.NetworkChangeEvent
 import sh.measure.android.exceptions.MeasureException
 import sh.measure.android.gestures.ClickEvent
 import sh.measure.android.gestures.LongClickEvent
@@ -137,6 +138,14 @@ internal fun HotLaunchEvent.toEvent(): Event {
         type = EventType.HOT_LAUNCH,
         timestamp = timestamp.iso8601Timestamp(),
         data = Json.encodeToJsonElement(HotLaunchEvent.serializer(), this),
+        thread_name = thread_name
+    )
+}
+internal fun NetworkChangeEvent.toEvent() : Event {
+    return Event(
+        type = EventType.NETWORK_CHANGE,
+        timestamp = timestamp.iso8601Timestamp(),
+        data = Json.encodeToJsonElement(NetworkChangeEvent.serializer(), this),
         thread_name = thread_name
     )
 }

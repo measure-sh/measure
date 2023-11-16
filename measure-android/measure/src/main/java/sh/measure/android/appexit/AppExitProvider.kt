@@ -2,7 +2,6 @@ package sh.measure.android.appexit
 
 import android.app.ActivityManager
 import android.app.ApplicationExitInfo
-import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
 import okio.Buffer
@@ -12,6 +11,7 @@ import okio.source
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.CurrentThread
+import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.iso8601Timestamp
 import java.io.InputStream
 
@@ -20,23 +20,19 @@ internal interface AppExitProvider {
 }
 
 internal class AppExitProviderImpl(
-    private val context: Context, private val logger: Logger, val currentThread: CurrentThread
+    private val logger: Logger,
+    private val currentThread: CurrentThread,
+    private val systemServiceProvider: SystemServiceProvider
 ) : AppExitProvider {
 
     override fun get(pid: Int): AppExit? {
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
             return null
         }
-        return try {
-            val activityManager =
-                context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-            val historicalExitReason =
-                activityManager.getHistoricalProcessExitReasons(null, pid, 1).firstOrNull()
-            historicalExitReason?.toAppExit(currentThread.name)
-        } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Failed to get exit info for pid: $pid", e)
-            null
-        }
+        return systemServiceProvider.activityManager?.runCatching {
+            getHistoricalProcessExitReasons(null, pid, 1).firstOrNull()
+                ?.toAppExit(currentThread.name)
+        }?.getOrNull()
     }
 
     @RequiresApi(Build.VERSION_CODES.R)

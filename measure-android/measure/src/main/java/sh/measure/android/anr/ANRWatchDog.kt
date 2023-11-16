@@ -24,18 +24,18 @@ package sh.measure.android.anr
 
 import android.app.ActivityManager
 import android.app.ActivityManager.ProcessErrorStateInfo
-import android.content.Context
 import android.os.Debug
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
+import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.TimeProvider
 
 /**
  * A watchdog timer thread that detects when the UI thread has frozen.
  */
 internal class ANRWatchDog(
-    private val context: Context,
+    private val systemServiceProvider: SystemServiceProvider,
     private val timeoutInterval: Int,
     private val timeProvider: TimeProvider,
     private val anrListener: ANRListener,
@@ -85,8 +85,7 @@ internal class ANRWatchDog(
 
             // Verify ANR state by checking activity manager ProcessErrorStateInfo.
             // Don't report an ANR if the process error state is not ANR.
-            val activityManager =
-                context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+            val activityManager = systemServiceProvider.activityManager
             val pid = Process.myPid()
             val processErrorState = captureProcessErrorState(activityManager, pid)
             if (processErrorState != null && processErrorState.condition != ProcessErrorStateInfo.NOT_RESPONDING) {

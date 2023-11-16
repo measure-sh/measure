@@ -13,6 +13,7 @@ import sh.measure.android.lifecycle.ApplicationLifecycleEvent
 import sh.measure.android.lifecycle.FragmentLifecycleEvent
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.network_change.NetworkChangeEvent
 import sh.measure.android.session.SessionController
 
 internal interface EventTracker {
@@ -27,6 +28,7 @@ internal interface EventTracker {
     fun trackColdLaunch(event: ColdLaunchEvent)
     fun trackWarmLaunchEvent(event: WarmLaunchEvent)
     fun trackHotLaunchEvent(event: HotLaunchEvent)
+    fun trackNetworkChange(event: NetworkChangeEvent)
     fun storeAttachment(attachmentInfo: AttachmentInfo)
 }
 
@@ -95,6 +97,11 @@ internal class MeasureEventTracker(
 
     override fun trackHotLaunchEvent(event: HotLaunchEvent) {
         logger.log(LogLevel.Debug, "Tracking hot launch")
+        sessionController.storeEvent(event.toEvent())
+    }
+
+    override fun trackNetworkChange(event: NetworkChangeEvent) {
+        logger.log(LogLevel.Error, "Tracking network change ${event.network_type}")
         sessionController.storeEvent(event.toEvent())
     }
 

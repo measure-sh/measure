@@ -12,7 +12,10 @@ internal object ExceptionFactory {
         handled: Boolean,
         timestamp: Long,
         thread: Thread,
-        isAnr: Boolean = false
+        networkType: String?,
+        networkGeneration: String?,
+        networkProvider: String?,
+        isAnr: Boolean = false,
     ): MeasureException {
         val exceptions = mutableListOf<ExceptionUnit>()
         var error: Throwable? = throwable
@@ -42,17 +45,25 @@ internal object ExceptionFactory {
                 val measureThread = MeasureThread(
                     name = t.name,
                     frames = stackTrace.trimStackTrace().map { stackTraceElement ->
-                            Frame(
-                                class_name = stackTraceElement.className,
-                                method_name = stackTraceElement.methodName,
-                                file_name = stackTraceElement.fileName,
-                                line_num = stackTraceElement.lineNumber,
-                            )
-                        })
+                        Frame(
+                            class_name = stackTraceElement.className,
+                            method_name = stackTraceElement.methodName,
+                            file_name = stackTraceElement.fileName,
+                            line_num = stackTraceElement.lineNumber,
+                        )
+                    })
                 threads.add(measureThread)
             }
             count++
         }
-        return MeasureException(timestamp, thread.name, exceptions, threads, handled, isAnr)
+        return MeasureException(
+            timestamp, thread.name, exceptions,
+            threads = threads,
+            handled = handled,
+            network_type = networkType,
+            network_provider = networkProvider,
+            network_generation = networkGeneration,
+            isAnr = isAnr,
+        )
     }
 }

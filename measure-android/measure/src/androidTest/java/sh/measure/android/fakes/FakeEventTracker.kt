@@ -12,6 +12,7 @@ import sh.measure.android.gestures.ScrollEvent
 import sh.measure.android.lifecycle.ActivityLifecycleEvent
 import sh.measure.android.lifecycle.ApplicationLifecycleEvent
 import sh.measure.android.lifecycle.FragmentLifecycleEvent
+import sh.measure.android.network_change.NetworkChangeEvent
 
 @Suppress("MemberVisibilityCanBePrivate")
 internal class FakeEventTracker: EventTracker {
@@ -25,6 +26,7 @@ internal class FakeEventTracker: EventTracker {
     val trackedApplicationLifecycleEvents = mutableListOf<ApplicationLifecycleEvent>()
     val trackedColdLaunchEvents = mutableListOf<ColdLaunchEvent>()
     val trackedWarmLaunchEvents = mutableListOf<WarmLaunchEvent>()
+    val trackedNetworkChangeEvents = mutableListOf<NetworkChangeEvent>()
     val trackedHotLaunchEvents = mutableListOf<HotLaunchEvent>()
     val trackedAttachments = mutableListOf<AttachmentInfo>()
 
@@ -70,6 +72,10 @@ internal class FakeEventTracker: EventTracker {
 
     override fun trackHotLaunchEvent(event: HotLaunchEvent) {
         trackedHotLaunchEvents.add(event)
+    }
+
+    override fun trackNetworkChange(event: NetworkChangeEvent) {
+        trackedNetworkChangeEvents.add(event)
     }
 
     override fun storeAttachment(attachmentInfo: AttachmentInfo) {

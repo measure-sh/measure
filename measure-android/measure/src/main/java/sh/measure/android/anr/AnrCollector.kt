@@ -1,24 +1,26 @@
 package sh.measure.android.anr
 
-import android.content.Context
 import sh.measure.android.events.EventTracker
 import sh.measure.android.exceptions.ExceptionFactory
 import sh.measure.android.exceptions.MeasureException
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.network_change.NetworkInfoProvider
+import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.TimeProvider
 
 private const val ANR_TIMEOUT_MILLIS = 5000
 
 internal class AnrCollector(
     private val logger: Logger,
-    private val context: Context,
+    private val systemServiceProvider: SystemServiceProvider,
+    private val networkInfoProvider: NetworkInfoProvider,
     private val timeProvider: TimeProvider,
     private val tracker: EventTracker
 ) : ANRWatchDog.ANRListener {
     fun register() {
         ANRWatchDog(
-            context = context,
+            systemServiceProvider = systemServiceProvider,
             timeoutInterval = ANR_TIMEOUT_MILLIS,
             timeProvider = timeProvider,
             anrListener = this
@@ -31,11 +33,15 @@ internal class AnrCollector(
     }
 
     private fun toMeasureException(anr: AnrError): MeasureException {
+        val networkType = networkInfoProvider.getNetworkType()
         return ExceptionFactory.createMeasureException(
             throwable = anr,
             handled = false,
             timestamp = anr.timestamp,
             thread = anr.thread,
+            networkType = networkType,
+            networkGeneration = networkInfoProvider.getNetworkGeneration(networkType),
+            networkProvider = networkInfoProvider.getNetworkProvider(networkType),
             isAnr = true
         )
     }
