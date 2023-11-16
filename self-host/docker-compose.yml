@@ -1,6 +1,7 @@
 name: measure
 services:
   api:
+    container_name: api
     build:
       context: ../measure-backend/measure-go
     ports:
@@ -18,6 +19,7 @@ services:
       - symbolicator-retrace
 
   symbolicator-retrace:
+    container_name: symbolicator-retrace
     build:
       context: ../measure-backend/symbolicator-retrace
     ports:
@@ -46,6 +48,7 @@ services:
   #         action: rebuild
 
   postgres:
+    container_name: postgres
     image: postgres:15
     ports:
       - "5432:5432"
@@ -55,6 +58,7 @@ services:
       - postgres-volume:/var/lib/postgresql/data
 
   clickhouse:
+    container_name: clickhouse
     image: clickhouse/clickhouse-server:23
     ports:
       - "9000:9000/tcp"
