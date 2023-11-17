@@ -1,0 +1,8 @@
+[sqlfluff]
+dialect = postgres
+
+[sqlfluff:indentation]
+tab_space_size = 2
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = lower
