@@ -155,7 +155,7 @@ COMMENT ON COLUMN public.apps.updated_at IS 'utc timestamp at the time of app re
 
 CREATE TABLE public.mapping_files (
     id uuid NOT NULL,
-    app_id character varying(256) NOT NULL,
+    app_unique_id character varying(256) NOT NULL,
     version_name character varying(256) NOT NULL,
     version_code character varying(256) NOT NULL,
     mapping_type character varying(32) NOT NULL,
@@ -175,10 +175,10 @@ COMMENT ON COLUMN public.mapping_files.id IS 'unique id for each mapping file';
 
 
 --
--- Name: COLUMN mapping_files.app_id; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN mapping_files.app_unique_id; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.mapping_files.app_id IS 'unique identifier of the app';
+COMMENT ON COLUMN public.mapping_files.app_unique_id IS 'unique identifier of the app';
 
 
 --
