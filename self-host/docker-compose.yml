@@ -14,7 +14,6 @@ services:
           action: rebuild
     depends_on:
       - clickhouse
-      - postgres
       # - symbolicator
       - symbolicator-retrace
 
@@ -47,16 +46,6 @@ services:
   #       - path: ../measure-backend/symbolicator
   #         action: rebuild
 
-  postgres:
-    container_name: postgres
-    image: postgres:15
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_PASSWORD=postgres
-    volumes:
-      - postgres-volume:/var/lib/postgresql/data
-
   clickhouse:
     container_name: clickhouse
     image: clickhouse/clickhouse-server:23
@@ -71,5 +60,4 @@ services:
 
 volumes:
   clickhouse-volume:
-  postgres-volume:
   symbolicator-volume:
