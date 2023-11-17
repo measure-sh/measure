@@ -8,11 +8,15 @@ Measure is designed from the ground up for easy self-hosting. Follow along to kn
 - [Supabase v1.112.0+](https://supabase.com/)
 - [dbmate v2.8.0+](https://github.com/amacneil/dbmate)
 
-## Installing Docker
+### Installing Docker
 
 If you don't already have docker running, follow the official instructions on [docker.com](https://docs.docker.com/get-docker/) to install and run docker.
 
-## Installing Supabase
+### Installing Supabase
+
+> How Measure uses Supabase
+>
+> We use Supabase as a replacement for running a postgres instance from scratch. To try out measure on a local machine you don't need a Supabase account.
 
 If you don't have [supabase/cli](https://github.com/supabase/cli) installed, follow the instructions on the [README](https://github.com/supabase/cli/blob/main/README.md) page to install it first.
 
@@ -24,10 +28,9 @@ brew install supabase/tap/supabase
 
 > Make sure to keep the supabase cli updated by running `brew upgrade` periodically
 
-## Installing dbmate
+### Installing dbmate
 
 Measure uses [dbmate](https://github.com/amacneil/dbmate) for running database migrations to postgres and clickhouse instances. Follow the instructions on their GitHub README to install on your machine.
-
 
 ## 1. Clone the repository
 
@@ -56,7 +59,6 @@ Configure the following variables:
 - `SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID`
 - `SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_SECRET`
 
-
 ## 5. Start supabase
 
 ```sh
@@ -74,20 +76,30 @@ docker compose up
 Give a minute for the docker containers to become ready. You should see logs similar to this.
 
 ```sh
-measure-postgres-1    | 2023-09-27 00:16:40.499 UTC [1] LOG:  starting PostgreSQL 15.4 (Debian 15.4-1.pgdg120+1) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 12.2.0-14) 12.2.0, 64-bit
-measure-postgres-1    | 2023-09-27 00:16:40.500 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
-measure-postgres-1    | 2023-09-27 00:16:40.500 UTC [1] LOG:  listening on IPv6 address "::", port 5432
-measure-postgres-1    | 2023-09-27 00:16:40.500 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
-measure-postgres-1    | 2023-09-27 00:16:40.502 UTC [29] LOG:  database system was shut down at 2023-09-27 00:16:09 UTC
-measure-postgres-1    | 2023-09-27 00:16:40.506 UTC [1] LOG:  database system is ready to accept connections
-measure-api-1         | [GIN-debug] [WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
-measure-api-1         |
-measure-api-1         | [GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
-measure-api-1         |  - using env:   export GIN_MODE=release
-measure-api-1         |  - using code:  gin.SetMode(gin.ReleaseMode)
+api                   | 2023/11/17 10:26:37 using default value of MAPPING_FILE_MAX_SIZE
+api                   | [GIN-debug] [WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
+api                   |
+api                   | [GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+api                   |  - using env:   export GIN_MODE=release
+api                   |  - using code:  gin.SetMode(gin.ReleaseMode)
+api                   |
+api                   | [GIN-debug] GET    /ping                     --> main.main.func1 (3 handlers)
+api                   | [GIN-debug] PUT    /sessions                 --> main.putSession (4 handlers)
+api                   | [GIN-debug] PUT    /mappings                 --> main.putMapping (4 handlers)
+api                   | [GIN-debug] GET    /apps/:id/journey         --> main.getAppJourney (5 handlers)
+api                   | [GIN-debug] GET    /apps/:id/metrics         --> main.getAppMetrics (6 handlers)
+api                   | [GIN-debug] GET    /apps/:id/filters         --> main.getAppFilters (7 handlers)
+api                   | [GIN-debug] GET    /teams                    --> main.getTeams (8 handlers)
+api                   | [GIN-debug] GET    /teams/:id/apps           --> main.getApps (9 handlers)
+api                   | [GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
+api                   | Please check https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies for details.
+api                   | [GIN-debug] Listening and serving HTTP on :8080
+symbolicator-retrace  | 2023-11-17 10:26:37.654 [main] INFO  Application - Autoreload is disabled because the development mode is off.
+symbolicator-retrace  | 2023-11-17 10:26:37.791 [main] INFO  Application - Application started in 0.151 seconds.
+symbolicator-retrace  | 2023-11-17 10:26:37.842 [DefaultDispatcher-worker-1] INFO  Application - Responding at http://0.0.0.0:8181
 ```
 
-### 7. Run postgres migrations
+## 7. Run postgres migrations
 
 Navigate to `./self-host/postgres`
 
@@ -95,10 +107,10 @@ Copy the `.env.example` file to `.env` and modify the dbmate variables and run m
 
 ```sh
 cp .env.example .env
-dbmate migrate
+dbmate migrate # run after updating `.env`
 ```
 
-### 8. Run clickhouse migrations
+## 8. Run clickhouse migrations
 
 Navigate to `./self-host/clickhouse`
 
@@ -106,14 +118,14 @@ Copy the `.env.example` file to `.env` and modify the dbmate variables and run m
 
 ```sh
 cp .env.example .env
-dbmate migrate
+dbmate migrate # run after updating `.env`
 ```
 
-### 9. Open dashboard
+## 9. Open dashboard
 
 Navigate to [http://localhost:3000](http://localhost:3000) to open Measure dashboard.
 
-### 10. Teardown & cleanup
+## 10. Teardown & cleanup
 
 To shutdown the containers, run.
 
@@ -130,7 +142,7 @@ To perform a more aggressive shutdown, run the following command.
 docker compose down --rmi local --remove-orphans --volumes
 ```
 
-### Tail Clickhouse Logs
+## Tail Clickhouse Logs
 
 To see Clickhouse server logs, run.
 
