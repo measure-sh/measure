@@ -6,6 +6,7 @@ Measure is designed from the ground up for easy self-hosting. Follow along to kn
 
 - [Docker v24+](https://www.docker.com/)
 - [Supabase v1.112.0+](https://supabase.com/)
+- [dbmate v2.8.0+](https://github.com/amacneil/dbmate)
 
 ## Installing Docker
 
@@ -22,6 +23,11 @@ brew install supabase/tap/supabase
 ```
 
 > Make sure to keep the supabase cli updated by running `brew upgrade` periodically
+
+## Installing dbmate
+
+Measure uses [dbmate](https://github.com/amacneil/dbmate) for running database migrations to postgres and clickhouse instances. Follow the instructions on their GitHub README to install on your machine.
+
 
 ## 1. Clone the repository
 
@@ -81,11 +87,33 @@ measure-api-1         |  - using env:   export GIN_MODE=release
 measure-api-1         |  - using code:  gin.SetMode(gin.ReleaseMode)
 ```
 
-### 7. Open dashboard
+### 7. Run postgres migrations
+
+Navigate to `./self-host/postgres`
+
+Copy the `.env.example` file to `.env` and modify the dbmate variables and run migrations.
+
+```sh
+cp .env.example .env
+dbmate migrate
+```
+
+### 8. Run clickhouse migrations
+
+Navigate to `./self-host/clickhouse`
+
+Copy the `.env.example` file to `.env` and modify the dbmate variables and run migrations.
+
+```sh
+cp .env.example .env
+dbmate migrate
+```
+
+### 9. Open dashboard
 
 Navigate to [http://localhost:3000](http://localhost:3000) to open Measure dashboard.
 
-### 8. Teardown & cleanup
+### 10. Teardown & cleanup
 
 To shutdown the containers, run.
 
