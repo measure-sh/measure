@@ -46,7 +46,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   const getApps = async (authToken:string, teamId:string, ) => {
     setAppsApiStatus(AppsApiStatus.Loading)
 
-    const origin = "https://frosty-fog-7165.fly.dev"
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
       headers: {
         "Authorization": `Bearer ${authToken}`
@@ -72,7 +72,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   const getFilters = async (authToken:string, appId:string, ) => {
     setFiltersApiStatus(FiltersApiStatus.Loading)
 
-    const origin = "https://frosty-fog-7165.fly.dev"
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
       headers: {
         "Authorization": `Bearer ${authToken}`
