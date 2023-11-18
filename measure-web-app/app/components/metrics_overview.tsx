@@ -21,7 +21,7 @@ export enum MetricsApiStatus {
 }
 
 async function getMetricsOverviewData( authToken: string, appId:string, startDate:string, endDate:string, appVersion:string) {
-  const origin = "https://frosty-fog-7165.fly.dev"
+  const origin = process.env.NEXT_PUBLIC_API_BASE_URL
   const opts = {
     headers: {
       "Authorization": `Bearer ${authToken}`
@@ -89,7 +89,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ authToken, appId, sta
   const getData = async (authToken:string, appId:string, startDate:string, endDate:string, appVersion:string) => {
     setMetricsApiStatus(MetricsApiStatus.Loading)
     
-    const origin = "https://frosty-fog-7165.fly.dev"
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
       headers: {
         "Authorization": `Bearer ${authToken}`

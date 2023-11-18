@@ -41,7 +41,7 @@ const UserFlow: React.FC<UserFlowProps> = ({ authToken, appId, startDate, endDat
   const getData = async (authToken:string, appId:string, startDate:string, endDate:string, appVersion:string) => {
     setJourneyApiStatus(JourneyApiStatus.Loading)
     
-    const origin = "https://frosty-fog-7165.fly.dev"
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
       headers: {
         "Authorization": `Bearer ${authToken}`
