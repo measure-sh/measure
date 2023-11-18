@@ -20,19 +20,6 @@ export enum MetricsApiStatus {
   Error
 }
 
-async function getMetricsOverviewData( authToken: string, appId:string, startDate:string, endDate:string, appVersion:string) {
-  const origin = process.env.NEXT_PUBLIC_API_BASE_URL
-  const opts = {
-    headers: {
-      "Authorization": `Bearer ${authToken}`
-    }
-  };
-
-  const serverFormattedStartDate = new Date(startDate).toISOString()
-  const serverFormattedEndDate = new Date(endDate).toISOString()
-  return await fetch(`${origin}/apps/${appId}/metrics?version=${appVersion}&from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`, opts);
-}
-
 const MetricsOverview: React.FC<MetricsOverviewProps> = ({ authToken, appId, startDate, endDate, appVersion }) => {
 
   const emptyData = {
