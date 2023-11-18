@@ -57,7 +57,7 @@ func main() {
 	r.Use(cors).GET("/apps/:id/metrics", authorize(), getAppMetrics)
 	r.Use(cors).GET("/apps/:id/filters", authorize(), getAppFilters)
 	r.Use(cors).GET("/teams", authorize(), getTeams)
-	r.Use(cors).GET("/teams/:id/apps", authorize(), getApps)
+	r.Use(cors).GET("/teams/:id/apps", authorize(), getTeamApps)
 
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080
 }

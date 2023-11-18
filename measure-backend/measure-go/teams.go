@@ -27,7 +27,7 @@ func getTeams(c *gin.Context) {
 	c.Data(http.StatusOK, "application/json", []byte(teams))
 }
 
-func getApps(c *gin.Context) {
+func getTeamApps(c *gin.Context) {
 	appMap := map[string]string{
 		"6c0f7001-1e81-4cb0-a08c-2a29e94e36da": `[
 			{
@@ -78,7 +78,8 @@ func getApps(c *gin.Context) {
 	if err != nil {
 		msg := `team id is invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		return
 	}
 
 	app := appMap[teamId.String()]
