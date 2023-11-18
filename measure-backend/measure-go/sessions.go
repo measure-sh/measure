@@ -216,7 +216,7 @@ func (s *Session) known(id uuid.UUID) (bool, error) {
 
 func (s *Session) getMappingKey() (string, error) {
 	var key string
-	if err := server.pgPool.QueryRow(context.Background(), `select key from mapping_files where app_id = $1 and version_name = $2 and version_code = $3 and mapping_type = 'proguard' limit 1;`, s.Resource.AppUniqueID, s.Resource.AppVersion, s.Resource.AppBuild).Scan(&key); err != nil {
+	if err := server.pgPool.QueryRow(context.Background(), `select key from mapping_files where app_unique_id = $1 and version_name = $2 and version_code = $3 and mapping_type = 'proguard' limit 1;`, s.Resource.AppUniqueID, s.Resource.AppVersion, s.Resource.AppBuild).Scan(&key); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", nil
 		}
