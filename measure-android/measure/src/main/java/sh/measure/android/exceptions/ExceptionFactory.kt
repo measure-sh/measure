@@ -16,6 +16,7 @@ internal object ExceptionFactory {
         networkGeneration: String?,
         networkProvider: String?,
         isAnr: Boolean = false,
+        locale: String?,
     ): MeasureException {
         val exceptions = mutableListOf<ExceptionUnit>()
         var error: Throwable? = throwable
@@ -63,6 +64,7 @@ internal object ExceptionFactory {
             network_type = networkType,
             network_provider = networkProvider,
             network_generation = networkGeneration,
+            locale = locale,
             isAnr = isAnr,
         )
     }

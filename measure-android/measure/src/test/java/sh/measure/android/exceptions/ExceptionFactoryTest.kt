@@ -18,7 +18,14 @@ class ExceptionFactoryTest {
 
         // When
         val measureException = ExceptionFactory.createMeasureException(
-            exception, handled = true, timeProvider.currentTimeSinceEpochInMillis, thread, null, null, null
+            exception,
+            handled = true,
+            timeProvider.currentTimeSinceEpochInMillis,
+            thread = thread,
+            networkType = null,
+            networkGeneration = null,
+            networkProvider = null,
+            locale = "en-US"
         )
 
         // Then
@@ -40,7 +47,14 @@ class ExceptionFactoryTest {
 
         // When
         val measureException = ExceptionFactory.createMeasureException(
-            exception, handled = true, timeProvider.currentTimeSinceEpochInMillis, thread, null, null, null
+            exception,
+            handled = true,
+            timeProvider.currentTimeSinceEpochInMillis,
+            thread = thread,
+            networkType = null,
+            networkGeneration = null,
+            networkProvider = null,
+            locale = "en-US"
         )
 
         // Then
@@ -66,7 +80,14 @@ class ExceptionFactoryTest {
 
         // When
         val measureException = ExceptionFactory.createMeasureException(
-            exception, handled = true, timeProvider.currentTimeSinceEpochInMillis, thread, null, null, null
+            exception,
+            handled = true,
+            timeProvider.currentTimeSinceEpochInMillis,
+            thread = thread,
+            networkType = null,
+            networkGeneration = null,
+            networkProvider = null,
+            locale = "en-US"
         )
 
         // Then
@@ -81,7 +102,14 @@ class ExceptionFactoryTest {
 
         // When
         val measureException = ExceptionFactory.createMeasureException(
-            exception, handled = false, timeProvider.currentTimeSinceEpochInMillis, thread, null, null, null
+            exception,
+            handled = false,
+            timeProvider.currentTimeSinceEpochInMillis,
+            thread = thread,
+            networkType = null,
+            networkGeneration = null,
+            networkProvider = null,
+            locale = "en-US"
         )
 
         // Then
@@ -102,7 +130,8 @@ class ExceptionFactoryTest {
             thread = thread,
             networkType = "network_type",
             networkGeneration = "network_gen",
-            networkProvider = "network_provider"
+            networkProvider = "network_provider",
+            locale = "en-US"
         )
 
         // Then

@@ -6,6 +6,7 @@ import sh.measure.android.exceptions.MeasureException
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.network_change.NetworkInfoProvider
+import sh.measure.android.utils.LocaleProvider
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.TimeProvider
 
@@ -16,7 +17,8 @@ internal class AnrCollector(
     private val systemServiceProvider: SystemServiceProvider,
     private val networkInfoProvider: NetworkInfoProvider,
     private val timeProvider: TimeProvider,
-    private val tracker: EventTracker
+    private val tracker: EventTracker,
+    private val localeProvider: LocaleProvider
 ) : ANRWatchDog.ANRListener {
     fun register() {
         ANRWatchDog(
@@ -42,6 +44,7 @@ internal class AnrCollector(
             networkType = networkType,
             networkGeneration = networkInfoProvider.getNetworkGeneration(networkType),
             networkProvider = networkInfoProvider.getNetworkProvider(networkType),
+            locale = localeProvider.getLocale(),
             isAnr = true
         )
     }
