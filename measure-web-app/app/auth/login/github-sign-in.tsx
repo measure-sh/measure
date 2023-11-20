@@ -8,7 +8,7 @@ async function doGitHubLogin() {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'github',
     options: {
-      redirectTo: `${url.origin}/dashboard/overview`,
+      redirectTo: `${url.origin}/auth/callback/github`,
     }
   })
 

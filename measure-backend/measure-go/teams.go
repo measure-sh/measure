@@ -9,22 +9,20 @@ import (
 )
 
 func getTeams(c *gin.Context) {
-	teams := `[
-		{
-		  "id": "6c0f7001-1e81-4cb0-a08c-2a29e94e36da",
-		  "name": "Anup's team"
-		},
-		{
-		  "id": "25226540-72cf-4982-a16f-9b3c85912b65",
-		  "name": "Measure"
-		},
-		{
-		  "id": "93848f57-9cdf-4b21-87e9-1cad562684b6",
-		  "name": "Leftshift"
-		}
-	  ]`
+	userId := c.GetString("userId")
+	fmt.Println("userId", userId)
+	u := &User{
+		id: userId,
+	}
 
-	c.Data(http.StatusOK, "application/json", []byte(teams))
+	teams, err := u.getTeams()
+	if err != nil {
+		fmt.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch teams for user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, teams)
 }
 
 func getTeamApps(c *gin.Context) {

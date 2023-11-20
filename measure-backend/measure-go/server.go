@@ -39,6 +39,7 @@ type ServerConfig struct {
 	attachmentsBucketRegion    string
 	attachmentsAccessKey       string
 	attachmentsSecretAccessKey string
+	authJWTSecret              string
 }
 
 func NewServerConfig() *ServerConfig {
@@ -88,6 +89,11 @@ func NewServerConfig() *ServerConfig {
 		log.Println("ATTACHMENTS_SECRET_ACCESS_KEY env var not set, session attachment uploads won't work")
 	}
 
+	authJWTSecret := os.Getenv("SUPABASE_AUTH_JWT_SECRET")
+	if authJWTSecret == "" {
+		log.Println("SUPABASE_AUTH_JWT_SECRET env var not set, dashboard authn won't work")
+	}
+
 	return &ServerConfig{
 		pg: PostgresConfig{
 			dsn: "postgresql://postgres:postgres@localhost:5432/default",
@@ -104,6 +110,7 @@ func NewServerConfig() *ServerConfig {
 		attachmentsBucketRegion:    attachmentsBucketRegion,
 		attachmentsAccessKey:       attachmentsAccessKey,
 		attachmentsSecretAccessKey: attachmentsSecretAccessKey,
+		authJWTSecret:              authJWTSecret,
 	}
 }
 
