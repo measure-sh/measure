@@ -11,33 +11,38 @@ import (
 
 // maximum character limits for event fields
 const (
-	maxTypeChars                       = 32
-	maxThreadNameChars                 = 32
-	maxAppExitReasonChars              = 64
-	maxAppExitImportanceChars          = 32
-	maxSeverityTextChars               = 10
-	maxGestureLongClickTargetChars     = 128
-	maxGestureLongClickTargetNameChars = 128
-	maxGestureLongClickTargetIDChars   = 128
-	maxGestureScrollTargetChars        = 128
-	maxGestureScrollTargetNameChars    = 128
-	maxGestureScrollTargetIDChars      = 128
-	maxGestureScrollDirectionChars     = 8
-	maxGestureClickTargetChars         = 128
-	maxGestureClickTargetNameChars     = 128
-	maxGestureClickTargetIDChars       = 128
-	maxHTTPRequestMethodChars          = 16
-	maxHTTPRequestProtocolVersionChars = 16
-	maxHTTPResponseMethodChars         = 16
-	maxLifecycleActivityTypeChars      = 32
-	maxLifecycleActivityClassNameChars = 128
-	maxLifecycleFragmentTypeChars      = 32
-	maxLifecycleFragmentClassNameChars = 128
-	maxLifecycleAppTypeChars           = 32
-	maxColdLaunchLaunchedActivityChars = 128
-	maxWarmLaunchLaunchedActivityChars = 128
-	maxHotLaunchLaunchedActivityChars  = 128
-	maxAttrCount                       = 10
+	maxTypeChars                              = 32
+	maxThreadNameChars                        = 32
+	maxAppExitReasonChars                     = 64
+	maxAppExitImportanceChars                 = 32
+	maxSeverityTextChars                      = 10
+	maxGestureLongClickTargetChars            = 128
+	maxGestureLongClickTargetNameChars        = 128
+	maxGestureLongClickTargetIDChars          = 128
+	maxGestureScrollTargetChars               = 128
+	maxGestureScrollTargetNameChars           = 128
+	maxGestureScrollTargetIDChars             = 128
+	maxGestureScrollDirectionChars            = 8
+	maxGestureClickTargetChars                = 128
+	maxGestureClickTargetNameChars            = 128
+	maxGestureClickTargetIDChars              = 128
+	maxHTTPRequestMethodChars                 = 16
+	maxHTTPRequestProtocolVersionChars        = 16
+	maxHTTPResponseMethodChars                = 16
+	maxLifecycleActivityTypeChars             = 32
+	maxLifecycleActivityClassNameChars        = 128
+	maxLifecycleFragmentTypeChars             = 32
+	maxLifecycleFragmentClassNameChars        = 128
+	maxLifecycleAppTypeChars                  = 32
+	maxColdLaunchLaunchedActivityChars        = 128
+	maxWarmLaunchLaunchedActivityChars        = 128
+	maxHotLaunchLaunchedActivityChars         = 128
+	maxNetworkChangeNetworkTypeChars          = 16
+	maxNetworkChangePreviousNetworkTypeChars  = 16
+	maxNetworkChangeNetworkGeneration         = 8
+	maxNetworkChangePreviousNetworkGeneration = 8
+	maxNetworkChangeNetworkProvider           = 64
+	maxAttrCount                              = 10
 )
 
 const TypeANR = "anr"
@@ -55,6 +60,7 @@ const TypeLifecycleApp = "lifecycle_app"
 const TypeColdLaunch = "cold_launch"
 const TypeWarmLaunch = "warm_launch"
 const TypeHotLaunch = "hot_launch"
+const TypeNetworkChange = "network_change"
 
 // timeFormat is the format of datetime in nanoseconds when
 // converting datetime values before inserting into database
@@ -166,6 +172,11 @@ var columns = []string{
 	"hot_launch.has_saved_state",
 	"hot_launch.intent_data",
 	"attributes",
+	"network_change.network_type",
+	"network_change.previous_network_type",
+	"network_change.network_generation",
+	"network_change.previous_network_generation",
+	"network_change.network_provider",
 }
 
 type Frame struct {
@@ -374,6 +385,14 @@ type HotLaunch struct {
 	IntentData       string `json:"intent_data"`
 }
 
+type NetworkChange struct {
+	NetworkType               string `json:"network_type" binding:"required"`
+	PreviousNetworkType       string `json:"previous_network_type"`
+	NetworkGeneration         string `json:"network_generation"`
+	PreviousNetworkGeneration string `json:"previous_network_generation"`
+	NetworkProvider           string `json:"network_provider"`
+}
+
 type EventField struct {
 	Timestamp         time.Time         `json:"timestamp" binding:"required"`
 	Type              string            `json:"type" binding:"required"`
@@ -393,6 +412,7 @@ type EventField struct {
 	ColdLaunch        ColdLaunch        `json:"cold_launch,omitempty"`
 	WarmLaunch        WarmLaunch        `json:"warm_launch,omitempty"`
 	HotLaunch         HotLaunch         `json:"hot_launch,omitempty"`
+	NetworkChange     NetworkChange     `json:"network_change,omitempty"`
 	Attributes        map[string]string `json:"attributes"`
 }
 
@@ -456,8 +476,12 @@ func (e *EventField) isHotLaunch() bool {
 	return e.Type == TypeHotLaunch
 }
 
+func (e *EventField) isNetworkChange() bool {
+	return e.Type == TypeNetworkChange
+}
+
 func (e *EventField) validate() error {
-	validTypes := []string{TypeANR, TypeException, TypeAppExit, TypeString, TypeGestureLongClick, TypeGestureScroll, TypeGestureClick, TypeHTTPRequest, TypeHTTPResponse, TypeLifecycleActivity, TypeLifecycleFragment, TypeLifecycleApp, TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch}
+	validTypes := []string{TypeANR, TypeException, TypeAppExit, TypeString, TypeGestureLongClick, TypeGestureScroll, TypeGestureClick, TypeHTTPRequest, TypeHTTPResponse, TypeLifecycleActivity, TypeLifecycleFragment, TypeLifecycleApp, TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch, TypeNetworkChange}
 	if !slices.Contains(validTypes, e.Type) {
 		return fmt.Errorf(`"events[].type" is not a valid type`)
 	}
@@ -576,6 +600,12 @@ func (e *EventField) validate() error {
 		}
 	}
 
+	if e.isNetworkChange() {
+		if e.NetworkChange.NetworkType == "" {
+			return fmt.Errorf(`network_change.network_type must not be empty`)
+		}
+	}
+
 	if len(e.Type) > maxTypeChars {
 		return fmt.Errorf(`"events[].type" exceeds maximum allowed characters of (%d)`, maxTypeChars)
 	}
@@ -645,6 +675,21 @@ func (e *EventField) validate() error {
 	if len(e.HotLaunch.LaunchedActivity) == maxHotLaunchLaunchedActivityChars {
 		return fmt.Errorf(`events[].hot_launch.launched_activity exceeds maximum allowed characters of (%d)`, maxHotLaunchLaunchedActivityChars)
 	}
+	if len(e.NetworkChange.NetworkType) == maxNetworkChangeNetworkTypeChars {
+		return fmt.Errorf(`events[].network_change.network_type exceeds maximum allowed characters of (%d)`, maxNetworkChangeNetworkTypeChars)
+	}
+	if len(e.NetworkChange.PreviousNetworkType) == maxNetworkChangePreviousNetworkTypeChars {
+		return fmt.Errorf(`events[].network_change.previous_network_type exceeds maximum allowed characters of (%d)`, maxNetworkChangePreviousNetworkTypeChars)
+	}
+	if len(e.NetworkChange.NetworkGeneration) == maxNetworkChangeNetworkGeneration {
+		return fmt.Errorf(`events[].network_change.network_generation exceeds maximum allowed characters of (%d)`, maxNetworkChangeNetworkGeneration)
+	}
+	if len(e.NetworkChange.PreviousNetworkGeneration) == maxNetworkChangePreviousNetworkGeneration {
+		return fmt.Errorf(`events[].network_change.previous_network_generation exceeds maximum allowed characters of (%d)`, maxNetworkChangePreviousNetworkGeneration)
+	}
+	if len(e.NetworkChange.NetworkProvider) == maxNetworkChangeNetworkProvider {
+		return fmt.Errorf(`events[].network_change.network_provider exceeds maximum allowed characters of (%d)`, maxNetworkChangeNetworkProvider)
+	}
 
 	if len(e.Attributes) > maxAttrCount {
 		return fmt.Errorf(`"events[].attributes" exceeds maximum count of (%d)`, maxAttrCount)
@@ -657,7 +702,7 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 	values := []string{}
 	valueArgs := []interface{}{}
 
-	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
 	for _, event := range session.Events {
 		anrExceptions := "[]"
@@ -778,6 +823,11 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			event.HotLaunch.HasSavedState,
 			event.HotLaunch.IntentData,
 			mapToString(event.Attributes),
+			event.NetworkChange.NetworkType,
+			event.NetworkChange.PreviousNetworkType,
+			event.NetworkChange.NetworkGeneration,
+			event.NetworkChange.PreviousNetworkGeneration,
+			event.NetworkChange.NetworkProvider,
 		)
 	}
 
