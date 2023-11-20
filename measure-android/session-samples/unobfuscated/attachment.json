@@ -12,6 +12,7 @@
     "device_width_px": 1080,
     "device_height_px": 2154,
     "device_density": 2.75,
+    "device_locale": "en-US",
     "os_name": "android",
     "os_version": "33",
     "platform": "android",

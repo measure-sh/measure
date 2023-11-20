@@ -13,6 +13,7 @@ type Resource struct {
 	DeviceWidthPX      uint16  `json:"device_width_px"`
 	DeviceHeightPX     uint16  `json:"device_height_px"`
 	DeviceDensity      float32 `json:"device_density"`
+	DeviceLocale       string  `json:"device_locale"`
 	OSName             string  `json:"os_name"`
 	OSVersion          string  `json:"os_version"`
 	Platform           string  `json:"platform"`
@@ -41,6 +42,7 @@ func (r *Resource) validate() error {
 		maxNetworkTypeChars        = 16
 		maxNetworkGenerationChars  = 8
 		maxNetworkProviderChars    = 64
+		maxDeviceLocaleChars       = 64
 	)
 
 	if len(r.DeviceName) > maxDeviceNameChars {
@@ -84,6 +86,9 @@ func (r *Resource) validate() error {
 	}
 	if len(r.NetworkProvider) > maxNetworkProviderChars {
 		return fmt.Errorf(`"resource.network_provider" exceeds maximum allowed characters of (%d)`, maxNetworkProviderChars)
+	}
+	if len(r.DeviceLocale) > maxDeviceLocaleChars {
+		return fmt.Errorf(`"resource.device_locale" exceeds maximum allowed characters of (%d)`, maxDeviceLocaleChars)
 	}
 
 	return nil
