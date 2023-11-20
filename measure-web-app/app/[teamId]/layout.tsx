@@ -5,13 +5,13 @@ import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import TeamSwitcher from "../components/team_switcher";
+import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from "../utils/auth_utils";
 
 export default function DashboardLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
-
     enum TeamsApiStatus {
       Loading,
       Success,
@@ -44,17 +44,17 @@ export default function DashboardLayout({
     ];
 
     const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading);
-    const [authToken, setAuthToken] = useState("abcde123");
     const [teams, setTeams] = useState(emptyTeams);
     const [selectedTeam, setSelectedTeam] = useState(teams[0].id)
 
     const pathName = usePathname();
     const router = useRouter();
 
-    const getTeams = async (authToken:string) => {
+    const getTeams = async () => {
       setTeamsApiStatus(TeamsApiStatus.Loading)
 
-      const origin = "https://frosty-fog-7165.fly.dev"
+      const authToken = await getAccessTokenOrRedirectToAuth(router)
+      const origin = process.env.NEXT_PUBLIC_API_BASE_URL
       const opts = {
         headers: {
           "Authorization": `Bearer ${authToken}`
@@ -62,9 +62,9 @@ export default function DashboardLayout({
       };
 
       const res =  await fetch(`${origin}/teams`, opts);
-
       if(!res.ok) {
         setTeamsApiStatus(TeamsApiStatus.Error)
+        logoutIfAuthError(router, res)
         return
       }
 
@@ -75,8 +75,8 @@ export default function DashboardLayout({
     }
 
     useEffect(() => {
-      getTeams(authToken)
-    }, [authToken]);
+      getTeams()
+    }, []);
 
     const onTeamChanged = (item:string) => {
       const selectedTeamId = teams.find((e) => e.name === item)!.id

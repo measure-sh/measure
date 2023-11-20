@@ -2,16 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { ResponsiveSankey } from '@nivo/sankey'
+import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from '@/app/utils/auth_utils';
+import { useRouter } from 'next/navigation';
 
 interface UserFlowProps {
-  authToken: string,
   appId:string, 
   startDate:string,
   endDate:string,
   appVersion:string,
 }
 
-const UserFlow: React.FC<UserFlowProps> = ({ authToken, appId, startDate, endDate, appVersion }) => {
+const UserFlow: React.FC<UserFlowProps> = ({ appId, startDate, endDate, appVersion }) => {
   enum JourneyApiStatus {
     Loading,
     Success,
@@ -38,9 +39,12 @@ const UserFlow: React.FC<UserFlowProps> = ({ authToken, appId, startDate, endDat
   const [journeyApiStatus, setJourneyApiStatus] = useState(JourneyApiStatus.Loading);
   const [data, setData] = useState(emptyData);
 
-  const getData = async (authToken:string, appId:string, startDate:string, endDate:string, appVersion:string) => {
+  const router = useRouter()
+
+  const getData = async (appId:string, startDate:string, endDate:string, appVersion:string) => {
     setJourneyApiStatus(JourneyApiStatus.Loading)
     
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
       headers: {
@@ -51,9 +55,10 @@ const UserFlow: React.FC<UserFlowProps> = ({ authToken, appId, startDate, endDat
     const serverFormattedStartDate = new Date(startDate).toISOString()
     const serverFormattedEndDate = new Date(endDate).toISOString()
     const res =  await fetch(`${origin}/apps/${appId}/journey?version=${appVersion}&from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`, opts);
-
+    
     if(!res.ok) {
       setJourneyApiStatus(JourneyApiStatus.Error)
+      logoutIfAuthError(router, res)
       return
     }
     
@@ -62,8 +67,8 @@ const UserFlow: React.FC<UserFlowProps> = ({ authToken, appId, startDate, endDat
   }
   
   useEffect(() => {
-    getData(authToken, appId, startDate, endDate, appVersion)
-  }, [authToken, appId, startDate, endDate, appVersion]);
+    getData(appId, startDate, endDate, appVersion)
+  }, [appId, startDate, endDate, appVersion]);
   
   return (
     <div className="flex items-center justify-center border border-black text-black font-sans text-sm w-5/6 h-screen">

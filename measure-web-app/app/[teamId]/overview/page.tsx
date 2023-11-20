@@ -5,8 +5,12 @@ import Dropdown from "@/app/components/dropdown";
 import FilterPill from "@/app/components/filter_pill";
 import UserFlow from "@/app/components/user_flow";
 import MetricsOverview from '@/app/components/metrics_overview';
+import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from '@/app/utils/auth_utils';
+import { useRouter } from 'next/navigation';
 
 export default function Overview({ params }: { params: { teamId: string } }) {
+  const router = useRouter()
+
   enum AppsApiStatus {
     Loading,
     Success,
@@ -43,9 +47,10 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     setFormattedEndDate(new Date(endDate).toLocaleDateString());
   }, [startDate, endDate]);
 
-  const getApps = async (authToken:string, teamId:string, ) => {
+  const getApps = async (teamId:string, ) => {
     setAppsApiStatus(AppsApiStatus.Loading)
 
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
       headers: {
@@ -56,6 +61,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     const res = await fetch(`${origin}/teams/${teamId}/apps`, opts);
     if(!res.ok) {
       setAppsApiStatus(AppsApiStatus.Error)
+      logoutIfAuthError(router, res)
       return
     } 
     const data = await res.json()
@@ -66,12 +72,13 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   }
 
   useEffect(() => {
-    getApps("abcde123", params.teamId)
+    getApps(params.teamId)
   }, []);
 
-  const getFilters = async (authToken:string, appId:string, ) => {
+  const getFilters = async (appId:string, ) => {
     setFiltersApiStatus(FiltersApiStatus.Loading)
 
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
       headers: {
@@ -81,6 +88,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
 
     const res = await fetch(`${origin}/apps/${appId}/filters`, opts);
     if(!res.ok) {
+      logoutIfAuthError(router, res)
       setFiltersApiStatus(FiltersApiStatus.Error)
       return
     } 
@@ -92,7 +100,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   }
 
   useEffect(() => {
-    getFilters("abcde123", selectedApp)
+    getFilters(selectedApp)
   }, [selectedApp]);
 
   return (
@@ -121,9 +129,9 @@ export default function Overview({ params }: { params: { teamId: string } }) {
       </div>
       <div className="py-8" />
       {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Error && <p className="text-lg font-display">Error fetching filters, please refresh page or select a different app to try again</p>}
-      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && <UserFlow authToken="abcde123" appId={selectedApp} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />}
+      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && <UserFlow appId={selectedApp} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />}
       <div className="py-8" />
-      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && <MetricsOverview authToken="abcde123" appId={selectedApp} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />}
+      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && <MetricsOverview appId={selectedApp} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />}
     </div>
   )
 }
