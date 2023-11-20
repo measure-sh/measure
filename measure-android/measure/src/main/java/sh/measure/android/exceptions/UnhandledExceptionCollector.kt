@@ -21,7 +21,7 @@ internal class UnhandledExceptionCollector(
     private val logger: Logger,
     private val eventTracker: EventTracker,
     private val timeProvider: TimeProvider,
-    private val networkInfoProvider: NetworkInfoProvider
+    private val networkInfoProvider: NetworkInfoProvider,
     private val localeProvider: LocaleProvider,
 ) : UncaughtExceptionHandler {
 

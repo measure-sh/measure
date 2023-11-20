@@ -28,6 +28,7 @@
         "device_name": "emu64a",
         "device_type": "phone",
         "device_width_px": 1080,
+        "device_locale": "en-US",
         "measure_sdk_version": "0.0.1-SNAPSHOT",
         "os_name": "android",
         "os_version": "33",

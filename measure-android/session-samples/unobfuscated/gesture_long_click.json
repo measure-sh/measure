@@ -42,6 +42,7 @@
         "device_model": "sdk_gphone64_arm64",
         "device_name": "emu64a",
         "device_type": "phone",
+        "device_locale": "en-US",
         "device_width_px": 1080,
         "measure_sdk_version": "0.0.1-SNAPSHOT",
         "os_name": "android",

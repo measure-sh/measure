@@ -50,7 +50,8 @@
         "platform": "android",
         "network_type": "wifi",
         "network_generation": "2g",
-        "network_provider": "T-Mobile"
+        "network_provider": "T-Mobile",
+        "device_locale": "en-US"
     },
     "session_id": "07e697ed-2b25-46f1-8126-9f8cccd162af",
     "timestamp": "2023-10-14T00:56:13.557000000Z"
