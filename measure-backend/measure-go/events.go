@@ -13,6 +13,8 @@ import (
 const (
 	maxTypeChars                              = 32
 	maxThreadNameChars                        = 32
+	maxExceptionDeviceLocaleChars             = 64
+	maxAnrDeviceLocaleChars                   = 64
 	maxAppExitReasonChars                     = 64
 	maxAppExitImportanceChars                 = 32
 	maxSeverityTextChars                      = 10
@@ -187,6 +189,8 @@ var columns = []string{
 	"resource.network_generation",
 	"resource.network_provider",
 	"resource.device_locale",
+	"anr.device_locale",
+	"exception.device_locale",
 }
 
 type Frame struct {
@@ -277,6 +281,7 @@ type ANR struct {
 	NetworkType       string         `json:"network_type"`
 	NetworkGeneration string         `json:"network_generation"`
 	NetworkProvider   string         `json:"network_provider"`
+	DeviceLocale      string         `json:"device_locale"`
 }
 
 type Exception struct {
@@ -287,6 +292,7 @@ type Exception struct {
 	NetworkType       string         `json:"network_type"`
 	NetworkGeneration string         `json:"network_generation"`
 	NetworkProvider   string         `json:"network_provider"`
+	DeviceLocale      string         `json:"device_locale"`
 }
 
 type AppExit struct {
@@ -706,7 +712,12 @@ func (e *EventField) validate() error {
 	if len(e.NetworkChange.NetworkProvider) == maxNetworkChangeNetworkProvider {
 		return fmt.Errorf(`events[].network_change.network_provider exceeds maximum allowed characters of (%d)`, maxNetworkChangeNetworkProvider)
 	}
-
+    if len(e.ANR.DeviceLocale) > maxAnrDeviceLocaleChars {
+        return fmt.Errorf(`"events[].anr.device_locale" exceeds maximum allowed characters of (%d)`, maxAnrDeviceLocaleChars)
+    }
+    if len(e.Exception.DeviceLocale) > maxExceptionDeviceLocaleChars {
+        return fmt.Errorf(`"events[].exception.device_locale" exceeds maximum allowed characters of (%d)`, maxExceptionDeviceLocaleChars)
+    }
 	if len(e.Attributes) > maxAttrCount {
 		return fmt.Errorf(`"events[].attributes" exceeds maximum count of (%d)`, maxAttrCount)
 	}
@@ -718,7 +729,7 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 	values := []string{}
 	valueArgs := []interface{}{}
 
-	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
 	for _, event := range session.Events {
 		anrExceptions := "[]"
@@ -854,6 +865,8 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			session.Resource.NetworkGeneration,
 			session.Resource.NetworkProvider,
 			session.Resource.DeviceLocale,
+			event.ANR.DeviceLocale,
+			event.Exception.DeviceLocale,
 		)
 	}
 

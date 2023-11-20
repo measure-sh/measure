@@ -655,7 +655,8 @@
                         ],
                         "name": "ConnectivityThread"
                     }
-                ]
+                ],
+                "device_locale": "en-US"
             },
             "timestamp": "2023-10-14T00:58:35.215000000Z",
             "type": "exception",

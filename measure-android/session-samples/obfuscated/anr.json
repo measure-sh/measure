@@ -81,6 +81,7 @@
                 ],
                 "handled": false,
                 "thread_name": "main",
+                "device_locale": "en-US",
                 "threads": [
                     {
                         "frames": [

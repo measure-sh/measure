@@ -74,6 +74,7 @@
                 "network_type": "wifi",
                 "network_generation": "2g",
                 "network_provider": "T-Mobile",
+                "device_locale": "en-US",
                 "threads": [
                     {
                         "frames": [

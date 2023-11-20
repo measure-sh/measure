@@ -517,7 +517,8 @@
                         ],
                         "name": "Okio Watchdog"
                     }
-                ]
+                ],
+                "device_locale": "en-US"
             },
             "timestamp": "2023-10-16T14:41:33.208000000Z",
             "type": "exception",
