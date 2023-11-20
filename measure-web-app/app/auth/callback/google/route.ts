@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   })
 
   if (!res.ok) {
-    console.log(`GET /teams during google oauth redirection returned ${res.status} response`)
+    console.log(`GET /teams failed during google oauth redirection returned ${res.status} response`)
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 
