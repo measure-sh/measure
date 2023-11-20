@@ -47,7 +47,6 @@ export async function GET(request: Request) {
   const ownTeam = teams.find((team: Team) => team.role === "owner")
 
   if (!ownTeam) {
-    // handle error
     console.log(`user ${data.user?.id} does not own any team`)
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
