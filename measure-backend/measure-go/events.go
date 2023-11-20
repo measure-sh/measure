@@ -177,6 +177,12 @@ var columns = []string{
 	"network_change.network_generation",
 	"network_change.previous_network_generation",
 	"network_change.network_provider",
+	"anr.network_type",
+	"anr.network_generation",
+	"anr.network_provider",
+	"exception.network_type",
+	"exception.network_generation",
+	"exception.network_provider",
 }
 
 type Frame struct {
@@ -260,17 +266,23 @@ func (threads Threads) encode() string {
 }
 
 type ANR struct {
-	ThreadName string         `json:"thread_name" binding:"required"`
-	Handled    bool           `json:"handled" binding:"required"`
-	Exceptions ExceptionUnits `json:"exceptions" binding:"required"`
-	Threads    Threads        `json:"threads" binding:"required"`
+	ThreadName        string         `json:"thread_name" binding:"required"`
+	Handled           bool           `json:"handled" binding:"required"`
+	Exceptions        ExceptionUnits `json:"exceptions" binding:"required"`
+	Threads           Threads        `json:"threads" binding:"required"`
+	NetworkType       string         `json:"network_type"`
+	NetworkGeneration string         `json:"network_generation"`
+	NetworkProvider   string         `json:"network_provider"`
 }
 
 type Exception struct {
-	ThreadName string         `json:"thread_name" binding:"required"`
-	Handled    bool           `json:"handled" binding:"required"`
-	Exceptions ExceptionUnits `json:"exceptions" binding:"required"`
-	Threads    Threads        `json:"threads" binding:"required"`
+	ThreadName        string         `json:"thread_name" binding:"required"`
+	Handled           bool           `json:"handled" binding:"required"`
+	Exceptions        ExceptionUnits `json:"exceptions" binding:"required"`
+	Threads           Threads        `json:"threads" binding:"required"`
+	NetworkType       string         `json:"network_type"`
+	NetworkGeneration string         `json:"network_generation"`
+	NetworkProvider   string         `json:"network_provider"`
 }
 
 type AppExit struct {
@@ -702,7 +714,7 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 	values := []string{}
 	valueArgs := []interface{}{}
 
-	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
 	for _, event := range session.Events {
 		anrExceptions := "[]"
@@ -743,10 +755,16 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			session.Resource.MeasureSDKVersion,
 			event.ANR.ThreadName,
 			event.ANR.Handled,
+			event.ANR.NetworkType,
+			event.ANR.NetworkGeneration,
+			event.ANR.NetworkProvider,
 			anrExceptions,
 			anrThreads,
 			event.Exception.ThreadName,
 			event.Exception.Handled,
+			event.Exception.NetworkType,
+			event.Exception.NetworkGeneration,
+			event.Exception.NetworkProvider,
 			exceptionExceptions,
 			exceptionThreads,
 			event.AppExit.Reason,
@@ -828,6 +846,12 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			event.NetworkChange.NetworkGeneration,
 			event.NetworkChange.PreviousNetworkGeneration,
 			event.NetworkChange.NetworkProvider,
+			event.ANR.NetworkType,
+			event.ANR.NetworkGeneration,
+			event.ANR.NetworkProvider,
+			event.Exception.NetworkType,
+			event.Exception.NetworkGeneration,
+			event.Exception.NetworkProvider,
 		)
 	}
 

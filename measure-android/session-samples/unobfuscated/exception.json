@@ -71,6 +71,9 @@
                 ],
                 "handled": false,
                 "thread_name": "main",
+                "network_type": "wifi",
+                "network_generation": "2g",
+                "network_provider": "T-Mobile",
                 "threads": [
                     {
                         "frames": [
