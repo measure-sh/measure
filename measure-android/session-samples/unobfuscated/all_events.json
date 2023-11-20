@@ -673,6 +673,18 @@
             "timestamp": "2023-10-14T00:59:05.407000000Z",
             "type": "app_exit",
             "thread_name": "main"
+        },
+        {
+            "network_change": {
+                "network_type": "wifi",
+                "previous_network_type": "cellular",
+                "network_generation": null,
+                "previous_network_generation": "2g",
+                "network_provider": "T-Mobile"
+            },
+            "timestamp": "2023-10-14T00:59:05.407000000Z",
+            "type": "network_change",
+            "thread_name": "Connectivity Thread"
         }
     ],
     "resource": {

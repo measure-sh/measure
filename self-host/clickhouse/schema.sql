@@ -110,7 +110,12 @@ CREATE TABLE default.events
     `hot_launch.launched_activity` FixedString(128),
     `hot_launch.has_saved_state` Bool,
     `hot_launch.intent_data` String,
-    `attributes` Map(String, String)
+    `attributes` Map(String, String),
+    `network_change.network_type` LowCardinality(FixedString(16)),
+    `network_change.previous_network_type` LowCardinality(FixedString(16)),
+    `network_change.network_generation` LowCardinality(FixedString(8)),
+    `network_change.previous_network_generation` LowCardinality(FixedString(8)),
+    `network_change.network_provider` FixedString(64)
 )
 ENGINE = MergeTree
 PRIMARY KEY (id, timestamp)
@@ -134,4 +139,5 @@ SETTINGS index_granularity = 8192;
 --
 
 INSERT INTO schema_migrations (version) VALUES
-    ('20231117020810');
+    ('20231117020810'),
+    ('20231117211032');
