@@ -5,9 +5,10 @@ import InfoCircleAppAdoption from './info_circle_app_adoption';
 import InfoCircleAppSize from './info_circle_app_size';
 import InfoCircleExceptionRate from './info_circle_exception_rate';
 import InfoCircleAppStartTime from './info_circle_app_start_time';
+import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from '@/app/utils/auth_utils';
+import { useRouter } from 'next/navigation';
 
 interface MetricsOverviewProps {
-  authToken: string,
   appId:string, 
   startDate:string,
   endDate:string,
@@ -20,7 +21,7 @@ export enum MetricsApiStatus {
   Error
 }
 
-const MetricsOverview: React.FC<MetricsOverviewProps> = ({ authToken, appId, startDate, endDate, appVersion }) => {
+const MetricsOverview: React.FC<MetricsOverviewProps> = ({ appId, startDate, endDate, appVersion }) => {
 
   const emptyData = {
     "adoption": {
@@ -73,9 +74,12 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ authToken, appId, sta
   const [data, setData] = useState(emptyData);
   const [metricsApiStatus, setMetricsApiStatus] = useState(MetricsApiStatus.Loading);
   
-  const getData = async (authToken:string, appId:string, startDate:string, endDate:string, appVersion:string) => {
+  const router = useRouter()
+
+  const getData = async (appId:string, startDate:string, endDate:string, appVersion:string) => {
     setMetricsApiStatus(MetricsApiStatus.Loading)
     
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
       headers: {
@@ -89,6 +93,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ authToken, appId, sta
     
     if(!res.ok) {
       setMetricsApiStatus(MetricsApiStatus.Error)
+      logoutIfAuthError(router, res)
       return 
     } 
     
@@ -97,8 +102,8 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ authToken, appId, sta
   }
   
   useEffect(() => {
-    getData(authToken, appId, startDate, endDate, appVersion)
-  }, [authToken, appId, startDate, endDate, appVersion]);
+    getData(appId, startDate, endDate, appVersion)
+  }, [appId, startDate, endDate, appVersion]);
 
   return (
     <div className="flex flex-wrap gap-16 w-5/6">
