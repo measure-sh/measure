@@ -46,7 +46,10 @@
         "measure_sdk_version": "0.0.1-SNAPSHOT",
         "os_name": "android",
         "os_version": "33",
-        "platform": "android"
+        "platform": "android",
+        "network_type": "wifi",
+        "network_generation": "2g",
+        "network_provider": "T-Mobile"
     },
     "session_id": "c7536a66-15d2-4019-b3ab-a76dc8b07851",
     "timestamp": "2023-10-14T00:56:45.789000000Z"

@@ -121,7 +121,10 @@ CREATE TABLE default.events
     `anr.network_provider` FixedString(64),
     `exception.network_type` LowCardinality(FixedString(16)),
     `exception.network_generation` LowCardinality(FixedString(8)),
-    `exception.network_provider` FixedString(64)
+    `exception.network_provider` FixedString(64),
+    `resource.network_type` LowCardinality(FixedString(16)),
+    `resource.network_generation` LowCardinality(FixedString(8)),
+    `resource.network_provider` FixedString(64)
 )
 ENGINE = MergeTree
 PRIMARY KEY (id, timestamp)
@@ -147,4 +150,5 @@ SETTINGS index_granularity = 8192;
 INSERT INTO schema_migrations (version) VALUES
     ('20231117020810'),
     ('20231117211032'),
-    ('20231120060716');
+    ('20231120060716'),
+    ('20231120073112');
