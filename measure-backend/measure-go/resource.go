@@ -20,6 +20,9 @@ type Resource struct {
 	AppBuild           string  `json:"app_build"`
 	AppUniqueID        string  `json:"app_unique_id"`
 	MeasureSDKVersion  string  `json:"measure_sdk_version"`
+	NetworkType        string  `json:"network_type"`
+	NetworkGeneration  string  `json:"network_generation"`
+	NetworkProvider    string  `json:"network_provider"`
 }
 
 func (r *Resource) validate() error {
@@ -35,6 +38,9 @@ func (r *Resource) validate() error {
 		maxAppBuildChars           = 32
 		maxAppUniqueIDChars        = 128
 		maxMeasureSDKVersion       = 16
+		maxNetworkTypeChars        = 16
+		maxNetworkGenerationChars  = 8
+		maxNetworkProviderChars    = 64
 	)
 
 	if len(r.DeviceName) > maxDeviceNameChars {
@@ -69,6 +75,15 @@ func (r *Resource) validate() error {
 	}
 	if len(r.MeasureSDKVersion) > maxMeasureSDKVersion {
 		return fmt.Errorf(`"resource.measure_sdk_version" exceeds maximum allowed characters of (%d)`, maxMeasureSDKVersion)
+	}
+	if len(r.NetworkType) > maxNetworkTypeChars {
+		return fmt.Errorf(`"resource.network_type" exceeds maximum allowed characters of (%d)`, 16)
+	}
+	if len(r.NetworkGeneration) > maxNetworkGenerationChars {
+		return fmt.Errorf(`"resource.network_generation" exceeds maximum allowed characters of (%d)`, maxNetworkGenerationChars)
+	}
+	if len(r.NetworkProvider) > maxNetworkProviderChars {
+		return fmt.Errorf(`"resource.network_provider" exceeds maximum allowed characters of (%d)`, maxNetworkProviderChars)
 	}
 
 	return nil

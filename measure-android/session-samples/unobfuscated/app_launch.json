@@ -18,7 +18,10 @@
     "app_version": "1.0",
     "app_build": "1",
     "app_unique_id": "sh.measure.sample",
-    "measure_sdk_version": "0.0.1-SNAPSHOT"
+    "measure_sdk_version": "0.0.1-SNAPSHOT",
+    "network_type": "wifi",
+    "network_generation": "2g",
+    "network_provider": "T-Mobile"
   },
   "events": [
     {
