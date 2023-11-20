@@ -54,6 +54,11 @@ internal data class MeasureException(
     val network_generation: String?,
 
     /**
+     * The locale of the device at the time of the exception.
+     */
+    val locale: String?,
+
+    /**
      * Whether is exception represents an ANR or not.
      */
     @Transient

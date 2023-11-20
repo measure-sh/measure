@@ -8,6 +8,7 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import sh.measure.android.events.EventTracker
 import sh.measure.android.fakes.FakeNetworkInfoProvider
+import sh.measure.android.fakes.FakeLocaleProvider
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
 
@@ -17,6 +18,7 @@ internal class UnhandledExceptionCollectorTest {
     private val logger = NoopLogger()
     private val timeProvider = FakeTimeProvider()
     private val networkInfoProvider = FakeNetworkInfoProvider()
+    private val localeProvider = FakeLocaleProvider()
     private val eventTracker = mock<EventTracker>()
 
     @Before
@@ -28,7 +30,7 @@ internal class UnhandledExceptionCollectorTest {
     fun `UnhandledExceptionCollector registers itself as an uncaught exception handler`() {
         // When
         val collector = UnhandledExceptionCollector(
-            logger, eventTracker, timeProvider, networkInfoProvider
+            logger, eventTracker, timeProvider, networkInfoProvider, localeProvider
         ).apply { register() }
         val currentDefaultHandler = Thread.getDefaultUncaughtExceptionHandler()
 
@@ -39,7 +41,7 @@ internal class UnhandledExceptionCollectorTest {
     @Test
     fun `UnhandledExceptionCollector tracks uncaught exceptions`() {
         val collector = UnhandledExceptionCollector(
-            logger, eventTracker, timeProvider, networkInfoProvider
+            logger, eventTracker, timeProvider, networkInfoProvider, localeProvider
         ).apply { register() }
 
         // Given
@@ -53,7 +55,8 @@ internal class UnhandledExceptionCollectorTest {
             thread = thread,
             networkType = networkType,
             networkGeneration = networkInfoProvider.getNetworkGeneration(networkType),
-            networkProvider = networkInfoProvider.getNetworkProvider(networkType)
+            networkProvider = networkInfoProvider.getNetworkProvider(networkType),
+            locale = localeProvider.getLocale()
         )
 
         // When
@@ -72,7 +75,7 @@ internal class UnhandledExceptionCollectorTest {
             originalHandlerCalled = true
         }
         val collector = UnhandledExceptionCollector(
-            logger, eventTracker, timeProvider, networkInfoProvider
+            logger, eventTracker, timeProvider, networkInfoProvider, localeProvider
         ).apply { register() }
 
         // Given

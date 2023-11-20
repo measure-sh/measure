@@ -31,6 +31,8 @@ import sh.measure.android.storage.Storage
 import sh.measure.android.storage.StorageImpl
 import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.CurrentThread
+import sh.measure.android.utils.LocaleProvider
+import sh.measure.android.utils.LocaleProviderImpl
 import sh.measure.android.utils.PidProvider
 import sh.measure.android.utils.PidProviderImpl
 import sh.measure.android.utils.SystemServiceProvider
@@ -54,7 +56,8 @@ object Measure {
         val systemServiceProvider: SystemServiceProvider = SystemServiceProviderImpl(context)
         val networkInfoProvider: NetworkInfoProvider =
             NetworkInfoProviderImpl(context, logger, systemServiceProvider)
-        val resourceFactory = ResourceFactoryImpl(logger, context, config, networkInfoProvider)
+        val localeProvider: LocaleProvider = LocaleProviderImpl()
+        val resourceFactory = ResourceFactoryImpl(logger, context, config, networkInfoProvider, localeProvider)
         val currentThread = CurrentThread()
         val appExitProvider: AppExitProvider =
             AppExitProviderImpl(logger, currentThread, systemServiceProvider)
@@ -76,9 +79,9 @@ object Measure {
         ).apply { start() }
 
         // Register data collectors
-        UnhandledExceptionCollector(logger, eventTracker, timeProvider, networkInfoProvider)
+        UnhandledExceptionCollector(logger, eventTracker, timeProvider, networkInfoProvider, localeProvider)
             .register()
-        AnrCollector(logger, systemServiceProvider, networkInfoProvider, timeProvider, eventTracker)
+        AnrCollector(logger, systemServiceProvider, networkInfoProvider, timeProvider, eventTracker, localeProvider)
             .register()
         AppLaunchCollector(
             logger, application, timeProvider, coldLaunchTrace, eventTracker,

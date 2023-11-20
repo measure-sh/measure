@@ -7,7 +7,7 @@ import sh.measure.android.Config
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.network_change.NetworkInfoProvider
-import java.util.Locale
+import sh.measure.android.utils.LocaleProvider
 
 interface ResourceFactory {
     fun create(): Resource
@@ -21,6 +21,7 @@ internal class ResourceFactoryImpl(
     private val context: Context,
     private val config: Config,
     private val networkInfoProvider: NetworkInfoProvider,
+    private val localeProvider: LocaleProvider
 ) : ResourceFactory {
     private val configuration = context.resources.configuration
     private val packageManager = context.packageManager
@@ -46,7 +47,7 @@ internal class ResourceFactoryImpl(
             device_width_px = resources.displayMetrics.widthPixels,
             device_height_px = resources.displayMetrics.heightPixels,
             device_density = resources.displayMetrics.density,
-            device_locale = getDeviceLocale().toLanguageTag(),
+            device_locale = getDeviceLocale(),
             os_name = "android",
             os_version = Build.VERSION.SDK_INT.toString(),
             platform = "android",
@@ -110,8 +111,8 @@ internal class ResourceFactoryImpl(
         }
     }
 
-    private fun getDeviceLocale(): Locale {
-        return Locale.getDefault()
+    private fun getDeviceLocale(): String {
+        return localeProvider.getLocale()
     }
 
     private fun getMeasureVersion() = config.MEASURE_SDK_VERSION
