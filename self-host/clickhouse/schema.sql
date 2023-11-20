@@ -125,7 +125,9 @@ CREATE TABLE default.events
     `resource.network_type` LowCardinality(FixedString(16)),
     `resource.network_generation` LowCardinality(FixedString(8)),
     `resource.network_provider` FixedString(64),
-    `resource.device_locale` FixedString(64)
+    `resource.device_locale` FixedString(64),
+    `anr.device_locale` FixedString(64),
+    `exception.device_locale` FixedString(64)
 )
 ENGINE = MergeTree
 PRIMARY KEY (id, timestamp)
@@ -153,4 +155,5 @@ INSERT INTO schema_migrations (version) VALUES
     ('20231117211032'),
     ('20231120060716'),
     ('20231120073112'),
-    ('20231120133851');
+    ('20231120133851'),
+    ('20231120185455');
