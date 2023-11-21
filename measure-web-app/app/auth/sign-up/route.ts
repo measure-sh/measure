@@ -4,8 +4,13 @@ import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
+const createErrRedirectUrl = (origin: string, err: string) => {
+  return `${origin}/auth/login?error=${err}`
+}
+
 export async function POST(request: Request) {
   const requestUrl = new URL(request.url)
+  const errRedirectUrl = createErrRedirectUrl(requestUrl.origin, "Could not authenticate")
   const formData = await request.formData()
   const email = String(formData.get('email'))
   const supabase = createClient()
@@ -18,25 +23,14 @@ export async function POST(request: Request) {
   })
 
   if (error && error instanceof AuthApiError && error.status === 429) {
-    console.log(error)
-    return NextResponse.redirect(
-      `${requestUrl.origin}/auth/login?error=Too many attempts, please try again in a minute.`,
-      {
-        // a 301 status is required to redirect from a POST to a GET route
-        status: 301,
-      }
-    )
+    console.log("too many signup/sign attempts", error)
+    const errRedirectUrl = createErrRedirectUrl(requestUrl.origin, "Too many attempts, please try again in a minute")
+    return NextResponse.redirect(errRedirectUrl, { status: 301 })
   }
 
   if (error) {
-    console.log({ error })
-    return NextResponse.redirect(
-      `${requestUrl.origin}/auth/login?error=Could not authenticate`,
-      {
-        // a 301 status is required to redirect from a POST to a GET route
-        status: 301,
-      }
-    )
+    console.log("email magic link signin failed with error", error)
+    return NextResponse.redirect(errRedirectUrl, { status: 301 })
   }
 
   return NextResponse.redirect(
