@@ -29,7 +29,7 @@ func (u *User) getTeams() ([]map[string]string, error) {
 			return nil, err
 		}
 
-		team["teamId"] = teamId
+		team["id"] = teamId
 		team["name"] = name
 		team["role"] = role
 		teams = append(teams, team)

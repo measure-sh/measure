@@ -39,7 +39,7 @@ export async function GET(request: Request) {
   }
 
   type Team = {
-    teamId: string,
+    id: string,
     name: string,
     role: string,
   }
@@ -51,5 +51,5 @@ export async function GET(request: Request) {
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 
-  return NextResponse.redirect(`${requestUrl.origin}/${ownTeam.teamId}/overview`, { status: 302 })
+  return NextResponse.redirect(`${requestUrl.origin}/${ownTeam.id}/overview`, { status: 302 })
 }
