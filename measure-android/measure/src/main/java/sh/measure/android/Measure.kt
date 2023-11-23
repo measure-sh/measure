@@ -37,9 +37,14 @@ import sh.measure.android.utils.PidProvider
 import sh.measure.android.utils.PidProviderImpl
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.SystemServiceProviderImpl
+import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.UUIDProvider
 
 object Measure {
+    private lateinit var timeProvider: TimeProvider
+    private lateinit var eventTracker: EventTracker
+    private lateinit var currentThread: CurrentThread
+
     fun init(context: Context) {
         checkMainThread()
         val application = context as Application
@@ -50,7 +55,7 @@ object Measure {
         val httpClient: HttpClient =
             HttpClientOkHttp(logger, Config.MEASURE_BASE_URL, Config.MEASURE_SECRET_TOKEN)
         val transport: Transport = TransportImpl(logger, httpClient)
-        val timeProvider = AndroidTimeProvider()
+        timeProvider = AndroidTimeProvider()
         val idProvider = UUIDProvider()
         val config = Config
         val systemServiceProvider: SystemServiceProvider = SystemServiceProviderImpl(context)
@@ -58,7 +63,7 @@ object Measure {
             NetworkInfoProviderImpl(context, logger, systemServiceProvider)
         val localeProvider: LocaleProvider = LocaleProviderImpl()
         val resourceFactory = ResourceFactoryImpl(logger, context, config, networkInfoProvider, localeProvider)
-        val currentThread = CurrentThread()
+        currentThread = CurrentThread()
         val appExitProvider: AppExitProvider =
             AppExitProviderImpl(logger, currentThread, systemServiceProvider)
         val pidProvider: PidProvider = PidProviderImpl()
@@ -68,7 +73,7 @@ object Measure {
         val sessionController: SessionController = SessionControllerImpl(
             logger, sessionProvider, storage, transport, executorService, sessionReportGenerator
         )
-        val eventTracker: EventTracker = MeasureEventTracker(logger, sessionController)
+        eventTracker = MeasureEventTracker(logger, sessionController)
 
         // Init session
         sessionController.initSession()
@@ -95,5 +100,20 @@ object Measure {
             },
         ).register()
         logger.log(LogLevel.Debug, "Measure initialization completed")
+    }
+
+    internal fun getEventTracker(): EventTracker {
+        require(::eventTracker.isInitialized)
+        return eventTracker
+    }
+
+    internal fun getTimeProvider(): TimeProvider {
+        require(::timeProvider.isInitialized)
+        return timeProvider
+    }
+
+    internal fun getCurrentThread(): CurrentThread {
+        require(::currentThread.isInitialized)
+        return currentThread
     }
 }

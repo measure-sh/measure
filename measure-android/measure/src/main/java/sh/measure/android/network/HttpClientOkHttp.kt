@@ -39,13 +39,15 @@ internal class HttpClientOkHttp(
     private val logger: Logger, private val baseUrl: String, secretToken: String
 ) : HttpClient {
 
-    private val client =
+    private val client by lazy {
         OkHttpClient.Builder().connectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
             .callTimeout(CALL_TIMEOUT_MS, TimeUnit.MILLISECONDS)
             .addInterceptor(SecretTokenHeaderInterceptor(secretToken))
             .addInterceptor(HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BODY
-            }).build()
+            })
+            .build()
+    }
 
     override fun sendSessionReportMultipart(
         sessionReport: SessionReport, callback: Transport.Callback?

@@ -9,7 +9,6 @@ import sh.measure.android.app_launch.ColdLaunchEvent
 import sh.measure.android.app_launch.HotLaunchEvent
 import sh.measure.android.app_launch.WarmLaunchEvent
 import sh.measure.android.appexit.AppExit
-import sh.measure.android.network_change.NetworkChangeEvent
 import sh.measure.android.exceptions.MeasureException
 import sh.measure.android.gestures.ClickEvent
 import sh.measure.android.gestures.LongClickEvent
@@ -17,6 +16,8 @@ import sh.measure.android.gestures.ScrollEvent
 import sh.measure.android.lifecycle.ActivityLifecycleEvent
 import sh.measure.android.lifecycle.ApplicationLifecycleEvent
 import sh.measure.android.lifecycle.FragmentLifecycleEvent
+import sh.measure.android.network_change.NetworkChangeEvent
+import sh.measure.android.okhttp.HttpEvent
 import sh.measure.android.utils.iso8601Timestamp
 
 data class Event(
@@ -146,6 +147,15 @@ internal fun NetworkChangeEvent.toEvent() : Event {
         type = EventType.NETWORK_CHANGE,
         timestamp = timestamp.iso8601Timestamp(),
         data = Json.encodeToJsonElement(NetworkChangeEvent.serializer(), this),
+        thread_name = thread_name
+    )
+}
+
+internal fun HttpEvent.toEvent(): Event {
+    return Event(
+        type = EventType.HTTP,
+        timestamp = timestamp.iso8601Timestamp(),
+        data = Json.encodeToJsonElement(HttpEvent.serializer(), this),
         thread_name = thread_name
     )
 }

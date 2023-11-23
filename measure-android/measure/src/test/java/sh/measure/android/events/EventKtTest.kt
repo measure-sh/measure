@@ -16,6 +16,8 @@ import sh.measure.android.gestures.ClickEvent
 import sh.measure.android.gestures.Direction
 import sh.measure.android.gestures.LongClickEvent
 import sh.measure.android.gestures.ScrollEvent
+import sh.measure.android.okhttp.HttpClientName
+import sh.measure.android.okhttp.HttpEvent
 import sh.measure.android.utils.iso8601Timestamp
 
 class EventKtTest {
@@ -261,5 +263,53 @@ class EventKtTest {
         assertEquals(threadName, event.thread_name)
         assertEquals(timestampIso, event.timestamp)
         assertEquals(EventType.NETWORK_CHANGE, event.type)
+    }
+
+    @Test
+    fun `HttpEvent toEvent() returns an event of type http`() {
+        val timestamp = 0L
+        val timestampIso = timestamp.iso8601Timestamp()
+        val threadName = "thread"
+        val httpEvent = HttpEvent(
+            url = "https://www.measure.sh/",
+            method = "GET",
+            request_body_size = 0L,
+            response_body_size = 0L,
+            status_code = 200,
+            request_timestamp = timestampIso,
+            response_timestamp = timestampIso,
+            request_headers_size = 0L,
+            response_headers_size = 0L,
+            start_time = 0L,
+            end_time = 0L,
+            dns_start = 0L,
+            dns_end = 0L,
+            connect_start = 0L,
+            connect_end = 0L,
+            request_start = 0L,
+            request_end = 0L,
+            request_headers_start = 0L,
+            request_headers_end = 0L,
+            request_body_start = 0L,
+            request_body_end = 0L,
+            response_start = 0L,
+            response_end = 0L,
+            response_headers_start = 0L,
+            response_headers_end = 0L,
+            response_body_start = 0L,
+            response_body_end = 0L,
+            failure_reason = null,
+            failure_description = null,
+            client = HttpClientName.OK_HTTP,
+            timestamp = timestamp,
+            request_headers = mapOf(),
+            response_headers = mapOf(),
+            thread_name = threadName
+        )
+        val event = httpEvent.toEvent()
+
+        assertEquals(threadName, event.thread_name)
+        assertEquals(timestampIso, event.timestamp)
+        assertEquals(EventType.HTTP, event.type)
     }
 }
