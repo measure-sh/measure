@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"context"
@@ -12,34 +12,34 @@ import (
 )
 
 type Server struct {
-	pgPool *pgxpool.Pool
-	chPool driver.Conn
-	config *ServerConfig
+	PgPool *pgxpool.Pool
+	ChPool driver.Conn
+	Config *ServerConfig
 }
 
 type PostgresConfig struct {
 	/* connection string of the postgres instance */
-	dsn string
+	DSN string
 }
 
 type ClickhouseConfig struct {
 	/* connection string of the clickhouse instance */
-	dsn string
+	DSN string
 }
 
 type ServerConfig struct {
-	pg                         PostgresConfig
-	ch                         ClickhouseConfig
-	mappingFileMaxSize         uint64
-	symbolsBucket              string
-	symbolsBucketRegion        string
-	symbolsAccessKey           string
-	symbolsSecretAccessKey     string
-	attachmentsBucket          string
-	attachmentsBucketRegion    string
-	attachmentsAccessKey       string
-	attachmentsSecretAccessKey string
-	authJWTSecret              string
+	PG                         PostgresConfig
+	CH                         ClickhouseConfig
+	MappingFileMaxSize         uint64
+	SymbolsBucket              string
+	SymbolsBucketRegion        string
+	SymbolsAccessKey           string
+	SymbolsSecretAccessKey     string
+	AttachmentsBucket          string
+	AttachmentsBucketRegion    string
+	AttachmentsAccessKey       string
+	AttachmentsSecretAccessKey string
+	AuthJWTSecret              string
 }
 
 func NewServerConfig() *ServerConfig {
@@ -95,32 +95,32 @@ func NewServerConfig() *ServerConfig {
 	}
 
 	return &ServerConfig{
-		pg: PostgresConfig{
-			dsn: "postgresql://postgres:postgres@localhost:5432/default",
+		PG: PostgresConfig{
+			DSN: "postgresql://postgres:postgres@localhost:5432/default",
 		},
-		ch: ClickhouseConfig{
-			dsn: "clickhouse://default:@127.0.0.1:9000/default",
+		CH: ClickhouseConfig{
+			DSN: "clickhouse://default:@127.0.0.1:9000/default",
 		},
-		mappingFileMaxSize:         mappingFileMaxSize,
-		symbolsBucket:              symbolsBucket,
-		symbolsBucketRegion:        symbolsBucketRegion,
-		symbolsAccessKey:           symbolsAccessKey,
-		symbolsSecretAccessKey:     symbolsSecretAccessKey,
-		attachmentsBucket:          attachmentsBucket,
-		attachmentsBucketRegion:    attachmentsBucketRegion,
-		attachmentsAccessKey:       attachmentsAccessKey,
-		attachmentsSecretAccessKey: attachmentsSecretAccessKey,
-		authJWTSecret:              authJWTSecret,
+		MappingFileMaxSize:         mappingFileMaxSize,
+		SymbolsBucket:              symbolsBucket,
+		SymbolsBucketRegion:        symbolsBucketRegion,
+		SymbolsAccessKey:           symbolsAccessKey,
+		SymbolsSecretAccessKey:     symbolsSecretAccessKey,
+		AttachmentsBucket:          attachmentsBucket,
+		AttachmentsBucketRegion:    attachmentsBucketRegion,
+		AttachmentsAccessKey:       attachmentsAccessKey,
+		AttachmentsSecretAccessKey: attachmentsSecretAccessKey,
+		AuthJWTSecret:              authJWTSecret,
 	}
 }
 
 func (s *Server) Configure(serverConfig *ServerConfig) *Server {
-	pgPool, err := pgxpool.New(context.Background(), serverConfig.pg.dsn)
+	pgPool, err := pgxpool.New(context.Background(), serverConfig.PG.DSN)
 	if err != nil {
 		log.Fatalf("Unable to create PG connection pool: %v\n", err)
 	}
 
-	chOpts, err := clickhouse.ParseDSN(serverConfig.ch.dsn)
+	chOpts, err := clickhouse.ParseDSN(serverConfig.CH.DSN)
 	if err != nil {
 		log.Fatalf("Unable to parse CH connection string: %v\n", err)
 	}
@@ -131,8 +131,8 @@ func (s *Server) Configure(serverConfig *ServerConfig) *Server {
 	}
 
 	return &Server{
-		pgPool: pgPool,
-		chPool: chPool,
-		config: serverConfig,
+		PgPool: pgPool,
+		ChPool: chPool,
+		Config: serverConfig,
 	}
 }

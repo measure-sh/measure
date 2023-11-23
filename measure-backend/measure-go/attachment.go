@@ -56,13 +56,13 @@ func (a *Attachment) Prepare() Attachment {
 func (a *Attachment) upload(s *Session) (*s3manager.UploadOutput, error) {
 	b64Decoder := base64.NewDecoder(base64.StdEncoding, strings.NewReader(a.Blob))
 	awsConfig := &aws.Config{
-		Region:      aws.String(server.config.attachmentsBucketRegion),
-		Credentials: credentials.NewStaticCredentials(server.config.attachmentsAccessKey, server.config.attachmentsSecretAccessKey, ""),
+		Region:      aws.String(server.Config.AttachmentsBucketRegion),
+		Credentials: credentials.NewStaticCredentials(server.Config.AttachmentsAccessKey, server.Config.AttachmentsSecretAccessKey, ""),
 	}
 	awsSession := session.Must(session.NewSession(awsConfig))
 	uploader := s3manager.NewUploader(awsSession)
 	result, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(server.config.attachmentsBucket),
+		Bucket: aws.String(server.Config.AttachmentsBucket),
 		Key:    aws.String(a.Key),
 		Body:   b64Decoder,
 		Metadata: map[string]*string{

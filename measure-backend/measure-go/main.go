@@ -5,34 +5,36 @@ import (
 	"os"
 	"time"
 
+	srv "measure-backend/measure-go/server"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-var serverConfig ServerConfig
-var server Server
+var serverConfig srv.ServerConfig
+var server srv.Server
 
 func main() {
-	serverConfig = *NewServerConfig()
+	serverConfig = *srv.NewServerConfig()
 
 	pgDSN := os.Getenv("POSTGRES_DSN")
 	if pgDSN == "" {
-		log.Printf(`"POSTGRES_DSN" missing, will proceed with default "%s"`, serverConfig.pg.dsn)
+		log.Printf(`"POSTGRES_DSN" missing, will proceed with default "%s"`, serverConfig.PG.DSN)
 	} else {
-		serverConfig.pg.dsn = pgDSN
+		serverConfig.PG.DSN = pgDSN
 	}
 
 	chDSN := os.Getenv("CLICKHOUSE_DSN")
 	if chDSN == "" {
-		log.Printf(`"CLICKHOUSE_DSN" missing, will proceed with default "%s"`, serverConfig.ch.dsn)
+		log.Printf(`"CLICKHOUSE_DSN" missing, will proceed with default "%s"`, serverConfig.CH.DSN)
 	} else {
-		serverConfig.ch.dsn = chDSN
+		serverConfig.CH.DSN = chDSN
 	}
 
-	server = *new(Server).Configure(&serverConfig)
+	server = *new(srv.Server).Configure(&serverConfig)
 
-	defer server.pgPool.Close()
-	defer server.chPool.Close()
+	defer server.PgPool.Close()
+	defer server.ChPool.Close()
 
 	r := gin.Default()
 	cors := cors.New(cors.Config{
@@ -58,6 +60,7 @@ func main() {
 	r.Use(cors).GET("/apps/:id/filters", authorize(), getAppFilters)
 	r.Use(cors).GET("/teams", validateAccessToken(), getTeams)
 	r.Use(cors).GET("/teams/:id/apps", authorize(), getTeamApps)
+	r.Use(cors).POST("/teams/:id/apps", validateAccessToken(), createApp)
 
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080
 }

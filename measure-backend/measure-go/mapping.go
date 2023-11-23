@@ -45,7 +45,7 @@ func (m *MappingFile) shouldUpsert() (bool, *uuid.UUID, error) {
 	var id uuid.UUID
 	var key string
 	var existingHash string
-	if err := server.pgPool.QueryRow(context.Background(), "select id, key, fnv1_hash from mapping_files where app_unique_id = $1 and version_name = $2 and version_code = $3 and mapping_type = $4;", m.AppUniqueID, m.VersionName, m.VersionCode, m.Type).Scan(&id, &key, &existingHash); err != nil {
+	if err := server.PgPool.QueryRow(context.Background(), "select id, key, fnv1_hash from mapping_files where app_unique_id = $1 and version_name = $2 and version_code = $3 and mapping_type = $4;", m.AppUniqueID, m.VersionName, m.VersionCode, m.Type).Scan(&id, &key, &existingHash); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return true, nil, nil
 		} else {
@@ -87,7 +87,7 @@ func (m *MappingFile) upload() (*s3manager.UploadOutput, error) {
 }
 
 func (m *MappingFile) insert() error {
-	if _, err := server.pgPool.Exec(context.Background(), "insert into mapping_files (id, app_unique_id, version_name, version_code, mapping_type, key, location, fnv1_hash, file_size, last_updated) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);", m.ID, m.AppUniqueID, m.VersionName, m.VersionCode, m.Type, m.Key, m.Location, m.ContentHash, m.File.Size, time.Now()); err != nil {
+	if _, err := server.PgPool.Exec(context.Background(), "insert into mapping_files (id, app_unique_id, version_name, version_code, mapping_type, key, location, fnv1_hash, file_size, last_updated) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);", m.ID, m.AppUniqueID, m.VersionName, m.VersionCode, m.Type, m.Key, m.Location, m.ContentHash, m.File.Size, time.Now()); err != nil {
 		return err
 	}
 
@@ -95,7 +95,7 @@ func (m *MappingFile) insert() error {
 }
 
 func (m *MappingFile) upsert() error {
-	if _, err := server.pgPool.Exec(context.Background(), `update mapping_files set fnv1_hash = $1, file_size = $2, last_updated = $3 where id = $4;`, m.ContentHash, m.File.Size, time.Now(), m.ID); err != nil {
+	if _, err := server.PgPool.Exec(context.Background(), `update mapping_files set fnv1_hash = $1, file_size = $2, last_updated = $3 where id = $4;`, m.ContentHash, m.File.Size, time.Now(), m.ID); err != nil {
 		return err
 	}
 
@@ -148,8 +148,8 @@ func (m *MappingFile) validate() (int, error) {
 		return http.StatusBadRequest, errors.New(`"mapping_file" does not any contain data`)
 	}
 
-	if m.File.Size > int64(server.config.mappingFileMaxSize) {
-		return http.StatusRequestEntityTooLarge, fmt.Errorf(`"%s" file size exceeding %d bytes`, m.File.Filename, server.config.mappingFileMaxSize)
+	if m.File.Size > int64(server.Config.MappingFileMaxSize) {
+		return http.StatusRequestEntityTooLarge, fmt.Errorf(`"%s" file size exceeding %d bytes`, m.File.Filename, server.Config.MappingFileMaxSize)
 	}
 
 	return 0, nil
@@ -230,13 +230,13 @@ func putMapping(c *gin.Context) {
 
 func uploadToStorage(f *multipart.File, k string, m map[string]*string) (*s3manager.UploadOutput, error) {
 	awsConfig := &aws.Config{
-		Region:      aws.String(server.config.symbolsBucketRegion),
-		Credentials: credentials.NewStaticCredentials(server.config.symbolsAccessKey, server.config.symbolsSecretAccessKey, ""),
+		Region:      aws.String(server.Config.SymbolsBucketRegion),
+		Credentials: credentials.NewStaticCredentials(server.Config.SymbolsAccessKey, server.Config.SymbolsSecretAccessKey, ""),
 	}
 	awsSession := session.Must(session.NewSession(awsConfig))
 	uploader := s3manager.NewUploader(awsSession)
 	result, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(server.config.symbolsBucket),
+		Bucket: aws.String(server.Config.SymbolsBucket),
 		Key:    aws.String(k),
 		Body:   *f,
 		Metadata: map[string]*string{
