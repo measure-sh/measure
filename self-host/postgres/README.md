@@ -22,6 +22,7 @@ Schema migrations for postgres instances are managed using [dbmate](https://gith
     - `dbmate new create-sessions_attachments-relation`
     - `dbmate new create-create_team-function`
     - `dbmate new create-create_team_for_user-trigger`
+    - `dbmate new alter-teams-relation` - add a new column
 - When authoring migrations, always prefix the schema name in your objects
 
 ## Examples
@@ -29,8 +30,16 @@ Schema migrations for postgres instances are managed using [dbmate](https://gith
 ### Creating tables
 
 ```sql
+-- migrate:up
 create table if not exists public.employees (
     id uuid primary key not null,
     name text
 );
+
+-- migrate:down
+drop table if exists public.employees;
 ```
+
+## Reset
+
+Run the `./rigmarole.sh` script to rollback all migrations and re-apply again. This will effectively reset the entire database. Note that, this will not delete records from the `auth.users` table.

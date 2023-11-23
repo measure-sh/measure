@@ -70,19 +70,95 @@ CREATE TABLE dbmate.schema_migrations (
 
 
 --
+-- Name: api_keys; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.api_keys (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    app_id uuid,
+    key_prefix character varying(16) NOT NULL,
+    key_value character varying(256) NOT NULL,
+    checksum character varying(16) NOT NULL,
+    revoked boolean DEFAULT false,
+    last_seen timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: COLUMN api_keys.id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.api_keys.id IS 'unique id for each api key';
+
+
+--
+-- Name: COLUMN api_keys.app_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.api_keys.app_id IS 'linked app id';
+
+
+--
+-- Name: COLUMN api_keys.key_prefix; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.api_keys.key_prefix IS 'constant prefix for the key';
+
+
+--
+-- Name: COLUMN api_keys.key_value; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.api_keys.key_value IS 'key value';
+
+
+--
+-- Name: COLUMN api_keys.checksum; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.api_keys.checksum IS 'checksum of key value';
+
+
+--
+-- Name: COLUMN api_keys.revoked; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.api_keys.revoked IS 'has the key been revoked earlier';
+
+
+--
+-- Name: COLUMN api_keys.last_seen; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.api_keys.last_seen IS 'utc timestamp at the time of last key usage seen';
+
+
+--
+-- Name: COLUMN api_keys.created_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.api_keys.created_at IS 'utc timestamp at the time of api key creation';
+
+
+--
 -- Name: apps; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.apps (
-    id uuid NOT NULL,
-    team_id uuid,
-    unique_identifier character varying(512) NOT NULL,
-    platform character varying(256) NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    team_id uuid NOT NULL,
+    unique_identifier character varying(512),
+    app_name character varying(512),
+    platform character varying(256),
     first_version character varying(128),
     latest_version character varying(128),
     first_seen_at timestamp with time zone,
-    created_at timestamp with time zone NOT NULL,
-    updated_at timestamp with time zone NOT NULL
+    onboarded boolean DEFAULT false,
+    onboarded_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    CONSTRAINT apps_platform_check CHECK (((platform)::text = ANY ((ARRAY['ios'::character varying, 'android'::character varying, 'flutter'::character varying, 'react-native'::character varying, 'unity'::character varying])::text[])))
 );
 
 
@@ -105,6 +181,13 @@ COMMENT ON COLUMN public.apps.team_id IS 'team id that this app belongs to';
 --
 
 COMMENT ON COLUMN public.apps.unique_identifier IS 'unique id lingua franca to app creator';
+
+
+--
+-- Name: COLUMN apps.app_name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.apps.app_name IS 'name of app lingua franca to app creator';
 
 
 --
@@ -133,6 +216,20 @@ COMMENT ON COLUMN public.apps.latest_version IS 'latest version of the app as pe
 --
 
 COMMENT ON COLUMN public.apps.first_seen_at IS 'utc timestamp as per the nascent ingested session';
+
+
+--
+-- Name: COLUMN apps.onboarded; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.apps.onboarded IS 'app is considered onboarded once it receives the first session';
+
+
+--
+-- Name: COLUMN apps.onboarded_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.apps.onboarded_at IS 'utc timestamp at the time of receiving first session';
 
 
 --
@@ -591,6 +688,14 @@ ALTER TABLE ONLY dbmate.schema_migrations
 
 
 --
+-- Name: api_keys api_keys_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_keys
+    ADD CONSTRAINT api_keys_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: apps apps_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -652,6 +757,14 @@ ALTER TABLE ONLY public.team_membership
 
 ALTER TABLE ONLY public.teams
     ADD CONSTRAINT teams_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: api_keys api_keys_app_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_keys
+    ADD CONSTRAINT api_keys_app_id_fkey FOREIGN KEY (app_id) REFERENCES public.apps(id) ON DELETE CASCADE DEFERRABLE;
 
 
 --
@@ -737,4 +850,5 @@ INSERT INTO dbmate.schema_migrations (version) VALUES
     ('20231117012219'),
     ('20231117012336'),
     ('20231117012557'),
-    ('20231117012726');
+    ('20231117012726'),
+    ('20231122211412');
