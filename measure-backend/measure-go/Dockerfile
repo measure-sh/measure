@@ -8,7 +8,7 @@ COPY . .
 # RUN go build -o /go/bin/app -v ./...
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    go build -o /go/bin/app -v ./...
+    go build -o /go/bin/app -v .
 
 #final stage
 FROM alpine:latest

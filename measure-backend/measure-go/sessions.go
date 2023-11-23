@@ -153,7 +153,7 @@ func (s *Session) uploadAttachments() error {
 
 func (s *Session) saveWithContext(c *gin.Context) error {
 	bytesIn := c.MustGet("bytesIn")
-	tx, err := server.pgPool.Begin(context.Background())
+	tx, err := server.PgPool.Begin(context.Background())
 	if err != nil {
 		return err
 	}
@@ -205,7 +205,7 @@ func (s *Session) saveWithContext(c *gin.Context) error {
 
 func (s *Session) known(id uuid.UUID) (bool, error) {
 	var known string
-	if err := server.pgPool.QueryRow(context.Background(), `select id from sessions where id = $1;`, s.SessionID).Scan(&known); err != nil {
+	if err := server.PgPool.QueryRow(context.Background(), `select id from sessions where id = $1;`, s.SessionID).Scan(&known); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, nil
 		}
@@ -216,7 +216,7 @@ func (s *Session) known(id uuid.UUID) (bool, error) {
 
 func (s *Session) getMappingKey() (string, error) {
 	var key string
-	if err := server.pgPool.QueryRow(context.Background(), `select key from mapping_files where app_unique_id = $1 and version_name = $2 and version_code = $3 and mapping_type = 'proguard' limit 1;`, s.Resource.AppUniqueID, s.Resource.AppVersion, s.Resource.AppBuild).Scan(&key); err != nil {
+	if err := server.PgPool.QueryRow(context.Background(), `select key from mapping_files where app_unique_id = $1 and version_name = $2 and version_code = $3 and mapping_type = 'proguard' limit 1;`, s.Resource.AppUniqueID, s.Resource.AppVersion, s.Resource.AppBuild).Scan(&key); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", nil
 		}
@@ -603,7 +603,7 @@ func putSession(c *gin.Context) {
 	}
 
 	query, args := makeInsertQuery("events", columns, session)
-	if err := server.chPool.AsyncInsert(context.Background(), query, false, args...); err != nil {
+	if err := server.ChPool.AsyncInsert(context.Background(), query, false, args...); err != nil {
 		fmt.Println("clickhouse insert err:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
