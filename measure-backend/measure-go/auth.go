@@ -1,12 +1,13 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func authorize() gin.HandlerFunc {
@@ -55,24 +56,28 @@ func validateAccessToken() gin.HandlerFunc {
 				return nil, err
 			}
 
-			return []byte(server.config.authJWTSecret), nil
+			return []byte(server.Config.AuthJWTSecret), nil
 		})
 
 		if err != nil {
-			msg := fmt.Sprintf("failed to parse access token: %v", err)
-			fmt.Println(msg)
-			c.AbortWithStatus(http.StatusUnauthorized)
-			return
+			if errors.Is(err, jwt.ErrTokenExpired) {
+				msg := "access token has expired"
+				fmt.Println(msg, err)
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": msg})
+				return
+			}
+
+			fmt.Println("generic access token error", err)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or malformed access token"})
 		}
 
 		if claims, ok := accessToken.Claims.(jwt.MapClaims); ok {
-			fmt.Println("jwt claims", claims)
 			userId := claims["sub"]
 			c.Set("userId", userId)
 		} else {
-			msg := "Failed to read claims from parsed access token"
+			msg := "failed to read claims from access token"
 			fmt.Println(msg, err)
-			c.AbortWithStatus(http.StatusUnauthorized)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": msg})
 			return
 		}
 

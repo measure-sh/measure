@@ -1,13 +1,73 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+type App struct {
+	ID            uuid.UUID `json:"id"`
+	TeamId        uuid.UUID `json:"team_id"`
+	AppName       string    `json:"app_name" binding:"required"`
+	UniqueId      string    `json:"unique_identifier"`
+	Platform      string    `json:"platform"`
+	firstVersion  string    `json:"first_version"`
+	latestVersion string    `json:"latest_version"`
+	firstSeenAt   time.Time `json:"first_seen_at"`
+	Onboarded     bool      `json:"onboarded"`
+	OnboardedAt   time.Time `json:"onboarded_at"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+func NewApp(teamId uuid.UUID) *App {
+	now := time.Now()
+	return &App{
+		ID:        uuid.New(),
+		TeamId:    teamId,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+}
+
+func (a *App) add() error {
+	a.ID = uuid.New()
+	tx, err := server.PgPool.Begin(context.Background())
+
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback(context.Background())
+
+	_, err = tx.Exec(context.Background(), "insert into public.apps(id, team_id, app_name, created_at, updated_at) values ($1, $2, $3, $4, $5);", a.ID, a.TeamId, a.AppName, a.CreatedAt, a.UpdatedAt)
+
+	if err != nil {
+		return err
+	}
+
+	apiKey, err := NewAPIKey(a.ID)
+
+	if err != nil {
+		return err
+	}
+
+	if err := apiKey.saveTx(tx, a); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(context.Background()); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func getAppJourney(c *gin.Context) {
 	var af AppFilter
@@ -320,4 +380,45 @@ func getAppFilters(c *gin.Context) {
 		c.Data(http.StatusOK, "application/json", []byte(appFilters))
 	}
 
+}
+
+func createApp(c *gin.Context) {
+	userId := c.GetString("userId")
+	teamId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `team id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	ok, err := PerformAuthz(userId, teamId.String(), *ScopeAppAll)
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`you don't have permissions to create apps in team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	app := NewApp(teamId)
+	if err := c.ShouldBindJSON(&app); err != nil {
+		msg := `failed to parse app json payload`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	if err := app.add(); err != nil {
+		msg := "failed to create app"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"ok": "created"})
 }
