@@ -28,9 +28,6 @@ const (
 	maxGestureClickTargetChars                = 128
 	maxGestureClickTargetNameChars            = 128
 	maxGestureClickTargetIDChars              = 128
-	maxHTTPRequestMethodChars                 = 16
-	maxHTTPRequestProtocolVersionChars        = 16
-	maxHTTPResponseMethodChars                = 16
 	maxLifecycleActivityTypeChars             = 32
 	maxLifecycleActivityClassNameChars        = 128
 	maxLifecycleFragmentTypeChars             = 32
@@ -54,8 +51,6 @@ const TypeString = "string"
 const TypeGestureLongClick = "gesture_long_click"
 const TypeGestureClick = "gesture_click"
 const TypeGestureScroll = "gesture_scroll"
-const TypeHTTPRequest = "http_request"
-const TypeHTTPResponse = "http_response"
 const TypeLifecycleActivity = "lifecycle_activity"
 const TypeLifecycleFragment = "lifecycle_fragment"
 const TypeLifecycleApp = "lifecycle_app"
@@ -133,20 +128,6 @@ var columns = []string{
 	"gesture_scroll.end_x",
 	"gesture_scroll.end_y",
 	"gesture_scroll.direction",
-	"http_request.request_id",
-	"http_request.request_url",
-	"http_request.method",
-	"http_request.http_protocol_version",
-	"http_request.request_body_size",
-	"http_request.request_body",
-	"http_request.request_headers",
-	"http_response.request_id",
-	"http_response.request_url",
-	"http_response.method",
-	"http_response.latency_ms",
-	"http_response.status_code",
-	"http_response.response_body",
-	"http_response.response_headers",
 	"lifecycle_activity.type",
 	"lifecycle_activity.class_name",
 	"lifecycle_activity.intent",
@@ -343,26 +324,6 @@ type GestureClick struct {
 	Y             float32 `json:"y"`
 }
 
-type HTTPRequest struct {
-	RequestID           string            `json:"request_id"`
-	RequestURL          string            `json:"request_url"`
-	Method              string            `json:"method"`
-	HTTPProtocolVersion string            `json:"http_protocol_version"`
-	RequestBodySize     uint32            `json:"request_body_size"`
-	RequestBody         string            `json:"request_body"`
-	RequestHeaders      map[string]string `json:"request_headers"`
-}
-
-type HTTPResponse struct {
-	RequestID       string            `json:"request_id"`
-	RequestURL      string            `json:"request_url"`
-	Method          string            `json:"method"`
-	LatencyMS       uint16            `json:"latency_ms"`
-	StatusCode      uint16            `json:"status_code"`
-	ResponseBody    string            `json:"response_body"`
-	ResponseHeaders map[string]string `json:"response_headers"`
-}
-
 type LifecycleActivity struct {
 	Type               string `json:"type" binding:"required"`
 	ClassName          string `json:"class_name" binding:"required"`
@@ -426,8 +387,6 @@ type EventField struct {
 	GestureLongClick  GestureLongClick  `json:"gesture_long_click,omitempty"`
 	GestureScroll     GestureScroll     `json:"gesture_scroll,omitempty"`
 	GestureClick      GestureClick      `json:"gesture_click,omitempty"`
-	HTTPRequest       HTTPRequest       `json:"http_request,omitempty"`
-	HTTPResponse      HTTPResponse      `json:"http_response,omitempty"`
 	LifecycleActivity LifecycleActivity `json:"lifecycle_activity,omitempty"`
 	LifecycleFragment LifecycleFragment `json:"lifecycle_fragment,omitempty"`
 	LifecycleApp      LifecycleApp      `json:"lifecycle_app,omitempty"`
@@ -466,14 +425,6 @@ func (e *EventField) isGestureClick() bool {
 	return e.Type == TypeGestureClick
 }
 
-func (e *EventField) isHTTPRequest() bool {
-	return e.Type == TypeHTTPRequest
-}
-
-func (e *EventField) isHTTPResponse() bool {
-	return e.Type == TypeHTTPResponse
-}
-
 func (e *EventField) isLifecycleActivity() bool {
 	return e.Type == TypeLifecycleActivity
 }
@@ -503,7 +454,7 @@ func (e *EventField) isNetworkChange() bool {
 }
 
 func (e *EventField) validate() error {
-	validTypes := []string{TypeANR, TypeException, TypeAppExit, TypeString, TypeGestureLongClick, TypeGestureScroll, TypeGestureClick, TypeHTTPRequest, TypeHTTPResponse, TypeLifecycleActivity, TypeLifecycleFragment, TypeLifecycleApp, TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch, TypeNetworkChange}
+	validTypes := []string{TypeANR, TypeException, TypeAppExit, TypeString, TypeGestureLongClick, TypeGestureScroll, TypeGestureClick, TypeLifecycleActivity, TypeLifecycleFragment, TypeLifecycleApp, TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch, TypeNetworkChange}
 	if !slices.Contains(validTypes, e.Type) {
 		return fmt.Errorf(`"events[].type" is not a valid type`)
 	}
@@ -553,18 +504,6 @@ func (e *EventField) validate() error {
 	if e.isGestureClick() {
 		if e.GestureClick.X < 0 || e.GestureClick.Y < 0 {
 			return fmt.Errorf(`gesture_click event is invalid`)
-		}
-	}
-
-	if e.isHTTPRequest() {
-		if e.HTTPRequest.RequestID == "" || e.HTTPRequest.RequestURL == "" || e.HTTPRequest.Method == "" {
-			return fmt.Errorf(`http_request event is invalid`)
-		}
-	}
-
-	if e.isHTTPResponse() {
-		if e.HTTPResponse.RequestID == "" || e.HTTPResponse.RequestURL == "" || e.HTTPResponse.Method == "" {
-			return fmt.Errorf(`http_response event is invalid`)
 		}
 	}
 
@@ -664,15 +603,6 @@ func (e *EventField) validate() error {
 	if len(e.GestureScroll.Direction) > maxGestureScrollDirectionChars {
 		return fmt.Errorf(`"events[].gesture_scroll.direction" exceeds maximum allowed characters of (%d)`, maxGestureScrollDirectionChars)
 	}
-	if len(e.HTTPRequest.Method) > maxHTTPRequestMethodChars {
-		return fmt.Errorf(`"events[].http_request.method" exceeds maximum allowed characters of (%d)`, maxHTTPRequestMethodChars)
-	}
-	if len(e.HTTPRequest.HTTPProtocolVersion) > maxHTTPRequestProtocolVersionChars {
-		return fmt.Errorf(`"events[].http_request.http_protocol_version" exceeds maximum allowed characters of (%d)`, maxHTTPRequestProtocolVersionChars)
-	}
-	if len(e.HTTPResponse.Method) > maxHTTPResponseMethodChars {
-		return fmt.Errorf(`"events[].http_response.method" exceeds maximum allowed characters of (%d)`, maxHTTPResponseMethodChars)
-	}
 	if len(e.LifecycleActivity.Type) > maxLifecycleActivityTypeChars {
 		return fmt.Errorf(`"events[].lifecycle_activity.type" exceeds maximum allowed characters of (%d)`, maxLifecycleActivityTypeChars)
 	}
@@ -729,7 +659,7 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 	values := []string{}
 	valueArgs := []interface{}{}
 
-	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
 	for _, event := range session.Events {
 		anrExceptions := "[]"
@@ -809,20 +739,6 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			event.GestureScroll.EndX,
 			event.GestureScroll.EndY,
 			event.GestureScroll.Direction,
-			event.HTTPRequest.RequestID,
-			event.HTTPRequest.RequestURL,
-			event.HTTPRequest.Method,
-			event.HTTPRequest.HTTPProtocolVersion,
-			event.HTTPRequest.RequestBodySize,
-			event.HTTPRequest.RequestBody,
-			mapToString(event.HTTPRequest.RequestHeaders),
-			event.HTTPResponse.RequestID,
-			event.HTTPResponse.RequestURL,
-			event.HTTPResponse.Method,
-			event.HTTPResponse.LatencyMS,
-			event.HTTPResponse.StatusCode,
-			event.HTTPResponse.ResponseBody,
-			mapToString(event.HTTPResponse.ResponseHeaders),
 			event.LifecycleActivity.Type,
 			event.LifecycleActivity.ClassName,
 			event.LifecycleActivity.Intent,
