@@ -41,6 +41,8 @@ const (
 	maxNetworkChangeNetworkGeneration         = 8
 	maxNetworkChangePreviousNetworkGeneration = 8
 	maxNetworkChangeNetworkProvider           = 64
+	maxHttpMethodChars                        = 16
+	maxHttpClientChars                        = 32
 	maxAttrCount                              = 10
 )
 
@@ -58,6 +60,7 @@ const TypeColdLaunch = "cold_launch"
 const TypeWarmLaunch = "warm_launch"
 const TypeHotLaunch = "hot_launch"
 const TypeNetworkChange = "network_change"
+const TypeHttp = "http"
 
 // timeFormat is the format of datetime in nanoseconds when
 // converting datetime values before inserting into database
@@ -172,6 +175,38 @@ var columns = []string{
 	"resource.device_locale",
 	"anr.device_locale",
 	"exception.device_locale",
+	"http.url",
+	"http.method",
+	"http.status_code",
+	"http.request_body_size",
+	"http.response_body_size",
+	"http.request_timestamp",
+	"http.response_timestamp",
+	"http.start_time",
+	"http.end_time",
+	"http.dns_start",
+	"http.dns_end",
+	"http.connect_start",
+	"http.connect_end",
+	"http.request_start",
+	"http.request_end",
+	"http.request_headers_start",
+	"http.request_headers_end",
+	"http.request_body_start",
+	"http.request_body_end",
+	"http.response_start",
+	"http.response_end",
+	"http.response_headers_start",
+	"http.response_headers_end",
+	"http.response_body_start",
+	"http.response_body_end",
+	"http.request_headers_size",
+	"http.response_headers_size",
+	"http.failure_reason",
+	"http.failure_description",
+	"http_request_headers",
+	"http_response_headers",
+	"http.client",
 }
 
 type Frame struct {
@@ -376,6 +411,41 @@ type NetworkChange struct {
 	NetworkProvider           string `json:"network_provider"`
 }
 
+type Http struct {
+	URL                  string            `json:"url"`
+	Method               string            `json:"method"`
+	StatusCode           int               `json:"status_code"`
+	RequestBodySize      int               `json:"request_body_size"`
+	ResponseBodySize     int               `json:"response_body_size"`
+	RequestTimestamp     time.Time         `json:"request_timestamp"`
+	ResponseTimestamp    time.Time         `json:"response_timestamp"`
+	StartTime            uint64            `json:"start_time"`
+	EndTime              uint64            `json:"end_time"`
+	DNSStart             uint64            `json:"dns_start"`
+	DNSEnd               uint64            `json:"dns_end"`
+	ConnectStart         uint64            `json:"connect_start"`
+	ConnectEnd           uint64            `json:"connect_end"`
+	RequestStart         uint64            `json:"request_start"`
+	RequestEnd           uint64            `json:"request_end"`
+	RequestHeadersStart  uint64            `json:"request_headers_start"`
+	RequestHeadersEnd    uint64            `json:"request_headers_end"`
+	RequestBodyStart     uint64            `json:"request_body_start"`
+	RequestBodyEnd       uint64            `json:"request_body_end"`
+	ResponseStart        uint64            `json:"response_start"`
+	ResponseEnd          uint64            `json:"response_end"`
+	ResponseHeadersStart uint64            `json:"response_headers_start"`
+	ResponseHeadersEnd   uint64            `json:"response_headers_end"`
+	ResponseBodyStart    uint64            `json:"response_body_start"`
+	ResponseBodyEnd      uint64            `json:"response_body_end"`
+	RequestHeadersSize   int               `json:"request_headers_size"`
+	ResponseHeadersSize  int               `json:"response_headers_size"`
+	FailureReason        string            `json:"failure_reason"`
+	FailureDescription   string            `json:"failure_description"`
+	RequestHeaders       map[string]string `json:"request_headers"`
+	ResponseHeaders      map[string]string `json:"response_headers"`
+	Client               string            `json:"client"`
+}
+
 type EventField struct {
 	Timestamp         time.Time         `json:"timestamp" binding:"required"`
 	Type              string            `json:"type" binding:"required"`
@@ -394,6 +464,7 @@ type EventField struct {
 	WarmLaunch        WarmLaunch        `json:"warm_launch,omitempty"`
 	HotLaunch         HotLaunch         `json:"hot_launch,omitempty"`
 	NetworkChange     NetworkChange     `json:"network_change,omitempty"`
+	Http              Http              `json:"http,omitempty"`
 	Attributes        map[string]string `json:"attributes"`
 }
 
@@ -453,8 +524,12 @@ func (e *EventField) isNetworkChange() bool {
 	return e.Type == TypeNetworkChange
 }
 
+func (e *EventField) isHttp() bool {
+	return e.Type == TypeHttp
+}
+
 func (e *EventField) validate() error {
-	validTypes := []string{TypeANR, TypeException, TypeAppExit, TypeString, TypeGestureLongClick, TypeGestureScroll, TypeGestureClick, TypeLifecycleActivity, TypeLifecycleFragment, TypeLifecycleApp, TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch, TypeNetworkChange}
+	validTypes := []string{TypeANR, TypeException, TypeAppExit, TypeString, TypeGestureLongClick, TypeGestureScroll, TypeGestureClick, TypeLifecycleActivity, TypeLifecycleFragment, TypeLifecycleApp, TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch, TypeNetworkChange, TypeHttp}
 	if !slices.Contains(validTypes, e.Type) {
 		return fmt.Errorf(`"events[].type" is not a valid type`)
 	}
@@ -567,6 +642,15 @@ func (e *EventField) validate() error {
 		}
 	}
 
+	if e.isHttp() {
+		if e.Http.URL == "" {
+			return fmt.Errorf(`http.url must not be empty`)
+		}
+		if e.Http.Method == "" {
+			return fmt.Errorf(`http.method must not be empty`)
+		}
+	}
+
 	if len(e.Type) > maxTypeChars {
 		return fmt.Errorf(`"events[].type" exceeds maximum allowed characters of (%d)`, maxTypeChars)
 	}
@@ -642,12 +726,18 @@ func (e *EventField) validate() error {
 	if len(e.NetworkChange.NetworkProvider) == maxNetworkChangeNetworkProvider {
 		return fmt.Errorf(`events[].network_change.network_provider exceeds maximum allowed characters of (%d)`, maxNetworkChangeNetworkProvider)
 	}
-    if len(e.ANR.DeviceLocale) > maxAnrDeviceLocaleChars {
-        return fmt.Errorf(`"events[].anr.device_locale" exceeds maximum allowed characters of (%d)`, maxAnrDeviceLocaleChars)
-    }
-    if len(e.Exception.DeviceLocale) > maxExceptionDeviceLocaleChars {
-        return fmt.Errorf(`"events[].exception.device_locale" exceeds maximum allowed characters of (%d)`, maxExceptionDeviceLocaleChars)
-    }
+	if len(e.ANR.DeviceLocale) > maxAnrDeviceLocaleChars {
+		return fmt.Errorf(`"events[].anr.device_locale" exceeds maximum allowed characters of (%d)`, maxAnrDeviceLocaleChars)
+	}
+	if len(e.Exception.DeviceLocale) > maxExceptionDeviceLocaleChars {
+		return fmt.Errorf(`"events[].exception.device_locale" exceeds maximum allowed characters of (%d)`, maxExceptionDeviceLocaleChars)
+	}
+	if len(e.Http.Method) > maxHttpMethodChars {
+		return fmt.Errorf(`"events[].http.method" exceeds maximum allowed characters of (%d)`, maxHttpMethodChars)
+	}
+	if len(e.Http.Client) > maxHttpClientChars {
+		return fmt.Errorf(`"events[].http.client" exceeds maximum allowed characters of (%d)`, maxHttpClientChars)
+	}
 	if len(e.Attributes) > maxAttrCount {
 		return fmt.Errorf(`"events[].attributes" exceeds maximum count of (%d)`, maxAttrCount)
 	}
@@ -659,7 +749,7 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 	values := []string{}
 	valueArgs := []interface{}{}
 
-	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
 	for _, event := range session.Events {
 		anrExceptions := "[]"
@@ -783,6 +873,38 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			session.Resource.DeviceLocale,
 			event.ANR.DeviceLocale,
 			event.Exception.DeviceLocale,
+			event.Http.URL,
+			event.Http.Method,
+			event.Http.StatusCode,
+			event.Http.RequestBodySize,
+			event.Http.ResponseBodySize,
+			event.Http.RequestTimestamp,
+			event.Http.ResponseTimestamp,
+			event.Http.StartTime,
+			event.Http.EndTime,
+			event.Http.DNSStart,
+			event.Http.DNSEnd,
+			event.Http.ConnectStart,
+			event.Http.ConnectEnd,
+			event.Http.RequestStart,
+			event.Http.RequestEnd,
+			event.Http.RequestHeadersStart,
+			event.Http.RequestHeadersEnd,
+			event.Http.RequestBodyStart,
+			event.Http.RequestBodyEnd,
+			event.Http.ResponseStart,
+			event.Http.ResponseEnd,
+			event.Http.ResponseHeadersStart,
+			event.Http.ResponseHeadersEnd,
+			event.Http.ResponseBodyStart,
+			event.Http.ResponseBodyEnd,
+			event.Http.RequestHeadersSize,
+			event.Http.ResponseHeadersSize,
+			event.Http.FailureReason,
+			event.Http.FailureDescription,
+			mapToString(event.Http.RequestHeaders),
+			mapToString(event.Http.ResponseHeaders),
+			event.Http.Client,
 		)
 	}
 
