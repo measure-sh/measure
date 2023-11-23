@@ -31,12 +31,12 @@ internal data class HttpEvent(
     val response_body_size: Long?,
 
     /**
-     * Timestamp when the request was sent.
+     * UTC ISO-8601 timestamp when the request was sent.
      */
     val request_timestamp: String?,
 
     /**
-     * Timestamp when the response was received.
+     * UTC ISO-8601 timestamp when the response was received.
      */
     val response_timestamp: String?,
 
@@ -61,22 +61,22 @@ internal data class HttpEvent(
     val dns_end: Long?,
 
     /**
-     * The uptime at which the connection was acquired, in milliseconds.
+     * The uptime just prior to initiating a socket connection, in milliseconds.
      */
     val connect_start: Long?,
 
     /**
-     * The uptime at which the connection ended, in milliseconds.
+     * The uptime just after a socket connection was attempted, in milliseconds.
      */
     val connect_end: Long?,
 
     /**
-     * The uptime at which request started, in milliseconds.
+     * The uptime as soon as the call is enqueued or executed by a client, in milliseconds.
      */
     val request_start: Long?,
 
     /**
-     * The uptime at which request ended, in milliseconds.
+     * The uptime when the call has completely ended, in milliseconds.
      */
     val request_end: Long?,
 
