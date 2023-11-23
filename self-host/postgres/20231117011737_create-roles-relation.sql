@@ -15,4 +15,4 @@ insert into public.roles(name, scopes) values
     ('viewer', Array['alert:read', 'team:read', 'team:inviteSameOrLower', 'app:read'])
 
 -- migrate:down
-drop table if not exists public.roles;
+drop table if exists public.roles;
