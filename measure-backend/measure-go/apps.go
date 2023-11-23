@@ -17,6 +17,7 @@ type App struct {
 	AppName       string    `json:"app_name" binding:"required"`
 	UniqueId      string    `json:"unique_identifier"`
 	Platform      string    `json:"platform"`
+	APIKey        *APIKey   `json:"apiKey"`
 	firstVersion  string    `json:"first_version"`
 	latestVersion string    `json:"latest_version"`
 	firstSeenAt   time.Time `json:"first_seen_at"`
@@ -36,12 +37,12 @@ func NewApp(teamId uuid.UUID) *App {
 	}
 }
 
-func (a *App) add() error {
+func (a *App) add() (*APIKey, error) {
 	a.ID = uuid.New()
 	tx, err := server.PgPool.Begin(context.Background())
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	defer tx.Rollback(context.Background())
@@ -49,24 +50,24 @@ func (a *App) add() error {
 	_, err = tx.Exec(context.Background(), "insert into public.apps(id, team_id, app_name, created_at, updated_at) values ($1, $2, $3, $4, $5);", a.ID, a.TeamId, a.AppName, a.CreatedAt, a.UpdatedAt)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	apiKey, err := NewAPIKey(a.ID)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := apiKey.saveTx(tx, a); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := tx.Commit(context.Background()); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return apiKey, nil
 }
 
 func getAppJourney(c *gin.Context) {
@@ -413,12 +414,16 @@ func createApp(c *gin.Context) {
 		return
 	}
 
-	if err := app.add(); err != nil {
+	apiKey, err := app.add()
+
+	if err != nil {
 		msg := "failed to create app"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"ok": "created"})
+	app.APIKey = apiKey
+
+	c.JSON(http.StatusCreated, app)
 }
