@@ -113,7 +113,39 @@ CREATE TABLE default.events
     `resource.network_provider` FixedString(64),
     `resource.device_locale` FixedString(64),
     `anr.device_locale` FixedString(64),
-    `exception.device_locale` FixedString(64)
+    `exception.device_locale` FixedString(64),
+    `http.url` String,
+    `http.method` LowCardinality(FixedString(16)),
+    `http.status_code` LowCardinality(UInt16),
+    `http.request_body_size` UInt64,
+    `http.response_body_size` UInt64,
+    `http.request_timestamp` DateTime64(9, 'UTC'),
+    `http.response_timestamp` DateTime64(9, 'UTC'),
+    `http.start_time` UInt64,
+    `http.end_time` UInt64,
+    `http.dns_start` UInt64,
+    `http.dns_end` UInt64,
+    `http.connect_start` UInt64,
+    `http.connect_end` UInt64,
+    `http.request_start` UInt64,
+    `http.request_end` UInt64,
+    `http.request_headers_start` UInt64,
+    `http.request_headers_end` UInt64,
+    `http.request_body_start` UInt64,
+    `http.request_body_end` UInt64,
+    `http.response_start` UInt64,
+    `http.response_end` UInt64,
+    `http.response_headers_start` UInt64,
+    `http.response_headers_end` UInt64,
+    `http.response_body_start` UInt64,
+    `http.response_body_end` UInt64,
+    `http.request_headers_size` UInt64,
+    `http.response_headers_size` UInt64,
+    `http.failure_reason` String,
+    `http.failure_description` String,
+    `http_request_headers` Map(String, String),
+    `http_response_headers` Map(String, String),
+    `http.client` LowCardinality(FixedString(32))
 )
 ENGINE = MergeTree
 PRIMARY KEY (id, timestamp)
@@ -143,4 +175,5 @@ INSERT INTO schema_migrations (version) VALUES
     ('20231120073112'),
     ('20231120133851'),
     ('20231120185455'),
-    ('20231121144351');
+    ('20231121144351'),
+    ('20231123143823');
