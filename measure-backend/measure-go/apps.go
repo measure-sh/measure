@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -17,7 +18,7 @@ type App struct {
 	AppName       string    `json:"app_name" binding:"required"`
 	UniqueId      string    `json:"unique_identifier"`
 	Platform      string    `json:"platform"`
-	APIKey        *APIKey   `json:"apiKey"`
+	APIKey        *APIKey   `json:"api_key"`
 	firstVersion  string    `json:"first_version"`
 	latestVersion string    `json:"latest_version"`
 	firstSeenAt   time.Time `json:"first_seen_at"`
@@ -25,6 +26,36 @@ type App struct {
 	OnboardedAt   time.Time `json:"onboarded_at"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+func (a App) MarshalJSON() ([]byte, error) {
+	type Alias App
+	return json.Marshal(&struct {
+		*Alias
+		Platform    *string    `json:"platform"`
+		OnboardedAt *time.Time `json:"onboarded_at"`
+		UniqueId    *string    `json:"unique_identifier"`
+	}{
+		Platform: func() *string {
+			if a.Platform == "" {
+				return nil
+			}
+			return &a.Platform
+		}(),
+		UniqueId: func() *string {
+			if a.UniqueId == "" {
+				return nil
+			}
+			return &a.UniqueId
+		}(),
+		OnboardedAt: func() *time.Time {
+			if a.OnboardedAt.IsZero() {
+				return nil
+			}
+			return &a.OnboardedAt
+		}(),
+		Alias: (*Alias)(&a),
+	})
 }
 
 func NewApp(teamId uuid.UUID) *App {

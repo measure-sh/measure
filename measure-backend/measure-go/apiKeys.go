@@ -26,11 +26,16 @@ type APIKey struct {
 }
 
 func (a APIKey) MarshalJSON() ([]byte, error) {
-	apiMap := make(map[string]string)
+	apiMap := make(map[string]any)
 
 	apiMap["key"] = a.String()
+	apiMap["revoked"] = a.revoked
 	apiMap["created_at"] = a.createdAt.Format(ISOFormatJS)
-	apiMap["last_seen"] = a.lastSeen.Format(ISOFormatJS)
+	if a.lastSeen.IsZero() {
+		apiMap["last_seen"] = nil
+	} else {
+		apiMap["last_seen"] = a.lastSeen.Format(ISOFormatJS)
+	}
 	return json.Marshal(apiMap)
 }
 
