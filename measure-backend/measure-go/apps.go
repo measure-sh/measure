@@ -15,7 +15,7 @@ import (
 type App struct {
 	ID            uuid.UUID `json:"id"`
 	TeamId        uuid.UUID `json:"team_id"`
-	AppName       string    `json:"app_name" binding:"required"`
+	AppName       string    `json:"name" binding:"required"`
 	UniqueId      string    `json:"unique_identifier"`
 	Platform      string    `json:"platform"`
 	APIKey        *APIKey   `json:"api_key"`
