@@ -12,7 +12,6 @@ import (
 
 func getTeams(c *gin.Context) {
 	userId := c.GetString("userId")
-	fmt.Println("userId", userId)
 	u := &User{
 		id: userId,
 	}
