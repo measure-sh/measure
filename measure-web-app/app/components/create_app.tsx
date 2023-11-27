@@ -104,7 +104,7 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, existingAppName = null, e
 }
 
   const [data, setData] = useState(emptyData);
-  const [createAppStatus, setCreateAppStatus] = existingAppName === null && existingApiKey === null? useState(CreateAppStatus.PreCreation): useState(CreateAppStatus.PostCreation) 
+  const [createAppStatus, setCreateAppStatus] = useState(existingAppName === null && existingApiKey === null? CreateAppStatus.PreCreation: CreateAppStatus.PostCreation)
   const [createAppApiStatus, setCreateAppApiStatus] = useState(CreateAppApiStatus.Init);
   const [appName, setAppName] = useState("");
   
