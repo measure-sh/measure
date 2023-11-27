@@ -85,20 +85,24 @@ func PerformAuthz(uid string, rid string, scope scope) (bool, error) {
 
 	switch scope {
 	case *ScopeTeamRead:
+		if slices.Contains(roleScope, *ScopeTeamAll) {
+			return true, nil
+		}
 		if slices.Contains(roleScope, *ScopeTeamRead) {
 			return true, nil
 		}
 
 		return false, nil
 	case *ScopeAppAll:
-		fmt.Println(roleScope, role)
 		if slices.Contains(roleScope, *ScopeAppAll) {
 			return true, nil
 		}
 
 		return false, nil
 	case *ScopeAppRead:
-		fmt.Println(roleScope, role)
+		if slices.Contains(roleScope, *ScopeAppAll) {
+			return true, nil
+		}
 		if slices.Contains(roleScope, *ScopeAppRead) {
 			return true, nil
 		}

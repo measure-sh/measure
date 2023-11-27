@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 func getTeams(c *gin.Context) {
@@ -57,65 +59,74 @@ func getTeamApps(c *gin.Context) {
 		return
 	}
 
-	// appMap := map[string]string{
-	// 	"6c0f7001-1e81-4cb0-a08c-2a29e94e36da": `[
-	// 		{
-	// 		  "id": "59ba1c7f-2a42-4b7f-b9cb-735d25146675",
-	// 		  "name": "Readly prod"
-	// 		},
-	// 		{
-	// 		  "id": "243f3214-0f41-4361-8ef3-21d8f5d99a70",
-	// 		  "name": "Readly alpha"
-	// 		},
-	// 		{
-	// 		  "id": "bae4fb9e-07cd-4435-a42e-d99986830c2c",
-	// 		  "name": "Readly debug"
-	// 		}
-	// 	  ]`,
-	// 	"25226540-72cf-4982-a16f-9b3c85912b65": `[
-	// 		{
-	// 		  "id": "c6643110-d3e5-4b1c-bfcc-75b46b52ae79",
-	// 		  "name": "Passwordly prod"
-	// 		},
-	// 		{
-	// 		  "id": "e2abe28a-f6bc-4f57-88fe-81f10d1c5afc",
-	// 		  "name": "Passwordly alpha"
-	// 		},
-	// 		{
-	// 		  "id": "b17f7003-4ab6-4b1a-a5d8-ed5a72cb4569",
-	// 		  "name": "Passwordly debug"
-	// 		}
-	// 	  ]`,
-	// 	"93848f57-9cdf-4b21-87e9-1cad562684b6": `[
-	// 		{
-	// 		  "id": "20014be8-aaa9-4e56-8810-9f1a48ec1099",
-	// 		  "name": "Musicly prod"
-	// 		},
-	// 		{
-	// 		  "id": "463c959c-94c2-4f49-bd2b-6caab360c152",
-	// 		  "name": "Musicly alpha"
-	// 		},
-	// 		{
-	// 		  "id": "2a7f230e-6d5e-4036-b4e6-1102c22f4433",
-	// 		  "name": "Musicly debug"
-	// 		}
-	// 	  ]`,
-	// }
+	var apps []App
 
-	// teamId, err := uuid.Parse(c.Param("id"))
+	rows, err := server.PgPool.Query(context.Background(), "select id, app_name, team_id, unique_identifier, platform, first_version, latest_version, first_seen_at, onboarded, onboarded_at, created_at, updated_at from apps where team_id = $1 order by app_name;", teamId)
 
-	// if err != nil {
-	// 	msg := `team id is invalid or missing`
-	// 	fmt.Println(msg, err)
-	// 	c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
-	// 	return
-	// }
+	if err != nil {
+		msg := "failed to execute app list read query"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
 
-	// app := appMap[teamId.String()]
+	defer rows.Close()
 
-	// if app == "" {
-	// 	c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("no apps exists for team [%s]", teamId.String())})
-	// } else {
-	// 	c.Data(http.StatusOK, "application/json", []byte(app))
-	// }
+	for rows.Next() {
+		var a App
+		var uniqueId pgtype.Text
+		var platform pgtype.Text
+		var firstVersion pgtype.Text
+		var latestVersion pgtype.Text
+		var firstSeenAt pgtype.Timestamptz
+		var onboardedAt pgtype.Timestamptz
+
+		if err := rows.Scan(&a.ID, &a.AppName, &a.TeamId, &uniqueId, &platform, &firstVersion, &latestVersion, &firstSeenAt, &a.Onboarded, &onboardedAt, &a.CreatedAt, &a.UpdatedAt); err != nil {
+			msg := "unable to scan app rows"
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+			return
+		}
+
+		if uniqueId.Valid {
+			a.UniqueId = uniqueId.String
+		} else {
+			a.UniqueId = ""
+		}
+
+		if platform.Valid {
+			a.Platform = platform.String
+		} else {
+			a.Platform = ""
+		}
+
+		if firstVersion.Valid {
+			a.firstVersion = firstVersion.String
+		} else {
+			a.firstVersion = ""
+		}
+
+		if latestVersion.Valid {
+			a.latestVersion = latestVersion.String
+		} else {
+			a.latestVersion = ""
+		}
+
+		if firstSeenAt.Valid {
+			a.firstSeenAt = firstSeenAt.Time
+		}
+
+		if onboardedAt.Valid {
+			a.OnboardedAt = onboardedAt.Time
+		}
+		apps = append(apps, a)
+	}
+	if err := rows.Err(); err != nil {
+		msg := fmt.Sprintf("error occurred while querying apps list for team: %s", teamId)
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, apps)
 }
