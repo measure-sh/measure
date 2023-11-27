@@ -127,5 +127,11 @@ func getTeamApps(c *gin.Context) {
 		return
 	}
 
+	if len(apps) < 1 {
+		msg := fmt.Sprintf("no apps exists under team: %s", teamId)
+		c.JSON(http.StatusNotFound, gin.H{"error": msg})
+		return
+	}
+
 	c.JSON(http.StatusOK, apps)
 }
