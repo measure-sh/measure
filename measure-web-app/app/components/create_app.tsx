@@ -148,8 +148,8 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, existingAppName = null, e
       {createAppStatus === CreateAppStatus.PreCreation &&
         <div className="flex flex-col w-5/6">
           <form onSubmit={createApp} className="flex flex-col">
-            <p className="text-lg font-display">Looks like you don&apos;t have any apps yet. Get started by creating your first app!</p>
-            <div className="py-4"/>
+            <p className="font-display font-regular text-2xl">Add new app</p>
+            <div className="py-2"/>
             <input id="app-name" type="string" placeholder="Enter app name" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400" onChange={(event) => setAppName(event.target.value)} />
             <div className="py-2"/>
             <button type="submit" disabled={createAppApiStatus === CreateAppApiStatus.Loading || appName.length === 0} className={`w-fit outline-none hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display text-black border border-black rounded-md transition-colors duration-100 py-2 px-4 ${(createAppApiStatus === CreateAppApiStatus.Loading) ? 'pointer-events-none' : 'pointer-events-auto'}`}>Create App</button>
