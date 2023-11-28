@@ -135,3 +135,70 @@ func getTeamApps(c *gin.Context) {
 
 	c.JSON(http.StatusOK, apps)
 }
+
+func getTeamApp(c *gin.Context) {
+	userId := c.GetString("userId")
+	teamId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `team id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+	appId, err := uuid.Parse(c.Param("appId"))
+	if err != nil {
+		msg := `app id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	if ok, err := PerformAuthz(userId, teamId.String(), *ScopeTeamRead); err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	} else if !ok {
+		msg := fmt.Sprintf(`you don't have permissions for team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	if ok, err := PerformAuthz(userId, teamId.String(), *ScopeAppRead); err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	} else if !ok {
+		msg := fmt.Sprintf(`you don't have permissions to read apps in team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	a := NewApp(teamId)
+	a, err = a.get(appId)
+	if err != nil {
+		msg := fmt.Sprintf("failed to fetch app: %s", appId)
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if a == nil {
+		msg := fmt.Sprintf("no app found with id: %s", appId)
+		c.JSON(http.StatusNotFound, gin.H{"error": msg})
+		return
+	}
+	// if err := server.PgPool.QueryRow(context.Background(), "select id, app_name, team_id, unique_identifier, platform, first_version, latest_version, first_seen_at, created_at, updated_at from apps where id = $1", appId).Scan(&a.ID, &a.AppName, &a.TeamId, &a.UniqueId, &a.Platform, &a.firstVersion, &a.latestVersion, &a.firstSeenAt, &a.CreatedAt, & a.UpdatedAt); err != nil {
+	// 	if errors.Is(err, pgx.ErrNoRows) {
+	// 		//
+	// 	} else {
+	// 		//
+	// 	}
+	// 	msg := fmt.Sprintf("failed to fetch app with id %s", appId)
+	// 	fmt.Println(msg, err)
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+	// 	return
+	// }
+
+	c.JSON(http.StatusOK, &a)
+}

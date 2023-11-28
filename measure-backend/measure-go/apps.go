@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type App struct {
@@ -99,6 +102,79 @@ func (a *App) add() (*APIKey, error) {
 	}
 
 	return apiKey, nil
+}
+
+func (a *App) get(id uuid.UUID) (*App, error) {
+	var appName pgtype.Text
+	var uniqueId pgtype.Text
+	var platform pgtype.Text
+	var firstVersion pgtype.Text
+	var latestVersion pgtype.Text
+	var firstSeenAt pgtype.Timestamptz
+	var onboarded pgtype.Bool
+	var onboardedAt pgtype.Timestamptz
+	var createdAt pgtype.Timestamptz
+	var updatedAt pgtype.Timestamptz
+
+	fmt.Println("app", a)
+
+	if err := server.PgPool.QueryRow(context.Background(), "select app_name, unique_identifier, platform, first_version, latest_version, first_seen_at, onboarded, onboarded_at, created_at, updated_at from apps where id = $1 and team_id = $2", id, a.TeamId).Scan(&appName, &uniqueId, &platform, &firstVersion, &latestVersion, &firstSeenAt, &onboarded, &onboardedAt, &createdAt, &updatedAt); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	}
+
+	if appName.Valid {
+		a.AppName = appName.String
+	}
+
+	if uniqueId.Valid {
+		a.UniqueId = uniqueId.String
+	} else {
+		a.UniqueId = ""
+	}
+
+	if platform.Valid {
+		a.Platform = platform.String
+	} else {
+		a.Platform = ""
+	}
+
+	if firstVersion.Valid {
+		a.firstVersion = firstVersion.String
+	} else {
+		a.firstVersion = ""
+	}
+
+	if onboarded.Valid {
+		a.Onboarded = onboarded.Bool
+	}
+
+	if latestVersion.Valid {
+		a.latestVersion = latestVersion.String
+	} else {
+		a.latestVersion = ""
+	}
+
+	if firstSeenAt.Valid {
+		a.firstSeenAt = firstSeenAt.Time
+	}
+
+	if onboardedAt.Valid {
+		a.OnboardedAt = onboardedAt.Time
+	}
+
+	if createdAt.Valid {
+		a.CreatedAt = createdAt.Time
+	}
+
+	if updatedAt.Valid {
+		a.UpdatedAt = updatedAt.Time
+	}
+
+	return a, nil
 }
 
 func getAppJourney(c *gin.Context) {
