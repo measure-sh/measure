@@ -10,6 +10,90 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const queryGetTeamApps = `
+select
+  apps.id,
+  apps.app_name,
+  apps.team_id,
+  apps.unique_identifier,
+  apps.platform,
+  apps.first_version,
+  apps.latest_version,
+  apps.first_seen_at,
+  apps.onboarded,
+  apps.onboarded_at,
+  apps.created_at,
+  apps.updated_at
+from apps
+where team_id = $1
+order by apps.app_name;
+`
+
+type Team struct {
+	ID   *uuid.UUID `json:"id"`
+	Name *string    `json:"name"`
+}
+
+func (t *Team) getApps() ([]App, error) {
+	var apps []App
+	rows, err := server.PgPool.Query(context.Background(), queryGetTeamApps, &t.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var a App
+		var uniqueId pgtype.Text
+		var platform pgtype.Text
+		var firstVersion pgtype.Text
+		var latestVersion pgtype.Text
+		var firstSeenAt pgtype.Timestamptz
+		var onboardedAt pgtype.Timestamptz
+
+		if err := rows.Scan(&a.ID, &a.AppName, &a.TeamId, &uniqueId, &platform, &firstVersion, &latestVersion, &firstSeenAt, &a.Onboarded, &onboardedAt, &a.CreatedAt, &a.UpdatedAt); err != nil {
+			return nil, err
+		}
+
+		if uniqueId.Valid {
+			a.UniqueId = uniqueId.String
+		} else {
+			a.UniqueId = ""
+		}
+
+		if platform.Valid {
+			a.Platform = platform.String
+		} else {
+			a.Platform = ""
+		}
+
+		if firstVersion.Valid {
+			a.firstVersion = firstVersion.String
+		} else {
+			a.firstVersion = ""
+		}
+
+		if latestVersion.Valid {
+			a.latestVersion = latestVersion.String
+		} else {
+			a.latestVersion = ""
+		}
+
+		if firstSeenAt.Valid {
+			a.firstSeenAt = firstSeenAt.Time
+		}
+
+		if onboardedAt.Valid {
+			a.OnboardedAt = onboardedAt.Time
+		}
+		apps = append(apps, a)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return apps, nil
+}
+
 func getTeams(c *gin.Context) {
 	userId := c.GetString("userId")
 	u := &User{
@@ -58,69 +142,11 @@ func getTeamApps(c *gin.Context) {
 		return
 	}
 
-	var apps []App
+	var team = new(Team)
+	team.ID = &teamId
 
-	rows, err := server.PgPool.Query(context.Background(), "select id, app_name, team_id, unique_identifier, platform, first_version, latest_version, first_seen_at, onboarded, onboarded_at, created_at, updated_at from apps where team_id = $1 order by app_name;", teamId)
-
+	apps, err := team.getApps()
 	if err != nil {
-		msg := "failed to execute app list read query"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	defer rows.Close()
-
-	for rows.Next() {
-		var a App
-		var uniqueId pgtype.Text
-		var platform pgtype.Text
-		var firstVersion pgtype.Text
-		var latestVersion pgtype.Text
-		var firstSeenAt pgtype.Timestamptz
-		var onboardedAt pgtype.Timestamptz
-
-		if err := rows.Scan(&a.ID, &a.AppName, &a.TeamId, &uniqueId, &platform, &firstVersion, &latestVersion, &firstSeenAt, &a.Onboarded, &onboardedAt, &a.CreatedAt, &a.UpdatedAt); err != nil {
-			msg := "unable to scan app rows"
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-			return
-		}
-
-		if uniqueId.Valid {
-			a.UniqueId = uniqueId.String
-		} else {
-			a.UniqueId = ""
-		}
-
-		if platform.Valid {
-			a.Platform = platform.String
-		} else {
-			a.Platform = ""
-		}
-
-		if firstVersion.Valid {
-			a.firstVersion = firstVersion.String
-		} else {
-			a.firstVersion = ""
-		}
-
-		if latestVersion.Valid {
-			a.latestVersion = latestVersion.String
-		} else {
-			a.latestVersion = ""
-		}
-
-		if firstSeenAt.Valid {
-			a.firstSeenAt = firstSeenAt.Time
-		}
-
-		if onboardedAt.Valid {
-			a.OnboardedAt = onboardedAt.Time
-		}
-		apps = append(apps, a)
-	}
-	if err := rows.Err(); err != nil {
 		msg := fmt.Sprintf("error occurred while querying apps list for team: %s", teamId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
