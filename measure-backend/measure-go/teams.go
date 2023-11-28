@@ -188,17 +188,6 @@ func getTeamApp(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": msg})
 		return
 	}
-	// if err := server.PgPool.QueryRow(context.Background(), "select id, app_name, team_id, unique_identifier, platform, first_version, latest_version, first_seen_at, created_at, updated_at from apps where id = $1", appId).Scan(&a.ID, &a.AppName, &a.TeamId, &a.UniqueId, &a.Platform, &a.firstVersion, &a.latestVersion, &a.firstSeenAt, &a.CreatedAt, & a.UpdatedAt); err != nil {
-	// 	if errors.Is(err, pgx.ErrNoRows) {
-	// 		//
-	// 	} else {
-	// 		//
-	// 	}
-	// 	msg := fmt.Sprintf("failed to fetch app with id %s", appId)
-	// 	fmt.Println(msg, err)
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-	// 	return
-	// }
 
 	c.JSON(http.StatusOK, &a)
 }
