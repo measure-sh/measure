@@ -22,10 +22,16 @@ select
   apps.first_seen_at,
   apps.onboarded,
   apps.onboarded_at,
+  api_keys.key_prefix,
+  api_keys.key_value,
+  api_keys.checksum,
+  api_keys.last_seen,
+  api_keys.created_at,
   apps.created_at,
   apps.updated_at
 from apps
-where team_id = $1
+left outer join api_keys on api_keys.app_id = apps.id
+where apps.team_id = $1
 order by apps.app_name;
 `
 
@@ -50,8 +56,12 @@ func (t *Team) getApps() ([]App, error) {
 		var latestVersion pgtype.Text
 		var firstSeenAt pgtype.Timestamptz
 		var onboardedAt pgtype.Timestamptz
+		var apiKeyLastSeen pgtype.Timestamptz
+		var apiKeyCreatedAt pgtype.Timestamptz
 
-		if err := rows.Scan(&a.ID, &a.AppName, &a.TeamId, &uniqueId, &platform, &firstVersion, &latestVersion, &firstSeenAt, &a.Onboarded, &onboardedAt, &a.CreatedAt, &a.UpdatedAt); err != nil {
+		apiKey := new(APIKey)
+
+		if err := rows.Scan(&a.ID, &a.AppName, &a.TeamId, &uniqueId, &platform, &firstVersion, &latestVersion, &firstSeenAt, &a.Onboarded, &onboardedAt, &apiKey.keyPrefix, &apiKey.keyValue, &apiKey.checksum, &apiKeyLastSeen, &apiKeyCreatedAt, &a.CreatedAt, &a.UpdatedAt); err != nil {
 			return nil, err
 		}
 
@@ -86,6 +96,17 @@ func (t *Team) getApps() ([]App, error) {
 		if onboardedAt.Valid {
 			a.OnboardedAt = onboardedAt.Time
 		}
+
+		if apiKeyLastSeen.Valid {
+			apiKey.lastSeen = apiKeyLastSeen.Time
+		}
+
+		if apiKeyCreatedAt.Valid {
+			apiKey.createdAt = apiKeyCreatedAt.Time
+		}
+
+		a.APIKey = apiKey
+
 		apps = append(apps, a)
 	}
 	if err := rows.Err(); err != nil {
