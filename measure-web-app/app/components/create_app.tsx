@@ -42,7 +42,7 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, existingAppName = null, e
       dependencies {
         implementation("sh.measure:measure")
       }`,
-      active: false,
+      active: true,
     },
     {
       title: "Add the Measure Gradle plugin to your app's root Gradle file",
