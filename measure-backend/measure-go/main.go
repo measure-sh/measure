@@ -60,6 +60,7 @@ func main() {
 	r.Use(cors).GET("/apps/:id/filters", authorize(), getAppFilters)
 	r.Use(cors).GET("/teams", validateAccessToken(), getTeams)
 	r.Use(cors).GET("/teams/:id/apps", validateAccessToken(), getTeamApps)
+	r.Use(cors).GET("/teams/:id/apps/:appId", validateAccessToken(), getTeamApp)
 	r.Use(cors).POST("/teams/:id/apps", validateAccessToken(), createApp)
 
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080
