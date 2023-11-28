@@ -15,6 +15,28 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const queryGetApp = `
+select
+  apps.app_name,
+  apps.unique_identifier,
+  apps.platform,
+  apps.first_version,
+  apps.latest_version,
+  apps.first_seen_at,
+  apps.onboarded,
+  apps.onboarded_at,
+  api_keys.key_prefix,
+  api_keys.key_value,
+  api_keys.checksum,
+  api_keys.last_seen,
+  api_keys.created_at,
+  apps.created_at,
+  apps.updated_at
+from apps
+left outer join api_keys on api_keys.app_id = apps.id
+where apps.id = $1 and apps.team_id = $2;
+`
+
 type App struct {
 	ID            uuid.UUID `json:"id"`
 	TeamId        uuid.UUID `json:"team_id"`
@@ -113,12 +135,14 @@ func (a *App) get(id uuid.UUID) (*App, error) {
 	var firstSeenAt pgtype.Timestamptz
 	var onboarded pgtype.Bool
 	var onboardedAt pgtype.Timestamptz
+	var apiKeyLastSeen pgtype.Timestamptz
+	var apiKeyCreatedAt pgtype.Timestamptz
 	var createdAt pgtype.Timestamptz
 	var updatedAt pgtype.Timestamptz
 
-	fmt.Println("app", a)
+	apiKey := new(APIKey)
 
-	if err := server.PgPool.QueryRow(context.Background(), "select app_name, unique_identifier, platform, first_version, latest_version, first_seen_at, onboarded, onboarded_at, created_at, updated_at from apps where id = $1 and team_id = $2", id, a.TeamId).Scan(&appName, &uniqueId, &platform, &firstVersion, &latestVersion, &firstSeenAt, &onboarded, &onboardedAt, &createdAt, &updatedAt); err != nil {
+	if err := server.PgPool.QueryRow(context.Background(), queryGetApp, id, a.TeamId).Scan(&appName, &uniqueId, &platform, &firstVersion, &latestVersion, &firstSeenAt, &onboarded, &onboardedAt, &apiKey.keyPrefix, &apiKey.keyValue, &apiKey.checksum, &apiKeyLastSeen, &apiKeyCreatedAt, &createdAt, &updatedAt); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		} else {
@@ -166,6 +190,14 @@ func (a *App) get(id uuid.UUID) (*App, error) {
 		a.OnboardedAt = onboardedAt.Time
 	}
 
+	if apiKeyLastSeen.Valid {
+		apiKey.lastSeen = apiKeyLastSeen.Time
+	}
+
+	if apiKeyCreatedAt.Valid {
+		apiKey.createdAt = apiKeyCreatedAt.Time
+	}
+
 	if createdAt.Valid {
 		a.CreatedAt = createdAt.Time
 	}
@@ -173,6 +205,8 @@ func (a *App) get(id uuid.UUID) (*App, error) {
 	if updatedAt.Valid {
 		a.UpdatedAt = updatedAt.Time
 	}
+
+	a.APIKey = apiKey
 
 	return a, nil
 }
