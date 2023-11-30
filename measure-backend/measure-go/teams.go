@@ -4,13 +4,21 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
+
+	"measure-backend/measure-go/cipher"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/leporo/sqlf"
 )
 
-const queryGetTeamApps = `
+const (
+	defaultInviteExpiry = 24 * time.Hour
+	maxInvitees         = 25
+	queryGetTeamApps    = `
 select
   apps.id,
   apps.app_name,
@@ -34,10 +42,17 @@ left outer join api_keys on api_keys.app_id = apps.id
 where apps.team_id = $1
 order by apps.app_name;
 `
+)
 
 type Team struct {
 	ID   *uuid.UUID `json:"id"`
 	Name *string    `json:"name"`
+}
+
+type Invitee struct {
+	ID    uuid.UUID `json:"id"`
+	Email string    `json:"email"`
+	Role  rank      `json:"role"`
 }
 
 func (t *Team) getApps() ([]App, error) {
@@ -113,6 +128,55 @@ func (t *Team) getApps() ([]App, error) {
 		return nil, err
 	}
 	return apps, nil
+}
+
+func (t *Team) invite(userId string, invitees []Invitee) ([]Invitee, error) {
+	expiresAt := time.Now().Add(defaultInviteExpiry)
+	stmt := sqlf.PostgreSQL.InsertInto("team_invitations")
+	defer stmt.Close()
+
+	ctx := context.Background()
+
+	var args []any
+
+	for _, invitee := range invitees {
+		code, err := cipher.InviteCode()
+		if err != nil {
+			fmt.Println("failed to generate invite code", err)
+			return nil, err
+		}
+
+		stmt.
+			NewRow().
+			Set("team_id", nil).
+			Set("user_id", nil).
+			Set("email", nil).
+			Set("role", nil).
+			Set("code", nil).
+			Set("invite_expires_at", nil)
+
+		args = append(args, t.ID, userId, invitee.Email, invitee.Role.String(), code, expiresAt)
+	}
+
+	stmt.Returning("id")
+
+	rows, _ := server.PgPool.Query(ctx, stmt.String(), args...)
+	ids, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (uuid.UUID, error) {
+		var id uuid.UUID
+		err := row.Scan(&id)
+		return id, err
+	})
+
+	if err != nil {
+		fmt.Println("err collecting rows", err)
+		return nil, err
+	}
+
+	for idx, id := range ids {
+		invitees[idx].ID = id
+	}
+
+	return invitees, nil
 }
 
 func getTeams(c *gin.Context) {
@@ -237,4 +301,48 @@ func getTeamApp(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, &a)
+}
+
+func inviteMembers(c *gin.Context) {
+	userId := c.GetString("userId")
+	teamId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `team id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+	team := &Team{
+		ID: &teamId,
+	}
+	var invitees []Invitee
+
+	if err := c.ShouldBindJSON(&invitees); err != nil {
+		msg := "failed to parse invite payload"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	if len(invitees) < 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "need at least 1 invitee"})
+		return
+	}
+
+	if len(invitees) > maxInvitees {
+		msg := fmt.Sprintf("cannot invite more than %d invitee(s)", maxInvitees)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	invitees, err = team.invite(userId, invitees)
+
+	if err != nil {
+		msg := "failed to invite"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusCreated, invitees)
 }
