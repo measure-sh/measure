@@ -1,7 +1,10 @@
 package sh.measure.android.okhttp
 
 import okhttp3.Call
+import okhttp3.Connection
 import okhttp3.EventListener
+import okhttp3.Handshake
+import okhttp3.HttpUrl
 import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
@@ -19,21 +22,27 @@ import java.net.Proxy
 class MeasureEventListenerFactory internal constructor(
     private val eventTracker: EventTracker,
     private val timeProvider: TimeProvider,
-    private val currentThread: CurrentThread
+    private val currentThread: CurrentThread,
+    private val delegate: EventListener.Factory?
 ) : EventListener.Factory {
-    constructor() : this(
+    constructor(delegate: EventListener.Factory? = null) : this(
         eventTracker = Measure.getEventTracker(),
         timeProvider = Measure.getTimeProvider(),
-        currentThread = Measure.getCurrentThread()
+        currentThread = Measure.getCurrentThread(),
+        delegate = delegate
     )
 
     override fun create(call: Call): EventListener {
-        return OkHttpEventListener(eventTracker, timeProvider, currentThread)
+        val delegate = delegate?.create(call)
+        return OkHttpEventListener(eventTracker, timeProvider, currentThread, delegate)
     }
 }
 
 internal class OkHttpEventListener(
-    val eventTracker: EventTracker, val timeProvider: TimeProvider, val currentThread: CurrentThread
+    private val eventTracker: EventTracker,
+    private val timeProvider: TimeProvider,
+    private val currentThread: CurrentThread,
+    private val delegate: EventListener?
 ) : EventListener() {
     internal var url: String? = null
     internal var method: String? = null
@@ -53,18 +62,22 @@ internal class OkHttpEventListener(
     override fun callStart(call: Call) {
         timings[Timing.CALL_START] = timeProvider.uptimeInMillis
         requestTimestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp()
+        delegate?.callStart(call)
     }
 
     override fun dnsStart(call: Call, domainName: String) {
         timings[Timing.DNS_START] = timeProvider.uptimeInMillis
+        delegate?.dnsStart(call, domainName)
     }
 
     override fun dnsEnd(call: Call, domainName: String, inetAddressList: List<InetAddress>) {
         timings[Timing.DNS_END] = timeProvider.uptimeInMillis
+        delegate?.dnsEnd(call, domainName, inetAddressList)
     }
 
     override fun connectStart(call: Call, inetSocketAddress: InetSocketAddress, proxy: Proxy) {
         timings[Timing.CONNECT_START] = timeProvider.uptimeInMillis
+        delegate?.connectStart(call, inetSocketAddress, proxy)
     }
 
     override fun connectEnd(
@@ -74,6 +87,7 @@ internal class OkHttpEventListener(
         protocol: Protocol?
     ) {
         timings[Timing.CONNECT_END] = timeProvider.uptimeInMillis
+        delegate?.connectEnd(call, inetSocketAddress, proxy, protocol)
     }
 
     override fun connectFailed(
@@ -87,10 +101,12 @@ internal class OkHttpEventListener(
         failureDescription = ioe.message
         timings[Timing.CONNECT_FAILED] = timeProvider.uptimeInMillis
         trackEvent()
+        delegate?.connectFailed(call, inetSocketAddress, proxy, protocol, ioe)
     }
 
     override fun requestHeadersStart(call: Call) {
         timings[Timing.REQUEST_HEADERS_START] = timeProvider.uptimeInMillis
+        delegate?.requestHeadersStart(call)
     }
 
     override fun requestHeadersEnd(call: Call, request: Request) {
@@ -99,25 +115,30 @@ internal class OkHttpEventListener(
         requestHeaders.putAll(request.headers.toMultimap().mapValues { it.value.joinToString() })
         method = request.method
         timings[Timing.REQUEST_HEADERS_END] = timeProvider.uptimeInMillis
+        delegate?.requestHeadersEnd(call, request)
     }
 
     override fun requestBodyStart(call: Call) {
         timings[Timing.REQUEST_BODY_START] = timeProvider.uptimeInMillis
+        delegate?.requestBodyStart(call)
     }
 
     override fun requestBodyEnd(call: Call, byteCount: Long) {
         requestBodySize = byteCount
         timings[Timing.REQUEST_BODY_END] = timeProvider.uptimeInMillis
+        delegate?.requestBodyEnd(call, byteCount)
     }
 
     override fun requestFailed(call: Call, ioe: IOException) {
         failureReason = ioe.javaClass.name
         failureDescription = ioe.message
         timings[Timing.REQUEST_FAILED] = timeProvider.uptimeInMillis
+        delegate?.requestFailed(call, ioe)
     }
 
     override fun responseHeadersStart(call: Call) {
         timings[Timing.RESPONSE_HEADERS_START] = timeProvider.uptimeInMillis
+        delegate?.responseHeadersStart(call)
     }
 
     override fun responseHeadersEnd(call: Call, response: Response) {
@@ -125,15 +146,18 @@ internal class OkHttpEventListener(
         responseHeadersSize = response.headers.byteCount()
         responseHeaders.putAll(response.headers.toMultimap().mapValues { it.value.joinToString() })
         timings[Timing.RESPONSE_HEADERS_END] = timeProvider.uptimeInMillis
+        delegate?.responseHeadersEnd(call, response)
     }
 
     override fun responseBodyStart(call: Call) {
         timings[Timing.RESPONSE_BODY_START] = timeProvider.uptimeInMillis
+        delegate?.responseBodyStart(call)
     }
 
     override fun responseBodyEnd(call: Call, byteCount: Long) {
         responseBodySize = byteCount
         timings[Timing.RESPONSE_BODY_END] = timeProvider.uptimeInMillis
+        delegate?.responseBodyEnd(call, byteCount)
     }
 
     override fun responseFailed(call: Call, ioe: IOException) {
@@ -141,11 +165,13 @@ internal class OkHttpEventListener(
         failureDescription = ioe.message
         timings[Timing.RESPONSE_FAILED] = timeProvider.uptimeInMillis
         trackEvent()
+        delegate?.responseFailed(call, ioe)
     }
 
     override fun callEnd(call: Call) {
         timings[Timing.CALL_END] = timeProvider.uptimeInMillis
         trackEvent()
+        delegate?.callEnd(call)
     }
 
     override fun callFailed(call: Call, ioe: IOException) {
@@ -153,6 +179,51 @@ internal class OkHttpEventListener(
         failureDescription = ioe.message
         timings[Timing.CALL_FAILED] = timeProvider.uptimeInMillis
         trackEvent()
+        delegate?.callFailed(call, ioe)
+    }
+
+    override fun cacheConditionalHit(call: Call, cachedResponse: Response) {
+        delegate?.cacheConditionalHit(call, cachedResponse)
+    }
+
+    override fun cacheHit(call: Call, response: Response) {
+        delegate?.cacheHit(call, response)
+    }
+
+    override fun cacheMiss(call: Call) {
+        delegate?.cacheMiss(call)
+    }
+
+    override fun canceled(call: Call) {
+        delegate?.canceled(call)
+    }
+
+    override fun connectionAcquired(call: Call, connection: Connection) {
+        delegate?.connectionAcquired(call, connection)
+    }
+
+    override fun connectionReleased(call: Call, connection: Connection) {
+        delegate?.connectionReleased(call, connection)
+    }
+
+    override fun proxySelectEnd(call: Call, url: HttpUrl, proxies: List<Proxy>) {
+        delegate?.proxySelectEnd(call, url, proxies)
+    }
+
+    override fun proxySelectStart(call: Call, url: HttpUrl) {
+        delegate?.proxySelectStart(call, url)
+    }
+
+    override fun satisfactionFailure(call: Call, response: Response) {
+        delegate?.satisfactionFailure(call, response)
+    }
+
+    override fun secureConnectEnd(call: Call, handshake: Handshake?) {
+        delegate?.secureConnectEnd(call, handshake)
+    }
+
+    override fun secureConnectStart(call: Call) {
+        delegate?.secureConnectStart(call)
     }
 
     private fun trackEvent() {
