@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 	"time"
 
 	"measure-backend/measure-go/cipher"
@@ -332,6 +333,41 @@ func inviteMembers(c *gin.Context) {
 	if len(invitees) > maxInvitees {
 		msg := fmt.Sprintf("cannot invite more than %d invitee(s)", maxInvitees)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	ok, err := PerformAuthz(userId, teamId.String(), *ScopeTeamInviteSameOrLower)
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`you don't have permissions to invite in team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+	user := &User{
+		id: userId,
+	}
+	userRole, err := user.getRole(teamId.String())
+	if err != nil || userRole == unknown {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	var inviteeRoles []rank
+	for _, r := range invitees {
+		inviteeRoles = append(inviteeRoles, r.Role)
+	}
+	maxInviteeRole := slices.Max(inviteeRoles)
+
+	if maxInviteeRole > userRole {
+		msg := fmt.Sprintf(`you don't have permissions to invite in team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
 		return
 	}
 
