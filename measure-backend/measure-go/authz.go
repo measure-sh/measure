@@ -2,8 +2,17 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
+)
+
+const (
+	unknown rank = iota
+	viewer
+	developer
+	admin
+	owner
 )
 
 type rank int
@@ -25,14 +34,6 @@ func (r *rank) UnmarshalJSON(data []byte) error {
 func (r *rank) MarshalJSON() ([]byte, error) {
 	return json.Marshal(r.String())
 }
-
-const (
-	unknown rank = iota
-	viewer
-	developer
-	admin
-	owner
-)
 
 var (
 	ScopeBillingAll                = newScope("billing", "*")
@@ -100,6 +101,10 @@ func PerformAuthz(uid string, rid string, scope scope) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
+	if role == unknown {
+		return false, errors.New("received 'unknown' role")
+	}
 	roleScope := scopeMap[role]
 
 	switch scope {
@@ -123,6 +128,15 @@ func PerformAuthz(uid string, rid string, scope scope) (bool, error) {
 			return true, nil
 		}
 		if slices.Contains(roleScope, *ScopeAppRead) {
+			return true, nil
+		}
+
+		return false, nil
+	case *ScopeTeamInviteSameOrLower:
+		if slices.Contains(roleScope, *ScopeTeamAll) {
+			return true, nil
+		}
+		if slices.Contains(roleScope, *ScopeTeamInviteSameOrLower) {
 			return true, nil
 		}
 
