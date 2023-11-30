@@ -507,7 +507,7 @@ CREATE TABLE public.team_invitations (
     role character varying(256),
     code character varying(256) NOT NULL,
     invite_sent_count integer DEFAULT 0,
-    last_invite_sent_at timestamp with time zone NOT NULL,
+    last_invite_sent_at timestamp with time zone,
     invite_expires_at timestamp with time zone NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
