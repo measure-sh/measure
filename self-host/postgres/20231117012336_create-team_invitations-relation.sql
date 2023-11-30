@@ -7,7 +7,7 @@ create table if not exists public.team_invitations (
     role varchar(256) references public.roles(name) on delete cascade,
     code varchar(256) not null,
     invite_sent_count int default 0,
-    last_invite_sent_at timestamptz not null,
+    last_invite_sent_at timestamptz,
     invite_expires_at timestamptz not null,
     created_at timestamptz not null default current_timestamp
 );
