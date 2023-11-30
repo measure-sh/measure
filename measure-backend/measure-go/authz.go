@@ -1,11 +1,30 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"slices"
 )
 
 type rank int
+
+func (r *rank) UnmarshalJSON(data []byte) error {
+	var roleStr string
+
+	if err := json.Unmarshal(data, &roleStr); err != nil {
+		return err
+	}
+
+	role := roleMap[roleStr]
+
+	*r = role
+
+	return nil
+}
+
+func (r *rank) MarshalJSON() ([]byte, error) {
+	return json.Marshal(r.String())
+}
 
 const (
 	unknown rank = iota
