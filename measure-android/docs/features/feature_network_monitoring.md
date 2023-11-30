@@ -17,6 +17,16 @@ val client = OkHttpClient.Builder()
     .build()
 ```
 
+OkHttp allows just one `EventListener.Factory` to be set per client. If needed, 
+`MeasureEventListenerFactory` can take in a `EventListener.Factory` in it's constructor and it
+will delegate all events to the provided factory.
+
+```kotlin
+val client = OkHttpClient.Builder()
+    .eventListenerFactory(MeasureEventListenerFactory(YourEventListenerFactory()))
+    .build()
+```
+
 ### Event
 
 Event name: `http`.
