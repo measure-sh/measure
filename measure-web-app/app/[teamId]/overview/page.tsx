@@ -29,8 +29,26 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading);
   const [filtersApiStatus, setFiltersApiStatus] = useState(FiltersApiStatus.Loading);
 
-  const [apps, setApps] = useState([] as {'id': string, 'team_id': string, 'name':string, 'api_key': string, 'onboarded': false, 'created_at': string, 'updated_at': string, 'platform': string, 'onboarded_at': string, 'unique_identifier': string}[]);
-  const [selectedApp, setSelectedApp] = useState({'id': '', 'team_id': '', 'name':'', 'api_key': '', 'onboarded': false, 'created_at': '', 'updated_at': '', 'platform': '', 'onboarded_at': '', 'unique_identifier': ''});
+  const emptyApp = {
+    "id": "",
+    "team_id": "",
+    "name": "",
+    "api_key": {
+        "created_at": "",
+        "key": "",
+        "last_seen": null,
+        "revoked": false
+    },
+    "onboarded": false,
+    "created_at": "",
+    "updated_at": "",
+    "platform": null,
+    "onboarded_at": null,
+    "unique_identifier": null
+}
+
+  const [apps, setApps] = useState([] as typeof emptyApp[]);
+  const [selectedApp, setSelectedApp] = useState(emptyApp);
 
   const [versions, setVersions] = useState([] as string[]);
   const [selectedVersion, setSelectedVersion] = useState(versions[0]);
@@ -167,7 +185,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
       {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Error && <p className="text-lg font-display">Error fetching filters, please refresh page or select a different app to try again</p>}
 
       {/* Create app when app exists but has no data */}
-      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.NoData && <CreateApp teamId={params.teamId} existingAppName={selectedApp.name} existingApiKey={selectedApp.api_key}/>}
+      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.NoData && <CreateApp teamId={params.teamId} existingAppName={selectedApp.name} existingApiKey={selectedApp.api_key.key}/>}
 
       {/* Show user flow if apps and filters fetch succeeds  */}
       {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && <UserFlow appId={selectedApp.id} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />}
