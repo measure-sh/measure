@@ -313,9 +313,9 @@ func inviteMembers(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
-	team := &Team{
-		ID: &teamId,
-	}
+	// team := &Team{
+	// 	ID: &teamId,
+	// }
 	var invitees []Invitee
 
 	if err := c.ShouldBindJSON(&invitees); err != nil {
@@ -371,7 +371,14 @@ func inviteMembers(c *gin.Context) {
 		return
 	}
 
-	invitees, err = team.invite(userId, invitees)
+	// invitees, err = team.invite(userId, invitees)
+
+	// if err != nil {
+	// 	msg := "failed to invite"
+	// 	fmt.Println(msg, err)
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+	// 	return
+	// }
 
 	if err != nil {
 		msg := "failed to invite"
