@@ -180,6 +180,21 @@ func (t *Team) invite(userId string, invitees []Invitee) ([]Invitee, error) {
 	return invitees, nil
 }
 
+func (t *Team) rename() error {
+	stmt := sqlf.PostgreSQL.Update("teams").
+		Set("name", nil).
+		Set("updated_at", nil).
+		Where("id = ?", nil)
+	defer stmt.Close()
+
+	ctx := context.Background()
+	if _, err := server.PgPool.Exec(ctx, stmt.String(), *t.Name, time.Now(), t.ID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func getTeams(c *gin.Context) {
 	userId := c.GetString("userId")
 	u := &User{
@@ -380,12 +395,61 @@ func inviteMembers(c *gin.Context) {
 	// 	return
 	// }
 
+	c.JSON(http.StatusCreated, invitees)
+}
+
+func renameTeam(c *gin.Context) {
+	userId := c.GetString("userId")
+	teamId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		msg := "failed to invite"
+		msg := `team id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	user := &User{
+		id: userId,
+	}
+
+	userRole, err := user.getRole(teamId.String())
+
+	if err != nil || userRole == unknown {
+		msg := `couldn't perform authorization checks`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
 
-	c.JSON(http.StatusCreated, invitees)
+	ok, err := PerformAuthz(userId, teamId.String(), *ScopeTeamAll)
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`you don't have permissions to rename team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	var team = new(Team)
+	team.ID = &teamId
+
+	if err := c.ShouldBindJSON(&team); err != nil {
+		msg := "failed to parse invite payload"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	if err := team.rename(); err != nil {
+		msg := "failed to rename team"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": "team was renamed"})
 }
