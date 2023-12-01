@@ -113,7 +113,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
       {/* Show no apps message when no apps exist */}
       {appsApiStatus === AppsApiStatus.NoApps && <p className="text-lg font-display">Looks like you don&apos;t have any apps yet. Get started by creating your first app!</p>}
       
-      <div className="py-8"/>
+      <div className="py-4"/>
       <CreateApp teamId={params.teamId}/>
     </div>
   )
