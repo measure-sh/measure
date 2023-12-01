@@ -101,7 +101,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                 <p>API key</p>
                 <div className="px-2"/>
                 <input id="api-key-input" type="text" value={api_key.key} className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400"/>
-                <button className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4">Copy</button>
+                <button className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4" onClick={() => navigator.clipboard.writeText(api_key.key)}>Copy</button>
               </div>
               <div className="py-8"/>
             </div>
