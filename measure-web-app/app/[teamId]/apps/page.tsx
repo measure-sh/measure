@@ -107,6 +107,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
             </div>
           ))}
           <div className="w-full border border-black h-0"/>
+          <div className="py-4"/>
       </div>
       }
         
