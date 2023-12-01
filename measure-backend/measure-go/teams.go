@@ -395,7 +395,8 @@ func inviteMembers(c *gin.Context) {
 	// 	return
 	// }
 
-	c.JSON(http.StatusCreated, invitees)
+	// c.JSON(http.StatusCreated, invitees)
+	c.JSON(http.StatusOK, gin.H{"ok": "invitee(s) authorized"})
 }
 
 func renameTeam(c *gin.Context) {
