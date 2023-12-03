@@ -4,7 +4,7 @@
  * team
  */
 create or replace trigger create_team_for_user
-after insert on auth.users
+after update on auth.users
 for each row execute function create_team();
 
 -- migrate:down
