@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import TeamSwitcher from "../components/team_switcher";
-import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from "../utils/auth_utils";
+import { getAccessTokenOrRedirectToAuth, logoutIfAuthError, logout } from "../utils/auth_utils";
 
 export default function DashboardLayout({
     children,
@@ -74,6 +74,10 @@ export default function DashboardLayout({
       setSelectedTeam(data.find((e:{id:string, name:string}) => pathName.includes(e.id)).id)
     }
 
+    const logoutUser = async () => {
+      await logout(router)
+    }
+
     useEffect(() => {
       getTeams()
     }, []);
@@ -105,7 +109,7 @@ export default function DashboardLayout({
                       ))}
                   </ul>}
                 <div className="grow"/>
-                <button className="m-4 mt-8 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200  border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4" onClick={() => router.push('/auth/logout')}>Logout</button>
+                <button className="m-4 mt-8 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200  border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4" onClick={() => logoutUser()}>Logout</button>
               </nav>
             </aside>
             {teamsApiStatus === TeamsApiStatus.Success && <main>{children}</main>}
@@ -130,7 +134,7 @@ export default function DashboardLayout({
                       ))}
                   </ul>}
                 <div className="grow"/>
-                <button className="m-4 mt-8 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200  border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4" onClick={() => router.push('/auth/logout')}>Logout</button>
+                <button className="m-4 mt-8 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200  border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4" onClick={() => logoutUser()}>Logout</button>
               </nav>
             </aside>
             {teamsApiStatus === TeamsApiStatus.Success && <main>{children}</main>}
