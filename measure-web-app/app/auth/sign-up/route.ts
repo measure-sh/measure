@@ -1,4 +1,5 @@
-import { createClient } from '@/utils/supabase/server'
+import { createRouteClient } from '@/utils/supabase/route'
+
 import { AuthApiError } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
@@ -13,7 +14,7 @@ export async function POST(request: Request) {
   const errRedirectUrl = createErrRedirectUrl(requestUrl.origin, "Could not authenticate")
   const formData = await request.formData()
   const email = String(formData.get('email'))
-  const supabase = createClient()
+  const supabase = createRouteClient()
 
   const { error } = await supabase.auth.signInWithOtp({
     email,

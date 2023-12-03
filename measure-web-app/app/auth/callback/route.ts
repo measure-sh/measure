@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server"
+import { createRouteClient } from '@/utils/supabase/route'
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 
-  const supabase = createClient()
+  const supabase = createRouteClient()
   const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
   if (error) {
