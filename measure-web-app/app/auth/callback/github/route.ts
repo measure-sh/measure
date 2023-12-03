@@ -1,40 +1,51 @@
+import { createRouteClient } from '@/utils/supabase/route'
 import { NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
-import { cookies } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
-  const requestUrl = new URL(request.url)
-  const errRedirectUrl = `${requestUrl.origin}/auth/login?error=Could not sign in with GitHub`
-  const supabase = createClient()
-  const cookieStore = cookies()
-  const accessToken = cookieStore.get("sb-access-token");
-  const refreshToken = cookieStore.get("sb-refresh-token");
-  if (!accessToken) {
-    console.log("access token not found in github auth callback")
-    return NextResponse.redirect(errRedirectUrl, { status: 302 })
+  const { searchParams, origin } = new URL(request.url)
+  const code = searchParams.get("code")
+  const errRedirectUrl = `${origin}/auth/login?error=Could not sign in with GitHub`
+  if (!code) {
+    console.log(`github signin failed, code was not received`)
+    return NextResponse.redirect(errRedirectUrl)
   }
-  if (!refreshToken) {
-    console.log("refresh token not found in github auth callback")
-    return NextResponse.redirect(errRedirectUrl, { status: 302 })
-  }
-  const { data, error } = await supabase.auth.setSession({ access_token: accessToken?.value!, refresh_token: refreshToken?.value! })
+  const supabase = createRouteClient()
+  const { error } = await supabase.auth.exchangeCodeForSession(code)
   if (error) {
-    console.log(error)
-    return NextResponse.redirect(errRedirectUrl, { status: 302 })
+    console.log(`github signin route handler failed with error`, error)
+    return NextResponse.redirect(errRedirectUrl)
+  }
+  const { data: { session }, error: sessionErr } = await supabase.auth.getSession()
+  if (sessionErr) {
+    console.log(`github signin failed with error`, sessionErr)
+    return NextResponse.redirect(errRedirectUrl)
+  }
+  const accessToken = session?.access_token
+  const refreshToken = session?.refresh_token
+
+  if (!accessToken || !refreshToken) {
+    return NextResponse.redirect(errRedirectUrl)
   }
 
-  const origin = process?.env?.NEXT_PUBLIC_API_BASE_URL
+  const { error: setSessionErr } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
 
-  const res = await fetch(`${origin}/teams`, {
+  if (setSessionErr) {
+    console.log("failed to set session in github signin callback", setSessionErr)
+  }
+
+  const apiOrigin = process?.env?.NEXT_PUBLIC_API_BASE_URL
+
+  const res = await fetch(`${apiOrigin}/teams`, {
     headers: {
-      "Authorization": `Bearer ${accessToken.value}`
+      "Authorization": `Bearer ${accessToken}`
     }
   })
+
   const teams = await res.json()
   if (!teams.length) {
-    console.log(`no teams found for user: ${data.user?.id}`)
+    console.log(`no teams found for user: ${session?.user?.id}`)
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 
@@ -47,9 +58,9 @@ export async function GET(request: Request) {
   const ownTeam = teams.find((team: Team) => team.role === "owner")
 
   if (!ownTeam) {
-    console.log(`user ${data.user?.id} does not own any team`)
+    console.log(`user ${session?.user?.id} does not own any team`)
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 
-  return NextResponse.redirect(`${requestUrl.origin}/${ownTeam.id}/overview`, { status: 302 })
+  return NextResponse.redirect(`${origin}/${ownTeam.id}/overview`, { status: 302 })
 }

@@ -1,4 +1,4 @@
-import { createClient } from '@/utils/supabase/server'
+import { createRouteClient } from '@/utils/supabase/route'
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
 
   const formdata = await request.formData()
   const credential = formdata.get('credential')
-  const supabase = createClient()
+  const supabase = createRouteClient()
   const { data, error } = await supabase.auth.signInWithIdToken({
     provider: "google",
     token: String(credential),
