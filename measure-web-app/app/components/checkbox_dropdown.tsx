@@ -10,7 +10,7 @@ interface CheckboxDropdownProps {
 
 const CheckboxDropdown: React.FC<CheckboxDropdownProps> = ({ title, items, onChangeSelectedItems }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedItems,setSelectedItems] = useState(new Array<string>());
+  const [selectedItems, setSelectedItems] = useState(new Array<string>());
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -46,17 +46,17 @@ const CheckboxDropdown: React.FC<CheckboxDropdownProps> = ({ title, items, onCha
   };
 
   const toggleItem = (item: string) => {
-    if(selectedItems.includes(item)) {
+    if (selectedItems.includes(item)) {
       setSelectedItems(selectedItems.filter(a => a != item))
     } else {
-      setSelectedItems([item,...selectedItems])
+      setSelectedItems([item, ...selectedItems])
     }
-    
+
   };
 
   useEffect(() => {
     onChangeSelectedItems?.(selectedItems);
-}, [selectedItems]);
+  }, [selectedItems]);
 
   return (
     <div className="relative inline-block text-left" ref={dropdownRef} >
@@ -84,7 +84,7 @@ const CheckboxDropdown: React.FC<CheckboxDropdownProps> = ({ title, items, onCha
                   type="checkbox"
                   className="appearance-none border-white rounded-sm text-black font-display bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:ring-1 checked:ring-white"
                   value={item}
-                  onChange={() => {toggleItem(item)}}
+                  onChange={() => { toggleItem(item) }}
                 />
                 <span className="ml-2">{item}</span>
               </div>

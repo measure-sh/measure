@@ -9,10 +9,10 @@ import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from '@/app/utils/a
 import { useRouter } from 'next/navigation';
 
 interface MetricsOverviewProps {
-  appId:string, 
-  startDate:string,
-  endDate:string,
-  appVersion:string,
+  appId: string,
+  startDate: string,
+  endDate: string,
+  appVersion: string,
 }
 
 export enum MetricsApiStatus {
@@ -73,12 +73,12 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ appId, startDate, end
 
   const [data, setData] = useState(emptyData);
   const [metricsApiStatus, setMetricsApiStatus] = useState(MetricsApiStatus.Loading);
-  
+
   const router = useRouter()
 
-  const getData = async (appId:string, startDate:string, endDate:string, appVersion:string) => {
+  const getData = async (appId: string, startDate: string, endDate: string, appVersion: string) => {
     setMetricsApiStatus(MetricsApiStatus.Loading)
-    
+
     const authToken = await getAccessTokenOrRedirectToAuth(router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
@@ -89,18 +89,18 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ appId, startDate, end
 
     const serverFormattedStartDate = new Date(startDate).toISOString()
     const serverFormattedEndDate = new Date(endDate).toISOString()
-    const res =  await fetch(`${origin}/apps/${appId}/metrics?version=${appVersion}&from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`, opts);
-    
-    if(!res.ok) {
+    const res = await fetch(`${origin}/apps/${appId}/metrics?version=${appVersion}&from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`, opts);
+
+    if (!res.ok) {
       setMetricsApiStatus(MetricsApiStatus.Error)
       logoutIfAuthError(router, res)
-      return 
-    } 
-    
+      return
+    }
+
     setMetricsApiStatus(MetricsApiStatus.Success)
-    setData(await res.json())  
+    setData(await res.json())
   }
-  
+
   useEffect(() => {
     getData(appId, startDate, endDate, appVersion)
   }, [appId, startDate, endDate, appVersion]);

@@ -199,131 +199,131 @@ const threadData = [
 ]
 
 const SessionReplay = () => {
-    return (
-      <div className="flex flex-col w-screen font-sans text-black">
-        {/* Memory line */}
-        <div className="h-56">
-          <ResponsiveLine
-            data={memoryData}
-            curve="monotoneX"
-            margin={{ top: 40, right: 160, bottom: 80, left: 120 }}
-            xFormat="time:%Y-%m-%d %H:%M:%S"
-            xScale={{
-              format: '%Y-%m-%d %H:%M:%S',
-              precision: 'second',
-              type: 'time',
-              min: minDate,
-              max: maxDate,
-              useUTC: false
-            }}
-            yScale={{
-                type: 'linear',
-                min: 'auto',
-                max: 'auto'
-            }}
-            yFormat=" >-.2f"
-            axisTop={null}
-            axisRight={null}
-            axisBottom={{
-                format: '%H:%M:%S',
-                tickValues: 'every 1 minutes',
-                legendPosition: 'middle'
-            }}
-            axisLeft={{
-                tickSize: 1,
-                tickPadding: 5,
-                legend: 'Memory in MB',
-                legendOffset: -80,
-                legendPosition: 'middle'
-            }}
-            pointLabelYOffset={-12}
-            useMesh={true}
-            colors={memoryData.map((i) => i.color)}
-            defs={[
-              {
-                colors: [
-                  {
-                    color: memoryData.map((i) => i.color),
-                    offset: 0
-                  },
-                  {
-                    color: memoryData.map((i) => i.color),
-                    offset: 60,
-                    opacity: 0
-                  }
-                ],
-                id: 'memoryGradient',
-                type: 'linearGradient'
-              }
-            ]}
-            enableArea
-            fill={[
-              {
-                id: 'memoryGradient',
-                match: '*'
-              }
-            ]}
-            tooltip={({
-              point
-            }) => <div className="pointer-events-none z-50 rounded-md p-4 bg-neutral-800">
-                     <p className="font-sans text-white">{point.data.yFormatted} MB</p>
-                  </div>}
-            
-          />
-        </div>
-        {/* CPU line */}
-        <div className="h-56">
-          <ResponsiveLine
-            data={cpuData}
-            curve="monotoneX"
-            margin={{ top: 40, right: 160, bottom: 80, left: 120 }}
-            xFormat="time:%Y-%m-%d %H:%M:%S"
-            xScale={{
-              format: '%Y-%m-%d %H:%M:%S',
-              precision: 'second',
-              type: 'time',
-              min: minDate,
-              max: maxDate,
-              useUTC: false
-            }}
-            yScale={{
-                type: 'linear',
-                min: 'auto',
-                max: 'auto'
-            }}
-            yFormat=" >-.2f"
-            axisTop={null}
-            axisRight={null}
-            axisBottom={{
-                format: '%H:%M:%S',
-                tickValues: 'every 1 minutes',
-                legendPosition: 'middle'
-            }}
-            axisLeft={{
-                tickSize: 1,
-                tickPadding: 5,
-                legend: '% CPU Usage',
-                legendOffset: -80,
-                legendPosition: 'middle'
-            }}
-            pointLabelYOffset={-12}
-            useMesh={true}
-            colors={cpuData.map((i) => i.color)}
-            defs={[
-              {
-                colors: [
-                  {
-                    color: cpuData.map((i) => i.color),
-                    offset: 0
-                  },
-                  {
-                    color: cpuData.map((i) => i.color),
-                    offset: 60,
-                    opacity: 0
-                  }
-                ],
-                id: 'cpuGradient',
-                type: 'linearGradient'
+  return (
+    <div className="flex flex-col w-screen font-sans text-black">
+      {/* Memory line */}
+      <div className="h-56">
+        <ResponsiveLine
+          data={memoryData}
+          curve="monotoneX"
+          margin={{ top: 40, right: 160, bottom: 80, left: 120 }}
+          xFormat="time:%Y-%m-%d %H:%M:%S"
+          xScale={{
+            format: '%Y-%m-%d %H:%M:%S',
+            precision: 'second',
+            type: 'time',
+            min: minDate,
+            max: maxDate,
+            useUTC: false
+          }}
+          yScale={{
+            type: 'linear',
+            min: 'auto',
+            max: 'auto'
+          }}
+          yFormat=" >-.2f"
+          axisTop={null}
+          axisRight={null}
+          axisBottom={{
+            format: '%H:%M:%S',
+            tickValues: 'every 1 minutes',
+            legendPosition: 'middle'
+          }}
+          axisLeft={{
+            tickSize: 1,
+            tickPadding: 5,
+            legend: 'Memory in MB',
+            legendOffset: -80,
+            legendPosition: 'middle'
+          }}
+          pointLabelYOffset={-12}
+          useMesh={true}
+          colors={memoryData.map((i) => i.color)}
+          defs={[
+            {
+              colors: [
+                {
+                  color: memoryData.map((i) => i.color),
+                  offset: 0
+                },
+                {
+                  color: memoryData.map((i) => i.color),
+                  offset: 60,
+                  opacity: 0
+                }
+              ],
+              id: 'memoryGradient',
+              type: 'linearGradient'
+            }
+          ]}
+          enableArea
+          fill={[
+            {
+              id: 'memoryGradient',
+              match: '*'
+            }
+          ]}
+          tooltip={({
+            point
+          }) => <div className="pointer-events-none z-50 rounded-md p-4 bg-neutral-800">
+              <p className="font-sans text-white">{point.data.yFormatted} MB</p>
+            </div>}
+
+        />
+      </div>
+      {/* CPU line */}
+      <div className="h-56">
+        <ResponsiveLine
+          data={cpuData}
+          curve="monotoneX"
+          margin={{ top: 40, right: 160, bottom: 80, left: 120 }}
+          xFormat="time:%Y-%m-%d %H:%M:%S"
+          xScale={{
+            format: '%Y-%m-%d %H:%M:%S',
+            precision: 'second',
+            type: 'time',
+            min: minDate,
+            max: maxDate,
+            useUTC: false
+          }}
+          yScale={{
+            type: 'linear',
+            min: 'auto',
+            max: 'auto'
+          }}
+          yFormat=" >-.2f"
+          axisTop={null}
+          axisRight={null}
+          axisBottom={{
+            format: '%H:%M:%S',
+            tickValues: 'every 1 minutes',
+            legendPosition: 'middle'
+          }}
+          axisLeft={{
+            tickSize: 1,
+            tickPadding: 5,
+            legend: '% CPU Usage',
+            legendOffset: -80,
+            legendPosition: 'middle'
+          }}
+          pointLabelYOffset={-12}
+          useMesh={true}
+          colors={cpuData.map((i) => i.color)}
+          defs={[
+            {
+              colors: [
+                {
+                  color: cpuData.map((i) => i.color),
+                  offset: 0
+                },
+                {
+                  color: cpuData.map((i) => i.color),
+                  offset: 60,
+                  opacity: 0
+                }
+              ],
+              id: 'cpuGradient',
+              type: 'linearGradient'
             }
           ]}
           enableArea
@@ -336,56 +336,57 @@ const SessionReplay = () => {
           tooltip={({
             point
           }) => <div className="pointer-events-none z-50 rounded-md p-4 bg-neutral-800">
-                   <p className="font-sans text-white">{point.data.yFormatted}%</p>
-                </div>}
-          />
-        </div>
-        {/* Threads line */}
-        <div className="h-[24rem]">
-          <ResponsiveLine
-            data={threadData}
-            margin={{ top: 40, right: 160, bottom: 80, left: 120 }}
-            xFormat="time:%Y-%m-%d %H:%M:%S"
-            xScale={{
-              format: '%Y-%m-%d %H:%M:%S',
-              precision: 'second',
-              type: 'time',
-              min: minDate,
-              max: maxDate,
-              useUTC: false
-            }}
-            yScale={{
-                type: 'point',  
-            }}
-            axisTop={null}
-            axisRight={null}
-            axisBottom={{
-                format: '%H:%M:%S',
-                tickValues: 'every 1 minutes',
-                legendPosition: 'middle',
-                tickPadding:20
-            }}
-            axisLeft={{
-                legend: 'Threads',
-                legendOffset: -80,
-                legendPosition: 'middle'
-            }}
-            pointSize={1}
-            pointBorderWidth={16}
-            pointBorderColor={(point: Point) => threadPoints[point.index].color}
-            pointLabelYOffset={-12}
-            useMesh={true}
-            enableGridX={true}
-            enableGridY={false}
-            colors={threadData.map((i) => i.color)}
-            tooltip={({
-              point
-            }) => <div className="pointer-events-none z-50 rounded-md p-4 bg-neutral-800">
-                     <p className="font-sans text-white whitespace-pre-wrap">{threadPoints[point.index].event} </p>
-                  </div>}
-          />
-        </div>
+              <p className="font-sans text-white">{point.data.yFormatted}%</p>
+            </div>}
+        />
+      </div>
+      {/* Threads line */}
+      <div className="h-[24rem]">
+        <ResponsiveLine
+          data={threadData}
+          margin={{ top: 40, right: 160, bottom: 80, left: 120 }}
+          xFormat="time:%Y-%m-%d %H:%M:%S"
+          xScale={{
+            format: '%Y-%m-%d %H:%M:%S',
+            precision: 'second',
+            type: 'time',
+            min: minDate,
+            max: maxDate,
+            useUTC: false
+          }}
+          yScale={{
+            type: 'point',
+          }}
+          axisTop={null}
+          axisRight={null}
+          axisBottom={{
+            format: '%H:%M:%S',
+            tickValues: 'every 1 minutes',
+            legendPosition: 'middle',
+            tickPadding: 20
+          }}
+          axisLeft={{
+            legend: 'Threads',
+            legendOffset: -80,
+            legendPosition: 'middle'
+          }}
+          pointSize={1}
+          pointBorderWidth={16}
+          pointBorderColor={(point: Point) => threadPoints[point.index].color}
+          pointLabelYOffset={-12}
+          useMesh={true}
+          enableGridX={true}
+          enableGridY={false}
+          colors={threadData.map((i) => i.color)}
+          tooltip={({
+            point
+          }) => <div className="pointer-events-none z-50 rounded-md p-4 bg-neutral-800">
+              <p className="font-sans text-white whitespace-pre-wrap">{threadPoints[point.index].event} </p>
+            </div>}
+        />
+      </div>
     </div>
-  )};
+  )
+};
 
 export default SessionReplay;
