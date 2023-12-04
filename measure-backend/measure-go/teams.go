@@ -456,7 +456,7 @@ func renameTeam(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": "team was renamed"})
 }
 
-func getScopes(c *gin.Context) {
+func getAuthzRoles(c *gin.Context) {
 	userId := c.GetString("userId")
 	teamId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
