@@ -5,7 +5,7 @@ import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context';
 const supabase = createBrowserClient()
 
 supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session) => {
-  switch(event) {
+  switch (event) {
     case 'INITIAL_SESSION':
       if (!globalThis.location) return
       const urlParams = new URLSearchParams(globalThis.location.hash.substring(1))

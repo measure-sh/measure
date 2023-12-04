@@ -49,7 +49,7 @@ const Dropdown: React.FC<DropdownProps> = ({ items, initialItemIndex = 0, onChan
   const selectItem = (item: string) => {
     setSelectedItem(item);
     setIsOpen(false);
-    if(onChangeSelectedItem) {
+    if (onChangeSelectedItem) {
       onChangeSelectedItem(item);
     }
   };

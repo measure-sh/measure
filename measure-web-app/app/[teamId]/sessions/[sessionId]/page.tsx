@@ -4,7 +4,7 @@ export default function Session({ params }: { params: { sessionId: string } }) {
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
-      <div className="py-4"/>
+      <div className="py-4" />
       <p className="font-display font-regular text-black text-4xl text-center">Session: {params.sessionId}</p>
       <p className="font-sans text-black text-center">UserID: alskdflsj123434</p>
       <p className="font-sans text-black text-center">Date: 24th Oct 2023</p>
@@ -12,8 +12,8 @@ export default function Session({ params }: { params: { sessionId: string } }) {
       <p className="font-sans text-black text-center">Device: Samsung Galaxy S9 Pro</p>
       <p className="font-sans text-black text-center">Location: Bangalore, India</p>
       <p className="font-sans text-black text-center">Network provider: Airtel</p>
-      <div className="py-6"/>
-      <SessionReplay/>
+      <div className="py-6" />
+      <SessionReplay />
     </div>
   )
 }

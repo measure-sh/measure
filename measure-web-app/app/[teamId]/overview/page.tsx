@@ -25,7 +25,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     Error,
     NoData
   }
-  
+
   const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading);
   const [filtersApiStatus, setFiltersApiStatus] = useState(FiltersApiStatus.Loading);
 
@@ -34,10 +34,10 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     "team_id": "",
     "name": "",
     "api_key": {
-        "created_at": "",
-        "key": "",
-        "last_seen": null,
-        "revoked": false
+      "created_at": "",
+      "key": "",
+      "last_seen": null,
+      "revoked": false
     },
     "onboarded": false,
     "created_at": "",
@@ -45,14 +45,14 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     "platform": null,
     "onboarded_at": null,
     "unique_identifier": null
-}
+  }
 
   const [apps, setApps] = useState([] as typeof emptyApp[]);
   const [selectedApp, setSelectedApp] = useState(emptyApp);
 
   const [versions, setVersions] = useState([] as string[]);
   const [selectedVersion, setSelectedVersion] = useState(versions[0]);
-  
+
   const today = new Date();
   var initialEndDate = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
   const [endDate, setEndDate] = useState(initialEndDate);
@@ -68,7 +68,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     setFormattedEndDate(new Date(endDate).toLocaleDateString());
   }, [startDate, endDate]);
 
-  const getApps = async (teamId:string, ) => {
+  const getApps = async (teamId: string,) => {
     setAppsApiStatus(AppsApiStatus.Loading)
 
     const authToken = await getAccessTokenOrRedirectToAuth(router)
@@ -80,17 +80,17 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     };
 
     const res = await fetch(`${origin}/teams/${teamId}/apps`, opts);
-    
-    if(!res.ok && res.status == 404) {
+
+    if (!res.ok && res.status == 404) {
       setAppsApiStatus(AppsApiStatus.NoApps)
       return
-    } 
+    }
 
-    if(!res.ok) {
+    if (!res.ok) {
       setAppsApiStatus(AppsApiStatus.Error)
       logoutIfAuthError(router, res)
       return
-    } 
+    }
 
     const data = await res.json()
 
@@ -103,7 +103,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     getApps(params.teamId)
   }, []);
 
-  const getFilters = async (appId:string, ) => {
+  const getFilters = async (appId: string,) => {
     setFiltersApiStatus(FiltersApiStatus.Loading)
 
     const authToken = await getAccessTokenOrRedirectToAuth(router)
@@ -116,16 +116,16 @@ export default function Overview({ params }: { params: { teamId: string } }) {
 
     const res = await fetch(`${origin}/apps/${appId}/filters`, opts);
 
-    if(!res.ok && res.status == 404) {
+    if (!res.ok && res.status == 404) {
       setFiltersApiStatus(FiltersApiStatus.NoData)
       return
-    } 
+    }
 
-    if(!res.ok) {
+    if (!res.ok) {
       logoutIfAuthError(router, res)
       setFiltersApiStatus(FiltersApiStatus.Error)
       return
-    } 
+    }
     const data = await res.json()
 
     setVersions(data.version)
@@ -148,30 +148,30 @@ export default function Overview({ params }: { params: { teamId: string } }) {
 
         {/* Error message for apps fetch error */}
         {appsApiStatus === AppsApiStatus.Error && <p className="text-lg font-display">Error fetching apps, please refresh page to try again</p>}
-        
+
         {/* Create app when no apps exist */}
         {appsApiStatus === AppsApiStatus.NoApps && <p className="text-lg font-display">Looks like you don&apos;t have any apps yet. Get started by creating your first app!</p>}
-        {appsApiStatus === AppsApiStatus.NoApps && <div className="py-4"/>}
-        {appsApiStatus === AppsApiStatus.NoApps && <CreateApp teamId={params.teamId}/>}
-        
+        {appsApiStatus === AppsApiStatus.NoApps && <div className="py-4" />}
+        {appsApiStatus === AppsApiStatus.NoApps && <CreateApp teamId={params.teamId} />}
+
         {/* Show app selector dropdown if apps fetch succeeds */}
         {appsApiStatus === AppsApiStatus.Success && <Dropdown items={apps.map((e) => e.name)} onChangeSelectedItem={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} />}
-        
+
         {/* Show date selector if apps and filters fetch succeeds */}
-        {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && 
+        {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success &&
           <div className="flex flex-row items-center">
             <input type="date" defaultValue={startDate} max={endDate} className="font-display text-black border border-black rounded-md p-2" onChange={(e) => setStartDate(e.target.value)} />
             <p className="text-black font-display px-2">to</p>
             <input type="date" defaultValue={endDate} min={startDate} className="font-display text-black border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
           </div>}
 
-          {/* Loading message for filters */}
+        {/* Loading message for filters */}
         {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Loading && <p className="text-lg font-display">Updating filters...</p>}
 
         {/* Show versions selector if apps and filters fetch succeeds  */}
         {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && <Dropdown items={versions} onChangeSelectedItem={(item) => setSelectedVersion(item)} />}
       </div>
-      
+
       {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && <div className="py-4" />}
 
       {/* Show filter pills if apps and filters fetch succeeds  */}
@@ -185,7 +185,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
       {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Error && <p className="text-lg font-display">Error fetching filters, please refresh page or select a different app to try again</p>}
 
       {/* Create app when app exists but has no data */}
-      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.NoData && <CreateApp teamId={params.teamId} existingAppName={selectedApp.name} existingApiKey={selectedApp.api_key.key}/>}
+      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.NoData && <CreateApp teamId={params.teamId} existingAppName={selectedApp.name} existingApiKey={selectedApp.api_key.key} />}
 
       {/* Show user flow if apps and filters fetch succeeds  */}
       {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && <UserFlow appId={selectedApp.id} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />}

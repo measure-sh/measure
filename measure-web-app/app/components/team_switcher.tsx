@@ -49,7 +49,7 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0
   const selectItem = (item: string) => {
     setSelectedItem(item);
     setIsOpen(false);
-    if(onChangeSelectedItem) {
+    if (onChangeSelectedItem) {
       onChangeSelectedItem(item);
     }
   };
