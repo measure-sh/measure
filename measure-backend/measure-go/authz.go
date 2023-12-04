@@ -52,6 +52,20 @@ type scope struct {
 	perm     string
 }
 
+func (s scope) getRoles() []rank {
+	var roles []rank
+	for key, val := range scopeMap {
+		if slices.Contains(roles, key) {
+			continue
+		}
+		if slices.Contains(val, s) {
+			roles = append(roles, key)
+		}
+	}
+
+	return roles
+}
+
 var scopeMap = map[rank][]scope{
 	owner:     {*ScopeBillingAll, *ScopeTeamAll, *ScopeAlertAll, *ScopeAppAll},
 	admin:     {*ScopeBillingAll, *ScopeAlertAll, *ScopeAppAll, *ScopeTeamInviteSameOrLower, *ScopeTeamChangeRoleSameOrLower},

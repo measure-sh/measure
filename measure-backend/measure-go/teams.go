@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"sort"
 	"time"
 
 	"measure-backend/measure-go/cipher"
@@ -453,4 +454,77 @@ func renameTeam(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": "team was renamed"})
+}
+
+func getScopes(c *gin.Context) {
+	userId := c.GetString("userId")
+	teamId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `team id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	user := &User{
+		id: userId,
+	}
+
+	userRole, err := user.getRole(teamId.String())
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if err != nil || userRole == unknown {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	ok, err := PerformAuthz(userId, teamId.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`you don't have read permissions to team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	// prepare roles for team invites
+	inviteRoles := ScopeTeamAll.getRoles()
+	inviteSameOrLowerRoles := ScopeTeamInviteSameOrLower.getRoles()
+	allInviteeRoles := append(inviteRoles, inviteSameOrLowerRoles...)
+	var inviteeRoles []rank
+	for _, role := range allInviteeRoles {
+		if role <= userRole {
+			inviteeRoles = append(inviteeRoles, role)
+		}
+	}
+	sort.Slice(inviteeRoles, func(i, j int) bool {
+		return inviteeRoles[i] > inviteeRoles[j]
+	})
+
+	// preapre roles for team change roles
+	changeRoles := ScopeTeamAll.getRoles()
+	changeRoleSameOrLowerRoles := ScopeTeamChangeRoleSameOrLower.getRoles()
+	allChangeRoleRoles := append(changeRoles, changeRoleSameOrLowerRoles...)
+	var changeRoleRoles []rank
+	for _, role := range allChangeRoleRoles {
+		if role <= userRole {
+			changeRoleRoles = append(changeRoleRoles, role)
+		}
+	}
+	sort.Slice(changeRoleRoles, func(i, j int) bool {
+		return changeRoleRoles[i] > changeRoleRoles[j]
+	})
+
+	c.JSON(http.StatusOK, gin.H{"can_invite": inviteeRoles, "can_change_roles": changeRoleRoles})
 }
