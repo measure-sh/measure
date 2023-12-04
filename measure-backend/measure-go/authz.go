@@ -112,6 +112,9 @@ func PerformAuthz(uid string, rid string, scope scope) (bool, error) {
 		if slices.Contains(roleScope, *ScopeTeamAll) {
 			return true, nil
 		}
+		if slices.Contains(roleScope, *ScopeTeamInviteSameOrLower) {
+			return true, nil
+		}
 		if slices.Contains(roleScope, *ScopeTeamRead) {
 			return true, nil
 		}
