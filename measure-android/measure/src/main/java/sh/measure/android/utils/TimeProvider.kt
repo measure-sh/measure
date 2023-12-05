@@ -13,6 +13,7 @@ interface TimeProvider {
     val currentTimeSinceEpochInMillis: Long
     val currentTimeSinceEpochInNanos: Long
     val uptimeInMillis: Long
+    val elapsedRealtime: Long
 }
 
 internal class AndroidTimeProvider : TimeProvider {
@@ -41,6 +42,12 @@ internal class AndroidTimeProvider : TimeProvider {
      */
     override val uptimeInMillis
         get() = SystemClock.uptimeMillis()
+
+    /**
+     * Returns milliseconds since boot, including time spent in sleep.
+     */
+    override val elapsedRealtime
+        get() = SystemClock.elapsedRealtime()
 
     private fun Long.toNanos(): Long {
         return this * 1_000_000

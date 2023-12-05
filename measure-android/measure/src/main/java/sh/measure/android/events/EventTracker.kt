@@ -15,6 +15,10 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.network_change.NetworkChangeEvent
 import sh.measure.android.okhttp.HttpEvent
+import sh.measure.android.performance.CpuUsage
+import sh.measure.android.performance.LowMemory
+import sh.measure.android.performance.MemoryUsage
+import sh.measure.android.performance.TrimMemory
 import sh.measure.android.session.SessionController
 
 internal interface EventTracker {
@@ -32,6 +36,10 @@ internal interface EventTracker {
     fun trackNetworkChange(event: NetworkChangeEvent)
     fun trackHttpEvent(event: HttpEvent)
     fun storeAttachment(attachmentInfo: AttachmentInfo)
+    fun trackMemoryUsage(memoryUsage: MemoryUsage)
+    fun trackLowMemory(lowMemory: LowMemory)
+    fun trackTrimMemory(trimMemory: TrimMemory)
+    fun trackCpuUsage(cpuUsage: CpuUsage)
 }
 
 // TODO: refactor to make serialization happen on background thread.
@@ -109,6 +117,28 @@ internal class MeasureEventTracker(
     override fun trackHttpEvent(event: HttpEvent) {
         logger.log(LogLevel.Debug, "Tracking HTTP event")
         sessionController.storeEvent(event.toEvent())
+    }
+
+    override fun trackMemoryUsage(memoryUsage: MemoryUsage) {
+        logger.log(LogLevel.Debug, "Tracking memory usage")
+        sessionController.storeEvent(memoryUsage.toEvent())
+    }
+
+    override fun trackLowMemory(lowMemory: LowMemory) {
+        logger.log(LogLevel.Debug, "Tracking low memory")
+        sessionController.storeEvent(
+            lowMemory.toEvent()
+        )
+    }
+
+    override fun trackTrimMemory(trimMemory: TrimMemory) {
+        logger.log(LogLevel.Debug, "Tracking trim memory")
+        sessionController.storeEvent(trimMemory.toEvent())
+    }
+
+    override fun trackCpuUsage(cpuUsage: CpuUsage) {
+        logger.log(LogLevel.Debug, "Tracking CPU usage")
+        sessionController.storeEvent(cpuUsage.toEvent())
     }
 
     override fun storeAttachment(attachmentInfo: AttachmentInfo) {

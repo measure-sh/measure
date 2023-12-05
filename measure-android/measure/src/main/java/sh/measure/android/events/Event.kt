@@ -18,6 +18,10 @@ import sh.measure.android.lifecycle.ApplicationLifecycleEvent
 import sh.measure.android.lifecycle.FragmentLifecycleEvent
 import sh.measure.android.network_change.NetworkChangeEvent
 import sh.measure.android.okhttp.HttpEvent
+import sh.measure.android.performance.CpuUsage
+import sh.measure.android.performance.LowMemory
+import sh.measure.android.performance.MemoryUsage
+import sh.measure.android.performance.TrimMemory
 import sh.measure.android.utils.iso8601Timestamp
 
 data class Event(
@@ -156,6 +160,42 @@ internal fun HttpEvent.toEvent(): Event {
         type = EventType.HTTP,
         timestamp = timestamp.iso8601Timestamp(),
         data = Json.encodeToJsonElement(HttpEvent.serializer(), this),
+        thread_name = thread_name
+    )
+}
+
+internal fun MemoryUsage.toEvent() : Event {
+    return Event(
+        type = EventType.MEMORY_USAGE,
+        timestamp = timestamp.iso8601Timestamp(),
+        data = Json.encodeToJsonElement(MemoryUsage.serializer(), this),
+        thread_name = thread_name
+    )
+}
+
+internal fun LowMemory.toEvent() : Event {
+    return Event(
+        type = EventType.LOW_MEMORY,
+        timestamp = timestamp.iso8601Timestamp(),
+        data = Json.encodeToJsonElement(LowMemory.serializer(), this),
+        thread_name = thread_name
+    )
+}
+
+internal fun TrimMemory.toEvent() : Event {
+    return Event(
+        type = EventType.TRIM_MEMORY,
+        timestamp = timestamp.iso8601Timestamp(),
+        data = Json.encodeToJsonElement(TrimMemory.serializer(), this),
+        thread_name = thread_name
+    )
+}
+
+internal fun CpuUsage.toEvent() : Event {
+    return Event(
+        type = EventType.CPU_USAGE,
+        timestamp = timestamp.iso8601Timestamp(),
+        data = Json.encodeToJsonElement(CpuUsage.serializer(), this),
         thread_name = thread_name
     )
 }

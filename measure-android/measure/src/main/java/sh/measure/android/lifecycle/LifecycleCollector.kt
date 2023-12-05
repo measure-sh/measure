@@ -18,7 +18,9 @@ internal class LifecycleCollector(
     private val application: Application,
     private val eventTracker: EventTracker,
     private val timeProvider: TimeProvider,
-    private val currentThread: CurrentThread
+    private val currentThread: CurrentThread,
+    private val onAppForeground : () -> Unit,
+    private val onAppBackground : () -> Unit,
 ) : ActivityLifecycleAdapter {
     private val fragmentLifecycleCollector by lazy {
         FragmentLifecycleCollector(eventTracker, timeProvider, currentThread)
@@ -53,6 +55,7 @@ internal class LifecycleCollector(
                     thread_name = currentThread.name
                 )
             )
+            onAppForeground.invoke()
         }
         val hash = Integer.toHexString(System.identityHashCode(activity))
         startedActivities.add(hash)
@@ -91,6 +94,7 @@ internal class LifecycleCollector(
                     thread_name = currentThread.name
                 )
             )
+            onAppBackground.invoke()
         }
     }
 

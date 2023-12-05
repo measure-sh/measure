@@ -8,16 +8,20 @@ import org.junit.Test
 import sh.measure.android.app_launch.ColdLaunchEvent
 import sh.measure.android.app_launch.HotLaunchEvent
 import sh.measure.android.app_launch.WarmLaunchEvent
-import sh.measure.android.network_change.NetworkChangeEvent
-import sh.measure.android.network_change.NetworkGeneration
-import sh.measure.android.network_change.NetworkType
 import sh.measure.android.exceptions.ExceptionFactory
 import sh.measure.android.gestures.ClickEvent
 import sh.measure.android.gestures.Direction
 import sh.measure.android.gestures.LongClickEvent
 import sh.measure.android.gestures.ScrollEvent
+import sh.measure.android.network_change.NetworkChangeEvent
+import sh.measure.android.network_change.NetworkGeneration
+import sh.measure.android.network_change.NetworkType
 import sh.measure.android.okhttp.HttpClientName
 import sh.measure.android.okhttp.HttpEvent
+import sh.measure.android.performance.CpuUsage
+import sh.measure.android.performance.LowMemory
+import sh.measure.android.performance.MemoryUsage
+import sh.measure.android.performance.TrimMemory
 import sh.measure.android.utils.iso8601Timestamp
 
 class EventKtTest {
@@ -311,5 +315,84 @@ class EventKtTest {
         assertEquals(threadName, event.thread_name)
         assertEquals(timestampIso, event.timestamp)
         assertEquals(EventType.HTTP, event.type)
+    }
+
+    @Test
+    fun `MemoryUsage toEvent() returns an event of type memory_usage`() {
+        val timestamp = 0L
+        val timestampIso = timestamp.iso8601Timestamp()
+        val threadName = "thread"
+        val memoryUsage = MemoryUsage(
+            java_max_heap = 0L,
+            java_total_heap = 0L,
+            java_free_heap = 0L,
+            total_pss = 0,
+            rss = 0L,
+            native_total_heap = 0L,
+            native_free_heap = 0L,
+            interval_config = 0L,
+            timestamp = timestamp,
+            thread_name = threadName
+        )
+        val event = memoryUsage.toEvent()
+
+        assertEquals(threadName, event.thread_name)
+        assertEquals(timestampIso, event.timestamp)
+        assertEquals(EventType.MEMORY_USAGE, event.type)
+    }
+
+    @Test
+    fun `LowMemory toEvent() returns an event of type low_memory`() {
+        val timestamp = 0L
+        val timestampIso = timestamp.iso8601Timestamp()
+        val threadName = "thread"
+        val lowMemory = LowMemory(
+            timestamp = timestamp, thread_name = threadName
+        )
+        val event = lowMemory.toEvent()
+
+        assertEquals(threadName, event.thread_name)
+        assertEquals(timestampIso, event.timestamp)
+        assertEquals(EventType.LOW_MEMORY, event.type)
+    }
+
+    @Test
+    fun `TrimMemory toEvent() returns an event of type trim_memory`() {
+        val timestamp = 0L
+        val timestampIso = timestamp.iso8601Timestamp()
+        val threadName = "thread"
+        val trimMemory = TrimMemory(
+            level = "TRIM_MEMORY_UI_HIDDEN", timestamp = timestamp, thread_name = threadName
+        )
+        val event = trimMemory.toEvent()
+
+        assertEquals(threadName, event.thread_name)
+        assertEquals(timestampIso, event.timestamp)
+        assertEquals(EventType.TRIM_MEMORY, event.type)
+    }
+
+    @Test
+    fun `CPUUsage toEvent() returns an event of type cpu_usage`() {
+        val timestamp = 0L
+        val timestampIso = timestamp.iso8601Timestamp()
+        val threadName = "thread"
+        val cpuUsage = CpuUsage(
+            num_cores = 0,
+            clock_speed = 0,
+            uptime = 0,
+            utime = 0,
+            stime = 0,
+            cutime = 0,
+            cstime = 0,
+            interval_config = 0,
+            start_time = 0,
+            thread_name = threadName,
+            timestamp = timestamp
+        )
+        val event = cpuUsage.toEvent()
+
+        assertEquals(threadName, event.thread_name)
+        assertEquals(timestampIso, event.timestamp)
+        assertEquals(EventType.CPU_USAGE, event.type)
     }
 }
