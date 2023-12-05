@@ -4,6 +4,7 @@ import Dropdown from "@/app/components/dropdown";
 import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from "@/app/utils/auth_utils";
 import { useEffect, useState } from "react";
 import { useRouter } from 'next/navigation';
+import DangerConfirmationModal from "@/app/components/danger_confirmation_modal";
 
 
 const getSelectedTeam = () => {
@@ -76,6 +77,14 @@ export default function Team({ params }: { params: { teamId: string } }) {
     Success,
     Error
   }
+
+  enum TeamNameChangeApiStatus {
+    Init,
+    Loading,
+    Success,
+    Error
+  }
+
   const emptyTeam = { 'id': '', 'name': '' }
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading);
   const [team, setTeam] = useState(emptyTeam)
@@ -83,6 +92,10 @@ export default function Team({ params }: { params: { teamId: string } }) {
   const [saveTeamNameButtonDisabled, setSaveTeamNameButtonDisabled] = useState(true);
   const [role, setRole] = useState("Owner")
   const [email, setEmail] = useState<string>()
+
+  const [teamNameConfirmationModalOpen, setTeamNameConfirmationModalOpen] = useState(false)
+  const [teamNameChangeApiStatus, setteamNameChangeApiStatus] = useState(TeamNameChangeApiStatus.Init);
+  const [newTeamName, setNewTeamName] = useState('')
 
   const router = useRouter();
 
@@ -115,6 +128,30 @@ export default function Team({ params }: { params: { teamId: string } }) {
     getTeam()
   }, []);
 
+  const changeTeamName = async () => {
+    setteamNameChangeApiStatus(TeamNameChangeApiStatus.Loading)
+
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+      method: 'PATCH',
+      headers: {
+        "Authorization": `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ name: newTeamName })
+    };
+
+    const res = await fetch(`${origin}/teams/${params.teamId}/rename`, opts);
+    if (!res.ok) {
+      setteamNameChangeApiStatus(TeamNameChangeApiStatus.Error)
+      logoutIfAuthError(router, res)
+      return
+    }
+
+    setteamNameChangeApiStatus(TeamNameChangeApiStatus.Success)
+    location.reload()
+  }
+
   const handleInvite = (e: React.FormEvent) => {
     e.preventDefault()
     const teamId = getSelectedTeam()
@@ -131,17 +168,41 @@ export default function Team({ params }: { params: { teamId: string } }) {
       {/* Loading message for team */}
       {teamsApiStatus === TeamsApiStatus.Loading && <p className="text-lg font-display">Loading team...</p>}
 
-      {/* Error message for tean fetch error */}
+      {/* Error message for team fetch error */}
       {teamsApiStatus === TeamsApiStatus.Error && <p className="text-lg font-display">Error fetching team, please refresh page to try again</p>}
 
       {teamsApiStatus === TeamsApiStatus.Success &&
         <div className="flex flex-col items-start">
+
+          {/* Modal for confirming team name change */}
+          <DangerConfirmationModal title="Are you sure you want to rename the team?" open={teamNameConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+            onAffirmativeAction={() => {
+              setTeamNameConfirmationModalOpen(false)
+              changeTeamName()
+            }}
+            onCancelAction={() => setTeamNameConfirmationModalOpen(false)}
+          />
+
           <p className="font-sans text-black max-w-6xl text-center">Team name</p>
           <div className="py-1" />
           <div className="flex flex-row items-center">
-            <input id="change-team-name-input" type="text" defaultValue={team.name} onChange={(event) => event.target.value === team.name ? setSaveTeamNameButtonDisabled(true) : setSaveTeamNameButtonDisabled(false)} className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400" />
-            <button disabled={saveTeamNameButtonDisabled} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display text-black disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Save</button>
+            <input id="change-team-name-input" type="text" defaultValue={team.name}
+              onChange={(event) => {
+                event.target.value === team.name ? setSaveTeamNameButtonDisabled(true) : setSaveTeamNameButtonDisabled(false)
+                setNewTeamName(event.target.value)
+              }}
+              className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400" />
+            <button disabled={saveTeamNameButtonDisabled || teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display text-black disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => setTeamNameConfirmationModalOpen(true)}>Save</button>
           </div>
+
+          {teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading || teamNameChangeApiStatus === TeamNameChangeApiStatus.Error && <div className="py-1" />}
+
+          {/* Loading message for team name change */}
+          {teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading && <p className="text-sm font-display">Changing team name...</p>}
+
+          {/* Error message for team name change */}
+          {teamNameChangeApiStatus === TeamNameChangeApiStatus.Error && <p className="text-sm font-display">Error changing team name, please try again</p>}
+
           <div className="py-4" />
           <p className="font-sans text-black max-w-6xl text-center">Invite team members</p>
           <div className="py-1" />
