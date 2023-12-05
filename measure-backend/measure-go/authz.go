@@ -15,6 +15,8 @@ const (
 	owner
 )
 
+var lowestRank = viewer
+
 type rank int
 
 func (r *rank) UnmarshalJSON(data []byte) error {
@@ -35,6 +37,31 @@ func (r *rank) MarshalJSON() ([]byte, error) {
 	return json.Marshal(r.String())
 }
 
+func (r rank) getSameOrLower() []rank {
+	var ranks []rank
+
+	for i := int(r); i >= int(lowestRank); i-- {
+		ranks = append(ranks, rank(i))
+	}
+
+	return ranks
+}
+
+func (r rank) String() string {
+	switch r {
+	case viewer:
+		return "viewer"
+	case developer:
+		return "developer"
+	case admin:
+		return "admin"
+	case owner:
+		return "owner"
+	default:
+		return "unknown"
+	}
+}
+
 var (
 	ScopeBillingAll                = newScope("billing", "*")
 	ScopeTeamAll                   = newScope("team", "*")
@@ -52,14 +79,19 @@ type scope struct {
 	perm     string
 }
 
-func (s scope) getRoles() []rank {
+func (s scope) getRolesSameOrLower(r rank) []rank {
+	sameOrLowerRoles := r.getSameOrLower()
 	var roles []rank
-	for key, val := range scopeMap {
-		if slices.Contains(roles, key) {
-			continue
+
+	if s == *ScopeTeamInviteSameOrLower {
+		if slices.Contains(scopeMap[r], s) || slices.Contains(scopeMap[r], *ScopeTeamAll) {
+			roles = append(roles, sameOrLowerRoles...)
 		}
-		if slices.Contains(val, s) {
-			roles = append(roles, key)
+	}
+
+	if s == *ScopeTeamChangeRoleSameOrLower {
+		if slices.Contains(scopeMap[r], s) || slices.Contains(scopeMap[r], *ScopeTeamAll) {
+			roles = append(roles, sameOrLowerRoles...)
 		}
 	}
 
@@ -78,21 +110,6 @@ var roleMap = map[string]rank{
 	"admin":     admin,
 	"developer": developer,
 	"viewer":    viewer,
-}
-
-func (r rank) String() string {
-	switch r {
-	case viewer:
-		return "viewer"
-	case developer:
-		return "developer"
-	case admin:
-		return "admin"
-	case owner:
-		return "owner"
-	default:
-		return "unknown"
-	}
 }
 
 func (s *scope) String() string {

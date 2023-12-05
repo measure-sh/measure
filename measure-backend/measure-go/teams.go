@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
-	"sort"
 	"time"
 
 	"measure-backend/measure-go/cipher"
@@ -498,33 +497,8 @@ func getAuthzRoles(c *gin.Context) {
 		return
 	}
 
-	// prepare roles for team invites
-	inviteRoles := ScopeTeamAll.getRoles()
-	inviteSameOrLowerRoles := ScopeTeamInviteSameOrLower.getRoles()
-	allInviteeRoles := append(inviteRoles, inviteSameOrLowerRoles...)
-	var inviteeRoles []rank
-	for _, role := range allInviteeRoles {
-		if role <= userRole {
-			inviteeRoles = append(inviteeRoles, role)
-		}
-	}
-	sort.Slice(inviteeRoles, func(i, j int) bool {
-		return inviteeRoles[i] > inviteeRoles[j]
-	})
-
-	// preapre roles for team change roles
-	changeRoles := ScopeTeamAll.getRoles()
-	changeRoleSameOrLowerRoles := ScopeTeamChangeRoleSameOrLower.getRoles()
-	allChangeRoleRoles := append(changeRoles, changeRoleSameOrLowerRoles...)
-	var changeRoleRoles []rank
-	for _, role := range allChangeRoleRoles {
-		if role <= userRole {
-			changeRoleRoles = append(changeRoleRoles, role)
-		}
-	}
-	sort.Slice(changeRoleRoles, func(i, j int) bool {
-		return changeRoleRoles[i] > changeRoleRoles[j]
-	})
+	inviteeRoles := ScopeTeamInviteSameOrLower.getRolesSameOrLower(userRole)
+	changeRoleRoles := ScopeTeamChangeRoleSameOrLower.getRolesSameOrLower(userRole)
 
 	c.JSON(http.StatusOK, gin.H{"can_invite": inviteeRoles, "can_change_roles": changeRoleRoles})
 }
