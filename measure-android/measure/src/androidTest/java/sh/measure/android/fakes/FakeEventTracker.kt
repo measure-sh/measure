@@ -13,6 +13,11 @@ import sh.measure.android.lifecycle.ActivityLifecycleEvent
 import sh.measure.android.lifecycle.ApplicationLifecycleEvent
 import sh.measure.android.lifecycle.FragmentLifecycleEvent
 import sh.measure.android.network_change.NetworkChangeEvent
+import sh.measure.android.okhttp.HttpEvent
+import sh.measure.android.performance.CpuUsage
+import sh.measure.android.performance.LowMemory
+import sh.measure.android.performance.MemoryUsage
+import sh.measure.android.performance.TrimMemory
 
 @Suppress("MemberVisibilityCanBePrivate")
 internal class FakeEventTracker: EventTracker {
@@ -29,6 +34,11 @@ internal class FakeEventTracker: EventTracker {
     val trackedNetworkChangeEvents = mutableListOf<NetworkChangeEvent>()
     val trackedHotLaunchEvents = mutableListOf<HotLaunchEvent>()
     val trackedAttachments = mutableListOf<AttachmentInfo>()
+    val trackHttpEvents = mutableListOf<HttpEvent>()
+    val trackedMemoryUsageEvents = mutableListOf<MemoryUsage>()
+    val trackedLowMemoryEvents = mutableListOf<LowMemory>()
+    val trackedTrimMemoryEvents = mutableListOf<TrimMemory>()
+    val trackedCPUUsageEvents = mutableListOf<CpuUsage>()
 
     override fun trackUnhandledException(measureException: MeasureException) {
         trackedUnhandledExceptions.add(measureException)
@@ -76,6 +86,26 @@ internal class FakeEventTracker: EventTracker {
 
     override fun trackNetworkChange(event: NetworkChangeEvent) {
         trackedNetworkChangeEvents.add(event)
+    }
+
+    override fun trackHttpEvent(event: HttpEvent) {
+        trackHttpEvents.add(event)
+    }
+
+    override fun trackMemoryUsage(memoryUsage: MemoryUsage) {
+        trackedMemoryUsageEvents.add(memoryUsage)
+    }
+
+    override fun trackLowMemory(lowMemory: LowMemory) {
+        trackedLowMemoryEvents.add(lowMemory)
+    }
+
+    override fun trackTrimMemory(trimMemory: TrimMemory) {
+        trackedTrimMemoryEvents.add(trimMemory)
+    }
+
+    override fun trackCpuUsage(cpuUsage: CpuUsage) {
+        trackedCPUUsageEvents.add(cpuUsage)
     }
 
     override fun storeAttachment(attachmentInfo: AttachmentInfo) {

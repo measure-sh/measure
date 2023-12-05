@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.Assert
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
@@ -32,7 +33,12 @@ class LifecycleCollectorTest {
     @Before
     fun setUp() {
         lifecycleCollector = LifecycleCollector(
-            RuntimeEnvironment.getApplication(), eventTracker, timeProvider, currentThread
+            RuntimeEnvironment.getApplication(),
+            eventTracker,
+            timeProvider,
+            currentThread,
+            onAppForeground = {},
+            onAppBackground = {}
         ).apply { register() }
         controller = buildActivity(TestLifecycleActivity::class.java)
     }
@@ -193,6 +199,36 @@ class LifecycleCollectorTest {
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
             )
         )
+    }
+
+    @Test
+    fun `invokes onAppForeground when app comes to foreground`() {
+        var foreground = false
+        lifecycleCollector = LifecycleCollector(
+            RuntimeEnvironment.getApplication(),
+            eventTracker,
+            timeProvider,
+            currentThread,
+            onAppForeground = { foreground = true },
+            onAppBackground = {}
+        ).apply { register() }
+        controller.setup()
+        Assert.assertTrue(foreground)
+    }
+
+    @Test
+    fun `invokes onAppBackground when app goes to background`() {
+        var background = false
+        lifecycleCollector = LifecycleCollector(
+            RuntimeEnvironment.getApplication(),
+            eventTracker,
+            timeProvider,
+            currentThread,
+            onAppForeground = {},
+            onAppBackground = { background = true }
+        ).apply { register() }
+        controller.setup().stop()
+        Assert.assertTrue(background)
     }
 }
 

@@ -16,4 +16,8 @@ object EventType {
     const val HOT_LAUNCH: String = "hot_launch"
     const val NETWORK_CHANGE: String = "network_change"
     const val HTTP: String = "http"
+    const val MEMORY_USAGE: String = "memory_usage"
+    const val LOW_MEMORY: String = "low_memory"
+    const val TRIM_MEMORY: String = "trim_memory"
+    const val CPU_USAGE: String = "cpu_usage"
 }

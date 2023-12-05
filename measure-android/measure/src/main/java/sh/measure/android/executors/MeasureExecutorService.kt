@@ -11,14 +11,18 @@ interface MeasureExecutorService {
     val isClosed: Boolean
     fun submit(runnable: Runnable): Future<*>
     fun schedule(runnable: Runnable, delayMillis: Long): Future<*>
+    fun scheduleAtFixedRate(
+        runnable: Runnable, initialDelay: Long, delayMillis: Long, delayUnit: TimeUnit
+    ): Future<*>
+
     fun close(timeoutMillis: Long)
 }
 
 internal class MeasureExecutorServiceImpl @TestOnly constructor(private val executorService: ScheduledExecutorService) :
     MeasureExecutorService {
 
-    constructor() : this(
-        Executors.newSingleThreadScheduledExecutor(CustomThreadFactory())
+    constructor(customThreadFactory: CustomThreadFactory) : this(
+        Executors.newSingleThreadScheduledExecutor(customThreadFactory)
     )
 
     override fun submit(runnable: Runnable): Future<*> {
@@ -27,6 +31,12 @@ internal class MeasureExecutorServiceImpl @TestOnly constructor(private val exec
 
     override fun schedule(runnable: Runnable, delayMillis: Long): Future<*> {
         return executorService.schedule(runnable, delayMillis, TimeUnit.MILLISECONDS)
+    }
+
+    override fun scheduleAtFixedRate(
+        runnable: Runnable, initialDelay: Long, delayMillis: Long, delayUnit: TimeUnit
+    ): Future<*> {
+        return executorService.scheduleAtFixedRate(runnable, initialDelay, delayMillis, delayUnit)
     }
 
     override fun close(timeoutMillis: Long) {

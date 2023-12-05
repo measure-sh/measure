@@ -10,6 +10,7 @@ import sh.measure.android.appexit.AppExitProviderImpl
 import sh.measure.android.events.EventTracker
 import sh.measure.android.events.MeasureEventTracker
 import sh.measure.android.exceptions.UnhandledExceptionCollector
+import sh.measure.android.executors.CustomThreadFactory
 import sh.measure.android.executors.MeasureExecutorServiceImpl
 import sh.measure.android.gestures.GestureCollector
 import sh.measure.android.lifecycle.LifecycleCollector
@@ -22,6 +23,9 @@ import sh.measure.android.network.TransportImpl
 import sh.measure.android.network_change.NetworkChangesCollector
 import sh.measure.android.network_change.NetworkInfoProvider
 import sh.measure.android.network_change.NetworkInfoProviderImpl
+import sh.measure.android.performance.ComponentCallbacksCollector
+import sh.measure.android.performance.CpuUsageCollector
+import sh.measure.android.performance.MemoryUsageCollector
 import sh.measure.android.session.ResourceFactoryImpl
 import sh.measure.android.session.SessionController
 import sh.measure.android.session.SessionControllerImpl
@@ -50,7 +54,8 @@ object Measure {
         val application = context as Application
 
         val logger = AndroidLogger().apply { log(LogLevel.Debug, "Initializing Measure") }
-        val executorService = MeasureExecutorServiceImpl()
+        val customThreadFactory = CustomThreadFactory()
+        val executorService = MeasureExecutorServiceImpl(customThreadFactory)
         val storage: Storage = StorageImpl(logger, context.filesDir.path)
         val httpClient: HttpClient =
             HttpClientOkHttp(logger, Config.MEASURE_BASE_URL, Config.MEASURE_SECRET_TOKEN)
@@ -84,17 +89,37 @@ object Measure {
         ).apply { start() }
 
         // Register data collectors
-        UnhandledExceptionCollector(logger, eventTracker, timeProvider, networkInfoProvider, localeProvider)
-            .register()
+        UnhandledExceptionCollector(logger, eventTracker, timeProvider, networkInfoProvider, localeProvider).register()
         AnrCollector(logger, systemServiceProvider, networkInfoProvider, timeProvider, eventTracker, localeProvider)
             .register()
+        val cpuUsageCollector = CpuUsageCollector(logger, eventTracker, pidProvider, timeProvider, currentThread, executorService).apply { register() }
+        val memoryUsageCollector = MemoryUsageCollector(logger, pidProvider, eventTracker, timeProvider, currentThread, executorService).apply { register() }
+        ComponentCallbacksCollector(application, eventTracker, timeProvider, currentThread).register()
+        LifecycleCollector(
+            context,
+            eventTracker,
+            timeProvider,
+            currentThread,
+            onAppForeground = {
+                cpuUsageCollector.resume()
+                memoryUsageCollector.resume()
+            },
+            onAppBackground = {
+                cpuUsageCollector.pause()
+                memoryUsageCollector.pause()
+            }).register()
+
         AppLaunchCollector(
             logger, application, timeProvider, coldLaunchTrace, eventTracker,
             coldLaunchListener = {
-                LifecycleCollector(context, eventTracker, timeProvider, currentThread).register()
                 GestureCollector(logger, eventTracker, timeProvider, currentThread).register()
                 NetworkChangesCollector(
-                    context, systemServiceProvider, logger, eventTracker, timeProvider, currentThread
+                    context,
+                    systemServiceProvider,
+                    logger,
+                    eventTracker,
+                    timeProvider,
+                    currentThread
                 ).register()
                 sessionController.syncAllSessions()
             },

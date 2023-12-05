@@ -56,7 +56,7 @@ internal class UnhandledExceptionCollector(
             logger.log(LogLevel.Error, "Failed to track exception", e)
         } finally {
             // Call the original handler so that we do not swallow any exceptions.
-             originalHandler?.uncaughtException(thread, throwable)
+            originalHandler?.uncaughtException(thread, throwable)
         }
     }
 }
