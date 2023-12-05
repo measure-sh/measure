@@ -37,7 +37,7 @@ func (r *rank) MarshalJSON() ([]byte, error) {
 	return json.Marshal(r.String())
 }
 
-func (r rank) getSameOrLower() []rank {
+func (r rank) getLower() []rank {
 	var ranks []rank
 
 	for i := int(r); i >= int(lowestRank); i-- {
@@ -80,18 +80,18 @@ type scope struct {
 }
 
 func (s scope) getRolesSameOrLower(r rank) []rank {
-	sameOrLowerRoles := r.getSameOrLower()
+	lowerRoles := r.getLower()
 	var roles []rank
 
 	if s == *ScopeTeamInviteSameOrLower {
 		if slices.Contains(scopeMap[r], s) || slices.Contains(scopeMap[r], *ScopeTeamAll) {
-			roles = append(roles, sameOrLowerRoles...)
+			roles = append(roles, lowerRoles...)
 		}
 	}
 
 	if s == *ScopeTeamChangeRoleSameOrLower {
 		if slices.Contains(scopeMap[r], s) || slices.Contains(scopeMap[r], *ScopeTeamAll) {
-			roles = append(roles, sameOrLowerRoles...)
+			roles = append(roles, lowerRoles...)
 		}
 	}
 
