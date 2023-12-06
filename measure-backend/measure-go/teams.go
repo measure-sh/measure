@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"slices"
@@ -55,6 +56,32 @@ type Invitee struct {
 	ID    uuid.UUID `json:"id"`
 	Email string    `json:"email"`
 	Role  rank      `json:"role"`
+}
+
+type Member struct {
+	ID           *uuid.UUID `json:"id"`
+	Name         *string    `json:"name"`
+	Email        *string    `json:"email"`
+	Role         *string    `json:"role"`
+	LastSignInAt *ISOTime   `json:"last_sign_in_at"`
+	CreatedAt    *ISOTime   `json:"created_at"`
+}
+
+type ISOTime time.Time
+
+func (t *ISOTime) MarshalJSON() ([]byte, error) {
+	time := time.Time(*t).Format(ISOFormatJS)
+	return json.Marshal(time)
+}
+
+func (i *ISOTime) Scan(src interface{}) error {
+	switch t := src.(type) {
+	case time.Time:
+		*i = ISOTime(t)
+		return nil
+	default:
+		return fmt.Errorf("failed to convert to ISOTime type from %T", t)
+	}
 }
 
 func (t *Team) getApps() ([]App, error) {
@@ -179,6 +206,39 @@ func (t *Team) invite(userId string, invitees []Invitee) ([]Invitee, error) {
 	}
 
 	return invitees, nil
+}
+
+func (t *Team) getMembers() ([]*Member, error) {
+	ctx := context.Background()
+	stmt := sqlf.PostgreSQL.From("public.team_membership tm").
+		Select("tm.user_id").
+		Select("auth.users.raw_user_meta_data->>'name' as name").
+		Select("auth.users.email").
+		Select("tm.role").
+		Select("auth.users.last_sign_in_at").
+		Select("auth.users.created_at").
+		LeftJoin("auth.users", "tm.user_id = auth.users.id").
+		Where("tm.team_id = $1")
+
+	defer stmt.Close()
+
+	rows, err := server.PgPool.Query(ctx, stmt.String(), t.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	var members []*Member
+
+	for rows.Next() {
+		m := new(Member)
+		if err := rows.Scan(&m.ID, &m.Name, &m.Email, &m.Role, &m.LastSignInAt, &m.CreatedAt); err != nil {
+			return nil, err
+		}
+
+		members = append(members, m)
+	}
+
+	return members, nil
 }
 
 func (t *Team) rename() error {
@@ -527,4 +587,61 @@ func getAuthzRoles(c *gin.Context) {
 	})
 
 	c.JSON(http.StatusOK, gin.H{"can_invite": inviteeRoles, "can_change_roles": changeRoleRoles})
+}
+
+func getTeamMembers(c *gin.Context) {
+	userId := c.GetString("userId")
+	teamId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `team id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	user := &User{
+		id: userId,
+	}
+
+	userRole, err := user.getRole(teamId.String())
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if err != nil || userRole == unknown {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	ok, err := PerformAuthz(userId, teamId.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`you don't have read permissions to team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	team := &Team{
+		ID: &teamId,
+	}
+
+	members, err := team.getMembers()
+	if err != nil {
+		msg := "failed to query team members"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, members)
 }
