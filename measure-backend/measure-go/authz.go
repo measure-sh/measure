@@ -47,6 +47,20 @@ func (r rank) getLower() []rank {
 	return ranks
 }
 
+func (r rank) Valid() bool {
+	switch r {
+	case viewer:
+	case developer:
+	case admin:
+	case owner:
+		return true
+	default:
+		return false
+	}
+
+	return false
+}
+
 func (r rank) String() string {
 	switch r {
 	case viewer:
