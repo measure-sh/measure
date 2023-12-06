@@ -6,31 +6,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from 'next/navigation';
 import DangerConfirmationModal from "@/app/components/danger_confirmation_modal";
 
-
-const getSelectedTeam = () => {
-  const { pathname } = new URL(document.location.href)
-  const fragments = pathname.split("/").filter(e => Boolean(e))
-  if (!fragments.length) return null
-  if (fragments.at(1) !== "team") return null
-  return fragments.at(0)
-}
-
-async function inviteMember(email: string, teamId: string, role: string) {
-  const res = await fetch("/auth/invite", {
-    method: "post",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ email, teamId, role })
-  })
-  const json = await res.json()
-  if (!res.ok) {
-    alert(json.error)
-    return
-  }
-  alert(json.ok)
-}
-
 const teamMembers = [
   {
     id: 'asldkfjlk34343',
@@ -85,17 +60,27 @@ export default function Team({ params }: { params: { teamId: string } }) {
     Error
   }
 
+  enum InviteMemberApiStatus {
+    Init,
+    Loading,
+    Success,
+    Error
+  }
+
   const emptyTeam = { 'id': '', 'name': '' }
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading);
   const [team, setTeam] = useState(emptyTeam)
 
   const [saveTeamNameButtonDisabled, setSaveTeamNameButtonDisabled] = useState(true);
   const [role, setRole] = useState("Owner")
-  const [email, setEmail] = useState<string>()
+  const [email, setEmail] = useState("")
 
   const [teamNameConfirmationModalOpen, setTeamNameConfirmationModalOpen] = useState(false)
   const [teamNameChangeApiStatus, setteamNameChangeApiStatus] = useState(TeamNameChangeApiStatus.Init);
   const [newTeamName, setNewTeamName] = useState('')
+
+  const [inviteMemberApiStatus, setInviteMemberApiStatus] = useState(InviteMemberApiStatus.Init);
+  const [inviteMemberErrorMsg, setInviteMemberErrorMsg] = useState("")
 
   const router = useRouter();
 
@@ -152,11 +137,32 @@ export default function Team({ params }: { params: { teamId: string } }) {
     location.reload()
   }
 
+  const inviteMember = async (email: string, role: string) => {
+    setInviteMemberApiStatus(InviteMemberApiStatus.Loading)
+
+    const teamId = params.teamId
+    const res = await fetch("/auth/invite", {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email, teamId, role })
+    })
+    const json = await res.json()
+
+    if (!res.ok) {
+      setInviteMemberApiStatus(InviteMemberApiStatus.Error)
+      setInviteMemberErrorMsg(json.error)
+      logoutIfAuthError(router, res)
+      return
+    }
+
+    setInviteMemberApiStatus(InviteMemberApiStatus.Success)
+  }
+
   const handleInvite = (e: React.FormEvent) => {
     e.preventDefault()
-    const teamId = getSelectedTeam()
-    inviteMember(email as string, teamId as string, role.toLowerCase())
-    setEmail(() => "")
+    inviteMember(email as string, role.toLowerCase())
   }
 
   return (
@@ -194,12 +200,9 @@ export default function Team({ params }: { params: { teamId: string } }) {
               className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400" />
             <button disabled={saveTeamNameButtonDisabled || teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display text-black disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => setTeamNameConfirmationModalOpen(true)}>Save</button>
           </div>
-
           {teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading || teamNameChangeApiStatus === TeamNameChangeApiStatus.Error && <div className="py-1" />}
-
           {/* Loading message for team name change */}
           {teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading && <p className="text-sm font-display">Changing team name...</p>}
-
           {/* Error message for team name change */}
           {teamNameChangeApiStatus === TeamNameChangeApiStatus.Error && <p className="text-sm font-display">Error changing team name, please try again</p>}
 
@@ -208,12 +211,20 @@ export default function Team({ params }: { params: { teamId: string } }) {
           <div className="py-1" />
           <form name="invite-form" id="invite-form" autoComplete="on" onSubmit={handleInvite}>
             <div className="flex flex-row items-center">
-              <input id="invite-email-input" name="invite-email-input" type="text" placeholder="Enter email" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} defaultValue={email} />
+              <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} defaultValue={email} />
               <div className="px-2" />
               <Dropdown items={['Owner', 'Admin', 'Developer', 'Viewer']} onChangeSelectedItem={(item) => setRole(item)} initialItemIndex={0} />
-              <button form="invite-form" type="submit" className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4">Invite</button>
+              <button form="invite-form" type="submit" disabled={inviteMemberApiStatus === InviteMemberApiStatus.Loading || email === ""} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display text-black disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Invite</button>
             </div>
           </form>
+          {inviteMemberApiStatus !== InviteMemberApiStatus.Init && <div className="py-1" />}
+          {/* Loading message for invite member */}
+          {inviteMemberApiStatus === InviteMemberApiStatus.Loading && <p className="text-sm font-display">Inviting member...</p>}
+          {/* Success message for invite member */}
+          {inviteMemberApiStatus === InviteMemberApiStatus.Success && <p className="text-sm font-display">Invite link sent!</p>}
+          {/* Error message for invite member */}
+          {inviteMemberApiStatus === InviteMemberApiStatus.Error && <p className="text-sm font-display">${inviteMemberErrorMsg}</p>}
+
           <div className="py-8" />
           <p className="font-display font-regular text-black text-2xl max-w-6xl text-center">Members</p>
           <div className="py-2" />
