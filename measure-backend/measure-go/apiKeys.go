@@ -9,11 +9,11 @@ import (
 	"fmt"
 	"time"
 
+	"measure-backend/measure-go/chrono"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
-
-const ISOFormatJS = "2006-01-02T15:04:05Z"
 
 type APIKey struct {
 	appId     uuid.UUID
@@ -30,11 +30,11 @@ func (a APIKey) MarshalJSON() ([]byte, error) {
 
 	apiMap["key"] = a.String()
 	apiMap["revoked"] = a.revoked
-	apiMap["created_at"] = a.createdAt.Format(ISOFormatJS)
+	apiMap["created_at"] = a.createdAt.Format(chrono.ISOFormatJS)
 	if a.lastSeen.IsZero() {
 		apiMap["last_seen"] = nil
 	} else {
-		apiMap["last_seen"] = a.lastSeen.Format(ISOFormatJS)
+		apiMap["last_seen"] = a.lastSeen.Format(chrono.ISOFormatJS)
 	}
 	return json.Marshal(apiMap)
 }
