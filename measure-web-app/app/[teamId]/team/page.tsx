@@ -39,14 +39,14 @@ export default function Team({ params }: { params: { teamId: string } }) {
   const [team, setTeam] = useState(emptyTeam)
 
   const [saveTeamNameButtonDisabled, setSaveTeamNameButtonDisabled] = useState(true);
-  const [role, setRole] = useState("Owner")
-  const [email, setEmail] = useState("")
 
   const [teamNameConfirmationModalOpen, setTeamNameConfirmationModalOpen] = useState(false)
   const [teamNameChangeApiStatus, setteamNameChangeApiStatus] = useState(TeamNameChangeApiStatus.Init);
   const [newTeamName, setNewTeamName] = useState('')
 
   const [inviteMemberApiStatus, setInviteMemberApiStatus] = useState(InviteMemberApiStatus.Init);
+  const [inviteMemberRole, setInviteMemberRole] = useState("Owner")
+  const [inviteMemberEmail, setInviteMemberEmail] = useState("")
   const [inviteMemberErrorMsg, setInviteMemberErrorMsg] = useState("")
 
   const emptyMember =
@@ -168,7 +168,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
 
   const handleInvite = (e: React.FormEvent) => {
     e.preventDefault()
-    inviteMember(email as string, role.toLowerCase())
+    inviteMember(inviteMemberEmail as string, inviteMemberRole.toLowerCase())
   }
 
   return (
@@ -217,10 +217,10 @@ export default function Team({ params }: { params: { teamId: string } }) {
           <div className="py-1" />
           <form name="invite-form" id="invite-form" autoComplete="on" onSubmit={handleInvite}>
             <div className="flex flex-row items-center">
-              <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} defaultValue={email} />
+              <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} defaultValue={inviteMemberEmail} />
               <div className="px-2" />
-              <Dropdown items={['Owner', 'Admin', 'Developer', 'Viewer']} onChangeSelectedItem={(item) => setRole(item)} initialItemIndex={0} />
-              <button form="invite-form" type="submit" disabled={inviteMemberApiStatus === InviteMemberApiStatus.Loading || email === ""} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display text-black disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Invite</button>
+              <Dropdown items={['Owner', 'Admin', 'Developer', 'Viewer']} onChangeSelectedItem={(item) => setInviteMemberRole(item)} initialItemIndex={0} />
+              <button form="invite-form" type="submit" disabled={inviteMemberApiStatus === InviteMemberApiStatus.Loading || inviteMemberEmail === ""} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display text-black disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Invite</button>
             </div>
           </form>
           {inviteMemberApiStatus !== InviteMemberApiStatus.Init && <div className="py-1" />}
