@@ -6,45 +6,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from 'next/navigation';
 import DangerConfirmationModal from "@/app/components/danger_confirmation_modal";
 
-const teamMembers = [
-  {
-    id: 'asldkfjlk34343',
-    email: 'anup@measure.sh'
-  },
-  {
-    id: 'sldfkjsklf898',
-    email: 'gandharva@measure.sh'
-  },
-  {
-    id: 'asafdasfd9900',
-    email: 'debjeet@measure.sh'
-  },
-  {
-    id: 'bnflkjfg8989',
-    email: 'abhay@measure.sh'
-  },
-  {
-    id: 'cbcmvncmvn89898',
-    email: 'vinu@measure.sh'
-  },
-  {
-    id: 'sldkjkjdf8989',
-    email: 'adwin@measure.sh'
-  },
-  {
-    id: 'sbxcbvcv898',
-    email: 'aakash@measure.sh'
-  },
-  {
-    id: 'asdfsdgsdg90909',
-    email: 'tarun@measure.sh'
-  },
-  {
-    id: 'ckvjdfsfjh78aswe',
-    email: 'abhinav@measure.sh'
-  }
-];
-
 export default function Team({ params }: { params: { teamId: string } }) {
 
   enum TeamsApiStatus {
@@ -67,6 +28,12 @@ export default function Team({ params }: { params: { teamId: string } }) {
     Error
   }
 
+  enum GetMembersApiStatus {
+    Loading,
+    Success,
+    Error
+  }
+
   const emptyTeam = { 'id': '', 'name': '' }
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading);
   const [team, setTeam] = useState(emptyTeam)
@@ -81,6 +48,18 @@ export default function Team({ params }: { params: { teamId: string } }) {
 
   const [inviteMemberApiStatus, setInviteMemberApiStatus] = useState(InviteMemberApiStatus.Init);
   const [inviteMemberErrorMsg, setInviteMemberErrorMsg] = useState("")
+
+  const emptyMember =
+  {
+    "id": "",
+    "name": "",
+    "email": "",
+    "role": "",
+    "last_sign_in_at": "",
+    "created_at": ""
+  }
+  const [getMembersApiStatus, setGetMembersApiStatus] = useState(GetMembersApiStatus.Loading);
+  const [members, setMembers] = useState([] as typeof emptyMember[]);
 
   const router = useRouter();
 
@@ -111,6 +90,33 @@ export default function Team({ params }: { params: { teamId: string } }) {
 
   useEffect(() => {
     getTeam()
+  }, []);
+
+  const getMembers = async () => {
+    setGetMembersApiStatus(GetMembersApiStatus.Loading)
+
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+      headers: {
+        "Authorization": `Bearer ${authToken}`
+      }
+    };
+
+    const res = await fetch(`${origin}/teams/${params.teamId}/members`, opts);
+    if (!res.ok) {
+      setGetMembersApiStatus(GetMembersApiStatus.Error)
+      logoutIfAuthError(router, res)
+      return
+    }
+
+    setGetMembersApiStatus(GetMembersApiStatus.Success)
+    const data = await res.json()
+    setMembers(data)
+  }
+
+  useEffect(() => {
+    getMembers()
   }, []);
 
   const changeTeamName = async () => {
@@ -228,15 +234,20 @@ export default function Team({ params }: { params: { teamId: string } }) {
           <div className="py-8" />
           <p className="font-display font-regular text-black text-2xl max-w-6xl text-center">Members</p>
           <div className="py-2" />
-          <div className="table-row-group">
-            {teamMembers.map(({ id, email }) => (
-              <div key={id} className="table-row font-sans text-black">
-                <div className="table-cell p-4 pl-0 text-lg">{email}</div>
-                <div className="table-cell p-4 w-52"><Dropdown items={['Owner', 'Admin', 'Developer', 'Viewer']} /></div>
-                <div className="table-cell p-4"><button className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4">Remove</button></div>
-              </div>
-            ))}
-          </div>
+          {/* Loading message for fetch members */}
+          {getMembersApiStatus === GetMembersApiStatus.Loading && <p className="font-display">Fetching members...</p>}
+          {/* Error message for fetch members */}
+          {getMembersApiStatus === GetMembersApiStatus.Error && <p className="font-display">Error fetching team members, please refresh page to try again</p>}
+
+          {getMembersApiStatus === GetMembersApiStatus.Success &&
+            <div className="table-row-group">
+              {members.map(({ id, email, role }) => (
+                <div key={id} className="table-row font-sans text-black">
+                  <div className="table-cell p-4 pl-0 text-lg">{email}</div>
+                  <div className="table-cell p-4 pl-0 text-lg capitalize">{role}</div>
+                </div>
+              ))}
+            </div>}
         </div>}
     </div>
   )
