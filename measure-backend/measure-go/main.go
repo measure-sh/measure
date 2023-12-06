@@ -39,7 +39,7 @@ func main() {
 	r := gin.Default()
 	cors := cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000", "https://www.measure.sh"},
-		AllowMethods:     []string{"GET", "OPTIONS", "PATCH"},
+		AllowMethods:     []string{"GET", "OPTIONS", "PATCH", "DELETE"},
 		AllowHeaders:     []string{"Authorization"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
@@ -66,6 +66,7 @@ func main() {
 	r.Use(cors).PATCH("/teams/:id/rename", validateAccessToken(), renameTeam)
 	r.Use(cors).GET("/teams/:id/authz", validateAccessToken(), getAuthzRoles)
 	r.Use(cors).GET("/teams/:id/members", validateAccessToken(), getTeamMembers)
+	r.Use(cors).DELETE("/teams/:id/members/:memberId", validateAccessToken(), removeTeamMember)
 
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080
 }

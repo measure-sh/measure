@@ -238,6 +238,23 @@ func (t *Team) rename() error {
 	return nil
 }
 
+func (t *Team) removeMember(memberId *uuid.UUID) error {
+	stmt := sqlf.PostgreSQL.DeleteFrom("team_membership").
+		Where("team_id = ?", nil).
+		Where("user_id = ?", nil)
+	defer stmt.Close()
+
+	ctx := context.Background()
+
+	_, err := server.PgPool.Exec(ctx, stmt.String(), t.ID, memberId)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func getTeams(c *gin.Context) {
 	userId := c.GetString("userId")
 	u := &User{
@@ -601,4 +618,68 @@ func getTeamMembers(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, members)
+}
+
+func removeTeamMember(c *gin.Context) {
+	userId := c.GetString("userId")
+	teamId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `team id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	memberId, err := uuid.Parse(c.Param("memberId"))
+	if err != nil {
+		msg := `member id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	user := &User{
+		id: userId,
+	}
+
+	userRole, err := user.getRole(teamId.String())
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if err != nil || userRole == unknown {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	ok, err := PerformAuthz(userId, teamId.String(), *ScopeTeamChangeRoleSameOrLower)
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`you don't have modify permissions to team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	team := &Team{
+		ID: &teamId,
+	}
+
+	if err = team.removeMember(&memberId); err != nil {
+		msg := fmt.Sprintf("couldn't remove member [%s]", memberId)
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": fmt.Sprintf("removed member [%s] from team [%s]", memberId, teamId)})
 }
