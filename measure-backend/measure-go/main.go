@@ -64,6 +64,7 @@ func main() {
 	r.Use(cors).POST("/teams/:id/apps", validateAccessToken(), createApp)
 	r.Use(cors).POST("/teams/:id/invite", validateAccessToken(), inviteMembers)
 	r.Use(cors).PATCH("/teams/:id/rename", validateAccessToken(), renameTeam)
+	r.Use(cors).PATCH("/teams/:id/members/:memberId/role", validateAccessToken(), changeMemberRole)
 	r.Use(cors).GET("/teams/:id/authz", validateAccessToken(), getAuthzRoles)
 	r.Use(cors).GET("/teams/:id/members", validateAccessToken(), getTeamMembers)
 	r.Use(cors).DELETE("/teams/:id/members/:memberId", validateAccessToken(), removeTeamMember)
