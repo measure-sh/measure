@@ -2,13 +2,13 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"slices"
 	"sort"
 	"time"
 
+	"measure-backend/measure-go/chrono"
 	"measure-backend/measure-go/cipher"
 
 	"github.com/gin-gonic/gin"
@@ -59,29 +59,12 @@ type Invitee struct {
 }
 
 type Member struct {
-	ID           *uuid.UUID `json:"id"`
-	Name         *string    `json:"name"`
-	Email        *string    `json:"email"`
-	Role         *string    `json:"role"`
-	LastSignInAt *ISOTime   `json:"last_sign_in_at"`
-	CreatedAt    *ISOTime   `json:"created_at"`
-}
-
-type ISOTime time.Time
-
-func (t *ISOTime) MarshalJSON() ([]byte, error) {
-	time := time.Time(*t).Format(ISOFormatJS)
-	return json.Marshal(time)
-}
-
-func (i *ISOTime) Scan(src interface{}) error {
-	switch t := src.(type) {
-	case time.Time:
-		*i = ISOTime(t)
-		return nil
-	default:
-		return fmt.Errorf("failed to convert to ISOTime type from %T", t)
-	}
+	ID           *uuid.UUID      `json:"id"`
+	Name         *string         `json:"name"`
+	Email        *string         `json:"email"`
+	Role         *string         `json:"role"`
+	LastSignInAt *chrono.ISOTime `json:"last_sign_in_at"`
+	CreatedAt    *chrono.ISOTime `json:"created_at"`
 }
 
 func (t *Team) getApps() ([]App, error) {
