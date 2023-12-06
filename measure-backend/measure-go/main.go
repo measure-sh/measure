@@ -65,6 +65,7 @@ func main() {
 	r.Use(cors).POST("/teams/:id/invite", validateAccessToken(), inviteMembers)
 	r.Use(cors).PATCH("/teams/:id/rename", validateAccessToken(), renameTeam)
 	r.Use(cors).GET("/teams/:id/authz", validateAccessToken(), getAuthzRoles)
+	r.Use(cors).GET("/teams/:id/members", validateAccessToken(), getTeamMembers)
 
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080
 }
