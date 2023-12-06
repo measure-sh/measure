@@ -255,6 +255,24 @@ func (t *Team) removeMember(memberId *uuid.UUID) error {
 	return nil
 }
 
+func (t *Team) changeRole(memberId *uuid.UUID, role rank) error {
+	stmt := sqlf.PostgreSQL.Update("team_membership").
+		Set("role", nil).
+		Set("role_updated_at", nil).
+		Where("team_id = ? and user_id = ?", nil, nil)
+	defer stmt.Close()
+
+	fmt.Println("stmt", stmt.String())
+
+	ctx := context.Background()
+
+	if _, err := server.PgPool.Exec(ctx, stmt.String(), role, time.Now(), t.ID, memberId); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func getTeams(c *gin.Context) {
 	userId := c.GetString("userId")
 	u := &User{
@@ -682,4 +700,85 @@ func removeTeamMember(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": fmt.Sprintf("removed member [%s] from team [%s]", memberId, teamId)})
+}
+
+func changeMemberRole(c *gin.Context) {
+	userId := c.GetString("userId")
+	teamId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `team id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	memberId, err := uuid.Parse(c.Param("memberId"))
+	if err != nil {
+		msg := `member id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	user := &User{
+		id: userId,
+	}
+
+	userRole, err := user.getRole(teamId.String())
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if err != nil || userRole == unknown {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	ok, err := PerformAuthz(userId, teamId.String(), *ScopeTeamChangeRoleSameOrLower)
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`you don't have modify permissions to team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	member := &Member{
+		ID: &memberId,
+	}
+
+	if err := c.ShouldBindJSON(&member); err != nil {
+		msg := `failed to parse payload`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	if role := roleMap[*member.Role]; !role.Valid() {
+		msg := fmt.Sprintf("role [%s] is not valid", *member.Role)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	team := &Team{
+		ID: &teamId,
+	}
+
+	if err := team.changeRole(&memberId, roleMap[*member.Role]); err != nil {
+		msg := `failed to change role`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": "done"})
 }
