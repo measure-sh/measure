@@ -263,7 +263,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
           {/* Success message for invite member */}
           {inviteMemberApiStatus === InviteMemberApiStatus.Success && <p className="text-sm font-display">Invite link sent!</p>}
           {/* Error message for invite member */}
-          {inviteMemberApiStatus === InviteMemberApiStatus.Error && <p className="text-sm font-display">${inviteMemberErrorMsg}</p>}
+          {inviteMemberApiStatus === InviteMemberApiStatus.Error && <p className="text-sm font-display">{inviteMemberErrorMsg}</p>}
 
           <div className="py-8" />
           <p className="font-display font-regular text-black text-2xl max-w-6xl text-center">Members</p>
