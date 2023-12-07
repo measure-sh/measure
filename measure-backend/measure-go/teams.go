@@ -8,11 +8,9 @@ import (
 	"time"
 
 	"measure-backend/measure-go/chrono"
-	"measure-backend/measure-go/cipher"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/leporo/sqlf"
 )
@@ -139,55 +137,6 @@ func (t *Team) getApps() ([]App, error) {
 		return nil, err
 	}
 	return apps, nil
-}
-
-func (t *Team) invite(userId string, invitees []Invitee) ([]Invitee, error) {
-	expiresAt := time.Now().Add(defaultInviteExpiry)
-	stmt := sqlf.PostgreSQL.InsertInto("team_invitations")
-	defer stmt.Close()
-
-	ctx := context.Background()
-
-	var args []any
-
-	for _, invitee := range invitees {
-		code, err := cipher.InviteCode()
-		if err != nil {
-			fmt.Println("failed to generate invite code", err)
-			return nil, err
-		}
-
-		stmt.
-			NewRow().
-			Set("team_id", nil).
-			Set("user_id", nil).
-			Set("email", nil).
-			Set("role", nil).
-			Set("code", nil).
-			Set("invite_expires_at", nil)
-
-		args = append(args, t.ID, userId, invitee.Email, invitee.Role.String(), code, expiresAt)
-	}
-
-	stmt.Returning("id")
-
-	rows, _ := server.PgPool.Query(ctx, stmt.String(), args...)
-	ids, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (uuid.UUID, error) {
-		var id uuid.UUID
-		err := row.Scan(&id)
-		return id, err
-	})
-
-	if err != nil {
-		fmt.Println("err collecting rows", err)
-		return nil, err
-	}
-
-	for idx, id := range ids {
-		invitees[idx].ID = id
-	}
-
-	return invitees, nil
 }
 
 func (t *Team) getMembers() ([]*Member, error) {
@@ -406,9 +355,6 @@ func inviteMembers(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
-	// team := &Team{
-	// 	ID: &teamId,
-	// }
 	var invitees []Invitee
 
 	if err := c.ShouldBindJSON(&invitees); err != nil {
@@ -464,16 +410,6 @@ func inviteMembers(c *gin.Context) {
 		return
 	}
 
-	// invitees, err = team.invite(userId, invitees)
-
-	// if err != nil {
-	// 	msg := "failed to invite"
-	// 	fmt.Println(msg, err)
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-	// 	return
-	// }
-
-	// c.JSON(http.StatusCreated, invitees)
 	c.JSON(http.StatusOK, gin.H{"ok": "invitee(s) authorized"})
 }
 
