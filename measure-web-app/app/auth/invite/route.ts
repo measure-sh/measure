@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/utils/supabase/admin"
+import { AuthApiError } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 
 type InviteReq = {
@@ -55,6 +56,11 @@ export async function POST(request: Request) {
       }
     }
   })
+
+  if (error instanceof AuthApiError) {
+    console.log(error)
+    return NextResponse.json({ error: error.message }, { status: 400 })
+  }
 
   if (error) {
     const msg = `failed to invite ${email}`
