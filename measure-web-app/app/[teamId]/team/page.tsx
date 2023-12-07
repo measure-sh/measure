@@ -61,6 +61,17 @@ export default function Team({ params }: { params: { teamId: string } }) {
   const [getMembersApiStatus, setGetMembersApiStatus] = useState(GetMembersApiStatus.Loading);
   const [members, setMembers] = useState([] as typeof emptyMember[]);
 
+  const defaultAuthzRoles = {
+    "can_change_roles": [
+      "viewer"
+    ],
+    "can_invite": [
+      "viewer"
+    ]
+  }
+
+  const [authzRoles, setAuthzRoles] = useState(defaultAuthzRoles)
+
   const router = useRouter();
 
   const getTeam = async () => {
@@ -117,6 +128,29 @@ export default function Team({ params }: { params: { teamId: string } }) {
 
   useEffect(() => {
     getMembers()
+  }, []);
+
+  const getAuthzRoles = async () => {
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+      headers: {
+        "Authorization": `Bearer ${authToken}`
+      }
+    };
+
+    const res = await fetch(`${origin}/teams/${params.teamId}/authz`, opts);
+    if (!res.ok) {
+      logoutIfAuthError(router, res)
+      return
+    }
+
+    const data = await res.json()
+    setAuthzRoles(data)
+  }
+
+  useEffect(() => {
+    getAuthzRoles()
   }, []);
 
   const changeTeamName = async () => {
@@ -219,7 +253,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
             <div className="flex flex-row items-center">
               <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} defaultValue={inviteMemberEmail} />
               <div className="px-2" />
-              <Dropdown items={['Owner', 'Admin', 'Developer', 'Viewer']} onChangeSelectedItem={(item) => setInviteMemberRole(item)} initialItemIndex={0} />
+              <Dropdown items={authzRoles.can_invite.map((i) => i.charAt(0).toLocaleUpperCase() + i.slice(1))} onChangeSelectedItem={(item) => setInviteMemberRole(item)} initialItemIndex={0} />
               <button form="invite-form" type="submit" disabled={inviteMemberApiStatus === InviteMemberApiStatus.Loading || inviteMemberEmail === ""} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display text-black disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Invite</button>
             </div>
           </form>
