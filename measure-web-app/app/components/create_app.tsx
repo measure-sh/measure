@@ -150,9 +150,9 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, existingAppName = null, e
           <form onSubmit={createApp} className="flex flex-col">
             <p className="font-display font-regular text-2xl">Add new app</p>
             <div className="py-2" />
-            <input id="app-name" type="string" placeholder="Enter app name" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400" onChange={(event) => setAppName(event.target.value)} />
+            <input id="app-name" type="string" placeholder="Enter app name" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-sans placeholder:text-neutral-400" onChange={(event) => setAppName(event.target.value)} />
             <div className="py-2" />
-            <button type="submit" disabled={createAppApiStatus === CreateAppApiStatus.Loading || appName.length === 0} className={`w-fit outline-none hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display text-black border border-black rounded-md transition-colors duration-100 py-2 px-4 ${(createAppApiStatus === CreateAppApiStatus.Loading) ? 'pointer-events-none' : 'pointer-events-auto'}`}>Create App</button>
+            <button type="submit" disabled={createAppApiStatus === CreateAppApiStatus.Loading || appName.length === 0} className={`w-fit outline-none hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4 ${(createAppApiStatus === CreateAppApiStatus.Loading) ? 'pointer-events-none' : 'pointer-events-auto'}`}>Create App</button>
             <div className="py-2" />
           </form>
           {createAppApiStatus === CreateAppApiStatus.Loading && <p className="font-display">Creating app...</p>}
@@ -167,11 +167,11 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, existingAppName = null, e
           <div className="py-4" />
           <p className="font-display font-regular text-xl max-w-6xl">API key</p>
           <div className="flex flex-row items-center">
-            <input id="api-key-input" type="text" value={existingApiKey !== null ? existingApiKey : data.api_key.key} className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400" />
-            <button className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4" onClick={() => navigator.clipboard.writeText(existingApiKey !== null ? existingApiKey : data.api_key.key)}>Copy</button>
+            <input id="api-key-input" type="text" value={existingApiKey !== null ? existingApiKey : data.api_key.key} className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-sans placeholder:text-neutral-400" />
+            <button className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => navigator.clipboard.writeText(existingApiKey !== null ? existingApiKey : data.api_key.key)}>Copy</button>
           </div>
           <div className="py-4" />
-          <p className="font-display font-regular text-black text-2xl max-w-6xl">Steps:</p>
+          <p className="font-display font-regular text-2xl max-w-6xl">Steps:</p>
           <div>
             {addAppSteps.map((text, index) => (
               <Accordion key={index} title={text.title} id={`addAppSteps-${index}`} active={text.active}>

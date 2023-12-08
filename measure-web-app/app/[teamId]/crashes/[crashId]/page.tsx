@@ -223,14 +223,14 @@ export default function CrashDetails({ params }: { params: { teamId: string, cra
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
       <div className="py-4" />
-      <p className="font-display font-regular text-black text-4xl max-w-6xl text-center">NullPointerException.java</p>
+      <p className="font-display font-regular text-4xl max-w-6xl text-center">NullPointerException.java</p>
       <div className="py-4" />
       <div className="flex flex-wrap gap-8 items-center w-5/6">
         <Dropdown items={apps} onChangeSelectedItem={(item) => setSelectedApp(item)} />
         <div className="flex flex-row items-center">
-          <input type="date" defaultValue={startDate} max={endDate} className="font-display text-black border border-black rounded-md p-2" onChange={(e) => setStartDate(e.target.value)} />
-          <p className="text-black font-display px-2">to</p>
-          <input type="date" defaultValue={endDate} min={startDate} className="font-display text-black border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
+          <input type="date" defaultValue={startDate} max={endDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setStartDate(e.target.value)} />
+          <p className="font-display px-2">to</p>
+          <input type="date" defaultValue={endDate} min={startDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
         </div>
         <CheckboxDropdown title="App versions" items={versions} onChangeSelectedItems={(items) => setSelectedVersions(items)} />
         <CheckboxDropdown title="Country" items={countries} onChangeSelectedItems={(items) => setSelectedCountries(items)} />
@@ -240,9 +240,9 @@ export default function CrashDetails({ params }: { params: { teamId: string, cra
         <CheckboxDropdown title="Device Manufacturer" items={deviceManufacturers} onChangeSelectedItems={(items) => setSelectedDeviceManufacturers(items)} />
         <CheckboxDropdown title="Device Name" items={deviceNames} onChangeSelectedItems={(items) => setSelectedDeviceNames(items)} />
         <div className="w-full">
-          <p className="font-sans text-black">Filter by any field such as userId, device name etc</p>
+          <p className="font-sans">Filter by any field such as userId, device name etc</p>
           <div className="py-1" />
-          <input id="search-string" type="text" placeholder="userId: abcde123, deviceName: Samsung Galaxy" className="w-full border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400" />
+          <input id="search-string" type="text" placeholder="userId: abcde123, deviceName: Samsung Galaxy" className="w-full border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-sans placeholder:text-neutral-400" />
         </div>
       </div>
       <div className="py-4" />
@@ -259,16 +259,16 @@ export default function CrashDetails({ params }: { params: { teamId: string, cra
       </div>
       <div className="py-6" />
       <div className="flex flex-col md:flex-row w-full">
-        <div className="border border-black text-black font-sans text-sm w-full h-[24rem]">
+        <div className="border border-black font-sans text-sm w-full h-[24rem]">
           <ExceptionCountChart />
         </div>
         <div className="p-2" />
-        <div className="border border-black text-black font-sans text-sm w-full h-[24rem]">
+        <div className="border border-black font-sans text-sm w-full h-[24rem]">
           <UserFlowCrashDetails />
         </div>
       </div>
       <div className="py-8" />
-      <p className="text-black font-display text-3xl"> Stack trace</p>
+      <p className="font-display text-3xl"> Stack trace</p>
       <div className="py-2" />
       <div>
         {stackTraces.map((stackTrace, index) => (
@@ -278,9 +278,9 @@ export default function CrashDetails({ params }: { params: { teamId: string, cra
         ))}
       </div>
       <div className="py-8" />
-      <p className="text-black font-display text-3xl"> Latest Sessions with NullpointerException.java</p>
+      <p className="font-display text-3xl"> Latest Sessions with NullpointerException.java</p>
       <div className="py-4" />
-      <div className="table text-black font-sans border border-black w-full">
+      <div className="table font-sans border border-black w-full">
         <div className="table-header-group border border-black">
           <div className="table-row">
             <div className="table-cell border border-black p-2 font-display text-center">Session ID</div>

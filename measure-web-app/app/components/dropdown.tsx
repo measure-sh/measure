@@ -60,7 +60,7 @@ const Dropdown: React.FC<DropdownProps> = ({ items, initialItemIndex = 0, onChan
         <button
           type="button"
           onClick={toggleDropdown}
-          className="inline-flex justify-center w-full text-black font-display border border-black rounded-md outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
+          className="inline-flex justify-center w-full font-display border border-black rounded-md outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
           <span className="px-6 py-2">{selectedItem ? selectedItem : items[initialItemIndex]}</span>
           <span className="border border-black border-t-0 border-r-0 border-b-0 px-4 py-2">⏷</span>
         </button>

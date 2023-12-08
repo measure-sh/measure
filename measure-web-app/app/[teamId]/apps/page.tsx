@@ -74,7 +74,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
       <div className="py-4" />
-      <p className="font-display font-regular text-black text-4xl max-w-6xl text-center">Apps</p>
+      <p className="font-display font-regular text-4xl max-w-6xl text-center">Apps</p>
       <div className="py-4" />
       {/* Loading message for apps */}
       {appsApiStatus === AppsApiStatus.Loading && <p className="text-lg font-display">Updating Apps...</p>}
@@ -99,8 +99,8 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               <div key={id + 'app-api-key'} className="flex flex-row items-center">
                 <p>API key</p>
                 <div className="px-2" />
-                <input id="api-key-input" type="text" value={api_key.key} className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400" />
-                <button className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4" onClick={() => navigator.clipboard.writeText(api_key.key)}>Copy</button>
+                <input id="api-key-input" type="text" value={api_key.key} className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-sans placeholder:text-neutral-400" />
+                <button className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => navigator.clipboard.writeText(api_key.key)}>Copy</button>
               </div>
               <div className="py-8" />
             </div>

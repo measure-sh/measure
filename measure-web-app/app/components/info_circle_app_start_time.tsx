@@ -24,7 +24,7 @@ const InfoCircleAppStartTime = ({ status, value, delta, title, launchType }: Inf
         </span>
       </div>
       <div className="py-2" />
-      <p className="text-black font-display text-lg">{title}</p>
+      <p className="font-display text-lg">{title}</p>
     </div>
   );
 };
