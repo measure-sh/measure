@@ -104,12 +104,12 @@ export default function DashboardLayout({
               <ul>
                 {menuItems.map(({ hrefSuffix, title }) => (
                   <li key={title}>
-                    <Link href={`/${selectedTeam}/${hrefSuffix}`} className={`m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4 ${pathName.includes(hrefSuffix) && 'bg-neutral-950 text-white focus-visible:text-black hover:text-black'}`}>{title}</Link>
+                    <Link href={`/${selectedTeam}/${hrefSuffix}`} className={`m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4 ${pathName.includes(hrefSuffix) && 'bg-neutral-950 text-white focus-visible:text-black hover:text-black'}`}>{title}</Link>
                   </li>
                 ))}
               </ul>}
             <div className="grow" />
-            <button className="m-4 mt-8 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200  border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4" onClick={() => logoutUser()}>Logout</button>
+            <button className="m-4 mt-8 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200  border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => logoutUser()}>Logout</button>
           </nav>
         </aside>
         {teamsApiStatus === TeamsApiStatus.Success && <main>{children}</main>}
@@ -129,12 +129,12 @@ export default function DashboardLayout({
               <ul>
                 {menuItems.map(({ hrefSuffix, title }) => (
                   <li key={title}>
-                    <Link href={`/${selectedTeam}/${hrefSuffix}`} className={`m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4 ${pathName.includes(hrefSuffix) && 'bg-neutral-950 text-white focus-visible:text-black hover:text-black'}`}>{title}</Link>
+                    <Link href={`/${selectedTeam}/${hrefSuffix}`} className={`m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4 ${pathName.includes(hrefSuffix) && 'bg-neutral-950 text-white focus-visible:text-black hover:text-black'}`}>{title}</Link>
                   </li>
                 ))}
               </ul>}
             <div className="grow" />
-            <button className="m-4 mt-8 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200  border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4" onClick={() => logoutUser()}>Logout</button>
+            <button className="m-4 mt-8 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200  border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => logoutUser()}>Logout</button>
           </nav>
         </aside>
         {teamsApiStatus === TeamsApiStatus.Success && <main>{children}</main>}

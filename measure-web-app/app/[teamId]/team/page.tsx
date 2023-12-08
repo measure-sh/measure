@@ -208,7 +208,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
       <div className="py-4" />
-      <p className="font-display font-regular text-black text-4xl max-w-6xl text-center">Team</p>
+      <p className="font-display font-regular text-4xl max-w-6xl text-center">Team</p>
       <div className="py-4" />
 
       {/* Loading message for team */}
@@ -229,7 +229,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
             onCancelAction={() => setTeamNameConfirmationModalOpen(false)}
           />
 
-          <p className="font-sans text-black max-w-6xl text-center">Team name</p>
+          <p className="font-sans max-w-6xl text-center">Team name</p>
           <div className="py-1" />
           <div className="flex flex-row items-center">
             <input id="change-team-name-input" type="text" defaultValue={team.name}
@@ -237,8 +237,8 @@ export default function Team({ params }: { params: { teamId: string } }) {
                 event.target.value === team.name ? setSaveTeamNameButtonDisabled(true) : setSaveTeamNameButtonDisabled(false)
                 setNewTeamName(event.target.value)
               }}
-              className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400" />
-            <button disabled={saveTeamNameButtonDisabled || teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display text-black disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => setTeamNameConfirmationModalOpen(true)}>Save</button>
+              className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-sans placeholder:text-neutral-400" />
+            <button disabled={saveTeamNameButtonDisabled || teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => setTeamNameConfirmationModalOpen(true)}>Save</button>
           </div>
           {teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading || teamNameChangeApiStatus === TeamNameChangeApiStatus.Error && <div className="py-1" />}
           {/* Loading message for team name change */}
@@ -247,14 +247,14 @@ export default function Team({ params }: { params: { teamId: string } }) {
           {teamNameChangeApiStatus === TeamNameChangeApiStatus.Error && <p className="text-sm font-display">Error changing team name, please try again</p>}
 
           <div className="py-4" />
-          <p className="font-sans text-black max-w-6xl text-center">Invite team members</p>
+          <p className="font-sans max-w-6xl text-center">Invite team members</p>
           <div className="py-1" />
           <form name="invite-form" id="invite-form" autoComplete="on" onSubmit={handleInvite}>
             <div className="flex flex-row items-center">
-              <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} defaultValue={inviteMemberEmail} />
+              <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300  py-2 px-4 font-sans placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} defaultValue={inviteMemberEmail} />
               <div className="px-2" />
               <Dropdown items={authzRoles.can_invite.map((i) => i.charAt(0).toLocaleUpperCase() + i.slice(1))} onChangeSelectedItem={(item) => setInviteMemberRole(item)} initialItemIndex={0} />
-              <button form="invite-form" type="submit" disabled={inviteMemberApiStatus === InviteMemberApiStatus.Loading || inviteMemberEmail === ""} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display text-black disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Invite</button>
+              <button form="invite-form" type="submit" disabled={inviteMemberApiStatus === InviteMemberApiStatus.Loading || inviteMemberEmail === ""} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Invite</button>
             </div>
           </form>
           {inviteMemberApiStatus !== InviteMemberApiStatus.Init && <div className="py-1" />}
@@ -266,7 +266,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
           {inviteMemberApiStatus === InviteMemberApiStatus.Error && <p className="text-sm font-display">{inviteMemberErrorMsg}</p>}
 
           <div className="py-8" />
-          <p className="font-display font-regular text-black text-2xl max-w-6xl text-center">Members</p>
+          <p className="font-display font-regular text-2xl max-w-6xl text-center">Members</p>
           <div className="py-2" />
           {/* Loading message for fetch members */}
           {getMembersApiStatus === GetMembersApiStatus.Loading && <p className="font-display">Fetching members...</p>}
@@ -276,7 +276,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
           {getMembersApiStatus === GetMembersApiStatus.Success &&
             <div className="table-row-group">
               {members.map(({ id, email, role }) => (
-                <div key={id} className="table-row font-sans text-black">
+                <div key={id} className="table-row font-sans">
                   <div className="table-cell p-4 pl-0 text-lg">{email}</div>
                   <div className="table-cell p-4 pl-0 text-lg capitalize">{role}</div>
                 </div>

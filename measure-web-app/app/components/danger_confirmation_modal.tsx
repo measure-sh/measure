@@ -19,7 +19,7 @@ const DangerConfirmationModal: React.FC<DangerConfirmationModalProps> = ({ title
                     <div className="flex flex-row">
                         <button data-DangerConfirmationmodal-hide="popup-DangerConfirmationmodal" type="button" className="outline-none bg-red-600 hover:bg-red-700 focus-visible:bg-red-700 active:bg-red-800 font-display text-white rounded-md border border-black transition-colors duration-100 py-2 px-4" onClick={onAffirmativeAction}>{affirmativeText}</button>
                         <div className="px-1" />
-                        <button data-DangerConfirmationmodal-hide="popup-DangerConfirmationmodal" type="button" className="outline-none hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display text-black border border-black rounded-md transition-colors duration-100 py-2 px-4" onClick={onCancelAction}>{cancelText}</button>
+                        <button data-DangerConfirmationmodal-hide="popup-DangerConfirmationmodal" type="button" className="outline-none hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4" onClick={onCancelAction}>{cancelText}</button>
                     </div>
                 </div>
             </div>

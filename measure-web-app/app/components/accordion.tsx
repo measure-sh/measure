@@ -26,7 +26,7 @@ export default function Accordion({
     <div className="py-2">
       <h2>
         <button
-          className="flex items-center text-black justify-between w-full text-left py-2 outline-none focus-visible:outline-yellow-300"
+          className="flex items-center justify-between w-full text-left py-2 outline-none focus-visible:outline-yellow-300"
           onClick={(e) => { e.preventDefault(); setAccordionOpen(!accordionOpen); }}
           aria-expanded={accordionOpen}
           aria-controls={`accordion-text-${id}`}
@@ -42,7 +42,7 @@ export default function Accordion({
         id={`accordion-text-${id}`}
         role="region"
         aria-labelledby={`accordion-title-${id}`}
-        className={`grid text-sm font-sans text-black overflow-hidden transition-all duration-300 ease-in-out ${accordionOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
+        className={`grid text-sm font-sans overflow-hidden transition-all duration-300 ease-in-out ${accordionOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
       >
         <div className="overflow-hidden">
           <p className="whitespace-pre-wrap border border-black p-2">

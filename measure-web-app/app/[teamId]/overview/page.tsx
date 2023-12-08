@@ -140,7 +140,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
       <div className="py-4" />
-      <p className="font-display font-regular text-black text-4xl max-w-6xl text-center">Overview</p>
+      <p className="font-display font-regular text-4xl max-w-6xl text-center">Overview</p>
       <div className="py-4" />
       <div className="flex flex-wrap gap-8 items-center">
         {/* Loading message for apps */}
@@ -160,9 +160,9 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         {/* Show date selector if apps and filters fetch succeeds */}
         {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success &&
           <div className="flex flex-row items-center">
-            <input type="date" defaultValue={startDate} max={endDate} className="font-display text-black border border-black rounded-md p-2" onChange={(e) => setStartDate(e.target.value)} />
-            <p className="text-black font-display px-2">to</p>
-            <input type="date" defaultValue={endDate} min={startDate} className="font-display text-black border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
+            <input type="date" defaultValue={startDate} max={endDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setStartDate(e.target.value)} />
+            <p className="font-display px-2">to</p>
+            <input type="date" defaultValue={endDate} min={startDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
           </div>}
 
         {/* Loading message for filters */}
