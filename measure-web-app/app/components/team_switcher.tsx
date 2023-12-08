@@ -55,18 +55,16 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0
   };
 
   return (
-    <div className="z-50 relative w-32 self-center inline-block text-left" ref={TeamSwitcherRef} >
-      <div>
-        <button
-          type="button"
-          onClick={toggleTeamSwitcher}
-          className="aspect-square w-full text-black text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
-          <div className="flex flex-row items-center">
-            <p className="pl-4">{selectedItem ? selectedItem : items[initialItemIndex]}</p>
-            <p className="pl-3 pr-4 text-sm">⏷</p>
-          </div>
-        </button>
-      </div>
+    <div className="z-50 relative w-40 self-center inline-block text-left" ref={TeamSwitcherRef} >
+      <button
+        type="button"
+        onClick={toggleTeamSwitcher}
+        className="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
+        <div className="flex flex-row items-center">
+          <p className="pl-8 truncate">{selectedItem ? selectedItem : items[initialItemIndex]}</p>
+          <p className="pl-3 pr-4 text-sm">⏷</p>
+        </div>
+      </button>
 
       {isOpen && (
         <div className="origin-top-right absolute left-0 mt-2 w-48 rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
