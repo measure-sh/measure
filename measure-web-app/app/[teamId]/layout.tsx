@@ -95,8 +95,8 @@ export default function DashboardLayout({
         <aside className="border-black border-r sticky top-0 h-screen">
           <nav className="flex flex-col p-2 h-full w-60">
             <div className="py-4" />
-            {teamsApiStatus === TeamsApiStatus.Loading && <p className="flex items-center justify-center self-center w-32 aspect-square text-xl font-display border border-black rounded-full">Updating...</p>}
-            {teamsApiStatus === TeamsApiStatus.Error && <p className="flex items-center justify-center self-center w-32 aspect-square text-xl font-display border border-black rounded-full">Error</p>}
+            {teamsApiStatus === TeamsApiStatus.Loading && <p className="flex items-center justify-center self-center w-40 aspect-square text-xl font-display border border-black rounded-full">Updating...</p>}
+            {teamsApiStatus === TeamsApiStatus.Error && <p className="flex items-center justify-center self-center w-40 aspect-square text-xl font-display border border-black rounded-full">Error</p>}
             {teamsApiStatus === TeamsApiStatus.Error && <p className="text-lg text-center font-display pt-4">Please refresh page to try again.</p>}
             {teamsApiStatus === TeamsApiStatus.Success && <TeamSwitcher items={teams.map((e) => e.name)} initialItemIndex={teams.findIndex((e) => e.id === selectedTeam)} onChangeSelectedItem={(item) => onTeamChanged(item)} />}
             {teamsApiStatus === TeamsApiStatus.Success && <div className="py-4" />}
@@ -120,8 +120,8 @@ export default function DashboardLayout({
         <aside>
           <nav className="flex flex-col p-2 h-full w-screen">
             <div className="py-4" />
-            {teamsApiStatus === TeamsApiStatus.Loading && <p className="flex items-center justify-center self-center w-32 aspect-square text-xl font-display border border-black rounded-full">Updating...</p>}
-            {teamsApiStatus === TeamsApiStatus.Error && <p className="flex items-center justify-center self-center w-32 aspect-square text-xl font-display border border-black rounded-full">Error</p>}
+            {teamsApiStatus === TeamsApiStatus.Loading && <p className="flex items-center justify-center self-center w-40 aspect-square text-xl font-display border border-black rounded-full">Updating...</p>}
+            {teamsApiStatus === TeamsApiStatus.Error && <p className="flex items-center justify-center self-center w-40 aspect-square text-xl font-display border border-black rounded-full">Error</p>}
             {teamsApiStatus === TeamsApiStatus.Error && <p className="text-lg text-center font-display pt-4">Please refresh page to try again.</p>}
             {teamsApiStatus === TeamsApiStatus.Success && <TeamSwitcher items={teams.map((e) => e.name)} initialItemIndex={teams.findIndex((e) => e.id === selectedTeam)} onChangeSelectedItem={(item) => onTeamChanged(item)} />}
             {teamsApiStatus === TeamsApiStatus.Success && <div className="py-4" />}
