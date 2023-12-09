@@ -757,6 +757,12 @@ func (e *EventField) validate() error {
 	if len(e.ThreadName) > maxThreadNameChars {
 		return fmt.Errorf(`"events[].thread_name" exceeds maximum allowed characters of (%d)`, maxThreadNameChars)
 	}
+	if len(e.ANR.ThreadName) > maxThreadNameChars {
+		return fmt.Errorf(`"events[].anr.thread_name" exceeds maximum allowed characters of (%d)`, maxThreadNameChars)
+	}
+	if len(e.Exception.ThreadName) > maxThreadNameChars {
+		return fmt.Errorf(`"events[].exception.thread_name" exceeds maximum allowed characters of (%d)`, maxThreadNameChars)
+	}
 	if len(e.AppExit.Reason) > maxAppExitReasonChars {
 		return fmt.Errorf(`"events[].app_exit.reason" exceeds maximum allowed characters of (%d)`, maxAppExitReasonChars)
 	}
