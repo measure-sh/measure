@@ -57,6 +57,11 @@ type Invitee struct {
 	Role  rank      `json:"role"`
 }
 
+type MemberAuthz struct {
+	CanChangeRoles []rank `json:"can_change_roles"`
+	CanRemove      bool   `json:"can_remove"`
+}
+
 type Member struct {
 	ID           *uuid.UUID      `json:"id"`
 	Name         *string         `json:"name"`
@@ -64,6 +69,11 @@ type Member struct {
 	Role         *string         `json:"role"`
 	LastSignInAt *chrono.ISOTime `json:"last_sign_in_at"`
 	CreatedAt    *chrono.ISOTime `json:"created_at"`
+}
+
+type MemberWithAuthz struct {
+	Member
+	MemberAuthz `json:"authz"`
 }
 
 func (t *Team) getApps() ([]App, error) {
@@ -575,10 +585,38 @@ func getAuthzRoles(c *gin.Context) {
 		return
 	}
 
-	inviteeRoles := ScopeTeamInviteSameOrLower.getRolesSameOrLower(userRole)
-	changeRoleRoles := ScopeTeamChangeRoleSameOrLower.getRolesSameOrLower(userRole)
+	team := Team{
+		ID: &teamId,
+	}
 
-	c.JSON(http.StatusOK, gin.H{"can_invite": inviteeRoles, "can_change_roles": changeRoleRoles})
+	members, err := team.getMembers()
+	if err != nil {
+		msg := `failed to retrieve team members`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	var membersWithAuthz []MemberWithAuthz
+
+	for _, member := range members {
+		var memberWithAuthz MemberWithAuthz
+		memberWithAuthz.Member = *member
+		memberRole := roleMap[*member.Role]
+		if userRole >= memberRole {
+			canChangeRoles := ScopeTeamChangeRoleSameOrLower.getRolesSameOrLower(userRole)
+			memberWithAuthz.CanChangeRoles = canChangeRoles
+			if len(canChangeRoles) > 0 {
+				memberWithAuthz.CanRemove = true
+			}
+		}
+
+		membersWithAuthz = append(membersWithAuthz, memberWithAuthz)
+	}
+
+	inviteeRoles := ScopeTeamInviteSameOrLower.getRolesSameOrLower(userRole)
+
+	c.JSON(http.StatusOK, gin.H{"can_invite": inviteeRoles, "members": membersWithAuthz})
 }
 
 func getTeamMembers(c *gin.Context) {
