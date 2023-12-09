@@ -12,7 +12,7 @@ import (
 // maximum character limits for event fields
 const (
 	maxTypeChars                              = 32
-	maxThreadNameChars                        = 32
+	maxThreadNameChars                        = 64
 	maxExceptionDeviceLocaleChars             = 64
 	maxAnrDeviceLocaleChars                   = 64
 	maxAppExitReasonChars                     = 64
