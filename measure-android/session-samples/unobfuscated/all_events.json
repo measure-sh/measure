@@ -114,7 +114,6 @@
                         "message": "shell-induced crash",
                         "type": "android.app.RemoteServiceException$CrashedByAdbException"
                     }
-
                 ],
                 "handled": false,
                 "thread_name": "main",
@@ -686,6 +685,50 @@
             "timestamp": "2023-10-14T00:59:05.407000000Z",
             "type": "network_change",
             "thread_name": "Connectivity Thread"
+        },
+        {
+            "memory_usage": {
+                "java_max_heap": 262144,
+                "java_total_heap": 151331,
+                "java_free_heap": 62762,
+                "total_pss": 342870,
+                "rss": 447748,
+                "native_total_heap": 109664,
+                "native_free_heap": 42273,
+                "interval_config": 2000
+            },
+            "timestamp": "2023-10-24T15:25:15.813000000Z",
+            "type": "memory_usage",
+            "thread_name": "main"
+        },
+        {
+            "timestamp": "2023-10-24T15:25:15.813000000Z",
+            "type": "low_memory",
+            "thread_name": "main"
+        },
+        {
+            "trim_memory": {
+                "level": "TRIM_MEMORY_RUNNING_LOW"
+            },
+            "timestamp": "2023-10-24T15:25:15.813000000Z",
+            "type": "trim_memory",
+            "thread_name": "main"
+        },
+        {
+            "cpu_usage": {
+                "num_cores": 1,
+                "clock_speed": 100,
+                "start_time": 829351,
+                "uptime": 8306448,
+                "utime": 54,
+                "cutime": 0,
+                "cstime": 0,
+                "stime": 46,
+                "interval_config": 3000
+            },
+            "timestamp": "2023-10-24T15:25:15.813000000Z",
+            "type": "cpu_usage",
+            "thread_name": "main"
         }
     ],
     "resource": {
@@ -711,6 +754,6 @@
         "network_generation": "2g",
         "network_provider": "T-Mobile"
     },
-    "session_id": "0ae466fa-d010-4cc8-9980-788f72d640a6",
+    "session_id": "0ae466fa-e010-4cc8-9980-788f72d640a6",
     "timestamp": "2023-10-14T00:58:35.215000000Z"
 }

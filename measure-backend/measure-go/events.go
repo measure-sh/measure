@@ -43,6 +43,7 @@ const (
 	maxNetworkChangeNetworkProvider           = 64
 	maxHttpMethodChars                        = 16
 	maxHttpClientChars                        = 32
+	maxTrimMemoryLevelChars                   = 64
 	maxAttrCount                              = 10
 )
 
@@ -61,6 +62,10 @@ const TypeWarmLaunch = "warm_launch"
 const TypeHotLaunch = "hot_launch"
 const TypeNetworkChange = "network_change"
 const TypeHttp = "http"
+const TypeMemoryUsage = "memory_usage"
+const TypeLowMemory = "low_memory"
+const TypeTrimMemory = "trim_memory"
+const TypeCPUUsage = "cpu_usage"
 
 // timeFormat is the format of datetime in nanoseconds when
 // converting datetime values before inserting into database
@@ -207,6 +212,25 @@ var columns = []string{
 	"http_request_headers",
 	"http_response_headers",
 	"http.client",
+	"memory_usage.java_max_heap",
+	"memory_usage.java_total_heap",
+	"memory_usage.java_free_heap",
+	"memory_usage.total_pss",
+	"memory_usage.rss",
+	"memory_usage.native_total_heap",
+	"memory_usage.native_free_heap",
+	"memory_usage.interval_config",
+	"low_memory",
+	"trim_memory.level",
+	"cpu_usage.num_cores",
+	"cpu_usage.clock_speed",
+	"cpu_usage.start_time",
+	"cpu_usage.uptime",
+	"cpu_usage.utime",
+	"cpu_usage.cutime",
+	"cpu_usage.stime",
+	"cpu_usage.cstime",
+	"cpu_usage.interval_config",
 }
 
 type Frame struct {
@@ -446,6 +470,37 @@ type Http struct {
 	Client               string            `json:"client"`
 }
 
+type MemoryUsage struct {
+	JavaMaxHeap       uint64 `json:"java_max_heap" binding:"required"`
+	JavaTotalHeap     uint64 `json:"java_total_heap" binding:"required"`
+	JavaFreeHeap      uint64 `json:"java_free_heap" binding:"required"`
+	TotalPSS          uint64 `json:"total_pss" binding:"required"`
+	RSS               uint64 `json:"rss"`
+	NativeTotalHeap   uint64 `json:"native_total_heap" binding:"required"`
+	NativeFreeHeap    uint64 `json:"native_free_heap" binding:"required"`
+	IntervalConfig    uint64 `json:"interval_config" binding:"required"`
+	IntervalStartTime uint32 `json:"interval_start_time" binding:"required"`
+}
+
+type LowMemory struct {
+}
+
+type TrimMemory struct {
+	Level string `json:"level" binding:"required"`
+}
+
+type CPUUsage struct {
+	NumCores       uint8  `json:"num_cores" binding:"required"`
+	ClockSpeed     uint64 `json:"clock_speed" binding:"required"`
+	StartTime      uint64 `json:"start_time" binding:"required"`
+	Uptime         uint64 `json:"uptime" binding:"required"`
+	UTime          uint64 `json:"utime" binding:"required"`
+	CUTime         uint64 `json:"cutime" binding:"required"`
+	STime          uint64 `json:"stime" binding:"required"`
+	CSTime         uint64 `json:"cstime" binding:"required"`
+	IntervalConfig uint32 `json:"interval_config" binding:"required"`
+}
+
 type EventField struct {
 	Timestamp         time.Time         `json:"timestamp" binding:"required"`
 	Type              string            `json:"type" binding:"required"`
@@ -465,6 +520,10 @@ type EventField struct {
 	HotLaunch         HotLaunch         `json:"hot_launch,omitempty"`
 	NetworkChange     NetworkChange     `json:"network_change,omitempty"`
 	Http              Http              `json:"http,omitempty"`
+	MemoryUsage       MemoryUsage       `json:"memory_usage,omitempty"`
+	LowMemory         LowMemory         `json:"low_memory,omitempty"`
+	TrimMemory        TrimMemory        `json:"trim_memory,omitempty"`
+	CPUUsage          CPUUsage          `json:"cpu_usage,omitempty"`
 	Attributes        map[string]string `json:"attributes"`
 }
 
@@ -528,8 +587,25 @@ func (e *EventField) isHttp() bool {
 	return e.Type == TypeHttp
 }
 
+func (e *EventField) isMemoryUsage() bool {
+	return e.Type == TypeMemoryUsage
+}
+
+func (e *EventField) isTrimMemory() bool {
+	return e.Type == TypeTrimMemory
+}
+
+func (e *EventField) isCPUUsage() bool {
+	return e.Type == TypeCPUUsage
+}
+
+// check if LowMemory event is present
+func (e *EventField) isLowMemory() bool {
+	return e.Type == TypeLowMemory
+}
+
 func (e *EventField) validate() error {
-	validTypes := []string{TypeANR, TypeException, TypeAppExit, TypeString, TypeGestureLongClick, TypeGestureScroll, TypeGestureClick, TypeLifecycleActivity, TypeLifecycleFragment, TypeLifecycleApp, TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch, TypeNetworkChange, TypeHttp}
+	validTypes := []string{TypeANR, TypeException, TypeAppExit, TypeString, TypeGestureLongClick, TypeGestureScroll, TypeGestureClick, TypeLifecycleActivity, TypeLifecycleFragment, TypeLifecycleApp, TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch, TypeNetworkChange, TypeHttp, TypeMemoryUsage, TypeLowMemory, TypeTrimMemory, TypeCPUUsage}
 	if !slices.Contains(validTypes, e.Type) {
 		return fmt.Errorf(`"events[].type" is not a valid type`)
 	}
@@ -651,6 +727,30 @@ func (e *EventField) validate() error {
 		}
 	}
 
+	if e.isMemoryUsage() {
+		if e.MemoryUsage.IntervalConfig <= 0 {
+			return fmt.Errorf(`memory_usage.interval_config must be greater than 0`)
+		}
+	}
+
+	if e.isTrimMemory() {
+		if e.TrimMemory.Level == "" {
+			return fmt.Errorf(`trim_memory.level must not be empty`)
+		}
+	}
+
+	if e.isCPUUsage() {
+		if e.CPUUsage.NumCores <= 0 {
+			return fmt.Errorf(`cpu_usage.num_cores must be greater than 0`)
+		}
+		if e.CPUUsage.ClockSpeed <= 0 {
+			return fmt.Errorf(`cpu_usage.clock_speed must be greater than 0`)
+		}
+		if e.CPUUsage.IntervalConfig <= 0 {
+			return fmt.Errorf(`cpu_usage.interval_config must be greater than 0`)
+		}
+	}
+
 	if len(e.Type) > maxTypeChars {
 		return fmt.Errorf(`"events[].type" exceeds maximum allowed characters of (%d)`, maxTypeChars)
 	}
@@ -738,6 +838,9 @@ func (e *EventField) validate() error {
 	if len(e.Http.Client) > maxHttpClientChars {
 		return fmt.Errorf(`"events[].http.client" exceeds maximum allowed characters of (%d)`, maxHttpClientChars)
 	}
+	if len(e.TrimMemory.Level) > maxTrimMemoryLevelChars {
+		return fmt.Errorf(`"events[].trim_memo̦ry.level" exceeds maximum allowed characters of (%d)`, maxTrimMemoryLevelChars)
+	}
 	if len(e.Attributes) > maxAttrCount {
 		return fmt.Errorf(`"events[].attributes" exceeds maximum count of (%d)`, maxAttrCount)
 	}
@@ -749,13 +852,14 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 	values := []string{}
 	valueArgs := []interface{}{}
 
-	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+	placeholder := "(toUUID(?),?,toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
 	for _, event := range session.Events {
 		anrExceptions := "[]"
 		anrThreads := "[]"
 		exceptionExceptions := "[]"
 		exceptionThreads := "[]"
+		isLowMemory := false
 		if event.isANR() {
 			anrExceptions = event.ANR.Exceptions.encode()
 			anrThreads = event.ANR.Threads.encode()
@@ -763,6 +867,9 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 		if event.isException() {
 			exceptionExceptions = event.Exception.Exceptions.encode()
 			exceptionThreads = event.Exception.Threads.encode()
+		}
+		if event.isLowMemory() {
+			isLowMemory = true
 		}
 		values = append(values, placeholder)
 		valueArgs = append(valueArgs,
@@ -905,6 +1012,25 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			mapToString(event.Http.RequestHeaders),
 			mapToString(event.Http.ResponseHeaders),
 			event.Http.Client,
+			event.MemoryUsage.JavaMaxHeap,
+			event.MemoryUsage.JavaTotalHeap,
+			event.MemoryUsage.JavaFreeHeap,
+			event.MemoryUsage.TotalPSS,
+			event.MemoryUsage.RSS,
+			event.MemoryUsage.NativeTotalHeap,
+			event.MemoryUsage.NativeFreeHeap,
+			event.MemoryUsage.IntervalConfig,
+			isLowMemory,
+			event.TrimMemory.Level,
+			event.CPUUsage.NumCores,
+			event.CPUUsage.ClockSpeed,
+			event.CPUUsage.StartTime,
+			event.CPUUsage.Uptime,
+			event.CPUUsage.UTime,
+			event.CPUUsage.CUTime,
+			event.CPUUsage.STime,
+			event.CPUUsage.CSTime,
+			event.CPUUsage.IntervalConfig,
 		)
 	}
 

@@ -139,7 +139,26 @@ create table if not exists default.events
     `http.failure_description` String,
     `http_request_headers` Map(String, String),
     `http_response_headers` Map(String, String),
-    `http.client` LowCardinality(FixedString(32))
+    `http.client` LowCardinality(FixedString(32)),
+    `memory_usage.java_max_heap` UInt64,
+    `memory_usage.java_total_heap` UInt64,
+    `memory_usage.java_free_heap` UInt64,
+    `memory_usage.total_pss` UInt64,
+    `memory_usage.rss` UInt64,
+    `memory_usage.native_total_heap` UInt64,
+    `memory_usage.native_free_heap` UInt64,
+    `memory_usage.interval_config` UInt32,
+    `low_memory` Bool,
+    `trim_memory.level` LowCardinality(FixedString(64)),
+    `cpu_usage.num_cores` UInt8,
+    `cpu_usage.clock_speed` UInt32,
+    `cpu_usage.start_time` UInt64,
+    `cpu_usage.uptime` UInt64,
+    `cpu_usage.utime` UInt64,
+    `cpu_usage.cutime` UInt64,
+    `cpu_usage.stime` UInt64,
+    `cpu_usage.cstime` UInt64,
+    `cpu_usage.interval_config` UInt32,
 )
 engine = MergeTree
 primary key (id, timestamp);
