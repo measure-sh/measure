@@ -116,7 +116,7 @@ CREATE TABLE default.events
     `exception.device_locale` FixedString(64),
     `http.url` String,
     `http.method` LowCardinality(FixedString(16)),
-    `http.status_code` LowCardinality(UInt16),
+    `http.status_code` UInt16,
     `http.request_body_size` UInt64,
     `http.response_body_size` UInt64,
     `http.request_timestamp` DateTime64(9, 'UTC'),
@@ -169,11 +169,4 @@ SETTINGS index_granularity = 8192;
 --
 
 INSERT INTO schema_migrations (version) VALUES
-    ('20231117020810'),
-    ('20231117211032'),
-    ('20231120060716'),
-    ('20231120073112'),
-    ('20231120133851'),
-    ('20231120185455'),
-    ('20231121144351'),
-    ('20231123143823');
+    ('20231117020810');
