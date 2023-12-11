@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"time"
 
+	"measure-backend/measure-go/server"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -95,7 +97,7 @@ func NewApp(teamId uuid.UUID) *App {
 
 func (a *App) add() (*APIKey, error) {
 	a.ID = uuid.New()
-	tx, err := server.PgPool.Begin(context.Background())
+	tx, err := server.Server.PgPool.Begin(context.Background())
 
 	if err != nil {
 		return nil, err
@@ -142,7 +144,7 @@ func (a *App) get(id uuid.UUID) (*App, error) {
 
 	apiKey := new(APIKey)
 
-	if err := server.PgPool.QueryRow(context.Background(), queryGetApp, id, a.TeamId).Scan(&appName, &uniqueId, &platform, &firstVersion, &latestVersion, &firstSeenAt, &onboarded, &onboardedAt, &apiKey.keyPrefix, &apiKey.keyValue, &apiKey.checksum, &apiKeyLastSeen, &apiKeyCreatedAt, &createdAt, &updatedAt); err != nil {
+	if err := server.Server.PgPool.QueryRow(context.Background(), queryGetApp, id, a.TeamId).Scan(&appName, &uniqueId, &platform, &firstVersion, &latestVersion, &firstSeenAt, &onboarded, &onboardedAt, &apiKey.keyPrefix, &apiKey.keyValue, &apiKey.checksum, &apiKeyLastSeen, &apiKeyCreatedAt, &createdAt, &updatedAt); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		} else {

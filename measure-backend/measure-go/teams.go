@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"measure-backend/measure-go/chrono"
+	"measure-backend/measure-go/server"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -76,7 +77,7 @@ type MemberWithAuthz struct {
 
 func (t *Team) getApps() ([]App, error) {
 	var apps []App
-	rows, err := server.PgPool.Query(context.Background(), queryGetTeamApps, &t.ID)
+	rows, err := server.Server.PgPool.Query(context.Background(), queryGetTeamApps, &t.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +164,7 @@ func (t *Team) getMembers() ([]*Member, error) {
 
 	defer stmt.Close()
 
-	rows, err := server.PgPool.Query(ctx, stmt.String(), t.ID)
+	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), t.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +191,7 @@ func (t *Team) rename() error {
 	defer stmt.Close()
 
 	ctx := context.Background()
-	if _, err := server.PgPool.Exec(ctx, stmt.String(), *t.Name, time.Now(), t.ID); err != nil {
+	if _, err := server.Server.PgPool.Exec(ctx, stmt.String(), *t.Name, time.Now(), t.ID); err != nil {
 		return err
 	}
 
@@ -205,7 +206,7 @@ func (t *Team) removeMember(memberId *uuid.UUID) error {
 
 	ctx := context.Background()
 
-	_, err := server.PgPool.Exec(ctx, stmt.String(), t.ID, memberId)
+	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), t.ID, memberId)
 
 	if err != nil {
 		return err
@@ -225,7 +226,7 @@ func (t *Team) changeRole(memberId *uuid.UUID, role rank) error {
 
 	ctx := context.Background()
 
-	if _, err := server.PgPool.Exec(ctx, stmt.String(), role, time.Now(), t.ID, memberId); err != nil {
+	if _, err := server.Server.PgPool.Exec(ctx, stmt.String(), role, time.Now(), t.ID, memberId); err != nil {
 		return err
 	}
 

@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"measure-backend/measure-go/server"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -54,15 +56,16 @@ func (a *Attachment) Prepare() Attachment {
 }
 
 func (a *Attachment) upload(s *Session) (*s3manager.UploadOutput, error) {
+	config := server.Server.Config
 	b64Decoder := base64.NewDecoder(base64.StdEncoding, strings.NewReader(a.Blob))
 	awsConfig := &aws.Config{
-		Region:      aws.String(server.Config.AttachmentsBucketRegion),
-		Credentials: credentials.NewStaticCredentials(server.Config.AttachmentsAccessKey, server.Config.AttachmentsSecretAccessKey, ""),
+		Region:      aws.String(config.AttachmentsBucketRegion),
+		Credentials: credentials.NewStaticCredentials(config.AttachmentsAccessKey, config.AttachmentsSecretAccessKey, ""),
 	}
 	awsSession := session.Must(session.NewSession(awsConfig))
 	uploader := s3manager.NewUploader(awsSession)
 	result, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(server.Config.AttachmentsBucket),
+		Bucket: aws.String(config.AttachmentsBucket),
 		Key:    aws.String(a.Key),
 		Body:   b64Decoder,
 		Metadata: map[string]*string{

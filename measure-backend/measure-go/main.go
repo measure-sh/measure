@@ -5,36 +5,33 @@ import (
 	"os"
 	"time"
 
-	srv "measure-backend/measure-go/server"
+	"measure-backend/measure-go/server"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-var serverConfig srv.ServerConfig
-var server srv.Server
-
 func main() {
-	serverConfig = *srv.NewServerConfig()
+	config := server.NewConfig()
 
 	pgDSN := os.Getenv("POSTGRES_DSN")
 	if pgDSN == "" {
-		log.Printf(`"POSTGRES_DSN" missing, will proceed with default "%s"`, serverConfig.PG.DSN)
+		log.Printf(`"POSTGRES_DSN" missing, will proceed with default "%s"`, config.PG.DSN)
 	} else {
-		serverConfig.PG.DSN = pgDSN
+		config.PG.DSN = pgDSN
 	}
 
 	chDSN := os.Getenv("CLICKHOUSE_DSN")
 	if chDSN == "" {
-		log.Printf(`"CLICKHOUSE_DSN" missing, will proceed with default "%s"`, serverConfig.CH.DSN)
+		log.Printf(`"CLICKHOUSE_DSN" missing, will proceed with default "%s"`, config.CH.DSN)
 	} else {
-		serverConfig.CH.DSN = chDSN
+		config.CH.DSN = chDSN
 	}
 
-	server = *new(srv.Server).Configure(&serverConfig)
+	server.Init(config)
 
-	defer server.PgPool.Close()
-	defer server.ChPool.Close()
+	defer server.Server.PgPool.Close()
+	defer server.Server.ChPool.Close()
 
 	r := gin.Default()
 	cors := cors.New(cors.Config{
