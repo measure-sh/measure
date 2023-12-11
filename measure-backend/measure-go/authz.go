@@ -49,16 +49,11 @@ func (r rank) getLower() []rank {
 
 func (r rank) Valid() bool {
 	switch r {
-	case viewer:
-	case developer:
-	case admin:
-	case owner:
+	case viewer, developer, admin, owner:
 		return true
 	default:
 		return false
 	}
-
-	return false
 }
 
 func (r rank) String() string {
