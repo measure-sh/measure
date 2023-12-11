@@ -21,6 +21,13 @@ export default function Team({ params }: { params: { teamId: string } }) {
     Error
   }
 
+  enum RoleChangeApiStatus {
+    Init,
+    Loading,
+    Success,
+    Error
+  }
+
   enum InviteMemberApiStatus {
     Init,
     Loading,
@@ -63,6 +70,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
         "created_at": "",
         "authz": {
           "can_change_roles": [
+            ""
           ],
           "can_remove": true
         }
@@ -71,6 +79,12 @@ export default function Team({ params }: { params: { teamId: string } }) {
   }
   const [getAuthzAndMembersApiStatus, setGetAuthzAndMembersApiStatus] = useState(GetAuthzAndMembersApiStatus.Loading);
   const [authzAndMembers, setAuthzAndMembers] = useState(defaultAuthzAndMembers)
+  const [selectedDropdownRolesMap, setSelectedDropdownRolesMap] = useState<Map<String, String>>(new Map())
+  const [changeRoleConfirmationModalOpen, setChangeRoleConfirmationModalOpen] = useState(false)
+  const [roleChangeApiStatus, setRoleChangeApiStatus] = useState(RoleChangeApiStatus.Init);
+  const [roleChangeMemberId, setRoleChangeMemberId] = useState("")
+  const [roleChangeNewRole, setRoleChangeNewRole] = useState("")
+  const [changeRoleErrorMsg, setChangeRoleErrorMsg] = useState("")
 
   const router = useRouter();
 
@@ -154,6 +168,32 @@ export default function Team({ params }: { params: { teamId: string } }) {
     location.reload()
   }
 
+  const changeRole = async () => {
+    setRoleChangeApiStatus(RoleChangeApiStatus.Loading)
+
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+      method: 'PATCH',
+      headers: {
+        "Authorization": `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ role: roleChangeNewRole.toLocaleLowerCase() })
+    };
+
+    const res = await fetch(`${origin}/teams/${params.teamId}/members/${roleChangeMemberId}/role`, opts);
+    const json = await res.json()
+
+    if (!res.ok) {
+      setRoleChangeApiStatus(RoleChangeApiStatus.Error)
+      setChangeRoleErrorMsg(json.error)
+      logoutIfAuthError(router, res)
+      return
+    }
+
+    setRoleChangeApiStatus(RoleChangeApiStatus.Success)
+  }
+
   const inviteMember = async (email: string, role: string) => {
     setInviteMemberApiStatus(InviteMemberApiStatus.Loading)
 
@@ -206,6 +246,15 @@ export default function Team({ params }: { params: { teamId: string } }) {
             onCancelAction={() => setTeamNameConfirmationModalOpen(false)}
           />
 
+          {/* Modal for confirming role change */}
+          <DangerConfirmationModal title="Are you sure you want to change the role?" open={changeRoleConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+            onAffirmativeAction={() => {
+              setChangeRoleConfirmationModalOpen(false)
+              changeRole()
+            }}
+            onCancelAction={() => setTeamNameConfirmationModalOpen(false)}
+          />
+
           <p className="font-sans max-w-6xl text-center">Team name</p>
           <div className="py-1" />
           <div className="flex flex-row items-center">
@@ -252,10 +301,32 @@ export default function Team({ params }: { params: { teamId: string } }) {
 
           {getAuthzAndMembersApiStatus === GetAuthzAndMembersApiStatus.Success &&
             <div className="table-row-group">
-              {authzAndMembers.members.map(({ id, email, role }) => (
+              {authzAndMembers.members.map(({ id, email, role, authz }) => (
                 <div key={id} className="table-row font-sans">
                   <div className="table-cell p-4 pl-0 text-lg">{email}</div>
-                  <div className="table-cell p-4 pl-0 text-lg capitalize">{role}</div>
+                  <div className="table-cell p-4 pl-0">
+                    {/* If roles can be changed for members, add roles to dropdown and set selected role to current role */}
+                    {authz.can_change_roles.length > 0 && <Dropdown items={authz.can_change_roles.map((i) => i.charAt(0).toLocaleUpperCase() + i.slice(1))} initialItemIndex={authzAndMembers.can_invite.findIndex((i) => i === role)} onChangeSelectedItem={(i) => {
+                      const newMap = new Map(selectedDropdownRolesMap)
+                      newMap.set(id, i)
+                      setSelectedDropdownRolesMap(newMap)
+                    }} />}
+                    {/* If roles cannot be changed for current member, just show current role as part of dropdown */}
+                    {authz.can_change_roles.length === 0 && <Dropdown items={[role]} />}
+                  </div>
+                  <div className="table-cell p-4 pl-0">
+                    <button disabled={selectedDropdownRolesMap.get(id) === undefined || selectedDropdownRolesMap.get(id) === role} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => {
+                      setRoleChangeMemberId(id)
+                      setRoleChangeNewRole(selectedDropdownRolesMap.get(id) as string)
+                      setChangeRoleConfirmationModalOpen(true)
+                    }}>Change Role</button>
+                  </div>
+                  {/* Loading message for role change */}
+                  {roleChangeApiStatus === RoleChangeApiStatus.Loading && roleChangeMemberId === id && <p className="font-display">Changing role...</p>}
+                  {/* Error message for role change */}
+                  {roleChangeApiStatus === RoleChangeApiStatus.Error && roleChangeMemberId === id && <p className="font-display">Error: {changeRoleErrorMsg}</p>}
+                  {/* Success message for role change */}
+                  {roleChangeApiStatus === RoleChangeApiStatus.Success && roleChangeMemberId === id && <p className="font-display">Role changed!</p>}
                 </div>
               ))}
             </div>}
