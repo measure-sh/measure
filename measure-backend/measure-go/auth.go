@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"measure-backend/measure-go/server"
 	"net/http"
 	"strings"
 
@@ -56,7 +57,7 @@ func validateAccessToken() gin.HandlerFunc {
 				return nil, err
 			}
 
-			return []byte(server.Config.AuthJWTSecret), nil
+			return []byte(server.Server.Config.AuthJWTSecret), nil
 		})
 
 		if err != nil {

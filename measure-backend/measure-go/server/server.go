@@ -11,7 +11,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Server struct {
+var Server *server
+
+type server struct {
 	PgPool *pgxpool.Pool
 	ChPool driver.Conn
 	Config *ServerConfig
@@ -42,7 +44,7 @@ type ServerConfig struct {
 	AuthJWTSecret              string
 }
 
-func NewServerConfig() *ServerConfig {
+func NewConfig() *ServerConfig {
 	mappingFileMaxSize, err := strconv.ParseUint(os.Getenv("MAPPING_FILE_MAX_SIZE"), 10, 64)
 	if err != nil {
 		log.Println("using default value of MAPPING_FILE_MAX_SIZE")
@@ -114,13 +116,13 @@ func NewServerConfig() *ServerConfig {
 	}
 }
 
-func (s *Server) Configure(serverConfig *ServerConfig) *Server {
-	pgPool, err := pgxpool.New(context.Background(), serverConfig.PG.DSN)
+func Init(config *ServerConfig) {
+	pgPool, err := pgxpool.New(context.Background(), config.PG.DSN)
 	if err != nil {
 		log.Fatalf("Unable to create PG connection pool: %v\n", err)
 	}
 
-	chOpts, err := clickhouse.ParseDSN(serverConfig.CH.DSN)
+	chOpts, err := clickhouse.ParseDSN(config.CH.DSN)
 	if err != nil {
 		log.Fatalf("Unable to parse CH connection string: %v\n", err)
 	}
@@ -130,9 +132,9 @@ func (s *Server) Configure(serverConfig *ServerConfig) *Server {
 		log.Fatalf("Unable to create CH connection pool: %v", err)
 	}
 
-	return &Server{
+	Server = &server{
 		PgPool: pgPool,
 		ChPool: chPool,
-		Config: serverConfig,
+		Config: config,
 	}
 }
