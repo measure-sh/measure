@@ -11,7 +11,7 @@ CREATE TABLE default.events
     `type` LowCardinality(FixedString(32)),
     `session_id` UUID,
     `timestamp` DateTime64(9, 'UTC'),
-    `thread_name` FixedString(32),
+    `thread_name` FixedString(64),
     `resource.device_name` FixedString(32),
     `resource.device_model` FixedString(32),
     `resource.device_manufacturer` FixedString(32),
@@ -29,11 +29,11 @@ CREATE TABLE default.events
     `resource.app_build` FixedString(32),
     `resource.app_unique_id` FixedString(128),
     `resource.measure_sdk_version` FixedString(16),
-    `anr.thread_name` LowCardinality(String),
+    `anr.thread_name` FixedString(64),
     `anr.handled` Bool,
     `anr_exceptions` Array(Tuple(LowCardinality(String), LowCardinality(String), Array(Tuple(Int32, Int32, LowCardinality(String), LowCardinality(String), LowCardinality(String), LowCardinality(String))))),
     `anr_threads` Array(Tuple(LowCardinality(String), Array(Tuple(Int32, Int32, LowCardinality(String), LowCardinality(String), LowCardinality(String), LowCardinality(String))))),
-    `exception.thread_name` LowCardinality(String),
+    `exception.thread_name` FixedString(64),
     `exception.handled` Bool,
     `exception_exceptions` Array(Tuple(LowCardinality(String), LowCardinality(String), Array(Tuple(Int32, Int32, LowCardinality(String), LowCardinality(String), LowCardinality(String), LowCardinality(String))))),
     `exception_threads` Array(Tuple(LowCardinality(String), Array(Tuple(Int32, Int32, LowCardinality(String), LowCardinality(String), LowCardinality(String), LowCardinality(String))))),
@@ -188,4 +188,11 @@ SETTINGS index_granularity = 8192;
 --
 
 INSERT INTO schema_migrations (version) VALUES
-    ('20231117020810');
+    ('20231117020810'),
+    ('20231117211032'),
+    ('20231120060716'),
+    ('20231120073112'),
+    ('20231120133851'),
+    ('20231120185455'),
+    ('20231121144351'),
+    ('20231123143823');
