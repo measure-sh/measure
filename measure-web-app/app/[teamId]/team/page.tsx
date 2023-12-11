@@ -28,7 +28,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
     Error
   }
 
-  enum GetMembersApiStatus {
+  enum GetAuthzAndMembersApiStatus {
     Loading,
     Success,
     Error
@@ -49,28 +49,28 @@ export default function Team({ params }: { params: { teamId: string } }) {
   const [inviteMemberEmail, setInviteMemberEmail] = useState("")
   const [inviteMemberErrorMsg, setInviteMemberErrorMsg] = useState("")
 
-  const emptyMember =
-  {
-    "id": "",
-    "name": "",
-    "email": "",
-    "role": "",
-    "last_sign_in_at": "",
-    "created_at": ""
-  }
-  const [getMembersApiStatus, setGetMembersApiStatus] = useState(GetMembersApiStatus.Loading);
-  const [members, setMembers] = useState([] as typeof emptyMember[]);
-
-  const defaultAuthzRoles = {
-    "can_change_roles": [
-      "viewer"
-    ],
+  const defaultAuthzAndMembers = {
     "can_invite": [
       "viewer"
+    ],
+    "members": [
+      {
+        "id": "",
+        "name": null,
+        "email": "",
+        "role": "",
+        "last_sign_in_at": "",
+        "created_at": "",
+        "authz": {
+          "can_change_roles": [
+          ],
+          "can_remove": true
+        }
+      }
     ]
   }
-
-  const [authzRoles, setAuthzRoles] = useState(defaultAuthzRoles)
+  const [getAuthzAndMembersApiStatus, setGetAuthzAndMembersApiStatus] = useState(GetAuthzAndMembersApiStatus.Loading);
+  const [authzAndMembers, setAuthzAndMembers] = useState(defaultAuthzAndMembers)
 
   const router = useRouter();
 
@@ -103,34 +103,9 @@ export default function Team({ params }: { params: { teamId: string } }) {
     getTeam()
   }, []);
 
-  const getMembers = async () => {
-    setGetMembersApiStatus(GetMembersApiStatus.Loading)
+  const getAuthzAndMembers = async () => {
+    setGetAuthzAndMembersApiStatus(GetAuthzAndMembersApiStatus.Loading)
 
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
-    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
-    const opts = {
-      headers: {
-        "Authorization": `Bearer ${authToken}`
-      }
-    };
-
-    const res = await fetch(`${origin}/teams/${params.teamId}/members`, opts);
-    if (!res.ok) {
-      setGetMembersApiStatus(GetMembersApiStatus.Error)
-      logoutIfAuthError(router, res)
-      return
-    }
-
-    setGetMembersApiStatus(GetMembersApiStatus.Success)
-    const data = await res.json()
-    setMembers(data)
-  }
-
-  useEffect(() => {
-    getMembers()
-  }, []);
-
-  const getAuthzRoles = async () => {
     const authToken = await getAccessTokenOrRedirectToAuth(router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
@@ -141,16 +116,18 @@ export default function Team({ params }: { params: { teamId: string } }) {
 
     const res = await fetch(`${origin}/teams/${params.teamId}/authz`, opts);
     if (!res.ok) {
+      setGetAuthzAndMembersApiStatus(GetAuthzAndMembersApiStatus.Error)
       logoutIfAuthError(router, res)
       return
     }
 
+    setGetAuthzAndMembersApiStatus(GetAuthzAndMembersApiStatus.Success)
     const data = await res.json()
-    setAuthzRoles(data)
+    setAuthzAndMembers(data)
   }
 
   useEffect(() => {
-    getAuthzRoles()
+    getAuthzAndMembers()
   }, []);
 
   const changeTeamName = async () => {
@@ -253,7 +230,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
             <div className="flex flex-row items-center">
               <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300  py-2 px-4 font-sans placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} defaultValue={inviteMemberEmail} />
               <div className="px-2" />
-              <Dropdown items={authzRoles.can_invite.map((i) => i.charAt(0).toLocaleUpperCase() + i.slice(1))} onChangeSelectedItem={(item) => setInviteMemberRole(item)} initialItemIndex={0} />
+              <Dropdown items={authzAndMembers.can_invite.map((i) => i.charAt(0).toLocaleUpperCase() + i.slice(1))} onChangeSelectedItem={(item) => setInviteMemberRole(item)} initialItemIndex={0} />
               <button form="invite-form" type="submit" disabled={inviteMemberApiStatus === InviteMemberApiStatus.Loading || inviteMemberEmail === ""} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Invite</button>
             </div>
           </form>
@@ -269,13 +246,13 @@ export default function Team({ params }: { params: { teamId: string } }) {
           <p className="font-display font-regular text-2xl max-w-6xl text-center">Members</p>
           <div className="py-2" />
           {/* Loading message for fetch members */}
-          {getMembersApiStatus === GetMembersApiStatus.Loading && <p className="font-display">Fetching members...</p>}
+          {getAuthzAndMembersApiStatus === GetAuthzAndMembersApiStatus.Loading && <p className="font-display">Fetching members...</p>}
           {/* Error message for fetch members */}
-          {getMembersApiStatus === GetMembersApiStatus.Error && <p className="font-display">Error fetching team members, please refresh page to try again</p>}
+          {getAuthzAndMembersApiStatus === GetAuthzAndMembersApiStatus.Error && <p className="font-display">Error fetching team members, please refresh page to try again</p>}
 
-          {getMembersApiStatus === GetMembersApiStatus.Success &&
+          {getAuthzAndMembersApiStatus === GetAuthzAndMembersApiStatus.Success &&
             <div className="table-row-group">
-              {members.map(({ id, email, role }) => (
+              {authzAndMembers.members.map(({ id, email, role }) => (
                 <div key={id} className="table-row font-sans">
                   <div className="table-cell p-4 pl-0 text-lg">{email}</div>
                   <div className="table-cell p-4 pl-0 text-lg capitalize">{role}</div>
