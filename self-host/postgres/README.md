@@ -41,7 +41,7 @@ Though, generally not recommended, if you want to delete old migration files or 
   ```sh
   # syntax
   docker exec -it <container-name> \
-    psql <dsn>
+    psql <dsn> \
     -c "truncate table if exists dbmate.schema_migrations;"
 
   # example
