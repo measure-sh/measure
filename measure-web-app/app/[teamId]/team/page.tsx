@@ -35,6 +35,13 @@ export default function Team({ params }: { params: { teamId: string } }) {
     Error
   }
 
+  enum RemoveMemberApiStatus {
+    Init,
+    Loading,
+    Success,
+    Error
+  }
+
   enum GetAuthzAndMembersApiStatus {
     Loading,
     Success,
@@ -55,6 +62,11 @@ export default function Team({ params }: { params: { teamId: string } }) {
   const [inviteMemberRole, setInviteMemberRole] = useState("Owner")
   const [inviteMemberEmail, setInviteMemberEmail] = useState("")
   const [inviteMemberErrorMsg, setInviteMemberErrorMsg] = useState("")
+
+  const [removeMemberApiStatus, seRemoveMemberApiStatus] = useState(RemoveMemberApiStatus.Init);
+  const [removeMemberConfirmationModalOpen, setRemoveMemberConfirmationModalOpen] = useState(false)
+  const [removeMemberId, setRemoveMemberId] = useState("")
+  const [removeMemberErrorMsg, setRemoveMemberErrorMsg] = useState("")
 
   const defaultAuthzAndMembers = {
     "can_invite": [
@@ -217,6 +229,32 @@ export default function Team({ params }: { params: { teamId: string } }) {
     setInviteMemberApiStatus(InviteMemberApiStatus.Success)
   }
 
+  const removeMember = async () => {
+    seRemoveMemberApiStatus(RemoveMemberApiStatus.Loading)
+
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+      method: 'DELETE',
+      headers: {
+        "Authorization": `Bearer ${authToken}`
+      },
+    };
+
+    const res = await fetch(`${origin}/teams/${params.teamId}/members/${removeMemberId}`, opts);
+    const json = await res.json()
+
+    if (!res.ok) {
+      seRemoveMemberApiStatus(RemoveMemberApiStatus.Error)
+      setChangeRoleErrorMsg(json.error)
+      logoutIfAuthError(router, res)
+      return
+    }
+
+    seRemoveMemberApiStatus(RemoveMemberApiStatus.Success)
+    getAuthzAndMembers()
+  }
+
   const handleInvite = (e: React.FormEvent) => {
     e.preventDefault()
     inviteMember(inviteMemberEmail as string, inviteMemberRole.toLowerCase())
@@ -253,6 +291,15 @@ export default function Team({ params }: { params: { teamId: string } }) {
               changeRole()
             }}
             onCancelAction={() => setTeamNameConfirmationModalOpen(false)}
+          />
+
+          {/* Modal for confirming member removal */}
+          <DangerConfirmationModal title="Are you sure you want to remove this team member?" open={removeMemberConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+            onAffirmativeAction={() => {
+              setRemoveMemberConfirmationModalOpen(false)
+              removeMember()
+            }}
+            onCancelAction={() => setRemoveMemberConfirmationModalOpen(false)}
           />
 
           <p className="font-sans max-w-6xl text-center">Team name</p>
@@ -327,6 +374,16 @@ export default function Team({ params }: { params: { teamId: string } }) {
                   {roleChangeApiStatus === RoleChangeApiStatus.Error && roleChangeMemberId === id && <p className="font-display">Error: {changeRoleErrorMsg}</p>}
                   {/* Success message for role change */}
                   {roleChangeApiStatus === RoleChangeApiStatus.Success && roleChangeMemberId === id && <p className="font-display">Role changed!</p>}
+                  <div className="table-cell p-4 pl-0">
+                    <button disabled={authz.can_remove === false || removeMemberApiStatus === RemoveMemberApiStatus.Loading} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => {
+                      setRemoveMemberId(id)
+                      setRemoveMemberConfirmationModalOpen(true)
+                    }}>Remove</button>
+                  </div>
+                  {/* Loading message for member removal */}
+                  {removeMemberApiStatus === RemoveMemberApiStatus.Loading && removeMemberId === id && <p className="font-display">Removing member...</p>}
+                  {/* Error message for member removal */}
+                  {removeMemberApiStatus === RemoveMemberApiStatus.Error && removeMemberId === id && <p className="font-display">Error: {removeMemberErrorMsg}</p>}
                 </div>
               ))}
             </div>}
