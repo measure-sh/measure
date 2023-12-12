@@ -306,13 +306,13 @@ export default function Team({ params }: { params: { teamId: string } }) {
                   <div className="table-cell p-4 pl-0 text-lg">{email}</div>
                   <div className="table-cell p-4 pl-0">
                     {/* If roles can be changed for members, add roles to dropdown and set selected role to current role */}
-                    {authz.can_change_roles.length > 0 && <Dropdown items={authz.can_change_roles.map((i) => i.charAt(0).toLocaleUpperCase() + i.slice(1))} initialItemIndex={authzAndMembers.can_invite.findIndex((i) => i === role)} onChangeSelectedItem={(i) => {
+                    {authz.can_change_roles !== null && authz.can_change_roles.length > 0 && <Dropdown items={authz.can_change_roles.map((i) => i.charAt(0).toLocaleUpperCase() + i.slice(1))} initialItemIndex={authzAndMembers.can_invite.findIndex((i) => i === role)} onChangeSelectedItem={(i) => {
                       const newMap = new Map(selectedDropdownRolesMap)
                       newMap.set(id, i)
                       setSelectedDropdownRolesMap(newMap)
                     }} />}
                     {/* If roles cannot be changed for current member, just show current role as part of dropdown */}
-                    {authz.can_change_roles.length === 0 && <Dropdown items={[role]} />}
+                    {authz.can_change_roles === null || authz.can_change_roles.length === 0 && <Dropdown items={[role]} />}
                   </div>
                   <div className="table-cell p-4 pl-0">
                     <button disabled={selectedDropdownRolesMap.get(id) === undefined || selectedDropdownRolesMap.get(id) === role} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => {
