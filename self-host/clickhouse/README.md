@@ -4,7 +4,7 @@ Schema migrations for clickhouse instances are managed using [dbmate](https://gi
 
 ## Notes
 
-- migrations are stored in the `dbmate.schema_migrations` table
+- migrations are stored in the `default.schema_migrations` table
 - it is safe to rename a migration file before or after applying the migration
 
 ## Migration Guidelines
@@ -24,13 +24,44 @@ Schema migrations for clickhouse instances are managed using [dbmate](https://gi
     - `dbmate new create-create_team_for_user-trigger`
 - When authoring migrations, always prefix the schema name in your objects
 
+## Deleting old migrations
+
+Though, generally not recommended, if you want to delete old migration files or squash multiple migration files into one, run the `./rigmarole.sh` script after deleting `.sql` files. This script will rollback all pending migrations and then re-run them. Read on to fully understand the consequences.
+
+* Data from all tables **WILL** get deleted
+* Before running `./rigmarole.sh`, manually truncate the `default.schema_migrations` table by running the following SQL.
+  
+  ```sql
+  truncate table if exists default.schema_migrations;
+  ```
+
+  Using `clickhouse-client` from clickhouse's docker container
+
+  ```sh
+  # syntax
+  docker exec -it <container-name> clickhouse-client <dsn> -q "truncate table if exists default.schema_migrations;"
+
+  # example
+  docker exec -it clickhouse clickhouse-client clickhouse://default@127.0.0.1:9000/default -q "truncate table if exists default.schema_migrations;"
+  ```
+
+* Run `./rigmarole.sh`
+
 ## Examples
 
 ### Creating tables
 
 ```sql
+-- migrate:up
 create table if not exists public.employees (
     id uuid primary key not null,
     name text
 );
+
+-- migrate:down
+drop table if exists public.employees;
 ```
+
+## Reset
+
+Run the `./rigmarole.sh` script to rollback all migrations and re-apply again. This will effectively reset the entire database.
