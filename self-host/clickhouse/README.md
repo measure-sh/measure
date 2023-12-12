@@ -10,7 +10,7 @@ Schema migrations for clickhouse instances are managed using [dbmate](https://gi
 ## Migration Guidelines
 
 - Migrations **MUST** be idempotent
-- Migrations **MUST** contain both `up` & `down` migrations
+- Migrations **MUST** contain both `up` &amp; `down` migrations
 - **NEVER** edit the generated `schema.sql` file manually
 - Follow this naming convention for naming migration files
   - Syntax: `<sql-command>-<entity-name>-<entity-type>`
@@ -35,11 +35,12 @@ Though, generally not recommended, if you want to delete old migration files or 
   truncate table if exists default.schema_migrations;
   ```
 
-  Using `clickhouse-client` from clickhouse's docker container
+  Using `clickhouse-client` from clickhouse's docker container. Make sure, docker compose is up. [More info](../README.md).
+  
 
   ```sh
   # syntax
-  docker exec -it <container-name> clickhouse-client <dsn> -q "truncate table if exists default.schema_migrations;"
+  docker exec -it <clickhouse-container-name> clickhouse-client <dsn> -q "truncate table if exists default.schema_migrations;"
 
   # example
   docker exec -it clickhouse clickhouse-client clickhouse://default@127.0.0.1:9000/default -q "truncate table if exists default.schema_migrations;"
@@ -64,4 +65,4 @@ drop table if exists public.employees;
 
 ## Reset
 
-Run the `./rigmarole.sh` script to rollback all migrations and re-apply again. This will effectively reset the entire database.
+Run the `./rigmarole.sh` script to rollback all migrations and re-apply again. This will effectively reset the entire database and &amp; clear all data.
