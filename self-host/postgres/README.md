@@ -10,7 +10,7 @@ Schema migrations for postgres instances are managed using [dbmate](https://gith
 ## Migration Guidelines
 
 - Migrations **MUST** be idempotent
-- Migrations **MUST** contain both `up` & `down` migrations
+- Migrations **MUST** contain both `up` &amp; `down` migrations
 - **NEVER** edit the generated `schema.sql` file manually
 - Follow this naming convention for naming migration files
   - Syntax: `<sql-command>-<entity-name>-<entity-type>`
@@ -36,14 +36,18 @@ Though, generally not recommended, if you want to delete old migration files or 
   truncate table if exists dbmate.schema_migrations;
   ```
 
-  Using `clickhouse-client` from clickhouse's docker container
+  Using `psql` from supabase's postgres docker container. Make sure, docker compose is up. [More info](../README.md).
 
   ```sh
   # syntax
-  docker exec -it <container-name> clickhouse-client <dsn> -q "truncate table if exists default.schema_migrations;"
+  docker exec -it <container-name> \
+    psql <dsn>
+    -c "truncate table if exists dbmate.schema_migrations;"
 
   # example
-  docker exec -it clickhouse clickhouse-client clickhouse://default@127.0.0.1:9000/default -q "truncate table if exists default.foo;"
+  docker exec -it supabase_db_supabase \
+    psql postgresql://postgres:postgres@supabase_db_supabase/postgres \
+    -c 'truncate table if exists dbmate.schema_migrations;'
   ```
 
 * Run `./rigmarole.sh`
@@ -65,4 +69,4 @@ drop table if exists public.employees;
 
 ## Reset
 
-Run the `./rigmarole.sh` script to rollback all migrations and re-apply again. This will effectively reset the entire database. Note that, this will not delete records from the `auth.users` table.
+Run the `./rigmarole.sh` script to rollback all migrations and re-apply again. This will effectively reset the entire database &amp; clear all data. Note that, this will not delete records from the `auth.users` table.
