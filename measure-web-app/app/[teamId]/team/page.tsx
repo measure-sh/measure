@@ -367,23 +367,25 @@ export default function Team({ params }: { params: { teamId: string } }) {
                       setRoleChangeNewRole(selectedDropdownRolesMap.get(id) as string)
                       setChangeRoleConfirmationModalOpen(true)
                     }}>Change Role</button>
+                    {/* Loading message for role change */}
+                    {roleChangeApiStatus === RoleChangeApiStatus.Loading && roleChangeMemberId === id && <p className="font-display">Changing role...</p>}
+                    {/* Error message for role change */}
+                    {roleChangeApiStatus === RoleChangeApiStatus.Error && roleChangeMemberId === id && <p className="font-display text-center">Error: {changeRoleErrorMsg}</p>}
+                    {/* Success message for role change */}
+                    {roleChangeApiStatus === RoleChangeApiStatus.Success && roleChangeMemberId === id && <p className="font-display text-center">Role changed!</p>}
                   </div>
-                  {/* Loading message for role change */}
-                  {roleChangeApiStatus === RoleChangeApiStatus.Loading && roleChangeMemberId === id && <p className="font-display">Changing role...</p>}
-                  {/* Error message for role change */}
-                  {roleChangeApiStatus === RoleChangeApiStatus.Error && roleChangeMemberId === id && <p className="font-display">Error: {changeRoleErrorMsg}</p>}
-                  {/* Success message for role change */}
-                  {roleChangeApiStatus === RoleChangeApiStatus.Success && roleChangeMemberId === id && <p className="font-display">Role changed!</p>}
+
                   <div className="table-cell p-4 pl-0">
                     <button disabled={authz.can_remove === false || removeMemberApiStatus === RemoveMemberApiStatus.Loading} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => {
                       setRemoveMemberId(id)
                       setRemoveMemberConfirmationModalOpen(true)
                     }}>Remove</button>
+                    {/* Loading message for member removal */}
+                    {removeMemberApiStatus === RemoveMemberApiStatus.Loading && removeMemberId === id && <p className="font-display text-center">Removing member...</p>}
+                    {/* Error message for member removal */}
+                    {removeMemberApiStatus === RemoveMemberApiStatus.Error && removeMemberId === id && <p className="font-display text-center">Error: {removeMemberErrorMsg}</p>}
                   </div>
-                  {/* Loading message for member removal */}
-                  {removeMemberApiStatus === RemoveMemberApiStatus.Loading && removeMemberId === id && <p className="font-display">Removing member...</p>}
-                  {/* Error message for member removal */}
-                  {removeMemberApiStatus === RemoveMemberApiStatus.Error && removeMemberId === id && <p className="font-display">Error: {removeMemberErrorMsg}</p>}
+
                 </div>
               ))}
             </div>}
