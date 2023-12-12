@@ -25,6 +25,29 @@ Schema migrations for postgres instances are managed using [dbmate](https://gith
     - `dbmate new alter-teams-relation` - add a new column
 - When authoring migrations, always prefix the schema name in your objects
 
+## Deleting old migrations
+
+Though, generally not recommended, if you want to delete old migration files or squash multiple migration files into one, run the `./rigmarole.sh` script after deleting `.sql` files. This script will rollback all pending migrations and then re-run them. Read on to fully understand the consequences.
+
+* Data from all tables **WILL** get deleted
+* Before running `./rigmarole.sh`, manually truncate the `dbmate.schema_migrations` table by running the following SQL.
+  
+  ```sql
+  truncate table if exists dbmate.schema_migrations;
+  ```
+
+  Using `clickhouse-client` from clickhouse's docker container
+
+  ```sh
+  # syntax
+  docker exec -it <container-name> clickhouse-client <dsn> -q "truncate table if exists default.schema_migrations;"
+
+  # example
+  docker exec -it clickhouse clickhouse-client clickhouse://default@127.0.0.1:9000/default -q "truncate table if exists default.foo;"
+  ```
+
+* Run `./rigmarole.sh`
+
 ## Examples
 
 ### Creating tables
