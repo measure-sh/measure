@@ -40,10 +40,14 @@ Though, generally not recommended, if you want to delete old migration files or 
 
   ```sh
   # syntax
-  docker exec -it <clickhouse-container-name> clickhouse-client <dsn> -q "truncate table if exists default.schema_migrations;"
+  docker exec -it <clickhouse-container-name> \
+    clickhouse-client <dsn> \
+    -q "truncate table if exists default.schema_migrations;"
 
   # example
-  docker exec -it clickhouse clickhouse-client clickhouse://default@127.0.0.1:9000/default -q "truncate table if exists default.schema_migrations;"
+  docker exec -it clickhouse clickhouse-client \
+    clickhouse://default@127.0.0.1:9000/default \
+    -q "truncate table if exists default.schema_migrations;"
   ```
 
 * Run `./rigmarole.sh`
