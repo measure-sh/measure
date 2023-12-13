@@ -1,4 +1,4 @@
-package main
+package measure
 
 import (
 	"context"
@@ -157,7 +157,7 @@ func (m *MappingFile) validate() (int, error) {
 	return 0, nil
 }
 
-func putMapping(c *gin.Context) {
+func PutMapping(c *gin.Context) {
 	file, err := c.FormFile("mapping_file")
 	if err != nil {
 		fmt.Println("error reading mapping_file field", err.Error())

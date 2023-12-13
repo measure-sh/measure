@@ -1,4 +1,4 @@
-package main
+package measure
 
 import (
 	"context"
@@ -561,7 +561,7 @@ func (s *Session) DecodeFromSymbolication(codecMap CodecMap, symbolicationUnits 
 	}
 }
 
-func putSession(c *gin.Context) {
+func PutSession(c *gin.Context) {
 	bc := &ByteCounter{}
 	c.Request.Body = io.NopCloser(io.TeeReader(c.Request.Body, bc))
 	session := new(Session)
