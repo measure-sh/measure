@@ -1,4 +1,4 @@
-package main
+package measure
 
 import (
 	"errors"
@@ -11,7 +11,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func validateAPIKey() gin.HandlerFunc {
+func ValidateAPIKey() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader(("Authorization"))
 		splitToken := strings.Split(authHeader, "Bearer ")
@@ -48,7 +48,7 @@ func validateAPIKey() gin.HandlerFunc {
 	}
 }
 
-func validateAccessToken() gin.HandlerFunc {
+func ValidateAccessToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader(("Authorization"))
 		splitToken := strings.Split(authHeader, "Bearer ")

@@ -1,4 +1,4 @@
-package main
+package measure
 
 import (
 	"github.com/google/uuid"

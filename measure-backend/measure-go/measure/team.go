@@ -1,4 +1,4 @@
-package main
+package measure
 
 import (
 	"context"
@@ -233,7 +233,7 @@ func (t *Team) changeRole(memberId *uuid.UUID, role rank) error {
 	return nil
 }
 
-func getTeams(c *gin.Context) {
+func GetTeams(c *gin.Context) {
 	userId := c.GetString("userId")
 	u := &User{
 		id: userId,
@@ -249,7 +249,7 @@ func getTeams(c *gin.Context) {
 	c.JSON(http.StatusOK, teams)
 }
 
-func getTeamApps(c *gin.Context) {
+func GetTeamApps(c *gin.Context) {
 	userId := c.GetString("userId")
 	teamId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -301,7 +301,7 @@ func getTeamApps(c *gin.Context) {
 	c.JSON(http.StatusOK, apps)
 }
 
-func getTeamApp(c *gin.Context) {
+func GetTeamApp(c *gin.Context) {
 	userId := c.GetString("userId")
 	teamId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -357,7 +357,7 @@ func getTeamApp(c *gin.Context) {
 	c.JSON(http.StatusOK, &a)
 }
 
-func inviteMembers(c *gin.Context) {
+func InviteMembers(c *gin.Context) {
 	userId := c.GetString("userId")
 	teamId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -424,7 +424,7 @@ func inviteMembers(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": "invitee(s) authorized"})
 }
 
-func renameTeam(c *gin.Context) {
+func RenameTeam(c *gin.Context) {
 	userId := c.GetString("userId")
 	teamId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -480,7 +480,7 @@ func renameTeam(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": "team was renamed"})
 }
 
-func getAuthzRoles(c *gin.Context) {
+func GetAuthzRoles(c *gin.Context) {
 	userId := c.GetString("userId")
 	teamId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -556,7 +556,7 @@ func getAuthzRoles(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"can_invite": inviteeRoles, "members": membersWithAuthz})
 }
 
-func getTeamMembers(c *gin.Context) {
+func GetTeamMembers(c *gin.Context) {
 	userId := c.GetString("userId")
 	teamId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -613,7 +613,7 @@ func getTeamMembers(c *gin.Context) {
 	c.JSON(http.StatusOK, members)
 }
 
-func removeTeamMember(c *gin.Context) {
+func RemoveTeamMember(c *gin.Context) {
 	userId := c.GetString("userId")
 	teamId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -677,7 +677,7 @@ func removeTeamMember(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": fmt.Sprintf("removed member [%s] from team [%s]", memberId, teamId)})
 }
 
-func changeMemberRole(c *gin.Context) {
+func ChangeMemberRole(c *gin.Context) {
 	userId := c.GetString("userId")
 	teamId, err := uuid.Parse(c.Param("id"))
 	if err != nil {

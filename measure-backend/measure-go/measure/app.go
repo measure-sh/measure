@@ -1,4 +1,4 @@
-package main
+package measure
 
 import (
 	"context"
@@ -213,7 +213,7 @@ func (a *App) get(id uuid.UUID) (*App, error) {
 	return a, nil
 }
 
-func getAppJourney(c *gin.Context) {
+func GetAppJourney(c *gin.Context) {
 	var af AppFilter
 
 	id, err := uuid.Parse(c.Param("id"))
@@ -270,7 +270,7 @@ func getAppJourney(c *gin.Context) {
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
 
-func getAppMetrics(c *gin.Context) {
+func GetAppMetrics(c *gin.Context) {
 	var af AppFilter
 
 	id, err := uuid.Parse(c.Param("id"))
@@ -326,7 +326,7 @@ func getAppMetrics(c *gin.Context) {
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
 
-func getAppFilters(c *gin.Context) {
+func GetAppFilters(c *gin.Context) {
 	appId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		msg := `app id invalid or missing`
@@ -526,7 +526,7 @@ func getAppFilters(c *gin.Context) {
 
 }
 
-func createApp(c *gin.Context) {
+func CreateApp(c *gin.Context) {
 	userId := c.GetString("userId")
 	teamId, err := uuid.Parse(c.Param("id"))
 	if err != nil {

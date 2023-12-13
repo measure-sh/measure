@@ -1,4 +1,4 @@
-package main
+package measure
 
 import (
 	"context"
@@ -70,33 +70,6 @@ func (s *Session) hasANRs() bool {
 func (s *Session) hasAppExits() bool {
 	for _, event := range s.Events {
 		if event.isAppExit() {
-			return true
-		}
-	}
-	return false
-}
-
-func (s *Session) hasGestureLongClicks() bool {
-	for _, event := range s.Events {
-		if event.isGestureLongClick() {
-			return true
-		}
-	}
-	return false
-}
-
-func (s *Session) hasGestureScrolls() bool {
-	for _, event := range s.Events {
-		if event.isGestureScroll() {
-			return true
-		}
-	}
-	return false
-}
-
-func (s *Session) hasGestureClicks() bool {
-	for _, event := range s.Events {
-		if event.isGestureClick() {
 			return true
 		}
 	}
@@ -566,7 +539,7 @@ func (s *Session) DecodeFromSymbolication(codecMap CodecMap, symbolicationUnits 
 	}
 }
 
-func putSession(c *gin.Context) {
+func PutSession(c *gin.Context) {
 	bc := &ByteCounter{}
 	c.Request.Body = io.NopCloser(io.TeeReader(c.Request.Body, bc))
 	session := new(Session)

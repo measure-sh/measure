@@ -1,4 +1,4 @@
-package main
+package measure
 
 // ByteCounter allows you to count bytes
 type ByteCounter struct {
