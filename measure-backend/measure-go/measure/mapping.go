@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"measure-backend/measure-go/cipher"
 	"measure-backend/measure-go/server"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -109,7 +110,7 @@ func (m *MappingFile) checksum() error {
 	if err != nil {
 		return err
 	}
-	hash, err := checksum(file)
+	hash, err := cipher.ChecksumFnv1(file)
 	if err != nil {
 		return err
 	}
