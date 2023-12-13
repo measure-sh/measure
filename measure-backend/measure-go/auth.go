@@ -11,7 +11,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func authorize() gin.HandlerFunc {
+func validateAPIKey() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader(("Authorization"))
 		splitToken := strings.Split(authHeader, "Bearer ")
@@ -21,14 +21,28 @@ func authorize() gin.HandlerFunc {
 			return
 		}
 
-		token := strings.TrimSpace(splitToken[1])
+		key := strings.TrimSpace(splitToken[1])
 
-		if token == "" {
+		if key == "" {
 			c.AbortWithStatus((http.StatusUnauthorized))
 			return
 		}
 
-		c.Set("token", token)
+		appId, err := DecodeAPIKey(key)
+		if err != nil {
+			fmt.Println("api key decode failed:", err)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid api key"})
+			return
+		}
+
+		if appId == nil {
+			msg := "no app found for this api key"
+			fmt.Println(msg)
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": msg})
+			return
+		}
+
+		c.Set("appId", appId.String())
 
 		c.Next()
 	}

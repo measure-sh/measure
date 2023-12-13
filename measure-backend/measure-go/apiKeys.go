@@ -3,17 +3,23 @@ package main
 import (
 	"context"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"measure-backend/measure-go/chrono"
+	"measure-backend/measure-go/cipher"
+	"measure-backend/measure-go/server"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/leporo/sqlf"
 )
+
+const APIKeyPrefix = "msrsh"
 
 type APIKey struct {
 	appId     uuid.UUID
@@ -49,15 +55,16 @@ func NewAPIKey(appId uuid.UUID) (*APIKey, error) {
 
 	byteString := hex.EncodeToString(bytes)
 
-	hash := sha256.New()
-	hash.Write([]byte(byteString))
-	checksum := hex.EncodeToString(hash.Sum(nil))[:8]
+	checksum, err := cipher.ComputeChecksum([]byte(byteString))
+	if err != nil {
+		return nil, err
+	}
 
 	return &APIKey{
 		appId:     appId,
-		keyPrefix: "msrsh",
+		keyPrefix: APIKeyPrefix,
 		keyValue:  byteString,
-		checksum:  checksum,
+		checksum:  *checksum,
 		createdAt: time.Now(),
 	}, nil
 }
@@ -74,4 +81,49 @@ func (a *APIKey) saveTx(tx pgx.Tx, app *App) error {
 
 func (a *APIKey) String() string {
 	return fmt.Sprintf("%s_%s_%s", a.keyPrefix, a.keyValue, a.checksum)
+}
+
+func DecodeAPIKey(key string) (*uuid.UUID, error) {
+	defaultErr := errors.New("invalid api key")
+
+	if len(key) < 1 {
+		return nil, defaultErr
+	}
+
+	parts := strings.Split(key, "_")
+
+	if len(parts) != 3 {
+		return nil, defaultErr
+	}
+
+	prefix := parts[0]
+	value := parts[1]
+	checksum := parts[2]
+
+	if prefix != APIKeyPrefix {
+		return nil, defaultErr
+	}
+
+	computedChecksum, err := cipher.ComputeChecksum([]byte(value))
+	if err != nil {
+		return nil, err
+	}
+
+	if checksum != *computedChecksum {
+		return nil, defaultErr
+	}
+
+	stmt := sqlf.PostgreSQL.Select("app_id").From("api_keys").Where("key_value = ? and revoked = ?", nil, nil, nil).Limit(1)
+	defer stmt.Close()
+
+	var appId uuid.UUID
+
+	if err := server.Server.PgPool.QueryRow(context.Background(), stmt.String(), value, false, 1).Scan(&appId); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &appId, nil
 }

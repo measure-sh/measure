@@ -18,10 +18,13 @@ import (
 
 type Session struct {
 	SessionID   uuid.UUID    `json:"session_id" binding:"required"`
+	AppID       uuid.UUID    `json:"app_id"`
 	Timestamp   time.Time    `json:"timestamp" binding:"required"`
 	Resource    Resource     `json:"resource" binding:"required"`
 	Events      []EventField `json:"events" binding:"required"`
 	Attachments []Attachment `json:"attachments"`
+	CreatedAt   time.Time    `json:"created_at"`
+	UpdatedAt   time.Time    `json:"updated_at"`
 }
 
 func (s *Session) validate() error {
@@ -154,15 +157,17 @@ func (s *Session) uploadAttachments() error {
 
 func (s *Session) saveWithContext(c *gin.Context) error {
 	bytesIn := c.MustGet("bytesIn")
+	appId := c.GetString("appId")
 	tx, err := server.Server.PgPool.Begin(context.Background())
 	if err != nil {
 		return err
 	}
 
 	defer tx.Rollback(context.Background())
+	now := time.Now()
 
 	// insert the session
-	_, err = tx.Exec(context.Background(), `insert into sessions (id, event_count, attachment_count, bytes_in, timestamp) values ($1, $2, $3, $4, $5);`, s.SessionID, len(s.Events), len(s.Attachments), bytesIn, time.Now())
+	_, err = tx.Exec(context.Background(), `insert into sessions (id, event_count, attachment_count, bytes_in, timestamp, app_id, created_at, updated_at) values ($1, $2, $3, $4, $5, $6, $7, $8);`, s.SessionID, len(s.Events), len(s.Attachments), bytesIn, s.Timestamp, appId, now, now)
 	if err != nil {
 		fmt.Println(`failed to write session to db`, err.Error())
 		return err
@@ -570,6 +575,16 @@ func putSession(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse session payload"})
 		return
 	}
+
+	appId, err := uuid.Parse(c.GetString("appId"))
+	if err != nil {
+		msg := "error parsing app's uuid"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to ingest session"})
+		return
+	}
+
+	session.AppID = appId
 
 	c.Set("bytesIn", bc.Count)
 

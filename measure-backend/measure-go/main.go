@@ -48,13 +48,13 @@ func main() {
 	})
 
 	// SDK routes
-	r.PUT("/sessions", authorize(), putSession)
-	r.PUT("/mappings", authorize(), putMapping)
+	r.PUT("/sessions", validateAPIKey(), putSession)
+	r.PUT("/mappings", validateAPIKey(), putMapping)
 
 	// dashboard routes
-	r.Use(cors).GET("/apps/:id/journey", authorize(), getAppJourney)
-	r.Use(cors).GET("/apps/:id/metrics", authorize(), getAppMetrics)
-	r.Use(cors).GET("/apps/:id/filters", authorize(), getAppFilters)
+	r.Use(cors).GET("/apps/:id/journey", validateAccessToken(), getAppJourney)
+	r.Use(cors).GET("/apps/:id/metrics", validateAccessToken(), getAppMetrics)
+	r.Use(cors).GET("/apps/:id/filters", validateAccessToken(), getAppFilters)
 	r.Use(cors).GET("/teams", validateAccessToken(), getTeams)
 	r.Use(cors).GET("/teams/:id/apps", validateAccessToken(), getTeamApps)
 	r.Use(cors).GET("/teams/:id/apps/:appId", validateAccessToken(), getTeamApp)
