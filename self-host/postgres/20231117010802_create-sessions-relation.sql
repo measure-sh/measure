@@ -6,7 +6,9 @@ create table if not exists public.sessions (
     attachment_count int default 0,
     bytes_in int default 0,
     symbolication_attempts_count int default 0,
-    timestamp timestamptz not null
+    timestamp timestamptz not null,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null
 );
 
 comment on column public.sessions.id is 'unique uuidv4 session id';
@@ -16,6 +18,8 @@ comment on column public.sessions.attachment_count is 'number of attachments in 
 comment on column public.sessions.bytes_in is 'total session payload size in bytes';
 comment on column public.sessions.symbolication_attempts_count is 'number of times symbolication was attempted for this session';
 comment on column public.sessions.timestamp is 'utc timestamp at the time of session ingestion';
+comment on column public.sessions.created_at is 'utc timestamp at the time of record creation';
+comment on column public.sessions.updated_at is 'utc timestamp at the time of record updation';
 
 -- migrate:down
 drop table if exists public.sessions;

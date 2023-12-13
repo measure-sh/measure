@@ -391,7 +391,9 @@ CREATE TABLE public.sessions (
     attachment_count integer DEFAULT 0,
     bytes_in integer DEFAULT 0,
     symbolication_attempts_count integer DEFAULT 0,
-    "timestamp" timestamp with time zone NOT NULL
+    "timestamp" timestamp with time zone NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone NOT NULL
 );
 
 
@@ -442,6 +444,20 @@ COMMENT ON COLUMN public.sessions.symbolication_attempts_count IS 'number of tim
 --
 
 COMMENT ON COLUMN public.sessions."timestamp" IS 'utc timestamp at the time of session ingestion';
+
+
+--
+-- Name: COLUMN sessions.created_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.sessions.created_at IS 'utc timestamp at the time of record creation';
+
+
+--
+-- Name: COLUMN sessions.updated_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.sessions.updated_at IS 'utc timestamp at the time of record updation';
 
 
 --
@@ -514,94 +530,6 @@ COMMENT ON COLUMN public.sessions_attachments.location IS 'url of the attachment
 --
 
 COMMENT ON COLUMN public.sessions_attachments."timestamp" IS 'utc timestamp at the time of attachment file upload';
-
-
---
--- Name: team_invitations; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.team_invitations (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    team_id uuid NOT NULL,
-    user_id uuid,
-    email character varying(256) NOT NULL,
-    role character varying(256),
-    code character varying(256) NOT NULL,
-    invite_sent_count integer DEFAULT 0,
-    last_invite_sent_at timestamp with time zone,
-    invite_expires_at timestamp with time zone NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
-
---
--- Name: COLUMN team_invitations.id; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.team_invitations.id IS 'unique id for each team member invite';
-
-
---
--- Name: COLUMN team_invitations.team_id; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.team_invitations.team_id IS 'team id to which invitee is being invited';
-
-
---
--- Name: COLUMN team_invitations.user_id; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.team_invitations.user_id IS 'user id of inviter';
-
-
---
--- Name: COLUMN team_invitations.email; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.team_invitations.email IS 'email of invitee';
-
-
---
--- Name: COLUMN team_invitations.role; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.team_invitations.role IS 'role of invitee as decided by inviter at time of invite request';
-
-
---
--- Name: COLUMN team_invitations.code; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.team_invitations.code IS 'cryptographically unique invite code generated per invitee';
-
-
---
--- Name: COLUMN team_invitations.invite_sent_count; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.team_invitations.invite_sent_count IS 'count of email invite (re)tries';
-
-
---
--- Name: COLUMN team_invitations.last_invite_sent_at; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.team_invitations.last_invite_sent_at IS 'utc timestamp at the time of last email invite sent';
-
-
---
--- Name: COLUMN team_invitations.invite_expires_at; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.team_invitations.invite_expires_at IS 'utc timestamp of invite expiration';
-
-
---
--- Name: COLUMN team_invitations.created_at; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.team_invitations.created_at IS 'utc timestamp at the time of invite request creation';
 
 
 --
@@ -757,14 +685,6 @@ ALTER TABLE ONLY public.sessions
 
 
 --
--- Name: team_invitations team_invitations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.team_invitations
-    ADD CONSTRAINT team_invitations_pkey PRIMARY KEY (id);
-
-
---
 -- Name: team_membership team_membership_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -813,22 +733,6 @@ ALTER TABLE ONLY public.sessions_attachments
 
 
 --
--- Name: team_invitations team_invitations_role_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.team_invitations
-    ADD CONSTRAINT team_invitations_role_fkey FOREIGN KEY (role) REFERENCES public.roles(name) ON DELETE CASCADE;
-
-
---
--- Name: team_invitations team_invitations_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.team_invitations
-    ADD CONSTRAINT team_invitations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
---
 -- Name: team_membership team_membership_role_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -869,7 +773,6 @@ INSERT INTO dbmate.schema_migrations (version) VALUES
     ('20231117011737'),
     ('20231117012011'),
     ('20231117012219'),
-    ('20231117012336'),
     ('20231117012557'),
     ('20231117012726'),
     ('20231122211412');
