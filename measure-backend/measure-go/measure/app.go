@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/leporo/sqlf"
 )
 
 const queryGetApp = `
@@ -40,19 +41,19 @@ where apps.id = $1 and apps.team_id = $2;
 `
 
 type App struct {
-	ID            uuid.UUID `json:"id"`
-	TeamId        uuid.UUID `json:"team_id"`
-	AppName       string    `json:"name" binding:"required"`
-	UniqueId      string    `json:"unique_identifier"`
-	Platform      string    `json:"platform"`
-	APIKey        *APIKey   `json:"api_key"`
-	firstVersion  string    `json:"first_version"`
-	latestVersion string    `json:"latest_version"`
-	firstSeenAt   time.Time `json:"first_seen_at"`
-	Onboarded     bool      `json:"onboarded"`
-	OnboardedAt   time.Time `json:"onboarded_at"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	ID            *uuid.UUID `json:"id"`
+	TeamId        uuid.UUID  `json:"team_id"`
+	AppName       string     `json:"name" binding:"required"`
+	UniqueId      string     `json:"unique_identifier"`
+	Platform      string     `json:"platform"`
+	APIKey        *APIKey    `json:"api_key"`
+	firstVersion  string     `json:"first_version"`
+	latestVersion string     `json:"latest_version"`
+	firstSeenAt   time.Time  `json:"first_seen_at"`
+	Onboarded     bool       `json:"onboarded"`
+	OnboardedAt   time.Time  `json:"onboarded_at"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
 }
 
 func (a App) MarshalJSON() ([]byte, error) {
@@ -87,8 +88,9 @@ func (a App) MarshalJSON() ([]byte, error) {
 
 func NewApp(teamId uuid.UUID) *App {
 	now := time.Now()
+	id := uuid.New()
 	return &App{
-		ID:        uuid.New(),
+		ID:        &id,
 		TeamId:    teamId,
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -96,7 +98,8 @@ func NewApp(teamId uuid.UUID) *App {
 }
 
 func (a *App) add() (*APIKey, error) {
-	a.ID = uuid.New()
+	id := uuid.New()
+	a.ID = &id
 	tx, err := server.Server.PgPool.Begin(context.Background())
 
 	if err != nil {
@@ -111,7 +114,7 @@ func (a *App) add() (*APIKey, error) {
 		return nil, err
 	}
 
-	apiKey, err := NewAPIKey(a.ID)
+	apiKey, err := NewAPIKey(*a.ID)
 
 	if err != nil {
 		return nil, err
@@ -128,7 +131,59 @@ func (a *App) add() (*APIKey, error) {
 	return apiKey, nil
 }
 
-func (a *App) get(id uuid.UUID) (*App, error) {
+func (a *App) get() (*App, error) {
+	var onboarded pgtype.Bool
+	var uniqueId pgtype.Text
+	var platform pgtype.Text
+	var firstVersion pgtype.Text
+	var latestVersion pgtype.Text
+
+	stmt := sqlf.PostgreSQL.
+		Select("onboarded", nil).
+		Select("unique_identifier", nil).
+		Select("platform", nil).
+		Select("first_version", nil).
+		Select("latest_version", nil).
+		From("apps").
+		Where("id = ?", nil)
+	defer stmt.Close()
+
+	if err := server.Server.PgPool.QueryRow(context.Background(), stmt.String(), a.ID).Scan(&onboarded, &uniqueId, &platform, &firstVersion, &latestVersion); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	}
+
+	if uniqueId.Valid {
+		a.UniqueId = uniqueId.String
+	} else {
+		a.UniqueId = ""
+	}
+
+	if platform.Valid {
+		a.Platform = platform.String
+	} else {
+		a.Platform = ""
+	}
+
+	if firstVersion.Valid {
+		a.firstVersion = firstVersion.String
+	} else {
+		a.firstVersion = ""
+	}
+
+	if latestVersion.Valid {
+		a.latestVersion = latestVersion.String
+	} else {
+		a.latestVersion = ""
+	}
+
+	return a, nil
+}
+
+func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 	var appName pgtype.Text
 	var uniqueId pgtype.Text
 	var platform pgtype.Text
@@ -211,6 +266,28 @@ func (a *App) get(id uuid.UUID) (*App, error) {
 	a.APIKey = apiKey
 
 	return a, nil
+}
+
+func (a *App) Onboard(tx pgx.Tx, uniqueIdentifier, platform, firstVersion string) error {
+	now := time.Now()
+	stmt := sqlf.PostgreSQL.Update("apps").
+		Set("onboarded", nil).
+		Set("unique_identifier", nil).
+		Set("platform", nil).
+		Set("first_version", nil).
+		Set("latest_version", nil).
+		Set("first_seen_at", nil).
+		Set("updated_at", nil).
+		Where("id = ?", nil)
+
+	defer stmt.Close()
+
+	_, err := tx.Exec(context.Background(), stmt.String(), true, uniqueIdentifier, platform, firstVersion, firstVersion, now, now, a.ID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func GetAppJourney(c *gin.Context) {

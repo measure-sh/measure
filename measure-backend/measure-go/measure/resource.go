@@ -1,6 +1,9 @@
 package measure
 
-import "fmt"
+import (
+	"fmt"
+	"measure-backend/measure-go/platform"
+)
 
 type Resource struct {
 	DeviceName         string  `json:"device_name"`
@@ -65,6 +68,9 @@ func (r *Resource) validate() error {
 	}
 	if len(r.Platform) > maxPlatformChars {
 		return fmt.Errorf(`"resource.platform" exceeds maximum allowed characters of (%d)`, maxPlatformChars)
+	}
+	if r.Platform != platform.Android && r.Platform != platform.IOS {
+		return fmt.Errorf(`"resource.platform" does not contain a valid platform value`)
 	}
 	if len(r.AppVersion) > maxAppVersionChars {
 		return fmt.Errorf(`"resource.app_version" exceeds maximum allowed characters of (%d)`, maxAppVersionChars)

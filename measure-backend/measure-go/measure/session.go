@@ -130,7 +130,22 @@ func (s *Session) uploadAttachments() error {
 
 func (s *Session) saveWithContext(c *gin.Context) error {
 	bytesIn := c.MustGet("bytesIn")
-	appId := c.GetString("appId")
+	appId, err := uuid.Parse(c.GetString("appId"))
+	if err != nil {
+		msg := "error parsing app's uuid"
+		fmt.Println(msg, err)
+		return err
+	}
+
+	app := &App{
+		ID: &appId,
+	}
+	if app, err = app.get(); err != nil {
+		msg := "failed to get app"
+		fmt.Println(msg, err)
+		return err
+	}
+
 	tx, err := server.Server.PgPool.Begin(context.Background())
 	if err != nil {
 		return err
@@ -175,6 +190,16 @@ func (s *Session) saveWithContext(c *gin.Context) error {
 		}
 	}
 
+	if !app.Onboarded {
+		uniqueIdentifier := s.Resource.AppUniqueID
+		platform := s.Resource.Platform
+		firstVersion := s.Resource.AppVersion
+
+		if err := app.Onboard(tx, uniqueIdentifier, platform, firstVersion); err != nil {
+			return err
+		}
+	}
+
 	err = tx.Commit(context.Background())
 	if err != nil {
 		return err
@@ -182,9 +207,9 @@ func (s *Session) saveWithContext(c *gin.Context) error {
 	return nil
 }
 
-func (s *Session) known(id uuid.UUID) (bool, error) {
+func (s *Session) known() (bool, error) {
 	var known string
-	if err := server.Server.PgPool.QueryRow(context.Background(), `select id from sessions where id = $1;`, s.SessionID).Scan(&known); err != nil {
+	if err := server.Server.PgPool.QueryRow(context.Background(), `select id from sessions where id = $1 and app_id = $2;`, s.SessionID, s.AppID).Scan(&known); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, nil
 		}
@@ -561,7 +586,7 @@ func PutSession(c *gin.Context) {
 
 	c.Set("bytesIn", bc.Count)
 
-	if known, err := session.known(session.SessionID); err != nil {
+	if known, err := session.known(); err != nil {
 		fmt.Println("failed to check existing session", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to ingest session"})
 		return

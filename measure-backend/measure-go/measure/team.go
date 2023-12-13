@@ -341,7 +341,7 @@ func GetTeamApp(c *gin.Context) {
 	}
 
 	a := NewApp(teamId)
-	a, err = a.get(appId)
+	a, err = a.getWithTeam(appId)
 	if err != nil {
 		msg := fmt.Sprintf("failed to fetch app: %s", appId)
 		fmt.Println(msg, err)
