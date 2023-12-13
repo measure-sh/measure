@@ -4,6 +4,7 @@ create table if not exists default.events
     `id` UUID,
     `type` LowCardinality(FixedString(32)),
     `session_id` UUID,
+    `app_id` UUID,
     `timestamp` DateTime64(9, 'UTC'),
     `thread_name` FixedString(64),
     `resource.device_name` FixedString(32),
