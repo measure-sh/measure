@@ -73,33 +73,6 @@ func (s *Session) hasAppExits() bool {
 	return false
 }
 
-func (s *Session) hasGestureLongClicks() bool {
-	for _, event := range s.Events {
-		if event.isGestureLongClick() {
-			return true
-		}
-	}
-	return false
-}
-
-func (s *Session) hasGestureScrolls() bool {
-	for _, event := range s.Events {
-		if event.isGestureScroll() {
-			return true
-		}
-	}
-	return false
-}
-
-func (s *Session) hasGestureClicks() bool {
-	for _, event := range s.Events {
-		if event.isGestureClick() {
-			return true
-		}
-	}
-	return false
-}
-
 func (s *Session) hasLifecycleActivities() bool {
 	for _, event := range s.Events {
 		if event.isLifecycleActivity() {
