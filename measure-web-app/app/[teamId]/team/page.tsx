@@ -1,7 +1,7 @@
 "use client"
 
 import Dropdown from "@/app/components/dropdown";
-import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from "@/app/utils/auth_utils";
+import { getAccessTokenOrRedirectToAuth, getUserIdOrRedirectToAuth, logoutIfAuthError } from "@/app/utils/auth_utils";
 import { useEffect, useState } from "react";
 import { useRouter } from 'next/navigation';
 import DangerConfirmationModal from "@/app/components/danger_confirmation_modal";
@@ -51,6 +51,8 @@ export default function Team({ params }: { params: { teamId: string } }) {
   const emptyTeam = { 'id': '', 'name': '' }
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading);
   const [team, setTeam] = useState(emptyTeam)
+
+  const [currentUserId, setCurrentUserId] = useState<String>()
 
   const [saveTeamNameButtonDisabled, setSaveTeamNameButtonDisabled] = useState(true);
 
@@ -127,6 +129,17 @@ export default function Team({ params }: { params: { teamId: string } }) {
 
   useEffect(() => {
     getTeam()
+  }, []);
+
+  const getCurrentUserId = async () => {
+    const id = await getUserIdOrRedirectToAuth(router)
+    if (id !== null) {
+      setCurrentUserId(id)
+    }
+  }
+
+  useEffect(() => {
+    getCurrentUserId()
   }, []);
 
   const getAuthzAndMembers = async () => {
@@ -351,40 +364,54 @@ export default function Team({ params }: { params: { teamId: string } }) {
               {authzAndMembers.members.map(({ id, email, role, authz }) => (
                 <div key={id} className="table-row font-sans">
                   <div className="table-cell p-4 pl-0 text-lg">{email}</div>
-                  <div className="table-cell p-4 pl-0">
-                    {/* If roles can be changed for members, add roles to dropdown and set selected role to current role */}
-                    {authz.can_change_roles !== null && authz.can_change_roles.length > 0 && <Dropdown items={authz.can_change_roles.map((i) => i.charAt(0).toLocaleUpperCase() + i.slice(1))} initialItemIndex={authzAndMembers.can_invite.findIndex((i) => i === role)} onChangeSelectedItem={(i) => {
-                      const newMap = new Map(selectedDropdownRolesMap)
-                      newMap.set(id, i)
-                      setSelectedDropdownRolesMap(newMap)
-                    }} />}
-                    {/* If roles cannot be changed for current member, just show current role as part of dropdown */}
-                    {authz.can_change_roles === null || authz.can_change_roles.length === 0 && <Dropdown items={[role]} />}
-                  </div>
-                  <div className="table-cell p-4 pl-0">
-                    <button disabled={selectedDropdownRolesMap.get(id) === undefined || selectedDropdownRolesMap.get(id) === role} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => {
-                      setRoleChangeMemberId(id)
-                      setRoleChangeNewRole(selectedDropdownRolesMap.get(id) as string)
-                      setChangeRoleConfirmationModalOpen(true)
-                    }}>Change Role</button>
-                    {/* Loading message for role change */}
-                    {roleChangeApiStatus === RoleChangeApiStatus.Loading && roleChangeMemberId === id && <p className="font-display">Changing role...</p>}
-                    {/* Error message for role change */}
-                    {roleChangeApiStatus === RoleChangeApiStatus.Error && roleChangeMemberId === id && <p className="font-display text-center">Error: {changeRoleErrorMsg}</p>}
-                    {/* Success message for role change */}
-                    {roleChangeApiStatus === RoleChangeApiStatus.Success && roleChangeMemberId === id && <p className="font-display text-center">Role changed!</p>}
-                  </div>
 
-                  <div className="table-cell p-4 pl-0">
-                    <button disabled={authz.can_remove === false || removeMemberApiStatus === RemoveMemberApiStatus.Loading} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => {
-                      setRemoveMemberId(id)
-                      setRemoveMemberConfirmationModalOpen(true)
-                    }}>Remove</button>
-                    {/* Loading message for member removal */}
-                    {removeMemberApiStatus === RemoveMemberApiStatus.Loading && removeMemberId === id && <p className="font-display text-center">Removing member...</p>}
-                    {/* Error message for member removal */}
-                    {removeMemberApiStatus === RemoveMemberApiStatus.Error && removeMemberId === id && <p className="font-display text-center">Error: {removeMemberErrorMsg}</p>}
-                  </div>
+                  {/* Show only if row is current user */}
+                  {id === currentUserId && <div className="table-cell p-4 pl-0 text-lg ">{role.charAt(0).toLocaleUpperCase() + role.slice(1)}</div>}
+
+                  {/* Show roles dropdown if not current user */}
+                  {id !== currentUserId &&
+                    <div className="table-cell p-4 pl-0">
+                      {/* If roles can be changed for members, add roles to dropdown and set selected role to current role */}
+                      {authz.can_change_roles !== null && authz.can_change_roles.length > 0 && <Dropdown items={authz.can_change_roles.map((i) => i.charAt(0).toLocaleUpperCase() + i.slice(1))} initialItemIndex={authzAndMembers.can_invite.findIndex((i) => i === role)} onChangeSelectedItem={(i) => {
+                        const newMap = new Map(selectedDropdownRolesMap)
+                        newMap.set(id, i)
+                        setSelectedDropdownRolesMap(newMap)
+                      }} />}
+                      {/* If roles cannot be changed for current member, just show current role as part of dropdown */}
+                      {authz.can_change_roles === null || authz.can_change_roles.length === 0 && <Dropdown items={[role]} />}
+                    </div>
+                  }
+
+                  {/* Show change role button if not current user */}
+                  {id !== currentUserId &&
+                    <div className="table-cell p-4 pl-0">
+                      <button disabled={selectedDropdownRolesMap.get(id) === undefined || selectedDropdownRolesMap.get(id) === role} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => {
+                        setRoleChangeMemberId(id)
+                        setRoleChangeNewRole(selectedDropdownRolesMap.get(id) as string)
+                        setChangeRoleConfirmationModalOpen(true)
+                      }}>Change Role</button>
+                      {/* Loading message for role change */}
+                      {roleChangeApiStatus === RoleChangeApiStatus.Loading && roleChangeMemberId === id && <p className="font-display">Changing role...</p>}
+                      {/* Error message for role change */}
+                      {roleChangeApiStatus === RoleChangeApiStatus.Error && roleChangeMemberId === id && <p className="font-display text-center">Error: {changeRoleErrorMsg}</p>}
+                      {/* Success message for role change */}
+                      {roleChangeApiStatus === RoleChangeApiStatus.Success && roleChangeMemberId === id && <p className="font-display text-center">Role changed!</p>}
+                    </div>
+                  }
+
+                  {/* Show remove member button if not current user */}
+                  {id !== currentUserId &&
+                    <div className="table-cell p-4 pl-0">
+                      <button disabled={authz.can_remove === false || removeMemberApiStatus === RemoveMemberApiStatus.Loading} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => {
+                        setRemoveMemberId(id)
+                        setRemoveMemberConfirmationModalOpen(true)
+                      }}>Remove</button>
+                      {/* Loading message for member removal */}
+                      {removeMemberApiStatus === RemoveMemberApiStatus.Loading && removeMemberId === id && <p className="font-display text-center">Removing member...</p>}
+                      {/* Error message for member removal */}
+                      {removeMemberApiStatus === RemoveMemberApiStatus.Error && removeMemberId === id && <p className="font-display text-center">Error: {removeMemberErrorMsg}</p>}
+                    </div>
+                  }
 
                 </div>
               ))}

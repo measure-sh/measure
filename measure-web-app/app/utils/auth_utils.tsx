@@ -22,6 +22,20 @@ supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session) => {
   }
 })
 
+// Utility function to try and access current user's ID. If session retrieval
+// fails for any reason, logout will be called and the user will be redirected to auth
+export async function getUserIdOrRedirectToAuth(router: AppRouterInstance) {
+  const { data: { session }, error } = await supabase.auth.getSession()
+
+  if (error) {
+    await supabase.auth.signOut()
+    router.push('/auth/logout')
+    return null
+  }
+
+  return session!.user.id;
+}
+
 // Utility function to try and access current access token. If session retrieval
 // fails for any reason, logout will be called and the user will be redirected to auth
 export async function getAccessTokenOrRedirectToAuth(router: AppRouterInstance) {
