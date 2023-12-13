@@ -246,7 +246,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
 
     if (!res.ok) {
       seRemoveMemberApiStatus(RemoveMemberApiStatus.Error)
-      setChangeRoleErrorMsg(json.error)
+      setRemoveMemberErrorMsg(json.error)
       logoutIfAuthError(router, res)
       return
     }
