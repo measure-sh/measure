@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"measure-backend/measure-go/measure"
 	"measure-backend/measure-go/server"
 
 	"github.com/gin-contrib/cors"
@@ -48,23 +49,23 @@ func main() {
 	})
 
 	// SDK routes
-	r.PUT("/sessions", authorize(), putSession)
-	r.PUT("/mappings", authorize(), putMapping)
+	r.PUT("/sessions", measure.Authorize(), measure.PutSession)
+	r.PUT("/mappings", measure.Authorize(), measure.PutMapping)
 
 	// dashboard routes
-	r.Use(cors).GET("/apps/:id/journey", authorize(), getAppJourney)
-	r.Use(cors).GET("/apps/:id/metrics", authorize(), getAppMetrics)
-	r.Use(cors).GET("/apps/:id/filters", authorize(), getAppFilters)
-	r.Use(cors).GET("/teams", validateAccessToken(), getTeams)
-	r.Use(cors).GET("/teams/:id/apps", validateAccessToken(), getTeamApps)
-	r.Use(cors).GET("/teams/:id/apps/:appId", validateAccessToken(), getTeamApp)
-	r.Use(cors).POST("/teams/:id/apps", validateAccessToken(), createApp)
-	r.Use(cors).POST("/teams/:id/invite", validateAccessToken(), inviteMembers)
-	r.Use(cors).PATCH("/teams/:id/rename", validateAccessToken(), renameTeam)
-	r.Use(cors).PATCH("/teams/:id/members/:memberId/role", validateAccessToken(), changeMemberRole)
-	r.Use(cors).GET("/teams/:id/authz", validateAccessToken(), getAuthzRoles)
-	r.Use(cors).GET("/teams/:id/members", validateAccessToken(), getTeamMembers)
-	r.Use(cors).DELETE("/teams/:id/members/:memberId", validateAccessToken(), removeTeamMember)
+	r.Use(cors).GET("/apps/:id/journey", measure.Authorize(), measure.GetAppJourney)
+	r.Use(cors).GET("/apps/:id/metrics", measure.Authorize(), measure.GetAppMetrics)
+	r.Use(cors).GET("/apps/:id/filters", measure.Authorize(), measure.GetAppFilters)
+	r.Use(cors).GET("/teams", measure.ValidateAccessToken(), measure.GetTeams)
+	r.Use(cors).GET("/teams/:id/apps", measure.ValidateAccessToken(), measure.GetTeamApps)
+	r.Use(cors).GET("/teams/:id/apps/:appId", measure.ValidateAccessToken(), measure.GetTeamApp)
+	r.Use(cors).POST("/teams/:id/apps", measure.ValidateAccessToken(), measure.CreateApp)
+	r.Use(cors).POST("/teams/:id/invite", measure.ValidateAccessToken(), measure.InviteMembers)
+	r.Use(cors).PATCH("/teams/:id/rename", measure.ValidateAccessToken(), measure.RenameTeam)
+	r.Use(cors).PATCH("/teams/:id/members/:memberId/role", measure.ValidateAccessToken(), measure.ChangeMemberRole)
+	r.Use(cors).GET("/teams/:id/authz", measure.ValidateAccessToken(), measure.GetAuthzRoles)
+	r.Use(cors).GET("/teams/:id/members", measure.ValidateAccessToken(), measure.GetTeamMembers)
+	r.Use(cors).DELETE("/teams/:id/members/:memberId", measure.ValidateAccessToken(), measure.RemoveTeamMember)
 
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080
 }
