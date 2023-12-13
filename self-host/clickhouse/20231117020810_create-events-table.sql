@@ -162,7 +162,8 @@ create table if not exists default.events
     `cpu_usage.interval_config` UInt32,
 )
 engine = MergeTree
-primary key (id, timestamp);
+primary key (id, app_id, timestamp)
+order by (id, app_id, timestamp);
 
 -- migrate:down
 drop table if exists default.events;

@@ -168,8 +168,8 @@ CREATE TABLE default.events
     `cpu_usage.interval_config` UInt32
 )
 ENGINE = MergeTree
-PRIMARY KEY (id, timestamp)
-ORDER BY (id, timestamp)
+PRIMARY KEY (id, app_id, timestamp)
+ORDER BY (id, app_id, timestamp)
 SETTINGS index_granularity = 8192;
 
 CREATE TABLE default.schema_migrations
