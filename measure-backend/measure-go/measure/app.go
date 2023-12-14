@@ -258,7 +258,7 @@ func (a *App) Onboard(tx pgx.Tx, uniqueIdentifier, platform, firstVersion string
 		Set("unique_identifier", nil).
 		Set("platform", nil).
 		Set("first_version", nil).
-		Set("first_seen_at", nil).
+		Set("onboarded_at", nil).
 		Set("updated_at", nil).
 		Where("id = ?", nil)
 
