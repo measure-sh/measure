@@ -84,6 +84,7 @@ func ValidateAccessToken() gin.HandlerFunc {
 
 			fmt.Println("generic access token error", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or malformed access token"})
+			return
 		}
 
 		if claims, ok := accessToken.Claims.(jwt.MapClaims); ok {
