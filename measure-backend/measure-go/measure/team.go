@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"measure-backend/measure-go/chrono"
@@ -184,6 +185,29 @@ func (t *Team) rename() error {
 	return nil
 }
 
+func (t *Team) addMembers(invitees []Invitee) error {
+	now := time.Now()
+	stmt := sqlf.PostgreSQL.InsertInto("team_membership")
+	defer stmt.Close()
+	var args []any
+	for _, invitee := range invitees {
+		stmt.NewRow().
+			Set("team_id", nil).
+			Set("user_id", nil).
+			Set("role", nil).
+			Set("role_updated_at", nil).
+			Set("created_at", nil)
+		args = append(args, t.ID, invitee.ID, invitee.Role, now, now)
+	}
+
+	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (t *Team) removeMember(memberId *uuid.UUID) error {
 	stmt := sqlf.PostgreSQL.DeleteFrom("team_membership").
 		Where("team_id = ?", nil).
@@ -199,6 +223,23 @@ func (t *Team) removeMember(memberId *uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func (t *Team) areInviteesMember(invitees []Invitee) (int, error) {
+	members, err := t.getMembers()
+	if err != nil {
+		return -1, err
+	}
+
+	for i, invitee := range invitees {
+		for _, member := range members {
+			if strings.EqualFold(*member.Email, invitee.Email) {
+				return i, nil
+			}
+		}
+	}
+
+	return -1, nil
 }
 
 func (t *Team) changeRole(memberId *uuid.UUID, role rank) error {
@@ -407,7 +448,49 @@ func InviteMembers(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"ok": "invitee(s) authorized"})
+	team := Team{
+		ID: &teamId,
+	}
+
+	idx, err := team.areInviteesMember(invitees)
+	if err != nil {
+		msg := `failed to invite`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if idx > -1 {
+		email := invitees[idx].Email
+		msg := fmt.Sprintf("invitee '%s' is already a member of this team", email)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	existingUsers, newInvitees, err := GetUsersByInvitees(invitees)
+	if err != nil {
+		msg := `failed to invite`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if len(existingUsers) > 0 {
+		if err := team.addMembers(existingUsers); err != nil {
+			msg := `failed to invite existing users`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+			return
+		}
+	}
+
+	var newEmails []string
+
+	for _, invitee := range newInvitees {
+		newEmails = append(newEmails, invitee.Email)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": "invitee(s) authorized", "emails": newEmails})
 }
 
 func RenameTeam(c *gin.Context) {
