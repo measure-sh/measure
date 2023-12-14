@@ -59,7 +59,7 @@ func (u *User) getRole(teamId string) (rank, error) {
 	return roleMap[role], nil
 }
 
-// GetUsersByInvitees provides existing & new invitess by matching
+// GetUsersByInvitees provides existing & new invitees by matching
 // each user's and invitee's email
 func GetUsersByInvitees(invitees []Invitee) ([]Invitee, []Invitee, error) {
 	var oldUsers []Invitee
