@@ -35,13 +35,18 @@ export async function POST(request: Request) {
 
   const res = await authorize(session?.access_token, teamId, invites)
 
-  if (!res.ok && res.status === 403) {
+  if (!res.ok && res.status === 403 || res.status === 400) {
     const json = await res.json()
-    return NextResponse.json({ error: json.error }, { status: 403 })
+    return NextResponse.json({ error: json.error }, { status: res.status })
   }
 
   if (!res.ok) {
     return NextResponse.json({ error: `failed to invite ${email}` }, { status: 500 })
+  }
+
+  const json = await res.json()
+  if (!json?.emails?.length) {
+    return NextResponse.json({ ok: `invited ${email}` })
   }
 
   const redirectUrl = `${requestUrl.origin}/${teamId}/overview`
