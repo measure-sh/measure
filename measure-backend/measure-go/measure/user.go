@@ -60,7 +60,10 @@ func (u *User) getRole(teamId string) (rank, error) {
 }
 
 // GetUsersByInvitees provides existing & new invitees by matching
-// each user's and invitee's email
+// each user's and invitee's email.
+//
+// Only confirmed, not banned and not deleted users are considered as
+// viable candidates for team invitation.
 func GetUsersByInvitees(invitees []Invitee) ([]Invitee, []Invitee, error) {
 	var oldUsers []Invitee
 	var newUsers []Invitee

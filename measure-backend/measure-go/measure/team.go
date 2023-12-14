@@ -185,6 +185,8 @@ func (t *Team) rename() error {
 	return nil
 }
 
+// addMembers makes invitees member of the team according
+// to each invitee's role.
 func (t *Team) addMembers(invitees []Invitee) error {
 	now := time.Now()
 	stmt := sqlf.PostgreSQL.InsertInto("team_membership")
@@ -225,6 +227,8 @@ func (t *Team) removeMember(memberId *uuid.UUID) error {
 	return nil
 }
 
+// areInviteesMember provides the index of the invitee if that invitee
+// is already a legitimate member of the team.
 func (t *Team) areInviteesMember(invitees []Invitee) (int, error) {
 	members, err := t.getMembers()
 	if err != nil {
