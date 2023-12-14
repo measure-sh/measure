@@ -24,7 +24,6 @@ select
   apps.unique_identifier,
   apps.platform,
   apps.first_version,
-  apps.first_seen_at,
   apps.onboarded,
   apps.onboarded_at,
   api_keys.key_prefix,
@@ -47,7 +46,6 @@ type App struct {
 	Platform     string     `json:"platform"`
 	APIKey       *APIKey    `json:"api_key"`
 	firstVersion string     `json:"first_version"`
-	firstSeenAt  time.Time  `json:"first_seen_at"`
 	Onboarded    bool       `json:"onboarded"`
 	OnboardedAt  time.Time  `json:"onboarded_at"`
 	CreatedAt    time.Time  `json:"created_at"`
@@ -178,7 +176,6 @@ func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 	var uniqueId pgtype.Text
 	var platform pgtype.Text
 	var firstVersion pgtype.Text
-	var firstSeenAt pgtype.Timestamptz
 	var onboarded pgtype.Bool
 	var onboardedAt pgtype.Timestamptz
 	var apiKeyLastSeen pgtype.Timestamptz
@@ -188,7 +185,7 @@ func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 
 	apiKey := new(APIKey)
 
-	if err := server.Server.PgPool.QueryRow(context.Background(), queryGetApp, id, a.TeamId).Scan(&appName, &uniqueId, &platform, &firstVersion, &firstSeenAt, &onboarded, &onboardedAt, &apiKey.keyPrefix, &apiKey.keyValue, &apiKey.checksum, &apiKeyLastSeen, &apiKeyCreatedAt, &createdAt, &updatedAt); err != nil {
+	if err := server.Server.PgPool.QueryRow(context.Background(), queryGetApp, id, a.TeamId).Scan(&appName, &uniqueId, &platform, &firstVersion, &onboarded, &onboardedAt, &apiKey.keyPrefix, &apiKey.keyValue, &apiKey.checksum, &apiKeyLastSeen, &apiKeyCreatedAt, &createdAt, &updatedAt); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		} else {
@@ -220,10 +217,6 @@ func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 
 	if onboarded.Valid {
 		a.Onboarded = onboarded.Bool
-	}
-
-	if firstSeenAt.Valid {
-		a.firstSeenAt = firstSeenAt.Time
 	}
 
 	if onboardedAt.Valid {

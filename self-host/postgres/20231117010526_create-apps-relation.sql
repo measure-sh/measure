@@ -6,7 +6,6 @@ create table if not exists public.apps (
     app_name varchar(512),
     platform varchar(256) check (platform in ('ios', 'android', 'flutter', 'react-native', 'unity')),
     first_version varchar(128),
-    first_seen_at timestamptz,
     onboarded boolean default false,
     onboarded_at timestamptz,
     created_at timestamptz not null default now(),
@@ -19,7 +18,6 @@ comment on column public.apps.unique_identifier is 'unique id lingua franca to a
 comment on column public.apps.app_name is 'name of app lingua franca to app creator';
 comment on column public.apps.platform is 'platform of the app, like iOS, Android, Flutter';
 comment on column public.apps.first_version is 'first version of the app as per ingested sessions from it';
-comment on column public.apps.first_seen_at is 'utc timestamp as per the nascent ingested session';
 comment on column public.apps.onboarded is 'app is considered onboarded once it receives the first session';
 comment on column public.apps.onboarded_at is 'utc timestamp at the time of receiving first session';
 comment on column public.apps.created_at is 'utc timestamp at the time of app record creation';
