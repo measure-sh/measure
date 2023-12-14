@@ -27,7 +27,6 @@ select
   apps.unique_identifier,
   apps.platform,
   apps.first_version,
-  apps.latest_version,
   apps.first_seen_at,
   apps.onboarded,
   apps.onboarded_at,
@@ -88,7 +87,6 @@ func (t *Team) getApps() ([]App, error) {
 		var uniqueId pgtype.Text
 		var platform pgtype.Text
 		var firstVersion pgtype.Text
-		var latestVersion pgtype.Text
 		var firstSeenAt pgtype.Timestamptz
 		var onboardedAt pgtype.Timestamptz
 		var apiKeyLastSeen pgtype.Timestamptz
@@ -96,7 +94,7 @@ func (t *Team) getApps() ([]App, error) {
 
 		apiKey := new(APIKey)
 
-		if err := rows.Scan(&a.ID, &a.AppName, &a.TeamId, &uniqueId, &platform, &firstVersion, &latestVersion, &firstSeenAt, &a.Onboarded, &onboardedAt, &apiKey.keyPrefix, &apiKey.keyValue, &apiKey.checksum, &apiKeyLastSeen, &apiKeyCreatedAt, &a.CreatedAt, &a.UpdatedAt); err != nil {
+		if err := rows.Scan(&a.ID, &a.AppName, &a.TeamId, &uniqueId, &platform, &firstVersion, &firstSeenAt, &a.Onboarded, &onboardedAt, &apiKey.keyPrefix, &apiKey.keyValue, &apiKey.checksum, &apiKeyLastSeen, &apiKeyCreatedAt, &a.CreatedAt, &a.UpdatedAt); err != nil {
 			return nil, err
 		}
 
@@ -116,12 +114,6 @@ func (t *Team) getApps() ([]App, error) {
 			a.firstVersion = firstVersion.String
 		} else {
 			a.firstVersion = ""
-		}
-
-		if latestVersion.Valid {
-			a.latestVersion = latestVersion.String
-		} else {
-			a.latestVersion = ""
 		}
 
 		if firstSeenAt.Valid {

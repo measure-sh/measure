@@ -24,7 +24,6 @@ select
   apps.unique_identifier,
   apps.platform,
   apps.first_version,
-  apps.latest_version,
   apps.first_seen_at,
   apps.onboarded,
   apps.onboarded_at,
@@ -41,19 +40,18 @@ where apps.id = $1 and apps.team_id = $2;
 `
 
 type App struct {
-	ID            *uuid.UUID `json:"id"`
-	TeamId        uuid.UUID  `json:"team_id"`
-	AppName       string     `json:"name" binding:"required"`
-	UniqueId      string     `json:"unique_identifier"`
-	Platform      string     `json:"platform"`
-	APIKey        *APIKey    `json:"api_key"`
-	firstVersion  string     `json:"first_version"`
-	latestVersion string     `json:"latest_version"`
-	firstSeenAt   time.Time  `json:"first_seen_at"`
-	Onboarded     bool       `json:"onboarded"`
-	OnboardedAt   time.Time  `json:"onboarded_at"`
-	CreatedAt     time.Time  `json:"created_at"`
-	UpdatedAt     time.Time  `json:"updated_at"`
+	ID           *uuid.UUID `json:"id"`
+	TeamId       uuid.UUID  `json:"team_id"`
+	AppName      string     `json:"name" binding:"required"`
+	UniqueId     string     `json:"unique_identifier"`
+	Platform     string     `json:"platform"`
+	APIKey       *APIKey    `json:"api_key"`
+	firstVersion string     `json:"first_version"`
+	firstSeenAt  time.Time  `json:"first_seen_at"`
+	Onboarded    bool       `json:"onboarded"`
+	OnboardedAt  time.Time  `json:"onboarded_at"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
 }
 
 func (a App) MarshalJSON() ([]byte, error) {
@@ -136,19 +134,17 @@ func (a *App) get() (*App, error) {
 	var uniqueId pgtype.Text
 	var platform pgtype.Text
 	var firstVersion pgtype.Text
-	var latestVersion pgtype.Text
 
 	stmt := sqlf.PostgreSQL.
 		Select("onboarded", nil).
 		Select("unique_identifier", nil).
 		Select("platform", nil).
 		Select("first_version", nil).
-		Select("latest_version", nil).
 		From("apps").
 		Where("id = ?", nil)
 	defer stmt.Close()
 
-	if err := server.Server.PgPool.QueryRow(context.Background(), stmt.String(), a.ID).Scan(&onboarded, &uniqueId, &platform, &firstVersion, &latestVersion); err != nil {
+	if err := server.Server.PgPool.QueryRow(context.Background(), stmt.String(), a.ID).Scan(&onboarded, &uniqueId, &platform, &firstVersion); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		} else {
@@ -174,12 +170,6 @@ func (a *App) get() (*App, error) {
 		a.firstVersion = ""
 	}
 
-	if latestVersion.Valid {
-		a.latestVersion = latestVersion.String
-	} else {
-		a.latestVersion = ""
-	}
-
 	return a, nil
 }
 
@@ -188,7 +178,6 @@ func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 	var uniqueId pgtype.Text
 	var platform pgtype.Text
 	var firstVersion pgtype.Text
-	var latestVersion pgtype.Text
 	var firstSeenAt pgtype.Timestamptz
 	var onboarded pgtype.Bool
 	var onboardedAt pgtype.Timestamptz
@@ -199,7 +188,7 @@ func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 
 	apiKey := new(APIKey)
 
-	if err := server.Server.PgPool.QueryRow(context.Background(), queryGetApp, id, a.TeamId).Scan(&appName, &uniqueId, &platform, &firstVersion, &latestVersion, &firstSeenAt, &onboarded, &onboardedAt, &apiKey.keyPrefix, &apiKey.keyValue, &apiKey.checksum, &apiKeyLastSeen, &apiKeyCreatedAt, &createdAt, &updatedAt); err != nil {
+	if err := server.Server.PgPool.QueryRow(context.Background(), queryGetApp, id, a.TeamId).Scan(&appName, &uniqueId, &platform, &firstVersion, &firstSeenAt, &onboarded, &onboardedAt, &apiKey.keyPrefix, &apiKey.keyValue, &apiKey.checksum, &apiKeyLastSeen, &apiKeyCreatedAt, &createdAt, &updatedAt); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		} else {
@@ -231,12 +220,6 @@ func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 
 	if onboarded.Valid {
 		a.Onboarded = onboarded.Bool
-	}
-
-	if latestVersion.Valid {
-		a.latestVersion = latestVersion.String
-	} else {
-		a.latestVersion = ""
 	}
 
 	if firstSeenAt.Valid {
@@ -275,14 +258,13 @@ func (a *App) Onboard(tx pgx.Tx, uniqueIdentifier, platform, firstVersion string
 		Set("unique_identifier", nil).
 		Set("platform", nil).
 		Set("first_version", nil).
-		Set("latest_version", nil).
 		Set("first_seen_at", nil).
 		Set("updated_at", nil).
 		Where("id = ?", nil)
 
 	defer stmt.Close()
 
-	_, err := tx.Exec(context.Background(), stmt.String(), true, uniqueIdentifier, platform, firstVersion, firstVersion, now, now, a.ID)
+	_, err := tx.Exec(context.Background(), stmt.String(), true, uniqueIdentifier, platform, firstVersion, now, now, a.ID)
 	if err != nil {
 		return err
 	}

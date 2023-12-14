@@ -173,7 +173,6 @@ CREATE TABLE public.apps (
     app_name character varying(512),
     platform character varying(256),
     first_version character varying(128),
-    latest_version character varying(128),
     first_seen_at timestamp with time zone,
     onboarded boolean DEFAULT false,
     onboarded_at timestamp with time zone,
@@ -223,13 +222,6 @@ COMMENT ON COLUMN public.apps.platform IS 'platform of the app, like iOS, Androi
 --
 
 COMMENT ON COLUMN public.apps.first_version IS 'first version of the app as per ingested sessions from it';
-
-
---
--- Name: COLUMN apps.latest_version; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.apps.latest_version IS 'latest version of the app as per ingested sessions from it';
 
 
 --
