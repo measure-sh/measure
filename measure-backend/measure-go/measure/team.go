@@ -419,6 +419,14 @@ func InviteMembers(c *gin.Context) {
 
 	ok, err := PerformAuthz(userId, teamId.String(), *ScopeTeamInviteSameOrLower)
 	if err != nil {
+		// FIXME: improve error handling, this is quite brittle way of
+		// doing errors. not ideal.
+		if err.Error() == "received 'unknown' role" {
+			msg := `couldn't find team, perhaps team id is invalid`
+			fmt.Println(msg)
+			c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+			return
+		}
 		msg := `couldn't perform authorization checks`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
@@ -433,10 +441,17 @@ func InviteMembers(c *gin.Context) {
 		id: userId,
 	}
 	userRole, err := user.getRole(teamId.String())
-	if err != nil || userRole == unknown {
+	if err != nil {
 		msg := `couldn't perform authorization checks`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if userRole == unknown {
+		msg := `couldn't find team, perhaps team id is invalid`
+		fmt.Println(msg)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
 
