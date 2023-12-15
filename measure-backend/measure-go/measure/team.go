@@ -18,9 +18,8 @@ import (
 )
 
 const (
-	defaultInviteExpiry = 24 * time.Hour
-	maxInvitees         = 25
-	queryGetTeamApps    = `
+	maxInvitees      = 25
+	queryGetTeamApps = `
 select
   apps.id,
   apps.app_name,
