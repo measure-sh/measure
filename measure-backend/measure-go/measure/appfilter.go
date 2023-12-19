@@ -10,8 +10,9 @@ import (
 	"github.com/leporo/sqlf"
 )
 
-// DefaultDuration is the default time duration to
-// be set when an explicit duration is not provided.
+// DefaultDuration is the default time duration used
+// for all filtering oprations when an explicit
+// duration is not provided.
 const DefaultDuration = time.Hour * 24 * 7
 
 // AppFilter represents various app filtering
