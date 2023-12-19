@@ -27,6 +27,7 @@ type AppFilter struct {
 	To        time.Time `form:"to" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
 	Version   string    `form:"version"`
 	Exception bool      `form:"exception"`
+	Crash     bool      `form:"crash"`
 	ANR       bool      `form:"anr"`
 }
 
@@ -154,6 +155,11 @@ func (af *AppFilter) getAppVersions(fl *FilterList) error {
 		stmt.Where("type = 'exception'")
 	}
 
+	if af.Crash {
+		stmt.Where("type = 'exception'")
+		stmt.Where("`exception.handled` = false")
+	}
+
 	if af.ANR {
 		stmt.Where("type = 'anr'")
 	}
@@ -189,6 +195,11 @@ func (af *AppFilter) getNetworkProviders(fl *FilterList) error {
 
 	if af.Exception {
 		stmt.Where("type = 'exception'")
+	}
+
+	if af.Crash {
+		stmt.Where("type = 'exception'")
+		stmt.Where("`exception.handled` = false")
 	}
 
 	if af.ANR {
@@ -228,6 +239,11 @@ func (af *AppFilter) getNetworkTypes(fl *FilterList) error {
 		stmt.Where("type = 'exception'")
 	}
 
+	if af.Crash {
+		stmt.Where("type = 'exception'")
+		stmt.Where("`exception.handled` = false")
+	}
+
 	if af.ANR {
 		stmt.Where("type = 'anr'")
 	}
@@ -263,6 +279,11 @@ func (af *AppFilter) getNetworkGenerations(fl *FilterList) error {
 
 	if af.Exception {
 		stmt.Where("type = 'exception'")
+	}
+
+	if af.Crash {
+		stmt.Where("type = 'exception'")
+		stmt.Where("`exception.handled` = false")
 	}
 
 	if af.ANR {
@@ -302,6 +323,11 @@ func (af *AppFilter) getDeviceLocales(fl *FilterList) error {
 		stmt.Where("type = 'exception'")
 	}
 
+	if af.Crash {
+		stmt.Where("type = 'exception'")
+		stmt.Where("`exception.handled` = false")
+	}
+
 	if af.ANR {
 		stmt.Where("type = 'anr'")
 	}
@@ -339,6 +365,11 @@ func (af *AppFilter) getDeviceManufacturers(fl *FilterList) error {
 		stmt.Where("type = 'exception'")
 	}
 
+	if af.Crash {
+		stmt.Where("type = 'exception'")
+		stmt.Where("`exception.handled` = false")
+	}
+
 	if af.ANR {
 		stmt.Where("type = 'anr'")
 	}
@@ -374,6 +405,11 @@ func (af *AppFilter) getDeviceNames(fl *FilterList) error {
 
 	if af.Exception {
 		stmt.Where("type = 'exception'")
+	}
+
+	if af.Crash {
+		stmt.Where("type = 'exception'")
+		stmt.Where("`exception.handled` = false")
 	}
 
 	if af.ANR {
