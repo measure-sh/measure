@@ -72,6 +72,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
   const [removeMemberApiStatus, seRemoveMemberApiStatus] = useState(RemoveMemberApiStatus.Init);
   const [removeMemberConfirmationModalOpen, setRemoveMemberConfirmationModalOpen] = useState(false)
   const [removeMemberId, setRemoveMemberId] = useState("")
+  const [removeMemberEmail, setRemoveMemberEmail] = useState("")
   const [removeMemberErrorMsg, setRemoveMemberErrorMsg] = useState("")
 
   const defaultAuthzAndMembers = {
@@ -313,7 +314,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
           />
 
           {/* Modal for confirming member removal */}
-          <DangerConfirmationModal title="Are you sure you want to remove this team member?" open={removeMemberConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          <DangerConfirmationModal title={`Are you sure you want to remove "${removeMemberEmail}" from team "${team.name}"?`} open={removeMemberConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
               setRemoveMemberConfirmationModalOpen(false)
               removeMember()
@@ -412,6 +413,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
                     <div className="table-cell p-4 pl-0">
                       <button disabled={authz.can_remove === false || removeMemberApiStatus === RemoveMemberApiStatus.Loading} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => {
                         setRemoveMemberId(id)
+                        setRemoveMemberEmail(authzAndMembers.members.filter((i) => i.id === id)[0].email)
                         setRemoveMemberConfirmationModalOpen(true)
                       }}>Remove</button>
                       {/* Loading message for member removal */}
