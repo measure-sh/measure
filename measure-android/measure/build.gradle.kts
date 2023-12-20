@@ -1,32 +1,13 @@
+@file:Suppress("UnstableApiUsage")
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     kotlin("plugin.serialization")
-    id("com.github.gmazzo.buildconfig") version "4.1.2"
 }
-
 apply(from = "publish_local.gradle")
 
-buildConfig {
-    packageName("sh.measure.android")
-    useKotlinOutput { internalVisibility = true }
-    buildConfigField(
-        type = "String",
-        name = "MEASURE_SDK_VERSION",
-        value = "\"${properties["MEASURE_SDK_VERSION"]?.toString() ?: ""}\"",
-    )
-    buildConfigField(
-        type = "String",
-        name = "MEASURE_BASE_URL",
-        value = "\"${properties["MEASURE_BASE_URL"]?.toString() ?: ""}\"",
-    )
-    buildConfigField(
-        type = "String",
-        name = "MEASURE_SECRET_TOKEN",
-        value = "\"${properties["MEASURE_SECRET_TOKEN"]?.toString() ?: ""}\"",
-    )
-}
-
+val measureSdkVersion = "\"0.0.1-SNAPSHOT\""
 android {
     namespace = "sh.measure.android"
     compileSdk = 33
@@ -39,11 +20,14 @@ android {
     }
 
     buildTypes {
+        defaultConfig {
+            manifestPlaceholders["measure_url"] = properties["measure_url"]?.toString() ?: ""
+            buildConfigField("String", "MEASURE_SDK_VERSION", measureSdkVersion)
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
         }
     }
@@ -59,6 +43,9 @@ android {
             isIncludeAndroidResources = true
             isReturnDefaultValues = true
         }
+    }
+    buildFeatures {
+        buildConfig = true
     }
 }
 
