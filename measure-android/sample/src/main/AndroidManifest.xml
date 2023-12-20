@@ -29,6 +29,11 @@
         <activity
             android:name=".SecondActivity"
             android:exported="false" />
+
+        <meta-data
+            android:name="measure_api_key"
+            android:value="${measure_api_key}" />
+
     </application>
 
 </manifest>

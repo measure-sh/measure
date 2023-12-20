@@ -37,7 +37,7 @@ Add the API Key to your app's `AndroidManifest.xml` file.
 
 ```xml
 
-<meta-data android:name="sh.measure.api_key" android:value="YOUR_API_KEY" />
+<meta-data android:name="measure_api_key" android:value="YOUR_API_KEY" />
 ```
 
 It is recommended to pass the API Key as an environment variable. This will prevent the API Key from

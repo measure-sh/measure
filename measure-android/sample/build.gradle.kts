@@ -18,12 +18,15 @@ android {
     }
 
     buildTypes {
+        defaultConfig {
+            manifestPlaceholders["measure_api_key"] =
+                properties["measure_api_key"]?.toString() ?: ""
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("debug")
         }
