@@ -101,6 +101,8 @@ export default function Team({ params }: { params: { teamId: string } }) {
   const [changeRoleConfirmationModalOpen, setChangeRoleConfirmationModalOpen] = useState(false)
   const [roleChangeApiStatus, setRoleChangeApiStatus] = useState(RoleChangeApiStatus.Init);
   const [roleChangeMemberId, setRoleChangeMemberId] = useState("")
+  const [roleChangeMemberEmail, setRoleChangeMemberEmail] = useState("")
+  const [roleChangeOldRole, setRoleChangeOldRole] = useState("")
   const [roleChangeNewRole, setRoleChangeNewRole] = useState("")
   const [changeRoleErrorMsg, setChangeRoleErrorMsg] = useState("")
 
@@ -302,7 +304,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
           />
 
           {/* Modal for confirming role change */}
-          <DangerConfirmationModal title="Are you sure you want to change the role?" open={changeRoleConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          <DangerConfirmationModal title={`Are you sure you want to change the role of "${roleChangeMemberEmail}" from "${roleChangeOldRole}" to "${roleChangeNewRole}"?`} open={changeRoleConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
               setChangeRoleConfirmationModalOpen(false)
               changeRole()
@@ -391,6 +393,8 @@ export default function Team({ params }: { params: { teamId: string } }) {
                     <div className="table-cell p-4 pl-0">
                       <button disabled={selectedDropdownRolesMap.get(id) === undefined || selectedDropdownRolesMap.get(id) === role} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => {
                         setRoleChangeMemberId(id)
+                        setRoleChangeMemberEmail(authzAndMembers.members.filter((i) => i.id === id)[0].email)
+                        setRoleChangeOldRole(formatToCamelCase(authzAndMembers.members.filter((i) => i.id === id)[0].role))
                         setRoleChangeNewRole(selectedDropdownRolesMap.get(id) as string)
                         setChangeRoleConfirmationModalOpen(true)
                       }}>Change Role</button>
