@@ -37,6 +37,7 @@ import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.LocaleProvider
 import sh.measure.android.utils.LocaleProviderImpl
+import sh.measure.android.utils.ManifestReaderImpl
 import sh.measure.android.utils.PidProvider
 import sh.measure.android.utils.PidProviderImpl
 import sh.measure.android.utils.SystemServiceProvider
@@ -54,20 +55,35 @@ object Measure {
         val application = context as Application
 
         val logger = AndroidLogger().apply { log(LogLevel.Debug, "Initializing Measure") }
+        val manifestMetadata = ManifestReaderImpl(context, logger).load()
+        if (manifestMetadata == null) {
+            logger.log(LogLevel.Error, "Unable to initialize measure SDK")
+            return
+        } else if (manifestMetadata.url.isNullOrEmpty()) {
+            logger.log(
+                LogLevel.Error,
+                "Unable to initialize measure SDK. measure_url is required in the manifest"
+            )
+            return
+        } else if (manifestMetadata.apiKey.isNullOrEmpty()) {
+            logger.log(
+                LogLevel.Error,
+                "Unable to initialize measure SDK. measure_api_key is required in the manifest"
+            )
+            return
+        }
         val customThreadFactory = CustomThreadFactory()
         val executorService = MeasureExecutorServiceImpl(customThreadFactory)
         val storage: Storage = StorageImpl(logger, context.filesDir.path)
-        val httpClient: HttpClient =
-            HttpClientOkHttp(logger, Config.MEASURE_BASE_URL, Config.MEASURE_SECRET_TOKEN)
+        val httpClient: HttpClient = HttpClientOkHttp(logger, manifestMetadata.url, manifestMetadata.apiKey)
         val transport: Transport = TransportImpl(logger, httpClient)
         timeProvider = AndroidTimeProvider()
         val idProvider = UUIDProvider()
-        val config = Config
         val systemServiceProvider: SystemServiceProvider = SystemServiceProviderImpl(context)
         val networkInfoProvider: NetworkInfoProvider =
             NetworkInfoProviderImpl(context, logger, systemServiceProvider)
         val localeProvider: LocaleProvider = LocaleProviderImpl()
-        val resourceFactory = ResourceFactoryImpl(logger, context, config, networkInfoProvider, localeProvider)
+        val resourceFactory = ResourceFactoryImpl(logger, context, networkInfoProvider, localeProvider)
         currentThread = CurrentThread()
         val appExitProvider: AppExitProvider =
             AppExitProviderImpl(logger, currentThread, systemServiceProvider)

@@ -8,5 +8,10 @@
             android:name=".MeasureInitProvider"
             android:authorities="${applicationId}.MeasureInitProvider"
             android:exported="false" />
+
+        <!-- TODO(abhay): remove this once we have support for DSNs -->
+        <meta-data
+            android:name="measure_url"
+            android:value="${measure_url}" />
     </application>
 </manifest>

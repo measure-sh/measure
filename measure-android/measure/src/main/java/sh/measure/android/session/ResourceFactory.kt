@@ -3,7 +3,7 @@ package sh.measure.android.session
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import sh.measure.android.Config
+import sh.measure.android.BuildConfig
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.network_change.NetworkInfoProvider
@@ -19,7 +19,6 @@ interface ResourceFactory {
 internal class ResourceFactoryImpl(
     private val logger: Logger,
     private val context: Context,
-    private val config: Config,
     private val networkInfoProvider: NetworkInfoProvider,
     private val localeProvider: LocaleProvider
 ) : ResourceFactory {
@@ -115,5 +114,5 @@ internal class ResourceFactoryImpl(
         return localeProvider.getLocale()
     }
 
-    private fun getMeasureVersion() = config.MEASURE_SDK_VERSION
+    private fun getMeasureVersion() = BuildConfig.MEASURE_SDK_VERSION
 }

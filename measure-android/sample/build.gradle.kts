@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("sh.measure.plugin")
 }
 
 android {
@@ -18,12 +19,15 @@ android {
     }
 
     buildTypes {
+        defaultConfig {
+            manifestPlaceholders["MEASURE_API_KEY"] =
+                properties["measure_api_key"]?.toString() ?: ""
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("debug")
         }
@@ -34,9 +38,6 @@ android {
     }
     kotlinOptions {
         jvmTarget = "1.8"
-    }
-    packaging {
-        resources.excludes.add("META-INF/versions/9/previous-compilation-data.bin")
     }
 }
 
