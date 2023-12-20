@@ -289,7 +289,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
         <div className="flex flex-col items-start">
 
           {/* Modal for confirming team name change */}
-          <DangerConfirmationModal title="Are you sure you want to rename the team?" open={teamNameConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          <DangerConfirmationModal title={`Are you sure you want to rename team "${team.name}" to "${newTeamName}"?`} open={teamNameConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
               setTeamNameConfirmationModalOpen(false)
               changeTeamName()
