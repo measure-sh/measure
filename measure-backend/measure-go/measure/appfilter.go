@@ -115,6 +115,10 @@ func (af *AppFilter) getGenericFilters(fl *FilterList) error {
 		return err
 	}
 
+	if err := af.getCountries(fl); err != nil {
+		return err
+	}
+
 	if err := af.getNetworkProviders(fl); err != nil {
 		return err
 	}
@@ -179,6 +183,48 @@ func (af *AppFilter) getAppVersions(fl *FilterList) error {
 			return err
 		}
 		fl.Versions = append(fl.Versions, version)
+	}
+
+	return rows.Err()
+}
+
+// getCountries finds distinct values of country codes
+// from available events within a time range.
+//
+// Additionally, filters `exception` and `anr` event types.
+func (af *AppFilter) getCountries(fl *FilterList) error {
+	stmt := sqlf.Select("distinct toString(inet.country_code)").
+		From("events").
+		Where("app_id = toUUID(?)").
+		Where("timestamp >= ? and timestamp <= ?")
+
+	if af.Exception {
+		stmt.Where("type = 'exception'")
+	}
+
+	if af.Crash {
+		stmt.Where("type = 'exception'")
+		stmt.Where("`exception.handled` = false")
+	}
+
+	if af.ANR {
+		stmt.Where("type = 'anr'")
+	}
+
+	defer stmt.Close()
+	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), af.AppID, af.From, af.To)
+	if err != nil {
+		msg := `failed to query countries from ip`
+		fmt.Println(msg, err)
+		return err
+	}
+
+	for rows.Next() {
+		var country string
+		if err := rows.Scan(&country); err != nil {
+			return err
+		}
+		fl.Countries = append(fl.Countries, country)
 	}
 
 	return rows.Err()
