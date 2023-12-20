@@ -6,6 +6,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from 'next/navigation';
 import DangerConfirmationModal from "@/app/components/danger_confirmation_modal";
 
+function formatToCamelCase(role: string): string {
+  return role.charAt(0).toLocaleUpperCase() + role.slice(1)
+}
+
 export default function Team({ params }: { params: { teamId: string } }) {
 
   enum TeamsApiStatus {
@@ -339,7 +343,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
             <div className="flex flex-row items-center">
               <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300  py-2 px-4 font-sans placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} defaultValue={inviteMemberEmail} />
               <div className="px-2" />
-              <Dropdown items={authzAndMembers.can_invite.map((i) => i.charAt(0).toLocaleUpperCase() + i.slice(1))} onChangeSelectedItem={(item) => setInviteMemberRole(item)} initialItemIndex={0} />
+              <Dropdown items={authzAndMembers.can_invite.map((i) => formatToCamelCase(i))} onChangeSelectedItem={(item) => setInviteMemberRole(item)} initialItemIndex={0} />
               <button form="invite-form" type="submit" disabled={inviteMemberApiStatus === InviteMemberApiStatus.Loading || inviteMemberEmail === ""} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Invite</button>
             </div>
           </form>
@@ -366,13 +370,13 @@ export default function Team({ params }: { params: { teamId: string } }) {
                   <div className="table-cell p-4 pl-0 text-lg">{email}</div>
 
                   {/* Show only if row is current user */}
-                  {id === currentUserId && <div className="table-cell p-4 pl-0 text-lg ">{role.charAt(0).toLocaleUpperCase() + role.slice(1)}</div>}
+                  {id === currentUserId && <div className="table-cell p-4 pl-0 text-lg ">{formatToCamelCase(role)}</div>}
 
                   {/* Show roles dropdown if not current user */}
                   {id !== currentUserId &&
                     <div className="table-cell p-4 pl-0">
                       {/* If roles can be changed for members, add roles to dropdown and set selected role to current role */}
-                      {authz.can_change_roles !== null && authz.can_change_roles.length > 0 && <Dropdown items={authz.can_change_roles.map((i) => i.charAt(0).toLocaleUpperCase() + i.slice(1))} initialItemIndex={authzAndMembers.can_invite.findIndex((i) => i === role)} onChangeSelectedItem={(i) => {
+                      {authz.can_change_roles !== null && authz.can_change_roles.length > 0 && <Dropdown items={authz.can_change_roles.map((i) => formatToCamelCase(i))} initialItemIndex={authzAndMembers.can_invite.findIndex((i) => i === role)} onChangeSelectedItem={(i) => {
                         const newMap = new Map(selectedDropdownRolesMap)
                         newMap.set(id, i)
                         setSelectedDropdownRolesMap(newMap)
