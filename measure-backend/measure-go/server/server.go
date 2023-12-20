@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"log"
+	"measure-backend/measure-go/inet"
 	"os"
 	"strconv"
 
@@ -131,6 +132,8 @@ func Init(config *ServerConfig) {
 	if err != nil {
 		log.Fatalf("Unable to create CH connection pool: %v", err)
 	}
+
+	inet.Init()
 
 	Server = &server{
 		PgPool: pgPool,

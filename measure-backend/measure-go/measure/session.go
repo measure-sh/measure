@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"measure-backend/measure-go/inet"
 	"measure-backend/measure-go/server"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,6 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/ipinfo/go/v2/ipinfo"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -20,6 +23,9 @@ type Session struct {
 	SessionID   uuid.UUID    `json:"session_id" binding:"required"`
 	AppID       uuid.UUID    `json:"app_id"`
 	Timestamp   time.Time    `json:"timestamp" binding:"required"`
+	IPv4        net.IP       `json:"inet_ipv4"`
+	IPv6        net.IP       `json:"inet_ipv6"`
+	CountryCode string       `json:"inet_country_code"`
 	Resource    Resource     `json:"resource" binding:"required"`
 	Events      []EventField `json:"events" binding:"required"`
 	Attachments []Attachment `json:"attachments"`
@@ -123,6 +129,36 @@ func (s *Session) uploadAttachments() error {
 		}
 		a.Location = result.Location
 		s.Attachments[i] = a
+	}
+
+	return nil
+}
+
+func (s *Session) lookupCountry(rawIP string) error {
+	ip := net.ParseIP(rawIP)
+	if inet.Isv4(ip) {
+		s.IPv4 = ip
+	} else {
+		s.IPv6 = ip
+	}
+
+	country, err := inet.LookupCountry(rawIP)
+	if err != nil {
+		fmt.Println("failed to lookup country by ip")
+		return err
+	}
+
+	bogon, err := ipinfo.GetIPBogon(ip)
+	if err != nil {
+		fmt.Println("failed to lookup bogon ip")
+	}
+
+	if bogon {
+		s.CountryCode = "bogon"
+	} else if *country != "" {
+		s.CountryCode = *country
+	} else {
+		s.CountryCode = "not available"
 	}
 
 	return nil
@@ -599,6 +635,9 @@ func PutSession(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	// look up country from ip
+	session.lookupCountry(c.ClientIP())
 
 	if session.needsSymbolication() {
 		if err := symbolicate(session); err != nil {
