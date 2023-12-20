@@ -11,18 +11,25 @@ import (
 
 var client *ipinfo.Client
 
-// Init initializes a new ipinfo.Client, caches &
-// return it.
+// Init initializes a new ipinfo.Client, caches the client
+// and additionally returns it.
 //
-// Authorization uses the ipinfo token
+// IP lookup responses will be cached for 24 hours by default.
+//
+// Authorization uses the ipinfo token. If authorization fails,
+// the default client will be used which will impact lookup performance.
+//
+// NOTE: For production, do not use the default client.
 func Init() *ipinfo.Client {
 	token := os.Getenv("IPINFO_TOKEN")
 	if token == "" {
-		log.Println("IPINFO_TOKEN env var not set , ip lookups will fail")
-		return nil
+		log.Printf("%q env var not set, falling back to default client. ip lookup performance will have a negative impact.\n", "IPINFO_TOKEN")
+		client = ipinfo.DefaultClient
+		return client
 	}
 
-	client = ipinfo.NewClient(nil, nil, token)
+	cache := ipinfo.NewCache(ipinfo.Cache{})
+	client = ipinfo.NewClient(nil, cache, token)
 	return client
 }
 
