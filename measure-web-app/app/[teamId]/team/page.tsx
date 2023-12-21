@@ -310,7 +310,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
               setChangeRoleConfirmationModalOpen(false)
               changeRole()
             }}
-            onCancelAction={() => setTeamNameConfirmationModalOpen(false)}
+            onCancelAction={() => setChangeRoleConfirmationModalOpen(false)}
           />
 
           {/* Modal for confirming member removal */}
