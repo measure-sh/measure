@@ -296,7 +296,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
         <div className="flex flex-col items-start">
 
           {/* Modal for confirming team name change */}
-          <DangerConfirmationModal title={`Are you sure you want to rename team "${team.name}" to "${newTeamName}"?`} open={teamNameConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          <DangerConfirmationModal body={<p className="font-sans">Are you sure you want to rename team <span className="font-display font-bold">{team.name}</span> to <span className="font-display font-bold">{newTeamName}</span>?</p>} open={teamNameConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
               setTeamNameConfirmationModalOpen(false)
               changeTeamName()
@@ -305,7 +305,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
           />
 
           {/* Modal for confirming role change */}
-          <DangerConfirmationModal title={`Are you sure you want to change the role of "${roleChangeMemberEmail}" from "${roleChangeOldRole}" to "${roleChangeNewRole}"?`} open={changeRoleConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          <DangerConfirmationModal body={<p className="font-sans">Are you sure you want to change the role of <span className="font-display font-bold">{roleChangeMemberEmail}</span> from <span className="font-display font-bold">{roleChangeOldRole}</span> to <span className="font-display font-bold">{roleChangeNewRole}</span>?</p>} open={changeRoleConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
               setChangeRoleConfirmationModalOpen(false)
               changeRole()
@@ -314,7 +314,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
           />
 
           {/* Modal for confirming member removal */}
-          <DangerConfirmationModal title={`Are you sure you want to remove "${removeMemberEmail}" from team "${team.name}"?`} open={removeMemberConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          <DangerConfirmationModal body={<p className="font-sans">Are you sure you want to remove <span className="font-display font-bold">{removeMemberEmail}</span> from team <span className="font-display font-bold">{team.name}</span>?</p>} open={removeMemberConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
               setRemoveMemberConfirmationModalOpen(false)
               removeMember()
