@@ -91,6 +91,78 @@ CREATE TABLE dbmate.schema_migrations (
 
 
 --
+-- Name: anr_groups; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.anr_groups (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    app_id uuid,
+    name text NOT NULL,
+    fingerprint character varying(16) NOT NULL,
+    count integer NOT NULL,
+    events uuid[] NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: COLUMN anr_groups.id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.anr_groups.id IS 'unique id for each anr group';
+
+
+--
+-- Name: COLUMN anr_groups.app_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.anr_groups.app_id IS 'linked app id';
+
+
+--
+-- Name: COLUMN anr_groups.name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.anr_groups.name IS 'name of the anr for easy identification';
+
+
+--
+-- Name: COLUMN anr_groups.fingerprint; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.anr_groups.fingerprint IS 'fingerprint of the anr';
+
+
+--
+-- Name: COLUMN anr_groups.count; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.anr_groups.count IS 'number of instances this anr was observed';
+
+
+--
+-- Name: COLUMN anr_groups.events; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.anr_groups.events IS 'list of associated event ids';
+
+
+--
+-- Name: COLUMN anr_groups.created_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.anr_groups.created_at IS 'utc timestamp at the time of record creation';
+
+
+--
+-- Name: COLUMN anr_groups.updated_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.anr_groups.updated_at IS 'utc timestamp at the time of record updation';
+
+
+--
 -- Name: api_keys; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -613,79 +685,6 @@ COMMENT ON COLUMN public.teams.updated_at IS 'utc timestmap at the time of team 
 
 
 --
--- Name: unhandled_anr_groups; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.unhandled_anr_groups (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    app_id uuid,
-    name text NOT NULL,
-    fingerprint character varying(16) NOT NULL,
-    count integer NOT NULL,
-    eventids uuid[] NOT NULL,
-    last_seen timestamp with time zone,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
--- Name: COLUMN unhandled_anr_groups.id; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.unhandled_anr_groups.id IS 'unique id for each unhandled anr group';
-
-
---
--- Name: COLUMN unhandled_anr_groups.app_id; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.unhandled_anr_groups.app_id IS 'linked app id';
-
-
---
--- Name: COLUMN unhandled_anr_groups.name; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.unhandled_anr_groups.name IS 'name of the anr for easy identification';
-
-
---
--- Name: COLUMN unhandled_anr_groups.fingerprint; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.unhandled_anr_groups.fingerprint IS 'fingerprint of the unhandled anr';
-
-
---
--- Name: COLUMN unhandled_anr_groups.count; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.unhandled_anr_groups.count IS 'number of instances this unhandled anr was observed';
-
-
---
--- Name: COLUMN unhandled_anr_groups.eventids; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.unhandled_anr_groups.eventids IS 'list of associated event ids';
-
-
---
--- Name: COLUMN unhandled_anr_groups.created_at; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.unhandled_anr_groups.created_at IS 'utc timestamp at the time of record creation';
-
-
---
--- Name: COLUMN unhandled_anr_groups.updated_at; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.unhandled_anr_groups.updated_at IS 'utc timestamp at the time of record updation';
-
-
---
 -- Name: unhandled_exception_groups; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -695,8 +694,7 @@ CREATE TABLE public.unhandled_exception_groups (
     name text NOT NULL,
     fingerprint character varying(16) NOT NULL,
     count integer NOT NULL,
-    eventids uuid[] NOT NULL,
-    last_seen timestamp with time zone,
+    events uuid[] NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -738,10 +736,10 @@ COMMENT ON COLUMN public.unhandled_exception_groups.count IS 'number of instance
 
 
 --
--- Name: COLUMN unhandled_exception_groups.eventids; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN unhandled_exception_groups.events; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.unhandled_exception_groups.eventids IS 'list of associated event ids';
+COMMENT ON COLUMN public.unhandled_exception_groups.events IS 'list of associated event ids';
 
 
 --
@@ -764,6 +762,14 @@ COMMENT ON COLUMN public.unhandled_exception_groups.updated_at IS 'utc timestamp
 
 ALTER TABLE ONLY dbmate.schema_migrations
     ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
+
+
+--
+-- Name: anr_groups anr_groups_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.anr_groups
+    ADD CONSTRAINT anr_groups_pkey PRIMARY KEY (id);
 
 
 --
@@ -831,19 +837,19 @@ ALTER TABLE ONLY public.teams
 
 
 --
--- Name: unhandled_anr_groups unhandled_anr_groups_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.unhandled_anr_groups
-    ADD CONSTRAINT unhandled_anr_groups_pkey PRIMARY KEY (id);
-
-
---
 -- Name: unhandled_exception_groups unhandled_exception_groups_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.unhandled_exception_groups
     ADD CONSTRAINT unhandled_exception_groups_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: anr_groups anr_groups_app_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.anr_groups
+    ADD CONSTRAINT anr_groups_app_id_fkey FOREIGN KEY (app_id) REFERENCES public.apps(id) ON DELETE CASCADE;
 
 
 --
@@ -900,14 +906,6 @@ ALTER TABLE ONLY public.team_membership
 
 ALTER TABLE ONLY public.team_membership
     ADD CONSTRAINT team_membership_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
---
--- Name: unhandled_anr_groups unhandled_anr_groups_app_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.unhandled_anr_groups
-    ADD CONSTRAINT unhandled_anr_groups_app_id_fkey FOREIGN KEY (app_id) REFERENCES public.apps(id) ON DELETE CASCADE;
 
 
 --
