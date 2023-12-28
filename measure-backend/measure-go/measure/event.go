@@ -3,9 +3,11 @@ package measure
 import (
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/go-dedup/simhash"
 	"github.com/google/uuid"
 )
 
@@ -101,10 +103,12 @@ var columns = []string{
 	"resource.measure_sdk_version",
 	"anr.thread_name",
 	"anr.handled",
+	"anr.fingerprint",
 	"anr_exceptions",
 	"anr_threads",
 	"exception.thread_name",
 	"exception.handled",
+	"exception.fingerprint",
 	"exception_exceptions",
 	"exception_threads",
 	"app_exit.reason",
@@ -608,6 +612,34 @@ func (e *EventField) isLowMemory() bool {
 	return e.Type == TypeLowMemory
 }
 
+func (e *EventField) computeExceptionFingerprint() []byte {
+	if !e.isException() {
+		return nil
+	}
+
+	var parts []string
+
+	parts = append(parts, e.Exception.ThreadName, strconv.FormatBool(e.Exception.Handled), e.Exception.Exceptions.encode(), e.Exception.Threads.encode())
+	signature := strings.Join(parts, " | ")
+
+	sh := simhash.NewSimhash()
+	return []byte(fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet([]byte(signature)))))
+}
+
+func (e *EventField) computeANRFingerprint() []byte {
+	if !e.isANR() {
+		return nil
+	}
+
+	var parts []string
+
+	parts = append(parts, e.ANR.ThreadName, strconv.FormatBool(e.ANR.Handled), e.ANR.Exceptions.encode(), e.ANR.Threads.encode())
+	signature := strings.Join(parts, " | ")
+
+	sh := simhash.NewSimhash()
+	return []byte(fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet([]byte(signature)))))
+}
+
 func (e *EventField) validate() error {
 	validTypes := []string{TypeANR, TypeException, TypeAppExit, TypeString, TypeGestureLongClick, TypeGestureScroll, TypeGestureClick, TypeLifecycleActivity, TypeLifecycleFragment, TypeLifecycleApp, TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch, TypeNetworkChange, TypeHttp, TypeMemoryUsage, TypeLowMemory, TypeTrimMemory, TypeCPUUsage}
 	if !slices.Contains(validTypes, e.Type) {
@@ -862,21 +894,25 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 	values := []string{}
 	valueArgs := []interface{}{}
 
-	placeholder := "(toUUID(?),?,toUUID(?),toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+	placeholder := "(toUUID(?),?,toUUID(?),toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
 	for _, event := range session.Events {
 		anrExceptions := "[]"
 		anrThreads := "[]"
+		anrFingerprint := ""
 		exceptionExceptions := "[]"
 		exceptionThreads := "[]"
+		exceptionFingerprint := ""
 		isLowMemory := false
 		if event.isANR() {
 			anrExceptions = event.ANR.Exceptions.encode()
 			anrThreads = event.ANR.Threads.encode()
+			anrFingerprint = string(event.computeANRFingerprint())
 		}
 		if event.isException() {
 			exceptionExceptions = event.Exception.Exceptions.encode()
 			exceptionThreads = event.Exception.Threads.encode()
+			exceptionFingerprint = string(event.computeExceptionFingerprint())
 		}
 		if event.isLowMemory() {
 			isLowMemory = true
@@ -911,10 +947,12 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			session.Resource.MeasureSDKVersion,
 			event.ANR.ThreadName,
 			event.ANR.Handled,
+			anrFingerprint,
 			anrExceptions,
 			anrThreads,
 			event.Exception.ThreadName,
 			event.Exception.Handled,
+			exceptionFingerprint,
 			exceptionExceptions,
 			exceptionThreads,
 			event.AppExit.Reason,
