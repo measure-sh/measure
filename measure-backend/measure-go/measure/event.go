@@ -330,6 +330,7 @@ type ANR struct {
 	NetworkGeneration string         `json:"network_generation"`
 	NetworkProvider   string         `json:"network_provider"`
 	DeviceLocale      string         `json:"device_locale"`
+	Fingerprint       string         `json:"fingerprint"`
 }
 
 type Exception struct {
@@ -341,6 +342,7 @@ type Exception struct {
 	NetworkGeneration string         `json:"network_generation"`
 	NetworkProvider   string         `json:"network_provider"`
 	DeviceLocale      string         `json:"device_locale"`
+	Fingerprint       string         `json:"fingerprint"`
 }
 
 type AppExit struct {
@@ -612,9 +614,9 @@ func (e *EventField) isLowMemory() bool {
 	return e.Type == TypeLowMemory
 }
 
-func (e *EventField) computeExceptionFingerprint() []byte {
+func (e *EventField) computeExceptionFingerprint() {
 	if !e.isException() {
-		return nil
+		return
 	}
 
 	var parts []string
@@ -623,12 +625,13 @@ func (e *EventField) computeExceptionFingerprint() []byte {
 	signature := strings.Join(parts, " | ")
 
 	sh := simhash.NewSimhash()
-	return []byte(fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet([]byte(signature)))))
+	hash := fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet([]byte(signature))))
+	e.Exception.Fingerprint = hash
 }
 
-func (e *EventField) computeANRFingerprint() []byte {
+func (e *EventField) computeANRFingerprint() {
 	if !e.isANR() {
-		return nil
+		return
 	}
 
 	var parts []string
@@ -637,7 +640,8 @@ func (e *EventField) computeANRFingerprint() []byte {
 	signature := strings.Join(parts, " | ")
 
 	sh := simhash.NewSimhash()
-	return []byte(fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet([]byte(signature)))))
+	hash := fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet([]byte(signature))))
+	e.Exception.Fingerprint = hash
 }
 
 func (e *EventField) validate() error {
@@ -899,20 +903,18 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 	for _, event := range session.Events {
 		anrExceptions := "[]"
 		anrThreads := "[]"
-		anrFingerprint := ""
 		exceptionExceptions := "[]"
 		exceptionThreads := "[]"
-		exceptionFingerprint := ""
 		isLowMemory := false
 		if event.isANR() {
 			anrExceptions = event.ANR.Exceptions.encode()
 			anrThreads = event.ANR.Threads.encode()
-			anrFingerprint = string(event.computeANRFingerprint())
+			event.computeANRFingerprint()
 		}
 		if event.isException() {
 			exceptionExceptions = event.Exception.Exceptions.encode()
 			exceptionThreads = event.Exception.Threads.encode()
-			exceptionFingerprint = string(event.computeExceptionFingerprint())
+			event.computeExceptionFingerprint()
 		}
 		if event.isLowMemory() {
 			isLowMemory = true
@@ -947,12 +949,12 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 			session.Resource.MeasureSDKVersion,
 			event.ANR.ThreadName,
 			event.ANR.Handled,
-			anrFingerprint,
+			event.ANR.Fingerprint,
 			anrExceptions,
 			anrThreads,
 			event.Exception.ThreadName,
 			event.Exception.Handled,
-			exceptionFingerprint,
+			event.Exception.Fingerprint,
 			exceptionExceptions,
 			exceptionThreads,
 			event.AppExit.Reason,
