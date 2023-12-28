@@ -128,8 +128,8 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     }
     const data = await res.json()
 
-    setVersions(data.version)
-    setSelectedVersion(data.version[0])
+    setVersions(data.versions)
+    setSelectedVersion(data.versions[0])
     setFiltersApiStatus(FiltersApiStatus.Success)
   }
 
