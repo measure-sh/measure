@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/ipinfo/go/v2/ipinfo"
 	"github.com/jackc/pgx/v5"
+	"github.com/leporo/sqlf"
 )
 
 type Session struct {
@@ -159,6 +160,112 @@ func (s *Session) lookupCountry(rawIP string) error {
 		s.CountryCode = *country
 	} else {
 		s.CountryCode = "not available"
+	}
+
+	return nil
+}
+
+func (s *Session) getUnhandledExceptions() []EventField {
+	var exceptions []EventField
+	for _, event := range s.Events {
+		if !event.isException() {
+			continue
+		}
+		if event.Exception.Handled {
+			continue
+		}
+		exceptions = append(exceptions, event)
+	}
+
+	return exceptions
+}
+
+func (s *Session) bucketUnhandledException() error {
+	exceptions := s.getUnhandledExceptions()
+
+	type EventGroup struct {
+		eventId     uuid.UUID
+		fingerprint uint64
+	}
+
+	var groups []EventGroup
+
+	for _, event := range exceptions {
+		if event.Exception.Fingerprint == "" {
+			msg := fmt.Sprintf("fingerprint for event %q is empty, cannot bucket", event.ID)
+			fmt.Println(msg)
+			continue
+		}
+
+		fingerprint, err := strconv.ParseUint(event.Exception.Fingerprint, 16, 64)
+		if err != nil {
+			msg := fmt.Sprintf("failed to parse fingerprint as integer for event %q", event.ID)
+			fmt.Println(msg, err)
+			return err
+		}
+
+		groups = append(groups, EventGroup{
+			eventId:     event.ID,
+			fingerprint: fingerprint,
+		})
+
+		for _, group := range groups {
+			stmt := sqlf.PostgreSQL.
+				Select("id, app_id, name, fingerprint, count, events").
+				From("unhandled_exception_groups").
+				Where("app_id = ?", nil)
+
+			defer stmt.Close()
+
+			rows, err := server.Server.PgPool.Query(context.Background(), stmt.String(), s.AppID)
+			if err != nil {
+				return err
+			}
+			matchedGroups, err := pgx.CollectRows(rows, pgx.RowToStructByNameLax[ExceptionGroup])
+			if err != nil {
+				return err
+			}
+
+			if len(matchedGroups) < 1 {
+				// insert new exception group
+				events := []string{group.eventId.String()}
+				stmt := sqlf.PostgreSQL.InsertInto("public.unhandled_exception_groups").
+					Set("app_id", nil).
+					Set("name", nil).
+					Set("fingerprint", nil).
+					Set("count", nil).
+					Set("events", nil)
+
+				defer stmt.Close()
+
+				_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), s.AppID, event.Exception.getType(), fmt.Sprintf("%x", group.fingerprint), len(groups), events)
+				if err != nil {
+					return err
+				}
+
+				return nil
+			}
+
+			index, err := FindMatch(matchedGroups, group.fingerprint)
+			if err != nil {
+				return err
+			}
+			if index < 0 {
+				// if index is -1, then create new exception group
+				continue
+			}
+			matchedGroup := matchedGroups[index]
+
+			if matchedGroup.EventExists(group.eventId) {
+				continue
+			}
+
+			if err := matchedGroup.AppendEventId(group.eventId); err != nil {
+				return err
+			}
+
+		}
+
 	}
 
 	return nil
@@ -670,6 +777,13 @@ func PutSession(c *gin.Context) {
 	if err := session.saveWithContext(c); err != nil {
 		fmt.Println("failed to save session", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save session"})
+		return
+	}
+
+	if err := session.bucketUnhandledException(); err != nil {
+		msg := "failed to save session, error occurred during exception grouping"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
 

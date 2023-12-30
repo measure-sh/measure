@@ -270,6 +270,26 @@ func (f *Frame) encode() string {
 	return fmt.Sprintf("(%d, %d, '%s', '%s', '%s', '%s')", f.LineNum, f.ColNum, moduleName, fileName, className, methodName)
 }
 
+func (f Frame) String() string {
+	className := f.ClassName
+	methodName := f.MethodName
+	fileName := f.FileName
+	var lineNum = ""
+
+	if f.LineNum != 0 {
+		lineNum = strconv.Itoa(f.LineNum)
+	}
+
+	codeInfo := joinNonEmptyStrings(".", className, methodName)
+	fileInfo := joinNonEmptyStrings(":", fileName, lineNum)
+
+	if fileInfo != "" {
+		fileInfo = fmt.Sprintf(`(%s)`, fileInfo)
+	}
+
+	return fmt.Sprintf(`%s%s`, codeInfo, fileInfo)
+}
+
 type Frames []Frame
 
 func (frames Frames) encode() string {
@@ -512,6 +532,7 @@ type CPUUsage struct {
 }
 
 type EventField struct {
+	ID                uuid.UUID         `json:"id"`
 	Timestamp         time.Time         `json:"timestamp" binding:"required"`
 	Type              string            `json:"type" binding:"required"`
 	ThreadName        string            `json:"thread_name" binding:"required"`
@@ -619,14 +640,17 @@ func (e *EventField) computeExceptionFingerprint() {
 		return
 	}
 
+	if e.Exception.Handled {
+		return
+	}
+
 	var parts []string
 
 	parts = append(parts, e.Exception.ThreadName, strconv.FormatBool(e.Exception.Handled), e.Exception.Exceptions.encode(), e.Exception.Threads.encode())
 	signature := strings.Join(parts, " | ")
 
 	sh := simhash.NewSimhash()
-	hash := fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet([]byte(signature))))
-	e.Exception.Fingerprint = hash
+	e.Exception.Fingerprint = fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet([]byte(signature))))
 }
 
 func (e *EventField) computeANRFingerprint() {
@@ -636,12 +660,11 @@ func (e *EventField) computeANRFingerprint() {
 
 	var parts []string
 
-	parts = append(parts, e.ANR.ThreadName, strconv.FormatBool(e.ANR.Handled), e.ANR.Exceptions.encode(), e.ANR.Threads.encode())
+	parts = append(parts, e.ANR.ThreadName, e.ANR.Exceptions.encode(), e.ANR.Threads.encode())
 	signature := strings.Join(parts, " | ")
 
 	sh := simhash.NewSimhash()
-	hash := fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet([]byte(signature))))
-	e.Exception.Fingerprint = hash
+	e.ANR.Fingerprint = fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet([]byte(signature))))
 }
 
 func (e *EventField) validate() error {
@@ -894,13 +917,26 @@ func (e *EventField) validate() error {
 	return nil
 }
 
+func (e Exception) getType() string {
+	return e.Exceptions[len(e.Exceptions)-1].Type
+}
+
+func (e Exception) getMessage() string {
+	return e.Exceptions[len(e.Exceptions)-1].Message
+}
+
+func (e Exception) getLocation() string {
+	frame := e.Exceptions[len(e.Exceptions)-1].Frames[0]
+	return frame.String()
+}
+
 func makeInsertQuery(table string, columns []string, session *Session) (string, []interface{}) {
 	values := []string{}
 	valueArgs := []interface{}{}
 
 	placeholder := "(toUUID(?),?,toUUID(?),toUUID(?),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
-	for _, event := range session.Events {
+	for i, event := range session.Events {
 		anrExceptions := "[]"
 		anrThreads := "[]"
 		exceptionExceptions := "[]"
@@ -909,19 +945,20 @@ func makeInsertQuery(table string, columns []string, session *Session) (string, 
 		if event.isANR() {
 			anrExceptions = event.ANR.Exceptions.encode()
 			anrThreads = event.ANR.Threads.encode()
-			event.computeANRFingerprint()
+			session.Events[i].computeANRFingerprint()
 		}
 		if event.isException() {
 			exceptionExceptions = event.Exception.Exceptions.encode()
 			exceptionThreads = event.Exception.Threads.encode()
-			event.computeExceptionFingerprint()
+			session.Events[i].computeExceptionFingerprint()
 		}
 		if event.isLowMemory() {
 			isLowMemory = true
 		}
 		values = append(values, placeholder)
+		session.Events[i].ID = uuid.New()
 		valueArgs = append(valueArgs,
-			uuid.New(),
+			session.Events[i].ID,
 			event.Type,
 			session.SessionID,
 			session.AppID,
