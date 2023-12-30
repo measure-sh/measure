@@ -637,7 +637,13 @@ func PutSession(c *gin.Context) {
 	}
 
 	// look up country from ip
-	session.lookupCountry(c.ClientIP())
+	if err := session.lookupCountry(c.ClientIP()); err != nil {
+		msg := fmt.Sprintf("failed to lookup country for IP %q", c.ClientIP())
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not upload session, failed to lookup country by IP"})
+		return
+
+	}
 
 	if session.needsSymbolication() {
 		if err := symbolicate(session); err != nil {
