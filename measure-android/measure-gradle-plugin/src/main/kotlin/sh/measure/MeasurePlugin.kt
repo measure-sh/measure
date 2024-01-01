@@ -1,7 +1,9 @@
 package sh.measure
 
 import com.android.build.api.artifact.SingleArtifact
-import com.android.build.api.variant.*
+import com.android.build.api.variant.AndroidComponentsExtension
+import com.android.build.api.variant.CanMinifyCode
+import com.android.build.api.variant.Variant
 import com.android.build.gradle.internal.tasks.factory.dependsOn
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -63,8 +65,8 @@ class MeasurePlugin : Plugin<Project> {
         // and is not explicitly filtered.
         project.afterEvaluate {
             it.tasks.named("assemble${variant.name.capitalize()}").configure { task ->
-                    task.finalizedBy(uploadProguardMappingProvider)
-                }
+                task.finalizedBy(uploadProguardMappingProvider)
+            }
         }
     }
 

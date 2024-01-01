@@ -9,10 +9,10 @@ import org.gradle.api.services.BuildServiceRegistry
 import org.gradle.internal.impldep.org.junit.rules.TemporaryFolder
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.After
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
-import java.io.File
 import java.time.Duration
 
 class UploadProguardMappingTaskTest {
