@@ -1,0 +1,756 @@
+{
+    "attachments": [
+        {
+            "blob": "KnZlcnNpb24KMwpkYXRhLWZpbGUtb3ZlcmZsb3c9ZmFsc2UKY2xvY2s9ZHVhbAplbGFwc2VkLXRpbWUtdXNlYz00MDk1NDEKbnVtLW1ldGhvZC1jYWxscz0xOTgKY2xvY2stY2FsbC1vdmVyaGVhZC1uc2VjPTI0MAp2bT1hcnQKcGlkPTMyNzM3Cip0aHJlYWRzCjMyNzM3CW1haW4KMzI3MzkJUnVudGltZSB3b3JrZXIgdGhyZWFkIDAKMzI3NDAJUnVudGltZSB3b3JrZXIgdGhyZWFkIDEKMzI3NDEJUnVudGltZSB3b3JrZXIgdGhyZWFkIDIKMzI3NDIJUnVudGltZSB3b3JrZXIgdGhyZWFkIDMKMzI3NDMJU2lnbmFsIENhdGNoZXIKMzI3NDQJcGVyZmV0dG9faHByb2ZfbGlzdGVuZXIKMzI3NDUJQURCLUpEV1AgQ29ubmVjdGlvbiBDb250cm9sIFRocmVhZAozMjc0NglKaXQgdGhyZWFkIHBvb2wgd29ya2VyIHRocmVhZCAwCjMyNzQ3CUhlYXBUYXNrRGFlbW9uCjMyNzQ4CVJlZmVyZW5jZVF1ZXVlRGFlbW9uCjMyNzQ5CUZpbmFsaXplckRhZW1vbgozMjc1MAlGaW5hbGl6ZXJXYXRjaGRvZ0RhZW1vbgozMjc1MQliaW5kZXI6MzI3MzdfMQozMjc1MgliaW5kZXI6MzI3MzdfMgozMjc1MwliaW5kZXI6MzI3MzdfMwozMjc1NAlQcm9maWxlIFNhdmVyCjMyNzU1CVNhbXBsaW5nIFByb2ZpbGVyCjMyNzU2CVRocmVhZC0yCjMyNzU3CW1lYXN1cmUtdGhyZWFkLSMwCjMyNzU4CUxlYWtDYW5hcnktSGVhcC1EdW1wCjMyNzU5CVJlbmRlclRocmVhZAozMjc2Mglod3VpVGFzazAKMzI3NjMJaHd1aVRhc2sxCjMyNzY0CVNoYXJlZFByZWZlcmVuY2VzSW1wbC1sb2FkCjMyNzY1CWJpbmRlcjozMjczN180CiptZXRob2RzCjB4MWFjCWFuZHJvaWQudmlldy5WaWV3Um9vdEltcGwJc2V0VmlldwkoTGFuZHJvaWQvdmlldy9WaWV3O0xhbmRyb2lkL3ZpZXcvV2luZG93TWFuYWdlciRMYXlvdXRQYXJhbXM7TGFuZHJvaWQvdmlldy9WaWV3O0kpVglWaWV3Um9vdEltcGwuamF2YQoweDFhOAlhbmRyb2lkLnZpZXcuV2luZG93TWFuYWdlckdsb2JhbAlhZGRWaWV3CShMYW5kcm9pZC92aWV3L1ZpZXc7TGFuZHJvaWQvdmlldy9WaWV3R3JvdXAkTGF5b3V0UGFyYW1zO0xhbmRyb2lkL3ZpZXcvRGlzcGxheTtMYW5kcm9pZC92aWV3L1dpbmRvdztJKVYJV2luZG93TWFuYWdlckdsb2JhbC5qYXZhCjB4MWEwCWFuZHJvaWQuYXBwLkFjdGl2aXR5VGhyZWFkCWhhbmRsZVJlc3VtZUFjdGl2aXR5CShMYW5kcm9pZC9hcHAvQWN0aXZpdHlUaHJlYWQkQWN0aXZpdHlDbGllbnRSZWNvcmQ7WlpaTGphdmEvbGFuZy9TdHJpbmc7KVYJQWN0aXZpdHlUaHJlYWQuamF2YQoweDE5YwlhbmRyb2lkLmFwcC5zZXJ2ZXJ0cmFuc2FjdGlvbi5SZXN1bWVBY3Rpdml0eUl0ZW0JZXhlY3V0ZQkoTGFuZHJvaWQvYXBwL0NsaWVudFRyYW5zYWN0aW9uSGFuZGxlcjtMYW5kcm9pZC9hcHAvQWN0aXZpdHlUaHJlYWQkQWN0aXZpdHlDbGllbnRSZWNvcmQ7TGFuZHJvaWQvYXBwL3NlcnZlcnRyYW5zYWN0aW9uL1BlbmRpbmdUcmFuc2FjdGlvbkFjdGlvbnM7KVYJUmVzdW1lQWN0aXZpdHlJdGVtLmphdmEKMHgxOTgJYW5kcm9pZC5hcHAuc2VydmVydHJhbnNhY3Rpb24uQWN0aXZpdHlUcmFuc2FjdGlvbkl0ZW0JZXhlY3V0ZQkoTGFuZHJvaWQvYXBwL0NsaWVudFRyYW5zYWN0aW9uSGFuZGxlcjtMYW5kcm9pZC9vcy9JQmluZGVyO0xhbmRyb2lkL2FwcC9zZXJ2ZXJ0cmFuc2FjdGlvbi9QZW5kaW5nVHJhbnNhY3Rpb25BY3Rpb25zOylWCUFjdGl2aXR5VHJhbnNhY3Rpb25JdGVtLmphdmEKMHgxOGMJamF2YS51dGlsLmNvbmN1cnJlbnQubG9ja3MuTG9ja1N1cHBvcnQJcGFya05hbm9zCShMamF2YS9sYW5nL09iamVjdDtKKVYJTG9ja1N1cHBvcnQuamF2YQoweDE3OAlhbmRyb2lkLmNvbnRlbnQucmVzLlR5cGVkQXJyYXkJZ2V0SW5kZXhDb3VudAkoKUkJVHlwZWRBcnJheS5qYXZhCjB4MTcwCWFuZHJvaWQud2lkZ2V0LlRleHRWaWV3CTxpbml0PgkoTGFuZHJvaWQvY29udGVudC9Db250ZXh0O0xhbmRyb2lkL3V0aWwvQXR0cmlidXRlU2V0O0lJKVYJVGV4dFZpZXcuamF2YQoweDcwCWphdmEubGFuZy5PYmplY3QJd2FpdAkoKVYJT2JqZWN0LmphdmEKMHgxMmMJYW5kcm9pZC52aWV3LkxheW91dEluZmxhdGVyCWluZmxhdGUJKElMYW5kcm9pZC92aWV3L1ZpZXdHcm91cDspTGFuZHJvaWQvdmlldy9WaWV3OwlMYXlvdXRJbmZsYXRlci5qYXZhCjB4MTY0CWFuZHJvaWR4LmFwcGNvbXBhdC53aWRnZXQuQXBwQ29tcGF0QnV0dG9uCTxpbml0PgkoTGFuZHJvaWQvY29udGVudC9Db250ZXh0O0xhbmRyb2lkL3V0aWwvQXR0cmlidXRlU2V0O0kpVglBcHBDb21wYXRCdXR0b24uamF2YQoweDE2MAljb20uZ29vZ2xlLmFuZHJvaWQubWF0ZXJpYWwuYnV0dG9uLk1hdGVyaWFsQnV0dG9uCTxpbml0PgkoTGFuZHJvaWQvY29udGVudC9Db250ZXh0O0xhbmRyb2lkL3V0aWwvQXR0cmlidXRlU2V0O0kpVglNYXRlcmlhbEJ1dHRvbi5qYXZhCjB4MTVjCWNvbS5nb29nbGUuYW5kcm9pZC5tYXRlcmlhbC5idXR0b24uTWF0ZXJpYWxCdXR0b24JPGluaXQ+CShMYW5kcm9pZC9jb250ZW50L0NvbnRleHQ7TGFuZHJvaWQvdXRpbC9BdHRyaWJ1dGVTZXQ7KVYJTWF0ZXJpYWxCdXR0b24uamF2YQoweDE0YwlhbmRyb2lkeC5hcHBjb21wYXQuYXBwLkFwcENvbXBhdERlbGVnYXRlSW1wbAlvbkNyZWF0ZVZpZXcJKExhbmRyb2lkL3ZpZXcvVmlldztMamF2YS9sYW5nL1N0cmluZztMYW5kcm9pZC9jb250ZW50L0NvbnRleHQ7TGFuZHJvaWQvdXRpbC9BdHRyaWJ1dGVTZXQ7KUxhbmRyb2lkL3ZpZXcvVmlldzsJQXBwQ29tcGF0RGVsZWdhdGVJbXBsLmphdmEKMHgxNDQJYW5kcm9pZC52aWV3LkxheW91dEluZmxhdGVyCWNyZWF0ZVZpZXdGcm9tVGFnCShMYW5kcm9pZC92aWV3L1ZpZXc7TGphdmEvbGFuZy9TdHJpbmc7TGFuZHJvaWQvY29udGVudC9Db250ZXh0O0xhbmRyb2lkL3V0aWwvQXR0cmlidXRlU2V0O1opTGFuZHJvaWQvdmlldy9WaWV3OwlMYXlvdXRJbmZsYXRlci5qYXZhCjB4MTgJYW5kcm9pZC5vcy5IYW5kbGVyCWRpc3BhdGNoTWVzc2FnZQkoTGFuZHJvaWQvb3MvTWVzc2FnZTspVglIYW5kbGVyLmphdmEKMHg5MAlqYXZhLmxhbmcuRGFlbW9ucyRGaW5hbGl6ZXJXYXRjaGRvZ0RhZW1vbglzbGVlcEZvck5hbm9zCShKKVoJRGFlbW9ucy5qYXZhCjB4MTQ4CWFuZHJvaWQudmlldy5MYXlvdXRJbmZsYXRlcgl0cnlDcmVhdGVWaWV3CShMYW5kcm9pZC92aWV3L1ZpZXc7TGphdmEvbGFuZy9TdHJpbmc7TGFuZHJvaWQvY29udGVudC9Db250ZXh0O0xhbmRyb2lkL3V0aWwvQXR0cmlidXRlU2V0OylMYW5kcm9pZC92aWV3L1ZpZXc7CUxheW91dEluZmxhdGVyLmphdmEKMHgxNDAJYW5kcm9pZC52aWV3LkxheW91dEluZmxhdGVyCWNyZWF0ZVZpZXdGcm9tVGFnCShMYW5kcm9pZC92aWV3L1ZpZXc7TGphdmEvbGFuZy9TdHJpbmc7TGFuZHJvaWQvY29udGVudC9Db250ZXh0O0xhbmRyb2lkL3V0aWwvQXR0cmlidXRlU2V0OylMYW5kcm9pZC92aWV3L1ZpZXc7CUxheW91dEluZmxhdGVyLmphdmEKMHgxM2MJYW5kcm9pZC52aWV3LkxheW91dEluZmxhdGVyCXJJbmZsYXRlCShMb3JnL3htbHB1bGwvdjEvWG1sUHVsbFBhcnNlcjtMYW5kcm9pZC92aWV3L1ZpZXc7TGFuZHJvaWQvY29udGVudC9Db250ZXh0O0xhbmRyb2lkL3V0aWwvQXR0cmlidXRlU2V0O1opVglMYXlvdXRJbmZsYXRlci5qYXZhCjB4MTU4CWNvbS5nb29nbGUuYW5kcm9pZC5tYXRlcmlhbC50aGVtZS5NYXRlcmlhbENvbXBvbmVudHNWaWV3SW5mbGF0ZXIJY3JlYXRlQnV0dG9uCShMYW5kcm9pZC9jb250ZW50L0NvbnRleHQ7TGFuZHJvaWQvdXRpbC9BdHRyaWJ1dGVTZXQ7KUxhbmRyb2lkeC9hcHBjb21wYXQvd2lkZ2V0L0FwcENvbXBhdEJ1dHRvbjsJTWF0ZXJpYWxDb21wb25lbnRzVmlld0luZmxhdGVyLmphdmEKMHgxMzAJYW5kcm9pZC52aWV3LkxheW91dEluZmxhdGVyCWluZmxhdGUJKElMYW5kcm9pZC92aWV3L1ZpZXdHcm91cDtaKUxhbmRyb2lkL3ZpZXcvVmlldzsJTGF5b3V0SW5mbGF0ZXIuamF2YQoweDExYwlhbmRyb2lkLmFwcC5BY3Rpdml0eQlwZXJmb3JtQ3JlYXRlCShMYW5kcm9pZC9vcy9CdW5kbGU7TGFuZHJvaWQvb3MvUGVyc2lzdGFibGVCdW5kbGU7KVYJQWN0aXZpdHkuamF2YQowCWNvbS5hbmRyb2lkLmludGVybmFsLm9zLlp5Z290ZUluaXQJbWFpbgkoW0xqYXZhL2xhbmcvU3RyaW5nOylWCVp5Z290ZUluaXQuamF2YQoweDExNAlhbmRyb2lkLmFwcC5JbnN0cnVtZW50YXRpb24JY2FsbEFjdGl2aXR5T25DcmVhdGUJKExhbmRyb2lkL2FwcC9BY3Rpdml0eTtMYW5kcm9pZC9vcy9CdW5kbGU7KVYJSW5zdHJ1bWVudGF0aW9uLmphdmEKMHgxOTQJYW5kcm9pZC5hcHAuc2VydmVydHJhbnNhY3Rpb24uVHJhbnNhY3Rpb25FeGVjdXRvcglleGVjdXRlTGlmZWN5Y2xlU3RhdGUJKExhbmRyb2lkL2FwcC9zZXJ2ZXJ0cmFuc2FjdGlvbi9DbGllbnRUcmFuc2FjdGlvbjspVglUcmFuc2FjdGlvbkV4ZWN1dG9yLmphdmEKMHgxMjQJYW5kcm9pZHguYXBwY29tcGF0LmFwcC5BcHBDb21wYXRBY3Rpdml0eQlzZXRDb250ZW50VmlldwkoSSlWCUFwcENvbXBhdEFjdGl2aXR5LmphdmEKMHgxMTAJYW5kcm9pZC5vcy5NZXNzYWdlUXVldWUJbmF0aXZlUG9sbE9uY2UJKEpJKVYJTWVzc2FnZVF1ZXVlLmphdmEKMHgxMGMJYW5kcm9pZC5vcy5NZXNzYWdlUXVldWUJbmV4dAkoKUxhbmRyb2lkL29zL01lc3NhZ2U7CU1lc3NhZ2VRdWV1ZS5qYXZhCjB4MTAwCWtvdGxpbnguc2VyaWFsaXphdGlvbi5kZXNjcmlwdG9ycy5TZXJpYWxEZXNjcmlwdG9yc0t0CVByaW1pdGl2ZVNlcmlhbERlc2NyaXB0b3IJKExqYXZhL2xhbmcvU3RyaW5nO0xrb3RsaW54L3NlcmlhbGl6YXRpb24vZGVzY3JpcHRvcnMvUHJpbWl0aXZlS2luZDspTGtvdGxpbngvc2VyaWFsaXphdGlvbi9kZXNjcmlwdG9ycy9TZXJpYWxEZXNjcmlwdG9yOwlTZXJpYWxEZXNjcmlwdG9ycy5rdAoweDc0CWphdmEubGFuZy5PYmplY3QJd2FpdAkoSilWCU9iamVjdC5qYXZhCjB4ZmMJa290bGlueC5zZXJpYWxpemF0aW9uLmpzb24uSnNvbkxpdGVyYWxTZXJpYWxpemVyCTxjbGluaXQ+CSgpVglKc29uRWxlbWVudFNlcmlhbGl6ZXJzLmt0CjB4MTAJYW5kcm9pZC5vcy5Mb29wZXIJbG9vcAkoKVYJTG9vcGVyLmphdmEKMHhmOAlrb3RsaW54LnNlcmlhbGl6YXRpb24uanNvbi5Kc29uUHJpbWl0aXZlU2VyaWFsaXplcglzZXJpYWxpemUJKExrb3RsaW54L3NlcmlhbGl6YXRpb24vZW5jb2RpbmcvRW5jb2RlcjtMa290bGlueC9zZXJpYWxpemF0aW9uL2pzb24vSnNvblByaW1pdGl2ZTspVglKc29uRWxlbWVudFNlcmlhbGl6ZXJzLmt0CjB4YjAJamF2YS51dGlsLmNvbmN1cnJlbnQuRnV0dXJlVGFzawlydW4JKClWCUZ1dHVyZVRhc2suamF2YQoweGVjCWtvdGxpbnguc2VyaWFsaXphdGlvbi5pbnRlcm5hbC5NYXBMaWtlU2VyaWFsaXplcglzZXJpYWxpemUJKExrb3RsaW54L3NlcmlhbGl6YXRpb24vZW5jb2RpbmcvRW5jb2RlcjtMamF2YS9sYW5nL09iamVjdDspVglDb2xsZWN0aW9uU2VyaWFsaXplcnMua3QKMHgzNAlhbmRyb2lkLmFwcC5BY3Rpdml0eQlhdHRhY2gJKExhbmRyb2lkL2NvbnRlbnQvQ29udGV4dDtMYW5kcm9pZC9hcHAvQWN0aXZpdHlUaHJlYWQ7TGFuZHJvaWQvYXBwL0luc3RydW1lbnRhdGlvbjtMYW5kcm9pZC9vcy9JQmluZGVyO0lMYW5kcm9pZC9hcHAvQXBwbGljYXRpb247TGFuZHJvaWQvY29udGVudC9JbnRlbnQ7TGFuZHJvaWQvY29udGVudC9wbS9BY3Rpdml0eUluZm87TGphdmEvbGFuZy9DaGFyU2VxdWVuY2U7TGFuZHJvaWQvYXBwL0FjdGl2aXR5O0xqYXZhL2xhbmcvU3RyaW5nO0xhbmRyb2lkL2FwcC9BY3Rpdml0eSROb25Db25maWd1cmF0aW9uSW5zdGFuY2VzO0xhbmRyb2lkL2NvbnRlbnQvcmVzL0NvbmZpZ3VyYXRpb247TGphdmEvbGFuZy9TdHJpbmc7TGNvbS9hbmRyb2lkL2ludGVybmFsL2FwcC9JVm9pY2VJbnRlcmFjdG9yO0xhbmRyb2lkL3ZpZXcvV2luZG93O0xhbmRyb2lkL3ZpZXcvVmlld1Jvb3RJbXBsJEFjdGl2aXR5Q29uZmlnQ2FsbGJhY2s7TGFuZHJvaWQvb3MvSUJpbmRlcjtMYW5kcm9pZC9vcy9JQmluZGVyOylWCUFjdGl2aXR5LmphdmEKMHgxMzQJYW5kcm9pZC52aWV3LkxheW91dEluZmxhdGVyCWluZmxhdGUJKExvcmcveG1scHVsbC92MS9YbWxQdWxsUGFyc2VyO0xhbmRyb2lkL3ZpZXcvVmlld0dyb3VwO1opTGFuZHJvaWQvdmlldy9WaWV3OwlMYXlvdXRJbmZsYXRlci5qYXZhCjB4YzQJc2gubWVhc3VyZS5hbmRyb2lkLnNlc3Npb24uU2Vzc2lvbkNvbnRyb2xsZXJJbXBsCXN0b3JlRXZlbnRJbnRlcm5hbAkoTHNoL21lYXN1cmUvYW5kcm9pZC9ldmVudHMvRXZlbnQ7KVYJU2Vzc2lvbkNvbnRyb2xsZXIua3QKMHhlOAlrb3RsaW54LnNlcmlhbGl6YXRpb24uanNvbi5Kc29uT2JqZWN0U2VyaWFsaXplcglzZXJpYWxpemUJKExrb3RsaW54L3NlcmlhbGl6YXRpb24vZW5jb2RpbmcvRW5jb2RlcjtMa290bGlueC9zZXJpYWxpemF0aW9uL2pzb24vSnNvbk9iamVjdDspVglKc29uRWxlbWVudFNlcmlhbGl6ZXJzLmt0CjB4MTg0CWphdmEudXRpbC5jb25jdXJyZW50LlNjaGVkdWxlZFRocmVhZFBvb2xFeGVjdXRvciREZWxheWVkV29ya1F1ZXVlCXRha2UJKClMamF2YS91dGlsL2NvbmN1cnJlbnQvUnVubmFibGVTY2hlZHVsZWRGdXR1cmU7CVNjaGVkdWxlZFRocmVhZFBvb2xFeGVjdXRvci5qYXZhCjB4ZTQJa290bGlueC5zZXJpYWxpemF0aW9uLmpzb24uSnNvbk9iamVjdFNlcmlhbGl6ZXIJc2VyaWFsaXplCShMa290bGlueC9zZXJpYWxpemF0aW9uL2VuY29kaW5nL0VuY29kZXI7TGphdmEvbGFuZy9PYmplY3Q7KVYJSnNvbkVsZW1lbnRTZXJpYWxpemVycy5rdAoweGUwCWtvdGxpbnguc2VyaWFsaXphdGlvbi5qc29uLkpzb25FbGVtZW50U2VyaWFsaXplcglzZXJpYWxpemUJKExrb3RsaW54L3NlcmlhbGl6YXRpb24vZW5jb2RpbmcvRW5jb2RlcjtMa290bGlueC9zZXJpYWxpemF0aW9uL2pzb24vSnNvbkVsZW1lbnQ7KVYJSnNvbkVsZW1lbnRTZXJpYWxpemVycy5rdAoweDE5MAlqZGsuaW50ZXJuYWwubWlzYy5VbnNhZmUJcGFyawkoWkopVglVbnNhZmUuamF2YQoweDg4CWphdmEubGFuZy5EYWVtb25zJEZpbmFsaXplcldhdGNoZG9nRGFlbW9uCXJ1bkludGVybmFsCSgpVglEYWVtb25zLmphdmEKMHhkOAlrb3RsaW54LnNlcmlhbGl6YXRpb24uanNvbi5pbnRlcm5hbC5TdHJlYW1pbmdKc29uRW5jb2RlcgllbmNvZGVTZXJpYWxpemFibGVWYWx1ZQkoTGtvdGxpbngvc2VyaWFsaXphdGlvbi9TZXJpYWxpemF0aW9uU3RyYXRlZ3k7TGphdmEvbGFuZy9PYmplY3Q7KVYJU3RyZWFtaW5nSnNvbkVuY29kZXIua3QKMHhkYwlrb3RsaW54LnNlcmlhbGl6YXRpb24uanNvbi5Kc29uRWxlbWVudFNlcmlhbGl6ZXIJc2VyaWFsaXplCShMa290bGlueC9zZXJpYWxpemF0aW9uL2VuY29kaW5nL0VuY29kZXI7TGphdmEvbGFuZy9PYmplY3Q7KVYJSnNvbkVsZW1lbnRTZXJpYWxpemVycy5rdAoweDYwCWphdmEubGFuZy5EYWVtb25zJERhZW1vbglydW4JKClWCURhZW1vbnMuamF2YQoweGQwCWtvdGxpbnguc2VyaWFsaXphdGlvbi5qc29uLkp2bVN0cmVhbXNLdAllbmNvZGVUb1N0cmVhbQkoTGtvdGxpbngvc2VyaWFsaXphdGlvbi9qc29uL0pzb247TGtvdGxpbngvc2VyaWFsaXphdGlvbi9TZXJpYWxpemF0aW9uU3RyYXRlZ3k7TGphdmEvbGFuZy9PYmplY3Q7TGphdmEvaW8vT3V0cHV0U3RyZWFtOylWCUp2bVN0cmVhbXMua3QKMHgxMjgJYW5kcm9pZHguYXBwY29tcGF0LmFwcC5BcHBDb21wYXREZWxlZ2F0ZUltcGwJc2V0Q29udGVudFZpZXcJKEkpVglBcHBDb21wYXREZWxlZ2F0ZUltcGwuamF2YQoweDExOAlhbmRyb2lkLmFwcC5BY3Rpdml0eQlwZXJmb3JtQ3JlYXRlCShMYW5kcm9pZC9vcy9CdW5kbGU7KVYJQWN0aXZpdHkuamF2YQoweGNjCXNoLm1lYXN1cmUuYW5kcm9pZC5ldmVudHMuRXZlbnQJd3JpdGUJKExva2lvL0J1ZmZlcmVkU2luazspVglFdmVudC5rdAoweGM4CXNoLm1lYXN1cmUuYW5kcm9pZC5zdG9yYWdlLlN0b3JhZ2VJbXBsCXN0b3JlRXZlbnQJKExzaC9tZWFzdXJlL2FuZHJvaWQvZXZlbnRzL0V2ZW50O0xqYXZhL2xhbmcvU3RyaW5nOylWCVN0b3JhZ2Uua3QKMHgxNmMJYW5kcm9pZC53aWRnZXQuQnV0dG9uCTxpbml0PgkoTGFuZHJvaWQvY29udGVudC9Db250ZXh0O0xhbmRyb2lkL3V0aWwvQXR0cmlidXRlU2V0O0lJKVYJQnV0dG9uLmphdmEKMHhmNAlrb3RsaW54LnNlcmlhbGl6YXRpb24uanNvbi5Kc29uUHJpbWl0aXZlU2VyaWFsaXplcglzZXJpYWxpemUJKExrb3RsaW54L3NlcmlhbGl6YXRpb24vZW5jb2RpbmcvRW5jb2RlcjtMamF2YS9sYW5nL09iamVjdDspVglKc29uRWxlbWVudFNlcmlhbGl6ZXJzLmt0CjB4MTU0CWFuZHJvaWR4LmFwcGNvbXBhdC5hcHAuQXBwQ29tcGF0Vmlld0luZmxhdGVyCWNyZWF0ZVZpZXcJKExhbmRyb2lkL3ZpZXcvVmlldztMamF2YS9sYW5nL1N0cmluZztMYW5kcm9pZC9jb250ZW50L0NvbnRleHQ7TGFuZHJvaWQvdXRpbC9BdHRyaWJ1dGVTZXQ7WlpaWilMYW5kcm9pZC92aWV3L1ZpZXc7CUFwcENvbXBhdFZpZXdJbmZsYXRlci5qYXZhCjB4YmMJc2gubWVhc3VyZS5hbmRyb2lkLnNlc3Npb24uU2Vzc2lvbkNvbnRyb2xsZXJJbXBsCSRyOCRsYW1iZGEkcEdrV1ZkX2EzTDFqU0NIZFBNeUVOQkU4TFJvCShMc2gvbWVhc3VyZS9hbmRyb2lkL3Nlc3Npb24vU2Vzc2lvbkNvbnRyb2xsZXJJbXBsO0xzaC9tZWFzdXJlL2FuZHJvaWQvZXZlbnRzL0V2ZW50OylWCVNlc3Npb25Db250cm9sbGVyLmt0CjB4MWIwCWFuZHJvaWQudmlldy5JV2luZG93U2Vzc2lvbiRTdHViJFByb3h5CWFkZFRvRGlzcGxheUFzVXNlcgkoTGFuZHJvaWQvdmlldy9JV2luZG93O0xhbmRyb2lkL3ZpZXcvV2luZG93TWFuYWdlciRMYXlvdXRQYXJhbXM7SUlJTGFuZHJvaWQvdmlldy9JbnNldHNWaXNpYmlsaXRpZXM7TGFuZHJvaWQvdmlldy9JbnB1dENoYW5uZWw7TGFuZHJvaWQvdmlldy9JbnNldHNTdGF0ZTtbTGFuZHJvaWQvdmlldy9JbnNldHNTb3VyY2VDb250cm9sO0xhbmRyb2lkL2dyYXBoaWNzL1JlY3Q7W0YpSQlJV2luZG93U2Vzc2lvbi5qYXZhCjB4YzAJc2gubWVhc3VyZS5hbmRyb2lkLnNlc3Npb24uU2Vzc2lvbkNvbnRyb2xsZXJJbXBsCXN0b3JlRXZlbnQkbGFtYmRhJDYJKExzaC9tZWFzdXJlL2FuZHJvaWQvc2Vzc2lvbi9TZXNzaW9uQ29udHJvbGxlckltcGw7THNoL21lYXN1cmUvYW5kcm9pZC9ldmVudHMvRXZlbnQ7KVYJU2Vzc2lvbkNvbnRyb2xsZXIua3QKMHhiOAlzaC5tZWFzdXJlLmFuZHJvaWQuc2Vzc2lvbi5TZXNzaW9uQ29udHJvbGxlckltcGwkJEV4dGVybmFsU3ludGhldGljTGFtYmRhMAlydW4JKClWCUQ4JCRTeW50aGV0aWNDbGFzcwoweDJjCWFuZHJvaWQuYXBwLkFjdGl2aXR5VGhyZWFkCWhhbmRsZUxhdW5jaEFjdGl2aXR5CShMYW5kcm9pZC9hcHAvQWN0aXZpdHlUaHJlYWQkQWN0aXZpdHlDbGllbnRSZWNvcmQ7TGFuZHJvaWQvYXBwL3NlcnZlcnRyYW5zYWN0aW9uL1BlbmRpbmdUcmFuc2FjdGlvbkFjdGlvbnM7TGFuZHJvaWQvY29udGVudC9JbnRlbnQ7KUxhbmRyb2lkL2FwcC9BY3Rpdml0eTsJQWN0aXZpdHlUaHJlYWQuamF2YQoweGFjCWphdmEudXRpbC5jb25jdXJyZW50LlNjaGVkdWxlZFRocmVhZFBvb2xFeGVjdXRvciRTY2hlZHVsZWRGdXR1cmVUYXNrCXJ1bgkoKVYJU2NoZWR1bGVkVGhyZWFkUG9vbEV4ZWN1dG9yLmphdmEKMHhhMAlzaC5tZWFzdXJlLmFuZHJvaWQuYW5yLkFOUldhdGNoRG9nCXJ1bgkoKVYJQU5SV2F0Y2hEb2cua3QKMHg5OAlqYXZhLmxhbmcuVGhyZWFkCXNsZWVwCShKSSlWCVRocmVhZC5qYXZhCjB4MTY4CWFuZHJvaWQud2lkZ2V0LkJ1dHRvbgk8aW5pdD4JKExhbmRyb2lkL2NvbnRlbnQvQ29udGV4dDtMYW5kcm9pZC91dGlsL0F0dHJpYnV0ZVNldDtJKVYJQnV0dG9uLmphdmEKMHg5NAlqYXZhLmxhbmcuVGhyZWFkCXNsZWVwCShKKVYJVGhyZWFkLmphdmEKMHg4YwlqYXZhLmxhbmcuRGFlbW9ucyRGaW5hbGl6ZXJXYXRjaGRvZ0RhZW1vbgl3YWl0Rm9yUHJvZ3Jlc3MJKClMamF2YS91dGlsL2NvbmN1cnJlbnQvVGltZW91dEV4Y2VwdGlvbjsJRGFlbW9ucy5qYXZhCjB4NWMJamF2YS5sYW5nLlRocmVhZAlydW4JKClWCVRocmVhZC5qYXZhCjB4MTUwCWFuZHJvaWR4LmFwcGNvbXBhdC5hcHAuQXBwQ29tcGF0RGVsZWdhdGVJbXBsCWNyZWF0ZVZpZXcJKExhbmRyb2lkL3ZpZXcvVmlldztMamF2YS9sYW5nL1N0cmluZztMYW5kcm9pZC9jb250ZW50L0NvbnRleHQ7TGFuZHJvaWQvdXRpbC9BdHRyaWJ1dGVTZXQ7KUxhbmRyb2lkL3ZpZXcvVmlldzsJQXBwQ29tcGF0RGVsZWdhdGVJbXBsLmphdmEKMHg1MAlhbmRyb2lkLmNvbnRlbnQuQ29udGVudFByb3ZpZGVyUHJveHkJY2FsbAkoTGFuZHJvaWQvY29udGVudC9BdHRyaWJ1dGlvblNvdXJjZTtMamF2YS9sYW5nL1N0cmluZztMamF2YS9sYW5nL1N0cmluZztMamF2YS9sYW5nL1N0cmluZztMYW5kcm9pZC9vcy9CdW5kbGU7KUxhbmRyb2lkL29zL0J1bmRsZTsJQ29udGVudFByb3ZpZGVyTmF0aXZlLmphdmEKMHg4NAlqYXZhLmxhbmcucmVmLlJlZmVyZW5jZVF1ZXVlCXJlbW92ZQkoSilMamF2YS9sYW5nL3JlZi9SZWZlcmVuY2U7CVJlZmVyZW5jZVF1ZXVlLmphdmEKMHg2YwlqYXZhLmxhbmcuRGFlbW9ucyRSZWZlcmVuY2VRdWV1ZURhZW1vbglydW5JbnRlcm5hbAkoKVYJRGFlbW9ucy5qYXZhCjB4NjQJamF2YS5sYW5nLkRhZW1vbnMkSGVhcFRhc2tEYWVtb24JcnVuSW50ZXJuYWwJKClWCURhZW1vbnMuamF2YQoweDE3YwlqYXZhLnV0aWwuY29uY3VycmVudC5UaHJlYWRQb29sRXhlY3V0b3IJZ2V0VGFzawkoKUxqYXZhL2xhbmcvUnVubmFibGU7CVRocmVhZFBvb2xFeGVjdXRvci5qYXZhCjB4YTgJamF2YS51dGlsLmNvbmN1cnJlbnQuVGhyZWFkUG9vbEV4ZWN1dG9yCXJ1bldvcmtlcgkoTGphdmEvdXRpbC9jb25jdXJyZW50L1RocmVhZFBvb2xFeGVjdXRvciRXb3JrZXI7KVYJVGhyZWFkUG9vbEV4ZWN1dG9yLmphdmEKMHgxNAlhbmRyb2lkLm9zLkxvb3Blcglsb29wT25jZQkoTGFuZHJvaWQvb3MvTG9vcGVyO0pJKVoJTG9vcGVyLmphdmEKMHgxODgJamF2YS51dGlsLmNvbmN1cnJlbnQubG9ja3MuQWJzdHJhY3RRdWV1ZWRTeW5jaHJvbml6ZXIkQ29uZGl0aW9uT2JqZWN0CWF3YWl0TmFub3MJKEopSglBYnN0cmFjdFF1ZXVlZFN5bmNocm9uaXplci5qYXZhCjB4MTc0CWFuZHJvaWQud2lkZ2V0LlRleHRWaWV3CXJlYWRUZXh0QXBwZWFyYW5jZQkoTGFuZHJvaWQvY29udGVudC9Db250ZXh0O0xhbmRyb2lkL2NvbnRlbnQvcmVzL1R5cGVkQXJyYXk7TGFuZHJvaWQvd2lkZ2V0L1RleHRWaWV3JFRleHRBcHBlYXJhbmNlQXR0cmlidXRlcztaKVYJVGV4dFZpZXcuamF2YQoweDM4CWNvbS5hbmRyb2lkLmludGVybmFsLnBvbGljeS5QaG9uZVdpbmRvdwk8aW5pdD4JKExhbmRyb2lkL2NvbnRlbnQvQ29udGV4dDtMYW5kcm9pZC92aWV3L1dpbmRvdztMYW5kcm9pZC92aWV3L1ZpZXdSb290SW1wbCRBY3Rpdml0eUNvbmZpZ0NhbGxiYWNrOylWCVBob25lV2luZG93LmphdmEKMHg0YwlhbmRyb2lkLnByb3ZpZGVyLlNldHRpbmdzJE5hbWVWYWx1ZUNhY2hlCWdldFN0cmluZ0ZvclVzZXIJKExhbmRyb2lkL2NvbnRlbnQvQ29udGVudFJlc29sdmVyO0xqYXZhL2xhbmcvU3RyaW5nO0kpTGphdmEvbGFuZy9TdHJpbmc7CVNldHRpbmdzLmphdmEKMHg4CWphdmEubGFuZy5yZWZsZWN0Lk1ldGhvZAlpbnZva2UJKExqYXZhL2xhbmcvT2JqZWN0O1tMamF2YS9sYW5nL09iamVjdDspTGphdmEvbGFuZy9PYmplY3Q7CU1ldGhvZC5qYXZhCjB4MWE0CWFuZHJvaWQudmlldy5XaW5kb3dNYW5hZ2VySW1wbAlhZGRWaWV3CShMYW5kcm9pZC92aWV3L1ZpZXc7TGFuZHJvaWQvdmlldy9WaWV3R3JvdXAkTGF5b3V0UGFyYW1zOylWCVdpbmRvd01hbmFnZXJJbXBsLmphdmEKMHgxODAJamF2YS51dGlsLmNvbmN1cnJlbnQuU2NoZWR1bGVkVGhyZWFkUG9vbEV4ZWN1dG9yJERlbGF5ZWRXb3JrUXVldWUJdGFrZQkoKUxqYXZhL2xhbmcvT2JqZWN0OwlTY2hlZHVsZWRUaHJlYWRQb29sRXhlY3V0b3IuamF2YQoweDQ0CWFuZHJvaWQucHJvdmlkZXIuU2V0dGluZ3MkR2xvYmFsCWdldFN0cmluZwkoTGFuZHJvaWQvY29udGVudC9Db250ZW50UmVzb2x2ZXI7TGphdmEvbGFuZy9TdHJpbmc7KUxqYXZhL2xhbmcvU3RyaW5nOwlTZXR0aW5ncy5qYXZhCjB4M2MJY29tLmFuZHJvaWQuaW50ZXJuYWwucG9saWN5LlBob25lV2luZG93CTxpbml0PgkoTGFuZHJvaWQvY29udGVudC9Db250ZXh0OylWCVBob25lV2luZG93LmphdmEKMHg3YwlqYXZhLmxhbmcuRGFlbW9ucyRGaW5hbGl6ZXJEYWVtb24JcnVuSW50ZXJuYWwJKClWCURhZW1vbnMuamF2YQoweDc4CWphdmEubGFuZy5PYmplY3QJd2FpdAkoSkkpVglPYmplY3QuamF2YQoweDEyMAlzaC5tZWFzdXJlLnNhbXBsZS5FeGNlcHRpb25EZW1vQWN0aXZpdHkJb25DcmVhdGUJKExhbmRyb2lkL29zL0J1bmRsZTspVglFeGNlcHRpb25EZW1vQWN0aXZpdHkua3QKMHg0MAlhbmRyb2lkLnByb3ZpZGVyLlNldHRpbmdzJEdsb2JhbAlnZXRJbnQJKExhbmRyb2lkL2NvbnRlbnQvQ29udGVudFJlc29sdmVyO0xqYXZhL2xhbmcvU3RyaW5nO0kpSQlTZXR0aW5ncy5qYXZhCjB4YTQJamF2YS51dGlsLmNvbmN1cnJlbnQuVGhyZWFkUG9vbEV4ZWN1dG9yJFdvcmtlcglydW4JKClWCVRocmVhZFBvb2xFeGVjdXRvci5qYXZhCjB4YwlhbmRyb2lkLmFwcC5BY3Rpdml0eVRocmVhZAltYWluCShbTGphdmEvbGFuZy9TdHJpbmc7KVYJQWN0aXZpdHlUaHJlYWQuamF2YQoweDI4CWFuZHJvaWQuYXBwLnNlcnZlcnRyYW5zYWN0aW9uLkxhdW5jaEFjdGl2aXR5SXRlbQlleGVjdXRlCShMYW5kcm9pZC9hcHAvQ2xpZW50VHJhbnNhY3Rpb25IYW5kbGVyO0xhbmRyb2lkL29zL0lCaW5kZXI7TGFuZHJvaWQvYXBwL3NlcnZlcnRyYW5zYWN0aW9uL1BlbmRpbmdUcmFuc2FjdGlvbkFjdGlvbnM7KVYJTGF1bmNoQWN0aXZpdHlJdGVtLmphdmEKMHgxMzgJYW5kcm9pZC52aWV3LkxheW91dEluZmxhdGVyCXJJbmZsYXRlQ2hpbGRyZW4JKExvcmcveG1scHVsbC92MS9YbWxQdWxsUGFyc2VyO0xhbmRyb2lkL3ZpZXcvVmlldztMYW5kcm9pZC91dGlsL0F0dHJpYnV0ZVNldDtaKVYJTGF5b3V0SW5mbGF0ZXIuamF2YQoweDI0CWFuZHJvaWQuYXBwLnNlcnZlcnRyYW5zYWN0aW9uLlRyYW5zYWN0aW9uRXhlY3V0b3IJZXhlY3V0ZUNhbGxiYWNrcwkoTGFuZHJvaWQvYXBwL3NlcnZlcnRyYW5zYWN0aW9uL0NsaWVudFRyYW5zYWN0aW9uOylWCVRyYW5zYWN0aW9uRXhlY3V0b3IuamF2YQoweDFjCWFuZHJvaWQuYXBwLkFjdGl2aXR5VGhyZWFkJEgJaGFuZGxlTWVzc2FnZQkoTGFuZHJvaWQvb3MvTWVzc2FnZTspVglBY3Rpdml0eVRocmVhZC5qYXZhCjB4NDgJYW5kcm9pZC5wcm92aWRlci5TZXR0aW5ncyRHbG9iYWwJZ2V0U3RyaW5nRm9yVXNlcgkoTGFuZHJvaWQvY29udGVudC9Db250ZW50UmVzb2x2ZXI7TGphdmEvbGFuZy9TdHJpbmc7SSlMamF2YS9sYW5nL1N0cmluZzsJU2V0dGluZ3MuamF2YQoweGI0CWphdmEudXRpbC5jb25jdXJyZW50LkV4ZWN1dG9ycyRSdW5uYWJsZUFkYXB0ZXIJY2FsbAkoKUxqYXZhL2xhbmcvT2JqZWN0OwlFeGVjdXRvcnMuamF2YQoweDY4CWRhbHZpay5zeXN0ZW0uVk1SdW50aW1lCXJ1bkhlYXBUYXNrcwkoKVYJVk1SdW50aW1lLmphdmEKMHgxMDgJYW5kcm9pZC5vcy5IYW5kbGVyVGhyZWFkCXJ1bgkoKVYJSGFuZGxlclRocmVhZC5qYXZhCjB4MzAJYW5kcm9pZC5hcHAuQWN0aXZpdHlUaHJlYWQJcGVyZm9ybUxhdW5jaEFjdGl2aXR5CShMYW5kcm9pZC9hcHAvQWN0aXZpdHlUaHJlYWQkQWN0aXZpdHlDbGllbnRSZWNvcmQ7TGFuZHJvaWQvY29udGVudC9JbnRlbnQ7KUxhbmRyb2lkL2FwcC9BY3Rpdml0eTsJQWN0aXZpdHlUaHJlYWQuamF2YQoweDIwCWFuZHJvaWQuYXBwLnNlcnZlcnRyYW5zYWN0aW9uLlRyYW5zYWN0aW9uRXhlY3V0b3IJZXhlY3V0ZQkoTGFuZHJvaWQvYXBwL3NlcnZlcnRyYW5zYWN0aW9uL0NsaWVudFRyYW5zYWN0aW9uOylWCVRyYW5zYWN0aW9uRXhlY3V0b3IuamF2YQoweGQ0CWtvdGxpbnguc2VyaWFsaXphdGlvbi5qc29uLmludGVybmFsLkpzb25TdHJlYW1zS3QJZW5jb2RlQnlXcml0ZXIJKExrb3RsaW54L3NlcmlhbGl6YXRpb24vanNvbi9Kc29uO0xrb3RsaW54L3NlcmlhbGl6YXRpb24vanNvbi9pbnRlcm5hbC9Kc29uV3JpdGVyO0xrb3RsaW54L3NlcmlhbGl6YXRpb24vU2VyaWFsaXphdGlvblN0cmF0ZWd5O0xqYXZhL2xhbmcvT2JqZWN0OylWCUpzb25TdHJlYW1zLmt0CjB4NTgJYW5kcm9pZC5vcy5CaW5kZXJQcm94eQl0cmFuc2FjdE5hdGl2ZQkoSUxhbmRyb2lkL29zL1BhcmNlbDtMYW5kcm9pZC9vcy9QYXJjZWw7SSlaCUJpbmRlclByb3h5LmphdmEKMHg1NAlhbmRyb2lkLm9zLkJpbmRlclByb3h5CXRyYW5zYWN0CShJTGFuZHJvaWQvb3MvUGFyY2VsO0xhbmRyb2lkL29zL1BhcmNlbDtJKVoJQmluZGVyUHJveHkuamF2YQoweGYwCWtvdGxpbnguc2VyaWFsaXphdGlvbi5l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AQAA0hoAAMAwAwD1f4gBAADSGgAAwDADAPV/jAEAANIaAADAMAMA9X+QAQAA0hoAAMAwAwDhf3kBAAD6uwIA9LcEAOF/dQEAAPq7AgD0twQA4X9xAQAA+rsCAPS3BADhf20BAAD6uwIA9LcEAOF/aQEAAPq7AgD0twQA4X9lAQAA+rsCAPS3BADhf2EBAAD6uwIA9LcEAOF/XQEAAPq7AgD0twQA4X9ZAQAA+rsCAPS3BADhf1UBAAD6uwIA9LcEAOF/UQEAAPq7AgD0twQA4X9NAQAA+rsCAPS3BADhf0kBAAD6uwIA9LcEAOF/RQEAAPq7AgD0twQA4X9BAQAA+rsCAPS3BADhfz0BAAD6uwIA9LcEAOF/OQEAAPq7AgD0twQA4X81AQAA+rsCAPS3BADhfzEBAAD6uwIA9LcEAOF/LQEAAPq7AgD0twQA4X8pAQAA+rsCAPS3BADhfyUBAAD6uwIA9LcEAOF/IQEAAPq7AgD0twQA4X8dAQAA+rsCAPS3BADhfxkBAAD6uwIA9LcEAOF/FQEAAPq7AgD0twQA4X8xAAAA+rsCAPS3BADhfy0AAAD6uwIA9LcEAOF/KQAAAPq7AgD0twQA4X8lAAAA+rsCAPS3BADhf5QBAAD6uwIA9LcEAOF/mAEAAPq7AgD0twQA4X+cAQAA+rsCAPS3BADhf6ABAAD6uwIA9LcEAOF/pAEAAPq7AgD0twQA4X+oAQAA+rsCAPS3BADhf6wBAAD6uwIA9LcEAOF/sAEAAPq7AgD0twQA4X9UAAAA+rsCAPS3BADhf1gAAAD6uwIA9LcEAA==",
+            "extension": "trace",
+            "name": "cold_launch",
+            "timestamp": "2024-01-01T07:59:01.43100000Z",
+            "type": "android_method_trace"
+        }
+    ],
+    "events": [
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 373335,
+                "stime": 5,
+                "uptime": 3733687,
+                "utime": 26
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T07:59:01.03500000Z",
+            "type": "cpu_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 259377,
+                "java_max_heap": 262144,
+                "java_total_heap": 262144,
+                "native_free_heap": 1558,
+                "native_total_heap": 20040,
+                "rss": 108972,
+                "total_pss": 37117
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T07:59:01.08000000Z",
+            "type": "memory_usage"
+        },
+        {
+            "lifecycle_activity": {
+                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                "type": "created"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T07:59:01.13900000Z",
+            "type": "lifecycle_activity"
+        },
+        {
+            "lifecycle_app": {
+                "type": "foreground"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T07:59:01.29200000Z",
+            "type": "lifecycle_app"
+        },
+        {
+            "lifecycle_activity": {
+                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                "type": "resumed"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T07:59:01.30100000Z",
+            "type": "lifecycle_activity"
+        },
+        {
+            "cold_launch": {
+                "content_provider_attach_uptime": 3733612,
+                "has_saved_state": false,
+                "intent_data": null,
+                "launched_activity": "sh.measure.sample.ExceptionDemoActivity",
+                "on_next_draw_uptime": 3734073,
+                "process_start_requested_uptime": 3733334,
+                "process_start_uptime": 3733417
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T07:59:01.42100000Z",
+            "type": "cold_launch"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 58082,
+                "java_max_heap": 262144,
+                "java_total_heap": 65536,
+                "native_free_heap": 1263,
+                "native_total_heap": 16208,
+                "rss": 137048,
+                "total_pss": 74917
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T07:59:03.05100000Z",
+            "type": "memory_usage"
+        },
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 373335,
+                "stime": 14,
+                "uptime": 3736682,
+                "utime": 134
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T07:59:04.03000000Z",
+            "type": "cpu_usage"
+        },
+        {
+            "exception": {
+                "exceptions": [
+                    {
+                        "frames": [
+                            {
+                                "class_name": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
+                                "file_name": "RuntimeInit.java",
+                                "line_num": 558,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "com.android.internal.os.ZygoteInit",
+                                "file_name": "ZygoteInit.java",
+                                "line_num": 936,
+                                "method_name": "main"
+                            }
+                        ],
+                        "message": "java.lang.reflect.InvocationTargetException",
+                        "type": "java.lang.RuntimeException"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "java.lang.reflect.Method",
+                                "file_name": "Method.java",
+                                "line_num": -2,
+                                "method_name": "invoke"
+                            },
+                            {
+                                "class_name": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
+                                "file_name": "RuntimeInit.java",
+                                "line_num": 548,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "com.android.internal.os.ZygoteInit",
+                                "file_name": "ZygoteInit.java",
+                                "line_num": 936,
+                                "method_name": "main"
+                            }
+                        ],
+                        "type": "java.lang.reflect.InvocationTargetException"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                                "file_name": "ExceptionDemoActivity.kt",
+                                "line_num": 23,
+                                "method_name": "onCreate$lambda$1"
+                            },
+                            {
+                                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                                "line_num": 0,
+                                "method_name": "$r8$lambda$Lvaug2nf5_Txnh56SQ8QyPl5zlY"
+                            },
+                            {
+                                "class_name": "sh.measure.sample.ExceptionDemoActivity$$ExternalSyntheticLambda1",
+                                "line_num": 0,
+                                "method_name": "onClick"
+                            },
+                            {
+                                "class_name": "android.view.View",
+                                "file_name": "View.java",
+                                "line_num": 7542,
+                                "method_name": "performClick"
+                            },
+                            {
+                                "class_name": "com.google.android.material.button.MaterialButton",
+                                "file_name": "MaterialButton.java",
+                                "line_num": 1211,
+                                "method_name": "performClick"
+                            },
+                            {
+                                "class_name": "android.view.View",
+                                "file_name": "View.java",
+                                "line_num": 7519,
+                                "method_name": "performClickInternal"
+                            },
+                            {
+                                "class_name": "android.view.View",
+                                "line_num": 0,
+                                "method_name": "-$$Nest$mperformClickInternal"
+                            },
+                            {
+                                "class_name": "android.view.View$PerformClick",
+                                "file_name": "View.java",
+                                "line_num": 29476,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "android.os.Handler",
+                                "file_name": "Handler.java",
+                                "line_num": 942,
+                                "method_name": "handleCallback"
+                            },
+                            {
+                                "class_name": "android.os.Handler",
+                                "file_name": "Handler.java",
+                                "line_num": 99,
+                                "method_name": "dispatchMessage"
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "file_name": "Looper.java",
+                                "line_num": 201,
+                                "method_name": "loopOnce"
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "file_name": "Looper.java",
+                                "line_num": 288,
+                                "method_name": "loop"
+                            },
+                            {
+                                "class_name": "android.app.ActivityThread",
+                                "file_name": "ActivityThread.java",
+                                "line_num": 7918,
+                                "method_name": "main"
+                            },
+                            {
+                                "class_name": "java.lang.reflect.Method",
+                                "file_name": "Method.java",
+                                "line_num": -2,
+                                "method_name": "invoke"
+                            },
+                            {
+                                "class_name": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
+                                "file_name": "RuntimeInit.java",
+                                "line_num": 548,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "com.android.internal.os.ZygoteInit",
+                                "file_name": "ZygoteInit.java",
+                                "line_num": 936,
+                                "method_name": "main"
+                            }
+                        ],
+                        "message": "This is a test exception",
+                        "type": "java.io.IOException"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                                "file_name": "ExceptionDemoActivity.kt",
+                                "line_num": 24,
+                                "method_name": "onCreate$lambda$1"
+                            },
+                            {
+                                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                                "line_num": 0,
+                                "method_name": "$r8$lambda$Lvaug2nf5_Txnh56SQ8QyPl5zlY"
+                            },
+                            {
+                                "class_name": "sh.measure.sample.ExceptionDemoActivity$$ExternalSyntheticLambda1",
+                                "line_num": 0,
+                                "method_name": "onClick"
+                            },
+                            {
+                                "class_name": "android.view.View",
+                                "file_name": "View.java",
+                                "line_num": 7542,
+                                "method_name": "performClick"
+                            },
+                            {
+                                "class_name": "com.google.android.material.button.MaterialButton",
+                                "file_name": "MaterialButton.java",
+                                "line_num": 1211,
+                                "method_name": "performClick"
+                            },
+                            {
+                                "class_name": "android.view.View",
+                                "file_name": "View.java",
+                                "line_num": 7519,
+                                "method_name": "performClickInternal"
+                            },
+                            {
+                                "class_name": "android.view.View",
+                                "line_num": 0,
+                                "method_name": "-$$Nest$mperformClickInternal"
+                            },
+                            {
+                                "class_name": "android.view.View$PerformClick",
+                                "file_name": "View.java",
+                                "line_num": 29476,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "android.os.Handler",
+                                "file_name": "Handler.java",
+                                "line_num": 942,
+                                "method_name": "handleCallback"
+                            },
+                            {
+                                "class_name": "android.os.Handler",
+                                "file_name": "Handler.java",
+                                "line_num": 99,
+                                "method_name": "dispatchMessage"
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "file_name": "Looper.java",
+                                "line_num": 201,
+                                "method_name": "loopOnce"
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "file_name": "Looper.java",
+                                "line_num": 288,
+                                "method_name": "loop"
+                            },
+                            {
+                                "class_name": "android.app.ActivityThread",
+                                "file_name": "ActivityThread.java",
+                                "line_num": 7918,
+                                "method_name": "main"
+                            },
+                            {
+                                "class_name": "java.lang.reflect.Method",
+                                "file_name": "Method.java",
+                                "line_num": -2,
+                                "method_name": "invoke"
+                            },
+                            {
+                                "class_name": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
+                                "file_name": "RuntimeInit.java",
+                                "line_num": 548,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "com.android.internal.os.ZygoteInit",
+                                "file_name": "ZygoteInit.java",
+                                "line_num": 936,
+                                "method_name": "main"
+                            }
+                        ],
+                        "message": "This is a nested custom exception",
+                        "type": "sh.measure.sample.CustomException"
+                    }
+                ],
+                "handled": false,
+                "locale": "en-US",
+                "network_generation": null,
+                "network_provider": null,
+                "network_type": "wifi",
+                "thread_name": "main",
+                "threads": [
+                    {
+                        "frames": [
+                            {
+                                "class_name": "java.lang.Object",
+                                "file_name": "Object.java",
+                                "line_num": -2,
+                                "method_name": "wait"
+                            },
+                            {
+                                "class_name": "java.lang.Object",
+                                "file_name": "Object.java",
+                                "line_num": 386,
+                                "method_name": "wait"
+                            },
+                            {
+                                "class_name": "java.lang.ref.ReferenceQueue",
+                                "file_name": "ReferenceQueue.java",
+                                "line_num": 210,
+                                "method_name": "remove"
+                            },
+                            {
+                                "class_name": "java.lang.ref.ReferenceQueue",
+                                "file_name": "ReferenceQueue.java",
+                                "line_num": 231,
+                                "method_name": "remove"
+                            },
+                            {
+                                "class_name": "java.lang.Daemons$FinalizerDaemon",
+                                "file_name": "Daemons.java",
+                                "line_num": 309,
+                                "method_name": "runInternal"
+                            },
+                            {
+                                "class_name": "java.lang.Daemons$Daemon",
+                                "file_name": "Daemons.java",
+                                "line_num": 145,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": 1012,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "FinalizerDaemon"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": -2,
+                                "method_name": "sleep"
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": 450,
+                                "method_name": "sleep"
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": 355,
+                                "method_name": "sleep"
+                            },
+                            {
+                                "class_name": "java.lang.Daemons$FinalizerWatchdogDaemon",
+                                "file_name": "Daemons.java",
+                                "line_num": 481,
+                                "method_name": "sleepForNanos"
+                            },
+                            {
+                                "class_name": "java.lang.Daemons$FinalizerWatchdogDaemon",
+                                "file_name": "Daemons.java",
+                                "line_num": 544,
+                                "method_name": "waitForProgress"
+                            },
+                            {
+                                "class_name": "java.lang.Daemons$FinalizerWatchdogDaemon",
+                                "file_name": "Daemons.java",
+                                "line_num": 412,
+                                "method_name": "runInternal"
+                            },
+                            {
+                                "class_name": "java.lang.Daemons$Daemon",
+                                "file_name": "Daemons.java",
+                                "line_num": 145,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": 1012,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "FinalizerWatchdogDaemon"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "java.lang.Object",
+                                "file_name": "Object.java",
+                                "line_num": -2,
+                                "method_name": "wait"
+                            },
+                            {
+                                "class_name": "java.lang.Object",
+                                "file_name": "Object.java",
+                                "line_num": 386,
+                                "method_name": "wait"
+                            },
+                            {
+                                "class_name": "java.lang.Object",
+                                "file_name": "Object.java",
+                                "line_num": 524,
+                                "method_name": "wait"
+                            },
+                            {
+                                "class_name": "java.lang.Daemons$ReferenceQueueDaemon",
+                                "file_name": "Daemons.java",
+                                "line_num": 239,
+                                "method_name": "runInternal"
+                            },
+                            {
+                                "class_name": "java.lang.Daemons$Daemon",
+                                "file_name": "Daemons.java",
+                                "line_num": 145,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": 1012,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "ReferenceQueueDaemon"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "android.os.MessageQueue",
+                                "file_name": "MessageQueue.java",
+                                "line_num": -2,
+                                "method_name": "nativePollOnce"
+                            },
+                            {
+                                "class_name": "android.os.MessageQueue",
+                                "file_name": "MessageQueue.java",
+                                "line_num": 335,
+                                "method_name": "next"
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "file_name": "Looper.java",
+                                "line_num": 161,
+                                "method_name": "loopOnce"
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "file_name": "Looper.java",
+                                "line_num": 288,
+                                "method_name": "loop"
+                            },
+                            {
+                                "class_name": "android.os.HandlerThread",
+                                "file_name": "HandlerThread.java",
+                                "line_num": 67,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "ConnectivityThread"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": -2,
+                                "method_name": "sleep"
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": 450,
+                                "method_name": "sleep"
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": 355,
+                                "method_name": "sleep"
+                            },
+                            {
+                                "class_name": "sh.measure.android.anr.ANRWatchDog",
+                                "file_name": "ANRWatchDog.kt",
+                                "line_num": 70,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "Thread-2"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "jdk.internal.misc.Unsafe",
+                                "file_name": "Unsafe.java",
+                                "line_num": -2,
+                                "method_name": "park"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.LockSupport",
+                                "file_name": "LockSupport.java",
+                                "line_num": 252,
+                                "method_name": "parkNanos"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject",
+                                "file_name": "AbstractQueuedSynchronizer.java",
+                                "line_num": 1757,
+                                "method_name": "await"
+                            },
+                            {
+                                "class_name": "okio.AsyncTimeout$Companion",
+                                "file_name": "AsyncTimeout.kt",
+                                "line_num": 320,
+                                "method_name": "awaitTimeout$okio"
+                            },
+                            {
+                                "class_name": "okio.AsyncTimeout$Watchdog",
+                                "file_name": "AsyncTimeout.kt",
+                                "line_num": 186,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "Okio Watchdog"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "jdk.internal.misc.Unsafe",
+                                "file_name": "Unsafe.java",
+                                "line_num": -2,
+                                "method_name": "park"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.LockSupport",
+                                "file_name": "LockSupport.java",
+                                "line_num": 252,
+                                "method_name": "parkNanos"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject",
+                                "file_name": "AbstractQueuedSynchronizer.java",
+                                "line_num": 1672,
+                                "method_name": "awaitNanos"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+                                "file_name": "ScheduledThreadPoolExecutor.java",
+                                "line_num": 1188,
+                                "method_name": "take"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+                                "file_name": "ScheduledThreadPoolExecutor.java",
+                                "line_num": 905,
+                                "method_name": "take"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1071,
+                                "method_name": "getTask"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1131,
+                                "method_name": "runWorker"
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor$Worker",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 644,
+                                "method_name": "run"
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "file_name": "Thread.java",
+                                "line_num": 1012,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "measure-thread-#0"
+                    },
+                    {
+                        "frames": [
+                            {
+                                "class_name": "android.os.MessageQueue",
+                                "file_name": "MessageQueue.java",
+                                "line_num": -2,
+                                "method_name": "nativePollOnce"
+                            },
+                            {
+                                "class_name": "android.os.MessageQueue",
+                                "file_name": "MessageQueue.java",
+                                "line_num": 335,
+                                "method_name": "next"
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "file_name": "Looper.java",
+                                "line_num": 161,
+                                "method_name": "loopOnce"
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "file_name": "Looper.java",
+                                "line_num": 288,
+                                "method_name": "loop"
+                            },
+                            {
+                                "class_name": "android.os.HandlerThread",
+                                "file_name": "HandlerThread.java",
+                                "line_num": 67,
+                                "method_name": "run"
+                            }
+                        ],
+                        "name": "LeakCanary-Heap-Dump"
+                    }
+                ]
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T07:59:04.44500000Z",
+            "type": "exception"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 57769,
+                "java_max_heap": 262144,
+                "java_total_heap": 65536,
+                "native_free_heap": 1461,
+                "native_total_heap": 16564,
+                "rss": 139412,
+                "total_pss": 76515
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T07:59:05.10300000Z",
+            "type": "memory_usage"
+        },
+        {
+            "app_exit": {
+                "importance": "FOREGROUND",
+                "pid": "32737",
+                "process_name": "sh.measure.sample",
+                "reason": "CRASH",
+                "timestamp": "2024-01-01T07:59:05.74600000Z",
+                "trace": null
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T07:59:05.74600000Z",
+            "type": "app_exit"
+        }
+    ],
+    "resource": {
+        "app_build": "1",
+        "app_unique_id": "sh.measure.sample",
+        "app_version": "1.0",
+        "device_density": 2.75,
+        "device_density_dpi": 440,
+        "device_height_px": 2138,
+        "device_is_foldable": false,
+        "device_is_physical": true,
+        "device_locale": "en-US",
+        "device_manufacturer": "Google",
+        "device_model": "Pixel 4a",
+        "device_name": "sunfish",
+        "device_type": "phone",
+        "device_width_px": 1080,
+        "measure_sdk_version": "0.0.1-SNAPSHOT",
+        "network_type": "wifi",
+        "os_name": "android",
+        "os_version": "33",
+        "platform": "android"
+    },
+    "session_id": "88da00cb-47b9-4e6d-98dd-2451d57452f5",
+    "timestamp": "2024-01-01T07:59:00.97600000Z"
+}
