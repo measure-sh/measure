@@ -1,0 +1,1085 @@
+{
+    "attachments": [
+        {
+            "blob": "KnZlcnNpb24KMwpkYXRhLWZpbGUtb3ZlcmZsb3c9ZmFsc2UKY2xvY2s9ZHVhbAplbGFwc2VkLXRpbWUtdXNlYz00MTQyNTEKbnVtLW1ldGhvZC1jYWxscz0yMjQKY2xvY2stY2FsbC1vdmVyaGVhZC1uc2VjPTIzOQp2bT1hcnQKcGlkPTExNzQKKnRocmVhZHMKMTE3NAltYWluCjExNzYJUnVudGltZSB3b3JrZXIgdGhyZWFkIDAKMTE3NwlSdW50aW1lIHdvcmtlciB0aHJlYWQgMQoxMTc4CVJ1bnRpbWUgd29ya2VyIHRocmVhZCAyCjExNzkJUnVudGltZSB3b3JrZXIgdGhyZWFkIDMKMTE4MAlTaWduYWwgQ2F0Y2hlcgoxMTgxCXBlcmZldHRvX2hwcm9mX2xpc3RlbmVyCjExODIJQURCLUpEV1AgQ29ubmVjdGlvbiBDb250cm9sIFRocmVhZAoxMTgzCUppdCB0aHJlYWQgcG9vbCB3b3JrZXIgdGhyZWFkIDAKMTE4NAlIZWFwVGFza0RhZW1vbgoxMTg1CVJlZmVyZW5jZVF1ZXVlRGFlbW9uCjExODYJRmluYWxpemVyRGFlbW9uCjExODcJRmluYWxpemVyV2F0Y2hkb2dEYWVtb24KMTE4OAliaW5kZXI6MTE3NF8xCjExODkJYmluZGVyOjExNzRfMgoxMTkwCWJpbmRlcjoxMTc0XzMKMTE5MQlQcm9maWxlIFNhdmVyCjExOTIJU2FtcGxpbmcgUHJvZmlsZXIKMTE5MwlUaHJlYWQtMgoxMTk0CW1lYXN1cmUtdGhyZWFkLSMwCjExOTUJTGVha0NhbmFyeS1IZWFwLUR1bXAKMTE5NglSZW5kZXJUaHJlYWQKMTE5OQlod3VpVGFzazAKMTIwMAlod3VpVGFzazEKMTIwMglTaGFyZWRQcmVmZXJlbmNlc0ltcGwtbG9hZAoqbWV0aG9kcwoweDFlOAlhbmRyb2lkLm9zLkhhbmRsZXIJPGluaXQ+CShaKVYJSGFuZGxlci5qYXZhCjB4MWU0CWFuZHJvaWQudmlldy5WaWV3Um9vdEltcGwkU3ludGhldGljSm95c3RpY2tIYW5kbGVyCTxpbml0PgkoTGFuZHJvaWQvdmlldy9WaWV3Um9vdEltcGw7KVYJVmlld1Jvb3RJbXBsLmphdmEKMHgxZGMJYW5kcm9pZC52aWV3LlZpZXdSb290SW1wbAlzZXRWaWV3CShMYW5kcm9pZC92aWV3L1ZpZXc7TGFuZHJvaWQvdmlldy9XaW5kb3dNYW5hZ2VyJExheW91dFBhcmFtcztMYW5kcm9pZC92aWV3L1ZpZXc7SSlWCVZpZXdSb290SW1wbC5qYXZhCjB4MWQ4CWFuZHJvaWQudmlldy5XaW5kb3dNYW5hZ2VyR2xvYmFsCWFkZFZpZXcJKExhbmRyb2lkL3ZpZXcvVmlldztMYW5kcm9pZC92aWV3L1ZpZXdHcm91cCRMYXlvdXRQYXJhbXM7TGFuZHJvaWQvdmlldy9EaXNwbGF5O0xhbmRyb2lkL3ZpZXcvV2luZG93O0kpVglXaW5kb3dNYW5hZ2VyR2xvYmFsLmphdmEKMHgxZDAJYW5kcm9pZC5hcHAuQWN0aXZpdHlUaHJlYWQJaGFuZGxlUmVzdW1lQWN0aXZpdHkJKExhbmRyb2lkL2FwcC9BY3Rpdml0eVRocmVhZCRBY3Rpdml0eUNsaWVudFJlY29yZDtaWlpMamF2YS9sYW5nL1N0cmluZzspVglBY3Rpdml0eVRocmVhZC5qYXZhCjB4MWM4CWFuZHJvaWQuYXBwLnNlcnZlcnRyYW5zYWN0aW9uLkFjdGl2aXR5VHJhbnNhY3Rpb25JdGVtCWV4ZWN1dGUJKExhbmRyb2lkL2FwcC9DbGllbnRUcmFuc2FjdGlvbkhhbmRsZXI7TGFuZHJvaWQvb3MvSUJpbmRlcjtMYW5kcm9pZC9hcHAvc2VydmVydHJhbnNhY3Rpb24vUGVuZGluZ1RyYW5zYWN0aW9uQWN0aW9uczspVglBY3Rpdml0eVRyYW5zYWN0aW9uSXRlbS5qYXZhCjB4MWM0CWFuZHJvaWQuYXBwLnNlcnZlcnRyYW5zYWN0aW9uLlRyYW5zYWN0aW9uRXhlY3V0b3IJZXhlY3V0ZUxpZmVjeWNsZVN0YXRlCShMYW5kcm9pZC9hcHAvc2VydmVydHJhbnNhY3Rpb24vQ2xpZW50VHJhbnNhY3Rpb247KVYJVHJhbnNhY3Rpb25FeGVjdXRvci5qYXZhCjB4MWI4CWphdmEudXRpbC5jb25jdXJyZW50LmxvY2tzLkFic3RyYWN0UXVldWVkU3luY2hyb25pemVyJENvbmRpdGlvbk9iamVjdAlhd2FpdE5hbm9zCShKKUoJQWJzdHJhY3RRdWV1ZWRTeW5jaHJvbml6ZXIuamF2YQoweDFiNAlqYXZhLnV0aWwuY29uY3VycmVudC5TY2hlZHVsZWRUaHJlYWRQb29sRXhlY3V0b3IkRGVsYXllZFdvcmtRdWV1ZQl0YWtlCSgpTGphdmEvdXRpbC9jb25jdXJyZW50L1J1bm5hYmxlU2NoZWR1bGVkRnV0dXJlOwlTY2hlZHVsZWRUaHJlYWRQb29sRXhlY3V0b3IuamF2YQoweDFkNAlhbmRyb2lkLnZpZXcuV2luZG93TWFuYWdlckltcGwJYWRkVmlldwkoTGFuZHJvaWQvdmlldy9WaWV3O0xhbmRyb2lkL3ZpZXcvVmlld0dyb3VwJExheW91dFBhcmFtczspVglXaW5kb3dNYW5hZ2VySW1wbC5qYXZhCjB4MWIwCWphdmEudXRpbC5jb25jdXJyZW50LlNjaGVkdWxlZFRocmVhZFBvb2xFeGVjdXRvciREZWxheWVkV29ya1F1ZXVlCXRha2UJKClMamF2YS9sYW5nL09iamVjdDsJU2NoZWR1bGVkVGhyZWFkUG9vbEV4ZWN1dG9yLmphdmEKMHgxYTgJY29tLmdvb2dsZS5hbmRyb2lkLm1hdGVyaWFsLnNoYXBlLlNoYXBlQXBwZWFyYW5jZU1vZGVsJEJ1aWxkZXIJPGluaXQ+CSgpVglTaGFwZUFwcGVhcmFuY2VNb2RlbC5qYXZhCjB4MWE0CWNvbS5nb29nbGUuYW5kcm9pZC5tYXRlcmlhbC5zaGFwZS5TaGFwZUFwcGVhcmFuY2VNb2RlbAlidWlsZGVyCShMYW5kcm9pZC9jb250ZW50L0NvbnRleHQ7SUlMY29tL2dvb2dsZS9hbmRyb2lkL21hdGVyaWFsL3NoYXBlL0Nvcm5lclNpemU7KUxjb20vZ29vZ2xlL2FuZHJvaWQvbWF0ZXJpYWwvc2hhcGUvU2hhcGVBcHBlYXJhbmNlTW9kZWwkQnVpbGRlcjsJU2hhcGVBcHBlYXJhbmNlTW9kZWwuamF2YQoweDE5Ywljb20uZ29vZ2xlLmFuZHJvaWQubWF0ZXJpYWwuc2hhcGUuU2hhcGVBcHBlYXJhbmNlTW9kZWwJYnVpbGRlcgkoTGFuZHJvaWQvY29udGVudC9Db250ZXh0O0xhbmRyb2lkL3V0aWwvQXR0cmlidXRlU2V0O0lJSSlMY29tL2dvb2dsZS9hbmRyb2lkL21hdGVyaWFsL3NoYXBlL1NoYXBlQXBwZWFyYW5jZU1vZGVsJEJ1aWxkZXI7CVNoYXBlQXBwZWFyYW5jZU1vZGVsLmphdmEKMHgxOTQJY29tLmdvb2dsZS5hbmRyb2lkLm1hdGVyaWFsLmJ1dHRvbi5NYXRlcmlhbEJ1dHRvbgk8aW5pdD4JKExhbmRyb2lkL2NvbnRlbnQvQ29udGV4dDtMYW5kcm9pZC91dGlsL0F0dHJpYnV0ZVNldDtJKVYJTWF0ZXJpYWxCdXR0b24uamF2YQoweDE5MAljb20uZ29vZ2xlLmFuZHJvaWQubWF0ZXJpYWwuYnV0dG9uLk1hdGVyaWFsQnV0dG9uCTxpbml0PgkoTGFuZHJvaWQvY29udGVudC9Db250ZXh0O0xhbmRyb2lkL3V0aWwvQXR0cmlidXRlU2V0OylWCU1hdGVyaWFsQnV0dG9uLmphdmEKMHgxOGMJY29tLmdvb2dsZS5hbmRyb2lkLm1hdGVyaWFsLnRoZW1lLk1hdGVyaWFsQ29tcG9uZW50c1ZpZXdJbmZsYXRlcgljcmVhdGVCdXR0b24JKExhbmRyb2lkL2NvbnRlbnQvQ29udGV4dDtMYW5kcm9pZC91dGlsL0F0dHJpYnV0ZVNldDspTGFuZHJvaWR4L2FwcGNvbXBhdC93aWRnZXQvQXBwQ29tcGF0QnV0dG9uOwlNYXRlcmlhbENvbXBvbmVudHNWaWV3SW5mbGF0ZXIuamF2YQoweDE4OAlhbmRyb2lkeC5hcHBjb21wYXQuYXBwLkFwcENvbXBhdFZpZXdJbmZsYXRlcgljcmVhdGVWaWV3CShMYW5kcm9pZC92aWV3L1ZpZXc7TGphdmEvbGFuZy9TdHJpbmc7TGFuZHJvaWQvY29udGVudC9Db250ZXh0O0xhbmRyb2lkL3V0aWwvQXR0cmlidXRlU2V0O1paWlopTGFuZHJvaWQvdmlldy9WaWV3OwlBcHBDb21wYXRWaWV3SW5mbGF0ZXIuamF2YQoweDE2OAlhbmRyb2lkLnZpZXcuTGF5b3V0SW5mbGF0ZXIJaW5mbGF0ZQkoTG9yZy94bWxwdWxsL3YxL1htbFB1bGxQYXJzZXI7TGFuZHJvaWQvdmlldy9WaWV3R3JvdXA7WilMYW5kcm9pZC92aWV3L1ZpZXc7CUxheW91dEluZmxhdGVyLmphdmEKMHgxZWMJYW5kcm9pZC5vcy5IYW5kbGVyCTxpbml0PgkoTGFuZHJvaWQvb3MvSGFuZGxlciRDYWxsYmFjaztaKVYJSGFuZGxlci5qYXZhCjB4YWMJamF2YS5sYW5nLk9iamVjdAl3YWl0CSgpVglPYmplY3QuamF2YQoweDE2MAlhbmRyb2lkLnZpZXcuTGF5b3V0SW5mbGF0ZXIJaW5mbGF0ZQkoSUxhbmRyb2lkL3ZpZXcvVmlld0dyb3VwOylMYW5kcm9pZC92aWV3L1ZpZXc7CUxheW91dEluZmxhdGVyLmphdmEKMHgxNjQJYW5kcm9pZC52aWV3LkxheW91dEluZmxhdGVyCWluZmxhdGUJKElMYW5kcm9pZC92aWV3L1ZpZXdHcm91cDtaKUxhbmRyb2lkL3ZpZXcvVmlldzsJTGF5b3V0SW5mbGF0ZXIuamF2YQoweDE1YwlhbmRyb2lkeC5hcHBjb21wYXQuYXBwLkFwcENvbXBhdERlbGVnYXRlSW1wbAlzZXRDb250ZW50VmlldwkoSSlWCUFwcENvbXBhdERlbGVnYXRlSW1wbC5qYXZhCjB4MTU0CWFuZHJvaWQub3MuTWVzc2FnZVF1ZXVlCW5hdGl2ZVBvbGxPbmNlCShKSSlWCU1lc3NhZ2VRdWV1ZS5qYXZhCjB4MTUwCWFuZHJvaWQub3MuTWVzc2FnZVF1ZXVlCW5leHQJKClMYW5kcm9pZC9vcy9NZXNzYWdlOwlNZXNzYWdlUXVldWUuamF2YQoweDE4CWFuZHJvaWQub3MuSGFuZGxlcglkaXNwYXRjaE1lc3NhZ2UJKExhbmRyb2lkL29zL01lc3NhZ2U7KVYJSGFuZGxlci5qYXZhCjB4MTdjCWFuZHJvaWQudmlldy5MYXlvdXRJbmZsYXRlcgl0cnlDcmVhdGVWaWV3CShMYW5kcm9pZC92aWV3L1ZpZXc7TGphdmEvbGFuZy9TdHJpbmc7TGFuZHJvaWQvY29udGVudC9Db250ZXh0O0xhbmRyb2lkL3V0aWwvQXR0cmlidXRlU2V0OylMYW5kcm9pZC92aWV3L1ZpZXc7CUxheW91dEluZmxhdGVyLmphdmEKMHgxNzQJYW5kcm9pZC52aWV3LkxheW91dEluZmxhdGVyCWNyZWF0ZVZpZXdGcm9tVGFnCShMYW5kcm9pZC92aWV3L1ZpZXc7TGphdmEvbGFuZy9TdHJpbmc7TGFuZHJvaWQvY29udGVudC9Db250ZXh0O0xhbmRyb2lkL3V0aWwvQXR0cmlidXRlU2V0OylMYW5kcm9pZC92aWV3L1ZpZXc7CUxheW91dEluZmxhdGVyLmphdmEKMHgxNzAJYW5kcm9pZC52aWV3LkxheW91dEluZmxhdGVyCXJJbmZsYXRlCShMb3JnL3htbHB1bGwvdjEvWG1sUHVsbFBhcnNlcjtMYW5kcm9pZC92aWV3L1ZpZXc7TGFuZHJvaWQvY29udGVudC9Db250ZXh0O0xhbmRyb2lkL3V0aWwvQXR0cmlidXRlU2V0O1opVglMYXlvdXRJbmZsYXRlci5qYXZhCjB4MTQ4CWtvdGxpbi50aW1lLkR1cmF0aW9uCTxjbGluaXQ+CSgpVglEdXJhdGlvbi5rdAoweDEzOAlrb3RsaW54LnNlcmlhbGl6YXRpb24uanNvbi5Kc29uUHJpbWl0aXZlU2VyaWFsaXplcglzZXJpYWxpemUJKExrb3RsaW54L3NlcmlhbGl6YXRpb24vZW5jb2RpbmcvRW5jb2RlcjtMa290bGlueC9zZXJpYWxpemF0aW9uL2pzb24vSnNvblByaW1pdGl2ZTspVglKc29uRWxlbWVudFNlcmlhbGl6ZXJzLmt0CjB4M2MJYW5kcm9pZC5hcHAuQWN0aXZpdHkJcGVyZm9ybUNyZWF0ZQkoTGFuZHJvaWQvb3MvQnVuZGxlO0xhbmRyb2lkL29zL1BlcnNpc3RhYmxlQnVuZGxlOylWCUFjdGl2aXR5LmphdmEKMHgxMmMJa290bGlueC5zZXJpYWxpemF0aW9uLmludGVybmFsLk1hcExpa2VTZXJpYWxpemVyCXNlcmlhbGl6ZQkoTGtvdGxpbngvc2VyaWFsaXphdGlvbi9lbmNvZGluZy9FbmNvZGVyO0xqYXZhL2xhbmcvT2JqZWN0OylWCUNvbGxlY3Rpb25TZXJpYWxpemVycy5rdAoweGUwCWphdmEubGFuZy5UaHJlYWQJc2xlZXAJKExqYXZhL2xhbmcvT2JqZWN0O0pJKVYJVGhyZWFkLmphdmEKMHgxMjgJa290bGlueC5zZXJpYWxpemF0aW9uLmpzb24uSnNvbk9iamVjdFNlcmlhbGl6ZXIJc2VyaWFsaXplCShMa290bGlueC9zZXJpYWxpemF0aW9uL2VuY29kaW5nL0VuY29kZXI7TGtvdGxpbngvc2VyaWFsaXphdGlvbi9qc29uL0pzb25PYmplY3Q7KVYJSnNvbkVsZW1lbnRTZXJpYWxpemVycy5rdAoweDEyNAlrb3RsaW54LnNlcmlhbGl6YXRpb24uanNvbi5Kc29uT2JqZWN0U2VyaWFsaXplcglzZXJpYWxpemUJKExrb3RsaW54L3NlcmlhbGl6YXRpb24vZW5jb2RpbmcvRW5jb2RlcjtMamF2YS9sYW5nL09iamVjdDspVglKc29uRWxlbWVudFNlcmlhbGl6ZXJzLmt0CjB4MTIwCWtvdGxpbnguc2VyaWFsaXphdGlvbi5qc29uLkpzb25FbGVtZW50U2VyaWFsaXplcglzZXJpYWxpemUJKExrb3RsaW54L3NlcmlhbGl6YXRpb24vZW5jb2RpbmcvRW5jb2RlcjtMa290bGlueC9zZXJpYWxpemF0aW9uL2pzb24vSnNvbkVsZW1lbnQ7KVYJSnNvbkVsZW1lbnRTZXJpYWxpemVycy5rdAoweDFjMAlqZGsuaW50ZXJuYWwubWlzYy5VbnNhZmUJcGFyawkoWkopVglVbnNhZmUuamF2YQoweGNjCWphdmEubGFuZy5EYWVtb25zJEZpbmFsaXplcldhdGNoZG9nRGFlbW9uCXJ1bkludGVybmFsCSgpVglEYWVtb25zLmphdmEKMHgxMTgJa290bGlueC5zZXJpYWxpemF0aW9uLmpzb24uaW50ZXJuYWwuU3RyZWFtaW5nSnNvbkVuY29kZXIJZW5jb2RlU2VyaWFsaXphYmxlVmFsdWUJKExrb3RsaW54L3NlcmlhbGl6YXRpb24vU2VyaWFsaXphdGlvblN0cmF0ZWd5O0xqYXZhL2xhbmcvT2JqZWN0OylWCVN0cmVhbWluZ0pzb25FbmNvZGVyLmt0CjB4MTE0CWtvdGxpbnguc2VyaWFsaXphdGlvbi5qc29uLmludGVybmFsLkpzb25TdHJlYW1zS3QJZW5jb2RlQnlXcml0ZXIJKExrb3RsaW54L3NlcmlhbGl6YXRpb24vanNvbi9Kc29uO0xrb3RsaW54L3NlcmlhbGl6YXRpb24vanNvbi9pbnRlcm5hbC9Kc29uV3JpdGVyO0xrb3RsaW54L3NlcmlhbGl6YXRpb24vU2VyaWFsaXphdGlvblN0cmF0ZWd5O0xqYXZhL2xhbmcvT2JqZWN0OylWCUpzb25TdHJlYW1zLmt0CjB4MTFjCWtvdGxpbnguc2VyaWFsaXphdGlvbi5qc29uLkpzb25FbGVtZW50U2VyaWFsaXplcglzZXJpYWxpemUJKExrb3RsaW54L3NlcmlhbGl6YXRpb24vZW5jb2RpbmcvRW5jb2RlcjtMamF2YS9sYW5nL09iamVjdDspVglKc29uRWxlbWVudFNlcmlhbGl6ZXJzLmt0CjB4YTQJamF2YS5sYW5nLkRhZW1vbnMkRGFlbW9uCXJ1bgkoKVYJRGFlbW9ucy5qYXZhCjB4MTEwCWtvdGxpbnguc2VyaWFsaXphdGlvbi5qc29uLkp2bVN0cmVhbXNLdAllbmNvZGVUb1N0cmVhbQkoTGtvdGxpbngvc2VyaWFsaXphdGlvbi9qc29uL0pzb247TGtvdGxpbngvc2VyaWFsaXphdGlvbi9TZXJpYWxpemF0aW9uU3RyYXRlZ3k7TGphdmEvbGFuZy9PYmplY3Q7TGphdmEvaW8vT3V0cHV0U3RyZWFtOylWCUp2bVN0cmVhbXMua3QKMHgzOAlhbmRyb2lkLmFwcC5BY3Rpdml0eQlwZXJmb3JtQ3JlYXRlCShMYW5kcm9pZC9vcy9CdW5kbGU7KVYJQWN0aXZpdHkuamF2YQoweDEwYwlzaC5tZWFzdXJlLmFuZHJvaWQuZXZlbnRzLkV2ZW50CXdyaXRlCShMb2tpby9CdWZmZXJlZFNpbms7KVYJRXZlbnQua3QKMHg4MAlhbmRyb2lkLmNvbnRlbnQucG0uQWN0aXZpdHlJbmZvCTxpbml0PgkoTGFuZHJvaWQvb3MvUGFyY2VsO0xhbmRyb2lkL2NvbnRlbnQvcG0vQWN0aXZpdHlJbmZvLUlBOylWCUFjdGl2aXR5SW5mby5qYXZhCjB4MTgwCWFuZHJvaWR4LmFwcGNvbXBhdC5hcHAuQXBwQ29tcGF0RGVsZWdhdGVJbXBsCW9uQ3JlYXRlVmlldwkoTGFuZHJvaWQvdmlldy9WaWV3O0xqYXZhL2xhbmcvU3RyaW5nO0xhbmRyb2lkL2NvbnRlbnQvQ29udGV4dDtMYW5kcm9pZC91dGlsL0F0dHJpYnV0ZVNldDspTGFuZHJvaWQvdmlldy9WaWV3OwlBcHBDb21wYXREZWxlZ2F0ZUltcGwuamF2YQoweGZjCXNoLm1lYXN1cmUuYW5kcm9pZC5zZXNzaW9uLlNlc3Npb25Db250cm9sbGVySW1wbAkkcjgkbGFtYmRhJHBHa1dWZF9hM0wxalNDSGRQTXlFTkJFOExSbwkoTHNoL21lYXN1cmUvYW5kcm9pZC9zZXNzaW9uL1Nlc3Npb25Db250cm9sbGVySW1wbDtMc2gvbWVhc3VyZS9hbmRyb2lkL2V2ZW50cy9FdmVudDspVglTZXNzaW9uQ29udHJvbGxlci5rdAoweGY0CWphdmEudXRpbC5jb25jdXJyZW50LkV4ZWN1dG9ycyRSdW5uYWJsZUFkYXB0ZXIJY2FsbAkoKUxqYXZhL2xhbmcvT2JqZWN0OwlFeGVjdXRvcnMuamF2YQoweDJjCWFuZHJvaWQuYXBwLkFjdGl2aXR5VGhyZWFkCWhhbmRsZUxhdW5jaEFjdGl2aXR5CShMYW5kcm9pZC9hcHAvQWN0aXZpdHlUaHJlYWQkQWN0aXZpdHlDbGllbnRSZWNvcmQ7TGFuZHJvaWQvYXBwL3NlcnZlcnRyYW5zYWN0aW9uL1BlbmRpbmdUcmFuc2FjdGlvbkFjdGlvbnM7TGFuZHJvaWQvY29udGVudC9JbnRlbnQ7KUxhbmRyb2lkL2FwcC9BY3Rpdml0eTsJQWN0aXZpdHlUaHJlYWQuamF2YQoweGVjCWphdmEudXRpbC5jb25jdXJyZW50LlNjaGVkdWxlZFRocmVhZFBvb2xFeGVjdXRvciRTY2hlZHVsZWRGdXR1cmVUYXNrCXJ1bgkoKVYJU2NoZWR1bGVkVGhyZWFkUG9vbEV4ZWN1dG9yLmphdmEKMHg3NAlhbmRyb2lkLm9zLlBhcmNlbAlyZWFkVHlwZWRPYmplY3QJKExhbmRyb2lkL29zL1BhcmNlbGFibGUkQ3JlYXRvcjspTGphdmEvbGFuZy9PYmplY3Q7CVBhcmNlbC5qYXZhCjB4MTQ0CWtvdGxpbnguc2VyaWFsaXphdGlvbi5pbnRlcm5hbC5QcmltaXRpdmVzS3QJPGNsaW5pdD4JKClWCVByaW1pdGl2ZXMua3QKMHgxNAlhbmRyb2lkLm9zLkxvb3Blcglsb29wT25jZQkoTGFuZHJvaWQvb3MvTG9vcGVyO0pJKVoJTG9vcGVyLmphdmEKMHhlOAlqYXZhLnV0aWwuY29uY3VycmVudC5UaHJlYWRQb29sRXhlY3V0b3IJcnVuV29ya2VyCShMamF2YS91dGlsL2NvbmN1cnJlbnQvVGhyZWFkUG9vbEV4ZWN1dG9yJFdvcmtlcjspVglUaHJlYWRQb29sRXhlY3V0b3IuamF2YQoweGRjCWphdmEubGFuZy5UaHJlYWQJc2xlZXAJKEpJKVYJVGhyZWFkLmphdmEKMHhkOAlqYXZhLmxhbmcuVGhyZWFkCXNsZWVwCShKKVYJVGhyZWFkLmphdmEKMHgxMDQJc2gubWVhc3VyZS5hbmRyb2lkLnNlc3Npb24uU2Vzc2lvbkNvbnRyb2xsZXJJbXBsCXN0b3JlRXZlbnRJbnRlcm5hbAkoTHNoL21lYXN1cmUvYW5kcm9pZC9ldmVudHMvRXZlbnQ7KVYJU2Vzc2lvbkNvbnRyb2xsZXIua3QKMHhkNAlzaC5tZWFzdXJlLmFuZHJvaWQuYW5yLkFOUldhdGNoRG9nCXJ1bgkoKVYJQU5SV2F0Y2hEb2cua3QKMHhjNAlqYXZhLmxhbmcucmVmLlJlZmVyZW5jZVF1ZXVlCXJlbW92ZQkoKUxqYXZhL2xhbmcvcmVmL1JlZmVyZW5jZTsJUmVmZXJlbmNlUXVldWUuamF2YQoweGI4CWphdmEubGFuZy5EYWVtb25zJEhlYXBUYXNrRGFlbW9uCXJ1bkludGVybmFsCSgpVglEYWVtb25zLmphdmEKMHhhOAlqYXZhLmxhbmcuRGFlbW9ucyRSZWZlcmVuY2VRdWV1ZURhZW1vbglydW5JbnRlcm5hbAkoKVYJRGFlbW9ucy5qYXZhCjB4NzgJYW5kcm9pZC5jb250ZW50LnBtLkFjdGl2aXR5SW5mbyQxCWNyZWF0ZUZyb21QYXJjZWwJKExhbmRyb2lkL29zL1BhcmNlbDspTGphdmEvbGFuZy9PYmplY3Q7CUFjdGl2aXR5SW5mby5qYXZhCjB4OTgJYW5kcm9pZC5vcy5QYXJjZWwJcmVhZFN0cmluZzhOb0hlbHBlcgkoKUxqYXZhL2xhbmcvU3RyaW5nOwlQYXJjZWwuamF2YQoweDE5OAljb20uZ29vZ2xlLmFuZHJvaWQubWF0ZXJpYWwuc2hhcGUuU2hhcGVBcHBlYXJhbmNlTW9kZWwJYnVpbGRlcgkoTGFuZHJvaWQvY29udGVudC9Db250ZXh0O0xhbmRyb2lkL3V0aWwvQXR0cmlidXRlU2V0O0lJKUxjb20vZ29vZ2xlL2FuZHJvaWQvbWF0ZXJpYWwvc2hhcGUvU2hhcGVBcHBlYXJhbmNlTW9kZWwkQnVpbGRlcjsJU2hhcGVBcHBlYXJhbmNlTW9kZWwuamF2YQoweGQwCWphdmEubGFuZy5EYWVtb25zJEZpbmFsaXplcldhdGNoZG9nRGFlbW9uCXNsZWVwVW50aWxOZWVkZWQJKClaCURhZW1vbnMuamF2YQoweDFjCWFuZHJvaWQuYXBwLkFjdGl2aXR5VGhyZWFkJEgJaGFuZGxlTWVzc2FnZQkoTGFuZHJvaWQvb3MvTWVzc2FnZTspVglBY3Rpdml0eVRocmVhZC5qYXZhCjB4MTg0CWFuZHJvaWR4LmFwcGNvbXBhdC5hcHAuQXBwQ29tcGF0RGVsZWdhdGVJbXBsCWNyZWF0ZVZpZXcJKExhbmRyb2lkL3ZpZXcvVmlldztMamF2YS9sYW5nL1N0cmluZztMYW5kcm9pZC9jb250ZW50L0NvbnRleHQ7TGFuZHJvaWQvdXRpbC9BdHRyaWJ1dGVTZXQ7KUxhbmRyb2lkL3ZpZXcvVmlldzsJQXBwQ29tcGF0RGVsZWdhdGVJbXBsLmphdmEKMHhiMAlqYXZhLmxhbmcuT2JqZWN0CXdhaXQJKEopVglPYmplY3QuamF2YQoweDkwCWFuZHJvaWQub3MuUGFyY2VsCXJlYWRTdHJpbmc4CSgpTGphdmEvbGFuZy9TdHJpbmc7CVBhcmNlbC5qYXZhCjB4MTA4CXNoLm1lYXN1cmUuYW5kcm9pZC5zdG9yYWdlLlN0b3JhZ2VJbXBsCXN0b3JlRXZlbnQJKExzaC9tZWFzdXJlL2FuZHJvaWQvZXZlbnRzL0V2ZW50O0xqYXZhL2xhbmcvU3RyaW5nOylWCVN0b3JhZ2Uua3QKMHg4YwlhbmRyb2lkLmNvbnRlbnQucG0uUGFja2FnZUl0ZW1JbmZvCTxpbml0PgkoTGFuZHJvaWQvb3MvUGFyY2VsOylWCVBhY2thZ2VJdGVtSW5mby5qYXZhCjB4YzAJamF2YS5sYW5nLkRhZW1vbnMkRmluYWxpemVyRGFlbW9uCXJ1bkludGVybmFsCSgpVglEYWVtb25zLmphdmEKMHg1NAlhbmRyb2lkeC5hcHBjb21wYXQuYXBwLkFwcENvbXBhdERlbGVnYXRlSW1wbAlvbkNyZWF0ZQkoTGFuZHJvaWQvb3MvQnVuZGxlOylWCUFwcENvbXBhdERlbGVnYXRlSW1wbC5qYXZhCjB4YjQJamF2YS5sYW5nLk9iamVjdAl3YWl0CShKSSlWCU9iamVjdC5qYXZhCjB4N2MJYW5kcm9pZC5jb250ZW50LnBtLkFjdGl2aXR5SW5mbyQxCWNyZWF0ZUZyb21QYXJjZWwJKExhbmRyb2lkL29zL1BhcmNlbDspTGFuZHJvaWQvY29udGVudC9wbS9BY3Rpdml0eUluZm87CUFjdGl2aXR5SW5mby5qYXZhCjB4MTM0CWtvdGxpbnguc2VyaWFsaXphdGlvbi5qc29uLkpzb25QcmltaXRpdmVTZXJpYWxpemVyCXNlcmlhbGl6ZQkoTGtvdGxpbngvc2VyaWFsaXphdGlvbi9lbmNvZGluZy9FbmNvZGVyO0xqYXZhL2xhbmcvT2JqZWN0OylWCUpzb25FbGVtZW50U2VyaWFsaXplcnMua3QKMHgyOAlhbmRyb2lkLmFwcC5zZXJ2ZXJ0cmFuc2FjdGlvbi5MYXVuY2hBY3Rpdml0eUl0ZW0JZXhlY3V0ZQkoTGFuZHJvaWQvYXBwL0NsaWVudFRyYW5zYWN0aW9uSGFuZGxlcjtMYW5kcm9pZC9vcy9JQmluZGVyO0xhbmRyb2lkL2FwcC9zZXJ2ZXJ0cmFuc2FjdGlvbi9QZW5kaW5nVHJhbnNhY3Rpb25BY3Rpb25zOylWCUxhdW5jaEFjdGl2aXR5SXRlbS5qYXZhCjB4MWFjCWphdmEudXRpbC5jb25jdXJyZW50LlRocmVhZFBvb2xFeGVjdXRvcglnZXRUYXNrCSgpTGphdmEvbGFuZy9SdW5uYWJsZTsJVGhyZWFkUG9vbEV4ZWN1dG9yLmphdmEKMHg4OAlhbmRyb2lkLmNvbnRlbnQucG0uQ29tcG9uZW50SW5mbwk8aW5pdD4JKExhbmRyb2lkL29zL1BhcmNlbDspVglDb21wb25lbnRJbmZvLmphdmEKMHgxYmMJamF2YS51dGlsLmNvbmN1cnJlbnQubG9ja3MuTG9ja1N1cHBvcnQJcGFya05hbm9zCShMamF2YS9sYW5nL09iamVjdDtKKVYJTG9ja1N1cHBvcnQuamF2YQoweDEzYwlrb3RsaW54LnNlcmlhbGl6YXRpb24uanNvbi5Kc29uTGl0ZXJhbFNlcmlhbGl6ZXIJPGNsaW5pdD4JKClWCUpzb25FbGVtZW50U2VyaWFsaXplcnMua3QKMHg2YwlhbmRyb2lkLmFwcC5BcHBsaWNhdGlvblBhY2thZ2VNYW5hZ2VyCWdldEFjdGl2aXR5SW5mbwkoTGFuZHJvaWQvY29udGVudC9Db21wb25lbnROYW1lO0xhbmRyb2lkL2NvbnRlbnQvcG0vUGFja2FnZU1hbmFnZXIkQ29tcG9uZW50SW5mb0ZsYWdzOylMYW5kcm9pZC9jb250ZW50L3BtL0FjdGl2aXR5SW5mbzsJQXBwbGljYXRpb25QYWNrYWdlTWFuYWdlci5qYXZhCjB4MWEwCWNvbS5nb29nbGUuYW5kcm9pZC5tYXRlcmlhbC5zaGFwZS5TaGFwZUFwcGVhcmFuY2VNb2RlbAlidWlsZGVyCShMYW5kcm9pZC9jb250ZW50L0NvbnRleHQ7TGFuZHJvaWQvdXRpbC9BdHRyaWJ1dGVTZXQ7SUlMY29tL2dvb2dsZS9hbmRyb2lkL21hdGVyaWFsL3NoYXBlL0Nvcm5lclNpemU7KUxjb20vZ29vZ2xlL2FuZHJvaWQvbWF0ZXJpYWwvc2hhcGUvU2hhcGVBcHBlYXJhbmNlTW9kZWwkQnVpbGRlcjsJU2hhcGVBcHBlYXJhbmNlTW9kZWwuamF2YQoweDI0CWFuZHJvaWQuYXBwLnNlcnZlcnRyYW5zYWN0aW9uLlRyYW5zYWN0aW9uRXhlY3V0b3IJZXhlY3V0ZUNhbGxiYWNrcwkoTGFuZHJvaWQvYXBwL3NlcnZlcnRyYW5zYWN0aW9uL0NsaWVudFRyYW5zYWN0aW9uOylWCVRyYW5zYWN0aW9uRXhlY3V0b3IuamF2YQoweDYwCWFuZHJvaWR4LmFwcGNvbXBhdC5hcHAuQXBwQ29tcGF0RGVsZWdhdGVJbXBsCXVwZGF0ZUFwcENvbmZpZ3VyYXRpb24JKElMYW5kcm9pZHgvY29yZS9vcy9Mb2NhbGVMaXN0Q29tcGF0O1opWglBcHBDb21wYXREZWxlZ2F0ZUltcGwuamF2YQoweDUwCWFuZHJvaWR4LmFwcGNvbXBhdC5hcHAuQXBwQ29tcGF0QWN0aXZpdHkkMglvbkNvbnRleHRBdmFpbGFibGUJKExhbmRyb2lkL2NvbnRlbnQvQ29udGV4dDspVglBcHBDb21wYXRBY3Rpdml0eS5qYXZhCjB4NDgJYW5kcm9pZHguYWN0aXZpdHkuQ29tcG9uZW50QWN0aXZpdHkJb25DcmVhdGUJKExhbmRyb2lkL29zL0J1bmRsZTspVglDb21wb25lbnRBY3Rpdml0eS5qYXZhCjB4NzAJYW5kcm9pZC5jb250ZW50LnBtLklQYWNrYWdlTWFuYWdlciRTdHViJFByb3h5CWdldEFjdGl2aXR5SW5mbwkoTGFuZHJvaWQvY29udGVudC9Db21wb25lbnROYW1lO0pJKUxhbmRyb2lkL2NvbnRlbnQvcG0vQWN0aXZpdHlJbmZvOwlJUGFja2FnZU1hbmFnZXIuamF2YQoweGJjCWRhbHZpay5zeXN0ZW0uVk1SdW50aW1lCXJ1bkhlYXBUYXNrcwkoKVYJVk1SdW50aW1lLmphdmEKMHg0NAlhbmRyb2lkeC5mcmFnbWVudC5hcHAuRnJhZ21lbnRBY3Rpdml0eQlvbkNyZWF0ZQkoTGFuZHJvaWQvb3MvQnVuZGxlOylWCUZyYWdtZW50QWN0aXZpdHkuamF2YQowCWNvbS5hbmRyb2lkLmludGVybmFsLm9zLlp5Z290ZUluaXQJbWFpbgkoW0xqYXZhL2xhbmcvU3RyaW5nOylWCVp5Z290ZUluaXQuamF2YQoweDE0MAlrb3RsaW54LnNlcmlhbGl6YXRpb24uZGVzY3JpcHRvcnMuU2VyaWFsRGVzY3JpcHRvcnNLdAlQcmltaXRpdmVTZXJpYWxEZXNjcmlwdG9yCShMamF2YS9sYW5nL1N0cmluZztMa290bGlueC9zZXJpYWxpemF0aW9uL2Rlc2NyaXB0b3JzL1ByaW1pdGl2ZUtpbmQ7KUxrb3RsaW54L3NlcmlhbGl6YXRpb24vZGVzY3JpcHRvcnMvU2VyaWFsRGVzY3JpcHRvcjsJU2VyaWFsRGVzY3JpcHRvcnMua3QKMHgzNAlhbmRyb2lkLmFwcC5JbnN0cnVtZW50YXRpb24JY2FsbEFjdGl2aXR5T25DcmVhdGUJKExhbmRyb2lkL2FwcC9BY3Rpdml0eTtMYW5kcm9pZC9vcy9CdW5kbGU7KVYJSW5zdHJ1bWVudGF0aW9uLmphdmEKMHhmMAlqYXZhLnV0aWwuY29uY3VycmVudC5GdXR1cmVUYXNrCXJ1bgkoKVYJRnV0dXJlVGFzay5qYXZhCjB4NTgJYW5kcm9pZHguYXBwY29tcGF0LmFwcC5BcHBDb21wYXREZWxlZ2F0ZUltcGwJYXBwbHlBcHBsaWNhdGlvblNwZWNpZmljQ29uZmlnCShaKVoJQXBwQ29tcGF0RGVsZWdhdGVJbXBsLmphdmEKMHg0MAlzaC5tZWFzdXJlLnNhbXBsZS5FeGNlcHRpb25EZW1vQWN0aXZpdHkJb25DcmVhdGUJKExhbmRyb2lkL29zL0J1bmRsZTspVglFeGNlcHRpb25EZW1vQWN0aXZpdHkua3QKMHg4CWphdmEubGFuZy5yZWZsZWN0Lk1ldGhvZAlpbnZva2UJKExqYXZhL2xhbmcvT2JqZWN0O1tMamF2YS9sYW5nL09iamVjdDspTGphdmEvbGFuZy9PYmplY3Q7CU1ldGhvZC5qYXZhCjB4NjQJYW5kcm9pZHguYXBwY29tcGF0LmFwcC5BcHBDb21wYXREZWxlZ2F0ZUltcGwJZ2V0QWN0aXZpdHlIYW5kbGVzQ29uZmlnQ2hhbmdlc0ZsYWdzCShMYW5kcm9pZC9jb250ZW50L0NvbnRleHQ7KUkJQXBwQ29tcGF0RGVsZWdhdGVJbXBsLmphdmEKMHhlNAlqYXZhLnV0aWwuY29uY3VycmVudC5UaHJlYWRQb29sRXhlY3V0b3IkV29ya2VyCXJ1bgkoKVYJVGhyZWFkUG9vbEV4ZWN1dG9yLmphdmEKMHhjCWFuZHJvaWQuYXBwLkFjdGl2aXR5VGhyZWFkCW1haW4JKFtMamF2YS9sYW5nL1N0cmluZzspVglBY3Rpdml0eVRocmVhZC5qYXZhCjB4NGMJYW5kcm9pZHguYWN0aXZpdHkuY29udGV4dGF3YXJlLkNvbnRleHRBd2FyZUhlbHBlcglkaXNwYXRjaE9uQ29udGV4dEF2YWlsYWJsZQkoTGFuZHJvaWQvY29udGVudC9Db250ZXh0OylWCUNvbnRleHRBd2FyZUhlbHBlci5qYXZhCjB4MzAJYW5kcm9pZC5hcHAuQWN0aXZpdHlUaHJlYWQJcGVyZm9ybUxhdW5jaEFjdGl2aXR5CShMYW5kcm9pZC9hcHAvQWN0aXZpdHlUaHJlYWQkQWN0aXZpdHlDbGllbnRSZWNvcmQ7TGFuZHJvaWQvY29udGVudC9JbnRlbnQ7KUxhbmRyb2lkL2FwcC9BY3Rpdml0eTsJQWN0aXZpdHlUaHJlYWQuamF2YQoweDljCWFuZHJvaWQub3MuUGFyY2VsCW5hdGl2ZVJlYWRTdHJpbmc4CShKKUxqYXZhL2xhbmcvU3RyaW5nOwlQYXJjZWwuamF2YQoweDE3OAlhbmRyb2lkLnZpZXcuTGF5b3V0SW5mbGF0ZXIJY3JlYXRlVmlld0Zyb21UYWcJKExhbmRyb2lkL3ZpZXcvVmlldztMamF2YS9sYW5nL1N0cmluZztMYW5kcm9pZC9jb250ZW50L0NvbnRleHQ7TGFuZHJvaWQvdXRpbC9BdHRyaWJ1dGVTZXQ7WilMYW5kcm9pZC92aWV3L1ZpZXc7CUxheW91dEluZmxhdGVyLmphdmEKMHg5NAlhbmRyb2lkLm9zLlBhcmNlbCRSZWFkV3JpdGVIZWxwZXIJcmVhZFN0cmluZzgJKExhbmRyb2lkL29zL1BhcmNlbDspTGphdmEvbGFuZy9TdHJpbmc7CVBhcmNlbC5qYXZhCjB4ODQJYW5kcm9pZC5jb250ZW50LnBtLkFjdGl2aXR5SW5mbwk8aW5pdD4JKExhbmRyb2lkL29zL1BhcmNlbDspVglBY3Rpdml0eUluZm8uamF2YQoweDEwMAlzaC5tZWFzdXJlLmFuZHJvaWQuc2Vzc2lvbi5TZXNzaW9uQ29udHJvbGxlckltcGwJc3RvcmVFdmVudCRsYW1iZGEkNgkoTHNoL21lYXN1cmUvYW5kcm9pZC9zZXNzaW9uL1Nlc3Npb25Db250cm9sbGVySW1wbDtMc2gvbWVhc3VyZS9hbmRyb2lkL2V2ZW50cy9FdmVudDspVglTZXNzaW9uQ29udHJvbGxlci5rdAoweGY4CXNoLm1lYXN1cmUuYW5kcm9pZC5zZXNzaW9uLlNlc3Npb25Db250cm9sbGVySW1wbCQkRXh0ZXJuYWxTeW50aGV0aWNMYW1iZGEwCXJ1bgkoKVYJRDgkJFN5bnRoZXRpY0NsYXNzCjB4NWMJYW5kcm9pZHguYXBwY29tcGF0LmFwcC5BcHBDb21wYXREZWxlZ2F0ZUltcGwJYXBwbHlBcHBsaWNhdGlvblNwZWNpZmljQ29uZmlnCShaWilaCUFwcENvbXBhdERlbGVnYXRlSW1wbC5qYXZhCjB4MTZjCWFuZHJvaWQudmlldy5MYXlvdXRJbmZsYXRlcglySW5mbGF0ZUNoaWxkcmVuCShMb3JnL3htbHB1bGwvdjEvWG1sUHVsbFBhcnNlcjtMYW5kcm9pZC92aWV3L1ZpZXc7TGFuZHJvaWQvdXRpbC9BdHRyaWJ1dGVTZXQ7WilWCUxheW91dEluZmxhdGVyLmphdmEKMHgxNTgJYW5kcm9pZHguYXBwY29tcGF0LmFwcC5BcHBDb21wYXRBY3Rpdml0eQlzZXRDb250ZW50VmlldwkoSSlWCUFwcENvbXBhdEFjdGl2aXR5LmphdmEKMHgxNGMJYW5kcm9pZC5vcy5IYW5kbGVyVGhyZWFkCXJ1bgkoKVYJSGFuZGxlclRocmVhZC5qYXZhCjB4MjAJYW5kcm9pZC5hcHAuc2VydmVydHJhbnNhY3Rpb24uVHJhbnNhY3Rpb25FeGVjdXRvcglleGVjdXRlCShMYW5kcm9pZC9hcHAvc2VydmVydHJhbnNhY3Rpb24vQ2xpZW50VHJhbnNhY3Rpb247KVYJVHJhbnNhY3Rpb25FeGVjdXRvci5qYXZhCjB4MTMwCWtvdGxpbnguc2VyaWFsaXphdGlvbi5lbmNvZGluZy5BYnN0cmFjdEVuY29kZXIJZW5jb2RlU2VyaWFsaXphYmxlRWxlbWVudAkoTGtvdGxpbngvc2VyaWFsaXphdGlvbi9kZXNjcmlwdG9ycy9TZXJpYWxEZXNjcmlwdG9yO0lMa290bGlueC9zZXJpYWxpemF0aW9uL1NlcmlhbGl6YXRpb25TdHJhdGVneTtMamF2YS9sYW5nL09iamVjdDspVglBYnN0cmFjdEVuY29kZXIua3QKMHgxY2MJYW5kcm9pZC5hcHAuc2VydmVydHJhbnNhY3Rpb24uUmVzdW1lQWN0aXZpdHlJdGVtCWV4ZWN1dGUJKExhbmRyb2lkL2FwcC9DbGllbnRUcmFuc2FjdGlvbkhhbmRsZXI7TGFuZHJvaWQvYXBwL0FjdGl2aXR5VGhyZWFkJEFjdGl2aXR5Q2xpZW50UmVjb3JkO0xhbmRyb2lkL2FwcC9zZXJ2ZXJ0cmFuc2FjdGlvbi9QZW5kaW5nVHJhbnNhY3Rpb25BY3Rpb25zOylWCVJlc3VtZUFjdGl2aXR5SXRlbS5qYXZhCjB4NjgJYW5kcm9pZC5hcHAuQXBwbGljYXRpb25QYWNrYWdlTWFuYWdlcglnZXRBY3Rpdml0eUluZm8JKExhbmRyb2lkL2NvbnRlbnQvQ29tcG9uZW50TmFtZTtJKUxhbmRyb2lkL2NvbnRlbnQvcG0vQWN0aXZpdHlJbmZvOwlBcHBsaWNhdGlvblBhY2thZ2VNYW5hZ2VyLmphdmEKMHgxMAlhbmRyb2lkLm9zLkxvb3Blcglsb29wCSgpVglMb29wZXIuamF2YQoweGM4CWphdmEubGFuZy5yZWYuUmVmZXJlbmNlUXVldWUJcmVtb3ZlCShKKUxqYXZhL2xhbmcvcmVmL1JlZmVyZW5jZTsJUmVmZXJlbmNlUXVldWUuamF2YQoweDFlMAlhbmRyb2lkLnZpZXcuVmlld1Jvb3RJbXBsJFN5bnRoZXRpY0lucHV0U3RhZ2UJPGluaXQ+CShMYW5kcm9pZC92aWV3L1ZpZXdSb290SW1wbDspVglWaWV3Um9vdEltcGwuamF2YQoweGEwCWphdmEubGFuZy5UaHJlYWQJcnVuCSgpVglUaHJlYWQuamF2YQoweDQJY29tLmFuZHJvaWQuaW50ZXJuYWwub3MuUnVudGltZUluaXQkTWV0aG9kQW5kQXJnc0NhbGxlcglydW4JKClWCVJ1bnRpbWVJbml0LmphdmEKKmVuZApTTE9XAwAgAM+EHOIAAAAADgAAAAAAAAAAAAAAAAAAAJYEAAAAAAAAAABorAEAlgQEAAAAAAAAAGisAQCWBAgAAAAAAAAAaKwBAJYEDAAAAAAAAABorAEAlgQQAAAAAAAAAGisAQCWBBQAAAAAAAAAaKwBAJYEGAAAAAAAAABorAEAlgQcAAAAAAAAAGisAQCWBCAAAAAAAAAAaKwBAJYEJAAAAAAAAABorAEAlgQoAAAAAAAAAGisAQCWBCwAAAAAAAAAaKwBAJYEMAAAAAAAAABorAEAlgQ0AAAAAAAAAGisAQCWBDgAAAAAAAAAaKwBAJYEPAAAAAAAAABorAEAlgRAAAAAAAAAAGisAQCWBEQAAAAAAAAAaKwBAJYESAAAAAAAAABorAEAlgRMAAAAAAAAAGisAQCWBFAAAAAAAAAAaKwBAJYEVAAAAAAAAABorAEAlgRYAAAAAAAAAGisAQCWBFwAAAAAAAAAaKwBAJYEYAAAAAAAAABorAEAlgRkAAAAAAAAAGisAQCWBGgAAAAAAAAAaKwBAJYEbAAAAAAAAABorAEAlgRwAAAAAAAAAGisAQCWBHQAAAAAAAAAaKwBAJYEeAAAAAAAAABorAEAlgR8AAAAAAAAAGisAQCWBIAAAAAAAAAAaKwBAJYEhAAAAAAAAABorAEAlgSIAAAAAAAAAGisAQCWBIwAAAAAAAAAaKwBAJYEkAAAAAAAAABorAEAlgSUAAAAAAAAAGisAQCWBJgAAAAAAAAAaKwBAJYEnAAAAAAAAABorAEAoQSgAAAAAAAAAK6sAQChBKQAAAAAAAAArqwBAKEEqAAAAAAAAACurAEAoQSsAAAAAAAAAK6sAQChBLAAAAAAAAAArqwBAKEEtAAAAAAAAACurAEAoASgAAAAAAAAALasAQCgBKQAAAAAAAAAtqwBAKAEuAAAAAAAAAC2rAEAoAS8AAAAAAAAALasAQCiBKAAAAAAAAAAx6wBAKIEpAAAAAAAAADHrAEAogTAAAAAAAAAAMesAQCiBMQAAAAAAAAAx6wBAKIEyAAAAAAAAADHrAEAogSwAAAAAAAAAMesAQCiBLQAAAAAAAAAx6wBAKMEoAAAAAAAAADQrAEAowSkAAAAAAAAANCsAQCjBMwAAAAAAAAA0KwBAKME0AAAAAAAAADQrAEAowSsAAAAAAAAANCsAQCjBLAAAAAAAAAA0KwBAKMEtAAAAAAAAADQrAEAqQTUAAAAAAAAAOSsAQCpBNgAAAAAAAAA5KwBAKkE3AAAAAAAAADkrAEAqQTgAAAAAAAAAOSsAQCqBKAAAAAAAAAA+awBAKoE5AAAAAAAAAD5rAEAqgToAAAAAAAAAPmsAQCqBOwAAAAAAAAA+awBAKoE8AAAAAAAAAD5rAEAqgT0AAAAAAAAAPmsAQCqBPgAAAAAAAAA+awBAKoE/AAAAAAAAAD5rAEAqgQAAQAAAAAAAPmsAQCqBAQBAAAAAAAA+awBAKoECAEAAAAAAAD5rAEAqgQMAQAAAAAAAPmsAQCqBBABAAAAAAAA+awBAKoEFAEAAAAAAAD5rAEAqgQYAQAAAAAAAPmsAQCqBBwBAAAAAAAA+awBAKoEIAEAAAAAAAD5rAEAqgQYAQAAAAAAAPmsAQCqBCQBAAAAAAAA+awBAKoEKAEAAAAAAAD5rAEAqgQsAQAAAAAAAPmsAQCqBDABAAAAAAAA+awBAKoEGAEAAAAAAAD5rAEAqgQcAQAAAAAAAPmsAQCqBCABAAAAAAAA+awBAKoEGAEAAAAAAAD5rAEAqgQ0AQAAAAAAAPmsAQCqBDgBAAAAAAAA+awBAKoEPAEAAAAAAAD5rAEAqgRAAQAAAAAAAPmsAQCqBEQBAAAAAAAA+awBAKoESAEAAAAAAAD5rAEAqwRMAQAAAAAAAA+tAQCrBBAAAAAAAAAAD60BAKsEFAAAAAAAAAAPrQEAqwRQAQAAAAAAAA+tAQCrBFQBAAAAAAAAD60BAJYEnQAAAK5wAQCrNAMAlgSZAAAArnABAKs0AwCWBJUAAACucAEAqzQDAJYEkQAAAK5wAQCrNAMAlgSNAAAArnABAKs0AwCWBIkAAACucAEAqzQDAJYEhQAAAK5wAQCrNAMAlgSBAAAArnABAKs0AwCWBH0AAACucAEAqzQDAJYEeQAAAK5wAQCrNAMAlgR1AAAArnABAKs0AwCWBHEAAACucAEAqzQDAJYEbQAAAK5wAQCrNAMAlgRpAAAArnABAKs0AwCWBGUAAACucAEAqzQDAJYEYQAAAK5wAQCrNAMAlgRdAAAArnABAKs0AwCWBFkAAACucAEAqzQDAJYEVQAAAK5wAQCrNAMAlgRRAAAArnABAKs0AwCWBE0AAACucAEAqzQDAJYESQAAAK5wAQCrNAMAlgRFAAAArnABAKs0AwCWBFgBAACucAEAqzQDAJYEXAEAAK5wAQCrNAMAlgRgAQAArnABAKs0AwCWBGQBAACucAEAqzQDAJYEaAEAAK5wAQCrNAMAlgRsAQAArnABAKs0AwCWBHABAACucAEAqzQDAJYEdAEAAK5wAQCrNAMAlgR4AQAArnABAKs0AwCWBHwBAACucAEAqzQDAJYEgAEAAK5wAQCrNAMAlgSEAQAArnABAKs0AwCWBIgBAACucAEAqzQDAJYEjAEAAK5wAQCrNAMAlgSQAQAArnABAKs0AwCWBJQBAACucAEAqzQDAJYEmAEAAK5wAQCrNAMAlgScAQAArnABAKs0AwCWBKABAACucAEAqzQDAJYEpAEAAK5wAQCrNAMAlgSoAQAArnABAKs0AwCqBEkBAACBHwAAMDUDAKoERQEAAIEfAAAwNQMAqgRBAQAAgR8AADA1AwCqBD0BAACBHwAAMDUDAKoEOQEAAIEfAAAwNQMAqgQ1AQAAgR8AADA1AwCqBBkBAACBHwAAMDUDAKoEIQEAAIEfAAAwNQMAqgQdAQAAgR8AADA1AwCqBBkBAACBHwAAMDUDAKoEMQEAAIEfAAAwNQMAqgQtAQAAgR8AADA1AwCqBCkBAACBHwAAMDUDAKoEJQEAAIEfAAAwNQMAqgQZAQAAgR8AADA1AwCqBCEBAACBHwAAMDUDAKoEHQEAAIEfAAAwNQMAqgQZAQAAgR8AADA1AwCqBBUBAACBHwAAMDUDAKoEEQEAAIEfAAAwNQMAqgQNAQAAgR8AADA1AwCqBAkBAACBHwAAMDUDAKoEBQEAAIEfAAAwNQMAqgQBAQAAgR8AADA1AwCqBP0AAACBHwAAMDUDAKoE+QAAAIEfAAAwNQMAqgT1AAAAgR8AADA1AwCqBPEAAACBHwAAMDUDAKoE7QAAAIEfAAAwNQMAqgSsAQAAgR8AADA1AwCqBLABAACBHwAAMDUDAKoEtAEAAIEfAAAwNQMAqgS4AQAAgR8AADA1AwCqBLwBAACBHwAAMDUDAKoEwAEAAIEfAAAwNQMAlgSpAQAA3rQCAGXFBACWBKUBAADetAIAZcUEAJYEoQEAAN60AgBlxQQAlgSdAQAA3rQCAGXFBACWBJkBAADetAIAZcUEAJYElQEAAN60AgBlxQQAlgSRAQAA3rQCAGXFBACWBI0BAADetAIAZcUEAJYEiQEAAN60AgBlxQQAlgSFAQAA3rQCAGXFBACWBIEBAADetAIAZcUEAJYEfQEAAN60AgBlxQQAlgR5AQAA3rQCAGXFBACWBHUBAADetAIAZcUEAJYEcQEAAN60AgBlxQQAlgRtAQAA3rQCAGXFBACWBGkBAADetAIAZcUEAJYEZQEAAN60AgBlxQQAlgRhAQAA3rQCAGXFBACWBF0BAADetAIAZcUEAJYEWQEAAN60AgBlxQQAlgRBAAAA3rQCAGXFBACWBD0AAADetAIAZcUEAJYEOQAAAN60AgBlxQQAlgQ1AAAA3rQCAGXFBACWBDEAAADetAIAZcUEAJYELQAAAN60AgBlxQQAlgQpAAAA3rQCAGXFBACWBCUAAADetAIAZcUEAJYExAEAAN60AgBlxQQAlgTIAQAA3rQCAGXFBACWBMwBAADetAIAZcUEAJYE0AEAAN60AgBlxQQAlgTUAQAA3rQCAGXFBACWBNgBAADetAIAZcUEAJYE3AEAAN60AgBlxQQAlgTgAQAA3rQCAGXFBACWBOQBAADetAIAZcUEAJYE6AEAAN60AgBlxQQAlgTsAQAA3rQCAGXFBAA=",
+            "extension": "trace",
+            "name": "cold_launch",
+            "timestamp": "2024-01-01T07:59:48.78500000Z",
+            "type": "android_method_trace"
+        }
+    ],
+    "events": [
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 378069,
+                "stime": 5,
+                "uptime": 3781031,
+                "utime": 26
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T07:59:48.37800000Z",
+            "type": "cpu_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 259377,
+                "java_max_heap": 262144,
+                "java_total_heap": 262144,
+                "native_free_heap": 1305,
+                "native_total_heap": 20040,
+                "rss": 110140,
+                "total_pss": 37157
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T07:59:48.42300000Z",
+            "type": "memory_usage"
+        },
+        {
+            "lifecycle_activity": {
+                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                "type": "created"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T07:59:48.47900000Z",
+            "type": "lifecycle_activity"
+        },
+        {
+            "lifecycle_app": {
+                "type": "foreground"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T07:59:48.63600000Z",
+            "type": "lifecycle_app"
+        },
+        {
+            "lifecycle_activity": {
+                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                "type": "resumed"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T07:59:48.64400000Z",
+            "type": "lifecycle_activity"
+        },
+        {
+            "cold_launch": {
+                "content_provider_attach_uptime": 3780954,
+                "has_saved_state": false,
+                "intent_data": null,
+                "launched_activity": "sh.measure.sample.ExceptionDemoActivity",
+                "on_next_draw_uptime": 3781421,
+                "process_start_requested_uptime": 3780687,
+                "process_start_uptime": 3780758
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T07:59:48.76900000Z",
+            "type": "cold_launch"
+        },
+        {
+            "lifecycle_activity": {
+                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                "type": "paused"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T07:59:49.80000000Z",
+            "type": "lifecycle_activity"
+        },
+        {
+            "lifecycle_activity": {
+                "class_name": "sh.measure.sample.SecondActivity",
+                "type": "created"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T07:59:49.84200000Z",
+            "type": "lifecycle_activity"
+        },
+        {
+            "lifecycle_activity": {
+                "class_name": "sh.measure.sample.SecondActivity",
+                "type": "resumed"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T07:59:49.90000000Z",
+            "type": "lifecycle_activity"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 38839,
+                "java_max_heap": 262144,
+                "java_total_heap": 65536,
+                "native_free_heap": 1166,
+                "native_total_heap": 17488,
+                "rss": 158288,
+                "total_pss": 116117
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T07:59:50.42600000Z",
+            "type": "memory_usage"
+        },
+        {
+            "lifecycle_activity": {
+                "class_name": "sh.measure.sample.SecondActivity",
+                "type": "paused"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T07:59:50.92200000Z",
+            "type": "lifecycle_activity"
+        },
+        {
+            "lifecycle_activity": {
+                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                "type": "resumed"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T07:59:50.93800000Z",
+            "type": "lifecycle_activity"
+        },
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 378069,
+                "stime": 20,
+                "uptime": 3784027,
+                "utime": 382
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T07:59:51.37400000Z",
+            "type": "cpu_usage"
+        },
+        {
+            "lifecycle_activity": {
+                "class_name": "sh.measure.sample.SecondActivity",
+                "type": "destroyed"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T07:59:51.50800000Z",
+            "type": "lifecycle_activity"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 38362,
+                "java_max_heap": 262144,
+                "java_total_heap": 65536,
+                "native_free_heap": 1329,
+                "native_total_heap": 17488,
+                "rss": 157348,
+                "total_pss": 94944
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T07:59:52.39900000Z",
+            "type": "memory_usage"
+        },
+        {
+            "lifecycle_activity": {
+                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                "type": "paused"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T07:59:52.49800000Z",
+            "type": "lifecycle_activity"
+        },
+        {
+            "lifecycle_app": {
+                "type": "background"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T07:59:52.50900000Z",
+            "type": "lifecycle_app"
+        },
+        {
+            "thread_name": "main",
+            "timestamp": "2024-01-01T07:59:52.59400000Z",
+            "trim_memory": {
+                "level": "TRIM_MEMORY_UI_HIDDEN"
+            },
+            "type": "trim_memory"
+        },
+        {
+            "lifecycle_app": {
+                "type": "foreground"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T07:59:54.01300000Z",
+            "type": "lifecycle_app"
+        },
+        {
+            "lifecycle_activity": {
+                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                "type": "resumed"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T07:59:54.01700000Z",
+            "type": "lifecycle_activity"
+        },
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 378069,
+                "stime": 25,
+                "uptime": 3786675,
+                "utime": 420
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T07:59:54.02200000Z",
+            "type": "cpu_usage"
+        },
+        {
+            "hot_launch": {
+                "app_visible_uptime": 3786668,
+                "has_saved_state": false,
+                "intent_data": null,
+                "launched_activity": "sh.measure.sample.ExceptionDemoActivity",
+                "on_next_draw_uptime": 3786726
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T07:59:54.07400000Z",
+            "type": "hot_launch"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 24473,
+                "java_max_heap": 262144,
+                "java_total_heap": 31367,
+                "native_free_heap": 2389,
+                "native_total_heap": 17488,
+                "rss": 140088,
+                "total_pss": 56304
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T07:59:54.09900000Z",
+            "type": "memory_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 24131,
+                "java_max_heap": 262144,
+                "java_total_heap": 31367,
+                "native_free_heap": 2252,
+                "native_total_heap": 17488,
+                "rss": 141084,
+                "total_pss": 77985
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T07:59:56.04200000Z",
+            "type": "memory_usage"
+        },
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 378069,
+                "stime": 31,
+                "uptime": 3789670,
+                "utime": 446
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T07:59:57.01799999Z",
+            "type": "cpu_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 22353,
+                "java_max_heap": 262144,
+                "java_total_heap": 31367,
+                "native_free_heap": 2179,
+                "native_total_heap": 17488,
+                "rss": 143300,
+                "total_pss": 80094
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T07:59:58.04500000Z",
+            "type": "memory_usage"
+        },
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 378069,
+                "stime": 35,
+                "uptime": 3792670,
+                "utime": 458
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:00.01700000Z",
+            "type": "cpu_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 22200,
+                "java_max_heap": 262144,
+                "java_total_heap": 31367,
+                "native_free_heap": 2158,
+                "native_total_heap": 17488,
+                "rss": 143364,
+                "total_pss": 80105
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:00.06800000Z",
+            "type": "memory_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 22083,
+                "java_max_heap": 262144,
+                "java_total_heap": 31367,
+                "native_free_heap": 2133,
+                "native_total_heap": 17488,
+                "rss": 143416,
+                "total_pss": 80140
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:02.04200000Z",
+            "type": "memory_usage"
+        },
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 378069,
+                "stime": 40,
+                "uptime": 3795671,
+                "utime": 465
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:03.01900000Z",
+            "type": "cpu_usage"
+        },
+        {
+            "lifecycle_activity": {
+                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                "type": "paused"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T08:00:03.57199999Z",
+            "type": "lifecycle_activity"
+        },
+        {
+            "lifecycle_activity": {
+                "class_name": "sh.measure.sample.SecondActivity",
+                "type": "created"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T08:00:03.59500000Z",
+            "type": "lifecycle_activity"
+        },
+        {
+            "lifecycle_activity": {
+                "class_name": "sh.measure.sample.SecondActivity",
+                "type": "resumed"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T08:00:03.62400000Z",
+            "type": "lifecycle_activity"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 21534,
+                "java_max_heap": 262144,
+                "java_total_heap": 31367,
+                "native_free_heap": 1722,
+                "native_total_heap": 17488,
+                "rss": 144768,
+                "total_pss": 101832
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:04.04400000Z",
+            "type": "memory_usage"
+        },
+        {
+            "lifecycle_activity": {
+                "class_name": "sh.measure.sample.SecondActivity",
+                "type": "paused"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T08:00:04.51300000Z",
+            "type": "lifecycle_activity"
+        },
+        {
+            "lifecycle_activity": {
+                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                "type": "resumed"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T08:00:04.52900000Z",
+            "type": "lifecycle_activity"
+        },
+        {
+            "lifecycle_activity": {
+                "class_name": "sh.measure.sample.SecondActivity",
+                "type": "destroyed"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T08:00:05.09900000Z",
+            "type": "lifecycle_activity"
+        },
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 378069,
+                "stime": 47,
+                "uptime": 3798671,
+                "utime": 510
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:06.01799999Z",
+            "type": "cpu_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 21138,
+                "java_max_heap": 262144,
+                "java_total_heap": 31367,
+                "native_free_heap": 1861,
+                "native_total_heap": 17744,
+                "rss": 145584,
+                "total_pss": 82174
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:06.05200000Z",
+            "type": "memory_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 21037,
+                "java_max_heap": 262144,
+                "java_total_heap": 31367,
+                "native_free_heap": 1859,
+                "native_total_heap": 17744,
+                "rss": 145588,
+                "total_pss": 82266
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:08.04300000Z",
+            "type": "memory_usage"
+        },
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 378069,
+                "stime": 51,
+                "uptime": 3801672,
+                "utime": 519
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:09.01900000Z",
+            "type": "cpu_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 20931,
+                "java_max_heap": 262144,
+                "java_total_heap": 31367,
+                "native_free_heap": 1858,
+                "native_total_heap": 17744,
+                "rss": 145652,
+                "total_pss": 82330
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:10.07000000Z",
+            "type": "memory_usage"
+        },
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 378069,
+                "stime": 54,
+                "uptime": 3804670,
+                "utime": 535
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:12.01700000Z",
+            "type": "cpu_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 24411,
+                "java_max_heap": 262144,
+                "java_total_heap": 30692,
+                "native_free_heap": 2842,
+                "native_total_heap": 17744,
+                "rss": 141988,
+                "total_pss": 78384
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:12.04900000Z",
+            "type": "memory_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 24358,
+                "java_max_heap": 262144,
+                "java_total_heap": 30692,
+                "native_free_heap": 2842,
+                "native_total_heap": 17744,
+                "rss": 142028,
+                "total_pss": 78424
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:14.05300000Z",
+            "type": "memory_usage"
+        },
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 378069,
+                "stime": 56,
+                "uptime": 3807671,
+                "utime": 541
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:15.01900000Z",
+            "type": "cpu_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 24252,
+                "java_max_heap": 262144,
+                "java_total_heap": 30692,
+                "native_free_heap": 2841,
+                "native_total_heap": 17744,
+                "rss": 141984,
+                "total_pss": 78380
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:16.06000000Z",
+            "type": "memory_usage"
+        },
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 378069,
+                "stime": 58,
+                "uptime": 3810672,
+                "utime": 545
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:18.02000000Z",
+            "type": "cpu_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 24147,
+                "java_max_heap": 262144,
+                "java_total_heap": 30692,
+                "native_free_heap": 2840,
+                "native_total_heap": 17744,
+                "rss": 142040,
+                "total_pss": 78440
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:18.06900000Z",
+            "type": "memory_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 24094,
+                "java_max_heap": 262144,
+                "java_total_heap": 30692,
+                "native_free_heap": 2839,
+                "native_total_heap": 17744,
+                "rss": 142080,
+                "total_pss": 78480
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:20.05800000Z",
+            "type": "memory_usage"
+        },
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 378069,
+                "stime": 63,
+                "uptime": 3813672,
+                "utime": 550
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:21.01900000Z",
+            "type": "cpu_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 24004,
+                "java_max_heap": 262144,
+                "java_total_heap": 30692,
+                "native_free_heap": 2838,
+                "native_total_heap": 17744,
+                "rss": 142144,
+                "total_pss": 78596
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:22.06100000Z",
+            "type": "memory_usage"
+        },
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 378069,
+                "stime": 66,
+                "uptime": 3816671,
+                "utime": 554
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:24.01799999Z",
+            "type": "cpu_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 23898,
+                "java_max_heap": 262144,
+                "java_total_heap": 30692,
+                "native_free_heap": 2837,
+                "native_total_heap": 17744,
+                "rss": 142204,
+                "total_pss": 78656
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:24.06300000Z",
+            "type": "memory_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 23846,
+                "java_max_heap": 262144,
+                "java_total_heap": 30692,
+                "native_free_heap": 2837,
+                "native_total_heap": 17744,
+                "rss": 142240,
+                "total_pss": 78692
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:26.06200000Z",
+            "type": "memory_usage"
+        },
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 378069,
+                "stime": 71,
+                "uptime": 3819672,
+                "utime": 559
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:27.02000000Z",
+            "type": "cpu_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 23756,
+                "java_max_heap": 262144,
+                "java_total_heap": 30692,
+                "native_free_heap": 2836,
+                "native_total_heap": 17744,
+                "rss": 142304,
+                "total_pss": 78756
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:28.06400000Z",
+            "type": "memory_usage"
+        },
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 378069,
+                "stime": 75,
+                "uptime": 3822673,
+                "utime": 562
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:30.02100000Z",
+            "type": "cpu_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 23666,
+                "java_max_heap": 262144,
+                "java_total_heap": 30692,
+                "native_free_heap": 2835,
+                "native_total_heap": 17744,
+                "rss": 142364,
+                "total_pss": 78816
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:30.06900000Z",
+            "type": "memory_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 23597,
+                "java_max_heap": 262144,
+                "java_total_heap": 30692,
+                "native_free_heap": 2835,
+                "native_total_heap": 17744,
+                "rss": 142404,
+                "total_pss": 78856
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:32.05500000Z",
+            "type": "memory_usage"
+        },
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 378069,
+                "stime": 81,
+                "uptime": 3825673,
+                "utime": 567
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:33.02000000Z",
+            "type": "cpu_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 23508,
+                "java_max_heap": 262144,
+                "java_total_heap": 30692,
+                "native_free_heap": 3090,
+                "native_total_heap": 18000,
+                "rss": 141120,
+                "total_pss": 77468
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:34.05900000Z",
+            "type": "memory_usage"
+        },
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 378069,
+                "stime": 83,
+                "uptime": 3828671,
+                "utime": 572
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:36.01900000Z",
+            "type": "cpu_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 23402,
+                "java_max_heap": 262144,
+                "java_total_heap": 30692,
+                "native_free_heap": 3083,
+                "native_total_heap": 18000,
+                "rss": 141176,
+                "total_pss": 77536
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:36.04900000Z",
+            "type": "memory_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 23253,
+                "java_max_heap": 262144,
+                "java_total_heap": 30692,
+                "native_free_heap": 3053,
+                "native_total_heap": 18000,
+                "rss": 141272,
+                "total_pss": 77676
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:38.04200000Z",
+            "type": "memory_usage"
+        },
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 378069,
+                "stime": 87,
+                "uptime": 3831671,
+                "utime": 582
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:39.01900000Z",
+            "type": "cpu_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 23100,
+                "java_max_heap": 262144,
+                "java_total_heap": 30692,
+                "native_free_heap": 3026,
+                "native_total_heap": 18000,
+                "rss": 141368,
+                "total_pss": 77800
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:40.08100000Z",
+            "type": "memory_usage"
+        },
+        {
+            "lifecycle_activity": {
+                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                "type": "paused"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T08:00:40.18900000Z",
+            "type": "lifecycle_activity"
+        },
+        {
+            "lifecycle_app": {
+                "type": "background"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T08:00:40.23000000Z",
+            "type": "lifecycle_app"
+        },
+        {
+            "thread_name": "main",
+            "timestamp": "2024-01-01T08:00:40.28999999Z",
+            "trim_memory": {
+                "level": "TRIM_MEMORY_UI_HIDDEN"
+            },
+            "type": "trim_memory"
+        },
+        {
+            "lifecycle_app": {
+                "type": "foreground"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T08:00:41.35700000Z",
+            "type": "lifecycle_app"
+        },
+        {
+            "lifecycle_activity": {
+                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                "type": "resumed"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T08:00:41.36500000Z",
+            "type": "lifecycle_activity"
+        },
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 378069,
+                "stime": 90,
+                "uptime": 3834020,
+                "utime": 605
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:41.36800000Z",
+            "type": "cpu_usage"
+        },
+        {
+            "hot_launch": {
+                "app_visible_uptime": 3834012,
+                "has_saved_state": false,
+                "intent_data": null,
+                "launched_activity": "sh.measure.sample.ExceptionDemoActivity",
+                "on_next_draw_uptime": 3834073
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T08:00:41.42000000Z",
+            "type": "hot_launch"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 22878,
+                "java_max_heap": 262144,
+                "java_total_heap": 30692,
+                "native_free_heap": 3098,
+                "native_total_heap": 18000,
+                "rss": 141656,
+                "total_pss": 57888
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:41.42400000Z",
+            "type": "memory_usage"
+        },
+        {
+            "memory_usage": {
+                "interval_config": 2000,
+                "java_free_heap": 22616,
+                "java_max_heap": 262144,
+                "java_total_heap": 30692,
+                "native_free_heap": 2955,
+                "native_total_heap": 18000,
+                "rss": 140876,
+                "total_pss": 77408
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:43.38900000Z",
+            "type": "memory_usage"
+        },
+        {
+            "cpu_usage": {
+                "clock_speed": 100,
+                "cstime": 0,
+                "cutime": 0,
+                "interval_config": 3000,
+                "num_cores": 8,
+                "start_time": 378069,
+                "stime": 96,
+                "uptime": 3837013,
+                "utime": 645
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:44.36100000Z",
+            "type": "cpu_usage"
+        },
+        {
+            "lifecycle_activity": {
+                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                "type": "paused"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T08:00:45.00700000Z",
+            "type": "lifecycle_activity"
+        },
+        {
+            "lifecycle_app": {
+                "type": "background"
+            },
+            "thread_name": "main",
+            "timestamp": "2024-01-01T08:00:45.02300000Z",
+            "type": "lifecycle_app"
+        },
+        {
+            "thread_name": "main",
+            "timestamp": "2024-01-01T08:00:45.07099999Z",
+            "trim_memory": {
+                "level": "TRIM_MEMORY_UI_HIDDEN"
+            },
+            "type": "trim_memory"
+        },
+        {
+            "app_exit": {
+                "importance": "CACHED",
+                "pid": "1174",
+                "process_name": "sh.measure.sample",
+                "reason": "USER_REQUESTED",
+                "timestamp": "2024-01-01T08:00:46.81700000Z",
+                "trace": null
+            },
+            "thread_name": "measure-thread-#0",
+            "timestamp": "2024-01-01T08:00:46.81700000Z",
+            "type": "app_exit"
+        }
+    ],
+    "resource": {
+        "app_build": "1",
+        "app_unique_id": "sh.measure.sample",
+        "app_version": "1.0",
+        "device_density": 2.75,
+        "device_density_dpi": 440,
+        "device_height_px": 2138,
+        "device_is_foldable": false,
+        "device_is_physical": true,
+        "device_locale": "en-US",
+        "device_manufacturer": "Google",
+        "device_model": "Pixel 4a",
+        "device_name": "sunfish",
+        "device_type": "phone",
+        "device_width_px": 1080,
+        "measure_sdk_version": "0.0.1-SNAPSHOT",
+        "network_type": "wifi",
+        "os_name": "android",
+        "os_version": "33",
+        "platform": "android"
+    },
+    "session_id": "7e2f676c-8604-4dd0-b5d8-3669e333f714",
+    "timestamp": "2024-01-01T07:59:48.31900000Z"
+}
