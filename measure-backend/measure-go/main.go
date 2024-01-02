@@ -57,6 +57,7 @@ func main() {
 	r.Use(cors).GET("/apps/:id/metrics", measure.ValidateAccessToken(), measure.GetAppMetrics)
 	r.Use(cors).GET("/apps/:id/filters", measure.ValidateAccessToken(), measure.GetAppFilters)
 	r.Use(cors).GET("/apps/:id/filters/crashes", measure.ValidateAccessToken(), measure.GetCrashFilters)
+	r.Use(cors).GET("/apps/:id/filters/anrs", measure.ValidateAccessToken(), measure.GetANRFilters)
 	r.Use(cors).GET("/apps/:id/crashGroups", measure.ValidateAccessToken(), measure.GetCrashGroups)
 	r.Use(cors).GET("/apps/:id/anrGroups", measure.ValidateAccessToken(), measure.GetANRGroups)
 	r.Use(cors).GET("/teams", measure.ValidateAccessToken(), measure.GetTeams)
