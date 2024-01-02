@@ -298,7 +298,7 @@ func (s *Session) bucketANRs() error {
 	}
 
 	for _, group := range groups {
-		appANRGroups, err := app.GetANRGroups()
+		appANRGroups, err := app.GetANRGroups(nil)
 		if err != nil {
 			return err
 		}
