@@ -930,6 +930,19 @@ func (e Exception) getLocation() string {
 	return frame.String()
 }
 
+func (a ANR) getType() string {
+	return a.Exceptions[len(a.Exceptions)-1].Type
+}
+
+func (a ANR) getMessage() string {
+	return a.Exceptions[len(a.Exceptions)-1].Message
+}
+
+func (a ANR) getLocation() string {
+	frame := a.Exceptions[len(a.Exceptions)-1].Frames[0]
+	return frame.String()
+}
+
 func makeInsertQuery(table string, columns []string, session *Session) (string, []interface{}) {
 	values := []string{}
 	valueArgs := []interface{}{}
