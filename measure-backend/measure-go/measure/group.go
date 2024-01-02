@@ -90,3 +90,31 @@ func FindMatch(groups []ExceptionGroup, fingerprint uint64) (int, error) {
 
 	return lowest, nil
 }
+
+func (e *ExceptionGroup) Insert() error {
+	stmt := sqlf.PostgreSQL.InsertInto("public.unhandled_exception_groups").
+		Set("app_id", nil).
+		Set("name", nil).
+		Set("fingerprint", nil).
+		Set("count", nil).
+		Set("events", nil)
+
+	defer stmt.Close()
+
+	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), e.AppID, e.Name, e.Fingerprint, e.Count, e.Events)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func NewExceptionGroup(appId uuid.UUID, name string, fingerprint string, eventIds []uuid.UUID) *ExceptionGroup {
+	return &ExceptionGroup{
+		AppID:       appId,
+		Name:        name,
+		Fingerprint: fingerprint,
+		Count:       len(eventIds),
+		Events:      eventIds,
+	}
+}

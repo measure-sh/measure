@@ -82,6 +82,26 @@ func (a App) MarshalJSON() ([]byte, error) {
 	})
 }
 
+func (a App) GetExceptionGroups() ([]ExceptionGroup, error) {
+	stmt := sqlf.PostgreSQL.
+		Select("id, app_id, name, fingerprint, count, events").
+		From("unhandled_exception_groups").
+		Where("app_id = ?", nil)
+
+	defer stmt.Close()
+
+	rows, err := server.Server.PgPool.Query(context.Background(), stmt.String(), a.ID)
+	if err != nil {
+		return nil, err
+	}
+	groups, err := pgx.CollectRows(rows, pgx.RowToStructByNameLax[ExceptionGroup])
+	if err != nil {
+		return nil, err
+	}
+
+	return groups, nil
+}
+
 func NewApp(teamId uuid.UUID) *App {
 	now := time.Now()
 	id := uuid.New()
