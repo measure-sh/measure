@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"measure-backend/measure-go/identity"
 	"measure-backend/measure-go/server"
 
 	"github.com/gin-gonic/gin"
@@ -620,6 +621,8 @@ func GetCrashFilters(c *gin.Context) {
 		events = append(events, group.Events...)
 	}
 
+	events = identity.Dedup(events)
+
 	if err := af.getEventFilters(&fl, events); err != nil {
 		msg := `failed to query app's crash filters`
 		fmt.Println(msg, err)
@@ -715,6 +718,8 @@ func GetANRFilters(c *gin.Context) {
 	for _, group := range groups {
 		events = append(events, group.Events...)
 	}
+
+	events = identity.Dedup(events)
 
 	if err := af.getEventFilters(&fl, events); err != nil {
 		msg := `failed to query app's anr filters`
