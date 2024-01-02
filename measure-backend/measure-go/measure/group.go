@@ -134,6 +134,17 @@ func GetExceptionGroup(eg *ExceptionGroup) error {
 	return server.Server.PgPool.QueryRow(context.Background(), stmt.String(), eg.ID, eg.AppID).Scan(&eg.Name, &eg.Fingerprint, &eg.Count, &eg.Events, &eg.CreatedAt, &eg.UpdatedAt)
 }
 
+// GetANRGroup gets the ANRGroup by matching
+// ANRGroup id and app id.
+func GetANRGroup(ag *ANRGroup) error {
+	stmt := sqlf.PostgreSQL.Select("name, fingerprint, count, events, created_at, updated_at").
+		From("public.anr_groups").
+		Where("id = ? and app_id = ?", nil, nil)
+	defer stmt.Close()
+
+	return server.Server.PgPool.QueryRow(context.Background(), stmt.String(), ag.ID, ag.AppID).Scan(&ag.Name, &ag.Fingerprint, &ag.Count, &ag.Events, &ag.CreatedAt, &ag.UpdatedAt)
+}
+
 // ClosestExceptionGroup finds the index of the ExceptionGroup closest to
 // an arbitrary fingerprint from a slice of ExceptionGroup.
 func ClosestExceptionGroup(groups []ExceptionGroup, fingerprint uint64) (int, error) {

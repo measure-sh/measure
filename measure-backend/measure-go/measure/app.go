@@ -839,6 +839,114 @@ func GetCrashGroupFilters(c *gin.Context) {
 	c.JSON(http.StatusOK, fl)
 }
 
+func GetANRGroupFilters(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `invalid or missing app id`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	anrGroupId, err := uuid.Parse(c.Param("anrGroupId"))
+	if err != nil {
+		msg := "invalid or missing anr group id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := AppFilter{
+		AppID: id,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		return
+	}
+
+	if err := af.validate(); err != nil {
+		msg := "anr group filters request validation failed"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		return
+	}
+
+	if !af.hasTimeRange() {
+		af.setDefaultTimeRange()
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam()
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	ag := ANRGroup{
+		ID:    anrGroupId,
+		AppID: id,
+	}
+
+	if err := GetANRGroup(&ag); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			msg := fmt.Sprintf("no anr group exists for id %q and app id %q", ag.ID, ag.AppID)
+			fmt.Println(msg, err)
+			c.JSON(http.StatusNotFound, gin.H{"error": msg})
+			return
+		}
+		msg := `failed to get anr group`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	var fl FilterList
+
+	if err := af.getEventFilters(&fl, ag.Events); err != nil {
+		msg := `failed to query app's anr filters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, fl)
+}
+
 func GetCrashGroups(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
