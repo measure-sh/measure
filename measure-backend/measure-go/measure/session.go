@@ -179,6 +179,18 @@ func (s *Session) getUnhandledExceptions() []EventField {
 	return exceptions
 }
 
+func (s *Session) getANRs() []EventField {
+	var anrs []EventField
+	for _, event := range s.Events {
+		if !event.isANR() {
+			continue
+		}
+		anrs = append(anrs, event)
+	}
+
+	return anrs
+}
+
 func (s *Session) bucketUnhandledException() error {
 	exceptions := s.getUnhandledExceptions()
 
@@ -226,7 +238,7 @@ func (s *Session) bucketUnhandledException() error {
 			return NewExceptionGroup(s.AppID, group.exception.getType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
 		}
 
-		index, err := FindMatch(appExceptionGroups, group.fingerprint)
+		index, err := ClosestExceptionGroup(appExceptionGroups, group.fingerprint)
 		if err != nil {
 			return err
 		}
@@ -236,6 +248,76 @@ func (s *Session) bucketUnhandledException() error {
 			continue
 		}
 		matchedGroup := appExceptionGroups[index]
+
+		if matchedGroup.EventExists(group.eventId) {
+			continue
+		}
+
+		if err := matchedGroup.AppendEventId(group.eventId); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Session) bucketANRs() error {
+	anrs := s.getANRs()
+
+	type EventGroup struct {
+		eventId     uuid.UUID
+		anr         ANR
+		fingerprint uint64
+	}
+
+	var groups []EventGroup
+
+	for _, event := range anrs {
+		if event.ANR.Fingerprint == "" {
+			msg := fmt.Sprintf("fingerprint for anr event %q is empty, cannot bucket", event.ID)
+			fmt.Println(msg)
+			continue
+		}
+
+		fingerprint, err := strconv.ParseUint(event.ANR.Fingerprint, 16, 64)
+		if err != nil {
+			msg := fmt.Sprintf("failed to parse fingerprint as integer for anr event %q", event.ID)
+			fmt.Println(msg, err)
+			return err
+		}
+
+		groups = append(groups, EventGroup{
+			eventId:     event.ID,
+			anr:         event.ANR,
+			fingerprint: fingerprint,
+		})
+	}
+
+	app := App{
+		ID: &s.AppID,
+	}
+
+	for _, group := range groups {
+		appANRGroups, err := app.GetANRGroups()
+		if err != nil {
+			return err
+		}
+
+		if len(appANRGroups) < 1 {
+			// insert new anr group
+			return NewANRGroup(s.AppID, group.anr.getType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
+		}
+
+		index, err := ClosestANRGroup(appANRGroups, group.fingerprint)
+		if err != nil {
+			return err
+		}
+		if index < 0 {
+			// when no group matches exists, create new anr group
+			NewANRGroup(s.AppID, group.anr.getType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
+			continue
+		}
+		matchedGroup := appANRGroups[index]
 
 		if matchedGroup.EventExists(group.eventId) {
 			continue
@@ -760,6 +842,13 @@ func PutSession(c *gin.Context) {
 
 	if err := session.bucketUnhandledException(); err != nil {
 		msg := "failed to save session, error occurred during exception grouping"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if err := session.bucketANRs(); err != nil {
+		msg := "failed to save session, error occurred during anr grouping"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
