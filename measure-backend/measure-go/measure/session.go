@@ -228,7 +228,7 @@ func (s *Session) bucketUnhandledException() error {
 	}
 
 	for _, group := range groups {
-		appExceptionGroups, err := app.GetExceptionGroups()
+		appExceptionGroups, err := app.GetExceptionGroups(nil)
 		if err != nil {
 			return err
 		}
