@@ -109,15 +109,22 @@ func (a App) GetExceptionGroups(af *AppFilter) ([]ExceptionGroup, error) {
 	return groups, nil
 }
 
-func (a App) GetANRGroups() ([]ANRGroup, error) {
+func (a App) GetANRGroups(af *AppFilter) ([]ANRGroup, error) {
 	stmt := sqlf.PostgreSQL.
-		Select("id, app_id, name, fingerprint, count, events").
+		Select("id, app_id, name, fingerprint, count, events, created_at, updated_at").
 		From("public.anr_groups").
 		Where("app_id = ?", nil)
 
+	args := []any{a.ID}
+
+	if af != nil {
+		stmt.Where("created_at >= ? and created_at <= ?", nil, nil)
+		args = append(args, af.From, af.To)
+	}
+
 	defer stmt.Close()
 
-	rows, err := server.Server.PgPool.Query(context.Background(), stmt.String(), a.ID)
+	rows, err := server.Server.PgPool.Query(context.Background(), stmt.String(), args...)
 	if err != nil {
 		return nil, err
 	}
