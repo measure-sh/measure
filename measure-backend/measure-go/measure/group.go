@@ -2,6 +2,7 @@ package measure
 
 import (
 	"context"
+	"measure-backend/measure-go/chrono"
 	"measure-backend/measure-go/server"
 	"slices"
 	"strconv"
@@ -18,14 +19,15 @@ import (
 var MinHammingDistance = 3
 
 type ExceptionGroup struct {
-	ID          uuid.UUID   `json:"id" db:"id"`
-	AppID       uuid.UUID   `json:"app_id" db:"app_id"`
-	Name        string      `json:"name" db:"name"`
-	Fingerprint string      `json:"fingerprint" db:"fingerprint"`
-	Count       int         `json:"count" db:"count"`
-	Events      []uuid.UUID `json:"events" db:"events"`
-	CreatedAt   time.Time   `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time   `json:"updated_at" db:"updated_at"`
+	ID          uuid.UUID      `json:"id" db:"id"`
+	AppID       uuid.UUID      `json:"app_id" db:"app_id"`
+	Name        string         `json:"name" db:"name"`
+	Fingerprint string         `json:"fingerprint" db:"fingerprint"`
+	Count       int            `json:"count" db:"count"`
+	Events      []uuid.UUID    `json:"events" db:"events"`
+	Percentage  float32        `json:"percentage_contribution"`
+	CreatedAt   chrono.ISOTime `json:"created_at" db:"created_at"`
+	UpdatedAt   chrono.ISOTime `json:"updated_at" db:"updated_at"`
 }
 
 type ANRGroup struct {
@@ -158,6 +160,18 @@ func ClosestANRGroup(groups []ANRGroup, fingerprint uint64) (int, error) {
 	}
 
 	return lowest, nil
+}
+
+func ComputeCrashContribution(groups []ExceptionGroup) {
+	total := 0
+
+	for _, group := range groups {
+		total = total + group.Count
+	}
+
+	for i := range groups {
+		groups[i].Percentage = (float32(groups[i].Count) / float32(total)) * 100
+	}
 }
 
 // Insert inserts a new ExceptionGroup into the database
