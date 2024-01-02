@@ -123,6 +123,17 @@ func (anr ANRGroup) HammingDistance(a uint64) (uint8, error) {
 	return simhash.Compare(a, b), nil
 }
 
+// GetExceptionGroup gets the ExceptionGroup by matching
+// ExceptionGroup id and app id.
+func GetExceptionGroup(eg *ExceptionGroup) error {
+	stmt := sqlf.PostgreSQL.Select("name, fingerprint, count, events, created_at, updated_at").
+		From("public.unhandled_exception_groups").
+		Where("id = ? and app_id = ?", nil, nil)
+	defer stmt.Close()
+
+	return server.Server.PgPool.QueryRow(context.Background(), stmt.String(), eg.ID, eg.AppID).Scan(&eg.Name, &eg.Fingerprint, &eg.Count, &eg.Events, &eg.CreatedAt, &eg.UpdatedAt)
+}
+
 // ClosestExceptionGroup finds the index of the ExceptionGroup closest to
 // an arbitrary fingerprint from a slice of ExceptionGroup.
 func ClosestExceptionGroup(groups []ExceptionGroup, fingerprint uint64) (int, error) {
