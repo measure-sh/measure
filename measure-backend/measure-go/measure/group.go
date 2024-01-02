@@ -37,6 +37,7 @@ type ANRGroup struct {
 	Fingerprint string      `json:"fingerprint" db:"fingerprint"`
 	Count       int         `json:"count" db:"count"`
 	Events      []uuid.UUID `json:"events" db:"events"`
+	Percentage  float32     `json:"percentage_contribution"`
 	CreatedAt   time.Time   `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time   `json:"updated_at" db:"updated_at"`
 }
@@ -163,6 +164,18 @@ func ClosestANRGroup(groups []ANRGroup, fingerprint uint64) (int, error) {
 }
 
 func ComputeCrashContribution(groups []ExceptionGroup) {
+	total := 0
+
+	for _, group := range groups {
+		total = total + group.Count
+	}
+
+	for i := range groups {
+		groups[i].Percentage = (float32(groups[i].Count) / float32(total)) * 100
+	}
+}
+
+func ComputeANRContribution(groups []ANRGroup) {
 	total := 0
 
 	for _, group := range groups {
