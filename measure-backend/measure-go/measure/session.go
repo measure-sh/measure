@@ -17,7 +17,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/ipinfo/go/v2/ipinfo"
 	"github.com/jackc/pgx/v5"
-	"github.com/leporo/sqlf"
 )
 
 type Session struct {
@@ -185,6 +184,7 @@ func (s *Session) bucketUnhandledException() error {
 
 	type EventGroup struct {
 		eventId     uuid.UUID
+		exception   Exception
 		fingerprint uint64
 	}
 
@@ -206,66 +206,44 @@ func (s *Session) bucketUnhandledException() error {
 
 		groups = append(groups, EventGroup{
 			eventId:     event.ID,
+			exception:   event.Exception,
 			fingerprint: fingerprint,
 		})
+	}
 
-		for _, group := range groups {
-			stmt := sqlf.PostgreSQL.
-				Select("id, app_id, name, fingerprint, count, events").
-				From("unhandled_exception_groups").
-				Where("app_id = ?", nil)
+	app := App{
+		ID: &s.AppID,
+	}
 
-			defer stmt.Close()
-
-			rows, err := server.Server.PgPool.Query(context.Background(), stmt.String(), s.AppID)
-			if err != nil {
-				return err
-			}
-			matchedGroups, err := pgx.CollectRows(rows, pgx.RowToStructByNameLax[ExceptionGroup])
-			if err != nil {
-				return err
-			}
-
-			if len(matchedGroups) < 1 {
-				// insert new exception group
-				events := []string{group.eventId.String()}
-				stmt := sqlf.PostgreSQL.InsertInto("public.unhandled_exception_groups").
-					Set("app_id", nil).
-					Set("name", nil).
-					Set("fingerprint", nil).
-					Set("count", nil).
-					Set("events", nil)
-
-				defer stmt.Close()
-
-				_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), s.AppID, event.Exception.getType(), fmt.Sprintf("%x", group.fingerprint), len(groups), events)
-				if err != nil {
-					return err
-				}
-
-				return nil
-			}
-
-			index, err := FindMatch(matchedGroups, group.fingerprint)
-			if err != nil {
-				return err
-			}
-			if index < 0 {
-				// if index is -1, then create new exception group
-				continue
-			}
-			matchedGroup := matchedGroups[index]
-
-			if matchedGroup.EventExists(group.eventId) {
-				continue
-			}
-
-			if err := matchedGroup.AppendEventId(group.eventId); err != nil {
-				return err
-			}
-
+	for _, group := range groups {
+		appExceptionGroups, err := app.GetExceptionGroups()
+		if err != nil {
+			return err
 		}
 
+		if len(appExceptionGroups) < 1 {
+			// insert new exception group
+			return NewExceptionGroup(s.AppID, group.exception.getType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
+		}
+
+		index, err := FindMatch(appExceptionGroups, group.fingerprint)
+		if err != nil {
+			return err
+		}
+		if index < 0 {
+			// when no group matches exists, create new exception group
+			NewExceptionGroup(s.AppID, group.exception.getType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
+			continue
+		}
+		matchedGroup := appExceptionGroups[index]
+
+		if matchedGroup.EventExists(group.eventId) {
+			continue
+		}
+
+		if err := matchedGroup.AppendEventId(group.eventId); err != nil {
+			return err
+		}
 	}
 
 	return nil
