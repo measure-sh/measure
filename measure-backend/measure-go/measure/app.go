@@ -85,7 +85,7 @@ func (a App) MarshalJSON() ([]byte, error) {
 
 func (a App) GetExceptionGroups(af *AppFilter) ([]ExceptionGroup, error) {
 	stmt := sqlf.PostgreSQL.
-		Select("id, app_id, name, fingerprint, count, events, created_at, updated_at").
+		Select("id, app_id, app_version, name, fingerprint, count, events, created_at, updated_at").
 		From("unhandled_exception_groups").
 		Where("app_id = ?", nil)
 
@@ -94,6 +94,11 @@ func (a App) GetExceptionGroups(af *AppFilter) ([]ExceptionGroup, error) {
 	if af != nil {
 		stmt.Where("created_at >= ? and created_at <= ?", nil, nil)
 		args = append(args, af.From, af.To)
+
+		if af.Version != "" {
+			stmt.Where("app_version = ?", nil)
+			args = append(args, af.Version)
+		}
 	}
 
 	defer stmt.Close()

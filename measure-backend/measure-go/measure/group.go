@@ -21,6 +21,7 @@ var MinHammingDistance = 3
 type ExceptionGroup struct {
 	ID          uuid.UUID      `json:"id" db:"id"`
 	AppID       uuid.UUID      `json:"app_id" db:"app_id"`
+	AppVersion  string         `json:"app_version" db:"app_version"`
 	Name        string         `json:"name" db:"name"`
 	Fingerprint string         `json:"fingerprint" db:"fingerprint"`
 	Count       int            `json:"count" db:"count"`
@@ -213,6 +214,7 @@ func ComputeANRContribution(groups []ANRGroup) {
 func (e *ExceptionGroup) Insert() error {
 	stmt := sqlf.PostgreSQL.InsertInto("public.unhandled_exception_groups").
 		Set("app_id", nil).
+		Set("app_version", nil).
 		Set("name", nil).
 		Set("fingerprint", nil).
 		Set("count", nil).
@@ -220,7 +222,7 @@ func (e *ExceptionGroup) Insert() error {
 
 	defer stmt.Close()
 
-	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), e.AppID, e.Name, e.Fingerprint, e.Count, e.Events)
+	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), e.AppID, e.AppVersion, e.Name, e.Fingerprint, e.Count, e.Events)
 	if err != nil {
 		return err
 	}
@@ -248,9 +250,10 @@ func (e *ANRGroup) Insert() error {
 }
 
 // NewExceptionGroup constructs a new ExceptionGroup and returns a pointer to it
-func NewExceptionGroup(appId uuid.UUID, name string, fingerprint string, eventIds []uuid.UUID) *ExceptionGroup {
+func NewExceptionGroup(appId uuid.UUID, version string, name string, fingerprint string, eventIds []uuid.UUID) *ExceptionGroup {
 	return &ExceptionGroup{
 		AppID:       appId,
+		AppVersion:  version,
 		Name:        name,
 		Fingerprint: fingerprint,
 		Count:       len(eventIds),
