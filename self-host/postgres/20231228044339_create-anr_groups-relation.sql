@@ -2,6 +2,7 @@
 create table if not exists public.anr_groups (
     id uuid primary key not null default gen_random_uuid(),
     app_id uuid references public.apps(id) on delete cascade,
+    app_version text not null,
     name text not null,
     fingerprint varchar(16) not null,
     count integer not null,
@@ -12,6 +13,7 @@ create table if not exists public.anr_groups (
 
 comment on column public.anr_groups.id is 'unique id for each anr group';
 comment on column public.anr_groups.app_id is 'linked app id';
+comment on column public.anr_groups.app_version is 'linked app version';
 comment on column public.anr_groups.name is 'name of the anr for easy identification';
 comment on column public.anr_groups.fingerprint is 'fingerprint of the anr';
 comment on column public.anr_groups.count is 'number of instances this anr was observed';

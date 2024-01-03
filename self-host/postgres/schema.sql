@@ -97,6 +97,7 @@ CREATE TABLE dbmate.schema_migrations (
 CREATE TABLE public.anr_groups (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     app_id uuid,
+    app_version text NOT NULL,
     name text NOT NULL,
     fingerprint character varying(16) NOT NULL,
     count integer NOT NULL,
@@ -118,6 +119,13 @@ COMMENT ON COLUMN public.anr_groups.id IS 'unique id for each anr group';
 --
 
 COMMENT ON COLUMN public.anr_groups.app_id IS 'linked app id';
+
+
+--
+-- Name: COLUMN anr_groups.app_version; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.anr_groups.app_version IS 'linked app version';
 
 
 --
