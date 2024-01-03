@@ -691,6 +691,7 @@ COMMENT ON COLUMN public.teams.updated_at IS 'utc timestmap at the time of team 
 CREATE TABLE public.unhandled_exception_groups (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     app_id uuid,
+    app_version text NOT NULL,
     name text NOT NULL,
     fingerprint character varying(16) NOT NULL,
     count integer NOT NULL,
@@ -712,6 +713,13 @@ COMMENT ON COLUMN public.unhandled_exception_groups.id IS 'unique id for each un
 --
 
 COMMENT ON COLUMN public.unhandled_exception_groups.app_id IS 'linked app id';
+
+
+--
+-- Name: COLUMN unhandled_exception_groups.app_version; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.unhandled_exception_groups.app_version IS 'linked app version';
 
 
 --
