@@ -305,7 +305,7 @@ func (s *Session) bucketANRs() error {
 
 		if len(appANRGroups) < 1 {
 			// insert new anr group
-			return NewANRGroup(s.AppID, group.anr.getType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
+			return NewANRGroup(s.AppID, s.Resource.AppVersion, group.anr.getType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
 		}
 
 		index, err := ClosestANRGroup(appANRGroups, group.fingerprint)
@@ -314,7 +314,7 @@ func (s *Session) bucketANRs() error {
 		}
 		if index < 0 {
 			// when no group matches exists, create new anr group
-			NewANRGroup(s.AppID, group.anr.getType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
+			NewANRGroup(s.AppID, s.Resource.AppVersion, group.anr.getType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
 			continue
 		}
 		matchedGroup := appANRGroups[index]
