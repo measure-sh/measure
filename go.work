@@ -3,4 +3,5 @@ go 1.21.1
 use (
 	./measure-backend/measure-go
 	./measure-backend/symbolicator
+	./self-host/sessionator
 )
