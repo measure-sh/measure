@@ -690,7 +690,6 @@ func (s *Session) DecodeFromSymbolication(codecMap CodecMap, symbolicationUnits 
 							fmt.Println("failed to unmarshal retrace frame", err)
 							continue
 						}
-						fmt.Println("anr frame", frame)
 						frames = append(frames, Frame{
 							ClassName:  frame.ClassName,
 							LineNum:    frame.LineNum,
