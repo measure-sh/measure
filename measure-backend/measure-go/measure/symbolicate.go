@@ -3,6 +3,7 @@ package measure
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -62,7 +63,11 @@ func symbolicate(s *Session) error {
 		return err
 	}
 	defer resp.Body.Close()
-	fmt.Println("symbolicator response status", resp.Status)
+
+	if resp.StatusCode != http.StatusOK {
+		msg := fmt.Sprintf("symbolication request failed with status %d", resp.StatusCode)
+		return errors.New(msg)
+	}
 
 	var symbolResult []SymbolicationUnit
 	if err = json.NewDecoder(resp.Body).Decode(&symbolResult); err != nil {
