@@ -103,7 +103,12 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     getApps(params.teamId)
   }, []);
 
-  const getFilters = async (appId: string,) => {
+  const getFilters = async (selectedApp: typeof emptyApp) => {
+    if (!selectedApp.onboarded) {
+      setFiltersApiStatus(FiltersApiStatus.NoData)
+      return
+    }
+
     setFiltersApiStatus(FiltersApiStatus.Loading)
 
     const authToken = await getAccessTokenOrRedirectToAuth(router)
@@ -114,7 +119,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
       }
     };
 
-    const res = await fetch(`${origin}/apps/${appId}/filters`, opts);
+    const res = await fetch(`${origin}/apps/${selectedApp.id}/filters`, opts);
 
     if (!res.ok && res.status == 404) {
       setFiltersApiStatus(FiltersApiStatus.NoData)
@@ -134,7 +139,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   }
 
   useEffect(() => {
-    getFilters(selectedApp.id)
+    getFilters(selectedApp)
   }, [selectedApp]);
 
   return (
