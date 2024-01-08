@@ -55,69 +55,60 @@ func (s *Session) validate() error {
 	return nil
 }
 
-func (s *Session) hasExceptions() bool {
-	for _, event := range s.Events {
-		if event.isException() {
-			return true
-		}
-	}
-	return false
-}
-
-func (s *Session) hasANRs() bool {
-	for _, event := range s.Events {
-		if event.isANR() {
-			return true
-		}
-	}
-	return false
-}
-
-func (s *Session) hasAppExits() bool {
-	for _, event := range s.Events {
-		if event.isAppExit() {
-			return true
-		}
-	}
-	return false
-}
-
-func (s *Session) hasLifecycleActivities() bool {
-	for _, event := range s.Events {
-		if event.isLifecycleActivity() {
-			return true
-		}
-	}
-	return false
-}
-
-func (s *Session) hasLifecycleFragments() bool {
-	for _, event := range s.Events {
-		if event.isLifecycleFragment() {
-			return true
-		}
-	}
-	return false
-}
-
-func (s *Session) hasColdLaunch() bool {
-	for _, event := range s.Events {
-		if event.isColdLaunch() {
-			return true
-		}
-	}
-	return false
-}
-
 func (s *Session) hasAttachments() bool {
 	return len(s.Attachments) > 0
 }
 
 func (s *Session) needsSymbolication() bool {
-	if s.hasExceptions() || s.hasANRs() || s.hasAppExits() || s.hasLifecycleActivities() || s.hasLifecycleFragments() || s.hasColdLaunch() {
-		return true
+	result := false
+	for i := range s.Events {
+		if s.Events[i].isException() {
+			result = true
+			break
+		}
+
+		if s.Events[i].isANR() {
+			result = true
+			break
+		}
+
+		if s.Events[i].isAppExit() && len(s.Events[i].AppExit.Trace) > 0 {
+			result = true
+			break
+		}
+
+		if s.Events[i].isLifecycleActivity() && len(s.Events[i].LifecycleActivity.ClassName) > 0 {
+			result = true
+			break
+		}
+
+		if s.Events[i].isColdLaunch() && len(s.Events[i].ColdLaunch.LaunchedActivity) > 0 {
+			result = true
+			break
+		}
+
+		if s.Events[i].isWarmLaunch() && len(s.Events[i].WarmLaunch.LaunchedActivity) > 0 {
+			result = true
+			break
+		}
+
+		if s.Events[i].isHotLaunch() && len(s.Events[i].HotLaunch.LaunchedActivity) > 0 {
+			result = true
+			break
+		}
+
+		if s.Events[i].isLifecycleFragment() {
+			hasClassName := len(s.Events[i].LifecycleFragment.ClassName) > 0
+			hasParentActivity := len(s.Events[i].LifecycleFragment.ParentActivity) > 0
+
+			if hasClassName || hasParentActivity {
+				result = true
+				break
+			}
+		}
 	}
-	return false
+
+	return result
 }
 
 func (s *Session) uploadAttachments() error {
