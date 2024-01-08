@@ -35,7 +35,7 @@ type ANRGroup struct {
 	ID          uuid.UUID   `json:"id" db:"id"`
 	AppID       uuid.UUID   `json:"app_id" db:"app_id"`
 	AppVersion  string      `json:"app_version" db:"app_version"`
-	Name        string      `json:"name" db:"app_id"`
+	Name        string      `json:"name" db:"name"`
 	Fingerprint string      `json:"fingerprint" db:"fingerprint"`
 	Count       int         `json:"count" db:"count"`
 	Events      []uuid.UUID `json:"events" db:"events"`
