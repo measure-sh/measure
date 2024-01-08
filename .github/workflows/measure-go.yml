@@ -52,7 +52,7 @@ jobs:
       - name: Install dependencies
         run: go get .
       - name: Test with ${{ matrix.go-version }}
-        run: go test
+        run: go test ./...
 
   deploy:
     name: Deploy API server
