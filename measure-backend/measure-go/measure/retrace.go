@@ -75,7 +75,18 @@ func UnmarshalRetraceFrame(i string, p string) (retraceFrame RetraceFrame, err e
 
 	className := codeInfo[:strings.LastIndex(codeInfo, ".")]
 	methodName := codeInfo[strings.LastIndex(codeInfo, ".")+1:]
-	fileName, lineNumStr, _ := strings.Cut(fileInfo, ":")
+	lastIndexSep := strings.LastIndex(fileInfo, ":")
+
+	var fileName string
+	var lineNumStr string
+
+	if lastIndexSep < 0 {
+		fileName = fileInfo
+		lineNumStr = ""
+	} else {
+		fileName = fileInfo[:lastIndexSep]
+		lineNumStr = fileInfo[lastIndexSep+1:]
+	}
 
 	var lineNum int
 
