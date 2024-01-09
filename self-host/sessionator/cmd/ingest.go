@@ -90,9 +90,9 @@ var apps []*App
 var metrics Metrics
 
 func init() {
-	ingestCmd.Flags().StringVarP(&sourceDir, "source", "s", "../session-data", "Source diretory to read sessions from")
-	ingestCmd.Flags().StringVarP(&origin, "origin", "o", "http://localhost:8080", "Origin of session ingestion server")
-	ingestCmd.Flags().StringVarP(&configLocation, "config", "c", "../session-data/config.toml", "Location to config.toml file")
+	ingestCmd.Flags().StringVarP(&sourceDir, "source", "s", "../session-data", "source diretory to read sessions from")
+	ingestCmd.Flags().StringVarP(&origin, "origin", "o", "http://localhost:8080", "origin of session ingestion server")
+	ingestCmd.Flags().StringVarP(&configLocation, "config", "c", "../session-data/config.toml", "location to config.toml file")
 	rootCmd.AddCommand(ingestCmd)
 }
 
