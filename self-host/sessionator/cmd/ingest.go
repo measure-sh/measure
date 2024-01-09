@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sessionator/config"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -28,9 +29,13 @@ var SourceDir string
 // will send and upload sessions and mapping files.
 var Origin string
 
-// APIKey is the Measure API key used by the program
-// to send and upload sessions and mapping files.
-var APIKey string
+// configLocation is the path to the `config.toml` file
+// containing each app's details and their api keys.
+var configLocation string
+
+// configData holds the parsed configuration data from
+// `config.toml` file.
+var configData *config.Config
 
 // App represents each combination of app and version
 // along with its sessions and related mapping file.
@@ -87,7 +92,7 @@ var metrics Metrics
 func init() {
 	ingestCmd.Flags().StringVarP(&SourceDir, "source", "s", "../session-data", "Source diretory to read sessions from")
 	ingestCmd.Flags().StringVarP(&Origin, "origin", "o", "http://localhost:8080", "Origin of session ingestion server")
-	ingestCmd.Flags().StringVarP(&APIKey, "api-key", "k", "", "API key to use for ingesting sessions")
+	ingestCmd.PersistentFlags().StringVarP(&configLocation, "config", "c", "../session-data/config.toml", "Location to config.toml file")
 	rootCmd.AddCommand(ingestCmd)
 }
 
@@ -104,16 +109,11 @@ func ValidateFlags() bool {
 	fileInfo, err := os.Stat(SourceDir)
 	if err != nil {
 		log.Fatal(err)
-		return false
 	}
 
 	if !fileInfo.IsDir() {
 		fmt.Printf("%q is not a valid directory path\n", SourceDir)
 		return false
-	}
-
-	if APIKey == "" {
-		fmt.Printf("need api key in --api-key flag\n")
 	}
 
 	return true
@@ -152,9 +152,9 @@ func getMappingMeta(a *App) *Resource {
 	return &session.Resource
 }
 
-// IngestSerial serially ingest each session and
+// IngestSerial serially ingests each session and
 // mapping file of each app.
-func IngestSerial(origin, apiKey string) {
+func IngestSerial(origin string) {
 	sessionURL := fmt.Sprintf("%s/sessions", origin)
 	mappingURL := fmt.Sprintf("%s/mappings", origin)
 	for i := range apps {
@@ -166,6 +166,8 @@ func IngestSerial(origin, apiKey string) {
 			fmt.Printf("app \"%s:%s\" has no sessions, skipping...\n", app.Name, app.Version)
 			continue
 		}
+
+		apiKey := configData.Apps[app.Name].ApiKey
 
 		if app.MappingFile != "" {
 			resource := getMappingMeta(app)
@@ -340,12 +342,16 @@ Structure of directory:
 	Run: func(cmd *cobra.Command, args []string) {
 		sourceDir, err := filepath.Abs(filepath.Clean(SourceDir))
 		if err != nil {
-			fmt.Println(err)
 			log.Fatal(err)
 		}
 
 		if !ValidateFlags() {
 			os.Exit(1)
+		}
+
+		configData, err = config.Init(configLocation)
+		if err != nil {
+			log.Fatal(err)
 		}
 
 		Setup(sourceDir)
@@ -363,7 +369,7 @@ Structure of directory:
 			fmt.Printf("mapping file: %s\n\n", mapping)
 		}
 
-		IngestSerial(Origin, APIKey)
+		IngestSerial(Origin)
 
 		fmt.Printf("\nSummary\n=======\n\n")
 
