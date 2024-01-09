@@ -29,12 +29,6 @@ export async function GET(request: Request) {
     return NextResponse.redirect(errRedirectUrl)
   }
 
-  const { error: setSessionErr } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-
-  if (setSessionErr) {
-    console.log("failed to set session in github signin callback", setSessionErr)
-  }
-
   const apiOrigin = process?.env?.NEXT_PUBLIC_API_BASE_URL
 
   const res = await fetch(`${apiOrigin}/teams`, {
