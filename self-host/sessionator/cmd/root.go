@@ -9,11 +9,8 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "measure",
-	Short: "measure dev client",
-	Long:  "use the development client to administer measure backend",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("measure dev client")
-	},
+	Short: "measure dev cli",
+	Long:  "administer measure backend",
 }
 
 func Execute() {
