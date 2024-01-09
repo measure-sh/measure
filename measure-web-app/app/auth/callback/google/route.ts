@@ -14,6 +14,8 @@ export async function POST(request: Request) {
   }
 
   const formdata = await request.formData()
+  console.log({ nonce })
+  console.log({ formdata })
   const credential = formdata.get('credential')
   const supabase = createRouteClient()
   const { data, error } = await supabase.auth.signInWithIdToken({
@@ -21,6 +23,7 @@ export async function POST(request: Request) {
     token: String(credential),
     nonce: nonce
   })
+  console.log({ data })
 
   if (error) {
     console.log(error, { nonce })
