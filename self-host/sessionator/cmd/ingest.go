@@ -326,7 +326,7 @@ var ingestCmd = &cobra.Command{
 	Short: "Ingest sessions",
 	Long: `Ingest sessions from a local directory.
 
-Structure of directory:
+Structure of "session-data" directory:
 
 + root
 - foo						# app name dir
