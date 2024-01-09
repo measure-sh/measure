@@ -1,0 +1,22 @@
+# sessionator config
+
+[apps]
+
+# Define list of apps along with each app's api key
+#
+# Syntax
+#
+# [apps.name]
+# name should match session-data's app directory name
+#
+# [apps."name"]
+# enclose with double quotes if name contains special characters like
+# dot (.) or white spaces.
+#
+# Example
+#
+# [apps.sample-app-1]
+# api-key = "msrsh_xxxxxx_xxxx"
+#
+# [apps.sample-app-2]
+# api-key = "msrsh_xxxxxx_xxxx"
