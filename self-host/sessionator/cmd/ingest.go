@@ -21,13 +21,13 @@ import (
 // multipart upload mapping file request.
 const multipartBoundary = "___sessionator___"
 
-// SourceDir is the source directory where the program
+// sourceDir is the source directory where the program
 // reads and processes the sessions and mapping files.
-var SourceDir string
+var sourceDir string
 
-// Origin is the origin of the server where the program
+// origin is the origin of the server where the program
 // will send and upload sessions and mapping files.
-var Origin string
+var origin string
 
 // configLocation is the path to the `config.toml` file
 // containing each app's details and their api keys.
@@ -90,8 +90,8 @@ var apps []*App
 var metrics Metrics
 
 func init() {
-	ingestCmd.Flags().StringVarP(&SourceDir, "source", "s", "../session-data", "Source diretory to read sessions from")
-	ingestCmd.Flags().StringVarP(&Origin, "origin", "o", "http://localhost:8080", "Origin of session ingestion server")
+	ingestCmd.Flags().StringVarP(&sourceDir, "source", "s", "../session-data", "Source diretory to read sessions from")
+	ingestCmd.Flags().StringVarP(&origin, "origin", "o", "http://localhost:8080", "Origin of session ingestion server")
 	ingestCmd.Flags().StringVarP(&configLocation, "config", "c", "../session-data/config.toml", "Location to config.toml file")
 	rootCmd.AddCommand(ingestCmd)
 }
@@ -106,13 +106,13 @@ func NewApp() *App {
 // ValidateFlags validates the commmand line
 // flags
 func ValidateFlags() bool {
-	fileInfo, err := os.Stat(SourceDir)
+	fileInfo, err := os.Stat(sourceDir)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	if !fileInfo.IsDir() {
-		fmt.Printf("%q is not a valid directory path\n", SourceDir)
+		fmt.Printf("%q is not a valid directory path\n", sourceDir)
 		return false
 	}
 
@@ -340,7 +340,7 @@ Structure of "session-data" directory:
     - 55300a74-ba16-4e62-a699-0cd41f5e43c0.json	# session json file
     - mapping.txt				# mapping file`,
 	Run: func(cmd *cobra.Command, args []string) {
-		sourceDir, err := filepath.Abs(filepath.Clean(SourceDir))
+		sourceDir, err := filepath.Abs(filepath.Clean(sourceDir))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -369,7 +369,7 @@ Structure of "session-data" directory:
 			fmt.Printf("mapping file: %s\n\n", mapping)
 		}
 
-		IngestSerial(Origin)
+		IngestSerial(origin)
 
 		fmt.Printf("\nSummary\n=======\n\n")
 
