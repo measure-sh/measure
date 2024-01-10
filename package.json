@@ -8,8 +8,5 @@
   },
   "scripts": {
     "prepare": "husky install"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.38.4"
   }
 }
