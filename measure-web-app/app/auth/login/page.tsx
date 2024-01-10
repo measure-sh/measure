@@ -32,7 +32,7 @@ export default async function Login({ searchParams }: { searchParams: { [key: st
               data-context="signin"
               data-ux_mode="popup"
               data-nonce={hashedNonce}
-              data-login_uri={`${origin}/auth/callback/google?nonce=${nonce}`}
+              data-login_uri={`${origin}/auth/callback/google?nonce=${encodeURIComponent(nonce)}`}
               data-auto_select="true"
               data-itp_support="true">
             </div>
