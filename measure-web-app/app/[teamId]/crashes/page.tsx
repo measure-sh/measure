@@ -87,6 +87,7 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
     Loading,
     Success,
     Error,
+    NotOnboarded,
     NoData
   }
 
@@ -169,7 +170,7 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
 
   const getFilters = async (selectedApp: typeof emptyApp) => {
     if (!selectedApp.onboarded) {
-      setFiltersApiStatus(FiltersApiStatus.NoData)
+      setFiltersApiStatus(FiltersApiStatus.NotOnboarded)
       return
     }
 
@@ -185,17 +186,17 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
 
     const res = await fetch(`${origin}/apps/${selectedApp.id}/filters`, opts);
 
-    if (!res.ok && res.status == 404) {
-      setFiltersApiStatus(FiltersApiStatus.NoData)
-      return
-    }
-
     if (!res.ok) {
       logoutIfAuthError(router, res)
       setFiltersApiStatus(FiltersApiStatus.Error)
       return
     }
     const data = await res.json()
+
+    if (data.versions === null) {
+      setFiltersApiStatus(FiltersApiStatus.NoData)
+      return
+    }
 
     setVersions(data.versions)
     setSelectedVersions(data.versions[0])
@@ -258,8 +259,11 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
       {/* Filters fetch error message  */}
       {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Error && <p className="text-lg font-display">Error fetching filters, please refresh page or select a different app to try again</p>}
 
-      {/* Create app when app exists but has no data */}
-      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.NoData && <CreateApp teamId={params.teamId} existingAppName={selectedApp.name} existingApiKey={selectedApp.api_key.key} />}
+      {/* Filters fetch no data message  */}
+      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.NoData && <p className="text-lg font-display">We don&apos;t seem to have any data for this app. It could have been removed due to exceeding data retention period. Please contact <a href="mailto:support@measure.sh" className="underline text-blue-500">Measure support.</a></p>}
+
+      {/* Create app when app exists but is not onboarded */}
+      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.NotOnboarded && <CreateApp teamId={params.teamId} existingAppName={selectedApp.name} existingApiKey={selectedApp.api_key.key} />}
 
       {/* Show exception rate chart if apps and filters fetch succeeds  */}
       {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success &&
