@@ -27,7 +27,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".SecondActivity"
+            android:name=".OkHttpActivity"
             android:exported="false" />
 
         <meta-data

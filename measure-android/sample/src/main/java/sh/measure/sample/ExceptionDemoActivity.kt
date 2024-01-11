@@ -9,7 +9,6 @@ import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 import java.io.IOException
 
-
 class ExceptionDemoActivity : AppCompatActivity() {
     private val _mutex = Any()
 
@@ -41,7 +40,7 @@ class ExceptionDemoActivity : AppCompatActivity() {
             deadLock()
         }
         findViewById<Button>(R.id.btn_navigate).setOnClickListener {
-            startActivity(Intent(this, SecondActivity::class.java))
+            startActivity(Intent(this, OkHttpActivity::class.java))
         }
     }
 
