@@ -2,6 +2,7 @@ plugins {
     id("org.jetbrains.kotlin.jvm") version "1.8.0"
     id("com.gradle.plugin-publish") version "1.2.0"
     id("org.jetbrains.kotlin.plugin.serialization") version "1.8.0"
+    id("sh.measure.plugin.aar2jar")
 }
 
 group = "sh.measure.plugin"
@@ -29,6 +30,8 @@ java {
 
 dependencies {
     compileOnly("com.android.tools.build:gradle:7.4.1")
+    compileOnly("org.ow2.asm:asm-util:9.6")
+    compileOnly("org.ow2.asm:asm-commons:9.6")
 
     implementation(gradleApi())
     implementation(platform("com.squareup.okhttp3:okhttp-bom:4.11.0"))
@@ -39,4 +42,11 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("org.ow2.asm:asm-util:9.6")
+    testImplementation("org.ow2.asm:asm-commons:9.6")
+    testImplementation("com.android.tools.build:gradle:7.4.1")
+    testImplementation("org.ow2.asm:asm-util:9.6")
+    testImplementation("org.ow2.asm:asm-commons:9.6")
+    testImplementation("com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0")
+    testImplementationAar("sh.measure:android:0.0.1-SNAPSHOT")
 }

@@ -9,4 +9,6 @@ internal class FakeTimeProvider(private val date: Long = 0) : TimeProvider {
         get() = date
     override val uptimeInMillis: Long
         get() = date
+    override val elapsedRealtime: Long
+        get() = date
 }
