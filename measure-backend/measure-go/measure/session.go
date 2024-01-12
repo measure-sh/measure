@@ -349,6 +349,372 @@ func (s *Session) bucketANRs() error {
 	return nil
 }
 
+func (s *Session) ingest() error {
+	stmt := sqlf.InsertInto("default.events")
+	defer stmt.Close()
+
+	var args []any
+	for i := range s.Events {
+		anrExceptions := "[]"
+		anrThreads := "[]"
+		exceptionExceptions := "[]"
+		exceptionThreads := "[]"
+		isLowMemory := false
+		if s.Events[i].isANR() {
+			anrExceptions = s.Events[i].ANR.Exceptions.encode()
+			anrThreads = s.Events[i].ANR.Threads.encode()
+			s.Events[i].computeANRFingerprint()
+		}
+		if s.Events[i].isException() {
+			exceptionExceptions = s.Events[i].Exception.Exceptions.encode()
+			exceptionThreads = s.Events[i].Exception.Threads.encode()
+			s.Events[i].computeExceptionFingerprint()
+		}
+		if s.Events[i].isLowMemory() {
+			isLowMemory = true
+		}
+		s.Events[i].ID = uuid.New()
+		stmt.NewRow().
+			Set("id", nil).
+			Set("type", nil).
+			Set("session_id", nil).
+			Set("app_id", nil).
+			Set("inet.ipv4", nil).
+			Set("inet.ipv6", nil).
+			Set("inet.country_code", nil).
+			Set("timestamp", nil).
+			Set("thread_name", nil).
+			Set("resource.device_name", nil).
+			Set("resource.device_model", nil).
+			Set("resource.device_manufacturer", nil).
+			Set("resource.device_type", nil).
+			Set("resource.device_is_foldable", nil).
+			Set("resource.device_is_physical", nil).
+			Set("resource.device_density_dpi", nil).
+			Set("resource.device_width_px", nil).
+			Set("resource.device_height_px", nil).
+			Set("resource.device_density", nil).
+			Set("resource.os_name", nil).
+			Set("resource.os_version", nil).
+			Set("resource.platform", nil).
+			Set("resource.app_version", nil).
+			Set("resource.app_build", nil).
+			Set("resource.app_unique_id", nil).
+			Set("resource.measure_sdk_version", nil).
+			Set("anr.thread_name", nil).
+			Set("anr.handled", nil).
+			Set("anr.fingerprint", nil).
+			Set("anr_exceptions", nil).
+			Set("anr_threads", nil).
+			Set("exception.thread_name", nil).
+			Set("exception.handled", nil).
+			Set("exception.fingerprint", nil).
+			Set("exception_exceptions", nil).
+			Set("exception_threads", nil).
+			Set("app_exit.reason", nil).
+			Set("app_exit.importance", nil).
+			Set("app_exit.trace", nil).
+			Set("app_exit.process_name", nil).
+			Set("app_exit.pid", nil).
+			Set("app_exit.timestamp", nil).
+			Set("string.severity_text", nil).
+			Set("string.string", nil).
+			Set("gesture_long_click.target", nil).
+			Set("gesture_long_click.target_id", nil).
+			Set("gesture_long_click.touch_down_time", nil).
+			Set("gesture_long_click.touch_up_time", nil).
+			Set("gesture_long_click.width", nil).
+			Set("gesture_long_click.height", nil).
+			Set("gesture_long_click.x", nil).
+			Set("gesture_long_click.y", nil).
+			Set("gesture_click.target", nil).
+			Set("gesture_click.target_id", nil).
+			Set("gesture_click.touch_down_time", nil).
+			Set("gesture_click.touch_up_time", nil).
+			Set("gesture_click.width", nil).
+			Set("gesture_click.height", nil).
+			Set("gesture_click.x", nil).
+			Set("gesture_click.y", nil).
+			Set("gesture_scroll.target", nil).
+			Set("gesture_scroll.target_id", nil).
+			Set("gesture_scroll.touch_down_time", nil).
+			Set("gesture_scroll.touch_up_time", nil).
+			Set("gesture_scroll.x", nil).
+			Set("gesture_scroll.y", nil).
+			Set("gesture_scroll.end_x", nil).
+			Set("gesture_scroll.end_y", nil).
+			Set("gesture_scroll.direction", nil).
+			Set("lifecycle_activity.type", nil).
+			Set("lifecycle_activity.class_name", nil).
+			Set("lifecycle_activity.intent", nil).
+			Set("lifecycle_activity.saved_instance_state", nil).
+			Set("lifecycle_fragment.type", nil).
+			Set("lifecycle_fragment.class_name", nil).
+			Set("lifecycle_fragment.parent_activity", nil).
+			Set("lifecycle_fragment.tag", nil).
+			Set("lifecycle_app.type", nil).
+			Set("cold_launch.process_start_uptime", nil).
+			Set("cold_launch.process_start_requested_uptime", nil).
+			Set("cold_launch.content_provider_attach_uptime", nil).
+			Set("cold_launch.on_next_draw_uptime", nil).
+			Set("cold_launch.launched_activity", nil).
+			Set("cold_launch.has_saved_state", nil).
+			Set("cold_launch.intent_data", nil).
+			Set("warm_launch.app_visible_uptime", nil).
+			Set("warm_launch.on_next_draw_uptime", nil).
+			Set("warm_launch.launched_activity", nil).
+			Set("warm_launch.has_saved_state", nil).
+			Set("warm_launch.intent_data", nil).
+			Set("hot_launch.app_visible_uptime", nil).
+			Set("hot_launch.on_next_draw_uptime", nil).
+			Set("hot_launch.launched_activity", nil).
+			Set("hot_launch.has_saved_state", nil).
+			Set("hot_launch.intent_data", nil).
+			Set("attributes", nil).
+			Set("network_change.network_type", nil).
+			Set("network_change.previous_network_type", nil).
+			Set("network_change.network_generation", nil).
+			Set("network_change.previous_network_generation", nil).
+			Set("network_change.network_provider", nil).
+			Set("anr.network_type", nil).
+			Set("anr.network_generation", nil).
+			Set("anr.network_provider", nil).
+			Set("exception.network_type", nil).
+			Set("exception.network_generation", nil).
+			Set("exception.network_provider", nil).
+			Set("resource.network_type", nil).
+			Set("resource.network_generation", nil).
+			Set("resource.network_provider", nil).
+			Set("resource.device_locale", nil).
+			Set("anr.device_locale", nil).
+			Set("exception.device_locale", nil).
+			Set("http.url", nil).
+			Set("http.method", nil).
+			Set("http.status_code", nil).
+			Set("http.request_body_size", nil).
+			Set("http.response_body_size", nil).
+			Set("http.request_timestamp", nil).
+			Set("http.response_timestamp", nil).
+			Set("http.start_time", nil).
+			Set("http.end_time", nil).
+			Set("http.dns_start", nil).
+			Set("http.dns_end", nil).
+			Set("http.connect_start", nil).
+			Set("http.connect_end", nil).
+			Set("http.request_start", nil).
+			Set("http.request_end", nil).
+			Set("http.request_headers_start", nil).
+			Set("http.request_headers_end", nil).
+			Set("http.request_body_start", nil).
+			Set("http.request_body_end", nil).
+			Set("http.response_start", nil).
+			Set("http.response_end", nil).
+			Set("http.response_headers_start", nil).
+			Set("http.response_headers_end", nil).
+			Set("http.response_body_start", nil).
+			Set("http.response_body_end", nil).
+			Set("http.request_headers_size", nil).
+			Set("http.response_headers_size", nil).
+			Set("http.failure_reason", nil).
+			Set("http.failure_description", nil).
+			Set("http_request_headers", nil).
+			Set("http_response_headers", nil).
+			Set("http.client", nil).
+			Set("memory_usage.java_max_heap", nil).
+			Set("memory_usage.java_total_heap", nil).
+			Set("memory_usage.java_free_heap", nil).
+			Set("memory_usage.total_pss", nil).
+			Set("memory_usage.rss", nil).
+			Set("memory_usage.native_total_heap", nil).
+			Set("memory_usage.native_free_heap", nil).
+			Set("memory_usage.interval_config", nil).
+			Set("low_memory", nil).
+			Set("trim_memory.level", nil).
+			Set("cpu_usage.num_cores", nil).
+			Set("cpu_usage.clock_speed", nil).
+			Set("cpu_usage.start_time", nil).
+			Set("cpu_usage.uptime", nil).
+			Set("cpu_usage.utime", nil).
+			Set("cpu_usage.cutime", nil).
+			Set("cpu_usage.stime", nil).
+			Set("cpu_usage.cstime", nil).
+			Set("cpu_usage.interval_config", nil)
+
+		args = append(args,
+			s.Events[i].ID,
+			s.Events[i].Type,
+			s.SessionID,
+			s.AppID,
+			s.IPv4,
+			s.IPv6,
+			s.CountryCode,
+			s.Events[i].Timestamp.Format(timeFormat),
+			s.Events[i].ThreadName,
+			s.Resource.DeviceName,
+			s.Resource.DeviceModel,
+			s.Resource.DeviceManufacturer,
+			s.Resource.DeviceType,
+			s.Resource.DeviceIsFoldable,
+			s.Resource.DeviceIsPhysical,
+			s.Resource.DeviceDensityDPI,
+			s.Resource.DeviceWidthPX,
+			s.Resource.DeviceHeightPX,
+			s.Resource.DeviceDensity,
+			s.Resource.OSName,
+			s.Resource.OSVersion,
+			s.Resource.Platform,
+			s.Resource.AppVersion,
+			s.Resource.AppBuild,
+			s.Resource.AppUniqueID,
+			s.Resource.MeasureSDKVersion,
+			s.Events[i].ANR.ThreadName,
+			s.Events[i].ANR.Handled,
+			s.Events[i].ANR.Fingerprint,
+			anrExceptions,
+			anrThreads,
+			s.Events[i].Exception.ThreadName,
+			s.Events[i].Exception.Handled,
+			s.Events[i].Exception.Fingerprint,
+			exceptionExceptions,
+			exceptionThreads,
+			s.Events[i].AppExit.Reason,
+			s.Events[i].AppExit.Importance,
+			s.Events[i].AppExit.Trace,
+			s.Events[i].AppExit.ProcessName,
+			s.Events[i].AppExit.PID,
+			s.Events[i].AppExit.Timestamp,
+			s.Events[i].LogString.SeverityText,
+			s.Events[i].LogString.String,
+			s.Events[i].GestureLongClick.Target,
+			s.Events[i].GestureLongClick.TargetID,
+			s.Events[i].GestureLongClick.TouchDownTime,
+			s.Events[i].GestureLongClick.TouchUpTime,
+			s.Events[i].GestureLongClick.Width,
+			s.Events[i].GestureLongClick.Height,
+			s.Events[i].GestureLongClick.X,
+			s.Events[i].GestureLongClick.Y,
+			s.Events[i].GestureClick.Target,
+			s.Events[i].GestureClick.TargetID,
+			s.Events[i].GestureClick.TouchDownTime,
+			s.Events[i].GestureClick.TouchUpTime,
+			s.Events[i].GestureClick.Width,
+			s.Events[i].GestureClick.Height,
+			s.Events[i].GestureClick.X,
+			s.Events[i].GestureClick.Y,
+			s.Events[i].GestureScroll.Target,
+			s.Events[i].GestureScroll.TargetID,
+			s.Events[i].GestureScroll.TouchDownTime,
+			s.Events[i].GestureScroll.TouchUpTime,
+			s.Events[i].GestureScroll.X,
+			s.Events[i].GestureScroll.Y,
+			s.Events[i].GestureScroll.EndX,
+			s.Events[i].GestureScroll.EndY,
+			s.Events[i].GestureScroll.Direction,
+			s.Events[i].LifecycleActivity.Type,
+			s.Events[i].LifecycleActivity.ClassName,
+			s.Events[i].LifecycleActivity.Intent,
+			s.Events[i].LifecycleActivity.SavedInstanceState,
+			s.Events[i].LifecycleFragment.Type,
+			s.Events[i].LifecycleFragment.ClassName,
+			s.Events[i].LifecycleFragment.ParentActivity,
+			s.Events[i].LifecycleFragment.Tag,
+			s.Events[i].LifecycleApp.Type,
+			s.Events[i].ColdLaunch.ProcessStartUptime,
+			s.Events[i].ColdLaunch.ProcessStartRequestedUptime,
+			s.Events[i].ColdLaunch.ContentProviderAttachUptime,
+			s.Events[i].ColdLaunch.OnNextDrawUptime,
+			s.Events[i].ColdLaunch.LaunchedActivity,
+			s.Events[i].ColdLaunch.HasSavedState,
+			s.Events[i].ColdLaunch.IntentData,
+			s.Events[i].WarmLaunch.AppVisibleUptime,
+			s.Events[i].WarmLaunch.OnNextDrawUptime,
+			s.Events[i].WarmLaunch.LaunchedActivity,
+			s.Events[i].WarmLaunch.HasSavedState,
+			s.Events[i].WarmLaunch.IntentData,
+			s.Events[i].HotLaunch.AppVisibleUptime,
+			s.Events[i].HotLaunch.OnNextDrawUptime,
+			s.Events[i].HotLaunch.LaunchedActivity,
+			s.Events[i].HotLaunch.HasSavedState,
+			s.Events[i].HotLaunch.IntentData,
+			s.Events[i].Attributes,
+			s.Events[i].NetworkChange.NetworkType,
+			s.Events[i].NetworkChange.PreviousNetworkType,
+			s.Events[i].NetworkChange.NetworkGeneration,
+			s.Events[i].NetworkChange.PreviousNetworkGeneration,
+			s.Events[i].NetworkChange.NetworkProvider,
+			s.Events[i].ANR.NetworkType,
+			s.Events[i].ANR.NetworkGeneration,
+			s.Events[i].ANR.NetworkProvider,
+			s.Events[i].Exception.NetworkType,
+			s.Events[i].Exception.NetworkGeneration,
+			s.Events[i].Exception.NetworkProvider,
+			s.Resource.NetworkType,
+			s.Resource.NetworkGeneration,
+			s.Resource.NetworkProvider,
+			s.Resource.DeviceLocale,
+			s.Events[i].ANR.DeviceLocale,
+			s.Events[i].Exception.DeviceLocale,
+			s.Events[i].Http.URL,
+			s.Events[i].Http.Method,
+			s.Events[i].Http.StatusCode,
+			s.Events[i].Http.RequestBodySize,
+			s.Events[i].Http.ResponseBodySize,
+			s.Events[i].Http.RequestTimestamp,
+			s.Events[i].Http.ResponseTimestamp,
+			s.Events[i].Http.StartTime,
+			s.Events[i].Http.EndTime,
+			s.Events[i].Http.DNSStart,
+			s.Events[i].Http.DNSEnd,
+			s.Events[i].Http.ConnectStart,
+			s.Events[i].Http.ConnectEnd,
+			s.Events[i].Http.RequestStart,
+			s.Events[i].Http.RequestEnd,
+			s.Events[i].Http.RequestHeadersStart,
+			s.Events[i].Http.RequestHeadersEnd,
+			s.Events[i].Http.RequestBodyStart,
+			s.Events[i].Http.RequestBodyEnd,
+			s.Events[i].Http.ResponseStart,
+			s.Events[i].Http.ResponseEnd,
+			s.Events[i].Http.ResponseHeadersStart,
+			s.Events[i].Http.ResponseHeadersEnd,
+			s.Events[i].Http.ResponseBodyStart,
+			s.Events[i].Http.ResponseBodyEnd,
+			s.Events[i].Http.RequestHeadersSize,
+			s.Events[i].Http.ResponseHeadersSize,
+			s.Events[i].Http.FailureReason,
+			s.Events[i].Http.FailureDescription,
+			s.Events[i].Http.RequestHeaders,
+			s.Events[i].Http.ResponseHeaders,
+			s.Events[i].Http.Client,
+			s.Events[i].MemoryUsage.JavaMaxHeap,
+			s.Events[i].MemoryUsage.JavaTotalHeap,
+			s.Events[i].MemoryUsage.JavaFreeHeap,
+			s.Events[i].MemoryUsage.TotalPSS,
+			s.Events[i].MemoryUsage.RSS,
+			s.Events[i].MemoryUsage.NativeTotalHeap,
+			s.Events[i].MemoryUsage.NativeFreeHeap,
+			s.Events[i].MemoryUsage.IntervalConfig,
+			isLowMemory,
+			s.Events[i].TrimMemory.Level,
+			s.Events[i].CPUUsage.NumCores,
+			s.Events[i].CPUUsage.ClockSpeed,
+			s.Events[i].CPUUsage.StartTime,
+			s.Events[i].CPUUsage.Uptime,
+			s.Events[i].CPUUsage.UTime,
+			s.Events[i].CPUUsage.CUTime,
+			s.Events[i].CPUUsage.STime,
+			s.Events[i].CPUUsage.CSTime,
+			s.Events[i].CPUUsage.IntervalConfig,
+		)
+	}
+
+	if err := server.Server.ChPool.AsyncInsert(context.Background(), stmt.String(), false, args...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *Session) saveWithContext(c *gin.Context) error {
 	bytesIn := c.MustGet("bytesIn")
 	appId, err := uuid.Parse(c.GetString("appId"))
@@ -851,12 +1217,12 @@ func PutSession(c *gin.Context) {
 		}
 	}
 
-	query, args := makeInsertQuery("events", columns, session)
-	if err := server.Server.ChPool.AsyncInsert(context.Background(), query, false, args...); err != nil {
-		fmt.Println("clickhouse insert err:", err)
+	if err := session.ingest(); err != nil {
+		fmt.Println("clickhouse insert error:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	if err := session.saveWithContext(c); err != nil {
 		fmt.Println("failed to save session", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save session"})
