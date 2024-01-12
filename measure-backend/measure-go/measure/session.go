@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/ipinfo/go/v2/ipinfo"
 	"github.com/jackc/pgx/v5"
+	"github.com/leporo/sqlf"
 )
 
 type Session struct {
@@ -374,8 +375,20 @@ func (s *Session) saveWithContext(c *gin.Context) error {
 	defer tx.Rollback(context.Background())
 	now := time.Now()
 
+	stmt := sqlf.PostgreSQL.InsertInto("public.sessions").
+		Set("id", nil).
+		Set("event_count", nil).
+		Set("attachment_count", nil).
+		Set("bytes_in", nil).
+		Set("timestamp", nil).
+		Set("app_id", nil).
+		Set("created_at", nil).
+		Set("updated_at", nil)
+
+	defer stmt.Close()
+
 	// insert the session
-	_, err = tx.Exec(context.Background(), `insert into sessions (id, event_count, attachment_count, bytes_in, timestamp, app_id, created_at, updated_at) values ($1, $2, $3, $4, $5, $6, $7, $8);`, s.SessionID, len(s.Events), len(s.Attachments), bytesIn, s.Timestamp, appId, now, now)
+	_, err = tx.Exec(context.Background(), stmt.String(), s.SessionID, len(s.Events), len(s.Attachments), bytesIn, s.Timestamp, appId, now, now)
 	if err != nil {
 		fmt.Println(`failed to write session to db`, err.Error())
 		return err
