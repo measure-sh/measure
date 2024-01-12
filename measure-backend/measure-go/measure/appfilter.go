@@ -525,11 +525,10 @@ func (af *AppFilter) getEventVersions(fl *FilterList, eventIds []uuid.UUID) erro
 	stmt := sqlf.Select("distinct toString(resource.app_version)").
 		From("events").
 		Where("id in (?)").
-		Where("app_id = toUUID(?)").
-		Where("timestamp >= ? and timestamp <= ?")
+		Where("app_id = toUUID(?)")
 
 	defer stmt.Close()
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.AppID, af.From, af.To)
+	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.AppID)
 	if err != nil {
 		msg := `failed to query event versions`
 		fmt.Println(msg, err)
@@ -553,11 +552,10 @@ func (af *AppFilter) getEventCountries(fl *FilterList, eventIds []uuid.UUID) err
 	stmt := sqlf.Select("distinct toString(inet.country_code)").
 		From("events").
 		Where("id in (?)").
-		Where("app_id = toUUID(?)").
-		Where("timestamp >= ? and timestamp <= ?")
+		Where("app_id = toUUID(?)")
 
 	defer stmt.Close()
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.AppID, af.From, af.To)
+	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.AppID)
 	if err != nil {
 		msg := `failed to query event countries`
 		fmt.Println(msg, err)
@@ -581,11 +579,10 @@ func (af *AppFilter) getEventNetworkProviders(fl *FilterList, eventIds []uuid.UU
 	stmt := sqlf.Select("distinct toString(resource.network_provider)").
 		From("events").
 		Where("id in (?)").
-		Where("app_id = toUUID(?)").
-		Where("timestamp >= ? and timestamp <= ?")
+		Where("app_id = toUUID(?)")
 
 	defer stmt.Close()
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.AppID, af.From, af.To)
+	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.AppID)
 	if err != nil {
 		msg := `failed to query event network providers`
 		fmt.Println(msg, err)
@@ -596,6 +593,9 @@ func (af *AppFilter) getEventNetworkProviders(fl *FilterList, eventIds []uuid.UU
 		var network_provider string
 		if err := rows.Scan(&network_provider); err != nil {
 			return err
+		}
+		if network_provider == "" {
+			continue
 		}
 		fl.NetworkProviders = append(fl.NetworkProviders, network_provider)
 	}
@@ -609,11 +609,10 @@ func (af *AppFilter) getEventNetworkTypes(fl *FilterList, eventIds []uuid.UUID) 
 	stmt := sqlf.Select("distinct toString(resource.network_type)").
 		From("events").
 		Where("id in (?)").
-		Where("app_id = toUUID(?)").
-		Where("timestamp >= ? and timestamp <= ?")
+		Where("app_id = toUUID(?)")
 
 	defer stmt.Close()
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.AppID, af.From, af.To)
+	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.AppID)
 	if err != nil {
 		msg := `failed to query event network types`
 		fmt.Println(msg, err)
@@ -637,11 +636,10 @@ func (af *AppFilter) getEventNetworkGenerations(fl *FilterList, eventIds []uuid.
 	stmt := sqlf.Select("distinct toString(resource.network_generation)").
 		From("events").
 		Where("id in (?)").
-		Where("app_id = toUUID(?)").
-		Where("timestamp >= ? and timestamp <= ?")
+		Where("app_id = toUUID(?)")
 
 	defer stmt.Close()
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.AppID, af.From, af.To)
+	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.AppID)
 	if err != nil {
 		msg := `failed to query event network generations`
 		fmt.Println(msg, err)
@@ -652,6 +650,9 @@ func (af *AppFilter) getEventNetworkGenerations(fl *FilterList, eventIds []uuid.
 		var network_generation string
 		if err := rows.Scan(&network_generation); err != nil {
 			return err
+		}
+		if network_generation == "" {
+			continue
 		}
 		fl.NetworkGenerations = append(fl.NetworkGenerations, network_generation)
 	}
@@ -665,11 +666,10 @@ func (af *AppFilter) getEventDeviceLocales(fl *FilterList, eventIds []uuid.UUID)
 	stmt := sqlf.Select("distinct toString(resource.device_locale)").
 		From("events").
 		Where("id in (?)").
-		Where("app_id = toUUID(?)").
-		Where("timestamp >= ? and timestamp <= ?")
+		Where("app_id = toUUID(?)")
 
 	defer stmt.Close()
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.AppID, af.From, af.To)
+	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.AppID)
 	if err != nil {
 		msg := `failed to query event device locales`
 		fmt.Println(msg, err)
@@ -693,11 +693,10 @@ func (af *AppFilter) getEventDeviceManufacturers(fl *FilterList, eventIds []uuid
 	stmt := sqlf.Select("distinct toString(resource.device_manufacturer)").
 		From("events").
 		Where("id in (?)").
-		Where("app_id = toUUID(?)").
-		Where("timestamp >= ? and timestamp <= ?")
+		Where("app_id = toUUID(?)")
 
 	defer stmt.Close()
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.AppID, af.From, af.To)
+	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.AppID)
 	if err != nil {
 		msg := `failed to query event device manufacturers`
 		fmt.Println(msg, err)
@@ -721,11 +720,10 @@ func (af *AppFilter) getEventDeviceNames(fl *FilterList, eventIds []uuid.UUID) e
 	stmt := sqlf.Select("distinct toString(resource.device_name)").
 		From("events").
 		Where("id in (?)").
-		Where("app_id = toUUID(?)").
-		Where("timestamp >= ? and timestamp <= ?")
+		Where("app_id = toUUID(?)")
 
 	defer stmt.Close()
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.AppID, af.From, af.To)
+	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.AppID)
 	if err != nil {
 		msg := `failed to query event device names`
 		fmt.Println(msg, err)
