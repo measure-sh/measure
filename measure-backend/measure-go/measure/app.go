@@ -126,8 +126,10 @@ func (a App) GetANRGroups(af *AppFilter) ([]ANRGroup, error) {
 	args := []any{a.ID}
 
 	if af != nil {
-		stmt.Where("created_at >= ? and created_at <= ?", nil, nil)
-		args = append(args, af.From, af.To)
+		if af.hasTimeRange() {
+			stmt.Where("created_at >= ? and created_at <= ?", nil, nil)
+			args = append(args, af.From, af.To)
+		}
 
 		if af.Version != "" {
 			stmt.Where("app_version = ?", nil)
