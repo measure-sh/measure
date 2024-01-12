@@ -353,6 +353,13 @@ func (s *Session) ingest() error {
 	stmt := sqlf.InsertInto("default.events")
 	defer stmt.Close()
 
+	empty := false
+
+	if len(s.Events) == 0 {
+		empty = true
+		s.Events = append(s.Events, EventField{})
+	}
+
 	var args []any
 	for i := range s.Events {
 		anrExceptions := "[]"
@@ -373,7 +380,9 @@ func (s *Session) ingest() error {
 		if s.Events[i].isLowMemory() {
 			isLowMemory = true
 		}
-		s.Events[i].ID = uuid.New()
+		if !empty {
+			s.Events[i].ID = uuid.New()
+		}
 		stmt.NewRow().
 			Set("id", nil).
 			Set("type", nil).
@@ -710,6 +719,11 @@ func (s *Session) ingest() error {
 
 	if err := server.Server.ChPool.AsyncInsert(context.Background(), stmt.String(), false, args...); err != nil {
 		return err
+	}
+
+	// keep the emptiness alive
+	if empty {
+		s.Events = []EventField{}
 	}
 
 	return nil
