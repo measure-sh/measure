@@ -494,10 +494,6 @@ func GetAppFilters(c *gin.Context) {
 		return
 	}
 
-	if !af.hasTimeRange() {
-		af.setDefaultTimeRange()
-	}
-
 	app := App{
 		ID: &id,
 	}
@@ -574,10 +570,6 @@ func GetCrashFilters(c *gin.Context) {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
 		return
-	}
-
-	if !af.hasTimeRange() {
-		af.setDefaultTimeRange()
 	}
 
 	app := App{
@@ -672,10 +664,6 @@ func GetANRFilters(c *gin.Context) {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
 		return
-	}
-
-	if !af.hasTimeRange() {
-		af.setDefaultTimeRange()
 	}
 
 	app := App{
