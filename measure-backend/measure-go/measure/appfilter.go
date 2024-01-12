@@ -186,7 +186,7 @@ func (af *AppFilter) getEventFilters(fl *FilterList, e []uuid.UUID) error {
 }
 
 // getAppVersions finds distinct values of app versions from
-// available events within a time range.
+// available events.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getAppVersions(fl *FilterList) error {
@@ -227,7 +227,7 @@ func (af *AppFilter) getAppVersions(fl *FilterList) error {
 }
 
 // getCountries finds distinct values of country codes
-// from available events within a time range.
+// from available events.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getCountries(fl *FilterList) error {
@@ -268,7 +268,7 @@ func (af *AppFilter) getCountries(fl *FilterList) error {
 }
 
 // getNetworkProviders finds distinct values of app network
-// providers from available events within a time range.
+// providers from available events.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getNetworkProviders(fl *FilterList) error {
@@ -312,7 +312,7 @@ func (af *AppFilter) getNetworkProviders(fl *FilterList) error {
 }
 
 // getNetworkTypes finds distinct values of app network
-// types from available events within a time range.
+// types from available events.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getNetworkTypes(fl *FilterList) error {
@@ -353,7 +353,7 @@ func (af *AppFilter) getNetworkTypes(fl *FilterList) error {
 }
 
 // getNetworkGenerations finds distinct values of app network
-// generations from available events within a time range.
+// generations from available events.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getNetworkGenerations(fl *FilterList) error {
@@ -397,7 +397,7 @@ func (af *AppFilter) getNetworkGenerations(fl *FilterList) error {
 }
 
 // getDeviceLocales finds distinct values of app device
-// locales from available events within a time range.
+// locales from available events.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getDeviceLocales(fl *FilterList) error {
@@ -438,7 +438,7 @@ func (af *AppFilter) getDeviceLocales(fl *FilterList) error {
 }
 
 // getDeviceManufacturers finds distinct values of app device
-// manufacturers from available events within a time range.
+// manufacturers from available events.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getDeviceManufacturers(fl *FilterList) error {
@@ -479,7 +479,7 @@ func (af *AppFilter) getDeviceManufacturers(fl *FilterList) error {
 }
 
 // getDeviceNames finds distinct values of app device
-// names from available events within a time range.
+// names from available events.
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getDeviceNames(fl *FilterList) error {
