@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -172,11 +173,14 @@ func IngestSerial(origin string) {
 		if app.MappingFile != "" {
 			resource := getMappingMeta(app)
 			base := filepath.Base(app.MappingFile)
-			fmt.Printf("Uploading mapping file %q...	", base)
-			if err := UploadMapping(mappingURL, apiKey, app.MappingFile, resource); err != nil {
+			fmt.Printf("Uploading mapping file %q... ", base)
+			status, err := UploadMapping(mappingURL, apiKey, app.MappingFile, resource)
+			if err != nil {
+				fmt.Printf("🔴 %s \n", status)
 				log.Fatal(err)
 			}
-			fmt.Printf("✅\n")
+
+			fmt.Printf("🟢 %s \n", status)
 		}
 
 		for j := range app.Sessions {
@@ -186,11 +190,13 @@ func IngestSerial(origin string) {
 				log.Fatal(err)
 			}
 			base := filepath.Base(session)
-			fmt.Printf("Ingesting session file %q...	", base)
-			if err := UploadSession(sessionURL, apiKey, content); err != nil {
+			fmt.Printf("Ingesting session file %q... ", base)
+			status, err := UploadSession(sessionURL, apiKey, content)
+			if err != nil {
+				fmt.Printf("🔴 %s \n", status)
 				log.Fatal(err)
 			}
-			fmt.Printf("✅\n")
+			fmt.Printf("🟢 %s \n", status)
 		}
 
 		fmt.Printf("\n")
@@ -199,43 +205,43 @@ func IngestSerial(origin string) {
 
 // UploadMapping prepares & sends the request to
 // upload mapping file.
-func UploadMapping(url, apiKey, file string, resource *Resource) error {
+func UploadMapping(url, apiKey, file string, resource *Resource) (string, error) {
 	var buff bytes.Buffer
 	w := multipart.NewWriter(&buff)
 	w.SetBoundary(multipartBoundary)
 
 	f, err := os.Open(file)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	fw, err := w.CreateFormFile("mapping_file", filepath.Base(file))
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	io.Copy(fw, f)
 
 	fw, err = w.CreateFormField("app_unique_id")
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	fw.Write([]byte(resource.AppUniqueID))
 
 	fw, err = w.CreateFormField("version_name")
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	fw.Write([]byte(resource.AppVersion))
 
 	fw, err = w.CreateFormField("version_code")
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	fw.Write([]byte(resource.AppBuild))
 
 	fw, err = w.CreateFormField("type")
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	fw.Write([]byte("proguard"))
 
@@ -243,7 +249,7 @@ func UploadMapping(url, apiKey, file string, resource *Resource) error {
 
 	req, err := http.NewRequest("PUT", url, &buff)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	req.Header.Set("Content-Type", fmt.Sprintf("multipart/form-data; boundary=%s", multipartBoundary))
@@ -252,21 +258,25 @@ func UploadMapping(url, apiKey, file string, resource *Resource) error {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return "", err
+	}
+
+	if resp.StatusCode > 399 {
+		return resp.Status, errors.New("failed to upload mapping file")
 	}
 
 	defer resp.Body.Close()
 
-	return nil
+	return resp.Status, nil
 }
 
 // UploadSession prepares & sends the request to upload
 // session files.
-func UploadSession(url, apiKey string, data []byte) error {
+func UploadSession(url, apiKey string, data []byte) (string, error) {
 	reader := bytes.NewReader(data)
 	req, err := http.NewRequest("PUT", url, reader)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -275,12 +285,16 @@ func UploadSession(url, apiKey string, data []byte) error {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	defer resp.Body.Close()
 
-	return nil
+	if resp.StatusCode > 399 {
+		return resp.Status, errors.New("failed to ingest session")
+	}
+
+	return resp.Status, nil
 }
 
 // Setup reads source directory and sets up everything
