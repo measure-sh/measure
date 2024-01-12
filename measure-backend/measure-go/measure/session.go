@@ -856,18 +856,23 @@ func PutSession(c *gin.Context) {
 		return
 	}
 
-	if err := session.bucketUnhandledException(); err != nil {
-		msg := "failed to save session, error occurred during exception grouping"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
+	if session.hasUnhandledExceptions() {
+		if err := session.bucketUnhandledException(); err != nil {
+			msg := "failed to save session, error occurred during exception grouping"
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+			return
+		}
 	}
 
-	if err := session.bucketANRs(); err != nil {
-		msg := "failed to save session, error occurred during anr grouping"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
+	if session.hasANRs() {
+		if err := session.bucketANRs(); err != nil {
+			msg := "failed to save session, error occurred during anr grouping"
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+			return
+		}
+
 	}
 
 	c.JSON(http.StatusAccepted, gin.H{"ok": "accepted"})
