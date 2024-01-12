@@ -394,30 +394,24 @@ func (s *Session) saveWithContext(c *gin.Context) error {
 		return err
 	}
 
-	// if attachments are present, insert them
+	// insert attachments, if present
 	if s.hasAttachments() {
-		sql := `insert into sessions_attachments (id, session_id, name, extension, type, key, location, timestamp) values `
-		var values [][]interface{}
+		stmt := sqlf.PostgreSQL.InsertInto("public.sessions_attachments")
+		defer stmt.Close()
+		var args []any
 		for _, a := range s.Attachments {
-			values = append(values, []interface{}{a.ID, s.SessionID, a.Name, a.Extension, a.Type, a.Key, a.Location, a.Timestamp})
+			stmt.NewRow().
+				Set("id", nil).
+				Set("session_id", nil).
+				Set("name", nil).
+				Set("extension", nil).
+				Set("type", nil).
+				Set("key", nil).
+				Set("location", nil).
+				Set("timestamp", nil)
+			args = append(args, a.ID, s.SessionID, a.Name, a.Extension, a.Type, a.Key, a.Location, a.Timestamp)
 		}
-		var args []interface{}
-		for i, row := range values {
-			if i > 0 {
-				sql += ", "
-			}
-			sql += "("
-			for j, value := range row {
-				if j > 0 {
-					sql += ", "
-				}
-				sql += "$" + strconv.Itoa(i*len(row)+j+1)
-				args = append(args, value)
-			}
-			sql += ")"
-		}
-
-		_, err := tx.Exec(context.Background(), sql, args...)
+		_, err := tx.Exec(context.Background(), stmt.String(), args...)
 		if err != nil {
 			return err
 		}
