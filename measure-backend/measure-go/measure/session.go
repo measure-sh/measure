@@ -59,6 +59,32 @@ func (s *Session) hasAttachments() bool {
 	return len(s.Attachments) > 0
 }
 
+func (s *Session) hasUnhandledExceptions() bool {
+	result := false
+
+	for i := range s.Events {
+		if s.Events[i].isUnhandledException() {
+			result = true
+			break
+		}
+	}
+
+	return result
+}
+
+func (s *Session) hasANRs() bool {
+	result := false
+
+	for i := range s.Events {
+		if s.Events[i].isANR() {
+			result = true
+			break
+		}
+	}
+
+	return result
+}
+
 func (s *Session) needsSymbolication() bool {
 	result := false
 	for i := range s.Events {

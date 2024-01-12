@@ -562,6 +562,10 @@ func (e *EventField) isException() bool {
 	return e.Type == TypeException
 }
 
+func (e *EventField) isUnhandledException() bool {
+	return e.Type == TypeException && !e.Exception.Handled
+}
+
 func (e *EventField) isANR() bool {
 	return e.Type == TypeANR
 }
