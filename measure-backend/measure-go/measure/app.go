@@ -768,10 +768,6 @@ func GetCrashGroupFilters(c *gin.Context) {
 		return
 	}
 
-	if !af.hasTimeRange() {
-		af.setDefaultTimeRange()
-	}
-
 	app := App{
 		ID: &id,
 	}
