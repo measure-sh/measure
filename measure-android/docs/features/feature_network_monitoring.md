@@ -6,26 +6,7 @@ as of now and will be adding support for other networking libraries soon.
 
 ## OkHttp
 
-### Setup
-
-Add `MeasureEventListenerFactory` to all `OkHttpClient` instances in your app that you'd like to
-monitor:
-
-```kotlin
-val client = OkHttpClient.Builder()
-    .eventListenerFactory(MeasureEventListenerFactory())
-    .build()
-```
-
-OkHttp allows just one `EventListener.Factory` to be set per client. If needed, 
-`MeasureEventListenerFactory` can take in a `EventListener.Factory` in it's constructor and it
-will delegate all events to the provided factory.
-
-```kotlin
-val client = OkHttpClient.Builder()
-    .eventListenerFactory(MeasureEventListenerFactory(YourEventListenerFactory()))
-    .build()
-```
+Measure gradle plugin automatically instruments all OkHttp instances and captures network events.
 
 ### Event
 

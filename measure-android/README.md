@@ -118,20 +118,7 @@ or, add the following to your app's `build.gradle`file.
 implementation 'sh.measure.android:measure:0.0.1'
 ```
 
-### 5. Monitor Network Requests (optional)
-
-Add the `MeasureEventListenerFactory` to all `OkHttpClient` instances in your app to monitor network
-requests.
-
-```kotlin
-import sh.measure.android.okhttp.MeasureEventListenerFactory
-
-val client = OkHttpClient.Builder()
-    .eventListenerFactory(MeasureEventListenerFactory())
-    .build()
-```
-
-### 6. Verify
+### 5. Verify
 
 Launch the app on any device or emulator. Kill and reopen. You should see a session in the
 Measure dashboard.
