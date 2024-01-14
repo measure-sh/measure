@@ -2,6 +2,7 @@ package sh.measure
 
 import org.gradle.api.GradleException
 import org.gradle.api.Project
+import org.gradle.internal.impldep.org.junit.Rule
 import org.gradle.internal.impldep.org.junit.rules.TemporaryFolder
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.After
@@ -12,7 +13,8 @@ import java.io.File
 
 internal class ExtractManifestDataTaskTest {
 
-    private lateinit var temporaryFolder: TemporaryFolder
+    @field:Rule
+    lateinit var temporaryFolder: TemporaryFolder
     private lateinit var manifestFile: File
     private lateinit var outputFile: File
     private lateinit var project: Project
@@ -24,11 +26,6 @@ internal class ExtractManifestDataTaskTest {
         temporaryFolder.create()
         manifestFile = temporaryFolder.newFile("AndroidManifest.xml")
         outputFile = temporaryFolder.newFile("manifestData.json")
-    }
-
-    @After
-    fun tearDown() {
-        temporaryFolder.delete()
     }
 
     @Test
