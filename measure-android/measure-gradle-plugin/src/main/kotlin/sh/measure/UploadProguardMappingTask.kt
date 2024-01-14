@@ -66,7 +66,10 @@ abstract class UploadProguardMappingTask : DefaultTask() {
         val request: Request = Request.Builder().url(mappingEndpointProperty.get())
             .header(HEADER_AUTHORIZATION, "Bearer ${manifestData.apiKey}").put(requestBody).build()
         try {
-            client.executeWithRetry(request, retriesProperty.get())
+            val response = client.executeWithRetry(request, retriesProperty.get())
+            if (!response.isSuccessful) {
+                throw GradleException("Unable to upload mapping file to Measure")
+            }
         } catch (e: IOException) {
             throw GradleException("Unable to upload mapping file to Measure", e)
         }
