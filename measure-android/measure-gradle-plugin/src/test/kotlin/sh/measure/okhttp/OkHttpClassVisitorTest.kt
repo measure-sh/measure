@@ -9,7 +9,7 @@ import java.io.FileInputStream
 import java.io.PrintWriter
 import java.io.StringWriter
 
-class OkHttpVisitorFactoryTest {
+class OkHttpClassVisitorTest {
 
     @Test
     fun `modified bytecode is valid`() {
