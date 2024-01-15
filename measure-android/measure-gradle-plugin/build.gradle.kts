@@ -57,6 +57,7 @@ dependencies {
     functionalTestImplementation("com.autonomousapps:gradle-testkit-support:0.14")
     functionalTestImplementation("com.autonomousapps:gradle-testkit-truth:1.5")
     functionalTestImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    functionalTestImplementation("net.swiftzer.semver:semver:1.1.2")
 }
 
 tasks.withType<Test>().configureEach {
