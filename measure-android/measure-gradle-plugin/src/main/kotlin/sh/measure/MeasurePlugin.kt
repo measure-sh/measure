@@ -92,5 +92,5 @@ class MeasurePlugin : Plugin<Project> {
         "upload${variant.name.capitalize()}ProguardMappingToMeasure"
 
     private fun extractManifestDataTaskName(variant: Variant) =
-        "extract${variant.name.capitalize()}}ManifestData"
+        "extract${variant.name.capitalize()}ManifestData"
 }
