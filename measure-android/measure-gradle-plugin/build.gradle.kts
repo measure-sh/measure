@@ -1,7 +1,7 @@
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.8.0"
+    id("org.jetbrains.kotlin.jvm") version "1.9.20"
     id("com.gradle.plugin-publish") version "1.2.0"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.8.0"
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.20"
     id("sh.measure.plugin.aar2jar")
 }
 
@@ -29,7 +29,7 @@ java {
 }
 
 dependencies {
-    compileOnly("com.android.tools.build:gradle:7.4.1")
+    compileOnly("com.android.tools.build:gradle:8.2.1")
     compileOnly("org.ow2.asm:asm-util:9.6")
     compileOnly("org.ow2.asm:asm-commons:9.6")
 

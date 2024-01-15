@@ -1,7 +1,7 @@
 plugins {
     `kotlin-dsl`
     id("java-gradle-plugin")
-    id("org.jetbrains.kotlin.jvm") version "1.8.0"
+    id("org.jetbrains.kotlin.jvm") version "1.9.20"
 }
 
 repositories {
