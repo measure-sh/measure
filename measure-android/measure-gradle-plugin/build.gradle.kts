@@ -1,8 +1,10 @@
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.9.20"
+    id("org.jetbrains.kotlin.jvm") version "1.9.10"
     id("com.gradle.plugin-publish") version "1.2.0"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.20"
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.10"
     id("sh.measure.plugin.aar2jar")
+    id("java-gradle-plugin")
+    id("com.autonomousapps.testkit") version "0.8"
 }
 
 group = "sh.measure.plugin"
@@ -20,7 +22,7 @@ gradlePlugin {
 }
 
 kotlin {
-    jvmToolchain(11)
+    jvmToolchain(17)
 }
 
 java {
@@ -49,4 +51,14 @@ dependencies {
     testImplementation("org.ow2.asm:asm-commons:9.6")
     testImplementation("com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0")
     testImplementationAar("sh.measure:android:0.0.1-SNAPSHOT")
+
+    functionalTestRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    functionalTestImplementation("org.junit.jupiter:junit-jupiter:5.9.2")
+    functionalTestImplementation("com.autonomousapps:gradle-testkit-support:0.14")
+    functionalTestImplementation("com.autonomousapps:gradle-testkit-truth:1.5")
+    functionalTestImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+}
+
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
 }
