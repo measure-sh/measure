@@ -19,8 +19,7 @@ class MeasurePluginTest {
     @ParameterizedTest
     @MethodSource("versions")
     fun `minification enabled, assert upload proguard task present`(
-        agpVersion: SemVer,
-        gradleVersion: GradleVersion
+        agpVersion: SemVer, gradleVersion: GradleVersion
     ) {
         val project = MeasurePluginFixture(agpVersion, minifyEnabled = true).gradleProject
         val result = buildAndFail(gradleVersion, project.rootDir, ":app:assembleRelease")
@@ -30,8 +29,7 @@ class MeasurePluginTest {
     @ParameterizedTest
     @MethodSource("versions")
     fun `minification disabled, assert upload proguard task absent`(
-        agpVersion: SemVer,
-        gradleVersion: GradleVersion
+        agpVersion: SemVer, gradleVersion: GradleVersion
     ) {
         val project = MeasurePluginFixture(agpVersion, minifyEnabled = false).gradleProject
         val result = build(gradleVersion, project.rootDir, ":app:assembleRelease")
@@ -41,8 +39,7 @@ class MeasurePluginTest {
     @ParameterizedTest
     @MethodSource("versions")
     fun `API_KEY is set in manifest, assert upload succeeds`(
-        agpVersion: SemVer,
-        gradleVersion: GradleVersion
+        agpVersion: SemVer, gradleVersion: GradleVersion
     ) {
         val server = MockWebServer()
         server.enqueue(MockResponse().setResponseCode(200))
@@ -57,9 +54,34 @@ class MeasurePluginTest {
 
     @ParameterizedTest
     @MethodSource("versions")
+    fun `assert plugin does not break configuration cache`(
+        agpVersion: SemVer, gradleVersion: GradleVersion
+    ) {
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setResponseCode(200))
+        server.enqueue(MockResponse().setResponseCode(200))
+        server.start(8080)
+
+        val project = MeasurePluginFixture(agpVersion).gradleProject
+
+        // first build
+        build(gradleVersion, project.rootDir, ":app:assembleRelease", "--configuration-cache")
+
+        // second build
+        val result =
+            build(gradleVersion, project.rootDir, ":app:assembleRelease", "--configuration-cache")
+        if (agpVersion > SemVer(8, 0)) {
+            // AGP < 8 has a bug that prevents use of CC
+            assertThat(result).output().contains("Configuration cache entry reused.")
+        }
+
+        server.shutdown()
+    }
+
+    @ParameterizedTest
+    @MethodSource("versions")
     fun `API_KEY is set in manifest, assert upload fails after retries`(
-        agpVersion: SemVer,
-        gradleVersion: GradleVersion
+        agpVersion: SemVer, gradleVersion: GradleVersion
     ) {
         val server = MockWebServer()
         // TODO(abhay): assuming 3 retries, this needs to be updated when retries are configurable.
@@ -79,8 +101,7 @@ class MeasurePluginTest {
     @ParameterizedTest
     @MethodSource("versions")
     fun `API_KEY is not set in manifest, assert task fails`(
-        agpVersion: SemVer,
-        gradleVersion: GradleVersion
+        agpVersion: SemVer, gradleVersion: GradleVersion
     ) {
         val project = MeasurePluginFixture(agpVersion, setMeasureApiKey = false).gradleProject
         val result = buildAndFail(gradleVersion, project.rootDir, ":app:assembleRelease")
