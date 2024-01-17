@@ -10,69 +10,6 @@ import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from '@/app/utils/a
 import { useRouter } from 'next/navigation';
 import CreateApp from '@/app/components/create_app';
 
-const crashes = [
-  {
-    id: 'asldkfjlk34343',
-    title: 'NullPointerException.kt',
-    count: 87928,
-    percentage: 15,
-  },
-  {
-    id: 'sldfkjsklf898',
-    title: 'LayoutInflaterException.kt',
-    count: 56789,
-    percentage: 9,
-  },
-  {
-    id: 'asafdasfd9900',
-    title: 'RuntimeException.kt',
-    count: 7890,
-    percentage: 3,
-  },
-  {
-    id: 'bnflkjfg8989',
-    title: 'MainThreadException.kt',
-    count: 4546,
-    percentage: 1.5,
-  },
-  {
-    id: 'cbcmvncmvn89898',
-    title: 'InvalidDataException.kt',
-    count: 1031,
-    percentage: 0.76,
-  },
-  {
-    id: 'sldkjkjdf8989',
-    title: 'JsonParsingException.kt',
-    count: 1031,
-    percentage: 0.76,
-  },
-  {
-    id: 'sbxcbvcv898',
-    title: 'InvalidParameterException.kt',
-    count: 1002,
-    percentage: 0.73,
-  },
-  {
-    id: 'asdfsdgsdg90909',
-    title: 'InvalidDimensionsException.kt',
-    count: 856,
-    percentage: 0.61,
-  },
-  {
-    id: 'ckvjdfsfjh78aswe',
-    title: 'InvalidPaymentMethodException.kt',
-    count: 768,
-    percentage: 0.51,
-  },
-  {
-    id: 'askjbljhdkfe5435',
-    title: 'ApiResponseException.kt',
-    count: 652,
-    percentage: 0.43,
-  },
-];
-
 export default function Crashes({ params }: { params: { teamId: string } }) {
   const router = useRouter()
 
@@ -91,8 +28,15 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
     NoData
   }
 
+  enum CrashGroupsApiStatus {
+    Loading,
+    Success,
+    Error
+  }
+
   const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading);
   const [filtersApiStatus, setFiltersApiStatus] = useState(FiltersApiStatus.Loading);
+  const [crashGroupsApiStatus, setCrashGroupsApiStatus] = useState(CrashGroupsApiStatus.Loading);
 
   const emptyApp = {
     "id": "",
@@ -112,8 +56,25 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
     "unique_identifier": null
   }
 
+  const emptyCrashGroup = {
+    "id": "",
+    "app_id": "",
+    "app_version": "",
+    "name": "",
+    "fingerprint": "",
+    "count": 0,
+    "events": [
+      ""
+    ],
+    "percentage_contribution": 0,
+    "created_at": "",
+    "updated_at": ""
+  }
+
   const [apps, setApps] = useState([] as typeof emptyApp[]);
   const [selectedApp, setSelectedApp] = useState(emptyApp);
+
+  const [crashGroups, setCrashGroups] = useState([] as typeof emptyCrashGroup[]);
 
   const [versions, setVersions] = useState([] as string[]);
   const [selectedVersions, setSelectedVersions] = useState([versions[0]]);
@@ -212,6 +173,43 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
     setFormattedEndDate(new Date(endDate).toLocaleDateString());
   }, [startDate, endDate]);
 
+  const getCrashGroups = async () => {
+    setCrashGroupsApiStatus(CrashGroupsApiStatus.Loading)
+
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+      headers: {
+        "Authorization": `Bearer ${authToken}`
+      }
+    };
+
+    // If no versions are selected, don't use versions in query params
+    var crashGroupsApiUrl = ""
+    if (selectedVersions.length > 0) {
+      crashGroupsApiUrl = `${origin}/apps/${selectedApp.id}/crashGroups?from=${startDate}&to=${endDate}&versions=${Array.from(selectedVersions).join(', ')}`
+    } else {
+      crashGroupsApiUrl = `${origin}/apps/${selectedApp.id}/crashGroups?from=${startDate}&to=${endDate}`
+    }
+
+    const res = await fetch(crashGroupsApiUrl, opts);
+
+    if (!res.ok) {
+      setCrashGroupsApiStatus(CrashGroupsApiStatus.Error)
+      logoutIfAuthError(router, res)
+      return
+    }
+
+    const data = await res.json()
+
+    setCrashGroups(data)
+    setCrashGroupsApiStatus(CrashGroupsApiStatus.Success)
+  }
+
+  useEffect(() => {
+    getCrashGroups()
+  }, [selectedApp, startDate, endDate, selectedVersions]);
+
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
       <div className="py-4" />
@@ -270,9 +268,17 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
         <div className="border border-black font-sans text-sm w-full h-[36rem]">
           <ExceptionRateChart />
         </div>}
+
       <div className="py-8" />
-      {/* Show list of crashes if apps and filters fetch succeeds  */}
-      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success &&
+
+      {/* Crash groups fetch loading message  */}
+      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && crashGroupsApiStatus === CrashGroupsApiStatus.Loading && <p className="text-lg font-display">Fetching list of crashes...</p>}
+
+      {/* Crash groups fetch error message  */}
+      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && crashGroupsApiStatus === CrashGroupsApiStatus.Error && <p className="text-lg font-display">Error fetching list of crashes, please change filters, refresh page or select a different app to try again</p>}
+
+      {/* Show list of crash groups if apps, filters and crash groups fetch succeeds  */}
+      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && crashGroupsApiStatus === CrashGroupsApiStatus.Success &&
         <div className="table font-sans border border-black w-full">
           <div className="table-header-group border border-black">
             <div className="table-row">
@@ -282,11 +288,11 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
             </div>
           </div>
           <div className="table-row-group">
-            {crashes.map(({ id, title, count, percentage }) => (
-              <Link key={id} href={`/${params.teamId}/crashes/${id}`} className="table-row hover:bg-yellow-200 active:bg-yellow-300">
-                <div className="table-cell border border-black p-2 hover:bg-yellow-200 active:bg-yellow-300">{title}</div>
+            {crashGroups.map(({ id, name, count, percentage_contribution }) => (
+              <Link key={id} href={`/${params.teamId}/crashGroups/${id}`} className="table-row hover:bg-yellow-200 active:bg-yellow-300">
+                <div className="table-cell border border-black p-2 hover:bg-yellow-200 active:bg-yellow-300">{name}</div>
                 <div className="table-cell border border-black p-2 text-center">{count} instances</div>
-                <div className="table-cell border border-black p-2 text-center">{percentage}%</div>
+                <div className="table-cell border border-black p-2 text-center">{percentage_contribution}%</div>
               </Link>
             ))}
           </div>
