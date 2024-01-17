@@ -314,6 +314,12 @@ func Setup(dir string) {
 		name := parts[0]
 		version := parts[1]
 
+		configApp := configData.Apps[name]
+
+		if configApp.ApiKey == "" {
+			log.Fatalf("api key not found for app %q. please update config at %q", name, configLocation)
+		}
+
 		if name != app.Name || version != app.Version {
 			app = NewApp()
 			app.Name = name
