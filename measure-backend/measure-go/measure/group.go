@@ -71,10 +71,11 @@ func (e ExceptionGroup) AppendEventId(id uuid.UUID) error {
 	stmt := sqlf.PostgreSQL.Update("public.unhandled_exception_groups").
 		SetExpr("events", "array_append(events, ?)", nil).
 		Set("count", nil).
-		Set("updated_at", nil)
+		Set("updated_at", nil).
+		Where("id = ?", nil)
 
 	defer stmt.Close()
-	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), id, e.Count+1, time.Now())
+	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), id, e.Count+1, time.Now(), e.ID)
 	if err != nil {
 		return err
 	}
