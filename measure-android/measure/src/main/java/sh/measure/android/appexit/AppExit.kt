@@ -12,7 +12,7 @@ import kotlinx.serialization.Transient
  */
 @Serializable
 @RequiresApi(Build.VERSION_CODES.R)
-data class AppExit(
+internal data class AppExit(
     /**
      * @see [ApplicationExitInfo.getReason]
      */

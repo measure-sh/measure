@@ -7,7 +7,7 @@ import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
 
-interface MeasureExecutorService {
+internal interface MeasureExecutorService {
     val isClosed: Boolean
     fun submit(runnable: Runnable): Future<*>
     fun schedule(runnable: Runnable, delayMillis: Long): Future<*>

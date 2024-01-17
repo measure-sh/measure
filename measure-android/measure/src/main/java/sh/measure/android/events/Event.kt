@@ -24,7 +24,7 @@ import sh.measure.android.performance.MemoryUsage
 import sh.measure.android.performance.TrimMemory
 import sh.measure.android.utils.iso8601Timestamp
 
-data class Event(
+internal data class Event(
     val timestamp: String,
     val type: String,
     val data: JsonElement,
