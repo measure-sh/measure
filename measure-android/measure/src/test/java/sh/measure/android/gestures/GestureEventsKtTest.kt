@@ -13,13 +13,17 @@ class ClickEventTest {
             touchDownTime = 0L,
             touchUpTime = 0L,
             timestamp = 0L,
-            threadName = "threadName"
+            threadName = "threadName",
         )
         val target = Target(
-            className = "android.widget.Button", id = "button", width = 100, height = 50
+            className = "android.widget.Button",
+            id = "button",
+            width = 100,
+            height = 50,
         )
         val result = ClickEvent.fromDetectedGesture(
-            gesture = detectedGesture, target = target
+            gesture = detectedGesture,
+            target = target,
         )
         Assert.assertEquals(target.className, result.target)
         Assert.assertEquals(target.id, result.target_id)
@@ -42,13 +46,17 @@ internal class LongClickEventTest {
             touchDownTime = 0L,
             touchUpTime = 0L,
             timestamp = 0L,
-            threadName = "threadName"
+            threadName = "threadName",
         )
         val target = Target(
-            className = "android.widget.Button", id = "button", width = 100, height = 50
+            className = "android.widget.Button",
+            id = "button",
+            width = 100,
+            height = 50,
         )
         val result = LongClickEvent.fromDetectedGesture(
-            gesture = detectedGesture, target = target
+            gesture = detectedGesture,
+            target = target,
         )
         Assert.assertEquals(target.className, result.target)
         Assert.assertEquals(target.id, result.target_id)
@@ -74,13 +82,17 @@ internal class ScrollEventTest {
             touchUpTime = 0L,
             direction = Direction.Up,
             timestamp = 0L,
-            threadName = "threadName"
+            threadName = "threadName",
         )
         val target = Target(
-            className = "android.widget.ScrollView", id = "scroll_view", width = 100, height = 50
+            className = "android.widget.ScrollView",
+            id = "scroll_view",
+            width = 100,
+            height = 50,
         )
         val result = ScrollEvent.fromDetectedGesture(
-            gesture = detectedGesture, target = target
+            gesture = detectedGesture,
+            target = target,
         )
         Assert.assertEquals(target.className, result.target)
         Assert.assertEquals(target.id, result.target_id)

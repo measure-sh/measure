@@ -5,6 +5,7 @@ plugins {
     id("sh.measure.plugin.aar2jar")
     id("java-gradle-plugin")
     id("com.autonomousapps.testkit") version "0.8"
+    id("com.diffplug.spotless") version "6.24.0"
 }
 
 group = "sh.measure.plugin"

@@ -18,7 +18,7 @@ internal class ComponentCallbacksCollector(
     private val application: Application,
     private val eventTracker: EventTracker,
     private val timeProvider: TimeProvider,
-    private val currentThread: CurrentThread
+    private val currentThread: CurrentThread,
 ) : ComponentCallbacks2 {
 
     fun register() {
@@ -29,8 +29,8 @@ internal class ComponentCallbacksCollector(
         eventTracker.trackLowMemory(
             LowMemory(
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name
-            )
+                thread_name = currentThread.name,
+            ),
         )
     }
 
@@ -48,8 +48,8 @@ internal class ComponentCallbacksCollector(
         eventTracker.trackTrimMemory(
             trimMemory.copy(
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name
-            )
+                thread_name = currentThread.name,
+            ),
         )
     }
 

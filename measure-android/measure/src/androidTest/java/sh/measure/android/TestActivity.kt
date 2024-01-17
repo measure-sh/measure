@@ -1,8 +1,8 @@
 package sh.measure.android
 
 import android.app.Activity
-import sh.measure.android.test.R
 import android.os.Bundle
+import sh.measure.android.test.R
 
 class TestActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {

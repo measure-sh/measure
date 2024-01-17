@@ -53,7 +53,7 @@ internal class MemoryUsageCollectorTest {
             executorService,
             runtimeProvider,
             debugProvider,
-            procProvider
+            procProvider,
         )
         // setup mocks
         `when`(procProvider.getStatmFile(pid)).thenReturn(createDummyProcStatmFile())
@@ -87,8 +87,8 @@ internal class MemoryUsageCollectorTest {
                 native_free_heap = nativeFreeHeapSize / BYTES_TO_KB_FACTOR,
                 interval_config = MEMORY_TRACKING_INTERVAL_MS,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name
-            )
+                thread_name = currentThread.name,
+            ),
         )
     }
 

@@ -1,4 +1,4 @@
-package sh.measure.android.network_change
+package sh.measure.android.networkchange
 
 internal object NetworkType {
     const val WIFI = "wifi"
@@ -7,7 +7,6 @@ internal object NetworkType {
     const val UNKNOWN = "unknown"
     const val NO_NETWORK = "no_network"
 }
-
 
 internal object NetworkGeneration {
     const val SECOND_GEN = "2g"

@@ -26,9 +26,10 @@ internal class CpuUsageCollector(
     private val currentThread: CurrentThread,
     private val executorService: MeasureExecutorService,
     private val procProvider: ProcProvider = ProcProviderImpl(),
-    private val osSysConfProvider: OsSysConfProvider = OsSysConfProviderImpl()
+    private val osSysConfProvider: OsSysConfProvider = OsSysConfProviderImpl(),
 ) {
     private var prevCpuUsage: CpuUsage? = null
+
     @VisibleForTesting
     var future: Future<*>? = null
 
@@ -37,7 +38,10 @@ internal class CpuUsageCollector(
         future = executorService.scheduleAtFixedRate(
             {
                 trackCpuUsage()
-            }, 0, CPU_TRACKING_INTERVAL_MS, TimeUnit.MILLISECONDS
+            },
+            0,
+            CPU_TRACKING_INTERVAL_MS,
+            TimeUnit.MILLISECONDS,
         )
     }
 
@@ -67,7 +71,7 @@ internal class CpuUsageCollector(
             start_time = startTime,
             interval_config = CPU_TRACKING_INTERVAL_MS,
             thread_name = currentThread.name,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
         )
         if (prevCpuUsage?.utime == cpuUsage.utime && prevCpuUsage?.stime == cpuUsage.stime) {
             return
@@ -88,11 +92,16 @@ internal class CpuUsageCollector(
                 return null
             }
             return arrayOf(
-                /* utime */ statArray[13].toLong(),
-                /* stime */ statArray[14].toLong(),
-                /* cutime */ statArray[15].toLong(),
-                /* cstime */ statArray[16].toLong(),
-                /* start_time */ statArray[21].toLong(),
+                /* utime */
+                statArray[13].toLong(),
+                /* stime */
+                statArray[14].toLong(),
+                /* cutime */
+                statArray[15].toLong(),
+                /* cstime */
+                statArray[16].toLong(),
+                /* start_time */
+                statArray[21].toLong(),
             )
         } else {
             logger.log(LogLevel.Error, "Unable to read stat file to get CPU usage")

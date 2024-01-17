@@ -1,9 +1,9 @@
 package sh.measure.android.fakes
 
+import sh.measure.android.applaunch.ColdLaunchEvent
+import sh.measure.android.applaunch.HotLaunchEvent
+import sh.measure.android.applaunch.WarmLaunchEvent
 import sh.measure.android.attachment.AttachmentInfo
-import sh.measure.android.app_launch.ColdLaunchEvent
-import sh.measure.android.app_launch.HotLaunchEvent
-import sh.measure.android.app_launch.WarmLaunchEvent
 import sh.measure.android.events.EventTracker
 import sh.measure.android.exceptions.MeasureException
 import sh.measure.android.gestures.ClickEvent
@@ -12,7 +12,7 @@ import sh.measure.android.gestures.ScrollEvent
 import sh.measure.android.lifecycle.ActivityLifecycleEvent
 import sh.measure.android.lifecycle.ApplicationLifecycleEvent
 import sh.measure.android.lifecycle.FragmentLifecycleEvent
-import sh.measure.android.network_change.NetworkChangeEvent
+import sh.measure.android.networkchange.NetworkChangeEvent
 import sh.measure.android.okhttp.HttpEvent
 import sh.measure.android.performance.CpuUsage
 import sh.measure.android.performance.LowMemory
@@ -20,7 +20,7 @@ import sh.measure.android.performance.MemoryUsage
 import sh.measure.android.performance.TrimMemory
 
 @Suppress("MemberVisibilityCanBePrivate")
-internal class FakeEventTracker: EventTracker {
+internal class FakeEventTracker : EventTracker {
     val trackedUnhandledExceptions = mutableListOf<MeasureException>()
     val trackedAnrs = mutableListOf<MeasureException>()
     val trackedClicks = mutableListOf<ClickEvent>()

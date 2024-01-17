@@ -1,4 +1,4 @@
-package sh.measure.android.app_launch
+package sh.measure.android.applaunch
 
 import android.app.Activity
 import android.app.ActivityManager
@@ -49,7 +49,7 @@ internal class LaunchTracker(
             sameMessage = true,
             hasSavedState = hasSavedState,
             intentData = activity.intent.dataString,
-            activityName = activity.javaClass.name
+            activityName = activity.javaClass.name,
         )
 
         // Helps differentiating between warm and hot launches.
@@ -88,7 +88,8 @@ internal class LaunchTracker(
         if (coldLaunchComplete) {
             LaunchState.lastAppVisibleTime = SystemClock.uptimeMillis()
             logger.log(
-                LogLevel.Debug, "Updated last app visible time: ${LaunchState.lastAppVisibleTime}"
+                LogLevel.Debug,
+                "Updated last app visible time: ${LaunchState.lastAppVisibleTime}",
             )
         }
     }
@@ -118,8 +119,8 @@ internal class LaunchTracker(
                                 has_saved_state = onCreateRecord.hasSavedState,
                                 intent_data = onCreateRecord.intentData,
                                 thread_name = Thread.currentThread().name,
-                                timestamp = timeProvider.currentTimeSinceEpochInMillis
-                            )
+                                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                            ),
                         )
                     }
 
@@ -133,7 +134,7 @@ internal class LaunchTracker(
                                 intent_data = onCreateRecord.intentData,
                                 thread_name = Thread.currentThread().name,
                                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                            )
+                            ),
                         )
                     }
 
@@ -147,7 +148,7 @@ internal class LaunchTracker(
                                 intent_data = onCreateRecord.intentData,
                                 thread_name = Thread.currentThread().name,
                                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                            )
+                            ),
                         )
                     }
 
@@ -155,7 +156,6 @@ internal class LaunchTracker(
                         throw IllegalStateException("Unknown preLaunchState: $launchType")
                     }
                 }
-
             }
         }
     }

@@ -1,4 +1,4 @@
-package sh.measure.android.network_change
+package sh.measure.android.networkchange
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -32,5 +32,5 @@ internal data class NetworkChangeEvent(
      */
     val network_provider: String?,
     @Transient val timestamp: Long = -1L,
-    @Transient val thread_name: String = ""
+    @Transient val thread_name: String = "",
 )

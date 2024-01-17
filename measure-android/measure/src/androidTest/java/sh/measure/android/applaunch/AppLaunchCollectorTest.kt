@@ -1,4 +1,4 @@
-package sh.measure.android.app_launch
+package sh.measure.android.applaunch
 
 import android.app.Application
 import android.os.Bundle
@@ -47,7 +47,7 @@ internal class AppLaunchCollectorTest {
         tracker: FakeEventTracker,
         coldLaunchListener: () -> Unit = {},
         coldLaunchTrace: ColdLaunchTrace = FakeColdLaunchTrace(),
-        savedStateBundle: Bundle? = null
+        savedStateBundle: Bundle? = null,
     ) {
         ActivityScenario.launch(TestActivity::class.java, savedStateBundle).use { scenario ->
             AppLaunchCollector(
@@ -56,7 +56,7 @@ internal class AppLaunchCollectorTest {
                 eventTracker = tracker,
                 timeProvider = AndroidTimeProvider(),
                 coldLaunchTrace = coldLaunchTrace,
-                coldLaunchListener = coldLaunchListener
+                coldLaunchListener = coldLaunchListener,
             ).register()
             scenario.moveToState(Lifecycle.State.CREATED)
             scenario.moveToState(Lifecycle.State.STARTED)
@@ -86,7 +86,7 @@ internal class AppLaunchCollectorTest {
                 eventTracker = tracker,
                 timeProvider = AndroidTimeProvider(),
                 coldLaunchTrace = FakeColdLaunchTrace(),
-                coldLaunchListener = {}
+                coldLaunchListener = {},
             ).register()
             scenario.moveToState(Lifecycle.State.CREATED)
             scenario.moveToState(Lifecycle.State.STARTED)
@@ -107,7 +107,7 @@ internal class AppLaunchCollectorTest {
                 eventTracker = tracker,
                 timeProvider = AndroidTimeProvider(),
                 coldLaunchTrace = FakeColdLaunchTrace(),
-                coldLaunchListener = coldLaunchListener
+                coldLaunchListener = coldLaunchListener,
             ).register()
 
             scenario.moveToState(Lifecycle.State.CREATED)

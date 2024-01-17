@@ -6,7 +6,10 @@ import android.view.View
 import android.view.ViewGroup
 
 internal data class Target(
-    val className: String, val id: String?, val width: Int?, val height: Int?
+    val className: String,
+    val id: String?,
+    val width: Int?,
+    val height: Int?,
 )
 
 internal object GestureTargetFinder {
@@ -62,7 +65,7 @@ internal object GestureTargetFinder {
 
     private fun canScroll(child: View): Boolean {
         return child.canScrollHorizontally(-1) || child.canScrollHorizontally(1) || child.canScrollVertically(
-            -1
+            -1,
         ) || child.canScrollVertically(1)
     }
 
@@ -87,7 +90,7 @@ internal object GestureTargetFinder {
             className = javaClass.name,
             id = null,
             width = width,
-            height = height
+            height = height,
         )
         if (viewId == View.NO_ID || viewId <= 0 || viewId ushr 24 == 0) {
             return target

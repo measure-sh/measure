@@ -5,7 +5,7 @@ import okhttp3.Response
 import java.io.IOException
 
 internal class SecretTokenHeaderInterceptor(
-    private val secretToken: String
+    private val secretToken: String,
 ) : Interceptor {
 
     @Throws(IOException::class)

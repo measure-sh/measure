@@ -26,7 +26,6 @@ import java.io.File
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
-
 private const val CONNECTION_TIMEOUT_MS = 30_000L
 private const val CALL_TIMEOUT_MS = 20_000L
 private const val CONTENT_TYPE_JSON = "application/json; charset=utf-8"
@@ -36,40 +35,47 @@ private const val PATH_SESSION = "/sessions"
  * An HTTP client that uses OkHttp to send data to the server.
  */
 internal class HttpClientOkHttp(
-    private val logger: Logger, private val baseUrl: String, secretToken: String
+    private val logger: Logger,
+    private val baseUrl: String,
+    secretToken: String,
 ) : HttpClient {
 
     private val client by lazy {
         OkHttpClient.Builder().connectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
             .callTimeout(CALL_TIMEOUT_MS, TimeUnit.MILLISECONDS)
             .addInterceptor(SecretTokenHeaderInterceptor(secretToken))
-            .addInterceptor(HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
-            })
+            .addInterceptor(
+                HttpLoggingInterceptor().apply {
+                    level = HttpLoggingInterceptor.Level.BODY
+                },
+            )
             .build()
     }
 
     override fun sendSessionReportMultipart(
-        sessionReport: SessionReport, callback: Transport.Callback?
+        sessionReport: SessionReport,
+        callback: Transport.Callback?,
     ) {
         fun createJsonPart(name: String, filename: String, file: File): Part {
             val headers = Headers.headersOf(
-                "Content-Disposition", "form-data; name=\"$name\"; filename=\"$filename\""
+                "Content-Disposition",
+                "form-data; name=\"$name\"; filename=\"$filename\"",
             )
             val contentType = CONTENT_TYPE_JSON.toMediaType()
             val body = file.asRequestBody(contentType)
             return Part.create(headers, body)
         }
 
-        fun createAttachmentPart(attachment: AttachmentPacket) : Part {
+        fun createAttachmentPart(attachment: AttachmentPacket): Part {
             val headers = Headers.headersOf(
-                "Content-Disposition", """
+                "Content-Disposition",
+                """
                         form-data; 
                         name="${attachment.name}";  
                         type="${attachment.type}"; 
                         extension="${attachment.extension ?: ""}";
                         timestamp="${attachment.timestamp}"
-                """.trimIndent()
+                """.trimIndent(),
             )
             return Part.create(headers, attachment.blob.toRequestBody())
         }
@@ -81,8 +87,10 @@ internal class HttpClientOkHttp(
             .addFormDataPart(name = "resource", value = Json.encodeToString(sessionReport.resource))
             .addPart(
                 createJsonPart(
-                    name = "events", filename = "events.json", file = sessionReport.eventsFile
-                )
+                    name = "events",
+                    filename = "events.json",
+                    file = sessionReport.eventsFile,
+                ),
             )
         sessionReport.attachments.forEach { attachment ->
             requestBodyBuilder.addPart(createAttachmentPart(attachment))
@@ -95,7 +103,8 @@ internal class HttpClientOkHttp(
 
     @OptIn(ExperimentalSerializationApi::class)
     override fun sendSessionReport(
-        sessionReportRequest: SessionReportRequest, callback: Transport.Callback?
+        sessionReportRequest: SessionReportRequest,
+        callback: Transport.Callback?,
     ) {
         val requestBody = object : RequestBody() {
             override fun contentType() = CONTENT_TYPE_JSON.toMediaType()
@@ -124,7 +133,8 @@ internal class CallbackAdapter(private val logger: Logger, private val callback:
 
             else -> {
                 logger.log(
-                    LogLevel.Error, "Error sending request. Response code: ${response.code}"
+                    LogLevel.Error,
+                    "Error sending request. Response code: ${response.code}",
                 )
                 logger.log(LogLevel.Error, "Response body: ${response.body?.string()}")
                 callback?.onFailure()

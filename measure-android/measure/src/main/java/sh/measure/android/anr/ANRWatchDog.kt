@@ -39,7 +39,7 @@ internal class ANRWatchDog(
     private val timeoutInterval: Int,
     private val timeProvider: TimeProvider,
     private val anrListener: ANRListener,
-    private val mainHandler: Handler = Handler(Looper.getMainLooper())
+    private val mainHandler: Handler = Handler(Looper.getMainLooper()),
 ) : Thread() {
     interface ANRListener {
         fun onAppNotResponding(error: AnrError)
@@ -95,7 +95,9 @@ internal class ANRWatchDog(
             // If the main thread has not handled ticker, it is blocked. ANR.
             val message = "Application Not Responding for at least $timeoutInterval ms."
             val error = AnrError(
-                mainHandler.looper.thread, timeProvider.currentTimeSinceEpochInMillis, message
+                mainHandler.looper.thread,
+                timeProvider.currentTimeSinceEpochInMillis,
+                message,
             )
             anrListener.onAppNotResponding(error)
             interval = timeoutInterval.toLong()

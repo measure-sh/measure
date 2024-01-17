@@ -58,6 +58,6 @@ internal fun Long.iso8601Timestamp(): String {
     val calendar: Calendar = Calendar.getInstance(TimeZone.getTimeZone(TimeZone.getDefault().id))
     calendar.timeInMillis = this
     val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSSS'Z'", Locale.getDefault())
-    dateFormat.timeZone = TimeZone.getTimeZone("UTC");
+    dateFormat.timeZone = TimeZone.getTimeZone("UTC")
     return dateFormat.format(calendar.time)
 }

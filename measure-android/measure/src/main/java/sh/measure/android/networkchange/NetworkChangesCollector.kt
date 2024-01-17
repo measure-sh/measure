@@ -1,4 +1,4 @@
-package sh.measure.android.network_change
+package sh.measure.android.networkchange
 
 import android.Manifest
 import android.Manifest.permission.READ_BASIC_PHONE_STATE
@@ -8,11 +8,13 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
-import android.net.NetworkCapabilities.*
+import android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET
+import android.net.NetworkCapabilities.TRANSPORT_CELLULAR
+import android.net.NetworkCapabilities.TRANSPORT_VPN
+import android.net.NetworkCapabilities.TRANSPORT_WIFI
 import android.net.NetworkRequest
 import android.os.Build
 import android.telephony.TelephonyManager
-import android.telephony.TelephonyManager.*
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import sh.measure.android.events.EventTracker
@@ -48,7 +50,7 @@ internal class NetworkChangesCollector(
     private val logger: Logger,
     private val eventTracker: EventTracker,
     private val timeProvider: TimeProvider,
-    private val currentThread: CurrentThread
+    private val currentThread: CurrentThread,
 ) {
     private var currentNetworkType: String? = null
     private var currentNetworkGeneration: String? = null
@@ -66,7 +68,7 @@ internal class NetworkChangesCollector(
                 } else {
                     logger.log(
                         LogLevel.Info,
-                        "ACCESS_NETWORK_STATE permission required to monitor network changes"
+                        "ACCESS_NETWORK_STATE permission required to monitor network changes",
                     )
                 }
             }
@@ -77,12 +79,13 @@ internal class NetworkChangesCollector(
                     connectivityManager.registerNetworkCallback(
                         NetworkRequest.Builder().addTransportType(TRANSPORT_CELLULAR)
                             .addTransportType(TRANSPORT_WIFI).addTransportType(TRANSPORT_VPN)
-                            .addCapability(NET_CAPABILITY_INTERNET).build(), networkCallback()
+                            .addCapability(NET_CAPABILITY_INTERNET).build(),
+                        networkCallback(),
                     )
                 } else {
                     logger.log(
                         LogLevel.Info,
-                        "ACCESS_NETWORK_STATE permission required to monitor network changes"
+                        "ACCESS_NETWORK_STATE permission required to monitor network changes",
                     )
                 }
             }
@@ -90,7 +93,7 @@ internal class NetworkChangesCollector(
             else -> {
                 logger.log(
                     LogLevel.Info,
-                    "Network change monitoring is not supported on Android versions below M"
+                    "Network change monitoring is not supported on Android versions below M",
                 )
             }
         }
@@ -99,7 +102,8 @@ internal class NetworkChangesCollector(
     @RequiresApi(Build.VERSION_CODES.M)
     private fun networkCallback() = object : ConnectivityManager.NetworkCallback() {
         override fun onCapabilitiesChanged(
-            network: Network, networkCapabilities: NetworkCapabilities
+            network: Network,
+            networkCapabilities: NetworkCapabilities,
         ) {
             val newNetworkType = getNetworkType(networkCapabilities)
             val previousNetworkType = currentNetworkType
@@ -124,7 +128,7 @@ internal class NetworkChangesCollector(
                     newNetworkType,
                     previousNetworkType,
                     newNetworkGeneration,
-                    previousNetworkGeneration
+                    previousNetworkGeneration,
                 )
             ) {
                 return
@@ -138,8 +142,8 @@ internal class NetworkChangesCollector(
                     network_generation = newNetworkGeneration,
                     network_provider = networkProvider,
                     timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                    thread_name = currentThread.name
-                )
+                    thread_name = currentThread.name,
+                ),
             )
             currentNetworkType = newNetworkType
             currentNetworkGeneration = newNetworkGeneration
@@ -160,8 +164,8 @@ internal class NetworkChangesCollector(
                     network_generation = null,
                     network_provider = null,
                     timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                    thread_name = currentThread.name
-                )
+                    thread_name = currentThread.name,
+                ),
             )
             currentNetworkType = newNetworkType
             currentNetworkGeneration = null
@@ -182,7 +186,7 @@ internal class NetworkChangesCollector(
         newNetworkType: String,
         previousNetworkType: String?,
         newNetworkGeneration: String?,
-        previousNetworkGeneration: String?
+        previousNetworkGeneration: String?,
     ): Boolean {
         return when {
             // track if network type has changed

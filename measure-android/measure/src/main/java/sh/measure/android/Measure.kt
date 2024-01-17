@@ -3,10 +3,10 @@ package sh.measure.android
 import android.app.Application
 import android.content.Context
 import sh.measure.android.anr.AnrCollector
-import sh.measure.android.app_launch.AppLaunchCollector
-import sh.measure.android.app_launch.ColdLaunchTraceImpl
 import sh.measure.android.appexit.AppExitProvider
 import sh.measure.android.appexit.AppExitProviderImpl
+import sh.measure.android.applaunch.AppLaunchCollector
+import sh.measure.android.applaunch.ColdLaunchTraceImpl
 import sh.measure.android.events.EventTracker
 import sh.measure.android.events.MeasureEventTracker
 import sh.measure.android.exceptions.UnhandledExceptionCollector
@@ -20,9 +20,9 @@ import sh.measure.android.network.HttpClient
 import sh.measure.android.network.HttpClientOkHttp
 import sh.measure.android.network.Transport
 import sh.measure.android.network.TransportImpl
-import sh.measure.android.network_change.NetworkChangesCollector
-import sh.measure.android.network_change.NetworkInfoProvider
-import sh.measure.android.network_change.NetworkInfoProviderImpl
+import sh.measure.android.networkchange.NetworkChangesCollector
+import sh.measure.android.networkchange.NetworkInfoProvider
+import sh.measure.android.networkchange.NetworkInfoProviderImpl
 import sh.measure.android.performance.ComponentCallbacksCollector
 import sh.measure.android.performance.CpuUsageCollector
 import sh.measure.android.performance.MemoryUsageCollector
@@ -62,13 +62,13 @@ object Measure {
         } else if (manifestMetadata.url.isNullOrEmpty()) {
             logger.log(
                 LogLevel.Error,
-                "Unable to initialize measure SDK. measure_url is required in the manifest"
+                "Unable to initialize measure SDK. measure_url is required in the manifest",
             )
             return
         } else if (manifestMetadata.apiKey.isNullOrEmpty()) {
             logger.log(
                 LogLevel.Error,
-                "Unable to initialize measure SDK. measure_api_key is required in the manifest"
+                "Unable to initialize measure SDK. measure_api_key is required in the manifest",
             )
             return
         }
@@ -92,7 +92,12 @@ object Measure {
         val sessionProvider =
             SessionProvider(timeProvider, idProvider, pidProvider, resourceFactory)
         val sessionController: SessionController = SessionControllerImpl(
-            logger, sessionProvider, storage, transport, executorService, sessionReportGenerator
+            logger,
+            sessionProvider,
+            storage,
+            transport,
+            executorService,
+            sessionReportGenerator,
         )
         eventTracker = MeasureEventTracker(logger, sessionController)
 
@@ -101,7 +106,10 @@ object Measure {
 
         // Start launch trace, this trace ends in the ColdLaunchCollector.
         val coldLaunchTrace = ColdLaunchTraceImpl(
-            storage, sessionProvider.session.id, eventTracker, timeProvider
+            storage,
+            sessionProvider.session.id,
+            eventTracker,
+            timeProvider,
         ).apply { start() }
 
         // Register data collectors
@@ -123,10 +131,15 @@ object Measure {
             onAppBackground = {
                 cpuUsageCollector.pause()
                 memoryUsageCollector.pause()
-            }).register()
+            },
+        ).register()
 
         AppLaunchCollector(
-            logger, application, timeProvider, coldLaunchTrace, eventTracker,
+            logger,
+            application,
+            timeProvider,
+            coldLaunchTrace,
+            eventTracker,
             coldLaunchListener = {
                 GestureCollector(logger, eventTracker, timeProvider, currentThread).register()
                 NetworkChangesCollector(
@@ -135,7 +148,7 @@ object Measure {
                     logger,
                     eventTracker,
                     timeProvider,
-                    currentThread
+                    currentThread,
                 ).register()
                 sessionController.syncAllSessions()
             },

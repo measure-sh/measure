@@ -52,7 +52,8 @@ internal object ExceptionFactory {
                             file_name = stackTraceElement.fileName,
                             line_num = stackTraceElement.lineNumber,
                         )
-                    })
+                    },
+                )
                 threads.add(measureThread)
             }
             count++

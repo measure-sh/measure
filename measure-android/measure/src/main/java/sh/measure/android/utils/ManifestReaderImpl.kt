@@ -30,7 +30,7 @@ internal class ManifestReaderImpl(private val context: Context, private val logg
         }
         return ManifestMetadata(
             url = bundle.getString(measureUrlKey),
-            apiKey = bundle.getString(measureApiKey)
+            apiKey = bundle.getString(measureApiKey),
         )
     }
 
@@ -38,16 +38,19 @@ internal class ManifestReaderImpl(private val context: Context, private val logg
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context.packageManager.getApplicationInfo(
                 context.packageName,
-                PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA.toLong())
+                PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA.toLong()),
             ).metaData
         } else {
-            @Suppress("DEPRECATION") context.packageManager.getApplicationInfo(
-                context.packageName, PackageManager.GET_META_DATA
+            @Suppress("DEPRECATION")
+            context.packageManager.getApplicationInfo(
+                context.packageName,
+                PackageManager.GET_META_DATA,
             ).metaData
         }
     }
 }
 
 internal class ManifestMetadata(
-    val url: String?, val apiKey: String?
+    val url: String?,
+    val apiKey: String?,
 )

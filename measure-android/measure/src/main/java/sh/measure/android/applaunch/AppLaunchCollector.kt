@@ -1,9 +1,7 @@
-package sh.measure.android.app_launch
+package sh.measure.android.applaunch
 
 import android.app.Application
 import sh.measure.android.events.EventTracker
-import sh.measure.android.lifecycle.ActivityLifecycleEvent
-import sh.measure.android.lifecycle.ApplicationLifecycleEvent
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.TimeProvider
@@ -17,13 +15,13 @@ internal class AppLaunchCollector(
     private val timeProvider: TimeProvider,
     private val coldLaunchTrace: ColdLaunchTrace,
     private val eventTracker: EventTracker,
-    private val coldLaunchListener: () -> Unit
+    private val coldLaunchListener: () -> Unit,
 ) : LaunchCallbacks {
 
     fun register() {
         logger.log(LogLevel.Debug, "Registering AppLaunchCollector")
         application.registerActivityLifecycleCallbacks(
-            LaunchTracker(logger, this, timeProvider)
+            LaunchTracker(logger, this, timeProvider),
         )
     }
 
@@ -31,7 +29,7 @@ internal class AppLaunchCollector(
         coldLaunchTrace.stop()
         val startUptime =
             coldLaunchEvent.process_start_uptime ?: coldLaunchEvent.content_provider_attach_uptime
-            ?: return
+                ?: return
         val endUptime = coldLaunchEvent.on_next_draw_uptime
         val duration = endUptime - startUptime
         logger.log(LogLevel.Debug, "cold launch duration: $duration ms, start uptime: $startUptime")

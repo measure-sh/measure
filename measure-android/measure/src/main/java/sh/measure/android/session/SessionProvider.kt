@@ -23,7 +23,7 @@ internal class SessionProvider(
             id = idProvider.createId(),
             startTime = timeProvider.currentTimeSinceEpochInMillis,
             resource = resourceFactory.create(),
-            pid = pidProvider.getPid()
+            pid = pidProvider.getPid(),
         )
     }
 }

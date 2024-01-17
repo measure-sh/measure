@@ -14,7 +14,7 @@ import sh.measure.android.utils.iso8601Timestamp
 internal class FragmentLifecycleCollector(
     private val eventTracker: EventTracker,
     private val timeProvider: TimeProvider,
-    private val currentThread: CurrentThread
+    private val currentThread: CurrentThread,
 ) : FragmentLifecycleAdapter() {
     override fun onFragmentAttached(fm: FragmentManager, f: Fragment, context: Context) {
         eventTracker.trackFragmentLifecycleEvent(
@@ -24,8 +24,8 @@ internal class FragmentLifecycleCollector(
                 class_name = f.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
                 tag = f.tag,
-                thread_name = currentThread.name
-            )
+                thread_name = currentThread.name,
+            ),
         )
     }
 
@@ -37,8 +37,8 @@ internal class FragmentLifecycleCollector(
                 class_name = f.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
                 tag = f.tag,
-                thread_name = currentThread.name
-            )
+                thread_name = currentThread.name,
+            ),
         )
     }
 
@@ -50,8 +50,8 @@ internal class FragmentLifecycleCollector(
                 class_name = f.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
                 tag = f.tag,
-                thread_name = currentThread.name
-            )
+                thread_name = currentThread.name,
+            ),
         )
     }
 
@@ -63,8 +63,8 @@ internal class FragmentLifecycleCollector(
                 class_name = f.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
                 tag = f.tag,
-                thread_name = currentThread.name
-            )
+                thread_name = currentThread.name,
+            ),
         )
     }
 }

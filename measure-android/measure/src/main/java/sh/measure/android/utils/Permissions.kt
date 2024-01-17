@@ -6,6 +6,6 @@ import androidx.core.content.PermissionChecker
 internal fun hasPermission(context: Context, permission: String): Boolean {
     return PermissionChecker.checkSelfPermission(
         context,
-        permission
+        permission,
     ) == PermissionChecker.PERMISSION_GRANTED
 }

@@ -1,4 +1,4 @@
-package sh.measure.android.app_launch
+package sh.measure.android.applaunch
 
 import android.os.Process
 import curtains.onNextDraw
@@ -51,7 +51,7 @@ internal data class ColdLaunchEvent(
     /**
      * The time since epoch at which cold launch was measured.
      */
-    @Transient val timestamp: Long = -1
+    @Transient val timestamp: Long = -1,
 )
 
 @Serializable
@@ -81,7 +81,7 @@ internal data class WarmLaunchEvent(
      */
     val intent_data: String?,
     @Transient val thread_name: String = "",
-    @Transient val timestamp: Long = -1
+    @Transient val timestamp: Long = -1,
 )
 
 @Serializable
@@ -111,5 +111,5 @@ internal data class HotLaunchEvent(
      */
     val intent_data: String?,
     @Transient val thread_name: String = "",
-    @Transient val timestamp: Long = -1
+    @Transient val timestamp: Long = -1,
 )

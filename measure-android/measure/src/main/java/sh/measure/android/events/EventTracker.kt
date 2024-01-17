@@ -1,8 +1,8 @@
 package sh.measure.android.events
 
-import sh.measure.android.app_launch.ColdLaunchEvent
-import sh.measure.android.app_launch.HotLaunchEvent
-import sh.measure.android.app_launch.WarmLaunchEvent
+import sh.measure.android.applaunch.ColdLaunchEvent
+import sh.measure.android.applaunch.HotLaunchEvent
+import sh.measure.android.applaunch.WarmLaunchEvent
 import sh.measure.android.attachment.AttachmentInfo
 import sh.measure.android.exceptions.MeasureException
 import sh.measure.android.gestures.ClickEvent
@@ -13,7 +13,7 @@ import sh.measure.android.lifecycle.ApplicationLifecycleEvent
 import sh.measure.android.lifecycle.FragmentLifecycleEvent
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import sh.measure.android.network_change.NetworkChangeEvent
+import sh.measure.android.networkchange.NetworkChangeEvent
 import sh.measure.android.okhttp.HttpEvent
 import sh.measure.android.performance.CpuUsage
 import sh.measure.android.performance.LowMemory
@@ -76,21 +76,24 @@ internal class MeasureEventTracker(
 
     override fun trackActivityLifecycleEvent(event: ActivityLifecycleEvent) {
         logger.log(
-            LogLevel.Debug, "Tracking activity lifecycle event ${event.type}"
+            LogLevel.Debug,
+            "Tracking activity lifecycle event ${event.type}",
         )
         sessionController.storeEvent(event.toEvent())
     }
 
     override fun trackFragmentLifecycleEvent(event: FragmentLifecycleEvent) {
         logger.log(
-            LogLevel.Debug, "Tracking fragment lifecycle event ${event.type}"
+            LogLevel.Debug,
+            "Tracking fragment lifecycle event ${event.type}",
         )
         sessionController.storeEvent(event.toEvent())
     }
 
     override fun trackApplicationLifecycleEvent(event: ApplicationLifecycleEvent) {
         logger.log(
-            LogLevel.Debug, "Tracking application lifecycle event ${event.type}"
+            LogLevel.Debug,
+            "Tracking application lifecycle event ${event.type}",
         )
         sessionController.storeEvent(event.toEvent())
     }
@@ -127,7 +130,7 @@ internal class MeasureEventTracker(
     override fun trackLowMemory(lowMemory: LowMemory) {
         logger.log(LogLevel.Debug, "Tracking low memory")
         sessionController.storeEvent(
-            lowMemory.toEvent()
+            lowMemory.toEvent(),
         )
     }
 

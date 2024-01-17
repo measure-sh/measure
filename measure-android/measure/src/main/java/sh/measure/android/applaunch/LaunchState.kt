@@ -1,4 +1,4 @@
-package sh.measure.android.app_launch
+package sh.measure.android.applaunch
 
 import android.os.Build
 import android.os.Process
@@ -24,5 +24,4 @@ internal object LaunchState {
         } else {
             null
         }
-
 }

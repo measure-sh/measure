@@ -2,8 +2,8 @@ package sh.measure.android.exceptions
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import sh.measure.android.network_change.NetworkType
-import sh.measure.android.network_change.NetworkGeneration
+import sh.measure.android.networkchange.NetworkGeneration
+import sh.measure.android.networkchange.NetworkType
 
 /**
  * Represents an exception in Measure. This is used to track handled and unhandled exceptions.
@@ -67,7 +67,8 @@ internal data class MeasureException(
 
 @Serializable
 internal data class MeasureThread(
-    val name: String, val frames: List<Frame>
+    val name: String,
+    val frames: List<Frame>,
 )
 
 /**
@@ -88,7 +89,7 @@ internal data class ExceptionUnit(
     /**
      * A list of stack frames for the exception.
      */
-    val frames: List<Frame>
+    val frames: List<Frame>,
 )
 
 /**

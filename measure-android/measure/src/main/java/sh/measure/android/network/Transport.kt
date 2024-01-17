@@ -20,10 +20,12 @@ internal interface Transport {
 }
 
 internal class TransportImpl(
-    private val logger: Logger, private val httpClient: HttpClient
+    private val logger: Logger,
+    private val httpClient: HttpClient,
 ) : Transport {
     override fun sendSessionReportMultipart(
-        sessionReport: SessionReport, callback: Transport.Callback?
+        sessionReport: SessionReport,
+        callback: Transport.Callback?,
     ) {
         try {
             httpClient.sendSessionReportMultipart(sessionReport, callback)
@@ -38,7 +40,7 @@ internal class TransportImpl(
             val request = getSessionRequest(sessionReport)
             logger.log(
                 LogLevel.Debug,
-                Json.encodeToString(SessionReportRequest.serializer(), request)
+                Json.encodeToString(SessionReportRequest.serializer(), request),
             )
             httpClient.sendSessionReport(request, callback)
         } catch (e: Exception) {

@@ -34,7 +34,6 @@ internal class WindowInterceptor {
             }
         }
     }
-
 }
 
 internal interface WindowTouchInterceptor {

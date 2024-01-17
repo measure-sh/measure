@@ -6,7 +6,9 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import okio.buffer
 import okio.sink
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -104,7 +106,7 @@ internal class StorageImplTest {
         storage.deleteSession(sessionId)
 
         val measureDir = File(rootDirPath, MEASURE_DIR_NAME)
-        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/${sessionId}")
+        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/$sessionId")
         assertFalse(sessionDir.exists())
     }
 
@@ -114,7 +116,10 @@ internal class StorageImplTest {
         val data: JsonElement = Json.encodeToJsonElement("data")
         val timestamp = 9876543210.iso8601Timestamp()
         val event = Event(
-            timestamp = timestamp, type = "event", data = data, thread_name = "thread"
+            timestamp = timestamp,
+            type = "event",
+            data = data,
+            thread_name = "thread",
         )
         storage.initSession(createFakeSession(sessionId))
 
@@ -124,16 +129,16 @@ internal class StorageImplTest {
 
         // Then
         val measureDir = File(rootDirPath, MEASURE_DIR_NAME)
-        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/${sessionId}")
+        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/$sessionId")
         val eventLogFile = File(sessionDir, EVENT_LOG_FILE_NAME)
         assertEquals(
             """
                 {"timestamp":"$timestamp","type":"event","event":"data","thread_name":"thread"}
                 {"timestamp":"$timestamp","type":"event","event":"data","thread_name":"thread"}
-            """.trimIndent(), eventLogFile.readText()
+            """.trimIndent(),
+            eventLogFile.readText(),
         )
     }
-
 
     @Test
     fun `Storage delegates returns events json file`() {
@@ -143,7 +148,7 @@ internal class StorageImplTest {
         val actualEventsFile = storage.getEventsFile(sessionId)
 
         val measureDir = File(rootDirPath, MEASURE_DIR_NAME)
-        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/${sessionId}")
+        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/$sessionId")
         val eventsFile = File(sessionDir, EVENTS_JSON_FILE_NAME)
         // Then
         assertEquals(eventsFile, actualEventsFile)
@@ -157,7 +162,7 @@ internal class StorageImplTest {
         val actualEventLogFile = storage.getEventLogFile(sessionId)
 
         val measureDir = File(rootDirPath, MEASURE_DIR_NAME)
-        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/${sessionId}")
+        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/$sessionId")
         val eventLogFile = File(sessionDir, EVENT_LOG_FILE_NAME)
         // Then
         assertEquals(eventLogFile, actualEventLogFile)
@@ -183,14 +188,15 @@ internal class StorageImplTest {
 
         // Then
         val measureDir = File(rootDirPath, MEASURE_DIR_NAME)
-        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/${sessionId}")
+        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/$sessionId")
         val attachmentDir = File(sessionDir, ATTACHMENTS_DIR_NAME)
         val attachmentsLogFile = File(attachmentDir, ATTACHMENTS_LOG_FILE_NAME)
         assertEquals(
             """
                 {"absolutePath":"${attachment.absolutePath}","name":"${attachment.name}","extension":"${attachment.extension}","type":"${attachment.type}","timestamp":${attachment.timestamp}}
                 {"absolutePath":"${attachment.absolutePath}","name":"${attachment.name}","extension":"${attachment.extension}","type":"${attachment.type}","timestamp":${attachment.timestamp}}
-            """.trimIndent(), attachmentsLogFile.readText()
+            """.trimIndent(),
+            attachmentsLogFile.readText(),
         )
     }
 
@@ -213,7 +219,7 @@ internal class StorageImplTest {
 
         // Then
         val measureDir = File(rootDirPath, MEASURE_DIR_NAME)
-        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/${sessionId}")
+        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/$sessionId")
         val attachmentDir = File(sessionDir, ATTACHMENTS_DIR_NAME)
         val attachmentsLogFile = File(attachmentDir, ATTACHMENTS_LOG_FILE_NAME)
         assertEquals("", attachmentsLogFile.readText())
@@ -238,7 +244,7 @@ internal class StorageImplTest {
 
         // Then
         val measureDir = File(rootDirPath, MEASURE_DIR_NAME)
-        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/${sessionId}")
+        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/$sessionId")
         val attachmentDir = File(sessionDir, ATTACHMENTS_DIR_NAME)
         val attachmentsLogFile = File(attachmentDir, ATTACHMENTS_LOG_FILE_NAME)
         assertEquals("", attachmentsLogFile.readText())
@@ -262,7 +268,7 @@ internal class StorageImplTest {
 
         // Then
         val measureDir = File(rootDirPath, MEASURE_DIR_NAME)
-        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/${sessionId}")
+        val sessionDir = File(measureDir, "$SESSIONS_DIR_NAME/$sessionId")
         val attachmentDir = File(sessionDir, ATTACHMENTS_DIR_NAME)
         val attachmentsLogFile = File(attachmentDir, ATTACHMENTS_LOG_FILE_NAME)
         assertEquals("", attachmentsLogFile.readText())
@@ -318,7 +324,8 @@ internal class StorageImplTest {
     }
 
     private fun createFakeSession(
-        id: String, resource: Resource = FakeResourceFactory().resource
+        id: String,
+        resource: Resource = FakeResourceFactory().resource,
     ): Session {
         return Session(
             id = id,

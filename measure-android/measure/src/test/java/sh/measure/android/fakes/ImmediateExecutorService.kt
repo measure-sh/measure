@@ -28,7 +28,7 @@ internal class ImmediateExecutorService(private val resolvableFuture: Resolvable
         runnable: Runnable,
         initialDelay: Long,
         delayMillis: Long,
-        delayUnit: TimeUnit
+        delayUnit: TimeUnit,
     ): Future<*> {
         DirectExecutor.INSTANCE.execute(runnable)
         return resolvableFuture

@@ -2,9 +2,6 @@ package sh.measure.android.lifecycle
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import kotlinx.serialization.json.Json
-import sh.measure.android.events.Event
-import sh.measure.android.events.EventType
 
 @Serializable
 internal data class ActivityLifecycleEvent(

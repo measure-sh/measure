@@ -31,7 +31,7 @@ internal class MemoryUsageCollector(
     private val executorService: MeasureExecutorService,
     private val runtimeProvider: RuntimeProvider = DefaultRuntimeProvider(),
     private val debugProvider: DebugProvider = DefaultDebugProvider(),
-    private val procProvider: ProcProvider = ProcProviderImpl()
+    private val procProvider: ProcProvider = ProcProviderImpl(),
 ) {
     @VisibleForTesting
     var future: Future<*>? = null
@@ -41,7 +41,10 @@ internal class MemoryUsageCollector(
         future = executorService.scheduleAtFixedRate(
             {
                 trackMemoryUsage()
-            }, 0, MEMORY_TRACKING_INTERVAL_MS, TimeUnit.MILLISECONDS
+            },
+            0,
+            MEMORY_TRACKING_INTERVAL_MS,
+            TimeUnit.MILLISECONDS,
         )
     }
 
@@ -73,8 +76,8 @@ internal class MemoryUsageCollector(
                 native_free_heap = nativeFreeHeapSize,
                 interval_config = MEMORY_TRACKING_INTERVAL_MS,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name
-            )
+                thread_name = currentThread.name,
+            ),
         )
     }
 

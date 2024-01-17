@@ -42,5 +42,5 @@ internal data class CpuUsage(
      */
     val interval_config: Long,
     @Transient val thread_name: String = "",
-    @Transient val timestamp: Long = -1
+    @Transient val timestamp: Long = -1,
 )

@@ -17,7 +17,7 @@ class TrimStackTraceKtTest {
         val stackTrace = arrayOf(
             StackTraceElement("Class1", "method1", "file1", 1),
             StackTraceElement("Class2", "method2", "file2", 2),
-            StackTraceElement("Class3", "method3", "file3", 3)
+            StackTraceElement("Class3", "method3", "file3", 3),
         )
         val trimmedStackTrace = stackTrace.trimStackTrace(maxRepeats = 1, maxSize = 3)
         assertArrayEquals(stackTrace, trimmedStackTrace)
@@ -33,7 +33,7 @@ class TrimStackTraceKtTest {
             StackTraceElement("Class2", "method2", "file2", 2),
             StackTraceElement("Class2", "method2", "file2", 2),
             StackTraceElement("Class1", "method1", "file1", 1),
-            StackTraceElement("Class1", "method1", "file1", 1)
+            StackTraceElement("Class1", "method1", "file1", 1),
         )
         val trimmedStackTrace = stackTrace.trimStackTrace(maxRepeats = 2)
         assertArrayEquals(
@@ -43,7 +43,7 @@ class TrimStackTraceKtTest {
                 stackTrace[3],
                 stackTrace[4],
                 stackTrace[6],
-                stackTrace[7]
+                stackTrace[7],
             ),
             trimmedStackTrace,
         )
@@ -56,12 +56,14 @@ class TrimStackTraceKtTest {
             StackTraceElement("Class2", "method2", "file2", 2),
             StackTraceElement("Class3", "method3", "file3", 3),
             StackTraceElement("Class4", "method4", "file4", 4),
-            StackTraceElement("Class5", "method5", "file5", 5)
+            StackTraceElement("Class5", "method5", "file5", 5),
         )
         val trimmedStackTrace = stackTrace.trimStackTrace(maxSize = 3)
         assertArrayEquals(
             arrayOf(
-                stackTrace[0], stackTrace[3], stackTrace[4]
+                stackTrace[0],
+                stackTrace[3],
+                stackTrace[4],
             ),
             trimmedStackTrace,
         )

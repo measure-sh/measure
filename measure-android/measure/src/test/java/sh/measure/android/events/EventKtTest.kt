@@ -5,17 +5,17 @@ import kotlinx.serialization.json.Json
 import okio.Buffer
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import sh.measure.android.app_launch.ColdLaunchEvent
-import sh.measure.android.app_launch.HotLaunchEvent
-import sh.measure.android.app_launch.WarmLaunchEvent
+import sh.measure.android.applaunch.ColdLaunchEvent
+import sh.measure.android.applaunch.HotLaunchEvent
+import sh.measure.android.applaunch.WarmLaunchEvent
 import sh.measure.android.exceptions.ExceptionFactory
 import sh.measure.android.gestures.ClickEvent
 import sh.measure.android.gestures.Direction
 import sh.measure.android.gestures.LongClickEvent
 import sh.measure.android.gestures.ScrollEvent
-import sh.measure.android.network_change.NetworkChangeEvent
-import sh.measure.android.network_change.NetworkGeneration
-import sh.measure.android.network_change.NetworkType
+import sh.measure.android.networkchange.NetworkChangeEvent
+import sh.measure.android.networkchange.NetworkGeneration
+import sh.measure.android.networkchange.NetworkType
 import sh.measure.android.okhttp.HttpClientName
 import sh.measure.android.okhttp.HttpEvent
 import sh.measure.android.performance.CpuUsage
@@ -31,12 +31,12 @@ class EventKtTest {
             timestamp = "2021-09-09T09:09:09.009Z",
             type = "test",
             data = Json.encodeToJsonElement(String.serializer(), "data"),
-            thread_name = "thread"
+            thread_name = "thread",
         )
         val result = event.toJson()
         assertEquals(
             "{\"timestamp\":\"2021-09-09T09:09:09.009Z\",\"type\":\"test\",\"test\":\"data\",\"thread_name\":\"thread\"}",
-            result
+            result,
         )
     }
 
@@ -46,7 +46,7 @@ class EventKtTest {
             timestamp = "2021-09-09T09:09:09.009Z",
             type = "test",
             data = Json.encodeToJsonElement(String.serializer(), "data"),
-            thread_name = "thread"
+            thread_name = "thread",
         )
 
         val buffer = Buffer().apply {
@@ -57,7 +57,7 @@ class EventKtTest {
 
         assertEquals(
             "{\"timestamp\":\"2021-09-09T09:09:09.009Z\",\"type\":\"test\",\"test\":\"data\",\"thread_name\":\"thread\"}",
-            buffer.readUtf8()
+            buffer.readUtf8(),
         )
     }
 
@@ -74,7 +74,7 @@ class EventKtTest {
             networkGeneration = null,
             networkProvider = null,
             locale = "en-US",
-            isAnr = false
+            isAnr = false,
         )
         val event = exception.toEvent()
 
@@ -96,7 +96,7 @@ class EventKtTest {
             networkGeneration = null,
             networkProvider = null,
             locale = "en-US",
-            isAnr = true
+            isAnr = true,
         )
         val event = exception.toEvent()
 
@@ -120,7 +120,7 @@ class EventKtTest {
             touch_down_time = 28071579,
             touch_up_time = 28071632,
             timestamp = 0L,
-            thread_name = threadName
+            thread_name = threadName,
         )
 
         val event = click.toEvent()
@@ -145,7 +145,7 @@ class EventKtTest {
             touch_down_time = 28071579,
             touch_up_time = 28071632,
             timestamp = timestamp,
-            thread_name = threadName
+            thread_name = threadName,
         )
 
         val event = longClick.toEvent()
@@ -171,7 +171,7 @@ class EventKtTest {
             touch_down_time = 28071579,
             touch_up_time = 28071632,
             timestamp = timestamp,
-            thread_name = threadName
+            thread_name = threadName,
         )
 
         val event = scroll.toEvent()
@@ -226,7 +226,6 @@ class EventKtTest {
         assertEquals(EventType.WARM_LAUNCH, event.type)
     }
 
-
     @Test
     fun `HotLaunch toEvent() returns an event of type hot_launch`() {
         val timestamp = 0L
@@ -260,7 +259,7 @@ class EventKtTest {
             network_generation = NetworkGeneration.FIFTH_GEN,
             network_provider = null,
             timestamp = timestamp,
-            thread_name = threadName
+            thread_name = threadName,
         )
         val event = connectivityChange.toEvent()
 
@@ -308,7 +307,7 @@ class EventKtTest {
             timestamp = timestamp,
             request_headers = mapOf(),
             response_headers = mapOf(),
-            thread_name = threadName
+            thread_name = threadName,
         )
         val event = httpEvent.toEvent()
 
@@ -332,7 +331,7 @@ class EventKtTest {
             native_free_heap = 0L,
             interval_config = 0L,
             timestamp = timestamp,
-            thread_name = threadName
+            thread_name = threadName,
         )
         val event = memoryUsage.toEvent()
 
@@ -347,7 +346,8 @@ class EventKtTest {
         val timestampIso = timestamp.iso8601Timestamp()
         val threadName = "thread"
         val lowMemory = LowMemory(
-            timestamp = timestamp, thread_name = threadName
+            timestamp = timestamp,
+            thread_name = threadName,
         )
         val event = lowMemory.toEvent()
 
@@ -362,7 +362,9 @@ class EventKtTest {
         val timestampIso = timestamp.iso8601Timestamp()
         val threadName = "thread"
         val trimMemory = TrimMemory(
-            level = "TRIM_MEMORY_UI_HIDDEN", timestamp = timestamp, thread_name = threadName
+            level = "TRIM_MEMORY_UI_HIDDEN",
+            timestamp = timestamp,
+            thread_name = threadName,
         )
         val event = trimMemory.toEvent()
 
@@ -387,7 +389,7 @@ class EventKtTest {
             interval_config = 0,
             start_time = 0,
             thread_name = threadName,
-            timestamp = timestamp
+            timestamp = timestamp,
         )
         val event = cpuUsage.toEvent()
 
