@@ -9,7 +9,7 @@ import java.util.TimeZone
 /**
  * Provides time from different clocks.
  */
-interface TimeProvider {
+internal interface TimeProvider {
     val currentTimeSinceEpochInMillis: Long
     val currentTimeSinceEpochInNanos: Long
     val uptimeInMillis: Long

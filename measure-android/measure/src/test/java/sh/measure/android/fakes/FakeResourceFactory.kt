@@ -5,7 +5,7 @@ import sh.measure.android.network_change.NetworkType
 import sh.measure.android.session.Resource
 import sh.measure.android.session.ResourceFactory
 
-class FakeResourceFactory(
+internal class FakeResourceFactory(
     val resource: Resource = fakeResource()
 ) : ResourceFactory {
     override fun create(): Resource {

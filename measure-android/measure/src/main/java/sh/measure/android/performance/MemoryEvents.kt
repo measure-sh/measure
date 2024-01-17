@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
 @Serializable
-data class MemoryUsage(
+internal data class MemoryUsage(
     val java_max_heap: Long,
     val java_total_heap: Long,
     val java_free_heap: Long,
@@ -18,7 +18,7 @@ data class MemoryUsage(
 )
 
 @Serializable
-data class LowMemory(
+internal data class LowMemory(
     @Transient
     val timestamp: Long = 0L,
     @Transient
@@ -26,7 +26,7 @@ data class LowMemory(
 )
 
 @Serializable
-data class TrimMemory(
+internal data class TrimMemory(
     val level: String,
     @Transient
     val timestamp: Long = 0L,

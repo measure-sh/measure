@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
  * identifiers, etc.
  */
 @Serializable
-data class Resource(
+internal data class Resource(
     // device info
     val device_name: String? = null,
     val device_model: String? = null,

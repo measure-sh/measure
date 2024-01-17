@@ -9,7 +9,7 @@ import sh.measure.android.logger.Logger
 import sh.measure.android.network_change.NetworkInfoProvider
 import sh.measure.android.utils.LocaleProvider
 
-interface ResourceFactory {
+internal interface ResourceFactory {
     fun create(): Resource
 }
 

@@ -7,7 +7,7 @@ import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
 
 @Serializable
-data class ActivityLifecycleEvent(
+internal data class ActivityLifecycleEvent(
     val type: String,
     val class_name: String,
     val intent: String? = null,
@@ -17,7 +17,7 @@ data class ActivityLifecycleEvent(
 )
 
 @Serializable
-data class FragmentLifecycleEvent(
+internal data class FragmentLifecycleEvent(
     val type: String,
     val class_name: String,
     val parent_activity: String?,
@@ -27,25 +27,25 @@ data class FragmentLifecycleEvent(
 )
 
 @Serializable
-data class ApplicationLifecycleEvent(
+internal data class ApplicationLifecycleEvent(
     val type: String,
     @Transient val timestamp: String = "",
     @Transient val thread_name: String = "",
 )
 
-object AppLifecycleType {
+internal object AppLifecycleType {
     const val FOREGROUND = "foreground"
     const val BACKGROUND = "background"
 }
 
-object ActivityLifecycleType {
+internal object ActivityLifecycleType {
     const val CREATED = "created"
     const val RESUMED = "resumed"
     const val PAUSED = "paused"
     const val DESTROYED = "destroyed"
 }
 
-object FragmentLifecycleType {
+internal object FragmentLifecycleType {
     const val ATTACHED = "attached"
     const val RESUMED = "resumed"
     const val PAUSED = "paused"

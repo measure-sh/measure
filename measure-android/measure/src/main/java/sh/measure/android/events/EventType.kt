@@ -1,6 +1,6 @@
 package sh.measure.android.events
 
-object EventType {
+internal object EventType {
     const val STRING = "string"
     const val EXCEPTION = "exception"
     const val ANR = "anr"

@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
 @Serializable
-data class CpuUsage(
+internal data class CpuUsage(
     /**
      * Number of active cores in the device.
      */
