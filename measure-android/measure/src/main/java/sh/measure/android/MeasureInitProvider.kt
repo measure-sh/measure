@@ -8,7 +8,7 @@ import android.database.Cursor
 import android.net.Uri
 import android.os.SystemClock
 import android.util.Log
-import sh.measure.android.app_launch.LaunchState
+import sh.measure.android.applaunch.LaunchState
 
 /**
  * A content provider used to initialise Measure SDK.
@@ -41,7 +41,7 @@ internal class MeasureInitProvider : ContentProvider() {
         projection: Array<String?>?,
         selection: String?,
         selectionArgs: Array<String?>?,
-        sortOrder: String?
+        sortOrder: String?,
     ): Cursor? {
         throw IllegalStateException("Not allowed.")
     }
@@ -55,13 +55,18 @@ internal class MeasureInitProvider : ContentProvider() {
     }
 
     override fun delete(
-        uri: Uri, selection: String?, selectionArgs: Array<String?>?
+        uri: Uri,
+        selection: String?,
+        selectionArgs: Array<String?>?,
     ): Int {
         throw IllegalStateException("Not allowed.")
     }
 
     override fun update(
-        uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<String?>?
+        uri: Uri,
+        values: ContentValues?,
+        selection: String?,
+        selectionArgs: Array<String?>?,
     ): Int {
         throw IllegalStateException("Not allowed.")
     }

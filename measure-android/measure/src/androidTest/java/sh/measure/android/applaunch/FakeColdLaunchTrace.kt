@@ -1,8 +1,8 @@
-package sh.measure.android.app_launch
+package sh.measure.android.applaunch
 
-import sh.measure.android.method_trace.MethodTraceConfig
+import sh.measure.android.methodtrace.MethodTraceConfig
 
-internal class FakeColdLaunchTrace: ColdLaunchTrace {
+internal class FakeColdLaunchTrace : ColdLaunchTrace {
     override val config: MethodTraceConfig
         get() = MethodTraceConfig(
             path = "",

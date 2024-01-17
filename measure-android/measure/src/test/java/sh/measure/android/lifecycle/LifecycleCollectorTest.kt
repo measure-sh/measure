@@ -13,7 +13,7 @@ import org.mockito.Mockito.atMostOnce
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.kotlin.never
-import org.robolectric.Robolectric.*
+import org.robolectric.Robolectric.buildActivity
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.android.controller.ActivityController
 import sh.measure.android.events.EventTracker
@@ -38,7 +38,7 @@ class LifecycleCollectorTest {
             timeProvider,
             currentThread,
             onAppForeground = {},
-            onAppBackground = {}
+            onAppBackground = {},
         ).apply { register() }
         controller = buildActivity(TestLifecycleActivity::class.java)
     }
@@ -51,7 +51,7 @@ class LifecycleCollectorTest {
                 type = ActivityLifecycleType.CREATED,
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-            )
+            ),
         )
     }
 
@@ -64,7 +64,7 @@ class LifecycleCollectorTest {
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
                 thread_name = currentThread.name,
-            )
+            ),
         )
         verify(eventTracker).trackActivityLifecycleEvent(
             ActivityLifecycleEvent(
@@ -73,7 +73,7 @@ class LifecycleCollectorTest {
                 saved_instance_state = true,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
                 thread_name = currentThread.name,
-            )
+            ),
         )
     }
 
@@ -86,7 +86,7 @@ class LifecycleCollectorTest {
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
                 thread_name = currentThread.name,
-            )
+            ),
         )
     }
 
@@ -99,7 +99,7 @@ class LifecycleCollectorTest {
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
                 thread_name = currentThread.name,
-            )
+            ),
         )
     }
 
@@ -112,7 +112,7 @@ class LifecycleCollectorTest {
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
                 thread_name = currentThread.name,
-            )
+            ),
         )
     }
 
@@ -126,7 +126,7 @@ class LifecycleCollectorTest {
                 class_name = TestFragment::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
                 thread_name = currentThread.name,
-            )
+            ),
         )
     }
 
@@ -140,7 +140,7 @@ class LifecycleCollectorTest {
                 class_name = TestFragment::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
                 thread_name = currentThread.name,
-            )
+            ),
         )
     }
 
@@ -153,7 +153,7 @@ class LifecycleCollectorTest {
                 parent_activity = TestLifecycleActivity::class.java.name,
                 class_name = TestFragment::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-            )
+            ),
         )
     }
 
@@ -169,7 +169,7 @@ class LifecycleCollectorTest {
             ApplicationLifecycleEvent(
                 type = AppLifecycleType.BACKGROUND,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-            )
+            ),
         )
     }
 
@@ -180,7 +180,7 @@ class LifecycleCollectorTest {
             ApplicationLifecycleEvent(
                 type = AppLifecycleType.FOREGROUND,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-            )
+            ),
         )
     }
 
@@ -191,13 +191,13 @@ class LifecycleCollectorTest {
             ApplicationLifecycleEvent(
                 type = AppLifecycleType.FOREGROUND,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-            )
+            ),
         )
         verify(eventTracker, never()).trackApplicationLifecycleEvent(
             ApplicationLifecycleEvent(
                 type = AppLifecycleType.BACKGROUND,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-            )
+            ),
         )
     }
 
@@ -210,7 +210,7 @@ class LifecycleCollectorTest {
             timeProvider,
             currentThread,
             onAppForeground = { foreground = true },
-            onAppBackground = {}
+            onAppBackground = {},
         ).apply { register() }
         controller.setup()
         Assert.assertTrue(foreground)
@@ -225,7 +225,7 @@ class LifecycleCollectorTest {
             timeProvider,
             currentThread,
             onAppForeground = {},
-            onAppBackground = { background = true }
+            onAppBackground = { background = true },
         ).apply { register() }
         controller.setup().stop()
         Assert.assertTrue(background)

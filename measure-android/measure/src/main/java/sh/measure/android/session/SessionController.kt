@@ -63,11 +63,14 @@ internal class SessionControllerImpl(
             executorService.submit {
                 storage.getAllSessions().filter { it.id != session.id }.forEach { session ->
                     sessionReportGenerator.getSessionReport(session).let { report ->
-                        transport.sendSessionReport(report, object : Transport.Callback {
-                            override fun onSuccess() {
-                                storage.deleteSession(session.id)
-                            }
-                        })
+                        transport.sendSessionReport(
+                            report,
+                            object : Transport.Callback {
+                                override fun onSuccess() {
+                                    storage.deleteSession(session.id)
+                                }
+                            },
+                        )
                     }
                 }
             }

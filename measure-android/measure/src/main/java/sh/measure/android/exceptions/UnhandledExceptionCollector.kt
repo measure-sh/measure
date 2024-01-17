@@ -3,7 +3,7 @@ package sh.measure.android.exceptions
 import sh.measure.android.events.EventTracker
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import sh.measure.android.network_change.NetworkInfoProvider
+import sh.measure.android.networkchange.NetworkInfoProvider
 import sh.measure.android.utils.LocaleProvider
 import sh.measure.android.utils.TimeProvider
 import java.lang.Thread.UncaughtExceptionHandler
@@ -48,7 +48,7 @@ internal class UnhandledExceptionCollector(
                 networkType = networkType,
                 networkGeneration = networkInfoProvider.getNetworkGeneration(networkType),
                 networkProvider = networkInfoProvider.getNetworkProvider(networkType),
-                locale = localeProvider.getLocale()
+                locale = localeProvider.getLocale(),
             )
             eventTracker.trackUnhandledException(measureException)
         } catch (e: Throwable) {
@@ -60,4 +60,3 @@ internal class UnhandledExceptionCollector(
         }
     }
 }
-

@@ -22,7 +22,7 @@ internal interface AppExitProvider {
 internal class AppExitProviderImpl(
     private val logger: Logger,
     private val currentThread: CurrentThread,
-    private val systemServiceProvider: SystemServiceProvider
+    private val systemServiceProvider: SystemServiceProvider,
 ) : AppExitProvider {
 
     override fun get(pid: Int): AppExit? {
@@ -44,7 +44,7 @@ internal class AppExitProviderImpl(
             trace = getTraceString(traceInputStream),
             process_name = processName,
             pid = pid.toString(),
-            thread_name = threadName
+            thread_name = threadName,
         )
     }
 

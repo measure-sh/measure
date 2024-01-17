@@ -22,7 +22,8 @@ private const val MAX_CONSECUTIVE_FRAME_REPEATS = 5
  * @param maxSize The maximum size of the stacktrace allowed.
  */
 internal fun Array<StackTraceElement>.trimStackTrace(
-    maxRepeats: Int = MAX_CONSECUTIVE_FRAME_REPEATS, maxSize: Int = MAX_FRAMES_IN_STACKTRACE
+    maxRepeats: Int = MAX_CONSECUTIVE_FRAME_REPEATS,
+    maxSize: Int = MAX_FRAMES_IN_STACKTRACE,
 ): Array<StackTraceElement> {
     val result = mutableListOf<StackTraceElement>()
     var currentElement: StackTraceElement? = null

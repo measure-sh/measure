@@ -41,13 +41,17 @@ internal class OkHttpEventListenerTest {
         val callStartUptime = 10000L
         val timeProvider = FakeTimeProvider(time = callStartUptime)
         val listener = OkHttpEventListener(
-            eventTracker, timeProvider, currentThread, delegate
+            eventTracker,
+            timeProvider,
+            currentThread,
+            delegate,
         )
 
         listener.callStart(mock())
         assertEquals(listener.timings[Timing.CALL_START], callStartUptime)
         assertEquals(
-            listener.requestTimestamp, timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp()
+            listener.requestTimestamp,
+            timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
         )
     }
 
@@ -56,7 +60,10 @@ internal class OkHttpEventListenerTest {
         val dnsStartUptime = 10000L
         val timeProvider = FakeTimeProvider(time = dnsStartUptime)
         val listener = OkHttpEventListener(
-            eventTracker, timeProvider, currentThread, delegate
+            eventTracker,
+            timeProvider,
+            currentThread,
+            delegate,
         )
 
         listener.dnsStart(mock(), "domainName")
@@ -68,7 +75,10 @@ internal class OkHttpEventListenerTest {
         val dnsEndUptime = 10000L
         val timeProvider = FakeTimeProvider(time = dnsEndUptime)
         val listener = OkHttpEventListener(
-            eventTracker, timeProvider, currentThread, delegate
+            eventTracker,
+            timeProvider,
+            currentThread,
+            delegate,
         )
 
         listener.dnsEnd(mock(), "domainName", listOf())
@@ -80,7 +90,10 @@ internal class OkHttpEventListenerTest {
         val connectStartUptime = 10000L
         val timeProvider = FakeTimeProvider(time = connectStartUptime)
         val listener = OkHttpEventListener(
-            eventTracker, timeProvider, currentThread, delegate
+            eventTracker,
+            timeProvider,
+            currentThread,
+            delegate,
         )
 
         listener.connectStart(mock(), mock(), mock())
@@ -92,7 +105,10 @@ internal class OkHttpEventListenerTest {
         val connectEndUptime = 10000L
         val timeProvider = FakeTimeProvider(time = connectEndUptime)
         val listener = OkHttpEventListener(
-            eventTracker, timeProvider, currentThread, delegate
+            eventTracker,
+            timeProvider,
+            currentThread,
+            delegate,
         )
 
         listener.connectEnd(mock(), mock(), mock(), mock())
@@ -105,7 +121,10 @@ internal class OkHttpEventListenerTest {
         val exception = IOException("message")
         val timeProvider = FakeTimeProvider(time = connectFailedUptime)
         val listener = OkHttpEventListener(
-            eventTracker, timeProvider, currentThread, delegate
+            eventTracker,
+            timeProvider,
+            currentThread,
+            delegate,
         )
 
         listener.connectFailed(mock(), mock(), mock(), mock(), exception)
@@ -119,7 +138,10 @@ internal class OkHttpEventListenerTest {
         val callEndUptime = 10000L
         val timeProvider = FakeTimeProvider(time = callEndUptime)
         val listener = OkHttpEventListener(
-            eventTracker, timeProvider, currentThread, delegate
+            eventTracker,
+            timeProvider,
+            currentThread,
+            delegate,
         )
 
         listener.callEnd(mock())
@@ -132,7 +154,10 @@ internal class OkHttpEventListenerTest {
         val exception = IOException("message")
         val timeProvider = FakeTimeProvider(time = callFailedUptime)
         val listener = OkHttpEventListener(
-            eventTracker, timeProvider, currentThread, delegate
+            eventTracker,
+            timeProvider,
+            currentThread,
+            delegate,
         )
 
         listener.callFailed(mock(), exception)
@@ -146,7 +171,10 @@ internal class OkHttpEventListenerTest {
         val requestHeadersStartUptime = 10000L
         val timeProvider = FakeTimeProvider(time = requestHeadersStartUptime)
         val listener = OkHttpEventListener(
-            eventTracker, timeProvider, currentThread, delegate
+            eventTracker,
+            timeProvider,
+            currentThread,
+            delegate,
         )
 
         listener.requestHeadersStart(mock())
@@ -160,7 +188,10 @@ internal class OkHttpEventListenerTest {
         val requestHeadersEndUptime = 10000L
         val timeProvider = FakeTimeProvider(time = requestHeadersEndUptime)
         val listener = OkHttpEventListener(
-            eventTracker, timeProvider, currentThread, delegate
+            eventTracker,
+            timeProvider,
+            currentThread,
+            delegate,
         )
 
         listener.requestHeadersEnd(mock(), request)
@@ -176,7 +207,10 @@ internal class OkHttpEventListenerTest {
         val requestBodyStartUptime = 10000L
         val timeProvider = FakeTimeProvider(time = requestBodyStartUptime)
         val listener = OkHttpEventListener(
-            eventTracker, timeProvider, currentThread, delegate
+            eventTracker,
+            timeProvider,
+            currentThread,
+            delegate,
         )
 
         listener.requestBodyStart(mock())
@@ -188,7 +222,10 @@ internal class OkHttpEventListenerTest {
         val requestBodyEndUptime = 10000L
         val timeProvider = FakeTimeProvider(time = requestBodyEndUptime)
         val listener = OkHttpEventListener(
-            eventTracker, timeProvider, currentThread, delegate
+            eventTracker,
+            timeProvider,
+            currentThread,
+            delegate,
         )
 
         listener.requestBodyEnd(mock(), 1000L)
@@ -202,7 +239,10 @@ internal class OkHttpEventListenerTest {
         val exception = IOException("message")
         val timeProvider = FakeTimeProvider(time = requestFailedUptime)
         val listener = OkHttpEventListener(
-            eventTracker, timeProvider, currentThread, delegate
+            eventTracker,
+            timeProvider,
+            currentThread,
+            delegate,
         )
 
         listener.requestFailed(mock(), exception)
@@ -216,7 +256,10 @@ internal class OkHttpEventListenerTest {
         val responseHeadersStartUptime = 10000L
         val timeProvider = FakeTimeProvider(time = responseHeadersStartUptime)
         val listener = OkHttpEventListener(
-            eventTracker, timeProvider, currentThread, delegate
+            eventTracker,
+            timeProvider,
+            currentThread,
+            delegate,
         )
 
         listener.responseHeadersStart(mock())
@@ -234,7 +277,10 @@ internal class OkHttpEventListenerTest {
         val responseHeadersEndUptime = 10000L
         val timeProvider = FakeTimeProvider(time = responseHeadersEndUptime)
         val listener = OkHttpEventListener(
-            eventTracker, timeProvider, currentThread, delegate
+            eventTracker,
+            timeProvider,
+            currentThread,
+            delegate,
         )
 
         listener.responseHeadersEnd(mock(), response)
@@ -249,7 +295,10 @@ internal class OkHttpEventListenerTest {
         val responseBodyStartUptime = 10000L
         val timeProvider = FakeTimeProvider(time = responseBodyStartUptime)
         val listener = OkHttpEventListener(
-            eventTracker, timeProvider, currentThread, delegate
+            eventTracker,
+            timeProvider,
+            currentThread,
+            delegate,
         )
 
         listener.responseBodyStart(mock())
@@ -261,7 +310,10 @@ internal class OkHttpEventListenerTest {
         val responseBodyEndUptime = 10000L
         val timeProvider = FakeTimeProvider(time = responseBodyEndUptime)
         val listener = OkHttpEventListener(
-            eventTracker, timeProvider, currentThread, delegate
+            eventTracker,
+            timeProvider,
+            currentThread,
+            delegate,
         )
 
         listener.responseBodyEnd(mock(), 1000L)
@@ -275,7 +327,10 @@ internal class OkHttpEventListenerTest {
         val exception = IOException("message")
         val timeProvider = FakeTimeProvider(time = responseFailedUptime)
         val listener = OkHttpEventListener(
-            eventTracker, timeProvider, currentThread, delegate
+            eventTracker,
+            timeProvider,
+            currentThread,
+            delegate,
         )
 
         listener.responseFailed(mock(), exception)
@@ -287,7 +342,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates callStart to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         listener.callStart(call)
@@ -297,7 +355,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates callEnd to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         listener.callStart(call)
@@ -307,7 +368,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates dnsStart to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         listener.dnsStart(call, "")
@@ -317,7 +381,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates dnsEnd to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         listener.dnsEnd(call, "", listOf())
@@ -327,7 +394,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates connectStart to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         val inetAddress = mock<InetSocketAddress>()
@@ -339,7 +409,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates connectEnd to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         val inetAddress = mock<InetSocketAddress>()
@@ -352,7 +425,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates connectFailed to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         val inetAddress = mock<InetSocketAddress>()
@@ -366,7 +442,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates requestHeadersStart to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         listener.requestHeadersStart(call)
@@ -376,7 +455,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates requestHeadersEnd to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val request = mock<Request>()
         `when`(request.url).thenReturn(httpUrl())
@@ -389,7 +471,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates requestBodyStart to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         listener.requestBodyStart(call)
@@ -399,7 +484,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates requestBodyEnd to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         listener.requestBodyEnd(call, 1000L)
@@ -409,7 +497,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates requestFailed to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val exception = mock<IOException>()
         val call = mock<Call>()
@@ -420,7 +511,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates responseHeadersStart to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         listener.responseHeadersStart(call)
@@ -430,7 +524,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates responseHeadersEnd to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val response = mock<Response>()
         `when`(response.headers).thenReturn(Headers.headersOf("key", "value"))
@@ -442,7 +539,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates responseBodyStart to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         listener.responseBodyStart(call)
@@ -452,7 +552,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates responseBodyEnd to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         listener.responseBodyEnd(call, 1000L)
@@ -462,7 +565,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates responseFailed to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val exception = mock<IOException>()
         val call = mock<Call>()
@@ -473,7 +579,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates callFailed to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val exception = mock<IOException>()
         val call = mock<Call>()
@@ -484,7 +593,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates canceled to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         listener.canceled(call)
@@ -494,7 +606,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates secureConnectStart to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         listener.secureConnectStart(call)
@@ -504,7 +619,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates secureConnectEnd to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         listener.secureConnectEnd(call, null)
@@ -514,7 +632,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates proxySelectStart to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         val url = mock<HttpUrl>()
@@ -525,7 +646,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates proxySelectEnd to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         val url = mock<HttpUrl>()
@@ -537,7 +661,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates cacheConditionalHit to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         val cachedResponse = mock<Response>()
@@ -548,7 +675,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates cacheHit to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         val response = mock<Response>()
@@ -559,7 +689,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates cacheMiss to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         listener.cacheMiss(call)
@@ -569,7 +702,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates connectionAcquired to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         val connection = mock<Connection>()
@@ -580,7 +716,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates connectionReleased to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         val connection = mock<Connection>()
@@ -591,7 +730,10 @@ internal class OkHttpEventListenerTest {
     @Test
     fun `OkHttpEventListener delegates satisfactionFailure to delegate`() {
         val listener = OkHttpEventListener(
-            eventTracker, FakeTimeProvider(), currentThread, delegate
+            eventTracker,
+            FakeTimeProvider(),
+            currentThread,
+            delegate,
         )
         val call = mock<Call>()
         val response = mock<Response>()

@@ -14,7 +14,7 @@ internal data class MemoryUsage(
     val native_free_heap: Long,
     val interval_config: Long,
     @Transient val timestamp: Long = 0L,
-    @Transient val thread_name: String = ""
+    @Transient val thread_name: String = "",
 )
 
 @Serializable
@@ -22,7 +22,7 @@ internal data class LowMemory(
     @Transient
     val timestamp: Long = 0L,
     @Transient
-    val thread_name: String = ""
+    val thread_name: String = "",
 )
 
 @Serializable
@@ -31,5 +31,5 @@ internal data class TrimMemory(
     @Transient
     val timestamp: Long = 0L,
     @Transient
-    val thread_name: String = ""
+    val thread_name: String = "",
 )

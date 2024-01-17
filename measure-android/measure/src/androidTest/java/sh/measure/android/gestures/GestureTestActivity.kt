@@ -7,11 +7,11 @@ import sh.measure.android.test.R
 
 class GestureTestActivity : Activity() {
 
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    setContentView(R.layout.test_gesture_collector)
-    findViewById<Button>(R.id.button).setOnClickListener {
-      // No-op
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.test_gesture_collector)
+        findViewById<Button>(R.id.button).setOnClickListener {
+            // No-op
+        }
     }
-  }
 }

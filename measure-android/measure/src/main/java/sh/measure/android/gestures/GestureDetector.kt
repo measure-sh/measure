@@ -40,7 +40,10 @@ internal sealed class DetectedGesture {
 }
 
 internal enum class Direction {
-    Down, Up, Right, Left
+    Down,
+    Up,
+    Right,
+    Left,
 }
 
 internal object GestureDetector {
@@ -53,7 +56,7 @@ internal object GestureDetector {
         context: Context,
         motionEvent: MotionEvent,
         timeProvider: TimeProvider,
-        currentThread: CurrentThread
+        currentThread: CurrentThread,
     ): DetectedGesture? {
         // Ignore multi-touch gestures, this is not supported.
         if (motionEvent.pointerCount > 1) {
@@ -81,7 +84,7 @@ internal object GestureDetector {
                         touchDownTime = startTouchEventTime,
                         touchUpTime = motionEvent.eventTime,
                         timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                        threadName = currentThread.name
+                        threadName = currentThread.name,
                     )
                 } else {
                     DetectedGesture.Click(
@@ -90,7 +93,7 @@ internal object GestureDetector {
                         touchDownTime = startTouchEventTime,
                         touchUpTime = motionEvent.eventTime,
                         timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                        threadName = currentThread.name
+                        threadName = currentThread.name,
                     )
                 }
             } else {
@@ -103,7 +106,7 @@ internal object GestureDetector {
                     touchUpTime = motionEvent.eventTime,
                     direction = calculateDirection(motionEvent, startTouchX, startTouchY),
                     timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                    threadName = currentThread.name
+                    threadName = currentThread.name,
                 )
             }
         }

@@ -23,13 +23,13 @@ class MeasureEventListenerFactory internal constructor(
     private val eventTracker: EventTracker,
     private val timeProvider: TimeProvider,
     private val currentThread: CurrentThread,
-    private val delegate: EventListener.Factory?
+    private val delegate: EventListener.Factory?,
 ) : EventListener.Factory {
     constructor(delegate: EventListener.Factory? = null) : this(
         eventTracker = Measure.getEventTracker(),
         timeProvider = Measure.getTimeProvider(),
         currentThread = Measure.getCurrentThread(),
-        delegate = delegate
+        delegate = delegate,
     )
 
     override fun create(call: Call): EventListener {
@@ -42,7 +42,7 @@ internal class OkHttpEventListener(
     private val eventTracker: EventTracker,
     private val timeProvider: TimeProvider,
     private val currentThread: CurrentThread,
-    private val delegate: EventListener?
+    private val delegate: EventListener?,
 ) : EventListener() {
     internal var url: String? = null
     internal var method: String? = null
@@ -84,7 +84,7 @@ internal class OkHttpEventListener(
         call: Call,
         inetSocketAddress: InetSocketAddress,
         proxy: Proxy,
-        protocol: Protocol?
+        protocol: Protocol?,
     ) {
         timings[Timing.CONNECT_END] = timeProvider.uptimeInMillis
         delegate?.connectEnd(call, inetSocketAddress, proxy, protocol)
@@ -95,7 +95,7 @@ internal class OkHttpEventListener(
         inetSocketAddress: InetSocketAddress,
         proxy: Proxy,
         protocol: Protocol?,
-        ioe: IOException
+        ioe: IOException,
     ) {
         failureReason = ioe.javaClass.name
         failureDescription = ioe.message
@@ -275,14 +275,14 @@ internal class OkHttpEventListener(
                 response_headers_end = timings[Timing.RESPONSE_HEADERS_END],
                 response_body_start = timings[Timing.RESPONSE_BODY_START],
                 response_body_end = timings[Timing.RESPONSE_BODY_END],
-                thread_name = currentThread.name
-            )
+                thread_name = currentThread.name,
+            ),
         )
     }
 
     private fun getEndTime() =
         timings[Timing.CALL_END] ?: timings[Timing.CALL_FAILED] ?: timings[Timing.RESPONSE_FAILED]
-        ?: timings[Timing.REQUEST_FAILED] ?: timings[Timing.CONNECT_FAILED]
+            ?: timings[Timing.REQUEST_FAILED] ?: timings[Timing.CONNECT_FAILED]
 
     private fun hasCallStartTiming() = timings[Timing.CALL_START] != null
 }

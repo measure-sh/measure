@@ -36,44 +36,49 @@ internal class GestureCollector(
         val target = getTarget(gesture, window, motionEvent)
         if (target == null) {
             logger.log(
-                LogLevel.Debug, "No target found for gesture ${gesture.javaClass.simpleName}"
+                LogLevel.Debug,
+                "No target found for gesture ${gesture.javaClass.simpleName}",
             )
             return
         } else {
             logger.log(
                 LogLevel.Debug,
-                "Target found for gesture ${gesture.javaClass.simpleName}: ${target.className}:${target.id}"
+                "Target found for gesture ${gesture.javaClass.simpleName}: ${target.className}:${target.id}",
             )
         }
 
         when (gesture) {
             is DetectedGesture.Click -> tracker.trackClick(
-                ClickEvent.fromDetectedGesture(gesture, target)
+                ClickEvent.fromDetectedGesture(gesture, target),
             )
 
             is DetectedGesture.LongClick -> tracker.trackLongClick(
-                LongClickEvent.fromDetectedGesture(gesture, target)
+                LongClickEvent.fromDetectedGesture(gesture, target),
             )
 
             is DetectedGesture.Scroll -> tracker.trackScroll(
-                ScrollEvent.fromDetectedGesture(gesture, target)
+                ScrollEvent.fromDetectedGesture(gesture, target),
             )
         }
     }
 
     private fun getTarget(
-        gesture: DetectedGesture, window: Window, motionEvent: MotionEvent
+        gesture: DetectedGesture,
+        window: Window,
+        motionEvent: MotionEvent,
     ): Target? {
         return when (gesture) {
             is DetectedGesture.Scroll -> {
                 GestureTargetFinder.findScrollable(
-                    window.decorView as ViewGroup, motionEvent
+                    window.decorView as ViewGroup,
+                    motionEvent,
                 )
             }
 
             else -> {
                 GestureTargetFinder.findClickable(
-                    window.decorView as ViewGroup, motionEvent
+                    window.decorView as ViewGroup,
+                    motionEvent,
                 )
             }
         }

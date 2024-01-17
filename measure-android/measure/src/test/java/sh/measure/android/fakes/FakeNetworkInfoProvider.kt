@@ -1,8 +1,8 @@
 package sh.measure.android.fakes
 
-import sh.measure.android.network_change.NetworkGeneration
-import sh.measure.android.network_change.NetworkInfoProvider
-import sh.measure.android.network_change.NetworkType
+import sh.measure.android.networkchange.NetworkGeneration
+import sh.measure.android.networkchange.NetworkInfoProvider
+import sh.measure.android.networkchange.NetworkType
 
 internal class FakeNetworkInfoProvider : NetworkInfoProvider {
     override fun getNetworkGeneration(networkType: String?): String {

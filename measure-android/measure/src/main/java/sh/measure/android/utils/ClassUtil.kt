@@ -1,6 +1,6 @@
 package sh.measure.android.utils
 
-internal fun isClassAvailable(clazz: String) : Boolean {
+internal fun isClassAvailable(clazz: String): Boolean {
     return loadClass(clazz) != null
 }
 

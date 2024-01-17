@@ -1,4 +1,4 @@
-package sh.measure.android.network_change
+package sh.measure.android.networkchange
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -23,7 +23,7 @@ internal interface NetworkInfoProvider {
 internal class NetworkInfoProviderImpl(
     private val context: Context,
     private val logger: Logger,
-    private val systemServiceProvider: SystemServiceProvider
+    private val systemServiceProvider: SystemServiceProvider,
 ) : NetworkInfoProvider {
 
     override fun getNetworkProvider(networkType: String?): String? {

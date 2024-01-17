@@ -1,4 +1,4 @@
-package sh.measure.android.network_change
+package sh.measure.android.networkchange
 
 import android.Manifest
 import android.app.Application
@@ -27,7 +27,6 @@ import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.SystemServiceProviderImpl
-
 
 @RunWith(AndroidJUnit4::class)
 class NetworkChangesCollectorTest {
@@ -131,8 +130,8 @@ class NetworkChangesCollectorTest {
                 network_generation = NetworkGeneration.FIFTH_GEN,
                 network_provider = "Test Provider",
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name
-            )
+                thread_name = currentThread.name,
+            ),
         )
     }
 
@@ -162,8 +161,8 @@ class NetworkChangesCollectorTest {
                 network_generation = null,
                 network_provider = "Test Provider",
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name
-            )
+                thread_name = currentThread.name,
+            ),
         )
     }
 
@@ -197,8 +196,8 @@ class NetworkChangesCollectorTest {
                 network_generation = NetworkGeneration.FIFTH_GEN,
                 network_provider = "Test Provider",
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name
-            )
+                thread_name = currentThread.name,
+            ),
         )
     }
 
@@ -248,8 +247,8 @@ class NetworkChangesCollectorTest {
                 network_generation = null,
                 network_provider = null,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name
-            )
+                thread_name = currentThread.name,
+            ),
         )
     }
 
@@ -276,7 +275,7 @@ class NetworkChangesCollectorTest {
             newNetworkType,
             previousNetworkType,
             newNetworkGeneration,
-            previousNetworkGeneration
+            previousNetworkGeneration,
         )
 
         // Assert that the change should be tracked
@@ -306,7 +305,7 @@ class NetworkChangesCollectorTest {
             newNetworkType,
             previousNetworkType,
             newNetworkGeneration,
-            previousNetworkGeneration
+            previousNetworkGeneration,
         )
 
         // Assert that the change should be tracked
@@ -329,14 +328,14 @@ class NetworkChangesCollectorTest {
             eventTracker = eventTracker,
             timeProvider = timeProvider,
             currentThread = currentThread,
-            systemServiceProvider = systemServiceProvider
+            systemServiceProvider = systemServiceProvider,
         )
 
         val shouldTrackChange = collector.shouldTrackNetworkChange(
             newNetworkType,
             previousNetworkType,
             newNetworkGeneration,
-            previousNetworkGeneration
+            previousNetworkGeneration,
         )
 
         // Assert that the change should be tracked as the cellular network generations differ
@@ -359,14 +358,14 @@ class NetworkChangesCollectorTest {
             eventTracker = eventTracker,
             timeProvider = timeProvider,
             currentThread = currentThread,
-            systemServiceProvider = systemServiceProvider
+            systemServiceProvider = systemServiceProvider,
         )
 
         val shouldTrackChange = collector.shouldTrackNetworkChange(
             newNetworkType,
             previousNetworkType,
             newNetworkGeneration,
-            previousNetworkGeneration
+            previousNetworkGeneration,
         )
 
         // Assert that the change should not be tracked as the network type and generation are the same
@@ -397,8 +396,8 @@ class NetworkChangesCollectorTest {
                 network_generation = null,
                 network_provider = null,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name
-            )
+                thread_name = currentThread.name,
+            ),
         )
     }
 
@@ -428,8 +427,8 @@ class NetworkChangesCollectorTest {
                 network_generation = null,
                 network_provider = null,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name
-            )
+                thread_name = currentThread.name,
+            ),
         )
     }
 
@@ -463,13 +462,14 @@ class NetworkChangesCollectorTest {
                 network_generation = null,
                 network_provider = null,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name
-            )
+                thread_name = currentThread.name,
+            ),
         )
     }
 
     private fun triggerNetworkCapabilitiesChange(
-        addTransportType: Int, removeTransportType: Int? = null
+        addTransportType: Int,
+        removeTransportType: Int? = null,
     ) {
         val networkCallback = shadowOf(connectivityManager).networkCallbacks.first()
         val network = ShadowNetwork.newInstance(789)

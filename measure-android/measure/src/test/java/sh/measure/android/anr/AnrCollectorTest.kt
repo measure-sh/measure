@@ -5,8 +5,8 @@ import org.mockito.Mockito.mock
 import org.mockito.kotlin.verify
 import sh.measure.android.events.EventTracker
 import sh.measure.android.exceptions.ExceptionFactory
-import sh.measure.android.fakes.FakeNetworkInfoProvider
 import sh.measure.android.fakes.FakeLocaleProvider
+import sh.measure.android.fakes.FakeNetworkInfoProvider
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.utils.SystemServiceProvider
@@ -41,8 +41,8 @@ class AnrCollectorTest {
                 networkGeneration = networkInfoProvider.getNetworkGeneration(networkInfoProvider.getNetworkType()),
                 networkProvider = networkInfoProvider.getNetworkProvider(networkInfoProvider.getNetworkType()),
                 locale = localeProvider.getLocale(),
-                isAnr = true
-            )
+                isAnr = true,
+            ),
         )
     }
 }

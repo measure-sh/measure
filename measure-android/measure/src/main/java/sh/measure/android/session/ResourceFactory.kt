@@ -6,7 +6,7 @@ import android.os.Build
 import sh.measure.android.BuildConfig
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import sh.measure.android.network_change.NetworkInfoProvider
+import sh.measure.android.networkchange.NetworkInfoProvider
 import sh.measure.android.utils.LocaleProvider
 
 internal interface ResourceFactory {
@@ -20,14 +20,15 @@ internal class ResourceFactoryImpl(
     private val logger: Logger,
     private val context: Context,
     private val networkInfoProvider: NetworkInfoProvider,
-    private val localeProvider: LocaleProvider
+    private val localeProvider: LocaleProvider,
 ) : ResourceFactory {
     private val configuration = context.resources.configuration
     private val packageManager = context.packageManager
     private val resources = context.resources
     private val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         packageManager.getPackageInfo(
-            context.packageName, PackageManager.PackageInfoFlags.of(0)
+            context.packageName,
+            PackageManager.PackageInfoFlags.of(0),
         )
     } else {
         packageManager.getPackageInfo(context.packageName, 0)
@@ -59,7 +60,6 @@ internal class ResourceFactoryImpl(
             measure_sdk_version = getMeasureVersion(),
         )
     }
-
 
     // Using heuristics from:
     // https://android-developers.googleblog.com/2023/06/detecting-if-device-is-foldable-tablet.html
@@ -95,15 +95,17 @@ internal class ResourceFactoryImpl(
      */
     private fun isEmulator(): Boolean? {
         return try {
-            ((Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic")) || Build.FINGERPRINT.startsWith(
-                "generic"
-            ) || Build.FINGERPRINT.startsWith("unknown") || Build.HARDWARE.contains("goldfish") || Build.HARDWARE.contains(
-                "ranchu"
-            ) || Build.MODEL.contains("google_sdk") || Build.MODEL.contains("Emulator") || Build.MODEL.contains(
-                "Android SDK built for x86"
-            ) || Build.MANUFACTURER.contains("Genymotion") || Build.PRODUCT.contains("sdk") || Build.PRODUCT.contains(
-                "vbox86p"
-            ) || Build.PRODUCT.contains("emulator") || Build.PRODUCT.contains("simulator"))
+            (
+                (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic")) || Build.FINGERPRINT.startsWith(
+                    "generic",
+                ) || Build.FINGERPRINT.startsWith("unknown") || Build.HARDWARE.contains("goldfish") || Build.HARDWARE.contains(
+                    "ranchu",
+                ) || Build.MODEL.contains("google_sdk") || Build.MODEL.contains("Emulator") || Build.MODEL.contains(
+                    "Android SDK built for x86",
+                ) || Build.MANUFACTURER.contains("Genymotion") || Build.PRODUCT.contains("sdk") || Build.PRODUCT.contains(
+                    "vbox86p",
+                ) || Build.PRODUCT.contains("emulator") || Build.PRODUCT.contains("simulator")
+                )
         } catch (e: Exception) {
             logger.log(LogLevel.Error, "Error detecting emulator", e)
             null

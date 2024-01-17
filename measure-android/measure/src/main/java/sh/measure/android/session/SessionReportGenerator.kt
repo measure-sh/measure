@@ -22,7 +22,7 @@ import java.io.File
 internal class SessionReportGenerator(
     private val logger: Logger,
     private val storage: Storage,
-    private val appExitProvider: AppExitProvider
+    private val appExitProvider: AppExitProvider,
 ) {
 
     fun getSessionReport(session: Session): SessionReport {
@@ -37,7 +37,7 @@ internal class SessionReportGenerator(
             timestamp = sessionStartTime,
             eventsFile = eventsFile,
             resource = Json.encodeToJsonElement(resource),
-            attachments = attachments
+            attachments = attachments,
         )
     }
 
@@ -85,7 +85,7 @@ internal class SessionReportGenerator(
             name = name,
             type = type,
             extension = extension,
-            blob = blob
+            blob = blob,
         )
     }
 }

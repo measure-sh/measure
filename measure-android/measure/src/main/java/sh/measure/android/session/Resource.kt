@@ -12,7 +12,8 @@ internal data class Resource(
     val device_name: String? = null,
     val device_model: String? = null,
     val device_manufacturer: String? = null,
-    val device_type: String? = null, // tablet, phone, tv, watch, etc.
+    // tablet, phone, tv, watch, etc.
+    val device_type: String? = null,
     val device_is_foldable: Boolean? = null,
     val device_is_physical: Boolean? = null,
     val device_density_dpi: Int? = null,
@@ -27,7 +28,8 @@ internal data class Resource(
     // app info
     val app_version: String? = null,
     val app_build: String? = null,
-    val app_unique_id: String? = null, // package name,
+    // package name
+    val app_unique_id: String? = null,
     val network_type: String? = null,
     val network_generation: String? = null,
     val network_provider_name: String? = null,

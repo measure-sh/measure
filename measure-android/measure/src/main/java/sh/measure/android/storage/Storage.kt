@@ -53,7 +53,7 @@ internal class StorageImpl(private val logger: Logger, private val rootDirPath: 
         if (!file.exists() || file.nameWithoutExtension != info.name || file.extension != info.extension) {
             logger.log(
                 LogLevel.Error,
-                "Attachment ${info.name} does not exist or does not match the attachment info."
+                "Attachment ${info.name} does not exist or does not match the attachment info.",
             )
             return
         }
@@ -179,7 +179,7 @@ internal class StorageImpl(private val logger: Logger, private val rootDirPath: 
     }
 
     private fun getSessionsDirPath(): String {
-        return "${rootDirPath}/$MEASURE_DIR_NAME/$SESSIONS_DIR_NAME"
+        return "$rootDirPath/$MEASURE_DIR_NAME/$SESSIONS_DIR_NAME"
     }
 
     private fun getEventLogFilePath(sessionId: String): String {

@@ -28,12 +28,17 @@ class SessionControllerTest {
     private val sessionProvider = mock<SessionProvider>()
 
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
-    private lateinit var sessionController : SessionController
+    private lateinit var sessionController: SessionController
 
     @Before
     fun setUp() {
         sessionController = SessionControllerImpl(
-            logger, sessionProvider, storage, transport, executorService, sessionReportGenerator,
+            logger,
+            sessionProvider,
+            storage,
+            transport,
+            executorService,
+            sessionReportGenerator,
         )
     }
 
@@ -67,10 +72,10 @@ class SessionControllerTest {
         `when`(storage.getAllSessions()).thenReturn(listOf(session1, session2, activeSession))
         `when`(sessionProvider.session).thenReturn(activeSession)
         `when`(sessionReportGenerator.getSessionReport(session1)).thenReturn(
-            session1.toSessionReport()
+            session1.toSessionReport(),
         )
         `when`(sessionReportGenerator.getSessionReport(session2)).thenReturn(
-            session2.toSessionReport()
+            session2.toSessionReport(),
         )
         transport.returnSuccess = true
 
@@ -96,10 +101,10 @@ class SessionControllerTest {
         `when`(storage.getAllSessions()).thenReturn(listOf(session1, session2, activeSession))
         `when`(sessionProvider.session).thenReturn(activeSession)
         `when`(sessionReportGenerator.getSessionReport(session1)).thenReturn(
-            session1.toSessionReport()
+            session1.toSessionReport(),
         )
         `when`(sessionReportGenerator.getSessionReport(session2)).thenReturn(
-            session2.toSessionReport()
+            session2.toSessionReport(),
         )
         transport.returnSuccess = false
 

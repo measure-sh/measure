@@ -1,4 +1,4 @@
-package sh.measure.android.method_trace
+package sh.measure.android.methodtrace
 
 import android.os.Debug
 import android.util.Log
@@ -24,7 +24,9 @@ internal class MethodTrace private constructor() {
         }
         isTraceStarted = true
         Debug.startMethodTracingSampling(
-            config.absolutePath, config.bufferSize, config.intervalUs
+            config.absolutePath,
+            config.bufferSize,
+            config.intervalUs,
         )
         Log.d("Measure", "Started method trace with config: $config")
     }
@@ -41,9 +43,13 @@ internal class MethodTrace private constructor() {
 }
 
 internal data class MethodTraceConfig(
-    val path: String, val name: String, val bufferSize: Int = 8 * 1024 * 1024, // 8MB
-    val intervalUs: Int = 1000 * 100 // 100ms
+    // 8MB
+    val path: String,
+    val name: String,
+    val bufferSize: Int = 8 * 1024 * 1024,
+    // 100ms
+    val intervalUs: Int = 1000 * 100,
 ) {
     val extension = "trace"
-    val absolutePath = "${path}/${name}.${extension}"
+    val absolutePath = "$path/$name.$extension"
 }

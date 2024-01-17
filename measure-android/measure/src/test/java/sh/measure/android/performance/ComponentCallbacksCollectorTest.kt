@@ -24,7 +24,10 @@ internal class ComponentCallbacksCollectorTest {
     @Before
     fun setUp() {
         componentCallbacksCollector = ComponentCallbacksCollector(
-            mock(), eventTracker, timeProvider, currentThread
+            mock(),
+            eventTracker,
+            timeProvider,
+            currentThread,
         ).apply { register() }
     }
 
@@ -35,8 +38,8 @@ internal class ComponentCallbacksCollectorTest {
         verify(eventTracker).trackLowMemory(
             LowMemory(
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name
-            )
+                thread_name = currentThread.name,
+            ),
         )
     }
 
@@ -58,8 +61,8 @@ internal class ComponentCallbacksCollectorTest {
             TrimMemory(
                 level = expectedLevel,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name
-            )
+                thread_name = currentThread.name,
+            ),
         )
     }
 }

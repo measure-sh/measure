@@ -1,10 +1,13 @@
 @file:Suppress("UnstableApiUsage")
 
+import com.diffplug.gradle.spotless.SpotlessExtension
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     kotlin("plugin.serialization")
     id("binary-compatibility-validator")
+    id("com.diffplug.spotless")
 }
 apply(from = "publish_local.gradle")
 
@@ -28,7 +31,8 @@ android {
         release {
             isMinifyEnabled = false
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
             )
         }
     }
@@ -47,6 +51,44 @@ android {
     }
     buildFeatures {
         buildConfig = true
+    }
+}
+
+extensions.configure<SpotlessExtension>("spotless") {
+    plugins.withId("org.jetbrains.kotlin.jvm") {
+        configureSpotlessKotlin(this@configure)
+    }
+    plugins.withId("org.jetbrains.kotlin.android") {
+        configureSpotlessKotlin(this@configure)
+    }
+    kotlinGradle {
+        ktlint()
+    }
+    format("misc") {
+        target(
+            ".gitignore",
+            ".gitattributes",
+            ".gitconfig",
+            ".editorconfig",
+            "*.md",
+            "src/**/*.md",
+            "docs/**/*.md",
+            "src/**/*.properties",
+        )
+        indentWithSpaces()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+fun configureSpotlessKotlin(spotlessExtension: SpotlessExtension) {
+    spotlessExtension.kotlin {
+        ktlint().apply {
+            editorConfigOverride(
+                mapOf("max_line_length" to 2147483647),
+            )
+        }
+        target("src/**/*.kt")
     }
 }
 
