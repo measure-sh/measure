@@ -6,7 +6,7 @@ import sh.measure.android.session.Resource
 import sh.measure.android.session.ResourceFactory
 
 internal class FakeResourceFactory(
-    val resource: Resource = fakeResource()
+    val resource: Resource = fakeResource(),
 ) : ResourceFactory {
     override fun create(): Resource {
         return resource
