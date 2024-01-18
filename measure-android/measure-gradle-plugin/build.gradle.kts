@@ -87,5 +87,7 @@ dependencies {
 }
 
 tasks.withType<Test>().configureEach {
-    useJUnitPlatform()
+    if  (this.name.equals("functionalTest")) {
+        useJUnitPlatform()
+    }
 }
