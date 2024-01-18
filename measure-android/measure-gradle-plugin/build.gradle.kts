@@ -41,6 +41,8 @@ publishing {
             groupId = properties["GROUP"] as String
             artifactId = properties["MEASURE_PLUGIN_ARTIFACT_ID"] as String
             version = measureGradlePluginVersion
+
+            from(components["java"])
         }
     }
 
