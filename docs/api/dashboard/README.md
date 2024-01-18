@@ -7,6 +7,8 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
 - [**GET `/apps/:id/journey`**](#get-appsidjourney) - Fetch an app's issue journey map for a time range &amp; version.
 - [**GET `/apps/:id/metrics`**](#get-appsidmetrics) - Fetch an app's health metrics for a time range &amp; version.
 - [**GET `/apps/:id/filters`**](#get-appsidfilters) - Fetch an app's filters.
+- [**GET `/apps/:id/crashGroups`**](#get-appsidcrashgroups) - Fetch list of crash groups for an app
+- [**GET `/apps/:id/anrGroups`**](#get-appsidanrgroups) - Fetch list of ANR groups for an app
 
 ### GET `/apps/:id/journey`
 
@@ -40,7 +42,7 @@ These headers must be present in each request.
 
 #### Response Body
 
-- For app's issue journey map
+- Response
 
   <details><summary>Click to expand</summary>
 
@@ -243,7 +245,7 @@ These headers must be present in each request.
 
   ```json
   {
-    "error": "Invalid time range"
+    "error": "Error message"
   }
   ```
 
@@ -259,6 +261,7 @@ List of HTTP status codes for success and failures.
 | `200 Ok`                    | Successful response, no errors.                                                                                        |
 | `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
 | `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
 | `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
 | `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
 
@@ -297,7 +300,7 @@ These headers must be present in each request.
 
 #### Response Body
 
-- For app's health metrics
+- Response
 
   <details><summary>Click to expand</summary>
 
@@ -357,7 +360,7 @@ These headers must be present in each request.
 
   ```json
   {
-    "error": "Invalid time range"
+    "error": "Error message"
   }
   ```
 
@@ -406,7 +409,7 @@ These headers must be present in each request.
 
 #### Response Body
 
-- For app filters
+- Response
 
   <details><summary>Click to expand</summary>
 
@@ -441,7 +444,7 @@ These headers must be present in each request.
 
   ```json
   {
-    "error": "Some error message"
+    "error": "Error message"
   }
   ```
 
@@ -457,6 +460,251 @@ List of HTTP status codes for success and failures.
 | `200 Ok`                    | Successful response, no errors.                                                                                        |
 | `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
 | `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/crashGroups`
+
+Fetch an list of crash groups for an app.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  [
+    {
+      "id": "b7002bf6-b19a-4ab9-93b8-2ebfb247f48c",
+      "app_id": "2feef18c-ef08-4b51-90e5-d0f262068674",
+      "app_version": "1.0",
+      "name": "java.lang.IllegalAccessException",
+      "fingerprint": "df6eb86ec361a76d",
+      "count": 1,
+      "events": [
+        "d06aad71-f24c-47fb-bdb7-da60830f580c"
+      ],
+      "percentage_contribution": 12.5,
+      "created_at": "2024-01-18T08:00:32.934Z",
+      "updated_at": "2024-01-18T08:00:32.934Z"
+    },
+    {
+      "id": "da3fbd01-5988-4385-8156-60f441ef5c75",
+      "app_id": "2feef18c-ef08-4b51-90e5-d0f262068674",
+      "app_version": "1.0",
+      "name": "java.lang.StackOverflowError",
+      "fingerprint": "db62b90cce53a7ed",
+      "count": 3,
+      "events": [
+        "696b185f-e03d-494d-8322-2e26c79b233a",
+        "87946c9d-1151-4a43-942e-2c89f092c47d",
+        "a4e42b1e-faf9-45f5-ad85-8308e6ba4cef"
+      ],
+      "percentage_contribution": 37.5,
+      "created_at": "2024-01-18T08:00:22.497Z",
+      "updated_at": "2024-01-18T08:00:49.024Z"
+    },
+    {
+      "id": "a8a1d9fe-28cb-41c2-902f-b01bdfa50f34",
+      "app_id": "2feef18c-ef08-4b51-90e5-d0f262068674",
+      "app_version": "1.0",
+      "name": "java.lang.IllegalAccessException",
+      "fingerprint": "df66b96cc371a76d",
+      "count": 1,
+      "events": [
+        "45bd3e6e-ebb9-4d5b-8755-6b8d76e55062"
+      ],
+      "percentage_contribution": 12.5,
+      "created_at": "2024-01-18T08:00:52.582Z",
+      "updated_at": "2024-01-18T08:00:52.582Z"
+    },
+    {
+      "id": "87d72676-cacf-4b28-8eef-c882d85f7fa5",
+      "app_id": "2feef18c-ef08-4b51-90e5-d0f262068674",
+      "app_version": "1.0",
+      "name": "sh.measure.sample.CustomException",
+      "fingerprint": "df62b96ec761a76d",
+      "count": 1,
+      "events": [
+        "11ae01d3-8de8-44fc-b6bf-9fbf5632e565"
+      ],
+      "percentage_contribution": 12.5,
+      "created_at": "2024-01-18T08:01:00.777Z",
+      "updated_at": "2024-01-18T08:01:00.777Z"
+    },
+    {
+      "id": "9ed752a3-02d0-49ac-af3c-5390dbcf2701",
+      "app_id": "2feef18c-ef08-4b51-90e5-d0f262068674",
+      "app_version": "1.0",
+      "name": "t4.a",
+      "fingerprint": "db62b90cc671a76d",
+      "count": 1,
+      "events": [
+        "981e610a-ee73-4ad5-8ff3-3909b52dbbd9"
+      ],
+      "percentage_contribution": 12.5,
+      "created_at": "2024-01-18T08:01:04.993Z",
+      "updated_at": "2024-01-18T08:01:04.993Z"
+    },
+    {
+      "id": "db4a02ce-3216-410a-9907-777e5d59ef2f",
+      "app_id": "2feef18c-ef08-4b51-90e5-d0f262068674",
+      "app_version": "1.0",
+      "name": "java.lang.StackOverflowError",
+      "fingerprint": "df62b92ccb33a76d",
+      "count": 1,
+      "events": [
+        "8c67e57a-0666-4633-b536-b59c9fb70311"
+      ],
+      "percentage_contribution": 12.5,
+      "created_at": "2024-01-18T08:01:15.729Z",
+      "updated_at": "2024-01-18T08:01:15.729Z"
+    }
+  ]
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/anrGroups`
+
+Fetch an list of ANR groups for an app.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  [
+    {
+      "id": "b7002bf6-b19a-4ab9-93b8-2ebfb247f48c",
+      "app_id": "2feef18c-ef08-4b51-90e5-d0f262068674",
+      "app_version": "1.0",
+      "name": "Unsafe.java",
+      "fingerprint": "df6eb86ec361a76d",
+      "count": 1,
+      "events": [
+        "d06aad71-f24c-47fb-bdb7-da60830f580c"
+      ],
+      "percentage_contribution": 12.5,
+      "created_at": "2024-01-18T08:00:32.934Z",
+      "updated_at": "2024-01-18T08:00:32.934Z"
+    },
+    {
+      "id": "da3fbd01-5988-4385-8156-60f441ef5c75",
+      "app_id": "2feef18c-ef08-4b51-90e5-d0f262068674",
+      "app_version": "1.0",
+      "name": "Utils.java",
+      "fingerprint": "db62b90cce53a7ed",
+      "count": 3,
+      "events": [
+        "696b185f-e03d-494d-8322-2e26c79b233a",
+        "87946c9d-1151-4a43-942e-2c89f092c47d",
+        "a4e42b1e-faf9-45f5-ad85-8308e6ba4cef"
+      ],
+      "percentage_contribution": 37.5,
+      "created_at": "2024-01-18T08:00:22.497Z",
+      "updated_at": "2024-01-18T08:00:49.024Z"
+    }
+  ]
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
 | `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
 | `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
 
