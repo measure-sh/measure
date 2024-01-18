@@ -87,6 +87,7 @@ func (a App) GetExceptionGroups(af *AppFilter) ([]ExceptionGroup, error) {
 	stmt := sqlf.PostgreSQL.
 		Select("id, app_id, app_version, name, fingerprint, count, events, created_at, updated_at").
 		From("unhandled_exception_groups").
+		OrderBy("count desc").
 		Where("app_id = ?", nil)
 
 	args := []any{a.ID}
