@@ -2,24 +2,11 @@
 
 Find all the endpoints, resources and detailed documentation for Measure Dashboard REST APIs.
 
-## Contents <!-- omit in toc -->
-
-- [Apps](#apps)
-  - [GET `/apps/:id/journey`](#get-appsidjourney)
-    - [Usage Notes](#usage-notes)
-    - [Authorization \& Content Type](#authorization--content-type)
-    - [Response Body](#response-body)
-    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting)
-  - [GET `/apps/:id/metrics`](#get-appsidmetrics)
-    - [Usage Notes](#usage-notes-1)
-    - [Authorization \& Content Type](#authorization--content-type-1)
-    - [Response Body](#response-body-1)
-    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-1)
-
 ## Apps
 
 - [**GET `/apps/:id/journey`**](#get-appsidjourney) - Fetch an app's issue journey map for a time range &amp; version.
 - [**GET `/apps/:id/metrics`**](#get-appsidmetrics) - Fetch an app's health metrics for a time range &amp; version.
+- [**GET `/apps/:id/filters`**](#get-appsidfilters) - Fetch an app's filters.
 
 ### GET `/apps/:id/journey`
 
@@ -371,6 +358,90 @@ These headers must be present in each request.
   ```json
   {
     "error": "Invalid time range"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/filters`
+
+Fetch an app's filters. 
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- For app filters
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  {
+    "versions": [
+      "1.0"
+    ],
+    "countries": [
+      "bogon"
+    ],
+    "network_providers": null,
+    "network_types": [
+      "wifi"
+    ],
+    "network_generations": null,
+    "locales": [
+      "en-US"
+    ],
+    "device_manufacturers": [
+      "Google"
+    ],
+    "device_names": [
+      "sunfish"
+    ]
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Some error message"
   }
   ```
 
