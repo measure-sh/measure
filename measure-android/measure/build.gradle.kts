@@ -8,10 +8,35 @@ plugins {
     kotlin("plugin.serialization")
     id("binary-compatibility-validator")
     id("com.diffplug.spotless")
+    id("maven-publish")
 }
-apply(from = "publish_local.gradle")
 
-val measureSdkVersion = "\"0.0.1-SNAPSHOT\""
+val measureSdkVersion = properties["MEASURE_VERSION_NAME"] as String
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            groupId = properties["GROUP"] as String
+            artifactId = properties["MEASURE_ARTIFACT_ID"] as String
+            version = measureSdkVersion
+
+            afterEvaluate {
+                from(components["release"])
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/measure-sh/measure")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+}
+
 android {
     namespace = "sh.measure.android"
     compileSdk = 33
@@ -26,7 +51,7 @@ android {
     buildTypes {
         defaultConfig {
             manifestPlaceholders["measure_url"] = properties["measure_url"]?.toString() ?: ""
-            buildConfigField("String", "MEASURE_SDK_VERSION", measureSdkVersion)
+            buildConfigField("String", "MEASURE_SDK_VERSION", "\"$measureSdkVersion\"")
         }
         release {
             isMinifyEnabled = false
