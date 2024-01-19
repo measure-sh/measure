@@ -1080,6 +1080,8 @@ Invite new members (both existing & non measure users) to a team
 
 - Teams's UUID must be passed in the URI
 - The email id of the user to be invited, team ID and role of the user to be invited must be passed in the request body
+- If a invited user does not have a measure account, they will get an invite email to sign up and will be added to team post signup automatically
+- If invited user already has a measure acccount, they will be added to the team immediately
 
 #### Request body
 
