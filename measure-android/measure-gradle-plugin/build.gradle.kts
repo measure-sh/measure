@@ -78,7 +78,7 @@ dependencies {
     testImplementation("org.ow2.asm:asm-util:9.6")
     testImplementation("org.ow2.asm:asm-commons:9.6")
     testImplementation("com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0")
-    testImplementationAar("sh.measure:android:0.0.1-SNAPSHOT")
+    testImplementationAar("sh.measure:measure-android:0.1.0")
 
     functionalTestRuntimeOnly("org.junit.platform:junit-platform-launcher")
     functionalTestImplementation("org.junit.jupiter:junit-jupiter:5.9.2")
