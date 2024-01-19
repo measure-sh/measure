@@ -6,7 +6,7 @@ is even harder. We are building a tool we wish existed when we were building and
 monitoring mobile apps. We
 are excited to share our progress with you, and we hope you will join us on this journey.
 
-Measure Android SDK automatically instruments your app to captures errors, logs and metrics that
+Measure Android SDK automatically instruments your app to capture errors, logs and metrics that
 help you answer questions about your app in production.
 
 ### Minimum Requirements
@@ -88,7 +88,7 @@ Add the following plugin to your project.
 
 ```kotlin
 plugins {
-    id("sh.measure.android") version "0.0.1"
+    id("sh.measure.android.gradle") version "0.1.0"
 }
 ```
 
@@ -96,7 +96,7 @@ or, use the following if you're using `build.gradle`.
 
 ```groovy
 plugins {
-    id 'sh.measure.android' version '0.0.1'
+    id 'sh.measure.android.gradle' version '0.1.0'
 }
 ```
 
@@ -109,13 +109,13 @@ Add the following to your app's `build.gradle.kts`file.
 [//]: # (TODO: Replace with the actual version on maven central)
 
 ```kotlin
-implementation("sh.measure.android:measure:0.0.1")
+implementation("sh.measure:measure-android:0.1.0")
 ```
 
 or, add the following to your app's `build.gradle`file.
 
 ```groovy
-implementation 'sh.measure.android:measure:0.0.1'
+implementation 'sh.measure:measure-android:0.1.0'
 ```
 
 ### 5. Verify
