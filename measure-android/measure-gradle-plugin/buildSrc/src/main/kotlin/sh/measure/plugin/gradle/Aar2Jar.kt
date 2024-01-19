@@ -113,7 +113,8 @@ abstract class AarToJarTransform : TransformAction<TransformParameters.None> {
     abstract fun getInputArtifact(): Provider<FileSystemLocation?>?
 
     override fun transform(outputs: TransformOutputs) {
-        val input = getInputArtifact()!!.get().asFile
+        val fileSystemLocation: FileSystemLocation? = getInputArtifact()!!.get()
+        val input = fileSystemLocation!!.asFile
         val output = outputs.file(input.name.replace(".aar", ".jar"))
 
         ZipFile(input).use { zipFile ->
