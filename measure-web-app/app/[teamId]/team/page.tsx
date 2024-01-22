@@ -226,9 +226,11 @@ export default function Team({ params }: { params: { teamId: string } }) {
     setRoleChangeApiStatus(RoleChangeApiStatus.Success)
   }
 
-  const inviteMember = async (email: string, role: string) => {
+  const inviteMember = async () => {
     setInviteMemberApiStatus(InviteMemberApiStatus.Loading)
 
+    const email = inviteMemberEmail
+    const role = inviteMemberRole.toLowerCase()
     const teamId = params.teamId
     const res = await fetch("/auth/invite", {
       method: "post",
@@ -273,11 +275,6 @@ export default function Team({ params }: { params: { teamId: string } }) {
 
     seRemoveMemberApiStatus(RemoveMemberApiStatus.Success)
     getAuthzAndMembers()
-  }
-
-  const handleInvite = (e: React.FormEvent) => {
-    e.preventDefault()
-    inviteMember(inviteMemberEmail as string, inviteMemberRole.toLowerCase())
   }
 
   return (
@@ -342,12 +339,12 @@ export default function Team({ params }: { params: { teamId: string } }) {
           <div className="py-4" />
           <p className="font-sans max-w-6xl text-center">Invite team members</p>
           <div className="py-1" />
-          <form name="invite-form" id="invite-form" autoComplete="on" onSubmit={handleInvite} className="flex flex-row items-center">
+          <div className="flex flex-row items-center">
             <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300  py-2 px-4 font-sans placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} defaultValue={inviteMemberEmail} />
             <div className="px-2" />
             <Dropdown items={authzAndMembers.can_invite.map((i) => formatToCamelCase(i))} onChangeSelectedItem={(item) => setInviteMemberRole(item)} initialItemIndex={0} />
-            <button form="invite-form" type="submit" disabled={inviteMemberApiStatus === InviteMemberApiStatus.Loading || inviteMemberEmail === ""} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Invite</button>
-          </form>
+            <button disabled={inviteMemberApiStatus === InviteMemberApiStatus.Loading || inviteMemberEmail === ""} onClick={inviteMember} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Invite</button>
+          </div>
           {inviteMemberApiStatus !== InviteMemberApiStatus.Init && <div className="py-1" />}
           {/* Loading message for invite member */}
           {inviteMemberApiStatus === InviteMemberApiStatus.Loading && <p className="text-sm font-display">Inviting member...</p>}
