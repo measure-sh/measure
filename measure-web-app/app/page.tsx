@@ -3,6 +3,9 @@
 import Lottie from "lottie-react";
 import heroAnim from "./animations/measure_hero.json";
 import appHealth from "./animations/measure_app_health.json"
+import crashDebugging from "./animations/crash_debugging.json"
+import buterySmoothPerf from "./animations/buttery_smooth_performance.json"
+import detailedLogging from "./animations/detailed_logging.json"
 import EmailWaitlist from './components/email_waitlist'
 import LandingHeader from './components/landing_header'
 
@@ -26,7 +29,6 @@ export default function Home() {
           </div>
           <div className="py-4 md:py-0 md:w-1/6" />
           <Lottie animationData={appHealth} loop={true} className="aspect-square w-96 md:w-2/6" />
-          {/* <div className="border border-black w-96 md:w-2/6 aspect-square bg-violet-200"/> */}
         </div>
         <div className="py-12" />
         <div className="flex flex-col md:flex-row md:w-full items-center">
@@ -36,7 +38,7 @@ export default function Home() {
             <p className="text-lg text-center md:text-left leading-relaxed font-sans text-black">Track crashes and app hangs automatically, prioritise them by impact and use detailed event timelines to zoom in on production issues.</p>
           </div>
           <div className="py-4 md:py-0 md:w-1/6" />
-          <div className="border border-black w-96 md:w-2/6 aspect-square bg-pink-200" />
+          <Lottie animationData={crashDebugging} loop={true} className="aspect-square w-96 md:w-2/6" />
         </div>
         <div className="py-12" />
         <div className="flex flex-col md:flex-row md:w-full items-center">
@@ -46,7 +48,7 @@ export default function Home() {
             <p className="text-lg text-center md:text-left leading-relaxed font-sans text-black">Automatically trace app startups, app hangs, network calls, database queries and slow page loads. Use custom traces to measure what matters in any part of your app.</p>
           </div>
           <div className="py-4 md:py-0 md:w-1/6" />
-          <div className="border border-black w-96 md:w-2/6 aspect-square bg-blue-200" />
+          <Lottie animationData={buterySmoothPerf} loop={true} className="aspect-square w-96 md:w-2/6" />
         </div>
         <div className="py-12" />
         <div className="flex flex-col md:flex-row md:w-full items-center">
@@ -56,7 +58,7 @@ export default function Home() {
             <p className="text-lg text-center md:text-left leading-relaxed font-sans text-black">Capture standard output/Logcat output automatically. Add custom logs anywhere in your code for easy debugging in production.</p>
           </div>
           <div className="py-4 md:py-0 md:w-1/6" />
-          <div className="border border-black w-96 md:w-2/6 aspect-square bg-green-200" />
+          <Lottie animationData={detailedLogging} loop={true} className="aspect-square w-96 md:w-2/6" />
         </div>
         <div className="py-12" />
         <div className="flex flex-col md:flex-row md:w-full items-center">
