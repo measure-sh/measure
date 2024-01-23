@@ -2,6 +2,7 @@ package measure
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -368,14 +369,35 @@ func (s *Session) ingest() error {
 		exceptionThreads := "[]"
 		isLowMemory := false
 		if s.Events[i].isANR() {
-			anrExceptions = s.Events[i].ANR.Exceptions.encode()
-			anrThreads = s.Events[i].ANR.Threads.encode()
-			s.Events[i].computeANRFingerprint()
+			marshalledExceptions, err := json.Marshal(s.Events[i].ANR.Exceptions)
+			if err != nil {
+				return err
+			}
+			anrExceptions = string(marshalledExceptions)
+			marshalledThreads, err := json.Marshal(s.Events[i].ANR.Threads)
+			if err != nil {
+				return err
+			}
+			anrThreads = string(marshalledThreads)
+			if err := s.Events[i].computeANRFingerprint(); err != nil {
+				return err
+			}
 		}
 		if s.Events[i].isException() {
-			exceptionExceptions = s.Events[i].Exception.Exceptions.encode()
-			exceptionThreads = s.Events[i].Exception.Threads.encode()
-			s.Events[i].computeExceptionFingerprint()
+			marshalledExceptions, err := json.Marshal(s.Events[i].Exception.Exceptions)
+			if err != nil {
+				return err
+			}
+			exceptionExceptions = string(marshalledExceptions)
+
+			marshalledThreads, err := json.Marshal(s.Events[i].Exception.Threads)
+			if err != nil {
+				return err
+			}
+			exceptionThreads = string(marshalledThreads)
+			if err := s.Events[i].computeExceptionFingerprint(); err != nil {
+				return err
+			}
 		}
 		if s.Events[i].isLowMemory() {
 			isLowMemory = true
@@ -413,13 +435,13 @@ func (s *Session) ingest() error {
 			Set("anr.thread_name", nil).
 			Set("anr.handled", nil).
 			Set("anr.fingerprint", nil).
-			Set("anr_exceptions", nil).
-			Set("anr_threads", nil).
+			Set("anr.exceptions", nil).
+			Set("anr.threads", nil).
 			Set("exception.thread_name", nil).
 			Set("exception.handled", nil).
 			Set("exception.fingerprint", nil).
-			Set("exception_exceptions", nil).
-			Set("exception_threads", nil).
+			Set("exception.exceptions", nil).
+			Set("exception.threads", nil).
 			Set("app_exit.reason", nil).
 			Set("app_exit.importance", nil).
 			Set("app_exit.trace", nil).
