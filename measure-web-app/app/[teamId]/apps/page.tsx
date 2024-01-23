@@ -80,7 +80,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
       {appsApiStatus === AppsApiStatus.Loading && <p className="text-lg font-display">Updating Apps...</p>}
 
       {/* Error message for apps fetch error */}
-      {appsApiStatus === AppsApiStatus.Error && <p className="text-lg font-display">Error fetching apps, please refresh page to try again</p>}
+      {appsApiStatus === AppsApiStatus.Error && <p className="text-lg font-display">Error fetching apps, please check if Team ID is valid or refresh page to try again</p>}
 
       {/* Show list of apps if app fetch succeeds */}
       {appsApiStatus === AppsApiStatus.Success &&
