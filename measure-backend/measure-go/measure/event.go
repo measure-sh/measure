@@ -1,10 +1,10 @@
 package measure
 
 import (
+	"encoding/json"
 	"fmt"
 	"slices"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/go-dedup/simhash"
@@ -82,26 +82,6 @@ type Frame struct {
 	MethodName string `json:"method_name"`
 }
 
-func (f *Frame) encode() string {
-	moduleName := f.ModuleName
-	fileName := f.FileName
-	className := f.ClassName
-	methodName := f.MethodName
-	if f.ModuleName == "" {
-		moduleName = "__blank__"
-	}
-	if f.FileName == "" {
-		fileName = "__blank__"
-	}
-	if f.ClassName == "" {
-		className = "__blank__"
-	}
-	if f.MethodName == "" {
-		methodName = "__blank__"
-	}
-	return fmt.Sprintf("(%d, %d, '%s', '%s', '%s', '%s')", f.LineNum, f.ColNum, moduleName, fileName, className, methodName)
-}
-
 func (f Frame) String() string {
 	className := f.ClassName
 	methodName := f.MethodName
@@ -124,54 +104,20 @@ func (f Frame) String() string {
 
 type Frames []Frame
 
-func (frames Frames) encode() string {
-	var collection []string
-	for _, frame := range frames {
-		collection = append(collection, frame.encode())
-	}
-	return fmt.Sprintf("[%s]", strings.Join(collection, ", "))
-}
-
 type ExceptionUnit struct {
 	Type    string `json:"type" binding:"required"`
 	Message string `json:"message"`
 	Frames  Frames `json:"frames" binding:"required"`
 }
 
-func (eu *ExceptionUnit) encode() string {
-	return fmt.Sprintf("('%s', '%s', %s)", eu.Type, eu.Message, eu.Frames.encode())
-}
-
 type ExceptionUnits []ExceptionUnit
-
-func (exceptionUnits ExceptionUnits) encode() string {
-	var units []string
-	for _, exceptionUnit := range exceptionUnits {
-		units = append(units, exceptionUnit.encode())
-	}
-
-	return fmt.Sprintf("[%s]", strings.Join(units, ", "))
-}
 
 type Thread struct {
 	Name   string `json:"name" binding:"required"`
 	Frames Frames `json:"frames" binding:"required"`
 }
 
-func (thread *Thread) encode() string {
-	return fmt.Sprintf("('%s', %s)", thread.Name, thread.Frames.encode())
-}
-
 type Threads []Thread
-
-func (threads Threads) encode() string {
-	var collection []string
-	for _, thread := range threads {
-		collection = append(collection, thread.encode())
-	}
-
-	return fmt.Sprintf("[%s]", strings.Join(collection, ", "))
-}
 
 type ANR struct {
 	ThreadName        string         `json:"thread_name" binding:"required"`
@@ -471,36 +417,39 @@ func (e *EventField) isLowMemory() bool {
 	return e.Type == TypeLowMemory
 }
 
-func (e *EventField) computeExceptionFingerprint() {
+func (e *EventField) computeExceptionFingerprint() error {
 	if !e.isException() {
-		return
+		return nil
 	}
 
 	if e.Exception.Handled {
-		return
+		return nil
 	}
 
-	var parts []string
-
-	parts = append(parts, e.Exception.ThreadName, strconv.FormatBool(e.Exception.Handled), e.Exception.Exceptions.encode(), e.Exception.Threads.encode())
-	signature := strings.Join(parts, " | ")
+	marshalledException, err := json.Marshal(e.Exception)
+	if err != nil {
+		return err
+	}
 
 	sh := simhash.NewSimhash()
-	e.Exception.Fingerprint = fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet([]byte(signature))))
+	e.Exception.Fingerprint = fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet(marshalledException)))
+
+	return nil
 }
 
-func (e *EventField) computeANRFingerprint() {
+func (e *EventField) computeANRFingerprint() error {
 	if !e.isANR() {
-		return
+		return nil
 	}
 
-	var parts []string
-
-	parts = append(parts, e.ANR.ThreadName, e.ANR.Exceptions.encode(), e.ANR.Threads.encode())
-	signature := strings.Join(parts, " | ")
+	marshalledANR, err := json.Marshal(e.ANR)
+	if err != nil {
+		return err
+	}
 
 	sh := simhash.NewSimhash()
-	e.ANR.Fingerprint = fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet([]byte(signature))))
+	e.ANR.Fingerprint = fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet(marshalledANR)))
+	return nil
 }
 
 func (e *EventField) validate() error {
