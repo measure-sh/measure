@@ -566,6 +566,10 @@ func GetCrashGroups(c *gin.Context) {
 		return
 	}
 
+	af.expand()
+
+	fmt.Printf("af %+v\n", af)
+
 	if err := af.validate(); err != nil {
 		msg := "app filters request validation failed"
 		fmt.Println(msg, err)
@@ -622,6 +626,18 @@ func GetCrashGroups(c *gin.Context) {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
+	}
+
+	for i := range crashGroups {
+		result, err := GetExceptionsWithFilter(crashGroups[i].Events, &af)
+		if err != nil {
+			msg := "failed to get app's exception groups"
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+			return
+		}
+
+		fmt.Println("result", result)
 	}
 
 	ComputeCrashContribution(crashGroups)

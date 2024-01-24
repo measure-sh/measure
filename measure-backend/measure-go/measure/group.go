@@ -137,6 +137,41 @@ func GetExceptionGroup(eg *ExceptionGroup) error {
 	return server.Server.PgPool.QueryRow(context.Background(), stmt.String(), eg.ID, eg.AppID).Scan(&eg.Name, &eg.Fingerprint, &eg.Count, &eg.Events, &eg.CreatedAt, &eg.UpdatedAt)
 }
 
+func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (map[string]any, error) {
+	stmt := sqlf.Select("id, type, exception.fingerprint, exception.exceptions, exception.threads").
+		From("default.events").
+		Where("id in (?)")
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds)
+	if err != nil {
+		return nil, err
+	}
+
+	var events []EventField
+
+	var exceptions string
+	var threads string
+
+	for rows.Next() {
+		var e EventField
+		if err := rows.Scan(&e.ID, &e.Type, &e.Exception.Fingerprint, &exceptions, &threads); err != nil {
+			return nil, err
+		}
+
+		events = append(events, e)
+	}
+
+	result := make(map[string]any)
+
+	result["events"] = events
+	result["exceptions"] = exceptions
+	result["threads"] = threads
+
+	return result, nil
+}
+
 // GetANRGroup gets the ANRGroup by matching
 // ANRGroup id and app id.
 func GetANRGroup(ag *ANRGroup) error {
