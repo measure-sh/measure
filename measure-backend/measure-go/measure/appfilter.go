@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"measure-backend/measure-go/server"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -27,6 +28,7 @@ type AppFilter struct {
 	From      time.Time `form:"from" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
 	To        time.Time `form:"to" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
 	Version   string    `form:"version"`
+	Versions  []string  `form:"versions"`
 	Exception bool      `form:"exception"`
 	Crash     bool      `form:"crash"`
 	ANR       bool      `form:"anr"`
@@ -77,6 +79,16 @@ func (af *AppFilter) validate() error {
 	}
 
 	return nil
+}
+
+func (af *AppFilter) expand() {
+	if len(af.Versions) < 1 {
+		return
+	}
+
+	versions := af.Versions[0]
+
+	af.Versions = strings.Split(versions, ",")
 }
 
 // hasVersion checks if the version has been
