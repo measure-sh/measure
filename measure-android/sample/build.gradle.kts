@@ -1,7 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("sh.measure.plugin")
+    id("sh.measure.android.gradle")
 }
 
 android {

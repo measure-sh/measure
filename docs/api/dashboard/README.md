@@ -2,13 +2,27 @@
 
 Find all the endpoints, resources and detailed documentation for Measure Dashboard REST APIs.
 
-## Apps
+## App
 
 - [**GET `/apps/:id/journey`**](#get-appsidjourney) - Fetch an app's issue journey map for a time range &amp; version.
 - [**GET `/apps/:id/metrics`**](#get-appsidmetrics) - Fetch an app's health metrics for a time range &amp; version.
 - [**GET `/apps/:id/filters`**](#get-appsidfilters) - Fetch an app's filters.
 - [**GET `/apps/:id/crashGroups`**](#get-appsidcrashgroups) - Fetch list of crash groups for an app
 - [**GET `/apps/:id/anrGroups`**](#get-appsidanrgroups) - Fetch list of ANR groups for an app
+
+## Team
+
+- [**GET `/teams`**](#get-teams) - Fetch list of teams of currently logged in user
+- [**GET `/teams/:id/apps`**](#get-teamsidapps) - Fetch list of apps for a team
+- [**GET `/teams/:id/apps/:id`**](#get-teamsidappsid) - Fetch details of an app for a team
+- [**POST `/teams/:id/apps`**](#post-teamsidapps) - Create a new app for a team
+- [**POST `/teams/:id/invite`**](#post-teamsidinvite) - Invite new members (both existing & non measure users) to a team
+- [**PATCH `/teams/:id/rename`**](#patch-teamsidrename) -  Rename a team
+- [**GET `/teams/:id/members`**](#get-teamsidmembers) -  Fetch list of team members for a team
+- [**DELETE `/teams/:id/members/:id`**](#delete-teamsidmembersid) -  Remove a member from a team
+- [**PATCH `/teams/:id/members/:id`**](#patch-teamsidmembersid) -  Change role of a member of a team
+- [**GET `/teams/:id/authz`**](#get-teamsidauthz) -  Fetch authorization details of currently logged in user for a team
+
 
 ### GET `/apps/:id/journey`
 
@@ -680,6 +694,835 @@ These headers must be present in each request.
       "updated_at": "2024-01-18T08:00:49.024Z"
     }
   ]
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/teams`
+
+Fetch list of teams of currently logged in user
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  [
+    {
+        "id": "099f0f9b-5ee9-47de-a8aa-e996adc049c1",
+        "name": "Team 1",
+        "role": "owner"
+    },
+    {
+        "id": "823f0g9c-2gg7-32mp-x6cj-v368geb129d0",
+        "name": "Team 2",
+        "role": "admin"
+    }
+  ]
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/teams/:id/apps`
+
+Fetch list of apps for a team
+
+#### Usage Notes
+
+- Teams's UUID must be passed in the URI
+- The `onboarded` flag in the response indicates whether this app has received it's first session
+- The `unique_identifier` field in the response is the package name or bundle id of the app
+- The `api_key` field in the response is the key used by the client SDK to send data
+- The `revoked` field in the `api_key` object in the response indicates whether the API key is valid or has been revoked due to security issues
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  [
+    {
+        "id": "3dd90264-6be7-420f-aaf7-3f39a7588b0c",
+        "team_id": "099f0f9b-5ee9-47de-a8aa-e996adc049c1",
+        "name": "App 1",
+        "api_key": {
+            "created_at": "2024-01-19T06:16:00.896Z",
+            "key": "msrsh_a235c69a0e9550d9d4bec7c6cdce653982cb452d8b6cb1f46875329c7ea7c3f4_abdb5a57",
+            "last_seen": null,
+            "revoked": false
+        },
+        "onboarded": false,
+        "created_at": "2024-01-19T06:16:00.894744Z",
+        "updated_at": "2024-01-19T06:16:00.894744Z",
+        "platform": null,
+        "onboarded_at": null,
+        "unique_identifier": null
+    },
+    {
+        "id": "a8367cc5-be17-4854-bb58-bb05e53e9a8c",
+        "team_id": "099f0f9b-5ee9-47de-a8aa-e996adc049c1",
+        "name": "App 2",
+        "api_key": {
+            "created_at": "2024-01-17T08:22:36.547Z",
+            "key": "msrsh_d294b2f7f27eb9068b76d44ca4cbf67f5e192fda7075655cec311926acd145b4_2f7e56f9",
+            "last_seen": null,
+            "revoked": false
+        },
+        "onboarded": true,
+        "created_at": "2024-01-17T08:22:36.540065Z",
+        "updated_at": "2024-01-17T08:22:36.540065Z",
+        "platform": "android",
+        "onboarded_at": "2024-01-18T08:00:14.007865Z",
+        "unique_identifier": "sh.measure.app2"
+    }
+  ]
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/teams/:id/apps/:id`
+
+Fetch details of an app for a team
+
+#### Usage Notes
+
+- Teams's UUID must be passed in the URI as the first ID
+- Apps's UUID must be passed in the URI as the second ID
+- The `onboarded` flag in the response indicates whether this app has received it's first session
+- The `unique_identifier` field in the response is the package name or bundle id of the app
+- The `api_key` field in the response is the key used by the client SDK to send data
+- The `revoked` field in the `api_key` object in the response indicates whether the API key is valid or has been revoked due to security issues
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  {
+    "id": "349ae6bb-deda-43a0-bee5-a0c8910872ab",
+    "team_id": "9e139caa-27b5-4d22-a190-f13167ca14fe",
+    "name": "App 1",
+    "api_key": {
+      "created_at": "2024-01-17T11:01:09.323Z",
+      "key": "msrsh_d581058a398a021be561a46c9b92458f618a8a9cd3fed47fc8255b3c2be6b646_57cf688e",
+      "last_seen": null,
+      "revoked": false
+    },
+    "onboarded": true,
+    "created_at": "2024-01-17T11:01:09.319248Z",
+    "updated_at": "2024-01-18T08:00:14.007865Z",
+    "platform": "android",
+    "onboarded_at": "2024-01-18T08:00:14.007865Z",
+    "unique_identifier": "sh.measure.app1"
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### POST `/teams/:id/apps`
+
+Create a new app for a team
+
+#### Usage Notes
+
+- Teams's UUID must be passed in the URI
+- The app name of the new app must be passed in the request body
+- The `onboarded` flag in the response indicates whether this app has received it's first session
+- The `unique_identifier` field in the response is the package name or bundle id of the app
+- The `api_key` field in the response is the key used by the client SDK to send data
+- The `revoked` field in the `api_key` object in the response indicates whether the API key is valid or has been revoked due to security issues
+
+#### Request body
+
+```json
+{
+  "name": "App 3"
+}
+```
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  {
+    "id": "a787cbd6-1c94-4ffb-9cf9-f2fe0c4ebdeb",
+    "team_id": "099f0f9b-5ee9-47de-a8aa-e996adc049c1",
+    "name": "App 3",
+    "api_key": {
+        "created_at": "2024-01-19T06:40:37.489Z",
+        "key": "msrsh_9d33956c945c386ea69790eab71550b955b09aa3dae9e1130d2d9fca6ea783b9_937e81c4",
+        "last_seen": null,
+        "revoked": false
+    },
+    "onboarded": false,
+    "created_at": "2024-01-19T06:40:37.483752508Z",
+    "updated_at": "2024-01-19T06:40:37.483752508Z",
+    "platform": null,
+    "onboarded_at": null,
+    "unique_identifier": null
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `201 Created`               | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### POST `/teams/:id/invite`
+
+Invite new members (both existing & non measure users) to a team
+
+#### Usage Notes
+
+- Teams's UUID must be passed in the URI
+- The email id of the user to be invited, team ID and role of the user to be invited must be passed in the request body
+- If a invited user does not have a measure account, they will get an invite email to sign up and will be added to team post signup automatically
+- If invited user already has a measure acccount, they will be added to the team immediately
+
+#### Request body
+
+```json
+{
+  "email": "newuser@gmail.com",
+  "role": "admin",
+  "teamId": "099f0f9b-5ee9-47de-a8aa-e996adc049c1"
+}
+```
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  {
+    "ok":"invited newuser@gmail.com"
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### PATCH `/teams/:id/rename`
+
+Rename a team
+
+#### Usage Notes
+
+- Teams's UUID must be passed in the URI
+- The new name of the team must be passed in the request body
+
+#### Request body
+
+```json
+{
+  "name": "Team 2"
+}
+```
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  {
+    "ok":"team was renamed"
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/teams/:id/members`
+
+Fetch list of team members for a team
+
+#### Usage Notes
+
+- Teams's UUID must be passed in the URI
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  [
+    {
+      "id": "7737299c-82cb-4769-8fed-b313a230aa9d",
+      "name": "User 1",
+      "email": "user1@gmail.com",
+      "role": "owner",
+      "last_sign_in_at": "2024-01-19T06:11:47.928Z",
+      "created_at": "2024-01-17T08:22:28.274Z"
+    },
+    {
+      "id": "a787cbd6-1c94-4ffb-9cf9-f2fe0c4ebdeb",
+      "name": "User 2",
+      "email": "user2@gmail.com",
+      "role": "admin",
+      "last_sign_in_at": "2024-01-19T03:09:47.928Z",
+      "created_at": "2024-01-17T04:21:23.274Z"
+    }
+  ]
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### DELETE `/teams/:id/members/:id`
+
+Remove a member from a team
+
+#### Usage Notes
+
+- Teams's UUID must be passed in the URI as the first ID
+- Members's UUID must be passed in the URI as the second ID
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  {
+    "ok": "removed member [f0ee4474-bcde-4d3f-979d-bbf36f2d66b7] from team [099f0f9b-5ee9-47de-a8aa-e996adc049c1]"
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### PATCH `/teams/:id/members/:id`
+
+Change role of a member of a team
+
+#### Usage Notes
+
+- Teams's UUID must be passed in the URI as the first ID
+- Members's UUID must be passed in the URI as the second ID
+
+#### Request body
+
+```json
+{
+  "role": "developer"
+}
+```
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  {
+    "ok" : "done"
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/teams/:id/authz`
+
+Fetch authorization details of currently logged in user for a team
+
+#### Usage Notes
+
+- Teams's UUID must be passed in the URI
+- The `can_invite` field in the response indicates what roles new team members can be invited as by the current user
+- The `can_change_roles` field in the `authz` field in the response indicates what roles the current user is allowed to assign for that particular member
+- The `can_remove` flag in the `authz` field in the response indicates whether the current user is allowed to remove that particular member from the team
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  {
+    "can_invite": [
+        "owner",
+        "admin",
+        "developer",
+        "viewer"
+    ],
+    "members": [
+        {
+            "id": "7737299c-82cb-4769-8fed-b313a230aa9d",
+            "name": "User 1",
+            "email": "user1@gmail.com",
+            "role": "owner",
+            "last_sign_in_at": "2024-01-19T08:30:04.915Z",
+            "created_at": "2024-01-17T08:22:28.274Z",
+            "authz": {
+                "can_change_roles": [
+                    "owner",
+                    "admin",
+                    "developer",
+                    "viewer"
+                ],
+                "can_remove": true
+            }
+        },
+        {
+            "id": "f0ee4474-bcde-4d3f-979d-bbf36f2d66b7",
+            "name": null,
+            "email": "user2@gmail.com",
+            "role": "developer",
+            "last_sign_in_at": "2024-01-19T08:27:04.38Z",
+            "created_at": "2024-01-19T06:55:16.522Z",
+            "authz": {
+                "can_change_roles": [
+                    "owner",
+                    "admin",
+                    "developer",
+                    "viewer"
+                ],
+                "can_remove": true
+            }
+        }
+    ]
+  }
   ```
 
   </details>

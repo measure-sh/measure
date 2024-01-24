@@ -6,15 +6,16 @@ plugins {
     id("java-gradle-plugin")
     id("com.autonomousapps.testkit") version "0.8"
     id("com.diffplug.spotless") version "6.24.0"
+    id("maven-publish")
 }
 
-group = "sh.measure.plugin"
-version = "0.0.1"
+group = properties["GROUP"] as String
+version = properties["MEASURE_PLUGIN_VERSION_NAME"] as String
 
 gradlePlugin {
     plugins {
         create("plugin") {
-            id = "sh.measure.plugin"
+            id = "sh.measure.android.gradle"
             displayName = "Measure Gradle Plugin"
             description = "A gradle plugin for Measure Android SDK"
             implementationClass = "sh.measure.MeasurePlugin"
@@ -29,6 +30,32 @@ kotlin {
 java {
     withSourcesJar()
     withJavadocJar()
+}
+
+val measureGradlePluginVersion = properties["MEASURE_PLUGIN_VERSION_NAME"] as String
+
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            groupId = properties["GROUP"] as String
+            artifactId = properties["MEASURE_PLUGIN_ARTIFACT_ID"] as String
+            version = measureGradlePluginVersion
+
+            from(components["java"])
+        }
+    }
+
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/measure-sh/measure")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
 }
 
 dependencies {
@@ -51,7 +78,7 @@ dependencies {
     testImplementation("org.ow2.asm:asm-util:9.6")
     testImplementation("org.ow2.asm:asm-commons:9.6")
     testImplementation("com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0")
-    testImplementationAar("sh.measure:android:0.0.1-SNAPSHOT")
+    testImplementationAar("sh.measure:measure-android:0.1.0")
 
     functionalTestRuntimeOnly("org.junit.platform:junit-platform-launcher")
     functionalTestImplementation("org.junit.jupiter:junit-jupiter:5.9.2")
@@ -62,5 +89,7 @@ dependencies {
 }
 
 tasks.withType<Test>().configureEach {
-    useJUnitPlatform()
+    if  (this.name.equals("functionalTest")) {
+        useJUnitPlatform()
+    }
 }
