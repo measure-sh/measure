@@ -5,21 +5,14 @@ import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import TeamSwitcher from "../components/team_switcher";
-import { getAccessTokenOrRedirectToAuth, logoutIfAuthError, logout } from "../utils/auth_utils";
+import { TeamsApiStatus, emptyTeam, fetchTeamsFromServer } from "../api/api_calls";
+import { logout } from "../utils/auth_utils";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  enum TeamsApiStatus {
-    Loading,
-    Success,
-    Error
-  }
-
-  const emptyTeams = [{ 'id': '', 'name': '' }]
-
   var menuItems = [
     {
       hrefSuffix: `overview`,
@@ -44,7 +37,7 @@ export default function DashboardLayout({
   ];
 
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading);
-  const [teams, setTeams] = useState(emptyTeams);
+  const [teams, setTeams] = useState([emptyTeam]);
   const [selectedTeam, setSelectedTeam] = useState(teams[0].id)
 
   const pathName = usePathname();
@@ -53,34 +46,27 @@ export default function DashboardLayout({
   const getTeams = async () => {
     setTeamsApiStatus(TeamsApiStatus.Loading)
 
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
-    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
-    const opts = {
-      headers: {
-        "Authorization": `Bearer ${authToken}`
-      }
-    };
+    const result = await fetchTeamsFromServer(router)
 
-    const res = await fetch(`${origin}/teams`, opts);
-    if (!res.ok) {
-      setTeamsApiStatus(TeamsApiStatus.Error)
-      logoutIfAuthError(router, res)
-      return
+    switch (result.status) {
+      case TeamsApiStatus.Error:
+        setTeamsApiStatus(TeamsApiStatus.Error)
+        break
+      case TeamsApiStatus.Success:
+        setTeamsApiStatus(TeamsApiStatus.Success)
+        setTeams(result.data!)
+        setSelectedTeam(result.data!.find((e: { id: string, name: string }) => pathName.includes(e.id))!.id)
+        break
     }
-
-    setTeamsApiStatus(TeamsApiStatus.Success)
-    const data = await res.json()
-    setTeams(data)
-    setSelectedTeam(data.find((e: { id: string, name: string }) => pathName.includes(e.id)).id)
-  }
-
-  const logoutUser = async () => {
-    await logout(router)
   }
 
   useEffect(() => {
     getTeams()
   }, []);
+
+  const logoutUser = async () => {
+    await logout(router)
+  }
 
   const onTeamChanged = (item: string) => {
     const selectedTeamId = teams.find((e) => e.name === item)!.id
