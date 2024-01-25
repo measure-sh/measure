@@ -9,24 +9,10 @@ import Link from "next/link";
 import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from '@/app/utils/auth_utils';
 import { useRouter } from 'next/navigation';
 import CreateApp from '@/app/components/create_app';
+import { AppsApiStatus, FiltersApiStatus, emptyApp, fetchAppsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
 
 export default function Crashes({ params }: { params: { teamId: string } }) {
   const router = useRouter()
-
-  enum AppsApiStatus {
-    Loading,
-    Success,
-    Error,
-    NoApps
-  }
-
-  enum FiltersApiStatus {
-    Loading,
-    Success,
-    Error,
-    NotOnboarded,
-    NoData
-  }
 
   enum CrashGroupsApiStatus {
     Loading,
@@ -37,24 +23,6 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
   const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading);
   const [filtersApiStatus, setFiltersApiStatus] = useState(FiltersApiStatus.Loading);
   const [crashGroupsApiStatus, setCrashGroupsApiStatus] = useState(CrashGroupsApiStatus.Loading);
-
-  const emptyApp = {
-    "id": "",
-    "team_id": "",
-    "name": "",
-    "api_key": {
-      "created_at": "",
-      "key": "",
-      "last_seen": null,
-      "revoked": false
-    },
-    "onboarded": false,
-    "created_at": "",
-    "updated_at": "",
-    "platform": null,
-    "onboarded_at": null,
-    "unique_identifier": null
-  }
 
   const emptyCrashGroup = {
     "id": "",
@@ -94,78 +62,55 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
     setFormattedEndDate(new Date(endDate).toLocaleDateString());
   }, [startDate, endDate]);
 
-  const getApps = async (teamId: string,) => {
+  const getApps = async () => {
     setAppsApiStatus(AppsApiStatus.Loading)
 
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
-    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
-    const opts = {
-      headers: {
-        "Authorization": `Bearer ${authToken}`
-      }
-    };
+    const result = await fetchAppsFromServer(params.teamId, router)
 
-    const res = await fetch(`${origin}/teams/${teamId}/apps`, opts);
-
-    if (!res.ok && res.status == 404) {
-      setAppsApiStatus(AppsApiStatus.NoApps)
-      return
+    switch (result.status) {
+      case AppsApiStatus.NoApps:
+        setAppsApiStatus(AppsApiStatus.NoApps)
+        break
+      case AppsApiStatus.Error:
+        setAppsApiStatus(AppsApiStatus.Error)
+        break
+      case AppsApiStatus.Success:
+        setAppsApiStatus(AppsApiStatus.Success)
+        setApps(result.data)
+        setSelectedApp(result.data[0])
+        break
     }
-
-    if (!res.ok) {
-      setAppsApiStatus(AppsApiStatus.Error)
-      logoutIfAuthError(router, res)
-      return
-    }
-
-    const data = await res.json()
-
-    setApps(data)
-    setSelectedApp(data[0])
-    setAppsApiStatus(AppsApiStatus.Success)
   }
 
   useEffect(() => {
-    getApps(params.teamId)
+    getApps()
   }, []);
 
-  const getFilters = async (selectedApp: typeof emptyApp) => {
-    if (!selectedApp.onboarded) {
-      setFiltersApiStatus(FiltersApiStatus.NotOnboarded)
-      return
-    }
-
+  const getFilters = async () => {
     setFiltersApiStatus(FiltersApiStatus.Loading)
 
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
-    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
-    const opts = {
-      headers: {
-        "Authorization": `Bearer ${authToken}`
-      }
-    };
+    const result = await fetchFiltersFromServer(selectedApp, router)
 
-    const res = await fetch(`${origin}/apps/${selectedApp.id}/filters`, opts);
-
-    if (!res.ok) {
-      logoutIfAuthError(router, res)
-      setFiltersApiStatus(FiltersApiStatus.Error)
-      return
+    switch (result.status) {
+      case FiltersApiStatus.NotOnboarded:
+        setFiltersApiStatus(FiltersApiStatus.NotOnboarded)
+        break
+      case FiltersApiStatus.NoData:
+        setFiltersApiStatus(FiltersApiStatus.NoData)
+        break
+      case FiltersApiStatus.Error:
+        setFiltersApiStatus(FiltersApiStatus.Error)
+        break
+      case FiltersApiStatus.Success:
+        setFiltersApiStatus(FiltersApiStatus.Success)
+        setVersions(result.data.versions)
+        setSelectedVersions(result.data.versions[0])
+        break
     }
-    const data = await res.json()
-
-    if (data.versions === null) {
-      setFiltersApiStatus(FiltersApiStatus.NoData)
-      return
-    }
-
-    setVersions(data.versions)
-    setSelectedVersions(data.versions[0])
-    setFiltersApiStatus(FiltersApiStatus.Success)
   }
 
   useEffect(() => {
-    getFilters(selectedApp)
+    getFilters()
   }, [selectedApp]);
 
   useEffect(() => {
