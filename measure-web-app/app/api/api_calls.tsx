@@ -1,6 +1,12 @@
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context"
 import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from "../utils/auth_utils"
 
+export enum TeamsApiStatus {
+    Loading,
+    Success,
+    Error
+}
+
 export enum AppsApiStatus {
     Loading,
     Success,
@@ -15,6 +21,8 @@ export enum FiltersApiStatus {
     NotOnboarded,
     NoData
 }
+
+const emptyTeam = { 'id': '', 'name': '' }
 
 export const emptyApp = {
     "id": "",
@@ -32,6 +40,26 @@ export const emptyApp = {
     "platform": null,
     "onboarded_at": null,
     "unique_identifier": null
+}
+
+export const fetchTeamsFromServer = async (router: AppRouterInstance) => {
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+        headers: {
+            "Authorization": `Bearer ${authToken}`
+        }
+    };
+
+    const res = await fetch(`${origin}/teams`, opts);
+    if (!res.ok) {
+        logoutIfAuthError(router, res)
+        return { status: TeamsApiStatus.Error, data: null }
+    }
+
+    const data: [{ id: string, name: string }] = await res.json()
+
+    return { status: TeamsApiStatus.Success, data: data }
 }
 
 export const fetchAppsFromServer = async (teamId: string, router: AppRouterInstance) => {
