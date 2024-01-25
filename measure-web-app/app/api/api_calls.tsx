@@ -22,7 +22,7 @@ export enum FiltersApiStatus {
     NoData
 }
 
-const emptyTeam = { 'id': '', 'name': '' }
+export const emptyTeam = { 'id': '', 'name': '' }
 
 export const emptyApp = {
     "id": "",
