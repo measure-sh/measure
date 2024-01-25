@@ -3,8 +3,10 @@ package measure
 import (
 	"encoding/json"
 	"fmt"
+	"measure-backend/measure-go/chrono"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-dedup/simhash"
@@ -72,6 +74,10 @@ const TypeCPUUsage = "cpu_usage"
 // timeFormat is the format of datetime in nanoseconds when
 // converting datetime values before inserting into database
 const timeFormat = "2006-01-02 15:04:05.999999999"
+
+var TrimRight = func(s string) string {
+	return strings.TrimRight(s, "\x00")
+}
 
 type Frame struct {
 	LineNum    int    `json:"line_num"`
@@ -141,6 +147,29 @@ type Exception struct {
 	NetworkProvider   string         `json:"network_provider"`
 	DeviceLocale      string         `json:"device_locale"`
 	Fingerprint       string         `json:"fingerprint"`
+}
+
+func (e *Exception) Trim() {
+	e.ThreadName = TrimRight(e.ThreadName)
+	e.NetworkType = TrimRight(e.NetworkType)
+	e.NetworkGeneration = TrimRight(e.NetworkGeneration)
+	e.NetworkProvider = TrimRight(e.NetworkProvider)
+	e.DeviceLocale = TrimRight(e.DeviceLocale)
+}
+
+func (e Exception) Stacktrace() string {
+	var b strings.Builder
+
+	b.WriteString(e.getType() + "\n")
+
+	for i := range e.Exceptions {
+		for j := range e.Exceptions[i].Frames {
+			frame := e.Exceptions[i].Frames[j].String()
+			b.WriteString(FramePrefix + frame + "\n")
+		}
+	}
+
+	return b.String()
 }
 
 type AppExit struct {
@@ -314,6 +343,7 @@ type EventField struct {
 	Timestamp         time.Time         `json:"timestamp" binding:"required"`
 	Type              string            `json:"type" binding:"required"`
 	ThreadName        string            `json:"thread_name" binding:"required"`
+	Resource          Resource          `json:"resource"`
 	ANR               ANR               `json:"anr,omitempty"`
 	Exception         Exception         `json:"exception,omitempty"`
 	AppExit           AppExit           `json:"app_exit,omitempty"`
@@ -415,6 +445,64 @@ func (e *EventField) isCPUUsage() bool {
 // check if LowMemory event is present
 func (e *EventField) isLowMemory() bool {
 	return e.Type == TypeLowMemory
+}
+
+func (e *EventField) Trim() {
+	e.ThreadName = TrimRight(e.ThreadName)
+	e.Type = TrimRight(e.Type)
+	e.Resource.Trim()
+	if e.isException() {
+		e.Exception.Trim()
+	}
+}
+
+type EventException struct {
+	ID         uuid.UUID         `json:"id"`
+	Timestamp  chrono.ISOTime    `json:"timestamp"`
+	Type       string            `json:"type"`
+	ThreadName string            `json:"thread_name"`
+	Resource   Resource          `json:"resource"`
+	Exception  Exception         `json:"-"`
+	Exceptions []ExceptionView   `json:"exceptions"`
+	Threads    []ThreadView      `json:"threads"`
+	Attributes map[string]string `json:"attributes"`
+}
+
+type ExceptionView struct {
+	Type       string `json:"type"`
+	Message    string `json:"message"`
+	Location   string `json:"location"`
+	Stacktrace string `json:"stacktrace"`
+}
+
+type ThreadView struct {
+	Name   string   `json:"name"`
+	Frames []string `json:"frames"`
+}
+
+func (e *EventException) Trim() {
+	e.ThreadName = TrimRight(e.ThreadName)
+	e.Type = TrimRight(e.Type)
+	e.Resource.Trim()
+	e.Exception.Trim()
+}
+
+func (e *EventException) ComputeView() {
+	var ev ExceptionView
+	ev.Type = e.Exception.getType()
+	ev.Message = e.Exception.getMessage()
+	ev.Location = e.Exception.getLocation()
+	ev.Stacktrace = e.Exception.Stacktrace()
+	e.Exceptions = append(e.Exceptions, ev)
+
+	for i := range e.Exception.Threads {
+		var tv ThreadView
+		tv.Name = e.Exception.Threads[i].Name
+		for j := range e.Exception.Threads[i].Frames {
+			tv.Frames = append(tv.Frames, e.Exception.Threads[i].Frames[j].String())
+		}
+		e.Threads = append(e.Threads, tv)
+	}
 }
 
 func (e *EventField) computeExceptionFingerprint() error {

@@ -2,6 +2,7 @@ package measure
 
 import (
 	"context"
+	"encoding/json"
 	"measure-backend/measure-go/chrono"
 	"measure-backend/measure-go/server"
 	"slices"
@@ -19,16 +20,17 @@ import (
 var MinHammingDistance = 3
 
 type ExceptionGroup struct {
-	ID          uuid.UUID      `json:"id" db:"id"`
-	AppID       uuid.UUID      `json:"app_id" db:"app_id"`
-	AppVersion  string         `json:"app_version" db:"app_version"`
-	Name        string         `json:"name" db:"name"`
-	Fingerprint string         `json:"fingerprint" db:"fingerprint"`
-	Count       int            `json:"count" db:"count"`
-	Events      []uuid.UUID    `json:"events" db:"events"`
-	Percentage  float32        `json:"percentage_contribution"`
-	CreatedAt   chrono.ISOTime `json:"created_at" db:"created_at"`
-	UpdatedAt   chrono.ISOTime `json:"updated_at" db:"updated_at"`
+	ID              uuid.UUID        `json:"id" db:"id"`
+	AppID           uuid.UUID        `json:"app_id" db:"app_id"`
+	AppVersion      string           `json:"app_version" db:"app_version"`
+	Name            string           `json:"name" db:"name"`
+	Fingerprint     string           `json:"fingerprint" db:"fingerprint"`
+	Count           int              `json:"count" db:"count"`
+	Events          []uuid.UUID      `json:"events" db:"events"`
+	EventExceptions []EventException `json:"exception_events"`
+	Percentage      float32          `json:"percentage_contribution"`
+	CreatedAt       chrono.ISOTime   `json:"created_at" db:"created_at"`
+	UpdatedAt       chrono.ISOTime   `json:"updated_at" db:"updated_at"`
 }
 
 type ANRGroup struct {
@@ -137,8 +139,8 @@ func GetExceptionGroup(eg *ExceptionGroup) error {
 	return server.Server.PgPool.QueryRow(context.Background(), stmt.String(), eg.ID, eg.AppID).Scan(&eg.Name, &eg.Fingerprint, &eg.Count, &eg.Events, &eg.CreatedAt, &eg.UpdatedAt)
 }
 
-func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (map[string]any, error) {
-	stmt := sqlf.Select("id, type, exception.fingerprint, exception.exceptions, exception.threads").
+func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) ([]EventException, error) {
+	stmt := sqlf.Select("id, type, timestamp, thread_name, resource.device_name, resource.device_model, resource.device_manufacturer, resource.device_type, resource.device_is_foldable, resource.device_is_physical, resource.device_density_dpi, resource.device_width_px, resource.device_height_px, resource.device_density, resource.device_locale, resource.os_name, resource.os_version, resource.platform, resource.app_version, resource.app_build, resource.app_unique_id, resource.measure_sdk_version, resource.network_type, resource.network_generation, resource.network_provider, exception.thread_name, exception.handled, exception.network_type, exception.network_generation, exception.network_provider, exception.device_locale, exception.fingerprint, exception.exceptions, exception.threads, attributes").
 		From("default.events").
 		Where("id in (?)")
 
@@ -149,27 +151,69 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (map[string]an
 		return nil, err
 	}
 
-	var events []EventField
+	var events []EventException
 
 	var exceptions string
 	var threads string
 
 	for rows.Next() {
-		var e EventField
-		if err := rows.Scan(&e.ID, &e.Type, &e.Exception.Fingerprint, &exceptions, &threads); err != nil {
+		var e EventException
+		fields := []any{
+			&e.ID,
+			&e.Type,
+			&e.Timestamp,
+			&e.ThreadName,
+			&e.Resource.DeviceName,
+			&e.Resource.DeviceModel,
+			&e.Resource.DeviceManufacturer,
+			&e.Resource.DeviceType,
+			&e.Resource.DeviceIsFoldable,
+			&e.Resource.DeviceIsPhysical,
+			&e.Resource.DeviceDensityDPI,
+			&e.Resource.DeviceWidthPX,
+			&e.Resource.DeviceHeightPX,
+			&e.Resource.DeviceDensity,
+			&e.Resource.DeviceLocale,
+			&e.Resource.OSName,
+			&e.Resource.OSVersion,
+			&e.Resource.Platform,
+			&e.Resource.AppVersion,
+			&e.Resource.AppBuild,
+			&e.Resource.AppUniqueID,
+			&e.Resource.MeasureSDKVersion,
+			&e.Resource.NetworkType,
+			&e.Resource.NetworkGeneration,
+			&e.Resource.NetworkProvider,
+			&e.Exception.ThreadName,
+			&e.Exception.Handled,
+			&e.Exception.NetworkType,
+			&e.Exception.NetworkGeneration,
+			&e.Exception.NetworkProvider,
+			&e.Exception.DeviceLocale,
+			&e.Exception.Fingerprint,
+			&exceptions,
+			&threads,
+			&e.Attributes,
+		}
+
+		if err := rows.Scan(fields...); err != nil {
 			return nil, err
 		}
+
+		e.Trim()
+		if err := json.Unmarshal([]byte(exceptions), &e.Exception.Exceptions); err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal([]byte(threads), &e.Exception.Threads); err != nil {
+			return nil, err
+		}
+
+		e.ComputeView()
 
 		events = append(events, e)
 	}
 
-	result := make(map[string]any)
-
-	result["events"] = events
-	result["exceptions"] = exceptions
-	result["threads"] = threads
-
-	return result, nil
+	return events, nil
 }
 
 // GetANRGroup gets the ANRGroup by matching
