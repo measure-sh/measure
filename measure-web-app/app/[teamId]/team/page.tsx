@@ -5,18 +5,13 @@ import { getAccessTokenOrRedirectToAuth, getUserIdOrRedirectToAuth, logoutIfAuth
 import { useEffect, useState } from "react";
 import { useRouter } from 'next/navigation';
 import DangerConfirmationModal from "@/app/components/danger_confirmation_modal";
+import { TeamsApiStatus, fetchTeamsFromServer, emptyTeam } from "@/app/api/api_calls";
 
 function formatToCamelCase(role: string): string {
   return role.charAt(0).toLocaleUpperCase() + role.slice(1)
 }
 
 export default function Team({ params }: { params: { teamId: string } }) {
-
-  enum TeamsApiStatus {
-    Loading,
-    Success,
-    Error
-  }
 
   enum TeamNameChangeApiStatus {
     Init,
@@ -52,7 +47,6 @@ export default function Team({ params }: { params: { teamId: string } }) {
     Error
   }
 
-  const emptyTeam = { 'id': '', 'name': '' }
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading);
   const [team, setTeam] = useState(emptyTeam)
 
@@ -109,33 +103,24 @@ export default function Team({ params }: { params: { teamId: string } }) {
 
   const router = useRouter();
 
-  const getTeam = async () => {
+  const getTeams = async () => {
     setTeamsApiStatus(TeamsApiStatus.Loading)
 
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
-    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
-    const opts = {
-      headers: {
-        "Authorization": `Bearer ${authToken}`
-      }
-    };
+    const result = await fetchTeamsFromServer(router)
 
-    const res = await fetch(`${origin}/teams`, opts);
-    if (!res.ok) {
-      setTeamsApiStatus(TeamsApiStatus.Error)
-      logoutIfAuthError(router, res)
-      return
+    switch (result.status) {
+      case TeamsApiStatus.Error:
+        setTeamsApiStatus(TeamsApiStatus.Error)
+        break
+      case TeamsApiStatus.Success:
+        setTeamsApiStatus(TeamsApiStatus.Success)
+        setTeam(result.data!.filter((i) => i.id === params.teamId)[0])
+        break
     }
-
-    setTeamsApiStatus(TeamsApiStatus.Success)
-    const data: [{ id: string, name: string }] = await res.json()
-
-
-    setTeam(data.filter((i) => i.id === params.teamId)[0])
   }
 
   useEffect(() => {
-    getTeam()
+    getTeams()
   }, []);
 
   const getCurrentUserId = async () => {
