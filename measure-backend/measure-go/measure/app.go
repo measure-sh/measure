@@ -82,6 +82,8 @@ func (a App) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// GetExceptionGroups returns slice of ExceptionGroup after applying matching
+// AppFilter values
 func (a App) GetExceptionGroups(af *AppFilter) ([]ExceptionGroup, error) {
 	stmt := sqlf.PostgreSQL.
 		Select("id, app_id, app_version, name, fingerprint, count, event_ids, created_at, updated_at").
@@ -117,6 +119,8 @@ func (a App) GetExceptionGroups(af *AppFilter) ([]ExceptionGroup, error) {
 	return groups, nil
 }
 
+// GetANRGroups returns slice of ANRGroup after applying matching
+// AppFilter values
 func (a App) GetANRGroups(af *AppFilter) ([]ANRGroup, error) {
 	stmt := sqlf.PostgreSQL.
 		Select("id, app_id, app_version, name, fingerprint, count, event_ids, created_at, updated_at").

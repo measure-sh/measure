@@ -139,6 +139,8 @@ func GetExceptionGroup(eg *ExceptionGroup) error {
 	return server.Server.PgPool.QueryRow(context.Background(), stmt.String(), eg.ID, eg.AppID).Scan(&eg.Name, &eg.Fingerprint, &eg.Count, &eg.EventIDs, &eg.CreatedAt, &eg.UpdatedAt)
 }
 
+// GetExceptionsWithFilter returns a slice of EventException for the given slice of
+// event id and matching AppFilter.
 func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) ([]EventException, error) {
 	stmt := sqlf.Select("id, type, timestamp, thread_name, resource.device_name, resource.device_model, resource.device_manufacturer, resource.device_type, resource.device_is_foldable, resource.device_is_physical, resource.device_density_dpi, resource.device_width_px, resource.device_height_px, resource.device_density, resource.device_locale, resource.os_name, resource.os_version, resource.platform, resource.app_version, resource.app_build, resource.app_unique_id, resource.measure_sdk_version, resource.network_type, resource.network_generation, resource.network_provider, exception.thread_name, exception.handled, exception.network_type, exception.network_generation, exception.network_provider, exception.device_locale, exception.fingerprint, exception.exceptions, exception.threads, attributes").
 		From("default.events").
@@ -267,6 +269,8 @@ func ClosestANRGroup(groups []ANRGroup, fingerprint uint64) (int, error) {
 	return lowest, nil
 }
 
+// ComputeCrashContribution computes percentage of crash contribution from
+// given slice of ExceptionGroup.
 func ComputeCrashContribution(groups []ExceptionGroup) {
 	total := 0
 
@@ -279,6 +283,8 @@ func ComputeCrashContribution(groups []ExceptionGroup) {
 	}
 }
 
+// ComputeANRContribution computes percentage of anr contribution from
+// given slice of ANRGroup.
 func ComputeANRContribution(groups []ANRGroup) {
 	total := 0
 
