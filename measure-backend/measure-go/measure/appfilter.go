@@ -81,6 +81,8 @@ func (af *AppFilter) validate() error {
 	return nil
 }
 
+// expand expands comma separated fields to slice
+// of strings
 func (af *AppFilter) expand() {
 	if len(af.Versions) < 1 {
 		return
