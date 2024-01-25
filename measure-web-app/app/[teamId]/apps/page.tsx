@@ -1,7 +1,7 @@
 "use client"
 
+import { AppsApiStatus, emptyApp, fetchAppsFromServer } from "@/app/api/api_calls";
 import CreateApp from "@/app/components/create_app";
-import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from "@/app/utils/auth_utils";
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 
@@ -9,66 +9,30 @@ import React, { useState, useEffect } from 'react';
 export default function Apps({ params }: { params: { teamId: string } }) {
   const router = useRouter()
 
-  enum AppsApiStatus {
-    Loading,
-    Success,
-    Error,
-    NoApps
-  }
-
-  const emptyApp = {
-    "id": "",
-    "team_id": "",
-    "name": "",
-    "api_key": {
-      "created_at": "",
-      "key": "",
-      "last_seen": null,
-      "revoked": false
-    },
-    "onboarded": false,
-    "created_at": "",
-    "updated_at": "",
-    "platform": null,
-    "onboarded_at": null,
-    "unique_identifier": null
-  }
-
   const [apps, setApps] = useState([] as typeof emptyApp[]);
   const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading);
 
-  const getApps = async (teamId: string,) => {
+  const getApps = async () => {
     setAppsApiStatus(AppsApiStatus.Loading)
 
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
-    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
-    const opts = {
-      headers: {
-        "Authorization": `Bearer ${authToken}`
-      }
-    };
+    const result = await fetchAppsFromServer(params.teamId, router)
 
-    const res = await fetch(`${origin}/teams/${teamId}/apps`, opts);
-
-    if (!res.ok && res.status == 404) {
-      setAppsApiStatus(AppsApiStatus.NoApps)
-      return
+    switch (result.status) {
+      case AppsApiStatus.NoApps:
+        setAppsApiStatus(AppsApiStatus.NoApps)
+        break
+      case AppsApiStatus.Error:
+        setAppsApiStatus(AppsApiStatus.Error)
+        break
+      case AppsApiStatus.Success:
+        setAppsApiStatus(AppsApiStatus.Success)
+        setApps(result.data)
+        break
     }
-
-    if (!res.ok) {
-      setAppsApiStatus(AppsApiStatus.Error)
-      logoutIfAuthError(router, res)
-      return
-    }
-
-    const data = await res.json()
-
-    setApps(data)
-    setAppsApiStatus(AppsApiStatus.Success)
   }
 
   useEffect(() => {
-    getApps(params.teamId)
+    getApps()
   }, []);
 
   return (
