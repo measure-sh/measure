@@ -101,7 +101,7 @@ CREATE TABLE public.anr_groups (
     name text NOT NULL,
     fingerprint character varying(16) NOT NULL,
     count integer NOT NULL,
-    events uuid[] NOT NULL,
+    event_ids uuid[] NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -150,10 +150,10 @@ COMMENT ON COLUMN public.anr_groups.count IS 'number of instances this anr was o
 
 
 --
--- Name: COLUMN anr_groups.events; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN anr_groups.event_ids; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.anr_groups.events IS 'list of associated event ids';
+COMMENT ON COLUMN public.anr_groups.event_ids IS 'list of associated event ids';
 
 
 --
@@ -703,7 +703,7 @@ CREATE TABLE public.unhandled_exception_groups (
     name text NOT NULL,
     fingerprint character varying(16) NOT NULL,
     count integer NOT NULL,
-    events uuid[] NOT NULL,
+    event_ids uuid[] NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -752,10 +752,10 @@ COMMENT ON COLUMN public.unhandled_exception_groups.count IS 'number of instance
 
 
 --
--- Name: COLUMN unhandled_exception_groups.events; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN unhandled_exception_groups.event_ids; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.unhandled_exception_groups.events IS 'list of associated event ids';
+COMMENT ON COLUMN public.unhandled_exception_groups.event_ids IS 'list of associated event ids';
 
 
 --

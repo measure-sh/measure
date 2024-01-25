@@ -6,7 +6,7 @@ create table if not exists public.unhandled_exception_groups (
     name text not null,
     fingerprint varchar(16) not null,
     count integer not null,
-    events uuid[] not null,
+    event_ids uuid[] not null,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
@@ -17,7 +17,7 @@ comment on column public.unhandled_exception_groups.app_version is 'linked app v
 comment on column public.unhandled_exception_groups.name is 'name of the exception for easy identification';
 comment on column public.unhandled_exception_groups.fingerprint is 'fingerprint of the unhandled exception';
 comment on column public.unhandled_exception_groups.count is 'number of instances this unhandled exception was observed';
-comment on column public.unhandled_exception_groups.events is 'list of associated event ids';
+comment on column public.unhandled_exception_groups.event_ids is 'list of associated event ids';
 comment on column public.unhandled_exception_groups.created_at is 'utc timestamp at the time of record creation';
 comment on column public.unhandled_exception_groups.updated_at is 'utc timestamp at the time of record updation';
 

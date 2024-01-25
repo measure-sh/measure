@@ -6,7 +6,7 @@ create table if not exists public.anr_groups (
     name text not null,
     fingerprint varchar(16) not null,
     count integer not null,
-    events uuid[] not null,
+    event_ids uuid[] not null,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
@@ -17,7 +17,7 @@ comment on column public.anr_groups.app_version is 'linked app version';
 comment on column public.anr_groups.name is 'name of the anr for easy identification';
 comment on column public.anr_groups.fingerprint is 'fingerprint of the anr';
 comment on column public.anr_groups.count is 'number of instances this anr was observed';
-comment on column public.anr_groups.events is 'list of associated event ids';
+comment on column public.anr_groups.event_ids is 'list of associated event ids';
 comment on column public.anr_groups.created_at is 'utc timestamp at the time of record creation';
 comment on column public.anr_groups.updated_at is 'utc timestamp at the time of record updation';
 
