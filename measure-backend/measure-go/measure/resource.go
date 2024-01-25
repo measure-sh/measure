@@ -99,3 +99,21 @@ func (r *Resource) validate() error {
 
 	return nil
 }
+
+func (r *Resource) Trim() {
+	r.DeviceName = TrimRight(r.DeviceName)
+	r.DeviceModel = TrimRight(r.DeviceModel)
+	r.DeviceManufacturer = TrimRight(r.DeviceManufacturer)
+	r.DeviceType = TrimRight(r.DeviceType)
+	r.DeviceLocale = TrimRight(r.DeviceLocale)
+	r.OSName = TrimRight(r.OSName)
+	r.OSVersion = TrimRight(r.OSVersion)
+	r.Platform = TrimRight(r.Platform)
+	r.AppVersion = TrimRight(r.AppVersion)
+	r.AppBuild = TrimRight(r.AppBuild)
+	r.AppUniqueID = TrimRight(r.AppUniqueID)
+	r.MeasureSDKVersion = TrimRight(r.MeasureSDKVersion)
+	r.NetworkType = TrimRight(r.NetworkType)
+	r.NetworkGeneration = TrimRight(r.NetworkGeneration)
+	r.NetworkProvider = TrimRight(r.NetworkProvider)
+}
