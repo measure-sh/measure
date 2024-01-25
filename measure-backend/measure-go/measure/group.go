@@ -26,7 +26,7 @@ type ExceptionGroup struct {
 	Name            string           `json:"name" db:"name"`
 	Fingerprint     string           `json:"fingerprint" db:"fingerprint"`
 	Count           int              `json:"count" db:"count"`
-	Events          []uuid.UUID      `json:"events" db:"events"`
+	EventIDs        []uuid.UUID      `json:"event_ids" db:"event_ids"`
 	EventExceptions []EventException `json:"exception_events"`
 	Percentage      float32          `json:"percentage_contribution"`
 	CreatedAt       chrono.ISOTime   `json:"created_at" db:"created_at"`
@@ -40,7 +40,7 @@ type ANRGroup struct {
 	Name        string      `json:"name" db:"name"`
 	Fingerprint string      `json:"fingerprint" db:"fingerprint"`
 	Count       int         `json:"count" db:"count"`
-	Events      []uuid.UUID `json:"events" db:"events"`
+	EventIDs    []uuid.UUID `json:"event_ids" db:"event_ids"`
 	Percentage  float32     `json:"percentage_contribution"`
 	CreatedAt   time.Time   `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time   `json:"updated_at" db:"updated_at"`
@@ -54,7 +54,7 @@ type Grouper interface {
 // EventExists checks if the given event id exists in
 // the ExceptionGroup's events array.
 func (e ExceptionGroup) EventExists(id uuid.UUID) bool {
-	return slices.ContainsFunc(e.Events, func(eventId uuid.UUID) bool {
+	return slices.ContainsFunc(e.EventIDs, func(eventId uuid.UUID) bool {
 		return eventId.String() == id.String()
 	})
 }
@@ -62,7 +62,7 @@ func (e ExceptionGroup) EventExists(id uuid.UUID) bool {
 // EventExists checks if the given event id exists in
 // the ANRGroup's events array.
 func (a ANRGroup) EventExists(id uuid.UUID) bool {
-	return slices.ContainsFunc(a.Events, func(eventId uuid.UUID) bool {
+	return slices.ContainsFunc(a.EventIDs, func(eventId uuid.UUID) bool {
 		return eventId.String() == id.String()
 	})
 }
@@ -71,7 +71,7 @@ func (a ANRGroup) EventExists(id uuid.UUID) bool {
 // events array.
 func (e ExceptionGroup) AppendEventId(id uuid.UUID) error {
 	stmt := sqlf.PostgreSQL.Update("public.unhandled_exception_groups").
-		SetExpr("events", "array_append(events, ?)", nil).
+		SetExpr("event_ids", "array_append(event_ids, ?)", nil).
 		Set("count", nil).
 		Set("updated_at", nil).
 		Where("id = ?", nil)
@@ -89,7 +89,7 @@ func (e ExceptionGroup) AppendEventId(id uuid.UUID) error {
 // events array.
 func (a ANRGroup) AppendEventId(id uuid.UUID) error {
 	stmt := sqlf.PostgreSQL.Update("public.anr_groups").
-		SetExpr("events", "array_append(events, ?)", nil).
+		SetExpr("event_ids", "array_append(event_ids, ?)", nil).
 		Set("count", nil).
 		Set("updated_at", nil)
 
@@ -131,12 +131,12 @@ func (anr ANRGroup) HammingDistance(a uint64) (uint8, error) {
 // GetExceptionGroup gets the ExceptionGroup by matching
 // ExceptionGroup id and app id.
 func GetExceptionGroup(eg *ExceptionGroup) error {
-	stmt := sqlf.PostgreSQL.Select("name, fingerprint, count, events, created_at, updated_at").
+	stmt := sqlf.PostgreSQL.Select("name, fingerprint, count, event_ids, created_at, updated_at").
 		From("public.unhandled_exception_groups").
 		Where("id = ? and app_id = ?", nil, nil)
 	defer stmt.Close()
 
-	return server.Server.PgPool.QueryRow(context.Background(), stmt.String(), eg.ID, eg.AppID).Scan(&eg.Name, &eg.Fingerprint, &eg.Count, &eg.Events, &eg.CreatedAt, &eg.UpdatedAt)
+	return server.Server.PgPool.QueryRow(context.Background(), stmt.String(), eg.ID, eg.AppID).Scan(&eg.Name, &eg.Fingerprint, &eg.Count, &eg.EventIDs, &eg.CreatedAt, &eg.UpdatedAt)
 }
 
 func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) ([]EventException, error) {
@@ -219,12 +219,12 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) ([]EventExcept
 // GetANRGroup gets the ANRGroup by matching
 // ANRGroup id and app id.
 func GetANRGroup(ag *ANRGroup) error {
-	stmt := sqlf.PostgreSQL.Select("name, fingerprint, count, events, created_at, updated_at").
+	stmt := sqlf.PostgreSQL.Select("name, fingerprint, count, event_ids, created_at, updated_at").
 		From("public.anr_groups").
 		Where("id = ? and app_id = ?", nil, nil)
 	defer stmt.Close()
 
-	return server.Server.PgPool.QueryRow(context.Background(), stmt.String(), ag.ID, ag.AppID).Scan(&ag.Name, &ag.Fingerprint, &ag.Count, &ag.Events, &ag.CreatedAt, &ag.UpdatedAt)
+	return server.Server.PgPool.QueryRow(context.Background(), stmt.String(), ag.ID, ag.AppID).Scan(&ag.Name, &ag.Fingerprint, &ag.Count, &ag.EventIDs, &ag.CreatedAt, &ag.UpdatedAt)
 }
 
 // ClosestExceptionGroup finds the index of the ExceptionGroup closest to
@@ -299,11 +299,11 @@ func (e *ExceptionGroup) Insert() error {
 		Set("name", nil).
 		Set("fingerprint", nil).
 		Set("count", nil).
-		Set("events", nil)
+		Set("event_ids", nil)
 
 	defer stmt.Close()
 
-	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), e.AppID, e.AppVersion, e.Name, e.Fingerprint, e.Count, e.Events)
+	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), e.AppID, e.AppVersion, e.Name, e.Fingerprint, e.Count, e.EventIDs)
 	if err != nil {
 		return err
 	}
@@ -319,11 +319,11 @@ func (e *ANRGroup) Insert() error {
 		Set("name", nil).
 		Set("fingerprint", nil).
 		Set("count", nil).
-		Set("events", nil)
+		Set("event_ids", nil)
 
 	defer stmt.Close()
 
-	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), e.AppID, e.AppVersion, e.Name, e.Fingerprint, e.Count, e.Events)
+	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), e.AppID, e.AppVersion, e.Name, e.Fingerprint, e.Count, e.EventIDs)
 	if err != nil {
 		return err
 	}
@@ -339,7 +339,7 @@ func NewExceptionGroup(appId uuid.UUID, version string, name string, fingerprint
 		Name:        name,
 		Fingerprint: fingerprint,
 		Count:       len(eventIds),
-		Events:      eventIds,
+		EventIDs:    eventIds,
 	}
 }
 
@@ -351,6 +351,6 @@ func NewANRGroup(appId uuid.UUID, version string, name string, fingerprint strin
 		Name:        name,
 		Fingerprint: fingerprint,
 		Count:       len(eventIds),
-		Events:      eventIds,
+		EventIDs:    eventIds,
 	}
 }

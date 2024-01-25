@@ -84,7 +84,7 @@ func (a App) MarshalJSON() ([]byte, error) {
 
 func (a App) GetExceptionGroups(af *AppFilter) ([]ExceptionGroup, error) {
 	stmt := sqlf.PostgreSQL.
-		Select("id, app_id, app_version, name, fingerprint, count, events, created_at, updated_at").
+		Select("id, app_id, app_version, name, fingerprint, count, event_ids, created_at, updated_at").
 		From("unhandled_exception_groups").
 		OrderBy("count desc").
 		Where("app_id = ?", nil)
@@ -119,7 +119,7 @@ func (a App) GetExceptionGroups(af *AppFilter) ([]ExceptionGroup, error) {
 
 func (a App) GetANRGroups(af *AppFilter) ([]ANRGroup, error) {
 	stmt := sqlf.PostgreSQL.
-		Select("id, app_id, app_version, name, fingerprint, count, events, created_at, updated_at").
+		Select("id, app_id, app_version, name, fingerprint, count, event_ids, created_at, updated_at").
 		From("public.anr_groups").
 		OrderBy("count desc").
 		Where("app_id = ?", nil)
@@ -627,7 +627,7 @@ func GetCrashGroups(c *gin.Context) {
 	}
 
 	for i := range crashGroups {
-		events, err := GetExceptionsWithFilter(crashGroups[i].Events, &af)
+		events, err := GetExceptionsWithFilter(crashGroups[i].EventIDs, &af)
 		if err != nil {
 			msg := "failed to get app's exception groups"
 			fmt.Println(msg, err)
