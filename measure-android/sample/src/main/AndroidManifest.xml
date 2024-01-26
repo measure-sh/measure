@@ -16,7 +16,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MeasureAndroid"
         android:usesCleartextTraffic="true"
-        tools:targetApi="33">
+        tools:targetApi="34">
         <activity
             android:name=".ExceptionDemoActivity"
             android:exported="true">

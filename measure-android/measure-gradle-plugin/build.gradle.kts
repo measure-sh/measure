@@ -1,7 +1,7 @@
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.9.10"
+    id("org.jetbrains.kotlin.jvm") version "1.9.21"
     id("com.gradle.plugin-publish") version "1.2.0"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.10"
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.21"
     id("sh.measure.plugin.aar2jar")
     id("java-gradle-plugin")
     id("com.autonomousapps.testkit") version "0.8"

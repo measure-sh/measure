@@ -82,7 +82,7 @@ class NetworkChangesCollectorTest {
     }
 
     @Test
-    @Config(sdk = [23, 24, 26, 28, 29, 30, 31, 33])
+    @Config(sdk = [23, 24, 26, 28, 29, 30, 31, 33, 34])
     fun `NetworkChangesCollector registers network callbacks when permission is available`() {
         shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
         NetworkChangesCollector(
@@ -98,7 +98,7 @@ class NetworkChangesCollectorTest {
     }
 
     @Test
-    @Config(sdk = [23, 33])
+    @Config(sdk = [23, 33, 34])
     fun `NetworkChangesCollector tracks change to cellular network with network_provider and network_generation`() {
         shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
         shadowOf(context as Application).grantPermissions(Manifest.permission.READ_PHONE_STATE)
@@ -167,7 +167,7 @@ class NetworkChangesCollectorTest {
     }
 
     @Test
-    @Config(sdk = [33])
+    @Config(sdk = [33, 34])
     fun `NetworkChangesCollector tracks change to cellular network with network_provider & network_generation if READ_BASIC_PHONE_STATE permission is available`() {
         shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
         shadowOf(context as Application).grantPermissions(Manifest.permission.READ_BASIC_PHONE_STATE)
@@ -202,7 +202,7 @@ class NetworkChangesCollectorTest {
     }
 
     @Test
-    @Config(sdk = [26, 33])
+    @Config(sdk = [26, 33, 34])
     fun `NetworkChangesCollector discards first change for SDK 26 and above`() {
         shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
         shadowOf(context as Application).grantPermissions(Manifest.permission.READ_BASIC_PHONE_STATE)
