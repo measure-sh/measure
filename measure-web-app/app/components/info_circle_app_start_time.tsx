@@ -1,6 +1,5 @@
 import React from 'react';
-import { MetricsApiStatus } from './metrics_overview';
-
+import { MetricsApiStatus } from '../api/api_calls';
 
 interface InfoCircleAppStartTimeProps {
   status: MetricsApiStatus,
