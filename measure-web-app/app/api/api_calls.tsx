@@ -1,5 +1,6 @@
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context"
 import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from "../utils/auth_utils"
+import { versions } from "process"
 
 export enum TeamsApiStatus {
     Loading,
@@ -29,6 +30,12 @@ export enum JourneyApiStatus {
 }
 
 export enum MetricsApiStatus {
+    Loading,
+    Success,
+    Error
+}
+
+export enum CrashGroupsApiStatus {
     Loading,
     Success,
     Error
@@ -115,6 +122,21 @@ export const emptyMetrics = {
         "value": 0,
         "delta": 0
     }
+}
+
+export const emptyCrashGroup = {
+    "id": "",
+    "app_id": "",
+    "app_version": "",
+    "name": "",
+    "fingerprint": "",
+    "count": 0,
+    "events": [
+        ""
+    ],
+    "percentage_contribution": 0,
+    "created_at": "",
+    "updated_at": ""
 }
 
 export const fetchTeamsFromServer = async (router: AppRouterInstance) => {
@@ -234,4 +256,37 @@ export const fetchMetricsFromServer = async (appId: string, startDate: string, e
     const data = await res.json()
 
     return { status: MetricsApiStatus.Success, data: data }
+}
+
+export const fetchCrashGroupsFromServer = async (appId: string, startDate: string, endDate: string, appVersions: string[], router: AppRouterInstance) => {
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+        headers: {
+            "Authorization": `Bearer ${authToken}`
+        }
+    };
+
+    const serverFormattedStartDate = new Date(startDate).toISOString()
+    const serverFormattedEndDate = new Date(endDate).toISOString()
+
+    // If no versions are selected, don't use versions in query params
+    var crashGroupsApiUrl = ""
+    if (appVersions.length > 0) {
+        crashGroupsApiUrl = `${origin}/apps/${appId}/crashGroups?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&versions=${Array.from(appVersions).join(', ')}`
+    } else {
+        crashGroupsApiUrl = `${origin}/apps/${appId}/crashGroups?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
+    }
+
+    const res = await fetch(crashGroupsApiUrl, opts);
+
+    if (!res.ok) {
+        logoutIfAuthError(router, res)
+        return { status: CrashGroupsApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: CrashGroupsApiStatus.Success, data: data }
+
 }
