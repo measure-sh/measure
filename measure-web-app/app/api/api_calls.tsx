@@ -22,6 +22,12 @@ export enum FiltersApiStatus {
     NoData
 }
 
+export enum JourneyApiStatus {
+    Loading,
+    Success,
+    Error
+}
+
 export const emptyTeam = { 'id': '', 'name': '' }
 
 export const emptyApp = {
@@ -40,6 +46,21 @@ export const emptyApp = {
     "platform": null,
     "onboarded_at": null,
     "unique_identifier": null
+}
+
+export const emptyJourney = {
+    "nodes": [
+        {
+            "id": "",
+            "nodeColor": "",
+            "issues": {
+                "crashes": [],
+                "anrs": []
+            }
+        },
+    ],
+    "links": [
+    ]
 }
 
 export const fetchTeamsFromServer = async (router: AppRouterInstance) => {
@@ -113,4 +134,27 @@ export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, route
     }
 
     return { status: FiltersApiStatus.Success, data: data }
+}
+
+export const fetchJourneyFromServer = async (appId: string, startDate: string, endDate: string, appVersion: string, router: AppRouterInstance) => {
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+        headers: {
+            "Authorization": `Bearer ${authToken}`
+        }
+    };
+
+    const serverFormattedStartDate = new Date(startDate).toISOString()
+    const serverFormattedEndDate = new Date(endDate).toISOString()
+    const res = await fetch(`${origin}/apps/${appId}/journey?version=${appVersion}&from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`, opts);
+
+    if (!res.ok) {
+        logoutIfAuthError(router, res)
+        return { status: JourneyApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: JourneyApiStatus.Success, data: data }
 }
