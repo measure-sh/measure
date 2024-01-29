@@ -28,6 +28,12 @@ export enum JourneyApiStatus {
     Error
 }
 
+export enum MetricsApiStatus {
+    Loading,
+    Success,
+    Error
+}
+
 export const emptyTeam = { 'id': '', 'name': '' }
 
 export const emptyApp = {
@@ -61,6 +67,54 @@ export const emptyJourney = {
     ],
     "links": [
     ]
+}
+
+export const emptyMetrics = {
+    "adoption": {
+        "users": 0,
+        "totalUsers": 0,
+        "value": 0
+    },
+    "app_size": {
+        "value": 0,
+        "delta": 0
+    },
+    "crash_free_users": {
+        "value": 0,
+        "delta": 0
+    },
+    "perceived_crash_free_users": {
+        "value": 0,
+        "delta": 0
+    },
+    "multiple_crash_free_users": {
+        "value": 0,
+        "delta": 0
+    },
+    "anr_free_users": {
+        "value": 0,
+        "delta": 0
+    },
+    "perceived_anr_free_users": {
+        "value": 0,
+        "delta": 0
+    },
+    "multiple_anr_free_users": {
+        "value": 0,
+        "delta": 0
+    },
+    "app_cold_launch": {
+        "value": 0,
+        "delta": 0
+    },
+    "app_warm_launch": {
+        "value": 0,
+        "delta": 0
+    },
+    "app_hot_launch": {
+        "value": 0,
+        "delta": 0
+    }
 }
 
 export const fetchTeamsFromServer = async (router: AppRouterInstance) => {
@@ -157,4 +211,27 @@ export const fetchJourneyFromServer = async (appId: string, startDate: string, e
     const data = await res.json()
 
     return { status: JourneyApiStatus.Success, data: data }
+}
+
+export const fetchMetricsFromServer = async (appId: string, startDate: string, endDate: string, appVersion: string, router: AppRouterInstance) => {
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+        headers: {
+            "Authorization": `Bearer ${authToken}`
+        }
+    };
+
+    const serverFormattedStartDate = new Date(startDate).toISOString()
+    const serverFormattedEndDate = new Date(endDate).toISOString()
+    const res = await fetch(`${origin}/apps/${appId}/metrics?version=${appVersion}&from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`, opts);
+
+    if (!res.ok) {
+        logoutIfAuthError(router, res)
+        return { status: MetricsApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: MetricsApiStatus.Success, data: data }
 }
