@@ -5,14 +5,14 @@ import { ResponsiveSankey } from '@nivo/sankey'
 import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from '@/app/utils/auth_utils';
 import { useRouter } from 'next/navigation';
 
-interface UserFlowProps {
+interface JourneyProps {
   appId: string,
   startDate: string,
   endDate: string,
   appVersion: string,
 }
 
-const UserFlow: React.FC<UserFlowProps> = ({ appId, startDate, endDate, appVersion }) => {
+const Journey: React.FC<JourneyProps> = ({ appId, startDate, endDate, appVersion }) => {
   enum JourneyApiStatus {
     Loading,
     Success,
@@ -144,4 +144,4 @@ const UserFlow: React.FC<UserFlowProps> = ({ appId, startDate, endDate, appVersi
   );
 };
 
-export default UserFlow;
+export default Journey;

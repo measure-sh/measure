@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Dropdown from "@/app/components/dropdown";
 import FilterPill from "@/app/components/filter_pill";
-import UserFlow from "@/app/components/user_flow";
+import Journey from "@/app/components/journey";
 import MetricsOverview from '@/app/components/metrics_overview';
 import { useRouter } from 'next/navigation';
 import CreateApp from '@/app/components/create_app';
@@ -142,7 +142,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
       {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.NotOnboarded && <CreateApp teamId={params.teamId} existingAppName={selectedApp.name} existingApiKey={selectedApp.api_key.key} />}
 
       {/* Show user flow if apps and filters fetch succeeds  */}
-      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && <UserFlow appId={selectedApp.id} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />}
+      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && <Journey appId={selectedApp.id} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />}
       <div className="py-8" />
       {/* Show metrics if apps and filters fetch succeeds  */}
       {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && <MetricsOverview appId={selectedApp.id} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />}
