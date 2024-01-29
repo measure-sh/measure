@@ -1079,6 +1079,7 @@ Invite new members (both existing & non measure users) to a team
 #### Usage Notes
 
 - Teams's UUID must be passed in the URI
+- Request body should have a list of invitees (can be a single invitee as well) in an array
 - The email id of the user to be invited, team ID and role of the user to be invited must be passed in the request body
 - If a invited user does not have a measure account, they will get an invite email to sign up and will be added to team post signup automatically
 - If invited user already has a measure acccount, they will be added to the team immediately
@@ -1086,11 +1087,13 @@ Invite new members (both existing & non measure users) to a team
 #### Request body
 
 ```json
-{
-  "email": "newuser@gmail.com",
-  "role": "admin",
-  "teamId": "099f0f9b-5ee9-47de-a8aa-e996adc049c1"
-}
+[
+  {
+    "id": "099f0f9b-5ee9-47de-a8aa-e996adc049c1",
+    "email": "newuser@gmail.com",
+    "role": "admin"
+  }
+]
 ```
 
 #### Authorization & Content Type

@@ -418,12 +418,11 @@ export const inviteMemberFromServer = async (teamId: string, email: string, role
         method: 'POST',
         headers: {
             "Authorization": `Bearer ${authToken}`,
-            "Content-Type": 'application/json'
         },
-        body: JSON.stringify({ email, teamId, lowerCaseRole })
+        body: JSON.stringify([{ id: teamId, email: email, role: lowerCaseRole }])
     };
 
-    const res = await fetch(`${origin}/auth/invite`, opts);
+    const res = await fetch(`${origin}/teams/${teamId}/invite`, opts);
     const data = await res.json()
 
     if (!res.ok) {
