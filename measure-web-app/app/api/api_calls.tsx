@@ -1,6 +1,7 @@
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context"
 import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from "../utils/auth_utils"
 import { versions } from "process"
+import App from "next/app"
 
 export enum TeamsApiStatus {
     Loading,
@@ -36,6 +37,40 @@ export enum MetricsApiStatus {
 }
 
 export enum CrashGroupsApiStatus {
+    Loading,
+    Success,
+    Error
+}
+
+export enum TeamNameChangeApiStatus {
+    Init,
+    Loading,
+    Success,
+    Error
+}
+
+export enum RoleChangeApiStatus {
+    Init,
+    Loading,
+    Success,
+    Error
+}
+
+export enum InviteMemberApiStatus {
+    Init,
+    Loading,
+    Success,
+    Error
+}
+
+export enum RemoveMemberApiStatus {
+    Init,
+    Loading,
+    Success,
+    Error
+}
+
+export enum AuthzAndMembersApiStatus {
     Loading,
     Success,
     Error
@@ -137,6 +172,28 @@ export const emptyCrashGroup = {
     "percentage_contribution": 0,
     "created_at": "",
     "updated_at": ""
+}
+
+export const defaultAuthzAndMembers = {
+    "can_invite": [
+        "viewer"
+    ],
+    "members": [
+        {
+            "id": "",
+            "name": null,
+            "email": "",
+            "role": "",
+            "last_sign_in_at": "",
+            "created_at": "",
+            "authz": {
+                "can_change_roles": [
+                    ""
+                ],
+                "can_remove": true
+            }
+        }
+    ]
 }
 
 export const fetchTeamsFromServer = async (router: AppRouterInstance) => {
@@ -289,4 +346,111 @@ export const fetchCrashGroupsFromServer = async (appId: string, startDate: strin
 
     return { status: CrashGroupsApiStatus.Success, data: data }
 
+}
+
+export const fetchAuthzAndMembersFromServer = async (teamId: string, router: AppRouterInstance) => {
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+        headers: {
+            "Authorization": `Bearer ${authToken}`
+        }
+    };
+
+    const res = await fetch(`${origin}/teams/${teamId}/authz`, opts);
+    if (!res.ok) {
+        logoutIfAuthError(router, res)
+        return { status: AuthzAndMembersApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: AuthzAndMembersApiStatus.Success, data: data }
+}
+
+export const changeTeamNameFromServer = async (teamId: string, newTeamName: string, router: AppRouterInstance) => {
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+        method: 'PATCH',
+        headers: {
+            "Authorization": `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ name: newTeamName })
+    };
+
+    const res = await fetch(`${origin}/teams/${teamId}/rename`, opts);
+    if (!res.ok) {
+        logoutIfAuthError(router, res)
+        return { status: TeamNameChangeApiStatus.Error }
+    }
+
+    return { status: TeamNameChangeApiStatus.Success }
+}
+
+export const changeRoleFromServer = async (teamId: string, newRole: string, memberId: string, router: AppRouterInstance) => {
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+        method: 'PATCH',
+        headers: {
+            "Authorization": `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ role: newRole.toLocaleLowerCase() })
+    };
+
+    const res = await fetch(`${origin}/teams/${teamId}/members/${memberId}/role`, opts);
+    const data = await res.json()
+
+    if (!res.ok) {
+        logoutIfAuthError(router, res)
+        return { status: RoleChangeApiStatus.Error, error: data.error }
+    }
+
+    return { status: RoleChangeApiStatus.Success }
+}
+
+export const inviteMemberFromServer = async (teamId: string, email: string, role: string, router: AppRouterInstance) => {
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const lowerCaseRole = role.toLocaleLowerCase()
+    const opts = {
+        method: 'POST',
+        headers: {
+            "Authorization": `Bearer ${authToken}`,
+            "Content-Type": 'application/json'
+        },
+        body: JSON.stringify({ email, teamId, lowerCaseRole })
+    };
+
+    const res = await fetch(`${origin}/auth/invite`, opts);
+    const data = await res.json()
+
+    if (!res.ok) {
+        logoutIfAuthError(router, res)
+        return { status: InviteMemberApiStatus.Error, error: data.error }
+    }
+
+    return { status: InviteMemberApiStatus.Success }
+}
+
+export const removeMemberFromServer = async (teamId: string, memberId: string, router: AppRouterInstance) => {
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+        method: 'DELETE',
+        headers: {
+            "Authorization": `Bearer ${authToken}`
+        },
+    };
+
+    const res = await fetch(`${origin}/teams/${teamId}/members/${memberId}`, opts);
+    const data = await res.json()
+
+    if (!res.ok) {
+        logoutIfAuthError(router, res)
+        return { status: RemoveMemberApiStatus.Error, error: data.error }
+    }
+
+    return { status: RemoveMemberApiStatus.Success }
 }

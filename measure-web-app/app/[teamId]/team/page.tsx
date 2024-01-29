@@ -1,52 +1,17 @@
 "use client"
 
 import Dropdown from "@/app/components/dropdown";
-import { getAccessTokenOrRedirectToAuth, getUserIdOrRedirectToAuth, logoutIfAuthError } from "@/app/utils/auth_utils";
+import { getUserIdOrRedirectToAuth } from "@/app/utils/auth_utils";
 import { useEffect, useState } from "react";
 import { useRouter } from 'next/navigation';
 import DangerConfirmationModal from "@/app/components/danger_confirmation_modal";
-import { TeamsApiStatus, fetchTeamsFromServer, emptyTeam } from "@/app/api/api_calls";
+import { TeamsApiStatus, fetchTeamsFromServer, emptyTeam, AuthzAndMembersApiStatus, InviteMemberApiStatus, RemoveMemberApiStatus, RoleChangeApiStatus, TeamNameChangeApiStatus, defaultAuthzAndMembers, fetchAuthzAndMembersFromServer, changeTeamNameFromServer, changeRoleFromServer, inviteMemberFromServer, removeMemberFromServer } from "@/app/api/api_calls";
 
 function formatToCamelCase(role: string): string {
   return role.charAt(0).toLocaleUpperCase() + role.slice(1)
 }
 
 export default function Team({ params }: { params: { teamId: string } }) {
-
-  enum TeamNameChangeApiStatus {
-    Init,
-    Loading,
-    Success,
-    Error
-  }
-
-  enum RoleChangeApiStatus {
-    Init,
-    Loading,
-    Success,
-    Error
-  }
-
-  enum InviteMemberApiStatus {
-    Init,
-    Loading,
-    Success,
-    Error
-  }
-
-  enum RemoveMemberApiStatus {
-    Init,
-    Loading,
-    Success,
-    Error
-  }
-
-  enum GetAuthzAndMembersApiStatus {
-    Loading,
-    Success,
-    Error
-  }
-
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading);
   const [team, setTeam] = useState(emptyTeam)
 
@@ -55,7 +20,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
   const [saveTeamNameButtonDisabled, setSaveTeamNameButtonDisabled] = useState(true);
 
   const [teamNameConfirmationModalOpen, setTeamNameConfirmationModalOpen] = useState(false)
-  const [teamNameChangeApiStatus, setteamNameChangeApiStatus] = useState(TeamNameChangeApiStatus.Init);
+  const [teamNameChangeApiStatus, setTeamNameChangeApiStatus] = useState(TeamNameChangeApiStatus.Init);
   const [newTeamName, setNewTeamName] = useState('')
 
   const [inviteMemberApiStatus, setInviteMemberApiStatus] = useState(InviteMemberApiStatus.Init);
@@ -69,29 +34,9 @@ export default function Team({ params }: { params: { teamId: string } }) {
   const [removeMemberEmail, setRemoveMemberEmail] = useState("")
   const [removeMemberErrorMsg, setRemoveMemberErrorMsg] = useState("")
 
-  const defaultAuthzAndMembers = {
-    "can_invite": [
-      "viewer"
-    ],
-    "members": [
-      {
-        "id": "",
-        "name": null,
-        "email": "",
-        "role": "",
-        "last_sign_in_at": "",
-        "created_at": "",
-        "authz": {
-          "can_change_roles": [
-            ""
-          ],
-          "can_remove": true
-        }
-      }
-    ]
-  }
-  const [getAuthzAndMembersApiStatus, setGetAuthzAndMembersApiStatus] = useState(GetAuthzAndMembersApiStatus.Loading);
+  const [getAuthzAndMembersApiStatus, setAuthzAndMembersApiStatus] = useState(AuthzAndMembersApiStatus.Loading);
   const [authzAndMembers, setAuthzAndMembers] = useState(defaultAuthzAndMembers)
+
   const [selectedDropdownRolesMap, setSelectedDropdownRolesMap] = useState<Map<String, String>>(new Map())
   const [changeRoleConfirmationModalOpen, setChangeRoleConfirmationModalOpen] = useState(false)
   const [roleChangeApiStatus, setRoleChangeApiStatus] = useState(RoleChangeApiStatus.Init);
@@ -135,26 +80,19 @@ export default function Team({ params }: { params: { teamId: string } }) {
   }, []);
 
   const getAuthzAndMembers = async () => {
-    setGetAuthzAndMembersApiStatus(GetAuthzAndMembersApiStatus.Loading)
+    setAuthzAndMembersApiStatus(AuthzAndMembersApiStatus.Loading)
 
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
-    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
-    const opts = {
-      headers: {
-        "Authorization": `Bearer ${authToken}`
-      }
-    };
+    const result = await fetchAuthzAndMembersFromServer(params.teamId, router)
 
-    const res = await fetch(`${origin}/teams/${params.teamId}/authz`, opts);
-    if (!res.ok) {
-      setGetAuthzAndMembersApiStatus(GetAuthzAndMembersApiStatus.Error)
-      logoutIfAuthError(router, res)
-      return
+    switch (result.status) {
+      case AuthzAndMembersApiStatus.Error:
+        setAuthzAndMembersApiStatus(AuthzAndMembersApiStatus.Error)
+        break
+      case AuthzAndMembersApiStatus.Success:
+        setAuthzAndMembersApiStatus(AuthzAndMembersApiStatus.Success)
+        setAuthzAndMembers(result.data)
+        break
     }
-
-    setGetAuthzAndMembersApiStatus(GetAuthzAndMembersApiStatus.Success)
-    const data = await res.json()
-    setAuthzAndMembers(data)
   }
 
   useEffect(() => {
@@ -162,104 +100,68 @@ export default function Team({ params }: { params: { teamId: string } }) {
   }, []);
 
   const changeTeamName = async () => {
-    setteamNameChangeApiStatus(TeamNameChangeApiStatus.Loading)
+    setTeamNameChangeApiStatus(TeamNameChangeApiStatus.Loading)
 
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
-    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
-    const opts = {
-      method: 'PATCH',
-      headers: {
-        "Authorization": `Bearer ${authToken}`
-      },
-      body: JSON.stringify({ name: newTeamName })
-    };
+    const result = await changeTeamNameFromServer(params.teamId, newTeamName, router)
 
-    const res = await fetch(`${origin}/teams/${params.teamId}/rename`, opts);
-    if (!res.ok) {
-      setteamNameChangeApiStatus(TeamNameChangeApiStatus.Error)
-      logoutIfAuthError(router, res)
-      return
+    switch (result.status) {
+      case TeamNameChangeApiStatus.Error:
+        setTeamNameChangeApiStatus(TeamNameChangeApiStatus.Error)
+        break
+      case TeamNameChangeApiStatus.Success:
+        setTeamNameChangeApiStatus(TeamNameChangeApiStatus.Success)
+        location.reload()
+        break
     }
-
-    setteamNameChangeApiStatus(TeamNameChangeApiStatus.Success)
-    location.reload()
   }
 
   const changeRole = async () => {
     setRoleChangeApiStatus(RoleChangeApiStatus.Loading)
 
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
-    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
-    const opts = {
-      method: 'PATCH',
-      headers: {
-        "Authorization": `Bearer ${authToken}`
-      },
-      body: JSON.stringify({ role: roleChangeNewRole.toLocaleLowerCase() })
-    };
+    const result = await changeRoleFromServer(params.teamId, roleChangeNewRole, roleChangeMemberId, router)
 
-    const res = await fetch(`${origin}/teams/${params.teamId}/members/${roleChangeMemberId}/role`, opts);
-    const json = await res.json()
-
-    if (!res.ok) {
-      setRoleChangeApiStatus(RoleChangeApiStatus.Error)
-      setChangeRoleErrorMsg(json.error)
-      logoutIfAuthError(router, res)
-      return
+    switch (result.status) {
+      case RoleChangeApiStatus.Error:
+        setRoleChangeApiStatus(RoleChangeApiStatus.Error)
+        setChangeRoleErrorMsg(result.error)
+        break
+      case RoleChangeApiStatus.Success:
+        setRoleChangeApiStatus(RoleChangeApiStatus.Success)
+        break
     }
-
-    setRoleChangeApiStatus(RoleChangeApiStatus.Success)
   }
 
   const inviteMember = async () => {
     setInviteMemberApiStatus(InviteMemberApiStatus.Loading)
 
-    const email = inviteMemberEmail
-    const role = inviteMemberRole.toLowerCase()
-    const teamId = params.teamId
-    const res = await fetch("/auth/invite", {
-      method: "post",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ email, teamId, role })
-    })
-    const json = await res.json()
+    const result = await inviteMemberFromServer(params.teamId, inviteMemberEmail, inviteMemberRole, router)
 
-    if (!res.ok) {
-      setInviteMemberApiStatus(InviteMemberApiStatus.Error)
-      setInviteMemberErrorMsg(json.error)
-      logoutIfAuthError(router, res)
-      return
+    switch (result.status) {
+      case InviteMemberApiStatus.Error:
+        setInviteMemberApiStatus(InviteMemberApiStatus.Error)
+        setInviteMemberErrorMsg(result.error)
+        break
+      case InviteMemberApiStatus.Success:
+        setInviteMemberApiStatus(InviteMemberApiStatus.Success)
+        break
     }
-
-    setInviteMemberApiStatus(InviteMemberApiStatus.Success)
   }
 
   const removeMember = async () => {
     seRemoveMemberApiStatus(RemoveMemberApiStatus.Loading)
 
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
-    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
-    const opts = {
-      method: 'DELETE',
-      headers: {
-        "Authorization": `Bearer ${authToken}`
-      },
-    };
+    const result = await removeMemberFromServer(params.teamId, removeMemberId, router)
 
-    const res = await fetch(`${origin}/teams/${params.teamId}/members/${removeMemberId}`, opts);
-    const json = await res.json()
-
-    if (!res.ok) {
-      seRemoveMemberApiStatus(RemoveMemberApiStatus.Error)
-      setRemoveMemberErrorMsg(json.error)
-      logoutIfAuthError(router, res)
-      return
+    switch (result.status) {
+      case RemoveMemberApiStatus.Error:
+        seRemoveMemberApiStatus(RemoveMemberApiStatus.Error)
+        setRemoveMemberErrorMsg(result.error)
+        break
+      case RemoveMemberApiStatus.Success:
+        seRemoveMemberApiStatus(RemoveMemberApiStatus.Success)
+        getAuthzAndMembers()
+        break
     }
-
-    seRemoveMemberApiStatus(RemoveMemberApiStatus.Success)
-    getAuthzAndMembers()
   }
 
   return (
@@ -342,11 +244,11 @@ export default function Team({ params }: { params: { teamId: string } }) {
           <p className="font-display font-regular text-2xl max-w-6xl text-center">Members</p>
           <div className="py-2" />
           {/* Loading message for fetch members */}
-          {getAuthzAndMembersApiStatus === GetAuthzAndMembersApiStatus.Loading && <p className="font-display">Fetching members...</p>}
+          {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Loading && <p className="font-display">Fetching members...</p>}
           {/* Error message for fetch members */}
-          {getAuthzAndMembersApiStatus === GetAuthzAndMembersApiStatus.Error && <p className="font-display">Error fetching team members, please refresh page to try again</p>}
+          {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Error && <p className="font-display">Error fetching team members, please refresh page to try again</p>}
 
-          {getAuthzAndMembersApiStatus === GetAuthzAndMembersApiStatus.Success &&
+          {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Success &&
             <div className="table-row-group">
               {authzAndMembers.members.map(({ id, email, role, authz }) => (
                 <div key={id} className="table-row font-sans">
