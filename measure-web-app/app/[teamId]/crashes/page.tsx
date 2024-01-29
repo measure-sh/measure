@@ -6,38 +6,16 @@ import Dropdown from "@/app/components/dropdown";
 import ExceptionRateChart from "@/app/components/exception_rate_chart";
 import FilterPill from "@/app/components/filter_pill";
 import Link from "next/link";
-import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from '@/app/utils/auth_utils';
 import { useRouter } from 'next/navigation';
 import CreateApp from '@/app/components/create_app';
-import { AppsApiStatus, FiltersApiStatus, emptyApp, fetchAppsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
+import { AppsApiStatus, CrashGroupsApiStatus, FiltersApiStatus, emptyApp, emptyCrashGroup, fetchAppsFromServer, fetchCrashGroupsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
 
 export default function Crashes({ params }: { params: { teamId: string } }) {
   const router = useRouter()
 
-  enum CrashGroupsApiStatus {
-    Loading,
-    Success,
-    Error
-  }
-
   const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading);
   const [filtersApiStatus, setFiltersApiStatus] = useState(FiltersApiStatus.Loading);
   const [crashGroupsApiStatus, setCrashGroupsApiStatus] = useState(CrashGroupsApiStatus.Loading);
-
-  const emptyCrashGroup = {
-    "id": "",
-    "app_id": "",
-    "app_version": "",
-    "name": "",
-    "fingerprint": "",
-    "count": 0,
-    "events": [
-      ""
-    ],
-    "percentage_contribution": 0,
-    "created_at": "",
-    "updated_at": ""
-  }
 
   const [apps, setApps] = useState([] as typeof emptyApp[]);
   const [selectedApp, setSelectedApp] = useState(emptyApp);
@@ -121,34 +99,17 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
   const getCrashGroups = async () => {
     setCrashGroupsApiStatus(CrashGroupsApiStatus.Loading)
 
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
-    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
-    const opts = {
-      headers: {
-        "Authorization": `Bearer ${authToken}`
-      }
-    };
+    const result = await fetchCrashGroupsFromServer(selectedApp.id, startDate, endDate, selectedVersions, router)
 
-    // If no versions are selected, don't use versions in query params
-    var crashGroupsApiUrl = ""
-    if (selectedVersions.length > 0) {
-      crashGroupsApiUrl = `${origin}/apps/${selectedApp.id}/crashGroups?from=${startDate}&to=${endDate}&versions=${Array.from(selectedVersions).join(', ')}`
-    } else {
-      crashGroupsApiUrl = `${origin}/apps/${selectedApp.id}/crashGroups?from=${startDate}&to=${endDate}`
+    switch (result.status) {
+      case CrashGroupsApiStatus.Error:
+        setCrashGroupsApiStatus(CrashGroupsApiStatus.Error)
+        break
+      case CrashGroupsApiStatus.Success:
+        setCrashGroupsApiStatus(CrashGroupsApiStatus.Success)
+        setCrashGroups(result.data)
+        break
     }
-
-    const res = await fetch(crashGroupsApiUrl, opts);
-
-    if (!res.ok) {
-      setCrashGroupsApiStatus(CrashGroupsApiStatus.Error)
-      logoutIfAuthError(router, res)
-      return
-    }
-
-    const data = await res.json()
-
-    setCrashGroups(data)
-    setCrashGroupsApiStatus(CrashGroupsApiStatus.Success)
   }
 
   useEffect(() => {
