@@ -2,7 +2,6 @@
 create table if not exists public.unhandled_exception_groups (
     id uuid primary key not null default gen_random_uuid(),
     app_id uuid references public.apps(id) on delete cascade,
-    app_version text not null,
     name text not null,
     fingerprint varchar(16) not null,
     count integer not null,
@@ -13,7 +12,6 @@ create table if not exists public.unhandled_exception_groups (
 
 comment on column public.unhandled_exception_groups.id is 'unique id for each unhandled exception group';
 comment on column public.unhandled_exception_groups.app_id is 'linked app id';
-comment on column public.unhandled_exception_groups.app_version is 'linked app version';
 comment on column public.unhandled_exception_groups.name is 'name of the exception for easy identification';
 comment on column public.unhandled_exception_groups.fingerprint is 'fingerprint of the unhandled exception';
 comment on column public.unhandled_exception_groups.count is 'number of instances this unhandled exception was observed';
