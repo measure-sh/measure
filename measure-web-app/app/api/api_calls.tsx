@@ -409,18 +409,16 @@ export const changeRoleFromServer = async (teamId: string, newRole: string, memb
 }
 
 export const inviteMemberFromServer = async (teamId: string, email: string, role: string, router: AppRouterInstance) => {
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
-    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const lowerCaseRole = role.toLocaleLowerCase()
     const opts = {
         method: 'POST',
         headers: {
-            "Authorization": `Bearer ${authToken}`,
+            "Content-Type": `application/json`,
         },
-        body: JSON.stringify([{ id: teamId, email: email, role: lowerCaseRole }])
+        body: JSON.stringify({ teamId: teamId, email: email, role: lowerCaseRole })
     };
 
-    const res = await fetch(`${origin}/teams/${teamId}/invite`, opts);
+    const res = await fetch(`/auth/invite`, opts);
     const data = await res.json()
 
     if (!res.ok) {
