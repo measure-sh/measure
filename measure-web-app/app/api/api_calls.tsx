@@ -1,7 +1,5 @@
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context"
 import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from "../utils/auth_utils"
-import { versions } from "process"
-import App from "next/app"
 
 export enum TeamsApiStatus {
     Loading,
