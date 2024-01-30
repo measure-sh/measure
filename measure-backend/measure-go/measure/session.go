@@ -254,7 +254,7 @@ func (s *Session) bucketUnhandledException() error {
 
 		if len(appExceptionGroups) < 1 {
 			// insert new exception group
-			return NewExceptionGroup(s.AppID, s.Resource.AppVersion, group.exception.getType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
+			return NewExceptionGroup(s.AppID, group.exception.getType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
 		}
 
 		index, err := ClosestExceptionGroup(appExceptionGroups, group.fingerprint)
@@ -263,7 +263,7 @@ func (s *Session) bucketUnhandledException() error {
 		}
 		if index < 0 {
 			// when no group matches exists, create new exception group
-			NewExceptionGroup(s.AppID, s.Resource.AppVersion, group.exception.getType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
+			NewExceptionGroup(s.AppID, group.exception.getType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
 			continue
 		}
 		matchedGroup := appExceptionGroups[index]
