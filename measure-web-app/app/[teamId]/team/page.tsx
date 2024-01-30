@@ -143,6 +143,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
         break
       case InviteMemberApiStatus.Success:
         setInviteMemberApiStatus(InviteMemberApiStatus.Success)
+        getAuthzAndMembers()
         break
     }
   }
