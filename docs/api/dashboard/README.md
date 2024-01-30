@@ -16,7 +16,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
 - [**GET `/teams/:id/apps`**](#get-teamsidapps) - Fetch list of apps for a team
 - [**GET `/teams/:id/apps/:id`**](#get-teamsidappsid) - Fetch details of an app for a team
 - [**POST `/teams/:id/apps`**](#post-teamsidapps) - Create a new app for a team
-- [**POST `/teams/:id/invite`**](#post-teamsidinvite) - Invite new members (both existing & non measure users) to a team
+- [**POST `/auth/invite`**](#post-authinvite) - Invite new members (both existing & non measure users) to a team
 - [**PATCH `/teams/:id/rename`**](#patch-teamsidrename) -  Rename a team
 - [**GET `/teams/:id/members`**](#get-teamsidmembers) -  Fetch list of team members for a team
 - [**DELETE `/teams/:id/members/:id`**](#delete-teamsidmembersid) -  Remove a member from a team
@@ -1072,14 +1072,12 @@ List of HTTP status codes for success and failures.
 
 </details>
 
-### POST `/teams/:id/invite`
+### POST `/auth/invite`
 
 Invite new members (both existing & non measure users) to a team
 
 #### Usage Notes
 
-- Teams's UUID must be passed in the URI
-- Request body should have a list of invitees (can be a single invitee as well) in an array
 - The email id of the user to be invited, team ID and role of the user to be invited must be passed in the request body
 - If a invited user does not have a measure account, they will get an invite email to sign up and will be added to team post signup automatically
 - If invited user already has a measure acccount, they will be added to the team immediately
@@ -1089,18 +1087,16 @@ Invite new members (both existing & non measure users) to a team
 ```json
 [
   {
-    "id": "099f0f9b-5ee9-47de-a8aa-e996adc049c1",
     "email": "newuser@gmail.com",
-    "role": "admin"
+    "role": "admin",
+    "teamId": "099f0f9b-5ee9-47de-a8aa-e996adc049c1",
   }
 ]
 ```
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
-
-2. Set content type as `Content-Type: application/json; charset=utf-8`
+1. Set content type as `Content-Type: application/json; charset=utf-8`
 
 These headers must be present in each request.
 
@@ -1109,7 +1105,6 @@ These headers must be present in each request.
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
-| `Authorization` | Bearer &lt;user-access-token&gt; |
 | `Content-Type`  | application/json; charset=utf-8  |
 </details>
 
