@@ -118,7 +118,7 @@ func (a App) GetExceptionGroups(af *AppFilter) ([]ExceptionGroup, error) {
 // AppFilter values
 func (a App) GetANRGroups(af *AppFilter) ([]ANRGroup, error) {
 	stmt := sqlf.PostgreSQL.
-		Select("id, app_id, app_version, name, fingerprint, count, event_ids, created_at, updated_at").
+		Select("id, app_id, name, fingerprint, count, event_ids, created_at, updated_at").
 		From("public.anr_groups").
 		OrderBy("count desc").
 		Where("app_id = ?", nil)
@@ -129,11 +129,6 @@ func (a App) GetANRGroups(af *AppFilter) ([]ANRGroup, error) {
 		if af.hasTimeRange() {
 			stmt.Where("created_at >= ? and created_at <= ?", nil, nil)
 			args = append(args, af.From, af.To)
-		}
-
-		if af.Version != "" {
-			stmt.Where("app_version = ?", nil)
-			args = append(args, af.Version)
 		}
 	}
 
@@ -721,12 +716,33 @@ func GetANRGroups(c *gin.Context) {
 		return
 	}
 
-	anrGroups, err := app.GetANRGroups(&af)
+	groups, err := app.GetANRGroups(&af)
 	if err != nil {
 		msg := "failed to get app's anr groups"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
+	}
+
+	var anrGroups []ANRGroup
+	for i := range groups {
+		ids, err := GetEventIdsMatchingFilter(groups[i].EventIDs, &af)
+		if err != nil {
+			msg := "failed to get app's anr group's event ids"
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+			return
+		}
+
+		count := len(ids)
+
+		// only consider those groups that have at least 1 anr
+		// event
+		if count > 0 {
+			groups[i].Count = count
+			groups[i].EventIDs = ids
+			anrGroups = append(anrGroups, groups[i])
+		}
 	}
 
 	ComputeANRContribution(anrGroups)

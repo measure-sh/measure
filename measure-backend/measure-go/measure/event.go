@@ -172,6 +172,29 @@ func (e Exception) Stacktrace() string {
 	return b.String()
 }
 
+func (a *ANR) Trim() {
+	a.ThreadName = TrimRight(a.ThreadName)
+	a.NetworkType = TrimRight(a.NetworkType)
+	a.NetworkGeneration = TrimRight(a.NetworkGeneration)
+	a.NetworkProvider = TrimRight(a.NetworkProvider)
+	a.DeviceLocale = TrimRight(a.DeviceLocale)
+}
+
+func (e ANR) Stacktrace() string {
+	var b strings.Builder
+
+	b.WriteString(e.getType() + "\n")
+
+	for i := range e.Exceptions {
+		for j := range e.Exceptions[i].Frames {
+			frame := e.Exceptions[i].Frames[j].String()
+			b.WriteString(FramePrefix + frame + "\n")
+		}
+	}
+
+	return b.String()
+}
+
 type AppExit struct {
 	Reason      string    `json:"reason" binding:"required"`
 	Importance  string    `json:"importance" binding:"required"`
@@ -500,6 +523,50 @@ func (e *EventException) ComputeView() {
 		tv.Name = e.Exception.Threads[i].Name
 		for j := range e.Exception.Threads[i].Frames {
 			tv.Frames = append(tv.Frames, e.Exception.Threads[i].Frames[j].String())
+		}
+		e.Threads = append(e.Threads, tv)
+	}
+}
+
+type EventANR struct {
+	ID         uuid.UUID         `json:"id"`
+	Timestamp  chrono.ISOTime    `json:"timestamp"`
+	Type       string            `json:"type"`
+	ThreadName string            `json:"thread_name"`
+	Resource   Resource          `json:"resource"`
+	ANR        ANR               `json:"-"`
+	ANRs       []ANRView         `json:"anrs"`
+	Threads    []ThreadView      `json:"threads"`
+	Attributes map[string]string `json:"attributes"`
+}
+
+type ANRView struct {
+	Type       string `json:"type"`
+	Message    string `json:"message"`
+	Location   string `json:"location"`
+	Stacktrace string `json:"stacktrace"`
+}
+
+func (e *EventANR) Trim() {
+	e.ThreadName = TrimRight(e.ThreadName)
+	e.Type = TrimRight(e.Type)
+	e.Resource.Trim()
+	e.ANR.Trim()
+}
+
+func (e *EventANR) ComputeView() {
+	var av ANRView
+	av.Type = e.ANR.getType()
+	av.Message = e.ANR.getMessage()
+	av.Location = e.ANR.getLocation()
+	av.Stacktrace = e.ANR.Stacktrace()
+	e.ANRs = append(e.ANRs, av)
+
+	for i := range e.ANR.Threads {
+		var tv ThreadView
+		tv.Name = e.ANR.Threads[i].Name
+		for j := range e.ANR.Threads[i].Frames {
+			tv.Frames = append(tv.Frames, e.ANR.Threads[i].Frames[j].String())
 		}
 		e.Threads = append(e.Threads, tv)
 	}

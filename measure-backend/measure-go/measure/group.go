@@ -33,16 +33,16 @@ type ExceptionGroup struct {
 }
 
 type ANRGroup struct {
-	ID          uuid.UUID   `json:"id" db:"id"`
-	AppID       uuid.UUID   `json:"app_id" db:"app_id"`
-	AppVersion  string      `json:"app_version" db:"app_version"`
-	Name        string      `json:"name" db:"name"`
-	Fingerprint string      `json:"fingerprint" db:"fingerprint"`
-	Count       int         `json:"count" db:"count"`
-	EventIDs    []uuid.UUID `json:"-" db:"event_ids"`
-	Percentage  float32     `json:"percentage_contribution"`
-	CreatedAt   time.Time   `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time   `json:"updated_at" db:"updated_at"`
+	ID          uuid.UUID      `json:"id" db:"id"`
+	AppID       uuid.UUID      `json:"app_id" db:"app_id"`
+	Name        string         `json:"name" db:"name"`
+	Fingerprint string         `json:"fingerprint" db:"fingerprint"`
+	Count       int            `json:"count" db:"count"`
+	EventIDs    []uuid.UUID    `json:"event_ids" db:"event_ids"`
+	EventANRs   []EventANR     `json:"anr_events"`
+	Percentage  float32        `json:"percentage_contribution"`
+	CreatedAt   chrono.ISOTime `json:"created_at" db:"created_at"`
+	UpdatedAt   chrono.ISOTime `json:"updated_at" db:"updated_at"`
 }
 
 type Grouper interface {
@@ -356,7 +356,6 @@ func (e *ExceptionGroup) Insert() error {
 func (e *ANRGroup) Insert() error {
 	stmt := sqlf.PostgreSQL.InsertInto("public.anr_groups").
 		Set("app_id", nil).
-		Set("app_version", nil).
 		Set("name", nil).
 		Set("fingerprint", nil).
 		Set("count", nil).
@@ -364,7 +363,7 @@ func (e *ANRGroup) Insert() error {
 
 	defer stmt.Close()
 
-	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), e.AppID, e.AppVersion, e.Name, e.Fingerprint, e.Count, e.EventIDs)
+	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), e.AppID, e.Name, e.Fingerprint, e.Count, e.EventIDs)
 	if err != nil {
 		return err
 	}
@@ -384,10 +383,9 @@ func NewExceptionGroup(appId uuid.UUID, name string, fingerprint string, eventId
 }
 
 // NewANRGroup constructs a new ANRGroup and returns a pointer to it
-func NewANRGroup(appId uuid.UUID, version string, name string, fingerprint string, eventIds []uuid.UUID) *ANRGroup {
+func NewANRGroup(appId uuid.UUID, name string, fingerprint string, eventIds []uuid.UUID) *ANRGroup {
 	return &ANRGroup{
 		AppID:       appId,
-		AppVersion:  version,
 		Name:        name,
 		Fingerprint: fingerprint,
 		Count:       len(eventIds),
