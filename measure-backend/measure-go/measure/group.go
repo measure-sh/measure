@@ -40,7 +40,7 @@ type ANRGroup struct {
 	Name        string      `json:"name" db:"name"`
 	Fingerprint string      `json:"fingerprint" db:"fingerprint"`
 	Count       int         `json:"count" db:"count"`
-	EventIDs    []uuid.UUID `json:"event_ids" db:"event_ids"`
+	EventIDs    []uuid.UUID `json:"-" db:"event_ids"`
 	Percentage  float32     `json:"percentage_contribution"`
 	CreatedAt   time.Time   `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time   `json:"updated_at" db:"updated_at"`
@@ -144,11 +144,15 @@ func GetExceptionGroup(eg *ExceptionGroup) error {
 func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) ([]EventException, error) {
 	stmt := sqlf.Select("id, type, timestamp, thread_name, resource.device_name, resource.device_model, resource.device_manufacturer, resource.device_type, resource.device_is_foldable, resource.device_is_physical, resource.device_density_dpi, resource.device_width_px, resource.device_height_px, resource.device_density, resource.device_locale, resource.os_name, resource.os_version, resource.platform, resource.app_version, resource.app_build, resource.app_unique_id, resource.measure_sdk_version, resource.network_type, resource.network_generation, resource.network_provider, exception.thread_name, exception.handled, exception.network_type, exception.network_generation, exception.network_provider, exception.device_locale, exception.fingerprint, exception.exceptions, exception.threads, attributes").
 		From("default.events").
-		Where("id in (?)")
+		Where("`id` in (?)")
+
+	if len(af.Versions) > 0 {
+		stmt.Where("`resource.app_version` in (?)")
+	}
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds)
+	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.Versions)
 	if err != nil {
 		return nil, err
 	}
@@ -216,6 +220,39 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) ([]EventExcept
 	}
 
 	return events, nil
+}
+
+// GetEventIdsWithFilter gets the event ids matching event ids and optionally
+// applies matching AppFilter.
+func GetEventIdsMatchingFilter(eventIds []uuid.UUID, af *AppFilter) ([]uuid.UUID, error) {
+	stmt := sqlf.Select("id").
+		From("default.events").
+		Where("`id` in (?)")
+
+	if len(af.Versions) > 0 {
+		stmt.Where("`resource.app_version` in (?)")
+	}
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.Versions)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var ids []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+
+		ids = append(ids, id)
+	}
+
+	return ids, nil
 }
 
 // GetANRGroup gets the ANRGroup by matching

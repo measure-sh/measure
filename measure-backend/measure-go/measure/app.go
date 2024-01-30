@@ -622,7 +622,7 @@ func GetCrashGroups(c *gin.Context) {
 		return
 	}
 
-	crashGroups, err := app.GetExceptionGroups(&af)
+	groups, err := app.GetExceptionGroups(&af)
 	if err != nil {
 		msg := "failed to get app's exception groups"
 		fmt.Println(msg, err)
@@ -630,16 +630,25 @@ func GetCrashGroups(c *gin.Context) {
 		return
 	}
 
-	for i := range crashGroups {
-		events, err := GetExceptionsWithFilter(crashGroups[i].EventIDs, &af)
+	var crashGroups []ExceptionGroup
+	for i := range groups {
+		ids, err := GetEventIdsMatchingFilter(groups[i].EventIDs, &af)
 		if err != nil {
-			msg := "failed to get app's exception groups"
+			msg := "failed to get app's exception group's event ids"
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 			return
 		}
 
-		crashGroups[i].EventExceptions = events
+		count := len(ids)
+
+		// only consider those groups that have at least 1 exception
+		// event
+		if count > 0 {
+			groups[i].Count = count
+			groups[i].EventIDs = ids
+			crashGroups = append(crashGroups, groups[i])
+		}
 	}
 
 	ComputeCrashContribution(crashGroups)
