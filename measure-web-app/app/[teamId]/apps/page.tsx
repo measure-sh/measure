@@ -40,13 +40,11 @@ export default function Apps({ params }: { params: { teamId: string } }) {
       <div className="py-4" />
       <p className="font-display font-regular text-4xl max-w-6xl text-center">Apps</p>
       <div className="py-4" />
-      {/* Loading message for apps */}
-      {appsApiStatus === AppsApiStatus.Loading && <p className="text-lg font-display">Updating Apps...</p>}
-
-      {/* Error message for apps fetch error */}
+      {/* Error states for apps fetch */}
       {appsApiStatus === AppsApiStatus.Error && <p className="text-lg font-display">Error fetching apps, please check if Team ID is valid or refresh page to try again</p>}
+      {appsApiStatus === AppsApiStatus.NoApps && <p className="text-lg font-display">Looks like you don&apos;t have any apps yet. Get started by creating your first app!</p>}
 
-      {/* Show list of apps if app fetch succeeds */}
+      {/* Main UI*/}
       {appsApiStatus === AppsApiStatus.Success &&
         <div>
           {apps.map(({ id, name, unique_identifier, platform, api_key, created_at }) => (
@@ -73,9 +71,6 @@ export default function Apps({ params }: { params: { teamId: string } }) {
           <div className="py-4" />
         </div>
       }
-
-      {/* Show no apps message when no apps exist */}
-      {appsApiStatus === AppsApiStatus.NoApps && <p className="text-lg font-display">Looks like you don&apos;t have any apps yet. Get started by creating your first app!</p>}
 
       <div className="py-4" />
       <CreateApp teamId={params.teamId} />
