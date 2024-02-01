@@ -17,35 +17,61 @@
         android:clickable="false"
         android:text="text" />
 
-    <ScrollView
-        android:id="@+id/scroll_view"
+    <androidx.compose.ui.platform.ComposeView
+        android:id="@+id/clickable_compose_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <androidx.compose.ui.platform.ComposeView
+        android:id="@+id/non_clickable_compose_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content"
+        android:layout_weight="2"
+        android:orientation="horizontal">
 
-        <LinearLayout
-            android:layout_width="wrap_content"
+        <androidx.compose.ui.platform.ComposeView
+            android:id="@+id/scrollable_compose_view"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical">
+            android:layout_weight="1" />
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="300dp" />
+        <ScrollView
+            android:id="@+id/scroll_view"
+            android:background="@android:color/holo_red_light"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1">
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="300dp" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="300dp" />
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="300dp" />
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="300dp" />
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="300dp" />
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="300dp" />
-        </LinearLayout>
-    </ScrollView>
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="300dp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="300dp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="300dp" />
+            </LinearLayout>
+        </ScrollView>
+    </LinearLayout>
+
 </LinearLayout>

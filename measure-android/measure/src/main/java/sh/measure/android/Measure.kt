@@ -75,7 +75,8 @@ object Measure {
         val customThreadFactory = CustomThreadFactory()
         val executorService = MeasureExecutorServiceImpl(customThreadFactory)
         val storage: Storage = StorageImpl(logger, context.filesDir.path)
-        val httpClient: HttpClient = HttpClientOkHttp(logger, manifestMetadata.url, manifestMetadata.apiKey)
+        val httpClient: HttpClient =
+            HttpClientOkHttp(logger, manifestMetadata.url, manifestMetadata.apiKey)
         val transport: Transport = TransportImpl(logger, httpClient)
         timeProvider = AndroidTimeProvider()
         val idProvider = UUIDProvider()
@@ -83,7 +84,8 @@ object Measure {
         val networkInfoProvider: NetworkInfoProvider =
             NetworkInfoProviderImpl(context, logger, systemServiceProvider)
         val localeProvider: LocaleProvider = LocaleProviderImpl()
-        val resourceFactory = ResourceFactoryImpl(logger, context, networkInfoProvider, localeProvider)
+        val resourceFactory =
+            ResourceFactoryImpl(logger, context, networkInfoProvider, localeProvider)
         currentThread = CurrentThread()
         val appExitProvider: AppExitProvider =
             AppExitProviderImpl(logger, currentThread, systemServiceProvider)
@@ -113,12 +115,43 @@ object Measure {
         ).apply { start() }
 
         // Register data collectors
-        UnhandledExceptionCollector(logger, eventTracker, timeProvider, networkInfoProvider, localeProvider).register()
-        AnrCollector(logger, systemServiceProvider, networkInfoProvider, timeProvider, eventTracker, localeProvider)
-            .register()
-        val cpuUsageCollector = CpuUsageCollector(logger, eventTracker, pidProvider, timeProvider, currentThread, executorService).apply { register() }
-        val memoryUsageCollector = MemoryUsageCollector(logger, pidProvider, eventTracker, timeProvider, currentThread, executorService).apply { register() }
-        ComponentCallbacksCollector(application, eventTracker, timeProvider, currentThread).register()
+        UnhandledExceptionCollector(
+            logger,
+            eventTracker,
+            timeProvider,
+            networkInfoProvider,
+            localeProvider,
+        ).register()
+        AnrCollector(
+            logger,
+            systemServiceProvider,
+            networkInfoProvider,
+            timeProvider,
+            eventTracker,
+            localeProvider,
+        ).register()
+        val cpuUsageCollector = CpuUsageCollector(
+            logger,
+            eventTracker,
+            pidProvider,
+            timeProvider,
+            currentThread,
+            executorService,
+        ).apply { register() }
+        val memoryUsageCollector = MemoryUsageCollector(
+            logger,
+            pidProvider,
+            eventTracker,
+            timeProvider,
+            currentThread,
+            executorService,
+        ).apply { register() }
+        ComponentCallbacksCollector(
+            application,
+            eventTracker,
+            timeProvider,
+            currentThread,
+        ).register()
         LifecycleCollector(
             context,
             eventTracker,
@@ -133,6 +166,7 @@ object Measure {
                 memoryUsageCollector.pause()
             },
         ).register()
+        GestureCollector(logger, eventTracker, timeProvider, currentThread).register()
 
         AppLaunchCollector(
             logger,
@@ -141,7 +175,6 @@ object Measure {
             coldLaunchTrace,
             eventTracker,
             coldLaunchListener = {
-                GestureCollector(logger, eventTracker, timeProvider, currentThread).register()
                 NetworkChangesCollector(
                     context,
                     systemServiceProvider,
