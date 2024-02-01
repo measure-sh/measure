@@ -39,8 +39,11 @@ class ExceptionDemoActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btn_deadlock).setOnClickListener {
             deadLock()
         }
-        findViewById<Button>(R.id.btn_navigate).setOnClickListener {
+        findViewById<Button>(R.id.btn_okhttp).setOnClickListener {
             startActivity(Intent(this, OkHttpActivity::class.java))
+        }
+        findViewById<Button>(R.id.btn_compose).setOnClickListener {
+            startActivity(Intent(this, ComposeActivity::class.java))
         }
     }
 

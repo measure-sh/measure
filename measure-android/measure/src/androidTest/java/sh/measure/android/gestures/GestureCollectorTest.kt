@@ -40,6 +40,30 @@ internal class GestureCollectorTest {
     }
 
     @Test
+    fun tracks_clicked_view_properties() {
+        GestureCollector(logger, tracker, timeProvider, currentThread).register()
+        ActivityScenario.launch(GestureTestActivity::class.java)
+        onView(withId(R.id.button)).perform(click())
+
+        val event = tracker.trackedClicks[0]
+        Assert.assertEquals("android.widget.Button", event.target)
+        Assert.assertEquals("button", event.target_id)
+        Assert.assertEquals("main", event.thread_name)
+        Assert.assertTrue(event.touch_down_time > 0)
+        Assert.assertTrue(event.touch_up_time > 0)
+        Assert.assertTrue(event.x > 0)
+        Assert.assertTrue(event.y > 0)
+        event.width.let {
+            Assert.assertNotNull(it)
+            Assert.assertTrue(it!! > 0)
+        }
+        event.height.let {
+            Assert.assertNotNull(it)
+            Assert.assertTrue(it!! > 0)
+        }
+    }
+
+    @Test
     fun ignores_clicks_on_non_clickable_views() {
         GestureCollector(logger, tracker, timeProvider, currentThread).register()
         ActivityScenario.launch(GestureTestActivity::class.java)
@@ -56,6 +80,30 @@ internal class GestureCollectorTest {
     }
 
     @Test
+    fun tracks_long_clicked_view_properties() {
+        GestureCollector(logger, tracker, timeProvider, currentThread).register()
+        ActivityScenario.launch(GestureTestActivity::class.java)
+        onView(withId(R.id.button)).perform(longClick())
+
+        val event = tracker.trackedLongClicks[0]
+        Assert.assertEquals("android.widget.Button", event.target)
+        Assert.assertEquals("button", event.target_id)
+        Assert.assertEquals("main", event.thread_name)
+        Assert.assertTrue(event.touch_down_time > 0)
+        Assert.assertTrue(event.touch_up_time > 0)
+        Assert.assertTrue(event.x > 0)
+        Assert.assertTrue(event.y > 0)
+        event.width.let {
+            Assert.assertNotNull(it)
+            Assert.assertTrue(it!! > 0)
+        }
+        event.height.let {
+            Assert.assertNotNull(it)
+            Assert.assertTrue(it!! > 0)
+        }
+    }
+
+    @Test
     fun ignores_long_clicks_on_non_clickable_views() {
         GestureCollector(logger, tracker, timeProvider, currentThread).register()
         ActivityScenario.launch(GestureTestActivity::class.java)
@@ -69,6 +117,22 @@ internal class GestureCollectorTest {
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.scroll_view)).perform(swipeUp())
         Assert.assertEquals(1, tracker.trackedScrolls.size)
+    }
+
+    @Test
+    fun tracks_scrollable_view_properties() {
+        GestureCollector(logger, tracker, timeProvider, currentThread).register()
+        ActivityScenario.launch(GestureTestActivity::class.java)
+        onView(withId(R.id.scroll_view)).perform(swipeUp())
+
+        val event = tracker.trackedScrolls[0]
+        Assert.assertEquals("android.widget.ScrollView", event.target)
+        Assert.assertEquals("scroll_view", event.target_id)
+        Assert.assertEquals("main", event.thread_name)
+        Assert.assertTrue(event.touch_down_time > 0)
+        Assert.assertTrue(event.touch_up_time > 0)
+        Assert.assertTrue(event.x > 0)
+        Assert.assertTrue(event.y > 0)
     }
 
     @Test

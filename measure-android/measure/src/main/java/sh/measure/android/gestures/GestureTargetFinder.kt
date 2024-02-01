@@ -4,6 +4,14 @@ import android.content.res.Resources
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.node.RootForTest
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.getAllSemanticsNodes
+import androidx.compose.ui.semantics.getOrNull
+import sh.measure.android.utils.ComposeHelper
 
 internal data class Target(
     val className: String,
@@ -14,19 +22,94 @@ internal data class Target(
 
 internal object GestureTargetFinder {
     fun findScrollable(view: ViewGroup, event: MotionEvent): Target? {
-        return findScrollableRecursively(view, event.x, event.y)?.toTarget()
+        val foundView = findScrollableRecursively(view, event.x, event.y) ?: return null
+
+        return when {
+            ComposeHelper.isComposeView(foundView) -> findComposeTarget(
+                foundView,
+                event,
+                SemanticsActions.ScrollBy,
+            )
+
+            else -> foundView.toTarget()
+        }
     }
 
     fun findClickable(view: ViewGroup, event: MotionEvent): Target? {
-        return findClickableRecursively(view, event.x, event.y)?.toTarget()
+        val foundView = findClickableViewRecursively(view, event) ?: return null
+
+        return when {
+            ComposeHelper.isComposeView(foundView) -> findComposeTarget(
+                foundView,
+                event,
+                SemanticsActions.OnClick,
+            )
+
+            else -> foundView.toTarget()
+        }
+    }
+
+    private fun findClickableViewRecursively(
+        view: ViewGroup,
+        motionEvent: MotionEvent,
+    ): View? {
+        if (ComposeHelper.isComposeView(view)) {
+            return view
+        }
+
+        for (i in view.childCount - 1 downTo 0) {
+            val child = view.getChildAt(i)
+            if (hitTest(child, motionEvent.x, motionEvent.y)) {
+                if (child.isPressed) {
+                    return child
+                } else if (child.isClickable) {
+                    return child
+                } else if (child is ViewGroup) {
+                    val result = findClickableViewRecursively(child, motionEvent)
+                    if (result != null) {
+                        return result
+                    }
+                }
+            }
+        }
+        return null
+    }
+
+    private fun findComposeTarget(
+        view: View,
+        motionEvent: MotionEvent,
+        semanticsPropertyKey: SemanticsPropertyKey<*>,
+    ): Target? {
+        val semanticsOwner = (view as? RootForTest)?.semanticsOwner ?: return null
+        val semanticsNodes = semanticsOwner.getAllSemanticsNodes(true)
+        semanticsNodes.forEach {
+            val point = Offset(motionEvent.x, motionEvent.y)
+            if (it.boundsInWindow.contains(point)) {
+                if (it.config.getOrNull(semanticsPropertyKey) != null) {
+                    val testTag = it.config.getOrNull(SemanticsProperties.TestTag)
+                    return Target(
+                        // TODO: implement a way to get the composable name
+                        className = view.javaClass.name,
+                        id = testTag,
+                        width = null,
+                        height = null,
+                    )
+                }
+            }
+        }
+        return null
     }
 
     private fun findScrollableRecursively(viewGroup: ViewGroup, x: Float, y: Float): View? {
+        if (ComposeHelper.isComposeView(viewGroup)) {
+            return viewGroup
+        }
+
         var foundView: View? = null
         for (i in viewGroup.childCount - 1 downTo 0) {
             val child = viewGroup.getChildAt(i)
-            if (isViewContainsPoint(child, x, y)) {
-                if (isScrollContainer(child) && canScroll(child)) {
+            if (hitTest(child, x, y)) {
+                if (child.isScrollContainer && canScroll(child)) {
                     foundView = child
                     break
                 } else if (child is ViewGroup) {
@@ -40,36 +123,7 @@ internal object GestureTargetFinder {
         return foundView
     }
 
-    private fun findClickableRecursively(viewGroup: ViewGroup, x: Float, y: Float): View? {
-        var foundView: View? = null
-
-        for (i in viewGroup.childCount - 1 downTo 0) {
-            val child = viewGroup.getChildAt(i)
-            if (isViewContainsPoint(child, x, y)) {
-                if (isViewPressed(child)) {
-                    foundView = child
-                    break
-                } else if (isViewClickable(child)) {
-                    foundView = child
-                    break
-                } else if (child is ViewGroup) {
-                    foundView = findClickableRecursively(child, x, y)
-                    if (foundView != null) {
-                        break
-                    }
-                }
-            }
-        }
-        return foundView
-    }
-
-    private fun canScroll(child: View): Boolean {
-        return child.canScrollHorizontally(-1) || child.canScrollHorizontally(1) || child.canScrollVertically(
-            -1,
-        ) || child.canScrollVertically(1)
-    }
-
-    private fun isViewContainsPoint(view: View, x: Float, y: Float): Boolean {
+    private fun hitTest(view: View, x: Float, y: Float): Boolean {
         val location = IntArray(2)
         view.getLocationOnScreen(location)
         val left = location[0]
@@ -80,9 +134,11 @@ internal object GestureTargetFinder {
         return x >= left && x <= right && y >= top && y <= bottom
     }
 
-    private fun isViewClickable(view: View) = view.isClickable
-    private fun isViewPressed(view: View) = view.isPressed
-    private fun isScrollContainer(view: View) = view.isScrollContainer
+    private fun canScroll(child: View): Boolean {
+        return child.canScrollHorizontally(-1) || child.canScrollHorizontally(1) || child.canScrollVertically(
+            -1,
+        ) || child.canScrollVertically(1)
+    }
 
     private fun View.toTarget(): Target? {
         val viewId = id

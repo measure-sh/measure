@@ -29,6 +29,9 @@
         <activity
             android:name=".OkHttpActivity"
             android:exported="false" />
+        <activity
+            android:name=".ComposeActivity"
+            android:exported="false" />
 
         <meta-data
             android:name="sh.measure.android.API_KEY"
