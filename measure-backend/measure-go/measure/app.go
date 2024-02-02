@@ -636,7 +636,12 @@ func GetCrashGroups(c *gin.Context) {
 		// event
 		if count > 0 {
 			groups[i].Count = count
-			groups[i].EventIDs = ids
+
+			// omit `event_ids` & `exception_events` fields from JSON
+			// response, because these can get really huge
+			groups[i].EventIDs = nil
+			groups[i].EventExceptions = nil
+
 			crashGroups = append(crashGroups, groups[i])
 		}
 	}
