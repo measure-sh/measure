@@ -38,8 +38,8 @@ type ANRGroup struct {
 	Name        string         `json:"name" db:"name"`
 	Fingerprint string         `json:"fingerprint" db:"fingerprint"`
 	Count       int            `json:"count" db:"count"`
-	EventIDs    []uuid.UUID    `json:"event_ids" db:"event_ids"`
-	EventANRs   []EventANR     `json:"anr_events"`
+	EventIDs    []uuid.UUID    `json:"event_ids,omitempty" db:"event_ids"`
+	EventANRs   []EventANR     `json:"anr_events,omitempty"`
 	Percentage  float32        `json:"percentage_contribution"`
 	CreatedAt   chrono.ISOTime `json:"created_at" db:"created_at"`
 	UpdatedAt   chrono.ISOTime `json:"updated_at" db:"updated_at"`
