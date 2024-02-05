@@ -4,13 +4,14 @@ import React, { useEffect, useRef, useState } from 'react';
 
 interface CheckboxDropdownProps {
   title: string,
-  items: string[];
+  items: string[],
+  initialSelectedItems: string[],
   onChangeSelectedItems?: (selectedItems: Array<string>) => void;
 }
 
-const CheckboxDropdown: React.FC<CheckboxDropdownProps> = ({ title, items, onChangeSelectedItems }) => {
+const CheckboxDropdown: React.FC<CheckboxDropdownProps> = ({ title, items, initialSelectedItems, onChangeSelectedItems }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedItems, setSelectedItems] = useState(new Array<string>());
+  const [selectedItems, setSelectedItems] = useState(initialSelectedItems);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -51,7 +52,6 @@ const CheckboxDropdown: React.FC<CheckboxDropdownProps> = ({ title, items, onCha
     } else {
       setSelectedItems([item, ...selectedItems])
     }
-
   };
 
   useEffect(() => {
@@ -84,6 +84,7 @@ const CheckboxDropdown: React.FC<CheckboxDropdownProps> = ({ title, items, onCha
                   type="checkbox"
                   className="appearance-none border-white rounded-sm font-display bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:ring-1 checked:ring-white"
                   value={item}
+                  checked={selectedItems.includes(item)}
                   onChange={() => { toggleItem(item) }}
                 />
                 <span className="ml-2">{item}</span>

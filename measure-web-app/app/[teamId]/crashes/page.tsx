@@ -142,7 +142,7 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
                 <p className="font-display px-2">to</p>
                 <input type="date" defaultValue={endDate} min={startDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
               </div>}
-            {filtersApiStatus === FiltersApiStatus.Success && <CheckboxDropdown title="App versions" items={versions} onChangeSelectedItems={(items) => setSelectedVersions(items)} />}
+            {filtersApiStatus === FiltersApiStatus.Success && <CheckboxDropdown title="App versions" items={versions} initialSelectedItems={versions} onChangeSelectedItems={(items) => setSelectedVersions(items)} />}
           </div>
           <div className="py-4" />
           {filtersApiStatus === FiltersApiStatus.Success &&
