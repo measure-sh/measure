@@ -232,13 +232,13 @@ export default function CrashDetails({ params }: { params: { teamId: string, cra
           <p className="font-display px-2">to</p>
           <input type="date" defaultValue={endDate} min={startDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
         </div>
-        <CheckboxDropdown title="App versions" items={versions} onChangeSelectedItems={(items) => setSelectedVersions(items)} />
-        <CheckboxDropdown title="Country" items={countries} onChangeSelectedItems={(items) => setSelectedCountries(items)} />
-        <CheckboxDropdown title="Network Provider" items={networkProviders} onChangeSelectedItems={(items) => setSelectedNetworkProviders(items)} />
-        <CheckboxDropdown title="Network type" items={networkTypes} onChangeSelectedItems={(items) => setSelectedNetworkTypes(items)} />
-        <CheckboxDropdown title="Locale" items={locales} onChangeSelectedItems={(items) => setSelectedLocales(items)} />
-        <CheckboxDropdown title="Device Manufacturer" items={deviceManufacturers} onChangeSelectedItems={(items) => setSelectedDeviceManufacturers(items)} />
-        <CheckboxDropdown title="Device Name" items={deviceNames} onChangeSelectedItems={(items) => setSelectedDeviceNames(items)} />
+        <CheckboxDropdown title="App versions" items={versions} initialSelectedItems={versions} onChangeSelectedItems={(items) => setSelectedVersions(items)} />
+        <CheckboxDropdown title="Country" items={countries} initialSelectedItems={countries} onChangeSelectedItems={(items) => setSelectedCountries(items)} />
+        <CheckboxDropdown title="Network Provider" items={networkProviders} initialSelectedItems={networkProviders} onChangeSelectedItems={(items) => setSelectedNetworkProviders(items)} />
+        <CheckboxDropdown title="Network type" items={networkTypes} initialSelectedItems={networkTypes} onChangeSelectedItems={(items) => setSelectedNetworkTypes(items)} />
+        <CheckboxDropdown title="Locale" items={locales} initialSelectedItems={locales} onChangeSelectedItems={(items) => setSelectedLocales(items)} />
+        <CheckboxDropdown title="Device Manufacturer" items={deviceManufacturers} initialSelectedItems={deviceManufacturers} onChangeSelectedItems={(items) => setSelectedDeviceManufacturers(items)} />
+        <CheckboxDropdown title="Device Name" items={deviceNames} initialSelectedItems={deviceNames} onChangeSelectedItems={(items) => setSelectedDeviceNames(items)} />
         <div className="w-full">
           <p className="font-sans">Filter by any field such as userId, device name etc</p>
           <div className="py-1" />
