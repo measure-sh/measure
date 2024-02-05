@@ -226,7 +226,7 @@ export default function CrashDetails({ params }: { params: { teamId: string, cra
       <p className="font-display font-regular text-4xl max-w-6xl text-center">NullPointerException.java</p>
       <div className="py-4" />
       <div className="flex flex-wrap gap-8 items-center w-5/6">
-        <Dropdown items={apps} onChangeSelectedItem={(item) => setSelectedApp(item)} />
+        <Dropdown items={apps} initialSelectedItem={apps[0]} onChangeSelectedItem={(item) => setSelectedApp(item)} />
         <div className="flex flex-row items-center">
           <input type="date" defaultValue={startDate} max={endDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setStartDate(e.target.value)} />
           <p className="font-display px-2">to</p>

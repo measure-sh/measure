@@ -135,7 +135,7 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
       {appsApiStatus === AppsApiStatus.Success &&
         <div>
           <div className="flex flex-wrap gap-8 items-center">
-            <Dropdown items={apps.map((e) => e.name)} onChangeSelectedItem={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} />
+            <Dropdown items={apps.map((e) => e.name)} initialSelectedItem={apps[0].name} onChangeSelectedItem={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} />
             {filtersApiStatus === FiltersApiStatus.Success &&
               <div className="flex flex-row items-center">
                 <input type="date" defaultValue={startDate} max={endDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setStartDate(e.target.value)} />
