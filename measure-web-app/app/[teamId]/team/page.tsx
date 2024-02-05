@@ -230,7 +230,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
           <div className="flex flex-row items-center">
             <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300  py-2 px-4 font-sans placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} defaultValue={inviteMemberEmail} />
             <div className="px-2" />
-            <Dropdown items={authzAndMembers.can_invite.map((i) => formatToCamelCase(i))} onChangeSelectedItem={(item) => setInviteMemberRole(item)} initialItemIndex={0} />
+            <Dropdown items={authzAndMembers.can_invite.map((i) => formatToCamelCase(i))} initialSelectedItem={formatToCamelCase(authzAndMembers.can_invite[0])} onChangeSelectedItem={(item) => setInviteMemberRole(item)} />
             <button disabled={inviteMemberApiStatus === InviteMemberApiStatus.Loading || inviteMemberEmail === ""} onClick={inviteMember} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Invite</button>
           </div>
           {inviteMemberApiStatus !== InviteMemberApiStatus.Init && <div className="py-1" />}
@@ -262,13 +262,13 @@ export default function Team({ params }: { params: { teamId: string } }) {
                   {id !== currentUserId &&
                     <div className="table-cell p-4 pl-0">
                       {/* If roles can be changed for members, add roles to dropdown and set selected role to current role */}
-                      {authz.can_change_roles !== null && authz.can_change_roles.length > 0 && <Dropdown items={authz.can_change_roles.map((i) => formatToCamelCase(i))} initialItemIndex={authzAndMembers.can_invite.findIndex((i) => i === role)} onChangeSelectedItem={(i) => {
+                      {authz.can_change_roles !== null && authz.can_change_roles.length > 0 && <Dropdown items={authz.can_change_roles.map((i) => formatToCamelCase(i))} initialSelectedItem={formatToCamelCase(role)} onChangeSelectedItem={(i) => {
                         const newMap = new Map(selectedDropdownRolesMap)
                         newMap.set(id, i)
                         setSelectedDropdownRolesMap(newMap)
                       }} />}
                       {/* If roles cannot be changed for current member, just show current role as part of dropdown */}
-                      {authz.can_change_roles === null || authz.can_change_roles.length === 0 && <Dropdown items={[role]} />}
+                      {authz.can_change_roles === null || authz.can_change_roles.length === 0 && <Dropdown items={[formatToCamelCase(role)]} initialSelectedItem={formatToCamelCase(role)} />}
                     </div>
                   }
 
