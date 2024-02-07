@@ -135,6 +135,11 @@ func (a App) GetANRGroups(af *AppFilter) ([]ANRGroup, error) {
 			stmt.Where("created_at >= ? and created_at <= ?", nil, nil)
 			args = append(args, af.From, af.To)
 		}
+
+		if af.hasKeyset() {
+			stmt.Where("id > ?", nil).Limit(nil)
+			args = append(args, af.Key, af.Limit)
+		}
 	}
 
 	defer stmt.Close()
@@ -668,6 +673,7 @@ func GetANRGroups(c *gin.Context) {
 
 	af := AppFilter{
 		AppID: id,
+		Limit: 20,
 	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
