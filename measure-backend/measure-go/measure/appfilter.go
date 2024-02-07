@@ -16,6 +16,10 @@ import (
 // duration is not provided.
 const DefaultDuration = time.Hour * 24 * 7
 
+// MaxPaginationLimit is the maximum limit value allowed
+// for generic query operations.
+const MaxPaginationLimit = 1000
+
 // AppFilter represents various app filtering
 // operations and its parameters to query app's
 // issue journey map, metrics, exceptions and
@@ -32,6 +36,8 @@ type AppFilter struct {
 	Exception bool      `form:"exception"`
 	Crash     bool      `form:"crash"`
 	ANR       bool      `form:"anr"`
+	Key       string    `form:"key"`
+	Limit     int       `form:"limit"`
 }
 
 // FilterList holds various filter parameter values that are
@@ -78,6 +84,14 @@ func (af *AppFilter) validate() error {
 		return fmt.Errorf("`from` cannot be later than now")
 	}
 
+	if af.Limit < 1 {
+		return fmt.Errorf("`limit` cannot be less than 1")
+	}
+
+	if af.Limit > MaxPaginationLimit {
+		return fmt.Errorf("`limit` cannot be more than %d", MaxPaginationLimit)
+	}
+
 	return nil
 }
 
@@ -103,6 +117,12 @@ func (af *AppFilter) hasVersion() bool {
 // appropriately set.
 func (af *AppFilter) hasTimeRange() bool {
 	return !af.From.IsZero() && !af.To.IsZero()
+}
+
+// hasKeyset checks if all fields required for
+// keyset pagination to function is present.
+func (af *AppFilter) hasKeyset() bool {
+	return af.Limit > 0 && af.Key != ""
 }
 
 // setDefaultTimeRange sets the time range to last
