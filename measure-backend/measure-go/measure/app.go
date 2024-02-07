@@ -99,9 +99,14 @@ func (a App) GetExceptionGroups(af *AppFilter) ([]ExceptionGroup, error) {
 			args = append(args, af.From, af.To)
 		}
 
-		if af.hasKeyset() {
-			stmt.Where("id > ?", nil).Limit(nil)
-			args = append(args, af.Key, af.Limit)
+		if af.hasKey() {
+			stmt.Where("id > ?", nil)
+			args = append(args, af.Key)
+		}
+
+		if af.hasLimit() {
+			stmt.Limit(nil)
+			args = append(args, af.Limit)
 		}
 	}
 
@@ -136,9 +141,14 @@ func (a App) GetANRGroups(af *AppFilter) ([]ANRGroup, error) {
 			args = append(args, af.From, af.To)
 		}
 
-		if af.hasKeyset() {
-			stmt.Where("id > ?", nil).Limit(nil)
-			args = append(args, af.Key, af.Limit)
+		if af.hasKey() {
+			stmt.Where("id > ?", nil)
+			args = append(args, af.Key)
+		}
+
+		if af.hasLimit() {
+			stmt.Limit(nil)
+			args = append(args, af.Limit)
 		}
 	}
 

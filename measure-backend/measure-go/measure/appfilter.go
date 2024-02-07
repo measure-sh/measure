@@ -119,10 +119,16 @@ func (af *AppFilter) hasTimeRange() bool {
 	return !af.From.IsZero() && !af.To.IsZero()
 }
 
-// hasKeyset checks if all fields required for
-// keyset pagination to function is present.
-func (af *AppFilter) hasKeyset() bool {
-	return af.Limit > 0 && af.Key != ""
+// hasKey checks if key is a valid non-empty
+// value.
+func (af *AppFilter) hasKey() bool {
+	return af.Key != ""
+}
+
+// hasLimit checks if limit has a non-zero
+// value.
+func (af *AppFilter) hasLimit() bool {
+	return af.Limit > 0
 }
 
 // setDefaultTimeRange sets the time range to last
