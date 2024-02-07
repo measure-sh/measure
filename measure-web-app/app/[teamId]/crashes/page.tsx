@@ -164,8 +164,11 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
       {/* Error state for crash groups fetch */}
       {crashGroupsApiStatus === CrashGroupsApiStatus.Error && <p className="text-lg font-display">Error fetching list of crashes, please change filters, refresh page or select a different app to try again</p>}
 
+      {/* Empty state for crash groups fetch */}
+      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && crashGroupsApiStatus === CrashGroupsApiStatus.Success && crashGroups.length <= 0 && <p className="text-lg font-display">It seems there are no crashes for the current combination of filters. Please change filters to try again</p>}
+
       {/* Main crash groups list UI */}
-      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && crashGroupsApiStatus === CrashGroupsApiStatus.Success &&
+      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && crashGroupsApiStatus === CrashGroupsApiStatus.Success && crashGroups.length > 0 &&
         <div className="flex flex-col items-center">
           <div className="py-4" />
           <div className="border border-black font-sans text-sm w-full h-[36rem]">
