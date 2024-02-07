@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useRouter } from 'next/navigation';
 import CreateApp from '@/app/components/create_app';
 import { AppsApiStatus, CrashGroupsApiStatus, FiltersApiStatus, emptyApp, emptyCrashGroup, fetchAppsFromServer, fetchCrashGroupsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
+import Paginator from '@/app/components/paginator';
 
 export default function Crashes({ params }: { params: { teamId: string } }) {
   const router = useRouter()
@@ -21,6 +22,7 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
   const [selectedApp, setSelectedApp] = useState(emptyApp);
 
   const [crashGroups, setCrashGroups] = useState([] as typeof emptyCrashGroup[]);
+  const [paginatorRange, setPaginatorRange] = useState({ start: 1, end: 10 })
 
   const [versions, setVersions] = useState([] as string[]);
   const [selectedVersions, setSelectedVersions] = useState([versions[0]]);
@@ -164,7 +166,7 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
 
       {/* Main crash groups list UI */}
       {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && crashGroupsApiStatus === CrashGroupsApiStatus.Success &&
-        <div>
+        <div className="flex flex-col items-center">
           <div className="py-4" />
           <div className="border border-black font-sans text-sm w-full h-[36rem]">
             <ExceptionRateChart />
@@ -188,6 +190,8 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
               ))}
             </div>
           </div>
+          <div className="py-2" />
+          <Paginator prevDisabled={paginatorRange.start === 1} nextDisabled={false} rangeStart={paginatorRange.start} rangeEnd={paginatorRange.end} onNext={() => setPaginatorRange({ start: paginatorRange.start + 10, end: paginatorRange.end + 10 })} onPrev={() => setPaginatorRange({ start: paginatorRange.start - 10, end: paginatorRange.end - 10 })} />
         </div>}
     </div>
   )
