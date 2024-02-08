@@ -1,5 +1,5 @@
 import { createBrowserClient } from '@/utils/supabase/browser';
-import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context';
+import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 const supabase = createBrowserClient()
 
