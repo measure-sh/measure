@@ -84,7 +84,7 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
       case FiltersApiStatus.Success:
         setFiltersApiStatus(FiltersApiStatus.Success)
         setVersions(result.data.versions)
-        setSelectedVersions(result.data.versions[0])
+        setSelectedVersions(result.data.versions)
         break
     }
   }
