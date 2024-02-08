@@ -234,6 +234,102 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) ([]EventExcept
 	return events, nil
 }
 
+// GetANRsWithFilter returns a slice of EventANR for the given slice of
+// event id and matching AppFilter.
+func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) ([]EventANR, error) {
+	stmt := sqlf.Select("id, type, timestamp, thread_name, resource.device_name, resource.device_model, resource.device_manufacturer, resource.device_type, resource.device_is_foldable, resource.device_is_physical, resource.device_density_dpi, resource.device_width_px, resource.device_height_px, resource.device_density, resource.device_locale, resource.os_name, resource.os_version, resource.platform, resource.app_version, resource.app_build, resource.app_unique_id, resource.measure_sdk_version, resource.network_type, resource.network_generation, resource.network_provider, anr.thread_name, anr.handled, anr.network_type,anr.network_generation, anr.network_provider, anr.device_locale, anr.fingerprint, anr.exceptions, anr.threads, attributes").
+		From("default.events").
+		Where("`id` in (?)").
+		OrderBy("`timestamp` desc", "`id` desc")
+
+	defer stmt.Close()
+	args := []any{eventIds}
+
+	if len(af.Versions) > 0 {
+		stmt.Where("`resource.app_version` in (?)", nil)
+		args = append(args, af.Versions)
+	}
+
+	if af.hasKeyset() {
+		stmt.Where("`timestamp` < ? or (`timestamp` = ? and `id` < ?)", nil, nil, nil)
+		args = append(args, af.KeyTimestamp, af.KeyTimestamp, af.KeyID)
+	}
+
+	if af.hasLimit() {
+		stmt.Limit(nil)
+		args = append(args, af.Limit)
+	}
+
+	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), args...)
+	if err != nil {
+		return nil, err
+	}
+
+	var events []EventANR
+
+	var exceptions string
+	var threads string
+
+	for rows.Next() {
+		var e EventANR
+		fields := []any{
+			&e.ID,
+			&e.Type,
+			&e.Timestamp,
+			&e.ThreadName,
+			&e.Resource.DeviceName,
+			&e.Resource.DeviceModel,
+			&e.Resource.DeviceManufacturer,
+			&e.Resource.DeviceType,
+			&e.Resource.DeviceIsFoldable,
+			&e.Resource.DeviceIsPhysical,
+			&e.Resource.DeviceDensityDPI,
+			&e.Resource.DeviceWidthPX,
+			&e.Resource.DeviceHeightPX,
+			&e.Resource.DeviceDensity,
+			&e.Resource.DeviceLocale,
+			&e.Resource.OSName,
+			&e.Resource.OSVersion,
+			&e.Resource.Platform,
+			&e.Resource.AppVersion,
+			&e.Resource.AppBuild,
+			&e.Resource.AppUniqueID,
+			&e.Resource.MeasureSDKVersion,
+			&e.Resource.NetworkType,
+			&e.Resource.NetworkGeneration,
+			&e.Resource.NetworkProvider,
+			&e.ANR.ThreadName,
+			&e.ANR.Handled,
+			&e.ANR.NetworkType,
+			&e.ANR.NetworkGeneration,
+			&e.ANR.NetworkProvider,
+			&e.ANR.DeviceLocale,
+			&e.ANR.Fingerprint,
+			&exceptions,
+			&threads,
+			&e.Attributes,
+		}
+
+		if err := rows.Scan(fields...); err != nil {
+			return nil, err
+		}
+
+		e.Trim()
+		if err := json.Unmarshal([]byte(exceptions), &e.ANR.Exceptions); err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal([]byte(threads), &e.ANR.Threads); err != nil {
+			return nil, err
+		}
+
+		e.ComputeView()
+
+		events = append(events, e)
+	}
+
+	return events, nil
+}
+
 // GetEventIdsWithFilter gets the event ids matching event ids and optionally
 // applies matching AppFilter.
 func GetEventIdsMatchingFilter(eventIds []uuid.UUID, af *AppFilter) ([]uuid.UUID, error) {
