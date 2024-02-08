@@ -28,16 +28,18 @@ type AppFilter struct {
 	// these fields should be exportable
 	// otherwise gin doesn't bind them
 	// and fails silently
-	AppID     uuid.UUID
-	From      time.Time `form:"from" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
-	To        time.Time `form:"to" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
-	Version   string    `form:"version"`
-	Versions  []string  `form:"versions"`
-	Exception bool      `form:"exception"`
-	Crash     bool      `form:"crash"`
-	ANR       bool      `form:"anr"`
-	Key       string    `form:"key"`
-	Limit     int       `form:"limit"`
+	AppID        uuid.UUID
+	From         time.Time `form:"from" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
+	To           time.Time `form:"to" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
+	Version      string    `form:"version"`
+	Versions     []string  `form:"versions"`
+	Exception    bool      `form:"exception"`
+	Crash        bool      `form:"crash"`
+	ANR          bool      `form:"anr"`
+	Key          string    `form:"key"`
+	KeyID        string    `form:"key_id"`
+	KeyTimestamp time.Time `form:"key_timestamp"`
+	Limit        int       `form:"limit"`
 }
 
 // FilterList holds various filter parameter values that are
@@ -123,6 +125,24 @@ func (af *AppFilter) hasTimeRange() bool {
 // value.
 func (af *AppFilter) hasKey() bool {
 	return af.Key != ""
+}
+
+// hasKeyID checks if key id is a valid non-empty
+// value.
+func (af *AppFilter) hasKeyID() bool {
+	return af.KeyID != ""
+}
+
+// hasKeyTimestamp checks if key timestamp is a valid non-empty
+// value.
+func (af *AppFilter) hasKeyTimestamp() bool {
+	return !time.Time.IsZero(af.KeyTimestamp)
+}
+
+// hasKeyset checks if key id and key timestamp
+// values are present and valid.
+func (af *AppFilter) hasKeyset() bool {
+	return af.hasKeyID() && af.hasKeyTimestamp()
 }
 
 // hasLimit checks if limit has a non-zero

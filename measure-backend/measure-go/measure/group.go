@@ -143,15 +143,28 @@ func GetExceptionGroup(eg *ExceptionGroup) error {
 func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) ([]EventException, error) {
 	stmt := sqlf.Select("id, type, timestamp, thread_name, resource.device_name, resource.device_model, resource.device_manufacturer, resource.device_type, resource.device_is_foldable, resource.device_is_physical, resource.device_density_dpi, resource.device_width_px, resource.device_height_px, resource.device_density, resource.device_locale, resource.os_name, resource.os_version, resource.platform, resource.app_version, resource.app_build, resource.app_unique_id, resource.measure_sdk_version, resource.network_type, resource.network_generation, resource.network_provider, exception.thread_name, exception.handled, exception.network_type, exception.network_generation, exception.network_provider, exception.device_locale, exception.fingerprint, exception.exceptions, exception.threads, attributes").
 		From("default.events").
-		Where("`id` in (?)")
-
-	if len(af.Versions) > 0 {
-		stmt.Where("`resource.app_version` in (?)")
-	}
+		Where("`id` in (?)").
+		OrderBy("`timestamp` desc", "`id` desc")
 
 	defer stmt.Close()
+	args := []any{eventIds}
 
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.Versions)
+	if len(af.Versions) > 0 {
+		stmt.Where("`resource.app_version` in (?)", nil)
+		args = append(args, af.Versions)
+	}
+
+	if af.hasKeyset() {
+		stmt.Where("`timestamp` < ? or (`timestamp` = ? and `id` < ?)", nil, nil, nil)
+		args = append(args, af.KeyTimestamp, af.KeyTimestamp, af.KeyID)
+	}
+
+	if af.hasLimit() {
+		stmt.Limit(nil)
+		args = append(args, af.Limit)
+	}
+
+	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), args...)
 	if err != nil {
 		return nil, err
 	}
