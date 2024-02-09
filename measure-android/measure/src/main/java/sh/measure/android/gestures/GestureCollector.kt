@@ -6,6 +6,7 @@ import android.view.Window
 import sh.measure.android.events.EventTracker
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.TimeProvider
 
@@ -21,14 +22,17 @@ internal class GestureCollector(
             init()
             registerInterceptor(object : WindowTouchInterceptor {
                 override fun intercept(motionEvent: MotionEvent, window: Window) {
+                    InternalTrace.beginSection("GestureCollector.intercept")
                     trackGesture(motionEvent, window)
+                    InternalTrace.endSection()
                 }
             })
         }
     }
 
     private fun trackGesture(motionEvent: MotionEvent, window: Window) {
-        val gesture = GestureDetector.detect(window.context, motionEvent, timeProvider, currentThread)
+        val gesture =
+            GestureDetector.detect(window.context, motionEvent, timeProvider, currentThread)
         if (gesture == null || motionEvent.action != MotionEvent.ACTION_UP) {
             return
         }
