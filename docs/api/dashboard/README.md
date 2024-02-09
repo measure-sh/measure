@@ -572,11 +572,17 @@ List of HTTP status codes for success and failures.
 
 ### GET `/apps/:id/anrGroups`
 
-Fetch an list of ANR groups for an app.
+Fetch a list of ANR groups for an app.
 
 #### Usage Notes
 
 - App's UUID must be passed in the URI
+- Accepted query parameters
+  - `from` (_optional_) - Start time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
+  - `to` (_optional_) - End time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
+  - `versions` (_optional_) - List of comma separated version identifier strings to return only those crash groups that have events matching the version.
+  - `key_id` (_optional_) - UUID of the last item. Used for keyset based pagination. Should be used along with `limit`.
+  - `limit` (_optional_) - Number of items to return. Used for keyset based pagination. Should be used along with `key_id`.
 
 #### Authorization & Content Type
 
@@ -604,34 +610,24 @@ These headers must be present in each request.
   ```json
   [
     {
-      "id": "b7002bf6-b19a-4ab9-93b8-2ebfb247f48c",
-      "app_id": "2feef18c-ef08-4b51-90e5-d0f262068674",
-      "app_version": "1.0",
-      "name": "Unsafe.java",
-      "fingerprint": "df6eb86ec361a76d",
-      "count": 1,
-      "events": [
-        "d06aad71-f24c-47fb-bdb7-da60830f580c"
-      ],
-      "percentage_contribution": 12.5,
-      "created_at": "2024-01-18T08:00:32.934Z",
-      "updated_at": "2024-01-18T08:00:32.934Z"
+      "id": "a0db5dc4-15e0-4f4c-ba41-3aad9b9869aa",
+      "app_id": "45b3788e-2226-4f39-9e3c-710016c6c075",
+      "name": "sh.measure.android.anr.AnrError",
+      "fingerprint": "a97a4d1c40613ffb",
+      "count": 2,
+      "percentage_contribution": 50,
+      "created_at": "2024-02-06T08:37:55.701Z",
+      "updated_at": "2024-02-06T08:38:34.294Z"
     },
     {
-      "id": "da3fbd01-5988-4385-8156-60f441ef5c75",
-      "app_id": "2feef18c-ef08-4b51-90e5-d0f262068674",
-      "app_version": "1.0",
-      "name": "Utils.java",
-      "fingerprint": "db62b90cce53a7ed",
-      "count": 3,
-      "events": [
-        "696b185f-e03d-494d-8322-2e26c79b233a",
-        "87946c9d-1151-4a43-942e-2c89f092c47d",
-        "a4e42b1e-faf9-45f5-ad85-8308e6ba4cef"
-      ],
-      "percentage_contribution": 37.5,
-      "created_at": "2024-01-18T08:00:22.497Z",
-      "updated_at": "2024-01-18T08:00:49.024Z"
+      "id": "a28f8689-fe5a-4e8d-9dc7-9c9a41988fe9",
+      "app_id": "45b3788e-2226-4f39-9e3c-710016c6c075",
+      "name": "c4.c",
+      "fingerprint": "c378c85cc0c113f9",
+      "count": 2,
+      "percentage_contribution": 50,
+      "created_at": "2024-02-06T08:38:05.023Z",
+      "updated_at": "2024-02-06T08:38:34.294Z"
     }
   ]
   ```
