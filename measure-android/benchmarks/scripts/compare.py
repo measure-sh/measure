@@ -89,7 +89,6 @@ if __name__ == "__main__":
     comparison_data, stats_before, stats_after = compare_benchmarks(file_path_1, file_path_2)
     metrics_data = calculate_metrics(stats_before, stats_after)
 
-    print("\nComparison of Before and After Metrics:\n")
     print_table(['Metric', 'Before', 'After'], comparison_data)
     print("\n")
     print_table(['Metric', 'Value'], metrics_data)
