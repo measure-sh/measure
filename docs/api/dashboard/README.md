@@ -61,7 +61,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-10)
     - [Response Body](#response-body-10)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-10)
-  - [POST `/teams/:id/invite`](#post-teamsidinvite)
+  - [POST `/auth/invite`](#post-authinvite)
     - [Usage Notes](#usage-notes-10)
     - [Request body](#request-body-1)
     - [Authorization \& Content Type](#authorization--content-type-11)
@@ -2161,13 +2161,12 @@ List of HTTP status codes for success and failures.
 
 </details>
 
-### POST `/teams/:id/invite`
+### POST `/auth/invite`
 
 Invite new members (both existing & non measure users) to a team
 
 #### Usage Notes
 
-- Teams's UUID must be passed in the URI
 - The email id of the user to be invited, team ID and role of the user to be invited must be passed in the request body
 - If a invited user does not have a measure account, they will get an invite email to sign up and will be added to team post signup automatically
 - If invited user already has a measure acccount, they will be added to the team immediately
@@ -2175,18 +2174,18 @@ Invite new members (both existing & non measure users) to a team
 #### Request body
 
 ```json
-{
-  "email": "newuser@gmail.com",
-  "role": "admin",
-  "teamId": "099f0f9b-5ee9-47de-a8aa-e996adc049c1"
-}
+[
+  {
+    "email": "newuser@gmail.com",
+    "role": "admin",
+    "teamId": "099f0f9b-5ee9-47de-a8aa-e996adc049c1",
+  }
+]
 ```
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
-
-2. Set content type as `Content-Type: application/json; charset=utf-8`
+1. Set content type as `Content-Type: application/json; charset=utf-8`
 
 These headers must be present in each request.
 
@@ -2195,7 +2194,6 @@ These headers must be present in each request.
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
-| `Authorization` | Bearer &lt;user-access-token&gt; |
 | `Content-Type`  | application/json; charset=utf-8  |
 </details>
 

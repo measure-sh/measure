@@ -62,11 +62,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "11"
     }
     testOptions {
         unitTests {
@@ -76,6 +76,10 @@ android {
     }
     buildFeatures {
         buildConfig = true
+        compose = true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.7"
     }
 }
 
@@ -120,10 +124,11 @@ fun configureSpotlessKotlin(spotlessExtension: SpotlessExtension) {
 dependencies {
     // Compile only, as we don't want to include the fragment dependency in the final artifact.
     compileOnly("androidx.fragment:fragment-ktx:1.2.5")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
-    implementation("androidx.core:core-ktx:1.6.0")
+    compileOnly("androidx.compose.runtime:runtime-android:1.5.4")
+    compileOnly("androidx.compose.ui:ui:1.4.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
 
-    implementation("androidx.annotation:annotation:1.7.0")
+    implementation("androidx.annotation:annotation:1.7.1")
     implementation("com.squareup.okio:okio:3.3.0")
     implementation(platform("com.squareup.okhttp3:okhttp-bom:4.11.0"))
     implementation("com.squareup.okhttp3:okhttp")
@@ -133,11 +138,19 @@ dependencies {
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
     testImplementation("junit:junit:4.13.2")
     testImplementation("androidx.test.ext:junit-ktx:1.1.5")
-    testImplementation("org.robolectric:robolectric:4.9.2")
+    testImplementation("org.robolectric:robolectric:4.11.1")
     testImplementation("androidx.fragment:fragment-testing:1.2.5")
     testImplementation("androidx.test:rules:1.5.0")
+    testImplementation("androidx.compose.runtime:runtime-android:1.5.4")
 
+    debugImplementation("androidx.compose.ui:ui-test-manifest:1.4.3") {
+        isTransitive = false
+    }
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation("androidx.compose.runtime:runtime-android:1.5.4")
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.4.3")
+    androidTestImplementation("androidx.compose.material3:material3:1.0.1")
+    androidTestImplementation("androidx.lifecycle:lifecycle-process:2.6.2")
+    androidTestImplementation("androidx.lifecycle:lifecycle-common:2.6.2")
+    androidTestImplementation("androidx.activity:activity-compose:1.7.2")
 }

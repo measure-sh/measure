@@ -100,7 +100,7 @@ plugins {
 }
 ```
 
-[Read](measure-gradle-plugin/README.md) more about Measure gradle plugin.
+[Read](measure-android-gradle/README.md) more about Measure gradle plugin.
 
 ### 4. Add Measure SDK to your project
 
