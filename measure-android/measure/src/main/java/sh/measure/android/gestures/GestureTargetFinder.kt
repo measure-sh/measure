@@ -11,6 +11,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.getAllSemanticsNodes
 import androidx.compose.ui.semantics.getOrNull
+import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.ComposeHelper
 
 internal data class Target(
@@ -24,7 +25,8 @@ internal object GestureTargetFinder {
     fun findScrollable(view: ViewGroup, event: MotionEvent): Target? {
         val foundView = findScrollableRecursively(view, event.x, event.y) ?: return null
 
-        return when {
+        InternalTrace.beginSection("GestureTargetFinder.findScrollable")
+        val target = when {
             ComposeHelper.isComposeView(foundView) -> findComposeTarget(
                 foundView,
                 event,
@@ -33,12 +35,15 @@ internal object GestureTargetFinder {
 
             else -> foundView.toTarget()
         }
+        InternalTrace.endSection()
+        return target
     }
 
     fun findClickable(view: ViewGroup, event: MotionEvent): Target? {
         val foundView = findClickableViewRecursively(view, event) ?: return null
 
-        return when {
+        InternalTrace.beginSection("GestureTargetFinder.findClickable")
+        val target = when {
             ComposeHelper.isComposeView(foundView) -> findComposeTarget(
                 foundView,
                 event,
@@ -47,6 +52,8 @@ internal object GestureTargetFinder {
 
             else -> foundView.toTarget()
         }
+        InternalTrace.endSection()
+        return target
     }
 
     private fun findClickableViewRecursively(

@@ -33,6 +33,7 @@ import sh.measure.android.session.SessionProvider
 import sh.measure.android.session.SessionReportGenerator
 import sh.measure.android.storage.Storage
 import sh.measure.android.storage.StorageImpl
+import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.LocaleProvider
@@ -51,6 +52,7 @@ object Measure {
     private lateinit var currentThread: CurrentThread
 
     fun init(context: Context) {
+        InternalTrace.beginSection("Measure.init")
         checkMainThread()
         val application = context as Application
 
@@ -187,6 +189,7 @@ object Measure {
             },
         ).register()
         logger.log(LogLevel.Debug, "Measure initialization completed")
+        InternalTrace.endSection()
     }
 
     internal fun getEventTracker(): EventTracker {
