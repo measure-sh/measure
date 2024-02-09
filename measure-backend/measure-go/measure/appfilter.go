@@ -35,7 +35,6 @@ type AppFilter struct {
 	Exception    bool      `form:"exception"`
 	Crash        bool      `form:"crash"`
 	ANR          bool      `form:"anr"`
-	Key          string    `form:"key"`
 	KeyID        string    `form:"key_id"`
 	KeyTimestamp time.Time `form:"key_timestamp"`
 	Limit        int       `form:"limit"`
@@ -112,12 +111,6 @@ func (af *AppFilter) expand() {
 // appropriately set.
 func (af *AppFilter) hasTimeRange() bool {
 	return !af.From.IsZero() && !af.To.IsZero()
-}
-
-// hasKey checks if key is a valid non-empty
-// value.
-func (af *AppFilter) hasKey() bool {
-	return af.Key != ""
 }
 
 // hasKeyID checks if key id is a valid non-empty
