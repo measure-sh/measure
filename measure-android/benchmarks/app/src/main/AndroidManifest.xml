@@ -2,44 +2,32 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    <uses-permission android:name="android.permission.READ_BASIC_PHONE_STATE" />
-
     <application
         android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.MeasureAndroid"
-        android:usesCleartextTraffic="true"
-        tools:targetApi="33">
+        android:theme="@style/Theme.Measure">
+
         <profileable
             android:shell="true"
             tools:targetApi="29" />
 
         <activity
-            android:name=".ExceptionDemoActivity"
-            android:exported="true">
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Measure">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".OkHttpActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ComposeActivity"
-            android:exported="false" />
 
         <meta-data
             android:name="sh.measure.android.API_KEY"
-            android:value="${MEASURE_API_KEY}" />
+            android:value="YOUR_API_KEY" />
     </application>
 
 </manifest>
