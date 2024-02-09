@@ -142,7 +142,7 @@ func (a App) GetExceptionGroups(af *AppFilter) ([]ExceptionGroup, error) {
 		}
 
 		if af.hasKeyID() {
-			stmt.Where("`id` > ?", nil)
+			stmt.Where("id > ?", nil)
 			args = append(args, af.KeyID)
 		}
 
@@ -184,7 +184,7 @@ func (a App) GetANRGroups(af *AppFilter) ([]ANRGroup, error) {
 		}
 
 		if af.hasKeyID() {
-			stmt.Where("`id` > ?", nil)
+			stmt.Where("id > ?", nil)
 			args = append(args, af.KeyID)
 		}
 
