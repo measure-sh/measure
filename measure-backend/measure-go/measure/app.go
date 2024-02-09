@@ -440,10 +440,6 @@ func GetAppJourney(c *gin.Context) {
 		af.setDefaultTimeRange()
 	}
 
-	if !af.hasVersion() {
-		af.setDefaultVersion()
-	}
-
 	// fmt.Println("journey request app id", af.AppID)
 	// fmt.Println("journey request from", af.From)
 	// fmt.Println("journey request to", af.To)
@@ -495,10 +491,6 @@ func GetAppMetrics(c *gin.Context) {
 
 	if !af.hasTimeRange() {
 		af.setDefaultTimeRange()
-	}
-
-	if !af.hasVersion() {
-		af.setDefaultVersion()
 	}
 
 	// fmt.Println("journey request app id", af.AppID)

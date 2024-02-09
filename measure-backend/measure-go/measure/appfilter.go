@@ -31,7 +31,6 @@ type AppFilter struct {
 	AppID        uuid.UUID
 	From         time.Time `form:"from" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
 	To           time.Time `form:"to" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
-	Version      string    `form:"version"`
 	Versions     []string  `form:"versions"`
 	Exception    bool      `form:"exception"`
 	Crash        bool      `form:"crash"`
@@ -109,12 +108,6 @@ func (af *AppFilter) expand() {
 	af.Versions = strings.Split(versions, ",")
 }
 
-// hasVersion checks if the version has been
-// explicitly set.
-func (af *AppFilter) hasVersion() bool {
-	return af.Version != ""
-}
-
 // hasTimeRange checks if the time values are
 // appropriately set.
 func (af *AppFilter) hasTimeRange() bool {
@@ -159,12 +152,6 @@ func (af *AppFilter) setDefaultTimeRange() {
 
 	af.From = from
 	af.To = to
-}
-
-// setDefaultVersion sets the version to the
-// latest app version if available
-func (af *AppFilter) setDefaultVersion() {
-	af.Version = "1.2.3"
 }
 
 // getGenericFilters finds distinct values of app versions, network type,
