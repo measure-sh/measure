@@ -2,27 +2,102 @@
 
 Find all the endpoints, resources and detailed documentation for Measure Dashboard REST APIs.
 
-## App
+## Contents <!-- omit in toc -->
+
+- [Apps](#apps)
+  - [GET `/apps/:id/journey`](#get-appsidjourney)
+    - [Usage Notes](#usage-notes)
+    - [Authorization \& Content Type](#authorization--content-type)
+    - [Response Body](#response-body)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting)
+  - [GET `/apps/:id/metrics`](#get-appsidmetrics)
+    - [Usage Notes](#usage-notes-1)
+    - [Authorization \& Content Type](#authorization--content-type-1)
+    - [Response Body](#response-body-1)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-1)
+  - [GET `/apps/:id/filters`](#get-appsidfilters)
+    - [Usage Notes](#usage-notes-2)
+    - [Authorization \& Content Type](#authorization--content-type-2)
+    - [Response Body](#response-body-2)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-2)
+  - [GET `/apps/:id/crashGroups`](#get-appsidcrashgroups)
+    - [Usage Notes](#usage-notes-3)
+    - [Authorization \& Content Type](#authorization--content-type-3)
+    - [Response Body](#response-body-3)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-3)
+  - [GET `/apps/:id/anrGroups`](#get-appsidanrgroups)
+    - [Usage Notes](#usage-notes-4)
+    - [Authorization \& Content Type](#authorization--content-type-4)
+    - [Response Body](#response-body-4)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-4)
+  - [GET `/apps/:id/crashGroups/:id/crashes`](#get-appsidcrashgroupsidcrashes)
+    - [Usage Notes](#usage-notes-5)
+    - [Authorization \& Content Type](#authorization--content-type-5)
+    - [Response Body](#response-body-5)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-5)
+- [Teams](#teams)
+  - [GET `/teams`](#get-teams)
+    - [Authorization \& Content Type](#authorization--content-type-6)
+    - [Response Body](#response-body-6)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-6)
+  - [GET `/teams/:id/apps`](#get-teamsidapps)
+    - [Usage Notes](#usage-notes-6)
+    - [Authorization \& Content Type](#authorization--content-type-7)
+    - [Response Body](#response-body-7)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-7)
+  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
+    - [Usage Notes](#usage-notes-7)
+    - [Authorization \& Content Type](#authorization--content-type-8)
+    - [Response Body](#response-body-8)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-8)
+  - [POST `/teams/:id/apps`](#post-teamsidapps)
+    - [Usage Notes](#usage-notes-8)
+    - [Request body](#request-body)
+    - [Authorization \& Content Type](#authorization--content-type-9)
+    - [Response Body](#response-body-9)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-9)
+  - [POST `/teams/:id/invite`](#post-teamsidinvite)
+    - [Usage Notes](#usage-notes-9)
+    - [Request body](#request-body-1)
+    - [Authorization \& Content Type](#authorization--content-type-10)
+    - [Response Body](#response-body-10)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-10)
+  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
+    - [Usage Notes](#usage-notes-10)
+    - [Request body](#request-body-2)
+    - [Authorization \& Content Type](#authorization--content-type-11)
+    - [Response Body](#response-body-11)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-11)
+  - [GET `/teams/:id/members`](#get-teamsidmembers)
+    - [Usage Notes](#usage-notes-11)
+    - [Authorization \& Content Type](#authorization--content-type-12)
+    - [Response Body](#response-body-12)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-12)
+  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+    - [Usage Notes](#usage-notes-12)
+    - [Authorization \& Content Type](#authorization--content-type-13)
+    - [Response Body](#response-body-13)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-13)
+  - [PATCH `/teams/:id/members/:id`](#patch-teamsidmembersid)
+    - [Usage Notes](#usage-notes-13)
+    - [Request body](#request-body-3)
+    - [Authorization \& Content Type](#authorization--content-type-14)
+    - [Response Body](#response-body-14)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-14)
+  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+    - [Usage Notes](#usage-notes-14)
+    - [Authorization \& Content Type](#authorization--content-type-15)
+    - [Response Body](#response-body-15)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-15)
+
+## Apps
 
 - [**GET `/apps/:id/journey`**](#get-appsidjourney) - Fetch an app's issue journey map for a time range &amp; version.
 - [**GET `/apps/:id/metrics`**](#get-appsidmetrics) - Fetch an app's health metrics for a time range &amp; version.
 - [**GET `/apps/:id/filters`**](#get-appsidfilters) - Fetch an app's filters.
 - [**GET `/apps/:id/crashGroups`**](#get-appsidcrashgroups) - Fetch list of crash groups for an app
 - [**GET `/apps/:id/anrGroups`**](#get-appsidanrgroups) - Fetch list of ANR groups for an app
-
-## Team
-
-- [**GET `/teams`**](#get-teams) - Fetch list of teams of currently logged in user
-- [**GET `/teams/:id/apps`**](#get-teamsidapps) - Fetch list of apps for a team
-- [**GET `/teams/:id/apps/:id`**](#get-teamsidappsid) - Fetch details of an app for a team
-- [**POST `/teams/:id/apps`**](#post-teamsidapps) - Create a new app for a team
-- [**POST `/teams/:id/invite`**](#post-teamsidinvite) - Invite new members (both existing & non measure users) to a team
-- [**PATCH `/teams/:id/rename`**](#patch-teamsidrename) -  Rename a team
-- [**GET `/teams/:id/members`**](#get-teamsidmembers) -  Fetch list of team members for a team
-- [**DELETE `/teams/:id/members/:id`**](#delete-teamsidmembersid) -  Remove a member from a team
-- [**PATCH `/teams/:id/members/:id`**](#patch-teamsidmembersid) -  Change role of a member of a team
-- [**GET `/teams/:id/authz`**](#get-teamsidauthz) -  Fetch authorization details of currently logged in user for a team
-
+- [**GET `/apps/:id/crashGroups/:id/crashes`**](#get-appsidcrashgroups) - Fetch list of crashes for a crash group
 
 ### GET `/apps/:id/journey`
 
@@ -642,7 +717,7 @@ These headers must be present in each request.
   }
   ```
 
-#### Status Codes & Troubleshooting
+#### Status Codes &amp; Troubleshooting
 
 List of HTTP status codes for success and failures.
 
@@ -660,11 +735,481 @@ List of HTTP status codes for success and failures.
 
 </details>
 
+### GET `/apps/:id/crashGroups/:id/crashes`
+
+Fetch list of crashes of a crash group for an app.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Accepted query parameters
+  - `versions` (_optional_) - List of comma separated version identifier strings to return only those crash groups that have events matching the version.
+  - `key_id` (_optional_) - UUID of the last item. Used for keyset based pagination. Should be used along with `key_timestamp` &amp; `limit`.
+  - `key_timestamp` (_optional_) - ISO8601 timestamp of the last item. Used for keyset based pagination. Should be used along with `key_id` &amp; `limit`.
+  - `limit` (_optional_) - Number of items to return. Used for keyset based pagination. Should be used along with `key_id` &amp; `key_timestamp`.
+
+#### Authorization &amp; Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  [
+    {
+      "id": "9bc04733-3f5d-417f-827d-f843e69bbc52",
+      "timestamp": "2024-01-01T09:11:18.947Z",
+      "type": "exception",
+      "thread_name": "main",
+      "resource": {
+        "device_name": "sunfish",
+        "device_model": "Pixel 4a",
+        "device_manufacturer": "Google",
+        "device_type": "phone",
+        "device_is_foldable": false,
+        "device_is_physical": true,
+        "device_density_dpi": 440,
+        "device_width_px": 1080,
+        "device_height_px": 2138,
+        "device_density": 2.75,
+        "device_locale": "en-US",
+        "os_name": "android",
+        "os_version": "33",
+        "platform": "android",
+        "app_version": "2.7.50464-dev-2024-01-01",
+        "app_build": "50464",
+        "app_unique_id": "org.wikipedia.dev",
+        "measure_sdk_version": "0.0.1-SNAPSHOT",
+        "network_type": "wifi",
+        "network_generation": "",
+        "network_provider": ""
+      },
+      "exceptions": [
+        {
+          "type": "org.wikipedia.CustomException",
+          "message": "Custom Exception",
+          "location": "org.wikipedia.feed.FeedFragment$FeedCallback.onVoiceSearchRequested(FeedFragment.kt:246)",
+          "stacktrace": "org.wikipedia.CustomException\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:558)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n\tat org.wikipedia.feed.FeedFragment$FeedCallback.onVoiceSearchRequested(FeedFragment.kt:246)\n\tat org.wikipedia.feed.searchbar.SearchCardView._init_$lambda$1(SearchCardView.kt:26)\n\tat android.view.View.performClick(View.java:7542)\n\tat android.view.View.performClickInternal(View.java:7519)\n\tat android.view.View.-$$Nest$mperformClickInternal\n\tat android.view.View$PerformClick.run(View.java:29476)\n\tat android.os.Handler.handleCallback(Handler.java:942)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7918)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n"
+        }
+      ],
+      "threads": [
+        {
+          "name": "Okio Watchdog",
+          "frames": [
+            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+            "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
+            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1757)",
+            "okio.AsyncTimeout$Companion.awaitTimeout$okio(AsyncTimeout.kt:308)",
+            "okio.AsyncTimeout$Watchdog.run(AsyncTimeout.kt:186)"
+          ]
+        },
+        {
+          "name": "FinalizerDaemon",
+          "frames": [
+            "java.lang.Object.wait(Object.java:-2)",
+            "java.lang.Object.wait(Object.java:386)",
+            "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:210)",
+            "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:231)",
+            "java.lang.Daemons$FinalizerDaemon.runInternal(Daemons.java:309)",
+            "java.lang.Daemons$Daemon.run(Daemons.java:145)",
+            "java.lang.Thread.run(Thread.java:1012)"
+          ]
+        },
+        {
+          "name": "OkHttp en.wikipedia.org",
+          "frames": [
+            "java.net.SocketInputStream.socketRead0(SocketInputStream.java:-2)",
+            "java.net.SocketInputStream.socketRead(SocketInputStream.java:118)",
+            "java.net.SocketInputStream.read(SocketInputStream.java:173)",
+            "java.net.SocketInputStream.read(SocketInputStream.java:143)",
+            "com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.readFromSocket(ConscryptEngineSocket.java:983)",
+            "com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.processDataFromSocket(ConscryptEngineSocket.java:947)",
+            "com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.readUntilDataAvailable(ConscryptEngineSocket.java:862)",
+            "com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.read(ConscryptEngineSocket.java:835)",
+            "okio.InputStreamSource.read(JvmOkio.kt:94)",
+            "okio.AsyncTimeout$source$1.read(AsyncTimeout.kt:128)",
+            "okio.internal._RealBufferedSourceKt.commonRequest(-RealBufferedSource.kt:60)",
+            "okio.RealBufferedSource.request(RealBufferedSource.kt:68)",
+            "okio.internal._RealBufferedSourceKt.commonRequire(-RealBufferedSource.kt:53)",
+            "okio.RealBufferedSource.require(RealBufferedSource.kt:67)",
+            "okhttp3.internal.http2.Http2Reader.nextFrame(Http2Reader.kt:89)",
+            "okhttp3.internal.http2.Http2Connection$ReaderRunnable.invoke(Http2Connection.kt:618)",
+            "okhttp3.internal.http2.Http2Connection$ReaderRunnable.invoke(Http2Connection.kt:609)",
+            "okhttp3.internal.concurrent.TaskQueue$execute$1.runOnce(TaskQueue.kt:98)",
+            "okhttp3.internal.concurrent.TaskRunner.runTask(TaskRunner.kt:116)",
+            "okhttp3.internal.concurrent.TaskRunner.access$runTask(TaskRunner.kt:42)",
+            "okhttp3.internal.concurrent.TaskRunner$runnable$1.run(TaskRunner.kt:65)",
+            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)",
+            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+            "java.lang.Thread.run(Thread.java:1012)"
+          ]
+        },
+        {
+          "name": "OkHttp Dispatcher",
+          "frames": [
+            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+            "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
+            "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:401)",
+            "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:903)",
+            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1070)",
+            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+            "java.lang.Thread.run(Thread.java:1012)"
+          ]
+        },
+        {
+          "name": "glide-source-thread-2",
+          "frames": [
+            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+            "java.util.concurrent.locks.LockSupport.park(LockSupport.java:341)",
+            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:506)",
+            "java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:3466)",
+            "java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3437)",
+            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1623)",
+            "java.util.concurrent.PriorityBlockingQueue.take(PriorityBlockingQueue.java:538)",
+            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
+            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+            "com.bumptech.glide.load.engine.executor.GlideExecutor$DefaultThreadFactory$1.run(GlideExecutor.java:424)",
+            "java.lang.Thread.run(Thread.java:1012)",
+            "com.bumptech.glide.load.engine.executor.GlideExecutor$DefaultPriorityThreadFactory$1.run(GlideExecutor.java:383)"
+          ]
+        },
+        {
+          "name": "Firebase Background Thread #0",
+          "frames": [
+            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+            "java.util.concurrent.locks.LockSupport.park(LockSupport.java:341)",
+            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:506)",
+            "java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:3466)",
+            "java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3437)",
+            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1623)",
+            "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:435)",
+            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
+            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+            "com.google.firebase.concurrent.CustomThreadFactory.lambda$newThread$0(CustomThreadFactory.java:47)",
+            "java.lang.Thread.run(Thread.java:1012)"
+          ]
+        },
+        {
+          "name": "GoogleApiHandler",
+          "frames": [
+            "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
+            "android.os.MessageQueue.next(MessageQueue.java:335)",
+            "android.os.Looper.loopOnce(Looper.java:161)",
+            "android.os.Looper.loop(Looper.java:288)",
+            "android.os.HandlerThread.run(HandlerThread.java:67)"
+          ]
+        },
+        {
+          "name": "ConnectivityThread",
+          "frames": [
+            "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
+            "android.os.MessageQueue.next(MessageQueue.java:335)",
+            "android.os.Looper.loopOnce(Looper.java:161)",
+            "android.os.Looper.loop(Looper.java:288)",
+            "android.os.HandlerThread.run(HandlerThread.java:67)"
+          ]
+        },
+        {
+          "name": "OkHttp TaskRunner",
+          "frames": [
+            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+            "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
+            "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:401)",
+            "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:903)",
+            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1070)",
+            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+            "java.lang.Thread.run(Thread.java:1012)"
+          ]
+        },
+        {
+          "name": "WM.task-1",
+          "frames": [
+            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+            "java.util.concurrent.locks.LockSupport.park(LockSupport.java:341)",
+            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:506)",
+            "java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:3466)",
+            "java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3437)",
+            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1623)",
+            "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:435)",
+            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
+            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+            "java.lang.Thread.run(Thread.java:1012)"
+          ]
+        }
+      ],
+      "attributes": {}
+    },
+    {
+      "id": "1f04d2f3-0bfa-4699-96fc-3242f2fc4a82",
+      "timestamp": "2024-01-01T09:10:16.258Z",
+      "type": "exception",
+      "thread_name": "main",
+      "resource": {
+        "device_name": "sunfish",
+        "device_model": "Pixel 4a",
+        "device_manufacturer": "Google",
+        "device_type": "phone",
+        "device_is_foldable": false,
+        "device_is_physical": true,
+        "device_density_dpi": 440,
+        "device_width_px": 1080,
+        "device_height_px": 2138,
+        "device_density": 2.75,
+        "device_locale": "en-US",
+        "os_name": "android",
+        "os_version": "33",
+        "platform": "android",
+        "app_version": "2.7.50464-dev-2024-01-01",
+        "app_build": "50464",
+        "app_unique_id": "org.wikipedia.dev",
+        "measure_sdk_version": "0.0.1-SNAPSHOT",
+        "network_type": "wifi",
+        "network_generation": "",
+        "network_provider": ""
+      },
+      "exceptions": [
+        {
+          "type": "org.wikipedia.CustomException",
+          "message": "Custom Exception",
+          "location": "org.wikipedia.feed.FeedFragment$FeedCallback.onVoiceSearchRequested(FeedFragment.kt:246)",
+          "stacktrace": "org.wikipedia.CustomException\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:558)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n\tat org.wikipedia.feed.FeedFragment$FeedCallback.onVoiceSearchRequested(FeedFragment.kt:246)\n\tat org.wikipedia.feed.searchbar.SearchCardView._init_$lambda$1(SearchCardView.kt:26)\n\tat android.view.View.performClick(View.java:7542)\n\tat android.view.View.performClickInternal(View.java:7519)\n\tat android.view.View.-$$Nest$mperformClickInternal\n\tat android.view.View$PerformClick.run(View.java:29476)\n\tat android.os.Handler.handleCallback(Handler.java:942)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7918)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n"
+        }
+      ],
+      "threads": [
+        {
+          "name": "WM.task-1",
+          "frames": [
+            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+            "java.util.concurrent.locks.LockSupport.park(LockSupport.java:341)",
+            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:506)",
+            "java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:3466)",
+            "java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3437)",
+            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1623)",
+            "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:435)",
+            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
+            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+            "java.lang.Thread.run(Thread.java:1012)"
+          ]
+        },
+        {
+          "name": "RxCachedWorkerPoolEvictor-1",
+          "frames": [
+            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+            "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
+            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:1672)",
+            "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
+            "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
+            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+            "java.lang.Thread.run(Thread.java:1012)"
+          ]
+        },
+        {
+          "name": "OkHttp Dispatcher",
+          "frames": [
+            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+            "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
+            "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:401)",
+            "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:903)",
+            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1070)",
+            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+            "java.lang.Thread.run(Thread.java:1012)"
+          ]
+        },
+        {
+          "name": "measure-thread-#0",
+          "frames": [
+            "android.os.Debug.getMemoryInfo(Debug.java:-2)",
+            "sh.measure.android.utils.DefaultDebugProvider.getMemoryInfo(DebugProvider.kt:21)",
+            "sh.measure.android.performance.MemoryUsageCollector.getTotalPss(MemoryUsageCollector.kt:97)",
+            "sh.measure.android.performance.MemoryUsageCollector.trackMemoryUsage(MemoryUsageCollector.kt:61)",
+            "sh.measure.android.performance.MemoryUsageCollector.register$lambda$0(MemoryUsageCollector.kt:43)",
+            "java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:487)",
+            "java.util.concurrent.FutureTask.runAndReset(FutureTask.java:305)",
+            "java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:308)",
+            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)",
+            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+            "java.lang.Thread.run(Thread.java:1012)"
+          ]
+        },
+        {
+          "name": "OkHttp Dispatcher",
+          "frames": [
+            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+            "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
+            "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:401)",
+            "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:903)",
+            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1070)",
+            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+            "java.lang.Thread.run(Thread.java:1012)"
+          ]
+        },
+        {
+          "name": "CrAsyncTask #1",
+          "frames": [
+            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+            "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
+            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:1672)",
+            "java.util.concurrent.ArrayBlockingQueue.poll(ArrayBlockingQueue.java:435)",
+            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1070)",
+            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+            "java.lang.Thread.run(Thread.java:1012)"
+          ]
+        },
+        {
+          "name": "OkHttp TaskRunner",
+          "frames": [
+            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+            "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
+            "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:401)",
+            "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:903)",
+            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1070)",
+            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+            "java.lang.Thread.run(Thread.java:1012)"
+          ]
+        },
+        {
+          "name": "pool-3-thread-1",
+          "frames": [
+            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+            "java.util.concurrent.locks.LockSupport.park(LockSupport.java:341)",
+            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:506)",
+            "java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:3466)",
+            "java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3437)",
+            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1623)",
+            "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:435)",
+            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
+            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+            "java.lang.Thread.run(Thread.java:1012)"
+          ]
+        },
+        {
+          "name": "Firebase-Messaging-Init",
+          "frames": [
+            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+            "java.util.concurrent.locks.LockSupport.park(LockSupport.java:341)",
+            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:506)",
+            "java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:3466)",
+            "java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3437)",
+            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1623)",
+            "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+            "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
+            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+            "com.google.android.gms.common.util.concurrent.zza.run(com.google.android.gms:play-services-basement@@18.1.0:2)",
+            "java.lang.Thread.run(Thread.java:1012)"
+          ]
+        },
+        {
+          "name": "WM.task-2",
+          "frames": [
+            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+            "java.util.concurrent.locks.LockSupport.park(LockSupport.java:341)",
+            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:506)",
+            "java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:3466)",
+            "java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3437)",
+            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1623)",
+            "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:435)",
+            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
+            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+            "java.lang.Thread.run(Thread.java:1012)"
+          ]
+        },
+        {
+          "name": "FinalizerDaemon",
+          "frames": [
+            "java.lang.Object.wait(Object.java:-2)",
+            "java.lang.Object.wait(Object.java:386)",
+            "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:210)",
+            "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:231)",
+            "java.lang.Daemons$FinalizerDaemon.runInternal(Daemons.java:309)",
+            "java.lang.Daemons$Daemon.run(Daemons.java:145)",
+            "java.lang.Thread.run(Thread.java:1012)"
+          ]
+        }
+      ],
+      "attributes": {}
+    }
+  ]
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+## Teams
+
+- [**GET `/teams`**](#get-teams) - Fetch list of teams of currently logged in user
+- [**GET `/teams/:id/apps`**](#get-teamsidapps) - Fetch list of apps for a team
+- [**GET `/teams/:id/apps/:id`**](#get-teamsidappsid) - Fetch details of an app for a team
+- [**POST `/teams/:id/apps`**](#post-teamsidapps) - Create a new app for a team
+- [**POST `/teams/:id/invite`**](#post-teamsidinvite) - Invite new members (both existing & non measure users) to a team
+- [**PATCH `/teams/:id/rename`**](#patch-teamsidrename) -  Rename a team
+- [**GET `/teams/:id/members`**](#get-teamsidmembers) -  Fetch list of team members for a team
+- [**DELETE `/teams/:id/members/:id`**](#delete-teamsidmembersid) -  Remove a member from a team
+- [**PATCH `/teams/:id/members/:id`**](#patch-teamsidmembersid) -  Change role of a member of a team
+- [**GET `/teams/:id/authz`**](#get-teamsidauthz) -  Fetch authorization details of currently logged in user for a team -->
+
 ### GET `/teams`
 
 Fetch list of teams of currently logged in user
 
-#### Authorization & Content Type
+#### Authorization &amp; Content Type
 
 1. Set the user's access token in `Authorization: Bearer <access-token>` format
 
@@ -712,7 +1257,7 @@ These headers must be present in each request.
   }
   ```
 
-#### Status Codes & Troubleshooting
+#### Status Codes &amp; Troubleshooting
 
 List of HTTP status codes for success and failures.
 
@@ -742,7 +1287,7 @@ Fetch list of apps for a team
 - The `api_key` field in the response is the key used by the client SDK to send data
 - The `revoked` field in the `api_key` object in the response indicates whether the API key is valid or has been revoked due to security issues
 
-#### Authorization & Content Type
+#### Authorization &amp; Content Type
 
 1. Set the user's access token in `Authorization: Bearer <access-token>` format
 
