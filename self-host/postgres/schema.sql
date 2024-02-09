@@ -97,11 +97,10 @@ CREATE TABLE dbmate.schema_migrations (
 CREATE TABLE public.anr_groups (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     app_id uuid,
-    app_version text NOT NULL,
     name text NOT NULL,
     fingerprint character varying(16) NOT NULL,
     count integer NOT NULL,
-    events uuid[] NOT NULL,
+    event_ids uuid[] NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -119,13 +118,6 @@ COMMENT ON COLUMN public.anr_groups.id IS 'unique id for each anr group';
 --
 
 COMMENT ON COLUMN public.anr_groups.app_id IS 'linked app id';
-
-
---
--- Name: COLUMN anr_groups.app_version; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.anr_groups.app_version IS 'linked app version';
 
 
 --
@@ -150,10 +142,10 @@ COMMENT ON COLUMN public.anr_groups.count IS 'number of instances this anr was o
 
 
 --
--- Name: COLUMN anr_groups.events; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN anr_groups.event_ids; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.anr_groups.events IS 'list of associated event ids';
+COMMENT ON COLUMN public.anr_groups.event_ids IS 'list of associated event ids';
 
 
 --
@@ -699,11 +691,10 @@ COMMENT ON COLUMN public.teams.updated_at IS 'utc timestmap at the time of team 
 CREATE TABLE public.unhandled_exception_groups (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     app_id uuid,
-    app_version text NOT NULL,
     name text NOT NULL,
     fingerprint character varying(16) NOT NULL,
     count integer NOT NULL,
-    events uuid[] NOT NULL,
+    event_ids uuid[] NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -721,13 +712,6 @@ COMMENT ON COLUMN public.unhandled_exception_groups.id IS 'unique id for each un
 --
 
 COMMENT ON COLUMN public.unhandled_exception_groups.app_id IS 'linked app id';
-
-
---
--- Name: COLUMN unhandled_exception_groups.app_version; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.unhandled_exception_groups.app_version IS 'linked app version';
 
 
 --
@@ -752,10 +736,10 @@ COMMENT ON COLUMN public.unhandled_exception_groups.count IS 'number of instance
 
 
 --
--- Name: COLUMN unhandled_exception_groups.events; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN unhandled_exception_groups.event_ids; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.unhandled_exception_groups.events IS 'list of associated event ids';
+COMMENT ON COLUMN public.unhandled_exception_groups.event_ids IS 'list of associated event ids';
 
 
 --
