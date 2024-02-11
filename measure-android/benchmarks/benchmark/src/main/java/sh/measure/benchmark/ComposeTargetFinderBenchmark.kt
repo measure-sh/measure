@@ -12,13 +12,13 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class ComposeClickBenchmark {
+class ComposeTargetFinderBenchmark {
     @get:Rule
     val benchmarkRule = MacrobenchmarkRule()
 
     @OptIn(ExperimentalMetricApi::class)
     @Test
-    fun getTargetBenchmarkForComposeClickGesture() {
+    fun composeTargetFinderBenchmark() {
         benchmarkRule.measureRepeated(
             packageName = "sh.measure.test.benchmark",
             metrics = listOf(
@@ -32,7 +32,7 @@ class ComposeClickBenchmark {
             setupBlock = {
                 pressHome()
                 startActivityAndWait()
-                device.findObject(By.text("Compose Click Benchmark")).click()
+                device.findObject(By.text("Compose Target Finder Benchmark")).click()
                 device.waitForIdle()
             },
         ) {

@@ -17,7 +17,7 @@ def startup(file_path: str) -> Series:
     return series
 
 
-def gesture_target(file_path: str) -> Series:
+def target_finder(file_path: str) -> Series:
     json_data = read_json(file_path)
     try:
         runs = json_data['benchmarks'][0]['metrics']['GestureCollector.getTargetMs']['runs']

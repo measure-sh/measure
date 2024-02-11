@@ -18,18 +18,10 @@ def compare_startup(path_before: str, path_after: str):
 
 
 @app.command()
-def compare_click(path_before: str, path_after: str):
-    before_data = parse_benchmark.gesture_target(path_before)
-    after_data = parse_benchmark.gesture_target(path_after)
+def compare_target_finder(path_before: str, path_after: str):
+    before_data = parse_benchmark.target_finder(path_before)
+    after_data = parse_benchmark.target_finder(path_after)
     calculate_and_print_metrics(before_data, after_data)
-
-
-@app.command()
-def compare_scroll(path_before: str, path_after: str):
-    before_data = parse_benchmark.gesture_target(path_before)
-    after_data = parse_benchmark.gesture_target(path_after)
-    calculate_and_print_metrics(before_data, after_data)
-
 
 def calculate_and_print_metrics(data_before: Series, data_after: Series) -> None:
     iteration_count_before = len(data_before)

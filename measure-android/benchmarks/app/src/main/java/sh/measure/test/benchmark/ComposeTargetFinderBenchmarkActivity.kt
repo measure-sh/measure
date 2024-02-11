@@ -10,6 +10,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -19,7 +20,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import sh.measure.test.benchmark.ui.theme.MyApplicationTheme
 
-class ClickComposeBenchmarkActivity : ComponentActivity() {
+class ComposeTargetFinderBenchmarkActivity : ComponentActivity() {
     @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,19 +34,28 @@ class ClickComposeBenchmarkActivity : ComponentActivity() {
                         }, color = MaterialTheme.colorScheme.background
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        val context = LocalContext.current
-                        Button(
-                            onClick = {
-                                Toast.makeText(context, "Button clicked", Toast.LENGTH_SHORT).show()
-                            },
-                            modifier = Modifier
-                                .align(Alignment.Center)
-                                .testTag("compose_button"),
-                        ) {
-                            Text("Click me")
-                        }
+                        NestedComposable(level = 50)
                     }
                 }
+            }
+        }
+    }
+
+    @Composable
+    fun NestedComposable(level: Int) {
+        if (level == 0) {
+            val context = LocalContext.current
+            Button(
+                onClick = {
+                    Toast.makeText(context, "Button clicked", Toast.LENGTH_SHORT).show()
+                },
+                modifier = Modifier.testTag("compose_button"),
+            ) {
+                Text("Click me")
+            }
+        } else {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                NestedComposable(level - 1)
             }
         }
     }
