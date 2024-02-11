@@ -1,5 +1,6 @@
 package sh.measure.test.benchmark
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -48,16 +49,16 @@ fun Launchpad() {
     LazyColumn {
         item {
             LaunchItem("View Click Benchmark", onClick = {
-                // TODO
+                context.startActivity(Intent(context, ClickViewBenchmarkActivity::class.java))
             })
             LaunchItem("View Scroll Benchmark", onClick = {
-                // TODO
+                context.startActivity(Intent(context, ScrollViewBenchmarkActivity::class.java))
             })
             LaunchItem("Compose Click Benchmark", onClick = {
-                // TODO
+                context.startActivity(Intent(context, ClickComposeBenchmarkActivity::class.java))
             })
             LaunchItem("Compose Scroll Benchmark", onClick = {
-                // TODO
+                context.startActivity(Intent(context, ScrollComposeBenchmarkActivity::class.java))
             })
         }
     }

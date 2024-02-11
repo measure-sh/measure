@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/sv_scroll_view"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_margin="64dp"
+    tools:context=".ScrollViewBenchmarkActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#FF0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#AA0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#FF0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#AA0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#FF0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#AA0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#FF0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#AA0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#FF0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#AA0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#FF0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#AA0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#FF0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#AA0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#FF0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#AA0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#FF0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#AA0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#FF0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#AA0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#FF0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#AA0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#FF0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#AA0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#FF0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#AA0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#FF0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#AA0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#FF0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#AA0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#FF0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#AA0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#FF0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#AA0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#FF0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#AA0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#FF0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#AA0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#FF0000" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="#AA0000" />
+
+    </LinearLayout>
+</ScrollView>

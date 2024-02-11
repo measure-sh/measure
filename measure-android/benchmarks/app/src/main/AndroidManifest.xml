@@ -14,6 +14,11 @@
             android:shell="true"
             tools:targetApi="29" />
 
+        <activity android:name=".ClickComposeBenchmarkActivity" />
+        <activity android:name=".ScrollViewBenchmarkActivity" />
+        <activity android:name=".ClickViewBenchmarkActivity" />
+        <activity android:name=".ScrollComposeBenchmarkActivity" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
