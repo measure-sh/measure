@@ -10,10 +10,10 @@ import android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 
-class ClickViewBenchmarkActivity : AppCompatActivity() {
+class ViewTargetFinderBenchmarkActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_click_view_benchmark)
+        setContentView(R.layout.activity_view_target_finder_benchmark)
 
         val container = findViewById<FrameLayout>(R.id.fl_container)
         var currentParent = container

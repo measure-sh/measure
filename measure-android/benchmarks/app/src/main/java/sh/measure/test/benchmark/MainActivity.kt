@@ -48,17 +48,11 @@ fun Launchpad() {
 
     LazyColumn {
         item {
-            LaunchItem("View Click Benchmark", onClick = {
-                context.startActivity(Intent(context, ClickViewBenchmarkActivity::class.java))
+            LaunchItem("View Target Finder Benchmark", onClick = {
+                context.startActivity(Intent(context, ViewTargetFinderBenchmarkActivity::class.java))
             })
-            LaunchItem("View Scroll Benchmark", onClick = {
-                context.startActivity(Intent(context, ScrollViewBenchmarkActivity::class.java))
-            })
-            LaunchItem("Compose Click Benchmark", onClick = {
-                context.startActivity(Intent(context, ClickComposeBenchmarkActivity::class.java))
-            })
-            LaunchItem("Compose Scroll Benchmark", onClick = {
-                context.startActivity(Intent(context, ScrollComposeBenchmarkActivity::class.java))
+            LaunchItem("Compose Target Finder Benchmark", onClick = {
+                context.startActivity(Intent(context, ComposeTargetFinderBenchmarkActivity::class.java))
             })
         }
     }
