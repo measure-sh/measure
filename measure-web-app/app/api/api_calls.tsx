@@ -157,19 +157,23 @@ export const emptyMetrics = {
     }
 }
 
-export const emptyCrashGroup = {
+const emptyCrashGroup = {
     "id": "",
     "app_id": "",
-    "app_version": "",
     "name": "",
     "fingerprint": "",
     "count": 0,
-    "events": [
-        ""
-    ],
     "percentage_contribution": 0,
     "created_at": "",
     "updated_at": ""
+}
+
+export const emptyCrashGroupsResponse = {
+    "meta": {
+        "next": false,
+        "previous": false
+    },
+    "results": [] as typeof emptyCrashGroup[]
 }
 
 export const defaultAuthzAndMembers = {
@@ -313,7 +317,7 @@ export const fetchMetricsFromServer = async (appId: string, startDate: string, e
     return { status: MetricsApiStatus.Success, data: data }
 }
 
-export const fetchCrashGroupsFromServer = async (appId: string, startDate: string, endDate: string, appVersions: string[], router: AppRouterInstance) => {
+export const fetchCrashGroupsFromServer = async (appId: string, startDate: string, endDate: string, appVersions: string[], keyId: string | null, limit: number, router: AppRouterInstance) => {
     const authToken = await getAccessTokenOrRedirectToAuth(router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
@@ -325,12 +329,16 @@ export const fetchCrashGroupsFromServer = async (appId: string, startDate: strin
     const serverFormattedStartDate = new Date(startDate).toISOString()
     const serverFormattedEndDate = new Date(endDate).toISOString()
 
+    var crashGroupsApiUrl = `${origin}/apps/${appId}/crashGroups?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&limit=${limit}`
+
     // If no versions are selected, don't use versions in query params
-    var crashGroupsApiUrl = ""
     if (appVersions.length > 0) {
-        crashGroupsApiUrl = `${origin}/apps/${appId}/crashGroups?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&versions=${Array.from(appVersions).join(', ')}`
-    } else {
-        crashGroupsApiUrl = `${origin}/apps/${appId}/crashGroups?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
+        crashGroupsApiUrl = crashGroupsApiUrl + `&versions=${Array.from(appVersions).join(',')}`
+    }
+
+    // Append keyId if present
+    if (keyId !== null) {
+        crashGroupsApiUrl = crashGroupsApiUrl + `&key_id=${keyId}`
     }
 
     const res = await fetch(crashGroupsApiUrl, opts);

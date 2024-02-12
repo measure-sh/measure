@@ -8,8 +8,8 @@ import FilterPill from "@/app/components/filter_pill";
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
 import CreateApp from '@/app/components/create_app';
-import { AppsApiStatus, CrashGroupsApiStatus, FiltersApiStatus, emptyApp, emptyCrashGroup, fetchAppsFromServer, fetchCrashGroupsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
-import Paginator from '@/app/components/paginator';
+import { AppsApiStatus, CrashGroupsApiStatus, FiltersApiStatus, emptyApp, emptyCrashGroupsResponse, fetchAppsFromServer, fetchCrashGroupsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
+import Paginator, { PaginationDirection } from '@/app/components/paginator';
 
 export default function Crashes({ params }: { params: { teamId: string } }) {
   const router = useRouter()
@@ -21,11 +21,13 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
   const [apps, setApps] = useState([] as typeof emptyApp[]);
   const [selectedApp, setSelectedApp] = useState(emptyApp);
 
-  const [crashGroups, setCrashGroups] = useState([] as typeof emptyCrashGroup[]);
-  const [paginatorRange, setPaginatorRange] = useState({ start: 1, end: 10 })
+  const [crashGroups, setCrashGroups] = useState(emptyCrashGroupsResponse);
+  const paginationOffset = 10
+  const [paginationRange, setPaginationRange] = useState({ start: 1, end: paginationOffset })
+  const [paginationDirection, setPaginationDirection] = useState(PaginationDirection.None)
 
   const [versions, setVersions] = useState([] as string[]);
-  const [selectedVersions, setSelectedVersions] = useState([versions[0]]);
+  const [selectedVersions, setSelectedVersions] = useState([] as string[]);
 
   const today = new Date();
   var initialEndDate = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
@@ -93,21 +95,34 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
     getFilters()
   }, [selectedApp]);
 
-  useEffect(() => {
-    setFormattedStartDate(new Date(startDate).toLocaleDateString());
-    setFormattedEndDate(new Date(endDate).toLocaleDateString());
-  }, [startDate, endDate]);
-
   const getCrashGroups = async () => {
     setCrashGroupsApiStatus(CrashGroupsApiStatus.Loading)
 
-    const result = await fetchCrashGroupsFromServer(selectedApp.id, startDate, endDate, selectedVersions, router)
+    // Set key id if user has paginated. Last index of current list if forward navigation, first index if backward
+    var keyId = null
+    if (crashGroups.results !== null && crashGroups.results.length > 0) {
+      if (paginationDirection === PaginationDirection.Forward) {
+        keyId = crashGroups.results[crashGroups.results.length - 1].id
+      } else if (paginationDirection === PaginationDirection.Backward) {
+        keyId = crashGroups.results[0].id
+      }
+    }
+
+    // Invert limit if paginating backward
+    var limit = paginationOffset
+    if (paginationDirection === PaginationDirection.Backward) {
+      limit = - limit
+    }
+
+    const result = await fetchCrashGroupsFromServer(selectedApp.id, startDate, endDate, selectedVersions, keyId, limit, router)
 
     switch (result.status) {
       case CrashGroupsApiStatus.Error:
+        setPaginationDirection(PaginationDirection.None) // Reset pagination direction to None after API call so that a change in any filters does not cause keyId to be added to the next API call
         setCrashGroupsApiStatus(CrashGroupsApiStatus.Error)
         break
       case CrashGroupsApiStatus.Success:
+        setPaginationDirection(PaginationDirection.None) // Reset pagination direction to None after API call so that a change in any filters does not cause keyId to be added to the next API call
         setCrashGroupsApiStatus(CrashGroupsApiStatus.Success)
         setCrashGroups(result.data)
         break
@@ -116,7 +131,12 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
 
   useEffect(() => {
     getCrashGroups()
-  }, [selectedApp, startDate, endDate, selectedVersions]);
+  }, [selectedApp, startDate, endDate, selectedVersions, paginationRange]);
+
+  // Reset pagination range if any filters change
+  useEffect(() => {
+    setPaginationRange({ start: 1, end: paginationOffset })
+  }, [selectedApp, selectedVersions, startDate, endDate]);
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
@@ -165,10 +185,10 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
       {crashGroupsApiStatus === CrashGroupsApiStatus.Error && <p className="text-lg font-display">Error fetching list of crashes, please change filters, refresh page or select a different app to try again</p>}
 
       {/* Empty state for crash groups fetch */}
-      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && crashGroupsApiStatus === CrashGroupsApiStatus.Success && crashGroups.length <= 0 && <p className="text-lg font-display">It seems there are no crashes for the current combination of filters. Please change filters to try again</p>}
+      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && crashGroupsApiStatus === CrashGroupsApiStatus.Success && crashGroups.results === null && <p className="text-lg font-display">It seems there are no crashes for the current combination of filters. Please change filters to try again</p>}
 
       {/* Main crash groups list UI */}
-      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && crashGroupsApiStatus === CrashGroupsApiStatus.Success && crashGroups.length > 0 &&
+      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && crashGroupsApiStatus === CrashGroupsApiStatus.Success && crashGroups.results !== null &&
         <div className="flex flex-col items-center">
           <div className="py-4" />
           <div className="border border-black font-sans text-sm w-full h-[36rem]">
@@ -184,7 +204,7 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
               </div>
             </div>
             <div className="table-row-group">
-              {crashGroups.map(({ id, name, count, percentage_contribution }) => (
+              {crashGroups.results.map(({ id, name, count, percentage_contribution }) => (
                 <Link key={id} href={`/${params.teamId}/crashGroups/${id}`} className="table-row hover:bg-yellow-200 active:bg-yellow-300">
                   <div className="table-cell border border-black p-2 hover:bg-yellow-200 active:bg-yellow-300">{name}</div>
                   <div className="table-cell border border-black p-2 text-center">{count} instances</div>
@@ -194,7 +214,15 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
             </div>
           </div>
           <div className="py-2" />
-          <Paginator prevDisabled={paginatorRange.start === 1} nextDisabled={false} rangeStart={paginatorRange.start} rangeEnd={paginatorRange.end} onNext={() => setPaginatorRange({ start: paginatorRange.start + 10, end: paginatorRange.end + 10 })} onPrev={() => setPaginatorRange({ start: paginatorRange.start - 10, end: paginatorRange.end - 10 })} />
+          <Paginator prevEnabled={crashGroups.meta.previous} nextEnabled={crashGroups.meta.next} rangeStart={paginationRange.start} rangeEnd={paginationRange.end}
+            onNext={() => {
+              setPaginationRange({ start: paginationRange.start + paginationOffset, end: paginationRange.end + paginationOffset })
+              setPaginationDirection(PaginationDirection.Forward)
+            }}
+            onPrev={() => {
+              setPaginationRange({ start: paginationRange.start - paginationOffset, end: paginationRange.end - paginationOffset })
+              setPaginationDirection(PaginationDirection.Backward)
+            }} />
         </div>}
     </div>
   )
