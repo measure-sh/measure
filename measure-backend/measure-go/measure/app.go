@@ -412,8 +412,6 @@ func (a *App) Onboard(tx pgx.Tx, uniqueIdentifier, platform, firstVersion string
 }
 
 func GetAppJourney(c *gin.Context) {
-	var af AppFilter
-
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		msg := `id invalid or missing`
@@ -421,7 +419,10 @@ func GetAppJourney(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
-	af.AppID = id
+	af := AppFilter{
+		AppID: id,
+		Limit: 20,
+	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
 		fmt.Println(err.Error())
@@ -465,8 +466,6 @@ func GetAppJourney(c *gin.Context) {
 }
 
 func GetAppMetrics(c *gin.Context) {
-	var af AppFilter
-
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		msg := `id invalid or missing`
@@ -474,7 +473,10 @@ func GetAppMetrics(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
-	af.AppID = id
+	af := AppFilter{
+		AppID: id,
+		Limit: 20,
+	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
 		fmt.Println(err.Error())
@@ -527,6 +529,7 @@ func GetAppFilters(c *gin.Context) {
 
 	af := AppFilter{
 		AppID: id,
+		Limit: 20,
 	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
