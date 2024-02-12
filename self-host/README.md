@@ -7,6 +7,7 @@ Measure is designed from the ground up for easy self-hosting. Follow along to kn
 - [Docker v24+](https://www.docker.com/)
 - [Supabase v1.112.0+](https://supabase.com/)
 - [dbmate v2.8.0+](https://github.com/amacneil/dbmate)
+- [node &amp; npm](https://nodejs.org/en)
 
 ### Installing Docker
 
@@ -31,6 +32,12 @@ brew install supabase/tap/supabase
 ### Installing dbmate
 
 Measure uses [dbmate](https://github.com/amacneil/dbmate) for running database migrations to postgres and clickhouse instances. Follow the instructions on their GitHub README to install on your machine.
+
+### Installing node/npm
+
+Skip this step if you already have node/npm.
+
+If you don't have node installed, we recommend [fnm](https://github.com/Schniz/fnm). Follow fnm's instructions to install the latest LTS version of node.
 
 ## 1. Clone the repository
 
@@ -67,7 +74,25 @@ supabase start
 
 It might take a few seconds for all the supabase containers to start and get healthy.
 
-## 6. Start measure
+## 6. Setup &amp; start web services
+
+Navigate to `measure-backend/symbolicator-retrace`
+
+Copy the `.env.example` to `.env` and modify the variables.
+
+```sh
+cp .env.example .env
+```
+
+Navigate to `measure-backend/measure-go`
+
+Copy the `.env.example` to `.env` and modify the variables.
+
+```sh
+cp .env.example .env
+```
+
+Navigate to `./self-host` and start the containers.
 
 ```sh
 docker compose up
@@ -121,11 +146,27 @@ cp .env.example .env
 dbmate migrate # run after updating `.env`
 ```
 
-## 9. Open dashboard
+## 9. Start the web app
 
-Navigate to [http://localhost:3000](http://localhost:3000) to open Measure dashboard.
+Navigate to `./measure-web-app` directory.
 
-## 10. Teardown & cleanup
+Copy the `.env.local.example` file to `.env.local` and modify the nextjs app's environment variables.
+
+```sh
+cp .env.local.example .env.local
+```
+
+Start the web app.
+
+```sh
+npm run dev
+```
+
+## 10. Open dashboard
+
+Navigate to [http://localhost:3000/auth/login](http://localhost:3000/auth/login) to open Measure dashboard login page.
+
+## Teardown &amp; cleanup
 
 To shutdown the containers, run.
 
