@@ -113,7 +113,10 @@ func DecodeAPIKey(key string) (*uuid.UUID, error) {
 		return nil, defaultErr
 	}
 
-	stmt := sqlf.PostgreSQL.Select("app_id").From("api_keys").Where("key_value = ? and revoked = ?", nil, nil, nil).Limit(1)
+	stmt := sqlf.PostgreSQL.Select("app_id").
+		From("api_keys").
+		Where("key_value = ? and revoked = ?", nil, nil, nil).
+		Limit(1)
 	defer stmt.Close()
 
 	var appId uuid.UUID
