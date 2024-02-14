@@ -95,11 +95,10 @@ CREATE TABLE dbmate.schema_migrations (
 --
 
 CREATE TABLE public.anr_groups (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    id uuid NOT NULL,
     app_id uuid,
     name text NOT NULL,
     fingerprint character varying(16) NOT NULL,
-    count integer NOT NULL,
     event_ids uuid[] NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
@@ -110,7 +109,7 @@ CREATE TABLE public.anr_groups (
 -- Name: COLUMN anr_groups.id; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.anr_groups.id IS 'unique id for each anr group';
+COMMENT ON COLUMN public.anr_groups.id IS 'sortable unique id (uuidv7) for each anr group';
 
 
 --
@@ -132,13 +131,6 @@ COMMENT ON COLUMN public.anr_groups.name IS 'name of the anr for easy identifica
 --
 
 COMMENT ON COLUMN public.anr_groups.fingerprint IS 'fingerprint of the anr';
-
-
---
--- Name: COLUMN anr_groups.count; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.anr_groups.count IS 'number of instances this anr was observed';
 
 
 --
@@ -689,11 +681,10 @@ COMMENT ON COLUMN public.teams.updated_at IS 'utc timestmap at the time of team 
 --
 
 CREATE TABLE public.unhandled_exception_groups (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    id uuid NOT NULL,
     app_id uuid,
     name text NOT NULL,
     fingerprint character varying(16) NOT NULL,
-    count integer NOT NULL,
     event_ids uuid[] NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
@@ -704,7 +695,7 @@ CREATE TABLE public.unhandled_exception_groups (
 -- Name: COLUMN unhandled_exception_groups.id; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.unhandled_exception_groups.id IS 'unique id for each unhandled exception group';
+COMMENT ON COLUMN public.unhandled_exception_groups.id IS 'sortable unique id (uuidv7) for each unhandled exception group';
 
 
 --
@@ -726,13 +717,6 @@ COMMENT ON COLUMN public.unhandled_exception_groups.name IS 'name of the excepti
 --
 
 COMMENT ON COLUMN public.unhandled_exception_groups.fingerprint IS 'fingerprint of the unhandled exception';
-
-
---
--- Name: COLUMN unhandled_exception_groups.count; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.unhandled_exception_groups.count IS 'number of instances this unhandled exception was observed';
 
 
 --
