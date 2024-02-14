@@ -126,6 +126,7 @@ dependencies {
     compileOnly("androidx.fragment:fragment-ktx:1.2.5")
     compileOnly("androidx.compose.runtime:runtime-android:1.5.4")
     compileOnly("androidx.compose.ui:ui:1.4.3")
+    compileOnly("androidx.navigation:navigation-runtime-ktx:2.7.7")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
 
     implementation("androidx.annotation:annotation:1.7.1")

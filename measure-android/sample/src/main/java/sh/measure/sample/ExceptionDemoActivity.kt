@@ -45,6 +45,9 @@ class ExceptionDemoActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btn_compose).setOnClickListener {
             startActivity(Intent(this, ComposeActivity::class.java))
         }
+        findViewById<Button>(R.id.btn_compose_navigation).setOnClickListener {
+            startActivity(Intent(this, ComposeNavigationActivity::class.java))
+        }
     }
 
     private fun infiniteLoop() {

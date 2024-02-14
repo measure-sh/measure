@@ -8,4 +8,6 @@
     <string name="deadlock">Deadlock</string>
     <string name="okhttp">OkHttp</string>
     <string name="compose">Compose</string>
+    <string name="compose_navigation">Compose Navigation</string>
+    <string name="title_activity_compose_navigation">ComposeNavigation</string>
 </resources>
