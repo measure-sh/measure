@@ -669,7 +669,7 @@ Fetch a list of ANR groups for an app.
   - `to` (_optional_) - End time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
   - `versions` (_optional_) - List of comma separated version identifier strings to return only those crash groups that have events matching the version.
   - `key_id` (_optional_) - UUID of the last item. Used for keyset based pagination. Should be used along with `limit`.
-  - `limit` (_optional_) - Number of items to return. Used for keyset based pagination. Should be used along with `key_id`.
+  - `limit` (_optional_) - Number of items to return. Used for keyset based pagination. Should be used along with `key_id`. Negative values traverses backward along with `limit`.
 
 #### Authorization & Content Type
 
@@ -695,28 +695,34 @@ These headers must be present in each request.
   <details><summary>Click to expand</summary>
 
   ```json
-  [
-    {
-      "id": "a0db5dc4-15e0-4f4c-ba41-3aad9b9869aa",
-      "app_id": "45b3788e-2226-4f39-9e3c-710016c6c075",
-      "name": "sh.measure.android.anr.AnrError",
-      "fingerprint": "a97a4d1c40613ffb",
-      "count": 2,
-      "percentage_contribution": 50,
-      "created_at": "2024-02-06T08:37:55.701Z",
-      "updated_at": "2024-02-06T08:38:34.294Z"
+  {
+    "meta": {
+      "next": false,
+      "previous": false
     },
-    {
-      "id": "a28f8689-fe5a-4e8d-9dc7-9c9a41988fe9",
-      "app_id": "45b3788e-2226-4f39-9e3c-710016c6c075",
-      "name": "c4.c",
-      "fingerprint": "c378c85cc0c113f9",
-      "count": 2,
-      "percentage_contribution": 50,
-      "created_at": "2024-02-06T08:38:05.023Z",
-      "updated_at": "2024-02-06T08:38:34.294Z"
-    }
-  ]
+    "results": [
+      {
+        "id": "018da687-f827-71d7-a136-0d3674e57943",
+        "app_id": "45b3788e-2226-4f39-9e3c-710016c6c075",
+        "name": "sh.measure.android.anr.AnrError",
+        "fingerprint": "a97a4d1c40613ffb",
+        "count": 2,
+        "percentage_contribution": 50,
+        "created_at": "2024-02-14T07:32:25.255Z",
+        "updated_at": "2024-02-14T07:33:03.679Z"
+      },
+      {
+        "id": "018da688-209a-739e-a7d2-6116fdc5ca6d",
+        "app_id": "45b3788e-2226-4f39-9e3c-710016c6c075",
+        "name": "c4.c",
+        "fingerprint": "c378c85cc0c113f9",
+        "count": 2,
+        "percentage_contribution": 50,
+        "created_at": "2024-02-14T07:32:35.61Z",
+        "updated_at": "2024-02-14T07:33:03.679Z"
+      }
+    ]
+  }
   ```
 
   </details>
