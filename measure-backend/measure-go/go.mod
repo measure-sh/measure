@@ -9,7 +9,7 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-dedup/simhash v0.0.0-20170904020510-9ecaca7b509c
 	github.com/golang-jwt/jwt/v5 v5.1.0
-	github.com/google/uuid v1.3.1
+	github.com/google/uuid v1.6.0
 	github.com/ipinfo/go/v2 v2.10.0
 	github.com/jackc/pgx/v5 v5.4.3
 	github.com/leporo/sqlf v1.4.0
