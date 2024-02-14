@@ -229,6 +229,7 @@ func (af *AppFilter) getAppVersions(fl *FilterList) error {
 	stmt := sqlf.Select("distinct toString(resource.app_version)").
 		From("events").
 		Where("app_id = toUUID(?)")
+	defer stmt.Close()
 
 	if af.Exception {
 		stmt.Where("type = 'exception'")
@@ -243,7 +244,6 @@ func (af *AppFilter) getAppVersions(fl *FilterList) error {
 		stmt.Where("type = 'anr'")
 	}
 
-	defer stmt.Close()
 	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), af.AppID)
 	if err != nil {
 		msg := `failed to query app versions`
@@ -270,6 +270,7 @@ func (af *AppFilter) getCountries(fl *FilterList) error {
 	stmt := sqlf.Select("distinct toString(inet.country_code)").
 		From("events").
 		Where("app_id = toUUID(?)")
+	defer stmt.Close()
 
 	if af.Exception {
 		stmt.Where("type = 'exception'")
@@ -284,7 +285,6 @@ func (af *AppFilter) getCountries(fl *FilterList) error {
 		stmt.Where("type = 'anr'")
 	}
 
-	defer stmt.Close()
 	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), af.AppID)
 	if err != nil {
 		msg := `failed to query countries from ip`
@@ -311,6 +311,7 @@ func (af *AppFilter) getNetworkProviders(fl *FilterList) error {
 	stmt := sqlf.Select("distinct toString(resource.network_provider)").
 		From("events").
 		Where("app_id = toUUID(?)")
+	defer stmt.Close()
 
 	if af.Exception {
 		stmt.Where("type = 'exception'")
@@ -325,7 +326,6 @@ func (af *AppFilter) getNetworkProviders(fl *FilterList) error {
 		stmt.Where("type = 'anr'")
 	}
 
-	defer stmt.Close()
 	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), af.AppID)
 	if err != nil {
 		msg := `failed to query app network providers`
@@ -355,6 +355,7 @@ func (af *AppFilter) getNetworkTypes(fl *FilterList) error {
 	stmt := sqlf.Select("distinct toString(resource.network_type)").
 		From("events").
 		Where("app_id = toUUID(?)")
+	defer stmt.Close()
 
 	if af.Exception {
 		stmt.Where("type = 'exception'")
@@ -369,7 +370,6 @@ func (af *AppFilter) getNetworkTypes(fl *FilterList) error {
 		stmt.Where("type = 'anr'")
 	}
 
-	defer stmt.Close()
 	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), af.AppID)
 	if err != nil {
 		msg := `failed to query app network types`
@@ -396,6 +396,7 @@ func (af *AppFilter) getNetworkGenerations(fl *FilterList) error {
 	stmt := sqlf.Select("distinct toString(resource.network_generation)").
 		From("events").
 		Where("app_id = toUUID(?)")
+	defer stmt.Close()
 
 	if af.Exception {
 		stmt.Where("type = 'exception'")
@@ -410,7 +411,6 @@ func (af *AppFilter) getNetworkGenerations(fl *FilterList) error {
 		stmt.Where("type = 'anr'")
 	}
 
-	defer stmt.Close()
 	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), af.AppID)
 	if err != nil {
 		msg := `failed to query app network generations`
@@ -440,6 +440,7 @@ func (af *AppFilter) getDeviceLocales(fl *FilterList) error {
 	stmt := sqlf.Select("distinct toString(resource.device_locale)").
 		From("events").
 		Where("app_id = toUUID(?)")
+	defer stmt.Close()
 
 	if af.Exception {
 		stmt.Where("type = 'exception'")
@@ -454,7 +455,6 @@ func (af *AppFilter) getDeviceLocales(fl *FilterList) error {
 		stmt.Where("type = 'anr'")
 	}
 
-	defer stmt.Close()
 	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), af.AppID)
 	if err != nil {
 		msg := `failed to query app device locales`
@@ -481,6 +481,7 @@ func (af *AppFilter) getDeviceManufacturers(fl *FilterList) error {
 	stmt := sqlf.Select("distinct toString(resource.device_manufacturer)").
 		From("events").
 		Where("app_id = toUUID(?)")
+	defer stmt.Close()
 
 	if af.Exception {
 		stmt.Where("type = 'exception'")
@@ -495,7 +496,6 @@ func (af *AppFilter) getDeviceManufacturers(fl *FilterList) error {
 		stmt.Where("type = 'anr'")
 	}
 
-	defer stmt.Close()
 	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), af.AppID)
 	if err != nil {
 		msg := `failed to query app device manufacturers`
@@ -522,6 +522,7 @@ func (af *AppFilter) getDeviceNames(fl *FilterList) error {
 	stmt := sqlf.Select("distinct toString(resource.device_name)").
 		From("events").
 		Where("app_id = toUUID(?)")
+	defer stmt.Close()
 
 	if af.Exception {
 		stmt.Where("type = 'exception'")
@@ -536,7 +537,6 @@ func (af *AppFilter) getDeviceNames(fl *FilterList) error {
 		stmt.Where("type = 'anr'")
 	}
 
-	defer stmt.Close()
 	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), af.AppID)
 	if err != nil {
 		msg := `failed to query app device names`
@@ -562,8 +562,8 @@ func (af *AppFilter) getEventVersions(fl *FilterList, eventIds []uuid.UUID) erro
 		From("events").
 		Where("id in (?)").
 		Where("app_id = toUUID(?)")
-
 	defer stmt.Close()
+
 	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.AppID)
 	if err != nil {
 		msg := `failed to query event versions`
