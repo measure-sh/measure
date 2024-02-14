@@ -573,7 +573,7 @@ Fetch a list of crash groups for an app.
   - `to` (_optional_) - End time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
   - `versions` (_optional_) - List of comma separated version identifier strings to return only those crash groups that have events matching the version.
   - `key_id` (_optional_) - UUID of the last item. Used for keyset based pagination. Should be used along with `limit`.
-  - `limit` (_optional_) - Number of items to return. Used for keyset based pagination. Should be used along with `key_id`.
+  - `limit` (_optional_) - Number of items to return. Used for keyset based pagination. Should be used along with `key_id`. Negative values traverses backward along with `limit`.
 
 #### Authorization & Content Type
 
@@ -599,28 +599,34 @@ These headers must be present in each request.
   <details><summary>Click to expand</summary>
 
   ```json
-  [
-    {
-      "id": "b1fa3bd0-5d3d-4874-8b75-4b12893f2753",
-      "app_id": "6f9f8cf9-e938-4689-9b88-28cdc9aa4b70",
-      "name": "org.wikipedia.CustomException",
-      "fingerprint": "c3fac85cc1d013f9",
-      "count": 4,
-      "percentage_contribution": 80,
-      "created_at": "2024-02-06T08:39:06.491Z",
-      "updated_at": "2024-02-06T08:39:54.404Z"
+  {
+    "meta": {
+      "next": true,
+      "previous": false
     },
-    {
-      "id": "c89c76ac-c643-457e-828a-b7138e0cca4f",
-      "app_id": "6f9f8cf9-e938-4689-9b88-28cdc9aa4b70",
-      "name": "org.wikipedia.CustomException",
-      "fingerprint": "a37acc1cc16037f9",
-      "count": 1,
-      "percentage_contribution": 20,
-      "created_at": "2024-02-06T08:40:18.825Z",
-      "updated_at": "2024-02-06T08:40:18.825Z"
-    }
-  ]
+    "results": [
+      {
+        "id": "018da688-071c-7207-a1fe-ef529bde9963",
+        "app_id": "45b3788e-2226-4f39-9e3c-710016c6c075",
+        "name": "java.lang.StackOverflowError",
+        "fingerprint": "eb6ac85cc04117f9",
+        "count": 2,
+        "percentage_contribution": 25,
+        "created_at": "2024-02-14T07:32:29.084Z",
+        "updated_at": "2024-02-14T07:32:44.603Z"
+      },
+      {
+        "id": "018da688-13e1-76db-8ad7-632401256db3",
+        "app_id": "45b3788e-2226-4f39-9e3c-710016c6c075",
+        "name": "java.lang.IllegalAccessException",
+        "fingerprint": "c3f8c85cc0c117f9",
+        "count": 2,
+        "percentage_contribution": 25,
+        "created_at": "2024-02-14T07:32:32.353Z",
+        "updated_at": "2024-02-14T07:32:51.035Z"
+      }
+    ]
+  }
   ```
 
   </details>
