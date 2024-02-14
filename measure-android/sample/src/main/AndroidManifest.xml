@@ -22,6 +22,12 @@
             tools:targetApi="29" />
 
         <activity
+            android:name=".ComposeNavigationActivity"
+            android:exported="false"
+            android:label="@string/title_activity_compose_navigation"
+            android:theme="@style/Theme.MeasureAndroid" />
+
+        <activity
             android:name=".ExceptionDemoActivity"
             android:exported="true">
             <intent-filter>
