@@ -86,7 +86,7 @@ func (a App) MarshalJSON() ([]byte, error) {
 // group id and returns a pointer to ExceptionGroup.
 func (a App) GetExceptionGroup(id uuid.UUID) (*ExceptionGroup, error) {
 	stmt := sqlf.PostgreSQL.
-		Select("id, app_id, name, fingerprint, count, event_ids, created_at, updated_at").
+		Select("id, app_id, name, fingerprint, array_length(event_ids, 1) as count, event_ids, created_at, updated_at").
 		From("unhandled_exception_groups").
 		Where("id = ?", nil)
 	defer stmt.Close()
@@ -107,7 +107,7 @@ func (a App) GetExceptionGroup(id uuid.UUID) (*ExceptionGroup, error) {
 // group id and returns a pointer to ANRGroup.
 func (a App) GetANRGroup(id uuid.UUID) (*ANRGroup, error) {
 	stmt := sqlf.PostgreSQL.
-		Select("id, app_id, name, fingerprint, count, event_ids, created_at, updated_at").
+		Select("id, app_id, name, fingerprint, array_length(event_ids, 1) as count, event_ids, created_at, updated_at").
 		From("anr_groups").
 		Where("id = ?", nil)
 	defer stmt.Close()
@@ -128,10 +128,11 @@ func (a App) GetANRGroup(id uuid.UUID) (*ANRGroup, error) {
 // AppFilter values
 func (a App) GetExceptionGroups(af *AppFilter) ([]ExceptionGroup, error) {
 	stmt := sqlf.PostgreSQL.
-		Select("id, app_id, name, fingerprint, count, event_ids, created_at, updated_at").
-		From("unhandled_exception_groups").
+		Select("id, app_id, name, fingerprint, array_length(event_ids, 1) as count, event_ids, created_at, updated_at").
+		From("public.unhandled_exception_groups").
 		OrderBy("count desc").
 		Where("app_id = ?", nil)
+	defer stmt.Close()
 
 	args := []any{a.ID}
 
@@ -140,19 +141,7 @@ func (a App) GetExceptionGroups(af *AppFilter) ([]ExceptionGroup, error) {
 			stmt.Where("created_at >= ? and created_at <= ?", nil, nil)
 			args = append(args, af.From, af.To)
 		}
-
-		if af.hasKeyID() {
-			stmt.Where("id > ?", nil)
-			args = append(args, af.KeyID)
-		}
-
-		if af.hasLimit() {
-			stmt.Limit(nil)
-			args = append(args, af.Limit)
-		}
 	}
-
-	defer stmt.Close()
 
 	rows, err := server.Server.PgPool.Query(context.Background(), stmt.String(), args...)
 	if err != nil {
@@ -170,10 +159,11 @@ func (a App) GetExceptionGroups(af *AppFilter) ([]ExceptionGroup, error) {
 // AppFilter values
 func (a App) GetANRGroups(af *AppFilter) ([]ANRGroup, error) {
 	stmt := sqlf.PostgreSQL.
-		Select("id, app_id, name, fingerprint, count, event_ids, created_at, updated_at").
+		Select("id, app_id, name, fingerprint, array_length(event_ids, 1) as count, event_ids, created_at, updated_at").
 		From("public.anr_groups").
 		OrderBy("count desc").
 		Where("app_id = ?", nil)
+	defer stmt.Close()
 
 	args := []any{a.ID}
 
@@ -182,19 +172,7 @@ func (a App) GetANRGroups(af *AppFilter) ([]ANRGroup, error) {
 			stmt.Where("created_at >= ? and created_at <= ?", nil, nil)
 			args = append(args, af.From, af.To)
 		}
-
-		if af.hasKeyID() {
-			stmt.Where("id > ?", nil)
-			args = append(args, af.KeyID)
-		}
-
-		if af.hasLimit() {
-			stmt.Limit(nil)
-			args = append(args, af.Limit)
-		}
 	}
-
-	defer stmt.Close()
 
 	rows, err := server.Server.PgPool.Query(context.Background(), stmt.String(), args...)
 	if err != nil {
@@ -412,8 +390,6 @@ func (a *App) Onboard(tx pgx.Tx, uniqueIdentifier, platform, firstVersion string
 }
 
 func GetAppJourney(c *gin.Context) {
-	var af AppFilter
-
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		msg := `id invalid or missing`
@@ -421,7 +397,10 @@ func GetAppJourney(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
-	af.AppID = id
+	af := AppFilter{
+		AppID: id,
+		Limit: 20,
+	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
 		fmt.Println(err.Error())
@@ -465,8 +444,6 @@ func GetAppJourney(c *gin.Context) {
 }
 
 func GetAppMetrics(c *gin.Context) {
-	var af AppFilter
-
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		msg := `id invalid or missing`
@@ -474,7 +451,10 @@ func GetAppMetrics(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
-	af.AppID = id
+	af := AppFilter{
+		AppID: id,
+		Limit: 20,
+	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
 		fmt.Println(err.Error())
@@ -527,6 +507,7 @@ func GetAppFilters(c *gin.Context) {
 
 	af := AppFilter{
 		AppID: id,
+		Limit: 20,
 	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
@@ -702,8 +683,11 @@ func GetCrashGroups(c *gin.Context) {
 	}
 
 	ComputeCrashContribution(crashGroups)
+	SortExceptionGroups(crashGroups)
+	crashGroups, next, previous := PaginateGroups(crashGroups, &af)
+	meta := gin.H{"next": next, "previous": previous}
 
-	c.JSON(http.StatusOK, crashGroups)
+	c.JSON(http.StatusOK, gin.H{"results": crashGroups, "meta": meta})
 }
 
 func GetCrashGroupCrashes(c *gin.Context) {
@@ -908,8 +892,11 @@ func GetANRGroups(c *gin.Context) {
 	}
 
 	ComputeANRContribution(anrGroups)
+	SortANRGroups(anrGroups)
+	anrGroups, next, previous := PaginateGroups(anrGroups, &af)
+	meta := gin.H{"next": next, "previous": previous}
 
-	c.JSON(http.StatusOK, anrGroups)
+	c.JSON(http.StatusOK, gin.H{"results": anrGroups, "meta": meta})
 }
 
 func GetANRGroupANRs(c *gin.Context) {

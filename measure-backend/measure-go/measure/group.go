@@ -3,9 +3,12 @@ package measure
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"math"
 	"measure-backend/measure-go/chrono"
 	"measure-backend/measure-go/server"
 	"slices"
+	"sort"
 	"strconv"
 	"time"
 
@@ -18,6 +21,10 @@ import (
 // distance above which two similar exceptions or
 // ANRs are considered unique.
 var MinHammingDistance = 3
+
+type GroupID interface {
+	GetID() uuid.UUID
+}
 
 type ExceptionGroup struct {
 	ID              uuid.UUID        `json:"id" db:"id"`
@@ -50,6 +57,14 @@ type Grouper interface {
 	GetGroup(fingerprint uint64) ExceptionGroup
 }
 
+func (e ExceptionGroup) GetID() uuid.UUID {
+	return e.ID
+}
+
+func (a ANRGroup) GetID() uuid.UUID {
+	return a.ID
+}
+
 // EventExists checks if the given event id exists in
 // the ExceptionGroup's events array.
 func (e ExceptionGroup) EventExists(id uuid.UUID) bool {
@@ -71,12 +86,11 @@ func (a ANRGroup) EventExists(id uuid.UUID) bool {
 func (e ExceptionGroup) AppendEventId(id uuid.UUID) error {
 	stmt := sqlf.PostgreSQL.Update("public.unhandled_exception_groups").
 		SetExpr("event_ids", "array_append(event_ids, ?)", nil).
-		Set("count", nil).
 		Set("updated_at", nil).
 		Where("id = ?", nil)
 
 	defer stmt.Close()
-	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), id, e.Count+1, time.Now(), e.ID)
+	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), id, time.Now(), e.ID)
 	if err != nil {
 		return err
 	}
@@ -89,11 +103,10 @@ func (e ExceptionGroup) AppendEventId(id uuid.UUID) error {
 func (a ANRGroup) AppendEventId(id uuid.UUID) error {
 	stmt := sqlf.PostgreSQL.Update("public.anr_groups").
 		SetExpr("event_ids", "array_append(event_ids, ?)", nil).
-		Set("count", nil).
 		Set("updated_at", nil)
 
 	defer stmt.Close()
-	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), id, a.Count+1, time.Now())
+	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), id, time.Now())
 	if err != nil {
 		return err
 	}
@@ -130,12 +143,12 @@ func (anr ANRGroup) HammingDistance(a uint64) (uint8, error) {
 // GetExceptionGroup gets the ExceptionGroup by matching
 // ExceptionGroup id and app id.
 func GetExceptionGroup(eg *ExceptionGroup) error {
-	stmt := sqlf.PostgreSQL.Select("name, fingerprint, count, event_ids, created_at, updated_at").
+	stmt := sqlf.PostgreSQL.Select("name, fingerprint, event_ids, created_at, updated_at").
 		From("public.unhandled_exception_groups").
 		Where("id = ? and app_id = ?", nil, nil)
 	defer stmt.Close()
 
-	return server.Server.PgPool.QueryRow(context.Background(), stmt.String(), eg.ID, eg.AppID).Scan(&eg.Name, &eg.Fingerprint, &eg.Count, &eg.EventIDs, &eg.CreatedAt, &eg.UpdatedAt)
+	return server.Server.PgPool.QueryRow(context.Background(), stmt.String(), eg.ID, eg.AppID).Scan(&eg.Name, &eg.Fingerprint, &eg.EventIDs, &eg.CreatedAt, &eg.UpdatedAt)
 }
 
 // GetExceptionsWithFilter returns a slice of EventException for the given slice of
@@ -154,7 +167,7 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) ([]EventExcept
 		args = append(args, af.Versions)
 	}
 
-	if af.hasKeyset() {
+	if af.hasKeyID() && af.hasKeyTimestamp() {
 		stmt.Where("`timestamp` < ? or (`timestamp` = ? and `id` < ?)", nil, nil, nil)
 		args = append(args, af.KeyTimestamp, af.KeyTimestamp, af.KeyID)
 	}
@@ -336,12 +349,11 @@ func GetEventIdsMatchingFilter(eventIds []uuid.UUID, af *AppFilter) ([]uuid.UUID
 	stmt := sqlf.Select("id").
 		From("default.events").
 		Where("`id` in (?)")
+	defer stmt.Close()
 
 	if len(af.Versions) > 0 {
 		stmt.Where("`resource.app_version` in (?)")
 	}
-
-	defer stmt.Close()
 
 	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.Versions)
 	if err != nil {
@@ -366,12 +378,12 @@ func GetEventIdsMatchingFilter(eventIds []uuid.UUID, af *AppFilter) ([]uuid.UUID
 // GetANRGroup gets the ANRGroup by matching
 // ANRGroup id and app id.
 func GetANRGroup(ag *ANRGroup) error {
-	stmt := sqlf.PostgreSQL.Select("name, fingerprint, count, event_ids, created_at, updated_at").
+	stmt := sqlf.PostgreSQL.Select("name, fingerprint, event_ids, created_at, updated_at").
 		From("public.anr_groups").
 		Where("id = ? and app_id = ?", nil, nil)
 	defer stmt.Close()
 
-	return server.Server.PgPool.QueryRow(context.Background(), stmt.String(), ag.ID, ag.AppID).Scan(&ag.Name, &ag.Fingerprint, &ag.Count, &ag.EventIDs, &ag.CreatedAt, &ag.UpdatedAt)
+	return server.Server.PgPool.QueryRow(context.Background(), stmt.String(), ag.ID, ag.AppID).Scan(&ag.Name, &ag.Fingerprint, &ag.EventIDs, &ag.CreatedAt, &ag.UpdatedAt)
 }
 
 // ClosestExceptionGroup finds the index of the ExceptionGroup closest to
@@ -428,6 +440,141 @@ func ComputeCrashContribution(groups []ExceptionGroup) {
 	}
 }
 
+// PaginateGroups accepts slice of interface GroupID and computes and
+// returns a subset slice along with pagination meta, like next and previous.
+func PaginateGroups[T GroupID](groups []T, af *AppFilter) (sliced []T, next bool, previous bool) {
+	sliced = groups
+	next = false
+	previous = false
+
+	length := len(groups)
+
+	// no change if slice is empty
+	if length == 0 {
+		return
+	}
+
+	start := 0
+	for i := range groups {
+		if groups[i].GetID().String() == af.KeyID {
+			if af.Limit > 0 {
+				start = i + 1
+			} else {
+				start = i
+			}
+			break
+		}
+	}
+
+	end := start + af.Limit
+
+	if af.Limit > 0 {
+		if end > len(groups) {
+			end = len(groups)
+		}
+		if end < len(groups) {
+			next = true
+		}
+		if start > 0 {
+			previous = true
+		}
+		if start >= length {
+			start = 0
+			end = 0
+		}
+		sliced = groups[start:end]
+	} else if af.Limit < 0 {
+		if end < 0 {
+			end = 0
+		}
+		if end < len(groups) {
+			next = true
+		}
+		if end > 0 {
+			previous = true
+		}
+		sliced = groups[end:start]
+	}
+
+	return
+}
+
+func ComputePaginationMeta[T any](s []T, af *AppFilter) ([]T, bool, bool) {
+	positiveLimit := int(math.Abs(float64(af.Limit)))
+	// more := false
+	next := false
+	previous := false
+	fmt.Println("slice length", len(s), positiveLimit)
+	if len(s) == 0 {
+		return s, next, previous
+	}
+	if af.KeyID == "" {
+		return s, next, previous
+	}
+	// if len(s) > positiveLimit {
+
+	// 	if af.Limit < 0 {
+	// 		// remove first
+	// 		s = s[1:]
+	// 		previous = true
+	// 	} else {
+	// 		// remove last
+	// 		s = s[:len(s)-1]
+	// 		next = true
+	// 	}
+	// } else {
+	// 	if af.Limit < 0 {
+	// 		next = true
+	// 	} else {
+	// 		previous = true
+	// 	}
+	// }
+
+	if af.Limit < 0 {
+		// backward
+		if len(s) > positiveLimit {
+			previous = true
+			s = s[1:]
+		} else if len(s) < positiveLimit {
+			next = true
+		}
+
+	} else {
+		// forward
+		if len(s) > positiveLimit {
+			next = true
+			s = s[:len(s)-1]
+		} else if len(s) < positiveLimit {
+			previous = true
+		}
+
+	}
+
+	return s, next, previous
+}
+
+// SortExceptionGroups first sorts a slice of ExceptionGroup
+// with descending count and then ascending ID
+func SortExceptionGroups(groups []ExceptionGroup) {
+	sort.SliceStable(groups, func(i, j int) bool {
+		if groups[i].Count != groups[j].Count {
+			return groups[i].Count > groups[j].Count
+		}
+		return groups[i].ID.String() < groups[j].ID.String()
+	})
+}
+
+// SortANRGroups first sorts a slice of ANRGroup
+// with descending count and then ascending ID
+func SortANRGroups(groups []ANRGroup) {
+	sort.SliceStable(groups, func(i, j int) bool {
+		if groups[i].Count != groups[j].Count {
+			return groups[i].Count > groups[j].Count
+		}
+		return groups[i].ID.String() < groups[j].ID.String()
+	})
+}
+
 // ComputeANRContribution computes percentage of anr contribution from
 // given slice of ANRGroup.
 func ComputeANRContribution(groups []ANRGroup) {
@@ -445,15 +592,20 @@ func ComputeANRContribution(groups []ANRGroup) {
 // Insert inserts a new ExceptionGroup into the database
 func (e *ExceptionGroup) Insert() error {
 	stmt := sqlf.PostgreSQL.InsertInto("public.unhandled_exception_groups").
+		Set("id", nil).
 		Set("app_id", nil).
 		Set("name", nil).
 		Set("fingerprint", nil).
-		Set("count", nil).
 		Set("event_ids", nil)
 
 	defer stmt.Close()
 
-	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), e.AppID, e.Name, e.Fingerprint, e.Count, e.EventIDs)
+	id, err := uuid.NewV7()
+	if err != nil {
+		return err
+	}
+
+	_, err = server.Server.PgPool.Exec(context.Background(), stmt.String(), id, e.AppID, e.Name, e.Fingerprint, e.EventIDs)
 	if err != nil {
 		return err
 	}
@@ -462,17 +614,22 @@ func (e *ExceptionGroup) Insert() error {
 }
 
 // Insert inserts a new ANRGroup into the database
-func (e *ANRGroup) Insert() error {
+func (a *ANRGroup) Insert() error {
 	stmt := sqlf.PostgreSQL.InsertInto("public.anr_groups").
+		Set("id", nil).
 		Set("app_id", nil).
 		Set("name", nil).
 		Set("fingerprint", nil).
-		Set("count", nil).
 		Set("event_ids", nil)
 
 	defer stmt.Close()
 
-	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), e.AppID, e.Name, e.Fingerprint, e.Count, e.EventIDs)
+	id, err := uuid.NewV7()
+	if err != nil {
+		return err
+	}
+
+	_, err = server.Server.PgPool.Exec(context.Background(), stmt.String(), id, a.AppID, a.Name, a.Fingerprint, a.EventIDs)
 	if err != nil {
 		return err
 	}
@@ -486,7 +643,6 @@ func NewExceptionGroup(appId uuid.UUID, name string, fingerprint string, eventId
 		AppID:       appId,
 		Name:        name,
 		Fingerprint: fingerprint,
-		Count:       len(eventIds),
 		EventIDs:    eventIds,
 	}
 }
@@ -497,7 +653,6 @@ func NewANRGroup(appId uuid.UUID, name string, fingerprint string, eventIds []uu
 		AppID:       appId,
 		Name:        name,
 		Fingerprint: fingerprint,
-		Count:       len(eventIds),
 		EventIDs:    eventIds,
 	}
 }
