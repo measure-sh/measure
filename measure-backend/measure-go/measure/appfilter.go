@@ -84,10 +84,6 @@ func (af *AppFilter) validate() error {
 		return fmt.Errorf("`from` cannot be later than now")
 	}
 
-	if af.Limit < 1 {
-		return fmt.Errorf("`limit` cannot be less than 1")
-	}
-
 	if af.Limit > MaxPaginationLimit {
 		return fmt.Errorf("`limit` cannot be more than %d", MaxPaginationLimit)
 	}
