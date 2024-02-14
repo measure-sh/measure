@@ -6,6 +6,7 @@ import android.view.Window
 import sh.measure.android.events.EventTracker
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.TimeProvider
 
@@ -21,17 +22,23 @@ internal class GestureCollector(
             init()
             registerInterceptor(object : WindowTouchInterceptor {
                 override fun intercept(motionEvent: MotionEvent, window: Window) {
+                    InternalTrace.beginSection("GestureCollector.intercept")
                     trackGesture(motionEvent, window)
+                    InternalTrace.endSection()
                 }
             })
         }
     }
 
     private fun trackGesture(motionEvent: MotionEvent, window: Window) {
-        val gesture = GestureDetector.detect(window.context, motionEvent, timeProvider, currentThread)
+        InternalTrace.beginSection("GestureCollector.trackGesture")
+        val gesture =
+            GestureDetector.detect(window.context, motionEvent, timeProvider, currentThread)
         if (gesture == null || motionEvent.action != MotionEvent.ACTION_UP) {
             return
         }
+
+        InternalTrace.beginSection("GestureCollector.getTarget")
         // Find the potential view on which the gesture ended on.
         val target = getTarget(gesture, window, motionEvent)
         if (target == null) {
@@ -46,7 +53,9 @@ internal class GestureCollector(
                 "Target found for gesture ${gesture.javaClass.simpleName}: ${target.className}:${target.id}",
             )
         }
+        InternalTrace.endSection()
 
+        InternalTrace.beginSection("GestureCollector.serializeEvent")
         when (gesture) {
             is DetectedGesture.Click -> tracker.trackClick(
                 ClickEvent.fromDetectedGesture(gesture, target),
@@ -60,6 +69,8 @@ internal class GestureCollector(
                 ScrollEvent.fromDetectedGesture(gesture, target),
             )
         }
+        InternalTrace.endSection()
+        InternalTrace.endSection()
     }
 
     private fun getTarget(
