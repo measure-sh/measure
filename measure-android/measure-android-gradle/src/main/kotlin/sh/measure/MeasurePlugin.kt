@@ -51,8 +51,7 @@ class MeasurePlugin : Plugin<Project> {
 
     private fun injectOkHttpListener(variant: Variant) {
         variant.instrumentation.transformClassesWith(
-//            OkHttpVisitorFactory::class.java,
-            NavigationVisitorFactory::class.java,
+            OkHttpVisitorFactory::class.java,
             InstrumentationScope.ALL
         ) {}
         variant.instrumentation.setAsmFramesComputationMode(FramesComputationMode.COMPUTE_FRAMES_FOR_INSTRUMENTED_METHODS)
