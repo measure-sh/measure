@@ -52,23 +52,32 @@ func main() {
 	r.PUT("/sessions", measure.ValidateAPIKey(), measure.PutSession)
 	r.PUT("/mappings", measure.ValidateAPIKey(), measure.PutMapping)
 
-	r.Use(cors).GET("/apps/:id/journey", measure.ValidateAccessToken(), measure.GetAppJourney)
-	r.Use(cors).GET("/apps/:id/metrics", measure.ValidateAccessToken(), measure.GetAppMetrics)
-	r.Use(cors).GET("/apps/:id/filters", measure.ValidateAccessToken(), measure.GetAppFilters)
-	r.Use(cors).GET("/apps/:id/crashGroups", measure.ValidateAccessToken(), measure.GetCrashGroups)
-	r.Use(cors).GET("/apps/:id/anrGroups", measure.ValidateAccessToken(), measure.GetANRGroups)
-	r.Use(cors).GET("/apps/:id/crashGroups/:crashGroupId/crashes", measure.ValidateAccessToken(), measure.GetCrashGroupCrashes)
-	r.Use(cors).GET("/apps/:id/anrGroups/:anrGroupId/anrs", measure.ValidateAccessToken(), measure.GetANRGroupANRs)
-	r.Use(cors).GET("/teams", measure.ValidateAccessToken(), measure.GetTeams)
-	r.Use(cors).GET("/teams/:id/apps", measure.ValidateAccessToken(), measure.GetTeamApps)
-	r.Use(cors).GET("/teams/:id/apps/:appId", measure.ValidateAccessToken(), measure.GetTeamApp)
-	r.Use(cors).POST("/teams/:id/apps", measure.ValidateAccessToken(), measure.CreateApp)
-	r.Use(cors).POST("/teams/:id/invite", measure.ValidateAccessToken(), measure.InviteMembers)
-	r.Use(cors).PATCH("/teams/:id/rename", measure.ValidateAccessToken(), measure.RenameTeam)
-	r.Use(cors).PATCH("/teams/:id/members/:memberId/role", measure.ValidateAccessToken(), measure.ChangeMemberRole)
-	r.Use(cors).GET("/teams/:id/authz", measure.ValidateAccessToken(), measure.GetAuthzRoles)
-	r.Use(cors).GET("/teams/:id/members", measure.ValidateAccessToken(), measure.GetTeamMembers)
-	r.Use(cors).DELETE("/teams/:id/members/:memberId", measure.ValidateAccessToken(), measure.RemoveTeamMember) // dashboard routes
+	// Dashboard rotues
+	r.Use(cors).Use(measure.ValidateAccessToken())
+	apps := r.Group("/apps")
+	{
+		apps.GET(":id/journey", measure.GetAppJourney)
+		apps.GET(":id/metrics", measure.GetAppMetrics)
+		apps.GET(":id/filters", measure.GetAppFilters)
+		apps.GET(":id/crashGroups", measure.GetCrashGroups)
+		apps.GET(":id/anrGroups", measure.GetANRGroups)
+		apps.GET(":id/crashGroups/:crashGroupId/crashes", measure.GetCrashGroupCrashes)
+		apps.GET(":id/anrGroups/:anrGroupId/anrs", measure.GetANRGroupANRs)
+	}
+
+	teams := r.Group("/teams")
+	{
+		teams.GET("", measure.GetTeams)
+		teams.GET(":id/apps", measure.GetTeamApps)
+		teams.GET(":id/apps/:appId", measure.GetTeamApp)
+		teams.POST(":id/apps", measure.CreateApp)
+		teams.POST(":id/invite", measure.InviteMembers)
+		teams.PATCH(":id/rename", measure.RenameTeam)
+		teams.PATCH(":id/members/:memberId/role", measure.ChangeMemberRole)
+		teams.GET(":id/authz", measure.GetAuthzRoles)
+		teams.GET(":id/members", measure.GetTeamMembers)
+		teams.DELETE(":id/members/:memberId", measure.RemoveTeamMember)
+	}
 
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080
 }
