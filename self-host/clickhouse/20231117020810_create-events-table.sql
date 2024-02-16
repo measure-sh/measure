@@ -165,6 +165,7 @@ create table if not exists default.events
     `cpu_usage.stime` UInt64,
     `cpu_usage.cstime` UInt64,
     `cpu_usage.interval_config` UInt32,
+    `navigation.route` FixedString(128),
 )
 engine = MergeTree
 primary key (id, app_id, timestamp)

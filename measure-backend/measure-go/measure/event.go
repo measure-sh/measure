@@ -49,6 +49,7 @@ const (
 	maxHttpClientChars                        = 32
 	maxTrimMemoryLevelChars                   = 64
 	maxAttrCount                              = 10
+	maxRouteChars                             = 128
 )
 
 const TypeANR = "anr"
@@ -70,6 +71,7 @@ const TypeMemoryUsage = "memory_usage"
 const TypeLowMemory = "low_memory"
 const TypeTrimMemory = "trim_memory"
 const TypeCPUUsage = "cpu_usage"
+const TypeNavigation = "navigation"
 
 // timeFormat is the format of datetime in nanoseconds when
 // converting datetime values before inserting into database
@@ -361,6 +363,10 @@ type CPUUsage struct {
 	IntervalConfig uint32 `json:"interval_config" binding:"required"`
 }
 
+type Navigation struct {
+	Route string `json:"route" binding:"required"`
+}
+
 type EventField struct {
 	ID                uuid.UUID         `json:"id"`
 	Timestamp         time.Time         `json:"timestamp" binding:"required"`
@@ -386,6 +392,7 @@ type EventField struct {
 	LowMemory         LowMemory         `json:"low_memory,omitempty"`
 	TrimMemory        TrimMemory        `json:"trim_memory,omitempty"`
 	CPUUsage          CPUUsage          `json:"cpu_usage,omitempty"`
+	Navigation        Navigation        `json:"navigation,omitempty"`
 	Attributes        map[string]string `json:"attributes"`
 }
 
@@ -468,6 +475,10 @@ func (e *EventField) isCPUUsage() bool {
 // check if LowMemory event is present
 func (e *EventField) isLowMemory() bool {
 	return e.Type == TypeLowMemory
+}
+
+func (e *EventField) isNavigation() bool {
+	return e.Type == TypeNavigation
 }
 
 func (e *EventField) Trim() {
@@ -608,7 +619,7 @@ func (e *EventField) computeANRFingerprint() error {
 }
 
 func (e *EventField) validate() error {
-	validTypes := []string{TypeANR, TypeException, TypeAppExit, TypeString, TypeGestureLongClick, TypeGestureScroll, TypeGestureClick, TypeLifecycleActivity, TypeLifecycleFragment, TypeLifecycleApp, TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch, TypeNetworkChange, TypeHttp, TypeMemoryUsage, TypeLowMemory, TypeTrimMemory, TypeCPUUsage}
+	validTypes := []string{TypeANR, TypeException, TypeAppExit, TypeString, TypeGestureLongClick, TypeGestureScroll, TypeGestureClick, TypeLifecycleActivity, TypeLifecycleFragment, TypeLifecycleApp, TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch, TypeNetworkChange, TypeHttp, TypeMemoryUsage, TypeLowMemory, TypeTrimMemory, TypeCPUUsage, TypeNavigation}
 	if !slices.Contains(validTypes, e.Type) {
 		return fmt.Errorf(`"events[].type" is not a valid type`)
 	}
@@ -754,6 +765,12 @@ func (e *EventField) validate() error {
 		}
 	}
 
+	if e.isNavigation() {
+		if e.Navigation.Route == "" {
+			return fmt.Errorf(`navigation.route must not be empty`)
+		}
+	}
+
 	if len(e.Type) > maxTypeChars {
 		return fmt.Errorf(`"events[].type" exceeds maximum allowed characters of (%d)`, maxTypeChars)
 	}
@@ -852,6 +869,9 @@ func (e *EventField) validate() error {
 	}
 	if len(e.Attributes) > maxAttrCount {
 		return fmt.Errorf(`"events[].attributes" exceeds maximum count of (%d)`, maxAttrCount)
+	}
+	if len(e.Navigation.Route) > maxRouteChars {
+		return fmt.Errorf(`"events[].navigation.route" exceeds maximum allowed characters of (%d)`, maxRouteChars)
 	}
 
 	return nil
