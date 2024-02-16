@@ -2,10 +2,10 @@ name: API Server
 on:
   push:
     paths:
-      - "measure-backend/measure-go/**"
+      - measure-backend/measure-go/**/*
   pull_request:
     paths:
-      - "measure-backend/measure-go/**"
+      - measure-backend/measure-go/**/*
 
 jobs:
   build:
@@ -24,6 +24,8 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
+          check-latest: true
+          cache-dependency-path: measure-backend/measure-go/go.sum
       - name: Display go version
         run: go version
       - name: Install dependencies
@@ -47,6 +49,8 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
+          check-latest: true
+          cache-dependency-path: measure-backend/measure-go/go.sum
       - name: Display go version
         run: go version
       - name: Install dependencies
