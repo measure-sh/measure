@@ -131,7 +131,7 @@ Measure dashboard.
 * [ANR tracking](docs/features/feature_anr_tracking.md)
 * [Network monitoring](docs/features/feature_network_monitoring.md)
 * [Gesture tracking](docs/features/feature_gesture_tracking.md)
-* [Screen transitions](docs/features/feature_screen_transitions.md)
+* [Navigation & Lifecycle](docs/features/feature_navigation_and_lifecycle.md)
 * [App launch metrics](docs/features/feature_app_launch_metrics.md)
 * [App exit info](docs/features/feature_app_exit_info.md)
 * [CPU monitoring](docs/features/feature_cpu_monitoring.md)

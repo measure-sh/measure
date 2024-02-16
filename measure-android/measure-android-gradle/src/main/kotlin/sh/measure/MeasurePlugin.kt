@@ -11,6 +11,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
+import sh.measure.navigation.NavigationVisitorFactory
 import sh.measure.okhttp.OkHttpVisitorFactory
 import sh.measure.utils.capitalize
 import java.time.Duration
@@ -50,7 +51,8 @@ class MeasurePlugin : Plugin<Project> {
 
     private fun injectOkHttpListener(variant: Variant) {
         variant.instrumentation.transformClassesWith(
-            OkHttpVisitorFactory::class.java,
+//            OkHttpVisitorFactory::class.java,
+            NavigationVisitorFactory::class.java,
             InstrumentationScope.ALL
         ) {}
         variant.instrumentation.setAsmFramesComputationMode(FramesComputationMode.COMPUTE_FRAMES_FOR_INSTRUMENTED_METHODS)
