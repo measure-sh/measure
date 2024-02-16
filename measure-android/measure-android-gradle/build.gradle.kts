@@ -75,8 +75,6 @@ dependencies {
     testImplementation("org.ow2.asm:asm-util:9.6")
     testImplementation("org.ow2.asm:asm-commons:9.6")
     testImplementation("com.android.tools.build:gradle:7.4.1")
-    testImplementation("org.ow2.asm:asm-util:9.6")
-    testImplementation("org.ow2.asm:asm-commons:9.6")
     testImplementation("com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0")
     testImplementationAar("sh.measure:measure-android:0.1.0")
 

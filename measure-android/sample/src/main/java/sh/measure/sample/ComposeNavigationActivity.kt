@@ -24,7 +24,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import sh.measure.android.navigation.withMeasureNavigationListener
 
 class ComposeNavigationActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,7 +36,7 @@ class ComposeNavigationActivity : ComponentActivity() {
 
 @Composable
 fun App() {
-    val navController = rememberNavController().withMeasureNavigationListener()
+    val navController = rememberNavController()
     Scaffold { innerPadding ->
         NavGraph(navController = navController, modifier = Modifier.padding(innerPadding))
     }
