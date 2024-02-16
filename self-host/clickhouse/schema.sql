@@ -170,7 +170,8 @@ CREATE TABLE default.events
     `cpu_usage.cutime` UInt64,
     `cpu_usage.stime` UInt64,
     `cpu_usage.cstime` UInt64,
-    `cpu_usage.interval_config` UInt32
+    `cpu_usage.interval_config` UInt32,
+    `navigation.route` FixedString(128)
 )
 ENGINE = MergeTree
 PRIMARY KEY (id, app_id, timestamp)

@@ -569,7 +569,8 @@ func (s *Session) ingest() error {
 			Set("cpu_usage.cutime", nil).
 			Set("cpu_usage.stime", nil).
 			Set("cpu_usage.cstime", nil).
-			Set("cpu_usage.interval_config", nil)
+			Set("cpu_usage.interval_config", nil).
+			Set("navigation.route", nil)
 
 		args = append(args,
 			s.Events[i].ID,
@@ -736,6 +737,7 @@ func (s *Session) ingest() error {
 			s.Events[i].CPUUsage.STime,
 			s.Events[i].CPUUsage.CSTime,
 			s.Events[i].CPUUsage.IntervalConfig,
+			s.Events[i].Navigation.Route,
 		)
 	}
 
