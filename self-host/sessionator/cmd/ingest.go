@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"io/ioutil"
 	"log"
 	"mime/multipart"
 	"net/http"
@@ -291,7 +292,11 @@ func UploadSession(url, apiKey string, data []byte) (string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode > 399 {
-		return resp.Status, errors.New("failed to ingest session")
+		errorBody, errRead := ioutil.ReadAll(resp.Body)
+		if errRead != nil {
+			return resp.Status, errors.New("failed to ingest session")
+		}
+		return resp.Status, errors.New("failed to ingest session: " + string(errorBody))
 	}
 
 	return resp.Status, nil
