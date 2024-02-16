@@ -64,7 +64,7 @@ jobs:
         working-directory: measure-backend/measure-go
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
       - name: Deploy to fly.io
