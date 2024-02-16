@@ -71,6 +71,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.8.2")
     implementation("androidx.compose.ui:ui-tooling-preview:1.6.0")
     implementation("androidx.compose.runtime:runtime-android:1.6.0")
+    implementation("androidx.navigation:navigation-compose:2.6.0")
 
     implementation(project(":measure"))
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")

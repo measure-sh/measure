@@ -1,8 +1,7 @@
-package sh.measure.sample
+@file:SuppressLint("ComposableNaming")
+package sh.measure.android.navigation
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
+import android.annotation.SuppressLint
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,101 +16,85 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import sh.measure.android.navigation.withMeasureNavigationListener
 
-class ComposeNavigationActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            App()
-        }
-    }
-}
-
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
-fun App() {
+fun testApp() {
     val navController = rememberNavController().withMeasureNavigationListener()
-    Scaffold { innerPadding ->
-        NavGraph(navController = navController, modifier = Modifier.padding(innerPadding))
+    Scaffold(
+        modifier = Modifier.semantics {
+            testTagsAsResourceId = true
+        },
+    ) { innerPadding ->
+        navGraph(navController = navController, modifier = Modifier.padding(innerPadding))
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppBar(title: String) {
+fun appBar(title: String) {
     TopAppBar(title = { Text(text = title) })
 }
 
 @Composable
-fun NavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
+fun navGraph(navController: NavHostController, modifier: Modifier = Modifier) {
     NavHost(navController = navController, startDestination = "home", modifier = modifier) {
-        composable("home") { HomeScreen(navController) }
-        composable("checkout") { CheckoutScreen() }
-        composable("profile") { ProfileScreen() }
+        composable("home") { homeScreen(navController) }
+        composable("checkout") { checkoutScreen() }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController) {
-    Scaffold(topBar = { AppBar(title = "Home") }) { innerPadding ->
+fun homeScreen(navController: NavController) {
+    Scaffold(topBar = { appBar(title = "Home") }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding)) {
-            ListItem(navController, "Checkout", "checkout")
-            ListItem(navController, "Profile", "profile")
+            listItem(navController, "Checkout", "checkout")
         }
     }
 }
 
 @Composable
-fun ListItem(
-    navController: NavController, text: String, route: String
+fun listItem(
+    navController: NavController,
+    text: String,
+    route: String,
 ) {
     Row(
         Modifier
             .height(48.dp)
             .fillMaxWidth()
+            .testTag(route)
             .clickable { navController.navigate(route) },
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(text, modifier = Modifier.padding(start = 16.dp))
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CheckoutScreen() {
-    Scaffold(topBar = { AppBar(title = "Checkout") }) { innerPadding ->
+fun checkoutScreen() {
+    Scaffold(topBar = { appBar(title = "Checkout") }) { innerPadding ->
         Box(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxHeight()
                 .fillMaxWidth(),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
             Text("Checkout")
-        }
-    }
-}
-
-@Composable
-
-
-fun ProfileScreen() {
-    Scaffold(topBar = { AppBar(title = "Profile") }) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxHeight()
-                .fillMaxWidth(),
-        ) {
-            Text(
-                "Profile", modifier = Modifier.align(Alignment.Center)
-            )
         }
     }
 }

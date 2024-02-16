@@ -16,6 +16,7 @@ import sh.measure.android.gestures.ScrollEvent
 import sh.measure.android.lifecycle.ActivityLifecycleEvent
 import sh.measure.android.lifecycle.ApplicationLifecycleEvent
 import sh.measure.android.lifecycle.FragmentLifecycleEvent
+import sh.measure.android.navigation.NavigationEvent
 import sh.measure.android.networkchange.NetworkChangeEvent
 import sh.measure.android.okhttp.HttpEvent
 import sh.measure.android.performance.CpuUsage
@@ -196,6 +197,15 @@ internal fun CpuUsage.toEvent(): Event {
         type = EventType.CPU_USAGE,
         timestamp = timestamp.iso8601Timestamp(),
         data = Json.encodeToJsonElement(CpuUsage.serializer(), this),
+        thread_name = thread_name,
+    )
+}
+
+internal fun NavigationEvent.toEvent(): Event {
+    return Event(
+        type = EventType.NAVIGATION,
+        timestamp = timestamp.iso8601Timestamp(),
+        data = Json.encodeToJsonElement(NavigationEvent.serializer(), this),
         thread_name = thread_name,
     )
 }

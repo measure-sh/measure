@@ -36,7 +36,16 @@ class MeasurePlugin : Plugin<Project> {
         androidComponents.onVariants { variant ->
             registerProguardMappingUploadTask(variant, project, httpClientProvider)
             injectOkHttpListener(variant)
+            injectComposeNavigationListener(variant)
         }
+    }
+
+    private fun injectComposeNavigationListener(variant: Variant) {
+        variant.instrumentation.transformClassesWith(
+            NavigationVisitorFactory::class.java,
+            InstrumentationScope.ALL
+        ) {}
+        variant.instrumentation.setAsmFramesComputationMode(FramesComputationMode.COMPUTE_FRAMES_FOR_INSTRUMENTED_METHODS)
     }
 
     private fun injectOkHttpListener(variant: Variant) {
