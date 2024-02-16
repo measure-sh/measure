@@ -12,6 +12,10 @@ public final class sh/measure/android/Measure {
 	public final fun init (Landroid/content/Context;)V
 }
 
+public final class sh/measure/android/navigation/ComposeNavigationCollectorKt {
+	public static final fun withMeasureNavigationListener (Landroidx/navigation/NavHostController;Landroidx/compose/runtime/Composer;I)Landroidx/navigation/NavHostController;
+}
+
 public final class sh/measure/android/okhttp/MeasureEventListenerFactory : okhttp3/EventListener$Factory {
 	public static final field $stable I
 	public fun <init> (Lokhttp3/EventListener$Factory;)V

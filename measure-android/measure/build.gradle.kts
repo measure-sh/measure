@@ -154,4 +154,6 @@ dependencies {
     androidTestImplementation("androidx.lifecycle:lifecycle-process:2.6.2")
     androidTestImplementation("androidx.lifecycle:lifecycle-common:2.6.2")
     androidTestImplementation("androidx.activity:activity-compose:1.7.2")
+    androidTestImplementation("androidx.navigation:navigation-compose:2.6.0")
+    androidTestImplementation("androidx.test:rules:1.5.0")
 }

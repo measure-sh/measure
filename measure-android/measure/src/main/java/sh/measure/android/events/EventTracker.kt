@@ -13,6 +13,7 @@ import sh.measure.android.lifecycle.ApplicationLifecycleEvent
 import sh.measure.android.lifecycle.FragmentLifecycleEvent
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.navigation.NavigationEvent
 import sh.measure.android.networkchange.NetworkChangeEvent
 import sh.measure.android.okhttp.HttpEvent
 import sh.measure.android.performance.CpuUsage
@@ -40,6 +41,7 @@ internal interface EventTracker {
     fun trackLowMemory(lowMemory: LowMemory)
     fun trackTrimMemory(trimMemory: TrimMemory)
     fun trackCpuUsage(cpuUsage: CpuUsage)
+    fun trackNavigationEvent(navigationEvent: NavigationEvent)
 }
 
 // TODO: refactor to make serialization happen on background thread.
@@ -142,6 +144,11 @@ internal class MeasureEventTracker(
     override fun trackCpuUsage(cpuUsage: CpuUsage) {
         logger.log(LogLevel.Debug, "Tracking CPU usage")
         sessionController.storeEvent(cpuUsage.toEvent())
+    }
+
+    override fun trackNavigationEvent(navigationEvent: NavigationEvent) {
+        logger.log(LogLevel.Debug, "Tracking navigation event")
+        sessionController.storeEvent(navigationEvent.toEvent())
     }
 
     override fun storeAttachment(attachmentInfo: AttachmentInfo) {

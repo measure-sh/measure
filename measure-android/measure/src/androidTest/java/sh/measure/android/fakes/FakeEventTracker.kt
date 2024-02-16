@@ -12,6 +12,7 @@ import sh.measure.android.gestures.ScrollEvent
 import sh.measure.android.lifecycle.ActivityLifecycleEvent
 import sh.measure.android.lifecycle.ApplicationLifecycleEvent
 import sh.measure.android.lifecycle.FragmentLifecycleEvent
+import sh.measure.android.navigation.NavigationEvent
 import sh.measure.android.networkchange.NetworkChangeEvent
 import sh.measure.android.okhttp.HttpEvent
 import sh.measure.android.performance.CpuUsage
@@ -39,6 +40,7 @@ internal class FakeEventTracker : EventTracker {
     val trackedLowMemoryEvents = mutableListOf<LowMemory>()
     val trackedTrimMemoryEvents = mutableListOf<TrimMemory>()
     val trackedCPUUsageEvents = mutableListOf<CpuUsage>()
+    val trackedNavigationEvents = mutableListOf<NavigationEvent>()
 
     override fun trackUnhandledException(measureException: MeasureException) {
         trackedUnhandledExceptions.add(measureException)
@@ -106,6 +108,10 @@ internal class FakeEventTracker : EventTracker {
 
     override fun trackCpuUsage(cpuUsage: CpuUsage) {
         trackedCPUUsageEvents.add(cpuUsage)
+    }
+
+    override fun trackNavigationEvent(navigationEvent: NavigationEvent) {
+        trackedNavigationEvents.add(navigationEvent)
     }
 
     override fun storeAttachment(attachmentInfo: AttachmentInfo) {

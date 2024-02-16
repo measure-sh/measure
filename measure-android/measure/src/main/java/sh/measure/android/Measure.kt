@@ -2,6 +2,7 @@ package sh.measure.android
 
 import android.app.Application
 import android.content.Context
+import androidx.annotation.VisibleForTesting
 import sh.measure.android.anr.AnrCollector
 import sh.measure.android.appexit.AppExitProvider
 import sh.measure.android.appexit.AppExitProviderImpl
@@ -205,5 +206,20 @@ object Measure {
     internal fun getCurrentThread(): CurrentThread {
         require(::currentThread.isInitialized)
         return currentThread
+    }
+
+    @VisibleForTesting
+    internal fun setEventTracker(tracker: EventTracker) {
+        eventTracker = tracker
+    }
+
+    @VisibleForTesting
+    internal fun setTimeProvider(provider: TimeProvider) {
+        timeProvider = provider
+    }
+
+    @VisibleForTesting
+    internal fun setCurrentThread(thread: CurrentThread) {
+        currentThread = thread
     }
 }

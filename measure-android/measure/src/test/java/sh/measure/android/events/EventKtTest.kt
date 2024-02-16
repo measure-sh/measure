@@ -13,6 +13,7 @@ import sh.measure.android.gestures.ClickEvent
 import sh.measure.android.gestures.Direction
 import sh.measure.android.gestures.LongClickEvent
 import sh.measure.android.gestures.ScrollEvent
+import sh.measure.android.navigation.NavigationEvent
 import sh.measure.android.networkchange.NetworkChangeEvent
 import sh.measure.android.networkchange.NetworkGeneration
 import sh.measure.android.networkchange.NetworkType
@@ -396,5 +397,21 @@ class EventKtTest {
         assertEquals(threadName, event.thread_name)
         assertEquals(timestampIso, event.timestamp)
         assertEquals(EventType.CPU_USAGE, event.type)
+    }
+
+    @Test
+    fun `NavigationEvent toEvent() returns an event of type navigation`() {
+        val timestamp = 0L
+        val threadName = "thread"
+        val navigation = NavigationEvent(
+            route = "route",
+            thread_name = threadName,
+            timestamp = timestamp,
+        )
+        val event = navigation.toEvent()
+
+        assertEquals(threadName, event.thread_name)
+        assertEquals(timestamp.iso8601Timestamp(), event.timestamp)
+        assertEquals(EventType.NAVIGATION, event.type)
     }
 }
