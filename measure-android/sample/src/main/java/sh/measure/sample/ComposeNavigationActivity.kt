@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package sh.measure.sample
 
 import android.os.Bundle

@@ -78,7 +78,7 @@ dependencies {
     testImplementation(libs.mockitokotlin2.mockito.kotlin)
     testImplementationAar(libs.measure.android)
 
-    functionalTestRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    functionalTestRuntimeOnly(libs.junit.platform.launcher)
     functionalTestImplementation(libs.junit.jupiter)
     functionalTestImplementation(libs.gradle.testkit.support)
     functionalTestImplementation(libs.gradle.testkit.truth)
