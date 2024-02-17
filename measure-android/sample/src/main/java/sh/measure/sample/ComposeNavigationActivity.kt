@@ -98,8 +98,6 @@ fun CheckoutScreen() {
 }
 
 @Composable
-
-
 fun ProfileScreen() {
     Scaffold(topBar = { AppBar(title = "Profile") }) { innerPadding ->
         Box(
