@@ -1,5 +1,6 @@
 [versions]
 agp = "8.2.1"
+junit-platform-launcher = "1.10.2"
 kotlin = "1.9.21"
 measure-android = "0.1.0"
 androidx-activity-compose = "1.8.2"
@@ -79,6 +80,7 @@ gradle-testkit-support = { module = "com.autonomousapps:gradle-testkit-support",
 junit = { module = "junit:junit", version.ref = "junit" }
 google-material = { module = "com.google.android.material:material", version.ref = "google-material" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform-launcher" }
 measure-android = { module = "sh.measure:measure-android", version.ref = "measure-android" }
 mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockito-kotlin" }
 mockitokotlin2-mockito-kotlin = { module = "com.nhaarman.mockitokotlin2:mockito-kotlin", version.ref = "nhaarman-mockito-kotlin" }
