@@ -1,11 +1,11 @@
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.9.21"
-    id("com.gradle.plugin-publish") version "1.2.0"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.21"
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.gradle.plugin.publish)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.autonomousapps.testkit)
+    alias(libs.plugins.diffplug.spotless)
     id("sh.measure.plugin.aar2jar")
     id("java-gradle-plugin")
-    id("com.autonomousapps.testkit") version "0.8"
-    id("com.diffplug.spotless") version "6.24.0"
     id("maven-publish")
 }
 

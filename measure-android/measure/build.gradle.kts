@@ -3,11 +3,11 @@
 import com.diffplug.gradle.spotless.SpotlessExtension
 
 plugins {
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
-    kotlin("plugin.serialization")
-    id("binary-compatibility-validator")
-    id("com.diffplug.spotless")
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.kotlinx.binary.compatibility.validator)
+    alias(libs.plugins.diffplug.spotless)
     id("maven-publish")
 }
 

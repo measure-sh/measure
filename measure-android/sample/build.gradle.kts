@@ -1,8 +1,7 @@
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
     id("sh.measure.android.gradle")
-    id("org.jetbrains.compose")
 }
 
 android {
@@ -63,6 +62,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.runtime.android)
+    implementation(libs.androidx.navigation.compose)
 
     implementation(project(":measure"))
 

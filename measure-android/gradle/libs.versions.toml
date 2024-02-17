@@ -1,5 +1,6 @@
 [versions]
 agp = "8.2.1"
+kotlin = "1.9.21"
 measure-android = "0.1.0"
 androidx-activity-compose = "1.8.2"
 androidx-appcompat = "1.6.1"
@@ -36,6 +37,11 @@ squareup-okhttp = "4.9.1"
 squareup-okio = "3.3.0"
 squareup-leakcanary = "2.12"
 robolectric = "4.11.1"
+kolinx-binary-compatibility-validator = "0.13.2"
+diffplug-spotless = "6.24.0"
+compose-plugin = "1.5.11"
+gradle-plugin-publish = "1.2.0"
+autonomousapps-testkit = "0.8"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity-compose" }
@@ -87,4 +93,14 @@ squareup-curtains = { module = "com.squareup.curtains:curtains", version.ref = "
 squareup-leakcanary = { module = "com.squareup.leakcanary:leakcanary-android", version.ref = "squareup-leakcanary" }
 
 [plugins]
-
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+android-test = { id = "com.android.test", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+kotlinx-binary-compatibility-validator = { id = "org.jetbrains.kotlinx.binary-compatibility-validator", version.ref = "kolinx-binary-compatibility-validator" }
+diffplug-spotless = { id = "com.diffplug.spotless", version.ref = "diffplug-spotless" }
+compose = { id = "org.jetbrains.compose", version.ref = "compose-plugin" }
+gradle-plugin-publish = { id = "com.gradle.plugin-publish", version.ref = "gradle-plugin-publish" }
+autonomousapps-testkit = { id = "com.autonomousapps.testkit", version.ref = "autonomousapps-testkit" }
