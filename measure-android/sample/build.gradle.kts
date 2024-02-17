@@ -52,12 +52,11 @@ android {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation("com.google.android.material:material:1.11.0")
+    implementation(libs.google.material)
 
     implementation(libs.androidx.constraintlayout)
-    implementation(platform("com.squareup.okhttp3:okhttp-bom:4.11.0"))
-    implementation("com.squareup.okhttp3:okhttp")
-    implementation("com.squareup.okhttp3:logging-interceptor")
+    implementation(libs.squareup.okhttp)
+    implementation(libs.squareup.okhttp.logging)
 
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.material3)
@@ -67,11 +66,11 @@ dependencies {
 
     implementation(project(":measure"))
 
-    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.12")
+    debugImplementation(libs.squareup.leakcanary)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
-    testImplementation("junit:junit:4.13.2")
+    testImplementation(libs.junit)
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

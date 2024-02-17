@@ -78,7 +78,7 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation("com.google.android.material:material:1.11.0")
+    implementation(libs.google.material)
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
     implementation(libs.androidx.lifecycle.runtime)

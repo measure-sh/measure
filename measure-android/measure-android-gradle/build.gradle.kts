@@ -59,35 +59,35 @@ publishing {
 }
 
 dependencies {
-    compileOnly("com.android.tools.build:gradle:8.2.1")
-    compileOnly("org.ow2.asm:asm-util:9.6")
-    compileOnly("org.ow2.asm:asm-commons:9.6")
+    compileOnly(libs.agp)
+    compileOnly(libs.asm.util)
+    compileOnly(libs.asm.commons)
 
     implementation(gradleApi())
-    implementation(platform("com.squareup.okhttp3:okhttp-bom:4.11.0"))
-    implementation("com.squareup.okhttp3:okhttp")
-    implementation("com.squareup.okhttp3:logging-interceptor")
-    implementation("com.squareup.okio:okio:3.3.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
+    implementation(libs.squareup.okhttp)
+    implementation(libs.squareup.okhttp.logging)
+    implementation(libs.squareup.okio)
+    implementation(libs.kotlinx.serialization.json)
 
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
-    testImplementation("org.ow2.asm:asm-util:9.6")
-    testImplementation("org.ow2.asm:asm-commons:9.6")
-    testImplementation("com.android.tools.build:gradle:7.4.1")
-    testImplementation("com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0")
-    testImplementationAar("sh.measure:measure-android:0.1.0")
+    testImplementation(libs.junit)
+
+    testImplementation(libs.squareup.okhttp.mockwebserver)
+    testImplementation(libs.asm.util)
+    testImplementation(libs.asm.commons)
+    testImplementation(libs.agp) // was 7.4.1
+    testImplementation(libs.mockitokotlin2.mockito.kotlin)
+    testImplementationAar(libs.measure.android)
 
     functionalTestRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    functionalTestImplementation("org.junit.jupiter:junit-jupiter:5.9.2")
-    functionalTestImplementation("com.autonomousapps:gradle-testkit-support:0.14")
-    functionalTestImplementation("com.autonomousapps:gradle-testkit-truth:1.5")
-    functionalTestImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
-    functionalTestImplementation("net.swiftzer.semver:semver:1.1.2")
+    functionalTestImplementation(libs.junit.jupiter)
+    functionalTestImplementation(libs.gradle.testkit.support)
+    functionalTestImplementation(libs.gradle.testkit.truth)
+    functionalTestImplementation(libs.squareup.okhttp.mockwebserver)
+    functionalTestImplementation(libs.semver)
 }
 
 tasks.withType<Test>().configureEach {
-    if  (this.name.equals("functionalTest")) {
+    if (this.name.equals("functionalTest")) {
         useJUnitPlatform()
     }
 }
