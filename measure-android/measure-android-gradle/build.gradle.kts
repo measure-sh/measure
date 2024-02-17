@@ -74,7 +74,7 @@ dependencies {
     testImplementation(libs.squareup.okhttp.mockwebserver)
     testImplementation(libs.asm.util)
     testImplementation(libs.asm.commons)
-    testImplementation(libs.agp) // was 7.4.1
+    testImplementation(libs.agp)
     testImplementation(libs.mockitokotlin2.mockito.kotlin)
     testImplementationAar(libs.measure.android)
 
