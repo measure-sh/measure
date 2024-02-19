@@ -984,7 +984,7 @@ func GetANRGroupANRs(c *gin.Context) {
 		return
 	}
 
-	eventANRs, err := GetANRsWithFilter(group.EventIDs, &af)
+	eventANRs, next, previous, err := GetANRsWithFilter(group.EventIDs, &af)
 	if err != nil {
 		msg := `failed to get anr group's anr events`
 		fmt.Println(msg, err)
@@ -992,7 +992,7 @@ func GetANRGroupANRs(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, eventANRs)
+	c.JSON(http.StatusOK, gin.H{"results": eventANRs, "meta": gin.H{"next": next, "previous": previous}})
 }
 
 func CreateApp(c *gin.Context) {
