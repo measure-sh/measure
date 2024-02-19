@@ -320,13 +320,71 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []Even
 
 // GetANRsWithFilter returns a slice of EventANR for the given slice of
 // event id and matching AppFilter.
-func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) ([]EventANR, error) {
+func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []EventANR, next bool, previous bool, err error) {
+	var edgecount int
+	var countStmt *sqlf.Stmt
+	var exceptions string
+	var threads string
+	limit := af.extendLimit()
+	forward := af.hasPositiveLimit()
+	next = false
+	previous = false
+	timeformat := "2006-01-02T15:04:05.000"
+	abs := af.limitAbs()
+	op := "<"
+	if !forward {
+		op = ">"
+	}
+
+	if !af.hasKeyset() && !forward {
+		next = true
+		return
+	}
+
+	if af.hasKeyset() {
+		args := []any{}
+		op := ">"
+		if !forward {
+			op = "<"
+		}
+
+		var ids []uuid.UUID
+		countStmt = sqlf.Select("id").
+			From("default.events").
+			Where("`id` in (?)", nil).
+			Where("`timestamp` "+op+" ? or (`timestamp` = ? and `id` "+op+" ?)", nil, nil, nil).
+			OrderBy("`timestamp` desc", "`id` desc").
+			Limit(nil)
+		defer countStmt.Close()
+		timestamp := af.KeyTimestamp.Format(timeformat)
+		args = append(args, eventIds, timestamp, timestamp, af.KeyID, 1)
+		if len(af.Versions) > 0 {
+			countStmt.Where("`resource.app_version` in (?)", nil)
+			args = append(args, af.Versions)
+		}
+		rows, err := server.Server.ChPool.Query(context.Background(), countStmt.String(), args...)
+		if err != nil {
+			return nil, next, previous, err
+		}
+		for rows.Next() {
+			var id uuid.UUID
+			rows.Scan(&id)
+			ids = append(ids, id)
+		}
+		edgecount = len(ids)
+	}
+
 	stmt := sqlf.Select("id, type, timestamp, thread_name, resource.device_name, resource.device_model, resource.device_manufacturer, resource.device_type, resource.device_is_foldable, resource.device_is_physical, resource.device_density_dpi, resource.device_width_px, resource.device_height_px, resource.device_density, resource.device_locale, resource.os_name, resource.os_version, resource.platform, resource.app_version, resource.app_build, resource.app_unique_id, resource.measure_sdk_version, resource.network_type, resource.network_generation, resource.network_provider, anr.thread_name, anr.handled, anr.network_type,anr.network_generation, anr.network_provider, anr.device_locale, anr.fingerprint, anr.exceptions, anr.threads, attributes").
 		From("default.events").
-		Where("`id` in (?)").
-		OrderBy("`timestamp` desc", "`id` desc")
-
+		Where("`id` in (?)", nil)
 	defer stmt.Close()
+
+	if forward {
+		stmt.OrderBy("`timestamp` desc", "`id` desc")
+	} else {
+		stmt.OrderBy("`timestamp`", "`id`")
+	}
+	stmt.Limit(nil)
 	args := []any{eventIds}
 
 	if len(af.Versions) > 0 {
@@ -335,24 +393,15 @@ func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) ([]EventANR, error) 
 	}
 
 	if af.hasKeyset() {
-		stmt.Where("`timestamp` < ? or (`timestamp` = ? and `id` < ?)", nil, nil, nil)
-		args = append(args, af.KeyTimestamp, af.KeyTimestamp, af.KeyID)
+		stmt.Where("`timestamp` "+op+" ? or (`timestamp` = ? and `id` "+op+" ?)", nil, nil, nil)
+		timestamp := af.KeyTimestamp.Format(timeformat)
+		args = append(args, timestamp, timestamp, af.KeyID)
 	}
-
-	if af.hasPositiveLimit() {
-		stmt.Limit(nil)
-		args = append(args, af.Limit)
-	}
-
+	args = append(args, limit)
 	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), args...)
 	if err != nil {
-		return nil, err
+		return
 	}
-
-	var events []EventANR
-
-	var exceptions string
-	var threads string
 
 	for rows.Next() {
 		var e EventANR
@@ -395,23 +444,46 @@ func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) ([]EventANR, error) 
 		}
 
 		if err := rows.Scan(fields...); err != nil {
-			return nil, err
+			return nil, next, previous, err
 		}
 
 		e.Trim()
 		if err := json.Unmarshal([]byte(exceptions), &e.ANR.Exceptions); err != nil {
-			return nil, err
+			return nil, next, previous, err
 		}
 		if err := json.Unmarshal([]byte(threads), &e.ANR.Threads); err != nil {
-			return nil, err
+			return nil, next, previous, err
 		}
 
 		e.ComputeView()
-
 		events = append(events, e)
 	}
 
-	return events, nil
+	length := len(events)
+
+	if forward {
+		if length > abs {
+			next = true
+			events = events[:length-1]
+		}
+		if edgecount > -1 && af.hasKeyset() {
+			previous = true
+		}
+	} else {
+		// reverse
+		for i, j := 0, len(events)-1; i < j; i, j = i+1, j-1 {
+			events[i], events[j] = events[j], events[i]
+		}
+		if length > abs {
+			previous = true
+			events = events[1:]
+		}
+		if edgecount > -1 {
+			next = true
+		}
+	}
+
+	return
 }
 
 // GetEventIdsWithFilter gets the event ids matching event ids and optionally
