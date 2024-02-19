@@ -3,11 +3,11 @@
 import com.diffplug.gradle.spotless.SpotlessExtension
 
 plugins {
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
-    kotlin("plugin.serialization")
-    id("binary-compatibility-validator")
-    id("com.diffplug.spotless")
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.kotlinx.binary.compatibility.validator)
+    alias(libs.plugins.diffplug.spotless)
     id("maven-publish")
 }
 
@@ -123,37 +123,38 @@ fun configureSpotlessKotlin(spotlessExtension: SpotlessExtension) {
 
 dependencies {
     // Compile only, as we don't want to include the fragment dependency in the final artifact.
-    compileOnly("androidx.fragment:fragment-ktx:1.2.5")
-    compileOnly("androidx.compose.runtime:runtime-android:1.5.4")
-    compileOnly("androidx.compose.ui:ui:1.4.3")
-    compileOnly("androidx.navigation:navigation-compose:2.6.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
+    compileOnly(libs.androidx.fragment.ktx)
+    compileOnly(libs.androidx.compose.runtime.android)
+    compileOnly(libs.androidx.compose.ui)
+    compileOnly(libs.androidx.navigation.compose)
 
-    implementation("androidx.annotation:annotation:1.7.1")
-    implementation("com.squareup.okio:okio:3.3.0")
-    implementation(platform("com.squareup.okhttp3:okhttp-bom:4.11.0"))
-    implementation("com.squareup.okhttp3:okhttp")
-    implementation("com.squareup.okhttp3:logging-interceptor")
-    implementation("com.squareup.curtains:curtains:1.2.4")
+    implementation(libs.kotlinx.serialization.json)
 
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("androidx.test.ext:junit-ktx:1.1.5")
-    testImplementation("org.robolectric:robolectric:4.11.1")
-    testImplementation("androidx.fragment:fragment-testing:1.2.5")
-    testImplementation("androidx.test:rules:1.5.0")
-    testImplementation("androidx.compose.runtime:runtime-android:1.5.4")
+    implementation(libs.androidx.annotation)
+    implementation(libs.squareup.okio)
+    implementation(libs.squareup.okhttp)
+    implementation(libs.squareup.okhttp.logging)
+    implementation(libs.squareup.curtains)
+
+    testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.junit)
+    testImplementation(libs.androidx.junit.ktx)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.fragment.testing)
+    testImplementation(libs.androidx.rules)
+    testImplementation(libs.androidx.compose.runtime.android)
 
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.4.3") {
         isTransitive = false
     }
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation("androidx.compose.runtime:runtime-android:1.5.4")
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.4.3")
-    androidTestImplementation("androidx.compose.material3:material3:1.0.1")
-    androidTestImplementation("androidx.lifecycle:lifecycle-process:2.6.2")
-    androidTestImplementation("androidx.lifecycle:lifecycle-common:2.6.2")
-    androidTestImplementation("androidx.activity:activity-compose:1.7.2")
-    androidTestImplementation("androidx.navigation:navigation-compose:2.6.0")
-    androidTestImplementation("androidx.test:rules:1.5.0")
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.compose.runtime.android)
+    androidTestImplementation(libs.androidx.compose.ui)
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.material3)
+    androidTestImplementation(libs.androidx.lifecycle.process)
+    androidTestImplementation(libs.androidx.lifecycle.common)
+    androidTestImplementation(libs.androidx.activity.compose)
+    androidTestImplementation(libs.androidx.navigation.compose)
+    androidTestImplementation(libs.androidx.rules)
 }

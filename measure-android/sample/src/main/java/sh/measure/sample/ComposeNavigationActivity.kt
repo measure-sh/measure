@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package sh.measure.sample
 
 import android.os.Bundle
@@ -98,8 +100,6 @@ fun CheckoutScreen() {
 }
 
 @Composable
-
-
 fun ProfileScreen() {
     Scaffold(topBar = { AppBar(title = "Profile") }) { innerPadding ->
         Box(

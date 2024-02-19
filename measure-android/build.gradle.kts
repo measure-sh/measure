@@ -1,10 +1,10 @@
 plugins {
-    id("com.android.application") version "8.2.1" apply false
-    id("org.jetbrains.kotlin.android") version "1.9.21" apply false
-    id("com.android.library") version "8.2.1" apply false
-    kotlin("plugin.serialization") version "1.9.21" apply false
-    id("org.jetbrains.kotlinx.binary-compatibility-validator") version "0.13.2" apply false
-    id("com.diffplug.spotless") version "6.24.0" apply false
-    id("org.jetbrains.compose") version "1.5.11" apply false
-    id("com.android.test") version "8.2.1" apply false
+    alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.android.library) apply false
+    alias(libs.plugins.android.test) apply false
+    alias(libs.plugins.kotlin.android) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
+    alias(libs.plugins.kotlinx.binary.compatibility.validator) apply false
+    alias(libs.plugins.diffplug.spotless) apply false
+    alias(libs.plugins.compose) apply false
 }
