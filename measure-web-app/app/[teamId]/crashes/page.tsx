@@ -205,7 +205,7 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
             </div>
             <div className="table-row-group">
               {crashGroups.results.map(({ id, name, count, percentage_contribution }) => (
-                <Link key={id} href={`/${params.teamId}/crashGroups/${id}`} className="table-row hover:bg-yellow-200 active:bg-yellow-300">
+                <Link key={id} href={`/${params.teamId}/crashes/${selectedApp.id}/${id}/${name}`} className="table-row hover:bg-yellow-200 active:bg-yellow-300">
                   <div className="table-cell border border-black p-2 hover:bg-yellow-200 active:bg-yellow-300">{name}</div>
                   <div className="table-cell border border-black p-2 text-center">{count} instances</div>
                   <div className="table-cell border border-black p-2 text-center">{percentage_contribution}%</div>
@@ -214,7 +214,7 @@ export default function Crashes({ params }: { params: { teamId: string } }) {
             </div>
           </div>
           <div className="py-2" />
-          <Paginator prevEnabled={crashGroups.meta.previous} nextEnabled={crashGroups.meta.next} rangeStart={paginationRange.start} rangeEnd={paginationRange.end}
+          <Paginator prevEnabled={crashGroups.meta.previous} nextEnabled={crashGroups.meta.next} displayText={paginationRange.start + ' - ' + paginationRange.end}
             onNext={() => {
               setPaginationRange({ start: paginationRange.start + paginationOffset, end: paginationRange.end + paginationOffset })
               setPaginationDirection(PaginationDirection.Forward)
