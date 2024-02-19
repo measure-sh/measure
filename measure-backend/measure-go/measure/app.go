@@ -399,7 +399,7 @@ func GetAppJourney(c *gin.Context) {
 	}
 	af := AppFilter{
 		AppID: id,
-		Limit: 20,
+		Limit: DefaultPaginationLimit,
 	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
@@ -453,7 +453,7 @@ func GetAppMetrics(c *gin.Context) {
 	}
 	af := AppFilter{
 		AppID: id,
-		Limit: 20,
+		Limit: DefaultPaginationLimit,
 	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
@@ -507,7 +507,7 @@ func GetAppFilters(c *gin.Context) {
 
 	af := AppFilter{
 		AppID: id,
-		Limit: 20,
+		Limit: DefaultPaginationLimit,
 	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
@@ -586,7 +586,7 @@ func GetCrashGroups(c *gin.Context) {
 
 	af := AppFilter{
 		AppID: id,
-		Limit: 20,
+		Limit: DefaultPaginationLimit,
 	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
@@ -709,7 +709,7 @@ func GetCrashGroupCrashes(c *gin.Context) {
 
 	af := AppFilter{
 		AppID: id,
-		Limit: 20,
+		Limit: DefaultPaginationLimit,
 	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
@@ -775,7 +775,7 @@ func GetCrashGroupCrashes(c *gin.Context) {
 		return
 	}
 
-	eventExceptions, err := GetExceptionsWithFilter(group.EventIDs, &af)
+	eventExceptions, next, previous, err := GetExceptionsWithFilter(group.EventIDs, &af)
 	if err != nil {
 		msg := `failed to get exception group's exception events`
 		fmt.Println(msg, err)
@@ -783,7 +783,7 @@ func GetCrashGroupCrashes(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, eventExceptions)
+	c.JSON(http.StatusOK, gin.H{"results": eventExceptions, "meta": gin.H{"next": next, "previous": previous}})
 }
 
 func GetANRGroups(c *gin.Context) {
@@ -797,7 +797,7 @@ func GetANRGroups(c *gin.Context) {
 
 	af := AppFilter{
 		AppID: id,
-		Limit: 20,
+		Limit: DefaultPaginationLimit,
 	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
@@ -918,7 +918,7 @@ func GetANRGroupANRs(c *gin.Context) {
 
 	af := AppFilter{
 		AppID: id,
-		Limit: 20,
+		Limit: DefaultPaginationLimit,
 	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
