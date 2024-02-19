@@ -157,5 +157,4 @@ dependencies {
     androidTestImplementation(libs.androidx.activity.compose)
     androidTestImplementation(libs.androidx.navigation.compose)
     androidTestImplementation(libs.androidx.rules)
-
 }
