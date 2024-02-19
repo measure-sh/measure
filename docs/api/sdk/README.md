@@ -29,13 +29,19 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [**`gesture_long_click`**](#gesture_long_click)
     - [**`gesture_scroll`**](#gesture_scroll)
     - [**`gesture_click`**](#gesture_click)
-    - [**`http_request`**](#http_request)
-    - [**`http_response`**](#http_response)
+    - [**`http`**](#http)
     - [**`app_exit`**](#app_exit)
     - [**`lifecycle_activity`**](#lifecycle_activity)
     - [**`lifecycle_fragment`**](#lifecycle_fragment)
     - [**`lifecycle_app`**](#lifecycle_app)
     - [**`cold_launch`**](#cold_launch)
+    - [**`warm_launch`**](#warm_launch)
+    - [**`hot_launch`**](#hot_launch)
+    - [**`cpu_usage`**](#cpu_usage)
+    - [**`memory_usage`**](#memory_usage)
+    - [**`low_memory`**](#low_memory)
+    - [**`trim_memory`**](#trim_memory)
+    - [**`navigation`**](#navigation)
 
 ## Resources
 
@@ -138,6 +144,9 @@ To understand the shape of the JSON payload, take a look at this sample request.
     "app_version": "1.0.1",
     "app_build": "576358",
     "app_unique_id": "com.example.app",
+    "network_type": "cellular",
+    "network_provider": "airtel",
+    "network_generation": "4g",
     "measure_sdk_version": "0.0.1"
   },
   "events": [
@@ -212,43 +221,55 @@ To understand the shape of the JSON payload, take a look at this sample request.
       }
     },
     {
-      "type": "http_request",
-      "http_request": {
-        "request_id": "ffcf24b6-7cea-4fac-a2bf-131321843ccc",
-        "request_url": "https://example.com/foo/bar/baz",
-        "method": "GET",
-        "http_protocol_version": "1.1",
-        "request_body_size": 1024,
-        "request_body": "bla bla bla",
+      "type": "http",
+      "http": {
+        "client": "okhttp",
+        "connect_end": 4403805,
+        "connect_start": 4400915,
+        "dns_end": 4400915,
+        "dns_start": 4400911,
+        "end_time": 4404308,
+        "failure_description": null,
+        "failure_reason": null,
+        "method": "get",
+        "request_body_end": null,
+        "request_body_size": null,
+        "request_body_start": null,
+        "request_end": 4403816,
         "request_headers": {
-          "content-type": "application/json",
-          "authorization": "bearer some-secret-here"
-        }
-      },
-      "attributes": {
-        "key1": "value1",
-        "key2": "value2"
-      }
-    },
-    {
-      "type": "http_response",
-      "http_response": {
-        "request_id": "ffcf24b6-7cea-4fac-a2bf-131321843ccc",
-        "request_url": "https://example.com/foo/bar/baz",
-        "method": "GET",
-        "latency_ms": 220,
-        "status_code": 200,
-        "http_protocol_version": "1.1",
-        "response_body": "{foo: \"bar\"}",
+          "accept": "application/json; charset=utf-8;",
+          "accept-encoding": "gzip",
+          "accept-language": "en",
+          "connection": "Keep-Alive",
+          "host": "www.example.com",
+        },
+        "request_headers_end": 4403816,
+        "request_headers_size": 567,
+        "request_headers_start": 4403807,
+        "request_start": 4403807,
+        "request_timestamp": "2024-01-01T08:10:08.19800000Z",
+        "response_body_end": 4404284,
+        "response_body_size": 0,
+        "response_body_start": 4404284,
+        "response_end": 4404284,
         "response_headers": {
-          "content-type": "application/json"
-        }
+          "x-frame-options": "SAMEORIGIN",
+          "x-xss-protection": "1; mode=block"
+        },
+        "response_headers_end": 4404283,
+        "response_headers_size": 1445,
+        "response_headers_start": 4404275,
+        "response_start": 4404275,
+        "response_timestamp": "2024-01-01T08:10:11.65600000Z",
+        "start_time": 4400851,
+        "status_code": 304,
+        "url": "https://www.example.com/api/rest_v1/xyz/2024/01/01"
       },
       "attributes": {
         "key1": "value1",
         "key2": "value2"
       }
-    },
+    },`
     {
       "timestamp": "2023-08-24T14:51:41.000000534Z",
       "type": "exception",
@@ -443,24 +464,27 @@ The top-level Session object has the following properties.
 
 Resource object has the following properties.
 
-| Field                 | Type    | Optional | Comment                         |
-| --------------------- | ------- | -------- | ------------------------------- |
-| `device_name`         | string  | Yes      | Name of the device              |
-| `device_model`        | string  | Yes      | Device model                    |
-| `device_manufacturer` | string  | Yes      | Name of the device manufacturer |
-| `device_type`         | string  | Yes      | `phone` or `tablet`             |
-| `device_is_foldable`  | boolean | Yes      | `true` for foldable devices     |
-| `device_is_physical`  | boolean | Yes      | `true` for physical devices     |
-| `device_density_dpi`  | number  | Yes      | DPI density                     |
-| `device_width_px`     | number  | Yes      | Screen width                    |
-| `device_height_px`    | number  | Yes      | Screen height                   |
-| `device_density`      | number  | Yes      | Device model                    |
-| `os_name`             | string  | Yes      | Operating system name           |
-| `os_version`          | string  | Yes      | Operating system version        |
-| `app_version`         | string  | Yes      | App version identifier          |
-| `app_build`           | string  | Yes      | App build identifier            |
-| `app_unique_id`       | string  | Yes      | App bundle identifier           |
-| `measure_sdk_version` | string  | Yes      | Measure SDK version identifier  |
+| Field                 | Type    | Optional | Comment                                                                                                         |
+|-----------------------|---------|----------|-----------------------------------------------------------------------------------------------------------------|
+| `device_name`         | string  | Yes      | Name of the device                                                                                              |
+| `device_model`        | string  | Yes      | Device model                                                                                                    |
+| `device_manufacturer` | string  | Yes      | Name of the device manufacturer                                                                                 |
+| `device_type`         | string  | Yes      | `phone` or `tablet`                                                                                             |
+| `device_is_foldable`  | boolean | Yes      | `true` for foldable devices                                                                                     |
+| `device_is_physical`  | boolean | Yes      | `true` for physical devices                                                                                     |
+| `device_density_dpi`  | number  | Yes      | DPI density                                                                                                     |
+| `device_width_px`     | number  | Yes      | Screen width                                                                                                    |
+| `device_height_px`    | number  | Yes      | Screen height                                                                                                   |
+| `device_density`      | number  | Yes      | Device model                                                                                                    |
+| `os_name`             | string  | Yes      | Operating system name                                                                                           |
+| `os_version`          | string  | Yes      | Operating system version                                                                                        |
+| `app_version`         | string  | Yes      | App version identifier                                                                                          |
+| `app_build`           | string  | Yes      | App build identifier                                                                                            |
+| `app_unique_id`       | string  | Yes      | App bundle identifier                                                                                           |
+| `network_type`        | string  | Yes      | One of<br/>- wifi<br/>- cellular<br/>- vpn<br/>- unknown<br/>- no_network                                       |
+| `network_provider`    | string  | Yes      | Example: airtel, T-mobile                                                                                       |
+| `network_generation`  | string  | Yes      | One of:<br/>- 2g<br/>- 3g<br/>- 4g<br/>- 5g                                                                     |
+| `measure_sdk_version` | string  | Yes      | Measure SDK version identifier                                                                                  |
 
 ### Attachments
 
@@ -502,12 +526,15 @@ Each event object must be of one of the following types. Refer to the sample pay
 
 Use the `anr` type for [Application Not Responding](https://developer.android.com/topic/performance/vitals/anr) events. 
 
-| Field         | Type    | Optional | Comment                                               |
-| ------------- | ------- | -------- | ----------------------------------------------------- |
-| `thread_name` | string  | Yes      | Name of the thread                                    |
-| `handled`     | boolean | No       | `false` for crashes, `true` if exceptions are handled |
-| `exceptions`  | array   | No       | Array of exception objects                            |
-| `threads`     | array   | Yes      | Array of thread objects                               |
+| Field                | Type    | Optional | Comment                                                                                                            |
+|----------------------|---------|----------|--------------------------------------------------------------------------------------------------------------------|
+| `thread_name`        | string  | Yes      | Name of the thread                                                                                                 |
+| `handled`            | boolean | No       | `false` for crashes, `true` if exceptions are handled                                                              |
+| `exceptions`         | array   | No       | Array of exception objects                                                                                         |
+| `network_type`       | string  | Yes      | The network type at the time of the ANR. One of<br/>- wifi<br/>- cellular<br/>- vpn<br/>- unknown<br/>- no_network |
+| `network_provider`   | string  | Yes      | The network provider at the time of the ANR. Example: airtel, T-mobile                                             |
+| `network_generation` | string  | Yes      | The network generation at the time of the ANR. One of:<br/>- 2g<br/>- 3g<br/>- 4g<br/>- 5g                         |
+| `threads`            | array   | Yes      | Array of thread objects                                                                                            |
 
 `exception` objects
 
@@ -545,12 +572,15 @@ Each frame object contains further fields.
 
 Use the `exception` type for errors and crashes. 
 
-| Field         | Type    | Optional | Comment                                               |
-| ------------- | ------- | -------- | ----------------------------------------------------- |
-| `thread_name` | string  | Yes      | Name of the thread                                    |
-| `handled`     | boolean | No       | `false` for crashes, `true` if exceptions are handled |
-| `exceptions`  | array   | No       | Array of exception objects                            |
-| `threads`     | array   | Yes      | Array of thread objects                               |
+| Field                | Type    | Optional | Comment                                                                                                                  |
+|----------------------|---------|----------|--------------------------------------------------------------------------------------------------------------------------|
+| `thread_name`        | string  | Yes      | Name of the thread                                                                                                       |
+| `handled`            | boolean | No       | `false` for crashes, `true` if exceptions are handled                                                                    |
+| `exceptions`         | array   | No       | Array of exception objects                                                                                               |
+| `network_type`       | string  | Yes      | The network type at the time of the Exception. One of<br/>- wifi<br/>- cellular<br/>- vpn<br/>- unknown<br/>- no_network |
+| `network_provider`   | string  | Yes      | The network provider at the time of the Exception. Example: airtel, T-mobile                                             |
+| `network_generation` | string  | Yes      | The network generation at the time of the Exception. One of:<br/>- 2g<br/>- 3g<br/>- 4g<br/>- 5g                         |
+| `threads`            | array   | Yes      | Array of thread objects                                                                                                  |
 
 `exception` objects
 
@@ -600,7 +630,6 @@ Use the `gesture_long_click` body type for longer press and hold gestures.
 | Field                       | Type   | Optional | Comment                                     |
 | --------------------------- | ------ | -------- | ------------------------------------------- |
 | `target`                    | string | Yes      | Class/Instance name of the originating view |
-| `target_user_readable_name` | string | Yes      | Contextual name of the target view          |
 | `target_id`                 | string | Yes      | Unique identifier for the target            |
 | `touch_down_time`           | string | Yes      | ISO 8601 timestamp when target was pressed  |
 | `touch_up_time`             | string | Yes      | ISO 8601 timestamp when target was released |
@@ -616,7 +645,6 @@ Use the `gesture_scroll` body type for scroll events.
 | Field                       | Type   | Optional | Comment                                           |
 | --------------------------- | ------ | -------- | ------------------------------------------------- |
 | `target`                    | string | Yes      | Class/Instance name of the originating view       |
-| `target_user_readable_name` | string | Yes      | Contextual name of the target view                |
 | `target_id`                 | string | Yes      | Unique identifier for the target                  |
 | `touch_down_time`           | string | Yes      | ISO 8601 start timestamp when target was scrolled |
 | `touch_up_time`             | string | Yes      | ISO 8601 end timestamp when target scroll ended   |
@@ -643,33 +671,44 @@ Use the `gesture_click` body type for taps or clicks.
 | `x`                         | number | No       | X coordinate of the target where click happened |
 | `y`                         | number | No       | Y coordinate of the target where click happened |
 
-#### **`http_request`**
+#### **`http`**
 
-Use the `http_request` body type for HTTP requests.
+Use the `http` body type for tracking a single HTTP network.
 
-| Field                   | Type   | Optional | Comment                                                  |
-| ----------------------- | ------ | -------- | -------------------------------------------------------- |
-| `request_id`            | string | No       | UUIDv4 id of the HTTP request                            |
-| `request_url`           | string | No       | Complete URL of the HTTP request                         |
-| `method`                | string | No       | Any of the common HTTP method like, `GET` or `POST`      |
-| `http_protocol_version` | string | Yes      | Version of the HTTP protocol. `1.0`, `1.1`, `2` etc      |
-| `request_body_size`     | number | Yes      | Size of the HTTP request body in bytes                   |
-| `request_body`          | string | Yes      | Body of the HTTP request                                 |
-| `request_headers`       | object | Yes      | Headers of the HTTP request. All values must be strings. |
-
-#### **`http_response`**
-
-Use the `http_response` body type for HTTP responses.
-
-| Field              | Type   | Optional | Comment                                                             |
-| ------------------ | ------ | -------- | ------------------------------------------------------------------- |
-| `request_id`       | string | No       | UUIDv4 id of the request                                            |
-| `request_url`      | string | No       | Complete URL of the request                                         |
-| `method`           | string | No       | Any of the common HTTP method like, `GET` or `POST`                 |
-| `latency_ms`       | number | No       | Time in milliseconds taken from request start to last byte received |
-| `status_code`      | number | Yes      | HTTP response status code                                           |
-| `response_body`    | string | Yes      | Body of the response                                                |
-| `response_headers` | object | Yes      | Headers of the HTTP response. All values must be strings.           |
+| Field                    | Type   | Optional | Comment                                                                         |
+|--------------------------|--------|----------|---------------------------------------------------------------------------------|
+| `url`                    | string | No       | Complete URL of the HTTP request                                                |
+| `method`                 | string | No       | Any of the common HTTP method like, `GET` or `POST`                             |
+| `status_code`            | int    | Yes      | Any of the common HTTP response codes.                                          |
+| `request_body_size`      | number | Yes      | Size of the HTTP request body in bytes                                          |
+| `response_body_size`     | number | Yes      | Size of the HTTP response body in bytes                                         |
+| `request_timestamp`      | string | Yes      | ISO 8601 timestamp when the request was sent.                                   |
+| `response_timestamp`     | string | Yes      | ISO 8601 timestamp when the response was received.                              |
+| `start_time`             | number | Yes      | The uptime at which the http call started, in ms.                               |
+| `end_time`               | number | Yes      | The uptime at which the http call ended, in ms.                                 |
+| `dns_start`              | number | Yes      | The uptime at which the dns lookup started, in ms.                              |
+| `dns_end`                | number | Yes      | The uptime at which the dns lookup ended, in ms.                                |
+| `connect_start`          | number | Yes      | The uptime just prior to initiating a socket connection, in ms.                 |
+| `connect_end`            | number | Yes      | The uptime just after a socket connection was attempted, in ms.                 |
+| `request_start`          | number | Yes      | The uptime as soon as the call is enqueued or executed by a client, in ms.      |
+| `request_end`            | number | Yes      | The uptime when the call has completely ended, in ms.                           |
+| `request_headers_start`  | number | Yes      | The uptime at which request headers started to be sent, in ms.                  |
+| `request_headers_end`    | number | Yes      | The uptime at which request headers were sent, in ms.                           |
+| `request_body_start`     | number | Yes      | The uptime at which request body started to be sent, in ms.                     |
+| `request_body_end`       | number | Yes      | The uptime at which request body was sent, in ms.                               |
+| `response_start`         | number | Yes      | The uptime at which response started to be received, in ms.                     |
+| `response_end`           | number | Yes      | The uptime at which response ended, in ms.                                      |
+| `response_headers_start` | number | Yes      | The uptime at which response headers started to be sent, in ms.                 |
+| `response_headers_end`   | number | Yes      | The uptime at which response headers were sent, in ms.                          |
+| `response_body_start`    | number | Yes      | The uptime at which response body was started to be received, in ms.            |
+| `response_body_end`      | number | Yes      | The uptime at which response body was received, in ms.                          |
+| `request_headers_size`   | number | Yes      | Request headers size in bytes.                                                  |
+| `response_headers_size`  | number | Yes      | Response headers size in bytes.                                                 |
+| `failure_reason`         | string | Yes      | The reason for failure. For Android, typically the IOException class name.      |
+| `failure_description`    | string | Yes      | The description of the failure. For Android, Typically the IOException message. |
+| `request_headers`        | string | Yes      | The request headers, a "stringified" map.                                       |
+| `response_headers`       | string | Yes      | The response headers, a "stringified" map.                                      |
+| `http_protocol_version`  | string | Yes      | Version of the HTTP protocol. `1.0`, `1.1`, `2` etc                             |
 
 #### **`app_exit`**
 
@@ -716,16 +755,90 @@ Use the `lifecycle_app` type for Android's app lifecycle events.
 
 #### **`cold_launch`**
 
-Use the `cold_launch` type for tracking app launch time.
+Use the `cold_launch` type for Android cold app launch time.
 
-| Field                           | Type    | Optional | Comment                                                                            |
-| ------------------------------- | ------- | -------- | ---------------------------------------------------------------------------------- |
-| `start_uptime`                  | number  | No       | Uptime in msec when user most likely started waiting for app to launch             |
-| `end_uptime`                    | number  | No       | Uptime in msec when user likely sees the first meaningful content on screen        |
-| `eu_is_first_draw`              | boolean | No       | Mechanism of `end_uptime` calculation                                              |
-| `su_is_process_start_requested` | boolean | No       | Mechanism of `start_uptime` calculation                                            |
-| `su_is_content_provider_init`   | boolean | No       | Mechanism of `start_uptime` calculation                                            |
-| `su_is_process_start_uptime`    | boolean | No       | Mechanism of `start_uptime` calculation                                            |
-| `first_visible_activity`        | string  | No       | Name of the first visible activity                                                 |
-| `duration`                      | number  | No       | Time taken for app to launch in msec. Calculated as `end_uptime` - `start_uptime`. |
-| `intent`                        | string  | Yes      | Intent data with which the `first_visible_activity` was launched                   |
+| Field                            | Type    | Optional | Comment                                                                |
+|----------------------------------|---------|----------|------------------------------------------------------------------------|
+| `process_start_uptime`           | number  | Yes      | The start uptime, measure in ms.                                       |
+| `process_start_requested_uptime` | number  | Yes      | The start uptime, measure in ms.                                       |
+| `content_provider_attach_uptime` | number  | Yes      | The start uptime, measure in ms.                                       |
+| `on_next_draw_uptime`            | number  | No       | The time at which the app became visible to the user.                  |
+| `launched_activity`              | string  | No       | The activity which drew the first frame during cold launch.            |
+| `has_saved_state`                | boolean | No       | Whether the _launched_activity_ was created with a saved state bundle. |
+| `intent_data`                    | string  | Yes      | The Intent data used to launch the _launched_activity_.                |
+
+#### **`warm_launch`**
+
+Use the `warm_launch` type for Android warm app launch time.
+
+| Field               | Type    | Optional | Comment                                                                |
+|---------------------|---------|----------|------------------------------------------------------------------------|
+| app_visible_uptime  | number  | Yes      | The time since the app became visible to the user, in ms.              |
+| on_next_draw_uptime | number  | No       | The time at which the app became visible to the user, in ms.           |
+| launched_activity   | string  | No       | The activity which drew the first frame during launch                  |
+| has_saved_state     | boolean | No       | Whether the _launched_activity_ was created with a saved state bundle. |
+| intent_data         | string  | Yes      | The Intent data used to launch the _launched_activity_.                |
+
+#### **`hot_launch`**
+ 
+Use the `hot_launch` type for Android hot app launch time.
+
+| Field               | Type    | Optional | Comment                                                           |
+|---------------------|---------|----------|-------------------------------------------------------------------|
+| app_visible_uptime  | number  | Yes      | The time elapsed since the app became visible to the user, in ms. |
+| on_next_draw_uptime | number  | No       | The time at which the app became visible to the user, in ms.      |
+| launched_activity   | string  | No       | The activity which drew the first frame during launch             |
+| has_saved_state     | boolean | No       | Whether the _launched_activity_ was created with a saved state.   |
+| intent_data         | string  | Yes      | The Intent data used to launch the _launched_activity_.           |
+
+#### **`cpu_usage`**
+
+Use the `cpu_usage` type for CPU usage of a Linux based OS.
+
+| Field             | Type   | Optional | Description                                                         |
+|-------------------|:-------|:---------|---------------------------------------------------------------------|
+| `num_cores`       | number | No       | Number of cores in the device.                                      |
+| `clock_speed`     | number | No       | Clock speed of the device, in Hz.                                   |
+| `uptime`          | number | No       | Time since the device booted, in ms.                                |
+| `utime`           | number | No       | Time spent executing code in user mode, in Jiffies.                 |
+| `stime`           | number | No       | Time spent executing code in kernel mode, in Jiffies.               |
+| `cutime`          | number | No       | Time spent executing code in user mode with children, in Jiffies.   |
+| `cstime`          | number | No       | Time spent executing code in kernel mode with children, in Jiffies. |
+| `interval_config` | number | No       | The interval between two collections, in ms.                        |
+| `start_time`      | number | No       | The process start time, in Jiffies.                                 |
+
+#### **`memory_usage`**
+
+Use the `memory_usage` type for memory usage of JVM applications.
+
+| Field             | Type   | Optional | Description                                                                                                                   |
+|-------------------|:-------|:---------|-------------------------------------------------------------------------------------------------------------------------------|
+| java_max_heap     | number | No       | Maximum size of the Java heap allocated to the application. Measured in kB.                                                   |
+| java_total_heap   | number | No       | Total size of the Java heap available for memory allocation. Measured in kB.                                                  |
+| java_free_heap    | number | No       | Amount of free memory available in the Java heap. Measured in kB.                                                             |                                                              
+| total_pss         | number | No       | Total proportional set size - the amount of memory used by the process, including shared memory and code. Measured in kB.     |
+| rss               | number | Yes      | Resident set size of the Java process - the amount of physical memory currently used by the Java application. Measured in kB. |
+| native_total_heap | number | No       | Total size of the native heap (memory outside of Java's control) available for memory allocation. Measured in kB.             |
+| native_free_heap  | number | No       | Amount of free memory available in the native heap. Measured in kB.                                                           |
+| interval_config   | number | No       | The interval between two consecutive readings. Measured in ms.                                                                |
+
+#### **`low_memory`**
+
+Use the `low_memory` type for a low memory event from the system. This type has no additional fields.
+
+#### **`trim_memory`**
+
+Use the `trim_memory` type for a trim memory event raised by Android.
+
+| Field | Type   | Optional | Description                                                                                                                              |
+|-------|--------|----------|------------------------------------------------------------------------------------------------------------------------------------------|
+| level | string | No       | One of the constants from [ComponentCallbacks2](https://developer.android.com/reference/android/content/ComponentCallbacks2#constants_1) |
+
+
+#### **`navigation`**
+
+Use the `navigation` type for navigation events.
+
+| Field | Type   | Optional | Description                        |
+|-------|--------|----------|------------------------------------|
+| route | string | No       | The destination route.             |
