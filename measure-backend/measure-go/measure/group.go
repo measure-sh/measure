@@ -298,7 +298,7 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []Even
 			next = true
 			events = events[:length-1]
 		}
-		if edgecount > 0 {
+		if edgecount > -1 && af.hasKeyset() {
 			previous = true
 		}
 	} else {
@@ -310,7 +310,7 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []Even
 			previous = true
 			events = events[1:]
 		}
-		if edgecount > 0 {
+		if edgecount > -1 {
 			next = true
 		}
 	}
