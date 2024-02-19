@@ -3,8 +3,6 @@ package measure
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"math"
 	"measure-backend/measure-go/chrono"
 	"measure-backend/measure-go/server"
 	"slices"
@@ -152,14 +150,73 @@ func GetExceptionGroup(eg *ExceptionGroup) error {
 }
 
 // GetExceptionsWithFilter returns a slice of EventException for the given slice of
-// event id and matching AppFilter.
-func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) ([]EventException, error) {
+// event id and matching AppFilter. Also computes the next, previous pagination meta
+// values.
+func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []EventException, next bool, previous bool, err error) {
+	var edgecount int
+	var countStmt *sqlf.Stmt
+	var exceptions string
+	var threads string
+	limit := af.extendLimit()
+	forward := af.hasPositiveLimit()
+	next = false
+	previous = false
+	timeformat := "2006-01-02T15:04:05.000"
+	abs := af.limitAbs()
+	op := "<"
+	if !forward {
+		op = ">"
+	}
+
+	if !af.hasKeyset() && !forward {
+		next = true
+		return
+	}
+
+	if af.hasKeyset() {
+		args := []any{}
+		op := ">"
+		if !forward {
+			op = "<"
+		}
+
+		var ids []uuid.UUID
+		countStmt = sqlf.Select("id").
+			From("default.events").
+			Where("`id` in (?)", nil).
+			Where("`timestamp` "+op+" ? or (`timestamp` = ? and `id` "+op+" ?)", nil, nil, nil).
+			OrderBy("`timestamp` desc", "`id` desc").
+			Limit(nil)
+		defer countStmt.Close()
+		timestamp := af.KeyTimestamp.Format(timeformat)
+		args = append(args, eventIds, timestamp, timestamp, af.KeyID, 1)
+		if len(af.Versions) > 0 {
+			countStmt.Where("`resource.app_version` in (?)", nil)
+			args = append(args, af.Versions)
+		}
+		rows, err := server.Server.ChPool.Query(context.Background(), countStmt.String(), args...)
+		if err != nil {
+			return nil, next, previous, err
+		}
+		for rows.Next() {
+			var id uuid.UUID
+			rows.Scan(&id)
+			ids = append(ids, id)
+		}
+		edgecount = len(ids)
+	}
+
 	stmt := sqlf.Select("id, type, timestamp, thread_name, resource.device_name, resource.device_model, resource.device_manufacturer, resource.device_type, resource.device_is_foldable, resource.device_is_physical, resource.device_density_dpi, resource.device_width_px, resource.device_height_px, resource.device_density, resource.device_locale, resource.os_name, resource.os_version, resource.platform, resource.app_version, resource.app_build, resource.app_unique_id, resource.measure_sdk_version, resource.network_type, resource.network_generation, resource.network_provider, exception.thread_name, exception.handled, exception.network_type, exception.network_generation, exception.network_provider, exception.device_locale, exception.fingerprint, exception.exceptions, exception.threads, attributes").
 		From("default.events").
-		Where("`id` in (?)").
-		OrderBy("`timestamp` desc", "`id` desc")
-
+		Where("`id` in (?)", nil)
 	defer stmt.Close()
+
+	if forward {
+		stmt.OrderBy("`timestamp` desc", "`id` desc")
+	} else {
+		stmt.OrderBy("`timestamp`", "`id`")
+	}
+	stmt.Limit(nil)
 	args := []any{eventIds}
 
 	if len(af.Versions) > 0 {
@@ -167,25 +224,16 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) ([]EventExcept
 		args = append(args, af.Versions)
 	}
 
-	if af.hasKeyID() && af.hasKeyTimestamp() {
-		stmt.Where("`timestamp` < ? or (`timestamp` = ? and `id` < ?)", nil, nil, nil)
-		args = append(args, af.KeyTimestamp, af.KeyTimestamp, af.KeyID)
+	if af.hasKeyset() {
+		stmt.Where("`timestamp` "+op+" ? or (`timestamp` = ? and `id` "+op+" ?)", nil, nil, nil)
+		timestamp := af.KeyTimestamp.Format(timeformat)
+		args = append(args, timestamp, timestamp, af.KeyID)
 	}
-
-	if af.hasLimit() {
-		stmt.Limit(nil)
-		args = append(args, af.Limit)
-	}
-
+	args = append(args, limit)
 	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), args...)
 	if err != nil {
-		return nil, err
+		return
 	}
-
-	var events []EventException
-
-	var exceptions string
-	var threads string
 
 	for rows.Next() {
 		var e EventException
@@ -228,23 +276,46 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) ([]EventExcept
 		}
 
 		if err := rows.Scan(fields...); err != nil {
-			return nil, err
+			return nil, next, previous, err
 		}
 
 		e.Trim()
 		if err := json.Unmarshal([]byte(exceptions), &e.Exception.Exceptions); err != nil {
-			return nil, err
+			return nil, next, previous, err
 		}
 		if err := json.Unmarshal([]byte(threads), &e.Exception.Threads); err != nil {
-			return nil, err
+			return nil, next, previous, err
 		}
 
 		e.ComputeView()
-
 		events = append(events, e)
 	}
 
-	return events, nil
+	length := len(events)
+
+	if forward {
+		if length > abs {
+			next = true
+			events = events[:length-1]
+		}
+		if edgecount > 0 {
+			previous = true
+		}
+	} else {
+		// reverse
+		for i, j := 0, len(events)-1; i < j; i, j = i+1, j-1 {
+			events[i], events[j] = events[j], events[i]
+		}
+		if length > abs {
+			previous = true
+			events = events[1:]
+		}
+		if edgecount > 0 {
+			next = true
+		}
+	}
+
+	return
 }
 
 // GetANRsWithFilter returns a slice of EventANR for the given slice of
@@ -268,7 +339,7 @@ func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) ([]EventANR, error) 
 		args = append(args, af.KeyTimestamp, af.KeyTimestamp, af.KeyID)
 	}
 
-	if af.hasLimit() {
+	if af.hasPositiveLimit() {
 		stmt.Limit(nil)
 		args = append(args, af.Limit)
 	}
@@ -497,60 +568,6 @@ func PaginateGroups[T GroupID](groups []T, af *AppFilter) (sliced []T, next bool
 	}
 
 	return
-}
-
-func ComputePaginationMeta[T any](s []T, af *AppFilter) ([]T, bool, bool) {
-	positiveLimit := int(math.Abs(float64(af.Limit)))
-	// more := false
-	next := false
-	previous := false
-	fmt.Println("slice length", len(s), positiveLimit)
-	if len(s) == 0 {
-		return s, next, previous
-	}
-	if af.KeyID == "" {
-		return s, next, previous
-	}
-	// if len(s) > positiveLimit {
-
-	// 	if af.Limit < 0 {
-	// 		// remove first
-	// 		s = s[1:]
-	// 		previous = true
-	// 	} else {
-	// 		// remove last
-	// 		s = s[:len(s)-1]
-	// 		next = true
-	// 	}
-	// } else {
-	// 	if af.Limit < 0 {
-	// 		next = true
-	// 	} else {
-	// 		previous = true
-	// 	}
-	// }
-
-	if af.Limit < 0 {
-		// backward
-		if len(s) > positiveLimit {
-			previous = true
-			s = s[1:]
-		} else if len(s) < positiveLimit {
-			next = true
-		}
-
-	} else {
-		// forward
-		if len(s) > positiveLimit {
-			next = true
-			s = s[:len(s)-1]
-		} else if len(s) < positiveLimit {
-			previous = true
-		}
-
-	}
-
-	return s, next, previous
 }
 
 // SortExceptionGroups first sorts a slice of ExceptionGroup

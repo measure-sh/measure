@@ -20,6 +20,10 @@ const DefaultDuration = time.Hour * 24 * 7
 // for generic query operations.
 const MaxPaginationLimit = 1000
 
+// DefaultPaginationLimit is the number of items used
+// as default for paginating items.
+const DefaultPaginationLimit = 10
+
 // AppFilter represents various app filtering
 // operations and its parameters to query app's
 // issue journey map, metrics, exceptions and
@@ -127,10 +131,27 @@ func (af *AppFilter) hasKeyset() bool {
 	return af.hasKeyID() && af.hasKeyTimestamp()
 }
 
-// hasLimit checks if limit has a non-zero
-// value.
-func (af *AppFilter) hasLimit() bool {
+// hasPositiveLimit checks if limit is greater
+// than zero.
+func (af *AppFilter) hasPositiveLimit() bool {
 	return af.Limit > 0
+}
+
+// limitAbs returns the absolute value of limit
+func (af *AppFilter) limitAbs() int {
+	if !af.hasPositiveLimit() {
+		return -af.Limit
+	}
+	return af.Limit
+}
+
+func (af *AppFilter) extendLimit() int {
+	if af.hasPositiveLimit() {
+		return af.Limit + 1
+	} else {
+		limit := -af.Limit
+		return limit + 1
+	}
 }
 
 // setDefaultTimeRange sets the time range to last
