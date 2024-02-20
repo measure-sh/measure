@@ -48,7 +48,7 @@ internal class UnhandledExceptionCollector(
                 networkType = networkType,
                 networkGeneration = networkInfoProvider.getNetworkGeneration(networkType),
                 networkProvider = networkInfoProvider.getNetworkProvider(networkType),
-                locale = localeProvider.getLocale(),
+                deviceLocale = localeProvider.getLocale(),
             )
             eventTracker.trackUnhandledException(measureException)
         } catch (e: Throwable) {

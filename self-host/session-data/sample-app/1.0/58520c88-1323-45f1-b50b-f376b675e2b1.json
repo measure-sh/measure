@@ -637,7 +637,7 @@
                     }
                 ],
                 "handled": false,
-                "locale": "en-US",
+                "device_locale": "en-US",
                 "network_generation": null,
                 "network_provider": null,
                 "network_type": "no_network",
