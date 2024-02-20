@@ -36,6 +36,7 @@ type AppFilter struct {
 	From         time.Time `form:"from" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
 	To           time.Time `form:"to" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
 	Versions     []string  `form:"versions"`
+	DeviceNames  []string  `form:"device_names"`
 	Exception    bool      `form:"exception"`
 	Crash        bool      `form:"crash"`
 	ANR          bool      `form:"anr"`
@@ -98,13 +99,15 @@ func (af *AppFilter) validate() error {
 // expand expands comma separated fields to slice
 // of strings
 func (af *AppFilter) expand() {
-	if len(af.Versions) < 1 {
-		return
+	if len(af.Versions) > 0 {
+		versions := af.Versions[0]
+		af.Versions = strings.Split(versions, ",")
 	}
 
-	versions := af.Versions[0]
-
-	af.Versions = strings.Split(versions, ",")
+	if len(af.DeviceNames) > 0 {
+		deviceNames := af.DeviceNames[0]
+		af.DeviceNames = strings.Split(deviceNames, ",")
+	}
 }
 
 // hasTimeRange checks if the time values are
