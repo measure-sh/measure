@@ -481,6 +481,11 @@ func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []EventANR, 
 			args = append(args, af.NetworkProviders)
 		}
 
+		if len(af.NetworkTypes) > 0 {
+			countStmt.Where("`anr.network_type` in (?)", nil)
+			args = append(args, af.NetworkTypes)
+		}
+
 		if af.hasTimeRange() {
 			countStmt.Where("`timestamp` >= ? and `timestamp` <= ?", nil, nil)
 			args = append(args, af.From, af.To)
@@ -542,6 +547,11 @@ func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []EventANR, 
 	if len(af.NetworkProviders) > 0 {
 		stmt.Where("`anr.network_provider` in (?)", nil)
 		args = append(args, af.NetworkProviders)
+	}
+
+	if len(af.NetworkTypes) > 0 {
+		stmt.Where("`anr.network_type` in (?)", nil)
+		args = append(args, af.NetworkTypes)
 	}
 
 	if af.hasTimeRange() {
