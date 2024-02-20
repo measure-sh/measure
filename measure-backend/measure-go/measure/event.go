@@ -542,6 +542,7 @@ func (e *EventException) ComputeView() {
 
 type EventANR struct {
 	ID         uuid.UUID         `json:"id"`
+	SessionID  uuid.UUID         `json:"session_id"`
 	Timestamp  chrono.ISOTime    `json:"timestamp"`
 	Type       string            `json:"type"`
 	ThreadName string            `json:"thread_name"`

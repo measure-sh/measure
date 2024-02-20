@@ -406,7 +406,7 @@ func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []EventANR, 
 		edgecount = len(ids)
 	}
 
-	stmt := sqlf.Select("id, type, timestamp, thread_name, resource.device_name, resource.device_model, resource.device_manufacturer, resource.device_type, resource.device_is_foldable, resource.device_is_physical, resource.device_density_dpi, resource.device_width_px, resource.device_height_px, resource.device_density, resource.device_locale, resource.os_name, resource.os_version, resource.platform, resource.app_version, resource.app_build, resource.app_unique_id, resource.measure_sdk_version, resource.network_type, resource.network_generation, resource.network_provider, anr.thread_name, anr.handled, anr.network_type,anr.network_generation, anr.network_provider, anr.device_locale, anr.fingerprint, anr.exceptions, anr.threads, attributes").
+	stmt := sqlf.Select("id, session_id, type, timestamp, thread_name, resource.device_name, resource.device_model, resource.device_manufacturer, resource.device_type, resource.device_is_foldable, resource.device_is_physical, resource.device_density_dpi, resource.device_width_px, resource.device_height_px, resource.device_density, resource.device_locale, resource.os_name, resource.os_version, resource.platform, resource.app_version, resource.app_build, resource.app_unique_id, resource.measure_sdk_version, resource.network_type, resource.network_generation, resource.network_provider, anr.thread_name, anr.handled, anr.network_type,anr.network_generation, anr.network_provider, anr.device_locale, anr.fingerprint, anr.exceptions, anr.threads, attributes").
 		From("default.events").
 		Where("`id` in (?)", nil)
 	defer stmt.Close()
@@ -446,6 +446,7 @@ func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []EventANR, 
 		var e EventANR
 		fields := []any{
 			&e.ID,
+			&e.SessionID,
 			&e.Type,
 			&e.Timestamp,
 			&e.ThreadName,
