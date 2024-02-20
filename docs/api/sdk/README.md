@@ -464,27 +464,28 @@ The top-level Session object has the following properties.
 
 Resource object has the following properties.
 
-| Field                 | Type    | Optional | Comment                                                                                                         |
-|-----------------------|---------|----------|-----------------------------------------------------------------------------------------------------------------|
-| `device_name`         | string  | Yes      | Name of the device                                                                                              |
-| `device_model`        | string  | Yes      | Device model                                                                                                    |
-| `device_manufacturer` | string  | Yes      | Name of the device manufacturer                                                                                 |
-| `device_type`         | string  | Yes      | `phone` or `tablet`                                                                                             |
-| `device_is_foldable`  | boolean | Yes      | `true` for foldable devices                                                                                     |
-| `device_is_physical`  | boolean | Yes      | `true` for physical devices                                                                                     |
-| `device_density_dpi`  | number  | Yes      | DPI density                                                                                                     |
-| `device_width_px`     | number  | Yes      | Screen width                                                                                                    |
-| `device_height_px`    | number  | Yes      | Screen height                                                                                                   |
-| `device_density`      | number  | Yes      | Device model                                                                                                    |
-| `os_name`             | string  | Yes      | Operating system name                                                                                           |
-| `os_version`          | string  | Yes      | Operating system version                                                                                        |
-| `app_version`         | string  | Yes      | App version identifier                                                                                          |
-| `app_build`           | string  | Yes      | App build identifier                                                                                            |
-| `app_unique_id`       | string  | Yes      | App bundle identifier                                                                                           |
-| `network_type`        | string  | Yes      | One of<br/>- wifi<br/>- cellular<br/>- vpn<br/>- unknown<br/>- no_network                                       |
-| `network_provider`    | string  | Yes      | Example: airtel, T-mobile                                                                                       |
-| `network_generation`  | string  | Yes      | One of:<br/>- 2g<br/>- 3g<br/>- 4g<br/>- 5g                                                                     |
-| `measure_sdk_version` | string  | Yes      | Measure SDK version identifier                                                                                  |
+| Field                  | Type    | Optional | Comment                                                                   |
+|------------------------|---------|----------|---------------------------------------------------------------------------|
+| `device_name`          | string  | Yes      | Name of the device                                                        |
+| `device_model`         | string  | Yes      | Device model                                                              |
+| `device_manufacturer`  | string  | Yes      | Name of the device manufacturer                                           |
+| `device_type`          | string  | Yes      | `phone` or `tablet`                                                       |
+| `device_is_foldable`   | boolean | Yes      | `true` for foldable devices                                               |
+| `device_is_physical`   | boolean | Yes      | `true` for physical devices                                               |
+| `device_density_dpi`   | number  | Yes      | DPI density                                                               |
+| `device_width_px`      | number  | Yes      | Screen width                                                              |
+| `device_height_px`     | number  | Yes      | Screen height                                                             |
+| `device_density`       | number  | Yes      | Device model                                                              |
+| `device_locale`        | string  | Yes      | Locale based on RFC 5646, eg. en-US                                       |
+| `os_name`              | string  | Yes      | Operating system name                                                     |
+| `os_version`           | string  | Yes      | Operating system version                                                  |
+| `app_version`          | string  | Yes      | App version identifier                                                    |
+| `app_build`            | string  | Yes      | App build identifier                                                      |
+| `app_unique_id`        | string  | Yes      | App bundle identifier                                                     |
+| `network_type`         | string  | Yes      | One of<br/>- wifi<br/>- cellular<br/>- vpn<br/>- unknown<br/>- no_network |
+| `network_provider`     | string  | Yes      | Example: airtel, T-mobile                                                 |
+| `network_generation`   | string  | Yes      | One of:<br/>- 2g<br/>- 3g<br/>- 4g<br/>- 5g                               |
+| `measure_sdk_version`  | string  | Yes      | Measure SDK version identifier                                            |
 
 ### Attachments
 
@@ -534,6 +535,7 @@ Use the `anr` type for [Application Not Responding](https://developer.android.co
 | `network_type`       | string  | Yes      | The network type at the time of the ANR. One of<br/>- wifi<br/>- cellular<br/>- vpn<br/>- unknown<br/>- no_network |
 | `network_provider`   | string  | Yes      | The network provider at the time of the ANR. Example: airtel, T-mobile                                             |
 | `network_generation` | string  | Yes      | The network generation at the time of the ANR. One of:<br/>- 2g<br/>- 3g<br/>- 4g<br/>- 5g                         |
+| `device_locale`      | string  | Yes      | Locale based on RFC 5646, eg. en-US                                                                                |
 | `threads`            | array   | Yes      | Array of thread objects                                                                                            |
 
 `exception` objects
@@ -580,6 +582,7 @@ Use the `exception` type for errors and crashes.
 | `network_type`       | string  | Yes      | The network type at the time of the Exception. One of<br/>- wifi<br/>- cellular<br/>- vpn<br/>- unknown<br/>- no_network |
 | `network_provider`   | string  | Yes      | The network provider at the time of the Exception. Example: airtel, T-mobile                                             |
 | `network_generation` | string  | Yes      | The network generation at the time of the Exception. One of:<br/>- 2g<br/>- 3g<br/>- 4g<br/>- 5g                         |
+| `device_locale`      | string  | Yes      | Locale based on RFC 5646, eg. en-US                                                                                      |
 | `threads`            | array   | Yes      | Array of thread objects                                                                                                  |
 
 `exception` objects

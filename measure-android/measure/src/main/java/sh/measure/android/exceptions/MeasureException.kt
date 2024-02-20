@@ -56,7 +56,7 @@ internal data class MeasureException(
     /**
      * The locale of the device at the time of the exception.
      */
-    val locale: String?,
+    val device_locale: String?,
 
     /**
      * Whether is exception represents an ANR or not.
