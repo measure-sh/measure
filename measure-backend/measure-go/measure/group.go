@@ -472,8 +472,13 @@ func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []EventANR, 
 		}
 
 		if len(af.Locales) > 0 {
-			countStmt.Where("`exception.device_locale` in (?)", nil)
+			countStmt.Where("`anr.device_locale` in (?)", nil)
 			args = append(args, af.Locales)
+		}
+
+		if len(af.NetworkProviders) > 0 {
+			countStmt.Where("`anr.network_provider` in (?)", nil)
+			args = append(args, af.NetworkProviders)
 		}
 
 		if af.hasTimeRange() {
@@ -532,6 +537,11 @@ func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []EventANR, 
 	if len(af.Locales) > 0 {
 		stmt.Where("`exception.device_locale` in (?)", nil)
 		args = append(args, af.Locales)
+	}
+
+	if len(af.NetworkProviders) > 0 {
+		stmt.Where("`anr.network_provider` in (?)", nil)
+		args = append(args, af.NetworkProviders)
 	}
 
 	if af.hasTimeRange() {
