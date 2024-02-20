@@ -217,6 +217,11 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []Even
 			args = append(args, af.NetworkProviders)
 		}
 
+		if len(af.NetworkTypes) > 0 {
+			countStmt.Where("`exception.network_type` in (?)", nil)
+			args = append(args, af.NetworkTypes)
+		}
+
 		if af.hasTimeRange() {
 			countStmt.Where("`timestamp` >= ? and `timestamp` <= ?", nil, nil)
 			args = append(args, af.From, af.To)
@@ -274,6 +279,11 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []Even
 	if len(af.NetworkProviders) > 0 {
 		stmt.Where("`exception.network_provider` in (?)", nil)
 		args = append(args, af.NetworkProviders)
+	}
+
+	if len(af.NetworkTypes) > 0 {
+		stmt.Where("`exception.network_type` in (?)", nil)
+		args = append(args, af.NetworkTypes)
 	}
 
 	if af.hasTimeRange() {
