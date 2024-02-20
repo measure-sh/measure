@@ -456,6 +456,11 @@ func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []EventANR, 
 			args = append(args, af.Versions)
 		}
 
+		if len(af.Countries) > 0 {
+			countStmt.Where("`inet.country_code` in (?)", nil)
+			args = append(args, af.Countries)
+		}
+
 		if af.hasTimeRange() {
 			countStmt.Where("`timestamp` >= ? and `timestamp` <= ?", nil, nil)
 			args = append(args, af.From, af.To)
@@ -492,6 +497,11 @@ func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []EventANR, 
 	if len(af.Versions) > 0 {
 		stmt.Where("`resource.app_version` in (?)", nil)
 		args = append(args, af.Versions)
+	}
+
+	if len(af.Countries) > 0 {
+		stmt.Where("`inet.country_code` in (?)", nil)
+		args = append(args, af.Countries)
 	}
 
 	if af.hasTimeRange() {
