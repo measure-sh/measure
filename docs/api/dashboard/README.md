@@ -761,6 +761,8 @@ Fetch list of crashes of a crash group for an app.
 
 - App's UUID must be passed in the URI
 - Accepted query parameters
+  - `from` (_optional_) - ISO8601 timestamp to include crashes after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include crashes before this time.
   - `versions` (_optional_) - List of comma separated version identifier strings to return only those crash groups that have events matching the version.
   - `key_id` (_optional_) - UUID of the last item. Used for keyset based pagination. Should be used along with `key_timestamp` &amp; `limit`.
   - `key_timestamp` (_optional_) - ISO8601 timestamp of the last item. Used for keyset based pagination. Should be used along with `key_id` &amp; `limit`.
@@ -790,396 +792,379 @@ These headers must be present in each request.
   <details><summary>Click to expand</summary>
 
   ```json
-  [
-    {
-      "id": "9bc04733-3f5d-417f-827d-f843e69bbc52",
-      "timestamp": "2024-01-01T09:11:18.947Z",
-      "type": "exception",
-      "thread_name": "main",
-      "resource": {
-        "device_name": "sunfish",
-        "device_model": "Pixel 4a",
-        "device_manufacturer": "Google",
-        "device_type": "phone",
-        "device_is_foldable": false,
-        "device_is_physical": true,
-        "device_density_dpi": 440,
-        "device_width_px": 1080,
-        "device_height_px": 2138,
-        "device_density": 2.75,
-        "device_locale": "en-US",
-        "os_name": "android",
-        "os_version": "33",
-        "platform": "android",
-        "app_version": "2.7.50464-dev-2024-01-01",
-        "app_build": "50464",
-        "app_unique_id": "org.wikipedia.dev",
-        "measure_sdk_version": "0.0.1-SNAPSHOT",
-        "network_type": "wifi",
-        "network_generation": "",
-        "network_provider": ""
-      },
-      "exceptions": [
-        {
-          "type": "org.wikipedia.CustomException",
-          "message": "Custom Exception",
-          "location": "org.wikipedia.feed.FeedFragment$FeedCallback.onVoiceSearchRequested(FeedFragment.kt:246)",
-          "stacktrace": "org.wikipedia.CustomException\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:558)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n\tat org.wikipedia.feed.FeedFragment$FeedCallback.onVoiceSearchRequested(FeedFragment.kt:246)\n\tat org.wikipedia.feed.searchbar.SearchCardView._init_$lambda$1(SearchCardView.kt:26)\n\tat android.view.View.performClick(View.java:7542)\n\tat android.view.View.performClickInternal(View.java:7519)\n\tat android.view.View.-$$Nest$mperformClickInternal\n\tat android.view.View$PerformClick.run(View.java:29476)\n\tat android.os.Handler.handleCallback(Handler.java:942)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7918)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n"
-        }
-      ],
-      "threads": [
-        {
-          "name": "Okio Watchdog",
-          "frames": [
-            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-            "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1757)",
-            "okio.AsyncTimeout$Companion.awaitTimeout$okio(AsyncTimeout.kt:308)",
-            "okio.AsyncTimeout$Watchdog.run(AsyncTimeout.kt:186)"
-          ]
-        },
-        {
-          "name": "FinalizerDaemon",
-          "frames": [
-            "java.lang.Object.wait(Object.java:-2)",
-            "java.lang.Object.wait(Object.java:386)",
-            "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:210)",
-            "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:231)",
-            "java.lang.Daemons$FinalizerDaemon.runInternal(Daemons.java:309)",
-            "java.lang.Daemons$Daemon.run(Daemons.java:145)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "OkHttp en.wikipedia.org",
-          "frames": [
-            "java.net.SocketInputStream.socketRead0(SocketInputStream.java:-2)",
-            "java.net.SocketInputStream.socketRead(SocketInputStream.java:118)",
-            "java.net.SocketInputStream.read(SocketInputStream.java:173)",
-            "java.net.SocketInputStream.read(SocketInputStream.java:143)",
-            "com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.readFromSocket(ConscryptEngineSocket.java:983)",
-            "com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.processDataFromSocket(ConscryptEngineSocket.java:947)",
-            "com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.readUntilDataAvailable(ConscryptEngineSocket.java:862)",
-            "com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.read(ConscryptEngineSocket.java:835)",
-            "okio.InputStreamSource.read(JvmOkio.kt:94)",
-            "okio.AsyncTimeout$source$1.read(AsyncTimeout.kt:128)",
-            "okio.internal._RealBufferedSourceKt.commonRequest(-RealBufferedSource.kt:60)",
-            "okio.RealBufferedSource.request(RealBufferedSource.kt:68)",
-            "okio.internal._RealBufferedSourceKt.commonRequire(-RealBufferedSource.kt:53)",
-            "okio.RealBufferedSource.require(RealBufferedSource.kt:67)",
-            "okhttp3.internal.http2.Http2Reader.nextFrame(Http2Reader.kt:89)",
-            "okhttp3.internal.http2.Http2Connection$ReaderRunnable.invoke(Http2Connection.kt:618)",
-            "okhttp3.internal.http2.Http2Connection$ReaderRunnable.invoke(Http2Connection.kt:609)",
-            "okhttp3.internal.concurrent.TaskQueue$execute$1.runOnce(TaskQueue.kt:98)",
-            "okhttp3.internal.concurrent.TaskRunner.runTask(TaskRunner.kt:116)",
-            "okhttp3.internal.concurrent.TaskRunner.access$runTask(TaskRunner.kt:42)",
-            "okhttp3.internal.concurrent.TaskRunner$runnable$1.run(TaskRunner.kt:65)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "OkHttp Dispatcher",
-          "frames": [
-            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-            "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
-            "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:401)",
-            "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:903)",
-            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1070)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "glide-source-thread-2",
-          "frames": [
-            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-            "java.util.concurrent.locks.LockSupport.park(LockSupport.java:341)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:506)",
-            "java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:3466)",
-            "java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3437)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1623)",
-            "java.util.concurrent.PriorityBlockingQueue.take(PriorityBlockingQueue.java:538)",
-            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "com.bumptech.glide.load.engine.executor.GlideExecutor$DefaultThreadFactory$1.run(GlideExecutor.java:424)",
-            "java.lang.Thread.run(Thread.java:1012)",
-            "com.bumptech.glide.load.engine.executor.GlideExecutor$DefaultPriorityThreadFactory$1.run(GlideExecutor.java:383)"
-          ]
-        },
-        {
-          "name": "Firebase Background Thread #0",
-          "frames": [
-            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-            "java.util.concurrent.locks.LockSupport.park(LockSupport.java:341)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:506)",
-            "java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:3466)",
-            "java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3437)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1623)",
-            "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:435)",
-            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "com.google.firebase.concurrent.CustomThreadFactory.lambda$newThread$0(CustomThreadFactory.java:47)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "GoogleApiHandler",
-          "frames": [
-            "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
-            "android.os.MessageQueue.next(MessageQueue.java:335)",
-            "android.os.Looper.loopOnce(Looper.java:161)",
-            "android.os.Looper.loop(Looper.java:288)",
-            "android.os.HandlerThread.run(HandlerThread.java:67)"
-          ]
-        },
-        {
-          "name": "ConnectivityThread",
-          "frames": [
-            "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
-            "android.os.MessageQueue.next(MessageQueue.java:335)",
-            "android.os.Looper.loopOnce(Looper.java:161)",
-            "android.os.Looper.loop(Looper.java:288)",
-            "android.os.HandlerThread.run(HandlerThread.java:67)"
-          ]
-        },
-        {
-          "name": "OkHttp TaskRunner",
-          "frames": [
-            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-            "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
-            "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:401)",
-            "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:903)",
-            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1070)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "WM.task-1",
-          "frames": [
-            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-            "java.util.concurrent.locks.LockSupport.park(LockSupport.java:341)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:506)",
-            "java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:3466)",
-            "java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3437)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1623)",
-            "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:435)",
-            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        }
-      ],
-      "attributes": {}
+  {
+    "meta": {
+      "next": true,
+      "previous": false
     },
-    {
-      "id": "1f04d2f3-0bfa-4699-96fc-3242f2fc4a82",
-      "timestamp": "2024-01-01T09:10:16.258Z",
-      "type": "exception",
-      "thread_name": "main",
-      "resource": {
-        "device_name": "sunfish",
-        "device_model": "Pixel 4a",
-        "device_manufacturer": "Google",
-        "device_type": "phone",
-        "device_is_foldable": false,
-        "device_is_physical": true,
-        "device_density_dpi": 440,
-        "device_width_px": 1080,
-        "device_height_px": 2138,
-        "device_density": 2.75,
-        "device_locale": "en-US",
-        "os_name": "android",
-        "os_version": "33",
-        "platform": "android",
-        "app_version": "2.7.50464-dev-2024-01-01",
-        "app_build": "50464",
-        "app_unique_id": "org.wikipedia.dev",
-        "measure_sdk_version": "0.0.1-SNAPSHOT",
-        "network_type": "wifi",
-        "network_generation": "",
-        "network_provider": ""
+    "results": [
+      {
+        "id": "ed32705d-074a-4deb-87f7-96449bb63e06",
+        "timestamp": "2024-01-01T09:11:23.884Z",
+        "type": "exception",
+        "thread_name": "main",
+        "resource": {
+          "device_name": "sunfish",
+          "device_model": "Pixel 4a",
+          "device_manufacturer": "Google",
+          "device_type": "phone",
+          "device_is_foldable": false,
+          "device_is_physical": true,
+          "device_density_dpi": 440,
+          "device_width_px": 1080,
+          "device_height_px": 2138,
+          "device_density": 2.75,
+          "device_locale": "en-US",
+          "os_name": "android",
+          "os_version": "33",
+          "platform": "android",
+          "app_version": "2.7.50464-dev-2024-01-01",
+          "app_build": "50464",
+          "app_unique_id": "org.wikipedia.dev",
+          "measure_sdk_version": "0.0.1-SNAPSHOT",
+          "network_type": "wifi",
+          "network_generation": "",
+          "network_provider": ""
+        },
+        "exceptions": [
+          {
+            "type": "org.wikipedia.CustomException",
+            "message": "Custom Exception",
+            "location": "org.wikipedia.feed.FeedFragment$FeedCallback.onVoiceSearchRequested(FeedFragment.kt:246)",
+            "stacktrace": "org.wikipedia.CustomException\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:558)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n\tat org.wikipedia.feed.FeedFragment$FeedCallback.onVoiceSearchRequested(FeedFragment.kt:246)\n\tat org.wikipedia.feed.searchbar.SearchCardView._init_$lambda$1(SearchCardView.kt:26)\n\tat android.view.View.performClick(View.java:7542)\n\tat android.view.View.performClickInternal(View.java:7519)\n\tat android.view.View.-$$Nest$mperformClickInternal\n\tat android.view.View$PerformClick.run(View.java:29476)\n\tat android.os.Handler.handleCallback(Handler.java:942)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7918)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n"
+          }
+        ],
+        "threads": [
+          {
+            "name": "ReferenceQueueDaemon",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "java.lang.Object.wait(Object.java:386)",
+              "java.lang.Object.wait(Object.java:524)",
+              "java.lang.Daemons$ReferenceQueueDaemon.runInternal(Daemons.java:239)",
+              "java.lang.Daemons$Daemon.run(Daemons.java:145)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "Firebase-Messaging-Topics-Io",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:341)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:506)",
+              "java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:3466)",
+              "java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3437)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1623)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+              "com.google.android.gms.common.util.concurrent.zza.run(com.google.android.gms:play-services-basement@@18.1.0:2)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "ConnectivityThread",
+            "frames": [
+              "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
+              "android.os.MessageQueue.next(MessageQueue.java:335)",
+              "android.os.Looper.loopOnce(Looper.java:161)",
+              "android.os.Looper.loop(Looper.java:288)",
+              "android.os.HandlerThread.run(HandlerThread.java:67)"
+            ]
+          },
+          {
+            "name": "EmojiCompatInitializer",
+            "frames": [
+              "java.lang.ThreadLocal.getMap(ThreadLocal.java:254)",
+              "java.lang.ThreadLocal.get(ThreadLocal.java:163)",
+              "androidx.emoji2.text.EmojiMetadata.getMetadataItem(EmojiMetadata.java:132)",
+              "androidx.emoji2.text.EmojiMetadata.getId(EmojiMetadata.java:152)",
+              "androidx.emoji2.text.MetadataRepo.constructIndex(MetadataRepo.java:166)",
+              "androidx.emoji2.text.MetadataRepo.<init>(MetadataRepo.java:80)",
+              "androidx.emoji2.text.MetadataRepo.create(MetadataRepo.java:130)",
+              "androidx.emoji2.text.FontRequestEmojiCompatConfig$FontRequestMetadataLoader.createMetadata(FontRequestEmojiCompatConfig.java:386)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxCachedWorkerPoolEvictor-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:1672)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "measure-thread-#0",
+            "frames": [
+              "kotlin.jvm.internal.Intrinsics.checkNotNullParameter(Intrinsics.java:130)",
+              "kotlinx.serialization.json.JsonElementSerializer.serialize(JsonElementSerializers.kt)",
+              "kotlinx.serialization.json.JsonElementSerializer.serialize(JsonElementSerializers.kt:27)",
+              "kotlinx.serialization.json.internal.PolymorphicKt.encodePolymorphically(Polymorphic.kt:21)",
+              "kotlinx.serialization.json.internal.StreamingJsonEncoder.encodeSerializableValue(StreamingJsonEncoder.kt:66)",
+              "kotlinx.serialization.encoding.AbstractEncoder.encodeSerializableElement(AbstractEncoder.kt:80)",
+              "java.util.concurrent.FutureTask.run(FutureTask.java:264)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:307)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "CrAsyncTask #2",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:1672)",
+              "java.util.concurrent.ArrayBlockingQueue.poll(ArrayBlockingQueue.java:435)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1070)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "WM.task-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:341)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:506)",
+              "java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:3466)",
+              "java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3437)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1623)",
+              "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:435)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "OkHttp Dispatcher",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:401)",
+              "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:903)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1070)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "queued-work-looper",
+            "frames": [
+              "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
+              "android.os.MessageQueue.next(MessageQueue.java:335)",
+              "android.os.Looper.loopOnce(Looper.java:161)",
+              "android.os.Looper.loop(Looper.java:288)",
+              "android.os.HandlerThread.run(HandlerThread.java:67)"
+            ]
+          }
+        ],
+        "attributes": {}
       },
-      "exceptions": [
-        {
-          "type": "org.wikipedia.CustomException",
-          "message": "Custom Exception",
-          "location": "org.wikipedia.feed.FeedFragment$FeedCallback.onVoiceSearchRequested(FeedFragment.kt:246)",
-          "stacktrace": "org.wikipedia.CustomException\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:558)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n\tat org.wikipedia.feed.FeedFragment$FeedCallback.onVoiceSearchRequested(FeedFragment.kt:246)\n\tat org.wikipedia.feed.searchbar.SearchCardView._init_$lambda$1(SearchCardView.kt:26)\n\tat android.view.View.performClick(View.java:7542)\n\tat android.view.View.performClickInternal(View.java:7519)\n\tat android.view.View.-$$Nest$mperformClickInternal\n\tat android.view.View$PerformClick.run(View.java:29476)\n\tat android.os.Handler.handleCallback(Handler.java:942)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7918)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n"
-        }
-      ],
-      "threads": [
-        {
-          "name": "WM.task-1",
-          "frames": [
-            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-            "java.util.concurrent.locks.LockSupport.park(LockSupport.java:341)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:506)",
-            "java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:3466)",
-            "java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3437)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1623)",
-            "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:435)",
-            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
+      {
+        "id": "ab186b0d-cbe6-420b-9ca9-4f1f932203e4",
+        "timestamp": "2024-01-01T09:11:18.947Z",
+        "type": "exception",
+        "thread_name": "main",
+        "resource": {
+          "device_name": "sunfish",
+          "device_model": "Pixel 4a",
+          "device_manufacturer": "Google",
+          "device_type": "phone",
+          "device_is_foldable": false,
+          "device_is_physical": true,
+          "device_density_dpi": 440,
+          "device_width_px": 1080,
+          "device_height_px": 2138,
+          "device_density": 2.75,
+          "device_locale": "en-US",
+          "os_name": "android",
+          "os_version": "33",
+          "platform": "android",
+          "app_version": "2.7.50464-dev-2024-01-01",
+          "app_build": "50464",
+          "app_unique_id": "org.wikipedia.dev",
+          "measure_sdk_version": "0.0.1-SNAPSHOT",
+          "network_type": "wifi",
+          "network_generation": "",
+          "network_provider": ""
         },
-        {
-          "name": "RxCachedWorkerPoolEvictor-1",
-          "frames": [
-            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-            "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:1672)",
-            "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
-            "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
-            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "OkHttp Dispatcher",
-          "frames": [
-            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-            "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
-            "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:401)",
-            "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:903)",
-            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1070)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "measure-thread-#0",
-          "frames": [
-            "android.os.Debug.getMemoryInfo(Debug.java:-2)",
-            "sh.measure.android.utils.DefaultDebugProvider.getMemoryInfo(DebugProvider.kt:21)",
-            "sh.measure.android.performance.MemoryUsageCollector.getTotalPss(MemoryUsageCollector.kt:97)",
-            "sh.measure.android.performance.MemoryUsageCollector.trackMemoryUsage(MemoryUsageCollector.kt:61)",
-            "sh.measure.android.performance.MemoryUsageCollector.register$lambda$0(MemoryUsageCollector.kt:43)",
-            "java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:487)",
-            "java.util.concurrent.FutureTask.runAndReset(FutureTask.java:305)",
-            "java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:308)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "OkHttp Dispatcher",
-          "frames": [
-            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-            "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
-            "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:401)",
-            "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:903)",
-            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1070)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "CrAsyncTask #1",
-          "frames": [
-            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-            "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:1672)",
-            "java.util.concurrent.ArrayBlockingQueue.poll(ArrayBlockingQueue.java:435)",
-            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1070)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "OkHttp TaskRunner",
-          "frames": [
-            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-            "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
-            "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:401)",
-            "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:903)",
-            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1070)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "pool-3-thread-1",
-          "frames": [
-            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-            "java.util.concurrent.locks.LockSupport.park(LockSupport.java:341)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:506)",
-            "java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:3466)",
-            "java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3437)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1623)",
-            "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:435)",
-            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "Firebase-Messaging-Init",
-          "frames": [
-            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-            "java.util.concurrent.locks.LockSupport.park(LockSupport.java:341)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:506)",
-            "java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:3466)",
-            "java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3437)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1623)",
-            "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
-            "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
-            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "com.google.android.gms.common.util.concurrent.zza.run(com.google.android.gms:play-services-basement@@18.1.0:2)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "WM.task-2",
-          "frames": [
-            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-            "java.util.concurrent.locks.LockSupport.park(LockSupport.java:341)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:506)",
-            "java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:3466)",
-            "java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3437)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1623)",
-            "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:435)",
-            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "FinalizerDaemon",
-          "frames": [
-            "java.lang.Object.wait(Object.java:-2)",
-            "java.lang.Object.wait(Object.java:386)",
-            "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:210)",
-            "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:231)",
-            "java.lang.Daemons$FinalizerDaemon.runInternal(Daemons.java:309)",
-            "java.lang.Daemons$Daemon.run(Daemons.java:145)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        }
-      ],
-      "attributes": {}
-    }
-  ]
+        "exceptions": [
+          {
+            "type": "org.wikipedia.CustomException",
+            "message": "Custom Exception",
+            "location": "org.wikipedia.feed.FeedFragment$FeedCallback.onVoiceSearchRequested(FeedFragment.kt:246)",
+            "stacktrace": "org.wikipedia.CustomException\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:558)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n\tat org.wikipedia.feed.FeedFragment$FeedCallback.onVoiceSearchRequested(FeedFragment.kt:246)\n\tat org.wikipedia.feed.searchbar.SearchCardView._init_$lambda$1(SearchCardView.kt:26)\n\tat android.view.View.performClick(View.java:7542)\n\tat android.view.View.performClickInternal(View.java:7519)\n\tat android.view.View.-$$Nest$mperformClickInternal\n\tat android.view.View$PerformClick.run(View.java:29476)\n\tat android.os.Handler.handleCallback(Handler.java:942)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7918)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n"
+          }
+        ],
+        "threads": [
+          {
+            "name": "Okio Watchdog",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1757)",
+              "okio.AsyncTimeout$Companion.awaitTimeout$okio(AsyncTimeout.kt:308)",
+              "okio.AsyncTimeout$Watchdog.run(AsyncTimeout.kt:186)"
+            ]
+          },
+          {
+            "name": "FinalizerDaemon",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "java.lang.Object.wait(Object.java:386)",
+              "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:210)",
+              "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:231)",
+              "java.lang.Daemons$FinalizerDaemon.runInternal(Daemons.java:309)",
+              "java.lang.Daemons$Daemon.run(Daemons.java:145)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "OkHttp en.wikipedia.org",
+            "frames": [
+              "java.net.SocketInputStream.socketRead0(SocketInputStream.java:-2)",
+              "java.net.SocketInputStream.socketRead(SocketInputStream.java:118)",
+              "java.net.SocketInputStream.read(SocketInputStream.java:173)",
+              "java.net.SocketInputStream.read(SocketInputStream.java:143)",
+              "com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.readFromSocket(ConscryptEngineSocket.java:983)",
+              "com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.processDataFromSocket(ConscryptEngineSocket.java:947)",
+              "com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.readUntilDataAvailable(ConscryptEngineSocket.java:862)",
+              "com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.read(ConscryptEngineSocket.java:835)",
+              "okio.InputStreamSource.read(JvmOkio.kt:94)",
+              "okio.AsyncTimeout$source$1.read(AsyncTimeout.kt:128)",
+              "okio.internal._RealBufferedSourceKt.commonRequest(-RealBufferedSource.kt:60)",
+              "okio.RealBufferedSource.request(RealBufferedSource.kt:68)",
+              "okio.internal._RealBufferedSourceKt.commonRequire(-RealBufferedSource.kt:53)",
+              "okio.RealBufferedSource.require(RealBufferedSource.kt:67)",
+              "okhttp3.internal.http2.Http2Reader.nextFrame(Http2Reader.kt:89)",
+              "okhttp3.internal.http2.Http2Connection$ReaderRunnable.invoke(Http2Connection.kt:618)",
+              "okhttp3.internal.http2.Http2Connection$ReaderRunnable.invoke(Http2Connection.kt:609)",
+              "okhttp3.internal.concurrent.TaskQueue$execute$1.runOnce(TaskQueue.kt:98)",
+              "okhttp3.internal.concurrent.TaskRunner.runTask(TaskRunner.kt:116)",
+              "okhttp3.internal.concurrent.TaskRunner.access$runTask(TaskRunner.kt:42)",
+              "okhttp3.internal.concurrent.TaskRunner$runnable$1.run(TaskRunner.kt:65)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "OkHttp Dispatcher",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:401)",
+              "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:903)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1070)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "glide-source-thread-2",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:341)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:506)",
+              "java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:3466)",
+              "java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3437)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1623)",
+              "java.util.concurrent.PriorityBlockingQueue.take(PriorityBlockingQueue.java:538)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+              "com.bumptech.glide.load.engine.executor.GlideExecutor$DefaultThreadFactory$1.run(GlideExecutor.java:424)",
+              "java.lang.Thread.run(Thread.java:1012)",
+              "com.bumptech.glide.load.engine.executor.GlideExecutor$DefaultPriorityThreadFactory$1.run(GlideExecutor.java:383)"
+            ]
+          },
+          {
+            "name": "Firebase Background Thread #0",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:341)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:506)",
+              "java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:3466)",
+              "java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3437)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1623)",
+              "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:435)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+              "com.google.firebase.concurrent.CustomThreadFactory.lambda$newThread$0(CustomThreadFactory.java:47)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "GoogleApiHandler",
+            "frames": [
+              "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
+              "android.os.MessageQueue.next(MessageQueue.java:335)",
+              "android.os.Looper.loopOnce(Looper.java:161)",
+              "android.os.Looper.loop(Looper.java:288)",
+              "android.os.HandlerThread.run(HandlerThread.java:67)"
+            ]
+          },
+          {
+            "name": "ConnectivityThread",
+            "frames": [
+              "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
+              "android.os.MessageQueue.next(MessageQueue.java:335)",
+              "android.os.Looper.loopOnce(Looper.java:161)",
+              "android.os.Looper.loop(Looper.java:288)",
+              "android.os.HandlerThread.run(HandlerThread.java:67)"
+            ]
+          },
+          {
+            "name": "OkHttp TaskRunner",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:401)",
+              "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:903)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1070)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "WM.task-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:341)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block(AbstractQueuedSynchronizer.java:506)",
+              "java.util.concurrent.ForkJoinPool.unmanagedBlock(ForkJoinPool.java:3466)",
+              "java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3437)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1623)",
+              "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:435)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1071)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          }
+        ],
+        "attributes": {}
+      }
+    ]
+  }
   ```
 
   </details>
@@ -1218,6 +1203,8 @@ Fetch list of anrs of an anr group for an app.
 
 - App's UUID must be passed in the URI
 - Accepted query parameters
+  - `from` (_optional_) - ISO8601 timestamp to include crashes after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include crashes before this time.
   - `versions` (_optional_) - List of comma separated version identifier strings to return only those anr groups that have events matching the version.
   - `key_id` (_optional_) - UUID of the last item. Used for keyset based pagination. Should be used along with `key_timestamp` &amp; `limit`.
   - `key_timestamp` (_optional_) - ISO8601 timestamp of the last item. Used for keyset based pagination. Should be used along with `key_id` &amp; `limit`.
@@ -1247,541 +1234,276 @@ These headers must be present in each request.
   <details><summary>Click to expand</summary>
 
   ```json
-  [
-    {
-      "id": "c77bc4b6-14b1-4217-87e1-bd32f8b78659",
-      "timestamp": "2024-01-01T07:59:42.202Z",
-      "type": "anr",
-      "thread_name": "main",
-      "resource": {
-        "device_name": "sunfish",
-        "device_model": "Pixel 4a",
-        "device_manufacturer": "Google",
-        "device_type": "phone",
-        "device_is_foldable": false,
-        "device_is_physical": true,
-        "device_density_dpi": 440,
-        "device_width_px": 1080,
-        "device_height_px": 2138,
-        "device_density": 2.75,
-        "device_locale": "en-US",
-        "os_name": "android",
-        "os_version": "33",
-        "platform": "android",
-        "app_version": "1.0",
-        "app_build": "1",
-        "app_unique_id": "sh.measure.sample",
-        "measure_sdk_version": "0.0.1-SNAPSHOT",
-        "network_type": "wifi",
-        "network_generation": "",
-        "network_provider": ""
-      },
-      "anrs": [
-        {
-          "type": "sh.measure.android.anr.AnrError",
-          "message": "Application Not Responding for at least 5000 ms.",
-          "location": "sh.measure.sample.ExceptionDemoActivity.deadLock$lambda$8(ExceptionDemoActivity.kt:61)",
-          "stacktrace": "sh.measure.android.anr.AnrError\n\tat sh.measure.sample.ExceptionDemoActivity.deadLock$lambda$8(ExceptionDemoActivity.kt:61)\n\tat sh.measure.sample.ExceptionDemoActivity.$r8$lambda$-HFYlW9IUPnuCVs_H9igxX4jbmU\n\tat android.os.Handler.handleCallback(Handler.java:942)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7918)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n"
-        }
-      ],
-      "threads": [
-        {
-          "name": "OkHttp http://10.0.2.2:8080/...",
-          "frames": [
-            "libcore.io.Linux.poll(Linux.java:-2)",
-            "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
-            "libcore.io.BlockGuardOs.poll(BlockGuardOs.java:283)",
-            "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
-            "libcore.io.IoBridge.isConnected(IoBridge.java:326)",
-            "libcore.io.IoBridge.connectErrno(IoBridge.java:237)",
-            "libcore.io.IoBridge.connect(IoBridge.java:179)",
-            "java.net.PlainSocketImpl.socketConnect(PlainSocketImpl.java:142)",
-            "java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:390)",
-            "java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:230)",
-            "java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:212)",
-            "java.net.SocksSocketImpl.connect(SocksSocketImpl.java:436)",
-            "java.net.Socket.connect(Socket.java:646)",
-            "okhttp3.internal.platform.Platform.connectSocket(Platform.kt:128)",
-            "okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)",
-            "okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)",
-            "okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)",
-            "okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)",
-            "okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)",
-            "okhttp3.internal.connection.RealCall.initExchange$okhttp(RealCall.kt:255)",
-            "okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.logging.HttpLoggingInterceptor.intercept(HttpLoggingInterceptor.kt:221)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "sh.measure.android.network.SecretTokenHeaderInterceptor.intercept(SecretTokenHeaderInterceptor.kt:16)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.connection.RealCall.getResponseWithInterceptorChain$okhttp(RealCall.kt:201)",
-            "okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:517)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "FinalizerWatchdogDaemon",
-          "frames": [
-            "java.lang.Object.wait(Object.java:-2)",
-            "java.lang.Object.wait(Object.java:386)",
-            "java.lang.Object.wait(Object.java:524)",
-            "java.lang.Daemons$FinalizerWatchdogDaemon.sleepUntilNeeded(Daemons.java:428)",
-            "java.lang.Daemons$FinalizerWatchdogDaemon.runInternal(Daemons.java:408)",
-            "java.lang.Daemons$Daemon.run(Daemons.java:145)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "measure-thread-#0",
-          "frames": [
-            "android.os.Debug.getMemoryInfo(Debug.java:-2)",
-            "sh.measure.android.utils.DefaultDebugProvider.getMemoryInfo(DebugProvider.kt:21)",
-            "sh.measure.android.performance.MemoryUsageCollector.getTotalPss(MemoryUsageCollector.kt:97)",
-            "sh.measure.android.performance.MemoryUsageCollector.trackMemoryUsage(MemoryUsageCollector.kt:61)",
-            "sh.measure.android.performance.MemoryUsageCollector.register$lambda$0(MemoryUsageCollector.kt:43)",
-            "sh.measure.android.performance.MemoryUsageCollector.$r8$lambda$z0zqLqIyQOp7Dvam5WA1ehxFQo4",
-            "java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:487)",
-            "java.util.concurrent.FutureTask.runAndReset(FutureTask.java:305)",
-            "java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:308)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "ConnectivityThread",
-          "frames": [
-            "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
-            "android.os.MessageQueue.next(MessageQueue.java:335)",
-            "android.os.Looper.loopOnce(Looper.java:161)",
-            "android.os.Looper.loop(Looper.java:288)",
-            "android.os.HandlerThread.run(HandlerThread.java:67)"
-          ]
-        },
-        {
-          "name": "Thread-2",
-          "frames": [
-            "dalvik.system.VMStack.getThreadStackTrace(VMStack.java:-2)",
-            "java.lang.Thread.getStackTrace(Thread.java:1841)",
-            "java.lang.Thread.getAllStackTraces(Thread.java:1909)",
-            "sh.measure.android.exceptions.ExceptionFactory.createMeasureException(ExceptionFactory.kt:41)",
-            "sh.measure.android.anr.AnrCollector.toMeasureException(AnrCollector.kt:39)",
-            "sh.measure.android.anr.AnrCollector.onAppNotResponding(AnrCollector.kt:34)",
-            "sh.measure.android.anr.ANRWatchDog.run(ANRWatchDog.kt:100)"
-          ]
-        },
-        {
-          "name": "OkHttp http://10.0.2.2:8080/...",
-          "frames": [
-            "libcore.io.Linux.poll(Linux.java:-2)",
-            "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
-            "libcore.io.BlockGuardOs.poll(BlockGuardOs.java:283)",
-            "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
-            "libcore.io.IoBridge.isConnected(IoBridge.java:326)",
-            "libcore.io.IoBridge.connectErrno(IoBridge.java:237)",
-            "libcore.io.IoBridge.connect(IoBridge.java:179)",
-            "java.net.PlainSocketImpl.socketConnect(PlainSocketImpl.java:142)",
-            "java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:390)",
-            "java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:230)",
-            "java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:212)",
-            "java.net.SocksSocketImpl.connect(SocksSocketImpl.java:436)",
-            "java.net.Socket.connect(Socket.java:646)",
-            "okhttp3.internal.platform.Platform.connectSocket(Platform.kt:128)",
-            "okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)",
-            "okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)",
-            "okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)",
-            "okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)",
-            "okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)",
-            "okhttp3.internal.connection.RealCall.initExchange$okhttp(RealCall.kt:255)",
-            "okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.logging.HttpLoggingInterceptor.intercept(HttpLoggingInterceptor.kt:221)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "sh.measure.android.network.SecretTokenHeaderInterceptor.intercept(SecretTokenHeaderInterceptor.kt:16)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.connection.RealCall.getResponseWithInterceptorChain$okhttp(RealCall.kt:201)",
-            "okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:517)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "OkHttp http://10.0.2.2:8080/...",
-          "frames": [
-            "libcore.io.Linux.poll(Linux.java:-2)",
-            "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
-            "libcore.io.BlockGuardOs.poll(BlockGuardOs.java:283)",
-            "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
-            "libcore.io.IoBridge.isConnected(IoBridge.java:326)",
-            "libcore.io.IoBridge.connectErrno(IoBridge.java:237)",
-            "libcore.io.IoBridge.connect(IoBridge.java:179)",
-            "java.net.PlainSocketImpl.socketConnect(PlainSocketImpl.java:142)",
-            "java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:390)",
-            "java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:230)",
-            "java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:212)",
-            "java.net.SocksSocketImpl.connect(SocksSocketImpl.java:436)",
-            "java.net.Socket.connect(Socket.java:646)",
-            "okhttp3.internal.platform.Platform.connectSocket(Platform.kt:128)",
-            "okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)",
-            "okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)",
-            "okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)",
-            "okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)",
-            "okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)",
-            "okhttp3.internal.connection.RealCall.initExchange$okhttp(RealCall.kt:255)",
-            "okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.logging.HttpLoggingInterceptor.intercept(HttpLoggingInterceptor.kt:221)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "sh.measure.android.network.SecretTokenHeaderInterceptor.intercept(SecretTokenHeaderInterceptor.kt:16)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.connection.RealCall.getResponseWithInterceptorChain$okhttp(RealCall.kt:201)",
-            "okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:517)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "OkHttp http://10.0.2.2:8080/...",
-          "frames": [
-            "libcore.io.Linux.poll(Linux.java:-2)",
-            "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
-            "libcore.io.BlockGuardOs.poll(BlockGuardOs.java:283)",
-            "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
-            "libcore.io.IoBridge.isConnected(IoBridge.java:326)",
-            "libcore.io.IoBridge.connectErrno(IoBridge.java:237)",
-            "libcore.io.IoBridge.connect(IoBridge.java:179)",
-            "java.net.PlainSocketImpl.socketConnect(PlainSocketImpl.java:142)",
-            "java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:390)",
-            "java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:230)",
-            "java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:212)",
-            "java.net.SocksSocketImpl.connect(SocksSocketImpl.java:436)",
-            "java.net.Socket.connect(Socket.java:646)",
-            "okhttp3.internal.platform.Platform.connectSocket(Platform.kt:128)",
-            "okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)",
-            "okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)",
-            "okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)",
-            "okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)",
-            "okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)",
-            "okhttp3.internal.connection.RealCall.initExchange$okhttp(RealCall.kt:255)",
-            "okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.logging.HttpLoggingInterceptor.intercept(HttpLoggingInterceptor.kt:221)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "sh.measure.android.network.SecretTokenHeaderInterceptor.intercept(SecretTokenHeaderInterceptor.kt:16)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.connection.RealCall.getResponseWithInterceptorChain$okhttp(RealCall.kt:201)",
-            "okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:517)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "FinalizerDaemon",
-          "frames": [
-            "java.lang.Object.wait(Object.java:-2)",
-            "java.lang.Object.wait(Object.java:386)",
-            "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:210)",
-            "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:231)",
-            "java.lang.Daemons$FinalizerDaemon.runInternal(Daemons.java:309)",
-            "java.lang.Daemons$Daemon.run(Daemons.java:145)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        }
-      ],
-      "attributes": {}
+  {
+    "meta": {
+      "next": false,
+      "previous": true
     },
-    {
-      "id": "acf07453-b84c-4e70-b7a9-b8f254c65cd7",
-      "timestamp": "2024-01-01T07:59:27.366Z",
-      "type": "anr",
-      "thread_name": "main",
-      "resource": {
-        "device_name": "sunfish",
-        "device_model": "Pixel 4a",
-        "device_manufacturer": "Google",
-        "device_type": "phone",
-        "device_is_foldable": false,
-        "device_is_physical": true,
-        "device_density_dpi": 440,
-        "device_width_px": 1080,
-        "device_height_px": 2138,
-        "device_density": 2.75,
-        "device_locale": "en-US",
-        "os_name": "android",
-        "os_version": "33",
-        "platform": "android",
-        "app_version": "1.0",
-        "app_build": "1",
-        "app_unique_id": "sh.measure.sample",
-        "measure_sdk_version": "0.0.1-SNAPSHOT",
-        "network_type": "wifi",
-        "network_generation": "",
-        "network_provider": ""
-      },
-      "anrs": [
-        {
-          "type": "sh.measure.android.anr.AnrError",
-          "message": "Application Not Responding for at least 5000 ms.",
-          "location": "sh.measure.sample.ExceptionDemoActivity.infiniteLoop(ExceptionDemoActivity.kt:49)",
-          "stacktrace": "sh.measure.android.anr.AnrError\n\tat sh.measure.sample.ExceptionDemoActivity.infiniteLoop(ExceptionDemoActivity.kt:49)\n\tat sh.measure.sample.ExceptionDemoActivity.onCreate$lambda$4(ExceptionDemoActivity.kt:38)\n\tat sh.measure.sample.ExceptionDemoActivity.$r8$lambda$3rHWr05q6AS4xKQVFee84ItKeF8\n\tat android.view.View.performClick(View.java:7542)\n\tat com.google.android.material.button.MaterialButton.performClick(MaterialButton.java:1211)\n\tat android.view.View.performClickInternal(View.java:7519)\n\tat android.view.View.-$$Nest$mperformClickInternal\n\tat android.view.View$PerformClick.run(View.java:29476)\n\tat android.os.Handler.handleCallback(Handler.java:942)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7918)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n"
-        }
-      ],
-      "threads": [
-        {
-          "name": "Thread-2",
-          "frames": [
-            "dalvik.system.VMStack.getThreadStackTrace(VMStack.java:-2)",
-            "java.lang.Thread.getStackTrace(Thread.java:1841)",
-            "java.lang.Thread.getAllStackTraces(Thread.java:1909)",
-            "sh.measure.android.exceptions.ExceptionFactory.createMeasureException(ExceptionFactory.kt:41)",
-            "sh.measure.android.anr.AnrCollector.toMeasureException(AnrCollector.kt:39)",
-            "sh.measure.android.anr.AnrCollector.onAppNotResponding(AnrCollector.kt:34)",
-            "sh.measure.android.anr.ANRWatchDog.run(ANRWatchDog.kt:100)"
-          ]
+    "results": [
+      {
+        "id": "321f3281-e690-460d-a018-5c1211bcea8f",
+        "timestamp": "2024-01-01T07:59:27.366Z",
+        "type": "anr",
+        "thread_name": "main",
+        "resource": {
+          "device_name": "sunfish",
+          "device_model": "Pixel 4a",
+          "device_manufacturer": "Google",
+          "device_type": "phone",
+          "device_is_foldable": false,
+          "device_is_physical": true,
+          "device_density_dpi": 440,
+          "device_width_px": 1080,
+          "device_height_px": 2138,
+          "device_density": 2.75,
+          "device_locale": "en-US",
+          "os_name": "android",
+          "os_version": "33",
+          "platform": "android",
+          "app_version": "1.0",
+          "app_build": "1",
+          "app_unique_id": "sh.measure.sample",
+          "measure_sdk_version": "0.0.1-SNAPSHOT",
+          "network_type": "wifi",
+          "network_generation": "",
+          "network_provider": ""
         },
-        {
-          "name": "FinalizerDaemon",
-          "frames": [
-            "java.lang.Object.wait(Object.java:-2)",
-            "java.lang.Object.wait(Object.java:386)",
-            "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:210)",
-            "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:231)",
-            "java.lang.Daemons$FinalizerDaemon.runInternal(Daemons.java:309)",
-            "java.lang.Daemons$Daemon.run(Daemons.java:145)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "Okio Watchdog",
-          "frames": [
-            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-            "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1757)",
-            "okio.AsyncTimeout$Companion.awaitTimeout$okio(AsyncTimeout.kt:320)",
-            "okio.AsyncTimeout$Watchdog.run(AsyncTimeout.kt:186)"
-          ]
-        },
-        {
-          "name": "LeakCanary-Heap-Dump",
-          "frames": [
-            "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
-            "android.os.MessageQueue.next(MessageQueue.java:335)",
-            "android.os.Looper.loopOnce(Looper.java:161)",
-            "android.os.Looper.loop(Looper.java:288)",
-            "android.os.HandlerThread.run(HandlerThread.java:67)"
-          ]
-        },
-        {
-          "name": "OkHttp http://10.0.2.2:8080/...",
-          "frames": [
-            "libcore.io.Linux.poll(Linux.java:-2)",
-            "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
-            "libcore.io.BlockGuardOs.poll(BlockGuardOs.java:283)",
-            "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
-            "libcore.io.IoBridge.isConnected(IoBridge.java:326)",
-            "libcore.io.IoBridge.connectErrno(IoBridge.java:237)",
-            "libcore.io.IoBridge.connect(IoBridge.java:179)",
-            "java.net.PlainSocketImpl.socketConnect(PlainSocketImpl.java:142)",
-            "java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:390)",
-            "java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:230)",
-            "java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:212)",
-            "java.net.SocksSocketImpl.connect(SocksSocketImpl.java:436)",
-            "java.net.Socket.connect(Socket.java:646)",
-            "okhttp3.internal.platform.Platform.connectSocket(Platform.kt:128)",
-            "okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)",
-            "okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)",
-            "okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)",
-            "okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)",
-            "okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)",
-            "okhttp3.internal.connection.RealCall.initExchange$okhttp(RealCall.kt:255)",
-            "okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.logging.HttpLoggingInterceptor.intercept(HttpLoggingInterceptor.kt:221)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "sh.measure.android.network.SecretTokenHeaderInterceptor.intercept(SecretTokenHeaderInterceptor.kt:16)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.connection.RealCall.getResponseWithInterceptorChain$okhttp(RealCall.kt:201)",
-            "okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:517)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "OkHttp http://10.0.2.2:8080/...",
-          "frames": [
-            "libcore.io.Linux.poll(Linux.java:-2)",
-            "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
-            "libcore.io.BlockGuardOs.poll(BlockGuardOs.java:283)",
-            "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
-            "libcore.io.IoBridge.isConnected(IoBridge.java:326)",
-            "libcore.io.IoBridge.connectErrno(IoBridge.java:237)",
-            "libcore.io.IoBridge.connect(IoBridge.java:179)",
-            "java.net.PlainSocketImpl.socketConnect(PlainSocketImpl.java:142)",
-            "java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:390)",
-            "java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:230)",
-            "java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:212)",
-            "java.net.SocksSocketImpl.connect(SocksSocketImpl.java:436)",
-            "java.net.Socket.connect(Socket.java:646)",
-            "okhttp3.internal.platform.Platform.connectSocket(Platform.kt:128)",
-            "okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)",
-            "okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)",
-            "okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)",
-            "okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)",
-            "okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)",
-            "okhttp3.internal.connection.RealCall.initExchange$okhttp(RealCall.kt:255)",
-            "okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.logging.HttpLoggingInterceptor.intercept(HttpLoggingInterceptor.kt:221)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "sh.measure.android.network.SecretTokenHeaderInterceptor.intercept(SecretTokenHeaderInterceptor.kt:16)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.connection.RealCall.getResponseWithInterceptorChain$okhttp(RealCall.kt:201)",
-            "okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:517)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "ConnectivityThread",
-          "frames": [
-            "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
-            "android.os.MessageQueue.next(MessageQueue.java:335)",
-            "android.os.Looper.loopOnce(Looper.java:161)",
-            "android.os.Looper.loop(Looper.java:288)",
-            "android.os.HandlerThread.run(HandlerThread.java:67)"
-          ]
-        },
-        {
-          "name": "OkHttp http://10.0.2.2:8080/...",
-          "frames": [
-            "libcore.io.Linux.poll(Linux.java:-2)",
-            "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
-            "libcore.io.BlockGuardOs.poll(BlockGuardOs.java:283)",
-            "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
-            "libcore.io.IoBridge.isConnected(IoBridge.java:326)",
-            "libcore.io.IoBridge.connectErrno(IoBridge.java:237)",
-            "libcore.io.IoBridge.connect(IoBridge.java:179)",
-            "java.net.PlainSocketImpl.socketConnect(PlainSocketImpl.java:142)",
-            "java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:390)",
-            "java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:230)",
-            "java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:212)",
-            "java.net.SocksSocketImpl.connect(SocksSocketImpl.java:436)",
-            "java.net.Socket.connect(Socket.java:646)",
-            "okhttp3.internal.platform.Platform.connectSocket(Platform.kt:128)",
-            "okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)",
-            "okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)",
-            "okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)",
-            "okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)",
-            "okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)",
-            "okhttp3.internal.connection.RealCall.initExchange$okhttp(RealCall.kt:255)",
-            "okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.logging.HttpLoggingInterceptor.intercept(HttpLoggingInterceptor.kt:221)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "sh.measure.android.network.SecretTokenHeaderInterceptor.intercept(SecretTokenHeaderInterceptor.kt:16)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.connection.RealCall.getResponseWithInterceptorChain$okhttp(RealCall.kt:201)",
-            "okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:517)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "OkHttp http://10.0.2.2:8080/...",
-          "frames": [
-            "libcore.io.Linux.poll(Linux.java:-2)",
-            "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
-            "libcore.io.BlockGuardOs.poll(BlockGuardOs.java:283)",
-            "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
-            "libcore.io.IoBridge.isConnected(IoBridge.java:326)",
-            "libcore.io.IoBridge.connectErrno(IoBridge.java:237)",
-            "libcore.io.IoBridge.connect(IoBridge.java:179)",
-            "java.net.PlainSocketImpl.socketConnect(PlainSocketImpl.java:142)",
-            "java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:390)",
-            "java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:230)",
-            "java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:212)",
-            "java.net.SocksSocketImpl.connect(SocksSocketImpl.java:436)",
-            "java.net.Socket.connect(Socket.java:646)",
-            "okhttp3.internal.platform.Platform.connectSocket(Platform.kt:128)",
-            "okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)",
-            "okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)",
-            "okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)",
-            "okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)",
-            "okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)",
-            "okhttp3.internal.connection.RealCall.initExchange$okhttp(RealCall.kt:255)",
-            "okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.logging.HttpLoggingInterceptor.intercept(HttpLoggingInterceptor.kt:221)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "sh.measure.android.network.SecretTokenHeaderInterceptor.intercept(SecretTokenHeaderInterceptor.kt:16)",
-            "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
-            "okhttp3.internal.connection.RealCall.getResponseWithInterceptorChain$okhttp(RealCall.kt:201)",
-            "okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:517)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        }
-      ],
-      "attributes": {}
-    }
-  ]
+        "anrs": [
+          {
+            "type": "sh.measure.android.anr.AnrError",
+            "message": "Application Not Responding for at least 5000 ms.",
+            "location": "sh.measure.sample.ExceptionDemoActivity.infiniteLoop(ExceptionDemoActivity.kt:49)",
+            "stacktrace": "sh.measure.android.anr.AnrError\n\tat sh.measure.sample.ExceptionDemoActivity.infiniteLoop(ExceptionDemoActivity.kt:49)\n\tat sh.measure.sample.ExceptionDemoActivity.onCreate$lambda$4(ExceptionDemoActivity.kt:38)\n\tat sh.measure.sample.ExceptionDemoActivity.$r8$lambda$3rHWr05q6AS4xKQVFee84ItKeF8\n\tat android.view.View.performClick(View.java:7542)\n\tat com.google.android.material.button.MaterialButton.performClick(MaterialButton.java:1211)\n\tat android.view.View.performClickInternal(View.java:7519)\n\tat android.view.View.-$$Nest$mperformClickInternal\n\tat android.view.View$PerformClick.run(View.java:29476)\n\tat android.os.Handler.handleCallback(Handler.java:942)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7918)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n"
+          }
+        ],
+        "threads": [
+          {
+            "name": "Thread-2",
+            "frames": [
+              "dalvik.system.VMStack.getThreadStackTrace(VMStack.java:-2)",
+              "java.lang.Thread.getStackTrace(Thread.java:1841)",
+              "java.lang.Thread.getAllStackTraces(Thread.java:1909)",
+              "sh.measure.android.exceptions.ExceptionFactory.createMeasureException(ExceptionFactory.kt:41)",
+              "sh.measure.android.anr.AnrCollector.toMeasureException(AnrCollector.kt:39)",
+              "sh.measure.android.anr.AnrCollector.onAppNotResponding(AnrCollector.kt:34)",
+              "sh.measure.android.anr.ANRWatchDog.run(ANRWatchDog.kt:100)"
+            ]
+          },
+          {
+            "name": "FinalizerDaemon",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "java.lang.Object.wait(Object.java:386)",
+              "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:210)",
+              "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:231)",
+              "java.lang.Daemons$FinalizerDaemon.runInternal(Daemons.java:309)",
+              "java.lang.Daemons$Daemon.run(Daemons.java:145)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "Okio Watchdog",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:252)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:1757)",
+              "okio.AsyncTimeout$Companion.awaitTimeout$okio(AsyncTimeout.kt:320)",
+              "okio.AsyncTimeout$Watchdog.run(AsyncTimeout.kt:186)"
+            ]
+          },
+          {
+            "name": "LeakCanary-Heap-Dump",
+            "frames": [
+              "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
+              "android.os.MessageQueue.next(MessageQueue.java:335)",
+              "android.os.Looper.loopOnce(Looper.java:161)",
+              "android.os.Looper.loop(Looper.java:288)",
+              "android.os.HandlerThread.run(HandlerThread.java:67)"
+            ]
+          },
+          {
+            "name": "OkHttp http://10.0.2.2:8080/...",
+            "frames": [
+              "libcore.io.Linux.poll(Linux.java:-2)",
+              "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
+              "libcore.io.BlockGuardOs.poll(BlockGuardOs.java:283)",
+              "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
+              "libcore.io.IoBridge.isConnected(IoBridge.java:326)",
+              "libcore.io.IoBridge.connectErrno(IoBridge.java:237)",
+              "libcore.io.IoBridge.connect(IoBridge.java:179)",
+              "java.net.PlainSocketImpl.socketConnect(PlainSocketImpl.java:142)",
+              "java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:390)",
+              "java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:230)",
+              "java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:212)",
+              "java.net.SocksSocketImpl.connect(SocksSocketImpl.java:436)",
+              "java.net.Socket.connect(Socket.java:646)",
+              "okhttp3.internal.platform.Platform.connectSocket(Platform.kt:128)",
+              "okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)",
+              "okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)",
+              "okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)",
+              "okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)",
+              "okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)",
+              "okhttp3.internal.connection.RealCall.initExchange$okhttp(RealCall.kt:255)",
+              "okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "okhttp3.logging.HttpLoggingInterceptor.intercept(HttpLoggingInterceptor.kt:221)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "sh.measure.android.network.SecretTokenHeaderInterceptor.intercept(SecretTokenHeaderInterceptor.kt:16)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "okhttp3.internal.connection.RealCall.getResponseWithInterceptorChain$okhttp(RealCall.kt:201)",
+              "okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:517)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "OkHttp http://10.0.2.2:8080/...",
+            "frames": [
+              "libcore.io.Linux.poll(Linux.java:-2)",
+              "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
+              "libcore.io.BlockGuardOs.poll(BlockGuardOs.java:283)",
+              "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
+              "libcore.io.IoBridge.isConnected(IoBridge.java:326)",
+              "libcore.io.IoBridge.connectErrno(IoBridge.java:237)",
+              "libcore.io.IoBridge.connect(IoBridge.java:179)",
+              "java.net.PlainSocketImpl.socketConnect(PlainSocketImpl.java:142)",
+              "java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:390)",
+              "java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:230)",
+              "java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:212)",
+              "java.net.SocksSocketImpl.connect(SocksSocketImpl.java:436)",
+              "java.net.Socket.connect(Socket.java:646)",
+              "okhttp3.internal.platform.Platform.connectSocket(Platform.kt:128)",
+              "okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)",
+              "okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)",
+              "okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)",
+              "okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)",
+              "okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)",
+              "okhttp3.internal.connection.RealCall.initExchange$okhttp(RealCall.kt:255)",
+              "okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "okhttp3.logging.HttpLoggingInterceptor.intercept(HttpLoggingInterceptor.kt:221)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "sh.measure.android.network.SecretTokenHeaderInterceptor.intercept(SecretTokenHeaderInterceptor.kt:16)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "okhttp3.internal.connection.RealCall.getResponseWithInterceptorChain$okhttp(RealCall.kt:201)",
+              "okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:517)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "ConnectivityThread",
+            "frames": [
+              "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
+              "android.os.MessageQueue.next(MessageQueue.java:335)",
+              "android.os.Looper.loopOnce(Looper.java:161)",
+              "android.os.Looper.loop(Looper.java:288)",
+              "android.os.HandlerThread.run(HandlerThread.java:67)"
+            ]
+          },
+          {
+            "name": "OkHttp http://10.0.2.2:8080/...",
+            "frames": [
+              "libcore.io.Linux.poll(Linux.java:-2)",
+              "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
+              "libcore.io.BlockGuardOs.poll(BlockGuardOs.java:283)",
+              "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
+              "libcore.io.IoBridge.isConnected(IoBridge.java:326)",
+              "libcore.io.IoBridge.connectErrno(IoBridge.java:237)",
+              "libcore.io.IoBridge.connect(IoBridge.java:179)",
+              "java.net.PlainSocketImpl.socketConnect(PlainSocketImpl.java:142)",
+              "java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:390)",
+              "java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:230)",
+              "java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:212)",
+              "java.net.SocksSocketImpl.connect(SocksSocketImpl.java:436)",
+              "java.net.Socket.connect(Socket.java:646)",
+              "okhttp3.internal.platform.Platform.connectSocket(Platform.kt:128)",
+              "okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)",
+              "okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)",
+              "okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)",
+              "okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)",
+              "okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)",
+              "okhttp3.internal.connection.RealCall.initExchange$okhttp(RealCall.kt:255)",
+              "okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "okhttp3.logging.HttpLoggingInterceptor.intercept(HttpLoggingInterceptor.kt:221)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "sh.measure.android.network.SecretTokenHeaderInterceptor.intercept(SecretTokenHeaderInterceptor.kt:16)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "okhttp3.internal.connection.RealCall.getResponseWithInterceptorChain$okhttp(RealCall.kt:201)",
+              "okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:517)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "OkHttp http://10.0.2.2:8080/...",
+            "frames": [
+              "libcore.io.Linux.poll(Linux.java:-2)",
+              "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
+              "libcore.io.BlockGuardOs.poll(BlockGuardOs.java:283)",
+              "libcore.io.ForwardingOs.poll(ForwardingOs.java:573)",
+              "libcore.io.IoBridge.isConnected(IoBridge.java:326)",
+              "libcore.io.IoBridge.connectErrno(IoBridge.java:237)",
+              "libcore.io.IoBridge.connect(IoBridge.java:179)",
+              "java.net.PlainSocketImpl.socketConnect(PlainSocketImpl.java:142)",
+              "java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:390)",
+              "java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:230)",
+              "java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:212)",
+              "java.net.SocksSocketImpl.connect(SocksSocketImpl.java:436)",
+              "java.net.Socket.connect(Socket.java:646)",
+              "okhttp3.internal.platform.Platform.connectSocket(Platform.kt:128)",
+              "okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)",
+              "okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)",
+              "okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)",
+              "okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)",
+              "okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)",
+              "okhttp3.internal.connection.RealCall.initExchange$okhttp(RealCall.kt:255)",
+              "okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "okhttp3.logging.HttpLoggingInterceptor.intercept(HttpLoggingInterceptor.kt:221)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "sh.measure.android.network.SecretTokenHeaderInterceptor.intercept(SecretTokenHeaderInterceptor.kt:16)",
+              "okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)",
+              "okhttp3.internal.connection.RealCall.getResponseWithInterceptorChain$okhttp(RealCall.kt:201)",
+              "okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:517)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          }
+        ],
+        "attributes": {}
+      }
+    ]
+  }
   ```
 
   </details>
