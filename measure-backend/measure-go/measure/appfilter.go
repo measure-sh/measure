@@ -32,17 +32,18 @@ type AppFilter struct {
 	// these fields should be exportable
 	// otherwise gin doesn't bind them
 	// and fails silently
-	AppID        uuid.UUID
-	From         time.Time `form:"from" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
-	To           time.Time `form:"to" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
-	Versions     []string  `form:"versions"`
-	DeviceNames  []string  `form:"device_names"`
-	Exception    bool      `form:"exception"`
-	Crash        bool      `form:"crash"`
-	ANR          bool      `form:"anr"`
-	KeyID        string    `form:"key_id"`
-	KeyTimestamp time.Time `form:"key_timestamp"`
-	Limit        int       `form:"limit"`
+	AppID               uuid.UUID
+	From                time.Time `form:"from" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
+	To                  time.Time `form:"to" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
+	Versions            []string  `form:"versions"`
+	DeviceNames         []string  `form:"device_names"`
+	DeviceManufacturers []string  `form:"device_manufacturers"`
+	Exception           bool      `form:"exception"`
+	Crash               bool      `form:"crash"`
+	ANR                 bool      `form:"anr"`
+	KeyID               string    `form:"key_id"`
+	KeyTimestamp        time.Time `form:"key_timestamp"`
+	Limit               int       `form:"limit"`
 }
 
 // FilterList holds various filter parameter values that are
@@ -107,6 +108,11 @@ func (af *AppFilter) expand() {
 	if len(af.DeviceNames) > 0 {
 		deviceNames := af.DeviceNames[0]
 		af.DeviceNames = strings.Split(deviceNames, ",")
+	}
+
+	if len(af.DeviceManufacturers) > 0 {
+		deviceManufacturers := af.DeviceManufacturers[0]
+		af.DeviceManufacturers = strings.Split(deviceManufacturers, ",")
 	}
 }
 
