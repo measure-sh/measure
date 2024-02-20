@@ -36,6 +36,7 @@ type AppFilter struct {
 	From                time.Time `form:"from" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
 	To                  time.Time `form:"to" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
 	Versions            []string  `form:"versions"`
+	Countries           []string  `form:"countries"`
 	DeviceNames         []string  `form:"device_names"`
 	DeviceManufacturers []string  `form:"device_manufacturers"`
 	Locales             []string  `form:"locales"`
@@ -107,6 +108,11 @@ func (af *AppFilter) expand() {
 	if len(af.Versions) > 0 {
 		versions := af.Versions[0]
 		af.Versions = strings.Split(versions, ",")
+	}
+
+	if len(af.Countries) > 0 {
+		countries := af.Countries[0]
+		af.Countries = strings.Split(countries, ",")
 	}
 
 	if len(af.DeviceNames) > 0 {
