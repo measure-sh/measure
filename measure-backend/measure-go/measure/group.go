@@ -188,16 +188,28 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []Even
 			OrderBy("`timestamp` desc", "`id` desc").
 			Limit(nil)
 		defer countStmt.Close()
+
 		timestamp := af.KeyTimestamp.Format(timeformat)
-		args = append(args, eventIds, timestamp, timestamp, af.KeyID, 1)
+		args = append(args, eventIds, timestamp, timestamp, af.KeyID)
+
 		if len(af.Versions) > 0 {
 			countStmt.Where("`resource.app_version` in (?)", nil)
 			args = append(args, af.Versions)
 		}
+
+		if af.hasTimeRange() {
+			countStmt.Where("`timestamp` >= ? and `timestamp` <= ?", nil, nil)
+			args = append(args, af.From, af.To)
+		}
+
+		// add limit
+		args = append(args, 1)
+
 		rows, err := server.Server.ChPool.Query(context.Background(), countStmt.String(), args...)
 		if err != nil {
 			return nil, next, previous, err
 		}
+
 		for rows.Next() {
 			var id uuid.UUID
 			rows.Scan(&id)
@@ -224,12 +236,19 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []Even
 		args = append(args, af.Versions)
 	}
 
+	if af.hasTimeRange() {
+		stmt.Where("`timestamp` >= ? and `timestamp` <= ?", nil, nil)
+		args = append(args, af.From, af.To)
+	}
+
 	if af.hasKeyset() {
 		stmt.Where("`timestamp` "+op+" ? or (`timestamp` = ? and `id` "+op+" ?)", nil, nil, nil)
 		timestamp := af.KeyTimestamp.Format(timeformat)
 		args = append(args, timestamp, timestamp, af.KeyID)
 	}
+
 	args = append(args, limit)
+
 	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), args...)
 	if err != nil {
 		return
