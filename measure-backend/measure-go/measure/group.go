@@ -202,6 +202,11 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []Even
 			args = append(args, af.DeviceNames)
 		}
 
+		if len(af.DeviceManufacturers) > 0 {
+			countStmt.Where("`resource.device_manufacturer` in (?)", nil)
+			args = append(args, af.DeviceManufacturers)
+		}
+
 		if af.hasTimeRange() {
 			countStmt.Where("`timestamp` >= ? and `timestamp` <= ?", nil, nil)
 			args = append(args, af.From, af.To)
@@ -244,6 +249,11 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []Even
 	if len(af.DeviceNames) > 0 {
 		stmt.Where("`resource.device_name` in (?)", nil)
 		args = append(args, af.DeviceNames)
+	}
+
+	if len(af.DeviceManufacturers) > 0 {
+		stmt.Where("`resource.device_manufacturer` in (?)", nil)
+		args = append(args, af.DeviceManufacturers)
 	}
 
 	if af.hasTimeRange() {
