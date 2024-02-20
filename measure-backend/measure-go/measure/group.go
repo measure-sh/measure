@@ -197,6 +197,11 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []Even
 			args = append(args, af.Versions)
 		}
 
+		if len(af.Countries) > 0 {
+			countStmt.Where("`inet.country_code` in (?)", nil)
+			args = append(args, af.Countries)
+		}
+
 		if len(af.DeviceNames) > 0 {
 			countStmt.Where("`resource.device_name` in (?)", nil)
 			args = append(args, af.DeviceNames)
@@ -264,6 +269,11 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []Even
 	if len(af.Versions) > 0 {
 		stmt.Where("`resource.app_version` in (?)", nil)
 		args = append(args, af.Versions)
+	}
+
+	if len(af.Countries) > 0 {
+		stmt.Where("`inet.country_code` in (?)", nil)
+		args = append(args, af.Countries)
 	}
 
 	if len(af.DeviceNames) > 0 {
