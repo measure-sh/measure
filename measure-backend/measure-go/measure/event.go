@@ -492,6 +492,7 @@ func (e *EventField) Trim() {
 
 type EventException struct {
 	ID         uuid.UUID         `json:"id"`
+	SessionID  uuid.UUID         `json:"session_id"`
 	Timestamp  chrono.ISOTime    `json:"timestamp"`
 	Type       string            `json:"type"`
 	ThreadName string            `json:"thread_name"`
