@@ -800,6 +800,7 @@ These headers must be present in each request.
     "results": [
       {
         "id": "ed32705d-074a-4deb-87f7-96449bb63e06",
+        "session_id": "2116818b-2a36-4e85-8cab-595fa535a340",
         "timestamp": "2024-01-01T09:11:23.884Z",
         "type": "exception",
         "thread_name": "main",
@@ -977,6 +978,7 @@ These headers must be present in each request.
       },
       {
         "id": "ab186b0d-cbe6-420b-9ca9-4f1f932203e4",
+        "session_id": "0871224a-ba2d-481d-bd7b-1264ad285eb8",
         "timestamp": "2024-01-01T09:11:18.947Z",
         "type": "exception",
         "thread_name": "main",
