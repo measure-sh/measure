@@ -763,10 +763,18 @@ Fetch list of crashes of a crash group for an app.
 - Accepted query parameters
   - `from` (_optional_) - ISO8601 timestamp to include crashes after this time.
   - `to` (_optional_) - ISO8601 timestamp to include crashes before this time.
-  - `versions` (_optional_) - List of comma separated version identifier strings to return only those crash groups that have events matching the version.
+  - `versions` (_optional_) - List of comma separated version identifier strings to return only matching crashes.
+  - `countries` (_optional_) - List of comma separated country identifier strings to return only matching crashes.
+  - `device_names` (_optional_) - List of comma separated device name identifier strings to return only matching crashes.
+  - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings to return only matching crashes.
+  - `locales` (_optional_) - List of comma separated device locale identifier strings to return only matching crashes.
+  - `network_providers` (_optional_) - List of comma separated network provider identifier strings to return only matching crashes.
+  - `network_types` (_optional_) - List of comma separated network type identifier strings to return only matching crashes.
+  - `network_generations` (_optional_) - List of comma separated network generation identifier strings to return only matching crashes.
   - `key_id` (_optional_) - UUID of the last item. Used for keyset based pagination. Should be used along with `key_timestamp` &amp; `limit`.
   - `key_timestamp` (_optional_) - ISO8601 timestamp of the last item. Used for keyset based pagination. Should be used along with `key_id` &amp; `limit`.
   - `limit` (_optional_) - Number of items to return. Used for keyset based pagination. Should be used along with `key_id` &amp; `key_timestamp`.
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
 
 #### Authorization &amp; Content Type
 
