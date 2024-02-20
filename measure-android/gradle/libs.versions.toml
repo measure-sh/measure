@@ -30,9 +30,8 @@ google-material = "1.11.0"
 mockito-kotlin = "5.1.0"
 nhaarman-mockito-kotlin = "2.2.0"
 semver = "1.1.2"
-squareup-okhttp-mockwebserver = "4.12.0"
 squareup-curtains = "1.2.4"
-squareup-okhttp = "4.9.1"
+squareup-okhttp = "4.12.0"
 squareup-okio = "3.3.0"
 squareup-leakcanary = "2.12"
 robolectric = "4.11.1"
@@ -83,7 +82,7 @@ measure-android = { module = "sh.measure:measure-android", version.ref = "measur
 mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockito-kotlin" }
 mockitokotlin2-mockito-kotlin = { module = "com.nhaarman.mockitokotlin2:mockito-kotlin", version.ref = "nhaarman-mockito-kotlin" }
 semver = { module = "net.swiftzer.semver:semver", version.ref = "semver" }
-squareup-okhttp-mockwebserver = { module = "com.squareup.okhttp3:mockwebserver", version.ref = "squareup-okhttp-mockwebserver" }
+squareup-okhttp-mockwebserver = { module = "com.squareup.okhttp3:mockwebserver", version.ref = "squareup-okhttp" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization-json" }
 squareup-okhttp-logging = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "squareup-okhttp" }
