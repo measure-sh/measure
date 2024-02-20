@@ -1244,6 +1244,7 @@ These headers must be present in each request.
     "results": [
       {
         "id": "321f3281-e690-460d-a018-5c1211bcea8f",
+        "session_id": "04cc1c6d-853b-4926-8d04-4501965a8d5e",
         "timestamp": "2024-01-01T07:59:27.366Z",
         "type": "anr",
         "thread_name": "main",
