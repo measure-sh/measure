@@ -535,7 +535,7 @@ func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []EventANR, 
 	}
 
 	if len(af.Locales) > 0 {
-		stmt.Where("`exception.device_locale` in (?)", nil)
+		stmt.Where("`anr.device_locale` in (?)", nil)
 		args = append(args, af.Locales)
 	}
 
