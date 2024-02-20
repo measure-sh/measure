@@ -40,6 +40,7 @@ type AppFilter struct {
 	DeviceManufacturers []string  `form:"device_manufacturers"`
 	Locales             []string  `form:"locales"`
 	NetworkProviders    []string  `form:"network_providers"`
+	NetworkTypes        []string  `form:"network_types"`
 	Exception           bool      `form:"exception"`
 	Crash               bool      `form:"crash"`
 	ANR                 bool      `form:"anr"`
@@ -125,6 +126,11 @@ func (af *AppFilter) expand() {
 	if len(af.NetworkProviders) > 0 {
 		networkProviders := af.NetworkProviders[0]
 		af.NetworkProviders = strings.Split(networkProviders, ",")
+	}
+
+	if len(af.NetworkTypes) > 0 {
+		networkTypes := af.NetworkTypes[0]
+		af.NetworkTypes = strings.Split(networkTypes, ",")
 	}
 }
 
