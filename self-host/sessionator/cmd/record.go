@@ -25,6 +25,7 @@ var port string
 
 func init() {
 	recordCmd.Flags().StringVarP(&outputDir, "path", "p", "../session-data", "Path to store sessions")
+	recordCmd.Flags().StringVarP(&port, "port", "P", ":8080", "Port to run the server")
 	rootCmd.AddCommand(recordCmd)
 }
 
