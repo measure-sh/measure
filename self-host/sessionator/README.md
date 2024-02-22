@@ -28,3 +28,22 @@ To see usage of a subcommand.
 ```sh
 go run . ingest --help
 ```
+
+### Recording sessions or mappings
+
+To record sessions or mappings to a local directory, navigate to `./self-host/sessionator` and run
+
+```sh
+go run . record
+```
+
+* to record sessions from an Android emulator, set following in `~/.gradle.properties`:
+
+```sh
+measure_url=http://10.0.2.2:8080
+```
+
+* to record sessions from an Android device, use a service like [tunnelmole](https://tunnelmole.com/) to forward requests from the device to localhost.
+
+
+* to record mappings, run a assemble task, the mapping will be added to the local directory, `self-host/session-data`.
