@@ -164,7 +164,7 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
     // Set key id if user has paginated
     var keyId = null
     var keyTimestamp = null
-    if (crashOrAnrGroupDetails.results !== null && crashOrAnrGroupDetails?.results.length > 0) {
+    if (paginationDirection != PaginationDirection.None && crashOrAnrGroupDetails.results !== null && crashOrAnrGroupDetails?.results.length > 0) {
       keyId = crashOrAnrGroupDetails.results[0].id
       keyTimestamp = crashOrAnrGroupDetails.results[0].timestamp
     }
