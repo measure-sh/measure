@@ -193,7 +193,7 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
       {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && crashOrAnrGroupsApiStatus === CrashOrAnrGroupsApiStatus.Success && crashOrAnrGroups.results === null && <p className="text-lg font-display">It seems there are no {crashOrAnrType === CrashOrAnrType.Crash ? 'crashes' : 'ANRs'} for the current combination of filters. Please change filters to try again</p>}
 
       {/* Main crash groups list UI */}
-      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && crashOrAnrGroupsApiStatus === CrashOrAnrGroupsApiStatus.Success && crashOrAnrGroups.results !== null &&
+      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && (crashOrAnrGroupsApiStatus === CrashOrAnrGroupsApiStatus.Success || crashOrAnrGroupsApiStatus === CrashOrAnrGroupsApiStatus.Loading) && crashOrAnrGroups.results !== null &&
         <div className="flex flex-col items-center">
           <div className="py-4" />
           <div className="border border-black font-sans text-sm w-full h-[36rem]">
