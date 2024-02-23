@@ -6,6 +6,7 @@ import (
 	"measure-backend/measure-go/inet"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
@@ -43,9 +44,18 @@ type ServerConfig struct {
 	AttachmentsAccessKey       string
 	AttachmentsSecretAccessKey string
 	AuthJWTSecret              string
+	AWSEndpoint                string
+	DebugMode                  bool
 }
 
 func NewConfig() *ServerConfig {
+	mode := strings.ToLower(os.Getenv("GIN_MODE"))
+	debugMode := false
+
+	if mode == "" || mode == "debug" {
+		debugMode = true
+	}
+
 	mappingFileMaxSize, err := strconv.ParseUint(os.Getenv("MAPPING_FILE_MAX_SIZE"), 10, 64)
 	if err != nil {
 		log.Println("using default value of MAPPING_FILE_MAX_SIZE")
@@ -97,6 +107,12 @@ func NewConfig() *ServerConfig {
 		log.Println("SUPABASE_AUTH_JWT_SECRET env var not set, dashboard authn won't work")
 	}
 
+	endpoint := ""
+
+	if debugMode {
+		endpoint = os.Getenv("AWS_ENDPOINT_URL")
+	}
+
 	return &ServerConfig{
 		PG: PostgresConfig{
 			DSN: "postgresql://postgres:postgres@localhost:5432/default",
@@ -114,6 +130,8 @@ func NewConfig() *ServerConfig {
 		AttachmentsAccessKey:       attachmentsAccessKey,
 		AttachmentsSecretAccessKey: attachmentsSecretAccessKey,
 		AuthJWTSecret:              authJWTSecret,
+		AWSEndpoint:                endpoint,
+		DebugMode:                  debugMode,
 	}
 }
 
