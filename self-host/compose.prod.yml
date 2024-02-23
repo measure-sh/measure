@@ -2,10 +2,6 @@ services:
   api:
     environment:
       - GIN_MODE=release
-  
-  symbolicator:
-    environment:
-      - GIN_MODE=release
 
   clickhouse:
     ports: !reset
