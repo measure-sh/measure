@@ -52,20 +52,6 @@ services:
       - minio
     command: alias set msr-minio http://minio:9000 minio minio123 && mb /data/msr-symbols-sandbox /data/msr-attachments-sandbox msr-minio
 
-  # symbolicator:
-  #   build:
-  #     context: ../measure-backend/symbolicator
-  #   ports:
-  #     - "8181:8181"
-  #   env_file:
-  #     - ../measure-backend/symbolicator/.env
-  #   volumes:
-  #     - symbolicator-volume:/data
-  #   develop:
-  #     watch:
-  #       - path: ../measure-backend/symbolicator
-  #         action: rebuild
-
   clickhouse:
     container_name: clickhouse
     image: clickhouse/clickhouse-server:23
