@@ -14,7 +14,7 @@ services:
           action: rebuild
     depends_on:
       - clickhouse
-      # - symbolicator
+      - minio
       - symbolicator-retrace
 
   symbolicator-retrace:
@@ -31,6 +31,26 @@ services:
       watch:
         - path: ../measure-backend/symbolicator-retrace
           action: rebuild
+
+  minio:
+    container_name: minio
+    image: quay.io/minio/minio
+    ports:
+      - "9111:9000"
+      - "9222:9001"
+    environment:
+      - MINIO_ROOT_USER=minio
+      - MINIO_ROOT_PASSWORD=minio123
+    command: server /data --console-address ":9001"
+    restart: always
+    volumes:
+      - minio-data:/data
+  mc:
+    container_name: mcmb
+    image: minio/mc
+    depends_on:
+      - minio
+    command: alias set msr-minio http://minio:9000 minio minio123 && mb /data/msr-symbols-sandbox /data/msr-attachments-sandbox msr-minio
 
   # symbolicator:
   #   build:
@@ -61,3 +81,4 @@ services:
 volumes:
   clickhouse-volume:
   symbolicator-volume:
+  minio-data:
