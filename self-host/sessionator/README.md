@@ -6,10 +6,10 @@ Use Measure Dev CLI to manage development operations like ingesting test session
 
 To ingest sessions from a local directory,
 
-1. navigate to the local directory
-2. copy example config - `cp config.toml.example config.toml`
-3. edit `config.toml` to list your apps and their api keys
-4. navigate to `./self-host/sessionator` and run.
+1. Navigate to the local directory
+2. Copy example config - `cp config.toml.example config.toml`
+3. Edit `config.toml` to list your apps and their api keys
+4. Navigate to `./self-host/sessionator` and run.
 
 ```sh
 go run . ingest
@@ -27,6 +27,27 @@ To see usage of a subcommand.
 
 ```sh
 go run . ingest --help
+```
+
+5. Make sure the name of the directories under `self-host/session-data` matches the app names in the `self-host/session-data/config.toml` file.
+
+For example:
+
+```toml
+[apps.sample-app]
+api-key = "msrsh_xxxxxx_xxxx"
+
+[apps.wikipedia]
+api-key = "msrsh_xxxxxx_xxxx"
+```
+
+For the above configuration to work, the app directory names must match.
+
+```
+self-host/
+├─ session-data/
+├─ ├─ sample-app/
+├─ ├─ wikipedia/
 ```
 
 ### Repeat ingestion of sessions
