@@ -41,59 +41,64 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Response Body](#response-body-6)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-6)
 - [Teams](#teams)
-  - [GET `/teams`](#get-teams)
+  - [POST `/teams`](#post-teams)
     - [Authorization \& Content Type](#authorization--content-type-7)
+    - [Request Body](#request-body)
     - [Response Body](#response-body-7)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-7)
-  - [GET `/teams/:id/apps`](#get-teamsidapps)
-    - [Usage Notes](#usage-notes-7)
+  - [GET `/teams`](#get-teams)
     - [Authorization \& Content Type](#authorization--content-type-8)
     - [Response Body](#response-body-8)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-8)
-  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
-    - [Usage Notes](#usage-notes-8)
+  - [GET `/teams/:id/apps`](#get-teamsidapps)
+    - [Usage Notes](#usage-notes-7)
     - [Authorization \& Content Type](#authorization--content-type-9)
     - [Response Body](#response-body-9)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-9)
-  - [POST `/teams/:id/apps`](#post-teamsidapps)
-    - [Usage Notes](#usage-notes-9)
-    - [Request body](#request-body)
+  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
+    - [Usage Notes](#usage-notes-8)
     - [Authorization \& Content Type](#authorization--content-type-10)
     - [Response Body](#response-body-10)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-10)
-  - [POST `/auth/invite`](#post-authinvite)
-    - [Usage Notes](#usage-notes-10)
+  - [POST `/teams/:id/apps`](#post-teamsidapps)
+    - [Usage Notes](#usage-notes-9)
     - [Request body](#request-body-1)
     - [Authorization \& Content Type](#authorization--content-type-11)
     - [Response Body](#response-body-11)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-11)
-  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
-    - [Usage Notes](#usage-notes-11)
+  - [POST `/auth/invite`](#post-authinvite)
+    - [Usage Notes](#usage-notes-10)
     - [Request body](#request-body-2)
     - [Authorization \& Content Type](#authorization--content-type-12)
     - [Response Body](#response-body-12)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-12)
-  - [GET `/teams/:id/members`](#get-teamsidmembers)
-    - [Usage Notes](#usage-notes-12)
+  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
+    - [Usage Notes](#usage-notes-11)
+    - [Request body](#request-body-3)
     - [Authorization \& Content Type](#authorization--content-type-13)
     - [Response Body](#response-body-13)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-13)
-  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
-    - [Usage Notes](#usage-notes-13)
+  - [GET `/teams/:id/members`](#get-teamsidmembers)
+    - [Usage Notes](#usage-notes-12)
     - [Authorization \& Content Type](#authorization--content-type-14)
     - [Response Body](#response-body-14)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-14)
-  - [PATCH `/teams/:id/members/:id`](#patch-teamsidmembersid)
-    - [Usage Notes](#usage-notes-14)
-    - [Request body](#request-body-3)
+  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+    - [Usage Notes](#usage-notes-13)
     - [Authorization \& Content Type](#authorization--content-type-15)
     - [Response Body](#response-body-15)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-15)
-  - [GET `/teams/:id/authz`](#get-teamsidauthz)
-    - [Usage Notes](#usage-notes-15)
+  - [PATCH `/teams/:id/members/:id`](#patch-teamsidmembersid)
+    - [Usage Notes](#usage-notes-14)
+    - [Request body](#request-body-4)
     - [Authorization \& Content Type](#authorization--content-type-16)
     - [Response Body](#response-body-16)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-16)
+  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+    - [Usage Notes](#usage-notes-15)
+    - [Authorization \& Content Type](#authorization--content-type-17)
+    - [Response Body](#response-body-17)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-17)
 
 ## Apps
 
@@ -1565,6 +1570,78 @@ List of HTTP status codes for success and failures.
 - [**DELETE `/teams/:id/members/:id`**](#delete-teamsidmembersid) -  Remove a member from a team
 - [**PATCH `/teams/:id/members/:id`**](#patch-teamsidmembersid) -  Change role of a member of a team
 - [**GET `/teams/:id/authz`**](#get-teamsidauthz) -  Fetch authorization details of currently logged in user for a team -->
+
+### POST `/teams`
+
+Create a new team. Only owners of existing team can create new teams.
+
+#### Authorization &amp; Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Request Body
+
+Pass the name in `"name"` JSON property.
+
+```json
+{
+  "name": "acme-team"
+}
+```
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  {
+    "id": "269362f4-27a5-4eac-84f8-b2291515edd3",
+    "name": "acme-team"
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `201 Created`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
 
 ### GET `/teams`
 
