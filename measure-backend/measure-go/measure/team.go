@@ -263,6 +263,113 @@ func (t *Team) changeRole(memberId *uuid.UUID, role rank) error {
 	return nil
 }
 
+func (t *Team) create(u *User) error {
+	ctx := context.Background()
+	tx, err := server.Server.PgPool.Begin(ctx)
+
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback(ctx)
+
+	stmtTeam := sqlf.PostgreSQL.
+		InsertInto("public.teams").
+		Set("id", nil).
+		Set("name", nil).
+		Set("created_at", nil).
+		Set("updated_at", nil)
+
+	defer stmtTeam.Close()
+
+	id := uuid.New()
+	t.ID = &id
+	now := time.Now()
+
+	_, err = tx.Exec(ctx, stmtTeam.String(), t.ID, t.Name, now, now)
+	if err != nil {
+		return err
+	}
+
+	stmtMembership := sqlf.PostgreSQL.
+		InsertInto("public.team_membership").
+		Set("team_id", nil).
+		Set("user_id", nil).
+		Set("role", nil).
+		Set("role_updated_at", nil).
+		Set("created_at", nil)
+
+	defer stmtMembership.Close()
+
+	_, err = tx.Exec(ctx, stmtMembership.String(), t.ID, u.id, roleMap["owner"].String(), now, now)
+	if err != nil {
+		return err
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func CreateTeam(c *gin.Context) {
+	userId := c.GetString("userId")
+	u := &User{
+		id: userId,
+	}
+
+	ownTeam, err := u.getOwnTeam()
+	if err != nil {
+		msg := "failed to lookup user's team"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if ownTeam == nil {
+		// use does not have team
+		msg := fmt.Sprintf("no associated team for user %q", u.id)
+		fmt.Println(msg)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	newTeam := &Team{}
+
+	if err := c.ShouldBindJSON(newTeam); err != nil {
+		msg := "failed to parse create team request body"
+		fmt.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg, "details": err})
+		return
+	}
+
+	// trim team name value
+	*newTeam.Name = strings.Trim(*newTeam.Name, " ")
+
+	if *newTeam.Name == "" {
+		msg := "team name cannot be empty"
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	ok, err := PerformAuthz(userId, ownTeam.ID.String(), *ScopeTeamAll)
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	} else if !ok {
+		msg := "you don't have permissions to create new teams"
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	newTeam.create(u)
+
+	c.JSON(http.StatusCreated, newTeam)
+}
+
 func GetTeams(c *gin.Context) {
 	userId := c.GetString("userId")
 	u := &User{
