@@ -67,6 +67,7 @@ func main() {
 
 	teams := r.Group("/teams")
 	{
+		teams.POST("", measure.CreateTeam)
 		teams.GET("", measure.GetTeams)
 		teams.GET(":id/apps", measure.GetTeamApps)
 		teams.GET(":id/apps/:appId", measure.GetTeamApp)

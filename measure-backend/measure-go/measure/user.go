@@ -46,6 +46,24 @@ func (u *User) getTeams() ([]map[string]string, error) {
 	return teams, nil
 }
 
+func (u *User) getOwnTeam() (*Team, error) {
+	stmt := sqlf.PostgreSQL.
+		Select("teams.id, teams.name").
+		From("public.teams").
+		LeftJoin("public.team_membership", "public.teams.id = public.team_membership.team_id and public.team_membership.role = 'owner'").
+		Where("public.team_membership.user_id = ?", nil)
+
+	defer stmt.Close()
+
+	team := &Team{}
+
+	if err := server.Server.PgPool.QueryRow(context.Background(), stmt.String(), u.id).Scan(&team.ID, &team.Name); err != nil {
+		return nil, err
+	}
+
+	return team, nil
+}
+
 func (u *User) getRole(teamId string) (rank, error) {
 	var role string
 	if err := server.Server.PgPool.QueryRow(context.Background(), "select team_membership.role from team_membership where user_id::uuid = $1 and team_id::uuid = $2;", u.id, teamId).Scan(&role); err != nil {
