@@ -34,7 +34,18 @@ export enum MetricsApiStatus {
     Error
 }
 
-export enum CrashGroupsApiStatus {
+export enum CrashOrAnrType {
+    Crash,
+    Anr
+}
+
+export enum CrashOrAnrGroupsApiStatus {
+    Loading,
+    Success,
+    Error
+}
+
+export enum CrashOrAnrGroupDetailsApiStatus {
     Loading,
     Success,
     Error
@@ -157,7 +168,7 @@ export const emptyMetrics = {
     }
 }
 
-const emptyCrashGroup = {
+const emptyCrashOrAnrGroup = {
     "id": "",
     "app_id": "",
     "name": "",
@@ -168,12 +179,124 @@ const emptyCrashGroup = {
     "updated_at": ""
 }
 
-export const emptyCrashGroupsResponse = {
+export const emptyCrashOrAnrGroupsResponse = {
     "meta": {
         "next": false,
         "previous": false
     },
-    "results": [] as typeof emptyCrashGroup[]
+    "results": [] as typeof emptyCrashOrAnrGroup[]
+}
+
+const emptyCrashGroupDetails = {
+    "id": "",
+    "session_id": "",
+    "timestamp": "",
+    "type": "",
+    "thread_name": "",
+    "resource": {
+        "device_name": "",
+        "device_model": "",
+        "device_manufacturer": "",
+        "device_type": "",
+        "device_is_foldable": false,
+        "device_is_physical": true,
+        "device_density_dpi": 0,
+        "device_width_px": 0,
+        "device_height_px": 0,
+        "device_density": 0.0,
+        "device_locale": "",
+        "os_name": "",
+        "os_version": "",
+        "platform": "",
+        "app_version": "",
+        "app_build": "",
+        "app_unique_id": "",
+        "measure_sdk_version": "",
+        "network_type": "",
+        "network_generation": "",
+        "network_provider": ""
+    },
+    "exceptions": [
+        {
+            "type": "",
+            "message": "",
+            "location": "",
+            "stacktrace": ""
+        }
+    ],
+    "threads": [
+        {
+            "name": "",
+            "frames": [
+                ""
+            ]
+        }
+    ],
+    "attributes": {}
+}
+
+export const emptyCrashGroupDetailsResponse = {
+    "meta": {
+        "next": true,
+        "previous": false
+    },
+    "results": [] as typeof emptyCrashGroupDetails[]
+}
+
+const emptyAnrGroupDetails = {
+    "id": "",
+    "session_id": "",
+    "timestamp": "",
+    "type": "",
+    "thread_name": "",
+    "resource": {
+        "device_name": "",
+        "device_model": "",
+        "device_manufacturer": "",
+        "device_type": "",
+        "device_is_foldable": false,
+        "device_is_physical": true,
+        "device_density_dpi": 0,
+        "device_width_px": 0,
+        "device_height_px": 0,
+        "device_density": 0.0,
+        "device_locale": "",
+        "os_name": "",
+        "os_version": "",
+        "platform": "",
+        "app_version": "",
+        "app_build": "",
+        "app_unique_id": "",
+        "measure_sdk_version": "",
+        "network_type": "",
+        "network_generation": "",
+        "network_provider": ""
+    },
+    "anrs": [
+        {
+            "type": "",
+            "message": "",
+            "location": "",
+            "stacktrace": ""
+        }
+    ],
+    "threads": [
+        {
+            "name": "",
+            "frames": [
+                ""
+            ]
+        }
+    ],
+    "attributes": {}
+}
+
+export const emptyAnrGroupDetailsResponse = {
+    "meta": {
+        "next": true,
+        "previous": false
+    },
+    "results": [] as typeof emptyAnrGroupDetails[]
 }
 
 export const defaultAuthzAndMembers = {
@@ -317,7 +440,7 @@ export const fetchMetricsFromServer = async (appId: string, startDate: string, e
     return { status: MetricsApiStatus.Success, data: data }
 }
 
-export const fetchCrashGroupsFromServer = async (appId: string, startDate: string, endDate: string, appVersions: string[], keyId: string | null, limit: number, router: AppRouterInstance) => {
+export const fetchCrashOrAnrGroupsFromServer = async (crashOrAnrType: CrashOrAnrType, appId: string, startDate: string, endDate: string, appVersions: string[], keyId: string | null, limit: number, router: AppRouterInstance) => {
     const authToken = await getAccessTokenOrRedirectToAuth(router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
@@ -329,28 +452,115 @@ export const fetchCrashGroupsFromServer = async (appId: string, startDate: strin
     const serverFormattedStartDate = new Date(startDate).toISOString()
     const serverFormattedEndDate = new Date(endDate).toISOString()
 
-    var crashGroupsApiUrl = `${origin}/apps/${appId}/crashGroups?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&limit=${limit}`
+    var url = ""
+    if (crashOrAnrType === CrashOrAnrType.Crash) {
+        url = `${origin}/apps/${appId}/crashGroups?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&limit=${limit}`
+    } else {
+        url = `${origin}/apps/${appId}/anrGroups?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&limit=${limit}`
+    }
 
-    // If no versions are selected, don't use versions in query params
+    // Append versions if present
     if (appVersions.length > 0) {
-        crashGroupsApiUrl = crashGroupsApiUrl + `&versions=${Array.from(appVersions).join(',')}`
+        url = url + `&versions=${Array.from(appVersions).join(',')}`
     }
 
     // Append keyId if present
     if (keyId !== null) {
-        crashGroupsApiUrl = crashGroupsApiUrl + `&key_id=${keyId}`
+        url = url + `&key_id=${keyId}`
     }
 
-    const res = await fetch(crashGroupsApiUrl, opts);
+    const res = await fetch(url, opts);
 
     if (!res.ok) {
         logoutIfAuthError(router, res)
-        return { status: CrashGroupsApiStatus.Error, data: null }
+        return { status: CrashOrAnrGroupsApiStatus.Error, data: null }
     }
 
     const data = await res.json()
 
-    return { status: CrashGroupsApiStatus.Success, data: data }
+    return { status: CrashOrAnrGroupsApiStatus.Success, data: data }
+
+}
+
+export const fetchCrashOrAnrGroupDetailsFromServer = async (crashOrAnrType: CrashOrAnrType, appId: string, crashOrAnrGroupId: string, startDate: string, endDate: string, appVersions: string[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], keyId: string | null, keyTimestamp: string | null, limit: number, router: AppRouterInstance) => {
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+        headers: {
+            "Authorization": `Bearer ${authToken}`
+        }
+    };
+
+    const serverFormattedStartDate = new Date(startDate).toISOString()
+    const serverFormattedEndDate = new Date(endDate).toISOString()
+
+    var url = ""
+    if (crashOrAnrType === CrashOrAnrType.Crash) {
+        url = `${origin}/apps/${appId}/crashGroups/${crashOrAnrGroupId}/crashes?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&limit=${limit}`
+    } else {
+        url = `${origin}/apps/${appId}/anrGroups/${crashOrAnrGroupId}/anrs?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&limit=${limit}`
+    }
+
+    // Append versions if present
+    if (appVersions.length > 0) {
+        url = url + `&versions=${Array.from(appVersions).join(',')}`
+    }
+
+    // Append countries if present
+    if (countries.length > 0) {
+        url = url + `&countries=${Array.from(countries).join(',')}`
+    }
+
+    // Append network providers if present
+    if (networkProviders.length > 0) {
+        url = url + `&network_providers=${Array.from(networkProviders).join(',')}`
+    }
+
+    // Append network types if present
+    if (networkTypes.length > 0) {
+        url = url + `&network_types=${Array.from(networkTypes).join(',')}`
+    }
+
+    // Append network generations if present
+    if (networkGenerations.length > 0) {
+        url = url + `&network_generations=${Array.from(networkGenerations).join(',')}`
+    }
+
+    // Append locales if present
+    if (locales.length > 0) {
+        url = url + `&locales=${Array.from(locales).join(',')}`
+    }
+
+    // Append device manufacturers if present
+    if (deviceManufacturers.length > 0) {
+        url = url + `&device_manufacturers=${Array.from(deviceManufacturers).join(',')}`
+    }
+
+    // Append device names if present
+    if (deviceNames.length > 0) {
+        url = url + `&device_names=${Array.from(deviceNames).join(',')}`
+    }
+
+    // Append keyId if present
+    if (keyId !== null) {
+        url = url + `&key_id=${keyId}`
+    }
+
+    // Append keyTimestamp if present
+    if (keyTimestamp !== null) {
+        url = url + `&key_timestamp=${keyTimestamp}`
+    }
+
+    const res = await fetch(url, opts);
+
+    if (!res.ok) {
+        logoutIfAuthError(router, res)
+        return { status: CrashOrAnrGroupDetailsApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: CrashOrAnrGroupDetailsApiStatus.Success, data: data }
 
 }
 
