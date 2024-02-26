@@ -62,10 +62,15 @@ func (a *Attachment) upload(s *Session) (*s3manager.UploadOutput, error) {
 		Region:      aws.String(config.AttachmentsBucketRegion),
 		Credentials: credentials.NewStaticCredentials(config.AttachmentsAccessKey, config.AttachmentsSecretAccessKey, ""),
 	}
-	if config.DebugMode {
+
+	// if a custom endpoint was set, then most likely,
+	// we are in local development mode and should force
+	// path style instead of S3 virual path styles.
+	if config.AWSEndpoint != "" {
 		awsConfig.S3ForcePathStyle = aws.Bool(true)
 		awsConfig.Endpoint = aws.String(config.AWSEndpoint)
 	}
+
 	awsSession := session.Must(session.NewSession(awsConfig))
 	uploader := s3manager.NewUploader(awsSession)
 	result, err := uploader.Upload(&s3manager.UploadInput{

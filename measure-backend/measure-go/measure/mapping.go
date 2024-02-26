@@ -237,10 +237,15 @@ func uploadToStorage(f *multipart.File, k string, m map[string]*string) (*s3mana
 		Region:      aws.String(config.SymbolsBucketRegion),
 		Credentials: credentials.NewStaticCredentials(config.SymbolsAccessKey, config.SymbolsSecretAccessKey, ""),
 	}
-	if config.DebugMode {
+
+	// if a custom endpoint was set, then most likely,
+	// we are in local development mode and should force
+	// path style instead of S3 virual path styles.
+	if config.AWSEndpoint != "" {
 		awsConfig.S3ForcePathStyle = aws.Bool(true)
 		awsConfig.Endpoint = aws.String(config.AWSEndpoint)
 	}
+
 	awsSession := session.Must(session.NewSession(awsConfig))
 	uploader := s3manager.NewUploader(awsSession)
 	result, err := uploader.Upload(&s3manager.UploadInput{
