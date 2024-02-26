@@ -4,6 +4,7 @@ import com.amazonaws.auth.AWSStaticCredentialsProvider
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.AmazonS3ClientBuilder
+import com.amazonaws.client.builder.AwsClientBuilder
 import com.android.tools.r8.retrace.ProguardMapProducer
 import com.android.tools.r8.retrace.RetraceOptions
 import com.android.tools.r8.retrace.RetraceStackTraceContext
@@ -20,6 +21,7 @@ import java.nio.file.Path
 
 fun Route.symbolicate() {
     val env = environment!!
+    var awsEndpoint = env.config.property("s3.aws_endoint_url").getString()
     val s3Region = env.config.property("s3.symbols_s3_bucket_region").getString()
     val s3Bucket = env.config.property("s3.symbols_s3_bucket").getString()
     val symbolsAccessKey = env.config.property("s3.symbols_access_key").getString()
@@ -27,7 +29,7 @@ fun Route.symbolicate() {
 
     post("/symbolicate") {
         val request = call.receive<SymbolicateRequest>()
-        val s3 = configureS3(s3Region, symbolsAccessKey, symbolsSecretKey)
+        val s3 = configureS3(s3Region, symbolsAccessKey, symbolsSecretKey, awsEndpoint)
         val mappingFile = downloadMappingFile(call, s3, request, s3Bucket) ?: return@post
         val stringRetrace = createStringRetrace(mappingFile.toPath())
         val retraced = request.data.map { dataUnit ->
@@ -48,8 +50,17 @@ private suspend fun downloadMappingFile(
     call: ApplicationCall, s3: AmazonS3, request: SymbolicateRequest, s3Bucket: String
 ): File? = DownloadMapping(call, s3).download(s3Bucket = s3Bucket, key = request.key)
 
-private fun configureS3(s3BucketRegion: String, symbolsAccessKey: String, symbolsSecretKey: String): AmazonS3 {
+private fun configureS3(s3BucketRegion: String, symbolsAccessKey: String, symbolsSecretKey: String, awsEndpoint: String): AmazonS3 {
     val basicAWSCredentials = BasicAWSCredentials(symbolsAccessKey, symbolsSecretKey)
     val credentialsProvider = AWSStaticCredentialsProvider(basicAWSCredentials)
-    return AmazonS3ClientBuilder.standard().withCredentials(credentialsProvider).withRegion(s3BucketRegion).build()
+    var client = AmazonS3ClientBuilder.standard().withCredentials(credentialsProvider)
+
+    if (awsEndpoint.isEmpty()) {
+        client.withRegion(s3BucketRegion)
+    } else {
+        val endpointConfiguration = AwsClientBuilder.EndpointConfiguration(awsEndpoint, s3BucketRegion)
+        client.withEndpointConfiguration(endpointConfiguration).withPathStyleAccessEnabled(true)
+    }
+
+    return client.build()
 }
