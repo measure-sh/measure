@@ -8,7 +8,6 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.Response
 import org.gradle.api.DefaultTask
-import org.gradle.api.GradleException
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
@@ -24,6 +23,13 @@ private const val VERSION_NAME = "version_name"
 private const val TYPE = "type"
 private const val TYPE_PROGUARD = "proguard"
 private const val MAPPING_FILE = "mapping_file"
+
+private const val ERROR_MSG_401 =
+    "Failed to upload mapping file to Measure, please check the api-key in manifest"
+private const val ERROR_MSG_413 =
+    "Failed to upload mapping file to Measure, mapping file size exceeded the maximum allowed limit"
+private const val ERROR_MSG_500 =
+    "Failed to upload mapping file to Measure, the server encountered an error"
 
 abstract class UploadProguardMappingTask : DefaultTask() {
     init {
@@ -66,32 +72,38 @@ abstract class UploadProguardMappingTask : DefaultTask() {
         val request: Request = Request.Builder().url(mappingEndpointProperty.get())
             .header(HEADER_AUTHORIZATION, "Bearer ${manifestData.apiKey}").put(requestBody).build()
         try {
-            val response = client.executeWithRetry(request, retriesProperty.get())
+            val response = client.executeWithRetry(request, retriesProperty.get()) ?: return
             if (!response.isSuccessful) {
-                throw GradleException("Unable to upload mapping file to Measure")
+                logger.error("Failed to upload mapping file to Measure, request failed with response code ${response.code}")
+                return
             }
         } catch (e: IOException) {
-            throw GradleException("Unable to upload mapping file to Measure", e)
+            logger.error("Failed to upload mapping file to Measure, ${e.message}")
+            return
         }
     }
 
-    private fun OkHttpClient.executeWithRetry(request: Request, maxRetries: Int = 0): Response {
+    private fun OkHttpClient.executeWithRetry(request: Request, maxRetries: Int = 0): Response? {
         var retries = 0
         while (true) {
             try {
                 val response = this.newCall(request).execute()
                 when {
                     response.isSuccessful -> return response
-                    response.code == 401 -> throw GradleException("Unable to upload mapping file to Measure, invalid api key")
+                    response.code == 401 -> logger.warn(ERROR_MSG_401)
+                    response.code == 413 -> logger.warn(ERROR_MSG_413)
+                    response.code == 500 -> logger.warn(ERROR_MSG_500)
                     retries < maxRetries -> retries++
                     else -> return response
                 }
             } catch (e: IOException) {
-                if (retries >= maxRetries) throw GradleException(
-                    "Unable to upload mapping file to Measure", e
-                )
+                if (retries >= maxRetries) {
+                    logger.error("Failed to upload mapping file to Measure: ${e.message}")
+                    break
+                }
                 retries++
             }
         }
+        return null
     }
 }
