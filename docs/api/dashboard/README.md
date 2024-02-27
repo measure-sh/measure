@@ -44,6 +44,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
   - [POST `/teams`](#post-teams)
     - [Authorization \& Content Type](#authorization--content-type-7)
     - [Request Body](#request-body)
+    - [Usage Notes](#usage-notes-7)
     - [Response Body](#response-body-7)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-7)
   - [GET `/teams`](#get-teams)
@@ -51,51 +52,51 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Response Body](#response-body-8)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-8)
   - [GET `/teams/:id/apps`](#get-teamsidapps)
-    - [Usage Notes](#usage-notes-7)
+    - [Usage Notes](#usage-notes-8)
     - [Authorization \& Content Type](#authorization--content-type-9)
     - [Response Body](#response-body-9)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-9)
   - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
-    - [Usage Notes](#usage-notes-8)
+    - [Usage Notes](#usage-notes-9)
     - [Authorization \& Content Type](#authorization--content-type-10)
     - [Response Body](#response-body-10)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-10)
   - [POST `/teams/:id/apps`](#post-teamsidapps)
-    - [Usage Notes](#usage-notes-9)
+    - [Usage Notes](#usage-notes-10)
     - [Request body](#request-body-1)
     - [Authorization \& Content Type](#authorization--content-type-11)
     - [Response Body](#response-body-11)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-11)
   - [POST `/auth/invite`](#post-authinvite)
-    - [Usage Notes](#usage-notes-10)
+    - [Usage Notes](#usage-notes-11)
     - [Request body](#request-body-2)
     - [Authorization \& Content Type](#authorization--content-type-12)
     - [Response Body](#response-body-12)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-12)
   - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
-    - [Usage Notes](#usage-notes-11)
+    - [Usage Notes](#usage-notes-12)
     - [Request body](#request-body-3)
     - [Authorization \& Content Type](#authorization--content-type-13)
     - [Response Body](#response-body-13)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-13)
   - [GET `/teams/:id/members`](#get-teamsidmembers)
-    - [Usage Notes](#usage-notes-12)
+    - [Usage Notes](#usage-notes-13)
     - [Authorization \& Content Type](#authorization--content-type-14)
     - [Response Body](#response-body-14)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-14)
   - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
-    - [Usage Notes](#usage-notes-13)
+    - [Usage Notes](#usage-notes-14)
     - [Authorization \& Content Type](#authorization--content-type-15)
     - [Response Body](#response-body-15)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-15)
   - [PATCH `/teams/:id/members/:id`](#patch-teamsidmembersid)
-    - [Usage Notes](#usage-notes-14)
+    - [Usage Notes](#usage-notes-15)
     - [Request body](#request-body-4)
     - [Authorization \& Content Type](#authorization--content-type-16)
     - [Response Body](#response-body-16)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-16)
   - [GET `/teams/:id/authz`](#get-teamsidauthz)
-    - [Usage Notes](#usage-notes-15)
+    - [Usage Notes](#usage-notes-16)
     - [Authorization \& Content Type](#authorization--content-type-17)
     - [Response Body](#response-body-17)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-17)
@@ -1560,16 +1561,17 @@ List of HTTP status codes for success and failures.
 
 ## Teams
 
-- [**GET `/teams`**](#get-teams) - Fetch list of teams of currently logged in user
-- [**GET `/teams/:id/apps`**](#get-teamsidapps) - Fetch list of apps for a team
-- [**GET `/teams/:id/apps/:id`**](#get-teamsidappsid) - Fetch details of an app for a team
-- [**POST `/teams/:id/apps`**](#post-teamsidapps) - Create a new app for a team
-- [**POST `/teams/:id/invite`**](#post-teamsidinvite) - Invite new members (both existing & non measure users) to a team
-- [**PATCH `/teams/:id/rename`**](#patch-teamsidrename) -  Rename a team
-- [**GET `/teams/:id/members`**](#get-teamsidmembers) -  Fetch list of team members for a team
-- [**DELETE `/teams/:id/members/:id`**](#delete-teamsidmembersid) -  Remove a member from a team
-- [**PATCH `/teams/:id/members/:id`**](#patch-teamsidmembersid) -  Change role of a member of a team
-- [**GET `/teams/:id/authz`**](#get-teamsidauthz) -  Fetch authorization details of currently logged in user for a team -->
+- [**POST `/teams`**](#post-teams) - Create new team. Access token holder becomes the owner.
+- [**GET `/teams`**](#get-teams) - Fetch list of teams of access token holder.
+- [**GET `/teams/:id/apps`**](#get-teamsidapps) - Fetch list of apps for a team.
+- [**GET `/teams/:id/apps/:id`**](#get-teamsidappsid) - Fetch details of an app for a team.
+- [**POST `/teams/:id/apps`**](#post-teamsidapps) - Create a new app for a team.
+- [**POST `/teams/:id/invite`**](#post-teamsidinvite) - Invite new members (both existing & non measure users) to a team.
+- [**PATCH `/teams/:id/rename`**](#patch-teamsidrename) -  Rename a team.
+- [**GET `/teams/:id/members`**](#get-teamsidmembers) -  Fetch list of team members for a team.
+- [**DELETE `/teams/:id/members/:id`**](#delete-teamsidmembersid) -  Remove a member from a team.
+- [**PATCH `/teams/:id/members/:id`**](#patch-teamsidmembersid) -  Change role of a member of a team.
+- [**GET `/teams/:id/authz`**](#get-teamsidauthz) -  Fetch authorization details of access token holder for a team.
 
 ### POST `/teams`
 
@@ -1601,6 +1603,10 @@ Pass the name in `"name"` JSON property.
   "name": "acme-team"
 }
 ```
+
+#### Usage Notes
+
+- `"name"` cannot be empty
 
 #### Response Body
 
@@ -1645,7 +1651,7 @@ List of HTTP status codes for success and failures.
 
 ### GET `/teams`
 
-Fetch list of teams of currently logged in user
+Fetch list of teams of access token holder.
 
 #### Authorization &amp; Content Type
 
@@ -2363,7 +2369,7 @@ List of HTTP status codes for success and failures.
 
 ### GET `/teams/:id/authz`
 
-Fetch authorization details of currently logged in user for a team
+Fetch authorization details of access token holder for a team.
 
 #### Usage Notes
 
