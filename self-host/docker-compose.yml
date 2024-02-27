@@ -53,7 +53,7 @@ services:
     entrypoint: >
       /bin/sh -c "
       mc alias set msr-minio http://minio:9000 minio minio123;
-      mc mb msr-minio/msr-symbols-sandbox msr-minio/msr-attachments-sandbox;
+      mc mb --ignore-existing msr-minio/msr-symbols-sandbox msr-minio/msr-attachments-sandbox;
       exit 0;
       "
 
