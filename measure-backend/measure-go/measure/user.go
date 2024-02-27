@@ -18,10 +18,17 @@ type User struct {
 }
 
 func (u *User) getTeams() ([]map[string]string, error) {
-	rows, err := server.Server.PgPool.Query(context.Background(), "select team_membership.team_id, team_membership.role, teams.name from team_membership left outer join teams on team_membership.team_id = teams.id where team_membership.user_id::uuid = $1;", u.id)
+	stmt := sqlf.PostgreSQL.
+		Select("team_membership.team_id, team_membership.role, teams.name").
+		From("public.team_membership").
+		LeftJoin("public.teams", "public.team_membership.team_id = teams.id").
+		Where("public.team_membership.user_id = ?", nil)
+
+	defer stmt.Close()
+
+	rows, err := server.Server.PgPool.Query(context.Background(), stmt.String(), u.id)
 
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 
