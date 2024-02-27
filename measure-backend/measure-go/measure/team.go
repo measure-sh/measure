@@ -271,8 +271,9 @@ func GetTeams(c *gin.Context) {
 
 	teams, err := u.getTeams()
 	if err != nil {
-		fmt.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch teams for user"})
+		msg := "failed to fetch teams for user"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
 
