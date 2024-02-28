@@ -346,7 +346,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
               <form onSubmit={createTeam} className="flex flex-col">
                 <p className="font-display font-regular text-2xl">Create new team</p>
                 <div className="py-2" />
-                <input id="app-name" type="string" placeholder="Enter app name" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-sans placeholder:text-neutral-400" onChange={(event) => setCreateTeamName(event.target.value)} />
+                <input id="app-name" type="string" placeholder="Enter team name" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-sans placeholder:text-neutral-400" onChange={(event) => setCreateTeamName(event.target.value)} />
                 <div className="py-2" />
                 <button type="submit" disabled={createTeamApiStatus === CreateTeamApiStatus.Loading || createTeamName.length === 0} className={`w-fit outline-none hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4 ${(createTeamApiStatus === CreateTeamApiStatus.Loading) ? 'pointer-events-none' : 'pointer-events-auto'}`}>Create Team</button>
                 <div className="py-2" />
