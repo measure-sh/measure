@@ -28,7 +28,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
   const [inviteMemberEmail, setInviteMemberEmail] = useState("")
   const [inviteMemberErrorMsg, setInviteMemberErrorMsg] = useState("")
 
-  const [removeMemberApiStatus, seRemoveMemberApiStatus] = useState(RemoveMemberApiStatus.Init);
+  const [removeMemberApiStatus, setRemoveMemberApiStatus] = useState(RemoveMemberApiStatus.Init);
   const [removeMemberConfirmationModalOpen, setRemoveMemberConfirmationModalOpen] = useState(false)
   const [removeMemberId, setRemoveMemberId] = useState("")
   const [removeMemberEmail, setRemoveMemberEmail] = useState("")
@@ -153,17 +153,17 @@ export default function Team({ params }: { params: { teamId: string } }) {
   }
 
   const removeMember = async () => {
-    seRemoveMemberApiStatus(RemoveMemberApiStatus.Loading)
+    setRemoveMemberApiStatus(RemoveMemberApiStatus.Loading)
 
     const result = await removeMemberFromServer(params.teamId, removeMemberId, router)
 
     switch (result.status) {
       case RemoveMemberApiStatus.Error:
-        seRemoveMemberApiStatus(RemoveMemberApiStatus.Error)
+        setRemoveMemberApiStatus(RemoveMemberApiStatus.Error)
         setRemoveMemberErrorMsg(result.error)
         break
       case RemoveMemberApiStatus.Success:
-        seRemoveMemberApiStatus(RemoveMemberApiStatus.Success)
+        setRemoveMemberApiStatus(RemoveMemberApiStatus.Success)
         getAuthzAndMembers()
         break
     }
