@@ -2,10 +2,10 @@
 
 import Dropdown from "@/app/components/dropdown";
 import { getUserIdOrRedirectToAuth } from "@/app/utils/auth_utils";
-import { useEffect, useState } from "react";
+import { FormEventHandler, useEffect, useState } from "react";
 import { useRouter } from 'next/navigation';
 import DangerConfirmationModal from "@/app/components/danger_confirmation_modal";
-import { TeamsApiStatus, fetchTeamsFromServer, emptyTeam, AuthzAndMembersApiStatus, InviteMemberApiStatus, RemoveMemberApiStatus, RoleChangeApiStatus, TeamNameChangeApiStatus, defaultAuthzAndMembers, fetchAuthzAndMembersFromServer, changeTeamNameFromServer, changeRoleFromServer, inviteMemberFromServer, removeMemberFromServer } from "@/app/api/api_calls";
+import { TeamsApiStatus, fetchTeamsFromServer, emptyTeam, AuthzAndMembersApiStatus, InviteMemberApiStatus, RemoveMemberApiStatus, RoleChangeApiStatus, TeamNameChangeApiStatus, defaultAuthzAndMembers, fetchAuthzAndMembersFromServer, changeTeamNameFromServer, changeRoleFromServer, inviteMemberFromServer, removeMemberFromServer, CreateTeamApiStatus, createTeamFromServer } from "@/app/api/api_calls";
 
 function formatToCamelCase(role: string): string {
   return role.charAt(0).toLocaleUpperCase() + role.slice(1)
@@ -33,6 +33,10 @@ export default function Team({ params }: { params: { teamId: string } }) {
   const [removeMemberId, setRemoveMemberId] = useState("")
   const [removeMemberEmail, setRemoveMemberEmail] = useState("")
   const [removeMemberErrorMsg, setRemoveMemberErrorMsg] = useState("")
+
+  const [createTeamApiStatus, setCreateTeamApiStatus] = useState(CreateTeamApiStatus.Init);
+  const [createTeamName, setCreateTeamName] = useState("");
+  const [createTeamErrorMsg, setCreateTeamErrorMsg] = useState("")
 
   const [getAuthzAndMembersApiStatus, setAuthzAndMembersApiStatus] = useState(AuthzAndMembersApiStatus.Loading);
   const [authzAndMembers, setAuthzAndMembers] = useState(defaultAuthzAndMembers)
@@ -161,6 +165,29 @@ export default function Team({ params }: { params: { teamId: string } }) {
       case RemoveMemberApiStatus.Success:
         seRemoveMemberApiStatus(RemoveMemberApiStatus.Success)
         getAuthzAndMembers()
+        break
+    }
+  }
+
+  const createTeam: FormEventHandler = async (event) => {
+    event.preventDefault();
+
+    if (createTeamName === "") {
+      return
+    }
+
+    setCreateTeamApiStatus(CreateTeamApiStatus.Loading)
+
+    const result = await createTeamFromServer(createTeamName, router)
+
+    switch (result.status) {
+      case CreateTeamApiStatus.Error:
+        setCreateTeamApiStatus(CreateTeamApiStatus.Error)
+        setCreateTeamErrorMsg(result.error)
+        break
+      case CreateTeamApiStatus.Success:
+        setCreateTeamApiStatus(CreateTeamApiStatus.Success)
+        location.reload()
         break
     }
   }
@@ -308,6 +335,25 @@ export default function Team({ params }: { params: { teamId: string } }) {
 
                 </div>
               ))}
+            </div>}
+
+          {/* Create new team */}
+          {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Success &&
+            <div>
+              <div className="py-4" />
+              <div className="w-full border border-black h-0" />
+              <div className="py-8" />
+              <form onSubmit={createTeam} className="flex flex-col">
+                <p className="font-display font-regular text-2xl">Create new team</p>
+                <div className="py-2" />
+                <input id="app-name" type="string" placeholder="Enter app name" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-sans placeholder:text-neutral-400" onChange={(event) => setCreateTeamName(event.target.value)} />
+                <div className="py-2" />
+                <button type="submit" disabled={createTeamApiStatus === CreateTeamApiStatus.Loading || createTeamName.length === 0} className={`w-fit outline-none hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4 ${(createTeamApiStatus === CreateTeamApiStatus.Loading) ? 'pointer-events-none' : 'pointer-events-auto'}`}>Create Team</button>
+                <div className="py-2" />
+              </form>
+              {createTeamApiStatus === CreateTeamApiStatus.Loading && <p className="font-display">Creating team...</p>}
+              {createTeamApiStatus === CreateTeamApiStatus.Error && <p className="font-display">{createTeamErrorMsg}</p>}
+              {createTeamApiStatus === CreateTeamApiStatus.Success && <p className="font-display">Team: &apos;{createTeamName}&apos; created!</p>}
             </div>}
         </div>}
     </div>
