@@ -89,7 +89,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-15)
     - [Response Body](#response-body-15)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-15)
-  - [PATCH `/teams/:id/members/:id`](#patch-teamsidmembersid)
+  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
     - [Usage Notes](#usage-notes-15)
     - [Request body](#request-body-4)
     - [Authorization \& Content Type](#authorization--content-type-16)
@@ -1570,7 +1570,7 @@ List of HTTP status codes for success and failures.
 - [**PATCH `/teams/:id/rename`**](#patch-teamsidrename) -  Rename a team.
 - [**GET `/teams/:id/members`**](#get-teamsidmembers) -  Fetch list of team members for a team.
 - [**DELETE `/teams/:id/members/:id`**](#delete-teamsidmembersid) -  Remove a member from a team.
-- [**PATCH `/teams/:id/members/:id`**](#patch-teamsidmembersid) -  Change role of a member of a team.
+- [**PATCH `/teams/:id/members/:id/role`**](#patch-teamsidmembersid) -  Change role of a member of a team.
 - [**GET `/teams/:id/authz`**](#get-teamsidauthz) -  Fetch authorization details of access token holder for a team.
 
 ### POST `/teams`
@@ -2293,7 +2293,7 @@ List of HTTP status codes for success and failures.
 
 </details>
 
-### PATCH `/teams/:id/members/:id`
+### PATCH `/teams/:id/members/:id/role`
 
 Change role of a member of a team
 
