@@ -58,6 +58,13 @@ export enum CreateTeamApiStatus {
     Error
 }
 
+export enum CreateAppApiStatus {
+    Init,
+    Loading,
+    Success,
+    Error
+}
+
 export enum TeamNameChangeApiStatus {
     Init,
     Loading,
@@ -631,6 +638,28 @@ export const createTeamFromServer = async (teamName: string, router: AppRouterIn
     }
 
     return { status: CreateTeamApiStatus.Success }
+}
+
+export const createAppFromServer = async (teamId: string, appName: string, router: AppRouterInstance) => {
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+        method: 'POST',
+        headers: {
+            "Authorization": `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ name: appName })
+    };
+
+    const res = await fetch(`${origin}/teams/${teamId}/apps`, opts);
+    const data = await res.json()
+
+    if (!res.ok) {
+        logoutIfAuthError(router, res)
+        return { status: CreateAppApiStatus.Error, error: data.error }
+    }
+
+    return { status: CreateAppApiStatus.Success, data: data }
 }
 
 export const changeRoleFromServer = async (teamId: string, newRole: string, memberId: string, router: AppRouterInstance) => {
