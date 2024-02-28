@@ -95,6 +95,10 @@ cp .env.example .env
 Navigate to `./self-host` and start the containers.
 
 ```sh
+# for the very first time
+docker compose up --profiles init
+
+# for subsequent runs
 docker compose up
 ```
 
