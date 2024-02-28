@@ -1039,3 +1039,67 @@ func CreateApp(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, app)
 }
+
+func GetAppSession(c *gin.Context) {
+	appId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `app id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	sessionId, err := uuid.Parse(c.Param("sessionId"))
+	if err != nil {
+		msg := `session id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	app := &App{
+		ID: &appId,
+	}
+	team, err := app.getTeam()
+	if err != nil {
+		msg := `failed to fetch team from app`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+
+	ok, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`you don't have permissions to access apps in team %q`, team.ID)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	ok, err = PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`you don't have permissions to access the app %q`, appId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	fmt.Println("user id", userId)
+	fmt.Println("team id", team.ID)
+	fmt.Println("app id", appId)
+	fmt.Println("session id", sessionId)
+
+	c.JSON(http.StatusNotImplemented, gin.H{"ok": "not yet implemented"})
+}
