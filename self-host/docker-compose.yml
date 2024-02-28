@@ -31,6 +31,8 @@ services:
       watch:
         - path: ../measure-backend/symbolicator-retrace
           action: rebuild
+    depends_on:
+      - minio
 
   minio:
     container_name: minio
@@ -42,12 +44,13 @@ services:
       - MINIO_ROOT_USER=minio
       - MINIO_ROOT_PASSWORD=minio123
     command: server /data --console-address ":9001"
-    restart: always
     volumes:
       - minio-data:/data
   mc:
     container_name: mcmb
     image: minio/mc
+    profiles:
+      - init
     depends_on:
       - minio
     entrypoint: >
