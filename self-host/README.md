@@ -96,7 +96,7 @@ Navigate to `./self-host` and start the containers.
 
 ```sh
 # for the very first time
-docker compose up --profiles init
+docker compose up --profile init
 
 # for subsequent runs
 docker compose up
