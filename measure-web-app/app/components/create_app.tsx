@@ -1,9 +1,9 @@
 "use client"
 
 import React, { useState, FormEventHandler } from 'react';
-import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from '@/app/utils/auth_utils';
 import { useRouter } from 'next/navigation';
 import Accordion from './accordion';
+import { CreateAppApiStatus, createAppFromServer, emptyApp } from '../api/api_calls';
 
 interface CreateAppProps {
   teamId: string,
@@ -16,13 +16,6 @@ export enum CreateAppStatus {
   PostCreation
 }
 
-export enum CreateAppApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error
-}
-
 // This component acts in two modes.
 //
 // If only teamId is passed in, it will show
@@ -31,7 +24,7 @@ export enum CreateAppApiStatus {
 //
 // If existingAppName and existingApiKey are passed in, it will skip the new app
 // creation UI and only show the following app setup steps with the api key and
-//app name passed in.
+// app name passed in.
 const CreateApp: React.FC<CreateAppProps> = ({ teamId, existingAppName = null, existingApiKey = null }) => {
 
   const addAppSteps = [
@@ -85,25 +78,7 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, existingAppName = null, e
     }
   ]
 
-  const emptyData = {
-    "id": "",
-    "team_id": "",
-    "name": "",
-    "api_key": {
-      "created_at": "",
-      "key": "",
-      "last_seen": null,
-      "revoked": false
-    },
-    "onboarded": false,
-    "created_at": "",
-    "updated_at": "",
-    "platform": null,
-    "onboarded_at": null,
-    "unique_identifier": null
-  }
-
-  const [data, setData] = useState(emptyData);
+  const [data, setData] = useState(emptyApp);
   const [createAppStatus, setCreateAppStatus] = useState(existingAppName === null && existingApiKey === null ? CreateAppStatus.PreCreation : CreateAppStatus.PostCreation)
   const [createAppApiStatus, setCreateAppApiStatus] = useState(CreateAppApiStatus.Init);
   const [appName, setAppName] = useState("");
@@ -119,27 +94,18 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, existingAppName = null, e
 
     setCreateAppApiStatus(CreateAppApiStatus.Loading)
 
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
-    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
-    const opts = {
-      method: 'POST',
-      headers: {
-        "Authorization": `Bearer ${authToken}`
-      },
-      body: JSON.stringify({ name: appName })
-    };
+    const result = await createAppFromServer(teamId, appName, router)
 
-    const res = await fetch(`${origin}/teams/${teamId}/apps`, opts);
-
-    if (!res.ok) {
-      setCreateAppApiStatus(CreateAppApiStatus.Error)
-      logoutIfAuthError(router, res)
-      return
+    switch (result.status) {
+      case CreateAppApiStatus.Error:
+        setCreateAppApiStatus(CreateAppApiStatus.Error)
+        break
+      case CreateAppApiStatus.Success:
+        setCreateAppApiStatus(CreateAppApiStatus.Success)
+        setCreateAppStatus(CreateAppStatus.PostCreation)
+        setData(result.data)
+        break
     }
-
-    setCreateAppApiStatus(CreateAppApiStatus.Success)
-    setCreateAppStatus(CreateAppStatus.PostCreation)
-    setData(await res.json())
   }
 
   return (
