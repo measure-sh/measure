@@ -63,6 +63,7 @@ func main() {
 		apps.GET(":id/anrGroups", measure.GetANRGroups)
 		apps.GET(":id/crashGroups/:crashGroupId/crashes", measure.GetCrashGroupCrashes)
 		apps.GET(":id/anrGroups/:anrGroupId/anrs", measure.GetANRGroupANRs)
+		apps.GET(":id/sessions/:sessionId", measure.GetAppSession)
 	}
 
 	teams := r.Group("/teams")
