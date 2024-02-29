@@ -6,6 +6,7 @@ import { FormEventHandler, useEffect, useState } from "react";
 import { useRouter } from 'next/navigation';
 import DangerConfirmationModal from "@/app/components/danger_confirmation_modal";
 import { TeamsApiStatus, fetchTeamsFromServer, emptyTeam, AuthzAndMembersApiStatus, InviteMemberApiStatus, RemoveMemberApiStatus, RoleChangeApiStatus, TeamNameChangeApiStatus, defaultAuthzAndMembers, fetchAuthzAndMembersFromServer, changeTeamNameFromServer, changeRoleFromServer, inviteMemberFromServer, removeMemberFromServer, CreateTeamApiStatus, createTeamFromServer } from "@/app/api/api_calls";
+import AlertDialogModal from "@/app/components/alert_dialog_modal";
 
 function formatToCamelCase(role: string): string {
   return role.charAt(0).toLocaleUpperCase() + role.slice(1)
@@ -37,6 +38,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
   const [createTeamApiStatus, setCreateTeamApiStatus] = useState(CreateTeamApiStatus.Init);
   const [createTeamName, setCreateTeamName] = useState("");
   const [createTeamErrorMsg, setCreateTeamErrorMsg] = useState("")
+  const [createTeamAlertModalOpen, setCreateTeamAlertModalOpen] = useState(false)
 
   const [getAuthzAndMembersApiStatus, setAuthzAndMembersApiStatus] = useState(AuthzAndMembersApiStatus.Loading);
   const [authzAndMembers, setAuthzAndMembers] = useState(defaultAuthzAndMembers)
@@ -187,7 +189,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
         break
       case CreateTeamApiStatus.Success:
         setCreateTeamApiStatus(CreateTeamApiStatus.Success)
-        location.reload()
+        setCreateTeamAlertModalOpen(true)
         break
     }
   }
@@ -232,6 +234,14 @@ export default function Team({ params }: { params: { teamId: string } }) {
               removeMember()
             }}
             onCancelAction={() => setRemoveMemberConfirmationModalOpen(false)}
+          />
+
+          {/* Modal for acknowledging new team creation */}
+          <AlertDialogModal body={<p className="font-sans">New team <span className="font-display font-bold">{createTeamName}</span> created!</p>} open={createTeamAlertModalOpen} affirmativeText="Okay"
+            onAffirmativeAction={() => {
+              setCreateTeamAlertModalOpen(false)
+              location.reload()
+            }}
           />
 
           <p className="font-sans max-w-6xl text-center">Team name</p>
@@ -353,7 +363,6 @@ export default function Team({ params }: { params: { teamId: string } }) {
               </form>
               {createTeamApiStatus === CreateTeamApiStatus.Loading && <p className="font-display">Creating team...</p>}
               {createTeamApiStatus === CreateTeamApiStatus.Error && <p className="font-display">{createTeamErrorMsg}</p>}
-              {createTeamApiStatus === CreateTeamApiStatus.Success && <p className="font-display">Team: &apos;{createTeamName}&apos; created!</p>}
             </div>}
         </div>}
     </div>
