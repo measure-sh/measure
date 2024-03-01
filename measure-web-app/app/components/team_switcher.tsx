@@ -1,14 +1,16 @@
 "use client"
 
 import React, { useEffect, useRef, useState } from 'react';
+import { TeamsApiStatus } from '../api/api_calls';
 
 interface TeamSwitcherProps {
   items: string[];
   initialItemIndex?: number;
+  teamsApiStatus: TeamsApiStatus;
   onChangeSelectedItem?: (item: string) => void;
 }
 
-const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0, onChangeSelectedItem }) => {
+const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0, teamsApiStatus, onChangeSelectedItem }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const TeamSwitcherRef = useRef<HTMLDivElement | null>(null);
@@ -59,11 +61,15 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0
       <button
         type="button"
         onClick={toggleTeamSwitcher}
+        disabled={teamsApiStatus === TeamsApiStatus.Loading || teamsApiStatus === TeamsApiStatus.Error}
         className="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
-        <div className="flex flex-row justify-center">
-          <p className="pl-8 truncate w-max">{selectedItem ? selectedItem : items[initialItemIndex]}</p>
-          <p className="pl-3 pr-4 pt-1 text-sm">⏷</p>
-        </div>
+        {teamsApiStatus == TeamsApiStatus.Loading && <p className="pl-8 truncate w-max">Updating...</p>}
+        {teamsApiStatus == TeamsApiStatus.Error && <p className="pl-8 truncate w-max">Error</p>}
+        {teamsApiStatus == TeamsApiStatus.Success &&
+          <div className="flex flex-row justify-center">
+            <p className="pl-8 truncate w-max">{selectedItem ? selectedItem : items[initialItemIndex]}</p>
+            <p className="pl-3 pr-4 pt-1 text-sm">⏷</p>
+          </div>}
       </button>
 
       {isOpen && (
