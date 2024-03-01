@@ -60,9 +60,9 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0
         type="button"
         onClick={toggleTeamSwitcher}
         className="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
-        <div className="flex flex-row items-center">
-          <p className="pl-8 truncate">{selectedItem ? selectedItem : items[initialItemIndex]}</p>
-          <p className="pl-3 pr-4 text-sm">⏷</p>
+        <div className="flex flex-row justify-center">
+          <p className="pl-8 truncate w-max">{selectedItem ? selectedItem : items[initialItemIndex]}</p>
+          <p className="pl-3 pr-4 pt-1 text-sm">⏷</p>
         </div>
       </button>
 
