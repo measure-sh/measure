@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"measure-backend/measure-go/chrono"
+	"measure-backend/measure-go/event"
 	"measure-backend/measure-go/server"
 	"slices"
 	"sort"
@@ -25,29 +26,29 @@ type GroupID interface {
 }
 
 type ExceptionGroup struct {
-	ID              uuid.UUID        `json:"id" db:"id"`
-	AppID           uuid.UUID        `json:"app_id" db:"app_id"`
-	Name            string           `json:"name" db:"name"`
-	Fingerprint     string           `json:"fingerprint" db:"fingerprint"`
-	Count           int              `json:"count" db:"count"`
-	EventIDs        []uuid.UUID      `json:"event_ids,omitempty" db:"event_ids"`
-	EventExceptions []EventException `json:"exception_events,omitempty"`
-	Percentage      float32          `json:"percentage_contribution"`
-	CreatedAt       chrono.ISOTime   `json:"created_at" db:"created_at"`
-	UpdatedAt       chrono.ISOTime   `json:"updated_at" db:"updated_at"`
+	ID              uuid.UUID              `json:"id" db:"id"`
+	AppID           uuid.UUID              `json:"app_id" db:"app_id"`
+	Name            string                 `json:"name" db:"name"`
+	Fingerprint     string                 `json:"fingerprint" db:"fingerprint"`
+	Count           int                    `json:"count" db:"count"`
+	EventIDs        []uuid.UUID            `json:"event_ids,omitempty" db:"event_ids"`
+	EventExceptions []event.EventException `json:"exception_events,omitempty"`
+	Percentage      float32                `json:"percentage_contribution"`
+	CreatedAt       chrono.ISOTime         `json:"created_at" db:"created_at"`
+	UpdatedAt       chrono.ISOTime         `json:"updated_at" db:"updated_at"`
 }
 
 type ANRGroup struct {
-	ID          uuid.UUID      `json:"id" db:"id"`
-	AppID       uuid.UUID      `json:"app_id" db:"app_id"`
-	Name        string         `json:"name" db:"name"`
-	Fingerprint string         `json:"fingerprint" db:"fingerprint"`
-	Count       int            `json:"count" db:"count"`
-	EventIDs    []uuid.UUID    `json:"event_ids,omitempty" db:"event_ids"`
-	EventANRs   []EventANR     `json:"anr_events,omitempty"`
-	Percentage  float32        `json:"percentage_contribution"`
-	CreatedAt   chrono.ISOTime `json:"created_at" db:"created_at"`
-	UpdatedAt   chrono.ISOTime `json:"updated_at" db:"updated_at"`
+	ID          uuid.UUID        `json:"id" db:"id"`
+	AppID       uuid.UUID        `json:"app_id" db:"app_id"`
+	Name        string           `json:"name" db:"name"`
+	Fingerprint string           `json:"fingerprint" db:"fingerprint"`
+	Count       int              `json:"count" db:"count"`
+	EventIDs    []uuid.UUID      `json:"event_ids,omitempty" db:"event_ids"`
+	EventANRs   []event.EventANR `json:"anr_events,omitempty"`
+	Percentage  float32          `json:"percentage_contribution"`
+	CreatedAt   chrono.ISOTime   `json:"created_at" db:"created_at"`
+	UpdatedAt   chrono.ISOTime   `json:"updated_at" db:"updated_at"`
 }
 
 type Grouper interface {
@@ -152,7 +153,7 @@ func GetExceptionGroup(eg *ExceptionGroup) error {
 // GetExceptionsWithFilter returns a slice of EventException for the given slice of
 // event id and matching AppFilter. Also computes the next, previous pagination meta
 // values.
-func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []EventException, next bool, previous bool, err error) {
+func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []event.EventException, next bool, previous bool, err error) {
 	var edgecount int
 	var countStmt *sqlf.Stmt
 	var exceptions string
@@ -325,7 +326,7 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []Even
 	}
 
 	for rows.Next() {
-		var e EventException
+		var e event.EventException
 		fields := []any{
 			&e.ID,
 			&e.SessionID,
@@ -410,7 +411,7 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []Even
 
 // GetANRsWithFilter returns a slice of EventANR for the given slice of
 // event id and matching AppFilter.
-func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []EventANR, next bool, previous bool, err error) {
+func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []event.EventANR, next bool, previous bool, err error) {
 	var edgecount int
 	var countStmt *sqlf.Stmt
 	var exceptions string
@@ -583,7 +584,7 @@ func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []EventANR, 
 	}
 
 	for rows.Next() {
-		var e EventANR
+		var e event.EventANR
 		fields := []any{
 			&e.ID,
 			&e.SessionID,

@@ -1,9 +1,10 @@
-package measure
+package event
 
 import (
 	"encoding/json"
 	"fmt"
 	"measure-backend/measure-go/chrono"
+	"measure-backend/measure-go/text"
 	"slices"
 	"strconv"
 	"strings"
@@ -52,6 +53,9 @@ const (
 	maxRouteChars                             = 128
 )
 
+const FramePrefix = "\tat "
+const GenericPrefix = ": "
+
 const TypeANR = "anr"
 const TypeException = "exception"
 const TypeAppExit = "app_exit"
@@ -73,9 +77,9 @@ const TypeTrimMemory = "trim_memory"
 const TypeCPUUsage = "cpu_usage"
 const TypeNavigation = "navigation"
 
-// timeFormat is the format of datetime in nanoseconds when
-// converting datetime values before inserting into database
-const timeFormat = "2006-01-02 15:04:05.999999999"
+type EventConstraint interface {
+	ANR | Exception | CPUUsage
+}
 
 var TrimRight = func(s string) string {
 	return strings.TrimRight(s, "\x00")
@@ -100,8 +104,8 @@ func (f Frame) String() string {
 		lineNum = strconv.Itoa(f.LineNum)
 	}
 
-	codeInfo := joinNonEmptyStrings(".", className, methodName)
-	fileInfo := joinNonEmptyStrings(":", fileName, lineNum)
+	codeInfo := text.JoinNonEmptyStrings(".", className, methodName)
+	fileInfo := text.JoinNonEmptyStrings(":", fileName, lineNum)
 
 	if fileInfo != "" {
 		fileInfo = fmt.Sprintf(`(%s)`, fileInfo)
@@ -162,7 +166,7 @@ func (e *Exception) Trim() {
 func (e Exception) Stacktrace() string {
 	var b strings.Builder
 
-	b.WriteString(e.getType() + "\n")
+	b.WriteString(e.GetType() + "\n")
 
 	for i := range e.Exceptions {
 		for j := range e.Exceptions[i].Frames {
@@ -185,7 +189,7 @@ func (a *ANR) Trim() {
 func (e ANR) Stacktrace() string {
 	var b strings.Builder
 
-	b.WriteString(e.getType() + "\n")
+	b.WriteString(e.GetType() + "\n")
 
 	for i := range e.Exceptions {
 		for j := range e.Exceptions[i].Frames {
@@ -300,9 +304,9 @@ type NetworkChange struct {
 type Http struct {
 	URL                  string            `json:"url"`
 	Method               string            `json:"method"`
-	StatusCode           int               `json:"status_code"`
-	RequestBodySize      int               `json:"request_body_size"`
-	ResponseBodySize     int               `json:"response_body_size"`
+	StatusCode           uint16            `json:"status_code"`
+	RequestBodySize      uint64            `json:"request_body_size"`
+	ResponseBodySize     uint64            `json:"response_body_size"`
 	RequestTimestamp     time.Time         `json:"request_timestamp"`
 	ResponseTimestamp    time.Time         `json:"response_timestamp"`
 	StartTime            uint64            `json:"start_time"`
@@ -323,8 +327,8 @@ type Http struct {
 	ResponseHeadersEnd   uint64            `json:"response_headers_end"`
 	ResponseBodyStart    uint64            `json:"response_body_start"`
 	ResponseBodyEnd      uint64            `json:"response_body_end"`
-	RequestHeadersSize   int               `json:"request_headers_size"`
-	ResponseHeadersSize  int               `json:"response_headers_size"`
+	RequestHeadersSize   uint64            `json:"request_headers_size"`
+	ResponseHeadersSize  uint64            `json:"response_headers_size"`
 	FailureReason        string            `json:"failure_reason"`
 	FailureDescription   string            `json:"failure_description"`
 	RequestHeaders       map[string]string `json:"request_headers"`
@@ -333,15 +337,15 @@ type Http struct {
 }
 
 type MemoryUsage struct {
-	JavaMaxHeap       uint64 `json:"java_max_heap" binding:"required"`
-	JavaTotalHeap     uint64 `json:"java_total_heap" binding:"required"`
-	JavaFreeHeap      uint64 `json:"java_free_heap" binding:"required"`
-	TotalPSS          uint64 `json:"total_pss" binding:"required"`
-	RSS               uint64 `json:"rss"`
-	NativeTotalHeap   uint64 `json:"native_total_heap" binding:"required"`
-	NativeFreeHeap    uint64 `json:"native_free_heap" binding:"required"`
-	IntervalConfig    uint64 `json:"interval_config" binding:"required"`
-	IntervalStartTime uint32 `json:"interval_start_time" binding:"required"`
+	JavaMaxHeap     uint64 `json:"java_max_heap" binding:"required"`
+	JavaTotalHeap   uint64 `json:"java_total_heap" binding:"required"`
+	JavaFreeHeap    uint64 `json:"java_free_heap" binding:"required"`
+	TotalPSS        uint64 `json:"total_pss" binding:"required"`
+	RSS             uint64 `json:"rss"`
+	NativeTotalHeap uint64 `json:"native_total_heap" binding:"required"`
+	NativeFreeHeap  uint64 `json:"native_free_heap" binding:"required"`
+	IntervalConfig  uint32 `json:"interval_config" binding:"required"`
+	// IntervalStartTime uint32 `json:"interval_start_time" binding:"required"`
 }
 
 type LowMemory struct {
@@ -353,7 +357,7 @@ type TrimMemory struct {
 
 type CPUUsage struct {
 	NumCores       uint8  `json:"num_cores" binding:"required"`
-	ClockSpeed     uint64 `json:"clock_speed" binding:"required"`
+	ClockSpeed     uint32 `json:"clock_speed" binding:"required"`
 	StartTime      uint64 `json:"start_time" binding:"required"`
 	Uptime         uint64 `json:"uptime" binding:"required"`
 	UTime          uint64 `json:"utime" binding:"required"`
@@ -365,6 +369,15 @@ type CPUUsage struct {
 
 type Navigation struct {
 	Route string `json:"route" binding:"required"`
+}
+
+type Event interface {
+	ANR
+	Exception
+	AppExit
+	LogString
+	GestureLongClick
+	GestureScroll
 }
 
 type EventField struct {
@@ -396,88 +409,88 @@ type EventField struct {
 	Attributes        map[string]string `json:"attributes"`
 }
 
-func (e *EventField) isException() bool {
+func (e *EventField) IsException() bool {
 	return e.Type == TypeException
 }
 
-func (e *EventField) isUnhandledException() bool {
+func (e *EventField) IsUnhandledException() bool {
 	return e.Type == TypeException && !e.Exception.Handled
 }
 
-func (e *EventField) isANR() bool {
+func (e *EventField) IsANR() bool {
 	return e.Type == TypeANR
 }
 
-func (e *EventField) isAppExit() bool {
+func (e *EventField) IsAppExit() bool {
 	return e.Type == TypeAppExit
 }
 
-func (e *EventField) isString() bool {
+func (e *EventField) IsString() bool {
 	return e.Type == TypeString
 }
 
-func (e *EventField) isGestureLongClick() bool {
+func (e *EventField) IsGestureLongClick() bool {
 	return e.Type == TypeGestureLongClick
 }
 
-func (e *EventField) isGestureScroll() bool {
+func (e *EventField) IsGestureScroll() bool {
 	return e.Type == TypeGestureScroll
 }
 
-func (e *EventField) isGestureClick() bool {
+func (e *EventField) IsGestureClick() bool {
 	return e.Type == TypeGestureClick
 }
 
-func (e *EventField) isLifecycleActivity() bool {
+func (e *EventField) IsLifecycleActivity() bool {
 	return e.Type == TypeLifecycleActivity
 }
 
-func (e *EventField) isLifecycleFragment() bool {
+func (e *EventField) IsLifecycleFragment() bool {
 	return e.Type == TypeLifecycleFragment
 }
 
-func (e *EventField) isLifecycleApp() bool {
+func (e *EventField) IsLifecycleApp() bool {
 	return e.Type == TypeLifecycleApp
 }
 
-func (e *EventField) isColdLaunch() bool {
+func (e *EventField) IsColdLaunch() bool {
 	return e.Type == TypeColdLaunch
 }
 
-func (e *EventField) isWarmLaunch() bool {
+func (e *EventField) IsWarmLaunch() bool {
 	return e.Type == TypeWarmLaunch
 }
 
-func (e *EventField) isHotLaunch() bool {
+func (e *EventField) IsHotLaunch() bool {
 	return e.Type == TypeHotLaunch
 }
 
-func (e *EventField) isNetworkChange() bool {
+func (e *EventField) IsNetworkChange() bool {
 	return e.Type == TypeNetworkChange
 }
 
-func (e *EventField) isHttp() bool {
+func (e *EventField) IsHttp() bool {
 	return e.Type == TypeHttp
 }
 
-func (e *EventField) isMemoryUsage() bool {
+func (e *EventField) IsMemoryUsage() bool {
 	return e.Type == TypeMemoryUsage
 }
 
-func (e *EventField) isTrimMemory() bool {
+func (e *EventField) IsTrimMemory() bool {
 	return e.Type == TypeTrimMemory
 }
 
-func (e *EventField) isCPUUsage() bool {
+func (e *EventField) IsCPUUsage() bool {
 	return e.Type == TypeCPUUsage
 }
 
 // check if LowMemory event is present
-func (e *EventField) isLowMemory() bool {
+func (e *EventField) IsLowMemory() bool {
 	return e.Type == TypeLowMemory
 }
 
-func (e *EventField) isNavigation() bool {
+func (e *EventField) IsNavigation() bool {
 	return e.Type == TypeNavigation
 }
 
@@ -485,7 +498,7 @@ func (e *EventField) Trim() {
 	e.ThreadName = TrimRight(e.ThreadName)
 	e.Type = TrimRight(e.Type)
 	e.Resource.Trim()
-	if e.isException() {
+	if e.IsException() {
 		e.Exception.Trim()
 	}
 }
@@ -524,9 +537,9 @@ func (e *EventException) Trim() {
 
 func (e *EventException) ComputeView() {
 	var ev ExceptionView
-	ev.Type = e.Exception.getType()
-	ev.Message = e.Exception.getMessage()
-	ev.Location = e.Exception.getLocation()
+	ev.Type = e.Exception.GetType()
+	ev.Message = e.Exception.GetMessage()
+	ev.Location = e.Exception.GetLocation()
 	ev.Stacktrace = e.Exception.Stacktrace()
 	e.Exceptions = append(e.Exceptions, ev)
 
@@ -569,9 +582,9 @@ func (e *EventANR) Trim() {
 
 func (e *EventANR) ComputeView() {
 	var av ANRView
-	av.Type = e.ANR.getType()
-	av.Message = e.ANR.getMessage()
-	av.Location = e.ANR.getLocation()
+	av.Type = e.ANR.GetType()
+	av.Message = e.ANR.GetMessage()
+	av.Location = e.ANR.GetLocation()
 	av.Stacktrace = e.ANR.Stacktrace()
 	e.ANRs = append(e.ANRs, av)
 
@@ -585,8 +598,8 @@ func (e *EventANR) ComputeView() {
 	}
 }
 
-func (e *EventField) computeExceptionFingerprint() error {
-	if !e.isException() {
+func (e *EventField) ComputeExceptionFingerprint() error {
+	if !e.IsException() {
 		return nil
 	}
 
@@ -605,8 +618,8 @@ func (e *EventField) computeExceptionFingerprint() error {
 	return nil
 }
 
-func (e *EventField) computeANRFingerprint() error {
-	if !e.isANR() {
+func (e *EventField) ComputeANRFingerprint() error {
+	if !e.IsANR() {
 		return nil
 	}
 
@@ -620,7 +633,7 @@ func (e *EventField) computeANRFingerprint() error {
 	return nil
 }
 
-func (e *EventField) validate() error {
+func (e *EventField) Validate() error {
 	validTypes := []string{TypeANR, TypeException, TypeAppExit, TypeString, TypeGestureLongClick, TypeGestureScroll, TypeGestureClick, TypeLifecycleActivity, TypeLifecycleFragment, TypeLifecycleApp, TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch, TypeNetworkChange, TypeHttp, TypeMemoryUsage, TypeLowMemory, TypeTrimMemory, TypeCPUUsage, TypeNavigation}
 	if !slices.Contains(validTypes, e.Type) {
 		return fmt.Errorf(`"events[].type" is not a valid type`)
@@ -632,67 +645,67 @@ func (e *EventField) validate() error {
 		return fmt.Errorf(`events[].thread_name is invalid`)
 	}
 	// validate all required fields of each type
-	if e.isANR() {
+	if e.IsANR() {
 		if len(e.ANR.Exceptions) < 1 || len(e.ANR.Threads) < 1 || e.ANR.ThreadName == "" {
 			return fmt.Errorf(`anr event is invalid`)
 		}
 	}
 
-	if e.isException() {
+	if e.IsException() {
 		if len(e.Exception.Exceptions) < 1 || len(e.Exception.Threads) < 1 || e.Exception.ThreadName == "" {
 			return fmt.Errorf(`exception event is invalid`)
 		}
 	}
 
-	if e.isAppExit() {
+	if e.IsAppExit() {
 		if len(e.AppExit.Reason) < 1 || len(e.AppExit.Importance) < 1 || len(e.AppExit.ProcessName) < 1 || len(e.AppExit.ProcessName) < 1 || e.AppExit.Timestamp.IsZero() {
 			return fmt.Errorf(`app_exit event is invalid`)
 		}
 	}
 
-	if e.isString() {
+	if e.IsString() {
 		if len(e.LogString.String) < 1 {
 			return fmt.Errorf(`string event is invalid`)
 		}
 	}
 
-	if e.isGestureLongClick() {
+	if e.IsGestureLongClick() {
 		if e.GestureLongClick.X < 0 || e.GestureLongClick.Y < 0 {
 			return fmt.Errorf(`gesture_long_click event is invalid`)
 		}
 	}
 
-	if e.isGestureScroll() {
+	if e.IsGestureScroll() {
 		if e.GestureScroll.X < 0 || e.GestureScroll.Y < 0 {
 			return fmt.Errorf(`gesture_scroll event is invalid`)
 		}
 	}
 
-	if e.isGestureClick() {
+	if e.IsGestureClick() {
 		if e.GestureClick.X < 0 || e.GestureClick.Y < 0 {
 			return fmt.Errorf(`gesture_click event is invalid`)
 		}
 	}
 
-	if e.isLifecycleActivity() {
+	if e.IsLifecycleActivity() {
 		if e.LifecycleActivity.Type == "" || e.LifecycleActivity.ClassName == "" {
 			return fmt.Errorf(`lifecycle_activity event is invalid`)
 		}
 	}
 
-	if e.isLifecycleFragment() {
+	if e.IsLifecycleFragment() {
 		if e.LifecycleFragment.Type == "" || e.LifecycleFragment.ClassName == "" {
 			return fmt.Errorf(`lifecycle_fragment event is invalid`)
 		}
 	}
 
-	if e.isLifecycleApp() {
+	if e.IsLifecycleApp() {
 		if e.LifecycleApp.Type == "" {
 			return fmt.Errorf(`lifecycle_app event is invalid`)
 		}
 	}
 
-	if e.isColdLaunch() {
+	if e.IsColdLaunch() {
 		if e.ColdLaunch.ProcessStartUptime <= 0 && e.ColdLaunch.ContentProviderAttachUptime <= 0 && e.ColdLaunch.ProcessStartRequestedUptime <= 0 {
 			return fmt.Errorf(`one of cold_launch.process_start_uptime, cold_launch.process_start_requested_uptime, cold_launch.content_provider_attach_uptime must be greater than 0`)
 		}
@@ -704,7 +717,7 @@ func (e *EventField) validate() error {
 		}
 	}
 
-	if e.isWarmLaunch() {
+	if e.IsWarmLaunch() {
 		if e.WarmLaunch.AppVisibleUptime <= 0 {
 			return fmt.Errorf(`warm_launch.app_visible_uptime must be greater than 0`)
 		}
@@ -716,7 +729,7 @@ func (e *EventField) validate() error {
 		}
 	}
 
-	if e.isHotLaunch() {
+	if e.IsHotLaunch() {
 		if e.HotLaunch.AppVisibleUptime <= 0 {
 			return fmt.Errorf(`hot_launch.app_visible_uptime must be greater than 0`)
 		}
@@ -728,13 +741,13 @@ func (e *EventField) validate() error {
 		}
 	}
 
-	if e.isNetworkChange() {
+	if e.IsNetworkChange() {
 		if e.NetworkChange.NetworkType == "" {
 			return fmt.Errorf(`network_change.network_type must not be empty`)
 		}
 	}
 
-	if e.isHttp() {
+	if e.IsHttp() {
 		if e.Http.URL == "" {
 			return fmt.Errorf(`http.url must not be empty`)
 		}
@@ -743,19 +756,19 @@ func (e *EventField) validate() error {
 		}
 	}
 
-	if e.isMemoryUsage() {
+	if e.IsMemoryUsage() {
 		if e.MemoryUsage.IntervalConfig <= 0 {
 			return fmt.Errorf(`memory_usage.interval_config must be greater than 0`)
 		}
 	}
 
-	if e.isTrimMemory() {
+	if e.IsTrimMemory() {
 		if e.TrimMemory.Level == "" {
 			return fmt.Errorf(`trim_memory.level must not be empty`)
 		}
 	}
 
-	if e.isCPUUsage() {
+	if e.IsCPUUsage() {
 		if e.CPUUsage.NumCores <= 0 {
 			return fmt.Errorf(`cpu_usage.num_cores must be greater than 0`)
 		}
@@ -767,7 +780,7 @@ func (e *EventField) validate() error {
 		}
 	}
 
-	if e.isNavigation() {
+	if e.IsNavigation() {
 		if e.Navigation.Route == "" {
 			return fmt.Errorf(`navigation.route must not be empty`)
 		}
@@ -879,28 +892,28 @@ func (e *EventField) validate() error {
 	return nil
 }
 
-func (e Exception) getType() string {
+func (e Exception) GetType() string {
 	return e.Exceptions[len(e.Exceptions)-1].Type
 }
 
-func (e Exception) getMessage() string {
+func (e Exception) GetMessage() string {
 	return e.Exceptions[len(e.Exceptions)-1].Message
 }
 
-func (e Exception) getLocation() string {
+func (e Exception) GetLocation() string {
 	frame := e.Exceptions[len(e.Exceptions)-1].Frames[0]
 	return frame.String()
 }
 
-func (a ANR) getType() string {
+func (a ANR) GetType() string {
 	return a.Exceptions[len(a.Exceptions)-1].Type
 }
 
-func (a ANR) getMessage() string {
+func (a ANR) GetMessage() string {
 	return a.Exceptions[len(a.Exceptions)-1].Message
 }
 
-func (a ANR) getLocation() string {
+func (a ANR) GetLocation() string {
 	frame := a.Exceptions[len(a.Exceptions)-1].Frames[0]
 	return frame.String()
 }

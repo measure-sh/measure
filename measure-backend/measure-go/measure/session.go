@@ -6,8 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"measure-backend/measure-go/chrono"
+	"measure-backend/measure-go/event"
 	"measure-backend/measure-go/inet"
 	"measure-backend/measure-go/server"
+	"measure-backend/measure-go/symbol"
 	"net"
 	"net/http"
 	"strconv"
@@ -22,26 +25,26 @@ import (
 )
 
 type Session struct {
-	SessionID   uuid.UUID    `json:"session_id" binding:"required"`
-	AppID       uuid.UUID    `json:"app_id"`
-	Timestamp   time.Time    `json:"timestamp" binding:"required"`
-	IPv4        net.IP       `json:"inet_ipv4"`
-	IPv6        net.IP       `json:"inet_ipv6"`
-	CountryCode string       `json:"inet_country_code"`
-	Resource    Resource     `json:"resource" binding:"required"`
-	Events      []EventField `json:"events" binding:"required"`
-	Attachments []Attachment `json:"attachments"`
-	CreatedAt   time.Time    `json:"created_at"`
-	UpdatedAt   time.Time    `json:"updated_at"`
+	SessionID   uuid.UUID          `json:"session_id" binding:"required"`
+	AppID       uuid.UUID          `json:"app_id"`
+	Timestamp   time.Time          `json:"timestamp" binding:"required"`
+	IPv4        net.IP             `json:"inet_ipv4"`
+	IPv6        net.IP             `json:"inet_ipv6"`
+	CountryCode string             `json:"inet_country_code"`
+	Resource    event.Resource     `json:"resource" binding:"required"`
+	Events      []event.EventField `json:"events" binding:"required"`
+	Attachments []Attachment       `json:"attachments"`
+	CreatedAt   time.Time          `json:"created_at"`
+	UpdatedAt   time.Time          `json:"updated_at"`
 }
 
 func (s *Session) validate() error {
-	if err := s.Resource.validate(); err != nil {
+	if err := s.Resource.Validate(); err != nil {
 		return err
 	}
 
 	for _, event := range s.Events {
-		if err := event.validate(); err != nil {
+		if err := event.Validate(); err != nil {
 			return err
 		}
 	}
@@ -57,6 +60,52 @@ func (s *Session) validate() error {
 	return nil
 }
 
+// firstEvent returns a pointer to the first event
+// from the session's event slice.
+func (s *Session) firstEvent() *event.EventField {
+	if s.hasEvents() {
+		return &s.Events[0]
+	}
+	return nil
+}
+
+// lastEvent returns a pointer to the last event
+// from the session's event slice.
+func (s *Session) lastEvent() *event.EventField {
+	if s.hasEvents() {
+		return &s.Events[len(s.Events)-1]
+	}
+	return nil
+}
+
+// Duration calculates the session time duration between
+// the last event and the first event. Assumes, the event
+// list is sorted by timestamp in ascending order.
+func (s *Session) Duration() time.Duration {
+	if s.hasEvents() {
+		first := s.firstEvent()
+		last := s.lastEvent()
+		return last.Timestamp.Sub(first.Timestamp)
+	}
+
+	return time.Duration(0)
+}
+
+// EventsOfType retuns a slice of event.EventField that
+// matches the accepted event type.
+func (s *Session) EventsOfType(t string) (result []event.EventField) {
+	for i := range s.Events {
+		if s.Events[i].Type == t {
+			result = append(result, s.Events[i])
+		}
+	}
+	return
+}
+
+func (s *Session) hasEvents() bool {
+	return len(s.Events) > 0
+}
+
 func (s *Session) hasAttachments() bool {
 	return len(s.Attachments) > 0
 }
@@ -65,7 +114,7 @@ func (s *Session) hasUnhandledExceptions() bool {
 	result := false
 
 	for i := range s.Events {
-		if s.Events[i].isUnhandledException() {
+		if s.Events[i].IsUnhandledException() {
 			result = true
 			break
 		}
@@ -78,7 +127,7 @@ func (s *Session) hasANRs() bool {
 	result := false
 
 	for i := range s.Events {
-		if s.Events[i].isANR() {
+		if s.Events[i].IsANR() {
 			result = true
 			break
 		}
@@ -90,42 +139,42 @@ func (s *Session) hasANRs() bool {
 func (s *Session) needsSymbolication() bool {
 	result := false
 	for i := range s.Events {
-		if s.Events[i].isException() {
+		if s.Events[i].IsException() {
 			result = true
 			break
 		}
 
-		if s.Events[i].isANR() {
+		if s.Events[i].IsANR() {
 			result = true
 			break
 		}
 
-		if s.Events[i].isAppExit() && len(s.Events[i].AppExit.Trace) > 0 {
+		if s.Events[i].IsAppExit() && len(s.Events[i].AppExit.Trace) > 0 {
 			result = true
 			break
 		}
 
-		if s.Events[i].isLifecycleActivity() && len(s.Events[i].LifecycleActivity.ClassName) > 0 {
+		if s.Events[i].IsLifecycleActivity() && len(s.Events[i].LifecycleActivity.ClassName) > 0 {
 			result = true
 			break
 		}
 
-		if s.Events[i].isColdLaunch() && len(s.Events[i].ColdLaunch.LaunchedActivity) > 0 {
+		if s.Events[i].IsColdLaunch() && len(s.Events[i].ColdLaunch.LaunchedActivity) > 0 {
 			result = true
 			break
 		}
 
-		if s.Events[i].isWarmLaunch() && len(s.Events[i].WarmLaunch.LaunchedActivity) > 0 {
+		if s.Events[i].IsWarmLaunch() && len(s.Events[i].WarmLaunch.LaunchedActivity) > 0 {
 			result = true
 			break
 		}
 
-		if s.Events[i].isHotLaunch() && len(s.Events[i].HotLaunch.LaunchedActivity) > 0 {
+		if s.Events[i].IsHotLaunch() && len(s.Events[i].HotLaunch.LaunchedActivity) > 0 {
 			result = true
 			break
 		}
 
-		if s.Events[i].isLifecycleFragment() {
+		if s.Events[i].IsLifecycleFragment() {
 			hasClassName := len(s.Events[i].LifecycleFragment.ClassName) > 0
 			hasParentActivity := len(s.Events[i].LifecycleFragment.ParentActivity) > 0
 
@@ -183,10 +232,10 @@ func (s *Session) lookupCountry(rawIP string) error {
 	return nil
 }
 
-func (s *Session) getUnhandledExceptions() []EventField {
-	var exceptions []EventField
+func (s *Session) getUnhandledExceptions() []event.EventField {
+	var exceptions []event.EventField
 	for _, event := range s.Events {
-		if !event.isException() {
+		if !event.IsException() {
 			continue
 		}
 		if event.Exception.Handled {
@@ -198,10 +247,10 @@ func (s *Session) getUnhandledExceptions() []EventField {
 	return exceptions
 }
 
-func (s *Session) getANRs() []EventField {
-	var anrs []EventField
+func (s *Session) getANRs() []event.EventField {
+	var anrs []event.EventField
 	for _, event := range s.Events {
-		if !event.isANR() {
+		if !event.IsANR() {
 			continue
 		}
 		anrs = append(anrs, event)
@@ -215,7 +264,7 @@ func (s *Session) bucketUnhandledException() error {
 
 	type EventGroup struct {
 		eventId     uuid.UUID
-		exception   Exception
+		exception   event.Exception
 		fingerprint uint64
 	}
 
@@ -254,7 +303,7 @@ func (s *Session) bucketUnhandledException() error {
 
 		if len(appExceptionGroups) < 1 {
 			// insert new exception group
-			return NewExceptionGroup(s.AppID, group.exception.getType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
+			return NewExceptionGroup(s.AppID, group.exception.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
 		}
 
 		index, err := ClosestExceptionGroup(appExceptionGroups, group.fingerprint)
@@ -263,7 +312,7 @@ func (s *Session) bucketUnhandledException() error {
 		}
 		if index < 0 {
 			// when no group matches exists, create new exception group
-			NewExceptionGroup(s.AppID, group.exception.getType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
+			NewExceptionGroup(s.AppID, group.exception.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
 			continue
 		}
 		matchedGroup := appExceptionGroups[index]
@@ -285,7 +334,7 @@ func (s *Session) bucketANRs() error {
 
 	type EventGroup struct {
 		eventId     uuid.UUID
-		anr         ANR
+		anr         event.ANR
 		fingerprint uint64
 	}
 
@@ -324,7 +373,7 @@ func (s *Session) bucketANRs() error {
 
 		if len(appANRGroups) < 1 {
 			// insert new anr group
-			return NewANRGroup(s.AppID, group.anr.getType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
+			return NewANRGroup(s.AppID, group.anr.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
 		}
 
 		index, err := ClosestANRGroup(appANRGroups, group.fingerprint)
@@ -333,7 +382,7 @@ func (s *Session) bucketANRs() error {
 		}
 		if index < 0 {
 			// when no group matches exists, create new anr group
-			NewANRGroup(s.AppID, group.anr.getType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
+			NewANRGroup(s.AppID, group.anr.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
 			continue
 		}
 		matchedGroup := appANRGroups[index]
@@ -358,7 +407,7 @@ func (s *Session) ingest() error {
 
 	if len(s.Events) == 0 {
 		empty = true
-		s.Events = append(s.Events, EventField{})
+		s.Events = append(s.Events, event.EventField{})
 	}
 
 	var args []any
@@ -368,7 +417,7 @@ func (s *Session) ingest() error {
 		exceptionExceptions := "[]"
 		exceptionThreads := "[]"
 		isLowMemory := false
-		if s.Events[i].isANR() {
+		if s.Events[i].IsANR() {
 			marshalledExceptions, err := json.Marshal(s.Events[i].ANR.Exceptions)
 			if err != nil {
 				return err
@@ -379,11 +428,11 @@ func (s *Session) ingest() error {
 				return err
 			}
 			anrThreads = string(marshalledThreads)
-			if err := s.Events[i].computeANRFingerprint(); err != nil {
+			if err := s.Events[i].ComputeANRFingerprint(); err != nil {
 				return err
 			}
 		}
-		if s.Events[i].isException() {
+		if s.Events[i].IsException() {
 			marshalledExceptions, err := json.Marshal(s.Events[i].Exception.Exceptions)
 			if err != nil {
 				return err
@@ -395,11 +444,11 @@ func (s *Session) ingest() error {
 				return err
 			}
 			exceptionThreads = string(marshalledThreads)
-			if err := s.Events[i].computeExceptionFingerprint(); err != nil {
+			if err := s.Events[i].ComputeExceptionFingerprint(); err != nil {
 				return err
 			}
 		}
-		if s.Events[i].isLowMemory() {
+		if s.Events[i].IsLowMemory() {
 			isLowMemory = true
 		}
 		if !empty {
@@ -580,7 +629,7 @@ func (s *Session) ingest() error {
 			s.IPv4,
 			s.IPv6,
 			s.CountryCode,
-			s.Events[i].Timestamp.Format(timeFormat),
+			s.Events[i].Timestamp.Format(chrono.NanoTimeFormat),
 			s.Events[i].ThreadName,
 			s.Resource.DeviceName,
 			s.Resource.DeviceModel,
@@ -747,7 +796,7 @@ func (s *Session) ingest() error {
 
 	// keep the emptiness alive
 	if empty {
-		s.Events = []EventField{}
+		s.Events = []event.EventField{}
 	}
 
 	return nil
@@ -860,208 +909,208 @@ func (s *Session) getMappingKey() (string, error) {
 	return key, nil
 }
 
-func (s *Session) EncodeForSymbolication() (CodecMap, []SymbolicationUnit) {
+func (s *Session) EncodeForSymbolication() (symbol.CodecMap, []SymbolicationUnit) {
 	var symbolicationUnits []SymbolicationUnit
-	codecMap := make(CodecMap)
+	codecMap := make(symbol.CodecMap)
 
-	for eventIdx, event := range s.Events {
-		if event.isException() {
-			for exceptionIdx, ex := range event.Exception.Exceptions {
+	for eventIdx, ev := range s.Events {
+		if ev.IsException() {
+			for exceptionIdx, ex := range ev.Exception.Exceptions {
 				if len(ex.Frames) > 0 {
 					idException := uuid.New()
-					unitEx := NewCodecMapVal()
-					unitEx.Type = TypeException
+					unitEx := symbol.NewCodecMapVal()
+					unitEx.Type = event.TypeException
 					unitEx.Event = eventIdx
 					unitEx.Exception = exceptionIdx
-					unitEx.Frames = TransformSwap
+					unitEx.Frames = symbol.TransformSwap
 					codecMap[idException] = *unitEx
 					su := new(SymbolicationUnit)
 					su.ID = idException
 					for _, frame := range ex.Frames {
-						su.Values = append(su.Values, MarshalRetraceFrame(frame, FramePrefix))
+						su.Values = append(su.Values, symbol.MarshalRetraceFrame(frame, event.FramePrefix))
 					}
 					symbolicationUnits = append(symbolicationUnits, *su)
 				}
 				if len(ex.Type) > 0 {
 					idExceptionType := uuid.New()
-					unitExType := NewCodecMapVal()
-					unitExType.Type = TypeException
+					unitExType := symbol.NewCodecMapVal()
+					unitExType.Type = event.TypeException
 					unitExType.Event = eventIdx
 					unitExType.Exception = exceptionIdx
-					unitExType.ExceptionType = TransformSwap
+					unitExType.ExceptionType = symbol.TransformSwap
 					codecMap[idExceptionType] = *unitExType
 					su := new(SymbolicationUnit)
 					su.ID = idExceptionType
-					su.Values = []string{GenericPrefix + ex.Type}
+					su.Values = []string{event.GenericPrefix + ex.Type}
 					symbolicationUnits = append(symbolicationUnits, *su)
 				}
 			}
-			for threadIdx, ex := range event.Exception.Threads {
+			for threadIdx, ex := range ev.Exception.Threads {
 				if len(ex.Frames) > 0 {
 					idThread := uuid.New()
-					unitTh := NewCodecMapVal()
-					unitTh.Type = TypeException
+					unitTh := symbol.NewCodecMapVal()
+					unitTh.Type = event.TypeException
 					unitTh.Event = eventIdx
 					unitTh.Thread = threadIdx
-					unitTh.Frames = TransformSwap
+					unitTh.Frames = symbol.TransformSwap
 					codecMap[idThread] = *unitTh
 					su := new(SymbolicationUnit)
 					su.ID = idThread
 					for _, frame := range ex.Frames {
-						su.Values = append(su.Values, MarshalRetraceFrame(frame, FramePrefix))
+						su.Values = append(su.Values, symbol.MarshalRetraceFrame(frame, event.FramePrefix))
 					}
 					symbolicationUnits = append(symbolicationUnits, *su)
 				}
 			}
 		}
 
-		if event.isANR() {
-			for exceptionIdx, ex := range event.ANR.Exceptions {
+		if ev.IsANR() {
+			for exceptionIdx, ex := range ev.ANR.Exceptions {
 				if len(ex.Frames) > 0 {
 					idException := uuid.New()
-					unitEx := NewCodecMapVal()
-					unitEx.Type = TypeANR
+					unitEx := symbol.NewCodecMapVal()
+					unitEx.Type = event.TypeANR
 					unitEx.Event = eventIdx
 					unitEx.Exception = exceptionIdx
-					unitEx.Frames = TransformSwap
+					unitEx.Frames = symbol.TransformSwap
 					codecMap[idException] = *unitEx
 					su := new(SymbolicationUnit)
 					su.ID = idException
 					for _, frame := range ex.Frames {
-						su.Values = append(su.Values, MarshalRetraceFrame(frame, FramePrefix))
+						su.Values = append(su.Values, symbol.MarshalRetraceFrame(frame, event.FramePrefix))
 					}
 					symbolicationUnits = append(symbolicationUnits, *su)
 				}
 				if len(ex.Type) > 0 {
 					idExceptionType := uuid.New()
-					unitExType := NewCodecMapVal()
-					unitExType.Type = TypeANR
+					unitExType := symbol.NewCodecMapVal()
+					unitExType.Type = event.TypeANR
 					unitExType.Event = eventIdx
 					unitExType.Exception = exceptionIdx
-					unitExType.ExceptionType = TransformSwap
+					unitExType.ExceptionType = symbol.TransformSwap
 					codecMap[idExceptionType] = *unitExType
 					su := new(SymbolicationUnit)
 					su.ID = idExceptionType
-					su.Values = []string{GenericPrefix + ex.Type}
+					su.Values = []string{event.GenericPrefix + ex.Type}
 					symbolicationUnits = append(symbolicationUnits, *su)
 				}
 			}
-			for threadIdx, ex := range event.ANR.Threads {
+			for threadIdx, ex := range ev.ANR.Threads {
 				if len(ex.Frames) > 0 {
 					idThread := uuid.New()
-					unitTh := NewCodecMapVal()
-					unitTh.Type = TypeANR
+					unitTh := symbol.NewCodecMapVal()
+					unitTh.Type = event.TypeANR
 					unitTh.Event = eventIdx
 					unitTh.Thread = threadIdx
-					unitTh.Frames = TransformSwap
+					unitTh.Frames = symbol.TransformSwap
 					codecMap[idThread] = *unitTh
 					su := new(SymbolicationUnit)
 					su.ID = idThread
 					for _, frame := range ex.Frames {
-						su.Values = append(su.Values, MarshalRetraceFrame(frame, FramePrefix))
+						su.Values = append(su.Values, symbol.MarshalRetraceFrame(frame, event.FramePrefix))
 					}
 					symbolicationUnits = append(symbolicationUnits, *su)
 				}
 			}
 		}
 
-		if event.isAppExit() {
-			if len(event.AppExit.Trace) > 0 {
+		if ev.IsAppExit() {
+			if len(ev.AppExit.Trace) > 0 {
 				idAppExit := uuid.New()
-				unitAE := NewCodecMapVal()
-				unitAE.Type = TypeAppExit
+				unitAE := symbol.NewCodecMapVal()
+				unitAE.Type = event.TypeAppExit
 				unitAE.Event = eventIdx
-				unitAE.Trace = TransformSwap
+				unitAE.Trace = symbol.TransformSwap
 				codecMap[idAppExit] = *unitAE
 				su := new(SymbolicationUnit)
 				su.ID = idAppExit
-				su.Values = []string{GenericPrefix + event.AppExit.Trace}
+				su.Values = []string{event.GenericPrefix + ev.AppExit.Trace}
 				symbolicationUnits = append(symbolicationUnits, *su)
 			}
 		}
 
-		if event.isLifecycleActivity() {
-			if len(event.LifecycleActivity.ClassName) > 0 {
+		if ev.IsLifecycleActivity() {
+			if len(ev.LifecycleActivity.ClassName) > 0 {
 				idLifecycleActivity := uuid.New()
-				unitLA := NewCodecMapVal()
-				unitLA.Type = TypeLifecycleActivity
+				unitLA := symbol.NewCodecMapVal()
+				unitLA.Type = event.TypeLifecycleActivity
 				unitLA.Event = eventIdx
-				unitLA.ClassName = TransformSwap
+				unitLA.ClassName = symbol.TransformSwap
 				codecMap[idLifecycleActivity] = *unitLA
 				su := new(SymbolicationUnit)
 				su.ID = idLifecycleActivity
-				su.Values = []string{GenericPrefix + event.LifecycleActivity.ClassName}
+				su.Values = []string{event.GenericPrefix + ev.LifecycleActivity.ClassName}
 				symbolicationUnits = append(symbolicationUnits, *su)
 			}
 		}
 
-		if event.isLifecycleFragment() {
-			if len(event.LifecycleFragment.ClassName) > 0 {
+		if ev.IsLifecycleFragment() {
+			if len(ev.LifecycleFragment.ClassName) > 0 {
 				idLifecycleFragment := uuid.New()
-				unitLF := NewCodecMapVal()
-				unitLF.Type = TypeLifecycleFragment
+				unitLF := symbol.NewCodecMapVal()
+				unitLF.Type = event.TypeLifecycleFragment
 				unitLF.Event = eventIdx
-				unitLF.ClassName = TransformSwap
+				unitLF.ClassName = symbol.TransformSwap
 				codecMap[idLifecycleFragment] = *unitLF
 				su := new(SymbolicationUnit)
 				su.ID = idLifecycleFragment
-				su.Values = []string{GenericPrefix + event.LifecycleFragment.ClassName}
+				su.Values = []string{event.GenericPrefix + ev.LifecycleFragment.ClassName}
 				symbolicationUnits = append(symbolicationUnits, *su)
 			}
 
-			if len(event.LifecycleFragment.ParentActivity) > 0 {
+			if len(ev.LifecycleFragment.ParentActivity) > 0 {
 				idLifecycleFragment := uuid.New()
-				unitLF := NewCodecMapVal()
-				unitLF.Type = TypeLifecycleFragment
+				unitLF := symbol.NewCodecMapVal()
+				unitLF.Type = event.TypeLifecycleFragment
 				unitLF.Event = eventIdx
-				unitLF.ParentActivity = TransformSwap
+				unitLF.ParentActivity = symbol.TransformSwap
 				codecMap[idLifecycleFragment] = *unitLF
 				su := new(SymbolicationUnit)
 				su.ID = idLifecycleFragment
-				su.Values = []string{GenericPrefix + event.LifecycleFragment.ParentActivity}
+				su.Values = []string{event.GenericPrefix + ev.LifecycleFragment.ParentActivity}
 				symbolicationUnits = append(symbolicationUnits, *su)
 			}
 		}
 
-		if event.isColdLaunch() {
-			if len(event.ColdLaunch.LaunchedActivity) > 0 {
+		if ev.IsColdLaunch() {
+			if len(ev.ColdLaunch.LaunchedActivity) > 0 {
 				idColdLaunch := uuid.New()
-				unitCL := NewCodecMapVal()
-				unitCL.Type = TypeColdLaunch
+				unitCL := symbol.NewCodecMapVal()
+				unitCL.Type = event.TypeColdLaunch
 				unitCL.Event = eventIdx
-				unitCL.LaunchedActivity = TransformSwap
+				unitCL.LaunchedActivity = symbol.TransformSwap
 				codecMap[idColdLaunch] = *unitCL
 				su := new(SymbolicationUnit)
 				su.ID = idColdLaunch
-				su.Values = []string{GenericPrefix + event.ColdLaunch.LaunchedActivity}
+				su.Values = []string{event.GenericPrefix + ev.ColdLaunch.LaunchedActivity}
 				symbolicationUnits = append(symbolicationUnits, *su)
 			}
 		}
-		if event.isWarmLaunch() {
-			if len(event.WarmLaunch.LaunchedActivity) > 0 {
+		if ev.IsWarmLaunch() {
+			if len(ev.WarmLaunch.LaunchedActivity) > 0 {
 				idWarmLaunch := uuid.New()
-				unitCL := NewCodecMapVal()
-				unitCL.Type = TypeWarmLaunch
+				unitCL := symbol.NewCodecMapVal()
+				unitCL.Type = event.TypeWarmLaunch
 				unitCL.Event = eventIdx
-				unitCL.LaunchedActivity = TransformSwap
+				unitCL.LaunchedActivity = symbol.TransformSwap
 				codecMap[idWarmLaunch] = *unitCL
 				su := new(SymbolicationUnit)
 				su.ID = idWarmLaunch
-				su.Values = []string{GenericPrefix + event.WarmLaunch.LaunchedActivity}
+				su.Values = []string{event.GenericPrefix + ev.WarmLaunch.LaunchedActivity}
 				symbolicationUnits = append(symbolicationUnits, *su)
 			}
 		}
-		if event.isHotLaunch() {
-			if len(event.HotLaunch.LaunchedActivity) > 0 {
+		if ev.IsHotLaunch() {
+			if len(ev.HotLaunch.LaunchedActivity) > 0 {
 				idHotLaunch := uuid.New()
-				unitCL := NewCodecMapVal()
-				unitCL.Type = TypeHotLaunch
+				unitCL := symbol.NewCodecMapVal()
+				unitCL.Type = event.TypeHotLaunch
 				unitCL.Event = eventIdx
-				unitCL.LaunchedActivity = TransformSwap
+				unitCL.LaunchedActivity = symbol.TransformSwap
 				codecMap[idHotLaunch] = *unitCL
 				su := new(SymbolicationUnit)
 				su.ID = idHotLaunch
-				su.Values = []string{GenericPrefix + event.HotLaunch.LaunchedActivity}
+				su.Values = []string{event.GenericPrefix + ev.HotLaunch.LaunchedActivity}
 				symbolicationUnits = append(symbolicationUnits, *su)
 			}
 		}
@@ -1070,21 +1119,21 @@ func (s *Session) EncodeForSymbolication() (CodecMap, []SymbolicationUnit) {
 	return codecMap, symbolicationUnits
 }
 
-func (s *Session) DecodeFromSymbolication(codecMap CodecMap, symbolicationUnits []SymbolicationUnit) {
+func (s *Session) DecodeFromSymbolication(codecMap symbol.CodecMap, symbolicationUnits []SymbolicationUnit) {
 	for _, su := range symbolicationUnits {
 		codecMapVal := codecMap[su.ID]
 		switch codecMapVal.Type {
-		case TypeException:
-			if codecMapVal.Frames == TransformSwap {
+		case event.TypeException:
+			if codecMapVal.Frames == symbol.TransformSwap {
 				if codecMapVal.Exception > -1 {
-					var frames Frames
+					var frames event.Frames
 					for _, value := range su.Values {
-						frame, err := UnmarshalRetraceFrame(value, FramePrefix)
+						frame, err := symbol.UnmarshalRetraceFrame(value, event.FramePrefix)
 						if err != nil {
 							fmt.Println("failed to unmarshal retrace frame", err)
 							continue
 						}
-						frames = append(frames, Frame{
+						frames = append(frames, event.Frame{
 							ClassName:  frame.ClassName,
 							LineNum:    frame.LineNum,
 							FileName:   frame.FileName,
@@ -1095,14 +1144,14 @@ func (s *Session) DecodeFromSymbolication(codecMap CodecMap, symbolicationUnits 
 				}
 
 				if codecMapVal.Thread > -1 {
-					var frames Frames
+					var frames event.Frames
 					for _, value := range su.Values {
-						frame, err := UnmarshalRetraceFrame(value, FramePrefix)
+						frame, err := symbol.UnmarshalRetraceFrame(value, event.FramePrefix)
 						if err != nil {
 							fmt.Println("failed to unmarshal retrace frame", err)
 							continue
 						}
-						frames = append(frames, Frame{
+						frames = append(frames, event.Frame{
 							ClassName:  frame.ClassName,
 							LineNum:    frame.LineNum,
 							FileName:   frame.FileName,
@@ -1113,21 +1162,21 @@ func (s *Session) DecodeFromSymbolication(codecMap CodecMap, symbolicationUnits 
 				}
 			}
 
-			if codecMapVal.ExceptionType == TransformSwap {
-				exceptionType := strings.TrimPrefix(su.Values[0], GenericPrefix)
+			if codecMapVal.ExceptionType == symbol.TransformSwap {
+				exceptionType := strings.TrimPrefix(su.Values[0], event.GenericPrefix)
 				s.Events[codecMapVal.Event].Exception.Exceptions[codecMapVal.Exception].Type = exceptionType
 			}
-		case TypeANR:
-			if codecMapVal.Frames == TransformSwap {
+		case event.TypeANR:
+			if codecMapVal.Frames == symbol.TransformSwap {
 				if codecMapVal.Exception > -1 {
-					var frames Frames
+					var frames event.Frames
 					for _, value := range su.Values {
-						frame, err := UnmarshalRetraceFrame(value, FramePrefix)
+						frame, err := symbol.UnmarshalRetraceFrame(value, event.FramePrefix)
 						if err != nil {
 							fmt.Println("failed to unmarshal retrace frame", err)
 							continue
 						}
-						frames = append(frames, Frame{
+						frames = append(frames, event.Frame{
 							ClassName:  frame.ClassName,
 							LineNum:    frame.LineNum,
 							FileName:   frame.FileName,
@@ -1138,14 +1187,14 @@ func (s *Session) DecodeFromSymbolication(codecMap CodecMap, symbolicationUnits 
 				}
 
 				if codecMapVal.Thread > -1 {
-					var frames Frames
+					var frames event.Frames
 					for _, value := range su.Values {
-						frame, err := UnmarshalRetraceFrame(value, FramePrefix)
+						frame, err := symbol.UnmarshalRetraceFrame(value, event.FramePrefix)
 						if err != nil {
 							fmt.Println("failed to unmarshal retrace frame", err)
 							continue
 						}
-						frames = append(frames, Frame{
+						frames = append(frames, event.Frame{
 							ClassName:  frame.ClassName,
 							LineNum:    frame.LineNum,
 							FileName:   frame.FileName,
@@ -1156,36 +1205,36 @@ func (s *Session) DecodeFromSymbolication(codecMap CodecMap, symbolicationUnits 
 				}
 			}
 
-			if codecMapVal.ExceptionType == TransformSwap {
-				exceptionType := strings.TrimPrefix(su.Values[0], GenericPrefix)
+			if codecMapVal.ExceptionType == symbol.TransformSwap {
+				exceptionType := strings.TrimPrefix(su.Values[0], event.GenericPrefix)
 				s.Events[codecMapVal.Event].ANR.Exceptions[codecMapVal.Exception].Type = exceptionType
 			}
-		case TypeAppExit:
-			if codecMapVal.Trace == TransformSwap {
-				s.Events[codecMapVal.Event].AppExit.Trace = strings.TrimPrefix(su.Values[0], GenericPrefix)
+		case event.TypeAppExit:
+			if codecMapVal.Trace == symbol.TransformSwap {
+				s.Events[codecMapVal.Event].AppExit.Trace = strings.TrimPrefix(su.Values[0], event.GenericPrefix)
 			}
-		case TypeLifecycleActivity:
-			if codecMapVal.ClassName == TransformSwap {
-				s.Events[codecMapVal.Event].LifecycleActivity.ClassName = strings.TrimPrefix(su.Values[0], GenericPrefix)
+		case event.TypeLifecycleActivity:
+			if codecMapVal.ClassName == symbol.TransformSwap {
+				s.Events[codecMapVal.Event].LifecycleActivity.ClassName = strings.TrimPrefix(su.Values[0], event.GenericPrefix)
 			}
-		case TypeLifecycleFragment:
-			if codecMapVal.ClassName == TransformSwap {
-				s.Events[codecMapVal.Event].LifecycleFragment.ClassName = strings.TrimPrefix(su.Values[0], GenericPrefix)
+		case event.TypeLifecycleFragment:
+			if codecMapVal.ClassName == symbol.TransformSwap {
+				s.Events[codecMapVal.Event].LifecycleFragment.ClassName = strings.TrimPrefix(su.Values[0], event.GenericPrefix)
 			}
-			if codecMapVal.ParentActivity == TransformSwap {
-				s.Events[codecMapVal.Event].LifecycleFragment.ParentActivity = strings.TrimPrefix(su.Values[0], GenericPrefix)
+			if codecMapVal.ParentActivity == symbol.TransformSwap {
+				s.Events[codecMapVal.Event].LifecycleFragment.ParentActivity = strings.TrimPrefix(su.Values[0], event.GenericPrefix)
 			}
-		case TypeColdLaunch:
-			if codecMapVal.LaunchedActivity == TransformSwap {
-				s.Events[codecMapVal.Event].ColdLaunch.LaunchedActivity = strings.TrimPrefix(su.Values[0], GenericPrefix)
+		case event.TypeColdLaunch:
+			if codecMapVal.LaunchedActivity == symbol.TransformSwap {
+				s.Events[codecMapVal.Event].ColdLaunch.LaunchedActivity = strings.TrimPrefix(su.Values[0], event.GenericPrefix)
 			}
-		case TypeWarmLaunch:
-			if codecMapVal.LaunchedActivity == TransformSwap {
-				s.Events[codecMapVal.Event].WarmLaunch.LaunchedActivity = strings.TrimPrefix(su.Values[0], GenericPrefix)
+		case event.TypeWarmLaunch:
+			if codecMapVal.LaunchedActivity == symbol.TransformSwap {
+				s.Events[codecMapVal.Event].WarmLaunch.LaunchedActivity = strings.TrimPrefix(su.Values[0], event.GenericPrefix)
 			}
-		case TypeHotLaunch:
-			if codecMapVal.LaunchedActivity == TransformSwap {
-				s.Events[codecMapVal.Event].HotLaunch.LaunchedActivity = strings.TrimPrefix(su.Values[0], GenericPrefix)
+		case event.TypeHotLaunch:
+			if codecMapVal.LaunchedActivity == symbol.TransformSwap {
+				s.Events[codecMapVal.Event].HotLaunch.LaunchedActivity = strings.TrimPrefix(su.Values[0], event.GenericPrefix)
 			}
 
 		default:
