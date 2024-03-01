@@ -77,10 +77,6 @@ const TypeTrimMemory = "trim_memory"
 const TypeCPUUsage = "cpu_usage"
 const TypeNavigation = "navigation"
 
-type EventConstraint interface {
-	ANR | Exception | CPUUsage
-}
-
 var TrimRight = func(s string) string {
 	return strings.TrimRight(s, "\x00")
 }
@@ -345,7 +341,6 @@ type MemoryUsage struct {
 	NativeTotalHeap uint64 `json:"native_total_heap" binding:"required"`
 	NativeFreeHeap  uint64 `json:"native_free_heap" binding:"required"`
 	IntervalConfig  uint32 `json:"interval_config" binding:"required"`
-	// IntervalStartTime uint32 `json:"interval_start_time" binding:"required"`
 }
 
 type LowMemory struct {
@@ -369,15 +364,6 @@ type CPUUsage struct {
 
 type Navigation struct {
 	Route string `json:"route" binding:"required"`
-}
-
-type Event interface {
-	ANR
-	Exception
-	AppExit
-	LogString
-	GestureLongClick
-	GestureScroll
 }
 
 type EventField struct {
