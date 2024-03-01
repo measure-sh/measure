@@ -1609,6 +1609,10 @@ func GetAppSession(c *gin.Context) {
 	duration := session.Duration()
 	cpuUsageEvents := session.EventsOfType(event.TypeCPUUsage)
 	cpuUsages := replay.ComputeCPUUsage(cpuUsageEvents)
+
+	memoryUsageEvents := session.EventsOfType(event.TypeMemoryUsage)
+	memoryUsages := replay.ComputeMemoryUsage(memoryUsageEvents)
+
 	resource := &session.Resource
 
 	if session.hasEvents() {
@@ -1625,7 +1629,14 @@ func GetAppSession(c *gin.Context) {
 
 	resource.Trim()
 
-	response := gin.H{"session_id": sessionId, "resource": resource, "app_id": appId, "duration": duration, "cpu_usage": cpuUsages}
+	response := gin.H{
+		"session_id":   sessionId,
+		"resource":     resource,
+		"app_id":       appId,
+		"duration":     duration,
+		"cpu_usage":    cpuUsages,
+		"memory_usage": memoryUsages,
+	}
 
 	c.JSON(http.StatusOK, response)
 }
