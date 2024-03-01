@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"measure-backend/measure-go/cpu"
 	"measure-backend/measure-go/event"
+	"measure-backend/measure-go/replay"
 	"measure-backend/measure-go/server"
 
 	"github.com/gin-gonic/gin"
@@ -1608,7 +1608,7 @@ func GetAppSession(c *gin.Context) {
 
 	duration := session.Duration()
 	cpuUsageEvents := session.EventsOfType(event.TypeCPUUsage)
-	cpuUsages := cpu.ComputeUsage(cpuUsageEvents)
+	cpuUsages := replay.ComputeCPUUsage(cpuUsageEvents)
 	resource := &session.Resource
 
 	if session.hasEvents() {
