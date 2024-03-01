@@ -1,18 +1,18 @@
-package cpu
+package replay
 
 import (
 	"measure-backend/measure-go/event"
 	"time"
 )
 
-type Usage struct {
+type CPUUsage struct {
 	Time  time.Time `json:"timestamp"`
 	Value float64   `json:"value"`
 }
 
-func ComputeUsage(events []event.EventField) (result []Usage) {
+func ComputeCPUUsage(events []event.EventField) (result []CPUUsage) {
 	for _, event := range events {
-		usage := Usage{
+		usage := CPUUsage{
 			Time:  event.Timestamp,
 			Value: calculate(&event.CPUUsage),
 		}
