@@ -391,6 +391,65 @@ func (a *App) Onboard(tx pgx.Tx, uniqueIdentifier, platform, firstVersion string
 	return nil
 }
 
+func (a *App) GetEventResource(id uuid.UUID) (resource *event.Resource, err error) {
+	resource = &event.Resource{}
+	stmt := sqlf.From(`default.events`).
+		Select(`resource.device_name`, nil).
+		Select(`resource.device_model`, nil).
+		Select(`resource.device_manufacturer`, nil).
+		Select(`resource.device_type`, nil).
+		Select(`resource.device_is_foldable`, nil).
+		Select(`resource.device_is_physical`, nil).
+		Select(`resource.device_density_dpi`, nil).
+		Select(`resource.device_width_px`, nil).
+		Select(`resource.device_height_px`, nil).
+		Select(`resource.device_density`, nil).
+		Select(`resource.device_locale`, nil).
+		Select(`resource.os_name`, nil).
+		Select(`resource.os_version`, nil).
+		Select(`resource.platform`, nil).
+		Select(`resource.app_version`, nil).
+		Select(`resource.app_build`, nil).
+		Select(`resource.app_unique_id`, nil).
+		Select(`resource.measure_sdk_version`, nil).
+		Select(`resource.network_type`, nil).
+		Select(`resource.network_generation`, nil).
+		Select(`resource.network_provider`, nil).
+		Where(`id = ?`)
+
+	defer stmt.Close()
+
+	dest := []any{
+		&resource.DeviceName,
+		&resource.DeviceModel,
+		&resource.DeviceManufacturer,
+		&resource.DeviceType,
+		&resource.DeviceIsFoldable,
+		&resource.DeviceIsPhysical,
+		&resource.DeviceDensityDPI,
+		&resource.DeviceWidthPX,
+		&resource.DeviceHeightPX,
+		&resource.DeviceDensity,
+		&resource.DeviceLocale,
+		&resource.OSName,
+		&resource.OSVersion,
+		&resource.Platform,
+		&resource.AppVersion,
+		&resource.AppBuild,
+		&resource.AppUniqueID,
+		&resource.MeasureSDKVersion,
+		&resource.NetworkType,
+		&resource.NetworkGeneration,
+		&resource.NetworkProvider,
+	}
+
+	if err := server.Server.ChPool.QueryRow(context.Background(), stmt.String(), id).Scan(dest...); err != nil {
+		return nil, err
+	}
+
+	return
+}
+
 func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 	cols := []string{
 		`id`,
@@ -1550,8 +1609,23 @@ func GetAppSession(c *gin.Context) {
 	duration := session.Duration()
 	cpuUsageEvents := session.EventsOfType(event.TypeCPUUsage)
 	cpuUsages := cpu.ComputeUsage(cpuUsageEvents)
+	resource := &session.Resource
 
-	response := gin.H{"session_id": sessionId, "app_id": appId, "duration": duration, "cpu_usage": cpuUsages}
+	if session.hasEvents() {
+		firstEvent := session.firstEvent()
+		res, err := app.GetEventResource(firstEvent.ID)
+		if err != nil {
+			msg := `failed to fetch session resource`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+			return
+		}
+		resource = res
+	}
+
+	resource.Trim()
+
+	response := gin.H{"session_id": sessionId, "resource": resource, "app_id": appId, "duration": duration, "cpu_usage": cpuUsages}
 
 	c.JSON(http.StatusOK, response)
 }
