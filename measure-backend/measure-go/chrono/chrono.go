@@ -8,6 +8,10 @@ import (
 
 const ISOFormatJS = "2006-01-02T15:04:05.999Z"
 
+// NanoTimeFormat is the format of datetime in nanoseconds when
+// converting datetime values before inserting into database
+const NanoTimeFormat = "2006-01-02 15:04:05.999999999"
+
 type ISOTime time.Time
 
 func (t *ISOTime) MarshalJSON() ([]byte, error) {
