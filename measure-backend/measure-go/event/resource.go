@@ -1,4 +1,4 @@
-package measure
+package event
 
 import (
 	"fmt"
@@ -29,7 +29,7 @@ type Resource struct {
 	NetworkProvider    string  `json:"network_provider"`
 }
 
-func (r *Resource) validate() error {
+func (r *Resource) Validate() error {
 	const (
 		maxDeviceNameChars         = 32
 		maxDeviceModelChars        = 32

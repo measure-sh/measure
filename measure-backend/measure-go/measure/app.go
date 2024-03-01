@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"time"
 
+	"measure-backend/measure-go/cpu"
+	"measure-backend/measure-go/event"
 	"measure-backend/measure-go/server"
 
 	"github.com/gin-gonic/gin"
@@ -387,6 +389,447 @@ func (a *App) Onboard(tx pgx.Tx, uniqueIdentifier, platform, firstVersion string
 	}
 
 	return nil
+}
+
+func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
+	cols := []string{
+		`id`,
+		`type`,
+		`session_id`,
+		`app_id`,
+		`inet.ipv4`,
+		`inet.ipv6`,
+		`inet.country_code`,
+		`timestamp`,
+		`thread_name`,
+		`anr.thread_name`,
+		`anr.fingerprint`,
+		`anr.network_type`,
+		`anr.network_generation`,
+		`anr.network_provider`,
+		`anr.device_locale`,
+		`exception.thread_name`,
+		`exception.handled`,
+		`exception.fingerprint`,
+		`exception.network_type`,
+		`exception.network_generation`,
+		`exception.network_provider`,
+		`exception.device_locale`,
+		`app_exit.reason`,
+		`app_exit.importance`,
+		`app_exit.trace`,
+		`app_exit.process_name`,
+		`app_exit.pid`,
+		`app_exit.timestamp`,
+		`string.severity_text`,
+		`string.string`,
+		`gesture_long_click.target`,
+		`gesture_long_click.target_id`,
+		`gesture_long_click.touch_down_time`,
+		`gesture_long_click.touch_up_time`,
+		`gesture_long_click.width`,
+		`gesture_long_click.height`,
+		`gesture_long_click.x`,
+		`gesture_long_click.y`,
+		`gesture_click.target`,
+		`gesture_click.target_id`,
+		`gesture_click.touch_down_time`,
+		`gesture_click.touch_up_time`,
+		`gesture_click.width`,
+		`gesture_click.height`,
+		`gesture_click.x`,
+		`gesture_click.y`,
+		`gesture_scroll.target`,
+		`gesture_scroll.target_id`,
+		`gesture_scroll.touch_down_time`,
+		`gesture_scroll.touch_up_time`,
+		`gesture_scroll.x`,
+		`gesture_scroll.y`,
+		`gesture_scroll.end_x`,
+		`gesture_scroll.end_y`,
+		`gesture_scroll.direction`,
+		`lifecycle_activity.type`,
+		`lifecycle_activity.class_name`,
+		`lifecycle_activity.intent`,
+		`lifecycle_activity.saved_instance_state`,
+		`lifecycle_fragment.type`,
+		`lifecycle_fragment.class_name`,
+		`lifecycle_fragment.parent_activity`,
+		`lifecycle_fragment.tag`,
+		`lifecycle_app.type`,
+		`cold_launch.process_start_uptime`,
+		`cold_launch.process_start_requested_uptime`,
+		`cold_launch.content_provider_attach_uptime`,
+		`cold_launch.on_next_draw_uptime`,
+		`cold_launch.launched_activity`,
+		`cold_launch.has_saved_state`,
+		`cold_launch.intent_data`,
+		`warm_launch.app_visible_uptime`,
+		`warm_launch.on_next_draw_uptime`,
+		`warm_launch.launched_activity`,
+		`warm_launch.has_saved_state`,
+		`warm_launch.intent_data`,
+		`hot_launch.app_visible_uptime`,
+		`hot_launch.on_next_draw_uptime`,
+		`hot_launch.launched_activity`,
+		`hot_launch.has_saved_state`,
+		`hot_launch.intent_data`,
+		`network_change.network_type`,
+		`network_change.previous_network_type`,
+		`network_change.network_generation`,
+		`network_change.previous_network_generation`,
+		`network_change.network_provider`,
+		`http.url`,
+		`http.method`,
+		`http.status_code`,
+		`http.request_body_size`,
+		`http.response_body_size`,
+		`http.request_timestamp`,
+		`http.response_timestamp`,
+		`http.start_time`,
+		`http.end_time`,
+		`http.dns_start`,
+		`http.dns_end`,
+		`http.connect_start`,
+		`http.connect_end`,
+		`http.request_start`,
+		`http.request_end`,
+		`http.request_headers_start`,
+		`http.request_headers_end`,
+		`http.request_body_start`,
+		`http.request_body_end`,
+		`http.response_start`,
+		`http.response_end`,
+		`http.response_headers_start`,
+		`http.response_headers_end`,
+		`http.response_body_start`,
+		`http.response_body_end`,
+		`http.request_headers_size`,
+		`http.response_headers_size`,
+		`http.failure_reason`,
+		`http.failure_description`,
+		`http_request_headers`,
+		`http_response_headers`,
+		`http.client`,
+		`memory_usage.java_max_heap`,
+		`memory_usage.java_total_heap`,
+		`memory_usage.java_free_heap`,
+		`memory_usage.total_pss`,
+		`memory_usage.rss`,
+		`memory_usage.native_total_heap`,
+		`memory_usage.native_free_heap`,
+		`memory_usage.interval_config`,
+		// `low_memory`,
+		`trim_memory.level`,
+		`cpu_usage.num_cores`,
+		`cpu_usage.clock_speed`,
+		`cpu_usage.start_time`,
+		`cpu_usage.uptime`,
+		`cpu_usage.utime`,
+		`cpu_usage.cutime`,
+		`cpu_usage.stime`,
+		`cpu_usage.cstime`,
+		`cpu_usage.interval_config`,
+		`navigation.route`,
+		`attributes`,
+	}
+
+	stmt := sqlf.From("default.events")
+
+	for i := range cols {
+		stmt.Select(cols[i], nil)
+	}
+
+	stmt.Where("app_id = ? and session_id = ?", nil, nil)
+	stmt.OrderBy("timestamp")
+
+	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), a.ID, sessionId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var session Session
+
+	for rows.Next() {
+		var ev event.EventField
+		var anr event.ANR
+		var exception event.Exception
+		var appExit event.AppExit
+		var logString event.LogString
+		var gestureLongClick event.GestureLongClick
+		var gestureClick event.GestureClick
+		var gestureScroll event.GestureScroll
+		var lifecycleActivity event.LifecycleActivity
+		var lifecycleFragment event.LifecycleFragment
+		var lifecycleApp event.LifecycleApp
+		var coldLaunch event.ColdLaunch
+		var warmLaunch event.WarmLaunch
+		var hotLaunch event.HotLaunch
+		var networkChange event.NetworkChange
+		var http event.Http
+		var memoryUsage event.MemoryUsage
+		var trimMemory event.TrimMemory
+		var cpuUsage event.CPUUsage
+		var navigation event.Navigation
+		var attributes map[string]string
+
+		// FIXME: there are struct issues with
+		// `low_memory` event
+		// var lowMemory LowMemory
+
+		dest := []any{
+			&ev.ID,
+			&ev.Type,
+			&session.SessionID,
+			&session.AppID,
+			&session.IPv4,
+			&session.IPv6,
+			&session.CountryCode,
+			&ev.Timestamp,
+			&ev.ThreadName,
+
+			// anr
+			&anr.ThreadName,
+			&anr.Fingerprint,
+			&anr.NetworkType,
+			&anr.NetworkGeneration,
+			&anr.NetworkProvider,
+			&anr.DeviceLocale,
+
+			// excpetion
+			&exception.ThreadName,
+			&exception.Handled,
+			&exception.Fingerprint,
+			&exception.NetworkType,
+			&exception.NetworkGeneration,
+			&exception.NetworkProvider,
+			&exception.DeviceLocale,
+
+			// app exit
+			&appExit.Reason,
+			&appExit.Importance,
+			&appExit.Trace,
+			&appExit.ProcessName,
+			&appExit.PID,
+			&appExit.Timestamp,
+
+			// log string
+			&logString.SeverityText,
+			&logString.String,
+
+			// gesture long click
+			&gestureLongClick.Target,
+			&gestureLongClick.TargetID,
+			&gestureLongClick.TouchDownTime,
+			&gestureLongClick.TouchUpTime,
+			&gestureLongClick.Width,
+			&gestureLongClick.Height,
+			&gestureLongClick.X,
+			&gestureLongClick.Y,
+
+			// gesture click
+			&gestureClick.Target,
+			&gestureClick.TargetID,
+			&gestureClick.TouchDownTime,
+			&gestureClick.TouchUpTime,
+			&gestureClick.Width,
+			&gestureClick.Height,
+			&gestureClick.X,
+			&gestureClick.Y,
+
+			// gesture scroll
+			&gestureScroll.Target,
+			&gestureScroll.TargetID,
+			&gestureScroll.TouchDownTime,
+			&gestureScroll.TouchUpTime,
+			&gestureScroll.X,
+			&gestureScroll.Y,
+			&gestureScroll.EndX,
+			&gestureScroll.EndY,
+			&gestureScroll.Direction,
+
+			// lifecycle activity
+			&lifecycleActivity.Type,
+			&lifecycleActivity.ClassName,
+			&lifecycleActivity.Intent,
+			&lifecycleActivity.SavedInstanceState,
+
+			// lifecycle fragment
+			&lifecycleFragment.Type,
+			&lifecycleFragment.ClassName,
+			&lifecycleFragment.ParentActivity,
+			&lifecycleFragment.Tag,
+
+			// lifecycle app
+			&lifecycleApp.Type,
+
+			// cold launch
+			&coldLaunch.ProcessStartUptime,
+			&coldLaunch.ProcessStartRequestedUptime,
+			&coldLaunch.ContentProviderAttachUptime,
+			&coldLaunch.OnNextDrawUptime,
+			&coldLaunch.LaunchedActivity,
+			&coldLaunch.HasSavedState,
+			&coldLaunch.IntentData,
+
+			// warm launch
+			&warmLaunch.AppVisibleUptime,
+			&warmLaunch.OnNextDrawUptime,
+			&warmLaunch.LaunchedActivity,
+			&warmLaunch.HasSavedState,
+			&warmLaunch.IntentData,
+
+			// hot launch
+			&hotLaunch.AppVisibleUptime,
+			&hotLaunch.OnNextDrawUptime,
+			&hotLaunch.LaunchedActivity,
+			&hotLaunch.HasSavedState,
+			&hotLaunch.IntentData,
+
+			// network change
+			&networkChange.NetworkType,
+			&networkChange.PreviousNetworkType,
+			&networkChange.NetworkGeneration,
+			&networkChange.PreviousNetworkGeneration,
+			&networkChange.NetworkProvider,
+
+			// http
+			&http.URL,
+			&http.Method,
+			&http.StatusCode,
+			&http.RequestBodySize,
+			&http.ResponseBodySize,
+			&http.RequestTimestamp,
+			&http.ResponseTimestamp,
+			&http.StartTime,
+			&http.EndTime,
+			&http.DNSStart,
+			&http.DNSEnd,
+			&http.ConnectStart,
+			&http.ConnectEnd,
+			&http.RequestStart,
+			&http.RequestEnd,
+			&http.RequestHeadersStart,
+			&http.RequestHeadersEnd,
+			&http.RequestBodyStart,
+			&http.RequestBodyEnd,
+			&http.ResponseStart,
+			&http.ResponseEnd,
+			&http.ResponseHeadersStart,
+			&http.ResponseHeadersEnd,
+			&http.ResponseBodyStart,
+			&http.ResponseBodyEnd,
+			&http.RequestHeadersSize,
+			&http.ResponseHeadersSize,
+			&http.FailureReason,
+			&http.FailureDescription,
+			&http.RequestHeaders,
+			&http.ResponseHeaders,
+			&http.Client,
+
+			// memory usage
+			&memoryUsage.JavaMaxHeap,
+			&memoryUsage.JavaTotalHeap,
+			&memoryUsage.JavaFreeHeap,
+			&memoryUsage.TotalPSS,
+			&memoryUsage.RSS,
+			&memoryUsage.NativeTotalHeap,
+			&memoryUsage.NativeFreeHeap,
+			&memoryUsage.IntervalConfig,
+
+			// trim memory
+			&trimMemory.Level,
+
+			// cpu usage
+			&cpuUsage.NumCores,
+			&cpuUsage.ClockSpeed,
+			&cpuUsage.StartTime,
+			&cpuUsage.Uptime,
+			&cpuUsage.UTime,
+			&cpuUsage.CUTime,
+			&cpuUsage.STime,
+			&cpuUsage.CSTime,
+			&cpuUsage.IntervalConfig,
+
+			// navigation
+			&navigation.Route,
+
+			// attributes
+			&attributes,
+		}
+
+		if err := rows.Scan(dest...); err != nil {
+			return nil, err
+		}
+
+		ev.Trim()
+		ev.Attributes = attributes
+
+		switch ev.Type {
+		case event.TypeANR:
+			ev.ANR = anr
+			session.Events = append(session.Events, ev)
+		case event.TypeException:
+			ev.Exception = exception
+			session.Events = append(session.Events, ev)
+		case event.TypeAppExit:
+			ev.AppExit = appExit
+			session.Events = append(session.Events, ev)
+		case event.TypeString:
+			ev.LogString = logString
+			session.Events = append(session.Events, ev)
+		case event.TypeGestureLongClick:
+			ev.GestureLongClick = gestureLongClick
+			session.Events = append(session.Events, ev)
+		case event.TypeGestureClick:
+			ev.GestureClick = gestureClick
+			session.Events = append(session.Events, ev)
+		case event.TypeGestureScroll:
+			ev.GestureScroll = gestureScroll
+			session.Events = append(session.Events, ev)
+		case event.TypeLifecycleActivity:
+			ev.LifecycleActivity = lifecycleActivity
+			session.Events = append(session.Events, ev)
+		case event.TypeLifecycleFragment:
+			ev.LifecycleFragment = lifecycleFragment
+			session.Events = append(session.Events, ev)
+		case event.TypeLifecycleApp:
+			ev.LifecycleApp = lifecycleApp
+			session.Events = append(session.Events, ev)
+		case event.TypeColdLaunch:
+			ev.ColdLaunch = coldLaunch
+			session.Events = append(session.Events, ev)
+		case event.TypeWarmLaunch:
+			ev.WarmLaunch = warmLaunch
+			session.Events = append(session.Events, ev)
+		case event.TypeHotLaunch:
+			ev.HotLaunch = hotLaunch
+			session.Events = append(session.Events, ev)
+		case event.TypeNetworkChange:
+			ev.NetworkChange = networkChange
+			session.Events = append(session.Events, ev)
+		case event.TypeHttp:
+			ev.Http = http
+			session.Events = append(session.Events, ev)
+		case event.TypeMemoryUsage:
+			ev.MemoryUsage = memoryUsage
+			session.Events = append(session.Events, ev)
+		case event.TypeTrimMemory:
+			ev.TrimMemory = trimMemory
+			session.Events = append(session.Events, ev)
+		case event.TypeCPUUsage:
+			ev.CPUUsage = cpuUsage
+			session.Events = append(session.Events, ev)
+		case event.TypeNavigation:
+			ev.Navigation = navigation
+			session.Events = append(session.Events, ev)
+		default:
+			continue
+		}
+	}
+
+	return &session, nil
 }
 
 func GetAppJourney(c *gin.Context) {
@@ -1078,7 +1521,7 @@ func GetAppSession(c *gin.Context) {
 		return
 	}
 	if !ok {
-		msg := fmt.Sprintf(`you don't have permissions to access apps in team %q`, team.ID)
+		msg := fmt.Sprintf(`you don't have permissions to read apps in team %q`, team.ID)
 		c.JSON(http.StatusForbidden, gin.H{"error": msg})
 		return
 	}
@@ -1091,15 +1534,24 @@ func GetAppSession(c *gin.Context) {
 		return
 	}
 	if !ok {
-		msg := fmt.Sprintf(`you don't have permissions to access the app %q`, appId)
+		msg := fmt.Sprintf(`you don't have permissions to read apps in team %q`, team.ID)
 		c.JSON(http.StatusForbidden, gin.H{"error": msg})
 		return
 	}
 
-	fmt.Println("user id", userId)
-	fmt.Println("team id", team.ID)
-	fmt.Println("app id", appId)
-	fmt.Println("session id", sessionId)
+	session, err := app.GetSessionEvents(sessionId)
+	if err != nil {
+		msg := `failed to fetch session data for replay`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
 
-	c.JSON(http.StatusNotImplemented, gin.H{"ok": "not yet implemented"})
+	duration := session.Duration()
+	cpuUsageEvents := session.EventsOfType(event.TypeCPUUsage)
+	cpuUsages := cpu.ComputeUsage(cpuUsageEvents)
+
+	response := gin.H{"session_id": sessionId, "app_id": appId, "duration": duration, "cpu_usage": cpuUsages}
+
+	c.JSON(http.StatusOK, response)
 }

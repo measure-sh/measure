@@ -1,11 +1,9 @@
-package measure
+package symbol
 
 import (
 	"github.com/google/uuid"
 )
 
-const FramePrefix = "\tat "
-const GenericPrefix = ": "
 const TransformSwap = "swap"
 
 type CodecMapVal struct {

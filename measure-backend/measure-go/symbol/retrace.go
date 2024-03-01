@@ -1,8 +1,10 @@
-package measure
+package symbol
 
 import (
 	"errors"
 	"fmt"
+	"measure-backend/measure-go/event"
+	"measure-backend/measure-go/text"
 	"strconv"
 	"strings"
 )
@@ -12,16 +14,6 @@ type RetraceFrame struct {
 	MethodName string
 	FileName   string
 	LineNum    int
-}
-
-func joinNonEmptyStrings(delim string, strs ...string) string {
-	nonEmptyStrs := []string{}
-	for _, str := range strs {
-		if str != "" {
-			nonEmptyStrs = append(nonEmptyStrs, str)
-		}
-	}
-	return strings.Join(nonEmptyStrs, delim)
 }
 
 // UnmarshalRetraceFrame parses a Retrace stackframe and returns the
@@ -117,7 +109,7 @@ func UnmarshalRetraceFrame(i string, p string) (retraceFrame RetraceFrame, err e
 // If `LineNum` is 0, line number is not delimited with the FileName.
 // Output in that case, is of the format.
 // "class.method(file)"
-func MarshalRetraceFrame(f Frame, p string) string {
+func MarshalRetraceFrame(f event.Frame, p string) string {
 	className := f.ClassName
 	methodName := f.MethodName
 	fileName := f.FileName
@@ -127,8 +119,8 @@ func MarshalRetraceFrame(f Frame, p string) string {
 		lineNum = strconv.Itoa(f.LineNum)
 	}
 
-	codeInfo := joinNonEmptyStrings(".", className, methodName)
-	fileInfo := joinNonEmptyStrings(":", fileName, lineNum)
+	codeInfo := text.JoinNonEmptyStrings(".", className, methodName)
+	fileInfo := text.JoinNonEmptyStrings(":", fileName, lineNum)
 
 	if fileInfo != "" {
 		fileInfo = fmt.Sprintf(`(%s)`, fileInfo)

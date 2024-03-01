@@ -1,12 +1,13 @@
-package measure
+package symbol
 
 import (
+	"measure-backend/measure-go/event"
 	"reflect"
 	"testing"
 )
 
 func TestRetraceMarshaling(t *testing.T) {
-	defaultFrame := Frame{
+	defaultFrame := event.Frame{
 		ClassName:  "foo.bar.baz",
 		FileName:   "some-file.java",
 		MethodName: "method",
@@ -19,7 +20,7 @@ func TestRetraceMarshaling(t *testing.T) {
 		t.Errorf("Expected '%s' but got '%s'", defaultExpected, defaultResult)
 	}
 
-	prefixFrame := Frame{
+	prefixFrame := event.Frame{
 		ClassName:  "foo.bar.baz",
 		FileName:   "some-file.java",
 		MethodName: "method",
@@ -32,7 +33,7 @@ func TestRetraceMarshaling(t *testing.T) {
 		t.Errorf("Expected '%s' but got '%s'", prefixExpected, prefixResult)
 	}
 
-	noLineNums := Frame{
+	noLineNums := event.Frame{
 		ClassName:  "foo.bar.baz",
 		FileName:   "some-file.java",
 		MethodName: "method",
@@ -43,7 +44,7 @@ func TestRetraceMarshaling(t *testing.T) {
 		t.Errorf("Expected '%s' but got '%s'", noLineExpected, noLineResult)
 	}
 
-	noFile := Frame{
+	noFile := event.Frame{
 		ClassName:  "foo.bar.baz",
 		MethodName: "method",
 	}
