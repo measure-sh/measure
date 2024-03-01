@@ -77,10 +77,6 @@ const TypeTrimMemory = "trim_memory"
 const TypeCPUUsage = "cpu_usage"
 const TypeNavigation = "navigation"
 
-var TrimRight = func(s string) string {
-	return strings.TrimRight(s, "\x00")
-}
-
 type Frame struct {
 	LineNum    int    `json:"line_num"`
 	ColNum     int    `json:"col_num"`
@@ -152,11 +148,11 @@ type Exception struct {
 }
 
 func (e *Exception) Trim() {
-	e.ThreadName = TrimRight(e.ThreadName)
-	e.NetworkType = TrimRight(e.NetworkType)
-	e.NetworkGeneration = TrimRight(e.NetworkGeneration)
-	e.NetworkProvider = TrimRight(e.NetworkProvider)
-	e.DeviceLocale = TrimRight(e.DeviceLocale)
+	e.ThreadName = text.TrimFixedString(e.ThreadName)
+	e.NetworkType = text.TrimFixedString(e.NetworkType)
+	e.NetworkGeneration = text.TrimFixedString(e.NetworkGeneration)
+	e.NetworkProvider = text.TrimFixedString(e.NetworkProvider)
+	e.DeviceLocale = text.TrimFixedString(e.DeviceLocale)
 }
 
 func (e Exception) Stacktrace() string {
@@ -175,11 +171,11 @@ func (e Exception) Stacktrace() string {
 }
 
 func (a *ANR) Trim() {
-	a.ThreadName = TrimRight(a.ThreadName)
-	a.NetworkType = TrimRight(a.NetworkType)
-	a.NetworkGeneration = TrimRight(a.NetworkGeneration)
-	a.NetworkProvider = TrimRight(a.NetworkProvider)
-	a.DeviceLocale = TrimRight(a.DeviceLocale)
+	a.ThreadName = text.TrimFixedString(a.ThreadName)
+	a.NetworkType = text.TrimFixedString(a.NetworkType)
+	a.NetworkGeneration = text.TrimFixedString(a.NetworkGeneration)
+	a.NetworkProvider = text.TrimFixedString(a.NetworkProvider)
+	a.DeviceLocale = text.TrimFixedString(a.DeviceLocale)
 }
 
 func (e ANR) Stacktrace() string {
@@ -481,8 +477,8 @@ func (e *EventField) IsNavigation() bool {
 }
 
 func (e *EventField) Trim() {
-	e.ThreadName = TrimRight(e.ThreadName)
-	e.Type = TrimRight(e.Type)
+	e.ThreadName = text.TrimFixedString(e.ThreadName)
+	e.Type = text.TrimFixedString(e.Type)
 	e.Resource.Trim()
 	if e.IsException() {
 		e.Exception.Trim()
@@ -515,8 +511,8 @@ type ThreadView struct {
 }
 
 func (e *EventException) Trim() {
-	e.ThreadName = TrimRight(e.ThreadName)
-	e.Type = TrimRight(e.Type)
+	e.ThreadName = text.TrimFixedString(e.ThreadName)
+	e.Type = text.TrimFixedString(e.Type)
 	e.Resource.Trim()
 	e.Exception.Trim()
 }
@@ -560,8 +556,8 @@ type ANRView struct {
 }
 
 func (e *EventANR) Trim() {
-	e.ThreadName = TrimRight(e.ThreadName)
-	e.Type = TrimRight(e.Type)
+	e.ThreadName = text.TrimFixedString(e.ThreadName)
+	e.Type = text.TrimFixedString(e.Type)
 	e.Resource.Trim()
 	e.ANR.Trim()
 }
