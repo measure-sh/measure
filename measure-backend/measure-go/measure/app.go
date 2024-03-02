@@ -1616,6 +1616,7 @@ func GetAppSession(c *gin.Context) {
 	typeList := []string{
 		event.TypeGestureClick,
 		event.TypeGestureLongClick,
+		event.TypeGestureScroll,
 	}
 	eventMap := session.EventsOfTypes(typeList...)
 
@@ -1627,9 +1628,15 @@ func GetAppSession(c *gin.Context) {
 	gestureLongClicks := replay.ComputeGestureLongClicks(gestureLongClickEvents)
 	threadedGestureLongClicks := replay.GroupByThreads(gestureLongClicks)
 
+	gestureScrollEvents := eventMap[event.TypeGestureScroll]
+	gestureScrolls := replay.ComputeGestureScrolls(gestureScrollEvents)
+	threadedGestureScrolls := replay.GroupByThreads(gestureScrolls)
+
 	threads := make(replay.Threads)
 	threads.Organize(event.TypeGestureClick, threadedGestureClicks)
 	threads.Organize(event.TypeGestureLongClick, threadedGestureLongClicks)
+	threads.Organize(event.TypeGestureScroll, threadedGestureScrolls)
+
 	resource := &session.Resource
 
 	if session.hasEvents() {
