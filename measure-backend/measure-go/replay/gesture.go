@@ -35,6 +35,21 @@ func (glc GestureLongClick) GetThreadName() string {
 	return glc.ThreadName
 }
 
+// GestureScroll represents scroll gesture events
+// suitable for session replay.
+type GestureScroll struct {
+	*event.GestureScroll
+	ThreadName string            `json:"-"`
+	Timestamp  time.Time         `json:"timestamp"`
+	Attributes map[string]string `json:"attributes"`
+}
+
+// GetThreadName provides the name of the thread
+// where the scroll gesture took place.
+func (gs GestureScroll) GetThreadName() string {
+	return gs.ThreadName
+}
+
 // ComputeGestureClicks computes click gestures
 // for session replay.
 func ComputeGestureClicks(events []event.EventField) (result []ThreadGrouper) {
@@ -69,3 +84,19 @@ func ComputeGestureLongClicks(events []event.EventField) (result []ThreadGrouper
 	return
 }
 
+// ComputeGestureScrolls computes scroll gestures
+// for session replay.
+func ComputeGestureScrolls(events []event.EventField) (result []ThreadGrouper) {
+	for _, event := range events {
+		event.GestureScroll.Trim()
+		gestureScrolls := GestureScroll{
+			&event.GestureScroll,
+			event.ThreadName,
+			event.Timestamp,
+			event.Attributes,
+		}
+		result = append(result, gestureScrolls)
+	}
+
+	return
+}
