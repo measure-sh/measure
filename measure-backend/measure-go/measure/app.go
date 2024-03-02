@@ -1613,6 +1613,17 @@ func GetAppSession(c *gin.Context) {
 	memoryUsageEvents := session.EventsOfType(event.TypeMemoryUsage)
 	memoryUsages := replay.ComputeMemoryUsage(memoryUsageEvents)
 
+	typeList := []string{
+		event.TypeGestureClick,
+	}
+	eventMap := session.EventsOfTypes(typeList...)
+
+	gestureClickEvents := eventMap[event.TypeGestureClick]
+	gestureClicks := replay.ComputeGestureClicks(gestureClickEvents)
+	threadedGestureClicks := replay.GroupByThreads(gestureClicks)
+
+	threads := make(replay.Threads)
+	threads.Organize(event.TypeGestureClick, threadedGestureClicks)
 	resource := &session.Resource
 
 	if session.hasEvents() {
@@ -1636,6 +1647,7 @@ func GetAppSession(c *gin.Context) {
 		"duration":     duration,
 		"cpu_usage":    cpuUsages,
 		"memory_usage": memoryUsages,
+		"threads":      threads,
 	}
 
 	c.JSON(http.StatusOK, response)

@@ -13,6 +13,7 @@ import (
 	"measure-backend/measure-go/symbol"
 	"net"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -97,6 +98,21 @@ func (s *Session) EventsOfType(t string) (result []event.EventField) {
 	for i := range s.Events {
 		if s.Events[i].Type == t {
 			result = append(result, s.Events[i])
+		}
+	}
+	return
+}
+
+// EventsOfTypes provides events from the session
+// matched by type.
+func (s *Session) EventsOfTypes(types ...string) (result map[string][]event.EventField) {
+	result = make(map[string][]event.EventField)
+	for i := range s.Events {
+		contains := slices.ContainsFunc(types, func(t string) bool {
+			return t == s.Events[i].Type
+		})
+		if contains {
+			result[s.Events[i].Type] = append(result[s.Events[i].Type], s.Events[i])
 		}
 	}
 	return
