@@ -20,6 +20,21 @@ func (gc GestureClick) GetThreadName() string {
 	return gc.ThreadName
 }
 
+// GestureLongClick represents long press events
+// suitable for session replay.
+type GestureLongClick struct {
+	*event.GestureLongClick
+	ThreadName string            `json:"-"`
+	Timestamp  time.Time         `json:"timestamp"`
+	Attributes map[string]string `json:"attributes"`
+}
+
+// GetThreadName provides the name of the thread
+// where the long click gesture took place.
+func (glc GestureLongClick) GetThreadName() string {
+	return glc.ThreadName
+}
+
 // ComputeGestureClicks computes click gestures
 // for session replay.
 func ComputeGestureClicks(events []event.EventField) (result []ThreadGrouper) {
@@ -32,6 +47,23 @@ func ComputeGestureClicks(events []event.EventField) (result []ThreadGrouper) {
 			event.Attributes,
 		}
 		result = append(result, gestureClicks)
+	}
+
+	return
+}
+
+// ComputeGestureLongClicks computes long click gestures
+// for session replay.
+func ComputeGestureLongClicks(events []event.EventField) (result []ThreadGrouper) {
+	for _, event := range events {
+		event.GestureLongClick.Trim()
+		gestureLongClicks := GestureLongClick{
+			&event.GestureLongClick,
+			event.ThreadName,
+			event.Timestamp,
+			event.Attributes,
+		}
+		result = append(result, gestureLongClicks)
 	}
 
 	return
