@@ -276,6 +276,13 @@ type LifecycleActivity struct {
 	SavedInstanceState bool   `json:"saved_instance_state"`
 }
 
+// Trim removes null bytes from the lifecycle
+// activity event's string fields.
+func (la *LifecycleActivity) Trim() {
+	la.Type = text.TrimFixedString(la.Type)
+	la.ClassName = text.TrimFixedString(la.ClassName)
+}
+
 type LifecycleFragment struct {
 	Type           string `json:"type" binding:"required"`
 	ClassName      string `json:"class_name" binding:"required"`
