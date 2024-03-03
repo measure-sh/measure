@@ -35,6 +35,21 @@ func (wl WarmLaunch) GetThreadName() string {
 	return wl.ThreadName
 }
 
+// HotLaunch represents hot launch events
+// suitable for session replay.
+type HotLaunch struct {
+	*event.HotLaunch
+	ThreadName string            `json:"-"`
+	Timestamp  time.Time         `json:"timestamp"`
+	Attributes map[string]string `json:"attributes"`
+}
+
+// GetThreadName provides the name of the thread
+// where hot launch took place.
+func (hl HotLaunch) GetThreadName() string {
+	return hl.ThreadName
+}
+
 // ComputeColdLaunches computes cold launch events
 // for session replay.
 func ComputeColdLaunches(events []event.EventField) (result []ThreadGrouper) {
@@ -63,6 +78,23 @@ func ComputeWarmLaunches(events []event.EventField) (result []ThreadGrouper) {
 			event.Attributes,
 		}
 		result = append(result, warmLaunches)
+	}
+
+	return
+}
+
+// ComputeHotLaunches computes hot launch events
+// for session replay.
+func ComputeHotLaunches(events []event.EventField) (result []ThreadGrouper) {
+	for _, event := range events {
+		event.HotLaunch.Trim()
+		hotLaunches := HotLaunch{
+			&event.HotLaunch,
+			event.ThreadName,
+			event.Timestamp,
+			event.Attributes,
+		}
+		result = append(result, hotLaunches)
 	}
 
 	return
