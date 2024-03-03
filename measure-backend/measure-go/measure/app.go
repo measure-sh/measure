@@ -1620,6 +1620,7 @@ func GetAppSession(c *gin.Context) {
 		event.TypeNavigation,
 		event.TypeString,
 		event.TypeNetworkChange,
+		event.TypeColdLaunch,
 	}
 	eventMap := session.EventsOfTypes(typeList...)
 
@@ -1647,6 +1648,10 @@ func GetAppSession(c *gin.Context) {
 	netChanges := replay.ComputeNetworkChange(netChangeEvents)
 	threadedNetChanges := replay.GroupByThreads(netChanges)
 
+	coldLaunchEvents := eventMap[event.TypeColdLaunch]
+	coldLaunches := replay.ComputeColdLaunches(coldLaunchEvents)
+	threadedColdLaunches := replay.GroupByThreads(coldLaunches)
+
 	threads := make(replay.Threads)
 	threads.Organize(event.TypeGestureClick, threadedGestureClicks)
 	threads.Organize(event.TypeGestureLongClick, threadedGestureLongClicks)
@@ -1654,6 +1659,7 @@ func GetAppSession(c *gin.Context) {
 	threads.Organize(event.TypeNavigation, threadedNavs)
 	threads.Organize(event.TypeString, threadedLogs)
 	threads.Organize(event.TypeNetworkChange, threadedNetChanges)
+	threads.Organize(event.TypeColdLaunch, threadedColdLaunches)
 
 	resource := &session.Resource
 

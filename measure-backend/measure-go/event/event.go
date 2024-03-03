@@ -297,6 +297,12 @@ type ColdLaunch struct {
 	IntentData                  string `json:"intent_data"`
 }
 
+// Trim removes null bytes from the cold launch
+// event's string fields.
+func (cl *ColdLaunch) Trim() {
+	cl.LaunchedActivity = text.TrimFixedString(cl.LaunchedActivity)
+}
+
 type WarmLaunch struct {
 	AppVisibleUptime uint32 `json:"app_visible_uptime"`
 	OnNextDrawUptime uint32 `json:"on_next_draw_uptime" binding:"required"`
