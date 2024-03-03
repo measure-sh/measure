@@ -467,6 +467,8 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		`anr.network_generation`,
 		`anr.network_provider`,
 		`anr.device_locale`,
+		`anr.exceptions`,
+		`anr.threads`,
 		`exception.thread_name`,
 		`exception.handled`,
 		`exception.fingerprint`,
@@ -618,6 +620,8 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		var exception event.Exception
 		var exceptionExceptions string
 		var exceptionThreads string
+		var anrExceptions string
+		var anrThreads string
 		var appExit event.AppExit
 		var logString event.LogString
 		var gestureLongClick event.GestureLongClick
@@ -659,6 +663,8 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 			&anr.NetworkGeneration,
 			&anr.NetworkProvider,
 			&anr.DeviceLocale,
+			&anrExceptions,
+			&anrThreads,
 
 			// excpetion
 			&exception.ThreadName,
@@ -833,6 +839,12 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 
 		switch ev.Type {
 		case event.TypeANR:
+			if err := json.Unmarshal([]byte(anrExceptions), &anr.Exceptions); err != nil {
+				return nil, err
+			}
+			if err := json.Unmarshal([]byte(anrThreads), &anr.Threads); err != nil {
+				return nil, err
+			}
 			ev.ANR = anr
 			session.Events = append(session.Events, ev)
 		case event.TypeException:
@@ -1641,6 +1653,7 @@ func GetAppSession(c *gin.Context) {
 		event.TypeTrimMemory,
 		event.TypeAppExit,
 		event.TypeException,
+		event.TypeANR,
 	}
 	eventMap := session.EventsOfTypes(typeList...)
 
@@ -1704,6 +1717,10 @@ func GetAppSession(c *gin.Context) {
 	exceptions := replay.ComputeExceptions(exceptionEvents)
 	threadedExceptions := replay.GroupByThreads(exceptions)
 
+	anrEvents := eventMap[event.TypeANR]
+	anrs := replay.ComputeANRs(anrEvents)
+	threadedANRs := replay.GroupByThreads(anrs)
+
 	threads := make(replay.Threads)
 	threads.Organize(event.TypeGestureClick, threadedGestureClicks)
 	threads.Organize(event.TypeGestureLongClick, threadedGestureLongClicks)
@@ -1720,6 +1737,7 @@ func GetAppSession(c *gin.Context) {
 	threads.Organize(event.TypeTrimMemory, threadedTrimMemories)
 	threads.Organize(event.TypeAppExit, threadedAppExits)
 	threads.Organize(event.TypeException, threadedExceptions)
+	threads.Organize(event.TypeANR, threadedANRs)
 
 	resource := &session.Resource
 
