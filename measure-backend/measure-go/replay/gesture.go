@@ -10,7 +10,7 @@ import (
 type GestureClick struct {
 	*event.GestureClick
 	ThreadName string            `json:"-"`
-	Timestmap  time.Time         `json:"timestamp"`
+	Timestamp  time.Time         `json:"timestamp"`
 	Attributes map[string]string `json:"attributes"`
 }
 
