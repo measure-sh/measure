@@ -474,6 +474,8 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		`exception.network_generation`,
 		`exception.network_provider`,
 		`exception.device_locale`,
+		`exception.exceptions`,
+		`exception.threads`,
 		`app_exit.reason`,
 		`app_exit.importance`,
 		`app_exit.trace`,
@@ -614,6 +616,8 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		var ev event.EventField
 		var anr event.ANR
 		var exception event.Exception
+		var exceptionExceptions string
+		var exceptionThreads string
 		var appExit event.AppExit
 		var logString event.LogString
 		var gestureLongClick event.GestureLongClick
@@ -664,6 +668,8 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 			&exception.NetworkGeneration,
 			&exception.NetworkProvider,
 			&exception.DeviceLocale,
+			&exceptionExceptions,
+			&exceptionThreads,
 
 			// app exit
 			&appExit.Reason,
@@ -830,6 +836,12 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 			ev.ANR = anr
 			session.Events = append(session.Events, ev)
 		case event.TypeException:
+			if err := json.Unmarshal([]byte(exceptionExceptions), &exception.Exceptions); err != nil {
+				return nil, err
+			}
+			if err := json.Unmarshal([]byte(exceptionThreads), &exception.Threads); err != nil {
+				return nil, err
+			}
 			ev.Exception = exception
 			session.Events = append(session.Events, ev)
 		case event.TypeAppExit:
@@ -1628,6 +1640,7 @@ func GetAppSession(c *gin.Context) {
 		event.TypeLifecycleApp,
 		event.TypeTrimMemory,
 		event.TypeAppExit,
+		event.TypeException,
 	}
 	eventMap := session.EventsOfTypes(typeList...)
 
@@ -1687,6 +1700,10 @@ func GetAppSession(c *gin.Context) {
 	appExits := replay.ComputeAppExits(appExitEvents)
 	threadedAppExits := replay.GroupByThreads(appExits)
 
+	exceptionEvents := eventMap[event.TypeException]
+	exceptions := replay.ComputeExceptions(exceptionEvents)
+	threadedExceptions := replay.GroupByThreads(exceptions)
+
 	threads := make(replay.Threads)
 	threads.Organize(event.TypeGestureClick, threadedGestureClicks)
 	threads.Organize(event.TypeGestureLongClick, threadedGestureLongClicks)
@@ -1702,6 +1719,7 @@ func GetAppSession(c *gin.Context) {
 	threads.Organize(event.TypeLifecycleApp, threadedLifecycleApps)
 	threads.Organize(event.TypeTrimMemory, threadedTrimMemories)
 	threads.Organize(event.TypeAppExit, threadedAppExits)
+	threads.Organize(event.TypeException, threadedExceptions)
 
 	resource := &session.Resource
 
