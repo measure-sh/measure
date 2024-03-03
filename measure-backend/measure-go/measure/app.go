@@ -1655,89 +1655,121 @@ func GetAppSession(c *gin.Context) {
 		event.TypeException,
 		event.TypeANR,
 	}
+
 	eventMap := session.EventsOfTypes(typeList...)
+	threads := make(replay.Threads)
 
 	gestureClickEvents := eventMap[event.TypeGestureClick]
-	gestureClicks := replay.ComputeGestureClicks(gestureClickEvents)
-	threadedGestureClicks := replay.GroupByThreads(gestureClicks)
+	if len(gestureClickEvents) > 0 {
+		gestureClicks := replay.ComputeGestureClicks(gestureClickEvents)
+		threadedGestureClicks := replay.GroupByThreads(gestureClicks)
+		threads.Organize(event.TypeGestureClick, threadedGestureClicks)
+	}
 
 	gestureLongClickEvents := eventMap[event.TypeGestureLongClick]
-	gestureLongClicks := replay.ComputeGestureLongClicks(gestureLongClickEvents)
-	threadedGestureLongClicks := replay.GroupByThreads(gestureLongClicks)
+	if len(gestureLongClickEvents) > 0 {
+		gestureLongClicks := replay.ComputeGestureLongClicks(gestureLongClickEvents)
+		threadedGestureLongClicks := replay.GroupByThreads(gestureLongClicks)
+		threads.Organize(event.TypeGestureLongClick, threadedGestureLongClicks)
+	}
 
 	gestureScrollEvents := eventMap[event.TypeGestureScroll]
-	gestureScrolls := replay.ComputeGestureScrolls(gestureScrollEvents)
-	threadedGestureScrolls := replay.GroupByThreads(gestureScrolls)
+	if len(gestureScrollEvents) > 0 {
+		gestureScrolls := replay.ComputeGestureScrolls(gestureScrollEvents)
+		threadedGestureScrolls := replay.GroupByThreads(gestureScrolls)
+		threads.Organize(event.TypeGestureScroll, threadedGestureScrolls)
+	}
 
 	navEvents := eventMap[event.TypeNavigation]
-	navs := replay.ComputeNavigation(navEvents)
-	threadedNavs := replay.GroupByThreads(navs)
+	if len(navEvents) > 0 {
+		navs := replay.ComputeNavigation(navEvents)
+		threadedNavs := replay.GroupByThreads(navs)
+		threads.Organize(event.TypeNavigation, threadedNavs)
+	}
 
 	logEvents := eventMap[event.TypeString]
-	logs := replay.ComputeLogString(logEvents)
-	threadedLogs := replay.GroupByThreads(logs)
+	if len(logEvents) > 0 {
+		logs := replay.ComputeLogString(logEvents)
+		threadedLogs := replay.GroupByThreads(logs)
+		threads.Organize(event.TypeString, threadedLogs)
+	}
 
 	netChangeEvents := eventMap[event.TypeNetworkChange]
-	netChanges := replay.ComputeNetworkChange(netChangeEvents)
-	threadedNetChanges := replay.GroupByThreads(netChanges)
+	if len(netChangeEvents) > 0 {
+		netChanges := replay.ComputeNetworkChange(netChangeEvents)
+		threadedNetChanges := replay.GroupByThreads(netChanges)
+		threads.Organize(event.TypeNetworkChange, threadedNetChanges)
+	}
 
 	coldLaunchEvents := eventMap[event.TypeColdLaunch]
-	coldLaunches := replay.ComputeColdLaunches(coldLaunchEvents)
-	threadedColdLaunches := replay.GroupByThreads(coldLaunches)
+	if len(coldLaunchEvents) > 0 {
+		coldLaunches := replay.ComputeColdLaunches(coldLaunchEvents)
+		threadedColdLaunches := replay.GroupByThreads(coldLaunches)
+		threads.Organize(event.TypeColdLaunch, threadedColdLaunches)
+	}
 
 	warmLaunchEvents := eventMap[event.TypeWarmLaunch]
-	warmLaunches := replay.ComputeColdLaunches(warmLaunchEvents)
-	threadedWarmLaunches := replay.GroupByThreads(warmLaunches)
+	if len(warmLaunchEvents) > 0 {
+		warmLaunches := replay.ComputeColdLaunches(warmLaunchEvents)
+		threadedWarmLaunches := replay.GroupByThreads(warmLaunches)
+		threads.Organize(event.TypeWarmLaunch, threadedWarmLaunches)
+	}
 
 	hotLaunchEvents := eventMap[event.TypeHotLaunch]
-	hotLaunches := replay.ComputeColdLaunches(hotLaunchEvents)
-	threadedHotLaunches := replay.GroupByThreads(hotLaunches)
+	if len(hotLaunchEvents) > 0 {
+		hotLaunches := replay.ComputeColdLaunches(hotLaunchEvents)
+		threadedHotLaunches := replay.GroupByThreads(hotLaunches)
+		threads.Organize(event.TypeHotLaunch, threadedHotLaunches)
+	}
 
 	lifecycleActivityEvents := eventMap[event.TypeLifecycleActivity]
-	lifecycleActivities := replay.ComputeLifecycleActivities(lifecycleActivityEvents)
-	threadedLifecycleActivities := replay.GroupByThreads(lifecycleActivities)
+	if len(lifecycleActivityEvents) > 0 {
+		lifecycleActivities := replay.ComputeLifecycleActivities(lifecycleActivityEvents)
+		threadedLifecycleActivities := replay.GroupByThreads(lifecycleActivities)
+		threads.Organize(event.TypeLifecycleActivity, threadedLifecycleActivities)
+	}
 
 	lifecycleFragmentEvents := eventMap[event.TypeLifecycleFragment]
-	lifecycleFragments := replay.ComputeLifecycleFragments(lifecycleFragmentEvents)
-	threadedLifecycleFragments := replay.GroupByThreads(lifecycleFragments)
+	if len(lifecycleActivityEvents) > 0 {
+		lifecycleFragments := replay.ComputeLifecycleFragments(lifecycleFragmentEvents)
+		threadedLifecycleFragments := replay.GroupByThreads(lifecycleFragments)
+		threads.Organize(event.TypeLifecycleFragment, threadedLifecycleFragments)
+	}
 
 	lifecycleAppEvents := eventMap[event.TypeLifecycleApp]
-	lifecycleApps := replay.ComputeLifecycleApps(lifecycleAppEvents)
-	threadedLifecycleApps := replay.GroupByThreads(lifecycleApps)
+	if len(lifecycleActivityEvents) > 0 {
+		lifecycleApps := replay.ComputeLifecycleApps(lifecycleAppEvents)
+		threadedLifecycleApps := replay.GroupByThreads(lifecycleApps)
+		threads.Organize(event.TypeLifecycleApp, threadedLifecycleApps)
+	}
 
 	trimMemoryEvents := eventMap[event.TypeTrimMemory]
-	trimMemories := replay.ComputeTrimMemories(trimMemoryEvents)
-	threadedTrimMemories := replay.GroupByThreads(trimMemories)
+	if len(trimMemoryEvents) > 0 {
+		trimMemories := replay.ComputeTrimMemories(trimMemoryEvents)
+		threadedTrimMemories := replay.GroupByThreads(trimMemories)
+		threads.Organize(event.TypeTrimMemory, threadedTrimMemories)
+	}
 
 	appExitEvents := eventMap[event.TypeAppExit]
-	appExits := replay.ComputeAppExits(appExitEvents)
-	threadedAppExits := replay.GroupByThreads(appExits)
+	if len(appExitEvents) > 0 {
+		appExits := replay.ComputeAppExits(appExitEvents)
+		threadedAppExits := replay.GroupByThreads(appExits)
+		threads.Organize(event.TypeAppExit, threadedAppExits)
+	}
 
 	exceptionEvents := eventMap[event.TypeException]
-	exceptions := replay.ComputeExceptions(exceptionEvents)
-	threadedExceptions := replay.GroupByThreads(exceptions)
+	if len(exceptionEvents) > 0 {
+		exceptions := replay.ComputeExceptions(exceptionEvents)
+		threadedExceptions := replay.GroupByThreads(exceptions)
+		threads.Organize(event.TypeException, threadedExceptions)
+	}
 
 	anrEvents := eventMap[event.TypeANR]
-	anrs := replay.ComputeANRs(anrEvents)
-	threadedANRs := replay.GroupByThreads(anrs)
-
-	threads := make(replay.Threads)
-	threads.Organize(event.TypeGestureClick, threadedGestureClicks)
-	threads.Organize(event.TypeGestureLongClick, threadedGestureLongClicks)
-	threads.Organize(event.TypeGestureScroll, threadedGestureScrolls)
-	threads.Organize(event.TypeNavigation, threadedNavs)
-	threads.Organize(event.TypeString, threadedLogs)
-	threads.Organize(event.TypeNetworkChange, threadedNetChanges)
-	threads.Organize(event.TypeColdLaunch, threadedColdLaunches)
-	threads.Organize(event.TypeWarmLaunch, threadedWarmLaunches)
-	threads.Organize(event.TypeHotLaunch, threadedHotLaunches)
-	threads.Organize(event.TypeLifecycleActivity, threadedLifecycleActivities)
-	threads.Organize(event.TypeLifecycleFragment, threadedLifecycleFragments)
-	threads.Organize(event.TypeLifecycleApp, threadedLifecycleApps)
-	threads.Organize(event.TypeTrimMemory, threadedTrimMemories)
-	threads.Organize(event.TypeAppExit, threadedAppExits)
-	threads.Organize(event.TypeException, threadedExceptions)
-	threads.Organize(event.TypeANR, threadedANRs)
+	if len(anrEvents) > 0 {
+		anrs := replay.ComputeANRs(anrEvents)
+		threadedANRs := replay.GroupByThreads(anrs)
+		threads.Organize(event.TypeANR, threadedANRs)
+	}
 
 	resource := &session.Resource
 
