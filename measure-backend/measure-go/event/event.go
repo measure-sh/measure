@@ -416,6 +416,12 @@ type TrimMemory struct {
 	Level string `json:"level" binding:"required"`
 }
 
+// Trim removes null bytes from the trim
+// memory event's string fields.
+func (tm *TrimMemory) Trim() {
+	tm.Level = text.TrimFixedString(tm.Level)
+}
+
 type CPUUsage struct {
 	NumCores       uint8  `json:"num_cores" binding:"required"`
 	ClockSpeed     uint32 `json:"clock_speed" binding:"required"`
