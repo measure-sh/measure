@@ -35,6 +35,21 @@ func (lf LifecycleFragment) GetThreadName() string {
 	return lf.ThreadName
 }
 
+// LifecycleApp represents lifecycle
+// app events suitable for session replay.
+type LifecycleApp struct {
+	*event.LifecycleApp
+	ThreadName string            `json:"-"`
+	Timestamp  time.Time         `json:"timestamp"`
+	Attributes map[string]string `json:"attributes"`
+}
+
+// GetThreadName provides the name of the thread
+// where lifecycle app event took place.
+func (la LifecycleApp) GetThreadName() string {
+	return la.ThreadName
+}
+
 // ComputeLifecycleActivities computes lifecycle
 // activity events for session replay.
 func ComputeLifecycleActivities(events []event.EventField) (result []ThreadGrouper) {
@@ -64,6 +79,23 @@ func ComputeLifecycleFragments(events []event.EventField) (result []ThreadGroupe
 			event.Attributes,
 		}
 		result = append(result, fragments)
+	}
+
+	return
+}
+
+// ComputeLifecycleApp computes lifecycle
+// app events for session replay.
+func ComputeLifecycleApps(events []event.EventField) (result []ThreadGrouper) {
+	for _, event := range events {
+		event.LifecycleApp.Trim()
+		apps := LifecycleApp{
+			&event.LifecycleApp,
+			event.ThreadName,
+			event.Timestamp,
+			event.Attributes,
+		}
+		result = append(result, apps)
 	}
 
 	return
