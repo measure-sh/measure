@@ -202,6 +202,13 @@ type AppExit struct {
 	Timestamp   time.Time `json:"timestamp" binding:"required"`
 }
 
+// Trim removes null bytes from the app
+// exit event's string fields.
+func (ae *AppExit) Trim() {
+	ae.Reason = text.TrimFixedString(ae.Reason)
+	ae.Importance = text.TrimFixedString(ae.Importance)
+}
+
 type LogString struct {
 	SeverityText string `json:"severity_text" binding:"required"`
 	String       string `json:"string" binding:"required"`
