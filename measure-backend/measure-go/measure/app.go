@@ -1624,6 +1624,7 @@ func GetAppSession(c *gin.Context) {
 		event.TypeWarmLaunch,
 		event.TypeHotLaunch,
 		event.TypeLifecycleActivity,
+		event.TypeLifecycleFragment,
 	}
 	eventMap := session.EventsOfTypes(typeList...)
 
@@ -1667,6 +1668,10 @@ func GetAppSession(c *gin.Context) {
 	lifecycleActivities := replay.ComputeLifecycleActivities(lifecycleActivityEvents)
 	threadedLifecycleActivities := replay.GroupByThreads(lifecycleActivities)
 
+	lifecycleFragmentEvents := eventMap[event.TypeLifecycleFragment]
+	lifecycleFragments := replay.ComputeLifecycleFragments(lifecycleFragmentEvents)
+	threadedLifecycleFragments := replay.GroupByThreads(lifecycleFragments)
+
 	threads := make(replay.Threads)
 	threads.Organize(event.TypeGestureClick, threadedGestureClicks)
 	threads.Organize(event.TypeGestureLongClick, threadedGestureLongClicks)
@@ -1678,6 +1683,7 @@ func GetAppSession(c *gin.Context) {
 	threads.Organize(event.TypeWarmLaunch, threadedWarmLaunches)
 	threads.Organize(event.TypeHotLaunch, threadedHotLaunches)
 	threads.Organize(event.TypeLifecycleActivity, threadedLifecycleActivities)
+	threads.Organize(event.TypeLifecycleFragment, threadedLifecycleFragments)
 
 	resource := &session.Resource
 
