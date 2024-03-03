@@ -384,6 +384,12 @@ type Navigation struct {
 	Route string `json:"route" binding:"required"`
 }
 
+// Trim removes null bytes from the
+// navigation event's string fields.
+func (n *Navigation) Trim() {
+	n.Route = text.TrimFixedString(n.Route)
+}
+
 type EventField struct {
 	ID                uuid.UUID         `json:"id"`
 	Timestamp         time.Time         `json:"timestamp" binding:"required"`
