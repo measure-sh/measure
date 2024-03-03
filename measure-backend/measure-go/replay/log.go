@@ -24,6 +24,7 @@ func (ls LogString) GetThreadName() string {
 // for session replay.
 func ComputeLogString(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
+		event.LogString.Trim()
 		logs := LogString{
 			&event.LogString,
 			event.ThreadName,
