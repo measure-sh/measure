@@ -15,6 +15,7 @@ type MemoryUsage struct {
 // TrimMemory represents trim memory events
 // suitable for session replay.
 type TrimMemory struct {
+	EventType string `json:"event_type"`
 	*event.TrimMemory
 	ThreadName string            `json:"-"`
 	Timestamp  time.Time         `json:"timestamp"`
@@ -25,6 +26,12 @@ type TrimMemory struct {
 // where trim memory event took place.
 func (tm TrimMemory) GetThreadName() string {
 	return tm.ThreadName
+}
+
+// GetTimestamp provides the timestamp of
+// the trim memory event.
+func (tm TrimMemory) GetTimestamp() time.Time {
+	return tm.Timestamp
 }
 
 // ComputeMemoryUsage computes memory usage events
@@ -47,6 +54,7 @@ func ComputeTrimMemories(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		event.TrimMemory.Trim()
 		memories := TrimMemory{
+			event.Type,
 			&event.TrimMemory,
 			event.ThreadName,
 			event.Timestamp,
