@@ -697,7 +697,7 @@ func GetAuthzRoles(c *gin.Context) {
 		return
 	}
 
-	if err != nil || userRole == unknown {
+	if userRole == unknown {
 		msg := `couldn't perform authorization checks`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
@@ -773,7 +773,7 @@ func GetTeamMembers(c *gin.Context) {
 		return
 	}
 
-	if err != nil || userRole == unknown {
+	if userRole == unknown {
 		msg := `couldn't perform authorization checks`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
@@ -838,7 +838,7 @@ func RemoveTeamMember(c *gin.Context) {
 		return
 	}
 
-	if err != nil || userRole == unknown {
+	if userRole == unknown {
 		msg := `couldn't perform authorization checks`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
@@ -902,7 +902,7 @@ func ChangeMemberRole(c *gin.Context) {
 		return
 	}
 
-	if err != nil || userRole == unknown {
+	if userRole == unknown {
 		msg := `couldn't perform authorization checks`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
