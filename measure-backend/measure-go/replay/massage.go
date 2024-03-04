@@ -25,7 +25,7 @@ func (t Threads) Organize(eventType string, items map[string][]ThreadGrouper) {
 }
 
 // Sort stable sorts each thread's slice of events in ascending
-// order of event's timestamp.
+// order of each event's timestamp.
 func (t *Threads) Sort() {
 	for key := range *t {
 		threads := *t
