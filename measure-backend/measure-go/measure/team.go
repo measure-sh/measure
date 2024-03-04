@@ -109,9 +109,9 @@ func (t *Team) getApps() ([]App, error) {
 		}
 
 		if firstVersion.Valid {
-			a.firstVersion = firstVersion.String
+			a.FirstVersion = firstVersion.String
 		} else {
-			a.firstVersion = ""
+			a.FirstVersion = ""
 		}
 
 		if onboardedAt.Valid {
