@@ -40,66 +40,71 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-6)
     - [Response Body](#response-body-6)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-6)
-- [Teams](#teams)
-  - [POST `/teams`](#post-teams)
-    - [Authorization \& Content Type](#authorization--content-type-7)
-    - [Request Body](#request-body)
+  - [GET `/apps/:id/sessions/:id`](#get-appsidsessionsid)
     - [Usage Notes](#usage-notes-7)
+    - [Authorization \& Content Type](#authorization--content-type-7)
     - [Response Body](#response-body-7)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-7)
-  - [GET `/teams`](#get-teams)
+- [Teams](#teams)
+  - [POST `/teams`](#post-teams)
     - [Authorization \& Content Type](#authorization--content-type-8)
+    - [Request Body](#request-body)
+    - [Usage Notes](#usage-notes-8)
     - [Response Body](#response-body-8)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-8)
-  - [GET `/teams/:id/apps`](#get-teamsidapps)
-    - [Usage Notes](#usage-notes-8)
+  - [GET `/teams`](#get-teams)
     - [Authorization \& Content Type](#authorization--content-type-9)
     - [Response Body](#response-body-9)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-9)
-  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
+  - [GET `/teams/:id/apps`](#get-teamsidapps)
     - [Usage Notes](#usage-notes-9)
     - [Authorization \& Content Type](#authorization--content-type-10)
     - [Response Body](#response-body-10)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-10)
-  - [POST `/teams/:id/apps`](#post-teamsidapps)
+  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
     - [Usage Notes](#usage-notes-10)
-    - [Request body](#request-body-1)
     - [Authorization \& Content Type](#authorization--content-type-11)
     - [Response Body](#response-body-11)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-11)
-  - [POST `/auth/invite`](#post-authinvite)
+  - [POST `/teams/:id/apps`](#post-teamsidapps)
     - [Usage Notes](#usage-notes-11)
-    - [Request body](#request-body-2)
+    - [Request body](#request-body-1)
     - [Authorization \& Content Type](#authorization--content-type-12)
     - [Response Body](#response-body-12)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-12)
-  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
+  - [POST `/auth/invite`](#post-authinvite)
     - [Usage Notes](#usage-notes-12)
-    - [Request body](#request-body-3)
+    - [Request body](#request-body-2)
     - [Authorization \& Content Type](#authorization--content-type-13)
     - [Response Body](#response-body-13)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-13)
-  - [GET `/teams/:id/members`](#get-teamsidmembers)
+  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
     - [Usage Notes](#usage-notes-13)
+    - [Request body](#request-body-3)
     - [Authorization \& Content Type](#authorization--content-type-14)
     - [Response Body](#response-body-14)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-14)
-  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+  - [GET `/teams/:id/members`](#get-teamsidmembers)
     - [Usage Notes](#usage-notes-14)
     - [Authorization \& Content Type](#authorization--content-type-15)
     - [Response Body](#response-body-15)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-15)
-  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
     - [Usage Notes](#usage-notes-15)
-    - [Request body](#request-body-4)
     - [Authorization \& Content Type](#authorization--content-type-16)
     - [Response Body](#response-body-16)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-16)
-  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
     - [Usage Notes](#usage-notes-16)
+    - [Request body](#request-body-4)
     - [Authorization \& Content Type](#authorization--content-type-17)
     - [Response Body](#response-body-17)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-17)
+  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+    - [Usage Notes](#usage-notes-17)
+    - [Authorization \& Content Type](#authorization--content-type-18)
+    - [Response Body](#response-body-18)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-18)
 
 ## Apps
 
@@ -110,6 +115,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
 - [**GET `/apps/:id/anrGroups`**](#get-appsidanrgroups) - Fetch list of ANR groups for an app
 - [**GET `/apps/:id/crashGroups/:id/crashes`**](#get-appsidcrashgroupsidcrashes) - Fetch list of crashes for a crash group
 - [**GET `/apps/:id/anrGroups/:id/anrs`**](#get-appsidanrgroupsidanrs) - Fetch list of anrs for an anr group
+- [**GET `/apps/:id/sessions/:id`**](#get-appsidsessionsid) - Fetch an app's session replay
 
 ### GET `/apps/:id/journey`
 
@@ -1528,6 +1534,270 @@ These headers must be present in each request.
         "attributes": {}
       }
     ]
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/sessions/:id`
+
+Fetch an app's session replay.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  {
+    "app_id": "45b3788e-2226-4f39-9e3c-710016c6c075",
+    "cpu_usage": [
+      {
+        "timestamp": "2024-02-22T09:42:40.54Z",
+        "value": 1.6666666666666667
+      },
+      {
+        "timestamp": "2024-02-22T09:42:43.507Z",
+        "value": 8
+      }
+    ],
+    "duration": 4813000000,
+    "memory_usage": [
+      {
+        "java_max_heap": 196608,
+        "java_total_heap": 49152,
+        "java_free_heap": 39177,
+        "total_pss": 23363,
+        "rss": 77236,
+        "native_total_heap": 22268,
+        "native_free_heap": 1159,
+        "interval_config": 2000,
+        "timestamp": "2024-02-22T09:42:40.648Z"
+      },
+      {
+        "java_max_heap": 196608,
+        "java_total_heap": 49152,
+        "java_free_heap": 39177,
+        "total_pss": 23363,
+        "rss": 77236,
+        "native_total_heap": 22268,
+        "native_free_heap": 1159,
+        "interval_config": 2000,
+        "timestamp": "2024-02-22T09:42:42.528Z"
+      },
+      {
+        "java_max_heap": 196608,
+        "java_total_heap": 49152,
+        "java_free_heap": 39177,
+        "total_pss": 23363,
+        "rss": 77236,
+        "native_total_heap": 22268,
+        "native_free_heap": 1159,
+        "interval_config": 2000,
+        "timestamp": "2024-02-22T09:42:44.518Z"
+      }
+    ],
+    "resource": {
+      "device_name": "emu64a",
+      "device_model": "sdk_gphone64_arm64",
+      "device_manufacturer": "Google",
+      "device_type": "phone",
+      "device_is_foldable": true,
+      "device_is_physical": false,
+      "device_density_dpi": 440,
+      "device_width_px": 1080,
+      "device_height_px": 2154,
+      "device_density": 2.75,
+      "device_locale": "en-US",
+      "os_name": "android",
+      "os_version": "33",
+      "platform": "android",
+      "app_version": "1.0",
+      "app_build": "1",
+      "app_unique_id": "sh.measure.sample",
+      "measure_sdk_version": "0.1.0",
+      "network_type": "wifi",
+      "network_generation": "",
+      "network_provider": ""
+    },
+    "session_id": "e90cb46b-ab58-42dc-8fad-717369b78210",
+    "threads": {
+      "OkHttp http://10.0.2.2:8080/...": [
+        {
+          "event_type": "http",
+          "url": "http://10.0.2.2:8080/sessions",
+          "method": "put",
+          "status_code": 202,
+          "request_body_size": 39803,
+          "response_body_size": 0,
+          "request_timestamp": "2024-02-22T09:42:41Z",
+          "response_timestamp": "2024-02-22T09:42:41Z",
+          "start_time": 153336,
+          "end_time": 153404,
+          "dns_start": 0,
+          "dns_end": 0,
+          "connect_start": 153368,
+          "connect_end": 153374,
+          "request_start": 153374,
+          "request_end": 153390,
+          "request_headers_start": 153374,
+          "request_headers_end": 153374,
+          "request_body_start": 153374,
+          "request_body_end": 153390,
+          "response_start": 153392,
+          "response_end": 153398,
+          "response_headers_start": 153392,
+          "response_headers_end": 153393,
+          "response_body_start": 153398,
+          "response_body_end": 153398,
+          "request_headers_size": 273,
+          "response_headers_size": 56,
+          "failure_reason": "",
+          "failure_description": "",
+          "request_headers": {
+            "accept-encoding": "gzip",
+            "authorization": "Bearer msrsh_fd74e9a252711d267b1ae8c84613d29a5276f73f43cd1a41116201bc2ad24aa0_8686a17b",
+            "connection": "Keep-Alive",
+            "content-type": "application/json; charset=utf-8",
+            "host": "10.0.2.2:8080",
+            "transfer-encoding": "chunked",
+            "user-agent": "okhttp/4.12.0"
+          },
+          "response_headers": {
+            "content-length": "0",
+            "date": "Thu, 22 Feb 2024 09:42:44 GMT"
+          },
+          "client": "okhttp",
+          "timestamp": "2024-02-22T09:42:41.803Z",
+          "attributes": {}
+        }
+      ],
+      "main": [
+        {
+          "event_type": "lifecycle_activity",
+          "type": "resumed",
+          "class_name": "sh.measure.sample.ExceptionDemoActivity",
+          "intent": "",
+          "saved_instance_state": false,
+          "timestamp": "2024-02-22T09:42:41.188Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "lifecycle_app",
+          "type": "foreground",
+          "timestamp": "2024-02-22T09:42:41.249Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "lifecycle_activity",
+          "type": "resumed",
+          "class_name": "sh.measure.sample.ExceptionDemoActivity",
+          "intent": "",
+          "saved_instance_state": false,
+          "timestamp": "2024-02-22T09:42:41.252Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "cold_launch",
+          "process_start_uptime": 151825,
+          "process_start_requested_uptime": 151444,
+          "content_provider_attach_uptime": 151943,
+          "on_next_draw_uptime": 153032,
+          "launched_activity": "sh.measure.sample.ExceptionDemoActivity",
+          "has_saved_state": false,
+          "intent_data": "",
+          "timestamp": "2024-02-22T09:42:41.433Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "gesture_click",
+          "target": "com.google.android.material.button.MaterialButton",
+          "target_id": "btn_stack_overflow_exception",
+          "touch_down_time": 156120,
+          "touch_up_time": 156199,
+          "width": 848,
+          "height": 132,
+          "x": 552.9529,
+          "y": 1072.9413,
+          "timestamp": "2024-02-22T09:42:44.608Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "exception",
+          "type": "java.lang.StackOverflowError",
+          "location": "sh.measure.sample.ExceptionDemoActivity.recursiveFunction(ExceptionDemoActivity.kt:60)",
+          "message": "stack size 8188KB",
+          "thread_name": "main",
+          "handled": false,
+          "network_type": "wifi",
+          "network_provider": "",
+          "network_generation": "",
+          "device_locale": "en-US",
+          "timestamp": "2024-02-22T09:42:45.042Z",
+          "attributes": {}
+        }
+      ],
+      "measure-thread-#0": [
+        {
+          "event_type": "app_exit",
+          "reason": "CRASH",
+          "importance": "FOREGROUND",
+          "trace": "",
+          "process_name": "sh.measure.sample",
+          "pid": "5430",
+          "timestamp": "2024-02-22T09:42:45Z",
+          "attributes": {}
+        }
+      ]
+    }
   }
   ```
 
