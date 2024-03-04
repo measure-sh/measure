@@ -81,15 +81,15 @@ func ComputeANRs(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		event.ANR.Trim()
 		anrs := ANR{
-			event.Exception.GetType(),
-			event.Exception.GetLocation(),
-			event.Exception.GetMessage(),
-			event.Exception.ThreadName,
-			event.Exception.Handled,
-			event.Exception.NetworkType,
-			event.Exception.NetworkProvider,
-			event.Exception.NetworkGeneration,
-			event.Exception.DeviceLocale,
+			event.ANR.GetType(),
+			event.ANR.GetLocation(),
+			event.ANR.GetMessage(),
+			event.ANR.ThreadName,
+			event.ANR.Handled,
+			event.ANR.NetworkType,
+			event.ANR.NetworkProvider,
+			event.ANR.NetworkGeneration,
+			event.ANR.DeviceLocale,
 			event.Timestamp,
 			event.Attributes,
 		}
