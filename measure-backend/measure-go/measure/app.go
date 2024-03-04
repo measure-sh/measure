@@ -312,9 +312,7 @@ func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 		&updatedAt,
 	}
 
-	db := server.Server.PgPool
-
-	if err := db.QueryRow(context.Background(), stmt.String(), id, a.TeamId).Scan(dest...); err != nil {
+	if err := server.Server.PgPool.QueryRow(context.Background(), stmt.String(), id, a.TeamId).Scan(dest...); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		} else {
