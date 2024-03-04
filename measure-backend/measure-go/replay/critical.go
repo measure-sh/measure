@@ -8,7 +8,7 @@ import (
 // Exception represents exception events suitable
 // for session replay.
 type Exception struct {
-	// *event.Exception
+	EventType         string            `json:"event_type"`
 	Type              string            `json:"type"`
 	Location          string            `json:"location"`
 	Message           string            `json:"message"`
@@ -28,15 +28,20 @@ func (e Exception) GetThreadName() string {
 	return e.ThreadName
 }
 
+// GetTimestamp provides the timestamp of
+// the exception event.
+func (e Exception) GetTimestamp() time.Time {
+	return e.Timestamp
+}
+
 // ANR represents anr events suitable
 // for session replay.
 type ANR struct {
-	// *event.Exception
+	EventType         string            `json:"event_type"`
 	Type              string            `json:"type"`
 	Location          string            `json:"location"`
 	Message           string            `json:"message"`
 	ThreadName        string            `json:"thread_name"`
-	Handled           bool              `json:"handled"`
 	NetworkType       string            `json:"network_type"`
 	NetworkProvider   string            `json:"network_provider"`
 	NetworkGeneration string            `json:"network_generation"`
@@ -51,12 +56,19 @@ func (a ANR) GetThreadName() string {
 	return a.ThreadName
 }
 
+// GetTimestamp provides the timestamp of
+// the anr event.
+func (a ANR) GetTimestamp() time.Time {
+	return a.Timestamp
+}
+
 // ComputeExceptions computes exceptions
 // for session replay.
 func ComputeExceptions(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		event.Exception.Trim()
 		exceptions := Exception{
+			event.Type,
 			event.Exception.GetType(),
 			event.Exception.GetLocation(),
 			event.Exception.GetMessage(),
@@ -81,11 +93,11 @@ func ComputeANRs(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		event.ANR.Trim()
 		anrs := ANR{
+			event.Type,
 			event.ANR.GetType(),
 			event.ANR.GetLocation(),
 			event.ANR.GetMessage(),
 			event.ANR.ThreadName,
-			event.ANR.Handled,
 			event.ANR.NetworkType,
 			event.ANR.NetworkProvider,
 			event.ANR.NetworkGeneration,

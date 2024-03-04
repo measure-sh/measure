@@ -8,6 +8,7 @@ import (
 // ColdLaunch represents cold launch events
 // suitable for session replay.
 type ColdLaunch struct {
+	EventType string `json:"event_type"`
 	*event.ColdLaunch
 	ThreadName string            `json:"-"`
 	Timestamp  time.Time         `json:"timestamp"`
@@ -20,9 +21,16 @@ func (cl ColdLaunch) GetThreadName() string {
 	return cl.ThreadName
 }
 
+// GetTimestamp provides the timestamp of
+// the cold launch event.
+func (cl ColdLaunch) GetTimestamp() time.Time {
+	return cl.Timestamp
+}
+
 // WarmLaunch represents warm launch events
 // suitable for session replay.
 type WarmLaunch struct {
+	EventType string `json:"event_type"`
 	*event.WarmLaunch
 	ThreadName string            `json:"-"`
 	Timestamp  time.Time         `json:"timestamp"`
@@ -35,9 +43,16 @@ func (wl WarmLaunch) GetThreadName() string {
 	return wl.ThreadName
 }
 
+// GetTimestamp provides the timestamp of
+// the warm launch event.
+func (wl WarmLaunch) GetTimestamp() time.Time {
+	return wl.Timestamp
+}
+
 // HotLaunch represents hot launch events
 // suitable for session replay.
 type HotLaunch struct {
+	EventType string `json:"event_type"`
 	*event.HotLaunch
 	ThreadName string            `json:"-"`
 	Timestamp  time.Time         `json:"timestamp"`
@@ -50,12 +65,19 @@ func (hl HotLaunch) GetThreadName() string {
 	return hl.ThreadName
 }
 
+// GetTimestamp provides the timestamp of
+// the hot launch event.
+func (hl HotLaunch) GetTimestamp() time.Time {
+	return hl.Timestamp
+}
+
 // ComputeColdLaunches computes cold launch events
 // for session replay.
 func ComputeColdLaunches(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		event.ColdLaunch.Trim()
 		coldLaunches := ColdLaunch{
+			event.Type,
 			&event.ColdLaunch,
 			event.ThreadName,
 			event.Timestamp,
@@ -72,6 +94,7 @@ func ComputeColdLaunches(events []event.EventField) (result []ThreadGrouper) {
 func ComputeWarmLaunches(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		warmLaunches := WarmLaunch{
+			event.Type,
 			&event.WarmLaunch,
 			event.ThreadName,
 			event.Timestamp,
@@ -89,6 +112,7 @@ func ComputeHotLaunches(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		event.HotLaunch.Trim()
 		hotLaunches := HotLaunch{
+			event.Type,
 			&event.HotLaunch,
 			event.ThreadName,
 			event.Timestamp,

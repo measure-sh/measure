@@ -1771,6 +1771,8 @@ func GetAppSession(c *gin.Context) {
 		threads.Organize(event.TypeANR, threadedANRs)
 	}
 
+	threads.Sort()
+
 	resource := &session.Resource
 
 	if session.hasEvents() {
