@@ -222,7 +222,7 @@ func (a *App) add() (*APIKey, error) {
 		return nil, err
 	}
 
-	if err := apiKey.saveTx(tx, a); err != nil {
+	if err := apiKey.saveTx(tx); err != nil {
 		return nil, err
 	}
 
