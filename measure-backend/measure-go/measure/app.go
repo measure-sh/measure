@@ -47,7 +47,7 @@ type App struct {
 	UniqueId     string     `json:"unique_identifier"`
 	Platform     string     `json:"platform"`
 	APIKey       *APIKey    `json:"api_key"`
-	firstVersion string     `json:"first_version"`
+	FirstVersion string     `json:"first_version"`
 	Onboarded    bool       `json:"onboarded"`
 	OnboardedAt  time.Time  `json:"onboarded_at"`
 	CreatedAt    time.Time  `json:"created_at"`
@@ -269,9 +269,9 @@ func (a *App) get() (*App, error) {
 	}
 
 	if firstVersion.Valid {
-		a.firstVersion = firstVersion.String
+		a.FirstVersion = firstVersion.String
 	} else {
-		a.firstVersion = ""
+		a.FirstVersion = ""
 	}
 
 	return a, nil
@@ -316,9 +316,9 @@ func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 	}
 
 	if firstVersion.Valid {
-		a.firstVersion = firstVersion.String
+		a.FirstVersion = firstVersion.String
 	} else {
-		a.firstVersion = ""
+		a.FirstVersion = ""
 	}
 
 	if onboarded.Valid {
