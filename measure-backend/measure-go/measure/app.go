@@ -1654,6 +1654,7 @@ func GetAppSession(c *gin.Context) {
 		event.TypeAppExit,
 		event.TypeException,
 		event.TypeANR,
+		event.TypeHttp,
 	}
 
 	eventMap := session.EventsOfTypes(typeList...)
@@ -1769,6 +1770,13 @@ func GetAppSession(c *gin.Context) {
 		anrs := replay.ComputeANRs(anrEvents)
 		threadedANRs := replay.GroupByThreads(anrs)
 		threads.Organize(event.TypeANR, threadedANRs)
+	}
+
+	httpEvents := eventMap[event.TypeHttp]
+	if len(httpEvents) > 0 {
+		httpies := replay.ComputeHttp(httpEvents)
+		threadedHttpies := replay.GroupByThreads(httpies)
+		threads.Organize(event.TypeHttp, threadedHttpies)
 	}
 
 	threads.Sort()

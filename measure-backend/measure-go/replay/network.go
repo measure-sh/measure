@@ -27,6 +27,28 @@ func (nc NetworkChange) GetTimestamp() time.Time {
 	return nc.Timestamp
 }
 
+// Http represents http events
+// suitable for session replay.
+type Http struct {
+	EventType string `json:"event_type"`
+	*event.Http
+	ThreadName string            `json:"-"`
+	Timestamp  time.Time         `json:"timestamp"`
+	Attributes map[string]string `json:"attributes"`
+}
+
+// GetThreadName provides the name of the thread
+// where the http event took place.
+func (h Http) GetThreadName() string {
+	return h.ThreadName
+}
+
+// GetTimestamp provides the timestamp of
+// the http event.
+func (h Http) GetTimestamp() time.Time {
+	return h.Timestamp
+}
+
 // ComputeNetworkChange computes network change
 // events for session replay.
 func ComputeNetworkChange(events []event.EventField) (result []ThreadGrouper) {
@@ -40,6 +62,24 @@ func ComputeNetworkChange(events []event.EventField) (result []ThreadGrouper) {
 			event.Attributes,
 		}
 		result = append(result, netChanges)
+	}
+
+	return
+}
+
+// ComputeHttp computes the http
+// events for session replay.
+func ComputeHttp(events []event.EventField) (result []ThreadGrouper) {
+	for _, event := range events {
+		event.Http.Trim()
+		http := Http{
+			event.Type,
+			&event.Http,
+			event.ThreadName,
+			event.Timestamp,
+			event.Attributes,
+		}
+		result = append(result, http)
 	}
 
 	return
