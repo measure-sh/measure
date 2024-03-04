@@ -21,6 +21,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/leporo/sqlf"
 )
 
 type MappingFile struct {
@@ -48,7 +49,19 @@ func (m *MappingFile) shouldUpsert() (bool, *uuid.UUID, error) {
 	var id uuid.UUID
 	var key string
 	var existingHash string
-	if err := server.Server.PgPool.QueryRow(context.Background(), "select id, key, fnv1_hash from mapping_files where app_unique_id = $1 and version_name = $2 and version_code = $3 and mapping_type = $4;", m.AppUniqueID, m.VersionName, m.VersionCode, m.Type).Scan(&id, &key, &existingHash); err != nil {
+
+	stmt := sqlf.PostgreSQL.
+		Select("id, key, fnv1_hash").
+		From("public.mapping_files").
+		Where("app_unique_id = ?", nil).
+		Where("version_name = ?", nil).
+		Where("version_code = ?", nil).
+		Where("mapping_type = ?", nil)
+
+	stmt.Close()
+
+	ctx := context.Background()
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), m.AppUniqueID, m.VersionName, m.VersionCode, m.Type).Scan(&id, &key, &existingHash); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return true, nil, nil
 		} else {
