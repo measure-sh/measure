@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 
 	"measure-backend/measure-go/event"
@@ -19,26 +20,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/leporo/sqlf"
 )
-
-const queryGetApp = `
-select
-  apps.app_name,
-  apps.unique_identifier,
-  apps.platform,
-  apps.first_version,
-  apps.onboarded,
-  apps.onboarded_at,
-  api_keys.key_prefix,
-  api_keys.key_value,
-  api_keys.checksum,
-  api_keys.last_seen,
-  api_keys.created_at,
-  apps.created_at,
-  apps.updated_at
-from apps
-left outer join api_keys on api_keys.app_id = apps.id
-where apps.id = $1 and apps.team_id = $2;
-`
 
 type App struct {
 	ID           *uuid.UUID `json:"id"`
@@ -291,7 +272,49 @@ func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 
 	apiKey := new(APIKey)
 
-	if err := server.Server.PgPool.QueryRow(context.Background(), queryGetApp, id, a.TeamId).Scan(&appName, &uniqueId, &platform, &firstVersion, &onboarded, &onboardedAt, &apiKey.keyPrefix, &apiKey.keyValue, &apiKey.checksum, &apiKeyLastSeen, &apiKeyCreatedAt, &createdAt, &updatedAt); err != nil {
+	cols := []string{
+		"apps.app_name",
+		"apps.unique_identifier",
+		"apps.platform",
+		"apps.first_version",
+		"apps.onboarded",
+		"apps.onboarded_at",
+		"api_keys.key_prefix",
+		"api_keys.key_value",
+		"api_keys.checksum",
+		"api_keys.last_seen",
+		"api_keys.created_at",
+		"apps.created_at",
+		"apps.updated_at",
+	}
+
+	stmt := sqlf.PostgreSQL.
+		Select(strings.Join(cols, ",")).
+		From("public.apps").
+		LeftJoin("public.api_keys", "api_keys.app_id = apps.id").
+		Where("apps.id = ? and apps.team_id = ?", nil, nil)
+
+	defer stmt.Close()
+
+	dest := []any{
+		&appName,
+		&uniqueId,
+		&platform,
+		&firstVersion,
+		&onboarded,
+		&onboardedAt,
+		&apiKey.keyPrefix,
+		&apiKey.keyValue,
+		&apiKey.checksum,
+		&apiKeyLastSeen,
+		&apiKeyCreatedAt,
+		&createdAt,
+		&updatedAt,
+	}
+
+	db := server.Server.PgPool
+
+	if err := db.QueryRow(context.Background(), stmt.String(), id, a.TeamId).Scan(dest...); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		} else {
