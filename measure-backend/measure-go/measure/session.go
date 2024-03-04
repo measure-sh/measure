@@ -916,12 +916,25 @@ func (s *Session) known() (bool, error) {
 
 func (s *Session) getMappingKey() (string, error) {
 	var key string
-	if err := server.Server.PgPool.QueryRow(context.Background(), `select key from mapping_files where app_unique_id = $1 and version_name = $2 and version_code = $3 and mapping_type = 'proguard' limit 1;`, s.Resource.AppUniqueID, s.Resource.AppVersion, s.Resource.AppBuild).Scan(&key); err != nil {
+	stmt := sqlf.PostgreSQL.
+		Select("key").
+		From("public.mapping_files").
+		Where("app_unique_id = ?", nil).
+		Where("version_name = ?", nil).
+		Where("version_code = ?", nil).
+		Where("mapping_type = proguard").
+		Limit(1)
+
+	defer stmt.Close()
+
+	ctx := context.Background()
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), s.Resource.AppUniqueID, s.Resource.AppVersion, s.Resource.AppBuild).Scan(&key); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", nil
 		}
 		return "", err
 	}
+
 	return key, nil
 }
 
