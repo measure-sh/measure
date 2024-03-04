@@ -920,12 +920,22 @@ func (s *Session) saveWithContext(c *gin.Context) error {
 
 func (s *Session) known() (bool, error) {
 	var known string
-	if err := server.Server.PgPool.QueryRow(context.Background(), `select id from sessions where id = $1 and app_id = $2;`, s.SessionID, s.AppID).Scan(&known); err != nil {
+
+	stmt := sqlf.PostgreSQL.
+		Select("id").
+		From("public.sessions").
+		Where("id = ? and app_id = ?", nil, nil)
+
+	defer stmt.Close()
+
+	ctx := context.Background()
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), s.SessionID, s.AppID).Scan(&known); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, nil
 		}
 		return false, err
 	}
+
 	return true, nil
 }
 
