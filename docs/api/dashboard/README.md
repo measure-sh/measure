@@ -1572,6 +1572,7 @@ Fetch an app's session replay.
 #### Usage Notes
 
 - App's UUID must be passed in the URI
+- Sessions's UUID must be passed in the URI
 
 #### Authorization & Content Type
 
