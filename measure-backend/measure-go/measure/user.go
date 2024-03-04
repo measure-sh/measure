@@ -73,7 +73,16 @@ func (u *User) getOwnTeam() (*Team, error) {
 
 func (u *User) getRole(teamId string) (rank, error) {
 	var role string
-	if err := server.Server.PgPool.QueryRow(context.Background(), "select team_membership.role from team_membership where user_id::uuid = $1 and team_id::uuid = $2;", u.id, teamId).Scan(&role); err != nil {
+
+	stmt := sqlf.PostgreSQL.
+		Select("role").
+		From("public.team_membership").
+		Where("user_id::uuid = ? and team_id::uuid = ?", nil, nil)
+
+	defer stmt.Close()
+
+	ctx := context.Background()
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), u.id, teamId).Scan(&role); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return unknown, nil
 		} else {
