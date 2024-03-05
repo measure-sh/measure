@@ -79,19 +79,6 @@ func (s *Session) lastEvent() *event.EventField {
 	return nil
 }
 
-// Duration calculates the session time duration between
-// the last event and the first event. Assumes, the event
-// list is sorted by timestamp in ascending order.
-func (s *Session) Duration() time.Duration {
-	if s.hasEvents() {
-		first := s.firstEvent()
-		last := s.lastEvent()
-		return last.Timestamp.Sub(first.Timestamp)
-	}
-
-	return time.Duration(0)
-}
-
 // EventsOfType retuns a slice of event.EventField that
 // matches the accepted event type.
 func (s *Session) EventsOfType(t string) (result []event.EventField) {
@@ -116,6 +103,34 @@ func (s *Session) EventsOfTypes(types ...string) (result map[string][]event.Even
 		}
 	}
 	return
+}
+
+// GetFirstEventTime provides the timestamp value of
+// the first event of the session. Assumes session's
+// event list is sorted ascending by timestamp.
+//
+// Returns zero time value if no events exist in the
+// session.
+func (s *Session) GetFirstEventTime() time.Time {
+	if event := s.firstEvent(); event != nil {
+		return event.Timestamp
+	}
+
+	return time.Time{}
+}
+
+// GetLastEventTime provides the timestamp value of
+// the last event of the session. Assumes session's
+// event list is sorted ascending by timestamp.
+//
+// Returns zero time value if no events exist in the
+// session.
+func (s *Session) GetLastEventTime() time.Time {
+	if event := s.lastEvent(); event != nil {
+		return event.Timestamp
+	}
+
+	return time.Time{}
 }
 
 func (s *Session) hasEvents() bool {
