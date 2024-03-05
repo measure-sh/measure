@@ -280,7 +280,7 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
               <p className="font-sans"> App version: {crashOrAnrGroupDetails.results[0].resource.app_version}</p>
               <p className="font-sans"> Network type: {crashOrAnrGroupDetails.results[0].resource.network_type}</p>
               <div className="py-2" />
-              <Link key={crashOrAnrGroupDetails.results[0].id} href={`/${teamId}/sessions/${crashOrAnrGroupDetails.results[0].session_id}`} className="outline-none justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">View Session </Link>
+              <Link key={crashOrAnrGroupDetails.results[0].id} href={`/${teamId}/sessions/${appId}/${crashOrAnrGroupDetails.results[0].session_id}`} className="outline-none justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">View Session </Link>
               <div className="py-4" />
               {crashOrAnrType === CrashOrAnrType.Crash &&
                 <div>

@@ -99,6 +99,12 @@ export enum AuthzAndMembersApiStatus {
     Error
 }
 
+export enum SessionReplayApiStatus {
+    Loading,
+    Success,
+    Error
+}
+
 export const emptyTeam = { 'id': '', 'name': '' }
 
 export const emptyApp = {
@@ -333,6 +339,179 @@ export const defaultAuthzAndMembers = {
             }
         }
     ]
+}
+
+export const emptySessionReplay = {
+    "app_id": "",
+    "cpu_usage": [
+        {
+            "timestamp": "",
+            "value": 0
+        },
+        {
+            "timestamp": "",
+            "value": 0
+        }
+    ],
+    "memory_usage": [
+        {
+            "java_max_heap": 0,
+            "java_total_heap": 0,
+            "java_free_heap": 0,
+            "total_pss": 0,
+            "rss": 0,
+            "native_total_heap": 0,
+            "native_free_heap": 0,
+            "interval_config": 0,
+            "timestamp": ""
+        }
+    ],
+    "resource": {
+        "device_name": "",
+        "device_model": "",
+        "device_manufacturer": "",
+        "device_type": "",
+        "device_is_foldable": false,
+        "device_is_physical": false,
+        "device_density_dpi": 0,
+        "device_width_px": 0,
+        "device_height_px": 0,
+        "device_density": 0.0,
+        "device_locale": "",
+        "os_name": "",
+        "os_version": "",
+        "platform": "",
+        "app_version": "",
+        "app_build": "",
+        "app_unique_id": "",
+        "measure_sdk_version": "",
+        "network_type": "",
+        "network_generation": "",
+        "network_provider": ""
+    },
+    "session_id": "",
+    "first_event_timestamp": "",
+    "last_event_timestamp": "",
+    "threads": {
+        "thread_1": [
+            {
+                "event_type": "http",
+                "url": "",
+                "method": "",
+                "status_code": 0,
+                "request_body_size": 0,
+                "response_body_size": 0,
+                "request_timestamp": "",
+                "response_timestamp": "",
+                "start_time": 0,
+                "end_time": 0,
+                "dns_start": 0,
+                "dns_end": 0,
+                "connect_start": 0,
+                "connect_end": 0,
+                "request_start": 0,
+                "request_end": 0,
+                "request_headers_start": 0,
+                "request_headers_end": 0,
+                "request_body_start": 0,
+                "request_body_end": 0,
+                "response_start": 0,
+                "response_end": 0,
+                "response_headers_start": 0,
+                "response_headers_end": 0,
+                "response_body_start": 0,
+                "response_body_end": 0,
+                "request_headers_size": 0,
+                "response_headers_size": 0,
+                "failure_reason": "",
+                "failure_description": "",
+                "request_headers": {
+                    "accept-encoding": "0",
+                    "authorization": "",
+                    "connection": "",
+                    "content-type": "",
+                    "host": "",
+                    "transfer-encoding": "",
+                    "user-agent": ""
+                },
+                "response_headers": {
+                    "content-length": "0",
+                    "date": ""
+                },
+                "client": "",
+                "timestamp": "",
+                "attributes": {}
+            }
+        ],
+        "main": [
+            {
+                "event_type": "lifecycle_activity",
+                "type": "",
+                "class_name": "",
+                "intent": "",
+                "saved_instance_state": false,
+                "timestamp": "",
+                "attributes": {}
+            },
+            {
+                "event_type": "lifecycle_app",
+                "type": "",
+                "timestamp": "",
+                "attributes": {}
+            },
+            {
+                "event_type": "cold_launch",
+                "process_start_uptime": 0,
+                "process_start_requested_uptime": 0,
+                "content_provider_attach_uptime": 0,
+                "on_next_draw_uptime": 0,
+                "launched_activity": "sh.measure.sample.ExceptionDemoActivity",
+                "has_saved_state": false,
+                "intent_data": "",
+                "timestamp": "",
+                "attributes": {}
+            },
+            {
+                "event_type": "gesture_click",
+                "target": "",
+                "target_id": "",
+                "touch_down_time": 0,
+                "touch_up_time": 0,
+                "width": 0,
+                "height": 0,
+                "x": 0.0,
+                "y": 0.0,
+                "timestamp": "",
+                "attributes": {}
+            },
+            {
+                "event_type": "exception",
+                "type": "",
+                "location": "",
+                "message": "",
+                "thread_name": "",
+                "handled": false,
+                "network_type": "",
+                "network_provider": "",
+                "network_generation": "",
+                "device_locale": "",
+                "timestamp": "",
+                "attributes": {}
+            }
+        ],
+        "measure-thread-#0": [
+            {
+                "event_type": "app_exit",
+                "reason": "",
+                "importance": "",
+                "trace": "",
+                "process_name": "",
+                "pid": "",
+                "timestamp": "",
+                "attributes": {}
+            }
+        ]
+    }
 }
 
 export const fetchTeamsFromServer = async (router: AppRouterInstance) => {
@@ -596,6 +775,26 @@ export const fetchAuthzAndMembersFromServer = async (teamId: string, router: App
     const data = await res.json()
 
     return { status: AuthzAndMembersApiStatus.Success, data: data }
+}
+
+export const fetchSessionReplayFromServer = async (appId: string, sessionId: string, router: AppRouterInstance) => {
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+        headers: {
+            "Authorization": `Bearer ${authToken}`
+        }
+    };
+
+    const res = await fetch(`${origin}/apps/${appId}/sessions/${sessionId}`, opts);
+    if (!res.ok) {
+        logoutIfAuthError(router, res)
+        return { status: SessionReplayApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: SessionReplayApiStatus.Success, data: data }
 }
 
 export const changeTeamNameFromServer = async (teamId: string, newTeamName: string, router: AppRouterInstance) => {
