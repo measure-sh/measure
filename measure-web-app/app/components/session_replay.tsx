@@ -2,203 +2,83 @@
 
 import React from 'react';
 import { Point, ResponsiveLine } from '@nivo/line'
+import { emptySessionReplay } from '../api/api_calls';
 
-const minDate = "2023-10-24 12:01:00"
-const maxDate = "2023-10-24 12:08:00"
-const date1 = "2023-10-24 12:01:15"
-const date2 = "2023-10-24 12:02:30"
-const date3 = "2023-10-24 12:03:03"
-const date4 = "2023-10-24 12:04:41"
-const date5 = "2023-10-24 12:05:21"
-const date6 = "2023-10-24 12:06:11"
-const date7 = "2023-10-24 12:06:57"
-const date8 = "2023-10-24 12:07:39"
+interface SessionReplayProps {
+  sessionReplay: typeof emptySessionReplay
+}
 
-const memoryData = [
-  {
-    "id": "Memory",
-    "color": "hsl(198, 93%, 60%)",
-    "data": [
-      {
-        "x": date1,
-        "y": 48.6
-      },
-      {
-        "x": date2,
-        "y": 52.8
-      },
-      {
-        "x": date3,
-        "y": 53.4
-      },
-      {
-        "x": date4,
-        "y": 86.2
-      },
-      {
-        "x": date5,
-        "y": 86.7
-      },
-      {
-        "x": date6,
-        "y": 45.5
-      },
-      {
-        "x": date7,
-        "y": 44.8
-      },
-      {
-        "x": date8,
-        "y": 44.7
-      }
-    ]
-  }
-]
+const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
 
-const cpuData = [
-  {
-    "id": "% CPU Usage",
-    "color": "hsl(142, 69%, 58%)",
-    "data": [
-      {
-        "x": date1,
-        "y": 15.6
-      },
-      {
-        "x": date2,
-        "y": 16.8
-      },
-      {
-        "x": date3,
-        "y": 16.4
-      },
-      {
-        "x": date4,
-        "y": 45.3
-      },
-      {
-        "x": date5,
-        "y": 46.9
-      },
-      {
-        "x": date6,
-        "y": 14.5
-      },
-      {
-        "x": date7,
-        "y": 15.8
-      },
-      {
-        "x": date8,
-        "y": 16.7
-      }
-    ]
-  }
-]
+  function convertTimestampToChartFormat(timestamp: string) {
+    const date = new Date(timestamp);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1; // Months are 0-based
+    const day = date.getDate();
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const seconds = date.getSeconds();
 
-const threadPoints = [
-  {
-    "x": date1,
-    "y": "UI thread",
-    "color": "hsl(0, 0%, 9%)",
-    "event": "Type: Screen Open\nScreen name: HomeActivity.java\nView dimensions: 640x480",
-  },
-  {
-    "x": date2,
-    "y": "UI thread",
-    "color": "hsl(142, 76%, 36%)",
-    "event": "Type: Scroll\nView name: HomeList.java\nView dimensions: 640x320"
-  },
-  {
-    "x": date3,
-    "y": "UI thread",
-    "color": "hsl(142, 76%, 36%)",
-    "event": "Type: Scroll\nView name: HomeList.java\nView dimensions: 640x320"
-  },
-  {
-    "x": date4,
-    "y": "UI thread",
-    "color": "hsl(142, 76%, 36%)",
-    "event": "Type: Scroll\nView name: HomeList.java\nView dimensions: 640x320"
-  },
-  {
-    "x": date5,
-    "y": "UI thread",
-    "color": "hsl(142, 76%, 36%)",
-    "event": "Type: Click\nView name: ItemDetailButton.java\nView dimensions: 464x180"
-  },
-  {
-    "x": date6,
-    "y": "UI thread",
-    "color": "hsl(0, 0%, 9%)",
-    "event": "Type: Screen Open\nScreen name: ItemDetailFragment.java\nView dimensions: 640x480"
-  },
-  {
-    "x": date7,
-    "y": "UI thread",
-    "color": "hsl(142, 76%, 36%)",
-    "event": "Type: Scroll\nView name: ItemDescriptionScrollView.java\nView dimensions: 640x320"
-  },
-  {
-    "x": date8,
-    "y": "UI thread",
-    "color": "hsl(0, 72%, 51%)",
-    "event": "Type: Crash\nView name: NullPointerException.java\n"
-  },
-  {
-    "x": date4,
-    "y": "Thread 1",
-    "color": "hsl(200, 98%, 39%)",
-    "event": "Type: Network Request\nURL: /home/list/items/\nHeaders: {x-auth-id: alsdkfjsldfj}"
-  },
-  {
-    "x": date6,
-    "y": "Thread 1",
-    "color": "hsl(200, 98%, 39%)",
-    "event": "Type: Network Response\nURL: /home/list/items/\nResponse: {data:[items: [...]]}"
-  },
-  {
-    "x": date3,
-    "y": "Thread 2",
-    "color": "hsl(0, 0%, 9%)",
-    "event": "Type: Background job start\nJob name: SyncUserPreferences.java"
+    return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   }
 
-]
+  const cpuData = [
+    {
+      "id": "% CPU Usage",
+      "color": "hsl(142, 69%, 58%)",
+      "data": sessionReplay.cpu_usage.map(item => ({
+        "x": convertTimestampToChartFormat(item.timestamp),
+        "y": item.value
+      }))
+    }
+  ]
 
-const threadData = [
-  {
-    "id": "UI thread",
-    "color": "hsl(0, 0%, 100%)",
-    "data": [
-      threadPoints[0],
-      threadPoints[1],
-      threadPoints[2],
-      threadPoints[3],
-      threadPoints[4],
-      threadPoints[5],
-      threadPoints[6],
-      threadPoints[7],
-    ]
-  },
-  {
-    "id": "Thread 1",
-    "color": "hsl(0, 0%, 100%)",
-    "data": [
-      threadPoints[8],
-      threadPoints[9],
-    ]
-  },
-  {
-    "id": "Thread 2",
-    "color": "hsl(0, 0%, 100%)",
-    "data": [
-      threadPoints[10],
-    ]
+  const memoryData = [
+    {
+      "id": "Memory",
+      "color": "hsl(198, 93%, 60%)",
+      "data": sessionReplay.memory_usage.map(item => ({
+        "x": convertTimestampToChartFormat(item.timestamp),
+        "y": item.java_free_heap
+      }))
+    }
+  ]
+
+  const threadPoints = parseEventsFromSessionReplay()
+  const threadData = parseThreadDataFromSessionReplay()
+
+  function parseEventsFromSessionReplay() {
+    let events: { x: string; y: string; color: string; event: any; }[] = []
+
+    Object.keys(sessionReplay.threads).forEach(item => (
+      // @ts-ignore
+      sessionReplay.threads[item].forEach((subItem: any) => (
+        events.push({
+          x: convertTimestampToChartFormat(subItem.timestamp),
+          y: item,
+          color: "hsl(0, 0%, 9%)",
+          event: subItem
+        })
+      ))
+    ))
+
+    return events
   }
-]
 
-const SessionReplay = () => {
+  function parseThreadDataFromSessionReplay() {
+    let threadData: { id: string; color: string; data: { x: string; y: string; color: string; event: any; }[]; }[] = []
+
+    Object.keys(sessionReplay.threads).forEach(item => (
+      threadData.push({
+        "id": item,
+        "color": "hsl(0, 0%, 100%)",
+        data: threadPoints.filter(e => e.y === item)
+      })
+    ))
+
+    return threadData
+  }
+
   return (
     <div className="flex flex-col w-screen font-sans text-black">
       {/* Memory line */}
@@ -212,8 +92,8 @@ const SessionReplay = () => {
             format: '%Y-%m-%d %H:%M:%S',
             precision: 'second',
             type: 'time',
-            min: minDate,
-            max: maxDate,
+            min: 'auto',
+            max: 'auto',
             useUTC: false
           }}
           yScale={{
@@ -226,7 +106,6 @@ const SessionReplay = () => {
           axisRight={null}
           axisBottom={{
             format: '%H:%M:%S',
-            tickValues: 'every 1 minutes',
             legendPosition: 'middle'
           }}
           axisLeft={{
@@ -282,8 +161,8 @@ const SessionReplay = () => {
             format: '%Y-%m-%d %H:%M:%S',
             precision: 'second',
             type: 'time',
-            min: minDate,
-            max: maxDate,
+            min: 'auto',
+            max: 'auto',
             useUTC: false
           }}
           yScale={{
@@ -296,7 +175,6 @@ const SessionReplay = () => {
           axisRight={null}
           axisBottom={{
             format: '%H:%M:%S',
-            tickValues: 'every 1 minutes',
             legendPosition: 'middle'
           }}
           axisLeft={{
@@ -350,8 +228,8 @@ const SessionReplay = () => {
             format: '%Y-%m-%d %H:%M:%S',
             precision: 'second',
             type: 'time',
-            min: minDate,
-            max: maxDate,
+            min: 'auto',
+            max: 'auto',
             useUTC: false
           }}
           yScale={{
@@ -361,7 +239,6 @@ const SessionReplay = () => {
           axisRight={null}
           axisBottom={{
             format: '%H:%M:%S',
-            tickValues: 'every 1 minutes',
             legendPosition: 'middle',
             tickPadding: 20
           }}
@@ -381,7 +258,7 @@ const SessionReplay = () => {
           tooltip={({
             point
           }) => <div className="pointer-events-none z-50 rounded-md p-4 bg-neutral-800">
-              <p className="font-sans text-white whitespace-pre-wrap">{threadPoints[point.index].event} </p>
+              <p className="font-sans text-white whitespace-pre-wrap">{JSON.stringify(threadPoints[point.index].event, null, 2)} </p>
             </div>}
         />
       </div>
