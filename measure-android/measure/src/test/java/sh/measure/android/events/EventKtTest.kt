@@ -5,6 +5,7 @@ import kotlinx.serialization.json.Json
 import okio.Buffer
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import sh.measure.android.appexit.AppExit
 import sh.measure.android.applaunch.ColdLaunchEvent
 import sh.measure.android.applaunch.HotLaunchEvent
 import sh.measure.android.applaunch.WarmLaunchEvent
@@ -180,6 +181,27 @@ class EventKtTest {
         assertEquals(threadName, event.thread_name)
         assertEquals(timestampIso, event.timestamp)
         assertEquals(EventType.SCROLL, event.type)
+    }
+
+    @Test
+    fun `AppExit toEvent() returns an event of type app_exit`() {
+        val timestamp = 0L
+        val timestampIso = timestamp.iso8601Timestamp()
+        val threadName = "thread"
+        val appExit = AppExit(
+            reason = "reason",
+            importance = "importance",
+            trace = "trace",
+            process_name = "process_name",
+            pid = "pid",
+            timestamp = timestamp,
+            thread_name = threadName,
+        )
+        val event = appExit.toEvent()
+
+        assertEquals(threadName, event.thread_name)
+        assertEquals(timestampIso, event.timestamp)
+        assertEquals(EventType.APP_EXIT, event.type)
     }
 
     @Test
