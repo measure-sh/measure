@@ -451,7 +451,6 @@ func (s *Session) ingest() error {
 		anrThreads := "[]"
 		exceptionExceptions := "[]"
 		exceptionThreads := "[]"
-		isLowMemory := false
 		if s.Events[i].IsANR() {
 			marshalledExceptions, err := json.Marshal(s.Events[i].ANR.Exceptions)
 			if err != nil {
@@ -482,9 +481,6 @@ func (s *Session) ingest() error {
 			if err := s.Events[i].ComputeExceptionFingerprint(); err != nil {
 				return err
 			}
-		}
-		if s.Events[i].IsLowMemory() {
-			isLowMemory = true
 		}
 		if !empty {
 			s.Events[i].ID = uuid.New()
@@ -643,7 +639,13 @@ func (s *Session) ingest() error {
 			Set("memory_usage.native_total_heap", nil).
 			Set("memory_usage.native_free_heap", nil).
 			Set("memory_usage.interval_config", nil).
-			Set("low_memory", nil).
+			Set("low_memory.java_max_heap", nil).
+			Set("low_memory.java_total_heap", nil).
+			Set("low_memory.java_free_heap", nil).
+			Set("low_memory.total_pss", nil).
+			Set("low_memory.rss", nil).
+			Set("low_memory.native_total_heap", nil).
+			Set("low_memory.native_free_heap", nil).
 			Set("trim_memory.level", nil).
 			Set("cpu_usage.num_cores", nil).
 			Set("cpu_usage.clock_speed", nil).
@@ -810,7 +812,13 @@ func (s *Session) ingest() error {
 			s.Events[i].MemoryUsage.NativeTotalHeap,
 			s.Events[i].MemoryUsage.NativeFreeHeap,
 			s.Events[i].MemoryUsage.IntervalConfig,
-			isLowMemory,
+			s.Events[i].LowMemory.JavaMaxHeap,
+			s.Events[i].LowMemory.JavaTotalHeap,
+			s.Events[i].LowMemory.JavaFreeHeap,
+			s.Events[i].LowMemory.TotalPSS,
+			s.Events[i].LowMemory.RSS,
+			s.Events[i].LowMemory.NativeTotalHeap,
+			s.Events[i].LowMemory.NativeFreeHeap,
 			s.Events[i].TrimMemory.Level,
 			s.Events[i].CPUUsage.NumCores,
 			s.Events[i].CPUUsage.ClockSpeed,

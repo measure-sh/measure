@@ -424,6 +424,13 @@ type MemoryUsage struct {
 }
 
 type LowMemory struct {
+	JavaMaxHeap     uint64 `json:"java_max_heap" binding:"required"`
+	JavaTotalHeap   uint64 `json:"java_total_heap" binding:"required"`
+	JavaFreeHeap    uint64 `json:"java_free_heap" binding:"required"`
+	TotalPSS        uint64 `json:"total_pss" binding:"required"`
+	RSS             uint64 `json:"rss"`
+	NativeTotalHeap uint64 `json:"native_total_heap" binding:"required"`
+	NativeFreeHeap  uint64 `json:"native_free_heap" binding:"required"`
 }
 
 type TrimMemory struct {
