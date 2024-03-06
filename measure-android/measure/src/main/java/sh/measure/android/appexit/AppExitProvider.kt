@@ -12,7 +12,6 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.SystemServiceProvider
-import sh.measure.android.utils.iso8601Timestamp
 import java.io.InputStream
 
 internal interface AppExitProvider {
@@ -40,7 +39,7 @@ internal class AppExitProviderImpl(
         return AppExit(
             reason = getReasonName(reason),
             importance = getImportanceName(importance),
-            timestamp = timestamp.iso8601Timestamp(),
+            timestamp = timestamp,
             trace = getTraceString(traceInputStream),
             process_name = processName,
             pid = pid.toString(),

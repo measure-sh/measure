@@ -24,11 +24,6 @@ internal data class AppExit(
     val importance: String,
 
     /**
-     * @see [ApplicationExitInfo.getTimestamp] converted to ISO-8601 format.
-     */
-    val timestamp: String,
-
-    /**
      * @see [ApplicationExitInfo.getTraceInputStream]
      */
     val trace: String?,
@@ -42,6 +37,12 @@ internal data class AppExit(
      * @see [ApplicationExitInfo.getPid]
      */
     val pid: String,
+
+    /**
+     * @see [ApplicationExitInfo.getTimestamp] converted to ISO-8601 format.
+     */
+    @Transient
+    val timestamp: Long = 0L,
 
     @Transient
     val thread_name: String = "",

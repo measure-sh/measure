@@ -61,7 +61,7 @@ internal fun MeasureException.toEvent(): Event {
 internal fun AppExit.toEvent(): Event {
     return Event(
         type = EventType.APP_EXIT,
-        timestamp = timestamp,
+        timestamp = timestamp.iso8601Timestamp(),
         data = Json.encodeToJsonElement(AppExit.serializer(), this),
         thread_name = thread_name,
     )
