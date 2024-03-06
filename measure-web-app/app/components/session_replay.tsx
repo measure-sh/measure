@@ -18,8 +18,9 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
     const hours = date.getHours();
     const minutes = date.getMinutes();
     const seconds = date.getSeconds();
+    const miliseconds = date.getMilliseconds();
 
-    return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}:${miliseconds.toString().padStart(2, '0')}`;
   }
 
   const cpuData = [
@@ -87,10 +88,10 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
           data={memoryData}
           curve="monotoneX"
           margin={{ top: 40, right: 160, bottom: 80, left: 120 }}
-          xFormat="time:%Y-%m-%d %H:%M:%S"
+          xFormat="time:%Y-%m-%d %H:%M:%S:%L"
           xScale={{
-            format: '%Y-%m-%d %H:%M:%S',
-            precision: 'second',
+            format: '%Y-%m-%d %H:%M:%S:%L',
+            precision: 'millisecond',
             type: 'time',
             min: 'auto',
             max: 'auto',
@@ -105,7 +106,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
           axisTop={null}
           axisRight={null}
           axisBottom={{
-            format: '%H:%M:%S',
+            format: '%H:%M:%S:%L',
             legendPosition: 'middle'
           }}
           axisLeft={{
@@ -156,10 +157,10 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
           data={cpuData}
           curve="monotoneX"
           margin={{ top: 40, right: 160, bottom: 80, left: 120 }}
-          xFormat="time:%Y-%m-%d %H:%M:%S"
+          xFormat="time:%Y-%m-%d %H:%M:%S:%L"
           xScale={{
-            format: '%Y-%m-%d %H:%M:%S',
-            precision: 'second',
+            format: '%Y-%m-%d %H:%M:%S:%L',
+            precision: 'millisecond',
             type: 'time',
             min: 'auto',
             max: 'auto',
@@ -174,7 +175,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
           axisTop={null}
           axisRight={null}
           axisBottom={{
-            format: '%H:%M:%S',
+            format: '%H:%M:%S:%L',
             legendPosition: 'middle'
           }}
           axisLeft={{
@@ -223,10 +224,10 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
         <ResponsiveLine
           data={threadData}
           margin={{ top: 40, right: 160, bottom: 80, left: 120 }}
-          xFormat="time:%Y-%m-%d %H:%M:%S"
+          xFormat="time:%Y-%m-%d %H:%M:%S:%L"
           xScale={{
-            format: '%Y-%m-%d %H:%M:%S',
-            precision: 'second',
+            format: '%Y-%m-%d %H:%M:%S:%L',
+            precision: 'millisecond',
             type: 'time',
             min: 'auto',
             max: 'auto',
@@ -238,7 +239,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
           axisTop={null}
           axisRight={null}
           axisBottom={{
-            format: '%H:%M:%S',
+            format: '%H:%M:%S:%L',
             legendPosition: 'middle',
             tickPadding: 20
           }}
