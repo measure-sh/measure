@@ -602,7 +602,13 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		`memory_usage.native_total_heap`,
 		`memory_usage.native_free_heap`,
 		`memory_usage.interval_config`,
-		// `low_memory`,
+		`low_memory.java_max_heap`,
+		`low_memory.java_total_heap`,
+		`low_memory.java_free_heap`,
+		`low_memory.total_pss`,
+		`low_memory.rss`,
+		`low_memory.native_total_heap`,
+		`low_memory.native_free_heap`,
 		`trim_memory.level`,
 		`cpu_usage.num_cores`,
 		`cpu_usage.clock_speed`,
@@ -656,6 +662,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		var networkChange event.NetworkChange
 		var http event.Http
 		var memoryUsage event.MemoryUsage
+		var lowMemory event.LowMemory
 		var trimMemory event.TrimMemory
 		var cpuUsage event.CPUUsage
 		var navigation event.Navigation
@@ -828,6 +835,15 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 			&memoryUsage.NativeFreeHeap,
 			&memoryUsage.IntervalConfig,
 
+			// low memory
+			&lowMemory.JavaMaxHeap,
+			&lowMemory.JavaTotalHeap,
+			&lowMemory.JavaFreeHeap,
+			&lowMemory.TotalPSS,
+			&lowMemory.RSS,
+			&lowMemory.NativeTotalHeap,
+			&lowMemory.NativeFreeHeap,
+
 			// trim memory
 			&trimMemory.Level,
 
@@ -916,6 +932,9 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 			session.Events = append(session.Events, ev)
 		case event.TypeMemoryUsage:
 			ev.MemoryUsage = memoryUsage
+			session.Events = append(session.Events, ev)
+		case event.TypeLowMemory:
+			ev.LowMemory = lowMemory
 			session.Events = append(session.Events, ev)
 		case event.TypeTrimMemory:
 			ev.TrimMemory = trimMemory
@@ -1670,6 +1689,7 @@ func GetAppSession(c *gin.Context) {
 		event.TypeLifecycleFragment,
 		event.TypeLifecycleApp,
 		event.TypeTrimMemory,
+		event.TypeLowMemory,
 		event.TypeAppExit,
 		event.TypeException,
 		event.TypeANR,
@@ -1768,6 +1788,13 @@ func GetAppSession(c *gin.Context) {
 		trimMemories := replay.ComputeTrimMemories(trimMemoryEvents)
 		threadedTrimMemories := replay.GroupByThreads(trimMemories)
 		threads.Organize(event.TypeTrimMemory, threadedTrimMemories)
+	}
+
+	lowMemoryEvents := eventMap[event.TypeLowMemory]
+	if len(lowMemoryEvents) > 0 {
+		lowMemories := replay.ComputeLowMemories(lowMemoryEvents)
+		threadedLowMemories := replay.GroupByThreads(lowMemories)
+		threads.Organize(event.TypeLowMemory, threadedLowMemories)
 	}
 
 	appExitEvents := eventMap[event.TypeAppExit]
