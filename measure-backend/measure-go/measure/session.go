@@ -133,6 +133,10 @@ func (s *Session) GetLastEventTime() time.Time {
 	return time.Time{}
 }
 
+func (s Session) Duration() time.Duration {
+	return s.GetLastEventTime().Sub(s.GetFirstEventTime())
+}
+
 func (s *Session) hasEvents() bool {
 	return len(s.Events) > 0
 }
