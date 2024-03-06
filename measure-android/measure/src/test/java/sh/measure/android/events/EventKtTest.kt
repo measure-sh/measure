@@ -370,6 +370,13 @@ class EventKtTest {
         val threadName = "thread"
         val lowMemory = LowMemory(
             timestamp = timestamp,
+            java_max_heap = 0L,
+            java_total_heap = 0L,
+            java_free_heap = 0L,
+            total_pss = 0,
+            rss = 0L,
+            native_total_heap = 0L,
+            native_free_heap = 0L,
             thread_name = threadName,
         )
         val event = lowMemory.toEvent()

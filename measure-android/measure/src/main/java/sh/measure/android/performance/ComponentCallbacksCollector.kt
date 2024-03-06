@@ -19,6 +19,7 @@ internal class ComponentCallbacksCollector(
     private val eventTracker: EventTracker,
     private val timeProvider: TimeProvider,
     private val currentThread: CurrentThread,
+    private val memoryReader: MemoryReader,
 ) : ComponentCallbacks2 {
 
     fun register() {
@@ -29,6 +30,13 @@ internal class ComponentCallbacksCollector(
         eventTracker.trackLowMemory(
             LowMemory(
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                java_free_heap = memoryReader.freeHeapSize(),
+                java_max_heap = memoryReader.maxHeapSize(),
+                java_total_heap = memoryReader.totalHeapSize(),
+                native_free_heap = memoryReader.nativeFreeHeapSize(),
+                native_total_heap = memoryReader.nativeTotalHeapSize(),
+                rss = memoryReader.rss(),
+                total_pss = memoryReader.totalPss(),
                 thread_name = currentThread.name,
             ),
         )

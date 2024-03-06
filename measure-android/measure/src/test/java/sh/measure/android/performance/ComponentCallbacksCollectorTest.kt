@@ -12,6 +12,7 @@ import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import sh.measure.android.events.EventTracker
+import sh.measure.android.fakes.FakeMemoryReader
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.utils.CurrentThread
 
@@ -19,6 +20,7 @@ internal class ComponentCallbacksCollectorTest {
     private val eventTracker = mock<EventTracker>()
     private val timeProvider = FakeTimeProvider()
     private val currentThread = CurrentThread()
+    private val memoryReader = FakeMemoryReader()
     private lateinit var componentCallbacksCollector: ComponentCallbacksCollector
 
     @Before
@@ -28,6 +30,7 @@ internal class ComponentCallbacksCollectorTest {
             eventTracker,
             timeProvider,
             currentThread,
+            memoryReader,
         ).apply { register() }
     }
 
@@ -38,6 +41,13 @@ internal class ComponentCallbacksCollectorTest {
         verify(eventTracker).trackLowMemory(
             LowMemory(
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                java_max_heap = memoryReader.maxHeapSize(),
+                java_free_heap = memoryReader.freeHeapSize(),
+                java_total_heap = memoryReader.totalHeapSize(),
+                native_free_heap = memoryReader.nativeFreeHeapSize(),
+                native_total_heap = memoryReader.nativeTotalHeapSize(),
+                rss = memoryReader.rss(),
+                total_pss = memoryReader.totalPss(),
                 thread_name = currentThread.name,
             ),
         )

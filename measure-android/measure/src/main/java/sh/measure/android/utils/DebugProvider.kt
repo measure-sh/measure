@@ -5,7 +5,7 @@ import android.os.Debug
 internal interface DebugProvider {
     fun getNativeHeapSize(): Long
     fun getNativeHeapFreeSize(): Long
-    fun getMemoryInfo(memoryInfo: Debug.MemoryInfo)
+    fun populateMemoryInfo(memoryInfo: Debug.MemoryInfo)
 }
 
 internal class DefaultDebugProvider : DebugProvider {
@@ -17,7 +17,7 @@ internal class DefaultDebugProvider : DebugProvider {
         return Debug.getNativeHeapFreeSize()
     }
 
-    override fun getMemoryInfo(memoryInfo: Debug.MemoryInfo) {
+    override fun populateMemoryInfo(memoryInfo: Debug.MemoryInfo) {
         Debug.getMemoryInfo(memoryInfo)
     }
 }

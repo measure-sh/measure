@@ -26,6 +26,7 @@ import sh.measure.android.networkchange.NetworkInfoProvider
 import sh.measure.android.networkchange.NetworkInfoProviderImpl
 import sh.measure.android.performance.ComponentCallbacksCollector
 import sh.measure.android.performance.CpuUsageCollector
+import sh.measure.android.performance.DefaultMemoryReader
 import sh.measure.android.performance.MemoryUsageCollector
 import sh.measure.android.session.ResourceFactoryImpl
 import sh.measure.android.session.SessionController
@@ -37,11 +38,14 @@ import sh.measure.android.storage.StorageImpl
 import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.CurrentThread
+import sh.measure.android.utils.DefaultDebugProvider
+import sh.measure.android.utils.DefaultRuntimeProvider
 import sh.measure.android.utils.LocaleProvider
 import sh.measure.android.utils.LocaleProviderImpl
 import sh.measure.android.utils.ManifestReaderImpl
 import sh.measure.android.utils.PidProvider
 import sh.measure.android.utils.PidProviderImpl
+import sh.measure.android.utils.ProcProviderImpl
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.SystemServiceProviderImpl
 import sh.measure.android.utils.TimeProvider
@@ -141,19 +145,26 @@ object Measure {
             currentThread,
             executorService,
         ).apply { register() }
-        val memoryUsageCollector = MemoryUsageCollector(
+        val memoryReader = DefaultMemoryReader(
             logger,
+            DefaultDebugProvider(),
+            DefaultRuntimeProvider(),
             pidProvider,
+            ProcProviderImpl(),
+        )
+        val memoryUsageCollector = MemoryUsageCollector(
             eventTracker,
             timeProvider,
             currentThread,
             executorService,
+            memoryReader,
         ).apply { register() }
         ComponentCallbacksCollector(
             application,
             eventTracker,
             timeProvider,
             currentThread,
+            memoryReader,
         ).register()
         LifecycleCollector(
             context,
