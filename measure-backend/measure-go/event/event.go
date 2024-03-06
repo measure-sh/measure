@@ -194,12 +194,11 @@ func (e ANR) Stacktrace() string {
 }
 
 type AppExit struct {
-	Reason      string    `json:"reason" binding:"required"`
-	Importance  string    `json:"importance" binding:"required"`
-	Trace       string    `json:"trace"`
-	ProcessName string    `json:"process_name" binding:"required"`
-	PID         string    `json:"pid" binding:"required"`
-	Timestamp   time.Time `json:"timestamp" binding:"required"`
+	Reason      string `json:"reason" binding:"required"`
+	Importance  string `json:"importance" binding:"required"`
+	Trace       string `json:"trace"`
+	ProcessName string `json:"process_name" binding:"required"`
+	PID         string `json:"pid" binding:"required"`
 }
 
 // Trim removes null bytes from the app
@@ -743,7 +742,7 @@ func (e *EventField) Validate() error {
 	}
 
 	if e.IsAppExit() {
-		if len(e.AppExit.Reason) < 1 || len(e.AppExit.Importance) < 1 || len(e.AppExit.ProcessName) < 1 || len(e.AppExit.ProcessName) < 1 || e.AppExit.Timestamp.IsZero() {
+		if len(e.AppExit.Reason) < 1 || len(e.AppExit.Importance) < 1 || len(e.AppExit.ProcessName) < 1 || len(e.AppExit.ProcessName) < 1 {
 			return fmt.Errorf(`app_exit event is invalid`)
 		}
 	}

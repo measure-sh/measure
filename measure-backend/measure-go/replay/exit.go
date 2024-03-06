@@ -11,6 +11,7 @@ type AppExit struct {
 	EventType string `json:"event_type"`
 	*event.AppExit
 	ThreadName string            `json:"-"`
+	Timestamp  time.Time         `json:"timestamp"`
 	Attributes map[string]string `json:"attributes"`
 }
 
@@ -35,6 +36,7 @@ func ComputeAppExits(events []event.EventField) (result []ThreadGrouper) {
 			event.Type,
 			&event.AppExit,
 			event.ThreadName,
+			event.Timestamp,
 			event.Attributes,
 		}
 		result = append(result, appExits)

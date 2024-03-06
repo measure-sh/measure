@@ -527,7 +527,6 @@ func (s *Session) ingest() error {
 			Set("app_exit.trace", nil).
 			Set("app_exit.process_name", nil).
 			Set("app_exit.pid", nil).
-			Set("app_exit.timestamp", nil).
 			Set("string.severity_text", nil).
 			Set("string.string", nil).
 			Set("gesture_long_click.target", nil).
@@ -700,7 +699,6 @@ func (s *Session) ingest() error {
 			s.Events[i].AppExit.Trace,
 			s.Events[i].AppExit.ProcessName,
 			s.Events[i].AppExit.PID,
-			s.Events[i].AppExit.Timestamp,
 			s.Events[i].LogString.SeverityText,
 			s.Events[i].LogString.String,
 			s.Events[i].GestureLongClick.Target,

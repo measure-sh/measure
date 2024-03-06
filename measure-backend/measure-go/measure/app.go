@@ -504,7 +504,6 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		`app_exit.trace`,
 		`app_exit.process_name`,
 		`app_exit.pid`,
-		`app_exit.timestamp`,
 		`string.severity_text`,
 		`string.string`,
 		`gesture_long_click.target`,
@@ -704,7 +703,6 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 			&appExit.Trace,
 			&appExit.ProcessName,
 			&appExit.PID,
-			&appExit.Timestamp,
 
 			// log string
 			&logString.SeverityText,

@@ -54,7 +54,6 @@ create table if not exists default.events
     `app_exit.trace` String,
     `app_exit.process_name` String,
     `app_exit.pid` String,
-    `app_exit.timestamp` DateTime64(9, 'UTC'),
     `string.severity_text` LowCardinality(FixedString(10)),
     `string.string` String,
     `gesture_long_click.target` FixedString(128),
