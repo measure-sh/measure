@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation'
 import { useScrollDirection } from '../utils/scroll_utils';
 
