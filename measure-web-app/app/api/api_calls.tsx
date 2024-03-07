@@ -390,8 +390,7 @@ export const emptySessionReplay = {
         "network_provider": ""
     },
     "session_id": "",
-    "first_event_timestamp": "",
-    "last_event_timestamp": "",
+    "duration": "",
     "threads": {
         "thread_1": [
             {
