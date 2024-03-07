@@ -5,6 +5,7 @@ import { ResponsiveLine } from '@nivo/line'
 import { emptySessionReplay } from '../api/api_calls';
 import SessionReplayEventAccordion from './session_replay_event_accordion';
 import SessionReplayEventVerticalConnector from './session_replay_event_vertical_connector';
+import FadeIn from './fade_in';
 
 interface SessionReplayProps {
   sessionReplay: typeof emptySessionReplay
@@ -278,15 +279,21 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
       <div>
         <div className="py-4" />
         <p className="font-sans text-3xl"> Events</p>
-        <div className="py-2" />
+        <div className="py-8" />
         {events.map((e, index) => (
           <div key={index} className={"ml-16 w-3/5"}>
             {index > 0 && <div className='py-2' />}
-            {index > 0 && <SessionReplayEventVerticalConnector milliseconds={new Date(e.timestamp).getMilliseconds() - new Date(events[index - 1].timestamp).getMilliseconds()} />}
+            {index > 0 &&
+              <FadeIn>
+                <SessionReplayEventVerticalConnector milliseconds={new Date(e.timestamp).getMilliseconds() - new Date(events[index - 1].timestamp).getMilliseconds()} />
+              </FadeIn>
+            }
             {index > 0 && <div className='py-2' />}
-            <SessionReplayEventAccordion eventType={e.eventType} timestamp={e.timestamp} threadName={e.thread} id={`${e.eventType}-${index}`} active={false}>
-              {JSON.stringify(e.description, null, 2)}
-            </SessionReplayEventAccordion>
+            <FadeIn>
+              <SessionReplayEventAccordion eventType={e.eventType} timestamp={e.timestamp} threadName={e.thread} id={`${e.eventType}-${index}`} active={false}>
+                {JSON.stringify(e.description, null, 2)}
+              </SessionReplayEventAccordion>
+            </FadeIn>
           </div>
         ))}
       </div>
