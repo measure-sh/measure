@@ -1,8 +1,9 @@
 "use client"
 
 import React from 'react';
-import { Point, ResponsiveLine } from '@nivo/line'
+import { ResponsiveLine } from '@nivo/line'
 import { emptySessionReplay } from '../api/api_calls';
+import SessionReplayEventAccordion from './session_replay_event_accordion';
 
 interface SessionReplayProps {
   sessionReplay: typeof emptySessionReplay
@@ -18,8 +19,9 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
     const hours = date.getHours();
     const minutes = date.getMinutes();
     const seconds = date.getSeconds();
+    const miliseconds = date.getMilliseconds();
 
-    return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}:${miliseconds.toString().padStart(2, '0')}`;
   }
 
   const cpuData = [
@@ -44,39 +46,24 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
     }
   ]
 
-  const threadPoints = parseEventsFromSessionReplay()
-  const threadData = parseThreadDataFromSessionReplay()
+  const events = parseEventsFromSessionReplay()
 
   function parseEventsFromSessionReplay() {
-    let events: { x: string; y: string; color: string; event: any; }[] = []
+    let events: { eventType: string; timestamp: string; thread: string; description: any; }[] = []
 
     Object.keys(sessionReplay.threads).forEach(item => (
       // @ts-ignore
       sessionReplay.threads[item].forEach((subItem: any) => (
         events.push({
-          x: convertTimestampToChartFormat(subItem.timestamp),
-          y: item,
-          color: "hsl(0, 0%, 9%)",
-          event: subItem
+          eventType: subItem.event_type,
+          timestamp: convertTimestampToChartFormat(subItem.timestamp),
+          thread: item,
+          description: subItem
         })
       ))
     ))
 
     return events
-  }
-
-  function parseThreadDataFromSessionReplay() {
-    let threadData: { id: string; color: string; data: { x: string; y: string; color: string; event: any; }[]; }[] = []
-
-    Object.keys(sessionReplay.threads).forEach(item => (
-      threadData.push({
-        "id": item,
-        "color": "hsl(0, 0%, 100%)",
-        data: threadPoints.filter(e => e.y === item)
-      })
-    ))
-
-    return threadData
   }
 
   return (
@@ -86,11 +73,11 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
         <ResponsiveLine
           data={memoryData}
           curve="monotoneX"
-          margin={{ top: 40, right: 160, bottom: 80, left: 120 }}
-          xFormat="time:%Y-%m-%d %H:%M:%S"
+          margin={{ top: 40, right: 160, bottom: 80, left: 90 }}
+          xFormat="time:%Y-%m-%d %H:%M:%S:%L"
           xScale={{
-            format: '%Y-%m-%d %H:%M:%S',
-            precision: 'second',
+            format: '%Y-%m-%d %H:%M:%S:%L',
+            precision: 'millisecond',
             type: 'time',
             min: 'auto',
             max: 'auto',
@@ -105,7 +92,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
           axisTop={null}
           axisRight={null}
           axisBottom={{
-            format: '%H:%M:%S',
+            format: '%H:%M:%S:%L',
             legendPosition: 'middle'
           }}
           axisLeft={{
@@ -155,11 +142,11 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
         <ResponsiveLine
           data={cpuData}
           curve="monotoneX"
-          margin={{ top: 40, right: 160, bottom: 80, left: 120 }}
-          xFormat="time:%Y-%m-%d %H:%M:%S"
+          margin={{ top: 40, right: 160, bottom: 80, left: 90 }}
+          xFormat="time:%Y-%m-%d %H:%M:%S:%L"
           xScale={{
-            format: '%Y-%m-%d %H:%M:%S',
-            precision: 'second',
+            format: '%Y-%m-%d %H:%M:%S:%L',
+            precision: 'millisecond',
             type: 'time',
             min: 'auto',
             max: 'auto',
@@ -174,7 +161,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
           axisTop={null}
           axisRight={null}
           axisBottom={{
-            format: '%H:%M:%S',
+            format: '%H:%M:%S:%L',
             legendPosition: 'middle'
           }}
           axisLeft={{
@@ -218,49 +205,18 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
             </div>}
         />
       </div>
-      {/* Threads line */}
-      <div className="h-[24rem]">
-        <ResponsiveLine
-          data={threadData}
-          margin={{ top: 40, right: 160, bottom: 80, left: 120 }}
-          xFormat="time:%Y-%m-%d %H:%M:%S"
-          xScale={{
-            format: '%Y-%m-%d %H:%M:%S',
-            precision: 'second',
-            type: 'time',
-            min: 'auto',
-            max: 'auto',
-            useUTC: false
-          }}
-          yScale={{
-            type: 'point',
-          }}
-          axisTop={null}
-          axisRight={null}
-          axisBottom={{
-            format: '%H:%M:%S',
-            legendPosition: 'middle',
-            tickPadding: 20
-          }}
-          axisLeft={{
-            legend: 'Threads',
-            legendOffset: -80,
-            legendPosition: 'middle'
-          }}
-          pointSize={1}
-          pointBorderWidth={16}
-          pointBorderColor={(point: Point) => threadPoints[point.index].color}
-          pointLabelYOffset={-12}
-          useMesh={true}
-          enableGridX={true}
-          enableGridY={false}
-          colors={threadData.map((i) => i.color)}
-          tooltip={({
-            point
-          }) => <div className="pointer-events-none z-50 rounded-md p-4 bg-neutral-800">
-              <p className="font-sans text-white whitespace-pre-wrap">{JSON.stringify(threadPoints[point.index].event, null, 2)} </p>
-            </div>}
-        />
+      {/* Events*/}
+      <div>
+        <div className="py-4" />
+        <p className="font-sans text-3xl"> Events</p>
+        <div className="py-2" />
+        {events.map((e, index) => (
+          <div key={index} className={"mt-8 mb-8 w-3/5"}>
+            <SessionReplayEventAccordion eventType={e.eventType} timestamp={e.timestamp} threadName={e.thread} id={`${e.eventType}-${index}`} active={false}>
+              {JSON.stringify(e.description, null, 2)}
+            </SessionReplayEventAccordion>
+          </div>
+        ))}
       </div>
     </div>
   )
