@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ResponsiveLine } from '@nivo/line'
 import { emptySessionReplay } from '../api/api_calls';
 import SessionReplayEventAccordion from './session_replay_event_accordion';
@@ -113,12 +113,39 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
     return events
   }
 
+  // Hack for initial animation on cpu and memory charts. We set initial data
+  // such that all y values are 0. Then we implement a timer that sets the real
+  // data after a delay. This is needed because there is no current way to 
+  // animate lines in directly on render in nivo charts
+  const [cpuChartData, setCpuChartData] = useState(cpuData.map(d => ({
+    id: d.id,
+    data: d.data.map(p => ({
+      x: p.x,
+      y: 0
+    }))
+  })));
+  const [memoryChartData, setMemoryChartData] = useState(memoryData.map(d => ({
+    id: d.id,
+    data: d.data.map(p => ({
+      x: p.x,
+      y: 0
+    }))
+  })));
+  useEffect(() => {
+    let animation = setTimeout(() => {
+      setCpuChartData(cpuData);
+      setMemoryChartData(memoryData)
+    }, 200);
+    return () => clearTimeout(animation)
+  }, [cpuData]);
+
   return (
     <div className="flex flex-col w-screen font-sans text-black">
       {/* Memory line */}
       <div className="h-96">
         <ResponsiveLine
-          data={memoryData}
+          animate
+          data={memoryChartData}
           curve="monotoneX"
           crosshairType="cross"
           margin={{ top: 40, right: 160, bottom: 80, left: 90 }}
@@ -184,7 +211,8 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
       {/* CPU line */}
       <div className="h-56">
         <ResponsiveLine
-          data={cpuData}
+          animate
+          data={cpuChartData}
           curve="monotoneX"
           crosshairType="cross"
           margin={{ top: 40, right: 160, bottom: 80, left: 90 }}
