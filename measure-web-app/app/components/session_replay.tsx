@@ -4,6 +4,7 @@ import React from 'react';
 import { ResponsiveLine } from '@nivo/line'
 import { emptySessionReplay } from '../api/api_calls';
 import SessionReplayEventAccordion from './session_replay_event_accordion';
+import SessionReplayEventVerticalConnector from './session_replay_event_vertical_connector';
 
 interface SessionReplayProps {
   sessionReplay: typeof emptySessionReplay
@@ -245,7 +246,10 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
         <p className="font-sans text-3xl"> Events</p>
         <div className="py-2" />
         {events.map((e, index) => (
-          <div key={index} className={"mt-8 mb-8 w-3/5"}>
+          <div key={index} className={"ml-16 w-3/5"}>
+            {index > 0 && <div className='py-2' />}
+            {index > 0 && <SessionReplayEventVerticalConnector milliseconds={new Date(e.timestamp).getMilliseconds() - new Date(events[index - 1].timestamp).getMilliseconds()} />}
+            {index > 0 && <div className='py-2' />}
             <SessionReplayEventAccordion eventType={e.eventType} timestamp={e.timestamp} threadName={e.thread} id={`${e.eventType}-${index}`} active={false}>
               {JSON.stringify(e.description, null, 2)}
             </SessionReplayEventAccordion>
