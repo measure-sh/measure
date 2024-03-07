@@ -28,11 +28,24 @@ export default function SessionReplayEventAccordion({
   }, [])
 
   function getEventContainerColourFromType() {
-    if (eventType === "exception") {
+    if (eventType === "exception" || eventType === "anr") {
       return "bg-red-200 hover:bg-red-300 active:bg-red-400 focus-visible:outline-red-300"
-    } else {
-      return "hover:bg-yellow-200 active:bg-yellow-300 focus-visible:outline-yellow-300"
     }
+
+    if (eventType.includes("gesture")) {
+      return "bg-emerald-200 hover:bg-emerald-300 active:bg-emerald-400 focus-visible:outline-emerald-300"
+    }
+
+    if (eventType === "navigation") {
+      return "bg-fuchsia-200 hover:bg-fuchsia-300 active:bg-fuchsia-400 focus-visible:outline-fuchsia-300"
+    }
+
+    if (eventType === "http") {
+      return "bg-orange-200 hover:bg-orange-300 active:bg-orange-400 focus-visible:outline-orange-300"
+    }
+
+    return "bg-indigo-200 hover:bg-indigo-300 active:bg-indigo-400 focus-visible:outline-indigo-300"
+
   }
 
   return (
