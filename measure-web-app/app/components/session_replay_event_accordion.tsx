@@ -45,7 +45,6 @@ export default function SessionReplayEventAccordion({
     }
 
     return "bg-indigo-200 hover:bg-indigo-300 active:bg-indigo-400 focus-visible:outline-indigo-300"
-
   }
 
   return (
