@@ -1,4 +1,4 @@
-export function formatMillisToHumanRedable(millis: number) {
+export function formatMillisToHumanReadable(millis: number) {
   const millisecondsPerSecond = 1000;
   const secondsPerMinute = 60;
   const minutesPerHour = 60;
