@@ -13,14 +13,14 @@ interface TeamSwitcherProps {
 const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0, teamsApiStatus, onChangeSelectedItem }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
-  const TeamSwitcherRef = useRef<HTMLDivElement | null>(null);
+  const teamSwitcherRef = useRef<HTMLDivElement | null>(null);
 
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        TeamSwitcherRef.current &&
-        !TeamSwitcherRef.current.contains(event.target as Node)
+        teamSwitcherRef.current &&
+        !teamSwitcherRef.current.contains(event.target as Node)
       ) {
         setIsOpen(false);
       }
@@ -28,8 +28,8 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0
 
     const handleFocusIn = (event: FocusEvent) => {
       if (
-        TeamSwitcherRef.current &&
-        !TeamSwitcherRef.current.contains(event.target as Node)
+        teamSwitcherRef.current &&
+        !teamSwitcherRef.current.contains(event.target as Node)
       ) {
         setIsOpen(false);
       }
@@ -57,7 +57,7 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0
   };
 
   return (
-    <div className="z-50 relative w-40 self-center inline-block text-left" ref={TeamSwitcherRef} >
+    <div className="z-50 relative w-40 self-center inline-block text-left" ref={teamSwitcherRef} >
       <button
         type="button"
         onClick={toggleTeamSwitcher}
