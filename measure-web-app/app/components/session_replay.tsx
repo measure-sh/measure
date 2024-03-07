@@ -26,22 +26,62 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
 
   const cpuData = [
     {
-      "id": "% CPU Usage",
-      "color": "hsl(142, 69%, 58%)",
-      "data": sessionReplay.cpu_usage.map(item => ({
-        "x": convertTimestampToChartFormat(item.timestamp),
-        "y": item.value
+      id: '% CPU Usage',
+      data: sessionReplay.cpu_usage.map(item => ({
+        x: convertTimestampToChartFormat(item.timestamp),
+        y: item.value
       }))
     }
   ]
 
   const memoryData = [
     {
-      "id": "Memory",
-      "color": "hsl(198, 93%, 60%)",
-      "data": sessionReplay.memory_usage.map(item => ({
-        "x": convertTimestampToChartFormat(item.timestamp),
-        "y": item.java_free_heap
+      id: 'Java Free Heap',
+      data: sessionReplay.memory_usage.map(item => ({
+        x: convertTimestampToChartFormat(item.timestamp),
+        y: item.java_free_heap
+      }))
+    },
+    {
+      id: 'Java Max Heap',
+      data: sessionReplay.memory_usage.map(item => ({
+        x: convertTimestampToChartFormat(item.timestamp),
+        y: item.java_max_heap
+      }))
+    },
+    {
+      id: 'Java Total Heap',
+      data: sessionReplay.memory_usage.map(item => ({
+        x: convertTimestampToChartFormat(item.timestamp),
+        y: item.java_total_heap
+      }))
+    },
+    {
+      id: 'Native Free Heap',
+      data: sessionReplay.memory_usage.map(item => ({
+        x: convertTimestampToChartFormat(item.timestamp),
+        y: item.native_free_heap
+      }))
+    },
+    {
+      id: 'Native Total Heap',
+      data: sessionReplay.memory_usage.map(item => ({
+        x: convertTimestampToChartFormat(item.timestamp),
+        y: item.native_total_heap
+      }))
+    },
+    {
+      id: 'RSS',
+      data: sessionReplay.memory_usage.map(item => ({
+        x: convertTimestampToChartFormat(item.timestamp),
+        y: item.rss
+      }))
+    },
+    {
+      id: 'Total PSS',
+      data: sessionReplay.memory_usage.map(item => ({
+        x: convertTimestampToChartFormat(item.timestamp),
+        y: item.total_pss
       }))
     }
   ]
@@ -69,10 +109,11 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
   return (
     <div className="flex flex-col w-screen font-sans text-black">
       {/* Memory line */}
-      <div className="h-56">
+      <div className="h-96">
         <ResponsiveLine
           data={memoryData}
           curve="monotoneX"
+          crosshairType="cross"
           margin={{ top: 40, right: 160, bottom: 80, left: 90 }}
           xFormat="time:%Y-%m-%d %H:%M:%S:%L"
           xScale={{
@@ -85,7 +126,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
           }}
           yScale={{
             type: 'linear',
-            min: 'auto',
+            min: 0,
             max: 'auto'
           }}
           yFormat=" >-.2f"
@@ -102,19 +143,18 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
             legendOffset: -80,
             legendPosition: 'middle'
           }}
-          pointLabelYOffset={-12}
           useMesh={true}
-          colors={memoryData.map((i) => i.color)}
+          colors={{ scheme: 'nivo' }}
           defs={[
             {
               colors: [
                 {
-                  color: memoryData.map((i) => i.color),
+                  color: 'inherit',
                   offset: 0
                 },
                 {
-                  color: memoryData.map((i) => i.color),
-                  offset: 60,
+                  color: 'inherit',
+                  offset: 100,
                   opacity: 0
                 }
               ],
@@ -123,17 +163,14 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
             }
           ]}
           enableArea
+          enableSlices="x"
+          enableCrosshair
           fill={[
             {
               id: 'memoryGradient',
               match: '*'
             }
           ]}
-          tooltip={({
-            point
-          }) => <div className="pointer-events-none z-50 rounded-md p-4 bg-neutral-800">
-              <p className="font-sans text-white">{point.data.yFormatted} MB</p>
-            </div>}
 
         />
       </div>
@@ -142,6 +179,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
         <ResponsiveLine
           data={cpuData}
           curve="monotoneX"
+          crosshairType="cross"
           margin={{ top: 40, right: 160, bottom: 80, left: 90 }}
           xFormat="time:%Y-%m-%d %H:%M:%S:%L"
           xScale={{
@@ -154,7 +192,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
           }}
           yScale={{
             type: 'linear',
-            min: 'auto',
+            min: 0,
             max: 'auto'
           }}
           yFormat=" >-.2f"
@@ -171,19 +209,18 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
             legendOffset: -80,
             legendPosition: 'middle'
           }}
-          pointLabelYOffset={-12}
           useMesh={true}
-          colors={cpuData.map((i) => i.color)}
+          colors={{ scheme: 'nivo' }}
           defs={[
             {
               colors: [
                 {
-                  color: cpuData.map((i) => i.color),
+                  color: 'inherit',
                   offset: 0
                 },
                 {
-                  color: cpuData.map((i) => i.color),
-                  offset: 60,
+                  color: 'inherit',
+                  offset: 100,
                   opacity: 0
                 }
               ],
@@ -192,17 +229,14 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
             }
           ]}
           enableArea
+          enableCrosshair
+          enableSlices="x"
           fill={[
             {
               id: 'cpuGradient',
               match: '*'
             }
           ]}
-          tooltip={({
-            point
-          }) => <div className="pointer-events-none z-50 rounded-md p-4 bg-neutral-800">
-              <p className="font-sans text-white">{point.data.yFormatted}%</p>
-            </div>}
         />
       </div>
       {/* Events*/}
