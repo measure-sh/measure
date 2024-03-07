@@ -58,7 +58,7 @@ func (m *MappingFile) shouldUpsert() (bool, *uuid.UUID, error) {
 		Where("version_code = ?", nil).
 		Where("mapping_type = ?", nil)
 
-	stmt.Close()
+	defer stmt.Close()
 
 	ctx := context.Background()
 	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), m.AppUniqueID, m.VersionName, m.VersionCode, m.Type).Scan(&id, &key, &existingHash); err != nil {
