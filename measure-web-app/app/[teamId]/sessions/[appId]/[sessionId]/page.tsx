@@ -2,6 +2,7 @@
 
 import { SessionReplayApiStatus, emptySessionReplay, fetchSessionReplayFromServer } from "@/app/api/api_calls";
 import SessionReplay from "@/app/components/session_replay";
+import { formatMillisToHumanReadable } from "@/app/utils/time_utils";
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from "react";
 
@@ -42,8 +43,7 @@ export default function Session({ params }: { params: { appId: string, sessionId
 
       {sessionReplayApiStatus === SessionReplayApiStatus.Success &&
         <div>
-          <p className="font-sans"> First event time: {new Date(sessionReplay.first_event_timestamp).toLocaleDateString()}, {new Date(sessionReplay.first_event_timestamp).toLocaleTimeString()}</p>
-          <p className="font-sans"> First event time: {new Date(sessionReplay.last_event_timestamp).toLocaleDateString()}, {new Date(sessionReplay.last_event_timestamp).toLocaleTimeString()}</p>
+          <p className="font-sans"> Duration: {formatMillisToHumanReadable(new Date(sessionReplay.duration).getMilliseconds())}</p>
           <p className="font-sans"> Device: {sessionReplay.resource.device_manufacturer + sessionReplay.resource.device_model}</p>
           <p className="font-sans"> App version: {sessionReplay.resource.app_version}</p>
           <p className="font-sans"> Network type: {sessionReplay.resource.network_type}</p>
