@@ -957,13 +957,12 @@ func (s *Session) getMappingKey() (string, error) {
 		Where("app_unique_id = ?", nil).
 		Where("version_name = ?", nil).
 		Where("version_code = ?", nil).
-		Where("mapping_type = proguard").
-		Limit(1)
+		Where("mapping_type = ?", nil)
 
 	defer stmt.Close()
 
 	ctx := context.Background()
-	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), s.Resource.AppUniqueID, s.Resource.AppVersion, s.Resource.AppBuild).Scan(&key); err != nil {
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), s.Resource.AppUniqueID, s.Resource.AppVersion, s.Resource.AppBuild, "proguard").Scan(&key); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", nil
 		}
