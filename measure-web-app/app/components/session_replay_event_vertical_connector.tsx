@@ -12,7 +12,13 @@ export default function SessionReplayEventVerticalConnector({
 
 
   function getDividerHeightInPx() {
-    return milliseconds * 3;
+    let height = milliseconds / 100
+
+    if (height < 10) {
+      height = 10
+    }
+
+    return height
   }
 
   return (
