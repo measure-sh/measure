@@ -133,6 +133,7 @@ type ANR struct {
 	NetworkProvider   string         `json:"network_provider"`
 	DeviceLocale      string         `json:"device_locale"`
 	Fingerprint       string         `json:"fingerprint"`
+	Foreground        bool           `json:"foreground" binding:"required"`
 }
 
 type Exception struct {
