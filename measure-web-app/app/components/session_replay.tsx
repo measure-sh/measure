@@ -6,6 +6,7 @@ import { emptySessionReplay } from '../api/api_calls';
 import SessionReplayEventAccordion from './session_replay_event_accordion';
 import SessionReplayEventVerticalConnector from './session_replay_event_vertical_connector';
 import FadeInOut from './fade_in_out';
+import CheckboxDropdown from './checkbox_dropdown';
 
 interface SessionReplayProps {
   sessionReplay: typeof emptySessionReplay
@@ -88,21 +89,25 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
     }
   ]
 
-  const events = parseEventsFromSessionReplay()
+  const { events, threads, eventTypes } = parseEventsThreadsAndEventTypesFromSessionReplay()
 
-  function parseEventsFromSessionReplay() {
+  function parseEventsThreadsAndEventTypesFromSessionReplay() {
     let events: { eventType: string; timestamp: string; thread: string; description: any; }[] = []
+    let threads = new Set<string>()
+    let eventTypes = new Set<string>()
 
     Object.keys(sessionReplay.threads).forEach(item => (
       // @ts-ignore
-      sessionReplay.threads[item].forEach((subItem: any) => (
+      sessionReplay.threads[item].forEach((subItem: any) => {
         events.push({
           eventType: subItem.event_type,
           timestamp: convertTimestampToChartFormat(subItem.timestamp),
           thread: item,
           description: subItem
         })
-      ))
+        threads.add(item)
+        eventTypes.add(subItem.event_type)
+      })
     ))
 
     events.sort((a, b) => {
@@ -111,8 +116,14 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
       return dateA.getMilliseconds() - dateB.getMilliseconds();
     });
 
-    return events
+    let threadsArray = Array.from(threads)
+    let eventsTypesArray = Array.from(eventTypes)
+
+    return { events, threads: threadsArray, eventTypes: eventsTypesArray }
   }
+
+  const [selectedThreads, setSelectedThreads] = useState(threads);
+  const [selectedEventTypes, setSelectedEventTypes] = useState(eventTypes);
 
   // Hack for initial animation on cpu and memory charts. We set initial data
   // such that all y values are 0. Then we implement a timer that sets the real
@@ -279,8 +290,13 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
       <div>
         <div className="py-4" />
         <p className="font-sans text-3xl"> Events</p>
+        <div className="py-4" />
+        <div className="flex flex-wrap gap-8 items-center w-5/6">
+          <CheckboxDropdown title="Threads" items={threads} initialSelectedItems={threads} onChangeSelectedItems={(items) => setSelectedThreads(items)} />
+          <CheckboxDropdown title="Event types" items={eventTypes} initialSelectedItems={eventTypes} onChangeSelectedItems={(items) => setSelectedEventTypes(items)} />
+        </div>
         <div className="py-8" />
-        {events.map((e, index) => (
+        {events.filter((e) => selectedThreads.includes(e.thread) && selectedEventTypes.includes(e.eventType)).map((e, index) => (
           <div key={index} className={"ml-16 w-3/5"}>
             {index > 0 && <div className='py-2' />}
             {index > 0 &&
