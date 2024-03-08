@@ -5,7 +5,7 @@ import { ResponsiveLine } from '@nivo/line'
 import { emptySessionReplay } from '../api/api_calls';
 import SessionReplayEventAccordion from './session_replay_event_accordion';
 import SessionReplayEventVerticalConnector from './session_replay_event_vertical_connector';
-import FadeIn from './fade_in';
+import FadeInOut from './fade_in_out';
 
 interface SessionReplayProps {
   sessionReplay: typeof emptySessionReplay
@@ -284,16 +284,16 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
           <div key={index} className={"ml-16 w-3/5"}>
             {index > 0 && <div className='py-2' />}
             {index > 0 &&
-              <FadeIn>
+              <FadeInOut>
                 <SessionReplayEventVerticalConnector milliseconds={new Date(e.timestamp).getMilliseconds() - new Date(events[index - 1].timestamp).getMilliseconds()} />
-              </FadeIn>
+              </FadeInOut>
             }
             {index > 0 && <div className='py-2' />}
-            <FadeIn>
+            <FadeInOut>
               <SessionReplayEventAccordion eventType={e.eventType} timestamp={e.timestamp} threadName={e.thread} id={`${e.eventType}-${index}`} active={false}>
                 {JSON.stringify(e.description, null, 2)}
               </SessionReplayEventAccordion>
-            </FadeIn>
+            </FadeInOut>
           </div>
         ))}
       </div>

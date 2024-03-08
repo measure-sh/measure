@@ -3,13 +3,13 @@
 import { useState, useRef, useEffect } from 'react'
 import { useScrollDirection } from '../utils/scroll_utils';
 
-type FadeInProps = {
+type FadeInOutProps = {
     children: React.ReactNode
 }
 
-export default function FadeIn({
+export default function FadeInOut({
     children,
-}: FadeInProps) {
+}: FadeInOutProps) {
     const [isVisible, setVisible] = useState(false);
     const domRef = useRef<HTMLDivElement | null>(null);
     const scrollDir = useScrollDirection()
@@ -17,9 +17,7 @@ export default function FadeIn({
     useEffect(() => {
         const observer = new IntersectionObserver(entries => {
             entries.forEach(entry => {
-                if (entry.isIntersecting !== isVisible) {
-                    setVisible(entry.isIntersecting);
-                }
+                setVisible(entry.isIntersecting);
             });
         });
 
@@ -32,11 +30,18 @@ export default function FadeIn({
                 observer.unobserve(domRef.current);
             }
         };
-    }, []);
+    }, [scrollDir]);
+
+    function createTransitionAnimation() {
+        let visibility = isVisible ? 'opacity-100 visible' : 'opacity-0 invisible'
+        let translateDirection = isVisible ? 'translate-y-0' : scrollDir === 'scrolling down' ? 'translate-y-28' : '-translate-y-28'
+
+        return visibility + ' transition duration-700 ease-in-out ' + translateDirection + ' motion-reduce:transition-none'
+    }
 
     return (
         <div
-            className={`transition duration-700 ease-in-out motion-reduce:transition-none ${isVisible ? 'opacity-100 visible translate-y-0' : scrollDir === 'scrolling down' ? 'opacity-0 invisible translate-y-28' : 'opacity-0 invisible -translate-y-28'}`}
+            className={createTransitionAnimation()}
             ref={domRef}
         >
             {children}
