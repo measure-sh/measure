@@ -517,6 +517,7 @@ func (s *Session) ingest() error {
 			Set("anr.fingerprint", nil).
 			Set("anr.exceptions", nil).
 			Set("anr.threads", nil).
+			Set("anr.foreground", nil).
 			Set("exception.thread_name", nil).
 			Set("exception.handled", nil).
 			Set("exception.fingerprint", nil).
@@ -690,6 +691,7 @@ func (s *Session) ingest() error {
 			s.Events[i].ANR.Fingerprint,
 			anrExceptions,
 			anrThreads,
+			s.Events[i].ANR.Foreground,
 			s.Events[i].Exception.ThreadName,
 			s.Events[i].Exception.Handled,
 			s.Events[i].Exception.Fingerprint,
