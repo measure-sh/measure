@@ -522,6 +522,7 @@ func (s *Session) ingest() error {
 			Set("exception.fingerprint", nil).
 			Set("exception.exceptions", nil).
 			Set("exception.threads", nil).
+			Set("exception.foreground", nil).
 			Set("app_exit.reason", nil).
 			Set("app_exit.importance", nil).
 			Set("app_exit.trace", nil).
@@ -694,6 +695,7 @@ func (s *Session) ingest() error {
 			s.Events[i].Exception.Fingerprint,
 			exceptionExceptions,
 			exceptionThreads,
+			s.Events[i].Exception.Foreground,
 			s.Events[i].AppExit.Reason,
 			s.Events[i].AppExit.Importance,
 			s.Events[i].AppExit.Trace,
