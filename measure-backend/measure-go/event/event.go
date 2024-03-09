@@ -744,7 +744,7 @@ func (e *EventField) Validate() error {
 	}
 
 	if e.IsAppExit() {
-		if len(e.AppExit.Reason) < 1 || len(e.AppExit.Importance) < 1 || len(e.AppExit.ProcessName) < 1 || len(e.AppExit.ProcessName) < 1 {
+		if len(e.AppExit.Reason) < 1 || len(e.AppExit.Importance) < 1 || len(e.AppExit.ProcessName) < 1 {
 			return fmt.Errorf(`app_exit event is invalid`)
 		}
 	}
