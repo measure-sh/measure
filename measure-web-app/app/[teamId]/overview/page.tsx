@@ -5,12 +5,14 @@ import Dropdown from "@/app/components/dropdown";
 import FilterPill from "@/app/components/filter_pill";
 import Journey from "@/app/components/journey";
 import MetricsOverview from '@/app/components/metrics_overview';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import CreateApp from '@/app/components/create_app';
 import { AppsApiStatus, FiltersApiStatus, emptyApp, fetchAppsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
+import { updateDateQueryParams } from '@/app/utils/router_utils';
 
 export default function Overview({ params }: { params: { teamId: string } }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading);
   const [filtersApiStatus, setFiltersApiStatus] = useState(FiltersApiStatus.Loading);
@@ -23,17 +25,21 @@ export default function Overview({ params }: { params: { teamId: string } }) {
 
   const today = new Date();
   var initialEndDate = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
-  const [endDate, setEndDate] = useState(initialEndDate);
+  const [endDate, setEndDate] = useState(searchParams.has("end_date") ? searchParams.get("end_date")! : initialEndDate);
   const [formattedEndDate, setFormattedEndDate] = useState(endDate);
 
   const sevenDaysAgo = new Date(today.setDate(today.getDate() - 7));
   var initialStartDate = `${sevenDaysAgo.getFullYear()}-${(sevenDaysAgo.getMonth() + 1).toString().padStart(2, '0')}-${sevenDaysAgo.getDate().toString().padStart(2, '0')}`;
-  const [startDate, setStartDate] = useState(initialStartDate);
+  const [startDate, setStartDate] = useState(searchParams.has("start_date") ? searchParams.get("start_date")! : initialStartDate);
   const [formattedStartDate, setFormattedStartDate] = useState(startDate);
+
+  // updateDateQueryParams(router, searchParams, startDate, endDate)
 
   useEffect(() => {
     setFormattedStartDate(new Date(startDate).toLocaleDateString());
     setFormattedEndDate(new Date(endDate).toLocaleDateString());
+
+    updateDateQueryParams(router, searchParams, startDate, endDate)
   }, [startDate, endDate]);
 
   const getApps = async () => {

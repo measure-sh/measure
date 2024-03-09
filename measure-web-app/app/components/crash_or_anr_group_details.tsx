@@ -8,8 +8,9 @@ import FilterPill from "@/app/components/filter_pill";
 import UserFlowCrashOrAnrGroupDetails from "@/app/components/user_flow_crash_details";
 import Link from "next/link";
 import { AppsApiStatus, CrashOrAnrGroupDetailsApiStatus, CrashOrAnrType, FiltersApiStatus, emptyApp, emptyCrashGroupDetailsResponse, emptyAnrGroupDetailsResponse, fetchAppsFromServer, fetchCrashOrAnrGroupDetailsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
+import { updateDateQueryParams } from '../utils/router_utils';
 
 interface CrashOrAnrGroupDetailsProps {
   crashOrAnrType: CrashOrAnrType,
@@ -21,6 +22,7 @@ interface CrashOrAnrGroupDetailsProps {
 
 export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ crashOrAnrType, teamId, appId, crashOrAnrGroupId, crashOrAnrGroupName }) => {
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading);
   const [filtersApiStatus, setFiltersApiStatus] = useState(FiltersApiStatus.Loading);
@@ -58,17 +60,19 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
 
   const today = new Date();
   var initialEndDate = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
-  const [endDate, setEndDate] = useState(initialEndDate);
+  const [endDate, setEndDate] = useState(searchParams.has("end_date") ? searchParams.get("end_date")! : initialEndDate);
   const [formattedEndDate, setFormattedEndDate] = useState(endDate);
 
   const sevenDaysAgo = new Date(today.setDate(today.getDate() - 7));
   var initialStartDate = `${sevenDaysAgo.getFullYear()}-${(sevenDaysAgo.getMonth() + 1).toString().padStart(2, '0')}-${sevenDaysAgo.getDate().toString().padStart(2, '0')}`;
-  const [startDate, setStartDate] = useState(initialStartDate);
+  const [startDate, setStartDate] = useState(searchParams.has("start_date") ? searchParams.get("start_date")! : initialStartDate);
   const [formattedStartDate, setFormattedStartDate] = useState(startDate);
 
   useEffect(() => {
     setFormattedStartDate(new Date(startDate).toLocaleDateString());
     setFormattedEndDate(new Date(endDate).toLocaleDateString());
+
+    updateDateQueryParams(router, searchParams, startDate, endDate)
   }, [startDate, endDate]);
 
   const getApps = async () => {
