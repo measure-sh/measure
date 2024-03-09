@@ -276,6 +276,7 @@ To understand the shape of the JSON payload, take a look at this sample request.
       "exception": {
         "thread_name": "main",
         "handled": false,
+        "foreground": true,
         "exceptions": [
           {
             "type": "java.lang.RuntimeException",
