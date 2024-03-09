@@ -488,6 +488,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		`anr.network_generation`,
 		`anr.network_provider`,
 		`anr.device_locale`,
+		`anr.foreground`,
 		`anr.exceptions`,
 		`anr.threads`,
 		`exception.thread_name`,
@@ -691,6 +692,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 			&anr.NetworkGeneration,
 			&anr.NetworkProvider,
 			&anr.DeviceLocale,
+			&anr.Foreground,
 			&anrExceptions,
 			&anrThreads,
 
