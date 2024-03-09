@@ -1782,6 +1782,7 @@ These headers must be present in each request.
           "network_provider": "",
           "network_generation": "",
           "device_locale": "en-US",
+          "foreground": true,
           "timestamp": "2024-02-22T09:42:45.042Z",
           "attributes": {}
         }
