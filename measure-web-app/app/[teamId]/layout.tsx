@@ -77,7 +77,7 @@ export default function DashboardLayout({
   return (
     <div>
       {/* Side nav and main content layout on normal+ size screens */}
-      <div className="hidden md:flex">
+      <div className="hidden md:flex selection:bg-yellow-200/75">
         <aside className="border-black border-r sticky top-0 h-screen">
           <nav className="flex flex-col p-2 h-full w-60">
             <div className="py-4" />
@@ -88,7 +88,8 @@ export default function DashboardLayout({
               <ul>
                 {menuItems.map(({ hrefSuffix, title }) => (
                   <li key={title}>
-                    <Link href={`/${selectedTeam}/${hrefSuffix}`} className={`m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4 ${pathName.includes(hrefSuffix) && 'bg-neutral-950 text-white focus-visible:text-black hover:text-black'}`}>{title}</Link>
+                    {!pathName.includes(hrefSuffix) && <Link href={`/${selectedTeam}/${hrefSuffix}`} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4">{title}</Link>}
+                    {pathName.includes(hrefSuffix) && <div className="m-4 outline-none flex justify-center border border-black rounded-md font-display py-2 px-4 bg-neutral-950 text-white">{title}</div>}
                   </li>
                 ))}
               </ul>}
@@ -100,7 +101,7 @@ export default function DashboardLayout({
       </div>
 
       {/* Side nav and main content layout on small screens */}
-      <div className="flex flex-col md:hidden">
+      <div className="flex flex-col md:hidden selection:bg-yellow-200/75">
         <aside>
           <nav className="flex flex-col p-2 h-full w-screen">
             <div className="py-4" />
@@ -111,7 +112,8 @@ export default function DashboardLayout({
               <ul>
                 {menuItems.map(({ hrefSuffix, title }) => (
                   <li key={title}>
-                    <Link href={`/${selectedTeam}/${hrefSuffix}`} className={`m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4 ${pathName.includes(hrefSuffix) && 'bg-neutral-950 text-white focus-visible:text-black hover:text-black'}`}>{title}</Link>
+                    {!pathName.includes(hrefSuffix) && <Link href={`/${selectedTeam}/${hrefSuffix}`} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4">{title}</Link>}
+                    {pathName.includes(hrefSuffix) && <div className="m-4 outline-none flex justify-center border border-black rounded-md font-display py-2 px-4 bg-neutral-950 text-white">{title}</div>}
                   </li>
                 ))}
               </ul>}
