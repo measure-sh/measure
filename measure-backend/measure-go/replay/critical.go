@@ -18,6 +18,7 @@ type Exception struct {
 	NetworkProvider   string            `json:"network_provider"`
 	NetworkGeneration string            `json:"network_generation"`
 	DeviceLocale      string            `json:"device_locale"`
+	Foreground        bool              `json:"foreground"`
 	Timestamp         time.Time         `json:"timestamp"`
 	Attributes        map[string]string `json:"attributes"`
 }
@@ -78,6 +79,7 @@ func ComputeExceptions(events []event.EventField) (result []ThreadGrouper) {
 			event.Exception.NetworkProvider,
 			event.Exception.NetworkGeneration,
 			event.Exception.DeviceLocale,
+			event.Exception.Foreground,
 			event.Timestamp,
 			event.Attributes,
 		}
