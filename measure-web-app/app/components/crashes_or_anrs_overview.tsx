@@ -6,10 +6,11 @@ import Dropdown from "@/app/components/dropdown";
 import ExceptionRateChart from "@/app/components/exception_rate_chart";
 import FilterPill from "@/app/components/filter_pill";
 import Link from "next/link";
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import CreateApp from '@/app/components/create_app';
 import { AppsApiStatus, CrashOrAnrGroupsApiStatus, CrashOrAnrType, FiltersApiStatus, emptyApp, emptyCrashOrAnrGroupsResponse, fetchAppsFromServer, fetchCrashOrAnrGroupsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
+import { updateDateQueryParams } from '../utils/router_utils';
 
 interface CrashOrAnrsOverviewProps {
   crashOrAnrType: CrashOrAnrType,
@@ -18,6 +19,7 @@ interface CrashOrAnrsOverviewProps {
 
 export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ crashOrAnrType, teamId }) => {
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading);
   const [filtersApiStatus, setFiltersApiStatus] = useState(FiltersApiStatus.Loading);
@@ -36,17 +38,19 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
 
   const today = new Date();
   var initialEndDate = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
-  const [endDate, setEndDate] = useState(initialEndDate);
+  const [endDate, setEndDate] = useState(searchParams.has("end_date") ? searchParams.get("end_date")! : initialEndDate);
   const [formattedEndDate, setFormattedEndDate] = useState(endDate);
 
   const sevenDaysAgo = new Date(today.setDate(today.getDate() - 7));
   var initialStartDate = `${sevenDaysAgo.getFullYear()}-${(sevenDaysAgo.getMonth() + 1).toString().padStart(2, '0')}-${sevenDaysAgo.getDate().toString().padStart(2, '0')}`;
-  const [startDate, setStartDate] = useState(initialStartDate);
+  const [startDate, setStartDate] = useState(searchParams.has("start_date") ? searchParams.get("start_date")! : initialStartDate);
   const [formattedStartDate, setFormattedStartDate] = useState(startDate);
 
   useEffect(() => {
     setFormattedStartDate(new Date(startDate).toLocaleDateString());
     setFormattedEndDate(new Date(endDate).toLocaleDateString());
+
+    updateDateQueryParams(router, searchParams, startDate, endDate)
   }, [startDate, endDate]);
 
   const getApps = async () => {
@@ -210,7 +214,7 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
             </div>
             <div className="table-row-group">
               {crashOrAnrGroups.results.map(({ id, name, count, percentage_contribution }) => (
-                <Link key={id} href={`/${teamId}/${crashOrAnrType === CrashOrAnrType.Crash ? 'crashes' : 'anrs'}/${selectedApp.id}/${id}/${name}`} className="table-row hover:bg-yellow-200 active:bg-yellow-300">
+                <Link key={id} href={`/${teamId}/${crashOrAnrType === CrashOrAnrType.Crash ? 'crashes' : 'anrs'}/${selectedApp.id}/${id}/${name}?start_date=${startDate}&end_date=${endDate}`} className="table-row hover:bg-yellow-200 active:bg-yellow-300">
                   <div className="table-cell border border-black p-2 hover:bg-yellow-200 active:bg-yellow-300">{name}</div>
                   <div className="table-cell border border-black p-2 text-center">{count} instances</div>
                   <div className="table-cell border border-black p-2 text-center">{percentage_contribution}%</div>
