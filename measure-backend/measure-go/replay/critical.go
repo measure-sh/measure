@@ -47,6 +47,7 @@ type ANR struct {
 	NetworkProvider   string            `json:"network_provider"`
 	NetworkGeneration string            `json:"network_generation"`
 	DeviceLocale      string            `json:"device_locale"`
+	Foreground        bool              `json:"foreground"`
 	Timestamp         time.Time         `json:"timestamp"`
 	Attributes        map[string]string `json:"attributes"`
 }
@@ -104,6 +105,7 @@ func ComputeANRs(events []event.EventField) (result []ThreadGrouper) {
 			event.ANR.NetworkProvider,
 			event.ANR.NetworkGeneration,
 			event.ANR.DeviceLocale,
+			event.ANR.Foreground,
 			event.Timestamp,
 			event.Attributes,
 		}
