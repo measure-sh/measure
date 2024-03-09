@@ -497,6 +497,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		`exception.network_generation`,
 		`exception.network_provider`,
 		`exception.device_locale`,
+		`exception.foreground`,
 		`exception.exceptions`,
 		`exception.threads`,
 		`app_exit.reason`,
@@ -701,6 +702,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 			&exception.NetworkGeneration,
 			&exception.NetworkProvider,
 			&exception.DeviceLocale,
+			&exception.Foreground,
 			&exceptionExceptions,
 			&exceptionThreads,
 
