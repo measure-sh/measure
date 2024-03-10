@@ -76,6 +76,7 @@ class EventKtTest {
             networkGeneration = null,
             networkProvider = null,
             deviceLocale = "en-US",
+            foreground = true,
             isAnr = false,
         )
         val event = exception.toEvent()
@@ -98,6 +99,7 @@ class EventKtTest {
             networkGeneration = null,
             networkProvider = null,
             deviceLocale = "en-US",
+            foreground = true,
             isAnr = true,
         )
         val event = exception.toEvent()

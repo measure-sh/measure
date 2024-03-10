@@ -15,6 +15,7 @@ internal object ExceptionFactory {
         networkType: String?,
         networkGeneration: String?,
         networkProvider: String?,
+        foreground: Boolean,
         isAnr: Boolean = false,
         deviceLocale: String?,
     ): MeasureException {
@@ -66,6 +67,7 @@ internal object ExceptionFactory {
             network_provider = networkProvider,
             network_generation = networkGeneration,
             device_locale = deviceLocale,
+            foreground = foreground,
             isAnr = isAnr,
         )
     }

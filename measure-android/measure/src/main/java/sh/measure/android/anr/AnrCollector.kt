@@ -9,6 +9,7 @@ import sh.measure.android.networkchange.NetworkInfoProvider
 import sh.measure.android.utils.LocaleProvider
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.TimeProvider
+import sh.measure.android.utils.isForegroundProcess
 
 private const val ANR_TIMEOUT_MILLIS = 5000
 
@@ -45,6 +46,7 @@ internal class AnrCollector(
             networkGeneration = networkInfoProvider.getNetworkGeneration(networkType),
             networkProvider = networkInfoProvider.getNetworkProvider(networkType),
             deviceLocale = localeProvider.getLocale(),
+            foreground = isForegroundProcess(),
             isAnr = true,
         )
     }

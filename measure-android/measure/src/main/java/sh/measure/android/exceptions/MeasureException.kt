@@ -59,6 +59,11 @@ internal data class MeasureException(
     val device_locale: String?,
 
     /**
+     * Whether the app was in the foreground or not when the exception occurred.
+     */
+    val foreground: Boolean,
+
+    /**
      * Whether is exception represents an ANR or not.
      */
     @Transient
