@@ -1,7 +1,6 @@
 package sh.measure.android.applaunch
 
 import android.app.Activity
-import android.app.ActivityManager
 import android.os.Bundle
 import android.os.SystemClock
 import curtains.onNextDraw
@@ -11,6 +10,7 @@ import sh.measure.android.logger.Logger
 import sh.measure.android.mainHandler
 import sh.measure.android.postAtFrontOfQueueAsync
 import sh.measure.android.utils.TimeProvider
+import sh.measure.android.utils.isForegroundProcess
 
 internal interface LaunchCallbacks {
     fun onColdLaunch(coldLaunchEvent: ColdLaunchEvent)
@@ -187,11 +187,5 @@ internal class LaunchTracker(
     override fun onActivityDestroyed(activity: Activity) {
         val identityHash = Integer.toHexString(System.identityHashCode(activity))
         createdActivities.remove(identityHash)
-    }
-
-    private fun isForegroundProcess(): Boolean {
-        val processInfo = ActivityManager.RunningAppProcessInfo()
-        ActivityManager.getMyMemoryState(processInfo)
-        return processInfo.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
     }
 }

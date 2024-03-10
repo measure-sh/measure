@@ -41,6 +41,7 @@ class AnrCollectorTest {
                 networkGeneration = networkInfoProvider.getNetworkGeneration(networkInfoProvider.getNetworkType()),
                 networkProvider = networkInfoProvider.getNetworkProvider(networkInfoProvider.getNetworkType()),
                 deviceLocale = localeProvider.getLocale(),
+                foreground = false,
                 isAnr = true,
             ),
         )

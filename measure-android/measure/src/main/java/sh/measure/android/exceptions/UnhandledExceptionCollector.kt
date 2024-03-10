@@ -6,6 +6,7 @@ import sh.measure.android.logger.Logger
 import sh.measure.android.networkchange.NetworkInfoProvider
 import sh.measure.android.utils.LocaleProvider
 import sh.measure.android.utils.TimeProvider
+import sh.measure.android.utils.isForegroundProcess
 import java.lang.Thread.UncaughtExceptionHandler
 
 /**
@@ -48,6 +49,7 @@ internal class UnhandledExceptionCollector(
                 networkType = networkType,
                 networkGeneration = networkInfoProvider.getNetworkGeneration(networkType),
                 networkProvider = networkInfoProvider.getNetworkProvider(networkType),
+                foreground = isForegroundProcess(),
                 deviceLocale = localeProvider.getLocale(),
             )
             eventTracker.trackUnhandledException(measureException)
