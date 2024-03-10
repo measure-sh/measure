@@ -316,12 +316,12 @@ COMMENT ON COLUMN public.apps.updated_at IS 'utc timestamp at the time of app re
 
 
 --
--- Name: mapping_files; Type: TABLE; Schema: public; Owner: -
+-- Name: build_mappings; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.mapping_files (
+CREATE TABLE public.build_mappings (
     id uuid NOT NULL,
-    app_unique_id character varying(256) NOT NULL,
+    app_id uuid,
     version_name character varying(256) NOT NULL,
     version_code character varying(256) NOT NULL,
     mapping_type character varying(32) NOT NULL,
@@ -334,73 +334,73 @@ CREATE TABLE public.mapping_files (
 
 
 --
--- Name: COLUMN mapping_files.id; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN build_mappings.id; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.mapping_files.id IS 'unique id for each mapping file';
-
-
---
--- Name: COLUMN mapping_files.app_unique_id; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.mapping_files.app_unique_id IS 'unique identifier of the app';
+COMMENT ON COLUMN public.build_mappings.id IS 'unique id for each mapping file';
 
 
 --
--- Name: COLUMN mapping_files.version_name; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN build_mappings.app_id; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.mapping_files.version_name IS 'user visible version number of the app';
-
-
---
--- Name: COLUMN mapping_files.version_code; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.mapping_files.version_code IS 'incremental build number of the app';
+COMMENT ON COLUMN public.build_mappings.app_id IS 'linked app id';
 
 
 --
--- Name: COLUMN mapping_files.mapping_type; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN build_mappings.version_name; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.mapping_files.mapping_type IS 'type of the mapping file, like proguard etc';
-
-
---
--- Name: COLUMN mapping_files.key; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.mapping_files.key IS 'key of the mapping file stored in remote object store';
+COMMENT ON COLUMN public.build_mappings.version_name IS 'user visible version number of the app';
 
 
 --
--- Name: COLUMN mapping_files.location; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN build_mappings.version_code; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.mapping_files.location IS 'url of the mapping file stored in remote object store';
-
-
---
--- Name: COLUMN mapping_files.fnv1_hash; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.mapping_files.fnv1_hash IS '64 bit fnv1 hash of the mapping file bytes';
+COMMENT ON COLUMN public.build_mappings.version_code IS 'incremental build number of the app';
 
 
 --
--- Name: COLUMN mapping_files.file_size; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN build_mappings.mapping_type; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.mapping_files.file_size IS 'size of mapping file in bytes';
+COMMENT ON COLUMN public.build_mappings.mapping_type IS 'type of the mapping file, like proguard etc';
 
 
 --
--- Name: COLUMN mapping_files.last_updated; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN build_mappings.key; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.mapping_files.last_updated IS 'utc timestamp at the time of mapping file upload';
+COMMENT ON COLUMN public.build_mappings.key IS 'key of the mapping file stored in remote object store';
+
+
+--
+-- Name: COLUMN build_mappings.location; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.build_mappings.location IS 'url of the mapping file stored in remote object store';
+
+
+--
+-- Name: COLUMN build_mappings.fnv1_hash; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.build_mappings.fnv1_hash IS '64 bit fnv1 hash of the mapping file bytes';
+
+
+--
+-- Name: COLUMN build_mappings.file_size; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.build_mappings.file_size IS 'size of mapping file in bytes';
+
+
+--
+-- Name: COLUMN build_mappings.last_updated; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.build_mappings.last_updated IS 'utc timestamp at the time of mapping file upload';
 
 
 --
@@ -773,11 +773,11 @@ ALTER TABLE ONLY public.apps
 
 
 --
--- Name: mapping_files mapping_files_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: build_mappings build_mappings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.mapping_files
-    ADD CONSTRAINT mapping_files_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.build_mappings
+    ADD CONSTRAINT build_mappings_pkey PRIMARY KEY (id);
 
 
 --
@@ -850,6 +850,14 @@ ALTER TABLE ONLY public.api_keys
 
 ALTER TABLE ONLY public.apps
     ADD CONSTRAINT apps_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id) ON DELETE CASCADE;
+
+
+--
+-- Name: build_mappings build_mappings_app_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.build_mappings
+    ADD CONSTRAINT build_mappings_app_id_fkey FOREIGN KEY (app_id) REFERENCES public.apps(id) ON DELETE CASCADE;
 
 
 --
