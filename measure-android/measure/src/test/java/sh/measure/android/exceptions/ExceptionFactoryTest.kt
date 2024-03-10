@@ -25,6 +25,7 @@ class ExceptionFactoryTest {
             networkType = null,
             networkGeneration = null,
             networkProvider = null,
+            foreground = true,
             deviceLocale = "en-US",
         )
 
@@ -54,6 +55,7 @@ class ExceptionFactoryTest {
             networkType = null,
             networkGeneration = null,
             networkProvider = null,
+            foreground = true,
             deviceLocale = "en-US",
         )
 
@@ -87,6 +89,7 @@ class ExceptionFactoryTest {
             networkType = null,
             networkGeneration = null,
             networkProvider = null,
+            foreground = true,
             deviceLocale = "en-US",
         )
 
@@ -109,6 +112,7 @@ class ExceptionFactoryTest {
             networkType = null,
             networkGeneration = null,
             networkProvider = null,
+            foreground = true,
             deviceLocale = "en-US",
         )
 
@@ -131,6 +135,7 @@ class ExceptionFactoryTest {
             networkType = "network_type",
             networkGeneration = "network_gen",
             networkProvider = "network_provider",
+            foreground = true,
             deviceLocale = "en-US",
         )
 

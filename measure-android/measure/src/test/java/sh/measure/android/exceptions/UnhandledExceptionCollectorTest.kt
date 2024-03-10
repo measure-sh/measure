@@ -64,6 +64,7 @@ internal class UnhandledExceptionCollectorTest {
             networkType = networkType,
             networkGeneration = networkInfoProvider.getNetworkGeneration(networkType),
             networkProvider = networkInfoProvider.getNetworkProvider(networkType),
+            foreground = false,
             deviceLocale = localeProvider.getLocale(),
         )
 
