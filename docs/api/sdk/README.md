@@ -537,6 +537,7 @@ Use the `anr` type for [Application Not Responding](https://developer.android.co
 | `network_provider`   | string  | Yes      | The network provider at the time of the ANR. Example: airtel, T-mobile                                             |
 | `network_generation` | string  | Yes      | The network generation at the time of the ANR. One of:<br/>- 2g<br/>- 3g<br/>- 4g<br/>- 5g                         |
 | `device_locale`      | string  | Yes      | Locale based on RFC 5646, eg. en-US                                                                                |
+| `foreground`         | boolean | No       | `true` if the app was in the foreground at the time of the ANR.                                                    |
 | `threads`            | array   | Yes      | Array of thread objects                                                                                            |
 
 `exception` objects
@@ -584,6 +585,7 @@ Use the `exception` type for errors and crashes.
 | `network_provider`   | string  | Yes      | The network provider at the time of the Exception. Example: airtel, T-mobile                                             |
 | `network_generation` | string  | Yes      | The network generation at the time of the Exception. One of:<br/>- 2g<br/>- 3g<br/>- 4g<br/>- 5g                         |
 | `device_locale`      | string  | Yes      | Locale based on RFC 5646, eg. en-US                                                                                      |
+| `foreground`         | boolean | Yes      | `true` if the app was in the foreground at the time of the exception.                                                    |
 | `threads`            | array   | Yes      | Array of thread objects                                                                                                  |
 
 `exception` objects
