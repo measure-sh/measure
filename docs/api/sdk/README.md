@@ -167,7 +167,6 @@ To understand the shape of the JSON payload, take a look at this sample request.
       "type": "gesture_long_click",
       "gesture_long_click": {
         "target": "some_target_name",
-        "target_user_readable_name": "some user readable name",
         "target_id": "some-target-id",
         "touch_down_time": "2023-09-02T07:14:22Z",
         "touch_up_time": "2023-09-02T07:14:47Z",
@@ -186,7 +185,6 @@ To understand the shape of the JSON payload, take a look at this sample request.
       "type": "gesture_scroll",
       "gesture_scroll": {
         "target": "some-scroll-target",
-        "target_user_readable_name": "user readable scroll name",
         "target_id": "scroll-target-id",
         "touch_down_time": "2023-09-02T07:14:22Z",
         "touch_up_time": "2023-09-02T07:14:47Z",
@@ -206,7 +204,6 @@ To understand the shape of the JSON payload, take a look at this sample request.
       "type": "gesture_click",
       "gesture_click": {
         "target": "some-click-target",
-        "target_user_readable_name": "user readable click name",
         "target_id": "click-target-id",
         "touch_down_time": "2023-09-02T07:14:22Z",
         "touch_up_time": "2023-09-02T07:14:47Z",
@@ -668,7 +665,6 @@ Use the `gesture_click` body type for taps or clicks.
 | Field                       | Type   | Optional | Comment                                         |
 | --------------------------- | ------ | -------- | ----------------------------------------------- |
 | `target`                    | string | Yes      | Class/Instance name of the originating view     |
-| `target_user_readable_name` | string | Yes      | Contextual name of the target view              |
 | `target_id`                 | string | Yes      | Unique identifier for the target                |
 | `touch_down_time`           | string | Yes      | ISO 8601 timestamp when target was pressed      |
 | `touch_up_time`             | string | Yes      | ISO 8601 timestamp when target was released     |
