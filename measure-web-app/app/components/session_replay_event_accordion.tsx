@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import FilterPill from './filter_pill'
+import { formatDateToHumanReadable, formatTimeToHumanReadable } from '../utils/time_utils'
 
 type SessionReplayEventAccordionpProps = {
   children: React.ReactNode
@@ -58,7 +59,7 @@ export default function SessionReplayEventAccordion({
         <div className="flex grow" />
         <FilterPill title={threadName} />
         <div className="p-2" />
-        <FilterPill title={`${new Date(timestamp).toLocaleDateString()}, ${new Date(timestamp).toLocaleTimeString()}:${new Date(timestamp).getMilliseconds()}`} />
+        <FilterPill title={`${formatDateToHumanReadable(timestamp)} \u25CF ${formatTimeToHumanReadable(timestamp)}`} />
       </div>
       <div
         id={`accordion-text-${id}`}

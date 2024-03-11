@@ -11,6 +11,7 @@ import CreateApp from '@/app/components/create_app';
 import { AppsApiStatus, CrashOrAnrGroupsApiStatus, CrashOrAnrType, FiltersApiStatus, emptyApp, emptyCrashOrAnrGroupsResponse, fetchAppsFromServer, fetchCrashOrAnrGroupsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import { updateDateQueryParams } from '../utils/router_utils';
+import { formatDateToHumanReadable } from '../utils/time_utils';
 
 interface CrashOrAnrsOverviewProps {
   crashOrAnrType: CrashOrAnrType,
@@ -39,16 +40,16 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
   const today = new Date();
   var initialEndDate = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
   const [endDate, setEndDate] = useState(searchParams.has("end_date") ? searchParams.get("end_date")! : initialEndDate);
-  const [formattedEndDate, setFormattedEndDate] = useState(endDate);
+  const [formattedEndDate, setFormattedEndDate] = useState(formatDateToHumanReadable(endDate));
 
   const sevenDaysAgo = new Date(today.setDate(today.getDate() - 7));
   var initialStartDate = `${sevenDaysAgo.getFullYear()}-${(sevenDaysAgo.getMonth() + 1).toString().padStart(2, '0')}-${sevenDaysAgo.getDate().toString().padStart(2, '0')}`;
   const [startDate, setStartDate] = useState(searchParams.has("start_date") ? searchParams.get("start_date")! : initialStartDate);
-  const [formattedStartDate, setFormattedStartDate] = useState(startDate);
+  const [formattedStartDate, setFormattedStartDate] = useState(formatDateToHumanReadable(startDate));
 
   useEffect(() => {
-    setFormattedStartDate(new Date(startDate).toLocaleDateString());
-    setFormattedEndDate(new Date(endDate).toLocaleDateString());
+    setFormattedStartDate(formatDateToHumanReadable(startDate));
+    setFormattedEndDate(formatDateToHumanReadable(endDate));
 
     updateDateQueryParams(router, searchParams, startDate, endDate)
   }, [startDate, endDate]);
