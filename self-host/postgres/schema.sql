@@ -404,6 +404,62 @@ COMMENT ON COLUMN public.build_mappings.last_updated IS 'utc timestamp at the ti
 
 
 --
+-- Name: build_sizes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.build_sizes (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    app_id uuid,
+    version_name character varying(256) NOT NULL,
+    version_code character varying(256) NOT NULL,
+    build_size integer DEFAULT 0,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: COLUMN build_sizes.id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.build_sizes.id IS 'unique id for each build size';
+
+
+--
+-- Name: COLUMN build_sizes.app_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.build_sizes.app_id IS 'linked app id';
+
+
+--
+-- Name: COLUMN build_sizes.version_name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.build_sizes.version_name IS 'user visible version number of the app';
+
+
+--
+-- Name: COLUMN build_sizes.version_code; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.build_sizes.version_code IS 'incremental build number of the app';
+
+
+--
+-- Name: COLUMN build_sizes.build_size; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.build_sizes.build_size IS 'build size of the app';
+
+
+--
+-- Name: COLUMN build_sizes.created_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.build_sizes.created_at IS 'utc timestamp at the time of record creation';
+
+
+--
 -- Name: roles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -781,6 +837,14 @@ ALTER TABLE ONLY public.build_mappings
 
 
 --
+-- Name: build_sizes build_sizes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.build_sizes
+    ADD CONSTRAINT build_sizes_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: roles roles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -861,6 +925,14 @@ ALTER TABLE ONLY public.build_mappings
 
 
 --
+-- Name: build_sizes build_sizes_app_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.build_sizes
+    ADD CONSTRAINT build_sizes_app_id_fkey FOREIGN KEY (app_id) REFERENCES public.apps(id) ON DELETE CASCADE;
+
+
+--
 -- Name: sessions sessions_app_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -929,4 +1001,5 @@ INSERT INTO dbmate.schema_migrations (version) VALUES
     ('20231117012726'),
     ('20231122211412'),
     ('20231228033348'),
-    ('20231228044339');
+    ('20231228044339'),
+    ('20240311054505');
