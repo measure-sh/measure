@@ -84,8 +84,7 @@ abstract class UploadProguardMappingTask : DefaultTask() {
     }
 
     private fun OkHttpClient.executeWithRetry(request: Request, maxRetries: Int = 0): Response? {
-        var retries = 0
-        while (true) {
+        for (i in 0 until (maxRetries + 1)) {
             try {
                 val response = this.newCall(request).execute()
                 when {
@@ -93,15 +92,12 @@ abstract class UploadProguardMappingTask : DefaultTask() {
                     response.code == 401 -> logger.warn(ERROR_MSG_401)
                     response.code == 413 -> logger.warn(ERROR_MSG_413)
                     response.code == 500 -> logger.warn(ERROR_MSG_500)
-                    retries < maxRetries -> retries++
-                    else -> return response
                 }
             } catch (e: IOException) {
-                if (retries >= maxRetries) {
+                if (i >= maxRetries) {
                     logger.error("Failed to upload mapping file to Measure: ${e.message}")
                     break
                 }
-                retries++
             }
         }
         return null

@@ -9,6 +9,8 @@ import net.swiftzer.semver.SemVer
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.gradle.util.GradleVersion
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
@@ -16,13 +18,25 @@ import sh.measure.fixtures.MeasurePluginFixture
 import java.util.stream.Stream
 
 class MeasurePluginTest {
+    private lateinit var server: MockWebServer
+
+    @BeforeEach
+    fun setUp() {
+        server = MockWebServer()
+    }
+
+    @AfterEach
+    fun tearDown() {
+        server.shutdown()
+    }
+
     @ParameterizedTest
     @MethodSource("versions")
     fun `minification enabled, assert upload proguard task present`(
         agpVersion: SemVer, gradleVersion: GradleVersion
     ) {
         val project = MeasurePluginFixture(agpVersion, minifyEnabled = true).gradleProject
-        val result = buildAndFail(gradleVersion, project.rootDir, ":app:assembleRelease")
+        val result = build(gradleVersion, project.rootDir, ":app:assembleRelease")
         assertThat(result).task(":app:uploadReleaseProguardMappingToMeasure").isNotNull()
     }
 
@@ -41,15 +55,11 @@ class MeasurePluginTest {
     fun `API_KEY is set in manifest, assert upload succeeds`(
         agpVersion: SemVer, gradleVersion: GradleVersion
     ) {
-        val server = MockWebServer()
         server.enqueue(MockResponse().setResponseCode(200))
         server.start(8080)
-
         val project = MeasurePluginFixture(agpVersion, setMeasureApiKey = true).gradleProject
         val result = build(gradleVersion, project.rootDir, ":app:assembleRelease")
         assertThat(result).task(":app:assembleRelease").succeeded()
-
-        server.shutdown()
     }
 
     @ParameterizedTest
@@ -57,11 +67,9 @@ class MeasurePluginTest {
     fun `assert plugin does not break configuration cache`(
         agpVersion: SemVer, gradleVersion: GradleVersion
     ) {
-        val server = MockWebServer()
         server.enqueue(MockResponse().setResponseCode(200))
         server.enqueue(MockResponse().setResponseCode(200))
         server.start(8080)
-
         val project = MeasurePluginFixture(agpVersion).gradleProject
 
         // first build
@@ -74,8 +82,6 @@ class MeasurePluginTest {
             // AGP < 8 has a bug that prevents use of CC
             assertThat(result).output().contains("Configuration cache entry reused.")
         }
-
-        server.shutdown()
     }
 
     @ParameterizedTest
@@ -83,19 +89,15 @@ class MeasurePluginTest {
     fun `API_KEY is set in manifest, assert upload fails after retries`(
         agpVersion: SemVer, gradleVersion: GradleVersion
     ) {
-        val server = MockWebServer()
         // TODO(abhay): assuming 3 retries, this needs to be updated when retries are configurable.
         server.enqueue(MockResponse().setResponseCode(500))
         server.enqueue(MockResponse().setResponseCode(500))
         server.enqueue(MockResponse().setResponseCode(500))
         server.enqueue(MockResponse().setResponseCode(500))
         server.start(8080)
-
         val project = MeasurePluginFixture(agpVersion, setMeasureApiKey = true).gradleProject
-        val result = buildAndFail(gradleVersion, project.rootDir, ":app:assembleRelease")
-        assertThat(result).task(":app:uploadReleaseProguardMappingToMeasure").failed()
-
-        server.shutdown()
+        val result = build(gradleVersion, project.rootDir, ":app:assembleRelease")
+        assertThat(result).output().contains("Failed to upload mapping file to Measure, the server encountered an error")
     }
 
     @ParameterizedTest
