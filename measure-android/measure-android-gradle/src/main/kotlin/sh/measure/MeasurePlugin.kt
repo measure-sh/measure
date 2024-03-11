@@ -28,6 +28,17 @@ class MeasurePlugin : Plugin<Project> {
     }
 
     override fun apply(project: Project) {
+        if (!project.plugins.hasPlugin("com.android.application")) {
+            project.logger.warn(
+                """
+                WARNING: Measure gradle plugin can only be applied to Android application projects, 
+                that is, projects that have the com.android.application plugin applied. 
+                Applying the plugin to other project types has no effect.
+                """.trimIndent()
+            )
+            return
+        }
+
         val androidComponents = project.extensions.getByType(AndroidComponentsExtension::class.java)
         val httpClientProvider = project.gradle.sharedServices.registerIfAbsent(
             SHARED_SERVICE_HTTP_CLIENT, MeasureHttpClient::class.java
