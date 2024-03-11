@@ -6,7 +6,9 @@ create table if not exists public.build_sizes (
     version_code varchar(256) not null,
     build_size int default 0,
     build_type varchar(64) not null,
-    created_at timestamptz not null default now()
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    unique(app_id, version_name, version_code, build_type)
 );
 
 comment on column public.build_sizes.id is 'unique id for each build size';
