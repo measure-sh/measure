@@ -50,7 +50,7 @@ func main() {
 
 	// SDK routes
 	r.PUT("/sessions", measure.ValidateAPIKey(), measure.PutSession)
-	r.PUT("/mappings", measure.ValidateAPIKey(), measure.PutMapping)
+	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuild)
 
 	// Dashboard rotues
 	r.Use(cors).Use(measure.ValidateAccessToken())
