@@ -413,6 +413,7 @@ CREATE TABLE public.build_sizes (
     version_name character varying(256) NOT NULL,
     version_code character varying(256) NOT NULL,
     build_size integer DEFAULT 0,
+    build_type character varying(64) NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
@@ -450,6 +451,13 @@ COMMENT ON COLUMN public.build_sizes.version_code IS 'incremental build number o
 --
 
 COMMENT ON COLUMN public.build_sizes.build_size IS 'build size of the app';
+
+
+--
+-- Name: COLUMN build_sizes.build_type; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.build_sizes.build_type IS 'type of build. can be `aab` or `apk`';
 
 
 --
