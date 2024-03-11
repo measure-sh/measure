@@ -82,20 +82,33 @@ func (bm *BuildMapping) upload() (*s3manager.UploadOutput, error) {
 		return nil, err
 	}
 
-	appId := bm.AppID.String()
-	metadata := map[string]*string{
-		"original_file_name": &bm.File.Filename,
-		"app_id":             &appId,
-		"version_name":       &bm.VersionName,
-		"version_code":       &bm.VersionCode,
-		"type":               &bm.Type,
+	config := server.Server.Config
+	awsConfig := &aws.Config{
+		Region:      aws.String(config.SymbolsBucketRegion),
+		Credentials: credentials.NewStaticCredentials(config.SymbolsAccessKey, config.SymbolsSecretAccessKey, ""),
+	}
+
+	// if a custom endpoint was set, then most likely,
+	// we are in local development mode and should force
+	// path style instead of S3 virual path styles.
+	if config.AWSEndpoint != "" {
+		awsConfig.S3ForcePathStyle = aws.Bool(true)
+		awsConfig.Endpoint = aws.String(config.AWSEndpoint)
 	}
 
 	if bm.Key == "" {
 		bm.Key = bm.buildKey()
 	}
 
-	return uploadToStorage(&file, bm.Key, metadata)
+	metadata := map[string]*string{
+		"original_file_name": aws.String(bm.File.Filename),
+		"app_id":             aws.String(bm.AppID.String()),
+		"version_name":       aws.String(bm.VersionName),
+		"version_code":       aws.String(bm.VersionCode),
+		"mapping_type":       aws.String(bm.Type),
+	}
+
+	return uploadToStorage(awsConfig, config.SymbolsBucket, bm.Key, file, metadata)
 }
 
 func (bm *BuildMapping) insert() error {
@@ -271,33 +284,14 @@ func PutBuild(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": fmt.Sprintf(`uploaded mapping file: "%s"`, buildMapping.File.Filename)})
 }
 
-func uploadToStorage(f *multipart.File, k string, m map[string]*string) (*s3manager.UploadOutput, error) {
-	config := server.Server.Config
-	awsConfig := &aws.Config{
-		Region:      aws.String(config.SymbolsBucketRegion),
-		Credentials: credentials.NewStaticCredentials(config.SymbolsAccessKey, config.SymbolsSecretAccessKey, ""),
-	}
-
-	// if a custom endpoint was set, then most likely,
-	// we are in local development mode and should force
-	// path style instead of S3 virual path styles.
-	if config.AWSEndpoint != "" {
-		awsConfig.S3ForcePathStyle = aws.Bool(true)
-		awsConfig.Endpoint = aws.String(config.AWSEndpoint)
-	}
-
+func uploadToStorage(awsConfig *aws.Config, bucket, key string, file io.Reader, metadata map[string]*string) (*s3manager.UploadOutput, error) {
 	awsSession := session.Must(session.NewSession(awsConfig))
 	uploader := s3manager.NewUploader(awsSession)
+
 	return uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(config.SymbolsBucket),
-		Key:    aws.String(k),
-		Body:   *f,
-		Metadata: map[string]*string{
-			"original_file_name": aws.String(*m["original_file_name"]),
-			"app_id":             aws.String(*m["app_id"]),
-			"version_name":       aws.String(*m["version_name"]),
-			"version_code":       aws.String(*m["version_code"]),
-			"mapping_type":       aws.String(*m["type"]),
-		},
+		Bucket:   aws.String(bucket),
+		Key:      aws.String(key),
+		Body:     file,
+		Metadata: metadata,
 	})
 }
