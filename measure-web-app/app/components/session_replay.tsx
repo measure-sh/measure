@@ -7,6 +7,7 @@ import SessionReplayEventAccordion from './session_replay_event_accordion';
 import SessionReplayEventVerticalConnector from './session_replay_event_vertical_connector';
 import FadeInOut from './fade_in_out';
 import CheckboxDropdown from './checkbox_dropdown';
+import { formatTimestampToChartFormat } from '../utils/time_utils';
 
 interface SessionReplayProps {
   sessionReplay: typeof emptySessionReplay
@@ -14,24 +15,11 @@ interface SessionReplayProps {
 
 const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
 
-  function convertTimestampToChartFormat(timestamp: string) {
-    const date = new Date(timestamp);
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1; // Months are 0-based
-    const day = date.getDate();
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
-    const seconds = date.getSeconds();
-    const miliseconds = date.getMilliseconds();
-
-    return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}:${miliseconds.toString().padStart(2, '0')}`;
-  }
-
   const cpuData = [
     {
       id: '% CPU Usage',
       data: sessionReplay.cpu_usage.map(item => ({
-        x: convertTimestampToChartFormat(item.timestamp),
+        x: formatTimestampToChartFormat(item.timestamp),
         y: item.value
       }))
     }
@@ -41,49 +29,49 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
     {
       id: 'Java Free Heap',
       data: sessionReplay.memory_usage.map(item => ({
-        x: convertTimestampToChartFormat(item.timestamp),
+        x: formatTimestampToChartFormat(item.timestamp),
         y: item.java_free_heap
       }))
     },
     {
       id: 'Java Max Heap',
       data: sessionReplay.memory_usage.map(item => ({
-        x: convertTimestampToChartFormat(item.timestamp),
+        x: formatTimestampToChartFormat(item.timestamp),
         y: item.java_max_heap
       }))
     },
     {
       id: 'Java Total Heap',
       data: sessionReplay.memory_usage.map(item => ({
-        x: convertTimestampToChartFormat(item.timestamp),
+        x: formatTimestampToChartFormat(item.timestamp),
         y: item.java_total_heap
       }))
     },
     {
       id: 'Native Free Heap',
       data: sessionReplay.memory_usage.map(item => ({
-        x: convertTimestampToChartFormat(item.timestamp),
+        x: formatTimestampToChartFormat(item.timestamp),
         y: item.native_free_heap
       }))
     },
     {
       id: 'Native Total Heap',
       data: sessionReplay.memory_usage.map(item => ({
-        x: convertTimestampToChartFormat(item.timestamp),
+        x: formatTimestampToChartFormat(item.timestamp),
         y: item.native_total_heap
       }))
     },
     {
       id: 'RSS',
       data: sessionReplay.memory_usage.map(item => ({
-        x: convertTimestampToChartFormat(item.timestamp),
+        x: formatTimestampToChartFormat(item.timestamp),
         y: item.rss
       }))
     },
     {
       id: 'Total PSS',
       data: sessionReplay.memory_usage.map(item => ({
-        x: convertTimestampToChartFormat(item.timestamp),
+        x: formatTimestampToChartFormat(item.timestamp),
         y: item.total_pss
       }))
     }
@@ -101,7 +89,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
       sessionReplay.threads[item].forEach((subItem: any) => {
         events.push({
           eventType: subItem.event_type,
-          timestamp: convertTimestampToChartFormat(subItem.timestamp),
+          timestamp: formatTimestampToChartFormat(subItem.timestamp),
           thread: item,
           description: subItem
         })
@@ -161,9 +149,9 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
           curve="monotoneX"
           crosshairType="cross"
           margin={{ top: 40, right: 160, bottom: 80, left: 90 }}
-          xFormat="time:%Y-%m-%d %H:%M:%S:%L"
+          xFormat='time:%Y-%m-%d %H:%M:%S:%L %p'
           xScale={{
-            format: '%Y-%m-%d %H:%M:%S:%L',
+            format: '%Y-%m-%d %I:%M:%S:%L %p',
             precision: 'millisecond',
             type: 'time',
             min: 'auto',
@@ -179,7 +167,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
           axisTop={null}
           axisRight={null}
           axisBottom={{
-            format: '%H:%M:%S:%L',
+            format: '%I:%M:%S %p',
             legendPosition: 'middle'
           }}
           axisLeft={{
@@ -228,9 +216,9 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
           curve="monotoneX"
           crosshairType="cross"
           margin={{ top: 40, right: 160, bottom: 80, left: 90 }}
-          xFormat="time:%Y-%m-%d %H:%M:%S:%L"
+          xFormat='time:%Y-%m-%d %I:%M:%S:%L %p'
           xScale={{
-            format: '%Y-%m-%d %H:%M:%S:%L',
+            format: '%Y-%m-%d %I:%M:%S:%L %p',
             precision: 'millisecond',
             type: 'time',
             min: 'auto',
@@ -246,7 +234,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
           axisTop={null}
           axisRight={null}
           axisBottom={{
-            format: '%H:%M:%S:%L',
+            format: '%I:%M:%S %p',
             legendPosition: 'middle'
           }}
           axisLeft={{

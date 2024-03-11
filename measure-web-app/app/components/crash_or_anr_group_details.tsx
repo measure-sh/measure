@@ -11,6 +11,7 @@ import { AppsApiStatus, CrashOrAnrGroupDetailsApiStatus, CrashOrAnrType, Filters
 import { useRouter, useSearchParams } from 'next/navigation';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import { updateDateQueryParams } from '../utils/router_utils';
+import { formatDateToHumanReadable, formatTimeToHumanReadable } from '../utils/time_utils';
 
 interface CrashOrAnrGroupDetailsProps {
   crashOrAnrType: CrashOrAnrType,
@@ -61,16 +62,16 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
   const today = new Date();
   var initialEndDate = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
   const [endDate, setEndDate] = useState(searchParams.has("end_date") ? searchParams.get("end_date")! : initialEndDate);
-  const [formattedEndDate, setFormattedEndDate] = useState(endDate);
+  const [formattedEndDate, setFormattedEndDate] = useState(formatDateToHumanReadable(endDate));
 
   const sevenDaysAgo = new Date(today.setDate(today.getDate() - 7));
   var initialStartDate = `${sevenDaysAgo.getFullYear()}-${(sevenDaysAgo.getMonth() + 1).toString().padStart(2, '0')}-${sevenDaysAgo.getDate().toString().padStart(2, '0')}`;
   const [startDate, setStartDate] = useState(searchParams.has("start_date") ? searchParams.get("start_date")! : initialStartDate);
-  const [formattedStartDate, setFormattedStartDate] = useState(startDate);
+  const [formattedStartDate, setFormattedStartDate] = useState(formatDateToHumanReadable(startDate));
 
   useEffect(() => {
-    setFormattedStartDate(new Date(startDate).toLocaleDateString());
-    setFormattedEndDate(new Date(endDate).toLocaleDateString());
+    setFormattedStartDate(formatDateToHumanReadable(startDate));
+    setFormattedEndDate(formatDateToHumanReadable(endDate));
 
     updateDateQueryParams(router, searchParams, startDate, endDate)
   }, [startDate, endDate]);
@@ -279,7 +280,7 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
 
               {/* We show ... in loading state for Crash/Anr ID so that user knows some API call is happening */}
               <p className="font-display text-xl"> Id: {crashOrAnrGroupDetailsApiStatus == CrashOrAnrGroupDetailsApiStatus.Loading ? '...' : crashOrAnrGroupDetails.results[0].id}</p>
-              <p className="font-sans"> Date & time: {new Date(crashOrAnrGroupDetails.results[0].timestamp).toLocaleDateString()}, {new Date(crashOrAnrGroupDetails.results[0].timestamp).toLocaleTimeString()}</p>
+              <p className="font-sans"> Date & time: {formatDateToHumanReadable(crashOrAnrGroupDetails.results[0].timestamp)}, {formatTimeToHumanReadable(crashOrAnrGroupDetails.results[0].timestamp)}</p>
               <p className="font-sans"> Device: {crashOrAnrGroupDetails.results[0].resource.device_manufacturer + crashOrAnrGroupDetails.results[0].resource.device_model}</p>
               <p className="font-sans"> App version: {crashOrAnrGroupDetails.results[0].resource.app_version}</p>
               <p className="font-sans"> Network type: {crashOrAnrGroupDetails.results[0].resource.network_type}</p>
