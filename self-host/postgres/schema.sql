@@ -414,7 +414,8 @@ CREATE TABLE public.build_sizes (
     version_code character varying(256) NOT NULL,
     build_size integer DEFAULT 0,
     build_type character varying(64) NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -842,6 +843,14 @@ ALTER TABLE ONLY public.apps
 
 ALTER TABLE ONLY public.build_mappings
     ADD CONSTRAINT build_mappings_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: build_sizes build_sizes_app_id_version_name_version_code_build_type_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.build_sizes
+    ADD CONSTRAINT build_sizes_app_id_version_name_version_code_build_type_key UNIQUE (app_id, version_name, version_code, build_type);
 
 
 --
