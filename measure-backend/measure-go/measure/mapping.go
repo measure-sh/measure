@@ -8,9 +8,11 @@ import (
 	"mime/multipart"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
+	"measure-backend/measure-go/chrono"
 	"measure-backend/measure-go/cipher"
 	"measure-backend/measure-go/server"
 
@@ -29,7 +31,7 @@ type BuildMapping struct {
 	AppID        uuid.UUID
 	VersionName  string
 	VersionCode  string
-	Type         string
+	MappingType  string
 	Key          string
 	Location     string
 	ContentHash  string
@@ -38,7 +40,38 @@ type BuildMapping struct {
 	Timestamp    time.Time
 }
 
-var validTypes = []string{"proguard"}
+type BuildSize struct {
+	ID          uuid.UUID
+	AppID       uuid.UUID
+	VersionName string
+	VersionCode string
+	BuildSize   int
+	BuildType   string
+	CreatedAt   chrono.ISOTime
+}
+
+func (bs BuildSize) Upsert() error {
+	stmt := sqlf.PostgreSQL.
+		InsertInto(`public.build_sizes`).
+		Set(`app_id`, nil).
+		Set(`version_name`, nil).
+		Set(`version_code`, nil).
+		Set(`build_size`, nil).
+		Set(`build_type`, nil).
+		Clause(`on conflict (app_id, version_name, version_code, build_type) do update set build_size = excluded.build_size, updated_at = excluded.updated_at`, nil)
+
+	defer stmt.Close()
+
+	ctx := context.Background()
+	if _, err := server.Server.PgPool.Exec(ctx, stmt.String(), bs.AppID, bs.VersionName, bs.VersionCode, bs.BuildSize, bs.BuildType); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var validMappingTypes = []string{"proguard"}
+var validBuildTypes = []string{"apk", "aab"}
 
 func (m *BuildMapping) buildKey() string {
 	return fmt.Sprintf(`%s.txt`, m.ID)
@@ -60,7 +93,7 @@ func (bm *BuildMapping) shouldUpsert() (bool, *uuid.UUID, error) {
 	defer stmt.Close()
 
 	ctx := context.Background()
-	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), bm.AppID, bm.VersionName, bm.VersionCode, bm.Type).Scan(&id, &key, &existingHash); err != nil {
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), bm.AppID, bm.VersionName, bm.VersionCode, bm.MappingType).Scan(&id, &key, &existingHash); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return true, nil, nil
 		} else {
@@ -105,7 +138,7 @@ func (bm *BuildMapping) upload() (*s3manager.UploadOutput, error) {
 		"app_id":             aws.String(bm.AppID.String()),
 		"version_name":       aws.String(bm.VersionName),
 		"version_code":       aws.String(bm.VersionCode),
-		"mapping_type":       aws.String(bm.Type),
+		"mapping_type":       aws.String(bm.MappingType),
 	}
 
 	return uploadToStorage(awsConfig, config.SymbolsBucket, bm.Key, file, metadata)
@@ -128,7 +161,7 @@ func (bm *BuildMapping) insert() error {
 	defer stmt.Close()
 
 	ctx := context.Background()
-	if _, err := server.Server.PgPool.Exec(ctx, stmt.String(), bm.ID, bm.AppID, bm.VersionName, bm.VersionCode, bm.Type, bm.Key, bm.Location, bm.ContentHash, bm.File.Size, time.Now()); err != nil {
+	if _, err := server.Server.PgPool.Exec(ctx, stmt.String(), bm.ID, bm.AppID, bm.VersionName, bm.VersionCode, bm.MappingType, bm.Key, bm.Location, bm.ContentHash, bm.File.Size, time.Now()); err != nil {
 		return err
 	}
 
@@ -182,12 +215,12 @@ func (bm *BuildMapping) validate() (int, error) {
 		return http.StatusBadRequest, errors.New(`missing field "version_code"`)
 	}
 
-	if bm.Type == "" {
-		return http.StatusBadRequest, errors.New(`missing field "type"`)
+	if bm.MappingType == "" {
+		return http.StatusBadRequest, errors.New(`missing field "mapping_type"`)
 	}
 
-	if !slices.Contains(validTypes, bm.Type) {
-		msg := fmt.Sprintf(`invalid type "%s". valid types are: %s`, bm.Type, strings.Join(validTypes, ", "))
+	if !slices.Contains(validMappingTypes, bm.MappingType) {
+		msg := fmt.Sprintf(`invalid type %q. valid types are: %q`, bm.MappingType, strings.Join(validMappingTypes, ", "))
 		return http.StatusBadRequest, errors.New(msg)
 	}
 
@@ -223,13 +256,40 @@ func PutBuild(c *gin.Context) {
 		AppID:       appId,
 		VersionName: c.PostForm("version_name"),
 		VersionCode: c.PostForm("version_code"),
-		Type:        c.PostForm("type"),
+		MappingType: c.PostForm("mapping_type"),
 		File:        file,
 	}
 
 	if statusCode, err := buildMapping.validate(); err != nil {
 		fmt.Println(`put mapping file request validation error: `, err.Error())
 		c.JSON(statusCode, gin.H{"error": err.Error()})
+		return
+	}
+
+	size, err := strconv.Atoi(c.PostForm("build_size"))
+	if err != nil {
+		msg := `failed to parse build size`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	buildSize := &BuildSize{
+		AppID:       appId,
+		VersionName: c.PostForm("version_name"),
+		VersionCode: c.PostForm("version_code"),
+		BuildSize:   size,
+		BuildType:   c.PostForm("build_type"),
+	}
+
+	if buildSize.BuildSize < 100 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": `build size cannot be less than 100 bytes`})
+		return
+	}
+
+	if !slices.Contains(validBuildTypes, buildSize.BuildType) {
+		msg := fmt.Sprintf(`invalid build type %q. valid types are: %q`, buildSize.BuildType, strings.Join(validBuildTypes, ", "))
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
 
@@ -259,6 +319,13 @@ func PutBuild(c *gin.Context) {
 		}
 
 		buildMapping.Location = result.Location
+	}
+
+	if err := buildSize.Upsert(); err != nil {
+		msg := `failed to register app build size`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
 	}
 
 	if existingId != nil {
