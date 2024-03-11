@@ -26,6 +26,10 @@ import (
 	"github.com/leporo/sqlf"
 )
 
+var validMappingTypes = []string{"proguard"}
+var validBuildTypes = []string{"apk", "aab"}
+var MinBuildSize = 100
+
 type BuildMapping struct {
 	ID           uuid.UUID
 	AppID        uuid.UUID
@@ -40,150 +44,8 @@ type BuildMapping struct {
 	Timestamp    time.Time
 }
 
-type BuildSize struct {
-	ID          uuid.UUID
-	AppID       uuid.UUID
-	VersionName string
-	VersionCode string
-	BuildSize   int
-	BuildType   string
-	CreatedAt   chrono.ISOTime
-}
-
-func (bs BuildSize) Upsert() error {
-	stmt := sqlf.PostgreSQL.
-		InsertInto(`public.build_sizes`).
-		Set(`app_id`, nil).
-		Set(`version_name`, nil).
-		Set(`version_code`, nil).
-		Set(`build_size`, nil).
-		Set(`build_type`, nil).
-		Clause(`on conflict (app_id, version_name, version_code, build_type) do update set build_size = excluded.build_size, updated_at = excluded.updated_at`, nil)
-
-	defer stmt.Close()
-
-	ctx := context.Background()
-	if _, err := server.Server.PgPool.Exec(ctx, stmt.String(), bs.AppID, bs.VersionName, bs.VersionCode, bs.BuildSize, bs.BuildType); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-var validMappingTypes = []string{"proguard"}
-var validBuildTypes = []string{"apk", "aab"}
-
 func (m *BuildMapping) buildKey() string {
 	return fmt.Sprintf(`%s.txt`, m.ID)
-}
-
-func (bm *BuildMapping) shouldUpsert() (bool, *uuid.UUID, error) {
-	var id uuid.UUID
-	var key string
-	var existingHash string
-
-	stmt := sqlf.PostgreSQL.
-		Select("id, key, fnv1_hash").
-		From("public.build_mappings").
-		Where("app_id = ?", nil).
-		Where("version_name = ?", nil).
-		Where("version_code = ?", nil).
-		Where("mapping_type = ?", nil)
-
-	defer stmt.Close()
-
-	ctx := context.Background()
-	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), bm.AppID, bm.VersionName, bm.VersionCode, bm.MappingType).Scan(&id, &key, &existingHash); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return true, nil, nil
-		} else {
-			return false, nil, err
-		}
-	}
-
-	// the content has changed
-	if bm.ContentHash != existingHash {
-		return true, &id, nil
-	}
-
-	return false, &id, nil
-}
-
-func (bm *BuildMapping) upload() (*s3manager.UploadOutput, error) {
-	file, err := bm.File.Open()
-	if err != nil {
-		return nil, err
-	}
-
-	config := server.Server.Config
-	awsConfig := &aws.Config{
-		Region:      aws.String(config.SymbolsBucketRegion),
-		Credentials: credentials.NewStaticCredentials(config.SymbolsAccessKey, config.SymbolsSecretAccessKey, ""),
-	}
-
-	// if a custom endpoint was set, then most likely,
-	// we are in local development mode and should force
-	// path style instead of S3 virual path styles.
-	if config.AWSEndpoint != "" {
-		awsConfig.S3ForcePathStyle = aws.Bool(true)
-		awsConfig.Endpoint = aws.String(config.AWSEndpoint)
-	}
-
-	if bm.Key == "" {
-		bm.Key = bm.buildKey()
-	}
-
-	metadata := map[string]*string{
-		"original_file_name": aws.String(bm.File.Filename),
-		"app_id":             aws.String(bm.AppID.String()),
-		"version_name":       aws.String(bm.VersionName),
-		"version_code":       aws.String(bm.VersionCode),
-		"mapping_type":       aws.String(bm.MappingType),
-	}
-
-	return uploadToStorage(awsConfig, config.SymbolsBucket, bm.Key, file, metadata)
-}
-
-func (bm *BuildMapping) insert() error {
-	stmt := sqlf.PostgreSQL.
-		InsertInto(`public.build_mappings`).
-		Set(`id`, nil).
-		Set(`app_id`, nil).
-		Set(`version_name`, nil).
-		Set(`version_code`, nil).
-		Set(`mapping_type`, nil).
-		Set(`key`, nil).
-		Set(`location`, nil).
-		Set(`fnv1_hash`, nil).
-		Set(`file_size`, nil).
-		Set(`last_updated`, nil)
-
-	defer stmt.Close()
-
-	ctx := context.Background()
-	if _, err := server.Server.PgPool.Exec(ctx, stmt.String(), bm.ID, bm.AppID, bm.VersionName, bm.VersionCode, bm.MappingType, bm.Key, bm.Location, bm.ContentHash, bm.File.Size, time.Now()); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (bm *BuildMapping) upsert() error {
-	stmt := sqlf.PostgreSQL.
-		Update(`public.build_mappings`).
-		Set(`fnv1_hash`, nil).
-		Set(`file_size`, nil).
-		Set(`last_updated`, nil).
-		Where(`id = ?`, nil)
-
-	defer stmt.Close()
-
-	ctx := context.Background()
-	if _, err := server.Server.PgPool.Exec(ctx, stmt.String(), bm.ContentHash, bm.File.Size, time.Now(), bm.ID); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (bm *BuildMapping) checksum() error {
@@ -235,6 +97,141 @@ func (bm *BuildMapping) validate() (int, error) {
 	return 0, nil
 }
 
+func (bm *BuildMapping) shouldUpsert(ctx context.Context, tx pgx.Tx) (bool, *uuid.UUID, error) {
+	var id uuid.UUID
+	var key string
+	var existingHash string
+
+	stmt := sqlf.PostgreSQL.
+		Select("id, key, fnv1_hash").
+		From("public.build_mappings").
+		Where("app_id = ?", nil).
+		Where("version_name = ?", nil).
+		Where("version_code = ?", nil).
+		Where("mapping_type = ?", nil)
+
+	defer stmt.Close()
+
+	if err := tx.QueryRow(ctx, stmt.String(), bm.AppID, bm.VersionName, bm.VersionCode, bm.MappingType).Scan(&id, &key, &existingHash); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return true, nil, nil
+		} else {
+			return false, nil, err
+		}
+	}
+
+	// the content has changed
+	if bm.ContentHash != existingHash {
+		return true, &id, nil
+	}
+
+	return false, &id, nil
+}
+
+func (bm *BuildMapping) insert(ctx context.Context, tx pgx.Tx) error {
+	stmt := sqlf.PostgreSQL.
+		InsertInto(`public.build_mappings`).
+		Set(`id`, nil).
+		Set(`app_id`, nil).
+		Set(`version_name`, nil).
+		Set(`version_code`, nil).
+		Set(`mapping_type`, nil).
+		Set(`key`, nil).
+		Set(`location`, nil).
+		Set(`fnv1_hash`, nil).
+		Set(`file_size`, nil).
+		Set(`last_updated`, nil)
+
+	defer stmt.Close()
+
+	if _, err := tx.Exec(ctx, stmt.String(), bm.ID, bm.AppID, bm.VersionName, bm.VersionCode, bm.MappingType, bm.Key, bm.Location, bm.ContentHash, bm.File.Size, time.Now()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (bm *BuildMapping) upsert(ctx context.Context, tx pgx.Tx) error {
+	stmt := sqlf.PostgreSQL.
+		Update(`public.build_mappings`).
+		Set(`fnv1_hash`, nil).
+		Set(`file_size`, nil).
+		Set(`last_updated`, nil).
+		Where(`id = ?`, nil)
+
+	defer stmt.Close()
+
+	if _, err := tx.Exec(ctx, stmt.String(), bm.ContentHash, bm.File.Size, time.Now(), bm.ID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (bm *BuildMapping) upload() (*s3manager.UploadOutput, error) {
+	file, err := bm.File.Open()
+	if err != nil {
+		return nil, err
+	}
+
+	config := server.Server.Config
+	awsConfig := &aws.Config{
+		Region:      aws.String(config.SymbolsBucketRegion),
+		Credentials: credentials.NewStaticCredentials(config.SymbolsAccessKey, config.SymbolsSecretAccessKey, ""),
+	}
+
+	// if a custom endpoint was set, then most likely,
+	// we are in local development mode and should force
+	// path style instead of S3 virual path styles.
+	if config.AWSEndpoint != "" {
+		awsConfig.S3ForcePathStyle = aws.Bool(true)
+		awsConfig.Endpoint = aws.String(config.AWSEndpoint)
+	}
+
+	if bm.Key == "" {
+		bm.Key = bm.buildKey()
+	}
+
+	metadata := map[string]*string{
+		"original_file_name": aws.String(bm.File.Filename),
+		"app_id":             aws.String(bm.AppID.String()),
+		"version_name":       aws.String(bm.VersionName),
+		"version_code":       aws.String(bm.VersionCode),
+		"mapping_type":       aws.String(bm.MappingType),
+	}
+
+	return uploadToStorage(awsConfig, config.SymbolsBucket, bm.Key, file, metadata)
+}
+
+type BuildSize struct {
+	ID          uuid.UUID
+	AppID       uuid.UUID
+	VersionName string
+	VersionCode string
+	BuildSize   int
+	BuildType   string
+	CreatedAt   chrono.ISOTime
+}
+
+func (bs BuildSize) Upsert(ctx context.Context, tx pgx.Tx) error {
+	stmt := sqlf.PostgreSQL.
+		InsertInto(`public.build_sizes`).
+		Set(`app_id`, nil).
+		Set(`version_name`, nil).
+		Set(`version_code`, nil).
+		Set(`build_size`, nil).
+		Set(`build_type`, nil).
+		Clause(`on conflict (app_id, version_name, version_code, build_type) do update set build_size = excluded.build_size, updated_at = excluded.updated_at`, nil)
+
+	defer stmt.Close()
+
+	if _, err := tx.Exec(ctx, stmt.String(), bs.AppID, bs.VersionName, bs.VersionCode, bs.BuildSize, bs.BuildType); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func PutBuild(c *gin.Context) {
 	appId, err := uuid.Parse(c.GetString("appId"))
 	if err != nil {
@@ -282,8 +279,8 @@ func PutBuild(c *gin.Context) {
 		BuildType:   c.PostForm("build_type"),
 	}
 
-	if buildSize.BuildSize < 100 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": `build size cannot be less than 100 bytes`})
+	if buildSize.BuildSize < MinBuildSize {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("build size cannot be less than %d bytes", MinBuildSize)})
 		return
 	}
 
@@ -293,16 +290,29 @@ func PutBuild(c *gin.Context) {
 		return
 	}
 
+	ctx := context.Background()
+	tx, err := server.Server.PgPool.Begin(ctx)
+	if err != nil {
+		msg := `failed to begin pgx transaction`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	defer tx.Rollback(ctx)
+
 	if err := buildMapping.checksum(); err != nil {
 		fmt.Println("failed to calculate mapping file checksum", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload mapping file"})
 		return
 	}
 
-	shouldUpload, existingId, err := buildMapping.shouldUpsert()
+	shouldUpload, existingId, err := buildMapping.shouldUpsert(ctx, tx)
 	if err != nil {
 		fmt.Println("failed to detect upsertion", err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, buildMapping.File.Filename)})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, buildMapping.File.Filename),
+		})
 		return
 	}
 
@@ -314,14 +324,16 @@ func PutBuild(c *gin.Context) {
 		result, err := buildMapping.upload()
 		if err != nil {
 			fmt.Printf("failed to upload mapping file, key: %s with error, %v\n", buildMapping.Key, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, buildMapping.File.Filename)})
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, buildMapping.File.Filename),
+			})
 			return
 		}
 
 		buildMapping.Location = result.Location
 	}
 
-	if err := buildSize.Upsert(); err != nil {
+	if err := buildSize.Upsert(ctx, tx); err != nil {
 		msg := `failed to register app build size`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
@@ -329,7 +341,7 @@ func PutBuild(c *gin.Context) {
 	}
 
 	if existingId != nil {
-		if err := buildMapping.upsert(); err != nil {
+		if err := buildMapping.upsert(ctx, tx); err != nil {
 			fmt.Printf("failed to upsert mapping file, key: %s with error, %v\n", buildMapping.Key, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, buildMapping.File.Filename)})
 			return
@@ -342,13 +354,24 @@ func PutBuild(c *gin.Context) {
 		return
 	}
 
-	if err := buildMapping.insert(); err != nil {
+	if err := buildMapping.insert(ctx, tx); err != nil {
 		fmt.Printf("failed to insert mapping file, key: %s with error, %v\n", buildMapping.Key, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, buildMapping.File.Filename)})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, buildMapping.File.Filename),
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"ok": fmt.Sprintf(`uploaded mapping file: "%s"`, buildMapping.File.Filename)})
+	if err := tx.Commit(ctx); err != nil {
+		msg := `failed to record build info`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok": fmt.Sprintf(`uploaded mapping file: "%s"`, buildMapping.File.Filename),
+	})
 }
 
 func uploadToStorage(awsConfig *aws.Config, bucket, key string, file io.Reader, metadata map[string]*string) (*s3manager.UploadOutput, error) {
