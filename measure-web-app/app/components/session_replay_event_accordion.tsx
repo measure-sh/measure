@@ -51,12 +51,13 @@ export default function SessionReplayEventAccordion({
     <button className={`w-full p-4 outline-none border border-black rounded-md font-display ${getEventContainerColourFromType()}`}
       onClick={(e) => { e.preventDefault(); setAccordionOpen(!accordionOpen); }}
     >
-      <div className="flex flex-row"
+      <div className="flex flex-col md:flex-row items-center"
         id={`accordion-title-${id}`}>
         <p>{eventType}</p>
+        <div className="p-2" />
         <div className="flex grow" />
         <FilterPill title={threadName} />
-        <div className="px-2" />
+        <div className="p-2" />
         <FilterPill title={`${new Date(timestamp).toLocaleDateString()}, ${new Date(timestamp).toLocaleTimeString()}:${new Date(timestamp).getMilliseconds()}`} />
       </div>
       <div
