@@ -28,6 +28,14 @@ import java.nio.file.Path
  * APK size is measured using Apk Analyzer, while AAB size is measured using bundletool.
  * APK size represents the download size of the APK, while AAB size represents the minimum and
  * maximum size of the APK splits generated from the AAB.
+ *
+ * The output is written to [appSizeOutputFileProperty] file in the following format:
+ * app_size
+ * build_type
+ *
+ * Example:
+ * 466456
+ * apk
  */
 abstract class AppSizeTask : DefaultTask() {
     @get:InputFile
@@ -58,7 +66,12 @@ abstract class AppSizeTask : DefaultTask() {
 
     private fun writeApkSize(apkFile: File, apkSizeOutputFile: File) {
         val size = GzipSizeCalculator().getFullApkDownloadSize(apkFile.toPath())
-        apkSizeOutputFile.writeText("$size")
+        apkSizeOutputFile.writeText(
+            """
+            $size
+            apk
+        """.trimIndent()
+        )
     }
 
     private fun writeAabSize(bundleFile: File, appSizeOutputFile: File) {
@@ -77,15 +90,21 @@ abstract class AppSizeTask : DefaultTask() {
         GetSizeCommand.builder().setApksArchivePath(path)
             .setGetSizeSubCommand(GetSizeCommand.GetSizeSubcommand.TOTAL).build()
             .getSizeTotal(PrintStream(appSizeOutputFile.outputStream()))
-        rewriteOutputToMaxSize(appSizeOutputFile)
+        rewriteAabSizeOutput(appSizeOutputFile)
     }
 
     /**
-     * Rewrites the output from GetSizeCommand to only include the maximum size.
+     * Rewrites the output from GetSizeCommand to include
+     * the maximum size and the type of build: aab or apk
      */
-    private fun rewriteOutputToMaxSize(appSizeOutputFile: File) {
+    private fun rewriteAabSizeOutput(appSizeOutputFile: File) {
         val lines = appSizeOutputFile.readLines()
-        appSizeOutputFile.writeText(lines[1].split(",")[1])
+        appSizeOutputFile.writeText(
+            """
+            ${lines[1].split(",")[1]}
+            aab
+            """.trimIndent()
+        )
     }
 
     /**
