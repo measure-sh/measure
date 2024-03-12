@@ -38,7 +38,7 @@ export async function GET(request: Request) {
   })
 
   const teams = await res.json()
-  if (!teams.length) {
+  if (!teams?.length) {
     console.log(`no teams found for user: ${session?.user?.id}`)
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
