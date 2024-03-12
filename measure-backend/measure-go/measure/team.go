@@ -17,31 +17,7 @@ import (
 	"github.com/leporo/sqlf"
 )
 
-const (
-	maxInvitees      = 25
-	queryGetTeamApps = `
-select
-  apps.id,
-  apps.app_name,
-  apps.team_id,
-  apps.unique_identifier,
-  apps.platform,
-  apps.first_version,
-  apps.onboarded,
-  apps.onboarded_at,
-  api_keys.key_prefix,
-  api_keys.key_value,
-  api_keys.checksum,
-  api_keys.last_seen,
-  api_keys.created_at,
-  apps.created_at,
-  apps.updated_at
-from apps
-left outer join api_keys on api_keys.app_id = apps.id
-where apps.team_id = $1
-order by apps.app_name;
-`
-)
+const maxInvitees = 25
 
 type Team struct {
 	ID   *uuid.UUID `json:"id"`
@@ -75,7 +51,30 @@ type MemberWithAuthz struct {
 
 func (t *Team) getApps() ([]App, error) {
 	var apps []App
-	rows, err := server.Server.PgPool.Query(context.Background(), queryGetTeamApps, &t.ID)
+	stmt := sqlf.PostgreSQL.
+		Select(`apps.id`, nil).
+		Select(`apps.app_name`, nil).
+		Select(`apps.team_id`, nil).
+		Select(`apps.unique_identifier`, nil).
+		Select(`apps.platform`, nil).
+		Select(`apps.first_version`, nil).
+		Select(`apps.onboarded`, nil).
+		Select(`apps.onboarded_at`, nil).
+		Select(`api_keys.key_prefix`, nil).
+		Select(`api_keys.key_value`, nil).
+		Select(`api_keys.checksum`, nil).
+		Select(`api_keys.last_seen`, nil).
+		Select(`api_keys.created_at`, nil).
+		Select(`apps.created_at`, nil).
+		Select(`apps.updated_at`, nil).
+		From(`public.apps`).
+		LeftJoin(`public.api_keys`, `api_keys.app_Id = apps.id`).
+		Where(`apps.team_id = ?`, nil).
+		OrderBy(`apps.app_name`)
+
+	defer stmt.Close()
+	ctx := context.Background()
+	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), &t.ID)
 	if err != nil {
 		return nil, err
 	}
