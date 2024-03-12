@@ -5,7 +5,6 @@ import org.gradle.api.Project
 import org.gradle.internal.impldep.org.junit.Rule
 import org.gradle.internal.impldep.org.junit.rules.TemporaryFolder
 import org.gradle.testfixtures.ProjectBuilder
-import org.junit.After
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test

@@ -68,6 +68,10 @@ dependencies {
     implementation(libs.squareup.okhttp.logging)
     implementation(libs.squareup.okio)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.android.tools.bundletool)
+    implementation(libs.android.tools.sdklib)
+    implementation(libs.android.tools.common)
+    implementation(libs.android.tools.apkanalyzer)
 
     testImplementation(libs.junit)
 
