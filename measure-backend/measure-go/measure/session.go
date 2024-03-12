@@ -957,8 +957,8 @@ func (s *Session) getMappingKey() (string, error) {
 	var key string
 	stmt := sqlf.PostgreSQL.
 		Select("key").
-		From("public.mapping_files").
-		Where("app_unique_id = ?", nil).
+		From("public.build_mappings").
+		Where("app_id = ?", nil).
 		Where("version_name = ?", nil).
 		Where("version_code = ?", nil).
 		Where("mapping_type = ?", nil)
@@ -966,7 +966,7 @@ func (s *Session) getMappingKey() (string, error) {
 	defer stmt.Close()
 
 	ctx := context.Background()
-	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), s.Resource.AppUniqueID, s.Resource.AppVersion, s.Resource.AppBuild, "proguard").Scan(&key); err != nil {
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), s.AppID, s.Resource.AppVersion, s.Resource.AppBuild, "proguard").Scan(&key); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", nil
 		}
