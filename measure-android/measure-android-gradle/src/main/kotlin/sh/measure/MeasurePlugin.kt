@@ -4,7 +4,6 @@ import com.android.build.api.artifact.SingleArtifact
 import com.android.build.api.instrumentation.FramesComputationMode
 import com.android.build.api.instrumentation.InstrumentationScope
 import com.android.build.api.variant.AndroidComponentsExtension
-import com.android.build.api.variant.CanMinifyCode
 import com.android.build.api.variant.Variant
 import com.android.build.gradle.internal.tasks.factory.dependsOn
 import org.gradle.api.Plugin
@@ -22,7 +21,7 @@ class MeasurePlugin : Plugin<Project> {
         const val GROUP_NAME = "measure"
         const val SHARED_SERVICE_HTTP_CLIENT = "measure-http-client"
         const val DEFAULT_ENDPOINT = "http://localhost:8080"
-        const val ROUTE_MAPPINGS = "/mappings"
+        const val ROUTE_BUILDS = "/mappings"
         const val DEFAULT_TIMEOUT_MS = 60_000L
         const val DEFAULT_RETRIES = 3
     }
@@ -46,36 +45,29 @@ class MeasurePlugin : Plugin<Project> {
             spec.parameters.timeout.set(Duration.ofMillis(DEFAULT_TIMEOUT_MS))
         }
         androidComponents.onVariants { variant ->
-            registerProguardMappingUploadTask(variant, project, httpClientProvider)
             injectOkHttpListener(variant)
             injectComposeNavigationListener(variant)
+            registerBuildUploadTask(variant, project, httpClientProvider)
         }
     }
 
     private fun injectComposeNavigationListener(variant: Variant) {
         variant.instrumentation.transformClassesWith(
-            NavigationVisitorFactory::class.java,
-            InstrumentationScope.ALL
+            NavigationVisitorFactory::class.java, InstrumentationScope.ALL
         ) {}
         variant.instrumentation.setAsmFramesComputationMode(FramesComputationMode.COMPUTE_FRAMES_FOR_INSTRUMENTED_METHODS)
     }
 
     private fun injectOkHttpListener(variant: Variant) {
         variant.instrumentation.transformClassesWith(
-            OkHttpVisitorFactory::class.java,
-            InstrumentationScope.ALL
+            OkHttpVisitorFactory::class.java, InstrumentationScope.ALL
         ) {}
         variant.instrumentation.setAsmFramesComputationMode(FramesComputationMode.COMPUTE_FRAMES_FOR_INSTRUMENTED_METHODS)
     }
 
-    private fun registerProguardMappingUploadTask(
+    private fun registerBuildUploadTask(
         variant: Variant, project: Project, httpClientProvider: Provider<MeasureHttpClient>
     ) {
-        @Suppress("UnstableApiUsage") val isMinifyEnabled =
-            (variant as? CanMinifyCode)?.isMinifyEnabled == true
-        if (!isMinifyEnabled) {
-            return
-        }
         val extractManifestDataProvider = project.tasks.register(
             extractManifestDataTaskName(variant), ExtractManifestDataTask::class.java
         ) {
@@ -83,25 +75,48 @@ class MeasurePlugin : Plugin<Project> {
             it.manifestOutputProperty.set(manifestDataFileProvider(project, variant))
         }
 
-        val uploadProguardMappingProvider = project.tasks.register(
-            uploadProguardMappingTaskName(variant), UploadProguardMappingTask::class.java
+        val appSizeProvider = project.tasks.register(
+            extractAppSizeTaskName(variant), AppSizeTask::class.java
+        ) {
+            it.bundleFileProperty.set(variant.artifacts.get(SingleArtifact.BUNDLE))
+            it.apksOutputDir.set(apksDirProvider(project, variant))
+            it.apkDirectoryProperty.set(variant.artifacts.get(SingleArtifact.APK))
+            it.appSizeOutputFileProperty.set(appSizeFileProvider(project, variant))
+        }
+
+        val uploadBuildProvider = project.tasks.register(
+            buildUploadTaskName(variant), BuildUploadTask::class.java
         ) {
             it.manifestDataProperty.set(manifestDataFileProvider(project, variant))
             it.mappingFileProperty.set(variant.artifacts.get(SingleArtifact.OBFUSCATION_MAPPING_FILE))
-            it.mappingEndpointProperty.set(DEFAULT_ENDPOINT + ROUTE_MAPPINGS)
+            it.appSizeFileProperty.set(appSizeFileProvider(project, variant))
+            it.mappingEndpointProperty.set(DEFAULT_ENDPOINT + ROUTE_BUILDS)
             it.retriesProperty.set(DEFAULT_RETRIES)
             it.usesService(httpClientProvider)
             it.httpClientProvider.set(httpClientProvider)
-        }.dependsOn(extractManifestDataProvider)
+        }.dependsOn(extractManifestDataProvider, appSizeProvider)
 
-        // hook up the upload task to run after any assemble<variant> which has minification enabled
-        // and is not explicitly filtered.
+        // hook up the upload task to run after any assemble<variant> or bundle<variant>
         project.afterEvaluate {
             it.tasks.named("assemble${variant.name.capitalize()}").configure { task ->
-                task.finalizedBy(uploadProguardMappingProvider)
+                task.finalizedBy(uploadBuildProvider)
+            }
+            it.tasks.named("bundle${variant.name.capitalize()}").configure { task ->
+                task.finalizedBy(uploadBuildProvider)
             }
         }
     }
+
+    private fun appSizeFileProvider(project: Project, variant: Variant): Provider<RegularFile> {
+        return project.layout.buildDirectory.file("intermediates/measure/${variant.name}/appSize.txt")
+    }
+
+    private fun apksDirProvider(project: Project, variant: Variant): Provider<RegularFile> {
+        return project.layout.buildDirectory.file("intermediates/measure/${variant.name}/bundle.apks")
+    }
+
+    private fun extractAppSizeTaskName(variant: Variant) =
+        "calculateAppSize${variant.name.capitalize()}"
 
     private fun manifestDataFileProvider(
         project: Project, variant: Variant
@@ -109,8 +124,8 @@ class MeasurePlugin : Plugin<Project> {
         return project.layout.buildDirectory.file("intermediates/measure/${variant.name}/manifestData.json")
     }
 
-    private fun uploadProguardMappingTaskName(variant: Variant) =
-        "upload${variant.name.capitalize()}ProguardMappingToMeasure"
+    private fun buildUploadTaskName(variant: Variant) =
+        "upload${variant.name.capitalize()}BuildToMeasure"
 
     private fun extractManifestDataTaskName(variant: Variant) =
         "extract${variant.name.capitalize()}ManifestData"
