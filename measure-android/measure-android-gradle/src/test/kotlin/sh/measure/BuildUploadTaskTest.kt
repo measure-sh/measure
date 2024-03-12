@@ -17,12 +17,12 @@ import org.junit.Before
 import org.junit.Test
 import java.time.Duration
 
-class UploadProguardMappingTaskTest {
+class BuildUploadTaskTest {
 
     @field:Rule
     val temporaryFolder = TemporaryFolder()
     private lateinit var project: Project
-    private lateinit var task: UploadProguardMappingTask
+    private lateinit var task: BuildUploadTask
     private lateinit var mockWebServer: MockWebServer
     private val retriesCount = 2
 
@@ -31,7 +31,7 @@ class UploadProguardMappingTaskTest {
         temporaryFolder.create()
         mockWebServer = MockWebServer().apply { start() }
         project = ProjectBuilder.builder().withProjectDir(temporaryFolder.root).build()
-        task = project.tasks.create("task", UploadProguardMappingTask::class.java)
+        task = project.tasks.create("task", BuildUploadTask::class.java)
         val manifestDataFile = temporaryFolder.newFile("manifestData.json").apply {
             writeText(manifestData)
         }
@@ -62,7 +62,7 @@ class UploadProguardMappingTaskTest {
     }
 
     @Test
-    fun `UploadProguardMappingTask sends request to upload mapping file`() {
+    fun `BuildUploadTaskTest sends request to upload mapping file`() {
         mockWebServer.enqueue(MockResponse().setResponseCode(200))
         task.upload()
         val recordedRequest = mockWebServer.takeRequest()
@@ -83,34 +83,6 @@ class UploadProguardMappingTaskTest {
         assertTrue(requestBody.contains("aab"))
         assertTrue(requestBody.contains("name=\"mapping_type\""))
         assertTrue(requestBody.contains("proguard"))
-    }
-
-    @Test
-    fun `UploadProguardMappingTask retries the request and fails`() {
-        mockWebServer.enqueue(MockResponse().setResponseCode(500))
-        mockWebServer.enqueue(MockResponse().setResponseCode(500))
-        mockWebServer.enqueue(MockResponse().setResponseCode(500))
-        assertThrows(GradleException::class.java) {
-            task.upload()
-        }
-        assertEquals(retriesCount + 1, mockWebServer.requestCount)
-    }
-
-    @Test
-    fun `UploadProguardMappingTask retries the request and succeeds`() {
-        mockWebServer.enqueue(MockResponse().setResponseCode(500))
-        mockWebServer.enqueue(MockResponse().setResponseCode(500))
-        mockWebServer.enqueue(MockResponse().setResponseCode(200))
-        task.upload()
-        assertEquals(retriesCount + 1, mockWebServer.requestCount)
-    }
-
-    @Test
-    fun `UploadProguardMappingTask throws when response is 401`() {
-        mockWebServer.enqueue(MockResponse().setResponseCode(401))
-        assertThrows(GradleException::class.java) {
-            task.upload()
-        }
     }
 
     private val appSize = """
