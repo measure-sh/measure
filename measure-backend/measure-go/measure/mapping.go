@@ -293,7 +293,7 @@ func PutBuild(c *gin.Context) {
 	ctx := context.Background()
 	tx, err := server.Server.PgPool.Begin(ctx)
 	if err != nil {
-		msg := `failed to begin pgx transaction`
+		msg := `failed to begin db transaction`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -309,7 +309,7 @@ func PutBuild(c *gin.Context) {
 
 	shouldUpload, existingId, err := buildMapping.shouldUpsert(ctx, tx)
 	if err != nil {
-		fmt.Println("failed to detect upsertion", err.Error())
+		fmt.Println("failed to detect mapping file upsertion", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, buildMapping.File.Filename),
 		})
@@ -343,12 +343,12 @@ func PutBuild(c *gin.Context) {
 	if existingId != nil {
 		if err := buildMapping.upsert(ctx, tx); err != nil {
 			fmt.Printf("failed to upsert mapping file, key: %s with error, %v\n", buildMapping.Key, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, buildMapping.File.Filename)})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf(`failed to upload build info: "%s"`, buildMapping.File.Filename)})
 			return
 		}
-		msg := fmt.Sprintf(`existing mapping file: "%s" is already up to date`, buildMapping.File.Filename)
+		msg := `existing build info is already up to date`
 		if shouldUpload {
-			msg = fmt.Sprintf(`uploaded mapping file: "%s"`, buildMapping.File.Filename)
+			msg = `uploaded build info`
 		}
 		c.JSON(http.StatusOK, gin.H{"ok": msg})
 		return
@@ -363,14 +363,14 @@ func PutBuild(c *gin.Context) {
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		msg := `failed to record build info`
+		msg := `failed to upload build info`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"ok": fmt.Sprintf(`uploaded mapping file: "%s"`, buildMapping.File.Filename),
+		"ok": `uploaded build info`,
 	})
 }
 
