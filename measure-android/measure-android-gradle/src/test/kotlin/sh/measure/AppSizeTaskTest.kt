@@ -33,7 +33,7 @@ internal class AppSizeTaskTest {
         task.calculateAppSize()
 
         // assert
-        Assert.assertEquals(listOf("1797367"), outputFile.readLines())
+        Assert.assertEquals("1797367\naab", outputFile.readText())
     }
 
     @Test
@@ -52,7 +52,7 @@ internal class AppSizeTaskTest {
         task.calculateAppSize()
 
         // assert
-        Assert.assertEquals("11108716", outputFile.readText())
+        Assert.assertEquals("11108716\napk", outputFile.readText())
     }
 
     private fun createOutputAabSizeFile(): File {
