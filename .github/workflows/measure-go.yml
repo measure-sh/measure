@@ -2,14 +2,14 @@ name: API Server
 on:
   push:
     paths:
-      - measure-backend/measure-go/**/*.go
-      - measure-backend/measure-go/**/*.mod
-      - measure-backend/measure-go/**/*.sum
+      - measure-backend/measure-go/**.go
+      - measure-backend/measure-go/**.mod
+      - measure-backend/measure-go/**.sum
   pull_request:
     paths:
-      - measure-backend/measure-go/**/*.go
-      - measure-backend/measure-go/**/*.mod
-      - measure-backend/measure-go/**/*.sum
+      - measure-backend/measure-go/**.go
+      - measure-backend/measure-go/**.mod
+      - measure-backend/measure-go/**.sum
 
 jobs:
   build:
