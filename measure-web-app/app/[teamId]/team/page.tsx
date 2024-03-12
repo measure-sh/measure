@@ -7,10 +7,7 @@ import { useRouter } from 'next/navigation';
 import DangerConfirmationModal from "@/app/components/danger_confirmation_modal";
 import { TeamsApiStatus, fetchTeamsFromServer, emptyTeam, AuthzAndMembersApiStatus, InviteMemberApiStatus, RemoveMemberApiStatus, RoleChangeApiStatus, TeamNameChangeApiStatus, defaultAuthzAndMembers, fetchAuthzAndMembersFromServer, changeTeamNameFromServer, changeRoleFromServer, inviteMemberFromServer, removeMemberFromServer, CreateTeamApiStatus, createTeamFromServer } from "@/app/api/api_calls";
 import AlertDialogModal from "@/app/components/alert_dialog_modal";
-
-function formatToCamelCase(role: string): string {
-  return role.charAt(0).toLocaleUpperCase() + role.slice(1)
-}
+import { formatToCamelCase } from "@/app/utils/string_utils";
 
 export default function Team({ params }: { params: { teamId: string } }) {
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading);
