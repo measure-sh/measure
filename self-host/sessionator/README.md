@@ -63,11 +63,9 @@ truncate table events;
 2. Truncate Postgres tables. Execute SQL queries on the Postgres instance.
 
 ```sql
--- truncate mapping files
-truncate table public.mapping_files;
 
--- truncate sesions, anr/exception groups
-truncate table public.unhandled_exception_groups, public.anr_groups, public.sessions cascade;
+-- truncate anr/exception groups, build info, sessions
+truncate table public.unhandled_exception_groups, public.anr_groups, public.build_mappings, public.build_sizes, public.sessions cascade;
 ```
 
 3. Local uploading of files
