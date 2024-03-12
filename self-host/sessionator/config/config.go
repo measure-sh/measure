@@ -1,8 +1,9 @@
 package config
 
 import (
+	"fmt"
+
 	"github.com/BurntSushi/toml"
-	"github.com/go-faster/errors"
 )
 
 type App struct {
@@ -29,10 +30,12 @@ func Init(loc string) (*Config, error) {
 	return &config, nil
 }
 
+// validate validates the config to ensure
+// the necessary data exists in the config.
 func validate(config *Config) error {
 	for key, val := range config.Apps {
 		if val.ApiKey == "" {
-			return errors.Errorf("config error: app %q lacks an API key", key)
+			return fmt.Errorf("config error: app %q lacks an API key", key)
 		}
 	}
 
