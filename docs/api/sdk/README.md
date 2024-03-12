@@ -11,7 +11,7 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [Response Body](#response-body)
     - [Request Body](#request-body)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting)
-  - [PUT `/mappings`](#put-mappings)
+  - [PUT `/builds`](#put-builds)
     - [Usage Notes](#usage-notes-1)
     - [Authorization \& Content Type](#authorization--content-type-1)
     - [Response Body](#response-body-1)
@@ -358,14 +358,15 @@ List of HTTP status codes for success and failures.
 
 </details>
 
-### PUT `/mappings`
+### PUT `/builds`
 
-Measure will use files uploaded via this API for symbolication of class, method, file names.
+Measure will use build information like mapping files, build sizes uploaded via this API for symbolication of class, method, file names.
 
 #### Usage Notes
 
-- File size should not exceed **512 MiB**
-- Uploading a previously uploaded file with same contents for the same `app_unique_id`, `version_name` & `version_code` combination replaces the older file.
+- Mapping file size should not exceed **512 MiB**.
+- Uploading a previously uploaded file with same contents for the same `version_name`, `version_code`, `mapping_type` combination replaces the older file.
+- Putting `build_size` for the same `version_name`, `version_code` and `build_type` combination replaces the last size with the latest size.
 
 #### Authorization \& Content Type
 
@@ -396,10 +397,6 @@ Payload must be a `multipart/form-data` each field separated using `Content-Disp
 
 ```
 --boundary
-Content-Disposition: form-data; name="app_unique_id"
-
-sh.measure.sample
---boundary
 Content-Disposition: form-data; name="version_name"
 
 1.0
@@ -408,13 +405,21 @@ Content-Disposition: form-data; name="version_code"
 
 1
 --boundary
-Content-Disposition: form-data; name="type"
-
-proguard
---boundary
 Content-Disposition: form-data; name="mapping_file"; filename="mapping-file.txt"
 
 <...mapping file bytes...>
+--boundary
+Content-Disposition: form-data; name="mapping_type"
+
+proguard
+--boundary
+Content-Disposition: form-data; name="build_size"
+
+10241024
+--boundary
+Content-Disposition: form-data; name="build_type"
+
+aab
 ```
 
 </details>
@@ -428,10 +433,10 @@ List of HTTP status codes for success and failures.
 
 | **Status**                  | **Meaning**                                                                                                             |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `200 Ok`                    | Mapping file got uploaded                                                                                               |
+| `200 Ok`                    | Build info uploaded                                                                                             |
 | `400 Bad Request`           | Request body is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
 | `401 Unauthorized`          | Either the Measure API key is not present or has expired.                                                               |
-| `413 Content Too Large`     | Mapping file size exceeded maximum allowed limit.                                                                       |
+| `413 Content Too Large`     | Build/mapping file size exceeded maximum allowed limit.                                                                       |
 | `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                              |
 
 </details>
