@@ -12,6 +12,7 @@ import org.gradle.testfixtures.ProjectBuilder
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.time.Duration
@@ -37,6 +38,9 @@ class UploadProguardMappingTaskTest {
         val mappingFile = temporaryFolder.newFile("mapping.txt").apply {
             writeText("mapping file")
         }
+        val appSizeFile = temporaryFolder.newFile("appSize.txt").apply {
+            writeText(appSize)
+        }
         val buildServiceRegistry =
             (project as ProjectInternal).services.get(BuildServiceRegistry::class.java)
         val httpClient = buildServiceRegistry.registerIfAbsent(
@@ -48,6 +52,7 @@ class UploadProguardMappingTaskTest {
         task.httpClientProvider.set(httpClient)
         task.manifestDataProperty.set(manifestDataFile)
         task.mappingFileProperty.set(mappingFile)
+        task.appSizeFileProperty.set(appSizeFile)
         task.mappingEndpointProperty.set(mockWebServer.url("/upload").toString())
     }
 
@@ -62,6 +67,22 @@ class UploadProguardMappingTaskTest {
         task.upload()
         val recordedRequest = mockWebServer.takeRequest()
         assertEquals("PUT", recordedRequest.method)
+        val requestBody = recordedRequest.body.readUtf8()
+
+        println(requestBody)
+
+        assertTrue(requestBody.contains("name=\"app_unique_id\""))
+        assertTrue(requestBody.contains("sh.measure.sample"))
+        assertTrue(requestBody.contains("name=\"version_code\""))
+        assertTrue(requestBody.contains("7575527"))
+        assertTrue(requestBody.contains("name=\"version_name\""))
+        assertTrue(requestBody.contains("1.23.12"))
+        assertTrue(requestBody.contains("name=\"build_size\""))
+        assertTrue(requestBody.contains("123765"))
+        assertTrue(requestBody.contains("name=\"build_type\""))
+        assertTrue(requestBody.contains("aab"))
+        assertTrue(requestBody.contains("name=\"mapping_type\""))
+        assertTrue(requestBody.contains("proguard"))
     }
 
     @Test
@@ -92,7 +113,12 @@ class UploadProguardMappingTaskTest {
         }
     }
 
+    private val appSize = """
+        123765
+        aab
+    """.trimIndent()
+
     private val manifestData = """
-            {"apiKey":"api-key","versionCode":"100","appUniqueId":"sh.measure.sample","versionName":"1.0.0"}
+            {"apiKey":"api-key","versionCode":"7575527","appUniqueId":"sh.measure.sample","versionName":"1.23.12"}
         """.trimIndent()
 }
