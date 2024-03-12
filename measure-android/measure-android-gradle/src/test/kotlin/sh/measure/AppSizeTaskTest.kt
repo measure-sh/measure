@@ -1,5 +1,6 @@
 package sh.measure
 
+import com.android.build.api.artifact.SingleArtifact
 import org.gradle.internal.impldep.org.junit.rules.TemporaryFolder
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.After
@@ -25,7 +26,7 @@ internal class AppSizeTaskTest {
 
         // configure task
         val task = project.tasks.create("appSizeTask", AppSizeTask::class.java)
-        task.buildApksOutputDirProperty.set(apksDir)
+        task.apksOutputDir.set(apksDir)
         task.bundleFileProperty.set(bundleFile)
         task.appSizeOutputFileProperty.set(outputFile)
 
@@ -45,7 +46,7 @@ internal class AppSizeTaskTest {
 
         // configure task
         val task = project.tasks.create("appSizeTask", AppSizeTask::class.java)
-        task.apkFileProperty.set(apkFile)
+        task.apkDirectoryProperty.set(apkFile)
         task.appSizeOutputFileProperty.set(outputFile)
 
         // execute task
@@ -65,14 +66,23 @@ internal class AppSizeTaskTest {
 
     /**
      * Copies the bundle file from resources to the project root directory.
+     *
+     * @return The aab file.
      */
     private fun loadAab(rootDir: File): File {
         val bundleFile = File("src/test/resources/test.aab")
         return bundleFile.copyTo(File(rootDir, "test.aab"))
     }
 
+    /**
+     * Copies the apk file from resources to the project root directory.
+     *
+     * @return the directory where the apk file is copied to, this is to match the behavior of
+     * [SingleArtifact.APK] which returns the directory containing the apk file.
+     */
     private fun loadApk(rootDir: File): File {
         val bundleFile = File("src/test/resources/test.apk")
-        return bundleFile.copyTo(File(rootDir, "test.apk"))
+        bundleFile.copyTo(File(rootDir, "test.apk"))
+        return rootDir
     }
 }

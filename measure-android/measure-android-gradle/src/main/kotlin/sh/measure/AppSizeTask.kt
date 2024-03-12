@@ -14,8 +14,8 @@ import com.android.utils.StdLogger
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFile
-import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import java.io.File
@@ -38,29 +38,30 @@ import java.nio.file.Path
  * apk
  */
 abstract class AppSizeTask : DefaultTask() {
+
     @get:InputFile
     abstract val bundleFileProperty: RegularFileProperty
 
-    @get:InputFile
-    abstract val apkFileProperty: RegularFileProperty
+    @get:InputDirectory
+    abstract val apkDirectoryProperty: DirectoryProperty
 
-    @get:OutputDirectory
-    abstract val buildApksOutputDirProperty: DirectoryProperty
+    @get:OutputFile
+    abstract val apksOutputDir: RegularFileProperty
 
     @get:OutputFile
     abstract val appSizeOutputFileProperty: RegularFileProperty
 
     @TaskAction
     fun calculateAppSize() {
-        val apkFile = apkFileProperty.getOrNull()?.asFile
+        val apkOutputDir = apkDirectoryProperty.getOrNull()?.asFile
+        val apkFile = apkOutputDir?.listFiles()?.find { it.extension == "apk" }
         val bundleFile = bundleFileProperty.getOrNull()?.asFile
         val appSizeOutputFile = appSizeOutputFileProperty.get().asFile
-
+        if (apkFile?.exists() == true) {
+            writeApkSize(apkFile, appSizeOutputFile)
+        }
         if (bundleFile != null) {
             writeAabSize(bundleFile, appSizeOutputFile)
-        }
-        if (apkFile != null) {
-            writeApkSize(apkFile, appSizeOutputFile)
         }
     }
 
@@ -75,10 +76,13 @@ abstract class AppSizeTask : DefaultTask() {
     }
 
     private fun writeAabSize(bundleFile: File, appSizeOutputFile: File) {
+        val apksFile = apksOutputDir.get().asFile.apply {
+            deleteRecursively()
+        }
         // Effectively runs the following command:
         // bundletool build-apks --bundle=app.aab --output=bundle.apks
         val path = BuildApksCommand.builder().setBundlePath(bundleFile.toPath())
-            .setOutputFile(buildApksOutputDirProperty.asFile.get().toPath())
+            .setOutputFile(apksFile.toPath())
             .setAapt2Command(Aapt2Command.createFromExecutablePath(getAapt2Location()))
             .setOutputFormat(BuildApksCommand.OutputFormat.APK_SET).build().execute()
 
@@ -90,12 +94,14 @@ abstract class AppSizeTask : DefaultTask() {
         GetSizeCommand.builder().setApksArchivePath(path)
             .setGetSizeSubCommand(GetSizeCommand.GetSizeSubcommand.TOTAL).build()
             .getSizeTotal(PrintStream(appSizeOutputFile.outputStream()))
+
+        // TODO: creating a custom event stream would be a better solution
         rewriteAabSizeOutput(appSizeOutputFile)
     }
 
     /**
-     * Rewrites the output from GetSizeCommand to include
-     * the maximum size and the type of build: aab or apk
+     * Rewrites the output from GetSizeCommand to include the maximum size and the
+     * type of build.
      */
     private fun rewriteAabSizeOutput(appSizeOutputFile: File) {
         val lines = appSizeOutputFile.readLines()
