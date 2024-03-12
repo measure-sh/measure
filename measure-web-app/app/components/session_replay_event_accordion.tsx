@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react'
 import FilterPill from './filter_pill'
 import { formatDateToHumanReadable, formatTimeToHumanReadable } from '../utils/time_utils'
+import { formatToCamelCase } from '../utils/string_utils'
 
 type SessionReplayEventAccordionpProps = {
-  children: React.ReactNode
   eventType: string
+  eventDetails: any
   threadName: string
   timestamp: string
   id: string
@@ -14,8 +15,8 @@ type SessionReplayEventAccordionpProps = {
 }
 
 export default function SessionReplayEventAccordion({
-  children,
   eventType,
+  eventDetails,
   threadName,
   timestamp,
   id,
@@ -28,7 +29,7 @@ export default function SessionReplayEventAccordion({
     setAccordionOpen(active)
   }, [])
 
-  function getEventContainerColourFromType() {
+  function getColorFromEventType() {
     if (eventType === "exception" || eventType === "anr") {
       return "bg-red-200 hover:bg-red-300 active:bg-red-400 focus-visible:outline-red-300"
     }
@@ -48,13 +49,94 @@ export default function SessionReplayEventAccordion({
     return "bg-indigo-200 hover:bg-indigo-300 active:bg-indigo-400 focus-visible:outline-indigo-300"
   }
 
+  function getTitleFromEventType() {
+    if (eventType === "exception" && eventDetails.handled === false) {
+      return 'Crash: ' + eventDetails.type
+    }
+
+    if (eventType === "exception" && eventDetails.handled === true) {
+      return 'Exception: ' + eventDetails.type
+    }
+
+    if (eventType === "anr") {
+      return 'ANR'
+    }
+
+    if (eventType === "string") {
+      return 'Log: ' + eventDetails.logLevel ? formatToCamelCase(eventDetails.logLevel) + ': ' + eventDetails.string : eventDetails.string
+    }
+
+    if (eventType === "gesture_long_click") {
+      return 'Long Click: ' + eventDetails.target
+    }
+
+    if (eventType === "gesture_scroll") {
+      return 'Scroll: ' + eventDetails.target
+    }
+
+    if (eventType === "gesture_click") {
+      return 'Click: ' + eventDetails.target
+    }
+
+    if (eventType === "gesture_click") {
+      return 'Click: ' + eventDetails.target
+    }
+
+    if (eventType === "http") {
+      return 'HTTP: ' + eventDetails.method.toUpperCase() + ' ' + eventDetails.status_code + ' ' + eventDetails.url
+    }
+
+    if (eventType === "lifecycle_activity") {
+      return 'Activity ' + formatToCamelCase(eventDetails.type) + ': ' + eventDetails.class_name
+    }
+
+    if (eventType === "lifecycle_fragment") {
+      return 'Fragment ' + formatToCamelCase(eventDetails.type) + ': ' + eventDetails.class_name
+    }
+
+    if (eventType === "lifecycle_app") {
+      return 'App ' + formatToCamelCase(eventDetails.type)
+    }
+
+    if (eventType === "app_exit") {
+      return 'App Exit: ' + eventDetails.reason
+    }
+
+    if (eventType === "navigation") {
+      return 'Navigation: ' + eventDetails.route
+    }
+
+    if (eventType === "cold_launch") {
+      return 'App Cold Launch'
+    }
+
+    if (eventType === "warm_launch") {
+      return 'App Warm Launch'
+    }
+
+    if (eventType === "hot_launch") {
+      return 'App Hot Launch'
+    }
+
+    if (eventType === "low_memory") {
+      return 'System: Low Memory'
+    }
+
+    if (eventType === "trim_memory") {
+      return 'System: Trim Memory'
+    }
+
+    return eventType
+
+  }
+
   return (
-    <button className={`w-full p-4 outline-none border border-black rounded-md font-display ${getEventContainerColourFromType()}`}
+    <button className={`w-full p-4 outline-none border border-black rounded-md font-display ${getColorFromEventType()}`}
       onClick={(e) => { e.preventDefault(); setAccordionOpen(!accordionOpen); }}
     >
       <div className="flex flex-col md:flex-row items-center"
         id={`accordion-title-${id}`}>
-        <p>{eventType}</p>
+        <p className='text-left'>{getTitleFromEventType()}</p>
         <div className="p-2" />
         <div className="flex grow" />
         <FilterPill title={threadName} />
@@ -69,7 +151,7 @@ export default function SessionReplayEventAccordion({
       >
         <div className="overflow-hidden">
           <p className="whitespace-pre-wrap p-4">
-            {children}
+            {JSON.stringify(eventDetails, null, 2)}
           </p>
         </div>
       </div>

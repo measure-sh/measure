@@ -80,7 +80,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
   const { events, threads, eventTypes } = parseEventsThreadsAndEventTypesFromSessionReplay()
 
   function parseEventsThreadsAndEventTypesFromSessionReplay() {
-    let events: { eventType: string; timestamp: string; thread: string; description: any; }[] = []
+    let events: { eventType: string; timestamp: string; thread: string; details: any; }[] = []
     let threads = new Set<string>()
     let eventTypes = new Set<string>()
 
@@ -91,7 +91,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
           eventType: subItem.event_type,
           timestamp: formatTimestampToChartFormat(subItem.timestamp),
           thread: item,
-          description: subItem
+          details: subItem
         })
         threads.add(item)
         eventTypes.add(subItem.event_type)
@@ -294,9 +294,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
             }
             {index > 0 && <div className='py-2' />}
             <FadeInOut>
-              <SessionReplayEventAccordion eventType={e.eventType} timestamp={e.timestamp} threadName={e.thread} id={`${e.eventType}-${index}`} active={false}>
-                {JSON.stringify(e.description, null, 2)}
-              </SessionReplayEventAccordion>
+              <SessionReplayEventAccordion eventType={e.eventType} eventDetails={e.details} timestamp={e.timestamp} threadName={e.thread} id={`${e.eventType}-${index}`} active={false} />
             </FadeInOut>
           </div>
         ))}
