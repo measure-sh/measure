@@ -3,7 +3,6 @@ package sh.measure
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import okhttp3.MultipartBody
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.Response
@@ -34,7 +33,7 @@ private const val ERROR_MSG_413 =
 private const val ERROR_MSG_500 =
     "Failed to upload mapping file to Measure, the server encountered an error"
 
-abstract class UploadProguardMappingTask : DefaultTask() {
+abstract class BuildUploadTask : DefaultTask() {
     init {
         group = MeasurePlugin.GROUP_NAME
         description = "Uploads the proguard mapping file to measure"
@@ -87,14 +86,22 @@ abstract class UploadProguardMappingTask : DefaultTask() {
         val request: Request = Request.Builder().url(mappingEndpointProperty.get())
             .header(HEADER_AUTHORIZATION, "Bearer ${manifestData.apiKey}").put(requestBody).build()
         try {
-            val response = client.executeWithRetry(request, retriesProperty.get()) ?: return
+            val response = client.newCall(request).execute()
             if (!response.isSuccessful) {
-                logger.error("Failed to upload mapping file to Measure, request failed with response code ${response.code}")
-                return
+                logError(response)
             }
         } catch (e: IOException) {
             logger.error("Failed to upload mapping file to Measure, ${e.message}")
             return
+        }
+    }
+
+    private fun logError(response: Response) {
+        when (response.code) {
+            401 -> logger.error(ERROR_MSG_401)
+            413 -> logger.error(ERROR_MSG_413)
+            500 -> logger.error(ERROR_MSG_500)
+            else -> logger.error("Failed to upload mapping file to Measure with response code: ${response.code}.")
         }
     }
 
@@ -112,29 +119,5 @@ abstract class UploadProguardMappingTask : DefaultTask() {
 
     private fun readBuildType(appSizeFile: File): String? {
         return appSizeFile.takeIf { it.exists() }?.readLines()?.getOrNull(1)
-    }
-
-    private fun OkHttpClient.executeWithRetry(request: Request, maxRetries: Int = 0): Response? {
-        var retries = 0
-        while (true) {
-            try {
-                val response = this.newCall(request).execute()
-                when {
-                    response.isSuccessful -> return response
-                    response.code == 401 -> logger.warn(ERROR_MSG_401)
-                    response.code == 413 -> logger.warn(ERROR_MSG_413)
-                    response.code == 500 -> logger.warn(ERROR_MSG_500)
-                    retries < maxRetries -> retries++
-                    else -> return response
-                }
-            } catch (e: IOException) {
-                if (retries >= maxRetries) {
-                    logger.error("Failed to upload mapping file to Measure: ${e.message}")
-                    break
-                }
-                retries++
-            }
-        }
-        return null
     }
 }
