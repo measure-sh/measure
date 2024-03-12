@@ -1,12 +1,33 @@
 package cmd
 
+import (
+	"github.com/BurntSushi/toml"
+)
+
 // App represents each combination of app and version
-// along with its sessions and related mapping file.
+// along with its sessions and related build info.
 type App struct {
 	Name        string
 	Version     string
 	MappingFile string
+	BuildInfo   BuildInfo
 	Sessions    []string
+}
+
+// ReadBuild decodes and parses build info data
+// from build configuration file.
+func (a *App) ReadBuild(path string) error {
+	_, err := toml.DecodeFile(path, &a.BuildInfo)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// FullName returns the app's name along with its
+// version.
+func (a App) FullName() string {
+	return a.Name + ":" + a.Version
 }
 
 // Metrics stores certain metrics used by the program
@@ -14,11 +35,11 @@ type App struct {
 type Metrics struct {
 	AppCount     int
 	SessionCount int
-	MappingCount int
+	BuildCount   int
 }
 
 // Resource represents the required fields used by the
-// program for sending mapping files upload request.
+// program for sending build info with the request.
 type Resource struct {
 	AppVersion  string `json:"app_version" binding:"required"`
 	AppBuild    string `json:"app_build" binding:"required"`

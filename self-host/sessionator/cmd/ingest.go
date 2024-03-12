@@ -23,11 +23,13 @@ import (
 const multipartBoundary = "___sessionator___"
 
 // sourceDir is the source directory where the program
-// reads and processes the sessions and mapping files.
+// reads and processes the sessions, build info and
+// mapping file.
 var sourceDir string
 
 // origin is the origin of the server where the program
-// will send and upload sessions and mapping files.
+// will send and upload sessions, build info and
+// mapping file.
 var origin string
 
 // configLocation is the path to the `config.toml` file
@@ -38,10 +40,10 @@ var configLocation string
 // `config.toml` file.
 var configData *config.Config
 
-// bumpMapping bumps the mapping count of
+// bumpBuild bumps the build count of
 // Metrics.
-func (m *Metrics) bumpMapping() {
-	m.MappingCount = m.MappingCount + 1
+func (m *Metrics) bumpBuild() {
+	m.BuildCount = m.BuildCount + 1
 }
 
 // bumpSession bumps the session count of
@@ -89,9 +91,9 @@ func ValidateFlags() bool {
 	return true
 }
 
-// MappingExists silently asserts that the
-// underlying mapping file exists on disk.
-func MappingExists(path string) bool {
+// FileExists silently asserts that the
+// underlying file exists on disk.
+func FileExists(path string) bool {
 	_, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -123,10 +125,10 @@ func getMappingMeta(a *App) *Resource {
 }
 
 // IngestSerial serially ingests each session and
-// mapping file of each app.
+// build of each app version.
 func IngestSerial(origin string) {
 	sessionURL := fmt.Sprintf("%s/sessions", origin)
-	mappingURL := fmt.Sprintf("%s/mappings", origin)
+	mappingURL := fmt.Sprintf("%s/builds", origin)
 	for i := range apps {
 		app := apps[i]
 
@@ -142,8 +144,8 @@ func IngestSerial(origin string) {
 		if app.MappingFile != "" {
 			resource := getMappingMeta(app)
 			base := filepath.Base(app.MappingFile)
-			fmt.Printf("Uploading mapping file %q... ", base)
-			status, err := UploadMapping(mappingURL, apiKey, app.MappingFile, resource)
+			fmt.Printf("Uploading build info %q... ", base)
+			status, err := UploadBuild(mappingURL, apiKey, app, resource)
 			if err != nil {
 				fmt.Printf("🔴 %s \n", status)
 				log.Fatal(err)
@@ -172,31 +174,19 @@ func IngestSerial(origin string) {
 	}
 }
 
-// UploadMapping prepares & sends the request to
-// upload mapping file.
-func UploadMapping(url, apiKey, file string, resource *Resource) (string, error) {
+// UploadBuild prepares & sends the request to
+// upload mapping file & build info.
+func UploadBuild(url, apiKey string, app *App, resource *Resource) (string, error) {
 	var buff bytes.Buffer
 	w := multipart.NewWriter(&buff)
 	w.SetBoundary(multipartBoundary)
 
-	f, err := os.Open(file)
+	f, err := os.Open(app.MappingFile)
 	if err != nil {
 		return "", err
 	}
 
-	fw, err := w.CreateFormFile("mapping_file", filepath.Base(file))
-	if err != nil {
-		return "", err
-	}
-	io.Copy(fw, f)
-
-	fw, err = w.CreateFormField("app_unique_id")
-	if err != nil {
-		return "", err
-	}
-	fw.Write([]byte(resource.AppUniqueID))
-
-	fw, err = w.CreateFormField("version_name")
+	fw, err := w.CreateFormField("version_name")
 	if err != nil {
 		return "", err
 	}
@@ -208,11 +198,29 @@ func UploadMapping(url, apiKey, file string, resource *Resource) (string, error)
 	}
 	fw.Write([]byte(resource.AppBuild))
 
-	fw, err = w.CreateFormField("type")
+	fw, err = w.CreateFormFile("mapping_file", filepath.Base(app.MappingFile))
+	if err != nil {
+		return "", err
+	}
+	io.Copy(fw, f)
+
+	fw, err = w.CreateFormField("mapping_type")
 	if err != nil {
 		return "", err
 	}
 	fw.Write([]byte("proguard"))
+
+	fw, err = w.CreateFormField("build_size")
+	if err != nil {
+		return "", err
+	}
+	fw.Write([]byte(app.BuildInfo.GetSize()))
+
+	fw, err = w.CreateFormField("build_type")
+	if err != nil {
+		return "", err
+	}
+	fw.Write([]byte(app.BuildInfo.Type))
 
 	w.Close()
 
@@ -231,7 +239,7 @@ func UploadMapping(url, apiKey, file string, resource *Resource) (string, error)
 	}
 
 	if resp.StatusCode > 399 {
-		return resp.Status, errors.New("failed to upload mapping file")
+		return resp.Status, errors.New("failed to upload build info")
 	}
 
 	defer resp.Body.Close()
@@ -271,7 +279,7 @@ func UploadSession(url, apiKey string, data []byte) (string, error) {
 }
 
 // Setup reads source directory and sets up everything
-// for successfully uploading sessions and mappings.
+// for successfully uploading sessions and builds.
 func Setup(dir string) {
 	fmt.Printf("reading session data from %q\n", dir)
 	fsys := os.DirFS(dir)
@@ -298,10 +306,17 @@ func Setup(dir string) {
 			app.Name = name
 			app.Version = version
 			mappingPath := filepath.Join(dir, app.Name, app.Version, "mapping.txt")
-			if MappingExists(mappingPath) {
+			buildPath := filepath.Join(dir, app.Name, app.Version, "build.toml")
+			if FileExists(mappingPath) && FileExists(buildPath) {
 				app.MappingFile = mappingPath
-				metrics.bumpMapping()
+				if err := app.ReadBuild(buildPath); err != nil {
+					log.Fatalf(`failed to read build info %q for app %q with err: %v`, buildPath, app.FullName(), err)
+				}
+				metrics.bumpBuild()
+			} else {
+				log.Fatalf(`could not read build info for app %q`, app.FullName())
 			}
+
 			app.Sessions = append(app.Sessions, filepath.Join(dir, sessionFiles[i]))
 			metrics.bumpSession()
 			apps = append(apps, app)
@@ -327,11 +342,13 @@ Structure of "session-data" directory:
     - 04cc1c6d-853b-4926-8d04-4501965a8d5e.json	# session json file
     - 7e2f676c-8604-4dd0-b5d8-3669e333f714.json # session json file
     - mapping.txt				# mapping file
+	- build.toml				# build info
 - bar						# app name dir
   - 4.5.6					# app version dir
     - e2f676c-8604-4dd0-b5d8-3669e333f714.json	# session json file
     - 55300a74-ba16-4e62-a699-0cd41f5e43c0.json	# session json file
-    - mapping.txt				# mapping file`,
+    - mapping.txt				# mapping file
+	- build.toml				# build info`,
 	Run: func(cmd *cobra.Command, args []string) {
 		sourceDir, err := filepath.Abs(filepath.Clean(sourceDir))
 		if err != nil {
@@ -367,7 +384,7 @@ Structure of "session-data" directory:
 		fmt.Printf("\nSummary\n=======\n\n")
 
 		fmt.Printf("apps: %d\n", metrics.AppCount)
-		fmt.Printf("mappings: %d\n", metrics.MappingCount)
+		fmt.Printf("builds: %d\n", metrics.BuildCount)
 		fmt.Printf("sessions: %d\n", metrics.SessionCount)
 	},
 }
