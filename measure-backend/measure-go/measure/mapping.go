@@ -7,9 +7,6 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"slices"
-	"strconv"
-	"strings"
 	"time"
 
 	"measure-backend/measure-go/chrono"
@@ -21,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
@@ -33,71 +31,44 @@ var MinBuildSize = 100
 type BuildMapping struct {
 	ID           uuid.UUID
 	AppID        uuid.UUID
-	VersionName  string
-	VersionCode  string
-	MappingType  string
+	VersionName  string `form:"version_name" binding:"required"`
+	VersionCode  string `form:"version_code" binding:"required"`
+	MappingType  string `form:"mapping_type" binding:"required_with=File"`
 	Key          string
 	Location     string
 	ContentHash  string
-	File         *multipart.FileHeader
+	File         *multipart.FileHeader `form:"mapping_file" binding:"required_with=MappingType"`
 	UploadStatus string
 	Timestamp    time.Time
 }
 
-func (m *BuildMapping) buildKey() string {
-	return fmt.Sprintf(`%s.txt`, m.ID)
+func (bm BuildMapping) buildKey() string {
+	return fmt.Sprintf(`%s.txt`, bm.ID)
 }
 
-func (bm *BuildMapping) checksum() error {
-	file, err := bm.File.Open()
-	if err != nil {
-		return err
+func (bm BuildMapping) HasMapping() bool {
+	if bm.MappingType != "" && bm.File != nil {
+		return true
 	}
-	hash, err := cipher.ChecksumFnv1(file)
-	if err != nil {
-		return err
-	}
-
-	// seek the file offset to the beginning as the checksum calculation
-	// must have moved the offset towards end of the file
-	if _, err := file.Seek(0, io.SeekStart); err != nil {
-		return err
-	}
-
-	bm.ContentHash = hash
-	return nil
+	return false
 }
 
-func (bm *BuildMapping) validate() (int, error) {
-	if bm.VersionName == "" {
-		return http.StatusBadRequest, errors.New(`missing field "version_name"`)
-	}
-
-	if bm.VersionCode == "" {
-		return http.StatusBadRequest, errors.New(`missing field "version_code"`)
-	}
-
-	if bm.MappingType == "" {
-		return http.StatusBadRequest, errors.New(`missing field "mapping_type"`)
-	}
-
-	if !slices.Contains(validMappingTypes, bm.MappingType) {
-		msg := fmt.Sprintf(`invalid type %q. valid types are: %q`, bm.MappingType, strings.Join(validMappingTypes, ", "))
-		return http.StatusBadRequest, errors.New(msg)
-	}
+func (bm BuildMapping) Validate() (code int, err error) {
+	code = http.StatusBadRequest
 
 	if bm.File.Size < 1 {
-		return http.StatusBadRequest, errors.New(`"mapping_file" does not any contain data`)
+		err = errors.New(`no data in field "mapping_file"`)
 	}
 
 	if bm.File.Size > int64(server.Server.Config.MappingFileMaxSize) {
-		return http.StatusRequestEntityTooLarge, fmt.Errorf(`"%s" file size exceeding %d bytes`, bm.File.Filename, server.Server.Config.MappingFileMaxSize)
+		code = http.StatusRequestEntityTooLarge
+		err = fmt.Errorf(`%q file size exceeding %d bytes`, bm.File.Filename, server.Server.Config.MappingFileMaxSize)
 	}
 
-	return 0, nil
+	return
 }
 
-func (bm *BuildMapping) shouldUpsert(ctx context.Context, tx pgx.Tx) (bool, *uuid.UUID, error) {
+func (bm BuildMapping) shouldUpsert(ctx context.Context, tx pgx.Tx) (bool, *uuid.UUID, error) {
 	var id uuid.UUID
 	var key string
 	var existingHash string
@@ -120,6 +91,10 @@ func (bm *BuildMapping) shouldUpsert(ctx context.Context, tx pgx.Tx) (bool, *uui
 		}
 	}
 
+	if err := bm.checksum(); err != nil {
+		return false, nil, err
+	}
+
 	// the content has changed
 	if bm.ContentHash != existingHash {
 		return true, &id, nil
@@ -128,7 +103,7 @@ func (bm *BuildMapping) shouldUpsert(ctx context.Context, tx pgx.Tx) (bool, *uui
 	return false, &id, nil
 }
 
-func (bm *BuildMapping) insert(ctx context.Context, tx pgx.Tx) error {
+func (bm BuildMapping) insert(ctx context.Context, tx pgx.Tx) error {
 	stmt := sqlf.PostgreSQL.
 		InsertInto(`public.build_mappings`).
 		Set(`id`, nil).
@@ -151,7 +126,7 @@ func (bm *BuildMapping) insert(ctx context.Context, tx pgx.Tx) error {
 	return nil
 }
 
-func (bm *BuildMapping) upsert(ctx context.Context, tx pgx.Tx) error {
+func (bm BuildMapping) upsert(ctx context.Context, tx pgx.Tx) error {
 	stmt := sqlf.PostgreSQL.
 		Update(`public.build_mappings`).
 		Set(`fnv1_hash`, nil).
@@ -165,6 +140,26 @@ func (bm *BuildMapping) upsert(ctx context.Context, tx pgx.Tx) error {
 		return err
 	}
 
+	return nil
+}
+
+func (bm *BuildMapping) checksum() error {
+	file, err := bm.File.Open()
+	if err != nil {
+		return err
+	}
+	hash, err := cipher.ChecksumFnv1(file)
+	if err != nil {
+		return err
+	}
+
+	// seek the file offset to the beginning as the checksum calculation
+	// must have moved the offset towards end of the file
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
+
+	bm.ContentHash = hash
 	return nil
 }
 
@@ -206,10 +201,10 @@ func (bm *BuildMapping) upload() (*s3manager.UploadOutput, error) {
 type BuildSize struct {
 	ID          uuid.UUID
 	AppID       uuid.UUID
-	VersionName string
-	VersionCode string
-	BuildSize   int
-	BuildType   string
+	VersionName string `form:"version_name" binding:"required"`
+	VersionCode string `form:"version_code" binding:"required"`
+	BuildSize   int    `form:"build_size" binding:"required_with=BuildType,gt=100"`
+	BuildType   string `form:"build_type" binding:"required_with=BuildSize,oneof=aab apk"`
 	CreatedAt   chrono.ISOTime
 }
 
@@ -241,53 +236,31 @@ func PutBuild(c *gin.Context) {
 		return
 	}
 
-	file, err := c.FormFile("mapping_file")
-	if err != nil {
-		fmt.Println("error reading mapping_file field", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": `missing field "mapping_file"`})
-		return
+	bs := BuildSize{
+		AppID: appId,
 	}
 
-	buildMapping := &BuildMapping{
-		ID:          uuid.New(),
-		AppID:       appId,
-		VersionName: c.PostForm("version_name"),
-		VersionCode: c.PostForm("version_code"),
-		MappingType: c.PostForm("mapping_type"),
-		File:        file,
-	}
-
-	if statusCode, err := buildMapping.validate(); err != nil {
-		fmt.Println(`put mapping file request validation error: `, err.Error())
-		c.JSON(statusCode, gin.H{"error": err.Error()})
-		return
-	}
-
-	size, err := strconv.Atoi(c.PostForm("build_size"))
-	if err != nil {
-		msg := `failed to parse build size`
+	if err := c.ShouldBindWith(&bs, binding.FormMultipart); err != nil {
+		msg := `build info validation failed. make sure both "build_size" and "build_type" have valid values`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
 
-	buildSize := &BuildSize{
-		AppID:       appId,
-		VersionName: c.PostForm("version_name"),
-		VersionCode: c.PostForm("version_code"),
-		BuildSize:   size,
-		BuildType:   c.PostForm("build_type"),
+	bm := BuildMapping{
+		ID:    uuid.New(),
+		AppID: appId,
 	}
 
-	if buildSize.BuildSize < MinBuildSize {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("build size cannot be less than %d bytes", MinBuildSize)})
-		return
-	}
-
-	if !slices.Contains(validBuildTypes, buildSize.BuildType) {
-		msg := fmt.Sprintf(`invalid build type %q. valid types are: %q`, buildSize.BuildType, strings.Join(validBuildTypes, ", "))
+	if err := c.ShouldBindWith(&bm, binding.FormMultipart); err != nil {
+		msg := `build info validation failed. make sure both "mapping_file" and "mapping_type" have valid values`
+		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
+	}
+
+	if code, err := bm.Validate(); err != nil {
+		c.JSON(code, gin.H{"error": err.Error()})
 	}
 
 	ctx := context.Background()
@@ -301,49 +274,56 @@ func PutBuild(c *gin.Context) {
 
 	defer tx.Rollback(ctx)
 
-	if err := buildMapping.checksum(); err != nil {
-		fmt.Println("failed to calculate mapping file checksum", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload mapping file"})
+	// no mapping, just process build size
+	// and return early
+	if !bm.HasMapping() {
+		if err := bs.Upsert(ctx, tx); err != nil {
+			msg := `failed to register app build size`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+			return
+		}
+		if err := tx.Commit(ctx); err != nil {
+			msg := `failed to upload build size`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"ok": `updated build size info`,
+		})
+
 		return
 	}
 
-	shouldUpload, existingId, err := buildMapping.shouldUpsert(ctx, tx)
+	shouldUpload, existingId, err := bm.shouldUpsert(ctx, tx)
 	if err != nil {
 		fmt.Println("failed to detect mapping file upsertion", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, buildMapping.File.Filename),
+			"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, bm.File.Filename),
 		})
 		return
 	}
 
-	if existingId != nil {
-		buildMapping.ID = *existingId
-	}
-
 	if shouldUpload {
-		result, err := buildMapping.upload()
+		result, err := bm.upload()
 		if err != nil {
-			fmt.Printf("failed to upload mapping file, key: %s with error, %v\n", buildMapping.Key, err)
+			fmt.Printf("failed to upload mapping file, key: %s with error, %v\n", bm.Key, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, buildMapping.File.Filename),
+				"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, bm.File.Filename),
 			})
 			return
 		}
 
-		buildMapping.Location = result.Location
-	}
-
-	if err := buildSize.Upsert(ctx, tx); err != nil {
-		msg := `failed to register app build size`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
+		bm.Location = result.Location
 	}
 
 	if existingId != nil {
-		if err := buildMapping.upsert(ctx, tx); err != nil {
-			fmt.Printf("failed to upsert mapping file, key: %s with error, %v\n", buildMapping.Key, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf(`failed to upload build info: "%s"`, buildMapping.File.Filename)})
+		bm.ID = *existingId
+		if err := bm.upsert(ctx, tx); err != nil {
+			fmt.Printf("failed to upsert mapping file, key: %s with error, %v\n", bm.Key, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf(`failed to upload build info: "%s"`, bm.File.Filename)})
 			return
 		}
 		msg := `existing build info is already up to date`
@@ -354,11 +334,18 @@ func PutBuild(c *gin.Context) {
 		return
 	}
 
-	if err := buildMapping.insert(ctx, tx); err != nil {
-		fmt.Printf("failed to insert mapping file, key: %s with error, %v\n", buildMapping.Key, err)
+	if err := bm.insert(ctx, tx); err != nil {
+		fmt.Printf("failed to insert mapping file, key: %s with error, %v\n", bm.Key, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, buildMapping.File.Filename),
+			"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, bm.File.Filename),
 		})
+		return
+	}
+
+	if err := bs.Upsert(ctx, tx); err != nil {
+		msg := `failed to register app build size`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
 
