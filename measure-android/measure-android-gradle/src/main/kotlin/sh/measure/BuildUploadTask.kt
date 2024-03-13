@@ -12,6 +12,7 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
 import java.io.File
 import java.io.IOException
@@ -51,6 +52,7 @@ abstract class BuildUploadTask : DefaultTask() {
     @get:InputFile
     abstract val manifestDataProperty: RegularFileProperty
 
+    @get:Optional
     @get:InputFile
     abstract val appSizeFileProperty: RegularFileProperty
 

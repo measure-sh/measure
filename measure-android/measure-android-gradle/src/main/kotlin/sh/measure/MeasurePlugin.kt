@@ -4,6 +4,7 @@ import com.android.build.api.artifact.SingleArtifact
 import com.android.build.api.instrumentation.FramesComputationMode
 import com.android.build.api.instrumentation.InstrumentationScope
 import com.android.build.api.variant.AndroidComponentsExtension
+import com.android.build.api.variant.CanMinifyCode
 import com.android.build.api.variant.Variant
 import com.android.build.gradle.internal.tasks.factory.dependsOn
 import org.gradle.api.Plugin
@@ -21,7 +22,7 @@ class MeasurePlugin : Plugin<Project> {
         const val GROUP_NAME = "measure"
         const val SHARED_SERVICE_HTTP_CLIENT = "measure-http-client"
         const val DEFAULT_ENDPOINT = "http://localhost:8080"
-        const val ROUTE_BUILDS = "/mappings"
+        const val ROUTE_BUILDS = "/builds"
         const val DEFAULT_TIMEOUT_MS = 60_000L
         const val DEFAULT_RETRIES = 3
     }
@@ -68,6 +69,12 @@ class MeasurePlugin : Plugin<Project> {
     private fun registerBuildUploadTask(
         variant: Variant, project: Project, httpClientProvider: Provider<MeasureHttpClient>
     ) {
+        // Only upload build information if minifyEnabled is set
+        @Suppress("UnstableApiUsage") val isMinifyEnabled =
+            (variant as? CanMinifyCode)?.isMinifyEnabled == true
+        if (!isMinifyEnabled) {
+            return
+        }
         val extractManifestDataProvider = project.tasks.register(
             extractManifestDataTaskName(variant), ExtractManifestDataTask::class.java
         ) {
@@ -75,12 +82,18 @@ class MeasurePlugin : Plugin<Project> {
             it.manifestOutputProperty.set(manifestDataFileProvider(project, variant))
         }
 
-        val appSizeProvider = project.tasks.register(
-            extractAppSizeTaskName(variant), AppSizeTask::class.java
+        val apkSizeProvider = project.tasks.register(
+            extractApkSizeTaskName(variant), ApkSizeTask::class.java
+        ) {
+            it.apkDirectoryProperty.set(variant.artifacts.get(SingleArtifact.APK))
+            it.appSizeOutputFileProperty.set(appSizeFileProvider(project, variant))
+        }
+
+        val aabSizeProvider = project.tasks.register(
+            extractAabSizeTaskName(variant), AabSizeTask::class.java
         ) {
             it.bundleFileProperty.set(variant.artifacts.get(SingleArtifact.BUNDLE))
             it.apksOutputDir.set(apksDirProvider(project, variant))
-            it.apkDirectoryProperty.set(variant.artifacts.get(SingleArtifact.APK))
             it.appSizeOutputFileProperty.set(appSizeFileProvider(project, variant))
         }
 
@@ -94,15 +107,24 @@ class MeasurePlugin : Plugin<Project> {
             it.retriesProperty.set(DEFAULT_RETRIES)
             it.usesService(httpClientProvider)
             it.httpClientProvider.set(httpClientProvider)
-        }.dependsOn(extractManifestDataProvider, appSizeProvider)
+        }.dependsOn(extractManifestDataProvider).apply {
+            configure {
+                // using dependsOn would not work as apkSizeProvider and aabSizeProvider will both
+                // end up running and overwriting each other's output.
+                it.mustRunAfter(apkSizeProvider, aabSizeProvider)
+            }
+        }
+
 
         // hook up the upload task to run after any assemble<variant> or bundle<variant>
+        // apkSizeProvider should only run for assemble tasks, while aabSizeProvider should only
+        // run for bundle tasks.
         project.afterEvaluate {
             it.tasks.named("assemble${variant.name.capitalize()}").configure { task ->
-                task.finalizedBy(uploadBuildProvider)
+                task.finalizedBy(apkSizeProvider, uploadBuildProvider)
             }
             it.tasks.named("bundle${variant.name.capitalize()}").configure { task ->
-                task.finalizedBy(uploadBuildProvider)
+                task.finalizedBy(aabSizeProvider, uploadBuildProvider)
             }
         }
     }
@@ -115,8 +137,11 @@ class MeasurePlugin : Plugin<Project> {
         return project.layout.buildDirectory.file("intermediates/measure/${variant.name}/bundle.apks")
     }
 
-    private fun extractAppSizeTaskName(variant: Variant) =
-        "calculateAppSize${variant.name.capitalize()}"
+    private fun extractApkSizeTaskName(variant: Variant) =
+        "calculateApkSize${variant.name.capitalize()}"
+
+    private fun extractAabSizeTaskName(variant: Variant) =
+        "calculateAabSize${variant.name.capitalize()}"
 
     private fun manifestDataFileProvider(
         project: Project, variant: Variant
