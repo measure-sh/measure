@@ -6,9 +6,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/BurntSushi/toml"
 	"github.com/spf13/cobra"
 )
 
@@ -42,11 +44,13 @@ The sessions & mappings are recorded in the following structue in "session-data"
     - 04cc1c6d-853b-4926-8d04-4501965a8d5e.json	# session json file
     - 7e2f676c-8604-4dd0-b5d8-3669e333f714.json # session json file
     - mapping.txt				# mapping file
+    - build.toml
 - bar						# app name dir
   - 4.5.6					# app version dir
     - e2f676c-8604-4dd0-b5d8-3669e333f714.json	# session json file
     - 55300a74-ba16-4e62-a699-0cd41f5e43c0.json	# session json file
-    - mapping.txt				# mapping file`,
+    - mapping.txt				# mapping file
+    - build.toml				# build size and type`,
 	Run: func(cmd *cobra.Command, args []string) {
 		r := gin.Default()
 
@@ -54,8 +58,8 @@ The sessions & mappings are recorded in the following structue in "session-data"
 			writeSession(c)
 		})
 
-		r.PUT("/mappings", func(c *gin.Context) {
-			writeMapping(c)
+		r.PUT("/builds", func(c *gin.Context) {
+			writeBuild(c)
 		})
 		r.Run(port)
 	},
@@ -95,7 +99,7 @@ func writeSession(c *gin.Context) {
 	c.Status(http.StatusAccepted)
 }
 
-func writeMapping(c *gin.Context) {
+func writeBuild(c *gin.Context) {
 	if err := c.Request.ParseMultipartForm(100 << 20); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "unable to parse multipart form: " + err.Error()})
 		return
@@ -136,6 +140,31 @@ func writeMapping(c *gin.Context) {
 	_, err = io.Copy(out, file)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to write mapping file: " + err.Error()})
+		return
+	}
+
+	buildType := c.Request.FormValue("build_type")
+	buildSize, err := strconv.Atoi(c.Request.FormValue("build_size"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse build_size: " + err.Error()})
+		return
+	}
+	filePath = filepath.Join(outputDir, appUniqueID, versionName, "build.toml")
+	out, err = os.Create(filePath)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed create build.toml file: " + err.Error()})
+		return
+	}
+	defer out.Close()
+
+	buildInfo := BuildInfo{
+		Size: uint32(buildSize),
+		Type: buildType,
+	}
+
+	if err := toml.NewEncoder(out).Encode(buildInfo); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create build.toml file: " + err.Error()})
 		return
 	}
 
