@@ -24,10 +24,6 @@ import (
 	"github.com/leporo/sqlf"
 )
 
-var validMappingTypes = []string{"proguard"}
-var validBuildTypes = []string{"apk", "aab"}
-var MinBuildSize = 100
-
 type BuildMapping struct {
 	ID           uuid.UUID
 	AppID        uuid.UUID
@@ -42,10 +38,14 @@ type BuildMapping struct {
 	Timestamp    time.Time
 }
 
-func (bm BuildMapping) buildKey() string {
+// GetKey constructs a new key with extension for
+// the soon to be uploaded mapping file.
+func (bm BuildMapping) GetKey() string {
 	return fmt.Sprintf(`%s.txt`, bm.ID)
 }
 
+// HasMapping checks if necessary details are
+// valid for mapping build info.
 func (bm BuildMapping) HasMapping() bool {
 	if bm.MappingType != "" && bm.File != nil {
 		return true
@@ -53,6 +53,7 @@ func (bm BuildMapping) HasMapping() bool {
 	return false
 }
 
+// Validate validates build mapping details.
 func (bm BuildMapping) Validate() (code int, err error) {
 	code = http.StatusBadRequest
 
@@ -184,7 +185,7 @@ func (bm *BuildMapping) upload() (*s3manager.UploadOutput, error) {
 	}
 
 	if bm.Key == "" {
-		bm.Key = bm.buildKey()
+		bm.Key = bm.GetKey()
 	}
 
 	metadata := map[string]*string{
