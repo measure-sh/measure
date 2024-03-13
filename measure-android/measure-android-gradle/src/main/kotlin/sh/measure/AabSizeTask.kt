@@ -6,15 +6,12 @@ import com.android.builder.errors.DefaultIssueReporter
 import com.android.prefs.AndroidLocationsSingleton
 import com.android.repository.api.ProgressIndicatorAdapter
 import com.android.sdklib.repository.AndroidSdkHandler
-import com.android.tools.apk.analyzer.internal.GzipSizeCalculator
 import com.android.tools.build.bundletool.androidtools.Aapt2Command
 import com.android.tools.build.bundletool.commands.BuildApksCommand
 import com.android.tools.build.bundletool.commands.GetSizeCommand
 import com.android.utils.StdLogger
 import org.gradle.api.DefaultTask
-import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
-import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
@@ -23,11 +20,10 @@ import java.io.PrintStream
 import java.nio.file.Path
 
 /**
- * Task to measure the size of an app bundle or APK.
+ * Task to measure the size of an app bundle.
  *
- * APK size is measured using Apk Analyzer, while AAB size is measured using bundletool.
- * APK size represents the download size of the APK, while AAB size represents the minimum and
- * maximum size of the APK splits generated from the AAB.
+ * AAB size is measured using bundletool. AAB size represents maximum size of the APK splits
+ * generated from the AAB.
  *
  * The output is written to [appSizeOutputFileProperty] file in the following format:
  * app_size
@@ -35,15 +31,14 @@ import java.nio.file.Path
  *
  * Example:
  * 466456
- * apk
+ * aab
+ *
+ * Also see, [ApkSizeTask]
  */
-abstract class AppSizeTask : DefaultTask() {
+abstract class AabSizeTask : DefaultTask() {
 
     @get:InputFile
     abstract val bundleFileProperty: RegularFileProperty
-
-    @get:InputDirectory
-    abstract val apkDirectoryProperty: DirectoryProperty
 
     @get:OutputFile
     abstract val apksOutputDir: RegularFileProperty
@@ -53,26 +48,16 @@ abstract class AppSizeTask : DefaultTask() {
 
     @TaskAction
     fun calculateAppSize() {
-        val apkOutputDir = apkDirectoryProperty.getOrNull()?.asFile
-        val apkFile = apkOutputDir?.listFiles()?.find { it.extension == "apk" }
+//        val apkOutputDir = apkDirectoryProperty.getOrNull()?.asFile
+//        val apkFile = apkOutputDir?.listFiles()?.find { it.extension == "apk" }
         val bundleFile = bundleFileProperty.getOrNull()?.asFile
         val appSizeOutputFile = appSizeOutputFileProperty.get().asFile
-        if (apkFile?.exists() == true) {
-            writeApkSize(apkFile, appSizeOutputFile)
-        }
+//        if (apkFile?.exists() == true) {
+//            writeApkSize(apkFile, appSizeOutputFile)
+//        }
         if (bundleFile != null) {
             writeAabSize(bundleFile, appSizeOutputFile)
         }
-    }
-
-    private fun writeApkSize(apkFile: File, apkSizeOutputFile: File) {
-        val size = GzipSizeCalculator().getFullApkDownloadSize(apkFile.toPath())
-        apkSizeOutputFile.writeText(
-            """
-            $size
-            apk
-        """.trimIndent()
-        )
     }
 
     private fun writeAabSize(bundleFile: File, appSizeOutputFile: File) {

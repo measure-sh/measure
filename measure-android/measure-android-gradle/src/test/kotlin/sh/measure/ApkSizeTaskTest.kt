@@ -8,33 +8,12 @@ import org.junit.Assert
 import org.junit.Test
 import java.io.File
 
-internal class AppSizeTaskTest {
+internal class ApkSizeTaskTest {
     private val temporaryFolder: TemporaryFolder = TemporaryFolder().apply { create() }
 
     @After
     fun tearDown() {
         temporaryFolder.delete()
-    }
-
-    @Test
-    fun `calculates aab size and writes to output file`() {
-        // setup project directory
-        val project = ProjectBuilder.builder().withProjectDir(temporaryFolder.root).build()
-        val bundleFile = loadAab(project.rootDir)
-        val outputFile = createOutputAabSizeFile()
-        val apksDir = File(temporaryFolder.root, "bundle.apks")
-
-        // configure task
-        val task = project.tasks.create("appSizeTask", AppSizeTask::class.java)
-        task.apksOutputDir.set(apksDir)
-        task.bundleFileProperty.set(bundleFile)
-        task.appSizeOutputFileProperty.set(outputFile)
-
-        // execute task
-        task.calculateAppSize()
-
-        // assert
-        Assert.assertEquals("1797367\naab", outputFile.readText())
     }
 
     @Test
@@ -45,7 +24,7 @@ internal class AppSizeTaskTest {
         val outputFile = createOutputApkSizeFile()
 
         // configure task
-        val task = project.tasks.create("appSizeTask", AppSizeTask::class.java)
+        val task = project.tasks.create("appSizeTask", ApkSizeTask::class.java)
         task.apkDirectoryProperty.set(apkFile)
         task.appSizeOutputFileProperty.set(outputFile)
 
@@ -62,16 +41,6 @@ internal class AppSizeTaskTest {
 
     private fun createOutputApkSizeFile(): File {
         return temporaryFolder.newFile("apkSize.txt")
-    }
-
-    /**
-     * Copies the bundle file from resources to the project root directory.
-     *
-     * @return The aab file.
-     */
-    private fun loadAab(rootDir: File): File {
-        val bundleFile = File("src/test/resources/test.aab")
-        return bundleFile.copyTo(File(rootDir, "test.aab"))
     }
 
     /**
