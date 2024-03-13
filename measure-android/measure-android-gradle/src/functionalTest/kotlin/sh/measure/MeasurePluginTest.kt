@@ -10,6 +10,7 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.gradle.util.GradleVersion
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -32,34 +33,60 @@ class MeasurePluginTest {
 
     @ParameterizedTest
     @MethodSource("versions")
-    fun `minification enabled, assert upload proguard task present`(
+    fun `assert tasks are created when assemble task is triggered`(
         agpVersion: SemVer, gradleVersion: GradleVersion
     ) {
         val project = MeasurePluginFixture(agpVersion, minifyEnabled = true).gradleProject
         val result = build(gradleVersion, project.rootDir, ":app:assembleRelease")
-        assertThat(result).task(":app:uploadReleaseProguardMappingToMeasure").isNotNull()
+        assertThat(result).task(":app:extractReleaseManifestData").isNotNull()
+        assertThat(result).task(":app:calculateApkSizeRelease").isNotNull()
+        assertThat(result).task(":app:uploadReleaseBuildToMeasure").isNotNull()
     }
 
     @ParameterizedTest
     @MethodSource("versions")
-    fun `minification disabled, assert upload proguard task absent`(
+    fun `assert tasks are created when bundle task is triggered`(
         agpVersion: SemVer, gradleVersion: GradleVersion
     ) {
         val project = MeasurePluginFixture(agpVersion, minifyEnabled = false).gradleProject
-        val result = build(gradleVersion, project.rootDir, ":app:assembleRelease")
-        assertThat(result).doesNotHaveTask(":app:uploadReleaseProguardMappingToMeasure")
+        val result = build(gradleVersion, project.rootDir, ":app:bundleRelease")
+        assertThat(result).task(":app:extractReleaseManifestData").isNotNull()
+        assertThat(result).task(":app:calculateAabSizeRelease").isNotNull()
+        assertThat(result).task(":app:uploadReleaseBuildToMeasure").isNotNull()
     }
 
     @ParameterizedTest
     @MethodSource("versions")
-    fun `API_KEY is set in manifest, assert upload succeeds`(
+    fun `assert tasks are not created when a task other than assemble or bundle are triggered`(
+        agpVersion: SemVer, gradleVersion: GradleVersion
+    ) {
+        val project = MeasurePluginFixture(agpVersion, minifyEnabled = false).gradleProject
+        val result = build(gradleVersion, project.rootDir, ":app:test")
+        assertThat(result).doesNotHaveTask(":app:extractReleaseManifestData")
+        assertThat(result).doesNotHaveTask(":app:calculateAabSizeRelease")
+        assertThat(result).doesNotHaveTask(":app:uploadReleaseBuildToMeasure")
+    }
+
+    @ParameterizedTest
+    @MethodSource("versions")
+    fun `API_KEY is set in manifest, assert upload request is created`(
         agpVersion: SemVer, gradleVersion: GradleVersion
     ) {
         server.enqueue(MockResponse().setResponseCode(200))
         server.start(8080)
         val project = MeasurePluginFixture(agpVersion, setMeasureApiKey = true).gradleProject
-        val result = build(gradleVersion, project.rootDir, ":app:assembleRelease")
-        assertThat(result).task(":app:assembleRelease").succeeded()
+        build(gradleVersion, project.rootDir, ":app:assembleRelease")
+        assertEquals(1, server.requestCount)
+    }
+
+    @ParameterizedTest
+    @MethodSource("versions")
+    fun `API_KEY is not set in manifest, assert task fails`(
+        agpVersion: SemVer, gradleVersion: GradleVersion
+    ) {
+        val project = MeasurePluginFixture(agpVersion, setMeasureApiKey = false).gradleProject
+        val result = buildAndFail(gradleVersion, project.rootDir, ":app:assembleRelease")
+        assertThat(result).output().contains("sh.measure.android.API_KEY not set in manifest")
     }
 
     @ParameterizedTest
@@ -82,32 +109,6 @@ class MeasurePluginTest {
             // AGP < 8 has a bug that prevents use of CC
             assertThat(result).output().contains("Configuration cache entry reused.")
         }
-    }
-
-    @ParameterizedTest
-    @MethodSource("versions")
-    fun `API_KEY is set in manifest, assert upload fails after retries`(
-        agpVersion: SemVer, gradleVersion: GradleVersion
-    ) {
-        // TODO(abhay): assuming 3 retries, this needs to be updated when retries are configurable.
-        server.enqueue(MockResponse().setResponseCode(500))
-        server.enqueue(MockResponse().setResponseCode(500))
-        server.enqueue(MockResponse().setResponseCode(500))
-        server.enqueue(MockResponse().setResponseCode(500))
-        server.start(8080)
-        val project = MeasurePluginFixture(agpVersion, setMeasureApiKey = true).gradleProject
-        val result = build(gradleVersion, project.rootDir, ":app:assembleRelease")
-        assertThat(result).output().contains("Failed to upload mapping file to Measure, the server encountered an error")
-    }
-
-    @ParameterizedTest
-    @MethodSource("versions")
-    fun `API_KEY is not set in manifest, assert task fails`(
-        agpVersion: SemVer, gradleVersion: GradleVersion
-    ) {
-        val project = MeasurePluginFixture(agpVersion, setMeasureApiKey = false).gradleProject
-        val result = buildAndFail(gradleVersion, project.rootDir, ":app:assembleRelease")
-        assertThat(result).output().contains("sh.measure.android.API_KEY not set in manifest")
     }
 
     companion object {
