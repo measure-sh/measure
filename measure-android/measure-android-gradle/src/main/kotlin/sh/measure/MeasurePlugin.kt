@@ -69,12 +69,6 @@ class MeasurePlugin : Plugin<Project> {
     private fun registerBuildUploadTask(
         variant: Variant, project: Project, httpClientProvider: Provider<MeasureHttpClient>
     ) {
-        // Only upload build information if minifyEnabled is set
-        @Suppress("UnstableApiUsage") val isMinifyEnabled =
-            (variant as? CanMinifyCode)?.isMinifyEnabled == true
-        if (!isMinifyEnabled) {
-            return
-        }
         val extractManifestDataProvider = project.tasks.register(
             extractManifestDataTaskName(variant), ExtractManifestDataTask::class.java
         ) {

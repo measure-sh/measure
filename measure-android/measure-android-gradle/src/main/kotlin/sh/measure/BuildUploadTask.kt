@@ -7,6 +7,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.Response
 import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
@@ -46,13 +47,13 @@ abstract class BuildUploadTask : DefaultTask() {
     @get:Input
     abstract val mappingEndpointProperty: Property<String>
 
+    @get:Optional
     @get:InputFile
     abstract val mappingFileProperty: RegularFileProperty
 
     @get:InputFile
     abstract val manifestDataProperty: RegularFileProperty
 
-    @get:Optional
     @get:InputFile
     abstract val appSizeFileProperty: RegularFileProperty
 
@@ -62,7 +63,7 @@ abstract class BuildUploadTask : DefaultTask() {
     @TaskAction
     fun upload() {
         val manifestDataFile = manifestDataProperty.get().asFile
-        val mappingFile = mappingFileProperty.get().asFile
+        val mappingFile = mappingFileProperty.getOrNull()?.asFile
         val appSizeFile = appSizeFileProperty.get().asFile
 
         val manifestData = readManifestData(manifestDataFile)
@@ -75,14 +76,12 @@ abstract class BuildUploadTask : DefaultTask() {
             addFormDataPart(APP_UNIQUE_ID, manifestData.appUniqueId)
             addFormDataPart(VERSION_CODE, manifestData.versionCode)
             addFormDataPart(VERSION_NAME, manifestData.versionName)
-            appSize?.let {
-                addFormDataPart(BUILD_SIZE, it)
+            mappingFile?.let {
+                addFormDataPart(MAPPING_FILE, it.name, it.asRequestBody())
+                addFormDataPart(MAPPING_TYPE, TYPE_PROGUARD)
             }
-            buildType?.let {
-                addFormDataPart(BUILD_TYPE, it)
-            }
-            addFormDataPart(MAPPING_TYPE, TYPE_PROGUARD)
-            addFormDataPart(MAPPING_FILE, mappingFile.name, mappingFile.asRequestBody())
+            addFormDataPart(BUILD_SIZE, appSize)
+            addFormDataPart(BUILD_TYPE, buildType)
         }.build()
 
         val request: Request = Request.Builder().url(mappingEndpointProperty.get())
@@ -111,15 +110,11 @@ abstract class BuildUploadTask : DefaultTask() {
     private fun readManifestData(manifestDataFile: File) =
         Json.decodeFromStream(ManifestData.serializer(), manifestDataFile.inputStream())
 
-    private fun readAppSize(appSizeFile: File): String? {
-        return if (appSizeFile.exists()) {
-            appSizeFile.readLines().firstOrNull()
-        } else {
-            null
-        }
+    private fun readAppSize(appSizeFile: File): String {
+        return appSizeFile.readLines().first()
     }
 
-    private fun readBuildType(appSizeFile: File): String? {
-        return appSizeFile.takeIf { it.exists() }?.readLines()?.getOrNull(1)
+    private fun readBuildType(appSizeFile: File): String {
+        return appSizeFile.readLines()[1]
     }
 }
