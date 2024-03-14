@@ -221,18 +221,10 @@ To understand the shape of the JSON payload, take a look at this sample request.
       "type": "http",
       "http": {
         "client": "okhttp",
-        "connect_end": 4403805,
-        "connect_start": 4400915,
-        "dns_end": 4400915,
-        "dns_start": 4400911,
         "end_time": 4404308,
         "failure_description": null,
         "failure_reason": null,
         "method": "get",
-        "request_body_end": null,
-        "request_body_size": null,
-        "request_body_start": null,
-        "request_end": 4403816,
         "request_headers": {
           "accept": "application/json; charset=utf-8;",
           "accept-encoding": "gzip",
@@ -240,33 +232,21 @@ To understand the shape of the JSON payload, take a look at this sample request.
           "connection": "Keep-Alive",
           "host": "www.example.com",
         },
-        "request_headers_end": 4403816,
-        "request_headers_size": 567,
-        "request_headers_start": 4403807,
-        "request_start": 4403807,
-        "request_timestamp": "2024-01-01T08:10:08.19800000Z",
-        "response_body_end": 4404284,
-        "response_body_size": 0,
-        "response_body_start": 4404284,
-        "response_end": 4404284,
         "response_headers": {
           "x-frame-options": "SAMEORIGIN",
           "x-xss-protection": "1; mode=block"
         },
-        "response_headers_end": 4404283,
-        "response_headers_size": 1445,
-        "response_headers_start": 4404275,
-        "response_start": 4404275,
-        "response_timestamp": "2024-01-01T08:10:11.65600000Z",
         "start_time": 4400851,
         "status_code": 304,
         "url": "https://www.example.com/api/rest_v1/xyz/2024/01/01"
       },
+      "request_body": null,
+      "response_body": null,
       "attributes": {
         "key1": "value1",
         "key2": "value2"
       }
-    },`
+    },
     {
       "timestamp": "2023-08-24T14:51:41.000000534Z",
       "type": "exception",
@@ -689,34 +669,14 @@ Use the `http` body type for tracking a single HTTP network.
 | `url`                    | string | No       | Complete URL of the HTTP request                                                |
 | `method`                 | string | No       | Any of the common HTTP method like, `GET` or `POST`                             |
 | `status_code`            | int    | Yes      | Any of the common HTTP response codes.                                          |
-| `request_body_size`      | number | Yes      | Size of the HTTP request body in bytes                                          |
-| `response_body_size`     | number | Yes      | Size of the HTTP response body in bytes                                         |
-| `request_timestamp`      | string | Yes      | ISO 8601 timestamp when the request was sent.                                   |
-| `response_timestamp`     | string | Yes      | ISO 8601 timestamp when the response was received.                              |
 | `start_time`             | number | Yes      | The uptime at which the http call started, in ms.                               |
 | `end_time`               | number | Yes      | The uptime at which the http call ended, in ms.                                 |
-| `dns_start`              | number | Yes      | The uptime at which the dns lookup started, in ms.                              |
-| `dns_end`                | number | Yes      | The uptime at which the dns lookup ended, in ms.                                |
-| `connect_start`          | number | Yes      | The uptime just prior to initiating a socket connection, in ms.                 |
-| `connect_end`            | number | Yes      | The uptime just after a socket connection was attempted, in ms.                 |
-| `request_start`          | number | Yes      | The uptime as soon as the call is enqueued or executed by a client, in ms.      |
-| `request_end`            | number | Yes      | The uptime when the call has completely ended, in ms.                           |
-| `request_headers_start`  | number | Yes      | The uptime at which request headers started to be sent, in ms.                  |
-| `request_headers_end`    | number | Yes      | The uptime at which request headers were sent, in ms.                           |
-| `request_body_start`     | number | Yes      | The uptime at which request body started to be sent, in ms.                     |
-| `request_body_end`       | number | Yes      | The uptime at which request body was sent, in ms.                               |
-| `response_start`         | number | Yes      | The uptime at which response started to be received, in ms.                     |
-| `response_end`           | number | Yes      | The uptime at which response ended, in ms.                                      |
-| `response_headers_start` | number | Yes      | The uptime at which response headers started to be sent, in ms.                 |
-| `response_headers_end`   | number | Yes      | The uptime at which response headers were sent, in ms.                          |
-| `response_body_start`    | number | Yes      | The uptime at which response body was started to be received, in ms.            |
-| `response_body_end`      | number | Yes      | The uptime at which response body was received, in ms.                          |
-| `request_headers_size`   | number | Yes      | Request headers size in bytes.                                                  |
-| `response_headers_size`  | number | Yes      | Response headers size in bytes.                                                 |
 | `failure_reason`         | string | Yes      | The reason for failure. For Android, typically the IOException class name.      |
 | `failure_description`    | string | Yes      | The description of the failure. For Android, Typically the IOException message. |
 | `request_headers`        | string | Yes      | The request headers, a "stringified" map.                                       |
 | `response_headers`       | string | Yes      | The response headers, a "stringified" map.                                      |
+| `request_body`           | string | Yes      | The request body, if any. Only supported for json body.                         |
+| `response_body`          | string | Yes      | The response body, if any. Only supported for json body.                        |
 | `http_protocol_version`  | string | Yes      | Version of the HTTP protocol. `1.0`, `1.1`, `2` etc                             |
 
 #### **`app_exit`**

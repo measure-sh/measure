@@ -44,15 +44,22 @@ class OkHttpMethodVisitor(
 ) {
 
     // Stack changes:
-    // [OkHttpClient.Builder]
-    // [OkHttpClient.Builder, Uninitialized MeasureEventListenerFactory]
-    // [OkHttpClient.Builder, Uninitialized MeasureEventListenerFactory, Uninitialized MeasureEventListenerFactory]
-    // [OkHttpClient.Builder, Uninitialized MeasureEventListenerFactory, Uninitialized MeasureEventListenerFactory, OkHttpClient.Builder]
-    // [OkHttpClient.Builder, Uninitialized MeasureEventListenerFactory, Uninitialized MeasureEventListenerFactory, EventListener.Factory]
-    // [OkHttpClient.Builder, Initialized MeasureEventListenerFactory]
-    // [OkHttpClient.Builder]
+    // [builder]
+    // [builder, MeasureEventListenerFactory_uninitialized]
+    // [builder, MeasureEventListenerFactory_uninitialized, MeasureEventListenerFactory_uninitialized]
+    // [builder, MeasureEventListenerFactory_uninitialized, MeasureEventListenerFactory_uninitialized, builder]
+    // [builder, MeasureEventListenerFactory_uninitialized, MeasureEventListenerFactory_uninitialized, EventListenerFactory]
+    // [builder, MeasureEventListenerFactory]
+    // [builder]
+    // [builder, MeasureOkHttpApplicationInterceptor_uninitialized]
+    // [builder, MeasureOkHttpApplicationInterceptor_uninitialized, MeasureOkHttpApplicationInterceptor_uninitialized]
+    // [builder, MeasureOkHttpApplicationInterceptor_uninitialized, MeasureOkHttpApplicationInterceptor_uninitialized, builder]
+    // [builder, MeasureOkHttpApplicationInterceptor]
+    // [builder]
     override fun onMethodEnter() {
         visitVarInsn(Opcodes.ALOAD, 1)
+
+        // create MeasureEventListenerFactory and add it to the OkHttpClient.Builder
         visitTypeInsn(NEW, "sh/measure/android/okhttp/MeasureEventListenerFactory")
         visitInsn(DUP)
         visitVarInsn(Opcodes.ALOAD, 1)
@@ -75,6 +82,24 @@ class OkHttpMethodVisitor(
             "okhttp3/OkHttpClient\$Builder",
             "eventListenerFactory",
             "(Lokhttp3/EventListener\$Factory;)Lokhttp3/OkHttpClient\$Builder;",
+            false
+        )
+
+        // create MeasureOkHttpApplicationInterceptor and add it to the OkHttpClient.Builder
+        visitTypeInsn(NEW, "sh/measure/android/okhttp/MeasureOkHttpApplicationInterceptor")
+        visitInsn(DUP)
+        visitMethodInsn(
+            INVOKESPECIAL,
+            "sh/measure/android/okhttp/MeasureOkHttpApplicationInterceptor",
+            "<init>",
+            "()V",
+            false
+        )
+        visitMethodInsn(
+            INVOKEVIRTUAL,
+            "okhttp3/OkHttpClient\$Builder",
+            "addInterceptor",
+            "(Lokhttp3/Interceptor;)Lokhttp3/OkHttpClient\$Builder;",
             false
         )
     }

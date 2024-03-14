@@ -21,26 +21,6 @@ internal data class HttpEvent(
     val status_code: Int?,
 
     /**
-     * Size of the request body in bytes.
-     */
-    val request_body_size: Long?,
-
-    /**
-     * Size of the response body in bytes.
-     */
-    val response_body_size: Long?,
-
-    /**
-     * UTC ISO-8601 timestamp when the request was sent.
-     */
-    val request_timestamp: String?,
-
-    /**
-     * UTC ISO-8601 timestamp when the response was received.
-     */
-    val response_timestamp: String?,
-
-    /**
      * The uptime at which the http call started, in milliseconds.
      */
     val start_time: Long?,
@@ -49,96 +29,6 @@ internal data class HttpEvent(
      * The uptime at which the http call ended, in milliseconds.
      */
     val end_time: Long?,
-
-    /**
-     * The uptime at which the dns lookup started, in milliseconds.
-     */
-    val dns_start: Long?,
-
-    /**
-     * The uptime at which the dns lookup ended, in milliseconds.
-     */
-    val dns_end: Long?,
-
-    /**
-     * The uptime just prior to initiating a socket connection, in milliseconds.
-     */
-    val connect_start: Long?,
-
-    /**
-     * The uptime just after a socket connection was attempted, in milliseconds.
-     */
-    val connect_end: Long?,
-
-    /**
-     * The uptime as soon as the call is enqueued or executed by a client, in milliseconds.
-     */
-    val request_start: Long?,
-
-    /**
-     * The uptime when the call has completely ended, in milliseconds.
-     */
-    val request_end: Long?,
-
-    /**
-     * The uptime at which request headers started to be sent, in milliseconds.
-     */
-    val request_headers_start: Long?,
-
-    /**
-     * The uptime at which request headers were sent, in milliseconds.
-     */
-    val request_headers_end: Long?,
-
-    /**
-     * The uptime at which request body started to be sent, in milliseconds.
-     */
-    val request_body_start: Long?,
-
-    /**
-     * The uptime at which request body was sent, in milliseconds.
-     */
-    val request_body_end: Long?,
-
-    /**
-     * The uptime at which response started to be received, in milliseconds.
-     */
-    val response_start: Long?,
-
-    /**
-     * The uptime at which response ended, in milliseconds.
-     */
-    val response_end: Long?,
-
-    /**
-     * The uptime at which response headers started to be received, in milliseconds.
-     */
-    val response_headers_start: Long?,
-
-    /**
-     * The uptime at which response headers were received, in milliseconds.
-     */
-    val response_headers_end: Long?,
-
-    /**
-     * The uptime at which response body started to be received, in milliseconds.
-     */
-    val response_body_start: Long?,
-
-    /**
-     * The uptime at which response body was received, in milliseconds.
-     */
-    val response_body_end: Long?,
-
-    /**
-     * Request headers size in bytes.
-     */
-    val request_headers_size: Long?,
-
-    /**
-     * Response headers size in bytes.
-     */
-    val response_headers_size: Long?,
 
     /**
      * The reason for the failure. Typically the IOException class name.
@@ -153,12 +43,22 @@ internal data class HttpEvent(
     /**
      * The request headers.
      */
-    val request_headers: Map<String, String>,
+    val request_headers: Map<String, String>?,
 
     /**
      * The response headers.
      */
-    val response_headers: Map<String, String>,
+    val response_headers: Map<String, String>?,
+
+    /**
+     * The request body.
+     */
+    val request_body: String?,
+
+    /**
+     * The response body.
+     */
+    val response_body: String?,
 
     /**
      * The name of the client that sent the request.
@@ -168,4 +68,73 @@ internal data class HttpEvent(
     val client: String,
     @Transient val timestamp: Long = -1L,
     @Transient val thread_name: String = "",
-)
+) {
+
+    // Builder
+    class Builder {
+        private var url: String = ""
+        private var method: String = ""
+        private var statusCode: Int? = null
+        private var startTime: Long? = null
+        private var endTime: Long? = null
+        private var failureReason: String? = null
+        private var failureDescription: String? = null
+        private var requestHeaders: Map<String, String> = emptyMap()
+        private var responseHeaders: Map<String, String> = emptyMap()
+        private var requestBody: String? = null
+        private var responseBody: String? = null
+        private var client: String = ""
+        private var timestamp: Long = -1L
+        private var threadName: String = ""
+
+        fun url(url: String) = apply { this.url = url }
+
+        fun method(method: String) = apply { this.method = method }
+
+        fun statusCode(statusCode: Int?) = apply { this.statusCode = statusCode }
+
+        fun startTime(startTime: Long?) = apply { this.startTime = startTime }
+
+        fun endTime(endTime: Long?) = apply { this.endTime = endTime }
+
+        fun failureReason(failureReason: String?) = apply { this.failureReason = failureReason }
+
+        fun failureDescription(failureDescription: String?) =
+            apply { this.failureDescription = failureDescription }
+
+        fun requestHeaders(requestHeaders: Map<String, String>) =
+            apply { this.requestHeaders = requestHeaders }
+
+        fun responseHeaders(responseHeaders: Map<String, String>) =
+            apply { this.responseHeaders = responseHeaders }
+
+        fun requestBody(requestBody: String?) = apply { this.requestBody = requestBody }
+
+        fun responseBody(responseBody: String?) = apply { this.responseBody = responseBody }
+
+        fun client(client: String) = apply { this.client = client }
+
+        fun timestamp(timestamp: Long) = apply { this.timestamp = timestamp }
+
+        fun threadName(threadName: String) = apply { this.threadName = threadName }
+
+        fun build(): HttpEvent {
+            return HttpEvent(
+                url = url,
+                method = method,
+                status_code = statusCode,
+                start_time = startTime,
+                end_time = endTime,
+                failure_reason = failureReason,
+                failure_description = failureDescription,
+                request_headers = requestHeaders,
+                response_headers = responseHeaders,
+                request_body = requestBody,
+                response_body = responseBody,
+                client = client,
+                timestamp = timestamp,
+                thread_name = threadName,
+            )
+        }
+    }
+}

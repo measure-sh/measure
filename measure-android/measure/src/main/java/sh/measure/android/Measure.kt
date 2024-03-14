@@ -24,6 +24,8 @@ import sh.measure.android.network.TransportImpl
 import sh.measure.android.networkchange.NetworkChangesCollector
 import sh.measure.android.networkchange.NetworkInfoProvider
 import sh.measure.android.networkchange.NetworkInfoProviderImpl
+import sh.measure.android.okhttp.OkHttpEventProcessor
+import sh.measure.android.okhttp.OkHttpEventProcessorImpl
 import sh.measure.android.performance.ComponentCallbacksCollector
 import sh.measure.android.performance.CpuUsageCollector
 import sh.measure.android.performance.DefaultMemoryReader
@@ -55,6 +57,7 @@ object Measure {
     private lateinit var timeProvider: TimeProvider
     private lateinit var eventTracker: EventTracker
     private lateinit var currentThread: CurrentThread
+    private lateinit var okHttpEventProcessor: OkHttpEventProcessor
 
     fun init(context: Context) {
         InternalTrace.beginSection("Measure.init")
@@ -79,6 +82,7 @@ object Measure {
             )
             return
         }
+        val config = DefaultConfig()
         val customThreadFactory = CustomThreadFactory()
         val executorService = MeasureExecutorServiceImpl(customThreadFactory)
         val storage: Storage = StorageImpl(logger, context.filesDir.path)
@@ -122,6 +126,8 @@ object Measure {
         ).apply { start() }
 
         // Register data collectors
+        okHttpEventProcessor =
+            OkHttpEventProcessorImpl(logger, eventTracker, timeProvider, currentThread, config)
         UnhandledExceptionCollector(
             logger,
             eventTracker,
@@ -181,7 +187,6 @@ object Measure {
             },
         ).register()
         GestureCollector(logger, eventTracker, timeProvider, currentThread).register()
-
         AppLaunchCollector(
             logger,
             application,
@@ -217,6 +222,11 @@ object Measure {
     internal fun getCurrentThread(): CurrentThread {
         require(::currentThread.isInitialized)
         return currentThread
+    }
+
+    internal fun getOkHttpEventProcessor(): OkHttpEventProcessor {
+        require(::okHttpEventProcessor.isInitialized)
+        return okHttpEventProcessor
     }
 
     @VisibleForTesting
