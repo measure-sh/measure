@@ -143,6 +143,7 @@ dependencies {
     testImplementation(libs.androidx.fragment.testing)
     testImplementation(libs.androidx.rules)
     testImplementation(libs.androidx.compose.runtime.android)
+    testImplementation(libs.squareup.okhttp.mockwebserver)
 
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.4.3") {
         isTransitive = false
