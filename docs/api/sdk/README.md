@@ -360,11 +360,13 @@ List of HTTP status codes for success and failures.
 
 ### PUT `/builds`
 
-Measure will use build information like mapping files, build sizes uploaded via this API for symbolication of class, method, file names.
+Measure will use build information like mapping files, build sizes uploaded via this API for deobfuscation and to track app size changes.
 
 #### Usage Notes
 
 - Mapping file size should not exceed **512 MiB**.
+- `mapping_type` &amp; `mapping_file` are optional. Both need to be present for mapping file upload to work.
+- `version_name`, `version_code`, `build_size` &amp; `build_type` are required and cannot be skipped.
 - Uploading a previously uploaded file with same contents for the same `version_name`, `version_code`, `mapping_type` combination replaces the older file.
 - Putting `build_size` for the same `version_name`, `version_code` and `build_type` combination replaces the last size with the latest size.
 
