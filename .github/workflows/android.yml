@@ -74,8 +74,8 @@ jobs:
       - name: Validate Gradle wrapper
         uses: gradle/wrapper-validation-action@v1
       - name: Assemble benchmarks
-        # disable the upload of proguard mapping file to measure for sample app
-        run: ./gradlew clean :sample:assembleRelease --no-daemon --no-parallel --no-configuration-cache --stacktrace -x uploadReleaseProguardMappingToMeasure
+        # disable the upload of build to measure
+        run: ./gradlew clean :sample:assembleRelease --no-daemon --no-parallel --no-configuration-cache --stacktrace -x uploadReleaseBuildToMeasure
 
   publish-android:
     runs-on: ubuntu-latest
