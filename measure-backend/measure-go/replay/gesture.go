@@ -62,8 +62,14 @@ func (glc GestureLongClick) GetTimestamp() time.Time {
 // GestureScroll represents scroll gesture events
 // suitable for session replay.
 type GestureScroll struct {
-	EventType string `json:"event_type"`
-	*event.GestureScroll
+	EventType  string            `json:"event_type"`
+	Target     string            `json:"target"`
+	TargetID   string            `json:"target_id"`
+	X          float32           `json:"x"`
+	Y          float32           `json:"y"`
+	EndX       float32           `json:"end_x"`
+	EndY       float32           `json:"end_y"`
+	Direction  string            `json:"direction"`
 	ThreadName string            `json:"-"`
 	Timestamp  time.Time         `json:"timestamp"`
 	Attributes map[string]string `json:"attributes"`
@@ -134,7 +140,13 @@ func ComputeGestureScrolls(events []event.EventField) (result []ThreadGrouper) {
 		event.GestureScroll.Trim()
 		gestureScrolls := GestureScroll{
 			event.Type,
-			&event.GestureScroll,
+			event.GestureScroll.Target,
+			event.GestureScroll.TargetID,
+			event.GestureScroll.X,
+			event.GestureScroll.Y,
+			event.GestureScroll.EndX,
+			event.GestureScroll.EndY,
+			event.GestureScroll.Direction,
 			event.ThreadName,
 			event.Timestamp,
 			event.Attributes,
