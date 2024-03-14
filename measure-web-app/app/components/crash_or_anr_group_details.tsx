@@ -290,7 +290,7 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
               {crashOrAnrType === CrashOrAnrType.Crash &&
                 <div>
                   {(crashOrAnrGroupDetails as typeof emptyCrashGroupDetailsResponse).results[0].exceptions.map((e, index) => (
-                    <Accordion key={index} title={"Thread: Main"} id={`${e.type}-${index}`} active={true}>
+                    <Accordion key={index} title={'Thread: ' + crashOrAnrGroupDetails.results[0].thread_name} id={`${e.type}-${index}`} active={true}>
                       {e.stacktrace}
                     </Accordion>
                   ))}
@@ -299,7 +299,7 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
               {crashOrAnrType === CrashOrAnrType.Anr &&
                 <div>
                   {(crashOrAnrGroupDetails as typeof emptyAnrGroupDetailsResponse).results[0].anrs.map((e, index) => (
-                    <Accordion key={index} title={"Thread: Main"} id={`${e.type}-${index}`} active={true}>
+                    <Accordion key={index} title={'Thread: ' + crashOrAnrGroupDetails.results[0].thread_name} id={`${e.type}-${index}`} active={true}>
                       {e.stacktrace}
                     </Accordion>
                   ))}
