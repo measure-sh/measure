@@ -41,3 +41,12 @@ This directory contains sample session data generated from different apps.
 │        ├── build.toml
 │        └── mapping.txt
 ```
+
+## `build.toml`
+
+Each `build.toml` file should have the following contents
+
+```toml
+size = 10241024 # integer
+type = "aab"    # string, either "aab" or "apk"
+```
