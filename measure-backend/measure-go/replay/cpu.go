@@ -26,5 +26,5 @@ func calculate(u *event.CPUUsage) (usage float64) {
 	total := float64(u.UTime + u.STime + u.CUTime + u.CSTime)
 	elapsed := float64(u.IntervalConfig) / 1000
 
-	return (total / float64(u.ClockSpeed)) / elapsed * 100.0
+	return (total / float64(u.ClockSpeed)) / (elapsed * float64(u.NumCores)) * 100.0
 }
