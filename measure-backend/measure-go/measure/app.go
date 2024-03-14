@@ -35,6 +35,31 @@ type App struct {
 	UpdatedAt    time.Time  `json:"updated_at"`
 }
 
+// Validates if a session for an app actually
+// exists.
+func (a App) SessionExists(sessionId uuid.UUID) (exists bool, err error) {
+	exists = false
+	stmt := sqlf.PostgreSQL.
+		Select(`1`, nil).
+		From(`public.sessions`).
+		Where(`id = ? and app_id = ?`, nil)
+
+	defer stmt.Close()
+
+	ctx := context.Background()
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), sessionId, a.ID).Scan(nil); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		} else {
+			return false, err
+		}
+	}
+
+	exists = true
+
+	return
+}
+
 func (a App) MarshalJSON() ([]byte, error) {
 	type Alias App
 	return json.Marshal(&struct {
@@ -1635,6 +1660,12 @@ func GetAppSession(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
+	if team == nil {
+		msg := fmt.Sprintf(`no team exists for app id: %q`, app.ID)
+		fmt.Println(msg)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
 
 	userId := c.GetString("userId")
 
@@ -1661,6 +1692,19 @@ func GetAppSession(c *gin.Context) {
 	if !ok {
 		msg := fmt.Sprintf(`you don't have permissions to read apps in team %q`, team.ID)
 		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	ok, err = app.SessionExists(sessionId)
+	if err != nil {
+		msg := `failed to fetch session data for replay`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`session %q for app %q does not exist`, sessionId, app.ID)
+		c.JSON(http.StatusNotFound, gin.H{"error": msg})
 		return
 	}
 
