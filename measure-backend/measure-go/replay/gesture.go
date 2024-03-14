@@ -8,8 +8,13 @@ import (
 // GestureClick represents click events suitable
 // for session replay.
 type GestureClick struct {
-	EventType string `json:"event_type"`
-	*event.GestureClick
+	EventType  string            `json:"event_type"`
+	Target     string            `json:"target"`
+	TargetID   string            `json:"target_id"`
+	Width      uint16            `json:"width"`
+	Height     uint16            `json:"height"`
+	X          float32           `json:"x"`
+	Y          float32           `json:"y"`
 	ThreadName string            `json:"-"`
 	Timestamp  time.Time         `json:"timestamp"`
 	Attributes map[string]string `json:"attributes"`
@@ -78,7 +83,12 @@ func ComputeGestureClicks(events []event.EventField) (result []ThreadGrouper) {
 		event.GestureClick.Trim()
 		gestureClicks := GestureClick{
 			event.Type,
-			&event.GestureClick,
+			event.GestureClick.Target,
+			event.GestureClick.TargetID,
+			event.GestureClick.Width,
+			event.GestureClick.Height,
+			event.GestureClick.X,
+			event.GestureClick.Y,
 			event.ThreadName,
 			event.Timestamp,
 			event.Attributes,
