@@ -4,30 +4,33 @@ import (
 	"fmt"
 	"measure-backend/measure-go/platform"
 	"measure-backend/measure-go/text"
+
+	"github.com/google/uuid"
 )
 
 type Resource struct {
-	DeviceName         string  `json:"device_name"`
-	DeviceModel        string  `json:"device_model"`
-	DeviceManufacturer string  `json:"device_manufacturer"`
-	DeviceType         string  `json:"device_type"`
-	DeviceIsFoldable   bool    `json:"device_is_foldable"`
-	DeviceIsPhysical   bool    `json:"device_is_physical"`
-	DeviceDensityDPI   uint16  `json:"device_density_dpi"`
-	DeviceWidthPX      uint16  `json:"device_width_px"`
-	DeviceHeightPX     uint16  `json:"device_height_px"`
-	DeviceDensity      float32 `json:"device_density"`
-	DeviceLocale       string  `json:"device_locale"`
-	OSName             string  `json:"os_name"`
-	OSVersion          string  `json:"os_version"`
-	Platform           string  `json:"platform"`
-	AppVersion         string  `json:"app_version"`
-	AppBuild           string  `json:"app_build"`
-	AppUniqueID        string  `json:"app_unique_id"`
-	MeasureSDKVersion  string  `json:"measure_sdk_version"`
-	NetworkType        string  `json:"network_type"`
-	NetworkGeneration  string  `json:"network_generation"`
-	NetworkProvider    string  `json:"network_provider"`
+	DeviceName         string    `json:"device_name"`
+	DeviceModel        string    `json:"device_model"`
+	DeviceManufacturer string    `json:"device_manufacturer"`
+	DeviceType         string    `json:"device_type"`
+	DeviceIsFoldable   bool      `json:"device_is_foldable"`
+	DeviceIsPhysical   bool      `json:"device_is_physical"`
+	DeviceDensityDPI   uint16    `json:"device_density_dpi"`
+	DeviceWidthPX      uint16    `json:"device_width_px"`
+	DeviceHeightPX     uint16    `json:"device_height_px"`
+	DeviceDensity      float32   `json:"device_density"`
+	DeviceLocale       string    `json:"device_locale"`
+	OSName             string    `json:"os_name"`
+	OSVersion          string    `json:"os_version"`
+	Platform           string    `json:"platform"`
+	AppVersion         string    `json:"app_version"`
+	AppBuild           string    `json:"app_build"`
+	AppUniqueID        string    `json:"app_unique_id"`
+	MeasureSDKVersion  string    `json:"measure_sdk_version"`
+	NetworkType        string    `json:"network_type"`
+	NetworkGeneration  string    `json:"network_generation"`
+	NetworkProvider    string    `json:"network_provider"`
+	DeviceID           uuid.UUID `json:"device_id" binding:"required"`
 }
 
 func (r *Resource) Validate() error {
@@ -96,6 +99,9 @@ func (r *Resource) Validate() error {
 	}
 	if len(r.DeviceLocale) > maxDeviceLocaleChars {
 		return fmt.Errorf(`"resource.device_locale" exceeds maximum allowed characters of (%d)`, maxDeviceLocaleChars)
+	}
+	if err := uuid.Validate(r.DeviceID.String()); err != nil {
+		return err
 	}
 
 	return nil

@@ -495,6 +495,7 @@ func (s *Session) ingest() error {
 			Set("inet.country_code", nil).
 			Set("timestamp", nil).
 			Set("thread_name", nil).
+			Set("user_id", nil).
 			Set("resource.device_name", nil).
 			Set("resource.device_model", nil).
 			Set("resource.device_manufacturer", nil).
@@ -512,6 +513,7 @@ func (s *Session) ingest() error {
 			Set("resource.app_build", nil).
 			Set("resource.app_unique_id", nil).
 			Set("resource.measure_sdk_version", nil).
+			Set("resource.device_id", nil).
 			Set("anr.thread_name", nil).
 			Set("anr.handled", nil).
 			Set("anr.fingerprint", nil).
@@ -669,6 +671,7 @@ func (s *Session) ingest() error {
 			s.CountryCode,
 			s.Events[i].Timestamp.Format(chrono.NanoTimeFormat),
 			s.Events[i].ThreadName,
+			s.Events[i].UserID,
 			s.Resource.DeviceName,
 			s.Resource.DeviceModel,
 			s.Resource.DeviceManufacturer,
@@ -686,6 +689,7 @@ func (s *Session) ingest() error {
 			s.Resource.AppBuild,
 			s.Resource.AppUniqueID,
 			s.Resource.MeasureSDKVersion,
+			s.Resource.DeviceID,
 			s.Events[i].ANR.ThreadName,
 			s.Events[i].ANR.Handled,
 			s.Events[i].ANR.Fingerprint,

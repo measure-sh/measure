@@ -471,6 +471,7 @@ type EventField struct {
 	Timestamp         time.Time         `json:"timestamp" binding:"required"`
 	Type              string            `json:"type" binding:"required"`
 	ThreadName        string            `json:"thread_name" binding:"required"`
+	UserID            string            `json:"user_id"`
 	Resource          Resource          `json:"resource"`
 	ANR               ANR               `json:"anr,omitempty"`
 	Exception         Exception         `json:"exception,omitempty"`
