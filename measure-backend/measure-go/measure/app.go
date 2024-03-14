@@ -1798,14 +1798,14 @@ func GetAppSession(c *gin.Context) {
 
 	warmLaunchEvents := eventMap[event.TypeWarmLaunch]
 	if len(warmLaunchEvents) > 0 {
-		warmLaunches := replay.ComputeColdLaunches(warmLaunchEvents)
+		warmLaunches := replay.ComputeWarmLaunches(warmLaunchEvents)
 		threadedWarmLaunches := replay.GroupByThreads(warmLaunches)
 		threads.Organize(event.TypeWarmLaunch, threadedWarmLaunches)
 	}
 
 	hotLaunchEvents := eventMap[event.TypeHotLaunch]
 	if len(hotLaunchEvents) > 0 {
-		hotLaunches := replay.ComputeColdLaunches(hotLaunchEvents)
+		hotLaunches := replay.ComputeHotLaunches(hotLaunchEvents)
 		threadedHotLaunches := replay.GroupByThreads(hotLaunches)
 		threads.Organize(event.TypeHotLaunch, threadedHotLaunches)
 	}
