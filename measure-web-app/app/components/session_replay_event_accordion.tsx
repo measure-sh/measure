@@ -131,30 +131,32 @@ export default function SessionReplayEventAccordion({
   }
 
   return (
-    <button className={`w-full p-4 outline-none border border-black rounded-md font-display ${getColorFromEventType()}`}
-      onClick={(e) => { e.preventDefault(); setAccordionOpen(!accordionOpen); }}
-    >
-      <div className="flex flex-col md:flex-row items-center"
-        id={`accordion-title-${id}`}>
-        <p className='text-left'>{getTitleFromEventType()}</p>
-        <div className="p-2" />
-        <div className="flex grow" />
-        <FilterPill title={threadName} />
-        <div className="p-2" />
-        <FilterPill title={`${formatDateToHumanReadable(timestamp)} \u25CF ${formatTimeToHumanReadable(timestamp)}`} />
-      </div>
+    <div className={`border border-black rounded-md`}>
+      <button className={`w-full p-4 outline-none rounded-t-md ${!accordionOpen ? 'rounded-b-md' : ''} font-display ${getColorFromEventType()} `}
+        onClick={(e) => { e.preventDefault(); setAccordionOpen(!accordionOpen); }}
+      >
+        <div className="flex flex-col md:flex-row items-center"
+          id={`accordion-title-${id}`}>
+          <p className='text-left'>{getTitleFromEventType()}</p>
+          <div className="p-2" />
+          <div className="flex grow" />
+          <FilterPill title={threadName} />
+          <div className="p-2" />
+          <FilterPill title={`${formatDateToHumanReadable(timestamp)} \u25CF ${formatTimeToHumanReadable(timestamp)}`} />
+        </div>
+      </button>
       <div
         id={`accordion-text-${id}`}
         role="region"
         aria-labelledby={`accordion-title-${id}`}
-        className={`grid text-left text-sm font-sans overflow-hidden transition-all duration-300 ease-in-out ${accordionOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
+        className={`bg-neutral-950 selection:bg-yellow-200/50 grid text-left text-sm font-sans overflow-hidden transition-all duration-300 ease-in-out ${accordionOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
       >
         <div className="overflow-hidden">
-          <p className="whitespace-pre-wrap p-4">
+          <p className="whitespace-pre-wrap p-4 text-white">
             {JSON.stringify(eventDetails, null, 2)}
           </p>
         </div>
       </div>
-    </button>
+    </div>
   )
 }
