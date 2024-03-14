@@ -39,9 +39,8 @@ func (e Exception) GetTimestamp() time.Time {
 type ANR struct {
 	EventType         string            `json:"event_type"`
 	Type              string            `json:"type"`
-	Location          string            `json:"location"`
-	Message           string            `json:"message"`
 	ThreadName        string            `json:"thread_name"`
+	Stacktrace        string            `json:"stacktrace"`
 	NetworkType       string            `json:"network_type"`
 	NetworkProvider   string            `json:"network_provider"`
 	NetworkGeneration string            `json:"network_generation"`
@@ -96,9 +95,8 @@ func ComputeANRs(events []event.EventField) (result []ThreadGrouper) {
 		anrs := ANR{
 			event.Type,
 			event.ANR.GetType(),
-			event.ANR.GetLocation(),
-			event.ANR.GetMessage(),
 			event.ANR.ThreadName,
+			event.ANR.Stacktrace(),
 			event.ANR.NetworkType,
 			event.ANR.NetworkProvider,
 			event.ANR.NetworkGeneration,
