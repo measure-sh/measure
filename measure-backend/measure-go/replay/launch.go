@@ -55,11 +55,14 @@ func (wl WarmLaunch) GetTimestamp() time.Time {
 // HotLaunch represents hot launch events
 // suitable for session replay.
 type HotLaunch struct {
-	EventType string `json:"event_type"`
-	*event.HotLaunch
-	ThreadName string            `json:"-"`
-	Timestamp  time.Time         `json:"timestamp"`
-	Attributes map[string]string `json:"attributes"`
+	EventType        string            `json:"event_type"`
+	Duration         time.Duration     `json:"duration"`
+	LaunchedActivity string            `json:"launched_activity"`
+	HasSavedState    bool              `json:"has_saved_state"`
+	IntentData       string            `json:"intent_data"`
+	ThreadName       string            `json:"-"`
+	Timestamp        time.Time         `json:"timestamp"`
+	Attributes       map[string]string `json:"attributes"`
 }
 
 // GetThreadName provides the name of the thread
@@ -119,9 +122,14 @@ func ComputeWarmLaunches(events []event.EventField) (result []ThreadGrouper) {
 func ComputeHotLaunches(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		event.HotLaunch.Trim()
+		onNextDrawUptime := event.HotLaunch.OnNextDrawUptime
+		appVisibleUptime := event.HotLaunch.AppVisibleUptime
 		hotLaunches := HotLaunch{
 			event.Type,
-			&event.HotLaunch,
+			time.Duration(onNextDrawUptime - appVisibleUptime),
+			event.HotLaunch.LaunchedActivity,
+			event.HotLaunch.HasSavedState,
+			event.HotLaunch.IntentData,
 			event.ThreadName,
 			event.Timestamp,
 			event.Attributes,
