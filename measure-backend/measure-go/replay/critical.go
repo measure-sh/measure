@@ -10,10 +10,9 @@ import (
 type Exception struct {
 	EventType         string            `json:"event_type"`
 	Type              string            `json:"type"`
-	Location          string            `json:"location"`
-	Message           string            `json:"message"`
 	ThreadName        string            `json:"thread_name"`
 	Handled           bool              `json:"handled"`
+	Stacktrace        string            `json:"stacktrace"`
 	NetworkType       string            `json:"network_type"`
 	NetworkProvider   string            `json:"network_provider"`
 	NetworkGeneration string            `json:"network_generation"`
@@ -72,10 +71,9 @@ func ComputeExceptions(events []event.EventField) (result []ThreadGrouper) {
 		exceptions := Exception{
 			event.Type,
 			event.Exception.GetType(),
-			event.Exception.GetLocation(),
-			event.Exception.GetMessage(),
 			event.Exception.ThreadName,
 			event.Exception.Handled,
+			event.Exception.Stacktrace(),
 			event.Exception.NetworkType,
 			event.Exception.NetworkProvider,
 			event.Exception.NetworkGeneration,
