@@ -35,8 +35,13 @@ func (gc GestureClick) GetTimestamp() time.Time {
 // GestureLongClick represents long press events
 // suitable for session replay.
 type GestureLongClick struct {
-	EventType string `json:"event_type"`
-	*event.GestureLongClick
+	EventType  string            `json:"event_type"`
+	Target     string            `json:"target"`
+	TargetID   string            `json:"target_id"`
+	Width      uint16            `json:"width"`
+	Height     uint16            `json:"height"`
+	X          float32           `json:"x"`
+	Y          float32           `json:"y"`
 	ThreadName string            `json:"-"`
 	Timestamp  time.Time         `json:"timestamp"`
 	Attributes map[string]string `json:"attributes"`
@@ -106,7 +111,12 @@ func ComputeGestureLongClicks(events []event.EventField) (result []ThreadGrouper
 		event.GestureLongClick.Trim()
 		gestureLongClicks := GestureLongClick{
 			event.Type,
-			&event.GestureLongClick,
+			event.GestureLongClick.Target,
+			event.GestureLongClick.TargetID,
+			event.GestureLongClick.Width,
+			event.GestureLongClick.Height,
+			event.GestureLongClick.X,
+			event.GestureLongClick.Y,
 			event.ThreadName,
 			event.Timestamp,
 			event.Attributes,
