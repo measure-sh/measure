@@ -1,15 +1,20 @@
 package replay
 
 import (
+	"fmt"
 	"measure-backend/measure-go/event"
 	"time"
 )
 
+// NominalColdLaunchThreshold defines the upper bound
+// of a nominal cold launch duration.
+var NominalColdLaunchThreshold = 30 * time.Second
+
 // ColdLaunch represents cold launch events
 // suitable for session replay.
 type ColdLaunch struct {
-	EventType string `json:"event_type"`
-	*event.ColdLaunch
+	EventType  string            `json:"event_type"`
+	Duration   time.Duration     `json:"duration"`
 	ThreadName string            `json:"-"`
 	Timestamp  time.Time         `json:"timestamp"`
 	Attributes map[string]string `json:"attributes"`
@@ -82,9 +87,30 @@ func (hl HotLaunch) GetTimestamp() time.Time {
 func ComputeColdLaunches(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		event.ColdLaunch.Trim()
+
+		// choose most accurate start uptime variant
+		//
+		// android reports varied process uptime values over
+		// varied api levels. compute cold launch duration
+		// as a best effort case based on what values are available
+		uptime := event.ColdLaunch.ProcessStartRequestedUptime
+		if uptime < 1 {
+			uptime = event.ColdLaunch.ProcessStartUptime
+		}
+		if uptime < 1 {
+			uptime = event.ColdLaunch.ContentProviderAttachUptime
+		}
+
+		onNextDrawUptime := event.ColdLaunch.OnNextDrawUptime
+		duration := time.Duration(onNextDrawUptime - uptime)
+
+		if duration >= NominalColdLaunchThreshold {
+			fmt.Printf(`anomaly in cold_launch duration compute. nominal threshold: < %v .actual value: %f\n`, NominalColdLaunchThreshold, duration.Seconds())
+		}
+
 		coldLaunches := ColdLaunch{
 			event.Type,
-			&event.ColdLaunch,
+			duration,
 			event.ThreadName,
 			event.Timestamp,
 			event.Attributes,
