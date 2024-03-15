@@ -1599,51 +1599,107 @@ These headers must be present in each request.
 
   ```json
   {
-    "app_id": "45b3788e-2226-4f39-9e3c-710016c6c075",
+    "app_id": "75d66815-d9ac-4afc-acec-1addf3766b14",
     "cpu_usage": [
       {
-        "timestamp": "2024-02-22T09:42:40.54Z",
-        "value": 1.6666666666666667
+        "timestamp": "2024-02-22T09:45:38.787Z",
+        "value": 1
       },
       {
-        "timestamp": "2024-02-22T09:42:43.507Z",
-        "value": 8
+        "timestamp": "2024-02-22T09:45:41.775Z",
+        "value": 9.333333333333334
+      },
+      {
+        "timestamp": "2024-02-22T09:45:44.218Z",
+        "value": 10.666666666666668
+      },
+      {
+        "timestamp": "2024-02-22T09:45:47.218Z",
+        "value": 21
+      },
+      {
+        "timestamp": "2024-02-22T09:45:50.218Z",
+        "value": 23.666666666666668
       }
     ],
-    "duration": 4813000000,
+    "duration": 11799,
     "memory_usage": [
       {
         "java_max_heap": 196608,
-        "java_total_heap": 49152,
-        "java_free_heap": 39177,
-        "total_pss": 23363,
-        "rss": 77236,
-        "native_total_heap": 22268,
-        "native_free_heap": 1159,
+        "java_total_heap": 196608,
+        "java_free_heap": 190138,
+        "total_pss": 29390,
+        "rss": 101940,
+        "native_total_heap": 19300,
+        "native_free_heap": 1231,
         "interval_config": 2000,
-        "timestamp": "2024-02-22T09:42:40.648Z"
+        "timestamp": "2024-02-22T09:45:38.803Z"
       },
       {
         "java_max_heap": 196608,
         "java_total_heap": 49152,
-        "java_free_heap": 39177,
-        "total_pss": 23363,
-        "rss": 77236,
+        "java_free_heap": 39791,
+        "total_pss": 48597,
+        "rss": 135796,
         "native_total_heap": 22268,
-        "native_free_heap": 1159,
+        "native_free_heap": 1120,
         "interval_config": 2000,
-        "timestamp": "2024-02-22T09:42:42.528Z"
+        "timestamp": "2024-02-22T09:45:40.789Z"
       },
       {
         "java_max_heap": 196608,
         "java_total_heap": 49152,
-        "java_free_heap": 39177,
-        "total_pss": 23363,
-        "rss": 77236,
-        "native_total_heap": 22268,
-        "native_free_heap": 1159,
+        "java_free_heap": 39600,
+        "total_pss": 49548,
+        "rss": 136800,
+        "native_total_heap": 23292,
+        "native_free_heap": 1340,
         "interval_config": 2000,
-        "timestamp": "2024-02-22T09:42:44.518Z"
+        "timestamp": "2024-02-22T09:45:42.793Z"
+      },
+      {
+        "java_max_heap": 196608,
+        "java_total_heap": 49152,
+        "java_free_heap": 39346,
+        "total_pss": 49839,
+        "rss": 137620,
+        "native_total_heap": 23292,
+        "native_free_heap": 1532,
+        "interval_config": 2000,
+        "timestamp": "2024-02-22T09:45:44.273Z"
+      },
+      {
+        "java_max_heap": 196608,
+        "java_total_heap": 49152,
+        "java_free_heap": 37336,
+        "total_pss": 53357,
+        "rss": 141260,
+        "native_total_heap": 23292,
+        "native_free_heap": 1279,
+        "interval_config": 2000,
+        "timestamp": "2024-02-22T09:45:46.232Z"
+      },
+      {
+        "java_max_heap": 196608,
+        "java_total_heap": 49152,
+        "java_free_heap": 36683,
+        "total_pss": 54135,
+        "rss": 142024,
+        "native_total_heap": 23804,
+        "native_free_heap": 1215,
+        "interval_config": 2000,
+        "timestamp": "2024-02-22T09:45:48.267Z"
+      },
+      {
+        "java_max_heap": 196608,
+        "java_total_heap": 11650,
+        "java_free_heap": 5740,
+        "total_pss": 50964,
+        "rss": 136624,
+        "native_total_heap": 23804,
+        "native_free_heap": 2156,
+        "interval_config": 2000,
+        "timestamp": "2024-02-22T09:45:50.232Z"
       }
     ],
     "resource": {
@@ -1669,7 +1725,7 @@ These headers must be present in each request.
       "network_generation": "",
       "network_provider": ""
     },
-    "session_id": "e90cb46b-ab58-42dc-8fad-717369b78210",
+    "session_id": "7552607a-055a-4726-90e3-82d8484e2b87",
     "threads": {
       "OkHttp http://10.0.2.2:8080/...": [
         {
@@ -1677,28 +1733,28 @@ These headers must be present in each request.
           "url": "http://10.0.2.2:8080/sessions",
           "method": "put",
           "status_code": 202,
-          "request_body_size": 39803,
+          "request_body_size": 13352,
           "response_body_size": 0,
-          "request_timestamp": "2024-02-22T09:42:41Z",
-          "response_timestamp": "2024-02-22T09:42:41Z",
-          "start_time": 153336,
-          "end_time": 153404,
+          "request_timestamp": "2024-02-22T09:45:39Z",
+          "response_timestamp": "2024-02-22T09:45:39Z",
+          "start_time": 330871,
+          "end_time": 330968,
           "dns_start": 0,
           "dns_end": 0,
-          "connect_start": 153368,
-          "connect_end": 153374,
-          "request_start": 153374,
-          "request_end": 153390,
-          "request_headers_start": 153374,
-          "request_headers_end": 153374,
-          "request_body_start": 153374,
-          "request_body_end": 153390,
-          "response_start": 153392,
-          "response_end": 153398,
-          "response_headers_start": 153392,
-          "response_headers_end": 153393,
-          "response_body_start": 153398,
-          "response_body_end": 153398,
+          "connect_start": 330905,
+          "connect_end": 330923,
+          "request_start": 330929,
+          "request_end": 330952,
+          "request_headers_start": 330929,
+          "request_headers_end": 330930,
+          "request_body_start": 330930,
+          "request_body_end": 330952,
+          "response_start": 330956,
+          "response_end": 330956,
+          "response_headers_start": 330956,
+          "response_headers_end": 330956,
+          "response_body_start": 330956,
+          "response_body_end": 330956,
           "request_headers_size": 273,
           "response_headers_size": 56,
           "failure_reason": "",
@@ -1714,27 +1770,28 @@ These headers must be present in each request.
           },
           "response_headers": {
             "content-length": "0",
-            "date": "Thu, 22 Feb 2024 09:42:44 GMT"
+            "date": "Thu, 22 Feb 2024 09:45:42 GMT"
           },
           "client": "okhttp",
-          "timestamp": "2024-02-22T09:42:41.803Z",
+          "duration": 97,
+          "timestamp": "2024-02-22T09:45:39.367Z",
           "attributes": {}
         }
       ],
       "main": [
         {
           "event_type": "lifecycle_activity",
-          "type": "resumed",
+          "type": "created",
           "class_name": "sh.measure.sample.ExceptionDemoActivity",
           "intent": "",
           "saved_instance_state": false,
-          "timestamp": "2024-02-22T09:42:41.188Z",
+          "timestamp": "2024-02-22T09:45:38.936Z",
           "attributes": {}
         },
         {
           "event_type": "lifecycle_app",
           "type": "foreground",
-          "timestamp": "2024-02-22T09:42:41.249Z",
+          "timestamp": "2024-02-22T09:45:38.97Z",
           "attributes": {}
         },
         {
@@ -1743,59 +1800,188 @@ These headers must be present in each request.
           "class_name": "sh.measure.sample.ExceptionDemoActivity",
           "intent": "",
           "saved_instance_state": false,
-          "timestamp": "2024-02-22T09:42:41.252Z",
+          "timestamp": "2024-02-22T09:45:38.971Z",
           "attributes": {}
         },
         {
           "event_type": "cold_launch",
-          "process_start_uptime": 151825,
-          "process_start_requested_uptime": 151444,
-          "content_provider_attach_uptime": 151943,
-          "on_next_draw_uptime": 153032,
-          "launched_activity": "sh.measure.sample.ExceptionDemoActivity",
-          "has_saved_state": false,
-          "intent_data": "",
-          "timestamp": "2024-02-22T09:42:41.433Z",
+          "duration": 413,
+          "timestamp": "2024-02-22T09:45:39.051Z",
           "attributes": {}
         },
         {
           "event_type": "gesture_click",
           "target": "com.google.android.material.button.MaterialButton",
-          "target_id": "btn_stack_overflow_exception",
-          "touch_down_time": 156120,
-          "touch_up_time": 156199,
-          "width": 848,
+          "target_id": "btn_infinite_loop",
+          "width": 398,
           "height": 132,
-          "x": 552.9529,
-          "y": 1072.9413,
-          "timestamp": "2024-02-22T09:42:44.608Z",
+          "x": 521.97144,
+          "y": 1219.9567,
+          "timestamp": "2024-02-22T09:45:40.976Z",
           "attributes": {}
         },
         {
-          "event_type": "exception",
-          "type": "java.lang.StackOverflowError",
-          "location": "sh.measure.sample.ExceptionDemoActivity.recursiveFunction(ExceptionDemoActivity.kt:60)",
-          "message": "stack size 8188KB",
-          "thread_name": "main",
-          "handled": false,
-          "network_type": "wifi",
-          "network_provider": "",
-          "network_generation": "",
-          "device_locale": "en-US",
-          "foreground": true,
-          "timestamp": "2024-02-22T09:42:45.042Z",
+          "event_type": "lifecycle_activity",
+          "type": "paused",
+          "class_name": "sh.measure.sample.ExceptionDemoActivity",
+          "intent": "",
+          "saved_instance_state": false,
+          "timestamp": "2024-02-22T09:45:43.315Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "trim_memory",
+          "level": "TRIM_MEMORY_UI_HIDDEN",
+          "timestamp": "2024-02-22T09:45:43.981Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "lifecycle_app",
+          "type": "background",
+          "timestamp": "2024-02-22T09:45:43.985Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "lifecycle_app",
+          "type": "foreground",
+          "timestamp": "2024-02-22T09:45:44.216Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "lifecycle_activity",
+          "type": "resumed",
+          "class_name": "sh.measure.sample.ExceptionDemoActivity",
+          "intent": "",
+          "saved_instance_state": false,
+          "timestamp": "2024-02-22T09:45:44.246Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "hot_launch",
+          "duration": 48,
+          "launched_activity": "sh.measure.sample.ExceptionDemoActivity",
+          "has_saved_state": false,
+          "intent_data": "",
+          "timestamp": "2024-02-22T09:45:44.266Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "gesture_click",
+          "target": "com.google.android.material.button.MaterialButton",
+          "target_id": "btn_compose",
+          "width": 297,
+          "height": 132,
+          "x": 586.96655,
+          "y": 1607.8876,
+          "timestamp": "2024-02-22T09:45:45.11Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "lifecycle_activity",
+          "type": "paused",
+          "class_name": "sh.measure.sample.ExceptionDemoActivity",
+          "intent": "",
+          "saved_instance_state": false,
+          "timestamp": "2024-02-22T09:45:45.119Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "lifecycle_activity",
+          "type": "created",
+          "class_name": "sh.measure.sample.ComposeActivity",
+          "intent": "",
+          "saved_instance_state": false,
+          "timestamp": "2024-02-22T09:45:45.131Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "lifecycle_activity",
+          "type": "resumed",
+          "class_name": "sh.measure.sample.ComposeActivity",
+          "intent": "",
+          "saved_instance_state": false,
+          "timestamp": "2024-02-22T09:45:45.135Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "gesture_scroll",
+          "target": "androidx.compose.ui.platform.AndroidComposeView",
+          "target_id": "",
+          "x": 127.97974,
+          "y": 1528.8922,
+          "end_x": 1048.9526,
+          "end_y": 1409.9249,
+          "direction": "right",
+          "timestamp": "2024-02-22T09:45:46.263Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "lifecycle_activity",
+          "type": "paused",
+          "class_name": "sh.measure.sample.ComposeActivity",
+          "intent": "",
+          "saved_instance_state": false,
+          "timestamp": "2024-02-22T09:45:47.37Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "lifecycle_activity",
+          "type": "resumed",
+          "class_name": "sh.measure.sample.ExceptionDemoActivity",
+          "intent": "",
+          "saved_instance_state": false,
+          "timestamp": "2024-02-22T09:45:47.373Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "lifecycle_activity",
+          "type": "destroyed",
+          "class_name": "sh.measure.sample.ComposeActivity",
+          "intent": "",
+          "saved_instance_state": false,
+          "timestamp": "2024-02-22T09:45:47.913Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "lifecycle_activity",
+          "type": "paused",
+          "class_name": "sh.measure.sample.ExceptionDemoActivity",
+          "intent": "",
+          "saved_instance_state": false,
+          "timestamp": "2024-02-22T09:45:50.474Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "lifecycle_app",
+          "type": "background",
+          "timestamp": "2024-02-22T09:45:50.481Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "trim_memory",
+          "level": "TRIM_MEMORY_UI_HIDDEN",
+          "timestamp": "2024-02-22T09:45:50.496Z",
+          "attributes": {}
+        },
+        {
+          "event_type": "lifecycle_activity",
+          "type": "destroyed",
+          "class_name": "sh.measure.sample.ExceptionDemoActivity",
+          "intent": "",
+          "saved_instance_state": false,
+          "timestamp": "2024-02-22T09:45:50.58299999Z",
           "attributes": {}
         }
       ],
       "measure-thread-#0": [
         {
           "event_type": "app_exit",
-          "reason": "CRASH",
-          "importance": "FOREGROUND",
+          "reason": "USER_REQUESTED",
+          "importance": "CACHED",
           "trace": "",
           "process_name": "sh.measure.sample",
-          "pid": "5430",
-          "timestamp": "2024-02-22T09:42:45Z",
+          "pid": "6886",
+          "timestamp": "2024-02-22T09:45:50.586Z",
           "attributes": {}
         }
       ]
