@@ -2,7 +2,6 @@ package sh.measure.android.okhttp
 
 import okhttp3.Call
 import okhttp3.EventListener
-import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
 import okio.Buffer
@@ -15,8 +14,6 @@ import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.TimeProvider
 import java.io.IOException
-import java.net.InetSocketAddress
-import java.net.Proxy
 
 internal abstract class OkHttpEventProcessor : EventListener() {
     open fun request(call: Call, request: Request) {}

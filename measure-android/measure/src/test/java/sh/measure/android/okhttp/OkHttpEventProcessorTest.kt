@@ -178,7 +178,7 @@ class OkHttpEventProcessorTest {
         // When
         simulateSuccessfulPostRequest(
             responseBody = responseBody,
-            client = clientWithoutInterceptor
+            client = clientWithoutInterceptor,
         )
 
         // Then
