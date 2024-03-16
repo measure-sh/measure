@@ -372,38 +372,18 @@ func (nc *NetworkChange) Trim() {
 }
 
 type Http struct {
-	URL                  string            `json:"url"`
-	Method               string            `json:"method"`
-	StatusCode           uint16            `json:"status_code"`
-	RequestBodySize      uint64            `json:"request_body_size"`
-	ResponseBodySize     uint64            `json:"response_body_size"`
-	RequestTimestamp     time.Time         `json:"request_timestamp"`
-	ResponseTimestamp    time.Time         `json:"response_timestamp"`
-	StartTime            uint64            `json:"start_time"`
-	EndTime              uint64            `json:"end_time"`
-	DNSStart             uint64            `json:"dns_start"`
-	DNSEnd               uint64            `json:"dns_end"`
-	ConnectStart         uint64            `json:"connect_start"`
-	ConnectEnd           uint64            `json:"connect_end"`
-	RequestStart         uint64            `json:"request_start"`
-	RequestEnd           uint64            `json:"request_end"`
-	RequestHeadersStart  uint64            `json:"request_headers_start"`
-	RequestHeadersEnd    uint64            `json:"request_headers_end"`
-	RequestBodyStart     uint64            `json:"request_body_start"`
-	RequestBodyEnd       uint64            `json:"request_body_end"`
-	ResponseStart        uint64            `json:"response_start"`
-	ResponseEnd          uint64            `json:"response_end"`
-	ResponseHeadersStart uint64            `json:"response_headers_start"`
-	ResponseHeadersEnd   uint64            `json:"response_headers_end"`
-	ResponseBodyStart    uint64            `json:"response_body_start"`
-	ResponseBodyEnd      uint64            `json:"response_body_end"`
-	RequestHeadersSize   uint64            `json:"request_headers_size"`
-	ResponseHeadersSize  uint64            `json:"response_headers_size"`
-	FailureReason        string            `json:"failure_reason"`
-	FailureDescription   string            `json:"failure_description"`
-	RequestHeaders       map[string]string `json:"request_headers"`
-	ResponseHeaders      map[string]string `json:"response_headers"`
-	Client               string            `json:"client"`
+	URL                string            `json:"url"`
+	Method             string            `json:"method"`
+	StatusCode         uint16            `json:"status_code"`
+	StartTime          uint64            `json:"start_time"`
+	EndTime            uint64            `json:"end_time"`
+	RequestBody        string            `json:"request_body"`
+	ResponseBody       string            `json:"response_body"`
+	FailureReason      string            `json:"failure_reason"`
+	FailureDescription string            `json:"failure_description"`
+	RequestHeaders     map[string]string `json:"request_headers"`
+	ResponseHeaders    map[string]string `json:"response_headers"`
+	Client             string            `json:"client"`
 }
 
 // Trim removes null bytes from the
