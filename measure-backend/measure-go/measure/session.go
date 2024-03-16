@@ -603,35 +603,14 @@ func (s *Session) ingest() error {
 			Set("http.url", nil).
 			Set("http.method", nil).
 			Set("http.status_code", nil).
-			Set("http.request_body_size", nil).
-			Set("http.response_body_size", nil).
-			Set("http.request_timestamp", nil).
-			Set("http.response_timestamp", nil).
 			Set("http.start_time", nil).
 			Set("http.end_time", nil).
-			Set("http.dns_start", nil).
-			Set("http.dns_end", nil).
-			Set("http.connect_start", nil).
-			Set("http.connect_end", nil).
-			Set("http.request_start", nil).
-			Set("http.request_end", nil).
-			Set("http.request_headers_start", nil).
-			Set("http.request_headers_end", nil).
-			Set("http.request_body_start", nil).
-			Set("http.request_body_end", nil).
-			Set("http.response_start", nil).
-			Set("http.response_end", nil).
-			Set("http.response_headers_start", nil).
-			Set("http.response_headers_end", nil).
-			Set("http.response_body_start", nil).
-			Set("http.response_body_end", nil).
-			Set("http.request_headers_size", nil).
-			Set("http.response_headers_size", nil).
-			Set("http.failure_reason", nil).
-			Set("http.failure_description", nil).
 			Set("http_request_headers", nil).
 			Set("http_response_headers", nil).
-			Set("http.client", nil).
+			Set("http.request_body", nil).
+			Set("http.response_body", nil).
+			Set("http.failure_reason", nil).
+			Set("http.failure_description", nil).
 			Set("memory_usage.java_max_heap", nil).
 			Set("memory_usage.java_total_heap", nil).
 			Set("memory_usage.java_free_heap", nil).
@@ -777,34 +756,14 @@ func (s *Session) ingest() error {
 			s.Events[i].Http.URL,
 			s.Events[i].Http.Method,
 			s.Events[i].Http.StatusCode,
-			s.Events[i].Http.RequestBodySize,
-			s.Events[i].Http.ResponseBodySize,
-			s.Events[i].Http.RequestTimestamp,
-			s.Events[i].Http.ResponseTimestamp,
 			s.Events[i].Http.StartTime,
 			s.Events[i].Http.EndTime,
-			s.Events[i].Http.DNSStart,
-			s.Events[i].Http.DNSEnd,
-			s.Events[i].Http.ConnectStart,
-			s.Events[i].Http.ConnectEnd,
-			s.Events[i].Http.RequestStart,
-			s.Events[i].Http.RequestEnd,
-			s.Events[i].Http.RequestHeadersStart,
-			s.Events[i].Http.RequestHeadersEnd,
-			s.Events[i].Http.RequestBodyStart,
-			s.Events[i].Http.RequestBodyEnd,
-			s.Events[i].Http.ResponseStart,
-			s.Events[i].Http.ResponseEnd,
-			s.Events[i].Http.ResponseHeadersStart,
-			s.Events[i].Http.ResponseHeadersEnd,
-			s.Events[i].Http.ResponseBodyStart,
-			s.Events[i].Http.ResponseBodyEnd,
-			s.Events[i].Http.RequestHeadersSize,
-			s.Events[i].Http.ResponseHeadersSize,
-			s.Events[i].Http.FailureReason,
-			s.Events[i].Http.FailureDescription,
 			s.Events[i].Http.RequestHeaders,
 			s.Events[i].Http.ResponseHeaders,
+			s.Events[i].Http.RequestBody,
+			s.Events[i].Http.ResponseBody,
+			s.Events[i].Http.FailureReason,
+			s.Events[i].Http.FailureDescription,
 			s.Events[i].Http.Client,
 			s.Events[i].MemoryUsage.JavaMaxHeap,
 			s.Events[i].MemoryUsage.JavaTotalHeap,

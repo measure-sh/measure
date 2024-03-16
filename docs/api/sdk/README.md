@@ -673,8 +673,8 @@ Use the `http` body type for tracking a single HTTP network.
 | `end_time`               | number | Yes      | The uptime at which the http call ended, in ms.                                 |
 | `failure_reason`         | string | Yes      | The reason for failure. For Android, typically the IOException class name.      |
 | `failure_description`    | string | Yes      | The description of the failure. For Android, Typically the IOException message. |
-| `request_headers`        | string | Yes      | The request headers, a "stringified" map.                                       |
-| `response_headers`       | string | Yes      | The response headers, a "stringified" map.                                      |
+| `request_headers`        | map | Yes      | The request headers.                                       |
+| `response_headers`       | map | Yes      | The response headers.                                      |
 | `request_body`           | string | Yes      | The request body, if any. Only supported for json body.                         |
 | `response_body`          | string | Yes      | The response body, if any. Only supported for json body.                        |
 | `http_protocol_version`  | string | Yes      | Version of the HTTP protocol. `1.0`, `1.1`, `2` etc                             |
