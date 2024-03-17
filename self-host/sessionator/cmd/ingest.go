@@ -2,18 +2,16 @@ package cmd
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
+	"sessionator/app"
 	"sessionator/config"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -52,13 +50,12 @@ func (m *Metrics) bumpSession() {
 	m.SessionCount = m.SessionCount + 1
 }
 
-// setAppCount sets the count of the number
-// of apps the program processes.
-func (m *Metrics) setAppCount(c int) {
-	m.AppCount = c
+// bumpApp bumps the app count
+// Metrics.
+func (m *Metrics) bumpApp() {
+	m.AppCount = m.AppCount + 1
 }
 
-var apps []*App
 var metrics Metrics
 
 func init() {
@@ -66,13 +63,6 @@ func init() {
 	ingestCmd.Flags().StringVarP(&origin, "origin", "o", "http://localhost:8080", "origin of session ingestion server")
 	ingestCmd.Flags().StringVarP(&configLocation, "config", "c", "../session-data/config.toml", "location to config.toml file")
 	rootCmd.AddCommand(ingestCmd)
-}
-
-// NewApp creates an empty app and returns
-// a pointer to it.
-func NewApp() *App {
-	var app App
-	return &app
 }
 
 // ValidateFlags validates the commmand line
@@ -91,68 +81,34 @@ func ValidateFlags() bool {
 	return true
 }
 
-// FileExists silently asserts that the
-// underlying file exists on disk.
-func FileExists(path string) bool {
-	_, err := os.Stat(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false
-		} else {
-			log.Fatal(err)
-		}
-	}
-
-	return true
-}
-
-// getMappingMeta reads & returns the resource object
-// from the first session of app.
-func getMappingMeta(a *App) *Resource {
-	sessionFile := a.Sessions[0]
-	content, err := os.ReadFile(sessionFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	session := &Session{}
-
-	if err := json.Unmarshal(content, session); err != nil {
-		log.Fatal(err)
-	}
-
-	return &session.Resource
-}
-
 // IngestSerial serially ingests each session and
 // build of each app version.
-func IngestSerial(origin string) {
+func IngestSerial(apps *app.Apps, origin string) {
 	sessionURL := fmt.Sprintf("%s/sessions", origin)
 	mappingURL := fmt.Sprintf("%s/builds", origin)
-	for i := range apps {
-		app := apps[i]
 
-		fmt.Printf("app: %s:%s\n", app.Name, app.Version)
+	for _, app := range apps.Items {
+		fmt.Printf("%s\n", app.FullName())
 
 		if len(app.Sessions) < 1 {
-			fmt.Printf("app \"%s:%s\" has no sessions, skipping...\n", app.Name, app.Version)
+			fmt.Printf("app %q has no sessions, skipping...\n", app.FullName())
 			continue
 		}
 
 		apiKey := configData.Apps[app.Name].ApiKey
 
-		if app.MappingFile != "" {
-			resource := getMappingMeta(app)
-			base := filepath.Base(app.MappingFile)
-			fmt.Printf("Uploading build info %q... ", base)
-			status, err := UploadBuild(mappingURL, apiKey, app, resource)
-			if err != nil {
-				fmt.Printf("🔴 %s \n", status)
-				log.Fatal(err)
+		fmt.Printf("Uploading build info... ")
+		status, err := UploadBuild(mappingURL, apiKey, app)
+		if err != nil {
+			if status == "" {
+				status = err.Error()
 			}
-
-			fmt.Printf("🟢 %s \n", status)
+			fmt.Printf("🔴 %s \n", status)
+			log.Fatal(err)
 		}
+
+		fmt.Printf("🟢 %s \n", status)
+		metrics.bumpBuild()
 
 		for j := range app.Sessions {
 			session := app.Sessions[j]
@@ -161,27 +117,32 @@ func IngestSerial(origin string) {
 				log.Fatal(err)
 			}
 			base := filepath.Base(session)
-			fmt.Printf("Ingesting session file %q... ", base)
+			fmt.Printf("Ingesting session %q... ", base)
 			status, err := UploadSession(sessionURL, apiKey, content)
 			if err != nil {
+				if status == "" {
+					status = err.Error()
+				}
 				fmt.Printf("🔴 %s \n", status)
 				log.Fatal(err)
 			}
 			fmt.Printf("🟢 %s \n", status)
+			metrics.bumpSession()
 		}
 
 		fmt.Printf("\n")
+		metrics.bumpApp()
 	}
 }
 
 // UploadBuild prepares & sends the request to
 // upload mapping file & build info.
-func UploadBuild(url, apiKey string, app *App, resource *Resource) (string, error) {
+func UploadBuild(url, apiKey string, app app.App) (string, error) {
 	var buff bytes.Buffer
 	w := multipart.NewWriter(&buff)
 	w.SetBoundary(multipartBoundary)
 
-	f, err := os.Open(app.MappingFile)
+	resource, err := app.Resource()
 	if err != nil {
 		return "", err
 	}
@@ -198,17 +159,26 @@ func UploadBuild(url, apiKey string, app *App, resource *Resource) (string, erro
 	}
 	fw.Write([]byte(resource.AppBuild))
 
-	fw, err = w.CreateFormFile("mapping_file", filepath.Base(app.MappingFile))
-	if err != nil {
-		return "", err
-	}
-	io.Copy(fw, f)
+	if app.MappingFile != "" {
+		f, err := os.Open(app.MappingFile)
+		if err != nil {
+			return "", err
+		}
 
-	fw, err = w.CreateFormField("mapping_type")
-	if err != nil {
-		return "", err
+		fw, err = w.CreateFormFile("mapping_file", filepath.Base(app.MappingFile))
+		if err != nil {
+			return "", err
+		}
+
+		io.Copy(fw, f)
+
+		fw, err = w.CreateFormField("mapping_type")
+		if err != nil {
+			return "", err
+		}
+
+		fw.Write([]byte("proguard"))
 	}
-	fw.Write([]byte("proguard"))
 
 	fw, err = w.CreateFormField("build_size")
 	if err != nil {
@@ -278,77 +248,12 @@ func UploadSession(url, apiKey string, data []byte) (string, error) {
 	return resp.Status, nil
 }
 
-// Setup reads source directory and sets up everything
-// for successfully uploading sessions and builds.
-func Setup(dir string) {
-	fmt.Printf("reading session data from %q\n", dir)
-	fsys := os.DirFS(dir)
-	sessionFiles, err := fs.Glob(fsys, "**/**/*.json")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var app = NewApp()
-
-	for i := range sessionFiles {
-		parts := strings.Split(sessionFiles[i], string(os.PathSeparator))
-		name := parts[0]
-		version := parts[1]
-
-		configApp := configData.Apps[name]
-
-		if configApp.ApiKey == "" {
-			log.Fatalf("api key not found for app %q. please update config at %q", name, configLocation)
-		}
-
-		if name != app.Name || version != app.Version {
-			app = NewApp()
-			app.Name = name
-			app.Version = version
-			mappingPath := filepath.Join(dir, app.Name, app.Version, "mapping.txt")
-			buildPath := filepath.Join(dir, app.Name, app.Version, "build.toml")
-			if FileExists(mappingPath) && FileExists(buildPath) {
-				app.MappingFile = mappingPath
-				if err := app.ReadBuild(buildPath); err != nil {
-					log.Fatalf(`failed to read build info %q for app %q with err: %v`, buildPath, app.FullName(), err)
-				}
-				metrics.bumpBuild()
-			} else {
-				log.Fatalf(`could not read build info for app %q`, app.FullName())
-			}
-
-			app.Sessions = append(app.Sessions, filepath.Join(dir, sessionFiles[i]))
-			metrics.bumpSession()
-			apps = append(apps, app)
-		} else {
-			app.Sessions = append(app.Sessions, filepath.Join(dir, sessionFiles[i]))
-			metrics.bumpSession()
-		}
-	}
-
-	metrics.setAppCount(len(apps))
-}
-
 var ingestCmd = &cobra.Command{
 	Use:   "ingest",
 	Short: "Ingest sessions",
 	Long: `Ingest sessions from a local directory.
 
-Structure of "session-data" directory:
-
-+ root
-- foo						# app name dir
-  - 1.2.3					# app version dir
-    - 04cc1c6d-853b-4926-8d04-4501965a8d5e.json	# session json file
-    - 7e2f676c-8604-4dd0-b5d8-3669e333f714.json # session json file
-    - mapping.txt				# mapping file
-	- build.toml				# build info
-- bar						# app name dir
-  - 4.5.6					# app version dir
-    - e2f676c-8604-4dd0-b5d8-3669e333f714.json	# session json file
-    - 55300a74-ba16-4e62-a699-0cd41f5e43c0.json	# session json file
-    - mapping.txt				# mapping file
-	- build.toml				# build info`,
+Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 	Run: func(cmd *cobra.Command, args []string) {
 		sourceDir, err := filepath.Abs(filepath.Clean(sourceDir))
 		if err != nil {
@@ -359,27 +264,35 @@ Structure of "session-data" directory:
 			os.Exit(1)
 		}
 
+		apps, err := app.Scan(sourceDir)
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
+
 		configData, err = config.Init(configLocation)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		Setup(sourceDir)
+		if err := apps.ValidateConfig(configData); err != nil {
+			log.Fatal(err)
+		}
 
 		// log info about parsed apps
-		fmt.Printf("number of apps: %d\n\n", len(apps))
+		fmt.Printf("number of apps: %d\n\n", len(apps.Items))
 
-		for i := range apps {
+		for i, app := range apps.Items {
 			mapping := "not found"
-			if apps[i].MappingFile != "" {
+			if app.MappingFile != "" {
 				mapping = "found"
 			}
-			fmt.Printf("app %d: %s:%s\n", i+1, apps[i].Name, apps[i].Version)
-			fmt.Printf("session count: %d\n", len(apps[i].Sessions))
+			fmt.Printf("app (%d): %s\n", i+1, app.FullName())
+			fmt.Printf("session count: %d\n", len(app.Sessions))
 			fmt.Printf("mapping file: %s\n\n", mapping)
 		}
 
-		IngestSerial(origin)
+		IngestSerial(apps, origin)
 
 		fmt.Printf("\nSummary\n=======\n\n")
 

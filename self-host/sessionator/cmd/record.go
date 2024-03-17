@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sessionator/app"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -33,24 +34,10 @@ func init() {
 
 var recordCmd = &cobra.Command{
 	Use:   "record",
-	Short: "Records sessions and mapping files",
-	Long: `Records incoming session requests and mapping files to disk in ../session-data directory.
+	Short: "Records sessions & mappings",
+	Long: `Records sessions & mappings to disk.
 	
-The sessions & mappings are recorded in the following structue in "session-data" directory:
-
-+ root
-- foo						# app name dir
-  - 1.2.3					# app version dir
-    - 04cc1c6d-853b-4926-8d04-4501965a8d5e.json	# session json file
-    - 7e2f676c-8604-4dd0-b5d8-3669e333f714.json # session json file
-    - mapping.txt				# mapping file
-    - build.toml
-- bar						# app name dir
-  - 4.5.6					# app version dir
-    - e2f676c-8604-4dd0-b5d8-3669e333f714.json	# session json file
-    - 55300a74-ba16-4e62-a699-0cd41f5e43c0.json	# session json file
-    - mapping.txt				# mapping file
-    - build.toml				# build size and type`,
+Structue of "session-data" directory once written:` + "\n" + DirTree() + "\n" + ValidNote(),
 	Run: func(cmd *cobra.Command, args []string) {
 		r := gin.Default()
 
@@ -73,7 +60,7 @@ func writeSession(c *gin.Context) {
 	}
 	c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
 
-	session := Session{}
+	session := app.Session{}
 	if err := c.ShouldBindJSON(&session); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "unable to parse request: " + err.Error()})
 		return
@@ -105,13 +92,6 @@ func writeBuild(c *gin.Context) {
 		return
 	}
 
-	file, _, err := c.Request.FormFile("mapping_file")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to get mapping file: " + err.Error()})
-		return
-	}
-	defer file.Close()
-
 	appUniqueID := c.Request.FormValue("app_unique_id")
 	versionName := c.Request.FormValue("version_name")
 	if appUniqueID == "" {
@@ -123,24 +103,34 @@ func writeBuild(c *gin.Context) {
 		return
 	}
 
-	filePath := filepath.Join(outputDir, appUniqueID, versionName, "mapping.txt")
-
-	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create mapping file: " + err.Error()})
+	file, header, err := c.Request.FormFile("mapping_file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to get mapping file: " + err.Error()})
 		return
 	}
+	defer file.Close()
 
-	out, err := os.Create(filePath)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create mapping file: " + err.Error()})
-		return
-	}
-	defer out.Close()
+	if header != nil && header.Size > 0 {
+		filePath := filepath.Join(outputDir, appUniqueID, versionName, "mapping.txt")
 
-	_, err = io.Copy(out, file)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to write mapping file: " + err.Error()})
-		return
+		if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create mapping file: " + err.Error()})
+			return
+		}
+
+		out, err := os.Create(filePath)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create mapping file: " + err.Error()})
+			return
+		}
+		defer out.Close()
+
+		_, err = io.Copy(out, file)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to write mapping file: " + err.Error()})
+			return
+		}
+
 	}
 
 	buildType := c.Request.FormValue("build_type")
@@ -149,16 +139,17 @@ func writeBuild(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse build_size: " + err.Error()})
 		return
 	}
-	filePath = filepath.Join(outputDir, appUniqueID, versionName, "build.toml")
-	out, err = os.Create(filePath)
 
+	filePath := filepath.Join(outputDir, appUniqueID, versionName, "build.toml")
+	out, err := os.Create(filePath)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed create build.toml file: " + err.Error()})
 		return
 	}
+
 	defer out.Close()
 
-	buildInfo := BuildInfo{
+	buildInfo := app.BuildInfo{
 		Size: uint32(buildSize),
 		Type: buildType,
 	}
