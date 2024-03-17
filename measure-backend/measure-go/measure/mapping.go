@@ -57,6 +57,11 @@ func (bm BuildMapping) HasMapping() bool {
 func (bm BuildMapping) Validate() (code int, err error) {
 	code = http.StatusBadRequest
 
+	if bm.File == nil {
+		code = 0
+		return
+	}
+
 	if bm.File.Size < 1 {
 		err = errors.New(`no data in field "mapping_file"`)
 	}
