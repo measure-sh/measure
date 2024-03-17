@@ -38,24 +38,8 @@ var configLocation string
 // `config.toml` file.
 var configData *config.Config
 
-// bumpBuild bumps the build count of
-// Metrics.
-func (m *Metrics) bumpBuild() {
-	m.BuildCount = m.BuildCount + 1
-}
-
-// bumpSession bumps the session count of
-// Metrics.
-func (m *Metrics) bumpSession() {
-	m.SessionCount = m.SessionCount + 1
-}
-
-// bumpApp bumps the app count
-// Metrics.
-func (m *Metrics) bumpApp() {
-	m.AppCount = m.AppCount + 1
-}
-
+// metrics is used to store progress of ingestion
+// opeations.
 var metrics Metrics
 
 func init() {
