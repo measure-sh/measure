@@ -75,8 +75,8 @@ func (apps *Apps) Add(name, version string) {
 	apps.index[[2]string{name, version}] = len(apps.Items) - 1
 }
 
-// Lookup looks up the app by name and
-// returns from the collection.
+// Lookup looks up the app by name and version
+// and returns from the collection.
 func (apps *Apps) Lookup(name, version string) *App {
 	index := apps.index[[2]string{name, version}]
 	return &apps.Items[index]
