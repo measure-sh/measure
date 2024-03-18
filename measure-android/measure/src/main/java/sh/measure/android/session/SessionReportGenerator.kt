@@ -79,7 +79,9 @@ internal class SessionReportGenerator(
             logger.log(LogLevel.Error, "Attachment file not found: $absolutePath")
             return null
         }
-        val blob = file.source().buffer().readByteString().base64()
+        val blob = file.source().use {
+            it.buffer().readByteString().base64()
+        }
         return AttachmentPacket(
             timestamp = timestamp.iso8601Timestamp(),
             name = name,
