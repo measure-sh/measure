@@ -104,34 +104,32 @@ func writeBuild(c *gin.Context) {
 	}
 
 	file, header, err := c.Request.FormFile("mapping_file")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to get mapping file: " + err.Error()})
-		return
+	if err == nil {
+		defer file.Close()
+
+		if header != nil && header.Size > 0 {
+			filePath := filepath.Join(outputDir, appUniqueID, versionName, "mapping.txt")
+
+			if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create mapping file: " + err.Error()})
+				return
+			}
+
+			out, err := os.Create(filePath)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create mapping file: " + err.Error()})
+				return
+			}
+			defer out.Close()
+
+			_, err = io.Copy(out, file)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to write mapping file: " + err.Error()})
+				return
+			}
+		}	
 	}
-	defer file.Close()
-
-	if header != nil && header.Size > 0 {
-		filePath := filepath.Join(outputDir, appUniqueID, versionName, "mapping.txt")
-
-		if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create mapping file: " + err.Error()})
-			return
-		}
-
-		out, err := os.Create(filePath)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create mapping file: " + err.Error()})
-			return
-		}
-		defer out.Close()
-
-		_, err = io.Copy(out, file)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to write mapping file: " + err.Error()})
-			return
-		}
-
-	}
+	
 
 	buildType := c.Request.FormValue("build_type")
 	buildSize, err := strconv.Atoi(c.Request.FormValue("build_size"))
