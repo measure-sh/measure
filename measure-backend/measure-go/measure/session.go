@@ -639,8 +639,6 @@ func (s *Session) ingest() error {
 			Set("cpu_usage.interval_config", nil).
 			Set("navigation.route", nil)
 
-		fmt.Println(s.Events[i].Http.RequestHeaders)
-		fmt.Println(s.Events[i].Http.ResponseHeaders)
 		args = append(args,
 			s.Events[i].ID,
 			s.Events[i].Type,
