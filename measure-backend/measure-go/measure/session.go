@@ -611,6 +611,7 @@ func (s *Session) ingest() error {
 			Set("http.response_body", nil).
 			Set("http.failure_reason", nil).
 			Set("http.failure_description", nil).
+			Set("http.client", nil).
 			Set("memory_usage.java_max_heap", nil).
 			Set("memory_usage.java_total_heap", nil).
 			Set("memory_usage.java_free_heap", nil).
@@ -638,6 +639,8 @@ func (s *Session) ingest() error {
 			Set("cpu_usage.interval_config", nil).
 			Set("navigation.route", nil)
 
+		fmt.Println(s.Events[i].Http.RequestHeaders)
+		fmt.Println(s.Events[i].Http.ResponseHeaders)
 		args = append(args,
 			s.Events[i].ID,
 			s.Events[i].Type,
