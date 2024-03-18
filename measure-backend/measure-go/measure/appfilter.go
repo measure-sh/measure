@@ -36,6 +36,7 @@ type AppFilter struct {
 	From                time.Time `form:"from" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
 	To                  time.Time `form:"to" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
 	Versions            []string  `form:"versions"`
+	VersionCodes        []string  `form:"version_codes"`
 	Countries           []string  `form:"countries"`
 	DeviceNames         []string  `form:"device_names"`
 	DeviceManufacturers []string  `form:"device_manufacturers"`
@@ -56,6 +57,7 @@ type AppFilter struct {
 // metrics, exceptions and ANRs.
 type FilterList struct {
 	Versions            []string `json:"versions"`
+	VersionCodes        []string `json:"version_codes"`
 	Countries           []string `json:"countries"`
 	NetworkProviders    []string `json:"network_providers"`
 	NetworkTypes        []string `json:"network_types"`
@@ -107,41 +109,55 @@ func (af *AppFilter) validate() error {
 func (af *AppFilter) expand() {
 	if len(af.Versions) > 0 {
 		versions := af.Versions[0]
+		versions = strings.TrimSpace(versions)
 		af.Versions = strings.Split(versions, ",")
+	}
+
+	if len(af.VersionCodes) > 0 {
+		codes := af.VersionCodes[0]
+		codes = strings.TrimSpace(codes)
+		af.VersionCodes = strings.Split(codes, ",")
 	}
 
 	if len(af.Countries) > 0 {
 		countries := af.Countries[0]
+		countries = strings.TrimSpace(countries)
 		af.Countries = strings.Split(countries, ",")
 	}
 
 	if len(af.DeviceNames) > 0 {
 		deviceNames := af.DeviceNames[0]
+		deviceNames = strings.TrimSpace(deviceNames)
 		af.DeviceNames = strings.Split(deviceNames, ",")
 	}
 
 	if len(af.DeviceManufacturers) > 0 {
 		deviceManufacturers := af.DeviceManufacturers[0]
+		deviceManufacturers = strings.TrimSpace(deviceManufacturers)
 		af.DeviceManufacturers = strings.Split(deviceManufacturers, ",")
 	}
 
 	if len(af.Locales) > 0 {
 		locales := af.Locales[0]
+		locales = strings.TrimSpace(locales)
 		af.Locales = strings.Split(locales, ",")
 	}
 
 	if len(af.NetworkProviders) > 0 {
 		networkProviders := af.NetworkProviders[0]
+		networkProviders = strings.TrimSpace(networkProviders)
 		af.NetworkProviders = strings.Split(networkProviders, ",")
 	}
 
 	if len(af.NetworkTypes) > 0 {
 		networkTypes := af.NetworkTypes[0]
+		networkTypes = strings.TrimSpace(networkTypes)
 		af.NetworkTypes = strings.Split(networkTypes, ",")
 	}
 
 	if len(af.NetworkGenerations) > 0 {
 		networkGenerations := af.NetworkGenerations[0]
+		networkGenerations = strings.TrimSpace(networkGenerations)
 		af.NetworkGenerations = strings.Split(networkGenerations, ",")
 	}
 }
@@ -242,14 +258,17 @@ func (af *AppFilter) getGenericFilters(fl *FilterList) error {
 	return nil
 }
 
-// getAppVersions finds distinct values of app versions from
-// available events.
+// getAppVersions finds distinct pairs of app versions &
+// app build no from available events.
 //
-// Additionally, filters `exception` and `anr` event types.
+// Additionally, filters for `exception` and `anr` event
+// types.
 func (af *AppFilter) getAppVersions(fl *FilterList) error {
-	stmt := sqlf.Select("distinct toString(resource.app_version)").
+	stmt := sqlf.Select("distinct toString(resource.app_version), toString(resource.app_build)").
 		From("events").
-		Where("app_id = toUUID(?)")
+		Where("app_id = toUUID(?)").
+		OrderBy("resource.app_version desc", "resource.app_build desc")
+
 	defer stmt.Close()
 
 	if af.Exception {
@@ -274,10 +293,12 @@ func (af *AppFilter) getAppVersions(fl *FilterList) error {
 
 	for rows.Next() {
 		var version string
-		if err := rows.Scan(&version); err != nil {
+		var code string
+		if err := rows.Scan(&version, &code); err != nil {
 			return err
 		}
 		fl.Versions = append(fl.Versions, version)
+		fl.VersionCodes = append(fl.VersionCodes, code)
 	}
 
 	return rows.Err()
