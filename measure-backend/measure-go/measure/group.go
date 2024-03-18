@@ -673,10 +673,15 @@ func GetEventIdsMatchingFilter(eventIds []uuid.UUID, af *AppFilter) ([]uuid.UUID
 	stmt := sqlf.Select("id").
 		From("default.events").
 		Where("`id` in (?)")
+
 	defer stmt.Close()
 
 	if len(af.Versions) > 0 {
 		stmt.Where("`resource.app_version` in (?)")
+	}
+
+	if len(af.VersionCodes) > 0 {
+		stmt.Where("`resource.app_build` in (?)")
 	}
 
 	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.Versions)
