@@ -10,13 +10,9 @@ import sh.measure.android.utils.isForegroundProcess
 import java.lang.Thread.UncaughtExceptionHandler
 
 /**
- * An [UncaughtExceptionHandler] that tracks unhandled exceptions and reports them
- * to [MeasureClient].
+ * An [UncaughtExceptionHandler] that tracks unhandled exceptions.
  *
- * In case an exception is raised during parsing of the uncaught exception, tracking silently fails
- * to avoid an infinite loop of exceptions.
- *
- * Note that the original [UncaughtExceptionHandler] is always called.
+ * Note that the original [UncaughtExceptionHandler], if set, is always called.
  */
 internal class UnhandledExceptionCollector(
     private val logger: Logger,
