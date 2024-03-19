@@ -525,6 +525,11 @@ These headers must be present in each request.
     "versions": [
       "1.0"
     ],
+    "version_codes": [
+      "1200",
+      "1300",
+      "1400"
+    ],
     "countries": [
       "bogon"
     ],
@@ -583,7 +588,8 @@ Fetch a list of crash groups for an app.
 - Accepted query parameters
   - `from` (_optional_) - Start time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
   - `to` (_optional_) - End time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
-  - `versions` (_optional_) - List of comma separated version identifier strings to return only those crash groups that have events matching the version.
+  - `versions` (_optional_) - List of comma separated version identifier strings to return crash groups that have events matching the version.
+  - `version_codes` (_optional_) - List of comma separated version codes to return crash groups that have events matching the version code.
   - `key_id` (_optional_) - UUID of the last item. Used for keyset based pagination. Should be used along with `limit`.
   - `limit` (_optional_) - Number of items to return. Used for keyset based pagination. Should be used along with `key_id`. Negative values traverses backward along with `limit`.
 
@@ -679,7 +685,8 @@ Fetch a list of ANR groups for an app.
 - Accepted query parameters
   - `from` (_optional_) - Start time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
   - `to` (_optional_) - End time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
-  - `versions` (_optional_) - List of comma separated version identifier strings to return only those crash groups that have events matching the version.
+  - `versions` (_optional_) - List of comma separated version identifier strings to return anr groups that have events matching the version.
+  - `version_codes` (_optional_) - List of comma separated version codes to return anr groups that have events matching the version code.
   - `key_id` (_optional_) - UUID of the last item. Used for keyset based pagination. Should be used along with `limit`.
   - `limit` (_optional_) - Number of items to return. Used for keyset based pagination. Should be used along with `key_id`. Negative values traverses backward along with `limit`.
 
@@ -776,6 +783,7 @@ Fetch list of crashes of a crash group for an app.
   - `from` (_optional_) - ISO8601 timestamp to include crashes after this time.
   - `to` (_optional_) - ISO8601 timestamp to include crashes before this time.
   - `versions` (_optional_) - List of comma separated version identifier strings to return only matching crashes.
+  - `version_codes` (_optional_) - List of comma separated version codes to return only matching crashes.
   - `countries` (_optional_) - List of comma separated country identifier strings to return only matching crashes.
   - `device_names` (_optional_) - List of comma separated device name identifier strings to return only matching crashes.
   - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings to return only matching crashes.
@@ -1228,6 +1236,7 @@ Fetch list of anrs of an anr group for an app.
   - `from` (_optional_) - ISO8601 timestamp to include anrs after this time.
   - `to` (_optional_) - ISO8601 timestamp to include anrs before this time.
   - `versions` (_optional_) - List of comma separated version identifier strings to return only matching anrs.
+  - `version_codes` (_optional_) - List of comma separated version codes to return only matching anrs.
   - `countries` (_optional_) - List of comma separated country identifier strings to return only matching anrs.
   - `device_names` (_optional_) - List of comma separated device name identifier strings to return only matching anrs.
   - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings to return only matching anrs.
