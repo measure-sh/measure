@@ -101,7 +101,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
     events.sort((a, b) => {
       const dateA = new Date(a.timestamp);
       const dateB = new Date(b.timestamp);
-      return dateA.getMilliseconds() - dateB.getMilliseconds();
+      return dateA.getTime() - dateB.getTime();
     });
 
     let threadsArray = Array.from(threads)
