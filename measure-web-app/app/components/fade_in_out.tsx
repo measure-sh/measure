@@ -33,10 +33,9 @@ export default function FadeInOut({
     }, [scrollDir]);
 
     function createTransitionAnimation() {
-        let visibility = isVisible ? 'opacity-100 visible' : 'opacity-0 invisible'
-        let translateDirection = isVisible ? 'translate-y-0' : scrollDir === 'scrolling down' ? 'translate-y-28' : '-translate-y-28'
+        let visibilityAndScale = isVisible ? 'opacity-100 visible scale-100' : 'opacity-0 invisible scale-75'
 
-        return visibility + ' transition duration-700 ease-in-out ' + translateDirection + ' motion-reduce:transition-none'
+        return visibilityAndScale + ' transition duration-700 ease-in-out delay-200 motion-reduce:transition-none'
     }
 
     return (
