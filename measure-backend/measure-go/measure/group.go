@@ -704,7 +704,7 @@ func GetEventIdsMatchingFilter(eventIds []uuid.UUID, af *AppFilter) ([]uuid.UUID
 		stmt.Where("`resource.app_build` in (?)")
 	}
 
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.Versions)
+	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.Versions, af.VersionCodes)
 	if err != nil {
 		return nil, err
 	}
