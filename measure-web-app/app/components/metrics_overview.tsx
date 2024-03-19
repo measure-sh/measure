@@ -6,13 +6,13 @@ import InfoCircleAppSize from './info_circle_app_size';
 import InfoCircleExceptionRate from './info_circle_exception_rate';
 import InfoCircleAppStartTime from './info_circle_app_start_time';
 import { useRouter } from 'next/navigation';
-import { MetricsApiStatus, emptyMetrics, fetchMetricsFromServer } from '../api/api_calls';
+import { AppVersion, MetricsApiStatus, emptyMetrics, fetchMetricsFromServer } from '../api/api_calls';
 
 interface MetricsOverviewProps {
   appId: string,
   startDate: string,
   endDate: string,
-  appVersion: string,
+  appVersion: AppVersion,
 }
 
 const MetricsOverview: React.FC<MetricsOverviewProps> = ({ appId, startDate, endDate, appVersion }) => {
@@ -22,7 +22,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ appId, startDate, end
 
   const router = useRouter()
 
-  const getMetrics = async (appId: string, startDate: string, endDate: string, appVersion: string) => {
+  const getMetrics = async (appId: string, startDate: string, endDate: string, appVersion: AppVersion) => {
     setMetricsApiStatus(MetricsApiStatus.Loading)
 
     const result = await fetchMetricsFromServer(appId, startDate, endDate, appVersion, router)
