@@ -523,12 +523,18 @@ These headers must be present in each request.
   ```json
   {
     "versions": [
-      "1.0"
-    ],
-    "version_codes": [
-      "1200",
-      "1300",
-      "1400"
+      {
+        "code": "9400",
+        "name": "7.61"
+      },
+      {
+        "code": "9300",
+        "name": "7.60"
+      },
+      {
+        "code": "9200",
+        "name": "7.59"
+      }
     ],
     "countries": [
       "bogon"
