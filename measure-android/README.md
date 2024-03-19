@@ -132,7 +132,7 @@ Measure dashboard.
 * [Network monitoring](docs/features/feature_network_monitoring.md)
 * [Gesture tracking](docs/features/feature_gesture_tracking.md)
 * [Navigation & Lifecycle](docs/features/feature_navigation_and_lifecycle.md)
-* [App launch metrics](docs/features/feature_app_launch_metrics.md)
+* [App launch](docs/features/feature_app_launch.md)
 * [App exit info](docs/features/feature_app_exit_info.md)
 * [CPU monitoring](docs/features/feature_cpu_monitoring.md)
 * [Memory monitoring](docs/features/feature_memory_monitoring.md)
