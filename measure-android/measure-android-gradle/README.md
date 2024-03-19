@@ -25,7 +25,7 @@ We apply the following transformations to your app, provided your app uses these
 ### OkHttp
 
 Enables tracking network requests and metrics from OkHttp.
-This is done by injecting a [Interceptor](https://square.github.io/okhttp/features/interceptors/)
+This is done by injecting an [Interceptor](https://square.github.io/okhttp/features/interceptors/)
 and an [EventListener](https://square.github.io/okhttp/features/events/#eventlistener) into
 all `OkHttpClient's`used by your application, including the ones in third party libraries.
 
