@@ -1026,6 +1026,7 @@ func GetAppMetrics(c *gin.Context) {
 		af.setDefaultTimeRange()
 	}
 
+
 	// fmt.Println("journey request app id", af.AppID)
 	// fmt.Println("journey request from", af.From)
 	// fmt.Println("journey request to", af.To)
@@ -1125,7 +1126,23 @@ func GetAppFilters(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, fl)
+	// club version names & version codes
+	var versions []any
+	for i := range fl.Versions {
+		version := gin.H{"name": fl.Versions[i], "code": fl.VersionCodes[i]}
+		versions = append(versions, version)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"versions":             versions,
+		"countries":            fl.Countries,
+		"network_providers":    fl.NetworkProviders,
+		"network_types":        fl.NetworkTypes,
+		"network_generations":  fl.NetworkGenerations,
+		"locales":              fl.DeviceLocales,
+		"device_manufacturers": fl.DeviceManufacturers,
+		"device_names":         fl.DeviceNames,
+	})
 }
 
 func GetCrashGroups(c *gin.Context) {
