@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { ResponsiveSankey } from '@nivo/sankey'
 import { useRouter } from 'next/navigation';
-import { JourneyApiStatus, emptyJourney, fetchJourneyFromServer } from '../api/api_calls';
+import { AppVersion, JourneyApiStatus, emptyJourney, fetchJourneyFromServer } from '../api/api_calls';
 
 interface JourneyProps {
   appId: string,
   startDate: string,
   endDate: string,
-  appVersion: string,
+  appVersion: AppVersion,
 }
 
 const Journey: React.FC<JourneyProps> = ({ appId, startDate, endDate, appVersion }) => {
@@ -21,7 +21,7 @@ const Journey: React.FC<JourneyProps> = ({ appId, startDate, endDate, appVersion
 
   const router = useRouter()
 
-  const getJourney = async (appId: string, startDate: string, endDate: string, appVersion: string) => {
+  const getJourney = async (appId: string, startDate: string, endDate: string, appVersion: AppVersion) => {
     setJourneyApiStatus(JourneyApiStatus.Loading)
 
     const result = await fetchJourneyFromServer(appId, startDate, endDate, appVersion, router)

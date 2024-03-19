@@ -7,9 +7,10 @@ import Journey from "@/app/components/journey";
 import MetricsOverview from '@/app/components/metrics_overview';
 import { useRouter, useSearchParams } from 'next/navigation';
 import CreateApp from '@/app/components/create_app';
-import { AppsApiStatus, FiltersApiStatus, emptyApp, fetchAppsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
+import { AppVersion, AppsApiStatus, FiltersApiStatus, emptyApp, fetchAppsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
 import { updateDateQueryParams } from '@/app/utils/router_utils';
 import { formatDateToHumanReadable } from '@/app/utils/time_utils';
+import AppVersionDropdown from '@/app/components/app_version_dropdown';
 
 export default function Overview({ params }: { params: { teamId: string } }) {
   const router = useRouter()
@@ -21,7 +22,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   const [apps, setApps] = useState([] as typeof emptyApp[]);
   const [selectedApp, setSelectedApp] = useState(emptyApp);
 
-  const [versions, setVersions] = useState([] as string[]);
+  const [versions, setVersions] = useState([] as AppVersion[]);
   const [selectedVersion, setSelectedVersion] = useState(versions[0]);
 
   const today = new Date();
@@ -82,8 +83,9 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         break
       case FiltersApiStatus.Success:
         setFiltersApiStatus(FiltersApiStatus.Success)
-        setVersions(result.data.versions)
-        setSelectedVersion(result.data.versions[0])
+        let versions = result.data.versions.map((v: { name: string; code: string; }) => new AppVersion(v.name, v.code))
+        setVersions(versions)
+        setSelectedVersion(versions[0])
         break
     }
   }
@@ -118,7 +120,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
                 <p className="font-display px-2">to</p>
                 <input type="date" defaultValue={endDate} min={startDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
               </div>}
-            {filtersApiStatus === FiltersApiStatus.Success && <Dropdown items={versions} initialSelectedItem={versions[0]} onChangeSelectedItem={(item) => setSelectedVersion(item)} />}
+            {filtersApiStatus === FiltersApiStatus.Success && <AppVersionDropdown items={versions} initialSelectedItem={selectedVersion} onChangeSelectedItem={(item) => setSelectedVersion(item)} />}
           </div>
           <div className="py-4" />
 
@@ -131,7 +133,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
             <div className="flex flex-wrap gap-2 items-center w-5/6">
               <FilterPill title={selectedApp.name} />
               <FilterPill title={`${formattedStartDate} to ${formattedEndDate}`} />
-              <FilterPill title={selectedVersion} />
+              <FilterPill title={selectedVersion.displayName} />
             </div>}
           <div className="py-8" />
           {filtersApiStatus === FiltersApiStatus.Success && <Journey appId={selectedApp.id} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />}

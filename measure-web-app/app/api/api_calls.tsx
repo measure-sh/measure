@@ -513,6 +513,18 @@ export const emptySessionReplay = {
     }
 }
 
+export class AppVersion {
+    name: string;
+    code: string;
+    displayName: string;
+
+    constructor(name: string, code: string) {
+        this.name = name;
+        this.code = code;
+        this.displayName = this.name + ' (' + this.code + ')'
+    }
+}
+
 export const fetchTeamsFromServer = async (router: AppRouterInstance) => {
     const authToken = await getAccessTokenOrRedirectToAuth(router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
@@ -586,7 +598,7 @@ export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, route
     return { status: FiltersApiStatus.Success, data: data }
 }
 
-export const fetchJourneyFromServer = async (appId: string, startDate: string, endDate: string, appVersion: string, router: AppRouterInstance) => {
+export const fetchJourneyFromServer = async (appId: string, startDate: string, endDate: string, appVersion: AppVersion, router: AppRouterInstance) => {
     const authToken = await getAccessTokenOrRedirectToAuth(router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
@@ -597,7 +609,7 @@ export const fetchJourneyFromServer = async (appId: string, startDate: string, e
 
     const serverFormattedStartDate = new Date(startDate).toISOString()
     const serverFormattedEndDate = new Date(endDate).toISOString()
-    const res = await fetch(`${origin}/apps/${appId}/journey?version=${appVersion}&from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`, opts);
+    const res = await fetch(`${origin}/apps/${appId}/journey?version=${appVersion.name}&version_code=${appVersion.code}&from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`, opts);
 
     if (!res.ok) {
         logoutIfAuthError(router, res)
@@ -609,7 +621,7 @@ export const fetchJourneyFromServer = async (appId: string, startDate: string, e
     return { status: JourneyApiStatus.Success, data: data }
 }
 
-export const fetchMetricsFromServer = async (appId: string, startDate: string, endDate: string, appVersion: string, router: AppRouterInstance) => {
+export const fetchMetricsFromServer = async (appId: string, startDate: string, endDate: string, appVersion: AppVersion, router: AppRouterInstance) => {
     const authToken = await getAccessTokenOrRedirectToAuth(router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
@@ -620,7 +632,7 @@ export const fetchMetricsFromServer = async (appId: string, startDate: string, e
 
     const serverFormattedStartDate = new Date(startDate).toISOString()
     const serverFormattedEndDate = new Date(endDate).toISOString()
-    const res = await fetch(`${origin}/apps/${appId}/metrics?version=${appVersion}&from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`, opts);
+    const res = await fetch(`${origin}/apps/${appId}/metrics?version=${appVersion.name}&version_code=${appVersion.code}&from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`, opts);
 
     if (!res.ok) {
         logoutIfAuthError(router, res)
@@ -632,7 +644,7 @@ export const fetchMetricsFromServer = async (appId: string, startDate: string, e
     return { status: MetricsApiStatus.Success, data: data }
 }
 
-export const fetchCrashOrAnrGroupsFromServer = async (crashOrAnrType: CrashOrAnrType, appId: string, startDate: string, endDate: string, appVersions: string[], keyId: string | null, limit: number, router: AppRouterInstance) => {
+export const fetchCrashOrAnrGroupsFromServer = async (crashOrAnrType: CrashOrAnrType, appId: string, startDate: string, endDate: string, appVersions: AppVersion[], keyId: string | null, limit: number, router: AppRouterInstance) => {
     const authToken = await getAccessTokenOrRedirectToAuth(router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
@@ -653,7 +665,8 @@ export const fetchCrashOrAnrGroupsFromServer = async (crashOrAnrType: CrashOrAnr
 
     // Append versions if present
     if (appVersions.length > 0) {
-        url = url + `&versions=${Array.from(appVersions).join(',')}`
+        url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
+        url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
     }
 
     // Append keyId if present
@@ -674,7 +687,7 @@ export const fetchCrashOrAnrGroupsFromServer = async (crashOrAnrType: CrashOrAnr
 
 }
 
-export const fetchCrashOrAnrGroupDetailsFromServer = async (crashOrAnrType: CrashOrAnrType, appId: string, crashOrAnrGroupId: string, startDate: string, endDate: string, appVersions: string[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], keyId: string | null, keyTimestamp: string | null, limit: number, router: AppRouterInstance) => {
+export const fetchCrashOrAnrGroupDetailsFromServer = async (crashOrAnrType: CrashOrAnrType, appId: string, crashOrAnrGroupId: string, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], keyId: string | null, keyTimestamp: string | null, limit: number, router: AppRouterInstance) => {
     const authToken = await getAccessTokenOrRedirectToAuth(router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
@@ -695,7 +708,8 @@ export const fetchCrashOrAnrGroupDetailsFromServer = async (crashOrAnrType: Cras
 
     // Append versions if present
     if (appVersions.length > 0) {
-        url = url + `&versions=${Array.from(appVersions).join(',')}`
+        url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
+        url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
     }
 
     // Append countries if present

@@ -7,11 +7,12 @@ import ExceptionCountChart from "@/app/components/exception_count_chart";
 import FilterPill from "@/app/components/filter_pill";
 import UserFlowCrashOrAnrGroupDetails from "@/app/components/user_flow_crash_details";
 import Link from "next/link";
-import { AppsApiStatus, CrashOrAnrGroupDetailsApiStatus, CrashOrAnrType, FiltersApiStatus, emptyApp, emptyCrashGroupDetailsResponse, emptyAnrGroupDetailsResponse, fetchAppsFromServer, fetchCrashOrAnrGroupDetailsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
+import { AppsApiStatus, CrashOrAnrGroupDetailsApiStatus, CrashOrAnrType, FiltersApiStatus, emptyApp, emptyCrashGroupDetailsResponse, emptyAnrGroupDetailsResponse, fetchAppsFromServer, fetchCrashOrAnrGroupDetailsFromServer, fetchFiltersFromServer, AppVersion } from '@/app/api/api_calls';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import { updateDateQueryParams } from '../utils/router_utils';
 import { formatDateToHumanReadable, formatTimeToHumanReadable } from '../utils/time_utils';
+import AppVersionCheckboxDropdown from './app_version_checkbox_dropdown';
 
 interface CrashOrAnrGroupDetailsProps {
   crashOrAnrType: CrashOrAnrType,
@@ -29,8 +30,8 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
   const [filtersApiStatus, setFiltersApiStatus] = useState(FiltersApiStatus.Loading);
   const [crashOrAnrGroupDetailsApiStatus, setCrashOrAnrGroupDetailsApiStatus] = useState(CrashOrAnrGroupDetailsApiStatus.Loading);
 
-  const [versions, setVersions] = useState([] as string[]);
-  const [selectedVersions, setSelectedVersions] = useState([] as string[]);
+  const [versions, setVersions] = useState([] as AppVersion[]);
+  const [selectedVersions, setSelectedVersions] = useState([] as AppVersion[]);
 
   const [selectedApp, setSelectedApp] = useState(emptyApp);
 
@@ -117,8 +118,9 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
       case FiltersApiStatus.Success:
         setFiltersApiStatus(FiltersApiStatus.Success)
 
-        setVersions(result.data.versions)
-        setSelectedVersions(result.data.versions)
+        let versions = result.data.versions.map((v: { name: string; code: string; }) => new AppVersion(v.name, v.code))
+        setVersions(versions)
+        setSelectedVersions(versions)
 
         if (result.data.countries !== null) {
           setCountries(result.data.countries)
@@ -222,7 +224,7 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
               <p className="font-display px-2">to</p>
               <input type="date" defaultValue={endDate} min={startDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
             </div>
-            <CheckboxDropdown title="App versions" items={versions} initialSelectedItems={versions} onChangeSelectedItems={(items) => setSelectedVersions(items)} />
+            <AppVersionCheckboxDropdown title="App versions" items={versions} initialSelectedItems={selectedVersions} onChangeSelectedItems={(items) => setSelectedVersions(items)} />
             {countries.length > 0 && <CheckboxDropdown title="Country" items={countries} initialSelectedItems={countries} onChangeSelectedItems={(items) => setSelectedCountries(items)} />}
             {networkProviders.length > 0 && <CheckboxDropdown title="Network Provider" items={networkProviders} initialSelectedItems={networkProviders} onChangeSelectedItems={(items) => setSelectedNetworkProviders(items)} />}
             {networkTypes.length > 0 && <CheckboxDropdown title="Network type" items={networkTypes} initialSelectedItems={networkTypes} onChangeSelectedItems={(items) => setSelectedNetworkTypes(items)} />}
@@ -234,7 +236,7 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
           <div className="py-4" />
           <div className="flex flex-wrap gap-2 items-center w-5/6">
             <FilterPill title={`${formattedStartDate} to ${formattedEndDate}`} />
-            {selectedVersions.length > 0 && <FilterPill title={Array.from(selectedVersions).join(', ')} />}
+            {selectedVersions.length > 0 && <FilterPill title={Array.from(selectedVersions).map((v) => v.displayName).join(', ')} />}
             {selectedCountries.length > 0 && <FilterPill title={Array.from(selectedCountries).join(', ')} />}
             {selectedNetworkProviders.length > 0 && <FilterPill title={Array.from(selectedNetworkProviders).join(', ')} />}
             {selectedNetworkTypes.length > 0 && <FilterPill title={Array.from(selectedNetworkTypes).join(', ')} />}

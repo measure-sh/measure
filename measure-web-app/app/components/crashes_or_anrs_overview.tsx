@@ -8,10 +8,11 @@ import FilterPill from "@/app/components/filter_pill";
 import Link from "next/link";
 import { useRouter, useSearchParams } from 'next/navigation';
 import CreateApp from '@/app/components/create_app';
-import { AppsApiStatus, CrashOrAnrGroupsApiStatus, CrashOrAnrType, FiltersApiStatus, emptyApp, emptyCrashOrAnrGroupsResponse, fetchAppsFromServer, fetchCrashOrAnrGroupsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
+import { AppVersion, AppsApiStatus, CrashOrAnrGroupsApiStatus, CrashOrAnrType, FiltersApiStatus, emptyApp, emptyCrashOrAnrGroupsResponse, fetchAppsFromServer, fetchCrashOrAnrGroupsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import { updateDateQueryParams } from '../utils/router_utils';
 import { formatDateToHumanReadable } from '../utils/time_utils';
+import AppVersionCheckboxDropdown from './app_version_checkbox_dropdown';
 
 interface CrashOrAnrsOverviewProps {
   crashOrAnrType: CrashOrAnrType,
@@ -34,8 +35,8 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
   const [paginationRange, setPaginationRange] = useState({ start: 1, end: paginationOffset })
   const [paginationDirection, setPaginationDirection] = useState(PaginationDirection.None)
 
-  const [versions, setVersions] = useState([] as string[]);
-  const [selectedVersions, setSelectedVersions] = useState([] as string[]);
+  const [versions, setVersions] = useState([] as AppVersion[]);
+  const [selectedVersions, setSelectedVersions] = useState([] as AppVersion[]);
 
   const today = new Date();
   var initialEndDate = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
@@ -95,8 +96,9 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
         break
       case FiltersApiStatus.Success:
         setFiltersApiStatus(FiltersApiStatus.Success)
-        setVersions(result.data.versions)
-        setSelectedVersions(result.data.versions)
+        let versions = result.data.versions.map((v: { name: string; code: string; }) => new AppVersion(v.name, v.code))
+        setVersions(versions)
+        setSelectedVersions(versions)
         break
     }
   }
@@ -174,14 +176,14 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
                 <p className="font-display px-2">to</p>
                 <input type="date" defaultValue={endDate} min={startDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
               </div>}
-            {filtersApiStatus === FiltersApiStatus.Success && <CheckboxDropdown title="App versions" items={versions} initialSelectedItems={versions} onChangeSelectedItems={(items) => setSelectedVersions(items)} />}
+            {filtersApiStatus === FiltersApiStatus.Success && <AppVersionCheckboxDropdown title="App versions" items={versions} initialSelectedItems={selectedVersions} onChangeSelectedItems={(items) => setSelectedVersions(items)} />}
           </div>
           <div className="py-4" />
           {filtersApiStatus === FiltersApiStatus.Success &&
             <div className="flex flex-wrap gap-2 items-center w-5/6">
               <FilterPill title={selectedApp.name} />
               <FilterPill title={`${formattedStartDate} to ${formattedEndDate}`} />
-              {selectedVersions.length > 0 && <FilterPill title={Array.from(selectedVersions).join(', ')} />}
+              {selectedVersions.length > 0 && <FilterPill title={Array.from(selectedVersions).map((v) => v.displayName).join(', ')} />}
             </div>}
           <div className="py-4" />
         </div>}
