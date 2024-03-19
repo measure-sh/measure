@@ -44,7 +44,7 @@ export default function Session({ params }: { params: { appId: string, sessionId
 
       {sessionReplayApiStatus === SessionReplayApiStatus.Success &&
         <div>
-          <p className="font-sans"> Duration: {formatMillisToHumanReadable(new Date(sessionReplay.duration).getMilliseconds())}</p>
+          <p className="font-sans"> Duration: {formatMillisToHumanReadable(sessionReplay.duration as unknown as number)}</p>
           <p className="font-sans"> Device: {sessionReplay.resource.device_manufacturer + sessionReplay.resource.device_model}</p>
           <p className="font-sans"> App version: {sessionReplay.resource.app_version}</p>
           <p className="font-sans"> Network type: {sessionReplay.resource.network_type}</p>

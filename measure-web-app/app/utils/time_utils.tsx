@@ -17,11 +17,11 @@ export function formatMillisToHumanReadable(millis: number) {
   millis %= millisecondsPerSecond;
 
   let output = '';
-  if (days > 0) output += `${days} d, `;
-  if (hours > 0) output += `${hours} h, `;
-  if (minutes > 0) output += `${minutes} min, `;
-  if (seconds > 0) output += `${seconds} s, `;
-  if (millis > 0) output += `${millis} ms`;
+  if (days > 0) output += `${days}d, `;
+  if (hours > 0) output += `${hours}h, `;
+  if (minutes > 0) output += `${minutes}min, `;
+  if (seconds > 0) output += `${seconds}s, `;
+  if (millis > 0) output += `${millis}ms`;
 
   return output.trim().replace(/, $/, ''); // Remove trailing comma if any
 }
