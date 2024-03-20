@@ -1,4 +1,4 @@
-# Feature - Crash Tracking
+# Feature - ANR Tracking
 
 ANRs can occur due
 to [various reasons](https://developer.android.com/topic/performance/anrs/diagnose-and-fix-anrs#input-dispatch-common-causes).
