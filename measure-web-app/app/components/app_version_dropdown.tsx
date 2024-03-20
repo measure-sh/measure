@@ -78,7 +78,7 @@ const AppVersionDropdown: React.FC<AppVersionDropdownProps> = ({ items, initialS
               <button
                 key={item.displayName}
                 onClick={() => selectItem(item)}
-                className="block w-full px-2 py-2 text-white bg-neutral-950 hover:text-black font-display text-left hover:bg-yellow-200 active:bg-yellow-300 outline-none focus:bg-yellow-200"
+                className="block w-full px-2 py-2 truncate text-white bg-neutral-950 hover:text-black font-display text-left hover:bg-yellow-200 active:bg-yellow-300 outline-none focus:bg-yellow-200"
                 role="menuitem"
               >
                 {item.displayName}

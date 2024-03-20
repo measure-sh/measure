@@ -86,7 +86,7 @@ const AppVersionCheckboxDropdown: React.FC<AppVersionCheckboxDropdownProps> = ({
             aria-labelledby="options-menu"
           >
             {items.map((item) => (
-              <div key={item.displayName} className="px-2 py-2 bg-neutral-950 text-white hover:text-black hover:bg-yellow-200 font-display text-left">
+              <div key={item.displayName} className="px-2 py-2 bg-neutral-950 truncate text-white hover:text-black hover:bg-yellow-200 font-display text-left">
                 <input
                   type="checkbox"
                   className="appearance-none border-white rounded-sm font-display bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:ring-1 checked:ring-white"
