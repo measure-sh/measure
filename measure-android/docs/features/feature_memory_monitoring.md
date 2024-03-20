@@ -1,37 +1,68 @@
 # Feature - Memory Monitoring
 
-Measure SDK provides multiple signals to monitor memory usage of your app. You can use these signals
-to understand how your app is using memory and how it's memory usage changes over time. Note that
-Memory usage is only collected when the app is visible to the user.
+Measure SDK captures the following to help monitor memory:
 
-## Events
+1. [Memory usage over time](#memory-usage-over-time)
+2. [Trim memory](#trim-memory)
+3. [Low memory](#low-memory)
 
-### Event name: `memory_usage`
+## Memory usage over time
 
-Measure collects the following metrics at regular intervals (defaults to 1000 ms):
+### How it works
 
-| Property          | Description                                                                                                                                                                  |
-|-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| java_max_heap     | Maximum size of the Java heap allocated to the application. Calculated using `Runtime.getRuntime().maxMemory()`. Measured in kB.                                             |
-| java_total_heap   | Total size of the Java heap available for memory allocation. Calculated using `Runtime.getRuntime().totalMemory()`. Measured in kB.                                          |
-| java_free_heap    | Amount of free memory available in the Java heap. Calculated using `Runtime.getRuntime().freeMemory()`. Measured in kB.                                                      |                                                              
-| total_pss         | Total proportional set size - the amount of memory used by the process, including shared memory and code. Calculated using `Debug.getMemoryInfo().totalPss`. Measured in kB. |
-| rss               | Resident set size of the Java process - the amount of physical memory currently used by the Java application. Calculated from `/proc/$pid/statm`. Measured in kB.            |
-| native_total_heap | Total size of the native heap (memory outside of Java's control) available for memory allocation. Calculated using `Debug.getNativeHeapSize()`. Measured in kB.              |
-| native_free_heap  | Amount of free memory available in the native heap. Calculated using `Debug.getNativeHeapFreeSize()`. Measured in kB.                                                        |
-| interval_config   | The interval between two consecutive readings. Measured in ms. Defaults to 1000ms.                                                                                           |
+A worker thread reads the following properties every 2 seconds and reports them to Measure:
 
-### Event name: `low_memory`
+* **Max heap size** - collected
+  using [Runtime.maxMemory](https://developer.android.com/reference/java/lang/Runtime#maxMemory()).
+* **Total heap size** - collected
+  using [Runtime.totalMemory](https://developer.android.com/reference/java/lang/Runtime#totalMemory()).
+  using [Runtime.freeMemory](https://developer.android.com/reference/java/lang/Runtime#freeMemory()).
+* **RSS (Resident set size)** - collected by reading
+  the [proc/pid/statm](https://man7.org/linux/man-pages/man5/proc.5.html) file.
+* **Total PSS (Proportional set size)** - collected
+  using [Debug.getMemoryInfo](https://developer.android.com/reference/android/os/Debug#getMemoryInfo(android.os.Debug.MemoryInfo)).
+* **Native total heap size** - collected
+  using [Debug.getNativeHeapSize](https://developer.android.com/reference/android/os/Debug#getNativeHeapSize()).
+* **Native free heap size** - collected
+  using [Debug.getNativeFreeHeapSize](https://developer.android.com/reference/android/os/Debug#getNativeHeapFreeSize()).
 
-This event is triggered when the system is running low on memory. Collected when `ComponentCallbacks2.onLowMemory()`
-callback is triggered for the application. There are no other properties collected for this event.
+### Data collected
 
-### Event name: `trim_memory`
+Checkout all the data collected for memory usage in
+the [Memory Usage Event](../../../docs/api/sdk/README.md#memoryusage) section.
 
-Called when the operating system determines that it is a good time for a process to trim unneeded memory from its
-process.
+## Trim memory
 
-| Property | Description                                                                                                                                                                                                                                         |
-|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| level    | The level of trimming requested. One of the following: `TRIM_MEMORY_COMPLETE`, `TRIM_MEMORY_MODERATE`, `TRIM_MEMORY_BACKGROUND`, `TRIM_MEMORY_UI_HIDDEN`, `TRIM_MEMORY_RUNNING_CRITICAL`, `TRIM_MEMORY_RUNNING_LOW`, `TRIM_MEMORY_RUNNING_MODERATE` |
+### How it works
 
+Measure tracks
+all [trim memory](https://developer.android.com/reference/android/content/ComponentCallbacks2#onTrimMemory(int))
+triggered by the OS, along with the trim level. Trim memory and the level reported can provide clues about memory
+availability.
+
+### Data collected
+
+Checkout all the data collected for trim memory in the [Trim Memory Event](../../../docs/api/sdk/README.md#trimmemory)
+section.
+
+## Low memory
+
+### How it works
+
+Measure tracks
+all [low memory](https://developer.android.com/reference/android/content/ComponentCallbacks#onLowMemory()) events
+triggered by the OS. This event can be triggered when the overall system is running low on memory,
+and actively running processes should trim their memory usage.
+
+While, this event can be triggered because of the overall memory health of the system. It is useful to track areas where
+your app might be consistently running into low memory situations to optimize.
+
+### Data collected
+
+Checkout all the data collected for low memory in the [Low Memory Event](../../../docs/api/sdk/README.md#lowmemory)
+section.
+
+
+> [!NOTE]  
+> Low memory event is being considered to be removed as it does not provide any additional value than trim memory event.
+> The progress on this can be tracked [here](https://github.com/measure-sh/measure/issues/560).
