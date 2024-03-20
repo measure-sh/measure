@@ -127,7 +127,25 @@ export default function SessionReplayEventAccordion({
     }
 
     return eventType
+  }
 
+  function getBodyFromEventDetails(eventDetails: any): string {
+    const entries = Object.entries(eventDetails);
+    return entries.map(([key, value]): string => {
+      if (typeof value === 'object' && value !== null) {
+        if (Object.keys(value).length === 0) {
+          return `${key}: --`;
+        } else {
+          return `${key}: ${getBodyFromEventDetails(value)}`;
+        }
+      } else if (value === '') {
+        return `${key}: --`;
+      } else if (key === 'stacktrace') {
+        return `${key}: \n\t${(value as string).replace(/\n/g, '\n\t')}`;
+      } else {
+        return `${key}: ${value}`;
+      }
+    }).join('\n');
   }
 
   return (
@@ -153,7 +171,7 @@ export default function SessionReplayEventAccordion({
       >
         <div className="overflow-hidden">
           <p className="whitespace-pre-wrap p-4 text-white">
-            {JSON.stringify(eventDetails, null, 2)}
+            {getBodyFromEventDetails(eventDetails)}
           </p>
         </div>
       </div>
