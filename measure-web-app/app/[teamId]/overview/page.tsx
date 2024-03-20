@@ -67,6 +67,11 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   }, []);
 
   const getFilters = async () => {
+    // Don't try to fetch filters if app id is not yet set
+    if (selectedApp.id === "") {
+      return
+    }
+
     setFiltersApiStatus(FiltersApiStatus.Loading)
 
     const result = await fetchFiltersFromServer(selectedApp, router)

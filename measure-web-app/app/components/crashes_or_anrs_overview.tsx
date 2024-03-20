@@ -80,6 +80,11 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
   }, []);
 
   const getFilters = async () => {
+    // Don't try to fetch filters if app id is not yet set
+    if (selectedApp.id === "") {
+      return
+    }
+
     setFiltersApiStatus(FiltersApiStatus.Loading)
 
     const result = await fetchFiltersFromServer(selectedApp, router)
@@ -108,6 +113,11 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
   }, [selectedApp]);
 
   const getCrashOrAnrGroups = async () => {
+    // Don't try to fetch crashes or ANRs if app id is not yet set
+    if (selectedApp.id === "") {
+      return
+    }
+
     setCrashOrAnrGroupsApiStatus(CrashOrAnrGroupsApiStatus.Loading)
 
     // Set key id if user has paginated. Last index of current list if forward navigation, first index if backward
