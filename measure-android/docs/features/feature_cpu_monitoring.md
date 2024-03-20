@@ -1,31 +1,34 @@
 # Feature - CPU Monitoring
 
-Measure SDK captures cpu usage periodically (defaults to 3 seconds). Note that CPU usage is only
-collected when the app is visible to the user.
+Measure SDK captures CPU usage periodically (defaults to 3 seconds) when the app is in foreground.
 
-## Event
+## How it works
 
-### Event name: `cpu_usage`
+To calculate the CPU usage, two sets of information are required:
 
-| Property          | Description                                                    |
-|-------------------|----------------------------------------------------------------|
-| `num_cores`       | Number of cores in the device.                                 |
-| `clock_speed`     | Clock speed of the device. Measured in Hz.                     |
-| `uptime`          | Time since the device booted. Measured in ms.                  |
-| `utime`           | Time spent executing code in user mode. Measured in Jiffies.   |
-| `stime`           | Time spent executing code in kernel mode. Measured in Jiffies. |
-| `cutime`          | Time spent executing code in user mode with children.          |
-| `cstime`          | Time spent executing code in kernel mode with children.        |
-| `interval_config` | The interval between two collections.                          |
-| `start_time`      | The process start time. Measured in Jiffies.                   |
+1. The CPU specification: The number of cores and the maximum frequency of each core. Number of cores are read from
+   `Os.sysconf(OsConstants._SC_NPROCESSORS_CONF)` and the maximum frequency is read
+   from `Os.sysconf(OsConstants._SC_CLK_TCK)`.
+2. CPU time: The time spent by the CPU in executing instructions for an app. This information is read
+   from `/proc/self/stat` file which is written to by the OS.
 
-Calculated using:
+The [/proc/self/stat](https://man7.org/linux/man-pages/man5/proc.5.html) file contains a number of metrics out of which
+we are interested only in the following:
 
-* **num_cores** - Read from `Os.sysconf(_SC_NPROCESSORS_CONF)`.
-* **clock_speed_hz** - Read from `Os.sysconf(_SC_CLK_TCK)`.
-* **uptime** - Read from `SystemClock.elapsedRealtime()`
-* **utime** - Read from `/proc/$pid/stat`.
-* **stime** - Read from `/proc/$pid/stat`.
-* **cutime** - Read from `/proc/$pid/stat`.
-* **cstime** - Read from `/proc/$pid/stat`.
-* **start_time** - Read from `/proc/$pid/stat`.
+1. utime - Amount of time that this process has been scheduled in user mode (this is where most of the application code
+   runs), measured in clock ticks.
+2. stime - Amount of time that this process has been scheduled in kernel mode (this is where most system processes run),
+   measured in clock ticks.
+3. cutime - Amount of time that this process's waited-for children have been scheduled in user mode, measured in clock
+   ticks.
+4. cstime - Amount of time that this process's waited-for children have been scheduled in kernel mode, measured in clock
+   ticks.
+
+The total time spent by the application in a given interval is calculated using:
+
+$\frac{{utime + stime + cutime + cstime}}{{clock\ speed \times interval \times number\ of\ cores}}$
+
+## Data collected
+
+Checkout the data collected by Measure each time the `proc/self/stat` file is read in
+the [CPU Usage](../../../docs/api/sdk/README.md#cpuusage) section.
