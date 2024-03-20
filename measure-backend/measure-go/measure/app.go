@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"measure-backend/measure-go/event"
+	"measure-backend/measure-go/metrics"
 	"measure-backend/measure-go/replay"
 	"measure-backend/measure-go/server"
 
@@ -192,6 +193,159 @@ func (a App) GetANRGroups(af *AppFilter) ([]ANRGroup, error) {
 	}
 
 	return groups, nil
+}
+
+func (a App) GetSizeMetrics(af *AppFilter) (size *metrics.SizeMetric, err error) {
+	size = &metrics.SizeMetric{}
+	stmt := sqlf.Select("count(id) as count").
+		From("default.events").
+		Where("app_id = ?", nil).
+		Where("`resource.app_version` = ? and `resource.app_build` = ?", nil, nil).
+		Where("timestamp >= ? and timestamp <= ?", nil, nil)
+
+	defer stmt.Close()
+
+	args := []any{a.ID, af.Versions[0], af.VersionCodes[0], af.From, af.To}
+	var count uint64
+
+	ctx := context.Background()
+	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), args...).Scan(&count); err != nil {
+		return nil, err
+	}
+
+	// no events for selected conditions found
+	if count < 1 {
+		return nil, nil
+	}
+
+	sizeStmt := sqlf.PostgreSQL.
+		With("avg_size",
+			sqlf.PostgreSQL.From("public.build_sizes").
+				Select("round(avg(build_size), 2) as average_size").
+				Where("app_id = ?", nil)).
+		Select("t1.average_size as average_app_size").
+		Select("t2.build_size as selected_app_size").
+		From("avg_size as t1, public.build_sizes as t2").
+		Where("app_id = ?", nil).
+		Where("version_name = ?", nil).
+		Where("version_code = ?", nil)
+
+	defer sizeStmt.Close()
+
+	fmt.Println("size stmt", sizeStmt.String())
+
+	args = []any{a.ID, a.ID, af.Versions[0], af.VersionCodes[0]}
+
+	ctx = context.Background()
+	if err := server.Server.PgPool.QueryRow(ctx, sizeStmt.String(), args...).Scan(&size.AverageAppSize, &size.SelectedAppSize); err != nil {
+		return nil, err
+	}
+
+	size.Delta = float64(size.SelectedAppSize) - size.AverageAppSize
+
+	return
+}
+
+func (a App) GetAdoptionMetrics(af *AppFilter) (adoption *metrics.AdoptionMetric, err error) {
+	adoption = &metrics.AdoptionMetric{}
+	stmt := sqlf.From("default.events").
+		With("all_sessions",
+			sqlf.From("default.events").
+				Select("session_id, resource.app_version, resource.app_build").
+				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, nil, nil, nil)).
+		With("all_versions",
+			sqlf.From("all_sessions").
+				Select("count(distinct session_id) as all_app_versions")).
+		With("selected_version",
+			sqlf.From("all_sessions").
+				Select("count(distinct session_id) as selected_app_version").
+				Where("`resource.app_version` = ? and `resource.app_build` = ?", nil, nil)).
+		Select("t1.all_app_versions as all_app_versions", nil).
+		Select("t2.selected_app_version as selected_app_version", nil).
+		Select("round((t2.selected_app_version/t1.all_app_versions) * 100, 2) as adoption").
+		From("all_versions as t1, selected_version as t2")
+
+	defer stmt.Close()
+
+	args := []any{a.ID, af.From, af.To, af.Versions[0], af.VersionCodes[0]}
+
+	ctx := context.Background()
+
+	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), args...).Scan(&adoption.AllAppVersions, &adoption.SelectedAppVersion, &adoption.Adoption); err != nil {
+		return nil, err
+	}
+
+	return
+}
+
+func (a App) GetLaunchMetrics(af *AppFilter) (events []event.EventField, err error) {
+	stmt := sqlf.
+		Select("cold_launch.process_start_uptime", nil).
+		Select("cold_launch.process_start_requested_uptime", nil).
+		Select("cold_launch.content_provider_attach_uptime", nil).
+		Select("cold_launch.on_next_draw_uptime", nil).
+		Select("warm_launch.app_visible_uptime", nil).
+		Select("warm_launch.on_next_draw_uptime", nil).
+		Select("hot_launch.app_visible_uptime", nil).
+		Select("hot_launch.on_next_draw_uptime", nil).
+		From("default.events").
+		Where("app_id = ?", nil).
+		Where("type='cold_launch' or type='warm_launch' or type='hot_launch'")
+
+	defer stmt.Close()
+
+	args := []any{a.ID}
+
+	if af != nil {
+		if af.hasTimeRange() {
+			stmt.Where("timestamp >= ? and timestamp <= ?", nil, nil)
+			args = append(args, af.From, af.To)
+		}
+
+		if len(af.Versions) > 0 {
+			stmt.Where("`resource.app_version` in (?)", nil)
+			args = append(args, af.Versions)
+		}
+
+		if len(af.VersionCodes) > 0 {
+			stmt.Where("`resource.app_build` in (?)", nil)
+			args = append(args, af.VersionCodes)
+		}
+	}
+
+	ctx := context.Background()
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), args...)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var coldLaunch event.ColdLaunch
+		var warmLaunch event.WarmLaunch
+		var hotLaunch event.HotLaunch
+
+		dest := []any{
+			&coldLaunch.ProcessStartUptime,
+			&coldLaunch.ProcessStartRequestedUptime,
+			&coldLaunch.ContentProviderAttachUptime,
+			&coldLaunch.OnNextDrawUptime,
+			&warmLaunch.AppVisibleUptime,
+			&warmLaunch.OnNextDrawUptime,
+			&hotLaunch.AppVisibleUptime,
+			&hotLaunch.OnNextDrawUptime,
+		}
+
+		if err := rows.Scan(dest...); err != nil {
+			return nil, err
+		}
+
+		event := event.EventField{}
+		event.ColdLaunch = coldLaunch
+
+		events = append(events, event)
+	}
+
+	return
 }
 
 func NewApp(teamId uuid.UUID) *App {
@@ -1015,6 +1169,8 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
+	af.expand()
+
 	if err := af.validate(); err != nil {
 		msg := "app journey request validation failed"
 		fmt.Println(msg, err)
@@ -1022,10 +1178,61 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
+	fmt.Println("versions", af.Versions)
+	fmt.Println("version codes", af.VersionCodes)
+
 	if !af.hasTimeRange() {
 		af.setDefaultTimeRange()
 	}
 
+	fmt.Println("from", af.From)
+	fmt.Println("to", af.To)
+
+	if len(af.Versions) < 1 || len(af.VersionCodes) < 1 {
+		msg := `version and version code is missing`
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	app := App{
+		ID: &id,
+	}
+
+	msg := `failed to fetch app metrics`
+
+	start := time.Now()
+	events, err := app.GetLaunchMetrics(&af)
+	if err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	elapsed := time.Since(start)
+	fmt.Println("launch metrics took:", elapsed)
+
+	fmt.Println("events", len(events))
+
+	start = time.Now()
+	adoption, err := app.GetAdoptionMetrics(&af)
+	if err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	elapsed = time.Since(start)
+	fmt.Println("adoption metrics took:", elapsed)
+	fmt.Println("adoption", adoption)
+
+	start = time.Now()
+	sizes, err := app.GetSizeMetrics(&af)
+	if err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	elapsed = time.Since(start)
+	fmt.Println("size metrics took:", elapsed)
+	fmt.Println("size", sizes)
 
 	// fmt.Println("journey request app id", af.AppID)
 	// fmt.Println("journey request from", af.From)
