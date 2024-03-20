@@ -101,6 +101,11 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
   }, []);
 
   const getFilters = async () => {
+    // Don't try to fetch filters if app id is not yet set
+    if (selectedApp.id === "") {
+      return
+    }
+
     setFiltersApiStatus(FiltersApiStatus.Loading)
 
     const result = await fetchFiltersFromServer(selectedApp, router)
@@ -166,6 +171,11 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
   }, [selectedApp]);
 
   const getCrashOrAnrGroupDetails = async () => {
+    // Don't try to fetch crashes or ANR group details if app id is not yet set
+    if (selectedApp.id === "") {
+      return
+    }
+
     setCrashOrAnrGroupDetailsApiStatus(CrashOrAnrGroupDetailsApiStatus.Loading)
 
     // Set key id if user has paginated
@@ -263,7 +273,7 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
           {/* Empty state for crash details fetch */}
           {crashOrAnrGroupDetailsApiStatus === CrashOrAnrGroupDetailsApiStatus.Success && crashOrAnrGroupDetails.results === null && <p className="text-lg font-display">It seems there are no {crashOrAnrType === CrashOrAnrType.Crash ? 'Crashes' : 'ANRs'} for the current combination of filters. Please change filters to try again</p>}
 
-          {(crashOrAnrGroupDetailsApiStatus === CrashOrAnrGroupDetailsApiStatus.Success || crashOrAnrGroupDetailsApiStatus === CrashOrAnrGroupDetailsApiStatus.Loading) && crashOrAnrGroupDetails.results !== null &&
+          {(crashOrAnrGroupDetailsApiStatus === CrashOrAnrGroupDetailsApiStatus.Success || crashOrAnrGroupDetailsApiStatus === CrashOrAnrGroupDetailsApiStatus.Loading) && crashOrAnrGroupDetails.results !== null && crashOrAnrGroupDetails.results.length > 0 &&
             <div>
               <div className="flex flex-col md:flex-row md:items-center w-full">
                 <p className="font-sans text-3xl"> Stack traces</p>
