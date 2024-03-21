@@ -451,72 +451,65 @@ func (a App) GetAdoptionMetrics(af *AppFilter) (adoption *metrics.SessionAdoptio
 	return
 }
 
-func (a App) GetLaunchMetrics(af *AppFilter) (events []event.EventField, err error) {
+func (a App) GetLaunchMetrics(af *AppFilter) (launch *metrics.LaunchMetric, err error) {
+	launch = &metrics.LaunchMetric{}
 	stmt := sqlf.
-		Select("cold_launch.process_start_uptime", nil).
-		Select("cold_launch.process_start_requested_uptime", nil).
-		Select("cold_launch.content_provider_attach_uptime", nil).
-		Select("cold_launch.on_next_draw_uptime", nil).
-		Select("warm_launch.app_visible_uptime", nil).
-		Select("warm_launch.on_next_draw_uptime", nil).
-		Select("hot_launch.app_visible_uptime", nil).
-		Select("hot_launch.on_next_draw_uptime", nil).
-		From("default.events").
-		Where("app_id = ?", nil).
-		Where("type='cold_launch' or type='warm_launch' or type='hot_launch'")
+		With("timings",
+			sqlf.From("default.events").
+				Select("type, cold_launch.duration, warm_launch.duration, hot_launch.duration, resource.app_version, resource.app_build").
+				Where("app_id = ?", nil).
+				Where("timestamp >= ? and timestamp <= ?", nil, nil).
+				Where("(type = 'cold_launch' or type = 'warm_launch' or type = 'hot_launch')")).
+		With("cold",
+			sqlf.From("timings").
+				Select("round(quantile(0.95)(cold_launch.duration), 2) as cold_launch").
+				Where("type = 'cold_launch' and cold_launch.duration > 0")).
+		With("warm",
+			sqlf.From("timings").
+				Select("round(quantile(0.95)(warm_launch.duration), 2) as warm_launch").
+				Where("type = 'warm_launch' and warm_launch.duration > 0")).
+		With("hot",
+			sqlf.From("timings").
+				Select("round(quantile(0.95)(hot_launch.duration), 2) as hot_launch").
+				Where("type = 'hot_launch' and hot_launch.duration > 0")).
+		With("cold_selected",
+			sqlf.From("timings").
+				Select("round(quantile(0.95)(cold_launch.duration), 2) as cold_launch").
+				Where("type = 'cold_launch'").
+				Where("cold_launch.duration > 0").
+				Where("resource.app_version = ? and resource.app_build = ?", nil, nil)).
+		With("warm_selected",
+			sqlf.From("timings").
+				Select("round(quantile(0.95)(warm_launch.duration), 2) as warm_launch").
+				Where("type = 'warm_launch'").
+				Where("warm_launch.duration > 0").
+				Where("resource.app_version = ? and resource.app_build = ?", nil, nil)).
+		With("hot_selected",
+			sqlf.From("timings").
+				Select("round(quantile(0.95)(hot_launch.duration), 2) as hot_launch").
+				Where("type = 'hot_launch'").
+				Where("hot_launch.duration > 0").
+				Where("resource.app_version = ? and resource.app_build = ?", nil, nil)).
+		Select("cold_selected.cold_launch as cold_launch_p95").
+		Select("warm_selected.warm_launch as warm_launch_p95").
+		Select("hot_selected.hot_launch as hot_launch_p95").
+		Select("round(cold_selected.cold_launch - cold.cold_launch, 2) as cold_delta").
+		Select("round(warm_selected.warm_launch - warm.warm_launch, 2) as warm_delta").
+		Select("round(hot_selected.hot_launch - hot.hot_launch, 2) as hot_delta").
+		From("cold, warm, hot, cold_selected, warm_selected, hot_selected")
 
 	defer stmt.Close()
 
-	args := []any{a.ID}
-
-	if af != nil {
-		if af.hasTimeRange() {
-			stmt.Where("timestamp >= ? and timestamp <= ?", nil, nil)
-			args = append(args, af.From, af.To)
-		}
-
-		if len(af.Versions) > 0 {
-			stmt.Where("`resource.app_version` in (?)", nil)
-			args = append(args, af.Versions)
-		}
-
-		if len(af.VersionCodes) > 0 {
-			stmt.Where("`resource.app_build` in (?)", nil)
-			args = append(args, af.VersionCodes)
-		}
-	}
+	version := af.Versions[0]
+	code := af.VersionCodes[0]
+	args := []any{a.ID, af.From, af.To, version, code, version, code, version, code}
 
 	ctx := context.Background()
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), args...)
-	if err != nil {
+	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), args...).Scan(&launch.ColdLaunchP95, &launch.WarmLaunchP95, &launch.HotLaunchP95, &launch.ColdDelta, &launch.WarmDelta, &launch.ColdDelta); err != nil {
 		return nil, err
 	}
 
-	for rows.Next() {
-		var coldLaunch event.ColdLaunch
-		var warmLaunch event.WarmLaunch
-		var hotLaunch event.HotLaunch
-
-		dest := []any{
-			&coldLaunch.ProcessStartUptime,
-			&coldLaunch.ProcessStartRequestedUptime,
-			&coldLaunch.ContentProviderAttachUptime,
-			&coldLaunch.OnNextDrawUptime,
-			&warmLaunch.AppVisibleUptime,
-			&warmLaunch.OnNextDrawUptime,
-			&hotLaunch.AppVisibleUptime,
-			&hotLaunch.OnNextDrawUptime,
-		}
-
-		if err := rows.Scan(dest...); err != nil {
-			return nil, err
-		}
-
-		event := event.EventField{}
-		event.ColdLaunch = coldLaunch
-
-		events = append(events, event)
-	}
+	launch.SetNaNs()
 
 	return
 }
@@ -1381,15 +1374,9 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("versions", af.Versions)
-	fmt.Println("version codes", af.VersionCodes)
-
 	if !af.hasTimeRange() {
 		af.setDefaultTimeRange()
 	}
-
-	fmt.Println("from", af.From)
-	fmt.Println("to", af.To)
 
 	if len(af.Versions) < 1 || len(af.VersionCodes) < 1 {
 		msg := `version and version code is missing`
@@ -1403,14 +1390,12 @@ func GetAppMetrics(c *gin.Context) {
 
 	msg := `failed to fetch app metrics`
 
-	events, err := app.GetLaunchMetrics(&af)
+	launch, err := app.GetLaunchMetrics(&af)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
-
-	fmt.Println("events", len(events))
 
 	adoption, err := app.GetAdoptionMetrics(&af)
 	if err != nil {
@@ -1455,6 +1440,7 @@ func GetAppMetrics(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
+		"launch":                        launch,
 		"adoption":                      adoption,
 		"sizes":                         sizes,
 		"crash_free_sessions":           crashFree,
