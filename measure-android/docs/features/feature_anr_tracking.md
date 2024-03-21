@@ -12,7 +12,7 @@ popular [ANR Watchdog](https://github.com/measure-sh/measure/blob/main/measure-a
 approach to detect ANRs. The ANR Watchdog uses a thread which posts a runnable to the main thread every 5 seconds.
 If the runnable is not executed within 5 seconds, it means the main thread is blocked. We also check
 the [ActivityManager.getProcessesInErrorState]() to ensure the application is in "not responding" state before recording
-the ANR to reducce false positives. The stack trace of all the threads, including main thread, is then sent to the
+the ANR to reduce false positives. The stack trace of all the threads, including main thread, is then sent to the
 Measure server.
 
 In case the stack trace is obfuscated using ProGuard or R8, Measure automatically
