@@ -331,6 +331,50 @@ func (a App) GetANRFreeMetrics(af *AppFilter) (anrFree *metrics.ANRFreeSession, 
 	return
 }
 
+func (a App) GetPerceivedCrashFreeMetrics(af *AppFilter) (crashFree *metrics.PerceivedCrashFreeSesssion, err error) {
+	crashFree = &metrics.PerceivedCrashFreeSesssion{}
+	stmt := sqlf.
+		With("all_sessions",
+			sqlf.From("default.events").
+				Select("session_id, resource.app_version, resource.app_build, type, exception.handled, exception.foreground").
+				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, nil, nil, nil)).
+		With("t1",
+			sqlf.From("all_sessions").
+				Select("count(distinct session_id) as total_sessions_selected").
+				Where("`resource.app_version` = ? and `resource.app_build` = ?", nil, nil)).
+		With("t2",
+			sqlf.From("all_sessions").
+				Select("count(distinct session_id) as count_exception_selected").
+				Where("`type` = 'exception' and `exception.handled` = false and `exception.foreground` = true").
+				Where("`resource.app_version` = ? and `resource.app_build` = ?", nil, nil)).
+		With("t3",
+			sqlf.From("all_sessions").
+				Select("count(distinct session_id) as count_not_exception").
+				Where("`type` != 'exception'")).
+		With("t4",
+			sqlf.From("all_sessions").
+				Select("count(distinct session_id) as count_not_exception_selected").
+				Where("`type` != 'exception'").
+				Where("`resource.app_version` = ? and `resource.app_build` = ?", nil, nil)).
+		Select("round((1 - (t2.count_exception_selected / t1.total_sessions_selected)) * 100, 2) as crash_free_sessions").
+		Select("round(((t4.count_not_exception_selected - t3.count_not_exception) / t3.count_not_exception) * 100, 2) as delta").
+		From("t1, t2, t3, t4")
+
+	defer stmt.Close()
+
+	version := af.Versions[0]
+	code := af.VersionCodes[0]
+
+	args := []any{a.ID, af.From, af.To, version, code, version, code, version, code}
+
+	ctx := context.Background()
+	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), args...).Scan(&crashFree.CrashFreeSessions, &crashFree.Delta); err != nil {
+		return nil, err
+	}
+
+	return
+}
+
 func (a App) GetAdoptionMetrics(af *AppFilter) (adoption *metrics.SessionAdoption, err error) {
 	adoption = &metrics.SessionAdoption{}
 	stmt := sqlf.From("default.events").
