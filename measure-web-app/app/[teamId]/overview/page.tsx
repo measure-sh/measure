@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
-import Dropdown from "@/app/components/dropdown";
 import FilterPill from "@/app/components/filter_pill";
 import Journey from "@/app/components/journey";
 import MetricsOverview from '@/app/components/metrics_overview';
@@ -10,7 +9,7 @@ import CreateApp from '@/app/components/create_app';
 import { AppVersion, AppsApiStatus, FiltersApiStatus, emptyApp, fetchAppsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
 import { updateDateQueryParams } from '@/app/utils/router_utils';
 import { formatDateToHumanReadable } from '@/app/utils/time_utils';
-import AppVersionDropdown from '@/app/components/app_version_dropdown';
+import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select';
 
 export default function Overview({ params }: { params: { teamId: string } }) {
   const router = useRouter()
@@ -118,14 +117,14 @@ export default function Overview({ params }: { params: { teamId: string } }) {
       {appsApiStatus === AppsApiStatus.Success &&
         <div>
           <div className="flex flex-wrap gap-8 items-center">
-            <Dropdown items={apps.map((e) => e.name)} initialSelectedItem={apps[0].name} onChangeSelectedItem={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} />
+            <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={apps.map((e) => e.name)} initialSelected={apps[0].name} onChangeSelected={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} />
             {filtersApiStatus === FiltersApiStatus.Success &&
               <div className="flex flex-row items-center">
                 <input type="date" defaultValue={startDate} max={endDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setStartDate(e.target.value)} />
                 <p className="font-display px-2">to</p>
                 <input type="date" defaultValue={endDate} min={startDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
               </div>}
-            {filtersApiStatus === FiltersApiStatus.Success && <AppVersionDropdown items={versions} initialSelectedItem={selectedVersion} onChangeSelectedItem={(item) => setSelectedVersion(item)} />}
+            {filtersApiStatus === FiltersApiStatus.Success && <DropdownSelect title="App Version" type={DropdownSelectType.SingleAppVersion} items={versions} initialSelected={selectedVersion} onChangeSelected={(item) => setSelectedVersion(item as AppVersion)} />}
           </div>
           <div className="py-4" />
 

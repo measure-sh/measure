@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Accordion from "@/app/components/accordion";
-import CheckboxDropdown from "@/app/components/checkbox_dropdown";
 import ExceptionCountChart from "@/app/components/exception_count_chart";
 import FilterPill from "@/app/components/filter_pill";
 import UserFlowCrashOrAnrGroupDetails from "@/app/components/user_flow_crash_details";
@@ -12,7 +11,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import { updateDateQueryParams } from '../utils/router_utils';
 import { formatDateToHumanReadable, formatTimeToHumanReadable } from '../utils/time_utils';
-import AppVersionCheckboxDropdown from './app_version_checkbox_dropdown';
+import DropdownSelect, { DropdownSelectType } from './dropdown_select';
 
 interface CrashOrAnrGroupDetailsProps {
   crashOrAnrType: CrashOrAnrType,
@@ -234,14 +233,14 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
               <p className="font-display px-2">to</p>
               <input type="date" defaultValue={endDate} min={startDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
             </div>
-            <AppVersionCheckboxDropdown title="App versions" items={versions} initialSelectedItems={selectedVersions} onChangeSelectedItems={(items) => setSelectedVersions(items)} />
-            {countries.length > 0 && <CheckboxDropdown title="Country" items={countries} initialSelectedItems={countries} onChangeSelectedItems={(items) => setSelectedCountries(items)} />}
-            {networkProviders.length > 0 && <CheckboxDropdown title="Network Provider" items={networkProviders} initialSelectedItems={networkProviders} onChangeSelectedItems={(items) => setSelectedNetworkProviders(items)} />}
-            {networkTypes.length > 0 && <CheckboxDropdown title="Network type" items={networkTypes} initialSelectedItems={networkTypes} onChangeSelectedItems={(items) => setSelectedNetworkTypes(items)} />}
-            {networkGenerations.length > 0 && <CheckboxDropdown title="Network generation" items={networkGenerations} initialSelectedItems={networkGenerations} onChangeSelectedItems={(items) => setSelectedNetworkGenerations(items)} />}
-            {locales.length > 0 && <CheckboxDropdown title="Locale" items={locales} initialSelectedItems={locales} onChangeSelectedItems={(items) => setSelectedLocales(items)} />}
-            {deviceManufacturers.length > 0 && <CheckboxDropdown title="Device Manufacturer" items={deviceManufacturers} initialSelectedItems={deviceManufacturers} onChangeSelectedItems={(items) => setSelectedDeviceManufacturers(items)} />}
-            {deviceNames.length > 0 && <CheckboxDropdown title="Device Name" items={deviceNames} initialSelectedItems={deviceNames} onChangeSelectedItems={(items) => setSelectedDeviceNames(items)} />}
+            <DropdownSelect title="App versions" type={DropdownSelectType.MultiAppVersion} items={versions} initialSelected={selectedVersions} onChangeSelected={(items) => setSelectedVersions(items as AppVersion[])} />
+            {countries.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Country" items={countries} initialSelected={countries} onChangeSelected={(items) => setSelectedCountries(items as string[])} />}
+            {networkProviders.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Network Provider" items={networkProviders} initialSelected={networkProviders} onChangeSelected={(items) => setSelectedNetworkProviders(items as string[])} />}
+            {networkTypes.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Network type" items={networkTypes} initialSelected={networkTypes} onChangeSelected={(items) => setSelectedNetworkTypes(items as string[])} />}
+            {networkGenerations.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Network generation" items={networkGenerations} initialSelected={networkGenerations} onChangeSelected={(items) => setSelectedNetworkGenerations(items as string[])} />}
+            {locales.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Locale" items={locales} initialSelected={locales} onChangeSelected={(items) => setSelectedLocales(items as string[])} />}
+            {deviceManufacturers.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Device Manufacturer" items={deviceManufacturers} initialSelected={deviceManufacturers} onChangeSelected={(items) => setSelectedDeviceManufacturers(items as string[])} />}
+            {deviceNames.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Device Name" items={deviceNames} initialSelected={deviceNames} onChangeSelected={(items) => setSelectedDeviceNames(items as string[])} />}
           </div>
           <div className="py-4" />
           <div className="flex flex-wrap gap-2 items-center w-5/6">
