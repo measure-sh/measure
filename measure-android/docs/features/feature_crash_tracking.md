@@ -19,5 +19,5 @@ Checkout the data collected by Measure for each crash in
 the [Exception Event](../../../docs/api/sdk/README.md#exception) section.
 
 > [!NOTE]  
-> Measure only supports crash tracking for JVM. Support for native crashes will be added soon, track the
-> progress [here](https://github.com/measure-sh/measure/issues/103).
+> Measure only supports crash tracking for Java/Kotlin code. Support for native crashes will be added soon, 
+> track the progress [here](https://github.com/measure-sh/measure/issues/103).
