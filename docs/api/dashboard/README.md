@@ -377,7 +377,7 @@ List of HTTP status codes for success and failures.
 
 ### GET `/apps/:id/metrics`
 
-Fetch an app's health metrics. Filter time range using `from` &amp; `to` query string parameters. Filter version using `version` query string parameter.
+Fetch an app's health metrics. Filter time range using `from` &amp; `to` query string parameters. Filter version using `versions` & `version_codes` query string parameter.
 
 #### Usage Notes
 
@@ -385,8 +385,9 @@ Fetch an app's health metrics. Filter time range using `from` &amp; `to` query s
 - All filters must be passed as query strings
 - All filters are optional. If any filter is not present, the server will compute results assuming a default value for that filter.
 - `from` &amp; `to` values must be ISO 8601 UTC strings in milliseconds precision. Example: `?from=2023-11-01T18:30:00.000Z&to=2023-11-08T18:30:00.000Z`
-- `from` &amp; `to` will default to a last 7 days time range.
-- `version` will default to the app's latest version.
+- `from` &amp; `to` will default to a last 7 days time range if not supplied.
+- `versions` can accept multiple version identifiers separated with comma. Only the first version will be used to query at the moment.
+- `version_codes` can accept multiple version identifiers separated with comman. Only the first version will be used to query at the moment.
 
 #### Authorization & Content Type
 
@@ -414,49 +415,45 @@ These headers must be present in each request.
   ```json
   {
     "adoption": {
-      "users": 49000,
-      "totalUsers": 200000,
-      "value": 28
+      "all_versions": 33,
+      "selected_version": 5,
+      "adoption": 15.15
     },
-    "app_size": {
-      "value": 20,
-      "delta": 3.18
+    "anr_free_sessions": {
+      "anr_free_sessions": 100,
+      "delta": -84.85
     },
-    "crash_free_users": {
-      "value": 98.2,
-      "delta": 0.71
+    "cold_launch": {
+      "delta": -258.5,
+      "nan": false,
+      "p95": 2562.6
     },
-    "perceived_crash_free_users": {
-      "value": 92.8,
-      "delta": -0.81
+    "crash_free_sessions": {
+      "crash_free_sessions": 20,
+      "delta": -84.85
     },
-    "multiple_crash_free_users": {
-      "value": 75.49,
-      "delta": 0.38
+    "hot_launch": {
+      "delta": 0,
+      "nan": false,
+      "p95": 182.6
     },
-    "anr_free_users": {
-      "value": 98.3,
-      "delta": 0.43
+    "perceived_anr_free_sessions": {
+      "perceived_anr_free_sessions": 100,
+      "delta": -84.85
     },
-    "perceived_anr_free_users": {
-      "value": 91.9,
-      "delta": 0.77
+    "perceived_crash_free_sessions": {
+      "perceived_crash_free_sessions": 20,
+      "delta": -84.85
     },
-    "multiple_anr_free_users": {
-      "value": 97.26,
-      "delta": -2.85
+    "sizes": {
+      "average_app_size": 32359196.33,
+      "selected_app_size": 25940352,
+      "delta": -6418844.33
     },
-    "app_cold_launch": {
-      "value": 937,
-      "delta": 34
-    },
-    "app_warm_launch": {
-      "value": 600,
-      "delta": -87
-    },
-    "app_hot_launch": {
-      "value": 250,
-      "delta": -55
+    "warm_launch": {
+      "delta": 0,
+      "nan": true,
+      "p95": 0
     }
   }
   ```
