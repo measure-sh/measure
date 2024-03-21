@@ -23,3 +23,10 @@ type CrashFreeSession struct {
 	Delta             float64 `json:"delta"`
 }
 
+// ANRFreeSesssion represents compute result of an app's
+// ANR free sessions.
+type ANRFreeSession struct {
+	ANRFreeSessions float64 `json:"anr_free_sessions"`
+	Delta           float64 `json:"delta"`
+}
+
