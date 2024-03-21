@@ -359,11 +359,17 @@ func (cl *ColdLaunch) Compute() {
 }
 
 type WarmLaunch struct {
-	AppVisibleUptime uint32 `json:"app_visible_uptime"`
-	OnNextDrawUptime uint32 `json:"on_next_draw_uptime" binding:"required"`
-	LaunchedActivity string `json:"launched_activity" binding:"required"`
-	HasSavedState    bool   `json:"has_saved_state" binding:"required"`
-	IntentData       string `json:"intent_data"`
+	AppVisibleUptime uint32        `json:"app_visible_uptime"`
+	OnNextDrawUptime uint32        `json:"on_next_draw_uptime" binding:"required"`
+	LaunchedActivity string        `json:"launched_activity" binding:"required"`
+	HasSavedState    bool          `json:"has_saved_state" binding:"required"`
+	IntentData       string        `json:"intent_data"`
+	Duration         time.Duration `json:"duration"`
+}
+
+// Compute computes the warm launch duration.
+func (wl *WarmLaunch) Compute() {
+	wl.Duration = time.Duration(wl.OnNextDrawUptime-wl.AppVisibleUptime) * time.Millisecond
 }
 
 type HotLaunch struct {

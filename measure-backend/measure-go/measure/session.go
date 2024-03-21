@@ -490,6 +490,9 @@ func (s *Session) ingest() error {
 		if s.Events[i].IsColdLaunch() {
 			s.Events[i].ColdLaunch.Compute()
 		}
+		if s.Events[i].IsWarmLaunch() {
+			s.Events[i].WarmLaunch.Compute()
+		}
 
 		stmt.NewRow().
 			Set("id", nil).
@@ -584,6 +587,7 @@ func (s *Session) ingest() error {
 			Set("warm_launch.launched_activity", nil).
 			Set("warm_launch.has_saved_state", nil).
 			Set("warm_launch.intent_data", nil).
+			Set("warm_launch.duration", nil).
 			Set("hot_launch.app_visible_uptime", nil).
 			Set("hot_launch.on_next_draw_uptime", nil).
 			Set("hot_launch.launched_activity", nil).
@@ -739,6 +743,7 @@ func (s *Session) ingest() error {
 			s.Events[i].WarmLaunch.LaunchedActivity,
 			s.Events[i].WarmLaunch.HasSavedState,
 			s.Events[i].WarmLaunch.IntentData,
+			s.Events[i].WarmLaunch.Duration.Milliseconds(),
 			s.Events[i].HotLaunch.AppVisibleUptime,
 			s.Events[i].HotLaunch.OnNextDrawUptime,
 			s.Events[i].HotLaunch.LaunchedActivity,
