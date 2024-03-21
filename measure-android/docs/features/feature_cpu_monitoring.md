@@ -30,5 +30,4 @@ $\frac{{utime + stime + cutime + cstime}}{{clock\ speed \times interval \times n
 
 ## Data collected
 
-Checkout the data collected by Measure each time the `proc/self/stat` file is read in
-the [CPU Usage](../../../docs/api/sdk/README.md#cpuusage) section.
+Checkout the data collected by Measure in [CPU Usage Event](../../../docs/api/sdk/README.md#cpuusage) section.

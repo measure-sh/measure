@@ -81,7 +81,6 @@ command. The AAB size captured represents the maximum size of the APK that can b
 Read more about AAB format [here](https://developer.android.com/guide/app-bundle).
 
 > [!IMPORTANT]   
-> Mapping files are uploaded for all variants when the `assemble` or `bundle` task completes successfully. Similarly,
-> app size is uploaded for all variants when the `assemble` or `bundle` task completes successfully. A configuration to
-> control which variants to enable/disable these features for is not yet ready. The progress can be tracked
-> [here](https://github.com/measure-sh/measure/issues/510).
+> Mapping files and app size are uploaded when the `assemble<variant>` or `bundle<variant>>` task completes
+> successfully. A configuration to control which variants to enable/disable these features per variant for is not yet
+> ready. The progress can be tracked [here](https://github.com/measure-sh/measure/issues/510).
