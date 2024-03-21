@@ -246,8 +246,8 @@ func (a App) GetSizeMetrics(af *AppFilter) (size *metrics.SizeMetric, err error)
 	return
 }
 
-func (a App) GetAdoptionMetrics(af *AppFilter) (adoption *metrics.AdoptionMetric, err error) {
-	adoption = &metrics.AdoptionMetric{}
+func (a App) GetAdoptionMetrics(af *AppFilter) (adoption *metrics.SessionAdoption, err error) {
+	adoption = &metrics.SessionAdoption{}
 	stmt := sqlf.From("default.events").
 		With("all_sessions",
 			sqlf.From("default.events").
@@ -271,7 +271,7 @@ func (a App) GetAdoptionMetrics(af *AppFilter) (adoption *metrics.AdoptionMetric
 
 	ctx := context.Background()
 
-	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), args...).Scan(&adoption.AllAppVersions, &adoption.SelectedAppVersion, &adoption.Adoption); err != nil {
+	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), args...).Scan(&adoption.AllVersions, &adoption.SelectedVersion, &adoption.Adoption); err != nil {
 		return nil, err
 	}
 
