@@ -298,7 +298,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
                       {/* If roles can be changed for members, add roles to dropdown and set selected role to current role */}
                       {authz.can_change_roles !== null && authz.can_change_roles.length > 0 && <DropdownSelect title="Roles" type={DropdownSelectType.SingleString} items={authz.can_change_roles.map((i) => formatToCamelCase(i))} initialSelected={formatToCamelCase(role)} onChangeSelected={(i) => {
                         const newMap = new Map(selectedDropdownRolesMap)
-                        newMap.set(id, i as string)
+                        newMap.set(id, (i as string).toLocaleLowerCase())
                         setSelectedDropdownRolesMap(newMap)
                       }} />}
                       {/* If roles cannot be changed for current member, just show current role as part of dropdown */}
