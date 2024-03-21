@@ -1,5 +1,7 @@
 package metrics
 
+import "math"
+
 // SessionAdoption represents computation result of an
 // app's session adoption metrics.
 type SessionAdoption struct {
@@ -42,4 +44,47 @@ type PerceivedCrashFreeSesssion struct {
 type PerceivedANRFreeSession struct {
 	ANRFreeSessions float64 `json:"perceived_anr_free_sessions"`
 	Delta           float64 `json:"delta"`
+}
+
+// LaunchMetric represents compute result of an app's cold,
+// warm and hot launch timings.
+type LaunchMetric struct {
+	ColdLaunchP95 float64 `json:"cold_launch_p95"`
+	WarmLaunchP95 float64 `json:"warm_launch_p95"`
+	HotLaunchP95  float64 `json:"hot_launch_p95"`
+	ColdDelta     float64 `json:"cold_delta"`
+	WarmDelta     float64 `json:"warm_delta"`
+	HotDelta      float64 `json:"hot_delta"`
+	ColdNaN       bool    `json:"cold_nan"`
+	WarmNaN       bool    `json:"warm_nan"`
+	HotNaN        bool    `json:"hot_nan"`
+}
+
+// SetNaNs sets the NaN bits if any cold,
+// warm or hot values are NaN.
+func (lm *LaunchMetric) SetNaNs() {
+	if math.IsNaN(lm.ColdLaunchP95) {
+		lm.ColdNaN = true
+		lm.ColdLaunchP95 = 0
+	}
+	if math.IsNaN(lm.ColdDelta) {
+		lm.ColdNaN = true
+		lm.ColdDelta = 0
+	}
+	if math.IsNaN(lm.WarmLaunchP95) {
+		lm.WarmNaN = true
+		lm.WarmLaunchP95 = 0
+	}
+	if math.IsNaN(lm.WarmDelta) {
+		lm.WarmNaN = true
+		lm.WarmDelta = 0
+	}
+	if math.IsNaN(lm.HotLaunchP95) {
+		lm.HotNaN = true
+		lm.HotLaunchP95 = 0
+	}
+	if math.IsNaN(lm.HotDelta) {
+		lm.HotNaN = true
+		lm.HotDelta = 0
+	}
 }
