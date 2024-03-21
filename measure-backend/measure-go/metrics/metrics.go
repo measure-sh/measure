@@ -15,3 +15,11 @@ type SizeMetric struct {
 	SelectedAppSize uint64  `json:"selected_app_size"`
 	Delta           float64 `json:"delta"`
 }
+
+// CrashFreeSesssion represents compute result of an app's
+// crash free sessions.
+type CrashFreeSession struct {
+	CrashFreeSessions float64 `json:"crash_free_sessions"`
+	Delta             float64 `json:"delta"`
+}
+
