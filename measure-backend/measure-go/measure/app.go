@@ -225,6 +225,7 @@ func (a App) GetSizeMetrics(af *AppFilter) (size *metrics.SizeMetric, err error)
 				Where("app_id = ?", nil)).
 		Select("t1.average_size as average_app_size").
 		Select("t2.build_size as selected_app_size").
+		Select("(t2.build_size - t1.average_size) as delta").
 		From("avg_size as t1, public.build_sizes as t2").
 		Where("app_id = ?", nil).
 		Where("version_name = ?", nil).
@@ -232,16 +233,15 @@ func (a App) GetSizeMetrics(af *AppFilter) (size *metrics.SizeMetric, err error)
 
 	defer sizeStmt.Close()
 
-	fmt.Println("size stmt", sizeStmt.String())
-
 	args = []any{a.ID, a.ID, af.Versions[0], af.VersionCodes[0]}
 
 	ctx = context.Background()
-	if err := server.Server.PgPool.QueryRow(ctx, sizeStmt.String(), args...).Scan(&size.AverageAppSize, &size.SelectedAppSize); err != nil {
+	if err := server.Server.PgPool.QueryRow(ctx, sizeStmt.String(), args...).Scan(&size.AverageAppSize, &size.SelectedAppSize, &size.Delta); err != nil {
 		return nil, err
 	}
 
-	size.Delta = float64(size.SelectedAppSize) - size.AverageAppSize
+	return
+}
 
 	return
 }
