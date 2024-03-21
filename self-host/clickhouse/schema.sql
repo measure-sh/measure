@@ -117,6 +117,7 @@ CREATE TABLE default.events
     `hot_launch.launched_activity` FixedString(128),
     `hot_launch.has_saved_state` Bool,
     `hot_launch.intent_data` String,
+    `hot_launch.duration` UInt32,
     `attributes` Map(String, String),
     `network_change.network_type` LowCardinality(FixedString(16)),
     `network_change.previous_network_type` LowCardinality(FixedString(16)),
