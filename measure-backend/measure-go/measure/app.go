@@ -901,6 +901,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		`cold_launch.launched_activity`,
 		`cold_launch.has_saved_state`,
 		`cold_launch.intent_data`,
+		`cold_launch.duration`,
 		`warm_launch.app_visible_uptime`,
 		`warm_launch.on_next_draw_uptime`,
 		`warm_launch.launched_activity`,
@@ -1002,9 +1003,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		var navigation event.Navigation
 		var attributes map[string]string
 
-		// FIXME: there are struct issues with
-		// `low_memory` event
-		// var lowMemory LowMemory
+		var coldLaunchDuration uint32
 
 		dest := []any{
 			&ev.ID,
@@ -1105,6 +1104,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 			&coldLaunch.LaunchedActivity,
 			&coldLaunch.HasSavedState,
 			&coldLaunch.IntentData,
+			&coldLaunchDuration,
 
 			// warm launch
 			&warmLaunch.AppVisibleUptime,
@@ -1233,6 +1233,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 			session.Events = append(session.Events, ev)
 		case event.TypeColdLaunch:
 			ev.ColdLaunch = coldLaunch
+			ev.ColdLaunch.Duration = time.Duration(coldLaunchDuration)
 			session.Events = append(session.Events, ev)
 		case event.TypeWarmLaunch:
 			ev.WarmLaunch = warmLaunch
