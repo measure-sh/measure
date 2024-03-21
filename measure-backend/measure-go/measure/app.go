@@ -1334,26 +1334,6 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	if real, _ := c.GetQuery("real"); real == "" {
-		data1 := `{"adoption":{"users":40000,"totalUsers":200000,"value":20},"app_size":{"value":20,"delta":3.18},"crash_free_users":{"value":98.5,"delta":0.73},"perceived_crash_free_users":{"value":91.3,"delta":-0.51},"multiple_crash_free_users":{"value":76.37,"delta":0.62},"anr_free_users":{"value":98.5,"delta":0.73},"perceived_anr_free_users":{"value":91.3,"delta":0.27},"multiple_anr_free_users":{"value":97.88,"delta":-3.13},"app_cold_launch":{"value":937,"delta":34},"app_warm_launch":{"value":600,"delta":-87},"app_hot_launch":{"value":250,"delta":-55}}`
-		data2 := `{"adoption":{"users":49000,"totalUsers":200000,"value":28},"app_size":{"value":20,"delta":3.18},"crash_free_users":{"value":98.2,"delta":0.71},"perceived_crash_free_users":{"value":92.8,"delta":-0.81},"multiple_crash_free_users":{"value":75.49,"delta":0.38},"anr_free_users":{"value":98.3,"delta":0.43},"perceived_anr_free_users":{"value":91.9,"delta":0.77},"multiple_anr_free_users":{"value":97.26,"delta":-2.85},"app_cold_launch":{"value":900,"delta":-200},"app_warm_launch":{"value":600,"delta":-127},"app_hot_launch":{"value":300,"delta":-50}}`
-
-		var data string
-		randomInt := rand.Intn(100)
-		if randomInt > 85 {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "API server is experiencing intermittent issues"})
-			return
-		}
-		if randomInt%2 == 0 {
-			data = data1
-		} else {
-			data = data2
-		}
-
-		c.Data(http.StatusOK, "application/json", []byte(data))
-		return
-	}
-
 	af := AppFilter{
 		AppID: id,
 		Limit: DefaultPaginationLimit,
@@ -1440,7 +1420,21 @@ func GetAppMetrics(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"launch":                        launch,
+		"cold_launch": gin.H{
+			"p95":   launch.ColdLaunchP95,
+			"delta": launch.ColdDelta,
+			"nan":   launch.ColdNaN,
+		},
+		"warm_launch": gin.H{
+			"p95":   launch.WarmLaunchP95,
+			"delta": launch.WarmDelta,
+			"nan":   launch.WarmNaN,
+		},
+		"hot_launch": gin.H{
+			"p95":   launch.HotLaunchP95,
+			"delta": launch.HotDelta,
+			"nan":   launch.HotNaN,
+		},
 		"adoption":                      adoption,
 		"sizes":                         sizes,
 		"crash_free_sessions":           crashFree,
