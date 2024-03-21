@@ -1331,6 +1331,27 @@ func GetAppMetrics(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
+
+	if real, _ := c.GetQuery("real"); real == "" {
+		data1 := `{"adoption":{"users":40000,"totalUsers":200000,"value":20},"app_size":{"value":20,"delta":3.18},"crash_free_users":{"value":98.5,"delta":0.73},"perceived_crash_free_users":{"value":91.3,"delta":-0.51},"multiple_crash_free_users":{"value":76.37,"delta":0.62},"anr_free_users":{"value":98.5,"delta":0.73},"perceived_anr_free_users":{"value":91.3,"delta":0.27},"multiple_anr_free_users":{"value":97.88,"delta":-3.13},"app_cold_launch":{"value":937,"delta":34},"app_warm_launch":{"value":600,"delta":-87},"app_hot_launch":{"value":250,"delta":-55}}`
+		data2 := `{"adoption":{"users":49000,"totalUsers":200000,"value":28},"app_size":{"value":20,"delta":3.18},"crash_free_users":{"value":98.2,"delta":0.71},"perceived_crash_free_users":{"value":92.8,"delta":-0.81},"multiple_crash_free_users":{"value":75.49,"delta":0.38},"anr_free_users":{"value":98.3,"delta":0.43},"perceived_anr_free_users":{"value":91.9,"delta":0.77},"multiple_anr_free_users":{"value":97.26,"delta":-2.85},"app_cold_launch":{"value":900,"delta":-200},"app_warm_launch":{"value":600,"delta":-127},"app_hot_launch":{"value":300,"delta":-50}}`
+
+		var data string
+		randomInt := rand.Intn(100)
+		if randomInt > 85 {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "API server is experiencing intermittent issues"})
+			return
+		}
+		if randomInt%2 == 0 {
+			data = data1
+		} else {
+			data = data2
+		}
+
+		c.Data(http.StatusOK, "application/json", []byte(data))
+		return
+	}
+
 	af := AppFilter{
 		AppID: id,
 		Limit: DefaultPaginationLimit,
@@ -1373,61 +1394,65 @@ func GetAppMetrics(c *gin.Context) {
 
 	msg := `failed to fetch app metrics`
 
-	start := time.Now()
 	events, err := app.GetLaunchMetrics(&af)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
-	elapsed := time.Since(start)
-	fmt.Println("launch metrics took:", elapsed)
 
 	fmt.Println("events", len(events))
 
-	start = time.Now()
 	adoption, err := app.GetAdoptionMetrics(&af)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
-	elapsed = time.Since(start)
-	fmt.Println("adoption metrics took:", elapsed)
-	fmt.Println("adoption", adoption)
 
-	start = time.Now()
 	sizes, err := app.GetSizeMetrics(&af)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
-	elapsed = time.Since(start)
-	fmt.Println("size metrics took:", elapsed)
-	fmt.Println("size", sizes)
 
-	// fmt.Println("journey request app id", af.AppID)
-	// fmt.Println("journey request from", af.From)
-	// fmt.Println("journey request to", af.To)
-	// fmt.Println("journey request version", af.Version)
-
-	data1 := `{"adoption":{"users":40000,"totalUsers":200000,"value":20},"app_size":{"value":20,"delta":3.18},"crash_free_users":{"value":98.5,"delta":0.73},"perceived_crash_free_users":{"value":91.3,"delta":-0.51},"multiple_crash_free_users":{"value":76.37,"delta":0.62},"anr_free_users":{"value":98.5,"delta":0.73},"perceived_anr_free_users":{"value":91.3,"delta":0.27},"multiple_anr_free_users":{"value":97.88,"delta":-3.13},"app_cold_launch":{"value":937,"delta":34},"app_warm_launch":{"value":600,"delta":-87},"app_hot_launch":{"value":250,"delta":-55}}`
-	data2 := `{"adoption":{"users":49000,"totalUsers":200000,"value":28},"app_size":{"value":20,"delta":3.18},"crash_free_users":{"value":98.2,"delta":0.71},"perceived_crash_free_users":{"value":92.8,"delta":-0.81},"multiple_crash_free_users":{"value":75.49,"delta":0.38},"anr_free_users":{"value":98.3,"delta":0.43},"perceived_anr_free_users":{"value":91.9,"delta":0.77},"multiple_anr_free_users":{"value":97.26,"delta":-2.85},"app_cold_launch":{"value":900,"delta":-200},"app_warm_launch":{"value":600,"delta":-127},"app_hot_launch":{"value":300,"delta":-50}}`
-
-	var data string
-	randomInt := rand.Intn(100)
-	if randomInt > 85 {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "API server is experiencing intermittent issues"})
+	crashFree, err := app.GetCrashFreeMetrics(&af)
+	if err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
-	if randomInt%2 == 0 {
-		data = data1
-	} else {
-		data = data2
+
+	anrFree, err := app.GetANRFreeMetrics(&af)
+	if err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
 	}
 
-	c.Data(http.StatusOK, "application/json", []byte(data))
+	perceivedCrashFree, err := app.GetPerceivedCrashFreeMetrics(&af)
+	if err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	perceivedANRFree, err := app.GetPerceivedANRFreeMetrics(&af)
+	if err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"adoption":                      adoption,
+		"sizes":                         sizes,
+		"crash_free_sessions":           crashFree,
+		"anr_free_sessions":             anrFree,
+		"perceived_crash_free_sessions": perceivedCrashFree,
+		"perceived_anr_free_sessions":   perceivedANRFree,
+	})
 }
 
 func GetAppFilters(c *gin.Context) {
