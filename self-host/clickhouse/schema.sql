@@ -105,6 +105,7 @@ CREATE TABLE default.events
     `cold_launch.launched_activity` FixedString(128),
     `cold_launch.has_saved_state` Bool,
     `cold_launch.intent_data` String,
+    `cold_launch.duration` UInt32,
     `warm_launch.app_visible_uptime` UInt32,
     `warm_launch.on_next_draw_uptime` UInt32,
     `warm_launch.launched_activity` FixedString(128),
