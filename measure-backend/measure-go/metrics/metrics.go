@@ -37,3 +37,9 @@ type PerceivedCrashFreeSesssion struct {
 	Delta             float64 `json:"delta"`
 }
 
+// PerceivedANRFreeSesssion represents compute result of an app's
+// perceived ANR free sessions.
+type PerceivedANRFreeSession struct {
+	ANRFreeSessions float64 `json:"perceived_anr_free_sessions"`
+	Delta           float64 `json:"delta"`
+}
