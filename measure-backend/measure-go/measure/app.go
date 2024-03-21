@@ -913,6 +913,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		`hot_launch.launched_activity`,
 		`hot_launch.has_saved_state`,
 		`hot_launch.intent_data`,
+		`hot_launch.duration`,
 		`network_change.network_type`,
 		`network_change.previous_network_type`,
 		`network_change.network_generation`,
@@ -1006,6 +1007,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 
 		var coldLaunchDuration uint32
 		var warmLaunchDuration uint32
+		var hotLaunchDuration uint32
 
 		dest := []any{
 			&ev.ID,
@@ -1122,6 +1124,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 			&hotLaunch.LaunchedActivity,
 			&hotLaunch.HasSavedState,
 			&hotLaunch.IntentData,
+			&hotLaunchDuration,
 
 			// network change
 			&networkChange.NetworkType,
@@ -1239,11 +1242,12 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 			ev.ColdLaunch.Duration = time.Duration(coldLaunchDuration)
 			session.Events = append(session.Events, ev)
 		case event.TypeWarmLaunch:
-			ev.WarmLaunch.Duration = time.Duration(warmLaunchDuration)
 			ev.WarmLaunch = warmLaunch
+			ev.WarmLaunch.Duration = time.Duration(warmLaunchDuration)
 			session.Events = append(session.Events, ev)
 		case event.TypeHotLaunch:
 			ev.HotLaunch = hotLaunch
+			ev.HotLaunch.Duration = time.Duration(hotLaunchDuration)
 			session.Events = append(session.Events, ev)
 		case event.TypeNetworkChange:
 			ev.NetworkChange = networkChange

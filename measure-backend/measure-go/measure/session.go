@@ -493,6 +493,9 @@ func (s *Session) ingest() error {
 		if s.Events[i].IsWarmLaunch() {
 			s.Events[i].WarmLaunch.Compute()
 		}
+		if s.Events[i].IsHotLaunch() {
+			s.Events[i].HotLaunch.Compute()
+		}
 
 		stmt.NewRow().
 			Set("id", nil).
@@ -593,6 +596,7 @@ func (s *Session) ingest() error {
 			Set("hot_launch.launched_activity", nil).
 			Set("hot_launch.has_saved_state", nil).
 			Set("hot_launch.intent_data", nil).
+			Set("hot_launch.duration", nil).
 			Set("attributes", nil).
 			Set("network_change.network_type", nil).
 			Set("network_change.previous_network_type", nil).
@@ -749,6 +753,7 @@ func (s *Session) ingest() error {
 			s.Events[i].HotLaunch.LaunchedActivity,
 			s.Events[i].HotLaunch.HasSavedState,
 			s.Events[i].HotLaunch.IntentData,
+			s.Events[i].HotLaunch.Duration.Milliseconds(),
 			s.Events[i].Attributes,
 			s.Events[i].NetworkChange.NetworkType,
 			s.Events[i].NetworkChange.PreviousNetworkType,
