@@ -16,6 +16,7 @@ A worker thread reads the following properties every 2 seconds and reports them 
   using [Runtime.maxMemory](https://developer.android.com/reference/java/lang/Runtime#maxMemory()).
 * **Total heap size** - collected
   using [Runtime.totalMemory](https://developer.android.com/reference/java/lang/Runtime#totalMemory()).
+* **Free heap size** - collected 
   using [Runtime.freeMemory](https://developer.android.com/reference/java/lang/Runtime#freeMemory()).
 * **RSS (Resident set size)** - collected by reading
   the [proc/pid/statm](https://man7.org/linux/man-pages/man5/proc.5.html) file.
