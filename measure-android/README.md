@@ -130,6 +130,7 @@ Measure dashboard.
 * [Crash tracking](docs/features/feature_crash_tracking.md)
 * [ANR tracking](docs/features/feature_anr_tracking.md)
 * [Network monitoring](docs/features/feature_network_monitoring.md)
+* [Network changes](docs/features/feature_network_changes.md)
 * [Gesture tracking](docs/features/feature_gesture_tracking.md)
 * [Navigation & Lifecycle](docs/features/feature_navigation_and_lifecycle.md)
 * [App launch](docs/features/feature_app_launch.md)

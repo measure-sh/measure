@@ -30,6 +30,7 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [**`gesture_scroll`**](#gesture_scroll)
     - [**`gesture_click`**](#gesture_click)
     - [**`http`**](#http)
+    - [**`network_change`**](#network_change)
     - [**`app_exit`**](#app_exit)
     - [**`lifecycle_activity`**](#lifecycle_activity)
     - [**`lifecycle_fragment`**](#lifecycle_fragment)
@@ -678,6 +679,20 @@ Use the `http` body type for tracking a single HTTP network.
 | `request_body`           | string | Yes      | The request body, if any. Only supported for json body.                         |
 | `response_body`          | string | Yes      | The response body, if any. Only supported for json body.                        |
 | `http_protocol_version`  | string | Yes      | Version of the HTTP protocol. `1.0`, `1.1`, `2` etc                             |
+
+
+#### **`network_change`**
+
+Use the `network_change` type for tracking changes to the network state of the device.
+
+| Field                         | Type   | Optional | Comment                                                                   |
+|-------------------------------|--------|----------|---------------------------------------------------------------------------|
+| `network_type`                | string | No       | One of<br/>- wifi<br/>- cellular<br/>- vpn<br/>- unknown<br/>- no_network |
+| `network_provider`            | string | Yes      | Example: airtel, T-mobile                                                 |
+| `network_generation`          | string | Yes      | One of:<br/>- 2g<br/>- 3g<br/>- 4g<br/>- 5g                               |
+| `previous_network_type`       | string | Yes      | One of<br/>- wifi<br/>- cellular<br/>- vpn<br/>- unknown<br/>- no_network |
+| `previous_network_generation` | string | Yes      | One of:<br/>- 2g<br/>- 3g<br/>- 4g<br/>- 5g                               |
+
 
 #### **`app_exit`**
 
