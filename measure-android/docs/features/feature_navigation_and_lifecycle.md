@@ -1,57 +1,96 @@
 # Feature - Navigation & Lifecycle
 
-Measure tracks the following types of navigation events in your app:
+Measure SDK captures lifecycle and navigation events automatically, this includes the following:
 
-## Events
+1. [Application foregrounded/backgrounded](#application-foregroundedbackgrounded)
+2. [Activity lifecycle](#activity-lifecycle)
+3. [Fragment lifecycle](#fragment-lifecycle)
+4. [Compose navigation](#compose-navigation)
 
-### Event name: `lifecycle_activity`
+## Application foregrounded/backgrounded
 
-Measure tracks the lifecycle events of all activities automatically. The following properties are
-collected:
+Measure automatically tracks when the application has come to foreground (is visible to the user) and when
+it has been put into background (is no longer visible to the user).
 
-| Property             | Description                                                                                    |
-|----------------------|------------------------------------------------------------------------------------------------|
-| type                 | The type of the lifecycle event. Possible values: `created`, `resumed`, `paused`, `destroyed`. |
-| class_name           | The name of the activity class.                                                                |
-| intent               | The intent used to start the activity.                                                         |
-| saved_instance_state | Whether there was a saved instance state bundle for the activity, tracked only for `created`   |
+### How it works
 
-### Event name: `lifecycle_fragment`
+To detect when an Application goes to background, Measure
+registers
+tp [Application.ActivityLifecycleCallbacks](https://developer.android.com/reference/android/app/Application.ActivityLifecycleCallbacks)
+callback and checks when the _last_ Activity on the stack receives an `onStop` event, effectively meaning the app is no
+longer visible to the user.
 
-Measure tracks the lifecycle events of all androidx fragments automatically. The following
-properties are collected:
+Similarly, to detect when an Application comes back to foreground, Measure relies on the same callbacks to check when
+the _first_ Activity on the stack receives an `onStart` event, effectively meaning the app is now visible to the user.
 
-| Property             | Description                                                                                    |
-|----------------------|------------------------------------------------------------------------------------------------|
-| type                 | The type of the lifecycle event. Possible values: `attached`, `resumed`, `paused`, `detached`. |
-| class_name           | The name of the fragment class.                                                                |
-| parent_activity      | The name of the parent activity that hosts the fragment.                                       |
-| saved_instance_state | Whether there was a saved instance state bundle for the activity, tracked only for `created`   |
-| tag                  | An optional Fragment tag, if set                                                               |
+### Data collected
 
-### Event name: `lifecycle_app`
+Checkout all the data collected for application lifecycle in
+the [App Lifecycle Event](../../../docs/api/sdk/README.md#lifecycleapp) section.
+section.
 
-Measure tracks when the app is foregrounded and backgrounded. The following properties are
-collected:
+## Activity lifecycle
 
-| Property | Description                                                                       |
-|----------|-----------------------------------------------------------------------------------|
-| type     | The type of the lifecycle event. Possible values: `foregrounded`, `backgrounded`. |
+Measure automatically tracks the following Activity lifecycle events:
 
-### Event name: `navigation`
+1. [Created](https://developer.android.com/guide/components/activities/activity-lifecycle#oncreate)
+2. [Resumed](https://developer.android.com/guide/components/activities/activity-lifecycle#onresume)
+3. [Paused](https://developer.android.com/guide/components/activities/activity-lifecycle#onpause)
+4. [Destroyed](https://developer.android.com/guide/components/activities/activity-lifecycle#ondestroy)
 
-Measure tracks the navigation events originating from `compose-navigation's` `NavHostController`.
-When using `measure-gradle-plugin` this tracking is auto added.
+### How it works
 
-To manually add tracking add the`withMeasureNavigationListener` to the `NavHostController's` that
-you want to track. Example:
+Similar to Application lifecycle, Measure
+registers [ActivityLifecycleCallbacks](https://developer.android.com/reference/android/app/Application.ActivityLifecycleCallbacks)
+and tracks the lifecycle events of each Activity.
 
-```kotlin:
-val navController = rememberNavController().withMeasureNavigationListener()
-```
+### Data collected
 
-The following properties are collected:
+Checkout all the data collected for Activity lifecycle in
+the [Activity Lifecycle Event](../../../docs/api/sdk/README.md#lifecycleactivity) section.
 
-| Property | Description                      |
-|----------|----------------------------------|
-| route    | The route that was navigated to. |
+## Fragment lifecycle
+
+Measure automatically tracks the following Fragment lifecycle events:
+
+1. [Attached](https://developer.android.com/reference/androidx/fragment/app/Fragment.html#onAttach(android.content.Context))
+2. [Resumed](https://developer.android.com/reference/androidx/fragment/app/Fragment.html#onResume())
+3. [Paused](https://developer.android.com/reference/androidx/fragment/app/Fragment.html#onPause())
+4. [Detached](https://developer.android.com/reference/androidx/fragment/app/Fragment.html#onDetach())
+
+## How it works
+
+Measure
+registers [FragmentLifecycleCallbacks](https://developer.android.com/reference/androidx/fragment/app/FragmentManager.FragmentLifecycleCallbacks)
+to track the lifecycle events of each Fragment. This is only done if `androidx.Fragment` dependency is added to the
+project.
+
+## Data collected
+
+Checkout all the data collected for Fragment lifecycle in
+the [Fragment Lifecycle Event](../../../docs/api/sdk/README.md#lifecyclefragment) section.
+
+> [!NOTE]  
+> Measure supports androidx.Fragment lifecycle events only, the legacy android.app.Fragment is not supported.
+> The Fragment lifecycle events are only tracked if the androidx.Fragment dependency is added to the app. Measure does
+> not introduce any dependency on androidx.Fragment automatically.
+
+## Compose navigation
+
+### How it works
+
+Measure instruments the [Compose navigation library](https://developer.android.com/jetpack/compose/navigation)
+using [ASM](https://asm.ow2.io/) by automatically tracking all
+navigation events by
+registering [NavController.OnDestinationChangedListener](https://developer.android.com/reference/androidx/navigation/NavController.OnDestinationChangedListener)
+This is done using the Measure gradle plugin, read more details about
+it [here](../../measure-android-gradle/README.md#compose-navigation).
+
+### Data collected
+
+Checkout all the data collected for Compose navigation in
+the [Navigation Event](../../../docs/api/sdk/README.md#navigation) section.
+
+> [!NOTE]  
+> Compose navigation events are only tracked if the project uses Compose and the Compose navigation library. Measure
+> does not introduce any dependency on Compose navigation library automatically.
