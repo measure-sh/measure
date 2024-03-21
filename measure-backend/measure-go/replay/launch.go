@@ -104,11 +104,9 @@ func ComputeColdLaunches(events []event.EventField) (result []ThreadGrouper) {
 // for session replay.
 func ComputeWarmLaunches(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
-		onNextDrawUptime := event.WarmLaunch.OnNextDrawUptime
-		appVisibleUptime := event.WarmLaunch.AppVisibleUptime
 		warmLaunches := WarmLaunch{
 			event.Type,
-			time.Duration(onNextDrawUptime - appVisibleUptime),
+			event.WarmLaunch.Duration,
 			event.WarmLaunch.LaunchedActivity,
 			event.WarmLaunch.HasSavedState,
 			event.WarmLaunch.IntentData,

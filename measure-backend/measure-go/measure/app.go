@@ -907,6 +907,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		`warm_launch.launched_activity`,
 		`warm_launch.has_saved_state`,
 		`warm_launch.intent_data`,
+		`warm_launch.duration`,
 		`hot_launch.app_visible_uptime`,
 		`hot_launch.on_next_draw_uptime`,
 		`hot_launch.launched_activity`,
@@ -1004,6 +1005,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		var attributes map[string]string
 
 		var coldLaunchDuration uint32
+		var warmLaunchDuration uint32
 
 		dest := []any{
 			&ev.ID,
@@ -1112,6 +1114,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 			&warmLaunch.LaunchedActivity,
 			&warmLaunch.HasSavedState,
 			&warmLaunch.IntentData,
+			&warmLaunchDuration,
 
 			// hot launch
 			&hotLaunch.AppVisibleUptime,
@@ -1236,6 +1239,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 			ev.ColdLaunch.Duration = time.Duration(coldLaunchDuration)
 			session.Events = append(session.Events, ev)
 		case event.TypeWarmLaunch:
+			ev.WarmLaunch.Duration = time.Duration(warmLaunchDuration)
 			ev.WarmLaunch = warmLaunch
 			session.Events = append(session.Events, ev)
 		case event.TypeHotLaunch:
