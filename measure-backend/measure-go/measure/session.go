@@ -485,6 +485,12 @@ func (s *Session) ingest() error {
 		if !empty {
 			s.Events[i].ID = uuid.New()
 		}
+
+		// compute launch timings
+		if s.Events[i].IsColdLaunch() {
+			s.Events[i].ColdLaunch.Compute()
+		}
+
 		stmt.NewRow().
 			Set("id", nil).
 			Set("type", nil).
@@ -572,6 +578,7 @@ func (s *Session) ingest() error {
 			Set("cold_launch.launched_activity", nil).
 			Set("cold_launch.has_saved_state", nil).
 			Set("cold_launch.intent_data", nil).
+			Set("cold_launch.duration", nil).
 			Set("warm_launch.app_visible_uptime", nil).
 			Set("warm_launch.on_next_draw_uptime", nil).
 			Set("warm_launch.launched_activity", nil).
@@ -726,6 +733,7 @@ func (s *Session) ingest() error {
 			s.Events[i].ColdLaunch.LaunchedActivity,
 			s.Events[i].ColdLaunch.HasSavedState,
 			s.Events[i].ColdLaunch.IntentData,
+			s.Events[i].ColdLaunch.Duration.Milliseconds(),
 			s.Events[i].WarmLaunch.AppVisibleUptime,
 			s.Events[i].WarmLaunch.OnNextDrawUptime,
 			s.Events[i].WarmLaunch.LaunchedActivity,

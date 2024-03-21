@@ -1,7 +1,6 @@
 package replay
 
 import (
-	"fmt"
 	"measure-backend/measure-go/event"
 	"time"
 )
@@ -88,29 +87,9 @@ func ComputeColdLaunches(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		event.ColdLaunch.Trim()
 
-		// choose most accurate start uptime variant
-		//
-		// android reports varied process uptime values over
-		// varied api levels. compute cold launch duration
-		// as a best effort case based on what values are available
-		uptime := event.ColdLaunch.ProcessStartRequestedUptime
-		if uptime < 1 {
-			uptime = event.ColdLaunch.ProcessStartUptime
-		}
-		if uptime < 1 {
-			uptime = event.ColdLaunch.ContentProviderAttachUptime
-		}
-
-		onNextDrawUptime := event.ColdLaunch.OnNextDrawUptime
-		duration := time.Duration(onNextDrawUptime - uptime)
-
-		if duration >= NominalColdLaunchThreshold {
-			fmt.Printf(`anomaly in cold_launch duration compute. nominal threshold: < %v .actual value: %f\n`, NominalColdLaunchThreshold, duration.Seconds())
-		}
-
 		coldLaunches := ColdLaunch{
 			event.Type,
-			duration,
+			event.ColdLaunch.Duration,
 			event.ThreadName,
 			event.Timestamp,
 			event.Attributes,

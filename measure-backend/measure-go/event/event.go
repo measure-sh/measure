@@ -77,6 +77,10 @@ const TypeTrimMemory = "trim_memory"
 const TypeCPUUsage = "cpu_usage"
 const TypeNavigation = "navigation"
 
+// NominalColdLaunchThreshold defines the upper bound
+// of a nominal cold launch duration.
+const NominalColdLaunchThreshold = 30 * time.Second
+
 type Frame struct {
 	LineNum    int    `json:"line_num"`
 	ColNum     int    `json:"col_num"`
@@ -316,19 +320,42 @@ func (la *LifecycleApp) Trim() {
 }
 
 type ColdLaunch struct {
-	ProcessStartUptime          uint32 `json:"process_start_uptime"`
-	ProcessStartRequestedUptime uint32 `json:"process_start_requested_uptime"`
-	ContentProviderAttachUptime uint32 `json:"content_provider_attach_uptime"`
-	OnNextDrawUptime            uint32 `json:"on_next_draw_uptime" binding:"required"`
-	LaunchedActivity            string `json:"launched_activity" binding:"required"`
-	HasSavedState               bool   `json:"has_saved_state" binding:"required"`
-	IntentData                  string `json:"intent_data"`
+	ProcessStartUptime          uint32        `json:"process_start_uptime"`
+	ProcessStartRequestedUptime uint32        `json:"process_start_requested_uptime"`
+	ContentProviderAttachUptime uint32        `json:"content_provider_attach_uptime"`
+	OnNextDrawUptime            uint32        `json:"on_next_draw_uptime" binding:"required"`
+	LaunchedActivity            string        `json:"launched_activity" binding:"required"`
+	HasSavedState               bool          `json:"has_saved_state" binding:"required"`
+	IntentData                  string        `json:"intent_data"`
+	Duration                    time.Duration `json:"duration"`
 }
 
 // Trim removes null bytes from the cold launch
 // event's string fields.
 func (cl *ColdLaunch) Trim() {
 	cl.LaunchedActivity = text.TrimFixedString(cl.LaunchedActivity)
+}
+
+// Compute computes the most accurate cold launch timing
+//
+// Android reports varied process uptime values over
+// varied api levels. Computes as a best effort case
+// based on what values are available.
+func (cl *ColdLaunch) Compute() {
+	uptime := cl.ProcessStartRequestedUptime
+	if uptime < 1 {
+		uptime = cl.ProcessStartUptime
+	}
+	if uptime < 1 {
+		uptime = cl.ContentProviderAttachUptime
+	}
+
+	onNextDrawUptime := cl.OnNextDrawUptime
+	cl.Duration = time.Duration(onNextDrawUptime-uptime) * time.Millisecond
+
+	if cl.Duration >= NominalColdLaunchThreshold {
+		fmt.Printf(`anomaly in cold_launch duration compute. nominal threshold: < %v . actual value: %f\n`, NominalColdLaunchThreshold, cl.Duration.Seconds())
+	}
 }
 
 type WarmLaunch struct {
