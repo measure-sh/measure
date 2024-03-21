@@ -1,6 +1,5 @@
 "use client"
 
-import Dropdown from "@/app/components/dropdown";
 import { getUserIdOrRedirectToAuth } from "@/app/utils/auth_utils";
 import { FormEventHandler, useEffect, useState } from "react";
 import { useRouter } from 'next/navigation';
@@ -8,6 +7,7 @@ import DangerConfirmationModal from "@/app/components/danger_confirmation_modal"
 import { TeamsApiStatus, fetchTeamsFromServer, emptyTeam, AuthzAndMembersApiStatus, InviteMemberApiStatus, RemoveMemberApiStatus, RoleChangeApiStatus, TeamNameChangeApiStatus, defaultAuthzAndMembers, fetchAuthzAndMembersFromServer, changeTeamNameFromServer, changeRoleFromServer, inviteMemberFromServer, removeMemberFromServer, CreateTeamApiStatus, createTeamFromServer } from "@/app/api/api_calls";
 import AlertDialogModal from "@/app/components/alert_dialog_modal";
 import { formatToCamelCase } from "@/app/utils/string_utils";
+import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select";
 
 export default function Team({ params }: { params: { teamId: string } }) {
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading);
@@ -264,7 +264,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
           <div className="flex flex-row items-center">
             <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300  py-2 px-4 font-sans placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} defaultValue={inviteMemberEmail} />
             <div className="px-2" />
-            <Dropdown items={authzAndMembers.can_invite.map((i) => formatToCamelCase(i))} initialSelectedItem={formatToCamelCase(authzAndMembers.can_invite[0])} onChangeSelectedItem={(item) => setInviteMemberRole(item)} />
+            <DropdownSelect title="Roles" type={DropdownSelectType.SingleString} items={authzAndMembers.can_invite.map((i) => formatToCamelCase(i))} initialSelected={formatToCamelCase(authzAndMembers.can_invite[0])} onChangeSelected={(item) => setInviteMemberRole(item as string)} />
             <button disabled={inviteMemberApiStatus === InviteMemberApiStatus.Loading || inviteMemberEmail === ""} onClick={inviteMember} className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Invite</button>
           </div>
           {inviteMemberApiStatus !== InviteMemberApiStatus.Init && <div className="py-1" />}
@@ -296,13 +296,13 @@ export default function Team({ params }: { params: { teamId: string } }) {
                   {id !== currentUserId &&
                     <div className="table-cell p-4 pl-0">
                       {/* If roles can be changed for members, add roles to dropdown and set selected role to current role */}
-                      {authz.can_change_roles !== null && authz.can_change_roles.length > 0 && <Dropdown items={authz.can_change_roles.map((i) => formatToCamelCase(i))} initialSelectedItem={formatToCamelCase(role)} onChangeSelectedItem={(i) => {
+                      {authz.can_change_roles !== null && authz.can_change_roles.length > 0 && <DropdownSelect title="Roles" type={DropdownSelectType.SingleString} items={authz.can_change_roles.map((i) => formatToCamelCase(i))} initialSelected={formatToCamelCase(role)} onChangeSelected={(i) => {
                         const newMap = new Map(selectedDropdownRolesMap)
-                        newMap.set(id, i)
+                        newMap.set(id, i as string)
                         setSelectedDropdownRolesMap(newMap)
                       }} />}
                       {/* If roles cannot be changed for current member, just show current role as part of dropdown */}
-                      {authz.can_change_roles === null || authz.can_change_roles.length === 0 && <Dropdown items={[formatToCamelCase(role)]} initialSelectedItem={formatToCamelCase(role)} />}
+                      {authz.can_change_roles === null || authz.can_change_roles.length === 0 && <DropdownSelect title="Current Role" type={DropdownSelectType.SingleString} items={[formatToCamelCase(role)]} initialSelected={formatToCamelCase(role)} />}
                     </div>
                   }
 

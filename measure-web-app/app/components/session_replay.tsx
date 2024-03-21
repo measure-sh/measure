@@ -6,8 +6,8 @@ import { emptySessionReplay } from '../api/api_calls';
 import SessionReplayEventAccordion from './session_replay_event_accordion';
 import SessionReplayEventVerticalConnector from './session_replay_event_vertical_connector';
 import FadeInOut from './fade_in_out';
-import CheckboxDropdown from './checkbox_dropdown';
 import { formatTimestampToChartFormat } from '../utils/time_utils';
+import DropdownSelect, { DropdownSelectType } from './dropdown_select';
 
 interface SessionReplayProps {
   sessionReplay: typeof emptySessionReplay
@@ -280,8 +280,8 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
         <p className="font-sans text-3xl"> Events</p>
         <div className="py-4" />
         <div className="flex flex-wrap gap-8 items-center w-5/6">
-          <CheckboxDropdown title="Threads" items={threads} initialSelectedItems={threads} onChangeSelectedItems={(items) => setSelectedThreads(items)} />
-          <CheckboxDropdown title="Event types" items={eventTypes} initialSelectedItems={eventTypes} onChangeSelectedItems={(items) => setSelectedEventTypes(items)} />
+          <DropdownSelect type={DropdownSelectType.MultiString} title="Threads" items={threads} initialSelected={threads} onChangeSelected={(items) => setSelectedThreads(items as string[])} />
+          <DropdownSelect type={DropdownSelectType.MultiString} title="Event types" items={eventTypes} initialSelected={eventTypes} onChangeSelected={(items) => setSelectedEventTypes(items as string[])} />
         </div>
         <div className="py-8" />
         {events.filter((e) => selectedThreads.includes(e.thread) && selectedEventTypes.includes(e.eventType)).map((e, index) => (
