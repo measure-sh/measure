@@ -18,7 +18,7 @@ const InfoCircleExceptionRate = ({ status, value, delta, title, tooltipMsgLine1,
         {status === MetricsApiStatus.Error && <p className="font-display text-lg">Error</p>}
         {status === MetricsApiStatus.Success && <p className="font-sans text-xl"> {value}%</p>}
         <div className="py-1" />
-        {status === MetricsApiStatus.Success && <p className={`font-sans text-sm ${delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-400' : 'opacity-0'}`}>{delta > 0 ? '+' : ''}{delta}%</p>}
+        {status === MetricsApiStatus.Success && <p className={`font-sans text-sm ${delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-400' : ''}`}>{delta > 0 ? '+' : ''}{delta}%</p>}
         <span className="pointer-events-none z-50 max-w-xl absolute font-sans text-sm text-white rounded-md p-4 bg-neutral-800 -top-48 left-0 w-max opacity-0 transition-opacity group-hover:opacity-100">{tooltipMsgLine1}<br /><br />{tooltipMsgLine2}</span>
       </div>
       <div className="py-2" />
