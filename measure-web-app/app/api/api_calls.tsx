@@ -632,7 +632,7 @@ export const fetchMetricsFromServer = async (appId: string, startDate: string, e
 
     const serverFormattedStartDate = new Date(startDate).toISOString()
     const serverFormattedEndDate = new Date(endDate).toISOString()
-    const res = await fetch(`${origin}/apps/${appId}/metrics?version=${appVersion.name}&version_code=${appVersion.code}&from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`, opts);
+    const res = await fetch(`${origin}/apps/${appId}/metrics?versions=${appVersion.name}&version_codes=${appVersion.code}&from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`, opts);
 
     if (!res.ok) {
         logoutIfAuthError(router, res)
