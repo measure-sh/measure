@@ -267,7 +267,7 @@ func (af *AppFilter) getAppVersions(fl *FilterList) error {
 	stmt := sqlf.Select("distinct toString(resource.app_version), toString(resource.app_build)").
 		From("events").
 		Where("app_id = toUUID(?)").
-		OrderBy("resource.app_version desc", "resource.app_build desc")
+		OrderBy("resource.app_build desc")
 
 	defer stmt.Close()
 
