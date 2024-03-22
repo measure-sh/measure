@@ -142,49 +142,45 @@ export const emptyJourney = {
 
 export const emptyMetrics = {
     "adoption": {
-        "users": 0,
-        "totalUsers": 0,
-        "value": 0
+        "all_versions": 0,
+        "selected_version": 0,
+        "adoption": 0
     },
-    "app_size": {
-        "value": 0,
+    "anr_free_sessions": {
+        "anr_free_sessions": 0,
         "delta": 0
     },
-    "crash_free_users": {
-        "value": 0,
+    "cold_launch": {
+        "delta": 0,
+        "nan": false,
+        "p95": 0
+    },
+    "crash_free_sessions": {
+        "crash_free_sessions": 0,
         "delta": 0
     },
-    "perceived_crash_free_users": {
-        "value": 0,
+    "hot_launch": {
+        "delta": 0,
+        "nan": false,
+        "p95": 0
+    },
+    "perceived_anr_free_sessions": {
+        "perceived_anr_free_sessions": 0,
         "delta": 0
     },
-    "multiple_crash_free_users": {
-        "value": 0,
+    "perceived_crash_free_sessions": {
+        "perceived_crash_free_sessions": 0,
         "delta": 0
     },
-    "anr_free_users": {
-        "value": 0,
+    "sizes": {
+        "average_app_size": 0,
+        "selected_app_size": 0,
         "delta": 0
     },
-    "perceived_anr_free_users": {
-        "value": 0,
-        "delta": 0
-    },
-    "multiple_anr_free_users": {
-        "value": 0,
-        "delta": 0
-    },
-    "app_cold_launch": {
-        "value": 0,
-        "delta": 0
-    },
-    "app_warm_launch": {
-        "value": 0,
-        "delta": 0
-    },
-    "app_hot_launch": {
-        "value": 0,
-        "delta": 0
+    "warm_launch": {
+        "delta": 0,
+        "nan": true,
+        "p95": 0
     }
 }
 
