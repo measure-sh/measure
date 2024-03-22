@@ -94,9 +94,11 @@ cp .env.example .env
 
 Navigate to `./self-host` and start the containers.
 
+If running for the first time or running after deleting containers, use the `--profile init` flag to setup buckets and so on.
+
 ```sh
 # for the very first time
-docker compose up --profile init
+docker compose --profile init up
 
 # for subsequent runs
 docker compose up
