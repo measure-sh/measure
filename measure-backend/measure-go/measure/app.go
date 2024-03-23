@@ -760,27 +760,27 @@ func (a *App) Onboard(tx pgx.Tx, uniqueIdentifier, platform, firstVersion string
 func (a *App) GetEventResource(id uuid.UUID) (resource *event.Resource, err error) {
 	resource = &event.Resource{}
 	stmt := sqlf.From(`default.events`).
-		Select(`resource.device_name`, nil).
-		Select(`resource.device_model`, nil).
-		Select(`resource.device_manufacturer`, nil).
-		Select(`resource.device_type`, nil).
+		Select(`toString(resource.device_name)`, nil).
+		Select(`toString(resource.device_model)`, nil).
+		Select(`toString(resource.device_manufacturer)`, nil).
+		Select(`toString(resource.device_type)`, nil).
 		Select(`resource.device_is_foldable`, nil).
 		Select(`resource.device_is_physical`, nil).
 		Select(`resource.device_density_dpi`, nil).
 		Select(`resource.device_width_px`, nil).
 		Select(`resource.device_height_px`, nil).
 		Select(`resource.device_density`, nil).
-		Select(`resource.device_locale`, nil).
-		Select(`resource.os_name`, nil).
-		Select(`resource.os_version`, nil).
-		Select(`resource.platform`, nil).
-		Select(`resource.app_version`, nil).
-		Select(`resource.app_build`, nil).
-		Select(`resource.app_unique_id`, nil).
-		Select(`resource.measure_sdk_version`, nil).
-		Select(`resource.network_type`, nil).
-		Select(`resource.network_generation`, nil).
-		Select(`resource.network_provider`, nil).
+		Select(`toString(resource.device_locale)`, nil).
+		Select(`toString(resource.os_name)`, nil).
+		Select(`toString(resource.os_version)`, nil).
+		Select(`toString(resource.platform)`, nil).
+		Select(`toString(resource.app_version)`, nil).
+		Select(`toString(resource.app_build)`, nil).
+		Select(`toString(resource.app_unique_id)`, nil).
+		Select(`toString(resource.measure_sdk_version)`, nil).
+		Select(`toString(resource.network_type)`, nil).
+		Select(`toString(resource.network_generation)`, nil).
+		Select(`toString(resource.network_provider)`, nil).
 		Where(`id = ?`)
 
 	defer stmt.Close()
@@ -2259,8 +2259,6 @@ func GetAppSession(c *gin.Context) {
 		}
 		resource = res
 	}
-
-	resource.Trim()
 
 	response := gin.H{
 		"session_id":   sessionId,
