@@ -259,10 +259,53 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []even
 		edgecount = len(ids)
 	}
 
-	stmt := sqlf.Select("id, session_id, type, timestamp, thread_name, resource.device_name, resource.device_model, resource.device_manufacturer, resource.device_type, resource.device_is_foldable, resource.device_is_physical, resource.device_density_dpi, resource.device_width_px, resource.device_height_px, resource.device_density, resource.device_locale, resource.os_name, resource.os_version, resource.platform, resource.app_version, resource.app_build, resource.app_unique_id, resource.measure_sdk_version, resource.network_type, resource.network_generation, resource.network_provider, exception.thread_name, exception.handled, exception.network_type, exception.network_generation, exception.network_provider, exception.device_locale, exception.fingerprint, exception.exceptions, exception.threads, attributes").
-		From("default.events").
-		Where("`id` in (?)", nil)
+	cols := []string{
+		`id`,
+		`session_id`,
+		`type`,
+		`timestamp`,
+		`thread_name`,
+		`toString(resource.device_name)`,
+		`toString(resource.device_model)`,
+		`toString(resource.device_manufacturer)`,
+		`toString(resource.device_type)`,
+		`resource.device_is_foldable`,
+		`resource.device_is_physical`,
+		`resource.device_density_dpi`,
+		`resource.device_width_px`,
+		`resource.device_height_px`,
+		`resource.device_density`,
+		`toString(resource.device_locale)`,
+		`toString(resource.os_name)`,
+		`toString(resource.os_version)`,
+		`toString(resource.platform)`,
+		`toString(resource.app_version)`,
+		`toString(resource.app_build)`,
+		`toString(resource.app_unique_id)`,
+		`toString(resource.measure_sdk_version)`,
+		`toString(resource.network_type)`,
+		`toString(resource.network_generation)`,
+		`toString(resource.network_provider)`,
+		`exception.thread_name`,
+		`exception.handled`,
+		`exception.network_type`,
+		`exception.network_generation`,
+		`exception.network_provider`,
+		`exception.device_locale`,
+		`exception.fingerprint`,
+		`exception.exceptions`,
+		`exception.threads`,
+		`attributes`,
+	}
+
+	stmt := sqlf.From(`default.events`)
 	defer stmt.Close()
+
+	for i := range cols {
+		stmt.Select(cols[i], nil)
+	}
+
+	stmt.Where("`id` in (?)", nil)
 
 	if forward {
 		stmt.OrderBy("`timestamp` desc", "`id` desc")
@@ -527,10 +570,53 @@ func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []event.Even
 		edgecount = len(ids)
 	}
 
-	stmt := sqlf.Select("id, session_id, type, timestamp, thread_name, resource.device_name, resource.device_model, resource.device_manufacturer, resource.device_type, resource.device_is_foldable, resource.device_is_physical, resource.device_density_dpi, resource.device_width_px, resource.device_height_px, resource.device_density, resource.device_locale, resource.os_name, resource.os_version, resource.platform, resource.app_version, resource.app_build, resource.app_unique_id, resource.measure_sdk_version, resource.network_type, resource.network_generation, resource.network_provider, anr.thread_name, anr.handled, anr.network_type,anr.network_generation, anr.network_provider, anr.device_locale, anr.fingerprint, anr.exceptions, anr.threads, attributes").
-		From("default.events").
-		Where("`id` in (?)", nil)
+	cols := []string{
+		`id`,
+		`session_id`,
+		`type`,
+		`timestamp`,
+		`thread_name`,
+		`toString(resource.device_name)`,
+		`toString(resource.device_model)`,
+		`toString(resource.device_manufacturer)`,
+		`toString(resource.device_type)`,
+		`resource.device_is_foldable`,
+		`resource.device_is_physical`,
+		`resource.device_density_dpi`,
+		`resource.device_width_px`,
+		`resource.device_height_px`,
+		`resource.device_density`,
+		`toString(resource.device_locale)`,
+		`toString(resource.os_name)`,
+		`toString(resource.os_version)`,
+		`toString(resource.platform)`,
+		`toString(resource.app_version)`,
+		`toString(resource.app_build)`,
+		`toString(resource.app_unique_id)`,
+		`toString(resource.measure_sdk_version)`,
+		`toString(resource.network_type)`,
+		`toString(resource.network_generation)`,
+		`toString(resource.network_provider)`,
+		`anr.thread_name`,
+		`anr.handled`,
+		`anr.network_type`,
+		`anr.network_generation`,
+		`anr.network_provider`,
+		`anr.device_locale`,
+		`anr.fingerprint`,
+		`anr.exceptions`,
+		`anr.threads`,
+		`attributes`,
+	}
+
+	stmt := sqlf.From(`default.events`)
 	defer stmt.Close()
+
+	for i := range cols {
+		stmt.Select(cols[i], nil)
+	}
+
+	stmt.Where("`id` in (?)", nil)
 
 	if forward {
 		stmt.OrderBy("`timestamp` desc", "`id` desc")
