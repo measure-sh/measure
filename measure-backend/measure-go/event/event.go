@@ -238,13 +238,6 @@ type GestureClick struct {
 	Y             float32 `json:"y"`
 }
 
-// Trim removes null bytes from the click
-// event's string fields.
-func (gc *GestureClick) Trim() {
-	gc.Target = text.TrimFixedString(gc.Target)
-	gc.TargetID = text.TrimFixedString(gc.TargetID)
-}
-
 type LifecycleActivity struct {
 	Type               string `json:"type" binding:"required"`
 	ClassName          string `json:"class_name" binding:"required"`
