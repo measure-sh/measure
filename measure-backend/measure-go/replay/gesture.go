@@ -91,7 +91,6 @@ func (gs GestureScroll) GetTimestamp() time.Time {
 // for session replay.
 func ComputeGestureClicks(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
-		event.GestureClick.Trim()
 		gestureClicks := GestureClick{
 			event.Type,
 			event.GestureClick.Target,
