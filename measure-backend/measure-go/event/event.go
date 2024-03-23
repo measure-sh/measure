@@ -330,12 +330,6 @@ type ColdLaunch struct {
 	Duration                    time.Duration `json:"duration"`
 }
 
-// Trim removes null bytes from the cold launch
-// event's string fields.
-func (cl *ColdLaunch) Trim() {
-	cl.LaunchedActivity = text.TrimFixedString(cl.LaunchedActivity)
-}
-
 // Compute computes the most accurate cold launch timing
 //
 // Android reports varied process uptime values over

@@ -85,8 +85,6 @@ func (hl HotLaunch) GetTimestamp() time.Time {
 // for session replay.
 func ComputeColdLaunches(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
-		event.ColdLaunch.Trim()
-
 		coldLaunches := ColdLaunch{
 			event.Type,
 			event.ColdLaunch.Duration,
