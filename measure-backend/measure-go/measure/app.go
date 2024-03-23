@@ -886,7 +886,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		`toString(lifecycle_fragment.class_name)`,
 		`lifecycle_fragment.parent_activity`,
 		`lifecycle_fragment.tag`,
-		`lifecycle_app.type`,
+		`toString(lifecycle_app.type)`,
 		`cold_launch.process_start_uptime`,
 		`cold_launch.process_start_requested_uptime`,
 		`cold_launch.content_provider_attach_uptime`,
