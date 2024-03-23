@@ -124,7 +124,6 @@ func ComputeWarmLaunches(events []event.EventField) (result []ThreadGrouper) {
 // for session replay.
 func ComputeHotLaunches(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
-		event.HotLaunch.Trim()
 		hotLaunches := HotLaunch{
 			event.Type,
 			event.HotLaunch.Duration,
