@@ -211,12 +211,6 @@ type LogString struct {
 	String       string `json:"string" binding:"required"`
 }
 
-// Trim removes null bytes from the log
-// event's string fields.
-func (ls *LogString) Trim() {
-	ls.SeverityText = text.TrimFixedString(ls.SeverityText)
-}
-
 type GestureLongClick struct {
 	Target        string  `json:"target"`
 	TargetID      string  `json:"target_id"`

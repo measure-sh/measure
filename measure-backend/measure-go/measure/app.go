@@ -851,7 +851,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		`app_exit.trace`,
 		`app_exit.process_name`,
 		`app_exit.pid`,
-		`string.severity_text`,
+		`toString(string.severity_text)`,
 		`string.string`,
 		`gesture_long_click.target`,
 		`gesture_long_click.target_id`,
