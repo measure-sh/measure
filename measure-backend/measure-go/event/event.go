@@ -176,14 +176,6 @@ func (e Exception) Stacktrace() string {
 	return b.String()
 }
 
-func (a *ANR) Trim() {
-	a.ThreadName = text.TrimFixedString(a.ThreadName)
-	a.NetworkType = text.TrimFixedString(a.NetworkType)
-	a.NetworkGeneration = text.TrimFixedString(a.NetworkGeneration)
-	a.NetworkProvider = text.TrimFixedString(a.NetworkProvider)
-	a.DeviceLocale = text.TrimFixedString(a.DeviceLocale)
-}
-
 func (e ANR) Stacktrace() string {
 	var b strings.Builder
 
@@ -633,12 +625,6 @@ type ANRView struct {
 	Message    string `json:"message"`
 	Location   string `json:"location"`
 	Stacktrace string `json:"stacktrace"`
-}
-
-func (e *EventANR) Trim() {
-	e.ThreadName = text.TrimFixedString(e.ThreadName)
-	e.Type = text.TrimFixedString(e.Type)
-	e.ANR.Trim()
 }
 
 func (e *EventANR) ComputeView() {
