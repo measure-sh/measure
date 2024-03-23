@@ -227,14 +227,6 @@ type GestureScroll struct {
 	Direction     string  `json:"direction"`
 }
 
-// Trim removes null bytes from the scroll
-// event's string fields.
-func (gs *GestureScroll) Trim() {
-	gs.Target = text.TrimFixedString(gs.Target)
-	gs.TargetID = text.TrimFixedString(gs.TargetID)
-	gs.Direction = text.TrimFixedString(gs.Direction)
-}
-
 type GestureClick struct {
 	Target        string  `json:"target"`
 	TargetID      string  `json:"target_id"`
