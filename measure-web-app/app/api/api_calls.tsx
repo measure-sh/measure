@@ -137,6 +137,11 @@ export const emptyJourney = {
         },
     ],
     "links": [
+        {
+            "source": "",
+            "target": "",
+            "value": 0
+        },
     ]
 }
 
