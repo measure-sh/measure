@@ -3,7 +3,6 @@ package event
 import (
 	"fmt"
 	"measure-backend/measure-go/platform"
-	"measure-backend/measure-go/text"
 )
 
 type Resource struct {
@@ -99,22 +98,4 @@ func (r *Resource) Validate() error {
 	}
 
 	return nil
-}
-
-func (r *Resource) Trim() {
-	r.DeviceName = text.TrimFixedString(r.DeviceName)
-	r.DeviceModel = text.TrimFixedString(r.DeviceModel)
-	r.DeviceManufacturer = text.TrimFixedString(r.DeviceManufacturer)
-	r.DeviceType = text.TrimFixedString(r.DeviceType)
-	r.DeviceLocale = text.TrimFixedString(r.DeviceLocale)
-	r.OSName = text.TrimFixedString(r.OSName)
-	r.OSVersion = text.TrimFixedString(r.OSVersion)
-	r.Platform = text.TrimFixedString(r.Platform)
-	r.AppVersion = text.TrimFixedString(r.AppVersion)
-	r.AppBuild = text.TrimFixedString(r.AppBuild)
-	r.AppUniqueID = text.TrimFixedString(r.AppUniqueID)
-	r.MeasureSDKVersion = text.TrimFixedString(r.MeasureSDKVersion)
-	r.NetworkType = text.TrimFixedString(r.NetworkType)
-	r.NetworkGeneration = text.TrimFixedString(r.NetworkGeneration)
-	r.NetworkProvider = text.TrimFixedString(r.NetworkProvider)
 }

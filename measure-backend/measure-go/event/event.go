@@ -561,7 +561,6 @@ func (e *EventField) IsNavigation() bool {
 func (e *EventField) Trim() {
 	e.ThreadName = text.TrimFixedString(e.ThreadName)
 	e.Type = text.TrimFixedString(e.Type)
-	e.Resource.Trim()
 	if e.IsException() {
 		e.Exception.Trim()
 	}
@@ -595,7 +594,6 @@ type ThreadView struct {
 func (e *EventException) Trim() {
 	e.ThreadName = text.TrimFixedString(e.ThreadName)
 	e.Type = text.TrimFixedString(e.Type)
-	e.Resource.Trim()
 	e.Exception.Trim()
 }
 
@@ -640,7 +638,6 @@ type ANRView struct {
 func (e *EventANR) Trim() {
 	e.ThreadName = text.TrimFixedString(e.ThreadName)
 	e.Type = text.TrimFixedString(e.Type)
-	e.Resource.Trim()
 	e.ANR.Trim()
 }
 
