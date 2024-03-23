@@ -215,13 +215,6 @@ type GestureLongClick struct {
 	Y             float32 `json:"y"`
 }
 
-// Trim removes null bytes from the long
-// click event's string fields.
-func (glc *GestureLongClick) Trim() {
-	glc.Target = text.TrimFixedString(glc.Target)
-	glc.TargetID = text.TrimFixedString(glc.TargetID)
-}
-
 type GestureScroll struct {
 	Target        string  `json:"target"`
 	TargetID      string  `json:"target_id"`
