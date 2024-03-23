@@ -31,7 +31,6 @@ func (ae AppExit) GetTimestamp() time.Time {
 // events for session replay.
 func ComputeAppExits(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
-		event.AppExit.Trim()
 		appExits := AppExit{
 			event.Type,
 			&event.AppExit,
