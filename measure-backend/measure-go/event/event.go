@@ -403,13 +403,6 @@ type Http struct {
 	Client             string            `json:"client"`
 }
 
-// Trim removes null bytes from the
-// http event's string fields.
-func (h *Http) Trim() {
-	h.Method = text.TrimFixedString(h.Method)
-	h.Client = text.TrimFixedString(h.Client)
-}
-
 type MemoryUsage struct {
 	JavaMaxHeap     uint64 `json:"java_max_heap" binding:"required"`
 	JavaTotalHeap   uint64 `json:"java_total_heap" binding:"required"`

@@ -71,7 +71,6 @@ func ComputeNetworkChange(events []event.EventField) (result []ThreadGrouper) {
 // events for session replay.
 func ComputeHttp(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
-		event.Http.Trim()
 		endTime := event.Http.EndTime
 		startTime := event.Http.StartTime
 		http := Http{
