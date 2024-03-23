@@ -136,7 +136,6 @@ func ComputeGestureLongClicks(events []event.EventField) (result []ThreadGrouper
 // for session replay.
 func ComputeGestureScrolls(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
-		event.GestureScroll.Trim()
 		gestureScrolls := GestureScroll{
 			event.Type,
 			event.GestureScroll.Target,
