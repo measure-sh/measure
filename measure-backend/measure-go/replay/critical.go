@@ -91,7 +91,6 @@ func ComputeExceptions(events []event.EventField) (result []ThreadGrouper) {
 // for session replay.
 func ComputeANRs(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
-		event.ANR.Trim()
 		anrs := ANR{
 			event.Type,
 			event.ANR.GetType(),

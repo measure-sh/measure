@@ -573,9 +573,9 @@ func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []event.Even
 	cols := []string{
 		`id`,
 		`session_id`,
-		`type`,
+		`toString(type)`,
 		`timestamp`,
-		`thread_name`,
+		`toString(thread_name)`,
 		`toString(resource.device_name)`,
 		`toString(resource.device_model)`,
 		`toString(resource.device_manufacturer)`,
@@ -597,12 +597,12 @@ func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []event.Even
 		`toString(resource.network_type)`,
 		`toString(resource.network_generation)`,
 		`toString(resource.network_provider)`,
-		`anr.thread_name`,
+		`toString(anr.thread_name)`,
 		`anr.handled`,
-		`anr.network_type`,
-		`anr.network_generation`,
-		`anr.network_provider`,
-		`anr.device_locale`,
+		`toString(anr.network_type)`,
+		`toString(anr.network_generation)`,
+		`toString(anr.network_provider)`,
+		`toString(anr.device_locale)`,
 		`anr.fingerprint`,
 		`anr.exceptions`,
 		`anr.threads`,
@@ -734,7 +734,6 @@ func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []event.Even
 			return nil, next, previous, err
 		}
 
-		e.Trim()
 		if err := json.Unmarshal([]byte(exceptions), &e.ANR.Exceptions); err != nil {
 			return nil, next, previous, err
 		}
