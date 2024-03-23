@@ -256,12 +256,6 @@ type LifecycleApp struct {
 	Type string `json:"type" binding:"required"`
 }
 
-// Trim removes null bytes from the lifecycle
-// app event's string fields.
-func (la *LifecycleApp) Trim() {
-	la.Type = text.TrimFixedString(la.Type)
-}
-
 type ColdLaunch struct {
 	ProcessStartUptime          uint32        `json:"process_start_uptime"`
 	ProcessStartRequestedUptime uint32        `json:"process_start_requested_uptime"`

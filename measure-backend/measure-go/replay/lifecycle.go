@@ -109,7 +109,6 @@ func ComputeLifecycleFragments(events []event.EventField) (result []ThreadGroupe
 // app events for session replay.
 func ComputeLifecycleApps(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
-		event.LifecycleApp.Trim()
 		apps := LifecycleApp{
 			event.Type,
 			&event.LifecycleApp,
