@@ -31,7 +31,6 @@ func (ls LogString) GetTimestamp() time.Time {
 // for session replay.
 func ComputeLogString(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
-		event.LogString.Trim()
 		logs := LogString{
 			event.Type,
 			&event.LogString,
