@@ -175,61 +175,66 @@ func UploadBuild(url, apiKey string, app app.App) (string, error) {
 		return "", err
 	}
 	fw.Write([]byte(app.BuildInfo.Type))
-
 	w.Close()
 
-	req, err := http.NewRequest("PUT", url, &buff)
-	if err != nil {
-		return "", err
+	headers := map[string]string{
+		"Content-Type": fmt.Sprintf("multipart/form-data; boundary=%s", multipartBoundary),
 	}
 
-	req.Header.Set("Content-Type", fmt.Sprintf("multipart/form-data; boundary=%s", multipartBoundary))
-	req.Header.Set("User-Agent", "sessionator")
-	req.Header.Set("Authorization", "Bearer "+apiKey)
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-
-	if resp.StatusCode > 399 {
-		return resp.Status, errors.New("failed to upload build info")
-	}
-
-	defer resp.Body.Close()
-
-	return resp.Status, nil
+	return sendRequest(url, apiKey, headers, buff.Bytes())
 }
 
 // UploadSession prepares & sends the request to upload
 // session files.
 func UploadSession(url, apiKey string, data []byte) (string, error) {
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	return sendRequest(url, apiKey, headers, data)
+}
+
+// sendRequest prepares a request and sends a put
+// request to the given url.
+func sendRequest(url, apiKey string, headers map[string]string, data []byte) (status string, err error) {
 	reader := bytes.NewReader(data)
 	req, err := http.NewRequest("PUT", url, reader)
 	if err != nil {
-		return "", err
+		return
 	}
 
-	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "sessionator")
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 
+	for key, value := range headers {
+		if key != "" && value != "" {
+			req.Header.Set(key, value)
+		}
+	}
+
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", err
+		return
 	}
 
 	defer resp.Body.Close()
+	status = resp.Status
 
 	if resp.StatusCode > 399 {
 		errorBody, errRead := io.ReadAll(resp.Body)
 		if errRead != nil {
-			return resp.Status, errors.New("failed to ingest session")
+			err = errRead
+			return
 		}
-		return resp.Status, errors.New("failed to ingest session: " + string(errorBody))
+		if len(errorBody) > 0 {
+			err = errors.New(string(errorBody))
+		} else {
+			err = errors.New(`request failed with no content`)
+		}
+		return
 	}
 
-	return resp.Status, nil
+	return
 }
 
 var ingestCmd = &cobra.Command{
