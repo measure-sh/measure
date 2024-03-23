@@ -954,6 +954,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 	}
 
 	stmt := sqlf.From("default.events")
+	defer stmt.Close()
 
 	for i := range cols {
 		stmt.Select(cols[i], nil)
