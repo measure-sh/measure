@@ -939,7 +939,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		`low_memory.rss`,
 		`low_memory.native_total_heap`,
 		`low_memory.native_free_heap`,
-		`trim_memory.level`,
+		`toString(trim_memory.level)`,
 		`cpu_usage.num_cores`,
 		`cpu_usage.clock_speed`,
 		`cpu_usage.start_time`,

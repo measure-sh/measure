@@ -74,7 +74,6 @@ func ComputeMemoryUsage(events []event.EventField) (result []MemoryUsage) {
 // for session replay.
 func ComputeTrimMemories(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
-		event.TrimMemory.Trim()
 		memories := TrimMemory{
 			event.Type,
 			&event.TrimMemory,
