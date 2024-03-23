@@ -386,12 +386,6 @@ func (hl *HotLaunch) Compute() {
 	hl.Duration = time.Duration(hl.OnNextDrawUptime-hl.AppVisibleUptime) * time.Millisecond
 }
 
-// Trim removes null bytes from the hot launch
-// event's string fields.
-func (hl *HotLaunch) Trim() {
-	hl.LaunchedActivity = text.TrimFixedString(hl.LaunchedActivity)
-}
-
 type NetworkChange struct {
 	NetworkType               string `json:"network_type" binding:"required"`
 	PreviousNetworkType       string `json:"previous_network_type"`

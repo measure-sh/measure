@@ -903,7 +903,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		`warm_launch.duration`,
 		`hot_launch.app_visible_uptime`,
 		`hot_launch.on_next_draw_uptime`,
-		`hot_launch.launched_activity`,
+		`toString(hot_launch.launched_activity)`,
 		`hot_launch.has_saved_state`,
 		`hot_launch.intent_data`,
 		`hot_launch.duration`,
