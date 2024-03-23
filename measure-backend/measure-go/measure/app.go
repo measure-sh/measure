@@ -891,7 +891,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		`cold_launch.process_start_requested_uptime`,
 		`cold_launch.content_provider_attach_uptime`,
 		`cold_launch.on_next_draw_uptime`,
-		`cold_launch.launched_activity`,
+		`toString(cold_launch.launched_activity)`,
 		`cold_launch.has_saved_state`,
 		`cold_launch.intent_data`,
 		`cold_launch.duration`,
