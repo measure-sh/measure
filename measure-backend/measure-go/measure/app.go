@@ -949,7 +949,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		`cpu_usage.stime`,
 		`cpu_usage.cstime`,
 		`cpu_usage.interval_config`,
-		`navigation.route`,
+		`toString(navigation.route)`,
 		`attributes`,
 	}
 

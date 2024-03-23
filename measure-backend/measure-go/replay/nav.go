@@ -31,7 +31,6 @@ func (n Navigation) GetTimestamp() time.Time {
 // for session replay.
 func ComputeNavigation(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
-		event.Navigation.Trim()
 		navs := Navigation{
 			event.Type,
 			&event.Navigation,
