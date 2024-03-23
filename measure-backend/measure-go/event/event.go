@@ -388,16 +388,6 @@ type NetworkChange struct {
 	NetworkProvider           string `json:"network_provider"`
 }
 
-// Trim removes null bytes from the network
-// change event's string fields.
-func (nc *NetworkChange) Trim() {
-	nc.NetworkType = text.TrimFixedString(nc.NetworkType)
-	nc.PreviousNetworkType = text.TrimFixedString(nc.PreviousNetworkType)
-	nc.NetworkGeneration = text.TrimFixedString(nc.NetworkGeneration)
-	nc.PreviousNetworkGeneration = text.TrimFixedString(nc.PreviousNetworkGeneration)
-	nc.NetworkProvider = text.TrimFixedString(nc.NetworkProvider)
-}
-
 type Http struct {
 	URL                string            `json:"url"`
 	Method             string            `json:"method"`

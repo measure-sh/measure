@@ -54,7 +54,6 @@ func (h Http) GetTimestamp() time.Time {
 // events for session replay.
 func ComputeNetworkChange(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
-		event.NetworkChange.Trim()
 		netChanges := NetworkChange{
 			event.Type,
 			&event.NetworkChange,
