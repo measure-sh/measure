@@ -75,7 +75,6 @@ func (la LifecycleApp) GetTimestamp() time.Time {
 // activity events for session replay.
 func ComputeLifecycleActivities(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
-		event.LifecycleActivity.Trim()
 		activities := LifecycleActivity{
 			event.Type,
 			&event.LifecycleActivity,
