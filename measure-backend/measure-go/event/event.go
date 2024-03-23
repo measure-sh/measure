@@ -252,13 +252,6 @@ type LifecycleFragment struct {
 	Tag            string `json:"tag"`
 }
 
-// Trim removes null bytes from the lifecycle
-// fragment event's string fields.
-func (lf *LifecycleFragment) Trim() {
-	lf.Type = text.TrimFixedString(lf.Type)
-	lf.ClassName = text.TrimFixedString(lf.ClassName)
-}
-
 type LifecycleApp struct {
 	Type string `json:"type" binding:"required"`
 }
