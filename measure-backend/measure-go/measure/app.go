@@ -819,14 +819,14 @@ func (a *App) GetEventResource(id uuid.UUID) (resource *event.Resource, err erro
 func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 	cols := []string{
 		`id`,
-		`type`,
+		`toString(type)`,
 		`session_id`,
 		`app_id`,
 		`inet.ipv4`,
 		`inet.ipv6`,
 		`inet.country_code`,
 		`timestamp`,
-		`thread_name`,
+		`toString(thread_name)`,
 		`toString(anr.thread_name)`,
 		`anr.fingerprint`,
 		`toString(anr.network_type)`,
@@ -836,13 +836,13 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		`anr.foreground`,
 		`anr.exceptions`,
 		`anr.threads`,
-		`exception.thread_name`,
+		`toString(exception.thread_name)`,
 		`exception.handled`,
 		`exception.fingerprint`,
-		`exception.network_type`,
-		`exception.network_generation`,
-		`exception.network_provider`,
-		`exception.device_locale`,
+		`toString(exception.network_type)`,
+		`toString(exception.network_generation)`,
+		`toString(exception.network_provider)`,
+		`toString(exception.device_locale)`,
 		`exception.foreground`,
 		`exception.exceptions`,
 		`exception.threads`,
@@ -1185,7 +1185,6 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 			return nil, err
 		}
 
-		ev.Trim()
 		ev.Attributes = attributes
 
 		switch ev.Type {
