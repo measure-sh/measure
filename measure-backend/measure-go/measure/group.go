@@ -262,9 +262,9 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []even
 	cols := []string{
 		`id`,
 		`session_id`,
-		`type`,
+		`toString(type)`,
 		`timestamp`,
-		`thread_name`,
+		`toString(thread_name)`,
 		`toString(resource.device_name)`,
 		`toString(resource.device_model)`,
 		`toString(resource.device_manufacturer)`,
@@ -286,7 +286,7 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []even
 		`toString(resource.network_type)`,
 		`toString(resource.network_generation)`,
 		`toString(resource.network_provider)`,
-		`exception.thread_name`,
+		`toString(exception.thread_name)`,
 		`exception.handled`,
 		`exception.network_type`,
 		`exception.network_generation`,
@@ -423,7 +423,6 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []even
 			return nil, next, previous, err
 		}
 
-		e.Trim()
 		if err := json.Unmarshal([]byte(exceptions), &e.Exception.Exceptions); err != nil {
 			return nil, next, previous, err
 		}
