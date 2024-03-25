@@ -8,8 +8,5 @@
   },
   "scripts": {
     "prepare": "husky install"
-  },
-  "dependencies": {
-    "@nivo/network": "^0.85.1"
   }
 }
