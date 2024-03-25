@@ -66,7 +66,6 @@ func (a ANR) GetTimestamp() time.Time {
 // for session replay.
 func ComputeExceptions(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
-		event.Exception.Trim()
 		exceptions := Exception{
 			event.Type,
 			event.Exception.GetType(),

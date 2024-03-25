@@ -153,14 +153,6 @@ type Exception struct {
 	Foreground        bool           `json:"foreground" binding:"required"`
 }
 
-func (e *Exception) Trim() {
-	e.ThreadName = text.TrimFixedString(e.ThreadName)
-	e.NetworkType = text.TrimFixedString(e.NetworkType)
-	e.NetworkGeneration = text.TrimFixedString(e.NetworkGeneration)
-	e.NetworkProvider = text.TrimFixedString(e.NetworkProvider)
-	e.DeviceLocale = text.TrimFixedString(e.DeviceLocale)
-}
-
 func (e Exception) Stacktrace() string {
 	var b strings.Builder
 
@@ -495,14 +487,6 @@ func (e *EventField) IsNavigation() bool {
 	return e.Type == TypeNavigation
 }
 
-func (e *EventField) Trim() {
-	e.ThreadName = text.TrimFixedString(e.ThreadName)
-	e.Type = text.TrimFixedString(e.Type)
-	if e.IsException() {
-		e.Exception.Trim()
-	}
-}
-
 type EventException struct {
 	ID         uuid.UUID         `json:"id"`
 	SessionID  uuid.UUID         `json:"session_id"`
@@ -526,12 +510,6 @@ type ExceptionView struct {
 type ThreadView struct {
 	Name   string   `json:"name"`
 	Frames []string `json:"frames"`
-}
-
-func (e *EventException) Trim() {
-	e.ThreadName = text.TrimFixedString(e.ThreadName)
-	e.Type = text.TrimFixedString(e.Type)
-	e.Exception.Trim()
 }
 
 func (e *EventException) ComputeView() {
