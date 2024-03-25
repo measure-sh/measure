@@ -14,10 +14,3 @@ func JoinNonEmptyStrings(delim string, strs ...string) string {
 	}
 	return strings.Join(nonEmptyStrs, delim)
 }
-
-// TrimFixedString trims null characters from
-// right side of the string and returns the
-// trimmed string.
-func TrimFixedString(s string) string {
-	return strings.TrimRight(s, "\x00")
-}
