@@ -140,3 +140,7 @@ Measure dashboard.
 # Configure the SDK
 
 Coming soon...
+
+# Internals
+
+* [Persistence and syncing](docs/internals/persistence_and_syncing.md)
