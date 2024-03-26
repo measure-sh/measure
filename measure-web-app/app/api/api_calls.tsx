@@ -149,11 +149,13 @@ export const emptyMetrics = {
     "adoption": {
         "all_versions": 0,
         "selected_version": 0,
-        "adoption": 0
+        "adoption": 0,
+        "nan": false
     },
     "anr_free_sessions": {
         "anr_free_sessions": 0,
-        "delta": 0
+        "delta": 0,
+        "nan": false
     },
     "cold_launch": {
         "delta": 0,
@@ -162,7 +164,8 @@ export const emptyMetrics = {
     },
     "crash_free_sessions": {
         "crash_free_sessions": 0,
-        "delta": 0
+        "delta": 0,
+        "nan": false
     },
     "hot_launch": {
         "delta": 0,
@@ -171,20 +174,23 @@ export const emptyMetrics = {
     },
     "perceived_anr_free_sessions": {
         "perceived_anr_free_sessions": 0,
-        "delta": 0
+        "delta": 0,
+        "nan": false
     },
     "perceived_crash_free_sessions": {
         "perceived_crash_free_sessions": 0,
-        "delta": 0
+        "delta": 0,
+        "nan": false
     },
     "sizes": {
         "average_app_size": 0,
         "selected_app_size": 0,
-        "delta": 0
+        "delta": 0,
+        "nan": false
     },
     "warm_launch": {
         "delta": 0,
-        "nan": true,
+        "nan": false,
         "p95": 0
     }
 }
