@@ -17,92 +17,92 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-1)
   - [GET `/apps/:id/filters`](#get-appsidfilters)
     - [Usage Notes](#usage-notes-2)
-    - [Authorization \& Content Type](#authorization--content-type-2)
+    - [Authorization \&amp Content Type](#authorization-amp-content-type)
     - [Response Body](#response-body-2)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-2)
   - [GET `/apps/:id/crashGroups`](#get-appsidcrashgroups)
     - [Usage Notes](#usage-notes-3)
-    - [Authorization \& Content Type](#authorization--content-type-3)
+    - [Authorization \& Content Type](#authorization--content-type-2)
     - [Response Body](#response-body-3)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-3)
   - [GET `/apps/:id/anrGroups`](#get-appsidanrgroups)
     - [Usage Notes](#usage-notes-4)
-    - [Authorization \& Content Type](#authorization--content-type-4)
+    - [Authorization \& Content Type](#authorization--content-type-3)
     - [Response Body](#response-body-4)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-4)
   - [GET `/apps/:id/crashGroups/:id/crashes`](#get-appsidcrashgroupsidcrashes)
     - [Usage Notes](#usage-notes-5)
-    - [Authorization \& Content Type](#authorization--content-type-5)
+    - [Authorization \& Content Type](#authorization--content-type-4)
     - [Response Body](#response-body-5)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-5)
   - [GET `/apps/:id/anrGroups/:id/anrs`](#get-appsidanrgroupsidanrs)
     - [Usage Notes](#usage-notes-6)
-    - [Authorization \& Content Type](#authorization--content-type-6)
+    - [Authorization \& Content Type](#authorization--content-type-5)
     - [Response Body](#response-body-6)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-6)
   - [GET `/apps/:id/sessions/:id`](#get-appsidsessionsid)
     - [Usage Notes](#usage-notes-7)
-    - [Authorization \& Content Type](#authorization--content-type-7)
+    - [Authorization \& Content Type](#authorization--content-type-6)
     - [Response Body](#response-body-7)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-7)
 - [Teams](#teams)
   - [POST `/teams`](#post-teams)
-    - [Authorization \& Content Type](#authorization--content-type-8)
+    - [Authorization \& Content Type](#authorization--content-type-7)
     - [Request Body](#request-body)
     - [Usage Notes](#usage-notes-8)
     - [Response Body](#response-body-8)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-8)
   - [GET `/teams`](#get-teams)
-    - [Authorization \& Content Type](#authorization--content-type-9)
+    - [Authorization \& Content Type](#authorization--content-type-8)
     - [Response Body](#response-body-9)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-9)
   - [GET `/teams/:id/apps`](#get-teamsidapps)
     - [Usage Notes](#usage-notes-9)
-    - [Authorization \& Content Type](#authorization--content-type-10)
+    - [Authorization \& Content Type](#authorization--content-type-9)
     - [Response Body](#response-body-10)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-10)
   - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
     - [Usage Notes](#usage-notes-10)
-    - [Authorization \& Content Type](#authorization--content-type-11)
+    - [Authorization \& Content Type](#authorization--content-type-10)
     - [Response Body](#response-body-11)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-11)
   - [POST `/teams/:id/apps`](#post-teamsidapps)
     - [Usage Notes](#usage-notes-11)
     - [Request body](#request-body-1)
-    - [Authorization \& Content Type](#authorization--content-type-12)
+    - [Authorization \& Content Type](#authorization--content-type-11)
     - [Response Body](#response-body-12)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-12)
   - [POST `/auth/invite`](#post-authinvite)
     - [Usage Notes](#usage-notes-12)
     - [Request body](#request-body-2)
-    - [Authorization \& Content Type](#authorization--content-type-13)
+    - [Authorization \& Content Type](#authorization--content-type-12)
     - [Response Body](#response-body-13)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-13)
   - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
     - [Usage Notes](#usage-notes-13)
     - [Request body](#request-body-3)
-    - [Authorization \& Content Type](#authorization--content-type-14)
+    - [Authorization \& Content Type](#authorization--content-type-13)
     - [Response Body](#response-body-14)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-14)
   - [GET `/teams/:id/members`](#get-teamsidmembers)
     - [Usage Notes](#usage-notes-14)
-    - [Authorization \& Content Type](#authorization--content-type-15)
+    - [Authorization \& Content Type](#authorization--content-type-14)
     - [Response Body](#response-body-15)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-15)
   - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
     - [Usage Notes](#usage-notes-15)
-    - [Authorization \& Content Type](#authorization--content-type-16)
+    - [Authorization \& Content Type](#authorization--content-type-15)
     - [Response Body](#response-body-16)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-16)
   - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
     - [Usage Notes](#usage-notes-16)
     - [Request body](#request-body-4)
-    - [Authorization \& Content Type](#authorization--content-type-17)
+    - [Authorization \& Content Type](#authorization--content-type-16)
     - [Response Body](#response-body-17)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-17)
   - [GET `/teams/:id/authz`](#get-teamsidauthz)
     - [Usage Notes](#usage-notes-17)
-    - [Authorization \& Content Type](#authorization--content-type-18)
+    - [Authorization \& Content Type](#authorization--content-type-17)
     - [Response Body](#response-body-18)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-18)
 
@@ -412,51 +412,57 @@ These headers must be present in each request.
 
   <details><summary>Click to expand</summary>
 
-  ```json
-  {
-    "adoption": {
-      "all_versions": 33,
-      "selected_version": 5,
-      "adoption": 15.15
-    },
-    "anr_free_sessions": {
-      "anr_free_sessions": 100,
-      "delta": -84.85
-    },
-    "cold_launch": {
-      "delta": -258.5,
-      "nan": false,
-      "p95": 2562.6
-    },
-    "crash_free_sessions": {
-      "crash_free_sessions": 20,
-      "delta": -84.85
-    },
-    "hot_launch": {
-      "delta": 0,
-      "nan": false,
-      "p95": 182.6
-    },
-    "perceived_anr_free_sessions": {
-      "perceived_anr_free_sessions": 100,
-      "delta": -84.85
-    },
-    "perceived_crash_free_sessions": {
-      "perceived_crash_free_sessions": 20,
-      "delta": -84.85
-    },
-    "sizes": {
-      "average_app_size": 32359196.33,
-      "selected_app_size": 25940352,
-      "delta": -6418844.33
-    },
-    "warm_launch": {
-      "delta": 0,
-      "nan": true,
-      "p95": 0
-    }
+```json
+{
+  "adoption": {
+    "all_versions": 33,
+    "selected_version": 7,
+    "adoption": 21.21,
+    "nan": false
+  },
+  "anr_free_sessions": {
+    "anr_free_sessions": 100,
+    "delta": -78.79,
+    "nan": false
+  },
+  "cold_launch": {
+    "delta": 34.8,
+    "nan": false,
+    "p95": 2771.8
+  },
+  "crash_free_sessions": {
+    "crash_free_sessions": 71.43,
+    "delta": -78.79,
+    "nan": false
+  },
+  "hot_launch": {
+    "delta": 0,
+    "nan": false,
+    "p95": 475.9
+  },
+  "perceived_anr_free_sessions": {
+    "perceived_anr_free_sessions": 100,
+    "delta": -78.79,
+    "nan": false
+  },
+  "perceived_crash_free_sessions": {
+    "perceived_crash_free_sessions": 71.43,
+    "delta": -78.79,
+    "nan": false
+  },
+  "sizes": {
+    "average_app_size": 32359196.33,
+    "selected_app_size": 45196797,
+    "delta": 12837600.67,
+    "nan": false
+  },
+  "warm_launch": {
+    "delta": -129.9,
+    "nan": false,
+    "p95": 554.6
   }
-  ```
+}
+```
 
   </details>
 
