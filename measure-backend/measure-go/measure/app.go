@@ -335,8 +335,8 @@ func (a App) GetANRFreeMetrics(af *AppFilter) (anrFree *metrics.ANRFreeSession, 
 	return
 }
 
-func (a App) GetPerceivedCrashFreeMetrics(af *AppFilter) (crashFree *metrics.PerceivedCrashFreeSesssion, err error) {
-	crashFree = &metrics.PerceivedCrashFreeSesssion{}
+func (a App) GetPerceivedCrashFreeMetrics(af *AppFilter) (crashFree *metrics.PerceivedCrashFreeSession, err error) {
+	crashFree = &metrics.PerceivedCrashFreeSession{}
 	stmt := sqlf.
 		With("all_sessions",
 			sqlf.From("default.events").
@@ -375,6 +375,8 @@ func (a App) GetPerceivedCrashFreeMetrics(af *AppFilter) (crashFree *metrics.Per
 	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), args...).Scan(&crashFree.CrashFreeSessions, &crashFree.Delta); err != nil {
 		return nil, err
 	}
+
+	crashFree.SetNaNs()
 
 	return
 }

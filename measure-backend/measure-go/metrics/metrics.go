@@ -74,9 +74,25 @@ func (afs *ANRFreeSession) SetNaNs() {
 
 // PerceivedCrashFreeSesssion represents compute result of an app's
 // perceived crash free sessions.
-type PerceivedCrashFreeSesssion struct {
-	CrashFreeSessions float64 `json:"perceived_crash_free_sessions"`
-	Delta             float64 `json:"delta"`
+type PerceivedCrashFreeSession struct {
+	CrashFreeSessions    float64 `json:"perceived_crash_free_sessions"`
+	Delta                float64 `json:"delta"`
+	CrashFreeSessionsNaN bool    `json:"perceived_crash_free_sessions_nan"`
+	DeltaNaN             bool    `json:"delta_nan"`
+}
+
+// SetNaNs sets the NaN bit if
+// perceived crash free sessions
+// value(s) are NaN.
+func (pcfs *PerceivedCrashFreeSession) SetNaNs() {
+	if math.IsNaN(pcfs.CrashFreeSessions) {
+		pcfs.CrashFreeSessionsNaN = true
+		pcfs.CrashFreeSessions = 0
+	}
+	if math.IsNaN(pcfs.Delta) {
+		pcfs.DeltaNaN = true
+		pcfs.Delta = 0
+	}
 }
 
 // PerceivedANRFreeSesssion represents compute result of an app's
