@@ -448,6 +448,8 @@ func (a App) GetAdoptionMetrics(af *AppFilter) (adoption *metrics.SessionAdoptio
 		return nil, err
 	}
 
+	adoption.SetNaNs()
+
 	return
 }
 
