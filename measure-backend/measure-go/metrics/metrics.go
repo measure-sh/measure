@@ -8,6 +8,16 @@ type SessionAdoption struct {
 	AllVersions     uint64  `json:"all_versions"`
 	SelectedVersion uint64  `json:"selected_version"`
 	Adoption        float64 `json:"adoption"`
+	AdoptionNaN     bool    `json:"adoption_nan"`
+}
+
+// SetNaNs sets the NaN bit if adoption
+// value is NaN.
+func (sa *SessionAdoption) SetNaNs() {
+	if math.IsNaN(sa.Adoption) {
+		sa.AdoptionNaN = true
+		sa.Adoption = 0
+	}
 }
 
 // SizeMetric represents compute result of an app's
