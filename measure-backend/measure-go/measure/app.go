@@ -215,7 +215,8 @@ func (a App) GetSizeMetrics(af *AppFilter) (size *metrics.SizeMetric, err error)
 
 	// no events for selected conditions found
 	if count < 1 {
-		return nil, nil
+		size.SetNaNs()
+		return
 	}
 
 	sizeStmt := sqlf.PostgreSQL.

@@ -26,6 +26,13 @@ type SizeMetric struct {
 	AverageAppSize  float64 `json:"average_app_size"`
 	SelectedAppSize uint64  `json:"selected_app_size"`
 	Delta           float64 `json:"delta"`
+	NaN             bool    `json:"nan"`
+}
+
+// SetNaNs sets the NaN bit if size values
+// are NaN.
+func (sm *SizeMetric) SetNaNs() {
+	sm.NaN = true
 }
 
 // CrashFreeSesssion represents compute result of an app's
