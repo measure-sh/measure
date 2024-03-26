@@ -284,6 +284,8 @@ func (a App) GetCrashFreeMetrics(af *AppFilter) (crashFree *metrics.CrashFreeSes
 		return nil, err
 	}
 
+	crashFree.SetNaNs()
+
 	return
 }
 

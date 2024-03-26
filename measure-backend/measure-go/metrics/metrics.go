@@ -31,8 +31,23 @@ type SizeMetric struct {
 // CrashFreeSesssion represents compute result of an app's
 // crash free sessions.
 type CrashFreeSession struct {
-	CrashFreeSessions float64 `json:"crash_free_sessions"`
-	Delta             float64 `json:"delta"`
+	CrashFreeSessions    float64 `json:"crash_free_sessions"`
+	Delta                float64 `json:"delta"`
+	CrashFreeSessionsNaN bool    `json:"crash_free_sessions_nan"`
+	DeltaNaN             bool    `json:"delta_nan"`
+}
+
+// SetNaNs sets the NaN bit if crash
+// free sessions value(s) are NaN.
+func (cfs *CrashFreeSession) SetNaNs() {
+	if math.IsNaN(cfs.CrashFreeSessions) {
+		cfs.CrashFreeSessionsNaN = true
+		cfs.CrashFreeSessions = 0
+	}
+	if math.IsNaN(cfs.Delta) {
+		cfs.DeltaNaN = true
+		cfs.Delta = 0
+	}
 }
 
 // ANRFreeSesssion represents compute result of an app's
