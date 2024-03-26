@@ -330,6 +330,8 @@ func (a App) GetANRFreeMetrics(af *AppFilter) (anrFree *metrics.ANRFreeSession, 
 		return nil, err
 	}
 
+	anrFree.SetNaNs()
+
 	return
 }
 
