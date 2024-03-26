@@ -8,14 +8,14 @@ type SessionAdoption struct {
 	AllVersions     uint64  `json:"all_versions"`
 	SelectedVersion uint64  `json:"selected_version"`
 	Adoption        float64 `json:"adoption"`
-	AdoptionNaN     bool    `json:"adoption_nan"`
+	NaN             bool    `json:"nan"`
 }
 
 // SetNaNs sets the NaN bit if adoption
 // value is NaN.
 func (sa *SessionAdoption) SetNaNs() {
 	if math.IsNaN(sa.Adoption) {
-		sa.AdoptionNaN = true
+		sa.NaN = true
 		sa.Adoption = 0
 	}
 }
@@ -38,21 +38,17 @@ func (sm *SizeMetric) SetNaNs() {
 // CrashFreeSesssion represents compute result of an app's
 // crash free sessions.
 type CrashFreeSession struct {
-	CrashFreeSessions    float64 `json:"crash_free_sessions"`
-	Delta                float64 `json:"delta"`
-	CrashFreeSessionsNaN bool    `json:"crash_free_sessions_nan"`
-	DeltaNaN             bool    `json:"delta_nan"`
+	CrashFreeSessions float64 `json:"crash_free_sessions"`
+	Delta             float64 `json:"delta"`
+	NaN               bool    `json:"nan"`
 }
 
 // SetNaNs sets the NaN bit if crash
 // free sessions value(s) are NaN.
 func (cfs *CrashFreeSession) SetNaNs() {
-	if math.IsNaN(cfs.CrashFreeSessions) {
-		cfs.CrashFreeSessionsNaN = true
+	if math.IsNaN(cfs.CrashFreeSessions) || math.IsNaN(cfs.Delta) {
+		cfs.NaN = true
 		cfs.CrashFreeSessions = 0
-	}
-	if math.IsNaN(cfs.Delta) {
-		cfs.DeltaNaN = true
 		cfs.Delta = 0
 	}
 }
@@ -60,21 +56,17 @@ func (cfs *CrashFreeSession) SetNaNs() {
 // ANRFreeSesssion represents compute result of an app's
 // ANR free sessions.
 type ANRFreeSession struct {
-	ANRFreeSessions    float64 `json:"anr_free_sessions"`
-	Delta              float64 `json:"delta"`
-	ANRFreeSessionsNaN bool    `json:"anr_free_sessions_nan"`
-	DeltaNaN           bool    `json:"delta_nan"`
+	ANRFreeSessions float64 `json:"anr_free_sessions"`
+	Delta           float64 `json:"delta"`
+	NaN             bool    `json:"nan"`
 }
 
 // SetNaNs sets the NaN bit if ANR
 // free sessions value(s) are NaN.
 func (afs *ANRFreeSession) SetNaNs() {
-	if math.IsNaN(afs.ANRFreeSessions) {
-		afs.ANRFreeSessionsNaN = true
+	if math.IsNaN(afs.ANRFreeSessions) || math.IsNaN(afs.Delta) {
+		afs.NaN = true
 		afs.ANRFreeSessions = 0
-	}
-	if math.IsNaN(afs.Delta) {
-		afs.DeltaNaN = true
 		afs.Delta = 0
 	}
 }
@@ -82,22 +74,18 @@ func (afs *ANRFreeSession) SetNaNs() {
 // PerceivedCrashFreeSesssion represents compute result of an app's
 // perceived crash free sessions.
 type PerceivedCrashFreeSession struct {
-	CrashFreeSessions    float64 `json:"perceived_crash_free_sessions"`
-	Delta                float64 `json:"delta"`
-	CrashFreeSessionsNaN bool    `json:"perceived_crash_free_sessions_nan"`
-	DeltaNaN             bool    `json:"delta_nan"`
+	CrashFreeSessions float64 `json:"perceived_crash_free_sessions"`
+	Delta             float64 `json:"delta"`
+	NaN               bool    `json:"nan"`
 }
 
 // SetNaNs sets the NaN bit if
 // perceived crash free sessions
 // value(s) are NaN.
 func (pcfs *PerceivedCrashFreeSession) SetNaNs() {
-	if math.IsNaN(pcfs.CrashFreeSessions) {
-		pcfs.CrashFreeSessionsNaN = true
+	if math.IsNaN(pcfs.CrashFreeSessions) || math.IsNaN(pcfs.Delta) {
+		pcfs.NaN = true
 		pcfs.CrashFreeSessions = 0
-	}
-	if math.IsNaN(pcfs.Delta) {
-		pcfs.DeltaNaN = true
 		pcfs.Delta = 0
 	}
 }
@@ -105,22 +93,18 @@ func (pcfs *PerceivedCrashFreeSession) SetNaNs() {
 // PerceivedANRFreeSesssion represents compute result of an app's
 // perceived ANR free sessions.
 type PerceivedANRFreeSession struct {
-	ANRFreeSessions    float64 `json:"perceived_anr_free_sessions"`
-	Delta              float64 `json:"delta"`
-	ANRFreeSessionsNaN bool    `json:"perceived_anr_free_sessions_nan"`
-	DeltaNaN           bool    `json:"delta_nan"`
+	ANRFreeSessions float64 `json:"perceived_anr_free_sessions"`
+	Delta           float64 `json:"delta"`
+	NaN             bool    `json:"nan"`
 }
 
 // SetNaNs sets the NaN bit if
 // perceived crash free sessions
 // value(s) are NaN.
 func (pafs *PerceivedANRFreeSession) SetNaNs() {
-	if math.IsNaN(pafs.ANRFreeSessions) {
-		pafs.ANRFreeSessionsNaN = true
+	if math.IsNaN(pafs.ANRFreeSessions) || math.IsNaN(pafs.Delta) {
+		pafs.NaN = true
 		pafs.ANRFreeSessions = 0
-	}
-	if math.IsNaN(pafs.Delta) {
-		pafs.DeltaNaN = true
 		pafs.Delta = 0
 	}
 }
