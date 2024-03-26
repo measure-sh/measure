@@ -98,8 +98,24 @@ func (pcfs *PerceivedCrashFreeSession) SetNaNs() {
 // PerceivedANRFreeSesssion represents compute result of an app's
 // perceived ANR free sessions.
 type PerceivedANRFreeSession struct {
-	ANRFreeSessions float64 `json:"perceived_anr_free_sessions"`
-	Delta           float64 `json:"delta"`
+	ANRFreeSessions    float64 `json:"perceived_anr_free_sessions"`
+	Delta              float64 `json:"delta"`
+	ANRFreeSessionsNaN bool    `json:"perceived_anr_free_sessions_nan"`
+	DeltaNaN           bool    `json:"delta_nan"`
+}
+
+// SetNaNs sets the NaN bit if
+// perceived crash free sessions
+// value(s) are NaN.
+func (pafs *PerceivedANRFreeSession) SetNaNs() {
+	if math.IsNaN(pafs.ANRFreeSessions) {
+		pafs.ANRFreeSessionsNaN = true
+		pafs.ANRFreeSessions = 0
+	}
+	if math.IsNaN(pafs.Delta) {
+		pafs.DeltaNaN = true
+		pafs.Delta = 0
+	}
 }
 
 // LaunchMetric represents compute result of an app's cold,

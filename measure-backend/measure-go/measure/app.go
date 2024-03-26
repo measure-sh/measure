@@ -422,6 +422,8 @@ func (a App) GetPerceivedANRFreeMetrics(af *AppFilter) (anrFree *metrics.Perceiv
 		return nil, err
 	}
 
+	anrFree.SetNaNs()
+
 	return
 }
 
