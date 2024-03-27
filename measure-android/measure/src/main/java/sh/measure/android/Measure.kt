@@ -8,8 +8,13 @@ import sh.measure.android.appexit.AppExitProvider
 import sh.measure.android.appexit.AppExitProviderImpl
 import sh.measure.android.applaunch.AppLaunchCollector
 import sh.measure.android.applaunch.ColdLaunchTraceImpl
+import sh.measure.android.attributes.AppAttributeAppender
+import sh.measure.android.attributes.DeviceAttributeAppender
 import sh.measure.android.events.EventProcessor
+import sh.measure.android.attributes.InstallationIdAttributeAppender
 import sh.measure.android.events.MeasureEventProcessor
+import sh.measure.android.attributes.NetworkStateAttributeAppender
+import sh.measure.android.attributes.UserIdAttributeAppender
 import sh.measure.android.exceptions.UnhandledExceptionCollector
 import sh.measure.android.executors.CustomThreadFactory
 import sh.measure.android.executors.MeasureExecutorServiceImpl
@@ -35,6 +40,8 @@ import sh.measure.android.session.SessionController
 import sh.measure.android.session.SessionControllerImpl
 import sh.measure.android.session.SessionProvider
 import sh.measure.android.session.SessionReportGenerator
+import sh.measure.android.storage.PrefsStorage
+import sh.measure.android.storage.PrefsStorageImpl
 import sh.measure.android.storage.Storage
 import sh.measure.android.storage.StorageImpl
 import sh.measure.android.tracing.InternalTrace
@@ -112,7 +119,23 @@ object Measure {
             executorService,
             sessionReportGenerator,
         )
-        eventProcessor = MeasureEventProcessor(logger, sessionController)
+
+        val prefsStorage: PrefsStorage = PrefsStorageImpl(context)
+        val userIdAttributeGenerator = UserIdAttributeAppender()
+        val networkStateAttributeGenerator = NetworkStateAttributeAppender(networkInfoProvider)
+        val deviceAttributeGenerator = DeviceAttributeAppender(logger, context, localeProvider)
+        val appAttributeGenerator = AppAttributeAppender(context)
+        val installationIdAttributeGenerator = InstallationIdAttributeAppender(prefsStorage, idProvider)
+
+        eventProcessor = MeasureEventProcessor(
+            logger, sessionController, listOf(
+                userIdAttributeGenerator,
+                networkStateAttributeGenerator,
+                deviceAttributeGenerator,
+                appAttributeGenerator,
+                installationIdAttributeGenerator,
+            )
+        )
 
         // Init session
         sessionController.initSession()

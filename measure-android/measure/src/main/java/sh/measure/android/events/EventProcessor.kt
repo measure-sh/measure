@@ -4,6 +4,7 @@ import sh.measure.android.applaunch.ColdLaunchEvent
 import sh.measure.android.applaunch.HotLaunchEvent
 import sh.measure.android.applaunch.WarmLaunchEvent
 import sh.measure.android.attachment.AttachmentInfo
+import sh.measure.android.attributes.AttributeAppender
 import sh.measure.android.exceptions.MeasureException
 import sh.measure.android.gestures.ClickEvent
 import sh.measure.android.gestures.LongClickEvent
@@ -47,15 +48,14 @@ internal interface EventProcessor {
 internal class MeasureEventProcessor(
     private val logger: Logger,
     private val sessionController: SessionController,
+    private val attributeAppenders: List<AttributeAppender>,
 ) : EventProcessor {
     override fun trackUnhandledException(measureException: MeasureException) {
-        assert(!measureException.handled)
         logger.log(LogLevel.Debug, "Tracking unhandled exception")
         sessionController.storeEventSync(measureException.toEvent())
     }
 
     override fun trackAnr(measureException: MeasureException) {
-        assert(measureException.isAnr)
         logger.log(LogLevel.Debug, "Tracking ANR")
         sessionController.storeEventSync(measureException.toEvent())
     }
