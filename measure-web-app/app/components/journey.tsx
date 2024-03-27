@@ -58,11 +58,18 @@ const formatter = Intl.NumberFormat('en', { notation: 'compact' });
 {/* @ts-ignore */ }
 function MeasureNode({ data, isConnectable }) {
   return (
-    <div className={`group p-4 border-black rounded-md transition ease-in-out hover:-translate-y-1 hover:scale-110 duration-300 ${data.issues.crashes.length > 0 || data.issues.anrs.length > 0 ? 'bg-red-400' : 'bg-emerald-400'}`}>
+    <div className={`group p-4 border-black rounded-md transition ease-in-out duration-300 hover:-translate-y-1 hover:scale-110 ${data.issues.crashes.length > 0 || data.issues.anrs.length > 0 ? 'bg-red-400' : 'bg-emerald-400'}`}>
       <Handle type="target" id="a" position={Position.Left} isConnectable={isConnectable} />
       <Handle type="source" id="b" position={Position.Right} isConnectable={isConnectable} />
-      <p className="font-sans text-white text-center group-hover:text-left">{data.label}</p>
-      <div className='h-0 group-hover:h-full'>
+
+      {/* this div is a hack to animate label position from center to left and back again on hover */}
+      <div className='w-full flex flex-row'>
+        <div className="grow group-hover:grow-0 transition-[flex-grow] ease-out duration-300" />
+        <p className="font-sans text-white w-fit">{data.label}</p>
+        <div className="grow group-hover:grow-0 transition-[flex-grow] ease-out duration-300" />
+      </div>
+
+      <div className='h-0 opacity-0 group-hover:opacity-100 group-hover:h-full transition ease-in-out duration-300 '>
         {data.issues.crashes.length > 0 && (
           <div>
             <div className="py-2" />

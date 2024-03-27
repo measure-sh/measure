@@ -15,7 +15,7 @@ const config: Config = {
         display: ['var(--font-display)'],
         sans: ['var(--font-body)']
       },
-      colors : {
+      colors: {
         'redd': '#ff6286'
       }
     },
