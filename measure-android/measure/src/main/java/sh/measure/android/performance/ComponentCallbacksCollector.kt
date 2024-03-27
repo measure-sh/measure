@@ -10,13 +10,13 @@ import android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW
 import android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE
 import android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN
 import android.content.res.Configuration
-import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventProcessor
 import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.TimeProvider
 
 internal class ComponentCallbacksCollector(
     private val application: Application,
-    private val eventTracker: EventTracker,
+    private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
     private val currentThread: CurrentThread,
     private val memoryReader: MemoryReader,
@@ -27,7 +27,7 @@ internal class ComponentCallbacksCollector(
     }
 
     override fun onLowMemory() {
-        eventTracker.trackLowMemory(
+        eventProcessor.trackLowMemory(
             LowMemory(
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
                 java_free_heap = memoryReader.freeHeapSize(),
@@ -53,7 +53,7 @@ internal class ComponentCallbacksCollector(
             TRIM_MEMORY_COMPLETE -> TrimMemory(level = "TRIM_MEMORY_COMPLETE")
             else -> TrimMemory(level = "TRIM_MEMORY_UNKNOWN")
         }
-        eventTracker.trackTrimMemory(
+        eventProcessor.trackTrimMemory(
             trimMemory.copy(
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
                 thread_name = currentThread.name,

@@ -11,14 +11,14 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import sh.measure.android.Measure
-import sh.measure.android.fakes.FakeEventTracker
+import sh.measure.android.fakes.FakeEventProcessor
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.utils.CurrentThread
 
 @RunWith(AndroidJUnit4::class)
 class ComposeNavigationCollectorTest {
     private val timeProvider = FakeTimeProvider()
-    private lateinit var tracker: FakeEventTracker
+    private lateinit var tracker: FakeEventProcessor
     private val currentThread = CurrentThread()
 
     @get:Rule
@@ -26,7 +26,7 @@ class ComposeNavigationCollectorTest {
 
     @Before
     fun setup() {
-        tracker = FakeEventTracker()
+        tracker = FakeEventProcessor()
         Measure.setEventTracker(tracker)
         Measure.setTimeProvider(timeProvider)
         Measure.setCurrentThread(currentThread)

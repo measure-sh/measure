@@ -8,8 +8,8 @@ import sh.measure.android.appexit.AppExitProvider
 import sh.measure.android.appexit.AppExitProviderImpl
 import sh.measure.android.applaunch.AppLaunchCollector
 import sh.measure.android.applaunch.ColdLaunchTraceImpl
-import sh.measure.android.events.EventTracker
-import sh.measure.android.events.MeasureEventTracker
+import sh.measure.android.events.EventProcessor
+import sh.measure.android.events.MeasureEventProcessor
 import sh.measure.android.exceptions.UnhandledExceptionCollector
 import sh.measure.android.executors.CustomThreadFactory
 import sh.measure.android.executors.MeasureExecutorServiceImpl
@@ -55,7 +55,7 @@ import sh.measure.android.utils.UUIDProvider
 
 object Measure {
     private lateinit var timeProvider: TimeProvider
-    private lateinit var eventTracker: EventTracker
+    private lateinit var eventProcessor: EventProcessor
     private lateinit var currentThread: CurrentThread
     private lateinit var okHttpEventProcessor: OkHttpEventProcessor
 
@@ -112,7 +112,7 @@ object Measure {
             executorService,
             sessionReportGenerator,
         )
-        eventTracker = MeasureEventTracker(logger, sessionController)
+        eventProcessor = MeasureEventProcessor(logger, sessionController)
 
         // Init session
         sessionController.initSession()
@@ -121,16 +121,16 @@ object Measure {
         val coldLaunchTrace = ColdLaunchTraceImpl(
             storage,
             sessionProvider.session.id,
-            eventTracker,
+            eventProcessor,
             timeProvider,
         ).apply { start() }
 
         // Register data collectors
         okHttpEventProcessor =
-            OkHttpEventProcessorImpl(logger, eventTracker, timeProvider, currentThread, config)
+            OkHttpEventProcessorImpl(logger, eventProcessor, timeProvider, currentThread, config)
         UnhandledExceptionCollector(
             logger,
-            eventTracker,
+            eventProcessor,
             timeProvider,
             networkInfoProvider,
             localeProvider,
@@ -140,12 +140,12 @@ object Measure {
             systemServiceProvider,
             networkInfoProvider,
             timeProvider,
-            eventTracker,
+            eventProcessor,
             localeProvider,
         ).register()
         val cpuUsageCollector = CpuUsageCollector(
             logger,
-            eventTracker,
+            eventProcessor,
             pidProvider,
             timeProvider,
             currentThread,
@@ -159,7 +159,7 @@ object Measure {
             ProcProviderImpl(),
         )
         val memoryUsageCollector = MemoryUsageCollector(
-            eventTracker,
+            eventProcessor,
             timeProvider,
             currentThread,
             executorService,
@@ -167,14 +167,14 @@ object Measure {
         ).apply { register() }
         ComponentCallbacksCollector(
             application,
-            eventTracker,
+            eventProcessor,
             timeProvider,
             currentThread,
             memoryReader,
         ).register()
         LifecycleCollector(
             context,
-            eventTracker,
+            eventProcessor,
             timeProvider,
             currentThread,
             onAppForeground = {
@@ -186,19 +186,19 @@ object Measure {
                 memoryUsageCollector.pause()
             },
         ).register()
-        GestureCollector(logger, eventTracker, timeProvider, currentThread).register()
+        GestureCollector(logger, eventProcessor, timeProvider, currentThread).register()
         AppLaunchCollector(
             logger,
             application,
             timeProvider,
             coldLaunchTrace,
-            eventTracker,
+            eventProcessor,
             coldLaunchListener = {
                 NetworkChangesCollector(
                     context,
                     systemServiceProvider,
                     logger,
-                    eventTracker,
+                    eventProcessor,
                     timeProvider,
                     currentThread,
                 ).register()
@@ -209,9 +209,9 @@ object Measure {
         InternalTrace.endSection()
     }
 
-    internal fun getEventTracker(): EventTracker {
-        require(::eventTracker.isInitialized)
-        return eventTracker
+    internal fun getEventTracker(): EventProcessor {
+        require(::eventProcessor.isInitialized)
+        return eventProcessor
     }
 
     internal fun getTimeProvider(): TimeProvider {
@@ -230,8 +230,8 @@ object Measure {
     }
 
     @VisibleForTesting
-    internal fun setEventTracker(tracker: EventTracker) {
-        eventTracker = tracker
+    internal fun setEventTracker(tracker: EventProcessor) {
+        eventProcessor = tracker
     }
 
     @VisibleForTesting

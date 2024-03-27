@@ -1,7 +1,7 @@
 package sh.measure.android.applaunch
 
 import android.app.Application
-import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventProcessor
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.TimeProvider
@@ -14,7 +14,7 @@ internal class AppLaunchCollector(
     private val application: Application,
     private val timeProvider: TimeProvider,
     private val coldLaunchTrace: ColdLaunchTrace,
-    private val eventTracker: EventTracker,
+    private val eventProcessor: EventProcessor,
     private val coldLaunchListener: () -> Unit,
 ) : LaunchCallbacks {
 
@@ -33,7 +33,7 @@ internal class AppLaunchCollector(
         val endUptime = coldLaunchEvent.on_next_draw_uptime
         val duration = endUptime - startUptime
         logger.log(LogLevel.Debug, "cold launch duration: $duration ms, start uptime: $startUptime")
-        eventTracker.trackColdLaunch(coldLaunchEvent)
+        eventProcessor.trackColdLaunch(coldLaunchEvent)
         coldLaunchListener.invoke()
     }
 
@@ -42,7 +42,7 @@ internal class AppLaunchCollector(
         val endUptime = warmLaunchEvent.on_next_draw_uptime
         val duration = endUptime - startUptime
         logger.log(LogLevel.Debug, "warm launch duration: $duration ms, start uptime: $startUptime")
-        eventTracker.trackWarmLaunchEvent(warmLaunchEvent)
+        eventProcessor.trackWarmLaunchEvent(warmLaunchEvent)
     }
 
     override fun onHotLaunch(hotLaunchEvent: HotLaunchEvent) {
@@ -50,6 +50,6 @@ internal class AppLaunchCollector(
         val endUptime = hotLaunchEvent.on_next_draw_uptime
         val duration = endUptime - startUptime
         logger.log(LogLevel.Debug, "hot launch duration: $duration ms, start uptime: $startUptime")
-        eventTracker.trackHotLaunchEvent(hotLaunchEvent)
+        eventProcessor.trackHotLaunchEvent(hotLaunchEvent)
     }
 }

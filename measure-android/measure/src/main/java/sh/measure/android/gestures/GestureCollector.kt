@@ -3,7 +3,7 @@ package sh.measure.android.gestures
 import android.view.MotionEvent
 import android.view.ViewGroup
 import android.view.Window
-import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventProcessor
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.tracing.InternalTrace
@@ -12,7 +12,7 @@ import sh.measure.android.utils.TimeProvider
 
 internal class GestureCollector(
     private val logger: Logger,
-    private val tracker: EventTracker,
+    private val tracker: EventProcessor,
     private val timeProvider: TimeProvider,
     private val currentThread: CurrentThread,
 ) {

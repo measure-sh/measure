@@ -7,7 +7,7 @@ import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
-import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventProcessor
 import sh.measure.android.fakes.FakePidProvider
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.ImmediateExecutorService
@@ -19,7 +19,7 @@ import java.io.File
 
 internal class CpuUsageCollectorTest {
     private val logger = NoopLogger()
-    private val eventTracker = mock<EventTracker>()
+    private val eventProcessor = mock<EventProcessor>()
     private val pidProvider = FakePidProvider()
     private val currentThread = CurrentThread()
     private val procProvider = mock<ProcProvider>()
@@ -34,7 +34,7 @@ internal class CpuUsageCollectorTest {
         timeProvider = FakeTimeProvider(fakeElapsedRealtime = currentElapsedRealtime)
         cpuUsageCollector = CpuUsageCollector(
             logger,
-            eventTracker,
+            eventProcessor,
             pidProvider,
             timeProvider,
             currentThread,
@@ -54,7 +54,7 @@ internal class CpuUsageCollectorTest {
     @Test
     fun `CpuUsageCollector tracks cpu usage`() {
         cpuUsageCollector.register()
-        verify(eventTracker).trackCpuUsage(
+        verify(eventProcessor).trackCpuUsage(
             CpuUsage(
                 num_cores = 1,
                 clock_speed = 100,

@@ -17,7 +17,7 @@ import android.os.Build
 import android.telephony.TelephonyManager
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
-import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventProcessor
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.CurrentThread
@@ -48,7 +48,7 @@ internal class NetworkChangesCollector(
     private val context: Context,
     private val systemServiceProvider: SystemServiceProvider,
     private val logger: Logger,
-    private val eventTracker: EventTracker,
+    private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
     private val currentThread: CurrentThread,
 ) {
@@ -134,7 +134,7 @@ internal class NetworkChangesCollector(
                 return
             }
 
-            eventTracker.trackNetworkChange(
+            eventProcessor.trackNetworkChange(
                 NetworkChangeEvent(
                     previous_network_type = previousNetworkType,
                     network_type = newNetworkType,
@@ -156,7 +156,7 @@ internal class NetworkChangesCollector(
             if (previousNetworkType == newNetworkType) {
                 return
             }
-            eventTracker.trackNetworkChange(
+            eventProcessor.trackNetworkChange(
                 NetworkChangeEvent(
                     previous_network_type = previousNetworkType,
                     network_type = newNetworkType,

@@ -6,7 +6,7 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
-import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventProcessor
 import sh.measure.android.fakes.FakeLocaleProvider
 import sh.measure.android.fakes.FakeNetworkInfoProvider
 import sh.measure.android.fakes.FakeTimeProvider
@@ -19,7 +19,7 @@ internal class UnhandledExceptionCollectorTest {
     private val timeProvider = FakeTimeProvider()
     private val networkInfoProvider = FakeNetworkInfoProvider()
     private val localeProvider = FakeLocaleProvider()
-    private val eventTracker = mock<EventTracker>()
+    private val eventProcessor = mock<EventProcessor>()
 
     @Before
     fun setUp() {
@@ -31,7 +31,7 @@ internal class UnhandledExceptionCollectorTest {
         // When
         val collector = UnhandledExceptionCollector(
             logger,
-            eventTracker,
+            eventProcessor,
             timeProvider,
             networkInfoProvider,
             localeProvider,
@@ -46,7 +46,7 @@ internal class UnhandledExceptionCollectorTest {
     fun `UnhandledExceptionCollector tracks uncaught exceptions`() {
         val collector = UnhandledExceptionCollector(
             logger,
-            eventTracker,
+            eventProcessor,
             timeProvider,
             networkInfoProvider,
             localeProvider,
@@ -72,7 +72,7 @@ internal class UnhandledExceptionCollectorTest {
         collector.uncaughtException(thread, exception)
 
         // Then
-        verify(eventTracker).trackUnhandledException(
+        verify(eventProcessor).trackUnhandledException(
             measureException = expectedException,
         )
     }
@@ -85,7 +85,7 @@ internal class UnhandledExceptionCollectorTest {
         }
         val collector = UnhandledExceptionCollector(
             logger,
-            eventTracker,
+            eventProcessor,
             timeProvider,
             networkInfoProvider,
             localeProvider,

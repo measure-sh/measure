@@ -22,7 +22,7 @@ import sh.measure.android.performance.MemoryUsage
 import sh.measure.android.performance.TrimMemory
 import sh.measure.android.session.SessionController
 
-internal interface EventTracker {
+internal interface EventProcessor {
     fun trackUnhandledException(measureException: MeasureException)
     fun trackAnr(measureException: MeasureException)
     fun trackClick(click: ClickEvent)
@@ -44,11 +44,10 @@ internal interface EventTracker {
     fun trackNavigationEvent(navigationEvent: NavigationEvent)
 }
 
-// TODO: refactor to make serialization happen on background thread.
-internal class MeasureEventTracker(
+internal class MeasureEventProcessor(
     private val logger: Logger,
     private val sessionController: SessionController,
-) : EventTracker {
+) : EventProcessor {
     override fun trackUnhandledException(measureException: MeasureException) {
         assert(!measureException.handled)
         logger.log(LogLevel.Debug, "Tracking unhandled exception")

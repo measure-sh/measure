@@ -1,6 +1,6 @@
 package sh.measure.android.exceptions
 
-import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventProcessor
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.networkchange.NetworkInfoProvider
@@ -16,7 +16,7 @@ import java.lang.Thread.UncaughtExceptionHandler
  */
 internal class UnhandledExceptionCollector(
     private val logger: Logger,
-    private val eventTracker: EventTracker,
+    private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
     private val networkInfoProvider: NetworkInfoProvider,
     private val localeProvider: LocaleProvider,
@@ -48,7 +48,7 @@ internal class UnhandledExceptionCollector(
                 foreground = isForegroundProcess(),
                 deviceLocale = localeProvider.getLocale(),
             )
-            eventTracker.trackUnhandledException(measureException)
+            eventProcessor.trackUnhandledException(measureException)
         } catch (e: Throwable) {
             // Prevent an infinite loop of exceptions if the above code fails.
             logger.log(LogLevel.Error, "Failed to track exception", e)
