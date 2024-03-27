@@ -170,7 +170,6 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
 const Journey: React.FC<JourneyProps> = ({ appId, startDate, endDate, appVersion }) => {
 
   const [journeyApiStatus, setJourneyApiStatus] = useState(JourneyApiStatus.Loading);
-  const [journey, setJourney] = useState(emptyJourney);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
@@ -187,7 +186,6 @@ const Journey: React.FC<JourneyProps> = ({ appId, startDate, endDate, appVersion
         break
       case JourneyApiStatus.Success:
         setJourneyApiStatus(JourneyApiStatus.Success)
-        setJourney(result.data)
         let flow = getReactFlowFromJourney(result.data)
         const layoutedFlow = getLayoutedElements(flow.nodes as Node[], flow.edges as Edge[]);
         setNodes(layoutedFlow.nodes)
