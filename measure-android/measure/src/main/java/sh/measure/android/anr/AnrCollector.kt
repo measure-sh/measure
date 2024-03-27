@@ -1,6 +1,6 @@
 package sh.measure.android.anr
 
-import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventProcessor
 import sh.measure.android.exceptions.ExceptionFactory
 import sh.measure.android.exceptions.MeasureException
 import sh.measure.android.logger.LogLevel
@@ -18,7 +18,7 @@ internal class AnrCollector(
     private val systemServiceProvider: SystemServiceProvider,
     private val networkInfoProvider: NetworkInfoProvider,
     private val timeProvider: TimeProvider,
-    private val tracker: EventTracker,
+    private val tracker: EventProcessor,
     private val localeProvider: LocaleProvider,
 ) : ANRWatchDog.ANRListener {
     fun register() {

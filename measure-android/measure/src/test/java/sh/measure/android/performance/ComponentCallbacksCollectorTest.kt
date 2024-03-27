@@ -11,13 +11,13 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
-import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventProcessor
 import sh.measure.android.fakes.FakeMemoryReader
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.utils.CurrentThread
 
 internal class ComponentCallbacksCollectorTest {
-    private val eventTracker = mock<EventTracker>()
+    private val eventProcessor = mock<EventProcessor>()
     private val timeProvider = FakeTimeProvider()
     private val currentThread = CurrentThread()
     private val memoryReader = FakeMemoryReader()
@@ -27,7 +27,7 @@ internal class ComponentCallbacksCollectorTest {
     fun setUp() {
         componentCallbacksCollector = ComponentCallbacksCollector(
             mock(),
-            eventTracker,
+            eventProcessor,
             timeProvider,
             currentThread,
             memoryReader,
@@ -38,7 +38,7 @@ internal class ComponentCallbacksCollectorTest {
     fun `ComponentCallbacksCollector tracks low memory event`() {
         componentCallbacksCollector.onLowMemory()
 
-        verify(eventTracker).trackLowMemory(
+        verify(eventProcessor).trackLowMemory(
             LowMemory(
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
                 java_max_heap = memoryReader.maxHeapSize(),
@@ -67,7 +67,7 @@ internal class ComponentCallbacksCollectorTest {
 
     private fun testTrimMemoryEvent(trimLevel: Int, expectedLevel: String) {
         componentCallbacksCollector.onTrimMemory(trimLevel)
-        verify(eventTracker).trackTrimMemory(
+        verify(eventProcessor).trackTrimMemory(
             TrimMemory(
                 level = expectedLevel,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,

@@ -6,7 +6,7 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
-import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventProcessor
 import sh.measure.android.fakes.FakeMemoryReader
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.ImmediateExecutorService
@@ -16,7 +16,7 @@ import sh.measure.android.utils.TimeProvider
 internal class MemoryUsageCollectorTest {
     private lateinit var memoryUsageCollector: MemoryUsageCollector
     private lateinit var timeProvider: TimeProvider
-    private val eventTracker = mock<EventTracker>()
+    private val eventProcessor = mock<EventProcessor>()
     private val currentThread = CurrentThread()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val memoryReader = FakeMemoryReader()
@@ -26,7 +26,7 @@ internal class MemoryUsageCollectorTest {
         val currentElapsedRealtime: Long = 20_000 // 20s
         timeProvider = FakeTimeProvider(fakeElapsedRealtime = currentElapsedRealtime)
         memoryUsageCollector = MemoryUsageCollector(
-            eventTracker,
+            eventProcessor,
             timeProvider,
             currentThread,
             executorService,
@@ -37,7 +37,7 @@ internal class MemoryUsageCollectorTest {
     @Test
     fun `MemoryUsageCollector tracks memory usage`() {
         memoryUsageCollector.register()
-        verify(eventTracker).trackMemoryUsage(
+        verify(eventProcessor).trackMemoryUsage(
             MemoryUsage(
                 java_max_heap = memoryReader.maxHeapSize(),
                 java_total_heap = memoryReader.totalHeapSize(),

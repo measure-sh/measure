@@ -21,7 +21,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowNetwork
 import org.robolectric.shadows.ShadowNetworkCapabilities
-import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventProcessor
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.utils.CurrentThread
@@ -33,7 +33,7 @@ class NetworkChangesCollectorTest {
     private val currentThread = CurrentThread()
     private val logger = NoopLogger()
     private val timeProvider = FakeTimeProvider()
-    private val eventTracker = mock<EventTracker>()
+    private val eventProcessor = mock<EventProcessor>()
     private lateinit var systemServiceProvider: SystemServiceProvider
     private lateinit var connectivityManager: ConnectivityManager
     private lateinit var telephonyManager: TelephonyManager
@@ -56,7 +56,7 @@ class NetworkChangesCollectorTest {
         NetworkChangesCollector(
             context = context,
             logger = logger,
-            eventTracker = eventTracker,
+            eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
@@ -72,7 +72,7 @@ class NetworkChangesCollectorTest {
         NetworkChangesCollector(
             context = context,
             logger = logger,
-            eventTracker = eventTracker,
+            eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
@@ -88,7 +88,7 @@ class NetworkChangesCollectorTest {
         NetworkChangesCollector(
             context = context,
             logger = logger,
-            eventTracker = eventTracker,
+            eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
@@ -109,7 +109,7 @@ class NetworkChangesCollectorTest {
         NetworkChangesCollector(
             context = context,
             logger = logger,
-            eventTracker = eventTracker,
+            eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
@@ -122,7 +122,7 @@ class NetworkChangesCollectorTest {
         }
         triggerNetworkCapabilitiesChange(addTransportType = NetworkCapabilities.TRANSPORT_CELLULAR)
 
-        verify(eventTracker).trackNetworkChange(
+        verify(eventProcessor).trackNetworkChange(
             NetworkChangeEvent(
                 previous_network_type = previousNetworkType,
                 network_type = NetworkType.CELLULAR,
@@ -145,7 +145,7 @@ class NetworkChangesCollectorTest {
         NetworkChangesCollector(
             context = context,
             logger = logger,
-            eventTracker = eventTracker,
+            eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
@@ -153,7 +153,7 @@ class NetworkChangesCollectorTest {
 
         triggerNetworkCapabilitiesChange(addTransportType = NetworkCapabilities.TRANSPORT_CELLULAR)
 
-        verify(eventTracker).trackNetworkChange(
+        verify(eventProcessor).trackNetworkChange(
             NetworkChangeEvent(
                 previous_network_type = null,
                 network_type = NetworkType.CELLULAR,
@@ -177,7 +177,7 @@ class NetworkChangesCollectorTest {
         NetworkChangesCollector(
             context = context,
             logger = logger,
-            eventTracker = eventTracker,
+            eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
@@ -188,7 +188,7 @@ class NetworkChangesCollectorTest {
         }
         triggerNetworkCapabilitiesChange(addTransportType = NetworkCapabilities.TRANSPORT_CELLULAR)
 
-        verify(eventTracker).trackNetworkChange(
+        verify(eventProcessor).trackNetworkChange(
             NetworkChangeEvent(
                 previous_network_type = NetworkType.WIFI,
                 network_type = NetworkType.CELLULAR,
@@ -212,7 +212,7 @@ class NetworkChangesCollectorTest {
         NetworkChangesCollector(
             context = context,
             logger = logger,
-            eventTracker = eventTracker,
+            eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
@@ -220,7 +220,7 @@ class NetworkChangesCollectorTest {
 
         triggerNetworkCapabilitiesChange(addTransportType = NetworkCapabilities.TRANSPORT_CELLULAR)
 
-        Mockito.verifyNoInteractions(eventTracker)
+        Mockito.verifyNoInteractions(eventProcessor)
     }
 
     @Test
@@ -231,7 +231,7 @@ class NetworkChangesCollectorTest {
         NetworkChangesCollector(
             context = context,
             logger = logger,
-            eventTracker = eventTracker,
+            eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
@@ -239,7 +239,7 @@ class NetworkChangesCollectorTest {
 
         triggerNetworkCapabilitiesChange(addTransportType = NetworkCapabilities.TRANSPORT_WIFI)
 
-        verify(eventTracker).trackNetworkChange(
+        verify(eventProcessor).trackNetworkChange(
             NetworkChangeEvent(
                 previous_network_type = null,
                 network_type = NetworkType.WIFI,
@@ -265,7 +265,7 @@ class NetworkChangesCollectorTest {
         val collector = NetworkChangesCollector(
             context = context,
             logger = logger,
-            eventTracker = eventTracker,
+            eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
@@ -295,7 +295,7 @@ class NetworkChangesCollectorTest {
         val collector = NetworkChangesCollector(
             context = context,
             logger = logger,
-            eventTracker = eventTracker,
+            eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
@@ -325,7 +325,7 @@ class NetworkChangesCollectorTest {
         val collector = NetworkChangesCollector(
             context = context,
             logger = logger,
-            eventTracker = eventTracker,
+            eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
@@ -355,7 +355,7 @@ class NetworkChangesCollectorTest {
         val collector = NetworkChangesCollector(
             context = context,
             logger = logger,
-            eventTracker = eventTracker,
+            eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
@@ -380,7 +380,7 @@ class NetworkChangesCollectorTest {
         NetworkChangesCollector(
             context = context,
             logger = logger,
-            eventTracker = eventTracker,
+            eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
@@ -388,7 +388,7 @@ class NetworkChangesCollectorTest {
 
         triggerNetworkCapabilitiesChange(addTransportType = NetworkCapabilities.TRANSPORT_VPN)
 
-        verify(eventTracker).trackNetworkChange(
+        verify(eventProcessor).trackNetworkChange(
             NetworkChangeEvent(
                 previous_network_type = null,
                 network_type = NetworkType.VPN,
@@ -409,7 +409,7 @@ class NetworkChangesCollectorTest {
         NetworkChangesCollector(
             context = context,
             logger = logger,
-            eventTracker = eventTracker,
+            eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
@@ -419,7 +419,7 @@ class NetworkChangesCollectorTest {
         val network = ShadowNetwork.newInstance(789)
         networkCallback.onLost(network)
 
-        verify(eventTracker).trackNetworkChange(
+        verify(eventProcessor).trackNetworkChange(
             NetworkChangeEvent(
                 previous_network_type = null,
                 network_type = NetworkType.NO_NETWORK,
@@ -443,7 +443,7 @@ class NetworkChangesCollectorTest {
         NetworkChangesCollector(
             context = context,
             logger = logger,
-            eventTracker = eventTracker,
+            eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
@@ -454,7 +454,7 @@ class NetworkChangesCollectorTest {
         val network = ShadowNetwork.newInstance(789)
         networkCallback.onLost(network)
 
-        verify(eventTracker).trackNetworkChange(
+        verify(eventProcessor).trackNetworkChange(
             NetworkChangeEvent(
                 previous_network_type = NetworkType.CELLULAR,
                 network_type = NetworkType.NO_NETWORK,

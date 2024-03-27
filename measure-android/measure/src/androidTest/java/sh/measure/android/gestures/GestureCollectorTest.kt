@@ -12,7 +12,7 @@ import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import sh.measure.android.fakes.FakeEventTracker
+import sh.measure.android.fakes.FakeEventProcessor
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.test.R
@@ -23,12 +23,12 @@ import sh.measure.android.utils.CurrentThread
 internal class GestureCollectorTest {
     private val logger = NoopLogger()
     private val timeProvider = FakeTimeProvider()
-    private lateinit var tracker: FakeEventTracker
+    private lateinit var tracker: FakeEventProcessor
     private val currentThread = CurrentThread()
 
     @Before
     fun setup() {
-        tracker = FakeEventTracker()
+        tracker = FakeEventProcessor()
     }
 
     @Test

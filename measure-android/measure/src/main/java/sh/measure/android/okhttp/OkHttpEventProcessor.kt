@@ -7,7 +7,7 @@ import okhttp3.Response
 import okio.Buffer
 import okio.ByteString
 import sh.measure.android.Config
-import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventProcessor
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.tracing.InternalTrace
@@ -22,7 +22,7 @@ internal abstract class OkHttpEventProcessor : EventListener() {
 
 internal class OkHttpEventProcessorImpl(
     private val logger: Logger,
-    private val eventTracker: EventTracker,
+    private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
     private val currentThread: CurrentThread,
     private val config: Config,
@@ -132,7 +132,7 @@ internal class OkHttpEventProcessorImpl(
         InternalTrace.beginSection("OkHttpEventProcessor.trackEvent")
         builder?.threadName(currentThread.name)?.let {
             val httpEvent = it.build()
-            eventTracker.trackHttpEvent(httpEvent)
+            eventProcessor.trackHttpEvent(httpEvent)
         }
         httpEventBuilders.remove(key)
         InternalTrace.endSection()

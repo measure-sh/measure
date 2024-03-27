@@ -4,7 +4,7 @@ import sh.measure.android.applaunch.ColdLaunchEvent
 import sh.measure.android.applaunch.HotLaunchEvent
 import sh.measure.android.applaunch.WarmLaunchEvent
 import sh.measure.android.attachment.AttachmentInfo
-import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventProcessor
 import sh.measure.android.exceptions.MeasureException
 import sh.measure.android.gestures.ClickEvent
 import sh.measure.android.gestures.LongClickEvent
@@ -21,7 +21,7 @@ import sh.measure.android.performance.MemoryUsage
 import sh.measure.android.performance.TrimMemory
 
 @Suppress("MemberVisibilityCanBePrivate")
-internal class FakeEventTracker : EventTracker {
+internal class FakeEventProcessor : EventProcessor {
     val trackedUnhandledExceptions = mutableListOf<MeasureException>()
     val trackedAnrs = mutableListOf<MeasureException>()
     val trackedClicks = mutableListOf<ClickEvent>()

@@ -13,7 +13,7 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.times
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.verify
-import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventProcessor
 import sh.measure.android.fakes.FakeConfig
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
@@ -22,13 +22,13 @@ import java.net.ConnectException
 
 class OkHttpEventProcessorTest {
     private val logger = NoopLogger()
-    private val eventTracker = mock<EventTracker>()
+    private val eventProcessor = mock<EventProcessor>()
     private val timeProvider = FakeTimeProvider()
     private val currentThread = CurrentThread()
     private val config = FakeConfig()
     private val okHttpEventProcessor: OkHttpEventProcessor = OkHttpEventProcessorImpl(
         logger,
-        eventTracker,
+        eventProcessor,
         timeProvider,
         currentThread,
         config,
@@ -62,7 +62,7 @@ class OkHttpEventProcessorTest {
         simulateSuccessfulPostRequest(statusCode = statusCode)
 
         // Then
-        verify(eventTracker, times(1)).trackHttpEvent(captor.capture())
+        verify(eventProcessor, times(1)).trackHttpEvent(captor.capture())
         val actualEvent = captor.firstValue
         Assert.assertEquals(statusCode, actualEvent.status_code)
     }
@@ -75,7 +75,7 @@ class OkHttpEventProcessorTest {
         simulateSuccessfulPostRequest()
 
         // Then
-        verify(eventTracker, times(1)).trackHttpEvent(captor.capture())
+        verify(eventProcessor, times(1)).trackHttpEvent(captor.capture())
         val actualEvent = captor.firstValue
         Assert.assertEquals("post", actualEvent.method)
     }
@@ -89,7 +89,7 @@ class OkHttpEventProcessorTest {
         simulateSuccessfulPostRequest(url = url)
 
         // Then
-        verify(eventTracker, times(1)).trackHttpEvent(captor.capture())
+        verify(eventProcessor, times(1)).trackHttpEvent(captor.capture())
         val actualEvent = captor.firstValue
         Assert.assertEquals(url, actualEvent.url)
     }
@@ -104,7 +104,7 @@ class OkHttpEventProcessorTest {
         simulateSuccessfulPostRequest(requestBody = requestBody)
 
         // Then
-        verify(eventTracker, times(1)).trackHttpEvent(captor.capture())
+        verify(eventProcessor, times(1)).trackHttpEvent(captor.capture())
         val actualEvent = captor.firstValue
         Assert.assertEquals(requestBody, actualEvent.request_body)
     }
@@ -119,7 +119,7 @@ class OkHttpEventProcessorTest {
         simulateSuccessfulPostRequest(requestBody = requestBody, client = clientWithoutInterceptor)
 
         // Then
-        verify(eventTracker, times(1)).trackHttpEvent(captor.capture())
+        verify(eventProcessor, times(1)).trackHttpEvent(captor.capture())
         val actualEvent = captor.firstValue
         Assert.assertNull(requestBody, actualEvent.request_body)
     }
@@ -134,7 +134,7 @@ class OkHttpEventProcessorTest {
         simulateSuccessfulPostRequest(requestBody = requestBody)
 
         // Then
-        verify(eventTracker, times(1)).trackHttpEvent(captor.capture())
+        verify(eventProcessor, times(1)).trackHttpEvent(captor.capture())
         val actualEvent = captor.firstValue
         Assert.assertNull(actualEvent.request_body)
     }
@@ -149,7 +149,7 @@ class OkHttpEventProcessorTest {
         simulateSuccessfulPostRequest(responseBody = responseBody)
 
         // Then
-        verify(eventTracker, times(1)).trackHttpEvent(captor.capture())
+        verify(eventProcessor, times(1)).trackHttpEvent(captor.capture())
         val actualEvent = captor.firstValue
         Assert.assertEquals(responseBody, actualEvent.response_body)
     }
@@ -164,7 +164,7 @@ class OkHttpEventProcessorTest {
         simulateSuccessfulPostRequest(responseBody = responseBody)
 
         // Then
-        verify(eventTracker, times(1)).trackHttpEvent(captor.capture())
+        verify(eventProcessor, times(1)).trackHttpEvent(captor.capture())
         val actualEvent = captor.firstValue
         Assert.assertNull(actualEvent.response_body)
     }
@@ -182,7 +182,7 @@ class OkHttpEventProcessorTest {
         )
 
         // Then
-        verify(eventTracker, times(1)).trackHttpEvent(captor.capture())
+        verify(eventProcessor, times(1)).trackHttpEvent(captor.capture())
         val actualEvent = captor.firstValue
         Assert.assertNull(responseBody, actualEvent.response_body)
     }
@@ -196,7 +196,7 @@ class OkHttpEventProcessorTest {
         simulateSuccessfulPostRequest()
 
         // Then
-        verify(eventTracker, times(1)).trackHttpEvent(captor.capture())
+        verify(eventProcessor, times(1)).trackHttpEvent(captor.capture())
         val actualEvent = captor.firstValue
         Assert.assertTrue(actualEvent.request_headers?.isNotEmpty() == true)
     }
@@ -210,7 +210,7 @@ class OkHttpEventProcessorTest {
         simulateSuccessfulPostRequest()
 
         // Then
-        verify(eventTracker, times(1)).trackHttpEvent(captor.capture())
+        verify(eventProcessor, times(1)).trackHttpEvent(captor.capture())
         val actualEvent = captor.firstValue
         Assert.assertTrue(actualEvent.response_headers?.isNotEmpty() == true)
     }
@@ -223,7 +223,7 @@ class OkHttpEventProcessorTest {
         simulateSuccessfulPostRequest()
 
         // Then
-        verify(eventTracker, times(1)).trackHttpEvent(captor.capture())
+        verify(eventProcessor, times(1)).trackHttpEvent(captor.capture())
         val actualEvent = captor.firstValue
         Assert.assertNotNull(actualEvent.start_time)
         Assert.assertNotNull(actualEvent.end_time)
@@ -237,7 +237,7 @@ class OkHttpEventProcessorTest {
         simulateSuccessfulPostRequest()
 
         // Then
-        verify(eventTracker, times(1)).trackHttpEvent(captor.capture())
+        verify(eventProcessor, times(1)).trackHttpEvent(captor.capture())
         val actualEvent = captor.firstValue
         // timestamp is non-null, initialized to -1L to remain transient
         Assert.assertNotEquals(-1L, actualEvent.timestamp)
@@ -251,7 +251,7 @@ class OkHttpEventProcessorTest {
         simulateSuccessfulPostRequest()
 
         // Then
-        verify(eventTracker, times(1)).trackHttpEvent(captor.capture())
+        verify(eventProcessor, times(1)).trackHttpEvent(captor.capture())
         val actualEvent = captor.firstValue
         Assert.assertEquals(currentThread.name, actualEvent.thread_name)
     }
@@ -272,7 +272,7 @@ class OkHttpEventProcessorTest {
         }
 
         // Then
-        verify(eventTracker, times(1)).trackHttpEvent(captor.capture())
+        verify(eventProcessor, times(1)).trackHttpEvent(captor.capture())
         val actualEvent = captor.firstValue
         Assert.assertEquals(actualEvent.request_headers, emptyMap<String, String>())
     }
@@ -285,7 +285,7 @@ class OkHttpEventProcessorTest {
         simulateSuccessfulPostRequest()
 
         // Then
-        verify(eventTracker, times(1)).trackHttpEvent(captor.capture())
+        verify(eventProcessor, times(1)).trackHttpEvent(captor.capture())
         val actualEvent = captor.firstValue
         Assert.assertEquals(HttpClientName.OK_HTTP, actualEvent.client)
     }
@@ -298,7 +298,7 @@ class OkHttpEventProcessorTest {
         simulateConnectionFailed()
 
         // Then
-        verify(eventTracker, times(1)).trackHttpEvent(captor.capture())
+        verify(eventProcessor, times(1)).trackHttpEvent(captor.capture())
         val actualEvent = captor.firstValue
         Assert.assertEquals("java.net.ConnectException", actualEvent.failure_reason)
         Assert.assertNotNull(actualEvent.failure_description)
@@ -319,7 +319,7 @@ class OkHttpEventProcessorTest {
         simulateConnectionFailed()
 
         // Then
-        verify(eventTracker, times(1)).trackHttpEvent(captor.capture())
+        verify(eventProcessor, times(1)).trackHttpEvent(captor.capture())
         val actualEvent = captor.firstValue
         Assert.assertNotNull(actualEvent.start_time)
         Assert.assertNotNull(actualEvent.end_time)

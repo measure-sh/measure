@@ -2,7 +2,7 @@ package sh.measure.android.applaunch
 
 import sh.measure.android.attachment.AttachmentInfo
 import sh.measure.android.attachment.AttachmentType
-import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventProcessor
 import sh.measure.android.methodtrace.MethodTrace
 import sh.measure.android.methodtrace.MethodTraceConfig
 import sh.measure.android.storage.Storage
@@ -17,7 +17,7 @@ internal interface ColdLaunchTrace {
 internal class ColdLaunchTraceImpl(
     storage: Storage,
     sessionId: String,
-    private val eventTracker: EventTracker,
+    private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
 ) : ColdLaunchTrace {
     override val config = MethodTraceConfig(
@@ -35,7 +35,7 @@ internal class ColdLaunchTraceImpl(
 
     override fun stop() {
         MethodTrace.getInstance().stop()
-        eventTracker.storeAttachment(
+        eventProcessor.storeAttachment(
             AttachmentInfo(
                 name = config.name,
                 type = AttachmentType.METHOD_TRACE,

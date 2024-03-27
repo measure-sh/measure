@@ -3,7 +3,7 @@ package sh.measure.android.anr
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.verify
-import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventProcessor
 import sh.measure.android.exceptions.ExceptionFactory
 import sh.measure.android.fakes.FakeLocaleProvider
 import sh.measure.android.fakes.FakeNetworkInfoProvider
@@ -16,12 +16,12 @@ class AnrCollectorTest {
     private val timeProvider = FakeTimeProvider()
     private val networkInfoProvider = FakeNetworkInfoProvider()
     private val localeProvider = FakeLocaleProvider()
-    private val eventTracker = mock<EventTracker>()
+    private val eventProcessor = mock<EventProcessor>()
     private val systemServiceProvider = mock<SystemServiceProvider>()
 
     @Test
     fun `AnrCollector tracks exception using event tracker, when ANR is detected`() {
-        val anrCollector = AnrCollector(logger, systemServiceProvider, networkInfoProvider, timeProvider, eventTracker, localeProvider)
+        val anrCollector = AnrCollector(logger, systemServiceProvider, networkInfoProvider, timeProvider, eventProcessor, localeProvider)
         val thread = Thread.currentThread()
         val message = "ANR"
         val timestamp = timeProvider.currentTimeSinceEpochInMillis
@@ -31,7 +31,7 @@ class AnrCollectorTest {
         anrCollector.onAppNotResponding(anrError)
 
         // Then
-        verify(eventTracker).trackAnr(
+        verify(eventProcessor).trackAnr(
             ExceptionFactory.createMeasureException(
                 throwable = anrError,
                 handled = false,

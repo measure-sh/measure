@@ -2,7 +2,7 @@ package sh.measure.android.performance
 
 import android.system.OsConstants
 import androidx.annotation.VisibleForTesting
-import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventProcessor
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
@@ -20,7 +20,7 @@ internal const val CPU_TRACKING_INTERVAL_MS = 3000L
 
 internal class CpuUsageCollector(
     private val logger: Logger,
-    private val eventTracker: EventTracker,
+    private val eventProcessor: EventProcessor,
     private val pidProvider: PidProvider,
     private val timeProvider: TimeProvider,
     private val currentThread: CurrentThread,
@@ -76,7 +76,7 @@ internal class CpuUsageCollector(
         if (prevCpuUsage?.utime == cpuUsage.utime && prevCpuUsage?.stime == cpuUsage.stime) {
             return
         }
-        eventTracker.trackCpuUsage(cpuUsage)
+        eventProcessor.trackCpuUsage(cpuUsage)
         prevCpuUsage = cpuUsage
     }
 
