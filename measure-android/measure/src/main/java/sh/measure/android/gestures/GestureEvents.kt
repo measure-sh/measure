@@ -14,6 +14,8 @@ internal data class ClickEvent(
     val touch_down_time: Long,
     val touch_up_time: Long,
     @Transient
+    val attributes: MutableMap<String, Any?> = mutableMapOf(),
+    @Transient
     val timestamp: Long = -1,
     @Transient
     val thread_name: String = "",
@@ -46,6 +48,8 @@ internal data class LongClickEvent(
     val y: Float,
     val touch_down_time: Long,
     val touch_up_time: Long,
+    @Transient
+    val attributes: MutableMap<String, Any?> = mutableMapOf(),
     @Transient
     val timestamp: Long = -1,
     @Transient
@@ -80,6 +84,8 @@ internal data class ScrollEvent(
     val direction: String,
     val touch_down_time: Long,
     val touch_up_time: Long,
+    @Transient
+    val attributes: MutableMap<String, Any?> = mutableMapOf(),
     @Transient
     val timestamp: Long = -1,
     @Transient

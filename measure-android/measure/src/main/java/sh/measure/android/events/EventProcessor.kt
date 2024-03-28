@@ -4,7 +4,7 @@ import sh.measure.android.applaunch.ColdLaunchEvent
 import sh.measure.android.applaunch.HotLaunchEvent
 import sh.measure.android.applaunch.WarmLaunchEvent
 import sh.measure.android.attachment.AttachmentInfo
-import sh.measure.android.attributes.AttributeAppender
+import sh.measure.android.attributes.AttributeCollector
 import sh.measure.android.exceptions.MeasureException
 import sh.measure.android.gestures.ClickEvent
 import sh.measure.android.gestures.LongClickEvent
@@ -48,30 +48,45 @@ internal interface EventProcessor {
 internal class MeasureEventProcessor(
     private val logger: Logger,
     private val sessionController: SessionController,
-    private val attributeAppenders: List<AttributeAppender>,
+    private val attributeCollectors: List<AttributeCollector>,
 ) : EventProcessor {
     override fun trackUnhandledException(measureException: MeasureException) {
         logger.log(LogLevel.Debug, "Tracking unhandled exception")
+        attributeCollectors.forEach {
+            it.append(measureException.attributes)
+        }
         sessionController.storeEventSync(measureException.toEvent())
     }
 
     override fun trackAnr(measureException: MeasureException) {
         logger.log(LogLevel.Debug, "Tracking ANR")
+        attributeCollectors.forEach {
+            it.append(measureException.attributes)
+        }
         sessionController.storeEventSync(measureException.toEvent())
     }
 
     override fun trackClick(click: ClickEvent) {
         logger.log(LogLevel.Debug, "Tracking click")
+        attributeCollectors.forEach {
+            it.append(click.attributes)
+        }
         sessionController.storeEvent(click.toEvent())
     }
 
     override fun trackLongClick(longClick: LongClickEvent) {
         logger.log(LogLevel.Debug, "Tracking long click")
+        attributeCollectors.forEach {
+            it.append(longClick.attributes)
+        }
         sessionController.storeEvent(longClick.toEvent())
     }
 
     override fun trackScroll(scroll: ScrollEvent) {
         logger.log(LogLevel.Debug, "Tracking swipe")
+        attributeCollectors.forEach {
+            it.append(scroll.attributes)
+        }
         sessionController.storeEvent(scroll.toEvent())
     }
 
@@ -80,6 +95,9 @@ internal class MeasureEventProcessor(
             LogLevel.Debug,
             "Tracking activity lifecycle event ${event.type}",
         )
+        attributeCollectors.forEach {
+            it.append(event.attributes)
+        }
         sessionController.storeEvent(event.toEvent())
     }
 
@@ -88,6 +106,9 @@ internal class MeasureEventProcessor(
             LogLevel.Debug,
             "Tracking fragment lifecycle event ${event.type}",
         )
+        attributeCollectors.forEach {
+            it.append(event.attributes)
+        }
         sessionController.storeEvent(event.toEvent())
     }
 
@@ -96,40 +117,64 @@ internal class MeasureEventProcessor(
             LogLevel.Debug,
             "Tracking application lifecycle event ${event.type}",
         )
+        attributeCollectors.forEach {
+            it.append(event.attributes)
+        }
         sessionController.storeEvent(event.toEvent())
     }
 
     override fun trackColdLaunch(event: ColdLaunchEvent) {
         logger.log(LogLevel.Debug, "Tracking cold launch")
+        attributeCollectors.forEach {
+            it.append(event.attributes)
+        }
         sessionController.storeEvent(event.toEvent())
     }
 
     override fun trackWarmLaunchEvent(event: WarmLaunchEvent) {
         logger.log(LogLevel.Debug, "Tracking warm launch")
+        attributeCollectors.forEach {
+            it.append(event.attributes)
+        }
         sessionController.storeEvent(event.toEvent())
     }
 
     override fun trackHotLaunchEvent(event: HotLaunchEvent) {
         logger.log(LogLevel.Debug, "Tracking hot launch")
+        attributeCollectors.forEach {
+            it.append(event.attributes)
+        }
         sessionController.storeEvent(event.toEvent())
     }
 
     override fun trackNetworkChange(event: NetworkChangeEvent) {
         logger.log(LogLevel.Error, "Tracking network change ${event.network_type}")
+        attributeCollectors.forEach {
+            it.append(event.attributes)
+        }
     }
 
     override fun trackHttpEvent(event: HttpEvent) {
         logger.log(LogLevel.Debug, "Tracking HTTP event")
+        attributeCollectors.forEach {
+            it.append(event.attributes)
+        }
         sessionController.storeEvent(event.toEvent())
     }
 
     override fun trackMemoryUsage(memoryUsage: MemoryUsage) {
         logger.log(LogLevel.Debug, "Tracking memory usage")
+        attributeCollectors.forEach {
+            it.append(memoryUsage.attributes)
+        }
         sessionController.storeEvent(memoryUsage.toEvent())
     }
 
     override fun trackLowMemory(lowMemory: LowMemory) {
         logger.log(LogLevel.Debug, "Tracking low memory")
+        attributeCollectors.forEach {
+            it.append(lowMemory.attributes)
+        }
         sessionController.storeEvent(
             lowMemory.toEvent(),
         )
@@ -137,21 +182,33 @@ internal class MeasureEventProcessor(
 
     override fun trackTrimMemory(trimMemory: TrimMemory) {
         logger.log(LogLevel.Debug, "Tracking trim memory")
+        attributeCollectors.forEach {
+            it.append(trimMemory.attributes)
+        }
         sessionController.storeEvent(trimMemory.toEvent())
     }
 
     override fun trackCpuUsage(cpuUsage: CpuUsage) {
         logger.log(LogLevel.Debug, "Tracking CPU usage")
+        attributeCollectors.forEach {
+            it.append(cpuUsage.attributes)
+        }
         sessionController.storeEvent(cpuUsage.toEvent())
     }
 
     override fun trackNavigationEvent(navigationEvent: NavigationEvent) {
         logger.log(LogLevel.Debug, "Tracking navigation event")
+        attributeCollectors.forEach {
+            it.append(navigationEvent.attributes)
+        }
         sessionController.storeEvent(navigationEvent.toEvent())
     }
 
     override fun storeAttachment(attachmentInfo: AttachmentInfo) {
         logger.log(LogLevel.Debug, "Storing attachment ${attachmentInfo.name}")
+        attributeCollectors.forEach {
+            it.append(attachmentInfo.attributes)
+        }
         sessionController.storeAttachment(attachmentInfo)
     }
 }

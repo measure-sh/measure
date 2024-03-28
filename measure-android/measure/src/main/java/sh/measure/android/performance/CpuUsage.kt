@@ -41,6 +41,8 @@ internal data class CpuUsage(
      * The interval between two collections.
      */
     val interval_config: Long,
+    @Transient
+    val attributes: MutableMap<String, Any?> = mutableMapOf(),
     @Transient val thread_name: String = "",
     @Transient val timestamp: Long = -1,
 )

@@ -11,11 +11,11 @@ import sh.measure.android.utils.LocaleProvider
  * Generates the device attributes such as device name, model, manufacturer, and more. These
  * attributes are expected to be constant during the session and are computed once.
  */
-internal class DeviceAttributeAppender(
+internal class DeviceAttributeCollector(
     private val logger: Logger,
     private val context: Context,
     private val localeProvider: LocaleProvider,
-) : ComputeOnceAttributeAppender() {
+) : ComputeOnceAttributeCollector() {
     private val deviceNameKey = "device_name"
     private val deviceModelKey = "device_model"
     private val deviceManufacturerKey = "device_manufacturer"

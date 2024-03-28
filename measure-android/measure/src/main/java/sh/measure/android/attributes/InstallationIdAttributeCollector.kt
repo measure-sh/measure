@@ -8,9 +8,9 @@ import sh.measure.android.utils.UUIDProvider
  * generated once during the first launch of the app with Measure SDK and is persisted across app
  * launches.
  */
-internal class InstallationIdAttributeAppender(
+internal class InstallationIdAttributeCollector(
     private val prefsStorage: PrefsStorage, private val idProvider: UUIDProvider
-) : ComputeOnceAttributeAppender() {
+) : ComputeOnceAttributeCollector() {
     private val installationIdKey = "installation_id"
 
     override fun computeAttributes(): Map<String, Any?> {

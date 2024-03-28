@@ -38,6 +38,9 @@ internal data class AppExit(
      */
     val pid: String,
 
+    @Transient
+    val attributes: MutableMap<String, Any?> = mutableMapOf(),
+
     /**
      * @see [ApplicationExitInfo.getTimestamp] converted to ISO-8601 format.
      */

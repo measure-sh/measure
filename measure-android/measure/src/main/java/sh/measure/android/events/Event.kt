@@ -3,6 +3,7 @@ package sh.measure.android.events
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.encodeToStream
 import okio.BufferedSink
 import sh.measure.android.appexit.AppExit
@@ -24,16 +25,18 @@ import sh.measure.android.performance.LowMemory
 import sh.measure.android.performance.MemoryUsage
 import sh.measure.android.performance.TrimMemory
 import sh.measure.android.utils.iso8601Timestamp
+import sh.measure.android.utils.toJsonElement
 
 internal data class Event(
     val timestamp: String,
     val type: String,
     val data: JsonElement,
     val thread_name: String,
+    val attributes: JsonObject,
 ) {
     fun toJson(): String {
         val serializedData = Json.encodeToString(JsonElement.serializer(), data)
-        return "{\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":$serializedData,\"thread_name\":\"$thread_name\"}"
+        return "{\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":$serializedData,\"thread_name\":\"$thread_name\",\"attributes\":$attributes}"
     }
 
     @OptIn(ExperimentalSerializationApi::class)
@@ -45,6 +48,9 @@ internal data class Event(
         Json.encodeToStream(JsonElement.serializer(), data, sink.outputStream())
         sink.writeUtf8(",")
         sink.writeUtf8("\"thread_name\":\"${thread_name}\"")
+        sink.writeUtf8(",")
+        sink.writeUtf8("\"attributes\":")
+        Json.encodeToStream(JsonObject.serializer(), attributes, sink.outputStream())
         sink.writeUtf8("}")
     }
 }
@@ -55,6 +61,7 @@ internal fun MeasureException.toEvent(): Event {
         timestamp = timestamp.iso8601Timestamp(),
         data = Json.encodeToJsonElement(MeasureException.serializer(), this),
         thread_name = thread_name,
+        attributes = attributes.toJsonElement(),
     )
 }
 
@@ -64,6 +71,7 @@ internal fun AppExit.toEvent(): Event {
         timestamp = timestamp.iso8601Timestamp(),
         data = Json.encodeToJsonElement(AppExit.serializer(), this),
         thread_name = thread_name,
+        attributes = attributes.toJsonElement(),
     )
 }
 
@@ -73,6 +81,7 @@ internal fun ClickEvent.toEvent(): Event {
         type = EventType.CLICK,
         data = Json.encodeToJsonElement(ClickEvent.serializer(), this),
         thread_name = thread_name,
+        attributes = attributes.toJsonElement(),
     )
 }
 
@@ -82,6 +91,7 @@ internal fun LongClickEvent.toEvent(): Event {
         type = EventType.LONG_CLICK,
         data = Json.encodeToJsonElement(LongClickEvent.serializer(), this),
         thread_name = thread_name,
+        attributes = attributes.toJsonElement(),
     )
 }
 
@@ -91,6 +101,7 @@ internal fun ScrollEvent.toEvent(): Event {
         type = EventType.SCROLL,
         data = Json.encodeToJsonElement(ScrollEvent.serializer(), this),
         thread_name = thread_name,
+        attributes = attributes.toJsonElement(),
     )
 }
 
@@ -100,6 +111,7 @@ internal fun ApplicationLifecycleEvent.toEvent(): Event {
         timestamp = timestamp,
         data = Json.encodeToJsonElement(ApplicationLifecycleEvent.serializer(), this),
         thread_name = thread_name,
+        attributes = attributes.toJsonElement(),
     )
 }
 
@@ -109,6 +121,7 @@ internal fun ActivityLifecycleEvent.toEvent(): Event {
         timestamp = timestamp,
         data = Json.encodeToJsonElement(ActivityLifecycleEvent.serializer(), this),
         thread_name = thread_name,
+        attributes = attributes.toJsonElement(),
     )
 }
 
@@ -118,6 +131,7 @@ internal fun FragmentLifecycleEvent.toEvent(): Event {
         timestamp = timestamp,
         data = Json.encodeToJsonElement(FragmentLifecycleEvent.serializer(), this),
         thread_name = thread_name,
+        attributes = attributes.toJsonElement(),
     )
 }
 
@@ -127,6 +141,7 @@ internal fun ColdLaunchEvent.toEvent(): Event {
         timestamp = timestamp.iso8601Timestamp(),
         data = Json.encodeToJsonElement(ColdLaunchEvent.serializer(), this),
         thread_name = thread_name,
+        attributes = attributes.toJsonElement(),
     )
 }
 
@@ -136,6 +151,7 @@ internal fun WarmLaunchEvent.toEvent(): Event {
         timestamp = timestamp.iso8601Timestamp(),
         data = Json.encodeToJsonElement(WarmLaunchEvent.serializer(), this),
         thread_name = thread_name,
+        attributes = attributes.toJsonElement(),
     )
 }
 
@@ -145,14 +161,17 @@ internal fun HotLaunchEvent.toEvent(): Event {
         timestamp = timestamp.iso8601Timestamp(),
         data = Json.encodeToJsonElement(HotLaunchEvent.serializer(), this),
         thread_name = thread_name,
+        attributes = attributes.toJsonElement(),
     )
 }
+
 internal fun NetworkChangeEvent.toEvent(): Event {
     return Event(
         type = EventType.NETWORK_CHANGE,
         timestamp = timestamp.iso8601Timestamp(),
         data = Json.encodeToJsonElement(NetworkChangeEvent.serializer(), this),
         thread_name = thread_name,
+        attributes = attributes.toJsonElement(),
     )
 }
 
@@ -162,6 +181,7 @@ internal fun HttpEvent.toEvent(): Event {
         timestamp = timestamp.iso8601Timestamp(),
         data = Json.encodeToJsonElement(HttpEvent.serializer(), this),
         thread_name = thread_name,
+        attributes = attributes.toJsonElement(),
     )
 }
 
@@ -171,6 +191,7 @@ internal fun MemoryUsage.toEvent(): Event {
         timestamp = timestamp.iso8601Timestamp(),
         data = Json.encodeToJsonElement(MemoryUsage.serializer(), this),
         thread_name = thread_name,
+        attributes = attributes.toJsonElement(),
     )
 }
 
@@ -180,6 +201,7 @@ internal fun LowMemory.toEvent(): Event {
         timestamp = timestamp.iso8601Timestamp(),
         data = Json.encodeToJsonElement(LowMemory.serializer(), this),
         thread_name = thread_name,
+        attributes = attributes.toJsonElement(),
     )
 }
 
@@ -189,6 +211,7 @@ internal fun TrimMemory.toEvent(): Event {
         timestamp = timestamp.iso8601Timestamp(),
         data = Json.encodeToJsonElement(TrimMemory.serializer(), this),
         thread_name = thread_name,
+        attributes = attributes.toJsonElement(),
     )
 }
 
@@ -198,6 +221,7 @@ internal fun CpuUsage.toEvent(): Event {
         timestamp = timestamp.iso8601Timestamp(),
         data = Json.encodeToJsonElement(CpuUsage.serializer(), this),
         thread_name = thread_name,
+        attributes = attributes.toJsonElement(),
     )
 }
 
@@ -207,5 +231,6 @@ internal fun NavigationEvent.toEvent(): Event {
         timestamp = timestamp.iso8601Timestamp(),
         data = Json.encodeToJsonElement(NavigationEvent.serializer(), this),
         thread_name = thread_name,
+        attributes = attributes.toJsonElement(),
     )
 }

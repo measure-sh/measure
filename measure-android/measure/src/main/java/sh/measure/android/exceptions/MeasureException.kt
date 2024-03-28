@@ -63,6 +63,9 @@ internal data class MeasureException(
      */
     val foreground: Boolean,
 
+    @Transient
+    val attributes: MutableMap<String, Any?> = mutableMapOf(),
+
     /**
      * Whether is exception represents an ANR or not.
      */

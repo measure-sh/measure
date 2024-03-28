@@ -7,10 +7,10 @@ package sh.measure.android.attributes
  * The attributes are used to enrich the events sent to the server and are sent along with every
  * event.
  *
- * @see [ComputeOnceAttributeAppender] for an implementation that computes the attributes once and
+ * @see [ComputeOnceAttributeCollector] for an implementation that computes the attributes once and
  * caches them.
  */
-internal interface AttributeAppender {
+internal interface AttributeCollector {
     fun append(attrs: MutableMap<String, Any?>)
 }
 

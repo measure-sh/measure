@@ -8,13 +8,13 @@ import sh.measure.android.appexit.AppExitProvider
 import sh.measure.android.appexit.AppExitProviderImpl
 import sh.measure.android.applaunch.AppLaunchCollector
 import sh.measure.android.applaunch.ColdLaunchTraceImpl
-import sh.measure.android.attributes.AppAttributeAppender
-import sh.measure.android.attributes.DeviceAttributeAppender
+import sh.measure.android.attributes.AppAttributeCollector
+import sh.measure.android.attributes.DeviceAttributeCollector
 import sh.measure.android.events.EventProcessor
-import sh.measure.android.attributes.InstallationIdAttributeAppender
+import sh.measure.android.attributes.InstallationIdAttributeCollector
 import sh.measure.android.events.MeasureEventProcessor
-import sh.measure.android.attributes.NetworkStateAttributeAppender
-import sh.measure.android.attributes.UserIdAttributeAppender
+import sh.measure.android.attributes.NetworkStateAttributeCollector
+import sh.measure.android.attributes.UserIdAttributeCollector
 import sh.measure.android.exceptions.UnhandledExceptionCollector
 import sh.measure.android.executors.CustomThreadFactory
 import sh.measure.android.executors.MeasureExecutorServiceImpl
@@ -121,11 +121,11 @@ object Measure {
         )
 
         val prefsStorage: PrefsStorage = PrefsStorageImpl(context)
-        val userIdAttributeGenerator = UserIdAttributeAppender()
-        val networkStateAttributeGenerator = NetworkStateAttributeAppender(networkInfoProvider)
-        val deviceAttributeGenerator = DeviceAttributeAppender(logger, context, localeProvider)
-        val appAttributeGenerator = AppAttributeAppender(context)
-        val installationIdAttributeGenerator = InstallationIdAttributeAppender(prefsStorage, idProvider)
+        val userIdAttributeGenerator = UserIdAttributeCollector()
+        val networkStateAttributeGenerator = NetworkStateAttributeCollector(networkInfoProvider)
+        val deviceAttributeGenerator = DeviceAttributeCollector(logger, context, localeProvider)
+        val appAttributeGenerator = AppAttributeCollector(context)
+        val installationIdAttributeGenerator = InstallationIdAttributeCollector(prefsStorage, idProvider)
 
         eventProcessor = MeasureEventProcessor(
             logger, sessionController, listOf(
