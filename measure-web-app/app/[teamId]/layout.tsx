@@ -34,6 +34,10 @@ export default function DashboardLayout({
       hrefSuffix: 'apps',
       title: 'Apps',
     },
+    {
+      hrefSuffix: 'alerts',
+      title: 'Alerts',
+    },
   ];
 
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading);
