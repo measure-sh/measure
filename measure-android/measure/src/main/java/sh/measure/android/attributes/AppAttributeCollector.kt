@@ -9,8 +9,8 @@ import sh.measure.android.BuildConfig
  * Generates the attributes for the app. The attributes include the app version, build version, and
  * the unique ID of the app.
  */
-internal class AppAttributeAppender(private val context: Context) :
-    ComputeOnceAttributeAppender() {
+internal class AppAttributeCollector(private val context: Context) :
+    ComputeOnceAttributeCollector() {
     private val appVersionKey = "app_version"
     private val appBuildKey = "app_build"
     private val appUniqueIdKey = "app_unique_id"

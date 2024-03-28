@@ -9,6 +9,7 @@ import sh.measure.android.logger.Logger
 import sh.measure.android.networkchange.NetworkInfoProvider
 import sh.measure.android.utils.LocaleProvider
 
+@Deprecated("This class is deprecated and will be removed in a future release.")
 internal interface ResourceFactory {
     fun create(): Resource
 }
@@ -16,6 +17,7 @@ internal interface ResourceFactory {
 /**
  * Factory to create a [Resource].
  */
+@Deprecated("This class is deprecated and will be removed in a future release.")
 internal class ResourceFactoryImpl(
     private val logger: Logger,
     private val context: Context,

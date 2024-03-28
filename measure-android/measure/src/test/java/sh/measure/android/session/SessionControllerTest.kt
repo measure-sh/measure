@@ -2,6 +2,8 @@ package sh.measure.android.session
 
 import androidx.concurrent.futures.ResolvableFuture
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.encodeToJsonElement
 import org.junit.Before
 import org.junit.Test
@@ -126,6 +128,7 @@ class SessionControllerTest {
             timestamp = 0L.iso8601Timestamp(),
             data = Json.encodeToJsonElement("test"),
             thread_name = "thread",
+            attributes = JsonObject(mapOf("key" to JsonPrimitive("value"))),
         )
         // setup mocks
         val activeSession = createFakeSession("session-id")

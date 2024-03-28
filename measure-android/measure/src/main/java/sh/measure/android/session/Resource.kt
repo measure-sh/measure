@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
  * identifiers, etc.
  */
 @Serializable
+@Deprecated("This class is deprecated and will be removed in a future release.")
 internal data class Resource(
     // device info
     val device_name: String? = null,

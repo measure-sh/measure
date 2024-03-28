@@ -1,6 +1,7 @@
 package sh.measure.android.attachment
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 /**
  * Information about an attachment. This is used to maintain a log of attachments that have been
@@ -32,4 +33,7 @@ internal data class AttachmentInfo(
      * The time at which the attachment was captured, in milliseconds since epoch.
      */
     val timestamp: Long,
+
+    @Transient
+    val attributes: MutableMap<String, Any?> = mutableMapOf(),
 )

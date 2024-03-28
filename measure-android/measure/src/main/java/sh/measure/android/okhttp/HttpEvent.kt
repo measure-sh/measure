@@ -66,6 +66,8 @@ internal data class HttpEvent(
      * @see [HttpClientName]
      */
     val client: String,
+    @Transient
+    val attributes: MutableMap<String, Any?> = mutableMapOf(),
     @Transient val timestamp: Long = -1L,
     @Transient val thread_name: String = "",
 ) {

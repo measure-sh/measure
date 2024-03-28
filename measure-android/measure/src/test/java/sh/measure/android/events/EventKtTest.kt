@@ -2,6 +2,9 @@ package sh.measure.android.events
 
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
 import okio.Buffer
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -34,10 +37,11 @@ class EventKtTest {
             type = "test",
             data = Json.encodeToJsonElement(String.serializer(), "data"),
             thread_name = "thread",
+            attributes = JsonObject(mapOf("key" to JsonPrimitive("value"))),
         )
         val result = event.toJson()
         assertEquals(
-            "{\"timestamp\":\"2021-09-09T09:09:09.009Z\",\"type\":\"test\",\"test\":\"data\",\"thread_name\":\"thread\"}",
+            "{\"timestamp\":\"2021-09-09T09:09:09.009Z\",\"type\":\"test\",\"test\":\"data\",\"thread_name\":\"thread\",\"attributes\":{\"key\":\"value\"}}",
             result,
         )
     }
@@ -49,6 +53,7 @@ class EventKtTest {
             type = "test",
             data = Json.encodeToJsonElement(String.serializer(), "data"),
             thread_name = "thread",
+            attributes = JsonObject(mapOf("key" to JsonPrimitive("value"))),
         )
 
         val buffer = Buffer().apply {
@@ -58,7 +63,7 @@ class EventKtTest {
         }
 
         assertEquals(
-            "{\"timestamp\":\"2021-09-09T09:09:09.009Z\",\"type\":\"test\",\"test\":\"data\",\"thread_name\":\"thread\"}",
+            "{\"timestamp\":\"2021-09-09T09:09:09.009Z\",\"type\":\"test\",\"test\":\"data\",\"thread_name\":\"thread\",\"attributes\":{\"key\":\"value\"}}",
             buffer.readUtf8(),
         )
     }

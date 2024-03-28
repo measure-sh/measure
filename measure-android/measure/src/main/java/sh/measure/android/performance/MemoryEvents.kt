@@ -13,6 +13,8 @@ internal data class MemoryUsage(
     val native_total_heap: Long,
     val native_free_heap: Long,
     val interval_config: Long,
+    @Transient
+    val attributes: MutableMap<String, Any?> = mutableMapOf(),
     @Transient val timestamp: Long = 0L,
     @Transient val thread_name: String = "",
 )
@@ -27,6 +29,8 @@ internal data class LowMemory(
     val native_total_heap: Long,
     val native_free_heap: Long,
     @Transient
+    val attributes: MutableMap<String, Any?> = mutableMapOf(),
+    @Transient
     val timestamp: Long = 0L,
     @Transient
     val thread_name: String = "",
@@ -35,6 +39,8 @@ internal data class LowMemory(
 @Serializable
 internal data class TrimMemory(
     val level: String,
+    @Transient
+    val attributes: MutableMap<String, Any?> = mutableMapOf(),
     @Transient
     val timestamp: Long = 0L,
     @Transient

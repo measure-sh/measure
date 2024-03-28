@@ -3,6 +3,8 @@ package sh.measure.android.storage
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.encodeToJsonElement
 import okio.buffer
 import okio.sink
@@ -120,6 +122,7 @@ internal class StorageImplTest {
             type = "event",
             data = data,
             thread_name = "thread",
+            attributes = JsonObject(mapOf("key" to JsonPrimitive("value"))),
         )
         storage.initSession(createFakeSession(sessionId))
 
@@ -133,8 +136,8 @@ internal class StorageImplTest {
         val eventLogFile = File(sessionDir, EVENT_LOG_FILE_NAME)
         assertEquals(
             """
-                {"timestamp":"$timestamp","type":"event","event":"data","thread_name":"thread"}
-                {"timestamp":"$timestamp","type":"event","event":"data","thread_name":"thread"}
+                {"timestamp":"$timestamp","type":"event","event":"data","thread_name":"thread","attributes":{"key":"value"}}
+                {"timestamp":"$timestamp","type":"event","event":"data","thread_name":"thread","attributes":{"key":"value"}}
             """.trimIndent(),
             eventLogFile.readText(),
         )

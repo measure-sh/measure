@@ -31,6 +31,8 @@ internal data class NetworkChangeEvent(
      * The name of the network provider that is now active. Only set for cellular networks.
      */
     val network_provider: String?,
+    @Transient
+    val attributes: MutableMap<String, Any?> = mutableMapOf(),
     @Transient val timestamp: Long = -1L,
     @Transient val thread_name: String = "",
 )

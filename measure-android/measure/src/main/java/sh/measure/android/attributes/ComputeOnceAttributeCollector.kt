@@ -8,7 +8,7 @@ package sh.measure.android.attributes
  * Implementations should override [computeAttributes] to compute the attributes and do not need
  * to override [append].
  */
-internal abstract class ComputeOnceAttributeAppender : AttributeAppender {
+internal abstract class ComputeOnceAttributeCollector : AttributeCollector {
     private var isComputed = false
     private lateinit var attributes: Map<String, Any?>
 
