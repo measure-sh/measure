@@ -532,14 +532,6 @@ export const emptyAlerts = {
     launch_time_spike: {
         email: true,
         slack: false
-    },
-    team_member_add_remove: {
-        email: true,
-        slack: false
-    },
-    team_member_role_change: {
-        email: false,
-        slack: false
     }
 }
 
