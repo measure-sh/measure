@@ -91,7 +91,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
 
   const buttonStyle = "block px-2 py-2 w-full truncate text-white bg-neutral-950 hover:text-black font-display text-left hover:bg-yellow-200 active:bg-yellow-300 outline-none focus:bg-yellow-200"
   const checkboxContainerStyle = "px-2 py-2 bg-neutral-950 truncate text-white hover:text-black hover:bg-yellow-200 font-display text-left"
-  const checkboxInputStyle = "appearance-none border-white rounded-sm font-display bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:ring-1 checked:ring-white"
+  const checkboxInputStyle = "appearance-none border-white rounded-sm font-display bg-neutral-950 checked:bg-neutral-950 checked:hover:bg-neutral-950 checked:focus:bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:ring-1 checked:ring-white"
 
   return (
     <div className="relative inline-block text-left" ref={dropdownRef} >
