@@ -21,7 +21,6 @@ import sh.measure.android.performance.CpuUsage
 import sh.measure.android.performance.LowMemory
 import sh.measure.android.performance.MemoryUsage
 import sh.measure.android.performance.TrimMemory
-import sh.measure.android.session.SessionController
 
 internal interface EventProcessor {
     fun trackUnhandledException(measureException: MeasureException)
@@ -47,7 +46,6 @@ internal interface EventProcessor {
 
 internal class MeasureEventProcessor(
     private val logger: Logger,
-    private val sessionController: SessionController,
     private val attributeCollectors: List<AttributeCollector>,
 ) : EventProcessor {
     override fun trackUnhandledException(measureException: MeasureException) {
@@ -55,7 +53,6 @@ internal class MeasureEventProcessor(
         attributeCollectors.forEach {
             it.append(measureException.attributes)
         }
-        sessionController.storeEventSync(measureException.toEvent())
     }
 
     override fun trackAnr(measureException: MeasureException) {
@@ -63,7 +60,6 @@ internal class MeasureEventProcessor(
         attributeCollectors.forEach {
             it.append(measureException.attributes)
         }
-        sessionController.storeEventSync(measureException.toEvent())
     }
 
     override fun trackClick(click: ClickEvent) {
@@ -71,7 +67,6 @@ internal class MeasureEventProcessor(
         attributeCollectors.forEach {
             it.append(click.attributes)
         }
-        sessionController.storeEvent(click.toEvent())
     }
 
     override fun trackLongClick(longClick: LongClickEvent) {
@@ -79,7 +74,6 @@ internal class MeasureEventProcessor(
         attributeCollectors.forEach {
             it.append(longClick.attributes)
         }
-        sessionController.storeEvent(longClick.toEvent())
     }
 
     override fun trackScroll(scroll: ScrollEvent) {
@@ -87,7 +81,6 @@ internal class MeasureEventProcessor(
         attributeCollectors.forEach {
             it.append(scroll.attributes)
         }
-        sessionController.storeEvent(scroll.toEvent())
     }
 
     override fun trackActivityLifecycleEvent(event: ActivityLifecycleEvent) {
@@ -98,7 +91,6 @@ internal class MeasureEventProcessor(
         attributeCollectors.forEach {
             it.append(event.attributes)
         }
-        sessionController.storeEvent(event.toEvent())
     }
 
     override fun trackFragmentLifecycleEvent(event: FragmentLifecycleEvent) {
@@ -109,7 +101,6 @@ internal class MeasureEventProcessor(
         attributeCollectors.forEach {
             it.append(event.attributes)
         }
-        sessionController.storeEvent(event.toEvent())
     }
 
     override fun trackApplicationLifecycleEvent(event: ApplicationLifecycleEvent) {
@@ -120,7 +111,6 @@ internal class MeasureEventProcessor(
         attributeCollectors.forEach {
             it.append(event.attributes)
         }
-        sessionController.storeEvent(event.toEvent())
     }
 
     override fun trackColdLaunch(event: ColdLaunchEvent) {
@@ -128,7 +118,6 @@ internal class MeasureEventProcessor(
         attributeCollectors.forEach {
             it.append(event.attributes)
         }
-        sessionController.storeEvent(event.toEvent())
     }
 
     override fun trackWarmLaunchEvent(event: WarmLaunchEvent) {
@@ -136,7 +125,6 @@ internal class MeasureEventProcessor(
         attributeCollectors.forEach {
             it.append(event.attributes)
         }
-        sessionController.storeEvent(event.toEvent())
     }
 
     override fun trackHotLaunchEvent(event: HotLaunchEvent) {
@@ -144,7 +132,6 @@ internal class MeasureEventProcessor(
         attributeCollectors.forEach {
             it.append(event.attributes)
         }
-        sessionController.storeEvent(event.toEvent())
     }
 
     override fun trackNetworkChange(event: NetworkChangeEvent) {
@@ -159,7 +146,6 @@ internal class MeasureEventProcessor(
         attributeCollectors.forEach {
             it.append(event.attributes)
         }
-        sessionController.storeEvent(event.toEvent())
     }
 
     override fun trackMemoryUsage(memoryUsage: MemoryUsage) {
@@ -167,7 +153,6 @@ internal class MeasureEventProcessor(
         attributeCollectors.forEach {
             it.append(memoryUsage.attributes)
         }
-        sessionController.storeEvent(memoryUsage.toEvent())
     }
 
     override fun trackLowMemory(lowMemory: LowMemory) {
@@ -175,9 +160,6 @@ internal class MeasureEventProcessor(
         attributeCollectors.forEach {
             it.append(lowMemory.attributes)
         }
-        sessionController.storeEvent(
-            lowMemory.toEvent(),
-        )
     }
 
     override fun trackTrimMemory(trimMemory: TrimMemory) {
@@ -185,7 +167,6 @@ internal class MeasureEventProcessor(
         attributeCollectors.forEach {
             it.append(trimMemory.attributes)
         }
-        sessionController.storeEvent(trimMemory.toEvent())
     }
 
     override fun trackCpuUsage(cpuUsage: CpuUsage) {
@@ -193,7 +174,6 @@ internal class MeasureEventProcessor(
         attributeCollectors.forEach {
             it.append(cpuUsage.attributes)
         }
-        sessionController.storeEvent(cpuUsage.toEvent())
     }
 
     override fun trackNavigationEvent(navigationEvent: NavigationEvent) {
@@ -201,7 +181,6 @@ internal class MeasureEventProcessor(
         attributeCollectors.forEach {
             it.append(navigationEvent.attributes)
         }
-        sessionController.storeEvent(navigationEvent.toEvent())
     }
 
     override fun storeAttachment(attachmentInfo: AttachmentInfo) {
@@ -209,6 +188,5 @@ internal class MeasureEventProcessor(
         attributeCollectors.forEach {
             it.append(attachmentInfo.attributes)
         }
-        sessionController.storeAttachment(attachmentInfo)
     }
 }

@@ -4,8 +4,6 @@ import android.app.Application
 import android.content.Context
 import androidx.annotation.VisibleForTesting
 import sh.measure.android.anr.AnrCollector
-import sh.measure.android.appexit.AppExitProvider
-import sh.measure.android.appexit.AppExitProviderImpl
 import sh.measure.android.applaunch.AppLaunchCollector
 import sh.measure.android.applaunch.ColdLaunchTraceImpl
 import sh.measure.android.attributes.AppAttributeCollector
@@ -22,10 +20,6 @@ import sh.measure.android.gestures.GestureCollector
 import sh.measure.android.lifecycle.LifecycleCollector
 import sh.measure.android.logger.AndroidLogger
 import sh.measure.android.logger.LogLevel
-import sh.measure.android.network.HttpClient
-import sh.measure.android.network.HttpClientOkHttp
-import sh.measure.android.network.Transport
-import sh.measure.android.network.TransportImpl
 import sh.measure.android.networkchange.NetworkChangesCollector
 import sh.measure.android.networkchange.NetworkInfoProvider
 import sh.measure.android.networkchange.NetworkInfoProviderImpl
@@ -35,14 +29,8 @@ import sh.measure.android.performance.ComponentCallbacksCollector
 import sh.measure.android.performance.CpuUsageCollector
 import sh.measure.android.performance.DefaultMemoryReader
 import sh.measure.android.performance.MemoryUsageCollector
-import sh.measure.android.session.SessionController
-import sh.measure.android.session.SessionControllerImpl
-import sh.measure.android.session.SessionProvider
-import sh.measure.android.session.SessionReportGenerator
 import sh.measure.android.storage.PrefsStorage
 import sh.measure.android.storage.PrefsStorageImpl
-import sh.measure.android.storage.Storage
-import sh.measure.android.storage.StorageImpl
 import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.DefaultDebugProvider
@@ -89,30 +77,13 @@ object Measure {
         val config = DefaultConfig()
         val customThreadFactory = CustomThreadFactory()
         val executorService = MeasureExecutorServiceImpl(customThreadFactory)
-        val storage: Storage = StorageImpl(logger, context.filesDir.path)
-        val httpClient: HttpClient =
-            HttpClientOkHttp(logger, manifestMetadata.url, manifestMetadata.apiKey)
-        val transport: Transport = TransportImpl(logger, httpClient)
         timeProvider = AndroidTimeProvider()
         val idProvider = UUIDProvider()
         val systemServiceProvider: SystemServiceProvider = SystemServiceProviderImpl(context)
         val networkInfoProvider: NetworkInfoProvider =
             NetworkInfoProviderImpl(context, logger, systemServiceProvider)
         val localeProvider: LocaleProvider = LocaleProviderImpl()
-        val appExitProvider: AppExitProvider =
-            AppExitProviderImpl(logger, systemServiceProvider)
         val pidProvider: PidProvider = PidProviderImpl()
-        val sessionReportGenerator = SessionReportGenerator(logger, storage, appExitProvider)
-        val sessionProvider =
-            SessionProvider(timeProvider, idProvider, pidProvider)
-        val sessionController: SessionController = SessionControllerImpl(
-            logger,
-            sessionProvider,
-            storage,
-            transport,
-            executorService,
-            sessionReportGenerator,
-        )
 
         val prefsStorage: PrefsStorage = PrefsStorageImpl(context)
         val userIdAttributeGenerator = UserIdAttributeCollector()
@@ -123,7 +94,6 @@ object Measure {
 
         eventProcessor = MeasureEventProcessor(
             logger,
-            sessionController,
             listOf(
                 userIdAttributeGenerator,
                 networkStateAttributeGenerator,
@@ -133,13 +103,8 @@ object Measure {
             ),
         )
 
-        // Init session
-        sessionController.initSession()
-
         // Start launch trace, this trace ends in the ColdLaunchCollector.
         val coldLaunchTrace = ColdLaunchTraceImpl(
-            storage,
-            sessionProvider.session.id,
             eventProcessor,
             timeProvider,
         ).apply { start() }
@@ -212,7 +177,6 @@ object Measure {
                     eventProcessor,
                     timeProvider,
                 ).register()
-                sessionController.syncAllSessions()
             },
         ).register()
         logger.log(LogLevel.Debug, "Measure initialization completed")

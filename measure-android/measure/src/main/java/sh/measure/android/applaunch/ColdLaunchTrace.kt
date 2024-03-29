@@ -5,7 +5,6 @@ import sh.measure.android.attachment.AttachmentType
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.methodtrace.MethodTrace
 import sh.measure.android.methodtrace.MethodTraceConfig
-import sh.measure.android.storage.Storage
 import sh.measure.android.utils.TimeProvider
 
 internal interface ColdLaunchTrace {
@@ -15,13 +14,11 @@ internal interface ColdLaunchTrace {
 }
 
 internal class ColdLaunchTraceImpl(
-    storage: Storage,
-    sessionId: String,
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
 ) : ColdLaunchTrace {
     override val config = MethodTraceConfig(
-        path = storage.getAttachmentsDirPath(sessionId),
+        path = "", // TODO: Implement this
         name = "cold_launch",
         // 8MB
         bufferSize = 8 * 1024 * 1024,
