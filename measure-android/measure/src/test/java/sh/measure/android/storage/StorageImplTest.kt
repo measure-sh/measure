@@ -19,7 +19,6 @@ import sh.measure.android.attachment.AttachmentInfo
 import sh.measure.android.events.Event
 import sh.measure.android.fakes.FakeResourceFactory
 import sh.measure.android.fakes.NoopLogger
-import sh.measure.android.session.Resource
 import sh.measure.android.session.Session
 import sh.measure.android.utils.iso8601Timestamp
 import java.io.File

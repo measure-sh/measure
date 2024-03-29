@@ -1,7 +1,5 @@
 package sh.measure.android.session
 
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.encodeToJsonElement
 import okio.BufferedSink
 import okio.Closeable
 import okio.buffer
@@ -30,13 +28,11 @@ internal class SessionReportGenerator(
         val sessionStartTime = session.startTime.iso8601Timestamp()
         val appExit = appExitProvider.get(session.pid)
         val eventsFile = createEventsJsonFile(session.id, appExit)
-        val resource = session.resource
         val attachments = storage.getAllAttachmentsInfo(session.id).mapNotNull { it.toAttachmentPacket() }
         return SessionReport(
             session_id = session.id,
             timestamp = sessionStartTime,
             eventsFile = eventsFile,
-            resource = Json.encodeToJsonElement(resource),
             attachments = attachments,
         )
     }

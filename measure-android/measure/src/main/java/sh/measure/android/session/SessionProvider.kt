@@ -13,7 +13,6 @@ internal class SessionProvider(
     private val timeProvider: TimeProvider,
     private val idProvider: IdProvider,
     private val pidProvider: PidProvider,
-    private val resourceFactory: ResourceFactory,
 ) : ISessionProvider {
     override lateinit var session: Session
         private set
@@ -22,7 +21,6 @@ internal class SessionProvider(
         session = Session(
             id = idProvider.createId(),
             startTime = timeProvider.currentTimeSinceEpochInMillis,
-            resource = resourceFactory.create(),
             pid = pidProvider.getPid(),
         )
     }

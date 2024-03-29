@@ -15,11 +15,6 @@ internal data class Session(
     val startTime: Long,
 
     /**
-     * The resource associated with the session.
-     */
-    val resource: Resource,
-
-    /**
      * The process id of the session.
      */
     val pid: Int = 0,
