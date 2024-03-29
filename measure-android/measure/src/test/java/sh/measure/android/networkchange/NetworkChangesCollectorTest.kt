@@ -24,7 +24,6 @@ import org.robolectric.shadows.ShadowNetworkCapabilities
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
-import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.SystemServiceProviderImpl
 

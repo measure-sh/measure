@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import sh.measure.android.events.EventProcessor
-import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.iso8601Timestamp
 
@@ -14,7 +13,6 @@ import sh.measure.android.utils.iso8601Timestamp
 internal class FragmentLifecycleCollector(
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
-    private val currentThread: CurrentThread,
 ) : FragmentLifecycleAdapter() {
     override fun onFragmentAttached(fm: FragmentManager, f: Fragment, context: Context) {
         eventProcessor.trackFragmentLifecycleEvent(
@@ -24,7 +22,6 @@ internal class FragmentLifecycleCollector(
                 class_name = f.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
                 tag = f.tag,
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -37,7 +34,6 @@ internal class FragmentLifecycleCollector(
                 class_name = f.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
                 tag = f.tag,
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -50,7 +46,6 @@ internal class FragmentLifecycleCollector(
                 class_name = f.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
                 tag = f.tag,
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -63,7 +58,6 @@ internal class FragmentLifecycleCollector(
                 class_name = f.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
                 tag = f.tag,
-                thread_name = currentThread.name,
             ),
         )
     }

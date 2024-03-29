@@ -18,7 +18,6 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.android.controller.ActivityController
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.fakes.FakeTimeProvider
-import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.iso8601Timestamp
 
 @RunWith(AndroidJUnit4::class)
@@ -27,7 +26,6 @@ class LifecycleCollectorTest {
     private lateinit var lifecycleCollector: LifecycleCollector
     private val eventProcessor: EventProcessor = mock()
     private val timeProvider = FakeTimeProvider()
-    private val currentThread = CurrentThread()
     private lateinit var controller: ActivityController<TestLifecycleActivity>
 
     @Before
@@ -36,7 +34,6 @@ class LifecycleCollectorTest {
             RuntimeEnvironment.getApplication(),
             eventProcessor,
             timeProvider,
-            currentThread,
             onAppForeground = {},
             onAppBackground = {},
         ).apply { register() }
@@ -63,7 +60,6 @@ class LifecycleCollectorTest {
                 type = ActivityLifecycleType.CREATED,
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-                thread_name = currentThread.name,
             ),
         )
         verify(eventProcessor).trackActivityLifecycleEvent(
@@ -72,7 +68,6 @@ class LifecycleCollectorTest {
                 class_name = TestLifecycleActivity::class.java.name,
                 saved_instance_state = true,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -85,7 +80,6 @@ class LifecycleCollectorTest {
                 type = ActivityLifecycleType.RESUMED,
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -98,7 +92,6 @@ class LifecycleCollectorTest {
                 type = ActivityLifecycleType.PAUSED,
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -111,7 +104,6 @@ class LifecycleCollectorTest {
                 type = ActivityLifecycleType.DESTROYED,
                 class_name = TestLifecycleActivity::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -125,7 +117,6 @@ class LifecycleCollectorTest {
                 parent_activity = TestLifecycleActivity::class.java.name,
                 class_name = TestFragment::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -139,7 +130,6 @@ class LifecycleCollectorTest {
                 parent_activity = TestLifecycleActivity::class.java.name,
                 class_name = TestFragment::class.java.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -208,7 +198,6 @@ class LifecycleCollectorTest {
             RuntimeEnvironment.getApplication(),
             eventProcessor,
             timeProvider,
-            currentThread,
             onAppForeground = { foreground = true },
             onAppBackground = {},
         ).apply { register() }
@@ -223,7 +212,6 @@ class LifecycleCollectorTest {
             RuntimeEnvironment.getApplication(),
             eventProcessor,
             timeProvider,
-            currentThread,
             onAppForeground = {},
             onAppBackground = { background = true },
         ).apply { register() }

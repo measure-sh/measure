@@ -17,7 +17,6 @@ import sh.measure.android.events.EventProcessor
 import sh.measure.android.fakes.FakeConfig
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
-import sh.measure.android.utils.CurrentThread
 import java.net.ConnectException
 
 class OkHttpEventProcessorTest {

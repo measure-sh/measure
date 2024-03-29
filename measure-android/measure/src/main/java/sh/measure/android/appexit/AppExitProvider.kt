@@ -10,7 +10,6 @@ import okio.buffer
 import okio.source
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.SystemServiceProvider
 import java.io.InputStream
 

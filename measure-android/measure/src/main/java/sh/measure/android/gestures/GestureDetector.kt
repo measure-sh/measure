@@ -3,7 +3,6 @@ package sh.measure.android.gestures
 import android.content.Context
 import android.view.MotionEvent
 import android.view.ViewConfiguration
-import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.TimeProvider
 import kotlin.math.abs
 

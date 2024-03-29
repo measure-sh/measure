@@ -6,7 +6,6 @@ import sh.measure.android.events.EventProcessor
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.OsSysConfProvider
 import sh.measure.android.utils.OsSysConfProviderImpl
 import sh.measure.android.utils.PidProvider
