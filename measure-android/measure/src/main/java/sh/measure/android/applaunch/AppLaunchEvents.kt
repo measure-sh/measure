@@ -47,11 +47,6 @@ internal data class ColdLaunchEvent(
     val attributes: MutableMap<String, Any?> = mutableMapOf(),
 
     /**
-     * The name of the thread on which the cold launch was measured.
-     */
-    @Transient val thread_name: String = "",
-
-    /**
      * The time since epoch at which cold launch was measured.
      */
     @Transient val timestamp: Long = -1,
@@ -85,7 +80,6 @@ internal data class WarmLaunchEvent(
     val intent_data: String?,
     @Transient
     val attributes: MutableMap<String, Any?> = mutableMapOf(),
-    @Transient val thread_name: String = "",
     @Transient val timestamp: Long = -1,
 )
 
@@ -117,6 +111,5 @@ internal data class HotLaunchEvent(
     val intent_data: String?,
     @Transient
     val attributes: MutableMap<String, Any?> = mutableMapOf(),
-    @Transient val thread_name: String = "",
     @Transient val timestamp: Long = -1,
 )

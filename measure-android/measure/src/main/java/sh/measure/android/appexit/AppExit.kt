@@ -46,7 +46,4 @@ internal data class AppExit(
      */
     @Transient
     val timestamp: Long = 0L,
-
-    @Transient
-    val thread_name: String = "",
 )

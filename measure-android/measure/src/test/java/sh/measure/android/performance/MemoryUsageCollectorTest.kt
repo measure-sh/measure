@@ -10,14 +10,12 @@ import sh.measure.android.events.EventProcessor
 import sh.measure.android.fakes.FakeMemoryReader
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.ImmediateExecutorService
-import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.TimeProvider
 
 internal class MemoryUsageCollectorTest {
     private lateinit var memoryUsageCollector: MemoryUsageCollector
     private lateinit var timeProvider: TimeProvider
     private val eventProcessor = mock<EventProcessor>()
-    private val currentThread = CurrentThread()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val memoryReader = FakeMemoryReader()
 
@@ -28,7 +26,6 @@ internal class MemoryUsageCollectorTest {
         memoryUsageCollector = MemoryUsageCollector(
             eventProcessor,
             timeProvider,
-            currentThread,
             executorService,
             memoryReader,
         )
@@ -48,7 +45,6 @@ internal class MemoryUsageCollectorTest {
                 native_free_heap = memoryReader.nativeFreeHeapSize(),
                 interval_config = MEMORY_TRACKING_INTERVAL_MS,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name,
             ),
         )
     }

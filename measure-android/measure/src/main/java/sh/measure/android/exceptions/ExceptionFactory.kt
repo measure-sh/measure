@@ -12,12 +12,8 @@ internal object ExceptionFactory {
         handled: Boolean,
         timestamp: Long,
         thread: Thread,
-        networkType: String?,
-        networkGeneration: String?,
-        networkProvider: String?,
         foreground: Boolean,
         isAnr: Boolean = false,
-        deviceLocale: String?,
     ): MeasureException {
         val exceptions = mutableListOf<ExceptionUnit>()
         var error: Throwable? = throwable
@@ -60,13 +56,10 @@ internal object ExceptionFactory {
             count++
         }
         return MeasureException(
-            timestamp, thread.name, exceptions,
+            timestamp,
+            exceptions,
             threads = threads,
             handled = handled,
-            network_type = networkType,
-            network_provider = networkProvider,
-            network_generation = networkGeneration,
-            device_locale = deviceLocale,
             foreground = foreground,
             isAnr = isAnr,
         )

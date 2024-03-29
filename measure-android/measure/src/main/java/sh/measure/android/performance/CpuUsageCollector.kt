@@ -23,7 +23,6 @@ internal class CpuUsageCollector(
     private val eventProcessor: EventProcessor,
     private val pidProvider: PidProvider,
     private val timeProvider: TimeProvider,
-    private val currentThread: CurrentThread,
     private val executorService: MeasureExecutorService,
     private val procProvider: ProcProvider = ProcProviderImpl(),
     private val osSysConfProvider: OsSysConfProvider = OsSysConfProviderImpl(),
@@ -70,7 +69,6 @@ internal class CpuUsageCollector(
             cstime = cstime,
             start_time = startTime,
             interval_config = CPU_TRACKING_INTERVAL_MS,
-            thread_name = currentThread.name,
             timestamp = timeProvider.currentTimeSinceEpochInMillis,
         )
         if (prevCpuUsage?.utime == cpuUsage.utime && prevCpuUsage?.stime == cpuUsage.stime) {

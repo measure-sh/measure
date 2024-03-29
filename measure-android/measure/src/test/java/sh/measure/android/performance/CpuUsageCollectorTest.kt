@@ -12,7 +12,6 @@ import sh.measure.android.fakes.FakePidProvider
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
-import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.OsSysConfProvider
 import sh.measure.android.utils.ProcProvider
 import java.io.File
@@ -21,7 +20,6 @@ internal class CpuUsageCollectorTest {
     private val logger = NoopLogger()
     private val eventProcessor = mock<EventProcessor>()
     private val pidProvider = FakePidProvider()
-    private val currentThread = CurrentThread()
     private val procProvider = mock<ProcProvider>()
     private val osSysConfProvider = mock<OsSysConfProvider>()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
@@ -37,7 +35,6 @@ internal class CpuUsageCollectorTest {
             eventProcessor,
             pidProvider,
             timeProvider,
-            currentThread,
             executorService,
             procProvider,
             osSysConfProvider,
@@ -65,7 +62,6 @@ internal class CpuUsageCollectorTest {
                 cstime = 200,
                 start_time = 5835385,
                 interval_config = CPU_TRACKING_INTERVAL_MS,
-                thread_name = currentThread.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
             ),
         )

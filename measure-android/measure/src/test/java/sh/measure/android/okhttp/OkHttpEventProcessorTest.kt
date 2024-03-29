@@ -24,13 +24,11 @@ class OkHttpEventProcessorTest {
     private val logger = NoopLogger()
     private val eventProcessor = mock<EventProcessor>()
     private val timeProvider = FakeTimeProvider()
-    private val currentThread = CurrentThread()
     private val config = FakeConfig()
     private val okHttpEventProcessor: OkHttpEventProcessor = OkHttpEventProcessorImpl(
         logger,
         eventProcessor,
         timeProvider,
-        currentThread,
         config,
     )
     private val mockWebServer = MockWebServer()
@@ -241,19 +239,6 @@ class OkHttpEventProcessorTest {
         val actualEvent = captor.firstValue
         // timestamp is non-null, initialized to -1L to remain transient
         Assert.assertNotEquals(-1L, actualEvent.timestamp)
-    }
-
-    @Test
-    fun `tracks thread name for a successful request`() {
-        val captor = argumentCaptor<HttpEvent>()
-
-        // When
-        simulateSuccessfulPostRequest()
-
-        // Then
-        verify(eventProcessor, times(1)).trackHttpEvent(captor.capture())
-        val actualEvent = captor.firstValue
-        Assert.assertEquals(currentThread.name, actualEvent.thread_name)
     }
 
     @Test

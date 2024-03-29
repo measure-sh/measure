@@ -43,6 +43,5 @@ internal data class CpuUsage(
     val interval_config: Long,
     @Transient
     val attributes: MutableMap<String, Any?> = mutableMapOf(),
-    @Transient val thread_name: String = "",
     @Transient val timestamp: Long = -1,
 )

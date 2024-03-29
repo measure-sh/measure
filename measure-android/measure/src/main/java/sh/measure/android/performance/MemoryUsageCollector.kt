@@ -14,7 +14,6 @@ internal const val BYTES_TO_KB_FACTOR = 1024
 internal class MemoryUsageCollector(
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
-    private val currentThread: CurrentThread,
     private val executorService: MeasureExecutorService,
     private val memoryReader: MemoryReader,
 ) {
@@ -54,7 +53,6 @@ internal class MemoryUsageCollector(
                 native_free_heap = memoryReader.nativeFreeHeapSize(),
                 interval_config = MEMORY_TRACKING_INTERVAL_MS,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name,
             ),
         )
     }

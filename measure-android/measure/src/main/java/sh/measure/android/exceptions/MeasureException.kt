@@ -2,8 +2,6 @@ package sh.measure.android.exceptions
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import sh.measure.android.networkchange.NetworkGeneration
-import sh.measure.android.networkchange.NetworkType
 
 /**
  * Represents an exception in Measure. This is used to track handled and unhandled exceptions.
@@ -15,11 +13,6 @@ internal data class MeasureException(
      */
     @Transient
     val timestamp: Long = 0L,
-
-    /**
-     * The name of the thread that threw the exception.
-     */
-    val thread_name: String,
 
     /**
      * A list of exceptions that were thrown. Multiple exceptions represent "chained" exceptions.
@@ -35,28 +28,6 @@ internal data class MeasureException(
      * Whether the exception was handled or not.
      */
     val handled: Boolean,
-
-    /**
-     * The [NetworkType] that was active when the exception occurred.
-     */
-    val network_type: String?,
-
-    /**
-     * The network provider that was active when the exception occurred. Only set for cellular
-     * networks.
-     */
-    val network_provider: String?,
-
-    /**
-     * The [NetworkGeneration] that was active when the exception occurred. Only set for cellular
-     * networks.
-     */
-    val network_generation: String?,
-
-    /**
-     * The locale of the device at the time of the exception.
-     */
-    val device_locale: String?,
 
     /**
      * Whether the app was in the foreground or not when the exception occurred.

@@ -24,7 +24,6 @@ internal class OkHttpEventProcessorImpl(
     private val logger: Logger,
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
-    private val currentThread: CurrentThread,
     private val config: Config,
 ) : OkHttpEventProcessor() {
     private val httpEventBuilders: MutableMap<String, HttpEvent.Builder> by lazy(
@@ -130,7 +129,7 @@ internal class OkHttpEventProcessorImpl(
             return
         }
         InternalTrace.beginSection("OkHttpEventProcessor.trackEvent")
-        builder?.threadName(currentThread.name)?.let {
+        builder?.let {
             val httpEvent = it.build()
             eventProcessor.trackHttpEvent(httpEvent)
         }

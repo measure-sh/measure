@@ -9,7 +9,8 @@ import sh.measure.android.utils.UUIDProvider
  * launches.
  */
 internal class InstallationIdAttributeCollector(
-    private val prefsStorage: PrefsStorage, private val idProvider: UUIDProvider
+    private val prefsStorage: PrefsStorage,
+    private val idProvider: UUIDProvider,
 ) : ComputeOnceAttributeCollector() {
     private val installationIdKey = "installation_id"
 
