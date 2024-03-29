@@ -18,7 +18,6 @@ internal class ComponentCallbacksCollector(
     private val application: Application,
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
-    private val currentThread: CurrentThread,
     private val memoryReader: MemoryReader,
 ) : ComponentCallbacks2 {
 
@@ -37,7 +36,6 @@ internal class ComponentCallbacksCollector(
                 native_total_heap = memoryReader.nativeTotalHeapSize(),
                 rss = memoryReader.rss(),
                 total_pss = memoryReader.totalPss(),
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -56,7 +54,6 @@ internal class ComponentCallbacksCollector(
         eventProcessor.trackTrimMemory(
             trimMemory.copy(
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name,
             ),
         )
     }

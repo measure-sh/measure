@@ -21,7 +21,7 @@ class AnrCollectorTest {
 
     @Test
     fun `AnrCollector tracks exception using event tracker, when ANR is detected`() {
-        val anrCollector = AnrCollector(logger, systemServiceProvider, networkInfoProvider, timeProvider, eventProcessor, localeProvider)
+        val anrCollector = AnrCollector(logger, systemServiceProvider, timeProvider, eventProcessor)
         val thread = Thread.currentThread()
         val message = "ANR"
         val timestamp = timeProvider.currentTimeSinceEpochInMillis
@@ -37,10 +37,6 @@ class AnrCollectorTest {
                 handled = false,
                 timestamp = anrError.timestamp,
                 thread = thread,
-                networkType = networkInfoProvider.getNetworkType(),
-                networkGeneration = networkInfoProvider.getNetworkGeneration(networkInfoProvider.getNetworkType()),
-                networkProvider = networkInfoProvider.getNetworkProvider(networkInfoProvider.getNetworkType()),
-                deviceLocale = localeProvider.getLocale(),
                 foreground = false,
                 isAnr = true,
             ),

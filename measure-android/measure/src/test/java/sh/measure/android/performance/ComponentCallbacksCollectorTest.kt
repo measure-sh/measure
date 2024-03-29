@@ -14,12 +14,10 @@ import org.mockito.Mockito.verify
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.fakes.FakeMemoryReader
 import sh.measure.android.fakes.FakeTimeProvider
-import sh.measure.android.utils.CurrentThread
 
 internal class ComponentCallbacksCollectorTest {
     private val eventProcessor = mock<EventProcessor>()
     private val timeProvider = FakeTimeProvider()
-    private val currentThread = CurrentThread()
     private val memoryReader = FakeMemoryReader()
     private lateinit var componentCallbacksCollector: ComponentCallbacksCollector
 
@@ -29,7 +27,6 @@ internal class ComponentCallbacksCollectorTest {
             mock(),
             eventProcessor,
             timeProvider,
-            currentThread,
             memoryReader,
         ).apply { register() }
     }
@@ -48,7 +45,6 @@ internal class ComponentCallbacksCollectorTest {
                 native_total_heap = memoryReader.nativeTotalHeapSize(),
                 rss = memoryReader.rss(),
                 total_pss = memoryReader.totalPss(),
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -71,7 +67,6 @@ internal class ComponentCallbacksCollectorTest {
             TrimMemory(
                 level = expectedLevel,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name,
             ),
         )
     }

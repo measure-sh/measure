@@ -10,11 +10,11 @@ import sh.measure.android.applaunch.AppLaunchCollector
 import sh.measure.android.applaunch.ColdLaunchTraceImpl
 import sh.measure.android.attributes.AppAttributeCollector
 import sh.measure.android.attributes.DeviceAttributeCollector
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.attributes.InstallationIdAttributeCollector
-import sh.measure.android.events.MeasureEventProcessor
 import sh.measure.android.attributes.NetworkStateAttributeCollector
 import sh.measure.android.attributes.UserIdAttributeCollector
+import sh.measure.android.events.EventProcessor
+import sh.measure.android.events.MeasureEventProcessor
 import sh.measure.android.exceptions.UnhandledExceptionCollector
 import sh.measure.android.executors.CustomThreadFactory
 import sh.measure.android.executors.MeasureExecutorServiceImpl
@@ -63,7 +63,6 @@ import sh.measure.android.utils.UUIDProvider
 object Measure {
     private lateinit var timeProvider: TimeProvider
     private lateinit var eventProcessor: EventProcessor
-    private lateinit var currentThread: CurrentThread
     private lateinit var okHttpEventProcessor: OkHttpEventProcessor
 
     fun init(context: Context) {
@@ -104,9 +103,9 @@ object Measure {
         val localeProvider: LocaleProvider = LocaleProviderImpl()
         val resourceFactory =
             ResourceFactoryImpl(logger, context, networkInfoProvider, localeProvider)
-        currentThread = CurrentThread()
+        val currentThread = CurrentThread()
         val appExitProvider: AppExitProvider =
-            AppExitProviderImpl(logger, currentThread, systemServiceProvider)
+            AppExitProviderImpl(logger, systemServiceProvider)
         val pidProvider: PidProvider = PidProviderImpl()
         val sessionReportGenerator = SessionReportGenerator(logger, storage, appExitProvider)
         val sessionProvider =
@@ -128,13 +127,15 @@ object Measure {
         val installationIdAttributeGenerator = InstallationIdAttributeCollector(prefsStorage, idProvider)
 
         eventProcessor = MeasureEventProcessor(
-            logger, sessionController, listOf(
+            logger,
+            sessionController,
+            listOf(
                 userIdAttributeGenerator,
                 networkStateAttributeGenerator,
                 deviceAttributeGenerator,
                 appAttributeGenerator,
                 installationIdAttributeGenerator,
-            )
+            ),
         )
 
         // Init session
@@ -150,28 +151,23 @@ object Measure {
 
         // Register data collectors
         okHttpEventProcessor =
-            OkHttpEventProcessorImpl(logger, eventProcessor, timeProvider, currentThread, config)
+            OkHttpEventProcessorImpl(logger, eventProcessor, timeProvider, config)
         UnhandledExceptionCollector(
             logger,
             eventProcessor,
             timeProvider,
-            networkInfoProvider,
-            localeProvider,
         ).register()
         AnrCollector(
             logger,
             systemServiceProvider,
-            networkInfoProvider,
             timeProvider,
             eventProcessor,
-            localeProvider,
         ).register()
         val cpuUsageCollector = CpuUsageCollector(
             logger,
             eventProcessor,
             pidProvider,
             timeProvider,
-            currentThread,
             executorService,
         ).apply { register() }
         val memoryReader = DefaultMemoryReader(
@@ -184,7 +180,6 @@ object Measure {
         val memoryUsageCollector = MemoryUsageCollector(
             eventProcessor,
             timeProvider,
-            currentThread,
             executorService,
             memoryReader,
         ).apply { register() }
@@ -192,7 +187,6 @@ object Measure {
             application,
             eventProcessor,
             timeProvider,
-            currentThread,
             memoryReader,
         ).register()
         LifecycleCollector(
@@ -209,7 +203,7 @@ object Measure {
                 memoryUsageCollector.pause()
             },
         ).register()
-        GestureCollector(logger, eventProcessor, timeProvider, currentThread).register()
+        GestureCollector(logger, eventProcessor, timeProvider).register()
         AppLaunchCollector(
             logger,
             application,
@@ -223,7 +217,6 @@ object Measure {
                     logger,
                     eventProcessor,
                     timeProvider,
-                    currentThread,
                 ).register()
                 sessionController.syncAllSessions()
             },
@@ -242,11 +235,6 @@ object Measure {
         return timeProvider
     }
 
-    internal fun getCurrentThread(): CurrentThread {
-        require(::currentThread.isInitialized)
-        return currentThread
-    }
-
     internal fun getOkHttpEventProcessor(): OkHttpEventProcessor {
         require(::okHttpEventProcessor.isInitialized)
         return okHttpEventProcessor
@@ -260,10 +248,5 @@ object Measure {
     @VisibleForTesting
     internal fun setTimeProvider(provider: TimeProvider) {
         timeProvider = provider
-    }
-
-    @VisibleForTesting
-    internal fun setCurrentThread(thread: CurrentThread) {
-        currentThread = thread
     }
 }

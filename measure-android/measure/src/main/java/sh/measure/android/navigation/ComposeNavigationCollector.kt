@@ -49,7 +49,6 @@ private class MeasureNavigationObserver(
                     NavigationEvent(
                         route = it,
                         timestamp = Measure.getTimeProvider().currentTimeSinceEpochInMillis,
-                        thread_name = Measure.getCurrentThread().name,
                     ),
                 )
             }

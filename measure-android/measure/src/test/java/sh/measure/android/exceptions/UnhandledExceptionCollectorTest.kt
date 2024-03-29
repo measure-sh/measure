@@ -33,8 +33,6 @@ internal class UnhandledExceptionCollectorTest {
             logger,
             eventProcessor,
             timeProvider,
-            networkInfoProvider,
-            localeProvider,
         ).apply { register() }
         val currentDefaultHandler = Thread.getDefaultUncaughtExceptionHandler()
 
@@ -48,24 +46,17 @@ internal class UnhandledExceptionCollectorTest {
             logger,
             eventProcessor,
             timeProvider,
-            networkInfoProvider,
-            localeProvider,
         ).apply { register() }
 
         // Given
         val thread = Thread.currentThread()
         val exception = RuntimeException("Test exception")
-        val networkType = networkInfoProvider.getNetworkType()
         val expectedException = ExceptionFactory.createMeasureException(
             exception,
             handled = false,
             timeProvider.currentTimeSinceEpochInMillis,
             thread = thread,
-            networkType = networkType,
-            networkGeneration = networkInfoProvider.getNetworkGeneration(networkType),
-            networkProvider = networkInfoProvider.getNetworkProvider(networkType),
             foreground = false,
-            deviceLocale = localeProvider.getLocale(),
         )
 
         // When
@@ -87,8 +78,6 @@ internal class UnhandledExceptionCollectorTest {
             logger,
             eventProcessor,
             timeProvider,
-            networkInfoProvider,
-            localeProvider,
         ).apply { register() }
 
         // Given

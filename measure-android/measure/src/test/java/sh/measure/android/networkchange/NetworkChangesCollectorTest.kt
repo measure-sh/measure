@@ -30,7 +30,6 @@ import sh.measure.android.utils.SystemServiceProviderImpl
 
 @RunWith(AndroidJUnit4::class)
 class NetworkChangesCollectorTest {
-    private val currentThread = CurrentThread()
     private val logger = NoopLogger()
     private val timeProvider = FakeTimeProvider()
     private val eventProcessor = mock<EventProcessor>()
@@ -58,7 +57,6 @@ class NetworkChangesCollectorTest {
             logger = logger,
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
-            currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
         ).register()
 
@@ -74,7 +72,6 @@ class NetworkChangesCollectorTest {
             logger = logger,
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
-            currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
         ).register()
 
@@ -90,7 +87,6 @@ class NetworkChangesCollectorTest {
             logger = logger,
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
-            currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
         ).register()
 
@@ -111,7 +107,6 @@ class NetworkChangesCollectorTest {
             logger = logger,
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
-            currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
         ).register()
 
@@ -130,7 +125,6 @@ class NetworkChangesCollectorTest {
                 network_generation = NetworkGeneration.FIFTH_GEN,
                 network_provider = "Test Provider",
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -147,7 +141,6 @@ class NetworkChangesCollectorTest {
             logger = logger,
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
-            currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
         ).register()
 
@@ -161,7 +154,6 @@ class NetworkChangesCollectorTest {
                 network_generation = null,
                 network_provider = "Test Provider",
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -179,7 +171,6 @@ class NetworkChangesCollectorTest {
             logger = logger,
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
-            currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
         ).register()
 
@@ -196,7 +187,6 @@ class NetworkChangesCollectorTest {
                 network_generation = NetworkGeneration.FIFTH_GEN,
                 network_provider = "Test Provider",
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -214,7 +204,6 @@ class NetworkChangesCollectorTest {
             logger = logger,
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
-            currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
         ).register()
 
@@ -233,7 +222,6 @@ class NetworkChangesCollectorTest {
             logger = logger,
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
-            currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
         ).register()
 
@@ -247,7 +235,6 @@ class NetworkChangesCollectorTest {
                 network_generation = null,
                 network_provider = null,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -267,7 +254,6 @@ class NetworkChangesCollectorTest {
             logger = logger,
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
-            currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
         )
 
@@ -297,7 +283,6 @@ class NetworkChangesCollectorTest {
             logger = logger,
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
-            currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
         )
 
@@ -327,7 +312,6 @@ class NetworkChangesCollectorTest {
             logger = logger,
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
-            currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
         )
 
@@ -357,7 +341,6 @@ class NetworkChangesCollectorTest {
             logger = logger,
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
-            currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
         )
 
@@ -382,7 +365,6 @@ class NetworkChangesCollectorTest {
             logger = logger,
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
-            currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
         ).register()
 
@@ -396,7 +378,6 @@ class NetworkChangesCollectorTest {
                 network_generation = null,
                 network_provider = null,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -411,7 +392,6 @@ class NetworkChangesCollectorTest {
             logger = logger,
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
-            currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
         ).register()
 
@@ -427,7 +407,6 @@ class NetworkChangesCollectorTest {
                 network_generation = null,
                 network_provider = null,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -445,7 +424,6 @@ class NetworkChangesCollectorTest {
             logger = logger,
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
-            currentThread = currentThread,
             systemServiceProvider = systemServiceProvider,
         ).register()
 
@@ -462,7 +440,6 @@ class NetworkChangesCollectorTest {
                 network_generation = null,
                 network_provider = null,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name,
             ),
         )
     }

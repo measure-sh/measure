@@ -80,15 +80,17 @@ internal class DeviceAttributeCollector(
      */
     private fun isPhysical(): Boolean {
         val isEmulator = try {
-            ((Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic")) || Build.FINGERPRINT.startsWith(
-                "generic",
-            ) || Build.FINGERPRINT.startsWith("unknown") || Build.HARDWARE.contains("goldfish") || Build.HARDWARE.contains(
-                "ranchu",
-            ) || Build.MODEL.contains("google_sdk") || Build.MODEL.contains("Emulator") || Build.MODEL.contains(
-                "Android SDK built for x86",
-            ) || Build.MANUFACTURER.contains("Genymotion") || Build.PRODUCT.contains("sdk") || Build.PRODUCT.contains(
-                "vbox86p",
-            ) || Build.PRODUCT.contains("emulator") || Build.PRODUCT.contains("simulator"))
+            (
+                (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic")) || Build.FINGERPRINT.startsWith(
+                    "generic",
+                ) || Build.FINGERPRINT.startsWith("unknown") || Build.HARDWARE.contains("goldfish") || Build.HARDWARE.contains(
+                    "ranchu",
+                ) || Build.MODEL.contains("google_sdk") || Build.MODEL.contains("Emulator") || Build.MODEL.contains(
+                    "Android SDK built for x86",
+                ) || Build.MANUFACTURER.contains("Genymotion") || Build.PRODUCT.contains("sdk") || Build.PRODUCT.contains(
+                    "vbox86p",
+                ) || Build.PRODUCT.contains("emulator") || Build.PRODUCT.contains("simulator")
+                )
         } catch (e: Exception) {
             logger.log(LogLevel.Error, "Error detecting emulator", e)
             // assume it's a physical device

@@ -127,7 +127,6 @@ class SessionControllerTest {
             type = EventType.STRING,
             timestamp = 0L.iso8601Timestamp(),
             data = Json.encodeToJsonElement("test"),
-            thread_name = "thread",
             attributes = JsonObject(mapOf("key" to JsonPrimitive("value"))),
         )
         // setup mocks

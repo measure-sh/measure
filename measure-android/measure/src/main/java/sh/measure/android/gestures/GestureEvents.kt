@@ -17,8 +17,6 @@ internal data class ClickEvent(
     val attributes: MutableMap<String, Any?> = mutableMapOf(),
     @Transient
     val timestamp: Long = -1,
-    @Transient
-    val thread_name: String = "",
 ) {
     companion object {
         fun fromDetectedGesture(gesture: DetectedGesture.Click, target: Target): ClickEvent {
@@ -32,7 +30,6 @@ internal data class ClickEvent(
                 touch_down_time = gesture.touchDownTime,
                 touch_up_time = gesture.touchUpTime,
                 timestamp = gesture.timestamp,
-                thread_name = gesture.threadName,
             )
         }
     }
@@ -52,8 +49,6 @@ internal data class LongClickEvent(
     val attributes: MutableMap<String, Any?> = mutableMapOf(),
     @Transient
     val timestamp: Long = -1,
-    @Transient
-    val thread_name: String = "",
 ) {
     companion object {
         fun fromDetectedGesture(gesture: DetectedGesture.LongClick, target: Target): LongClickEvent {
@@ -67,7 +62,6 @@ internal data class LongClickEvent(
                 touch_down_time = gesture.touchDownTime,
                 touch_up_time = gesture.touchUpTime,
                 timestamp = gesture.timestamp,
-                thread_name = gesture.threadName,
             )
         }
     }
@@ -88,8 +82,6 @@ internal data class ScrollEvent(
     val attributes: MutableMap<String, Any?> = mutableMapOf(),
     @Transient
     val timestamp: Long = -1,
-    @Transient
-    val thread_name: String = "",
 ) {
     companion object {
         fun fromDetectedGesture(gesture: DetectedGesture.Scroll, target: Target): ScrollEvent {
@@ -104,7 +96,6 @@ internal data class ScrollEvent(
                 touch_up_time = gesture.touchUpTime,
                 direction = gesture.direction.name.lowercase(),
                 timestamp = gesture.timestamp,
-                thread_name = gesture.threadName,
             )
         }
     }

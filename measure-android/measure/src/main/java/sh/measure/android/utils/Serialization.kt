@@ -51,7 +51,9 @@ private fun JsonElement.toNativeObject(): Any? = when (this) {
     JsonNull -> null
     is JsonArray -> this.map { it.toNativeObject() }
     is JsonObject -> this.toNativeObject()
-    is JsonPrimitive -> if (isString) content else {
+    is JsonPrimitive -> if (isString) {
+        content
+    } else {
         content
             .toBooleanStrictOrNull()
             ?: content.toLongOrNull()

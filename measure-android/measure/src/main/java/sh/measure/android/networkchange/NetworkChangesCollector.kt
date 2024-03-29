@@ -50,7 +50,6 @@ internal class NetworkChangesCollector(
     private val logger: Logger,
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
-    private val currentThread: CurrentThread,
 ) {
     private var currentNetworkType: String? = null
     private var currentNetworkGeneration: String? = null
@@ -142,7 +141,6 @@ internal class NetworkChangesCollector(
                     network_generation = newNetworkGeneration,
                     network_provider = networkProvider,
                     timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                    thread_name = currentThread.name,
                 ),
             )
             currentNetworkType = newNetworkType
@@ -164,7 +162,6 @@ internal class NetworkChangesCollector(
                     network_generation = null,
                     network_provider = null,
                     timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                    thread_name = currentThread.name,
                 ),
             )
             currentNetworkType = newNetworkType

@@ -13,6 +13,3 @@ package sh.measure.android.attributes
 internal interface AttributeCollector {
     fun append(attrs: MutableMap<String, Any?>)
 }
-
-
-

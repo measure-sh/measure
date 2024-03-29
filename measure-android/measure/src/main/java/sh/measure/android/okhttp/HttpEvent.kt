@@ -69,7 +69,6 @@ internal data class HttpEvent(
     @Transient
     val attributes: MutableMap<String, Any?> = mutableMapOf(),
     @Transient val timestamp: Long = -1L,
-    @Transient val thread_name: String = "",
 ) {
 
     // Builder
@@ -87,7 +86,6 @@ internal data class HttpEvent(
         private var responseBody: String? = null
         private var client: String = ""
         private var timestamp: Long = -1L
-        private var threadName: String = ""
 
         fun url(url: String) = apply { this.url = url }
 
@@ -118,8 +116,6 @@ internal data class HttpEvent(
 
         fun timestamp(timestamp: Long) = apply { this.timestamp = timestamp }
 
-        fun threadName(threadName: String) = apply { this.threadName = threadName }
-
         fun build(): HttpEvent {
             return HttpEvent(
                 url = url,
@@ -135,7 +131,6 @@ internal data class HttpEvent(
                 response_body = responseBody,
                 client = client,
                 timestamp = timestamp,
-                thread_name = threadName,
             )
         }
     }

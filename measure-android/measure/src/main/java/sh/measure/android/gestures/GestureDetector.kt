@@ -14,7 +14,6 @@ internal sealed class DetectedGesture {
         val touchDownTime: Long,
         val touchUpTime: Long,
         val timestamp: Long,
-        val threadName: String,
     ) : DetectedGesture()
 
     internal data class LongClick(
@@ -23,7 +22,6 @@ internal sealed class DetectedGesture {
         val touchDownTime: Long,
         val touchUpTime: Long,
         val timestamp: Long,
-        val threadName: String,
     ) : DetectedGesture()
 
     internal data class Scroll(
@@ -35,7 +33,6 @@ internal sealed class DetectedGesture {
         val touchDownTime: Long,
         val touchUpTime: Long,
         val timestamp: Long,
-        val threadName: String,
     ) : DetectedGesture()
 }
 
@@ -56,7 +53,6 @@ internal object GestureDetector {
         context: Context,
         motionEvent: MotionEvent,
         timeProvider: TimeProvider,
-        currentThread: CurrentThread,
     ): DetectedGesture? {
         // Ignore multi-touch gestures, this is not supported.
         if (motionEvent.pointerCount > 1) {
@@ -84,7 +80,6 @@ internal object GestureDetector {
                         touchDownTime = startTouchEventTime,
                         touchUpTime = motionEvent.eventTime,
                         timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                        threadName = currentThread.name,
                     )
                 } else {
                     DetectedGesture.Click(
@@ -93,7 +88,6 @@ internal object GestureDetector {
                         touchDownTime = startTouchEventTime,
                         touchUpTime = motionEvent.eventTime,
                         timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                        threadName = currentThread.name,
                     )
                 }
             } else {
@@ -106,7 +100,6 @@ internal object GestureDetector {
                     touchUpTime = motionEvent.eventTime,
                     direction = calculateDirection(motionEvent, startTouchX, startTouchY),
                     timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                    threadName = currentThread.name,
                 )
             }
         }

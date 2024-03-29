@@ -118,7 +118,6 @@ internal class LaunchTracker(
                                 launched_activity = onCreateRecord.activityName,
                                 has_saved_state = onCreateRecord.hasSavedState,
                                 intent_data = onCreateRecord.intentData,
-                                thread_name = Thread.currentThread().name,
                                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
                             ),
                         )
@@ -132,7 +131,6 @@ internal class LaunchTracker(
                                 launched_activity = onCreateRecord.activityName,
                                 has_saved_state = onCreateRecord.hasSavedState,
                                 intent_data = onCreateRecord.intentData,
-                                thread_name = Thread.currentThread().name,
                                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
                             ),
                         )
@@ -146,7 +144,6 @@ internal class LaunchTracker(
                                 launched_activity = onCreateRecord.activityName,
                                 has_saved_state = onCreateRecord.hasSavedState,
                                 intent_data = onCreateRecord.intentData,
-                                thread_name = Thread.currentThread().name,
                                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
                             ),
                         )

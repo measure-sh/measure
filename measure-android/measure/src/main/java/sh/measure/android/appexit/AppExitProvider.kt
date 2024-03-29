@@ -20,7 +20,6 @@ internal interface AppExitProvider {
 
 internal class AppExitProviderImpl(
     private val logger: Logger,
-    private val currentThread: CurrentThread,
     private val systemServiceProvider: SystemServiceProvider,
 ) : AppExitProvider {
 
@@ -30,12 +29,12 @@ internal class AppExitProviderImpl(
         }
         return systemServiceProvider.activityManager?.runCatching {
             getHistoricalProcessExitReasons(null, pid, 1).firstOrNull()
-                ?.toAppExit(currentThread.name)
+                ?.toAppExit()
         }?.getOrNull()
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    fun ApplicationExitInfo.toAppExit(threadName: String): AppExit {
+    fun ApplicationExitInfo.toAppExit(): AppExit {
         return AppExit(
             reason = getReasonName(reason),
             importance = getImportanceName(importance),
@@ -43,7 +42,6 @@ internal class AppExitProviderImpl(
             trace = getTraceString(traceInputStream),
             process_name = processName,
             pid = pid.toString(),
-            thread_name = threadName,
         )
     }
 
