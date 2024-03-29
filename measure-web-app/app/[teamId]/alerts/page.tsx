@@ -64,13 +64,16 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     handleEmailChange,
     handleSlackChange,
   }) => {
+
+    const checkboxStyle = "appearance-none border-black rounded-sm font-display checked:bg-neutral-950 checked:hover:bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:focus:bg-neutral-950"
+
     return (
       <div className="table-row-group">
         <div className="table-cell py-2">{rowTitle}</div>
         <div className='table-cell px-12 py-2'>
           <input
             type="checkbox"
-            className="appearance-none border-black rounded-sm font-display focus:ring-offset-yellow-200 focus:ring-0"
+            className={checkboxStyle}
             value="Email"
             checked={emailChecked}
             onChange={handleEmailChange}
@@ -79,7 +82,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         <div className='table-cell px-12 py-2'>
           <input
             type="checkbox"
-            className="appearance-none border-black rounded-sm font-display focus:ring-offset-yellow-200 focus:ring-0"
+            className={checkboxStyle}
             value="Slack"
             checked={slackChecked}
             onChange={handleSlackChange}
