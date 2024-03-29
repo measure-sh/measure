@@ -25,8 +25,6 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     crash_rate_spike: AlertState;
     anr_rate_spike: AlertState;
     launch_time_spike: AlertState;
-    team_member_add_remove: AlertState;
-    team_member_role_change: AlertState;
   }
 
   interface AlertRowProps {
@@ -135,18 +133,6 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     if (a.launch_time_spike.slack != b.launch_time_spike.slack) {
       return false
     }
-    if (a.team_member_add_remove.email != b.team_member_add_remove.email) {
-      return false
-    }
-    if (a.team_member_add_remove.slack != b.team_member_add_remove.slack) {
-      return false
-    }
-    if (a.team_member_role_change.email != b.team_member_role_change.email) {
-      return false
-    }
-    if (a.team_member_role_change.slack != b.team_member_role_change.slack) {
-      return false
-    }
 
     return true
   }
@@ -199,20 +185,6 @@ export default function Overview({ params }: { params: { teamId: string } }) {
               slackChecked={updatedAlerts.launch_time_spike.slack}
               handleEmailChange={() => handleEmailChange('launch_time_spike')}
               handleSlackChange={() => handleSlackChange('launch_time_spike')}
-            />
-            <AlertRow
-              rowTitle="Team Member Add/Remove"
-              emailChecked={updatedAlerts.team_member_add_remove.email}
-              slackChecked={updatedAlerts.team_member_add_remove.slack}
-              handleEmailChange={() => handleEmailChange('team_member_add_remove')}
-              handleSlackChange={() => handleSlackChange('team_member_add_remove')}
-            />
-            <AlertRow
-              rowTitle="Team Member Role Change"
-              emailChecked={updatedAlerts.team_member_role_change.email}
-              slackChecked={updatedAlerts.team_member_role_change.slack}
-              handleEmailChange={() => handleEmailChange('team_member_role_change')}
-              handleSlackChange={() => handleSlackChange('team_member_role_change')}
             />
           </div>
           <div className="py-4" />
