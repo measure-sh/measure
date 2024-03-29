@@ -11,7 +11,6 @@ import android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE
 import android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN
 import android.content.res.Configuration
 import sh.measure.android.events.EventProcessor
-import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.TimeProvider
 
 internal class ComponentCallbacksCollector(

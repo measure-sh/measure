@@ -16,19 +16,17 @@ import sh.measure.android.fakes.FakeEventProcessor
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.test.R
-import sh.measure.android.utils.CurrentThread
 
 @RunWith(AndroidJUnit4::class)
 class ComposeGestureCollectorTest {
     private val logger = NoopLogger()
     private val timeProvider = FakeTimeProvider()
     private lateinit var tracker: FakeEventProcessor
-    private val currentThread = CurrentThread()
 
     @Before
     fun setup() {
         tracker = FakeEventProcessor()
-        GestureCollector(logger, tracker, timeProvider, currentThread).register()
+        GestureCollector(logger, tracker, timeProvider).register()
     }
 
     @Test
@@ -46,7 +44,6 @@ class ComposeGestureCollectorTest {
         val event = tracker.trackedClicks[0]
         assertEquals("androidx.compose.ui.platform.AndroidComposeView", event.target)
         assertEquals("compose_clickable", event.target_id)
-        assertEquals("main", event.thread_name)
         assertTrue(event.touch_down_time > 0)
         assertTrue(event.touch_up_time > 0)
         assertTrue(event.x > 0)
@@ -79,7 +76,6 @@ class ComposeGestureCollectorTest {
         val event = tracker.trackedScrolls[0]
         assertEquals("androidx.compose.ui.platform.AndroidComposeView", event.target)
         assertEquals("compose_scrollable", event.target_id)
-        assertEquals("main", event.thread_name)
         assertTrue(event.touch_down_time > 0)
         assertTrue(event.touch_up_time > 0)
         assertTrue(event.x > 0)

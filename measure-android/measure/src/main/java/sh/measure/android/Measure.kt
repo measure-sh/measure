@@ -46,7 +46,6 @@ import sh.measure.android.storage.Storage
 import sh.measure.android.storage.StorageImpl
 import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.AndroidTimeProvider
-import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.DefaultDebugProvider
 import sh.measure.android.utils.DefaultRuntimeProvider
 import sh.measure.android.utils.LocaleProvider
@@ -103,7 +102,6 @@ object Measure {
         val localeProvider: LocaleProvider = LocaleProviderImpl()
         val resourceFactory =
             ResourceFactoryImpl(logger, context, networkInfoProvider, localeProvider)
-        val currentThread = CurrentThread()
         val appExitProvider: AppExitProvider =
             AppExitProviderImpl(logger, systemServiceProvider)
         val pidProvider: PidProvider = PidProviderImpl()
@@ -193,7 +191,6 @@ object Measure {
             context,
             eventProcessor,
             timeProvider,
-            currentThread,
             onAppForeground = {
                 cpuUsageCollector.resume()
                 memoryUsageCollector.resume()

@@ -3,7 +3,6 @@ package sh.measure.android.performance
 import androidx.annotation.VisibleForTesting
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.executors.MeasureExecutorService
-import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit

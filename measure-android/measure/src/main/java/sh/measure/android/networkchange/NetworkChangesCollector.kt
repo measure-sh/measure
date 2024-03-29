@@ -20,7 +20,6 @@ import androidx.annotation.VisibleForTesting
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.getNetworkGeneration

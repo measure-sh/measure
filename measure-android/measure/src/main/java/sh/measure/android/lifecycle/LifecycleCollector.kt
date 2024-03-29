@@ -6,7 +6,6 @@ import android.os.Bundle
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import sh.measure.android.events.EventProcessor
-import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.isClassAvailable
 import sh.measure.android.utils.iso8601Timestamp
@@ -18,12 +17,11 @@ internal class LifecycleCollector(
     private val application: Application,
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
-    private val currentThread: CurrentThread,
     private val onAppForeground: () -> Unit,
     private val onAppBackground: () -> Unit,
 ) : ActivityLifecycleAdapter {
     private val fragmentLifecycleCollector by lazy {
-        FragmentLifecycleCollector(eventProcessor, timeProvider, currentThread)
+        FragmentLifecycleCollector(eventProcessor, timeProvider)
     }
     private val startedActivities = mutableSetOf<String>()
 
@@ -41,7 +39,6 @@ internal class LifecycleCollector(
                 intent = activity.intent.dataString,
                 saved_instance_state = savedInstanceState != null,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -52,7 +49,6 @@ internal class LifecycleCollector(
                 ApplicationLifecycleEvent(
                     type = AppLifecycleType.FOREGROUND,
                     timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-                    thread_name = currentThread.name,
                 ),
             )
             onAppForeground.invoke()
@@ -67,7 +63,6 @@ internal class LifecycleCollector(
                 type = ActivityLifecycleType.RESUMED,
                 class_name = activity.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -78,7 +73,6 @@ internal class LifecycleCollector(
                 type = ActivityLifecycleType.PAUSED,
                 class_name = activity.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -91,7 +85,6 @@ internal class LifecycleCollector(
                 ApplicationLifecycleEvent(
                     type = AppLifecycleType.BACKGROUND,
                     timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-                    thread_name = currentThread.name,
                 ),
             )
             onAppBackground.invoke()
@@ -104,7 +97,6 @@ internal class LifecycleCollector(
                 type = ActivityLifecycleType.DESTROYED,
                 class_name = activity.javaClass.name,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-                thread_name = currentThread.name,
             ),
         )
         if (isAndroidXFragmentAvailable() && activity is FragmentActivity) {

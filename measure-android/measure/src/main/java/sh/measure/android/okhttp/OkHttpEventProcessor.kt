@@ -11,7 +11,6 @@ import sh.measure.android.events.EventProcessor
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.tracing.InternalTrace
-import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.TimeProvider
 import java.io.IOException
 
