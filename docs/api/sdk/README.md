@@ -548,7 +548,8 @@ To understand the shape of the JSON payload, take a look at this sample request.
         "network_type": "cellular",
         "network_provider": "airtel",
         "network_generation": "4g",
-        "measure_sdk_version": "0.0.1"
+        "measure_sdk_version": "0.0.1",
+        "thread_name": "main"
       }
     },
     {
@@ -588,7 +589,8 @@ To understand the shape of the JSON payload, take a look at this sample request.
         "network_type": "cellular",
         "network_provider": "airtel",
         "network_generation": "4g",
-        "measure_sdk_version": "0.0.1"
+        "measure_sdk_version": "0.0.1",
+        "thread_name": "main"
       }
     },
     {
@@ -641,7 +643,8 @@ To understand the shape of the JSON payload, take a look at this sample request.
         "network_type": "cellular",
         "network_provider": "airtel",
         "network_generation": "4g",
-        "measure_sdk_version": "0.0.1"
+        "measure_sdk_version": "0.0.1",
+        "thread_name": "main"
       }
     },
     {
@@ -650,7 +653,6 @@ To understand the shape of the JSON payload, take a look at this sample request.
       "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
       "exception": {
         "id": "9873a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-        "thread_name": "main",
         "handled": false,
         "foreground": true,
         "exceptions": [
@@ -716,7 +718,8 @@ To understand the shape of the JSON payload, take a look at this sample request.
         "network_type": "cellular",
         "network_provider": "airtel",
         "network_generation": "4g",
-        "measure_sdk_version": "0.0.1"
+        "measure_sdk_version": "0.0.1",
+        "thread_name": "main"
       }
     }
   ],
@@ -751,7 +754,8 @@ To understand the shape of the JSON payload, take a look at this sample request.
         "network_type": "cellular",
         "network_provider": "airtel",
         "network_generation": "4g",
-        "measure_sdk_version": "0.0.1"
+        "measure_sdk_version": "0.0.1",
+        "thread_name": "main"
       }
     }
   ]
@@ -1074,7 +1078,6 @@ Event objects have the following fields. Additionally, each object must contain 
 {
   "timestamp": "",
   "type": "",
-  "thread_name": "",
   "attributes": {}
 }
 ```
@@ -1083,7 +1086,6 @@ Event objects have the following fields. Additionally, each object must contain 
 | ------------- | ------ | -------- | ---------------------------------------------------------------------------------------------------------- |
 | `timestamp`   | string | No       | Nanosecond precision timestamp                                                                             |
 | `type`        | string | No       | Device model                                                                                               |
-| `thread_name` | string | No       | Name of the thread                                                                                         |
 | `attributes`  | object | Yes      | Additional arbitrary metadata. All values must be of `string` type. Cannot contain more than **10** items. |
 
 ### Event Types
@@ -1096,13 +1098,8 @@ Use the `anr` type for [Application Not Responding](https://developer.android.co
 
 | Field                | Type    | Optional | Comment                                                                                                            |
 |----------------------|---------|----------|--------------------------------------------------------------------------------------------------------------------|
-| `thread_name`        | string  | Yes      | Name of the thread                                                                                                 |
 | `handled`            | boolean | No       | `false` for crashes, `true` if exceptions are handled                                                              |
 | `exceptions`         | array   | No       | Array of exception objects                                                                                         |
-| `network_type`       | string  | Yes      | The network type at the time of the ANR. One of<br/>- wifi<br/>- cellular<br/>- vpn<br/>- unknown<br/>- no_network |
-| `network_provider`   | string  | Yes      | The network provider at the time of the ANR. Example: airtel, T-mobile                                             |
-| `network_generation` | string  | Yes      | The network generation at the time of the ANR. One of:<br/>- 2g<br/>- 3g<br/>- 4g<br/>- 5g                         |
-| `device_locale`      | string  | Yes      | Locale based on RFC 5646, eg. en-US                                                                                |
 | `foreground`         | boolean | No       | `true` if the app was in the foreground at the time of the ANR.                                                    |
 | `threads`            | array   | Yes      | Array of thread objects                                                                                            |
 
@@ -1144,13 +1141,8 @@ Use the `exception` type for errors and crashes.
 
 | Field                | Type    | Optional | Comment                                                                                                                  |
 |----------------------|---------|----------|--------------------------------------------------------------------------------------------------------------------------|
-| `thread_name`        | string  | Yes      | Name of the thread                                                                                                       |
 | `handled`            | boolean | No       | `false` for crashes, `true` if exceptions are handled                                                                    |
 | `exceptions`         | array   | No       | Array of exception objects                                                                                               |
-| `network_type`       | string  | Yes      | The network type at the time of the Exception. One of<br/>- wifi<br/>- cellular<br/>- vpn<br/>- unknown<br/>- no_network |
-| `network_provider`   | string  | Yes      | The network provider at the time of the Exception. Example: airtel, T-mobile                                             |
-| `network_generation` | string  | Yes      | The network generation at the time of the Exception. One of:<br/>- 2g<br/>- 3g<br/>- 4g<br/>- 5g                         |
-| `device_locale`      | string  | Yes      | Locale based on RFC 5646, eg. en-US                                                                                      |
 | `foreground`         | boolean | Yes      | `true` if the app was in the foreground at the time of the exception.                                                    |
 | `threads`            | array   | Yes      | Array of thread objects                                                                                                  |
 
