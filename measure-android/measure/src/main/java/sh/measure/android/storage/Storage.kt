@@ -25,7 +25,7 @@ internal const val SESSION_FILE_NAME = "session.json"
 internal const val ATTACHMENTS_LOG_FILE_NAME = "attachments_log"
 
 /**
- * Stores sessions, resources and events to persistent storage.
+ * Stores sessions and events to persistent storage.
  */
 internal interface Storage {
     fun initSession(session: Session)
@@ -139,7 +139,7 @@ internal class StorageImpl(private val logger: Logger, private val rootDirPath: 
             getAttachmentsDir(sessionId).mkdirs()
             getAttachmentsLogFile(sessionId).createNewFile()
         } catch (e: IOException) {
-            logger.log(LogLevel.Error, "Failed to create resource and events files", e)
+            logger.log(LogLevel.Error, "Failed to create session directory", e)
             // remove the session dir to keep the state consistent
             if (dir.exists()) {
                 dir.delete()

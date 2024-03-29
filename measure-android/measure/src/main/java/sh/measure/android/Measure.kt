@@ -35,7 +35,6 @@ import sh.measure.android.performance.ComponentCallbacksCollector
 import sh.measure.android.performance.CpuUsageCollector
 import sh.measure.android.performance.DefaultMemoryReader
 import sh.measure.android.performance.MemoryUsageCollector
-import sh.measure.android.session.ResourceFactoryImpl
 import sh.measure.android.session.SessionController
 import sh.measure.android.session.SessionControllerImpl
 import sh.measure.android.session.SessionProvider
@@ -100,14 +99,12 @@ object Measure {
         val networkInfoProvider: NetworkInfoProvider =
             NetworkInfoProviderImpl(context, logger, systemServiceProvider)
         val localeProvider: LocaleProvider = LocaleProviderImpl()
-        val resourceFactory =
-            ResourceFactoryImpl(logger, context, networkInfoProvider, localeProvider)
         val appExitProvider: AppExitProvider =
             AppExitProviderImpl(logger, systemServiceProvider)
         val pidProvider: PidProvider = PidProviderImpl()
         val sessionReportGenerator = SessionReportGenerator(logger, storage, appExitProvider)
         val sessionProvider =
-            SessionProvider(timeProvider, idProvider, pidProvider, resourceFactory)
+            SessionProvider(timeProvider, idProvider, pidProvider)
         val sessionController: SessionController = SessionControllerImpl(
             logger,
             sessionProvider,

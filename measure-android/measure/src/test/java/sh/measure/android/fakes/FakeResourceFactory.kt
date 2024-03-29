@@ -2,7 +2,6 @@ package sh.measure.android.fakes
 
 import sh.measure.android.networkchange.NetworkGeneration
 import sh.measure.android.networkchange.NetworkType
-import sh.measure.android.session.Resource
 import sh.measure.android.session.ResourceFactory
 
 internal class FakeResourceFactory(

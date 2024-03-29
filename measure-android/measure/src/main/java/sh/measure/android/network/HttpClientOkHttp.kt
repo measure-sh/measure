@@ -1,7 +1,6 @@
 package sh.measure.android.network
 
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToStream
 import okhttp3.Call
@@ -84,7 +83,6 @@ internal class HttpClientOkHttp(
         val requestBodyBuilder = MultipartBody.Builder().setType(MultipartBody.FORM)
             .addFormDataPart(name = "session_id", value = sessionReport.session_id)
             .addFormDataPart(name = "timestamp", value = sessionReport.timestamp)
-            .addFormDataPart(name = "resource", value = Json.encodeToString(sessionReport.resource))
             .addPart(
                 createJsonPart(
                     name = "events",
