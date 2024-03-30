@@ -1,7 +1,6 @@
 package sh.measure.android.performance
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 
 @Serializable
 internal data class CpuUsage(
@@ -41,7 +40,4 @@ internal data class CpuUsage(
      * The interval between two collections.
      */
     val interval_config: Long,
-    @Transient
-    val attributes: MutableMap<String, Any?> = mutableMapOf(),
-    @Transient val timestamp: Long = -1,
 )

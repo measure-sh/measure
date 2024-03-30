@@ -41,15 +41,7 @@ internal data class ColdLaunchEvent(
     /**
      * The Intent data used to launch the [launched_activity].
      */
-    val intent_data: String?,
-
-    @Transient
-    val attributes: MutableMap<String, Any?> = mutableMapOf(),
-
-    /**
-     * The time since epoch at which cold launch was measured.
-     */
-    @Transient val timestamp: Long = -1,
+    val intent_data: String?
 )
 
 @Serializable
@@ -78,9 +70,6 @@ internal data class WarmLaunchEvent(
      * The Intent data used to launch the [launched_activity].
      */
     val intent_data: String?,
-    @Transient
-    val attributes: MutableMap<String, Any?> = mutableMapOf(),
-    @Transient val timestamp: Long = -1,
 )
 
 @Serializable
