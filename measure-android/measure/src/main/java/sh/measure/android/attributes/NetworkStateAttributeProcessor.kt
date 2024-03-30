@@ -6,9 +6,9 @@ import sh.measure.android.networkchange.NetworkInfoProvider
  * Generates the network state attributes. These attributes are expected to change during the
  * session. This class computes the attributes every time [append] is called.
  */
-internal class NetworkStateAttributeCollector(
+internal class NetworkStateAttributeProcessor(
     private val networkInfoProvider: NetworkInfoProvider,
-) : AttributeCollector {
+) : AttributeProcessor {
     private val networkTypeKey = "network_type"
     private val networkGenerationKey = "network_generation"
     private val networkProviderNameKey = "network_provider_name"

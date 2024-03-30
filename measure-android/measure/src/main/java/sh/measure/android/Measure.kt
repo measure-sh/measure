@@ -6,11 +6,11 @@ import androidx.annotation.VisibleForTesting
 import sh.measure.android.anr.AnrCollector
 import sh.measure.android.applaunch.AppLaunchCollector
 import sh.measure.android.applaunch.ColdLaunchTraceImpl
-import sh.measure.android.attributes.AppAttributeCollector
-import sh.measure.android.attributes.DeviceAttributeCollector
-import sh.measure.android.attributes.InstallationIdAttributeCollector
-import sh.measure.android.attributes.NetworkStateAttributeCollector
-import sh.measure.android.attributes.UserIdAttributeCollector
+import sh.measure.android.attributes.AppAttributeProcessor
+import sh.measure.android.attributes.DeviceAttributeProcessor
+import sh.measure.android.attributes.InstallationIdAttributeProcessor
+import sh.measure.android.attributes.NetworkStateAttributeProcessor
+import sh.measure.android.attributes.UserIdAttributeProcessor
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.MeasureEventProcessor
 import sh.measure.android.exceptions.UnhandledExceptionCollector
@@ -86,11 +86,11 @@ object Measure {
         val pidProvider: PidProvider = PidProviderImpl()
 
         val prefsStorage: PrefsStorage = PrefsStorageImpl(context)
-        val userIdAttributeGenerator = UserIdAttributeCollector()
-        val networkStateAttributeGenerator = NetworkStateAttributeCollector(networkInfoProvider)
-        val deviceAttributeGenerator = DeviceAttributeCollector(logger, context, localeProvider)
-        val appAttributeGenerator = AppAttributeCollector(context)
-        val installationIdAttributeGenerator = InstallationIdAttributeCollector(prefsStorage, idProvider)
+        val userIdAttributeGenerator = UserIdAttributeProcessor()
+        val networkStateAttributeGenerator = NetworkStateAttributeProcessor(networkInfoProvider)
+        val deviceAttributeGenerator = DeviceAttributeProcessor(logger, context, localeProvider)
+        val appAttributeGenerator = AppAttributeProcessor(context)
+        val installationIdAttributeGenerator = InstallationIdAttributeProcessor(prefsStorage, idProvider)
 
         eventProcessor = MeasureEventProcessor(
             logger,

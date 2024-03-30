@@ -5,9 +5,9 @@ package sh.measure.android.attributes
  * and appending attributes to an event. All attribute processors run must be safe to run in a
  * background thread.
  *
- * @see [ComputeOnceAttributeCollector] for an implementation that computes the attributes once and
+ * @see [ComputeOnceAttributeProcessor] for an implementation that computes the attributes once and
  * caches them.
  */
-internal interface AttributeCollector {
+internal interface AttributeProcessor {
     fun append(attrs: MutableMap<String, Any?>)
 }
