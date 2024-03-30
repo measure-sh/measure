@@ -1,7 +1,6 @@
 package sh.measure.android.networkchange
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 
 @Serializable
 internal data class NetworkChangeEvent(
@@ -31,7 +30,4 @@ internal data class NetworkChangeEvent(
      * The name of the network provider that is now active. Only set for cellular networks.
      */
     val network_provider: String?,
-    @Transient
-    val attributes: MutableMap<String, Any?> = mutableMapOf(),
-    @Transient val timestamp: Long = -1L,
 )

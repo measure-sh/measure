@@ -9,10 +9,6 @@ internal data class ActivityLifecycleEvent(
     val class_name: String,
     val intent: String? = null,
     val saved_instance_state: Boolean = false,
-    @Transient
-    val attributes: MutableMap<String, Any?> = mutableMapOf(),
-    @Transient val timestamp: String = "",
-    @Transient val thread_name: String = "",
 )
 
 @Serializable
@@ -21,19 +17,11 @@ internal data class FragmentLifecycleEvent(
     val class_name: String,
     val parent_activity: String?,
     val tag: String? = null,
-    @Transient
-    val attributes: MutableMap<String, Any?> = mutableMapOf(),
-    @Transient val timestamp: String = "",
-    @Transient val thread_name: String = "",
 )
 
 @Serializable
 internal data class ApplicationLifecycleEvent(
     val type: String,
-    @Transient
-    val attributes: MutableMap<String, Any?> = mutableMapOf(),
-    @Transient val timestamp: String = "",
-    @Transient val thread_name: String = "",
 )
 
 internal object AppLifecycleType {

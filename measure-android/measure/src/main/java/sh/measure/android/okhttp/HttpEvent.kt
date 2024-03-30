@@ -1,7 +1,6 @@
 package sh.measure.android.okhttp
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 
 @Serializable
 internal data class HttpEvent(
@@ -66,9 +65,6 @@ internal data class HttpEvent(
      * @see [HttpClientName]
      */
     val client: String,
-    @Transient
-    val attributes: MutableMap<String, Any?> = mutableMapOf(),
-    @Transient val timestamp: Long = -1L,
 ) {
 
     // Builder
@@ -130,7 +126,6 @@ internal data class HttpEvent(
                 request_body = requestBody,
                 response_body = responseBody,
                 client = client,
-                timestamp = timestamp,
             )
         }
     }
