@@ -21,5 +21,8 @@ internal abstract class ComputeOnceAttributeCollector : AttributeCollector {
         return attrs.putAll(attributes)
     }
 
+    /**
+     * Compute the attributes and return them as a map.
+     */
     abstract fun computeAttributes(): Map<String, Any?>
 }
