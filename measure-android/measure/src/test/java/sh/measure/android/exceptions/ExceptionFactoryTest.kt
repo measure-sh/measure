@@ -20,7 +20,6 @@ class ExceptionFactoryTest {
         val measureException = ExceptionFactory.createMeasureException(
             exception,
             handled = true,
-            timeProvider.currentTimeSinceEpochInMillis,
             thread = thread,
             foreground = true,
         )
@@ -46,7 +45,6 @@ class ExceptionFactoryTest {
         val measureException = ExceptionFactory.createMeasureException(
             exception,
             handled = true,
-            timeProvider.currentTimeSinceEpochInMillis,
             thread = thread,
             foreground = true,
         )
@@ -76,7 +74,6 @@ class ExceptionFactoryTest {
         val measureException = ExceptionFactory.createMeasureException(
             exception,
             handled = true,
-            timeProvider.currentTimeSinceEpochInMillis,
             thread = thread,
             foreground = true,
         )
@@ -95,7 +92,6 @@ class ExceptionFactoryTest {
         val measureException = ExceptionFactory.createMeasureException(
             exception,
             handled = false,
-            timeProvider.currentTimeSinceEpochInMillis,
             thread = thread,
             foreground = true,
         )

@@ -3,7 +3,7 @@ package sh.measure.android.gestures
 import org.junit.Assert
 import org.junit.Test
 
-class ClickEventTest {
+class ClickDataTest {
 
     @Test
     fun `maps DetectedGesture to Click`() {
@@ -20,7 +20,7 @@ class ClickEventTest {
             width = 100,
             height = 50,
         )
-        val result = ClickEvent.fromDetectedGesture(
+        val result = ClickData.fromDetectedGesture(
             gesture = detectedGesture,
             target = target,
         )
@@ -35,7 +35,7 @@ class ClickEventTest {
     }
 }
 
-internal class LongClickEventTest {
+internal class LongClickDataTest {
     @Test
     fun `maps DetectedGesture to LongClick`() {
         val detectedGesture = DetectedGesture.LongClick(
@@ -51,7 +51,7 @@ internal class LongClickEventTest {
             width = 100,
             height = 50,
         )
-        val result = LongClickEvent.fromDetectedGesture(
+        val result = LongClickData.fromDetectedGesture(
             gesture = detectedGesture,
             target = target,
         )
@@ -66,7 +66,7 @@ internal class LongClickEventTest {
     }
 }
 
-internal class ScrollEventTest {
+internal class ScrollDataTest {
     @Test
     fun `maps DetectedGesture to Scroll`() {
         val detectedGesture = DetectedGesture.Scroll(
@@ -85,7 +85,7 @@ internal class ScrollEventTest {
             width = 100,
             height = 50,
         )
-        val result = ScrollEvent.fromDetectedGesture(
+        val result = ScrollData.fromDetectedGesture(
             gesture = detectedGesture,
             target = target,
         )
@@ -96,7 +96,6 @@ internal class ScrollEventTest {
         Assert.assertEquals(detectedGesture.endX, result.end_x)
         Assert.assertEquals(detectedGesture.endY, result.end_y)
         Assert.assertEquals(detectedGesture.direction.name.lowercase(), result.direction)
-        Assert.assertEquals(detectedGesture.timestamp, result.timestamp)
         Assert.assertEquals(detectedGesture.touchUpTime, result.touch_up_time)
     }
 }

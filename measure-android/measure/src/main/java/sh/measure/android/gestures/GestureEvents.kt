@@ -1,10 +1,9 @@
 package sh.measure.android.gestures
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 
 @Serializable
-internal data class ClickEvent(
+internal data class ClickData(
     val target: String,
     val target_id: String?,
     val width: Int?,
@@ -15,8 +14,8 @@ internal data class ClickEvent(
     val touch_up_time: Long,
 ) {
     companion object {
-        fun fromDetectedGesture(gesture: DetectedGesture.Click, target: Target): ClickEvent {
-            return ClickEvent(
+        fun fromDetectedGesture(gesture: DetectedGesture.Click, target: Target): ClickData {
+            return ClickData(
                 target = target.className,
                 target_id = target.id,
                 width = target.width,
@@ -31,7 +30,7 @@ internal data class ClickEvent(
 }
 
 @Serializable
-internal data class LongClickEvent(
+internal data class LongClickData(
     val target: String,
     val target_id: String?,
     val width: Int?,
@@ -42,8 +41,8 @@ internal data class LongClickEvent(
     val touch_up_time: Long,
 ) {
     companion object {
-        fun fromDetectedGesture(gesture: DetectedGesture.LongClick, target: Target): LongClickEvent {
-            return LongClickEvent(
+        fun fromDetectedGesture(gesture: DetectedGesture.LongClick, target: Target): LongClickData {
+            return LongClickData(
                 target = target.className,
                 target_id = target.id,
                 width = target.width,
@@ -58,7 +57,7 @@ internal data class LongClickEvent(
 }
 
 @Serializable
-internal data class ScrollEvent(
+internal data class ScrollData(
     val target: String,
     val target_id: String?,
     val x: Float,
@@ -70,8 +69,8 @@ internal data class ScrollEvent(
     val touch_up_time: Long,
 ) {
     companion object {
-        fun fromDetectedGesture(gesture: DetectedGesture.Scroll, target: Target): ScrollEvent {
-            return ScrollEvent(
+        fun fromDetectedGesture(gesture: DetectedGesture.Scroll, target: Target): ScrollData {
+            return ScrollData(
                 target = target.className,
                 target_id = target.id,
                 x = gesture.x,

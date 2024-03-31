@@ -3,7 +3,9 @@ package sh.measure.android.gestures
 import android.view.MotionEvent
 import android.view.ViewGroup
 import android.view.Window
+import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
+import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.tracing.InternalTrace
@@ -30,8 +32,7 @@ internal class GestureCollector(
 
     private fun trackGesture(motionEvent: MotionEvent, window: Window) {
         InternalTrace.beginSection("GestureCollector.trackGesture")
-        val gesture =
-            GestureDetector.detect(window.context, motionEvent, timeProvider)
+        val gesture = GestureDetector.detect(window.context, motionEvent, timeProvider)
         if (gesture == null || motionEvent.action != MotionEvent.ACTION_UP) {
             return
         }
@@ -56,15 +57,27 @@ internal class GestureCollector(
         InternalTrace.beginSection("GestureCollector.serializeEvent")
         when (gesture) {
             is DetectedGesture.Click -> tracker.trackClick(
-                ClickEvent.fromDetectedGesture(gesture, target),
+                Event(
+                    timestamp = gesture.timestamp,
+                    type = EventType.CLICK,
+                    data = ClickData.fromDetectedGesture(gesture, target),
+                )
             )
 
             is DetectedGesture.LongClick -> tracker.trackLongClick(
-                LongClickEvent.fromDetectedGesture(gesture, target),
+                Event(
+                    timestamp = gesture.timestamp,
+                    type = EventType.LONG_CLICK,
+                    data = LongClickData.fromDetectedGesture(gesture, target),
+                )
             )
 
             is DetectedGesture.Scroll -> tracker.trackScroll(
-                ScrollEvent.fromDetectedGesture(gesture, target),
+                Event(
+                    timestamp = gesture.timestamp,
+                    type = EventType.SCROLL,
+                    data = ScrollData.fromDetectedGesture(gesture, target),
+                )
             )
         }
         InternalTrace.endSection()

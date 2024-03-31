@@ -13,9 +13,9 @@ import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.isForegroundProcess
 
 internal interface LaunchCallbacks {
-    fun onColdLaunch(coldLaunchEvent: ColdLaunchEvent)
-    fun onWarmLaunch(warmLaunchEvent: WarmLaunchEvent)
-    fun onHotLaunch(hotLaunchEvent: HotLaunchEvent)
+    fun onColdLaunch(coldLaunchData: ColdLaunchData)
+    fun onWarmLaunch(warmLaunchData: WarmLaunchData)
+    fun onHotLaunch(hotLaunchData: HotLaunchData)
 }
 
 /**
@@ -110,7 +110,7 @@ internal class LaunchTracker(
                     "Cold" -> {
                         coldLaunchComplete = true
                         callbacks.onColdLaunch(
-                            coldLaunchEvent = ColdLaunchEvent(
+                            coldLaunchData = ColdLaunchData(
                                 process_start_uptime = LaunchState.processStartUptime,
                                 process_start_requested_uptime = LaunchState.processStartRequestedUptime,
                                 content_provider_attach_uptime = LaunchState.contentLoaderAttachUptime,
@@ -118,33 +118,30 @@ internal class LaunchTracker(
                                 launched_activity = onCreateRecord.activityName,
                                 has_saved_state = onCreateRecord.hasSavedState,
                                 intent_data = onCreateRecord.intentData,
-                                timestamp = timeProvider.currentTimeSinceEpochInMillis,
                             ),
                         )
                     }
 
                     "Hot" -> {
                         callbacks.onHotLaunch(
-                            HotLaunchEvent(
+                            HotLaunchData(
                                 app_visible_uptime = LaunchState.lastAppVisibleTime!!,
                                 on_next_draw_uptime = onNextDrawUptime,
                                 launched_activity = onCreateRecord.activityName,
                                 has_saved_state = onCreateRecord.hasSavedState,
                                 intent_data = onCreateRecord.intentData,
-                                timestamp = timeProvider.currentTimeSinceEpochInMillis,
                             ),
                         )
                     }
 
                     "Warm" -> {
                         callbacks.onWarmLaunch(
-                            WarmLaunchEvent(
+                            WarmLaunchData(
                                 app_visible_uptime = LaunchState.lastAppVisibleTime!!,
                                 on_next_draw_uptime = onNextDrawUptime,
                                 launched_activity = onCreateRecord.activityName,
                                 has_saved_state = onCreateRecord.hasSavedState,
                                 intent_data = onCreateRecord.intentData,
-                                timestamp = timeProvider.currentTimeSinceEpochInMillis,
                             ),
                         )
                     }

@@ -44,17 +44,17 @@ internal class GestureCollectorTest {
         onView(withId(R.id.button)).perform(click())
 
         val event = tracker.trackedClicks[0]
-        Assert.assertEquals("android.widget.Button", event.target)
-        Assert.assertEquals("button", event.target_id)
-        Assert.assertTrue(event.touch_down_time > 0)
-        Assert.assertTrue(event.touch_up_time > 0)
-        Assert.assertTrue(event.x > 0)
-        Assert.assertTrue(event.y > 0)
-        event.width.let {
+        Assert.assertEquals("android.widget.Button", event.data.target)
+        Assert.assertEquals("button", event.data.target_id)
+        Assert.assertTrue(event.data.touch_down_time > 0)
+        Assert.assertTrue(event.data.touch_up_time > 0)
+        Assert.assertTrue(event.data.x > 0)
+        Assert.assertTrue(event.data.y > 0)
+        event.data.width.let {
             Assert.assertNotNull(it)
             Assert.assertTrue(it!! > 0)
         }
-        event.height.let {
+        event.data.height.let {
             Assert.assertNotNull(it)
             Assert.assertTrue(it!! > 0)
         }
@@ -83,17 +83,17 @@ internal class GestureCollectorTest {
         onView(withId(R.id.button)).perform(longClick())
 
         val event = tracker.trackedLongClicks[0]
-        Assert.assertEquals("android.widget.Button", event.target)
-        Assert.assertEquals("button", event.target_id)
-        Assert.assertTrue(event.touch_down_time > 0)
-        Assert.assertTrue(event.touch_up_time > 0)
-        Assert.assertTrue(event.x > 0)
-        Assert.assertTrue(event.y > 0)
-        event.width.let {
+        Assert.assertEquals("android.widget.Button", event.data.target)
+        Assert.assertEquals("button", event.data.target_id)
+        Assert.assertTrue(event.data.touch_down_time > 0)
+        Assert.assertTrue(event.data.touch_up_time > 0)
+        Assert.assertTrue(event.data.x > 0)
+        Assert.assertTrue(event.data.y > 0)
+        event.data.width.let {
             Assert.assertNotNull(it)
             Assert.assertTrue(it!! > 0)
         }
-        event.height.let {
+        event.data.height.let {
             Assert.assertNotNull(it)
             Assert.assertTrue(it!! > 0)
         }
@@ -122,12 +122,12 @@ internal class GestureCollectorTest {
         onView(withId(R.id.scroll_view)).perform(swipeUp())
 
         val event = tracker.trackedScrolls[0]
-        Assert.assertEquals("android.widget.ScrollView", event.target)
-        Assert.assertEquals("scroll_view", event.target_id)
-        Assert.assertTrue(event.touch_down_time > 0)
-        Assert.assertTrue(event.touch_up_time > 0)
-        Assert.assertTrue(event.x > 0)
-        Assert.assertTrue(event.y > 0)
+        Assert.assertEquals("android.widget.ScrollView", event.data.target)
+        Assert.assertEquals("scroll_view", event.data.target_id)
+        Assert.assertTrue(event.data.touch_down_time > 0)
+        Assert.assertTrue(event.data.touch_up_time > 0)
+        Assert.assertTrue(event.data.x > 0)
+        Assert.assertTrue(event.data.y > 0)
     }
 
     @Test

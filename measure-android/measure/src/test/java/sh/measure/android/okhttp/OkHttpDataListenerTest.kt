@@ -16,7 +16,7 @@ import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Proxy
 
-internal class OkHttpEventListenerTest {
+internal class OkHttpDataListenerTest {
     private val delegate: EventListener = mock()
     private val eventProcessor: OkHttpEventProcessor = mock()
 

@@ -9,6 +9,8 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import sh.measure.android.Measure
+import sh.measure.android.events.Event
+import sh.measure.android.events.EventType
 
 @Composable
 fun NavHostController.withMeasureNavigationListener(): NavHostController {
@@ -45,10 +47,11 @@ private class MeasureNavigationObserver(
     private val destinationChangedListener =
         NavController.OnDestinationChangedListener { controller, _, _ ->
             controller.currentDestination?.route?.let {
-                Measure.getEventTracker().trackNavigationEvent(
-                    NavigationEvent(
-                        route = it,
+                Measure.getEventTracker().trackNavigation(
+                    Event(
+                        type = EventType.NAVIGATION,
                         timestamp = Measure.getTimeProvider().currentTimeSinceEpochInMillis,
+                        data = NavigationData(it),
                     ),
                 )
             }

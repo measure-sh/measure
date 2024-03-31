@@ -2,7 +2,9 @@ package sh.measure.android.performance
 
 import android.system.OsConstants
 import androidx.annotation.VisibleForTesting
+import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
+import sh.measure.android.events.EventType
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
@@ -26,7 +28,7 @@ internal class CpuUsageCollector(
     private val procProvider: ProcProvider = ProcProviderImpl(),
     private val osSysConfProvider: OsSysConfProvider = OsSysConfProviderImpl(),
 ) {
-    private var prevCpuUsage: CpuUsage? = null
+    private var prevCpuUsageData: CpuUsageData? = null
 
     @VisibleForTesting
     var future: Future<*>? = null
@@ -58,7 +60,7 @@ internal class CpuUsageCollector(
         val clockSpeedHz = osSysConfProvider.get(OsConstants._SC_CLK_TCK)
         if (clockSpeedHz <= 0L || numCores <= 0L) return
         val uptime = timeProvider.elapsedRealtime
-        val cpuUsage = CpuUsage(
+        val cpuUsageData = CpuUsageData(
             num_cores = numCores,
             clock_speed = clockSpeedHz,
             uptime = uptime,
@@ -68,13 +70,18 @@ internal class CpuUsageCollector(
             cstime = cstime,
             start_time = startTime,
             interval_config = CPU_TRACKING_INTERVAL_MS,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
         )
-        if (prevCpuUsage?.utime == cpuUsage.utime && prevCpuUsage?.stime == cpuUsage.stime) {
+        if (prevCpuUsageData?.utime == cpuUsageData.utime && prevCpuUsageData?.stime == cpuUsageData.stime) {
             return
         }
-        eventProcessor.trackCpuUsage(cpuUsage)
-        prevCpuUsage = cpuUsage
+        eventProcessor.trackCpuUsage(
+            Event(
+                type = EventType.CPU_USAGE,
+                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                data = cpuUsageData,
+            ),
+        )
+        prevCpuUsageData = cpuUsageData
     }
 
     private fun readStatFile(): Array<Long>? {

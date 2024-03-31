@@ -2,19 +2,17 @@ package sh.measure.android.exceptions
 
 internal object ExceptionFactory {
     /**
-     * Creates [MeasureException] from a [Throwable].
+     * Creates [ExceptionData] from a [Throwable].
      *
-     * @param throwable The [Throwable] to create the [MeasureException] from.
+     * @param throwable The [Throwable] to create the [ExceptionData] from.
      * @param handled Whether the exception was handled or not.
      */
     fun createMeasureException(
         throwable: Throwable,
         handled: Boolean,
-        timestamp: Long,
         thread: Thread,
         foreground: Boolean,
-        isAnr: Boolean = false,
-    ): MeasureException {
+    ): ExceptionData {
         val exceptions = mutableListOf<ExceptionUnit>()
         var error: Throwable? = throwable
         while (error != null) {
@@ -55,13 +53,11 @@ internal object ExceptionFactory {
             }
             count++
         }
-        return MeasureException(
-            timestamp,
+        return ExceptionData(
             exceptions,
             threads = threads,
             handled = handled,
             foreground = foreground,
-            isAnr = isAnr,
         )
     }
 }

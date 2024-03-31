@@ -17,7 +17,9 @@ import android.os.Build
 import android.telephony.TelephonyManager
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
+import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
+import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.SystemServiceProvider
@@ -30,10 +32,10 @@ import sh.measure.android.utils.hasPhoneStatePermission
  * Monitors changes in network. It is enabled only when the app is granted the
  * ACCESS_NETWORK_STATE permission and the device is running on Android M (SDK 23) or a higher version.
  *
- * Tracking of [NetworkChangeEvent.network_generation] is limited to [NetworkType.CELLULAR] for Android
+ * Tracking of [NetworkChangeData.network_generation] is limited to [NetworkType.CELLULAR] for Android
  * M (SDK 23) and later. This requires the app to hold the [READ_PHONE_STATE] permission, which is
  * a runtime permission. In case the user denies this permission,
- * [NetworkChangeEvent.network_generation] will be null. For devices running
+ * [NetworkChangeData.network_generation] will be null. For devices running
  * Android Tiramisu (SDK 33) or later, [READ_BASIC_PHONE_STATE] permission is sufficient, which does
  * not require a runtime permissions.
  *
@@ -133,13 +135,16 @@ internal class NetworkChangesCollector(
             }
 
             eventProcessor.trackNetworkChange(
-                NetworkChangeEvent(
-                    previous_network_type = previousNetworkType,
-                    network_type = newNetworkType,
-                    previous_network_generation = previousNetworkGeneration,
-                    network_generation = newNetworkGeneration,
-                    network_provider = networkProvider,
+                Event(
+                    type = EventType.NETWORK_CHANGE,
                     timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                    data = NetworkChangeData(
+                        previous_network_type = previousNetworkType,
+                        network_type = newNetworkType,
+                        previous_network_generation = previousNetworkGeneration,
+                        network_generation = newNetworkGeneration,
+                        network_provider = networkProvider,
+                    ),
                 ),
             )
             currentNetworkType = newNetworkType
@@ -154,13 +159,16 @@ internal class NetworkChangesCollector(
                 return
             }
             eventProcessor.trackNetworkChange(
-                NetworkChangeEvent(
-                    previous_network_type = previousNetworkType,
-                    network_type = newNetworkType,
-                    previous_network_generation = previousNetworkGeneration,
-                    network_generation = null,
-                    network_provider = null,
+                Event(
+                    type = EventType.NETWORK_CHANGE,
                     timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                    data = NetworkChangeData(
+                        previous_network_type = previousNetworkType,
+                        network_type = newNetworkType,
+                        previous_network_generation = previousNetworkGeneration,
+                        network_generation = null,
+                        network_provider = null,
+                    ),
                 ),
             )
             currentNetworkType = newNetworkType

@@ -11,7 +11,9 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
+import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
+import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeMemoryReader
 import sh.measure.android.fakes.FakeTimeProvider
 
@@ -36,15 +38,18 @@ internal class ComponentCallbacksCollectorTest {
         componentCallbacksCollector.onLowMemory()
 
         verify(eventProcessor).trackLowMemory(
-            LowMemory(
+            Event(
+                type = EventType.LOW_MEMORY,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                java_max_heap = memoryReader.maxHeapSize(),
-                java_free_heap = memoryReader.freeHeapSize(),
-                java_total_heap = memoryReader.totalHeapSize(),
-                native_free_heap = memoryReader.nativeFreeHeapSize(),
-                native_total_heap = memoryReader.nativeTotalHeapSize(),
-                rss = memoryReader.rss(),
-                total_pss = memoryReader.totalPss(),
+                data = LowMemoryData(
+                    java_max_heap = memoryReader.maxHeapSize(),
+                    java_free_heap = memoryReader.freeHeapSize(),
+                    java_total_heap = memoryReader.totalHeapSize(),
+                    native_free_heap = memoryReader.nativeFreeHeapSize(),
+                    native_total_heap = memoryReader.nativeTotalHeapSize(),
+                    rss = memoryReader.rss(),
+                    total_pss = memoryReader.totalPss(),
+                ),
             ),
         )
     }
@@ -64,9 +69,12 @@ internal class ComponentCallbacksCollectorTest {
     private fun testTrimMemoryEvent(trimLevel: Int, expectedLevel: String) {
         componentCallbacksCollector.onTrimMemory(trimLevel)
         verify(eventProcessor).trackTrimMemory(
-            TrimMemory(
-                level = expectedLevel,
+            Event(
+                type = EventType.TRIM_MEMORY,
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                data = TrimMemoryData(
+                    level = expectedLevel,
+                ),
             ),
         )
     }

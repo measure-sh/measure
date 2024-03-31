@@ -42,16 +42,16 @@ class ComposeGestureCollectorTest {
         onView(withId(R.id.clickable_compose_view)).perform(click())
 
         val event = tracker.trackedClicks[0]
-        assertEquals("androidx.compose.ui.platform.AndroidComposeView", event.target)
-        assertEquals("compose_clickable", event.target_id)
-        assertTrue(event.touch_down_time > 0)
-        assertTrue(event.touch_up_time > 0)
-        assertTrue(event.x > 0)
-        assertTrue(event.y > 0)
+        assertEquals("androidx.compose.ui.platform.AndroidComposeView", event.data.target)
+        assertEquals("compose_clickable", event.data.target_id)
+        assertTrue(event.data.touch_down_time > 0)
+        assertTrue(event.data.touch_up_time > 0)
+        assertTrue(event.data.x > 0)
+        assertTrue(event.data.y > 0)
 
         // we currently don't have ability to track compose view bounds:
-        assertNull(event.width)
-        assertNull(event.height)
+        assertNull(event.data.width)
+        assertNull(event.data.height)
     }
 
     @Test
@@ -74,12 +74,12 @@ class ComposeGestureCollectorTest {
         onView(withId(R.id.scrollable_compose_view)).perform(swipeUp())
 
         val event = tracker.trackedScrolls[0]
-        assertEquals("androidx.compose.ui.platform.AndroidComposeView", event.target)
-        assertEquals("compose_scrollable", event.target_id)
-        assertTrue(event.touch_down_time > 0)
-        assertTrue(event.touch_up_time > 0)
-        assertTrue(event.x > 0)
-        assertTrue(event.y > 0)
+        assertEquals("androidx.compose.ui.platform.AndroidComposeView", event.data.target)
+        assertEquals("compose_scrollable", event.data.target_id)
+        assertTrue(event.data.touch_down_time > 0)
+        assertTrue(event.data.touch_up_time > 0)
+        assertTrue(event.data.x > 0)
+        assertTrue(event.data.y > 0)
     }
 
     @Test

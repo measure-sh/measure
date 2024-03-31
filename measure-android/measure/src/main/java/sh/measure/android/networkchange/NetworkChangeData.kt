@@ -3,7 +3,7 @@ package sh.measure.android.networkchange
 import kotlinx.serialization.Serializable
 
 @Serializable
-internal data class NetworkChangeEvent(
+internal data class NetworkChangeData(
     /**
      * The [NetworkType] of the network that was previously active. This is null if there was no
      * previously active network.

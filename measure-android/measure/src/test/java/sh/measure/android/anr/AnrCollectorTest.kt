@@ -3,10 +3,10 @@ package sh.measure.android.anr
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.verify
+import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
+import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionFactory
-import sh.measure.android.fakes.FakeLocaleProvider
-import sh.measure.android.fakes.FakeNetworkInfoProvider
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.utils.SystemServiceProvider
@@ -14,8 +14,6 @@ import sh.measure.android.utils.SystemServiceProvider
 class AnrCollectorTest {
     private val logger = NoopLogger()
     private val timeProvider = FakeTimeProvider()
-    private val networkInfoProvider = FakeNetworkInfoProvider()
-    private val localeProvider = FakeLocaleProvider()
     private val eventProcessor = mock<EventProcessor>()
     private val systemServiceProvider = mock<SystemServiceProvider>()
 
@@ -32,13 +30,15 @@ class AnrCollectorTest {
 
         // Then
         verify(eventProcessor).trackAnr(
-            ExceptionFactory.createMeasureException(
-                throwable = anrError,
-                handled = false,
+            Event(
+                type = EventType.ANR,
                 timestamp = anrError.timestamp,
-                thread = thread,
-                foreground = false,
-                isAnr = true,
+                data = ExceptionFactory.createMeasureException(
+                    throwable = anrError,
+                    handled = false,
+                    thread = thread,
+                    foreground = false,
+                ),
             ),
         )
     }
