@@ -10,7 +10,7 @@ import sh.measure.android.attributes.AppAttributeProcessor
 import sh.measure.android.attributes.DeviceAttributeProcessor
 import sh.measure.android.attributes.InstallationIdAttributeProcessor
 import sh.measure.android.attributes.NetworkStateAttributeProcessor
-import sh.measure.android.attributes.UserIdAttributeProcessor
+import sh.measure.android.attributes.UserAttributeProcessor
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.MeasureEventProcessor
 import sh.measure.android.exceptions.UnhandledExceptionCollector
@@ -86,7 +86,7 @@ object Measure {
         val pidProvider: PidProvider = PidProviderImpl()
 
         val prefsStorage: PrefsStorage = PrefsStorageImpl(context)
-        val userIdAttributeGenerator = UserIdAttributeProcessor()
+        val userIdAttributeGenerator = UserAttributeProcessor()
         val networkStateAttributeGenerator = NetworkStateAttributeProcessor(networkInfoProvider)
         val deviceAttributeGenerator = DeviceAttributeProcessor(logger, context, localeProvider)
         val appAttributeGenerator = AppAttributeProcessor(context)
