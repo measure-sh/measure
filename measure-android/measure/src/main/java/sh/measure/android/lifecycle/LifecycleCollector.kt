@@ -5,7 +5,9 @@ import android.app.Application
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
+import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
+import sh.measure.android.events.EventType
 import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.isClassAvailable
 import sh.measure.android.utils.iso8601Timestamp
@@ -31,24 +33,30 @@ internal class LifecycleCollector(
 
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
         registerFragmentLifecycleCollector(activity)
-        eventProcessor.trackActivityLifecycleEvent(
-            ActivityLifecycleEvent(
-                type = ActivityLifecycleType.CREATED,
-                class_name = activity.javaClass.name,
-                // TODO(abhay): evaluate for sensitive data
-                intent = activity.intent.dataString,
-                saved_instance_state = savedInstanceState != null,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+        eventProcessor.trackActivityLifecycle(
+            Event(
+                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                type = EventType.LIFECYCLE_ACTIVITY,
+                data = ActivityLifecycleData(
+                    type = ActivityLifecycleType.CREATED,
+                    class_name = activity.javaClass.name,
+                    // TODO(abhay): evaluate for sensitive data
+                    intent = activity.intent.dataString,
+                    saved_instance_state = savedInstanceState != null,
+                ),
             ),
         )
     }
 
     override fun onActivityStarted(activity: Activity) {
         if (startedActivities.isEmpty()) {
-            eventProcessor.trackApplicationLifecycleEvent(
-                ApplicationLifecycleEvent(
-                    type = AppLifecycleType.FOREGROUND,
-                    timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+            eventProcessor.trackApplicationLifecycle(
+                Event(
+                    timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                    type = EventType.LIFECYCLE_APP,
+                    data = ApplicationLifecycleData(
+                        type = AppLifecycleType.FOREGROUND,
+                    ),
                 ),
             )
             onAppForeground.invoke()
@@ -58,22 +66,28 @@ internal class LifecycleCollector(
     }
 
     override fun onActivityResumed(activity: Activity) {
-        eventProcessor.trackActivityLifecycleEvent(
-            ActivityLifecycleEvent(
-                type = ActivityLifecycleType.RESUMED,
-                class_name = activity.javaClass.name,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+        eventProcessor.trackActivityLifecycle(
+            Event(
+                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                type = EventType.LIFECYCLE_ACTIVITY,
+                data = ActivityLifecycleData(
+                    type = ActivityLifecycleType.RESUMED,
+                    class_name = activity.javaClass.name,
+                ),
             ),
         )
     }
 
     override fun onActivityPaused(activity: Activity) {
-        eventProcessor.trackActivityLifecycleEvent(
-            ActivityLifecycleEvent(
-                type = ActivityLifecycleType.PAUSED,
-                class_name = activity.javaClass.name,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-            ),
+        eventProcessor.trackActivityLifecycle(
+            Event(
+                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                type = EventType.LIFECYCLE_ACTIVITY,
+                data = ActivityLifecycleData(
+                    type = ActivityLifecycleType.PAUSED,
+                    class_name = activity.javaClass.name,
+                ),
+            )
         )
     }
 
@@ -81,10 +95,13 @@ internal class LifecycleCollector(
         val hash = Integer.toHexString(System.identityHashCode(activity))
         startedActivities.remove(hash)
         if (startedActivities.isEmpty()) {
-            eventProcessor.trackApplicationLifecycleEvent(
-                ApplicationLifecycleEvent(
-                    type = AppLifecycleType.BACKGROUND,
-                    timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
+            eventProcessor.trackApplicationLifecycle(
+                Event(
+                    timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                    type = EventType.LIFECYCLE_APP,
+                    data = ApplicationLifecycleData(
+                        type = AppLifecycleType.BACKGROUND,
+                    ),
                 ),
             )
             onAppBackground.invoke()
@@ -92,12 +109,15 @@ internal class LifecycleCollector(
     }
 
     override fun onActivityDestroyed(activity: Activity) {
-        eventProcessor.trackActivityLifecycleEvent(
-            ActivityLifecycleEvent(
-                type = ActivityLifecycleType.DESTROYED,
-                class_name = activity.javaClass.name,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-            ),
+        eventProcessor.trackActivityLifecycle(
+            Event(
+                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                type = EventType.LIFECYCLE_ACTIVITY,
+                data = ActivityLifecycleData(
+                    type = ActivityLifecycleType.DESTROYED,
+                    class_name = activity.javaClass.name,
+                ),
+            )
         )
         if (isAndroidXFragmentAvailable() && activity is FragmentActivity) {
             activity.supportFragmentManager.unregisterFragmentLifecycleCallbacks(
@@ -115,5 +135,6 @@ internal class LifecycleCollector(
         }
     }
 
-    private fun isAndroidXFragmentAvailable() = isClassAvailable("androidx.fragment.app.FragmentActivity")
+    private fun isAndroidXFragmentAvailable() =
+        isClassAvailable("androidx.fragment.app.FragmentActivity")
 }

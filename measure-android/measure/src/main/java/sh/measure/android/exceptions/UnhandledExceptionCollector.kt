@@ -1,6 +1,8 @@
 package sh.measure.android.exceptions
 
+import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
+import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.TimeProvider
@@ -32,14 +34,18 @@ internal class UnhandledExceptionCollector(
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
         logger.log(LogLevel.Debug, "Unhandled exception received")
         try {
-            val measureException = ExceptionFactory.createMeasureException(
-                throwable,
-                handled = false,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread = thread,
-                foreground = isForegroundProcess(),
+            eventProcessor.trackUnhandledException(
+                Event(
+                    timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                    type = EventType.EXCEPTION,
+                    data = ExceptionFactory.createMeasureException(
+                        throwable,
+                        handled = false,
+                        thread = thread,
+                        foreground = isForegroundProcess(),
+                    ),
+                )
             )
-            eventProcessor.trackUnhandledException(measureException)
         } catch (e: Throwable) {
             // Prevent an infinite loop of exceptions if the above code fails.
             logger.log(LogLevel.Error, "Failed to track exception", e)

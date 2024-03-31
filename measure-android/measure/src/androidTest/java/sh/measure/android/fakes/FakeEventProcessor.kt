@@ -1,120 +1,121 @@
 package sh.measure.android.fakes
 
-import sh.measure.android.applaunch.ColdLaunchEvent
-import sh.measure.android.applaunch.HotLaunchEvent
-import sh.measure.android.applaunch.WarmLaunchEvent
+import sh.measure.android.applaunch.ColdLaunchData
+import sh.measure.android.applaunch.HotLaunchData
+import sh.measure.android.applaunch.WarmLaunchData
 import sh.measure.android.attachment.AttachmentInfo
+import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
-import sh.measure.android.exceptions.MeasureException
-import sh.measure.android.gestures.ClickEvent
-import sh.measure.android.gestures.LongClickEvent
-import sh.measure.android.gestures.ScrollEvent
-import sh.measure.android.lifecycle.ActivityLifecycleEvent
-import sh.measure.android.lifecycle.ApplicationLifecycleEvent
-import sh.measure.android.lifecycle.FragmentLifecycleEvent
-import sh.measure.android.navigation.NavigationEvent
-import sh.measure.android.networkchange.NetworkChangeEvent
-import sh.measure.android.okhttp.HttpEvent
-import sh.measure.android.performance.CpuUsage
-import sh.measure.android.performance.LowMemory
-import sh.measure.android.performance.MemoryUsage
-import sh.measure.android.performance.TrimMemory
+import sh.measure.android.exceptions.ExceptionData
+import sh.measure.android.gestures.ClickData
+import sh.measure.android.gestures.LongClickData
+import sh.measure.android.gestures.ScrollData
+import sh.measure.android.lifecycle.ActivityLifecycleData
+import sh.measure.android.lifecycle.ApplicationLifecycleData
+import sh.measure.android.lifecycle.FragmentLifecycleData
+import sh.measure.android.navigation.NavigationData
+import sh.measure.android.networkchange.NetworkChangeData
+import sh.measure.android.okhttp.HttpData
+import sh.measure.android.performance.CpuUsageData
+import sh.measure.android.performance.LowMemoryData
+import sh.measure.android.performance.MemoryUsageData
+import sh.measure.android.performance.TrimMemoryData
 
 @Suppress("MemberVisibilityCanBePrivate")
 internal class FakeEventProcessor : EventProcessor {
-    val trackedUnhandledExceptions = mutableListOf<MeasureException>()
-    val trackedAnrs = mutableListOf<MeasureException>()
-    val trackedClicks = mutableListOf<ClickEvent>()
-    val trackedLongClicks = mutableListOf<LongClickEvent>()
-    val trackedScrolls = mutableListOf<ScrollEvent>()
-    val trackedActivityLifecycleEvents = mutableListOf<ActivityLifecycleEvent>()
-    val trackedFragmentLifecycleEvents = mutableListOf<FragmentLifecycleEvent>()
-    val trackedApplicationLifecycleEvents = mutableListOf<ApplicationLifecycleEvent>()
-    val trackedColdLaunchEvents = mutableListOf<ColdLaunchEvent>()
-    val trackedWarmLaunchEvents = mutableListOf<WarmLaunchEvent>()
-    val trackedNetworkChangeEvents = mutableListOf<NetworkChangeEvent>()
-    val trackedHotLaunchEvents = mutableListOf<HotLaunchEvent>()
-    val trackedAttachments = mutableListOf<AttachmentInfo>()
-    val trackHttpEvents = mutableListOf<HttpEvent>()
-    val trackedMemoryUsageEvents = mutableListOf<MemoryUsage>()
-    val trackedLowMemoryEvents = mutableListOf<LowMemory>()
-    val trackedTrimMemoryEvents = mutableListOf<TrimMemory>()
-    val trackedCPUUsageEvents = mutableListOf<CpuUsage>()
-    val trackedNavigationEvents = mutableListOf<NavigationEvent>()
+    val trackedUnhandledExceptions = mutableListOf<Event<ExceptionData>>()
+    val trackedAnrs = mutableListOf<Event<ExceptionData>>()
+    val trackedClicks = mutableListOf<Event<ClickData>>()
+    val trackedLongClicks = mutableListOf<Event<LongClickData>>()
+    val trackedScrolls = mutableListOf<Event<ScrollData>>()
+    val trackedActivityLifecycleData = mutableListOf<Event<ActivityLifecycleData>>()
+    val trackedFragmentLifecycleData = mutableListOf<Event<FragmentLifecycleData>>()
+    val trackedApplicationLifecycleData = mutableListOf<Event<ApplicationLifecycleData>>()
+    val trackedColdLaunchData = mutableListOf<Event<ColdLaunchData>>()
+    val trackedWarmLaunchData = mutableListOf<Event<WarmLaunchData>>()
+    val trackedNetworkChangeData = mutableListOf<Event<NetworkChangeData>>()
+    val trackedHotLaunchData = mutableListOf<Event<HotLaunchData>>()
+    val trackHttpData = mutableListOf<Event<HttpData>>()
+    val trackedMemoryUsageDataEvents = mutableListOf<Event<MemoryUsageData>>()
+    val trackedLowMemoryDataEvents = mutableListOf<Event<LowMemoryData>>()
+    val trackedTrimMemoryDataEvents = mutableListOf<Event<TrimMemoryData>>()
+    val trackedCPUUsageDataEvents = mutableListOf<Event<CpuUsageData>>()
+    val trackedNavigationData = mutableListOf<Event<NavigationData>>()
+    val trackedAttachments = mutableListOf<Event<AttachmentInfo>>()
 
-    override fun trackUnhandledException(measureException: MeasureException) {
-        trackedUnhandledExceptions.add(measureException)
+    override fun trackUnhandledException(event: Event<ExceptionData>) {
+        trackedUnhandledExceptions.add(event)
     }
 
-    override fun trackAnr(measureException: MeasureException) {
-        trackedAnrs.add(measureException)
+    override fun trackAnr(event: Event<ExceptionData>) {
+        trackedAnrs.add(event)
     }
 
-    override fun trackClick(click: ClickEvent) {
-        trackedClicks.add(click)
+    override fun trackClick(event: Event<ClickData>) {
+        trackedClicks.add(event)
     }
 
-    override fun trackLongClick(longClick: LongClickEvent) {
-        trackedLongClicks.add(longClick)
+    override fun trackLongClick(event: Event<LongClickData>) {
+        trackedLongClicks.add(event)
     }
 
-    override fun trackScroll(scroll: ScrollEvent) {
-        trackedScrolls.add(scroll)
+    override fun trackScroll(event: Event<ScrollData>) {
+        trackedScrolls.add(event)
     }
 
-    override fun trackActivityLifecycleEvent(event: ActivityLifecycleEvent) {
-        trackedActivityLifecycleEvents.add(event)
+    override fun trackActivityLifecycle(event: Event<ActivityLifecycleData>) {
+        trackedActivityLifecycleData.add(event)
     }
 
-    override fun trackFragmentLifecycleEvent(event: FragmentLifecycleEvent) {
-        trackedFragmentLifecycleEvents.add(event)
+    override fun trackFragmentLifecycle(event: Event<FragmentLifecycleData>) {
+        trackedFragmentLifecycleData.add(event)
     }
 
-    override fun trackApplicationLifecycleEvent(event: ApplicationLifecycleEvent) {
-        trackedApplicationLifecycleEvents.add(event)
+    override fun trackApplicationLifecycle(event: Event<ApplicationLifecycleData>) {
+        trackedApplicationLifecycleData.add(event)
     }
 
-    override fun trackColdLaunch(event: ColdLaunchEvent) {
-        trackedColdLaunchEvents.add(event)
+    override fun trackColdLaunch(event: Event<ColdLaunchData>) {
+        trackedColdLaunchData.add(event)
     }
 
-    override fun trackWarmLaunchEvent(event: WarmLaunchEvent) {
-        trackedWarmLaunchEvents.add(event)
+    override fun trackWarmLaunch(event: Event<WarmLaunchData>) {
+        trackedWarmLaunchData.add(event)
     }
 
-    override fun trackHotLaunchEvent(event: HotLaunchEvent) {
-        trackedHotLaunchEvents.add(event)
+    override fun trackHotLaunch(event: Event<HotLaunchData>) {
+        trackedHotLaunchData.add(event)
     }
 
-    override fun trackNetworkChange(event: NetworkChangeEvent) {
-        trackedNetworkChangeEvents.add(event)
+    override fun trackNetworkChange(event: Event<NetworkChangeData>) {
+        trackedNetworkChangeData.add(event)
     }
 
-    override fun trackHttpEvent(event: HttpEvent) {
-        trackHttpEvents.add(event)
+    override fun trackHttp(event: Event<HttpData>) {
+        trackHttpData.add(event)
     }
 
-    override fun trackMemoryUsage(memoryUsage: MemoryUsage) {
-        trackedMemoryUsageEvents.add(memoryUsage)
+    override fun trackMemoryUsage(event: Event<MemoryUsageData>) {
+        trackedMemoryUsageDataEvents.add(event)
     }
 
-    override fun trackLowMemory(lowMemory: LowMemory) {
-        trackedLowMemoryEvents.add(lowMemory)
+    override fun trackLowMemory(event: Event<LowMemoryData>) {
+        trackedLowMemoryDataEvents.add(event)
     }
 
-    override fun trackTrimMemory(trimMemory: TrimMemory) {
-        trackedTrimMemoryEvents.add(trimMemory)
+    override fun trackTrimMemory(event: Event<TrimMemoryData>) {
+        trackedTrimMemoryDataEvents.add(event)
     }
 
-    override fun trackCpuUsage(cpuUsage: CpuUsage) {
-        trackedCPUUsageEvents.add(cpuUsage)
+    override fun trackCpuUsage(event: Event<CpuUsageData>) {
+        trackedCPUUsageDataEvents.add(event)
     }
 
-    override fun trackNavigationEvent(navigationEvent: NavigationEvent) {
-        trackedNavigationEvents.add(navigationEvent)
+    override fun trackNavigation(event: Event<NavigationData>) {
+        trackedNavigationData.add(event)
     }
 
-    override fun storeAttachment(attachmentInfo: AttachmentInfo) {
-        trackedAttachments.add(attachmentInfo)
+    override fun storeAttachment(event: AttachmentInfo) {
+        // TODO: trackedAttachments.add(event)
     }
 }

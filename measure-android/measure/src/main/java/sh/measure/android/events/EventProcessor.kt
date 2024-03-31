@@ -1,192 +1,135 @@
 package sh.measure.android.events
 
-import sh.measure.android.applaunch.ColdLaunchEvent
-import sh.measure.android.applaunch.HotLaunchEvent
-import sh.measure.android.applaunch.WarmLaunchEvent
+import sh.measure.android.applaunch.ColdLaunchData
+import sh.measure.android.applaunch.HotLaunchData
+import sh.measure.android.applaunch.WarmLaunchData
 import sh.measure.android.attachment.AttachmentInfo
 import sh.measure.android.attributes.AttributeProcessor
-import sh.measure.android.exceptions.MeasureException
-import sh.measure.android.gestures.ClickEvent
-import sh.measure.android.gestures.LongClickEvent
-import sh.measure.android.gestures.ScrollEvent
-import sh.measure.android.lifecycle.ActivityLifecycleEvent
-import sh.measure.android.lifecycle.ApplicationLifecycleEvent
-import sh.measure.android.lifecycle.FragmentLifecycleEvent
-import sh.measure.android.logger.LogLevel
+import sh.measure.android.exceptions.ExceptionData
+import sh.measure.android.gestures.ClickData
+import sh.measure.android.gestures.LongClickData
+import sh.measure.android.gestures.ScrollData
+import sh.measure.android.lifecycle.ActivityLifecycleData
+import sh.measure.android.lifecycle.ApplicationLifecycleData
+import sh.measure.android.lifecycle.FragmentLifecycleData
 import sh.measure.android.logger.Logger
-import sh.measure.android.navigation.NavigationEvent
-import sh.measure.android.networkchange.NetworkChangeEvent
-import sh.measure.android.okhttp.HttpEvent
-import sh.measure.android.performance.CpuUsage
-import sh.measure.android.performance.LowMemory
-import sh.measure.android.performance.MemoryUsage
-import sh.measure.android.performance.TrimMemory
+import sh.measure.android.navigation.NavigationData
+import sh.measure.android.networkchange.NetworkChangeData
+import sh.measure.android.okhttp.HttpData
+import sh.measure.android.performance.CpuUsageData
+import sh.measure.android.performance.LowMemoryData
+import sh.measure.android.performance.MemoryUsageData
+import sh.measure.android.performance.TrimMemoryData
 
 internal interface EventProcessor {
-    fun trackUnhandledException(measureException: MeasureException)
-    fun trackAnr(measureException: MeasureException)
-    fun trackClick(click: ClickEvent)
-    fun trackLongClick(longClick: LongClickEvent)
-    fun trackScroll(scroll: ScrollEvent)
-    fun trackActivityLifecycleEvent(event: ActivityLifecycleEvent)
-    fun trackFragmentLifecycleEvent(event: FragmentLifecycleEvent)
-    fun trackApplicationLifecycleEvent(event: ApplicationLifecycleEvent)
-    fun trackColdLaunch(event: ColdLaunchEvent)
-    fun trackWarmLaunchEvent(event: WarmLaunchEvent)
-    fun trackHotLaunchEvent(event: HotLaunchEvent)
-    fun trackNetworkChange(event: NetworkChangeEvent)
-    fun trackHttpEvent(event: HttpEvent)
-    fun storeAttachment(attachmentInfo: AttachmentInfo)
-    fun trackMemoryUsage(memoryUsage: MemoryUsage)
-    fun trackLowMemory(lowMemory: LowMemory)
-    fun trackTrimMemory(trimMemory: TrimMemory)
-    fun trackCpuUsage(cpuUsage: CpuUsage)
-    fun trackNavigationEvent(navigationEvent: NavigationEvent)
+    fun trackUnhandledException(event: Event<ExceptionData>)
+    fun trackAnr(event: Event<ExceptionData>)
+    fun trackClick(event: Event<ClickData>)
+    fun trackLongClick(event: Event<LongClickData>)
+    fun trackScroll(event: Event<ScrollData>)
+    fun trackActivityLifecycle(event: Event<ActivityLifecycleData>)
+    fun trackFragmentLifecycle(event: Event<FragmentLifecycleData>)
+    fun trackApplicationLifecycle(event: Event<ApplicationLifecycleData>)
+    fun trackColdLaunch(event: Event<ColdLaunchData>)
+    fun trackWarmLaunch(event: Event<WarmLaunchData>)
+    fun trackHotLaunch(event: Event<HotLaunchData>)
+    fun trackNetworkChange(event: Event<NetworkChangeData>)
+    fun trackHttp(event: Event<HttpData>)
+    fun trackMemoryUsage(event: Event<MemoryUsageData>)
+    fun trackLowMemory(event: Event<LowMemoryData>)
+    fun trackTrimMemory(event: Event<TrimMemoryData>)
+    fun trackCpuUsage(event: Event<CpuUsageData>)
+    fun trackNavigation(event: Event<NavigationData>)
+
+    fun storeAttachment(event: AttachmentInfo)
 }
 
 internal class MeasureEventProcessor(
     private val logger: Logger,
     private val attributeProcessors: List<AttributeProcessor>,
 ) : EventProcessor {
-    override fun trackUnhandledException(measureException: MeasureException) {
-        logger.log(LogLevel.Debug, "Tracking unhandled exception")
-        attributeProcessors.forEach {
-            it.append(measureException.attributes)
-        }
+    override fun trackUnhandledException(event: Event<ExceptionData>) {
+        processEvent(event)
     }
 
-    override fun trackAnr(measureException: MeasureException) {
-        logger.log(LogLevel.Debug, "Tracking ANR")
-        attributeProcessors.forEach {
-            it.append(measureException.attributes)
-        }
+    override fun trackAnr(event: Event<ExceptionData>) {
+        processEvent(event)
     }
 
-    override fun trackClick(click: ClickEvent) {
-        logger.log(LogLevel.Debug, "Tracking click")
-        attributeProcessors.forEach {
-            it.append(click.attributes)
-        }
+    override fun trackClick(event: Event<ClickData>) {
+        processEvent(event)
     }
 
-    override fun trackLongClick(longClick: LongClickEvent) {
-        logger.log(LogLevel.Debug, "Tracking long click")
-        attributeProcessors.forEach {
-            it.append(longClick.attributes)
-        }
+    override fun trackLongClick(event: Event<LongClickData>) {
+        processEvent(event)
     }
 
-    override fun trackScroll(scroll: ScrollEvent) {
-        logger.log(LogLevel.Debug, "Tracking swipe")
-        attributeProcessors.forEach {
-            it.append(scroll.attributes)
-        }
+    override fun trackScroll(event: Event<ScrollData>) {
+        processEvent(event)
     }
 
-    override fun trackActivityLifecycleEvent(event: ActivityLifecycleEvent) {
-        logger.log(
-            LogLevel.Debug,
-            "Tracking activity lifecycle event ${event.type}",
-        )
-        attributeProcessors.forEach {
-            it.append(event.attributes)
-        }
+    override fun trackActivityLifecycle(event: Event<ActivityLifecycleData>) {
+        processEvent(event)
     }
 
-    override fun trackFragmentLifecycleEvent(event: FragmentLifecycleEvent) {
-        logger.log(
-            LogLevel.Debug,
-            "Tracking fragment lifecycle event ${event.type}",
-        )
-        attributeProcessors.forEach {
-            it.append(event.attributes)
-        }
+    override fun trackFragmentLifecycle(event: Event<FragmentLifecycleData>) {
+        processEvent(event)
     }
 
-    override fun trackApplicationLifecycleEvent(event: ApplicationLifecycleEvent) {
-        logger.log(
-            LogLevel.Debug,
-            "Tracking application lifecycle event ${event.type}",
-        )
-        attributeProcessors.forEach {
-            it.append(event.attributes)
-        }
+    override fun trackApplicationLifecycle(event: Event<ApplicationLifecycleData>) {
+        processEvent(event)
     }
 
-    override fun trackColdLaunch(event: ColdLaunchEvent) {
-        logger.log(LogLevel.Debug, "Tracking cold launch")
-        attributeProcessors.forEach {
-            it.append(event.attributes)
-        }
+    override fun trackColdLaunch(event: Event<ColdLaunchData>) {
+        processEvent(event)
     }
 
-    override fun trackWarmLaunchEvent(event: WarmLaunchEvent) {
-        logger.log(LogLevel.Debug, "Tracking warm launch")
-        attributeProcessors.forEach {
-            it.append(event.attributes)
-        }
+    override fun trackWarmLaunch(event: Event<WarmLaunchData>) {
+        processEvent(event)
     }
 
-    override fun trackHotLaunchEvent(event: HotLaunchEvent) {
-        logger.log(LogLevel.Debug, "Tracking hot launch")
-        attributeProcessors.forEach {
-            it.append(event.attributes)
-        }
+    override fun trackHotLaunch(event: Event<HotLaunchData>) {
+        processEvent(event)
     }
 
-    override fun trackNetworkChange(event: NetworkChangeEvent) {
-        logger.log(LogLevel.Error, "Tracking network change ${event.network_type}")
-        attributeProcessors.forEach {
-            it.append(event.attributes)
-        }
+    override fun trackNetworkChange(event: Event<NetworkChangeData>) {
+        processEvent(event)
     }
 
-    override fun trackHttpEvent(event: HttpEvent) {
-        logger.log(LogLevel.Debug, "Tracking HTTP event")
-        attributeProcessors.forEach {
-            it.append(event.attributes)
-        }
+    override fun trackHttp(event: Event<HttpData>) {
+        processEvent(event)
     }
 
-    override fun trackMemoryUsage(memoryUsage: MemoryUsage) {
-        logger.log(LogLevel.Debug, "Tracking memory usage")
-        attributeProcessors.forEach {
-            it.append(memoryUsage.attributes)
-        }
+    override fun trackMemoryUsage(event: Event<MemoryUsageData>) {
+        processEvent(event)
     }
 
-    override fun trackLowMemory(lowMemory: LowMemory) {
-        logger.log(LogLevel.Debug, "Tracking low memory")
-        attributeProcessors.forEach {
-            it.append(lowMemory.attributes)
-        }
+    override fun trackLowMemory(event: Event<LowMemoryData>) {
+        processEvent(event)
     }
 
-    override fun trackTrimMemory(trimMemory: TrimMemory) {
-        logger.log(LogLevel.Debug, "Tracking trim memory")
-        attributeProcessors.forEach {
-            it.append(trimMemory.attributes)
-        }
+    override fun trackTrimMemory(event: Event<TrimMemoryData>) {
+        processEvent(event)
     }
 
-    override fun trackCpuUsage(cpuUsage: CpuUsage) {
-        logger.log(LogLevel.Debug, "Tracking CPU usage")
-        attributeProcessors.forEach {
-            it.append(cpuUsage.attributes)
-        }
+    override fun trackCpuUsage(event: Event<CpuUsageData>) {
+        processEvent(event)
     }
 
-    override fun trackNavigationEvent(navigationEvent: NavigationEvent) {
-        logger.log(LogLevel.Debug, "Tracking navigation event")
-        attributeProcessors.forEach {
-            it.append(navigationEvent.attributes)
-        }
+    override fun trackNavigation(event: Event<NavigationData>) {
+        processEvent(event)
     }
 
-    override fun storeAttachment(attachmentInfo: AttachmentInfo) {
-        logger.log(LogLevel.Debug, "Storing attachment ${attachmentInfo.name}")
-        attributeProcessors.forEach {
-            it.append(attachmentInfo.attributes)
-        }
+    override fun storeAttachment(event: AttachmentInfo) {
+        processAttachment(event)
+    }
+
+    private fun processEvent(event: Event<*>) {
+        // Mutate the event.attributes map
+        attributeProcessors.forEach { it.appendAttributes(event) }
+    }
+
+    private fun processAttachment(event: AttachmentInfo) {
+        // TODO: Implement attachment processing
     }
 }

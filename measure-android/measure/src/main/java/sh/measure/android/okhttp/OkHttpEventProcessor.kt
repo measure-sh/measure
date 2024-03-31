@@ -7,7 +7,9 @@ import okhttp3.Response
 import okio.Buffer
 import okio.ByteString
 import sh.measure.android.Config
+import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
+import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.tracing.InternalTrace
@@ -25,7 +27,7 @@ internal class OkHttpEventProcessorImpl(
     private val timeProvider: TimeProvider,
     private val config: Config,
 ) : OkHttpEventProcessor() {
-    private val httpEventBuilders: MutableMap<String, HttpEvent.Builder> by lazy(
+    private val httpDataBuilders: MutableMap<String, HttpData.Builder> by lazy(
         LazyThreadSafetyMode.NONE,
     ) { mutableMapOf() }
 
@@ -33,18 +35,17 @@ internal class OkHttpEventProcessorImpl(
         InternalTrace.beginSection("OkHttpEventProcessor.callStart")
         val key = getIdentityHash(call)
         val request = call.request()
-        httpEventBuilders[key] =
-            HttpEvent.Builder().url(request.url.toString()).startTime(timeProvider.uptimeInMillis)
+        httpDataBuilders[key] =
+            HttpData.Builder().url(request.url.toString()).startTime(timeProvider.uptimeInMillis)
                 .method(request.method.lowercase()).startTime(timeProvider.uptimeInMillis)
                 .client(HttpClientName.OK_HTTP)
-                .timestamp(timeProvider.currentTimeSinceEpochInMillis)
         InternalTrace.endSection()
     }
 
     override fun requestHeadersEnd(call: Call, request: Request) {
         InternalTrace.beginSection("OkHttpEventProcessor.requestHeadersEnd")
         val key = getIdentityHash(call)
-        httpEventBuilders[key]?.requestHeaders(
+        httpDataBuilders[key]?.requestHeaders(
             request.headers.toMultimap()
                 .mapValues { it.value.joinToString() },
         )
@@ -54,7 +55,7 @@ internal class OkHttpEventProcessorImpl(
     override fun requestFailed(call: Call, ioe: IOException) {
         InternalTrace.beginSection("OkHttpEventProcessor.requestFailed")
         val key = getIdentityHash(call)
-        val builder = httpEventBuilders[key]
+        val builder = httpDataBuilders[key]
         builder?.failureReason(ioe.javaClass.name)?.failureDescription(ioe.message)
             ?.endTime(timeProvider.uptimeInMillis)
         InternalTrace.endSection()
@@ -63,7 +64,7 @@ internal class OkHttpEventProcessorImpl(
     override fun responseHeadersEnd(call: Call, response: Response) {
         InternalTrace.beginSection("OkHttpEventProcessor.responseHeadersEnd")
         val key = getIdentityHash(call)
-        httpEventBuilders[key]?.responseHeaders(
+        httpDataBuilders[key]?.responseHeaders(
             response.headers.toMultimap()
                 .mapValues { it.value.joinToString() },
         )?.statusCode(response.code)
@@ -73,7 +74,7 @@ internal class OkHttpEventProcessorImpl(
     override fun responseFailed(call: Call, ioe: IOException) {
         InternalTrace.beginSection("OkHttpEventProcessor.responseFailed")
         val key = getIdentityHash(call)
-        val builder = httpEventBuilders[key]
+        val builder = httpDataBuilders[key]
         builder?.failureReason(ioe.javaClass.name)?.failureDescription(ioe.message)
             ?.endTime(timeProvider.uptimeInMillis)
         trackEvent(call, builder)
@@ -83,7 +84,7 @@ internal class OkHttpEventProcessorImpl(
     override fun callEnd(call: Call) {
         InternalTrace.beginSection("OkHttpEventProcessor.callEnd")
         val key = getIdentityHash(call)
-        val builder = httpEventBuilders[key]
+        val builder = httpDataBuilders[key]
         builder?.endTime(timeProvider.uptimeInMillis)
         trackEvent(call, builder)
         InternalTrace.endSection()
@@ -92,7 +93,7 @@ internal class OkHttpEventProcessorImpl(
     override fun callFailed(call: Call, ioe: IOException) {
         InternalTrace.beginSection("OkHttpEventProcessor.callFailed")
         val key = getIdentityHash(call)
-        val builder = httpEventBuilders[key]
+        val builder = httpDataBuilders[key]
         builder?.failureReason(ioe.javaClass.name)?.failureDescription(ioe.message)
             ?.endTime(timeProvider.uptimeInMillis)
         trackEvent(call, builder)
@@ -102,7 +103,7 @@ internal class OkHttpEventProcessorImpl(
     override fun request(call: Call, request: Request) {
         InternalTrace.beginSection("OkHttpEventProcessor.request")
         val key = getIdentityHash(call)
-        val builder = httpEventBuilders[key]
+        val builder = httpDataBuilders[key]
         if (config.trackHttpBody(request.url.toString(), getContentTypeHeader(request))) {
             val requestBody = getRequestBodyByteArray(request)
             val decodedBody = requestBody?.decodeToString(0, requestBody.size, false)
@@ -114,7 +115,7 @@ internal class OkHttpEventProcessorImpl(
     override fun response(call: Call, request: Request, response: Response) {
         InternalTrace.beginSection("OkHttpEventProcessor.response")
         val key = getIdentityHash(call)
-        val builder = httpEventBuilders[key]
+        val builder = httpDataBuilders[key]
         if (config.trackHttpBody(request.url.toString(), getContentTypeHeader(response))) {
             val responseBody = getResponseBodyByteString(response)
             builder?.responseBody(responseBody?.utf8())
@@ -122,17 +123,23 @@ internal class OkHttpEventProcessorImpl(
         InternalTrace.endSection()
     }
 
-    private fun trackEvent(call: Call, builder: HttpEvent.Builder?) {
+    private fun trackEvent(call: Call, builder: HttpData.Builder?) {
         val key = getIdentityHash(call)
-        if (!httpEventBuilders.containsKey(key)) {
+        if (!httpDataBuilders.containsKey(key)) {
             return
         }
         InternalTrace.beginSection("OkHttpEventProcessor.trackEvent")
         builder?.let {
             val httpEvent = it.build()
-            eventProcessor.trackHttpEvent(httpEvent)
+            eventProcessor.trackHttp(
+                Event(
+                    type = EventType.HTTP,
+                    timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                    data = httpEvent,
+                ),
+            )
         }
-        httpEventBuilders.remove(key)
+        httpDataBuilders.remove(key)
         InternalTrace.endSection()
     }
 

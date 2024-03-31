@@ -3,7 +3,7 @@ package sh.measure.android.okhttp
 import kotlinx.serialization.Serializable
 
 @Serializable
-internal data class HttpEvent(
+internal data class HttpData(
     /**
      * The complete URL of the request.
      */
@@ -81,7 +81,6 @@ internal data class HttpEvent(
         private var requestBody: String? = null
         private var responseBody: String? = null
         private var client: String = ""
-        private var timestamp: Long = -1L
 
         fun url(url: String) = apply { this.url = url }
 
@@ -110,10 +109,8 @@ internal data class HttpEvent(
 
         fun client(client: String) = apply { this.client = client }
 
-        fun timestamp(timestamp: Long) = apply { this.timestamp = timestamp }
-
-        fun build(): HttpEvent {
-            return HttpEvent(
+        fun build(): HttpData {
+            return HttpData(
                 url = url,
                 method = method,
                 status_code = statusCode,

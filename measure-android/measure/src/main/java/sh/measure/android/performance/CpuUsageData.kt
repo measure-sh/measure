@@ -3,7 +3,7 @@ package sh.measure.android.performance
 import kotlinx.serialization.Serializable
 
 @Serializable
-internal data class CpuUsage(
+internal data class CpuUsageData(
     /**
      * Number of active cores in the device.
      */

@@ -1,5 +1,7 @@
 package sh.measure.android.attributes
 
+import sh.measure.android.events.Event
+
 /**
  * An interface marking a class as an attribute processor. It is responsible for generating, caching
  * and appending attributes to an event. All attribute processors run must be safe to run in a
@@ -9,5 +11,5 @@ package sh.measure.android.attributes
  * caches them.
  */
 internal interface AttributeProcessor {
-    fun append(attrs: MutableMap<String, Any?>)
+    fun appendAttributes(event: Event<*>)
 }

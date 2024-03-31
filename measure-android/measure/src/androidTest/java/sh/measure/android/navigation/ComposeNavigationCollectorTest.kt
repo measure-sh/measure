@@ -36,17 +36,17 @@ class ComposeNavigationCollectorTest {
         }
 
         // initial state
-        assertEquals(1, tracker.trackedNavigationEvents.size)
-        assertEquals("home", tracker.trackedNavigationEvents[0].route)
+        assertEquals(1, tracker.trackedNavigationData.size)
+        assertEquals("home", tracker.trackedNavigationData[0].data.route)
 
         // forward navigation
         composeRule.onNodeWithText("Checkout").performClick()
-        assertEquals(2, tracker.trackedNavigationEvents.size)
-        assertEquals("checkout", tracker.trackedNavigationEvents[1].route)
+        assertEquals(2, tracker.trackedNavigationData.size)
+        assertEquals("checkout", tracker.trackedNavigationData[1].data.route)
 
         // back
         pressBack()
-        assertEquals(3, tracker.trackedNavigationEvents.size)
-        assertEquals("home", tracker.trackedNavigationEvents[2].route)
+        assertEquals(3, tracker.trackedNavigationData.size)
+        assertEquals("home", tracker.trackedNavigationData[2].data.route)
     }
 }

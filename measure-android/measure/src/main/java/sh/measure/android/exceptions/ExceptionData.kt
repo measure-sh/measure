@@ -1,14 +1,12 @@
 package sh.measure.android.exceptions
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
-import sh.measure.android.events.EventData
 
 /**
  * Represents an exception in Measure. This is used to track handled and unhandled exceptions.
  */
 @Serializable
-internal data class MeasureException(
+internal data class ExceptionData(
     /**
      * A list of exceptions that were thrown. Multiple exceptions represent "chained" exceptions.
      */
@@ -28,7 +26,7 @@ internal data class MeasureException(
      * Whether the app was in the foreground or not when the exception occurred.
      */
     val foreground: Boolean,
-): EventData
+)
 
 @Serializable
 internal data class MeasureThread(

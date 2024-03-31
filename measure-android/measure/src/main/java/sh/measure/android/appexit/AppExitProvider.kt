@@ -37,7 +37,6 @@ internal class AppExitProviderImpl(
         return AppExit(
             reason = getReasonName(reason),
             importance = getImportanceName(importance),
-            timestamp = timestamp,
             trace = getTraceString(traceInputStream),
             process_name = processName,
             pid = pid.toString(),

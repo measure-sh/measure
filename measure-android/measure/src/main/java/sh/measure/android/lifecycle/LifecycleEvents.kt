@@ -1,10 +1,9 @@
 package sh.measure.android.lifecycle
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 
 @Serializable
-internal data class ActivityLifecycleEvent(
+internal data class ActivityLifecycleData(
     val type: String,
     val class_name: String,
     val intent: String? = null,
@@ -12,7 +11,7 @@ internal data class ActivityLifecycleEvent(
 )
 
 @Serializable
-internal data class FragmentLifecycleEvent(
+internal data class FragmentLifecycleData(
     val type: String,
     val class_name: String,
     val parent_activity: String?,
@@ -20,7 +19,7 @@ internal data class FragmentLifecycleEvent(
 )
 
 @Serializable
-internal data class ApplicationLifecycleEvent(
+internal data class ApplicationLifecycleData(
     val type: String,
 )
 

@@ -3,7 +3,7 @@ package sh.measure.android.performance
 import kotlinx.serialization.Serializable
 
 @Serializable
-internal data class MemoryUsage(
+internal data class MemoryUsageData(
     val java_max_heap: Long,
     val java_total_heap: Long,
     val java_free_heap: Long,
@@ -15,7 +15,7 @@ internal data class MemoryUsage(
 )
 
 @Serializable
-internal data class LowMemory(
+internal data class LowMemoryData(
     val java_max_heap: Long,
     val java_total_heap: Long,
     val java_free_heap: Long,
@@ -26,6 +26,6 @@ internal data class LowMemory(
 )
 
 @Serializable
-internal data class TrimMemory(
+internal data class TrimMemoryData(
     val level: String,
 )

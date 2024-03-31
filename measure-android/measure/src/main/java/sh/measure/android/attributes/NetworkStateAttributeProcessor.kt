@@ -1,10 +1,11 @@
 package sh.measure.android.attributes
 
+import sh.measure.android.events.Event
 import sh.measure.android.networkchange.NetworkInfoProvider
 
 /**
  * Generates the network state attributes. These attributes are expected to change during the
- * session. This class computes the attributes every time [append] is called.
+ * session. This class computes the attributes every time [appendAttributes] is called.
  */
 internal class NetworkStateAttributeProcessor(
     private val networkInfoProvider: NetworkInfoProvider,
@@ -17,9 +18,9 @@ internal class NetworkStateAttributeProcessor(
     private var networkGeneration: String? = null
     private var networkProviderName: String? = null
 
-    override fun append(attrs: MutableMap<String, Any?>) {
+    override fun appendAttributes(event: Event<*>) {
         computeAttributes()
-        attrs.apply {
+        event.attributes.apply {
             put(networkTypeKey, networkType)
             put(networkGenerationKey, networkGeneration)
             put(networkProviderNameKey, networkProviderName)

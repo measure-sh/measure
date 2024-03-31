@@ -7,7 +7,7 @@ import kotlinx.serialization.Transient
 import sh.measure.android.MeasureInitProvider
 
 @Serializable
-internal data class ColdLaunchEvent(
+internal data class ColdLaunchData(
     /**
      * The start time captured using [Process.getStartUptimeMillis].
      */
@@ -45,7 +45,7 @@ internal data class ColdLaunchEvent(
 )
 
 @Serializable
-internal data class WarmLaunchEvent(
+internal data class WarmLaunchData(
     /**
      * The time at which the app became visible to the user.
      */
@@ -73,7 +73,7 @@ internal data class WarmLaunchEvent(
 )
 
 @Serializable
-internal data class HotLaunchEvent(
+internal data class HotLaunchData(
     /**
      * The time at which the app became visible to the user.
      */

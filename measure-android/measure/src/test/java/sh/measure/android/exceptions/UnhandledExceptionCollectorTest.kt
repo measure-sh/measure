@@ -6,9 +6,9 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
+import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
-import sh.measure.android.fakes.FakeLocaleProvider
-import sh.measure.android.fakes.FakeNetworkInfoProvider
+import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
 
@@ -17,8 +17,6 @@ internal class UnhandledExceptionCollectorTest {
     private var originalDefaultHandler: Thread.UncaughtExceptionHandler? = null
     private val logger = NoopLogger()
     private val timeProvider = FakeTimeProvider()
-    private val networkInfoProvider = FakeNetworkInfoProvider()
-    private val localeProvider = FakeLocaleProvider()
     private val eventProcessor = mock<EventProcessor>()
 
     @Before
@@ -54,7 +52,6 @@ internal class UnhandledExceptionCollectorTest {
         val expectedException = ExceptionFactory.createMeasureException(
             exception,
             handled = false,
-            timeProvider.currentTimeSinceEpochInMillis,
             thread = thread,
             foreground = false,
         )
@@ -64,7 +61,11 @@ internal class UnhandledExceptionCollectorTest {
 
         // Then
         verify(eventProcessor).trackUnhandledException(
-            measureException = expectedException,
+            Event(
+                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                type = EventType.EXCEPTION,
+                data = expectedException,
+            )
         )
     }
 
