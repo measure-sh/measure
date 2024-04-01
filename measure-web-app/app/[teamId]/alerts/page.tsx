@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import CreateApp from '@/app/components/create_app';
 import { AppsApiStatus, emptyAlerts, emptyApp, fetchAppsFromServer } from '@/app/api/api_calls';
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select';
+import Link from 'next/link';
 
 export default function Overview({ params }: { params: { teamId: string } }) {
   const router = useRouter()
@@ -13,6 +14,9 @@ export default function Overview({ params }: { params: { teamId: string } }) {
 
   const [apps, setApps] = useState([] as typeof emptyApp[]);
   const [selectedApp, setSelectedApp] = useState(emptyApp);
+
+  const [slackConnected, setSlackConnected] = useState(false)
+
   const [alerts, setAlerts] = useState(emptyAlerts);
   const [updatedAlerts, setUpdatedAlerts] = useState(emptyAlerts);
 
@@ -156,7 +160,11 @@ export default function Overview({ params }: { params: { teamId: string } }) {
       {appsApiStatus === AppsApiStatus.Success &&
         <div className="flex flex-col items-start">
           <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={apps.map((e) => e.name)} initialSelected={apps[0].name} onChangeSelected={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} />
-          <div className="py-8" />
+          <div className="py-4" />
+          {slackConnected && <p className="px-3 py-1 text-emerald-600 font-display text-sm border border-emerald-600 rounded-full outline-none">Slack connected</p>}
+          {!slackConnected && <Link href={`https://slack.com/apps/placeholderId`} className="outline-none justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Connect Slack</Link>}
+          <div className="py-4" />
+
           <div className="table font-sans">
             <div className="table-header-group ">
               <div className="table-row">
