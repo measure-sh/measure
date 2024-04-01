@@ -5,13 +5,16 @@ import sh.measure.android.applaunch.HotLaunchData
 import sh.measure.android.applaunch.WarmLaunchData
 import sh.measure.android.attachment.AttachmentInfo
 import sh.measure.android.attributes.AttributeProcessor
+import sh.measure.android.attributes.appendAttributes
 import sh.measure.android.exceptions.ExceptionData
+import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.gestures.ClickData
 import sh.measure.android.gestures.LongClickData
 import sh.measure.android.gestures.ScrollData
 import sh.measure.android.lifecycle.ActivityLifecycleData
 import sh.measure.android.lifecycle.ApplicationLifecycleData
 import sh.measure.android.lifecycle.FragmentLifecycleData
+import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.navigation.NavigationData
 import sh.measure.android.networkchange.NetworkChangeData
@@ -20,6 +23,7 @@ import sh.measure.android.performance.CpuUsageData
 import sh.measure.android.performance.LowMemoryData
 import sh.measure.android.performance.MemoryUsageData
 import sh.measure.android.performance.TrimMemoryData
+import sh.measure.android.storage.EventStore
 
 internal interface EventProcessor {
     fun trackUnhandledException(event: Event<ExceptionData>)
@@ -44,92 +48,110 @@ internal interface EventProcessor {
     fun storeAttachment(event: AttachmentInfo)
 }
 
-internal class MeasureEventProcessor(
+internal class EventProcessorImpl(
     private val logger: Logger,
+    private val executorService: MeasureExecutorService,
+    private val eventStore: EventStore,
     private val attributeProcessors: List<AttributeProcessor>,
+    private val transformers: List<EventTransformer>
 ) : EventProcessor {
+
+    /**
+     * Process an event by appending attributes, transforming it, and storing it in the event store.
+     */
+    private fun <T> processEvent(
+        event: Event<T>,
+        storeEvent: (Event<T>) -> Unit,
+        async: Boolean = true
+    ) {
+        val block: () -> Unit = {
+            event.appendAttributes(attributeProcessors)
+            event.transform(transformers)?.let {
+                storeEvent(it)
+            }
+            logger.log(LogLevel.Debug, "Event processed: $event")
+        }
+
+        if (async) {
+            executorService.submit(block)
+        } else {
+            block()
+        }
+    }
+
     override fun trackUnhandledException(event: Event<ExceptionData>) {
-        processEvent(event)
+        processEvent(event, eventStore::storeUnhandledException, false)
     }
 
     override fun trackAnr(event: Event<ExceptionData>) {
-        processEvent(event)
+        processEvent(event, eventStore::storeAnr, false)
     }
 
     override fun trackClick(event: Event<ClickData>) {
-        processEvent(event)
+        processEvent(event, eventStore::storeClick)
     }
 
     override fun trackLongClick(event: Event<LongClickData>) {
-        processEvent(event)
+        processEvent(event, eventStore::storeLongClick)
     }
 
     override fun trackScroll(event: Event<ScrollData>) {
-        processEvent(event)
+        processEvent(event, eventStore::storeScroll)
     }
 
     override fun trackActivityLifecycle(event: Event<ActivityLifecycleData>) {
-        processEvent(event)
+        processEvent(event, eventStore::storeActivityLifecycle)
     }
 
     override fun trackFragmentLifecycle(event: Event<FragmentLifecycleData>) {
-        processEvent(event)
+        processEvent(event, eventStore::storeFragmentLifecycle)
     }
 
     override fun trackApplicationLifecycle(event: Event<ApplicationLifecycleData>) {
-        processEvent(event)
+        processEvent(event, eventStore::storeApplicationLifecycle)
     }
 
     override fun trackColdLaunch(event: Event<ColdLaunchData>) {
-        processEvent(event)
+        processEvent(event, eventStore::storeColdLaunch)
     }
 
     override fun trackWarmLaunch(event: Event<WarmLaunchData>) {
-        processEvent(event)
+        processEvent(event, eventStore::storeWarmLaunch)
     }
 
     override fun trackHotLaunch(event: Event<HotLaunchData>) {
-        processEvent(event)
+        processEvent(event, eventStore::storeHotLaunch)
     }
 
     override fun trackNetworkChange(event: Event<NetworkChangeData>) {
-        processEvent(event)
+        processEvent(event, eventStore::storeNetworkChange)
     }
 
     override fun trackHttp(event: Event<HttpData>) {
-        processEvent(event)
+        processEvent(event, eventStore::storeHttp)
     }
 
     override fun trackMemoryUsage(event: Event<MemoryUsageData>) {
-        processEvent(event)
+        processEvent(event, eventStore::storeMemoryUsage)
     }
 
     override fun trackLowMemory(event: Event<LowMemoryData>) {
-        processEvent(event)
+        processEvent(event, eventStore::storeLowMemory)
     }
 
     override fun trackTrimMemory(event: Event<TrimMemoryData>) {
-        processEvent(event)
+        processEvent(event, eventStore::storeTrimMemory)
     }
 
     override fun trackCpuUsage(event: Event<CpuUsageData>) {
-        processEvent(event)
+        processEvent(event, eventStore::storeCpuUsage)
     }
 
     override fun trackNavigation(event: Event<NavigationData>) {
-        processEvent(event)
+        processEvent(event, eventStore::storeNavigation)
     }
 
     override fun storeAttachment(event: AttachmentInfo) {
-        processAttachment(event)
-    }
-
-    private fun processEvent(event: Event<*>) {
-        // Mutate the event.attributes map
-        attributeProcessors.forEach { it.appendAttributes(event) }
-    }
-
-    private fun processAttachment(event: AttachmentInfo) {
         // TODO: Implement attachment processing
     }
 }

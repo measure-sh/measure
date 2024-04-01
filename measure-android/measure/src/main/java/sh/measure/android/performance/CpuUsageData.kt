@@ -7,7 +7,7 @@ internal data class CpuUsageData(
     /**
      * Number of active cores in the device.
      */
-    val num_cores: Long,
+    val num_cores: Int,
     /**
      * Clock speed of the device.
      */

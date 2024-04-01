@@ -56,7 +56,7 @@ internal class CpuUsageCollector(
 
     private fun trackCpuUsage() {
         val (utime, stime, cutime, cstime, startTime) = readStatFile() ?: return
-        val numCores = osSysConfProvider.get(OsConstants._SC_NPROCESSORS_CONF)
+        val numCores = osSysConfProvider.get(OsConstants._SC_NPROCESSORS_CONF).toInt()
         val clockSpeedHz = osSysConfProvider.get(OsConstants._SC_CLK_TCK)
         if (clockSpeedHz <= 0L || numCores <= 0L) return
         val uptime = timeProvider.elapsedRealtime
