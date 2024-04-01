@@ -13,3 +13,10 @@ import sh.measure.android.events.Event
 internal interface AttributeProcessor {
     fun appendAttributes(event: Event<*>)
 }
+
+/**
+ * Applies all the attribute processors to the event.
+ */
+internal fun <T> Event<T>.appendAttributes(attributeProcessors: List<AttributeProcessor>) {
+    attributeProcessors.forEach { it.appendAttributes(this) }
+}

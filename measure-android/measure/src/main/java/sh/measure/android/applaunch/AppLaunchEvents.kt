@@ -98,7 +98,4 @@ internal data class HotLaunchData(
      * The Intent data used to launch the [launched_activity].
      */
     val intent_data: String?,
-    @Transient
-    val attributes: MutableMap<String, Any?> = mutableMapOf(),
-    @Transient val timestamp: Long = -1,
 )

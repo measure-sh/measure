@@ -12,7 +12,8 @@ import sh.measure.android.attributes.InstallationIdAttributeProcessor
 import sh.measure.android.attributes.NetworkStateAttributeProcessor
 import sh.measure.android.attributes.UserAttributeProcessor
 import sh.measure.android.events.EventProcessor
-import sh.measure.android.events.MeasureEventProcessor
+import sh.measure.android.events.EventProcessorImpl
+import sh.measure.android.events.SessionIdAppender
 import sh.measure.android.exceptions.UnhandledExceptionCollector
 import sh.measure.android.executors.CustomThreadFactory
 import sh.measure.android.executors.MeasureExecutorServiceImpl
@@ -29,6 +30,11 @@ import sh.measure.android.performance.ComponentCallbacksCollector
 import sh.measure.android.performance.CpuUsageCollector
 import sh.measure.android.performance.DefaultMemoryReader
 import sh.measure.android.performance.MemoryUsageCollector
+import sh.measure.android.storage.Database
+import sh.measure.android.storage.DatabaseImpl
+import sh.measure.android.storage.EventStoreImpl
+import sh.measure.android.storage.FileStorage
+import sh.measure.android.storage.FileStorageImpl
 import sh.measure.android.storage.PrefsStorage
 import sh.measure.android.storage.PrefsStorageImpl
 import sh.measure.android.tracing.InternalTrace
@@ -92,8 +98,20 @@ object Measure {
         val appAttributeGenerator = AppAttributeProcessor(context)
         val installationIdAttributeGenerator = InstallationIdAttributeProcessor(prefsStorage, idProvider)
 
-        eventProcessor = MeasureEventProcessor(
+        val fileStorage: FileStorage = FileStorageImpl(context.filesDir.path, logger)
+        val database: Database = DatabaseImpl(context, logger)
+        val eventStorage = EventStoreImpl(
+            fileStorage, database, idProvider
+        )
+        val sessionIdAppender = SessionIdAppender().apply {
+            // TODO: assuming init is only called on cold launch
+            sessionId = idProvider.createId()
+        }
+
+        eventProcessor = EventProcessorImpl(
             logger,
+            executorService,
+            eventStorage,
             listOf(
                 userIdAttributeGenerator,
                 networkStateAttributeGenerator,
@@ -101,6 +119,9 @@ object Measure {
                 appAttributeGenerator,
                 installationIdAttributeGenerator,
             ),
+            listOf(
+                sessionIdAppender
+            )
         )
 
         // Start launch trace, this trace ends in the ColdLaunchCollector.

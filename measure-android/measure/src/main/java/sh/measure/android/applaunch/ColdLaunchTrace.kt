@@ -18,7 +18,7 @@ internal class ColdLaunchTraceImpl(
     private val timeProvider: TimeProvider,
 ) : ColdLaunchTrace {
     override val config = MethodTraceConfig(
-        path = "", // TODO: Implement this
+        path = "",
         name = "cold_launch",
         // 8MB
         bufferSize = 8 * 1024 * 1024,
@@ -27,7 +27,7 @@ internal class ColdLaunchTraceImpl(
     )
 
     override fun start() {
-        MethodTrace.getInstance().start(config)
+         MethodTrace.getInstance().start(config)
     }
 
     override fun stop() {
