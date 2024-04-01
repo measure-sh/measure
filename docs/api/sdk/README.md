@@ -13,19 +13,19 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting)
   - [PUT `/events`](#put-events)
     - [Usage Notes](#usage-notes-1)
-    - [Authorization \& Content Type](#authorization--content-type-1)
+    - [Request Headers](#request-headers)
     - [Response Body](#response-body-1)
     - [Request Body](#request-body-1)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-1)
   - [PUT `/attachments`](#put-attachments)
     - [Usage Notes](#usage-notes-2)
-    - [Authorization \& Content Type](#authorization--content-type-2)
+    - [Authorization \& Content Type](#authorization--content-type-1)
     - [Response Body](#response-body-2)
     - [Request Body](#request-body-2)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-2)
   - [PUT `/builds`](#put-builds)
     - [Usage Notes](#usage-notes-3)
-    - [Authorization \& Content Type](#authorization--content-type-3)
+    - [Authorization \& Content Type](#authorization--content-type-2)
     - [Response Body](#response-body-3)
     - [Request Body](#request-body-3)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-3)
@@ -356,8 +356,8 @@ Ingests a batch of events, which can be of different types and can range across 
 #### Usage Notes
 
 - Maximum size of 1MB can be sent in a single request.
-- Each request must contain a unique UUIDv4 id, set as the header `X-Request-Id`. If a request fails, the client must
-  retry the same payload with the same `X-Request-Id` to ensure idempotency.
+- Each request must contain a unique UUIDv4 id, set as the header `msr-req-id`. If a request fails, the client must
+  retry the same payload with the same `msr-req-id` to ensure idempotency.
 - Each event must contain a nanosecond precision `timestamp` - `"2023-08-24T14:51:38.000000534Z"`
 - Each event must have the following mandatory attributes:
     - `installation_id`
@@ -367,10 +367,9 @@ Ingests a batch of events, which can be of different types and can range across 
     - `app_version`
     - `app_build`
     - `app_unique_id`
-- Multiple events must be sent in the `events` array field. They must be one of the valid types,
-  like `string`, `gesture_long_click` and so on.
+- At least 1 event must be present in the `events` array field. They must be one of the valid types, like `string`, `gesture_long_click` and so on.
 - Successful response returns `202 Accepted`.
-- Idempotent based on `X-Request-Id`. Previously seen requests matching by `X-Request-Id` won't be re-processed.
+- Idempotent based on `msr-req-id`. Previously seen requests matching by `msr-req-id` won't be re-processed.
 
 #### Request Headers
 
@@ -378,7 +377,7 @@ Ingests a batch of events, which can be of different types and can range across 
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-3. Set a unique UUIDv4 id as `X-Request-Id` header.
+3. Set a unique UUIDv4 id as `msr-req-id` header.
 
 These headers must be present in each request.
 
@@ -389,13 +388,13 @@ These headers must be present in each request.
 |-----------------|---------------------------------|
 | `Authorization` | Bearer &lt;measure-api-key&gt;  |
 | `Content-Type`  | application/json; charset=utf-8 |
-| `X-Request-Id`  | &lt;unique-uuid&gt;             |
+| `msr-req-id`  | &lt;unique-uuid&gt;             |
 
 </details>
 
 #### Response Body
 
-- For new sessions
+- For new event requests
 
   ```json
   {
@@ -403,7 +402,7 @@ These headers must be present in each request.
   }
   ```
 
-- For already seen X-Request-Id
+- For already seen `msr-req-id`
 
   ```json
   {
@@ -413,7 +412,7 @@ These headers must be present in each request.
 
   > ⚠ **Note**
   >
-  > A success response of `202 Accepted` means the server has accepted the request, but it may choose to not process & discard some events depending on various conditions.
+  > A success response of `202 Accepted` implies the server has accepted the request, but it may choose to not process & discard some events depending on various conditions.
 
 - Failed requests have the following response shape
 
@@ -776,7 +775,9 @@ List of HTTP status codes for success and failures.
 | `202 Accepted`              | Request was accepted and will be processed                                                                              |
 | `400 Bad Request`           | Request body is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
 | `401 Unauthorized`          | Either the Measure API key is not present or has expired.                                                               |
+| `429 Too Many Requests`          | Rate limit has exceeded. Retry request respecting `Retry-After` response header.                                                              |
 | `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                              |
+| `503 Service Unavailable` | Measure server is temporarily unavailable. Retry request respecting `Retry-After` response header.                              |
 
 </details>
 
@@ -786,22 +787,23 @@ Ingests one or more attachments, where the attachment is a base64 encoded binary
 
 #### Usage Notes
 
-- Maximum size of an attachment is 5MB.
-- Maximum of 10 attachments can be sent in a single request.
-- Each request must contain a unique UUIDv4 id, set as the header `X-Request-Id`. If a request fails, the client must
-  retry the same payload with the same `X-Request-Id` to ensure idempotency.
+- Maximum size of an attachment is 5 MiB.
+- Maximum of 50 MiB can be sent in a single request.
+- Each request must contain a unique UUIDv4 id, set as the header `msr-req-id`. If a request fails, the client must
+  retry the same payload with the same `msr-req-id` to ensure idempotency.
 - Each attachment must contain a nanosecond precision `timestamp` - `"2023-08-24T14:51:38.000000534Z"`
 - Successful response returns `202 Accepted`.
-- Idempotent. Previously seen attachments matching by `attachment_id` won't be re-processed.
+- Idempotent. Previously seen attachments matching by `msr-req-id` won't be re-processed.
 
-#### Request Headers
+#### Authorization \& Content Type
 
 1. Set the Measure API key in `Authorization: Bearer <api-key>` format
 
-2. Set content type as `Content-Type: application/json; charset=utf-8`
+2. Set a unique UUIDv4 id as `msr-req-id` header.
 
-3. Set a unique UUIDv4 id as `X-Request-Id` header.
+3. Set the content type as `Content-Type: multipart/form-data;boundary="<boundary>"` with a suitable boundary.
 
+4. Value of `<boundary>` can be string, but make sure the value doesn't change in the same request.
 
 These headers must be present in each request.
 
@@ -812,7 +814,7 @@ These headers must be present in each request.
 |-----------------|--------------------------------------|
 | `Authorization` | Bearer &lt;measure-api-key&gt;       |
 | `Content-Type`  | application/json; charset=utf-8      |
-| `X-Request-Id`  | &lt;unique-uuid&gt;                  |
+| `msr-req-id`  | &lt;unique-uuid&gt;                  |
 
 </details>
 
@@ -826,7 +828,7 @@ These headers must be present in each request.
   }
   ```
 
-- For already seen X-Request-Id
+- For already seen `msr-req-id`
 
   ```json
   {
@@ -848,27 +850,108 @@ These headers must be present in each request.
 
 #### Request Body
 
-To understand the shape of the JSON payload, take a look at this sample request. You'll find detailed reference of `events` shapes below.
+Payload must be a `multipart/form-data` each field separated using `Content-Disposition` fields. Typically, you would use the facilities provided by your programming language's standard library or other third party request libraries to issue such requests.
+
+To understand the shape of the payload, take a look at this sample request. Each `multipart/form-data` payload must contain multiple of 3 named parameters.
+
+1. **`attatchment`**
+2. **`attribute`**
+3. **`blob`**
+
+The number of `attachment`, `attribute` and `blob` fields should match. For example, if uploadng 2 attachments, the payload should look like below.
 
 **Example payload**
 
 <details>
 <summary>Expand</summary>
 
-```json
+```
+--boundary
+Content-Disposition: form-data; name="attachment"
+
 {
-  "attachments": [
-    {
-      "extension": "trace",
-      "id": "9873a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "name": "cold_launch",
-      "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "timestamp": "2024-03-18T07:24:38.54000000Z",
-      "type": "android_method_trace",
-      "blob": ""
-    }
-  ]
+  "extension": "trace",
+  "id": "9873a2fbc-a0d1-4912-a92f-9e43e72afbc6",
+  "name": "cold_launch",
+  "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
+  "timestamp": "2024-03-18T07:24:38.54000000Z",
+  "type": "android_method_trace",
 }
+--boundary
+Content-Disposition: form-data; name="attribute"
+
+{
+  "user_id": "733a2fbc-a0d1-1212-a92f-9e43e72afbc7",
+  "installation_id": "322a2fbc-a0d1-1212-a92f-9e43e72afbc7",
+  "device_name": "sunfish",
+  "device_model": "SM-G950F",
+  "device_manufacturer": "samsung",
+  "device_type": "phone",
+  "device_is_foldable": true,
+  "device_is_physical": false,
+  "device_density_dpi": 100,
+  "device_width_px": 480,
+  "device_height_px": 800,
+  "device_density": 2,
+  "os_name": "android",
+  "os_version": "31",
+  "platform": "android",
+  "app_version": "1.0.1",
+  "app_build": "576358",
+  "app_unique_id": "com.example.app",
+  "network_type": "cellular",
+  "network_provider": "airtel",
+  "network_generation": "4g",
+  "measure_sdk_version": "0.0.1",
+  "thread_name": "main"
+}
+--boundary
+Content-Disposition: form-data; name="blob"; filename="cold_launch.trace"
+
+<...file bytes...>
+--boundary
+Content-Disposition: form-data; name="attachment"
+
+{
+  "extension": "trace",
+  "id": "9873a2fbc-a0d1-4912-a92f-9e43e72afbc6",
+  "name": "cold_launch",
+  "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
+  "timestamp": "2024-03-18T07:24:38.54000000Z",
+  "type": "android_method_trace",
+}
+--boundary
+Content-Disposition: form-data; name="attribute"
+
+{
+  "user_id": "733a2fbc-a0d1-1212-a92f-9e43e72afbc7",
+  "installation_id": "322a2fbc-a0d1-1212-a92f-9e43e72afbc7",
+  "device_name": "sunfish",
+  "device_model": "SM-G950F",
+  "device_manufacturer": "samsung",
+  "device_type": "phone",
+  "device_is_foldable": true,
+  "device_is_physical": false,
+  "device_density_dpi": 100,
+  "device_width_px": 480,
+  "device_height_px": 800,
+  "device_density": 2,
+  "os_name": "android",
+  "os_version": "31",
+  "platform": "android",
+  "app_version": "1.0.1",
+  "app_build": "576358",
+  "app_unique_id": "com.example.app",
+  "network_type": "cellular",
+  "network_provider": "airtel",
+  "network_generation": "4g",
+  "measure_sdk_version": "0.0.1",
+  "thread_name": "main"
+}
+--boundary
+Content-Disposition: form-data; name="blob"; filename="cold_launch.trace"
+
+<...file bytes...>
 ```
 
 </details>
@@ -885,7 +968,10 @@ List of HTTP status codes for success and failures.
 | `202 Accepted`              | Request was accepted and will be processed                                                                              |
 | `400 Bad Request`           | Request body is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
 | `401 Unauthorized`          | Either the Measure API key is not present or has expired.                                                               |
+| `413 Content Too Large`     | Attachment file size exceeded maximum allowed limit.                                                                       |
+| `429 Too Many Requests`          | Rate limit has exceeded. Retry request respecting `Retry-After` response header.                                                              |
 | `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                              |
+| `503 Service Unavailable` | Measure server is temporarily unavailable. Retry request respecting `Retry-After` response header.                              |
 
 </details>
 
@@ -907,7 +993,7 @@ Measure will use build information like mapping files, build sizes uploaded via 
 
 2. Set the content type as `Content-Type: multipart/form-data;boundary="<boundary>"` with a suitable boundary.
 
-3. Value of `<boundary>` can be anything, but make sure the value doesn't change in the same request.
+3. Value of `<boundary>` can be any string, but make sure the value doesn't change in the same request.
 
 #### Response Body
 
@@ -970,7 +1056,9 @@ List of HTTP status codes for success and failures.
 | `400 Bad Request`           | Request body is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
 | `401 Unauthorized`          | Either the Measure API key is not present or has expired.                                                               |
 | `413 Content Too Large`     | Build/mapping file size exceeded maximum allowed limit.                                                                       |
+| `429 Too Many Requests`          | Rate limit has exceeded. Retry request respecting `Retry-After` response header.                                                              |
 | `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                              |
+| `503 Service Unavailable` | Measure server is temporarily unavailable. Retry request respecting `Retry-After` response header.                              |
 
 </details>
 
