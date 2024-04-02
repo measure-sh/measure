@@ -31,9 +31,6 @@ internal class DatabaseImpl(
 
     override fun onConfigure(db: SQLiteDatabase) {
         setWriteAheadLoggingEnabled(true)
-
-        // TODO: review this
-        db.execSQL("PRAGMA synchronous = NORMAL")
     }
 
     override fun insertEvent(event: EventEntity) {
