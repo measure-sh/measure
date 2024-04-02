@@ -1,6 +1,7 @@
 package sh.measure.android.attributes
 
 import sh.measure.android.storage.PrefsStorage
+import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.UUIDProvider
 
 /**
@@ -10,7 +11,7 @@ import sh.measure.android.utils.UUIDProvider
  */
 internal class InstallationIdAttributeProcessor(
     private val prefsStorage: PrefsStorage,
-    private val idProvider: UUIDProvider,
+    private val idProvider: IdProvider,
 ) : ComputeOnceAttributeProcessor() {
     private val installationIdKey = "installation_id"
 
