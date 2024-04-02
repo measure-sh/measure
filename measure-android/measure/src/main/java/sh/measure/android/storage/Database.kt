@@ -51,9 +51,9 @@ internal class DatabaseImpl(
 
         val result = writableDatabase.insert(EventTable.TABLE_NAME, null, values)
         if (result == -1L) {
-            logger.log(LogLevel.Error, "Failed to insert event")
+            logger.log(LogLevel.Error, "Failed to insert event = ${event.type}")
         } else {
-            logger.log(LogLevel.Debug, "Successfully inserted event=${event.type}")
+            logger.log(LogLevel.Debug, "Event inserted = ${event.type}")
         }
     }
 }
