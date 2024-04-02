@@ -25,6 +25,15 @@ import sh.measure.android.performance.MemoryUsageData
 import sh.measure.android.performance.TrimMemoryData
 import sh.measure.android.storage.EventStore
 
+/**
+ * An event processor is responsible for taking an input event from the Measure SDK and
+ * processing it by applying [EventTransformer]s and [AttributeProcessor]s. The processed
+ * event is then passed on to the [EventStore] for storage.
+ *
+ * All methods in this class are expected to be called from different threads. All processing is
+ * done asynchronously to avoid blocking the calling thread, except for exceptions and ANRs to
+ * ensure that the event is processed immediately before the system shuts down.
+ */
 internal interface EventProcessor {
     fun trackUnhandledException(event: Event<ExceptionData>)
     fun trackAnr(event: Event<ExceptionData>)
@@ -58,11 +67,13 @@ internal class EventProcessorImpl(
 
     /**
      * Process an event by appending attributes, transforming it, and storing it in the event store.
+     *
+     * @param event The event to process.
+     * @param storeEvent The function to store the event in the event store.
+     * @param async Whether to process the event asynchronously or not.
      */
     private fun <T> processEvent(
-        event: Event<T>,
-        storeEvent: (Event<T>) -> Unit,
-        async: Boolean = true
+        event: Event<T>, storeEvent: (Event<T>) -> Unit, async: Boolean = true
     ) {
         val block: () -> Unit = {
             event.appendAttributes(attributeProcessors)
