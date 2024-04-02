@@ -80,7 +80,7 @@ internal class EventProcessorImpl(
             event.transform(transformers)?.let {
                 storeEvent(it)
             }
-            logger.log(LogLevel.Debug, "Event processed: $event")
+            logger.log(LogLevel.Debug, "Event processed = ${event.type}")
         }
 
         if (async) {

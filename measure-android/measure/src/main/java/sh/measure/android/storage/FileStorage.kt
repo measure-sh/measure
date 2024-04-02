@@ -104,7 +104,7 @@ internal class FileStorageImpl(
         } catch (se: SerializationException) {
             logger.log(LogLevel.Error, "Error writing exception to file", se)
         }
-        logger.log(LogLevel.Debug, "FileStorage: Exception written to file")
+        logger.log(LogLevel.Debug, "FileStorage: Exception written at $path")
     }
 
     override fun writeAnr(path: String, event: Event<ExceptionData>) {
