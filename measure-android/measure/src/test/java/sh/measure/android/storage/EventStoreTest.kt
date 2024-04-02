@@ -85,7 +85,7 @@ internal class EventStoreTest {
 
         // Then
         verify(fileStorage).createAnrPath(eventId)
-        verify(fileStorage).writeAnr(filePath, event)
+        verify(fileStorage).writeException(filePath, event)
         verify(database).insertEvent(
             EventEntity(
                 id = eventId,

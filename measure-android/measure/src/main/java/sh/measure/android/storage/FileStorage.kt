@@ -37,22 +37,27 @@ internal class FileStorageImpl(
         val rootDir = File(exceptionDirPath)
 
         // Create directories if they don't exist
-        if (!rootDir.exists()) {
-            try {
+        try {
+            if (!rootDir.exists()) {
                 rootDir.mkdirs()
-            } catch (e: SecurityException) {
-                logger.log(
-                    LogLevel.Error,
-                    "Unable to create exception file for eventId=$eventId",
-                    e
-                )
-                return null
             }
+        } catch (e: SecurityException) {
+            logger.log(
+                LogLevel.Error,
+                "Unable to create exception file for eventId=$eventId",
+                e
+            )
+            return null
         }
 
         // Create file with event id as file name
         val filePath = "$exceptionDirPath/$eventId"
         val file = File(filePath)
+
+        if (file.exists()) {
+            return null
+        }
+
         try {
             file.createNewFile()
         } catch (e: IOException) {
@@ -93,10 +98,12 @@ internal class FileStorageImpl(
     override fun writeException(path: String, event: Event<ExceptionData>) {
         val file = File(path)
         if (!file.exists()) {
-            file.createNewFile()
+            logger.log(LogLevel.Error, "FileStorage: File does not exist at $path")
+            return
         }
         try {
-            Json.encodeToStream(event.data, file.outputStream())
+            val stream = file.outputStream()
+            Json.encodeToStream(event.data, stream)
         } catch (e: IOException) {
             logger.log(LogLevel.Error, "Error writing exception to file", e)
         } catch (se: SerializationException) {
