@@ -20,8 +20,6 @@ internal interface FileStorage {
 
     fun writeException(path: String, event: Event<ExceptionData>)
 
-    fun writeAnr(path: String, event: Event<ExceptionData>)
-
     fun getFile(path: String): File?
 }
 
@@ -98,28 +96,13 @@ internal class FileStorageImpl(
             file.createNewFile()
         }
         try {
-            Json.encodeToStream(event.data, file.sink().buffer().outputStream())
+            Json.encodeToStream(event.data, file.outputStream())
         } catch (e: IOException) {
             logger.log(LogLevel.Error, "Error writing exception to file", e)
         } catch (se: SerializationException) {
             logger.log(LogLevel.Error, "Error writing exception to file", se)
         }
         logger.log(LogLevel.Debug, "FileStorage: Exception written at $path")
-    }
-
-    override fun writeAnr(path: String, event: Event<ExceptionData>) {
-        val file = File(path)
-        if (!file.exists()) {
-            file.createNewFile()
-        }
-        try {
-            Json.encodeToStream(event.data, File(path).sink().buffer().outputStream())
-        } catch (e: IOException) {
-            logger.log(LogLevel.Error, "Error writing ANR to file", e)
-        } catch (se: SerializationException) {
-            logger.log(LogLevel.Error, "Error writing ANR to file", se)
-        }
-        logger.log(LogLevel.Debug, "FileStorage: ANR written to file")
     }
 
     override fun getFile(path: String): File? {

@@ -67,7 +67,7 @@ internal class EventStoreImpl(
     override fun storeAnr(event: Event<ExceptionData>) {
         val eventId = idProvider.createId()
         fileStorage.createAnrPath(eventId)?.let {
-            fileStorage.writeAnr(it, event)
+            fileStorage.writeException(it, event)
             database.insertEvent(
                 EventEntity(
                     id = eventId,
