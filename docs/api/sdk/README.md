@@ -1168,7 +1168,7 @@ Event objects have the following shape. Additionally, each object must contain o
   "type": "gesture_click",
   "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
   "gesture_click": {
-    // snip event fields
+    // snip gesture_click fields
   },
   "attributes": {
     // snip attributes fields
