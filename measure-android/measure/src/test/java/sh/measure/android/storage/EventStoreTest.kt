@@ -12,6 +12,7 @@ import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeEventFactory
 import sh.measure.android.fakes.FakeIdProvider
+import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.gestures.ClickData
 import sh.measure.android.gestures.LongClickData
 import sh.measure.android.gestures.ScrollData
@@ -27,72 +28,65 @@ import sh.measure.android.performance.MemoryUsageData
 import sh.measure.android.performance.TrimMemoryData
 
 internal class EventStoreTest {
+    private val logger = NoopLogger()
     private val fileStorage = mock<FileStorage>()
     private val database = mock<Database>()
     private val idProvider = FakeIdProvider()
 
     private val eventStore: EventStore = EventStoreImpl(
-        fileStorage, database, idProvider
+        logger, fileStorage, database, idProvider
     )
 
     @Test
-    fun `stores unhandled exception event in database and the exception data in a file`() {
-        val filePath = "file_path"
+    fun `stores unhandled exception event in file and database`() {
         val eventId = idProvider.id
-        `when`(fileStorage.createExceptionFile(eventId)).thenReturn(filePath)
-
-        // Given
         val event = Event(
             timestamp = 1,
             sessionId = "session_id",
             data = FakeEventFactory.getExceptionData(),
             type = EventType.EXCEPTION
         )
+        `when`(fileStorage.writeException(eventId, event)).thenReturn(eventId)
 
         // When
         eventStore.storeUnhandledException(event)
 
         // Then
-        verify(fileStorage).createExceptionFile(eventId)
-        verify(fileStorage).writeException(filePath, event)
+        verify(fileStorage).writeException(eventId, event)
         verify(database).insertEvent(
             EventEntity(
                 id = eventId,
                 type = EventType.EXCEPTION,
                 timestamp = event.timestamp,
                 sessionId = event.sessionId!!,
-                filePath = filePath
+                filePath = eventId
             )
         )
     }
 
     @Test
     fun `stores ANR event in database and the exception data in a file`() {
-        val filePath = "file_path"
         val eventId = idProvider.id
-        `when`(fileStorage.createAnrPath(eventId)).thenReturn(filePath)
-
-        // Given
         val event = Event(
             timestamp = 1,
             sessionId = "session_id",
             data = FakeEventFactory.getExceptionData(),
             type = EventType.ANR
         )
+        `when`(fileStorage.writeAnr(eventId, event)).thenReturn(eventId)
 
         // When
         eventStore.storeAnr(event)
 
         // Then
-        verify(fileStorage).createAnrPath(eventId)
-        verify(fileStorage).writeException(filePath, event)
+        verify(fileStorage).writeException(eventId, event)
         verify(database).insertEvent(
             EventEntity(
                 id = eventId,
                 type = EventType.ANR,
                 timestamp = event.timestamp,
                 sessionId = event.sessionId!!,
-                filePath = filePath
+                filePath = eventId
             )
         )
     }

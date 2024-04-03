@@ -101,7 +101,7 @@ object Measure {
         val fileStorage: FileStorage = FileStorageImpl(context.filesDir.path, logger)
         val database: Database = DatabaseImpl(context, logger)
         val eventStorage = EventStoreImpl(
-            fileStorage, database, idProvider
+            logger, fileStorage, database, idProvider
         )
         val sessionIdAppender = SessionIdAppender().apply {
             // TODO: assuming init is only called on cold launch

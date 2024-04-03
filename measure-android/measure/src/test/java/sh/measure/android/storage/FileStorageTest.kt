@@ -28,49 +28,15 @@ class FileStorageTest {
     }
 
     @Test
-    fun `creates a file in exceptions directory`() {
+    fun `writes exception data to a file`() {
         val eventId = "123"
-        val path = fileStorage.createExceptionFile(eventId)
-
-        assertNotNull(path)
-        assertTrue(path!!.endsWith("measure/exceptions/$eventId"))
-        val file = File(path)
-        assertTrue(file.exists())
-    }
-
-    @Test
-    fun `creates a file in anr directory`() {
-        val eventId = "123"
-        val path = fileStorage.createAnrPath(eventId)
-
-        assertNotNull(path)
-        assertTrue(path!!.endsWith("measure/anr/$eventId"))
-        val file = File(path)
-        assertTrue(file.exists())
-    }
-
-    @Test
-    fun `returns null, if file already exists`() {
-        val eventId = "123"
-        val result1 = fileStorage.createExceptionFile(eventId)
-        assertNotNull(result1)
-
-        val result2 = fileStorage.createExceptionFile(eventId)
-        assertNull(result2)
-    }
-
-    @Test
-    fun `writes exception data to file if it exists`() {
-        val eventId = "123"
-        val path = fileStorage.createExceptionFile(eventId)
-        assertNotNull(path)
-
         val event = FakeEventFactory.getExceptionData().toEvent(type = EventType.EXCEPTION)
-        fileStorage.writeException(path!!, event)
+        fileStorage.writeException(eventId, event)
 
-        val file = File(path)
-        assertTrue(file.exists())
-        assertTrue(file.readText().isNotEmpty())
+        fileStorage.getFile("$rootDir/measure/exceptions/$eventId")?.let { file ->
+            assertTrue(file.exists())
+            assertTrue(file.readText().isNotEmpty())
+        }
     }
 
     @Test
@@ -84,20 +50,19 @@ class FileStorageTest {
     }
 
     @Test
-    fun `returns file if it exists`() {
-        val eventId = "123"
-        val path = fileStorage.createExceptionFile(eventId)
-        assertNotNull(path)
-
-        val file = fileStorage.getFile(path!!)
-        assertNotNull(file)
-        assertTrue(file!!.exists())
-    }
-
-    @Test
     fun `returns null if file does not exist`() {
         val invalidPath = "invalid-path"
         val file = fileStorage.getFile(invalidPath)
         assertNull(file)
+    }
+
+    @Test
+    fun `returns file if it exists`() {
+        val eventId = "123"
+        val event = FakeEventFactory.getExceptionData().toEvent(type = EventType.EXCEPTION)
+        fileStorage.writeException(eventId, event)
+
+        val file = fileStorage.getFile("$rootDir/measure/exceptions/$eventId")
+        assertNotNull(file)
     }
 }
