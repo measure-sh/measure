@@ -65,7 +65,7 @@ internal class EventStoreTest {
     }
 
     @Test
-    fun `stores ANR event in database and the exception data in a file`() {
+    fun `stores ANT event in file and database`() {
         val eventId = idProvider.id
         val event = Event(
             timestamp = 1,
@@ -79,7 +79,7 @@ internal class EventStoreTest {
         eventStore.storeAnr(event)
 
         // Then
-        verify(fileStorage).writeException(eventId, event)
+        verify(fileStorage).writeAnr(eventId, event)
         verify(database).insertEvent(
             EventEntity(
                 id = eventId,
