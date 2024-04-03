@@ -6,6 +6,7 @@ import sh.measure.android.applaunch.ColdLaunchData
 import sh.measure.android.applaunch.HotLaunchData
 import sh.measure.android.applaunch.WarmLaunchData
 import sh.measure.android.events.Event
+import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.gestures.ClickData
 import sh.measure.android.gestures.LongClickData
@@ -13,6 +14,8 @@ import sh.measure.android.gestures.ScrollData
 import sh.measure.android.lifecycle.ActivityLifecycleData
 import sh.measure.android.lifecycle.ApplicationLifecycleData
 import sh.measure.android.lifecycle.FragmentLifecycleData
+import sh.measure.android.logger.LogLevel
+import sh.measure.android.logger.Logger
 import sh.measure.android.navigation.NavigationData
 import sh.measure.android.networkchange.NetworkChangeData
 import sh.measure.android.okhttp.HttpData
@@ -44,40 +47,17 @@ internal interface EventStore {
 }
 
 internal class EventStoreImpl(
+    private val logger: Logger,
     private val fileStorage: FileStorage,
     private val database: Database,
     private val idProvider: IdProvider,
 ) : EventStore {
     override fun storeUnhandledException(event: Event<ExceptionData>) {
-        val eventId = idProvider.createId()
-        fileStorage.createExceptionFile(eventId)?.let {
-            fileStorage.writeException(it, event)
-            database.insertEvent(
-                EventEntity(
-                    id = eventId,
-                    type = event.type,
-                    timestamp = event.timestamp,
-                    sessionId = event.sessionId!!,
-                    filePath = it
-                )
-            )
-        }
+        storeExceptionEvent(event)
     }
 
     override fun storeAnr(event: Event<ExceptionData>) {
-        val eventId = idProvider.createId()
-        fileStorage.createAnrPath(eventId)?.let {
-            fileStorage.writeException(it, event)
-            database.insertEvent(
-                EventEntity(
-                    id = eventId,
-                    type = event.type,
-                    timestamp = event.timestamp,
-                    sessionId = event.sessionId!!,
-                    filePath = it
-                )
-            )
-        }
+        storeExceptionEvent(event)
     }
 
     override fun storeClick(event: Event<ClickData>) {
@@ -142,6 +122,29 @@ internal class EventStoreImpl(
 
     override fun storeNavigation(event: Event<NavigationData>) {
         storeEvent(event, NavigationData.serializer())
+    }
+
+    private fun storeExceptionEvent(event: Event<ExceptionData>) {
+        val eventId = idProvider.createId()
+        val path = when (event.type) {
+            EventType.EXCEPTION -> fileStorage.writeException(eventId, event)
+            EventType.ANR -> fileStorage.writeAnr(eventId, event)
+            else -> {
+                logger.log(LogLevel.Error, "${event.type} cannot be stored as an exception.")
+                return
+            }
+        }
+        if (path != null) {
+            database.insertEvent(
+                EventEntity(
+                    id = eventId,
+                    type = event.type,
+                    timestamp = event.timestamp,
+                    sessionId = event.sessionId!!,
+                    filePath = path
+                )
+            )
+        }
     }
 
     private fun <T> storeEvent(event: Event<T>, serializer: KSerializer<T>) {

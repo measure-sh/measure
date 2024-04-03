@@ -4,8 +4,6 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToStream
-import okio.buffer
-import okio.sink
 import sh.measure.android.events.Event
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.logger.LogLevel
@@ -14,12 +12,30 @@ import java.io.File
 import java.io.IOException
 
 internal interface FileStorage {
-    fun createExceptionFile(eventId: String): String?
+    /**
+     * Writes exception data to a file, with the event id as the file name.
+     *
+     * @param id The event id to use as the file name.
+     * @param event The event to write to the file.
+     * @return The path of the file if the write was successful, otherwise null.
+     */
+    fun writeException(id: String, event: Event<ExceptionData>): String?
 
-    fun createAnrPath(eventId: String): String?
+    /**
+     * Writes ANR data to a file, with the event id as the file name.
+     *
+     * @param id The event id to use as the file name.
+     * @param event The event to write to the file.
+     * @return The path of the file if the write was successful, otherwise null.
+     */
+    fun writeAnr(id: String, event: Event<ExceptionData>): String?
 
-    fun writeException(path: String, event: Event<ExceptionData>)
-
+    /**
+     * Gets a file from the given path.
+     *
+     * @param path The path of the file to get.
+     * @return The file if it exists, otherwise null.
+     */
     fun getFile(path: String): File?
 }
 
@@ -32,84 +48,14 @@ internal class FileStorageImpl(
     private val logger: Logger,
 ) : FileStorage {
 
-    override fun createExceptionFile(eventId: String): String? {
-        val exceptionDirPath = "$rootDir/$EXCEPTION_DIR"
-        val rootDir = File(exceptionDirPath)
-
-        // Create directories if they don't exist
-        try {
-            if (!rootDir.exists()) {
-                rootDir.mkdirs()
-            }
-        } catch (e: SecurityException) {
-            logger.log(
-                LogLevel.Error,
-                "Unable to create exception file for eventId=$eventId",
-                e
-            )
-            return null
-        }
-
-        // Create file with event id as file name
-        val filePath = "$exceptionDirPath/$eventId"
-        val file = File(filePath)
-
-        if (file.exists()) {
-            return null
-        }
-
-        try {
-            file.createNewFile()
-        } catch (e: IOException) {
-            logger.log(LogLevel.Error, "Error creating exception file for eventId=$eventId", e)
-            return null
-        }
-
-        return filePath
+    override fun writeException(id: String, event: Event<ExceptionData>): String? {
+        val file = createFile(id, EXCEPTION_DIR) ?: return null
+        return writeFile(file, event)
     }
 
-    override fun createAnrPath(eventId: String): String? {
-        val anrDirPath = "$rootDir/$ANR_DIR"
-        val rootDir = File(anrDirPath)
-
-        // Create directories if they don't exist
-        if (!rootDir.exists()) {
-            try {
-                rootDir.mkdirs()
-            } catch (e: SecurityException) {
-                logger.log(LogLevel.Error, "Unable to create ANR file for eventId=$eventId", e)
-                return null
-            }
-        }
-
-        // Create file with event id as file name
-        val filePath = "$anrDirPath/$eventId"
-        val file = File(filePath)
-        try {
-            file.createNewFile()
-        } catch (e: IOException) {
-            logger.log(LogLevel.Error, "Error creating ANR file for eventId=$eventId", e)
-            return null
-        }
-
-        return filePath
-    }
-
-    override fun writeException(path: String, event: Event<ExceptionData>) {
-        val file = File(path)
-        if (!file.exists()) {
-            logger.log(LogLevel.Error, "FileStorage: File does not exist at $path")
-            return
-        }
-        try {
-            val stream = file.outputStream()
-            Json.encodeToStream(event.data, stream)
-        } catch (e: IOException) {
-            logger.log(LogLevel.Error, "Error writing exception to file", e)
-        } catch (se: SerializationException) {
-            logger.log(LogLevel.Error, "Error writing exception to file", se)
-        }
-        logger.log(LogLevel.Debug, "FileStorage: Exception written at $path")
+    override fun writeAnr(id: String, event: Event<ExceptionData>): String? {
+        val file = createFile(id, ANR_DIR) ?: return null
+        return writeFile(file, event)
     }
 
     override fun getFile(path: String): File? {
@@ -117,6 +63,57 @@ internal class FileStorageImpl(
         return when {
             file.exists() -> file
             else -> null
+        }
+    }
+
+    private fun createFile(eventId: String, directory: String): File? {
+        val dirPath = "$rootDir/$directory"
+        val rootDir = File(dirPath)
+
+        // Create directories if they don't exist
+        if (!rootDir.exists()) {
+            try {
+                rootDir.mkdirs()
+            } catch (e: SecurityException) {
+                logger.log(LogLevel.Error, "Unable to create file for eventId=$eventId", e)
+                return null
+            }
+        }
+
+        // Create file with event id as file name
+        val filePath = "$dirPath/$eventId"
+        val file = File(filePath)
+        try {
+            if (!file.exists()) {
+                file.createNewFile()
+            }
+        } catch (e: IOException) {
+            logger.log(LogLevel.Error, "Error creating file for eventId=$eventId", e)
+            return null
+        }
+
+        return file
+    }
+
+    private fun writeFile(file: File, event: Event<ExceptionData>): String? {
+        try {
+            val stream = file.outputStream()
+            Json.encodeToStream(event.data, stream)
+        } catch (e: IOException) {
+            logger.log(LogLevel.Error, "Error writing to file", e)
+            deleteFileIfExists(file)
+            return null
+        } catch (se: SerializationException) {
+            logger.log(LogLevel.Error, "Error writing to file", se)
+            deleteFileIfExists(file)
+            return null
+        }
+        return file.path
+    }
+
+    private fun deleteFileIfExists(file: File) {
+        if (file.exists()) {
+            file.delete()
         }
     }
 }
