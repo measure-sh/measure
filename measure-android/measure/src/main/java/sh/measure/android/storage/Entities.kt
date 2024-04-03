@@ -1,9 +1,9 @@
 package sh.measure.android.storage
 
 /**
- * Maps an event to a database entity.
+ * Maps an event to [EventTable] in the database.
  */
-data class EventEntity(
+internal data class EventEntity(
     val id: String,
     val type: String,
     val timestamp: Long,
@@ -21,3 +21,17 @@ data class EventEntity(
         }
     }
 }
+
+/**
+ * Maps an attachment to [AttachmentTable] in the database.
+ */
+internal data class AttachmentEntity(
+    val id: String,
+    val path: String,
+    val name: String,
+    val extension: String?,
+    val type: String,
+    val timestamp: Long,
+    // Serialized attributes of the attachment
+    val serializedAttributes: String
+)

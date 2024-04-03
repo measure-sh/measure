@@ -7,9 +7,11 @@ import android.database.sqlite.SQLiteException
 import android.database.sqlite.SQLiteOpenHelper
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import java.io.Closeable
 
-internal interface Database {
+internal interface Database : Closeable {
     fun insertEvent(event: EventEntity)
+    fun insertAttachment(attachment: AttachmentEntity)
 }
 
 /**
@@ -23,6 +25,7 @@ internal class DatabaseImpl(
     override fun onCreate(db: SQLiteDatabase) {
         try {
             db.execSQL(Sql.CREATE_EVENTS_TABLE)
+            db.execSQL(Sql.CREATE_ATTACHMENTS_TABLE)
         } catch (e: SQLiteException) {
             logger.log(LogLevel.Error, "Failed to create database", e)
         }
@@ -54,5 +57,27 @@ internal class DatabaseImpl(
         if (result == -1L) {
             logger.log(LogLevel.Error, "Failed to insert event = ${event.type}")
         }
+    }
+
+    override fun insertAttachment(attachment: AttachmentEntity) {
+        val values = ContentValues().apply {
+            put(AttachmentTable.COL_ID, attachment.id)
+            put(AttachmentTable.COL_PATH, attachment.path)
+            put(AttachmentTable.COL_NAME, attachment.name)
+            put(AttachmentTable.COL_EXTENSION, attachment.extension)
+            put(AttachmentTable.COL_TYPE, attachment.type)
+            put(AttachmentTable.COL_TIMESTAMP, attachment.timestamp)
+            put(AttachmentTable.COL_ATTRIBUTES, attachment.serializedAttributes)
+        }
+
+        val result = writableDatabase.insert(AttachmentTable.TABLE_NAME, null, values)
+        if (result == -1L) {
+            logger.log(LogLevel.Error, "Failed to insert attachment = ${attachment.id}")
+        }
+    }
+
+    override fun close() {
+        writableDatabase.close()
+        super.close()
     }
 }
