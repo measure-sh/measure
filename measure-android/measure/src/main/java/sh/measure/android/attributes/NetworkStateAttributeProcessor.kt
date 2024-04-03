@@ -1,6 +1,5 @@
 package sh.measure.android.attributes
 
-import sh.measure.android.events.Event
 import sh.measure.android.networkchange.NetworkInfoProvider
 
 /**
@@ -18,9 +17,9 @@ internal class NetworkStateAttributeProcessor(
     private var networkGeneration: String? = null
     private var networkProviderName: String? = null
 
-    override fun appendAttributes(event: Event<*>) {
+    override fun appendAttributes(attributes: MutableMap<String, Any?>) {
         computeAttributes()
-        event.attributes.apply {
+        attributes.apply {
             put(networkTypeKey, networkType)
             put(networkGenerationKey, networkGeneration)
             put(networkProviderNameKey, networkProviderName)

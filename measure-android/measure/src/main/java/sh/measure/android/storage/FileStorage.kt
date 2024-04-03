@@ -12,6 +12,15 @@ import java.io.File
 import java.io.IOException
 
 internal interface FileStorage {
+
+    /**
+     * Creates a file for an attachment with the given name.
+     *
+     * @param attachmentName The name of the attachment.
+     * @return The path of the file if the creation was successful, otherwise null.
+     */
+    fun createAttachmentFile(attachmentName: String): String?
+
     /**
      * Writes exception data to a file, with the event id as the file name.
      *
@@ -41,12 +50,38 @@ internal interface FileStorage {
 
 private const val EXCEPTION_DIR = "measure/exceptions"
 private const val ANR_DIR = "measure/anr"
+private const val ATTACHMENTS_DIR = "measure/attachments"
 
 @OptIn(ExperimentalSerializationApi::class)
 internal class FileStorageImpl(
     private val rootDir: String,
     private val logger: Logger,
 ) : FileStorage {
+    override fun createAttachmentFile(attachmentName: String): String {
+        val dirPath = "$rootDir/$ATTACHMENTS_DIR"
+        val rootDir = File(dirPath)
+
+        // Create directories if they don't exist
+        try {
+            if (!rootDir.exists()) {
+                rootDir.mkdirs()
+            }
+        } catch (e: SecurityException) {
+            logger.log(LogLevel.Error, "Unable to create attachments directory", e)
+        }
+
+        // Create file with attachment name as file name
+        val filePath = "$dirPath/$attachmentName"
+        val file = File(filePath)
+        try {
+            if (!file.exists()) {
+                file.createNewFile()
+            }
+        } catch (e: IOException) {
+            logger.log(LogLevel.Error, "Error creating attachment $attachmentName", e)
+        }
+        return file.path
+    }
 
     override fun writeException(id: String, event: Event<ExceptionData>): String? {
         val file = createFile(id, EXCEPTION_DIR) ?: return null
@@ -71,13 +106,13 @@ internal class FileStorageImpl(
         val rootDir = File(dirPath)
 
         // Create directories if they don't exist
-        if (!rootDir.exists()) {
-            try {
+        try {
+            if (!rootDir.exists()) {
                 rootDir.mkdirs()
-            } catch (e: SecurityException) {
-                logger.log(LogLevel.Error, "Unable to create file for eventId=$eventId", e)
-                return null
             }
+        } catch (e: SecurityException) {
+            logger.log(LogLevel.Error, "Unable to create file for eventId=$eventId", e)
+            return null
         }
 
         // Create file with event id as file name

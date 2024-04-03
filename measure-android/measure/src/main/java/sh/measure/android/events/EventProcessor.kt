@@ -3,7 +3,6 @@ package sh.measure.android.events
 import sh.measure.android.applaunch.ColdLaunchData
 import sh.measure.android.applaunch.HotLaunchData
 import sh.measure.android.applaunch.WarmLaunchData
-import sh.measure.android.attachment.AttachmentInfo
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.appendAttributes
 import sh.measure.android.exceptions.ExceptionData
@@ -27,7 +26,7 @@ import sh.measure.android.storage.EventStore
 
 /**
  * An event processor is responsible for taking an input event from the Measure SDK and
- * processing it by applying [EventTransformer]s and [AttributeProcessor]s. The processed
+ * processing it by applying [Transformer]s and [AttributeProcessor]s. The processed
  * event is then passed on to the [EventStore] for storage.
  *
  * All methods in this class are expected to be called from different threads. All processing is
@@ -53,8 +52,6 @@ internal interface EventProcessor {
     fun trackTrimMemory(event: Event<TrimMemoryData>)
     fun trackCpuUsage(event: Event<CpuUsageData>)
     fun trackNavigation(event: Event<NavigationData>)
-
-    fun storeAttachment(event: AttachmentInfo)
 }
 
 internal class EventProcessorImpl(
@@ -62,7 +59,6 @@ internal class EventProcessorImpl(
     private val executorService: MeasureExecutorService,
     private val eventStore: EventStore,
     private val attributeProcessors: List<AttributeProcessor>,
-    private val transformers: List<EventTransformer>
 ) : EventProcessor {
 
     /**
@@ -77,9 +73,7 @@ internal class EventProcessorImpl(
     ) {
         val block: () -> Unit = {
             event.appendAttributes(attributeProcessors)
-            event.transform(transformers)?.let {
-                storeEvent(it)
-            }
+            storeEvent(event)
             logger.log(LogLevel.Debug, "Event processed = ${event.type}")
         }
 
@@ -160,9 +154,5 @@ internal class EventProcessorImpl(
 
     override fun trackNavigation(event: Event<NavigationData>) {
         processEvent(event, eventStore::storeNavigation)
-    }
-
-    override fun storeAttachment(event: AttachmentInfo) {
-        // TODO: Implement attachment processing
     }
 }

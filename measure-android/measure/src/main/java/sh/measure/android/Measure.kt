@@ -5,7 +5,9 @@ import android.content.Context
 import androidx.annotation.VisibleForTesting
 import sh.measure.android.anr.AnrCollector
 import sh.measure.android.applaunch.AppLaunchCollector
-import sh.measure.android.applaunch.ColdLaunchTraceImpl
+import sh.measure.android.attachments.AttachmentProcessorImpl
+import sh.measure.android.attachments.AttachmentStoreImpl
+import sh.measure.android.attachments.MethodTraceImpl
 import sh.measure.android.attributes.AppAttributeProcessor
 import sh.measure.android.attributes.DeviceAttributeProcessor
 import sh.measure.android.attributes.InstallationIdAttributeProcessor
@@ -13,7 +15,6 @@ import sh.measure.android.attributes.NetworkStateAttributeProcessor
 import sh.measure.android.attributes.UserAttributeProcessor
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventProcessorImpl
-import sh.measure.android.events.SessionIdAppender
 import sh.measure.android.exceptions.UnhandledExceptionCollector
 import sh.measure.android.executors.CustomThreadFactory
 import sh.measure.android.executors.MeasureExecutorServiceImpl
@@ -96,39 +97,44 @@ object Measure {
         val networkStateAttributeGenerator = NetworkStateAttributeProcessor(networkInfoProvider)
         val deviceAttributeGenerator = DeviceAttributeProcessor(logger, context, localeProvider)
         val appAttributeGenerator = AppAttributeProcessor(context)
-        val installationIdAttributeGenerator = InstallationIdAttributeProcessor(prefsStorage, idProvider)
+        val installationIdAttributeGenerator =
+            InstallationIdAttributeProcessor(prefsStorage, idProvider)
 
         val fileStorage: FileStorage = FileStorageImpl(context.filesDir.path, logger)
         val database: Database = DatabaseImpl(context, logger)
         val eventStorage = EventStoreImpl(
             logger, fileStorage, database, idProvider
         )
-        val sessionIdAppender = SessionIdAppender().apply {
-            // TODO: assuming init is only called on cold launch
-            sessionId = idProvider.createId()
-        }
+
+        val globalAttributeProcessors = listOf(
+            userIdAttributeGenerator,
+            networkStateAttributeGenerator,
+            deviceAttributeGenerator,
+            appAttributeGenerator,
+            installationIdAttributeGenerator,
+        )
+
+        val attachmentProcessor = AttachmentProcessorImpl(
+            executorService,
+            AttachmentStoreImpl(
+                idProvider,
+                database,
+                fileStorage
+            ),
+            globalAttributeProcessors,
+        )
 
         eventProcessor = EventProcessorImpl(
             logger,
             executorService,
             eventStorage,
-            listOf(
-                userIdAttributeGenerator,
-                networkStateAttributeGenerator,
-                deviceAttributeGenerator,
-                appAttributeGenerator,
-                installationIdAttributeGenerator,
-            ),
-            listOf(
-                sessionIdAppender
-            )
+            globalAttributeProcessors,
         )
 
-        // Start launch trace, this trace ends in the ColdLaunchCollector.
-        val coldLaunchTrace = ColdLaunchTraceImpl(
-            eventProcessor,
-            timeProvider,
-        ).apply { start() }
+        // Start cold launch trace, it ends in AppLaunchCollector
+        val methodTrace = MethodTraceImpl(attachmentProcessor, timeProvider).apply {
+            startColdLaunch()
+        }
 
         // Register data collectors
         okHttpEventProcessor =
@@ -188,7 +194,7 @@ object Measure {
             logger,
             application,
             timeProvider,
-            coldLaunchTrace,
+            methodTrace,
             eventProcessor,
             coldLaunchListener = {
                 NetworkChangesCollector(

@@ -140,7 +140,6 @@ internal class EventStoreImpl(
                     id = eventId,
                     type = event.type,
                     timestamp = event.timestamp,
-                    sessionId = event.sessionId!!,
                     filePath = path
                 )
             )
@@ -154,7 +153,6 @@ internal class EventStoreImpl(
                 id = eventId,
                 type = event.type,
                 timestamp = event.timestamp,
-                sessionId = event.sessionId!!,
                 serializedData = Json.encodeToString(serializer, event.data)
             )
         )

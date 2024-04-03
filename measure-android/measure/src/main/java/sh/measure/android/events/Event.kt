@@ -29,10 +29,4 @@ internal data class Event<T>(
      * Attributes can be set by one of the collectors or by [AttributeProcessor].
      */
     val attributes: MutableMap<String, Any?> = mutableMapOf(),
-
-    /**
-     * The session id of the event. This is nullable as it is set after the event is created by the
-     * [EventProcessor]. This is used to group events together that are part of the same session.
-     */
-    var sessionId: String? = null,
 )
