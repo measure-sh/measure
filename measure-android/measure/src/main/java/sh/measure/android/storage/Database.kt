@@ -12,6 +12,9 @@ internal interface Database {
     fun insertEvent(event: EventEntity)
 }
 
+/**
+ * Database implementation using SQLite.
+ */
 internal class DatabaseImpl(
     context: Context,
     private val logger: Logger,
@@ -30,6 +33,7 @@ internal class DatabaseImpl(
     }
 
     override fun onConfigure(db: SQLiteDatabase) {
+        // Enable WAL mode: https://www.sqlite.org/wal.html
         setWriteAheadLoggingEnabled(true)
     }
 
