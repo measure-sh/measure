@@ -42,7 +42,6 @@ internal class EventStoreTest {
         val eventId = idProvider.id
         val event = Event(
             timestamp = 1,
-            sessionId = "session_id",
             data = FakeEventFactory.getExceptionData(),
             type = EventType.EXCEPTION
         )
@@ -58,7 +57,6 @@ internal class EventStoreTest {
                 id = eventId,
                 type = EventType.EXCEPTION,
                 timestamp = event.timestamp,
-                sessionId = event.sessionId!!,
                 filePath = eventId
             )
         )
@@ -69,7 +67,6 @@ internal class EventStoreTest {
         val eventId = idProvider.id
         val event = Event(
             timestamp = 1,
-            sessionId = "session_id",
             data = FakeEventFactory.getExceptionData(),
             type = EventType.ANR
         )
@@ -85,7 +82,6 @@ internal class EventStoreTest {
                 id = eventId,
                 type = EventType.ANR,
                 timestamp = event.timestamp,
-                sessionId = event.sessionId!!,
                 filePath = eventId
             )
         )
@@ -96,7 +92,6 @@ internal class EventStoreTest {
         // Given
         val event = Event(
             timestamp = 1,
-            sessionId = "session_id",
             data = FakeEventFactory.getClickData(),
             type = EventType.CLICK
         )
@@ -110,7 +105,6 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.CLICK,
                 timestamp = event.timestamp,
-                sessionId = event.sessionId!!,
                 serializedData = Json.encodeToString(ClickData.serializer(), event.data)
             )
         )
@@ -121,7 +115,6 @@ internal class EventStoreTest {
         // Given
         val event = Event(
             timestamp = 1,
-            sessionId = "session_id",
             data = FakeEventFactory.getLongClickData(),
             type = EventType.LONG_CLICK
         )
@@ -135,7 +128,6 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.LONG_CLICK,
                 timestamp = event.timestamp,
-                sessionId = event.sessionId!!,
                 serializedData = Json.encodeToString(LongClickData.serializer(), event.data)
             )
         )
@@ -146,7 +138,6 @@ internal class EventStoreTest {
         // Given
         val event = Event(
             timestamp = 1,
-            sessionId = "session_id",
             data = FakeEventFactory.getScrollData(),
             type = EventType.SCROLL
         )
@@ -160,7 +151,6 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.SCROLL,
                 timestamp = event.timestamp,
-                sessionId = event.sessionId!!,
                 serializedData = Json.encodeToString(ScrollData.serializer(), event.data)
             )
         )
@@ -171,7 +161,6 @@ internal class EventStoreTest {
         // Given
         val event = Event(
             timestamp = 1,
-            sessionId = "session_id",
             data = FakeEventFactory.getActivityLifecycleData(),
             type = EventType.LIFECYCLE_ACTIVITY
         )
@@ -185,7 +174,6 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.LIFECYCLE_ACTIVITY,
                 timestamp = event.timestamp,
-                sessionId = event.sessionId!!,
                 serializedData = Json.encodeToString(ActivityLifecycleData.serializer(), event.data)
             )
         )
@@ -196,7 +184,6 @@ internal class EventStoreTest {
         // Given
         val event = Event(
             timestamp = 1,
-            sessionId = "session_id",
             data = FakeEventFactory.getFragmentLifecycleData(),
             type = EventType.LIFECYCLE_FRAGMENT
         )
@@ -210,7 +197,6 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.LIFECYCLE_FRAGMENT,
                 timestamp = event.timestamp,
-                sessionId = event.sessionId!!,
                 serializedData = Json.encodeToString(FragmentLifecycleData.serializer(), event.data)
             )
         )
@@ -221,7 +207,6 @@ internal class EventStoreTest {
         // Given
         val event = Event(
             timestamp = 1,
-            sessionId = "session_id",
             data = FakeEventFactory.getApplicationLifecycleData(),
             type = EventType.LIFECYCLE_APP
         )
@@ -235,7 +220,6 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.LIFECYCLE_APP,
                 timestamp = event.timestamp,
-                sessionId = event.sessionId!!,
                 serializedData = Json.encodeToString(
                     ApplicationLifecycleData.serializer(),
                     event.data
@@ -249,7 +233,6 @@ internal class EventStoreTest {
         // Given
         val event = Event(
             timestamp = 1,
-            sessionId = "session_id",
             data = FakeEventFactory.getColdLaunchData(),
             type = EventType.COLD_LAUNCH
         )
@@ -263,7 +246,6 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.COLD_LAUNCH,
                 timestamp = event.timestamp,
-                sessionId = event.sessionId!!,
                 serializedData = Json.encodeToString(ColdLaunchData.serializer(), event.data)
             )
         )
@@ -274,7 +256,6 @@ internal class EventStoreTest {
         // Given
         val event = Event(
             timestamp = 1,
-            sessionId = "session_id",
             data = FakeEventFactory.getWarmLaunchData(),
             type = EventType.WARM_LAUNCH
         )
@@ -288,7 +269,6 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.WARM_LAUNCH,
                 timestamp = event.timestamp,
-                sessionId = event.sessionId!!,
                 serializedData = Json.encodeToString(WarmLaunchData.serializer(), event.data)
             )
         )
@@ -299,7 +279,6 @@ internal class EventStoreTest {
         // Given
         val event = Event(
             timestamp = 1,
-            sessionId = "session_id",
             data = FakeEventFactory.getHotLaunchData(),
             type = EventType.HOT_LAUNCH
         )
@@ -313,7 +292,6 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.HOT_LAUNCH,
                 timestamp = event.timestamp,
-                sessionId = event.sessionId!!,
                 serializedData = Json.encodeToString(HotLaunchData.serializer(), event.data)
             )
         )
@@ -324,7 +302,6 @@ internal class EventStoreTest {
         // Given
         val event = Event(
             timestamp = 1,
-            sessionId = "session_id",
             data = FakeEventFactory.getNetworkChangeData(),
             type = EventType.NETWORK_CHANGE
         )
@@ -338,7 +315,6 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.NETWORK_CHANGE,
                 timestamp = event.timestamp,
-                sessionId = event.sessionId!!,
                 serializedData = Json.encodeToString(NetworkChangeData.serializer(), event.data)
             )
         )
@@ -349,7 +325,6 @@ internal class EventStoreTest {
         // Given
         val event = Event(
             timestamp = 1,
-            sessionId = "session_id",
             data = FakeEventFactory.getHttpData(),
             type = EventType.HTTP
         )
@@ -363,7 +338,6 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.HTTP,
                 timestamp = event.timestamp,
-                sessionId = event.sessionId!!,
                 serializedData = Json.encodeToString(HttpData.serializer(), event.data)
             )
         )
@@ -374,7 +348,6 @@ internal class EventStoreTest {
         // Given
         val event = Event(
             timestamp = 1,
-            sessionId = "session_id",
             data = FakeEventFactory.getMemoryUsageData(),
             type = EventType.MEMORY_USAGE
         )
@@ -388,7 +361,6 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.MEMORY_USAGE,
                 timestamp = event.timestamp,
-                sessionId = event.sessionId!!,
                 serializedData = Json.encodeToString(MemoryUsageData.serializer(), event.data)
             )
         )
@@ -399,7 +371,6 @@ internal class EventStoreTest {
         // Given
         val event = Event(
             timestamp = 1,
-            sessionId = "session_id",
             data = FakeEventFactory.getLowMemoryData(),
             type = EventType.LOW_MEMORY
         )
@@ -413,7 +384,6 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.LOW_MEMORY,
                 timestamp = event.timestamp,
-                sessionId = event.sessionId!!,
                 serializedData = Json.encodeToString(LowMemoryData.serializer(), event.data)
             )
         )
@@ -424,7 +394,6 @@ internal class EventStoreTest {
         // Given
         val event = Event(
             timestamp = 1,
-            sessionId = "session_id",
             data = FakeEventFactory.getTrimMemoryData(),
             type = EventType.TRIM_MEMORY
         )
@@ -438,7 +407,6 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.TRIM_MEMORY,
                 timestamp = event.timestamp,
-                sessionId = event.sessionId!!,
                 serializedData = Json.encodeToString(TrimMemoryData.serializer(), event.data)
             )
         )
@@ -449,7 +417,6 @@ internal class EventStoreTest {
         // Given
         val event = Event(
             timestamp = 1,
-            sessionId = "session_id",
             data = FakeEventFactory.getCpuUsageData(),
             type = EventType.CPU_USAGE
         )
@@ -463,7 +430,6 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.CPU_USAGE,
                 timestamp = event.timestamp,
-                sessionId = event.sessionId!!,
                 serializedData = Json.encodeToString(CpuUsageData.serializer(), event.data)
             )
         )
@@ -474,7 +440,6 @@ internal class EventStoreTest {
         // Given
         val event = Event(
             timestamp = 1,
-            sessionId = "session_id",
             data = FakeEventFactory.getNavigationData(),
             type = EventType.NAVIGATION
         )
@@ -488,7 +453,6 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.NAVIGATION,
                 timestamp = event.timestamp,
-                sessionId = event.sessionId!!,
                 serializedData = Json.encodeToString(NavigationData.serializer(), event.data)
             )
         )

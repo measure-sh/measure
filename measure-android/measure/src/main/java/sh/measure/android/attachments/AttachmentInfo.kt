@@ -22,11 +22,6 @@ internal data class AttachmentInfo(
     val timestamp: Long,
 
     /**
-     * The session which the attachment belongs to.
-     */
-    var sessionId: String? = null,
-
-    /**
      * Additional attributes to store with the attachment.
      */
     val attributes: MutableMap<String, Any?> = mutableMapOf()
