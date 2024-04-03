@@ -22,9 +22,9 @@ class ComputeOnceAttributeProcessorTest {
         val event = FakeEventFactory.getExceptionData().toEvent(type = EventType.EXCEPTION)
 
         // When
-        processor.appendAttributes(event)
-        processor.appendAttributes(event)
-        processor.appendAttributes(event)
+        processor.appendAttributes(event.attributes)
+        processor.appendAttributes(event.attributes)
+        processor.appendAttributes(event.attributes)
 
         // Then
         Assert.assertEquals(1, computeAttributesCalledCount)

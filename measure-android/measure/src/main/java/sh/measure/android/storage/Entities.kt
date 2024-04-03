@@ -7,7 +7,8 @@ internal data class EventEntity(
     val id: String,
     val type: String,
     val timestamp: Long,
-    val sessionId: String,
+    // TODO: add session ID
+    val sessionId: String = "invalid-id",
     val filePath: String? = null,
     val serializedData: String? = null
 ) {

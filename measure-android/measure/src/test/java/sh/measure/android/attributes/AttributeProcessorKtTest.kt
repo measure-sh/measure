@@ -2,7 +2,6 @@ package sh.measure.android.attributes
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeEventFactory
 import sh.measure.android.fakes.FakeEventFactory.toEvent
@@ -14,13 +13,13 @@ class AttributeProcessorKtTest {
         val event = FakeEventFactory.getExceptionData().toEvent(type = EventType.EXCEPTION)
 
         val attributeProcessor1 = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
-                event.attributes["key1"] = "value1"
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
+                attributes["key1"] = "value1"
             }
         }
         val attributeProcessor2 = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
-                event.attributes["key2"] = "value2"
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
+                attributes["key2"] = "value2"
             }
         }
 
@@ -39,13 +38,13 @@ class AttributeProcessorKtTest {
         val event = FakeEventFactory.getExceptionData().toEvent(type = EventType.EXCEPTION)
 
         val attributeProcessor1 = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
-                event.attributes["key"] = "value1"
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
+                attributes["key"] = "value1"
             }
         }
         val attributeProcessor2 = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
-                event.attributes["key"] = "value2"
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
+                attributes["key"] = "value2"
             }
         }
 

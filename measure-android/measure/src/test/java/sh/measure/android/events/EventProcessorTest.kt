@@ -21,7 +21,6 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = emptyList(),
-            transformers = emptyList()
         )
         val event = FakeEventFactory.getExceptionData().toEvent(type = EventType.EXCEPTION)
 
@@ -39,7 +38,6 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = emptyList(),
-            transformers = emptyList()
         )
         val event = FakeEventFactory.getExceptionData().toEvent(type = EventType.ANR)
 
@@ -57,7 +55,6 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = emptyList(),
-            transformers = emptyList()
         )
         val event = FakeEventFactory.getClickData().toEvent(type = EventType.CLICK)
 
@@ -75,7 +72,6 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = emptyList(),
-            transformers = emptyList()
         )
         val event = FakeEventFactory.getLongClickData().toEvent(type = EventType.LONG_CLICK)
 
@@ -93,7 +89,6 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = emptyList(),
-            transformers = emptyList()
         )
         val event = FakeEventFactory.getScrollData().toEvent(type = EventType.SCROLL)
 
@@ -111,7 +106,6 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = emptyList(),
-            transformers = emptyList()
         )
         val event =
             FakeEventFactory.getActivityLifecycleData().toEvent(type = EventType.LIFECYCLE_ACTIVITY)
@@ -130,7 +124,6 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = emptyList(),
-            transformers = emptyList()
         )
         val event =
             FakeEventFactory.getFragmentLifecycleData().toEvent(type = EventType.LIFECYCLE_FRAGMENT)
@@ -149,7 +142,6 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = emptyList(),
-            transformers = emptyList()
         )
         val event =
             FakeEventFactory.getApplicationLifecycleData().toEvent(type = EventType.LIFECYCLE_APP)
@@ -168,7 +160,6 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = emptyList(),
-            transformers = emptyList()
         )
         val event = FakeEventFactory.getColdLaunchData().toEvent(type = EventType.COLD_LAUNCH)
 
@@ -186,7 +177,6 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = emptyList(),
-            transformers = emptyList()
         )
         val event = FakeEventFactory.getWarmLaunchData().toEvent(type = EventType.WARM_LAUNCH)
 
@@ -204,7 +194,6 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = emptyList(),
-            transformers = emptyList()
         )
         val event = FakeEventFactory.getHotLaunchData().toEvent(type = EventType.HOT_LAUNCH)
 
@@ -222,7 +211,6 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = emptyList(),
-            transformers = emptyList()
         )
         val event = FakeEventFactory.getNetworkChangeData().toEvent(type = EventType.NETWORK_CHANGE)
 
@@ -240,7 +228,6 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = emptyList(),
-            transformers = emptyList()
         )
         val event = FakeEventFactory.getHttpData().toEvent(type = EventType.HTTP)
 
@@ -258,7 +245,6 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = emptyList(),
-            transformers = emptyList()
         )
         val event = FakeEventFactory.getMemoryUsageData().toEvent(type = EventType.MEMORY_USAGE)
 
@@ -276,7 +262,6 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = emptyList(),
-            transformers = emptyList()
         )
         val event = FakeEventFactory.getLowMemoryData().toEvent(type = EventType.LOW_MEMORY)
 
@@ -294,7 +279,6 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = emptyList(),
-            transformers = emptyList()
         )
         val event = FakeEventFactory.getTrimMemoryData().toEvent(type = EventType.TRIM_MEMORY)
 
@@ -312,7 +296,6 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = emptyList(),
-            transformers = emptyList()
         )
         val event = FakeEventFactory.getCpuUsageData().toEvent(type = EventType.CPU_USAGE)
 
@@ -330,7 +313,6 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = emptyList(),
-            transformers = emptyList()
         )
         val event = FakeEventFactory.getNavigationData().toEvent(type = EventType.NAVIGATION)
 
@@ -342,18 +324,11 @@ internal class EventProcessorTest {
     }
 
     @Test
-    fun `applies attributes and transformations to exception event`() {
+    fun `applies attributes to exception event`() {
         var attributeProcessorCalledCount = 0
         val attributeProcessor = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
                 attributeProcessorCalledCount++
-            }
-        }
-        var transformerCalledCount = 0
-        val transformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T> {
-                transformerCalledCount++
-                return event
             }
         }
         val eventProcessor: EventProcessor = EventProcessorImpl(
@@ -361,29 +336,20 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = listOf(attributeProcessor),
-            transformers = listOf(transformer)
         )
         val event = FakeEventFactory.getExceptionData().toEvent(type = EventType.EXCEPTION)
 
         // When
         eventProcessor.trackUnhandledException(event)
         Assert.assertEquals(1, attributeProcessorCalledCount)
-        Assert.assertEquals(1, transformerCalledCount)
     }
 
     @Test
-    fun `applies attributes and transformations to ANR event`() {
+    fun `applies attributes to ANR event`() {
         var attributeProcessorCalledCount = 0
         val attributeProcessor = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
                 attributeProcessorCalledCount++
-            }
-        }
-        var transformerCalledCount = 0
-        val transformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T> {
-                transformerCalledCount++
-                return event
             }
         }
         val eventProcessor: EventProcessor = EventProcessorImpl(
@@ -391,29 +357,20 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = listOf(attributeProcessor),
-            transformers = listOf(transformer)
         )
         val event = FakeEventFactory.getExceptionData().toEvent(type = EventType.ANR)
 
         // When
         eventProcessor.trackAnr(event)
         Assert.assertEquals(1, attributeProcessorCalledCount)
-        Assert.assertEquals(1, transformerCalledCount)
     }
 
     @Test
-    fun `applies attributes and transformations to click event`() {
+    fun `applies attributes to click event`() {
         var attributeProcessorCalledCount = 0
         val attributeProcessor = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
                 attributeProcessorCalledCount++
-            }
-        }
-        var transformerCalledCount = 0
-        val transformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T> {
-                transformerCalledCount++
-                return event
             }
         }
         val eventProcessor: EventProcessor = EventProcessorImpl(
@@ -421,29 +378,20 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = listOf(attributeProcessor),
-            transformers = listOf(transformer)
         )
         val event = FakeEventFactory.getClickData().toEvent(type = EventType.CLICK)
 
         // When
         eventProcessor.trackClick(event)
         Assert.assertEquals(1, attributeProcessorCalledCount)
-        Assert.assertEquals(1, transformerCalledCount)
     }
 
     @Test
-    fun `applies attributes and transformations to long click event`() {
+    fun `applies attributes to long click event`() {
         var attributeProcessorCalledCount = 0
         val attributeProcessor = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
                 attributeProcessorCalledCount++
-            }
-        }
-        var transformerCalledCount = 0
-        val transformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T> {
-                transformerCalledCount++
-                return event
             }
         }
         val eventProcessor: EventProcessor = EventProcessorImpl(
@@ -451,29 +399,20 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = listOf(attributeProcessor),
-            transformers = listOf(transformer)
         )
         val event = FakeEventFactory.getLongClickData().toEvent(type = EventType.LONG_CLICK)
 
         // When
         eventProcessor.trackLongClick(event)
         Assert.assertEquals(1, attributeProcessorCalledCount)
-        Assert.assertEquals(1, transformerCalledCount)
     }
 
     @Test
-    fun `applies attributes and transformations to scroll event`() {
+    fun `applies attributes to scroll event`() {
         var attributeProcessorCalledCount = 0
         val attributeProcessor = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
                 attributeProcessorCalledCount++
-            }
-        }
-        var transformerCalledCount = 0
-        val transformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T> {
-                transformerCalledCount++
-                return event
             }
         }
         val eventProcessor: EventProcessor = EventProcessorImpl(
@@ -481,29 +420,20 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = listOf(attributeProcessor),
-            transformers = listOf(transformer)
         )
         val event = FakeEventFactory.getScrollData().toEvent(type = EventType.SCROLL)
 
         // When
         eventProcessor.trackScroll(event)
         Assert.assertEquals(1, attributeProcessorCalledCount)
-        Assert.assertEquals(1, transformerCalledCount)
     }
 
     @Test
-    fun `applies attributes and transformations to activity lifecycle event`() {
+    fun `applies attributes to activity lifecycle event`() {
         var attributeProcessorCalledCount = 0
         val attributeProcessor = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
                 attributeProcessorCalledCount++
-            }
-        }
-        var transformerCalledCount = 0
-        val transformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T> {
-                transformerCalledCount++
-                return event
             }
         }
         val eventProcessor: EventProcessor = EventProcessorImpl(
@@ -511,7 +441,6 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = listOf(attributeProcessor),
-            transformers = listOf(transformer)
         )
         val event =
             FakeEventFactory.getActivityLifecycleData().toEvent(type = EventType.LIFECYCLE_ACTIVITY)
@@ -519,22 +448,14 @@ internal class EventProcessorTest {
         // When
         eventProcessor.trackActivityLifecycle(event)
         Assert.assertEquals(1, attributeProcessorCalledCount)
-        Assert.assertEquals(1, transformerCalledCount)
     }
 
     @Test
-    fun `applies attributes and transformations to fragment lifecycle event`() {
+    fun `applies attributes to fragment lifecycle event`() {
         var attributeProcessorCalledCount = 0
         val attributeProcessor = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
                 attributeProcessorCalledCount++
-            }
-        }
-        var transformerCalledCount = 0
-        val transformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T> {
-                transformerCalledCount++
-                return event
             }
         }
         val eventProcessor: EventProcessor = EventProcessorImpl(
@@ -542,7 +463,6 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = listOf(attributeProcessor),
-            transformers = listOf(transformer)
         )
         val event =
             FakeEventFactory.getFragmentLifecycleData().toEvent(type = EventType.LIFECYCLE_FRAGMENT)
@@ -550,22 +470,14 @@ internal class EventProcessorTest {
         // When
         eventProcessor.trackFragmentLifecycle(event)
         Assert.assertEquals(1, attributeProcessorCalledCount)
-        Assert.assertEquals(1, transformerCalledCount)
     }
 
     @Test
-    fun `applies attributes and transformations to application lifecycle event`() {
+    fun `applies attributes to application lifecycle event`() {
         var attributeProcessorCalledCount = 0
         val attributeProcessor = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
                 attributeProcessorCalledCount++
-            }
-        }
-        var transformerCalledCount = 0
-        val transformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T> {
-                transformerCalledCount++
-                return event
             }
         }
         val eventProcessor: EventProcessor = EventProcessorImpl(
@@ -573,7 +485,6 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = listOf(attributeProcessor),
-            transformers = listOf(transformer)
         )
         val event =
             FakeEventFactory.getApplicationLifecycleData().toEvent(type = EventType.LIFECYCLE_APP)
@@ -581,22 +492,14 @@ internal class EventProcessorTest {
         // When
         eventProcessor.trackApplicationLifecycle(event)
         Assert.assertEquals(1, attributeProcessorCalledCount)
-        Assert.assertEquals(1, transformerCalledCount)
     }
 
     @Test
-    fun `applies attributes and transformations to cold launch event`() {
+    fun `applies attributes to cold launch event`() {
         var attributeProcessorCalledCount = 0
         val attributeProcessor = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
                 attributeProcessorCalledCount++
-            }
-        }
-        var transformerCalledCount = 0
-        val transformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T> {
-                transformerCalledCount++
-                return event
             }
         }
         val eventProcessor: EventProcessor = EventProcessorImpl(
@@ -604,29 +507,20 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = listOf(attributeProcessor),
-            transformers = listOf(transformer)
         )
         val event = FakeEventFactory.getColdLaunchData().toEvent(type = EventType.COLD_LAUNCH)
 
         // When
         eventProcessor.trackColdLaunch(event)
         Assert.assertEquals(1, attributeProcessorCalledCount)
-        Assert.assertEquals(1, transformerCalledCount)
     }
 
     @Test
-    fun `applies attributes and transformations to warm launch event`() {
+    fun `applies attributes to warm launch event`() {
         var attributeProcessorCalledCount = 0
         val attributeProcessor = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
                 attributeProcessorCalledCount++
-            }
-        }
-        var transformerCalledCount = 0
-        val transformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T> {
-                transformerCalledCount++
-                return event
             }
         }
         val eventProcessor: EventProcessor = EventProcessorImpl(
@@ -634,29 +528,20 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = listOf(attributeProcessor),
-            transformers = listOf(transformer)
         )
         val event = FakeEventFactory.getWarmLaunchData().toEvent(type = EventType.WARM_LAUNCH)
 
         // When
         eventProcessor.trackWarmLaunch(event)
         Assert.assertEquals(1, attributeProcessorCalledCount)
-        Assert.assertEquals(1, transformerCalledCount)
     }
 
     @Test
-    fun `applies attributes and transformations to hot launch event`() {
+    fun `applies attributes to hot launch event`() {
         var attributeProcessorCalledCount = 0
         val attributeProcessor = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
                 attributeProcessorCalledCount++
-            }
-        }
-        var transformerCalledCount = 0
-        val transformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T> {
-                transformerCalledCount++
-                return event
             }
         }
         val eventProcessor: EventProcessor = EventProcessorImpl(
@@ -664,29 +549,20 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = listOf(attributeProcessor),
-            transformers = listOf(transformer)
         )
         val event = FakeEventFactory.getHotLaunchData().toEvent(type = EventType.HOT_LAUNCH)
 
         // When
         eventProcessor.trackHotLaunch(event)
         Assert.assertEquals(1, attributeProcessorCalledCount)
-        Assert.assertEquals(1, transformerCalledCount)
     }
 
     @Test
-    fun `applies attributes and transformations to network change event`() {
+    fun `applies attributes to network change event`() {
         var attributeProcessorCalledCount = 0
         val attributeProcessor = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
                 attributeProcessorCalledCount++
-            }
-        }
-        var transformerCalledCount = 0
-        val transformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T> {
-                transformerCalledCount++
-                return event
             }
         }
         val eventProcessor: EventProcessor = EventProcessorImpl(
@@ -694,29 +570,20 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = listOf(attributeProcessor),
-            transformers = listOf(transformer)
         )
         val event = FakeEventFactory.getNetworkChangeData().toEvent(type = EventType.NETWORK_CHANGE)
 
         // When
         eventProcessor.trackNetworkChange(event)
         Assert.assertEquals(1, attributeProcessorCalledCount)
-        Assert.assertEquals(1, transformerCalledCount)
     }
 
     @Test
-    fun `applies attributes and transformations to http event`() {
+    fun `applies attributes to http event`() {
         var attributeProcessorCalledCount = 0
         val attributeProcessor = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
                 attributeProcessorCalledCount++
-            }
-        }
-        var transformerCalledCount = 0
-        val transformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T> {
-                transformerCalledCount++
-                return event
             }
         }
         val eventProcessor: EventProcessor = EventProcessorImpl(
@@ -724,29 +591,20 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = listOf(attributeProcessor),
-            transformers = listOf(transformer)
         )
         val event = FakeEventFactory.getHttpData().toEvent(type = EventType.HTTP)
 
         // When
         eventProcessor.trackHttp(event)
         Assert.assertEquals(1, attributeProcessorCalledCount)
-        Assert.assertEquals(1, transformerCalledCount)
     }
 
     @Test
-    fun `applies attributes and transformations to memory usage event`() {
+    fun `applies attributes to memory usage event`() {
         var attributeProcessorCalledCount = 0
         val attributeProcessor = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
                 attributeProcessorCalledCount++
-            }
-        }
-        var transformerCalledCount = 0
-        val transformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T> {
-                transformerCalledCount++
-                return event
             }
         }
         val eventProcessor: EventProcessor = EventProcessorImpl(
@@ -754,29 +612,20 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = listOf(attributeProcessor),
-            transformers = listOf(transformer)
         )
         val event = FakeEventFactory.getMemoryUsageData().toEvent(type = EventType.MEMORY_USAGE)
 
         // When
         eventProcessor.trackMemoryUsage(event)
         Assert.assertEquals(1, attributeProcessorCalledCount)
-        Assert.assertEquals(1, transformerCalledCount)
     }
 
     @Test
-    fun `applies attributes and transformations to low memory event`() {
+    fun `applies attributes to low memory event`() {
         var attributeProcessorCalledCount = 0
         val attributeProcessor = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
                 attributeProcessorCalledCount++
-            }
-        }
-        var transformerCalledCount = 0
-        val transformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T> {
-                transformerCalledCount++
-                return event
             }
         }
         val eventProcessor: EventProcessor = EventProcessorImpl(
@@ -784,29 +633,20 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = listOf(attributeProcessor),
-            transformers = listOf(transformer)
         )
         val event = FakeEventFactory.getLowMemoryData().toEvent(type = EventType.LOW_MEMORY)
 
         // When
         eventProcessor.trackLowMemory(event)
         Assert.assertEquals(1, attributeProcessorCalledCount)
-        Assert.assertEquals(1, transformerCalledCount)
     }
 
     @Test
-    fun `applies attributes and transformations to trim memory event`() {
+    fun `applies attributes to trim memory event`() {
         var attributeProcessorCalledCount = 0
         val attributeProcessor = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
                 attributeProcessorCalledCount++
-            }
-        }
-        var transformerCalledCount = 0
-        val transformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T> {
-                transformerCalledCount++
-                return event
             }
         }
         val eventProcessor: EventProcessor = EventProcessorImpl(
@@ -814,29 +654,20 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = listOf(attributeProcessor),
-            transformers = listOf(transformer)
         )
         val event = FakeEventFactory.getTrimMemoryData().toEvent(type = EventType.TRIM_MEMORY)
 
         // When
         eventProcessor.trackTrimMemory(event)
         Assert.assertEquals(1, attributeProcessorCalledCount)
-        Assert.assertEquals(1, transformerCalledCount)
     }
 
     @Test
-    fun `applies attributes and transformations to cpu usage event`() {
+    fun `applies attributes to cpu usage event`() {
         var attributeProcessorCalledCount = 0
         val attributeProcessor = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
                 attributeProcessorCalledCount++
-            }
-        }
-        var transformerCalledCount = 0
-        val transformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T> {
-                transformerCalledCount++
-                return event
             }
         }
         val eventProcessor: EventProcessor = EventProcessorImpl(
@@ -844,29 +675,20 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = listOf(attributeProcessor),
-            transformers = listOf(transformer)
         )
         val event = FakeEventFactory.getCpuUsageData().toEvent(type = EventType.CPU_USAGE)
 
         // When
         eventProcessor.trackCpuUsage(event)
         Assert.assertEquals(1, attributeProcessorCalledCount)
-        Assert.assertEquals(1, transformerCalledCount)
     }
 
     @Test
-    fun `applies attributes and transformations to navigation event`() {
+    fun `applies attributes to navigation event`() {
         var attributeProcessorCalledCount = 0
         val attributeProcessor = object : AttributeProcessor {
-            override fun appendAttributes(event: Event<*>) {
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
                 attributeProcessorCalledCount++
-            }
-        }
-        var transformerCalledCount = 0
-        val transformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T> {
-                transformerCalledCount++
-                return event
             }
         }
         val eventProcessor: EventProcessor = EventProcessorImpl(
@@ -874,13 +696,11 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             attributeProcessors = listOf(attributeProcessor),
-            transformers = listOf(transformer)
         )
         val event = FakeEventFactory.getNavigationData().toEvent(type = EventType.NAVIGATION)
 
         // When
         eventProcessor.trackNavigation(event)
         Assert.assertEquals(1, attributeProcessorCalledCount)
-        Assert.assertEquals(1, transformerCalledCount)
     }
 }

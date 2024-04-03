@@ -3,7 +3,6 @@ package sh.measure.android.fakes
 import sh.measure.android.applaunch.ColdLaunchData
 import sh.measure.android.applaunch.HotLaunchData
 import sh.measure.android.applaunch.WarmLaunchData
-import sh.measure.android.attachment.AttachmentInfo
 import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.exceptions.ExceptionData
