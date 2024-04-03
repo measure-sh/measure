@@ -6,12 +6,15 @@ import kotlinx.serialization.Serializable
  * Information about an attachment. This is used to maintain a log of attachments that have been
  * captured in a session.
  */
-@Serializable
 internal data class AttachmentInfo(
+    /**
+     * The unique identifier of the attachment.
+     */
+    val id: String,
     /**
      * The absolute path to the attachment in local storage.
      */
-    val absolutePath: String,
+    val path: String,
 
     /**
      * The name of the attachment. Example: "cold_launch_trace"
@@ -32,4 +35,9 @@ internal data class AttachmentInfo(
      * The time at which the attachment was captured, in milliseconds since epoch.
      */
     val timestamp: Long,
+
+    /**
+     * Attributes associated with the attachment.
+     */
+    val attributes: MutableMap<String, Any?> = mutableMapOf()
 )
