@@ -227,7 +227,7 @@ object Measure {
     }
 
     @VisibleForTesting
-    internal fun setEventTracker(tracker: EventProcessor) {
+    internal fun setEventProcessor(tracker: EventProcessor) {
         eventProcessor = tracker
     }
 

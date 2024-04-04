@@ -25,7 +25,7 @@ class ComposeNavigationCollectorTest {
     @Before
     fun setup() {
         tracker = FakeEventProcessor()
-        Measure.setEventTracker(tracker)
+        Measure.setEventProcessor(tracker)
         Measure.setTimeProvider(timeProvider)
     }
 
