@@ -13,15 +13,14 @@ internal class InstallationIdAttributeProcessor(
     private val prefsStorage: PrefsStorage,
     private val idProvider: IdProvider,
 ) : ComputeOnceAttributeProcessor() {
-    private val installationIdKey = "installation_id"
 
     override fun computeAttributes(): Map<String, Any?> {
         val installationId = prefsStorage.getInstallationId()
         if (installationId == null) {
             val newInstallationId = idProvider.createId()
             prefsStorage.setInstallationId(newInstallationId)
-            return mapOf(installationIdKey to newInstallationId)
+            return mapOf(Attribute.INSTALLATION_ID_KEY to newInstallationId)
         }
-        return mapOf(installationIdKey to installationId)
+        return mapOf(Attribute.INSTALLATION_ID_KEY to installationId)
     }
 }

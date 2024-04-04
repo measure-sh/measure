@@ -5,7 +5,7 @@ import kotlinx.serialization.json.Json
 import sh.measure.android.applaunch.ColdLaunchData
 import sh.measure.android.applaunch.HotLaunchData
 import sh.measure.android.applaunch.WarmLaunchData
-import sh.measure.android.attributes.SessionIdProvider
+import sh.measure.android.utils.SessionIdProvider
 import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
