@@ -105,6 +105,19 @@ export enum SessionReplayApiStatus {
     Error
 }
 
+export enum FetchAlertPrefsApiStatus {
+    Loading,
+    Success,
+    Error
+}
+
+export enum UpdateAlertPrefsApiStatus {
+    Init,
+    Loading,
+    Success,
+    Error
+}
+
 export const emptyTeam = { 'id': '', 'name': '' }
 
 export const emptyApp = {
@@ -520,7 +533,7 @@ export const emptySessionReplay = {
     }
 }
 
-export const emptyAlerts = {
+export const emptyAlertPrefs = {
     crash_rate_spike: {
         email: true,
         slack: false
@@ -958,4 +971,47 @@ export const removeMemberFromServer = async (teamId: string, memberId: string, r
     }
 
     return { status: RemoveMemberApiStatus.Success }
+}
+
+export const fetchAlertPrefsFromServer = async (appId: string, router: AppRouterInstance) => {
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+        headers: {
+            "Authorization": `Bearer ${authToken}`
+        }
+    };
+
+    const res = await fetch(`${origin}/apps/${appId}/alertPrefs`, opts);
+
+    if (!res.ok) {
+        logoutIfAuthError(router, res)
+        return { status: FetchAlertPrefsApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: FetchAlertPrefsApiStatus.Success, data: data }
+}
+
+export const updateAlertPrefsFromServer = async (appdId: string, alertPrefs: typeof emptyAlertPrefs, router: AppRouterInstance) => {
+    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+        method: 'PATCH',
+        headers: {
+            "Authorization": `Bearer ${authToken}`
+        },
+        body: JSON.stringify(alertPrefs)
+    };
+
+    const res = await fetch(`${origin}/apps/${appdId}/alertPrefs`, opts);
+    const data = await res.json()
+
+    if (!res.ok) {
+        logoutIfAuthError(router, res)
+        return { status: UpdateAlertPrefsApiStatus.Error, error: data.error }
+    }
+
+    return { status: UpdateAlertPrefsApiStatus.Success }
 }
