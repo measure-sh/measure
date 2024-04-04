@@ -2,6 +2,7 @@ package sh.measure.android.attributes
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import sh.measure.android.attachments.AttachmentInfo
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeEventFactory
 import sh.measure.android.fakes.FakeEventFactory.toEvent
@@ -31,6 +32,36 @@ class AttributeProcessorKtTest {
         assertEquals(true, event.attributes.containsValue("value1"))
         assertEquals(true, event.attributes.containsKey("key2"))
         assertEquals(true, event.attributes.containsValue("value2"))
+    }
+
+    @Test
+    fun `appends attributes to attachment`() {
+        val attachmentInfo = AttachmentInfo(
+            name = "name",
+            type = "type",
+            timestamp = 865789L,
+            extension = "extension",
+        )
+
+        val attributeProcessor1 = object : AttributeProcessor {
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
+                attributes["key1"] = "value1"
+            }
+        }
+        val attributeProcessor2 = object : AttributeProcessor {
+            override fun appendAttributes(attributes: MutableMap<String, Any?>) {
+                attributes["key2"] = "value2"
+            }
+        }
+
+        // When
+        attachmentInfo.appendAttributes(listOf(attributeProcessor1, attributeProcessor2))
+
+        // Then
+        assertEquals(true, attachmentInfo.attributes.containsKey("key1"))
+        assertEquals(true, attachmentInfo.attributes.containsValue("value1"))
+        assertEquals(true, attachmentInfo.attributes.containsKey("key2"))
+        assertEquals(true, attachmentInfo.attributes.containsValue("value2"))
     }
 
     @Test

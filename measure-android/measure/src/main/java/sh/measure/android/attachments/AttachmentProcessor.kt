@@ -3,6 +3,8 @@ package sh.measure.android.attachments
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.appendAttributes
 import sh.measure.android.executors.MeasureExecutorService
+import sh.measure.android.logger.LogLevel
+import sh.measure.android.logger.Logger
 
 internal interface AttachmentProcessor {
     /**
@@ -13,6 +15,7 @@ internal interface AttachmentProcessor {
 }
 
 internal class AttachmentProcessorImpl(
+    private val logger: Logger,
     private val executorService: MeasureExecutorService,
     private val attachmentStore: AttachmentStore,
     private val attributeProcessors: List<AttributeProcessor>,
@@ -24,6 +27,7 @@ internal class AttachmentProcessorImpl(
             executorService.submit {
                 attachmentInfo.appendAttributes(attributeProcessors)
                 attachmentStore.storeAttachment(path, attachmentInfo)
+                logger.log(LogLevel.Debug, "Attachment created = ${attachmentInfo.type}")
             }
         }
         return path
