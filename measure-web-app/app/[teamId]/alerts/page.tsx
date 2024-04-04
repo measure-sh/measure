@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import CreateApp from '@/app/components/create_app';
-import { AppsApiStatus, emptyAlerts, emptyApp, fetchAppsFromServer } from '@/app/api/api_calls';
+import { AppsApiStatus, FetchAlertPrefsApiStatus, UpdateAlertPrefsApiStatus, emptyAlertPrefs, emptyApp, fetchAlertPrefsFromServer, fetchAppsFromServer, updateAlertPrefsFromServer } from '@/app/api/api_calls';
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select';
 import Link from 'next/link';
 
@@ -11,14 +11,18 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   const router = useRouter()
 
   const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading);
+  const [fetchAlertPrefsApiStatus, setFetchAlertPrefsApiStatus] = useState(FetchAlertPrefsApiStatus.Loading);
+  const [updateAlertPrefsApiStatus, setUpdateAlertPrefsApiStatus] = useState(UpdateAlertPrefsApiStatus.Init);
 
   const [apps, setApps] = useState([] as typeof emptyApp[]);
   const [selectedApp, setSelectedApp] = useState(emptyApp);
 
   const [slackConnected, setSlackConnected] = useState(false)
 
-  const [alerts, setAlerts] = useState(emptyAlerts);
-  const [updatedAlerts, setUpdatedAlerts] = useState(emptyAlerts);
+  const [alertPrefs, setAlertPrefs] = useState(emptyAlertPrefs);
+  const [updatedAlertPrefs, setUpdatedAlertPrefs] = useState(emptyAlertPrefs);
+
+  const [updatePrefsMsg, setUpdatePrefsMsg] = useState("");
 
   interface AlertState {
     email: boolean;
@@ -40,21 +44,21 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   }
 
   const handleEmailChange = (alertKey: keyof UpdatedAlertsState) => {
-    setUpdatedAlerts((prevAlerts) => ({
-      ...prevAlerts,
+    setUpdatedAlertPrefs((prevAlertPrefs) => ({
+      ...prevAlertPrefs,
       [alertKey]: {
-        ...prevAlerts[alertKey],
-        email: !prevAlerts[alertKey].email,
+        ...prevAlertPrefs[alertKey],
+        email: !prevAlertPrefs[alertKey].email,
       },
     }));
   };
 
   const handleSlackChange = (alertKey: keyof UpdatedAlertsState) => {
-    setUpdatedAlerts((prevAlerts) => ({
-      ...prevAlerts,
+    setUpdatedAlertPrefs((prevAlertPrefs) => ({
+      ...prevAlertPrefs,
       [alertKey]: {
-        ...prevAlerts[alertKey],
-        slack: !prevAlerts[alertKey].slack,
+        ...prevAlertPrefs[alertKey],
+        slack: !prevAlertPrefs[alertKey].slack,
       },
     }));
   };
@@ -94,6 +98,29 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     )
   }
 
+  const areAlertPrefsSame = (a: typeof emptyAlertPrefs, b: typeof emptyAlertPrefs) => {
+    if (a.anr_rate_spike.email != b.anr_rate_spike.email) {
+      return false
+    }
+    if (a.anr_rate_spike.slack != b.anr_rate_spike.slack) {
+      return false
+    }
+    if (a.crash_rate_spike.email != b.crash_rate_spike.email) {
+      return false
+    }
+    if (a.crash_rate_spike.slack != b.crash_rate_spike.slack) {
+      return false
+    }
+    if (a.launch_time_spike.email != b.launch_time_spike.email) {
+      return false
+    }
+    if (a.launch_time_spike.slack != b.launch_time_spike.slack) {
+      return false
+    }
+
+    return true
+  }
+
   const getApps = async () => {
     setAppsApiStatus(AppsApiStatus.Loading)
 
@@ -118,27 +145,42 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     getApps()
   }, []);
 
-  const arePrefsSame = (a: typeof emptyAlerts, b: typeof emptyAlerts) => {
-    if (a.anr_rate_spike.email != b.anr_rate_spike.email) {
-      return false
-    }
-    if (a.anr_rate_spike.slack != b.anr_rate_spike.slack) {
-      return false
-    }
-    if (a.crash_rate_spike.email != b.crash_rate_spike.email) {
-      return false
-    }
-    if (a.crash_rate_spike.slack != b.crash_rate_spike.slack) {
-      return false
-    }
-    if (a.launch_time_spike.email != b.launch_time_spike.email) {
-      return false
-    }
-    if (a.launch_time_spike.slack != b.launch_time_spike.slack) {
-      return false
-    }
+  const getAlertPrefs = async () => {
+    setFetchAlertPrefsApiStatus(FetchAlertPrefsApiStatus.Loading)
 
-    return true
+    const result = await fetchAlertPrefsFromServer(selectedApp.id, router)
+
+    switch (result.status) {
+      case FetchAlertPrefsApiStatus.Error:
+        setFetchAlertPrefsApiStatus(FetchAlertPrefsApiStatus.Error)
+        break
+      case FetchAlertPrefsApiStatus.Success:
+        setFetchAlertPrefsApiStatus(FetchAlertPrefsApiStatus.Success)
+        setAlertPrefs(result.data)
+        break
+    }
+  }
+
+  useEffect(() => {
+    getAlertPrefs()
+  }, [selectedApp]);
+
+  const saveAlertPrefs = async () => {
+    setUpdateAlertPrefsApiStatus(UpdateAlertPrefsApiStatus.Loading)
+    setUpdatePrefsMsg("Saving...")
+
+    const result = await updateAlertPrefsFromServer(selectedApp.id, updatedAlertPrefs, router)
+
+    switch (result.status) {
+      case UpdateAlertPrefsApiStatus.Error:
+        setUpdateAlertPrefsApiStatus(UpdateAlertPrefsApiStatus.Error)
+        setUpdatePrefsMsg(result.error)
+        break
+      case UpdateAlertPrefsApiStatus.Success:
+        setUpdateAlertPrefsApiStatus(UpdateAlertPrefsApiStatus.Success)
+        setUpdatePrefsMsg("Alert preferences saved!")
+        break
+    }
   }
 
   return (
@@ -165,38 +207,45 @@ export default function Overview({ params }: { params: { teamId: string } }) {
           {!slackConnected && <Link href={`https://slack.com/apps/placeholderId`} className="outline-none justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Connect Slack</Link>}
           <div className="py-4" />
 
-          <div className="table font-sans">
-            <div className="table-header-group ">
-              <div className="table-row">
-                <div className="table-cell py-2 font-display">Alert type</div>
-                <div className="table-cell px-8 py-2 font-display text-center">Email</div>
-                <div className="table-cell px-8 py-2 font-display text-center">Slack</div>
+          {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Loading && <p className='font-sans'> Fetching alert preferences...</p>}
+          {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Error && <p className='font-sans'> Failed to fetch alert preferences. Please change selected app or refresh page to try again</p>}
+          {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Success &&
+            <div>
+              <div className="table font-sans">
+                <div className="table-header-group ">
+                  <div className="table-row">
+                    <div className="table-cell py-2 font-display">Alert type</div>
+                    <div className="table-cell px-8 py-2 font-display text-center">Email</div>
+                    <div className="table-cell px-8 py-2 font-display text-center">Slack</div>
+                  </div>
+                </div>
+                <AlertRow
+                  rowTitle="Crash Rate Spike"
+                  emailChecked={updatedAlertPrefs.crash_rate_spike.email}
+                  slackChecked={updatedAlertPrefs.crash_rate_spike.slack}
+                  handleEmailChange={() => handleEmailChange('crash_rate_spike')}
+                  handleSlackChange={() => handleSlackChange('crash_rate_spike')}
+                />
+                <AlertRow
+                  rowTitle="ANR Rate Spike"
+                  emailChecked={updatedAlertPrefs.anr_rate_spike.email}
+                  slackChecked={updatedAlertPrefs.anr_rate_spike.slack}
+                  handleEmailChange={() => handleEmailChange('anr_rate_spike')}
+                  handleSlackChange={() => handleSlackChange('anr_rate_spike')}
+                />
+                <AlertRow
+                  rowTitle="Launch Time Spike"
+                  emailChecked={updatedAlertPrefs.launch_time_spike.email}
+                  slackChecked={updatedAlertPrefs.launch_time_spike.slack}
+                  handleEmailChange={() => handleEmailChange('launch_time_spike')}
+                  handleSlackChange={() => handleSlackChange('launch_time_spike')}
+                />
               </div>
-            </div>
-            <AlertRow
-              rowTitle="Crash Rate Spike"
-              emailChecked={updatedAlerts.crash_rate_spike.email}
-              slackChecked={updatedAlerts.crash_rate_spike.slack}
-              handleEmailChange={() => handleEmailChange('crash_rate_spike')}
-              handleSlackChange={() => handleSlackChange('crash_rate_spike')}
-            />
-            <AlertRow
-              rowTitle="ANR Rate Spike"
-              emailChecked={updatedAlerts.anr_rate_spike.email}
-              slackChecked={updatedAlerts.anr_rate_spike.slack}
-              handleEmailChange={() => handleEmailChange('anr_rate_spike')}
-              handleSlackChange={() => handleSlackChange('anr_rate_spike')}
-            />
-            <AlertRow
-              rowTitle="Launch Time Spike"
-              emailChecked={updatedAlerts.launch_time_spike.email}
-              slackChecked={updatedAlerts.launch_time_spike.slack}
-              handleEmailChange={() => handleEmailChange('launch_time_spike')}
-              handleSlackChange={() => handleSlackChange('launch_time_spike')}
-            />
-          </div>
-          <div className="py-4" />
-          <button disabled={arePrefsSame(alerts, updatedAlerts)} className="outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => { }}>Save</button>
+              <div className="py-4" />
+              <button disabled={areAlertPrefsSame(alertPrefs, updatedAlertPrefs) || updateAlertPrefsApiStatus === UpdateAlertPrefsApiStatus.Loading} className="outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={saveAlertPrefs}>Save</button>
+              <div className="py-1" />
+              {updateAlertPrefsApiStatus !== UpdateAlertPrefsApiStatus.Init && <p className="text-sm font-sans">{updatePrefsMsg}</p>}
+            </div>}
         </div>}
     </div>
   )
