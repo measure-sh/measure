@@ -5,6 +5,7 @@ import kotlinx.serialization.json.Json
 import sh.measure.android.applaunch.ColdLaunchData
 import sh.measure.android.applaunch.HotLaunchData
 import sh.measure.android.applaunch.WarmLaunchData
+import sh.measure.android.attributes.SessionIdProvider
 import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
@@ -51,6 +52,7 @@ internal class EventStoreImpl(
     private val fileStorage: FileStorage,
     private val database: Database,
     private val idProvider: IdProvider,
+    private val sessionIdProvider: SessionIdProvider,
 ) : EventStore {
     override fun storeUnhandledException(event: Event<ExceptionData>) {
         storeExceptionEvent(event)
@@ -140,7 +142,8 @@ internal class EventStoreImpl(
                     id = eventId,
                     type = event.type,
                     timestamp = event.timestamp,
-                    filePath = path
+                    filePath = path,
+                    sessionId = sessionIdProvider.sessionId
                 )
             )
         }
@@ -153,7 +156,8 @@ internal class EventStoreImpl(
                 id = eventId,
                 type = event.type,
                 timestamp = event.timestamp,
-                serializedData = Json.encodeToString(serializer, event.data)
+                serializedData = Json.encodeToString(serializer, event.data),
+                sessionId = sessionIdProvider.sessionId
             )
         )
     }

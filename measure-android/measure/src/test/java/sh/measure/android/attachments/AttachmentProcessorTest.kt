@@ -7,13 +7,16 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.fakes.FakeAttachmentStore
+import sh.measure.android.fakes.FakeSessionIdProvider
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.ImmediateExecutorService
+import sh.measure.android.fakes.NoopLogger
 
 class AttachmentProcessorTest {
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val timeProvider = FakeTimeProvider()
     private val attachmentStore = FakeAttachmentStore()
+    private val logger = NoopLogger()
 
     @Test
     fun `stores attachment and returns a non-null path`() {
@@ -25,7 +28,7 @@ class AttachmentProcessorTest {
         )
 
         val processor = AttachmentProcessorImpl(
-            executorService, attachmentStore, emptyList()
+            logger, executorService, attachmentStore, emptyList()
         )
         val path = processor.createMethodTrace(attachmentInfo)
 
@@ -49,7 +52,7 @@ class AttachmentProcessorTest {
         }
 
         AttachmentProcessorImpl(
-            executorService, attachmentStore, listOf(attributeProcessor)
+            logger, executorService, attachmentStore, listOf(attributeProcessor)
         ).apply {
             createMethodTrace(attachmentInfo)
         }
@@ -68,7 +71,7 @@ class AttachmentProcessorTest {
         attachmentStore.createMethodTraceReturnValue = null
 
         val processor = AttachmentProcessorImpl(
-            executorService, attachmentStore, emptyList()
+            logger, executorService, attachmentStore, emptyList()
         )
         val path = processor.createMethodTrace(attachmentInfo)
 

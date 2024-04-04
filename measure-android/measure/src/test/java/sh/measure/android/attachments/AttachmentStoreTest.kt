@@ -6,12 +6,14 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.verify
 import sh.measure.android.fakes.FakeIdProvider
+import sh.measure.android.fakes.FakeSessionIdProvider
 import sh.measure.android.storage.AttachmentEntity
 import sh.measure.android.storage.Database
 import sh.measure.android.storage.FileStorage
 
 class AttachmentStoreTest {
     private val idProvider = FakeIdProvider()
+    private val sessionIdProvider = FakeSessionIdProvider()
     private val database = mock<Database>()
     private val fileStorage = mock<FileStorage>()
 
@@ -19,6 +21,7 @@ class AttachmentStoreTest {
         idProvider = idProvider,
         database = database,
         fileStorage = fileStorage,
+        sessionIdProvider = sessionIdProvider
     )
 
     @Test
@@ -61,6 +64,7 @@ class AttachmentStoreTest {
                 extension = attachmentInfo.extension,
                 type = attachmentInfo.type,
                 timestamp = attachmentInfo.timestamp,
+                sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = "{\"key\":\"value\"}"
             )
         )
