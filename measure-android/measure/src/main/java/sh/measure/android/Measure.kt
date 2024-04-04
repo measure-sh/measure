@@ -12,6 +12,7 @@ import sh.measure.android.attributes.AppAttributeProcessor
 import sh.measure.android.attributes.DeviceAttributeProcessor
 import sh.measure.android.attributes.InstallationIdAttributeProcessor
 import sh.measure.android.attributes.NetworkStateAttributeProcessor
+import sh.measure.android.attributes.SessionIdProviderImpl
 import sh.measure.android.attributes.UserAttributeProcessor
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventProcessorImpl
@@ -100,10 +101,11 @@ object Measure {
         val installationIdAttributeGenerator =
             InstallationIdAttributeProcessor(prefsStorage, idProvider)
 
+        val sessionIdProvider = SessionIdProviderImpl(idProvider)
         val fileStorage: FileStorage = FileStorageImpl(context.filesDir.path, logger)
         val database: Database = DatabaseImpl(context, logger)
         val eventStorage = EventStoreImpl(
-            logger, fileStorage, database, idProvider
+            logger, fileStorage, database, idProvider, sessionIdProvider
         )
 
         val globalAttributeProcessors = listOf(
@@ -120,7 +122,8 @@ object Measure {
             AttachmentStoreImpl(
                 idProvider,
                 database,
-                fileStorage
+                fileStorage,
+                sessionIdProvider
             ),
             globalAttributeProcessors,
         )

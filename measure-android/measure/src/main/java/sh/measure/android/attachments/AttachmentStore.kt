@@ -2,6 +2,7 @@ package sh.measure.android.attachments
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import sh.measure.android.attributes.SessionIdProvider
 import sh.measure.android.storage.AttachmentEntity
 import sh.measure.android.storage.Database
 import sh.measure.android.storage.FileStorage
@@ -16,7 +17,8 @@ internal interface AttachmentStore {
 internal class AttachmentStoreImpl(
     private val idProvider: IdProvider,
     private val database: Database,
-    private val fileStorage: FileStorage
+    private val fileStorage: FileStorage,
+    private val sessionIdProvider: SessionIdProvider,
 ) : AttachmentStore {
     override fun createMethodTraceFile(attachmentInfo: AttachmentInfo): String? {
         return fileStorage.createAttachmentFile(attachmentInfo.name)
@@ -31,6 +33,7 @@ internal class AttachmentStoreImpl(
                 extension = attachmentInfo.extension,
                 type = attachmentInfo.type,
                 timestamp = attachmentInfo.timestamp,
+                sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = Json.encodeToString(
                     JsonElement.serializer(),
                     attachmentInfo.attributes.toJsonElement()

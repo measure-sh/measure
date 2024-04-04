@@ -7,10 +7,9 @@ internal data class EventEntity(
     val id: String,
     val type: String,
     val timestamp: Long,
-    // TODO: add session ID
-    val sessionId: String = "invalid-id",
+    val sessionId: String,
     val filePath: String? = null,
-    val serializedData: String? = null
+    val serializedData: String? = null,
 ) {
     init {
         require(filePath != null || serializedData != null) {
@@ -33,6 +32,7 @@ internal data class AttachmentEntity(
     val extension: String?,
     val type: String,
     val timestamp: Long,
+    val sessionId: String,
     // Serialized attributes of the attachment
     val serializedAttributes: String
 )

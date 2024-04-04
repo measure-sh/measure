@@ -12,6 +12,7 @@ import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeEventFactory
 import sh.measure.android.fakes.FakeIdProvider
+import sh.measure.android.fakes.FakeSessionIdProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.gestures.ClickData
 import sh.measure.android.gestures.LongClickData
@@ -32,9 +33,10 @@ internal class EventStoreTest {
     private val fileStorage = mock<FileStorage>()
     private val database = mock<Database>()
     private val idProvider = FakeIdProvider()
+    private val sessionIdProvider = FakeSessionIdProvider()
 
     private val eventStore: EventStore = EventStoreImpl(
-        logger, fileStorage, database, idProvider
+        logger, fileStorage, database, idProvider, sessionIdProvider,
     )
 
     @Test
@@ -57,7 +59,8 @@ internal class EventStoreTest {
                 id = eventId,
                 type = EventType.EXCEPTION,
                 timestamp = event.timestamp,
-                filePath = eventId
+                filePath = eventId,
+                sessionId = sessionIdProvider.sessionId,
             )
         )
     }
@@ -82,7 +85,8 @@ internal class EventStoreTest {
                 id = eventId,
                 type = EventType.ANR,
                 timestamp = event.timestamp,
-                filePath = eventId
+                filePath = eventId,
+                sessionId = sessionIdProvider.sessionId,
             )
         )
     }
@@ -105,7 +109,8 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.CLICK,
                 timestamp = event.timestamp,
-                serializedData = Json.encodeToString(ClickData.serializer(), event.data)
+                serializedData = Json.encodeToString(ClickData.serializer(), event.data),
+                sessionId = sessionIdProvider.sessionId,
             )
         )
     }
@@ -128,7 +133,8 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.LONG_CLICK,
                 timestamp = event.timestamp,
-                serializedData = Json.encodeToString(LongClickData.serializer(), event.data)
+                serializedData = Json.encodeToString(LongClickData.serializer(), event.data),
+                sessionId = sessionIdProvider.sessionId
             )
         )
     }
@@ -151,7 +157,8 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.SCROLL,
                 timestamp = event.timestamp,
-                serializedData = Json.encodeToString(ScrollData.serializer(), event.data)
+                serializedData = Json.encodeToString(ScrollData.serializer(), event.data),
+                sessionId = sessionIdProvider.sessionId
             )
         )
     }
@@ -174,7 +181,8 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.LIFECYCLE_ACTIVITY,
                 timestamp = event.timestamp,
-                serializedData = Json.encodeToString(ActivityLifecycleData.serializer(), event.data)
+                serializedData = Json.encodeToString(ActivityLifecycleData.serializer(), event.data),
+                sessionId = sessionIdProvider.sessionId
             )
         )
     }
@@ -197,7 +205,8 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.LIFECYCLE_FRAGMENT,
                 timestamp = event.timestamp,
-                serializedData = Json.encodeToString(FragmentLifecycleData.serializer(), event.data)
+                serializedData = Json.encodeToString(FragmentLifecycleData.serializer(), event.data),
+                sessionId = sessionIdProvider.sessionId
             )
         )
     }
@@ -220,10 +229,8 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.LIFECYCLE_APP,
                 timestamp = event.timestamp,
-                serializedData = Json.encodeToString(
-                    ApplicationLifecycleData.serializer(),
-                    event.data
-                )
+                serializedData = Json.encodeToString(ApplicationLifecycleData.serializer(), event.data),
+                sessionId = sessionIdProvider.sessionId
             )
         )
     }
@@ -246,7 +253,8 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.COLD_LAUNCH,
                 timestamp = event.timestamp,
-                serializedData = Json.encodeToString(ColdLaunchData.serializer(), event.data)
+                serializedData = Json.encodeToString(ColdLaunchData.serializer(), event.data),
+                sessionId = sessionIdProvider.sessionId
             )
         )
     }
@@ -269,7 +277,8 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.WARM_LAUNCH,
                 timestamp = event.timestamp,
-                serializedData = Json.encodeToString(WarmLaunchData.serializer(), event.data)
+                serializedData = Json.encodeToString(WarmLaunchData.serializer(), event.data),
+                sessionId = sessionIdProvider.sessionId
             )
         )
     }
@@ -292,7 +301,8 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.HOT_LAUNCH,
                 timestamp = event.timestamp,
-                serializedData = Json.encodeToString(HotLaunchData.serializer(), event.data)
+                serializedData = Json.encodeToString(HotLaunchData.serializer(), event.data),
+                sessionId = sessionIdProvider.sessionId
             )
         )
     }
@@ -315,7 +325,8 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.NETWORK_CHANGE,
                 timestamp = event.timestamp,
-                serializedData = Json.encodeToString(NetworkChangeData.serializer(), event.data)
+                serializedData = Json.encodeToString(NetworkChangeData.serializer(), event.data),
+                sessionId = sessionIdProvider.sessionId
             )
         )
     }
@@ -338,7 +349,8 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.HTTP,
                 timestamp = event.timestamp,
-                serializedData = Json.encodeToString(HttpData.serializer(), event.data)
+                serializedData = Json.encodeToString(HttpData.serializer(), event.data),
+                sessionId = sessionIdProvider.sessionId
             )
         )
     }
@@ -361,7 +373,8 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.MEMORY_USAGE,
                 timestamp = event.timestamp,
-                serializedData = Json.encodeToString(MemoryUsageData.serializer(), event.data)
+                serializedData = Json.encodeToString(MemoryUsageData.serializer(), event.data),
+                sessionId = sessionIdProvider.sessionId
             )
         )
     }
@@ -384,7 +397,8 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.LOW_MEMORY,
                 timestamp = event.timestamp,
-                serializedData = Json.encodeToString(LowMemoryData.serializer(), event.data)
+                serializedData = Json.encodeToString(LowMemoryData.serializer(), event.data),
+                sessionId = sessionIdProvider.sessionId
             )
         )
     }
@@ -407,7 +421,8 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.TRIM_MEMORY,
                 timestamp = event.timestamp,
-                serializedData = Json.encodeToString(TrimMemoryData.serializer(), event.data)
+                serializedData = Json.encodeToString(TrimMemoryData.serializer(), event.data),
+                sessionId = sessionIdProvider.sessionId
             )
         )
     }
@@ -430,7 +445,8 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.CPU_USAGE,
                 timestamp = event.timestamp,
-                serializedData = Json.encodeToString(CpuUsageData.serializer(), event.data)
+                serializedData = Json.encodeToString(CpuUsageData.serializer(), event.data),
+                sessionId = sessionIdProvider.sessionId
             )
         )
     }
@@ -453,7 +469,8 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.NAVIGATION,
                 timestamp = event.timestamp,
-                serializedData = Json.encodeToString(NavigationData.serializer(), event.data)
+                serializedData = Json.encodeToString(NavigationData.serializer(), event.data),
+                sessionId = sessionIdProvider.sessionId
             )
         )
     }
