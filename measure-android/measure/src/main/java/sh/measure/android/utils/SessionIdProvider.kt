@@ -1,6 +1,4 @@
-package sh.measure.android.attributes
-
-import sh.measure.android.utils.IdProvider
+package sh.measure.android.utils
 
 internal interface SessionIdProvider {
     val sessionId: String

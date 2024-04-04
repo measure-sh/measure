@@ -12,7 +12,7 @@ import sh.measure.android.attributes.AppAttributeProcessor
 import sh.measure.android.attributes.DeviceAttributeProcessor
 import sh.measure.android.attributes.InstallationIdAttributeProcessor
 import sh.measure.android.attributes.NetworkStateAttributeProcessor
-import sh.measure.android.attributes.SessionIdProviderImpl
+import sh.measure.android.utils.SessionIdProviderImpl
 import sh.measure.android.attributes.UserAttributeProcessor
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventProcessorImpl

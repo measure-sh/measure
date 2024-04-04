@@ -16,39 +16,25 @@ internal class DeviceAttributeProcessor(
     private val context: Context,
     private val localeProvider: LocaleProvider,
 ) : ComputeOnceAttributeProcessor() {
-    private val deviceNameKey = "device_name"
-    private val deviceModelKey = "device_model"
-    private val deviceManufacturerKey = "device_manufacturer"
-    private val deviceTypeKey = "device_type"
-    private val deviceIsFoldableKey = "device_is_foldable"
-    private val deviceIsPhysicalKey = "device_is_physical"
-    private val deviceDensityDpiKey = "device_density_dpi"
-    private val deviceWidthPxKey = "device_width_px"
-    private val deviceHeightPxKey = "device_height_px"
-    private val deviceDensityKey = "device_density"
-    private val deviceLocaleKey = "device_locale"
-    private val osNameKey = "os_name"
-    private val osVersionKey = "os_version"
-    private val platformKey = "platform"
     private val configuration = context.resources.configuration
     private val resources = context.resources
 
     override fun computeAttributes(): Map<String, Any?> {
         return mapOf(
-            deviceNameKey to Build.DEVICE,
-            deviceModelKey to Build.MODEL,
-            deviceManufacturerKey to Build.MANUFACTURER,
-            deviceTypeKey to getDeviceType(),
-            deviceIsFoldableKey to isFoldable(),
-            deviceIsPhysicalKey to isPhysical(),
-            deviceDensityDpiKey to configuration.densityDpi,
-            deviceWidthPxKey to resources.displayMetrics.widthPixels,
-            deviceHeightPxKey to resources.displayMetrics.heightPixels,
-            deviceDensityKey to resources.displayMetrics.density,
-            deviceLocaleKey to getDeviceLocale(),
-            osNameKey to "android",
-            osVersionKey to Build.VERSION.SDK_INT.toString(),
-            platformKey to "android",
+            Attribute.DEVICE_NAME_KEY to Build.DEVICE,
+            Attribute.DEVICE_MODEL_KEY to Build.MODEL,
+            Attribute.DEVICE_MANUFACTURER_KEY to Build.MANUFACTURER,
+            Attribute.DEVICE_TYPE_KEY to getDeviceType(),
+            Attribute.DEVICE_IS_FOLDABLE_KEY to isFoldable(),
+            Attribute.DEVICE_IS_PHYSICAL_KEY to isPhysical(),
+            Attribute.DEVICE_DENSITY_DPI_KEY to configuration.densityDpi,
+            Attribute.DEVICE_WIDTH_PX_KEY to resources.displayMetrics.widthPixels,
+            Attribute.DEVICE_HEIGHT_PX_KEY to resources.displayMetrics.heightPixels,
+            Attribute.DEVICE_DENSITY_KEY to resources.displayMetrics.density,
+            Attribute.DEVICE_LOCALE_KEY to getDeviceLocale(),
+            Attribute.OS_NAME_KEY to "android",
+            Attribute.OS_VERSION_KEY to Build.VERSION.SDK_INT.toString(),
+            Attribute.PLATFORM_KEY to "android",
         )
     }
 

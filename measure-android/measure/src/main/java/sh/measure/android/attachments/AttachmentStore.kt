@@ -2,7 +2,7 @@ package sh.measure.android.attachments
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
-import sh.measure.android.attributes.SessionIdProvider
+import sh.measure.android.utils.SessionIdProvider
 import sh.measure.android.storage.AttachmentEntity
 import sh.measure.android.storage.Database
 import sh.measure.android.storage.FileStorage

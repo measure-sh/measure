@@ -3,6 +3,7 @@ package sh.measure.android.events
 import sh.measure.android.applaunch.ColdLaunchData
 import sh.measure.android.applaunch.HotLaunchData
 import sh.measure.android.applaunch.WarmLaunchData
+import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.appendAttributes
 import sh.measure.android.exceptions.ExceptionData
@@ -26,8 +27,8 @@ import sh.measure.android.storage.EventStore
 
 /**
  * An event processor is responsible for taking an input event from the Measure SDK and
- * processing it by applying [Transformer]s and [AttributeProcessor]s. The processed
- * event is then passed on to the [EventStore] for storage.
+ * processing it by applying [AttributeProcessor]s. The processed event is then passed on to the
+ * [EventStore] for storage.
  *
  * All methods in this class are expected to be called from different threads. All processing is
  * done asynchronously to avoid blocking the calling thread, except for exceptions and ANRs to
@@ -85,74 +86,103 @@ internal class EventProcessorImpl(
     }
 
     override fun trackUnhandledException(event: Event<ExceptionData>) {
+        addThreadNameAttribute(event)
+        addThreadNameAttribute(event)
         processEvent(event, eventStore::storeUnhandledException, false)
     }
 
     override fun trackAnr(event: Event<ExceptionData>) {
+        addThreadNameAttribute(event)
         processEvent(event, eventStore::storeAnr, false)
     }
 
     override fun trackClick(event: Event<ClickData>) {
+        addThreadNameAttribute(event)
         processEvent(event, eventStore::storeClick)
     }
 
     override fun trackLongClick(event: Event<LongClickData>) {
+        addThreadNameAttribute(event)
         processEvent(event, eventStore::storeLongClick)
     }
 
     override fun trackScroll(event: Event<ScrollData>) {
+        addThreadNameAttribute(event)
         processEvent(event, eventStore::storeScroll)
     }
 
     override fun trackActivityLifecycle(event: Event<ActivityLifecycleData>) {
+        addThreadNameAttribute(event)
         processEvent(event, eventStore::storeActivityLifecycle)
     }
 
     override fun trackFragmentLifecycle(event: Event<FragmentLifecycleData>) {
+        addThreadNameAttribute(event)
         processEvent(event, eventStore::storeFragmentLifecycle)
     }
 
     override fun trackApplicationLifecycle(event: Event<ApplicationLifecycleData>) {
+        addThreadNameAttribute(event)
         processEvent(event, eventStore::storeApplicationLifecycle)
     }
 
     override fun trackColdLaunch(event: Event<ColdLaunchData>) {
+        addThreadNameAttribute(event)
         processEvent(event, eventStore::storeColdLaunch)
     }
 
     override fun trackWarmLaunch(event: Event<WarmLaunchData>) {
+        addThreadNameAttribute(event)
         processEvent(event, eventStore::storeWarmLaunch)
     }
 
     override fun trackHotLaunch(event: Event<HotLaunchData>) {
+        addThreadNameAttribute(event)
         processEvent(event, eventStore::storeHotLaunch)
     }
 
     override fun trackNetworkChange(event: Event<NetworkChangeData>) {
+        addThreadNameAttribute(event)
         processEvent(event, eventStore::storeNetworkChange)
     }
 
     override fun trackHttp(event: Event<HttpData>) {
+        addThreadNameAttribute(event)
         processEvent(event, eventStore::storeHttp)
     }
 
     override fun trackMemoryUsage(event: Event<MemoryUsageData>) {
+        addThreadNameAttribute(event)
         processEvent(event, eventStore::storeMemoryUsage)
     }
 
     override fun trackLowMemory(event: Event<LowMemoryData>) {
+        addThreadNameAttribute(event)
         processEvent(event, eventStore::storeLowMemory)
     }
 
     override fun trackTrimMemory(event: Event<TrimMemoryData>) {
+        addThreadNameAttribute(event)
         processEvent(event, eventStore::storeTrimMemory)
     }
 
     override fun trackCpuUsage(event: Event<CpuUsageData>) {
+        addThreadNameAttribute(event)
         processEvent(event, eventStore::storeCpuUsage)
     }
 
     override fun trackNavigation(event: Event<NavigationData>) {
+        addThreadNameAttribute(event)
         processEvent(event, eventStore::storeNavigation)
+    }
+
+    /**
+     * This is a bit hacky because of the unique nature of Thread Name and [AttributeProcessor] does
+     * not support it:
+     * 1. It's the only attribute without an [AttributeProcessor].
+     * 2. It is the only attribute which has to be processed on the same thread as the event was triggered on.
+     */
+    private fun addThreadNameAttribute(event: Event<*>) {
+        event.attributes[Attribute.THREAD_NAME] = Thread.currentThread().name
     }
 }

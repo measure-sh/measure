@@ -9,10 +9,6 @@ import sh.measure.android.networkchange.NetworkInfoProvider
 internal class NetworkStateAttributeProcessor(
     private val networkInfoProvider: NetworkInfoProvider,
 ) : AttributeProcessor {
-    private val networkTypeKey = "network_type"
-    private val networkGenerationKey = "network_generation"
-    private val networkProviderNameKey = "network_provider_name"
-
     private var networkType: String? = null
     private var networkGeneration: String? = null
     private var networkProviderName: String? = null
@@ -20,9 +16,9 @@ internal class NetworkStateAttributeProcessor(
     override fun appendAttributes(attributes: MutableMap<String, Any?>) {
         computeAttributes()
         attributes.apply {
-            put(networkTypeKey, networkType)
-            put(networkGenerationKey, networkGeneration)
-            put(networkProviderNameKey, networkProviderName)
+            put(Attribute.NETWORK_TYPE_KEY, networkType)
+            put(Attribute.NETWORK_GENERATION_KEY, networkGeneration)
+            put(Attribute.NETWORK_PROVIDER_NAME_KEY, networkProviderName)
         }
     }
 
