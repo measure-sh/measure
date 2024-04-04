@@ -115,6 +115,7 @@ object Measure {
         )
 
         val attachmentProcessor = AttachmentProcessorImpl(
+            logger,
             executorService,
             AttachmentStoreImpl(
                 idProvider,
