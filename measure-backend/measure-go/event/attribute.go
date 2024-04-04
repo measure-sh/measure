@@ -107,6 +107,7 @@ type Attribute struct {
 func (a Attribute) Validate() error {
 	const (
 		maxThreadNameChars         = 64
+		maxUserIDChars             = 128
 		maxDeviceNameChars         = 32
 		maxDeviceModelChars        = 32
 		maxDeviceManufacturerChars = 32
@@ -144,6 +145,9 @@ func (a Attribute) Validate() error {
 	}
 	if len(a.ThreadName) > maxThreadNameChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.thread_name`, maxThreadNameChars)
+	}
+	if len(a.UserID) > maxUserIDChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.user_id`, maxUserIDChars)
 	}
 	if len(a.DeviceName) > maxDeviceNameChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.device_name`, maxDeviceNameChars)
