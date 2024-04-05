@@ -157,6 +157,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
       case FetchAlertPrefsApiStatus.Success:
         setFetchAlertPrefsApiStatus(FetchAlertPrefsApiStatus.Success)
         setAlertPrefs(result.data)
+        setUpdatedAlertPrefs(result.data)
         break
     }
   }
