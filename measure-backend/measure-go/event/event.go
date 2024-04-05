@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"measure-backend/measure-go/chrono"
 	"measure-backend/measure-go/text"
+	"net"
 	"slices"
 	"strconv"
 	"strings"
@@ -17,7 +18,6 @@ import (
 // maximum character limits for event fields
 const (
 	maxTypeChars                              = 32
-	maxThreadNameChars                        = 64
 	maxExceptionDeviceLocaleChars             = 64
 	maxAnrDeviceLocaleChars                   = 64
 	maxAppExitReasonChars                     = 64
@@ -49,7 +49,6 @@ const (
 	maxHttpMethodChars                        = 16
 	maxHttpClientChars                        = 32
 	maxTrimMemoryLevelChars                   = 64
-	maxAttrCount                              = 10
 	maxRouteChars                             = 128
 )
 
@@ -128,29 +127,19 @@ type Thread struct {
 type Threads []Thread
 
 type ANR struct {
-	ThreadName        string         `json:"thread_name" binding:"required"`
-	Handled           bool           `json:"handled" binding:"required"`
-	Exceptions        ExceptionUnits `json:"exceptions" binding:"required"`
-	Threads           Threads        `json:"threads" binding:"required"`
-	NetworkType       string         `json:"network_type"`
-	NetworkGeneration string         `json:"network_generation"`
-	NetworkProvider   string         `json:"network_provider"`
-	DeviceLocale      string         `json:"device_locale"`
-	Fingerprint       string         `json:"fingerprint"`
-	Foreground        bool           `json:"foreground" binding:"required"`
+	Handled     bool           `json:"handled" binding:"required"`
+	Exceptions  ExceptionUnits `json:"exceptions" binding:"required"`
+	Threads     Threads        `json:"threads" binding:"required"`
+	Fingerprint string         `json:"fingerprint"`
+	Foreground  bool           `json:"foreground" binding:"required"`
 }
 
 type Exception struct {
-	ThreadName        string         `json:"thread_name" binding:"required"`
-	Handled           bool           `json:"handled" binding:"required"`
-	Exceptions        ExceptionUnits `json:"exceptions" binding:"required"`
-	Threads           Threads        `json:"threads" binding:"required"`
-	NetworkType       string         `json:"network_type"`
-	NetworkGeneration string         `json:"network_generation"`
-	NetworkProvider   string         `json:"network_provider"`
-	DeviceLocale      string         `json:"device_locale"`
-	Fingerprint       string         `json:"fingerprint"`
-	Foreground        bool           `json:"foreground" binding:"required"`
+	Handled     bool           `json:"handled" binding:"required"`
+	Exceptions  ExceptionUnits `json:"exceptions" binding:"required"`
+	Threads     Threads        `json:"threads" binding:"required"`
+	Fingerprint string         `json:"fingerprint"`
+	Foreground  bool           `json:"foreground" binding:"required"`
 }
 
 func (e Exception) Stacktrace() string {
@@ -374,116 +363,117 @@ type Navigation struct {
 }
 
 type EventField struct {
-	ID                uuid.UUID         `json:"id"`
-	Timestamp         time.Time         `json:"timestamp" binding:"required"`
-	Type              string            `json:"type" binding:"required"`
-	ThreadName        string            `json:"thread_name" binding:"required"`
-	Resource          Resource          `json:"resource"`
-	ANR               ANR               `json:"anr,omitempty"`
-	Exception         Exception         `json:"exception,omitempty"`
-	AppExit           AppExit           `json:"app_exit,omitempty"`
-	LogString         LogString         `json:"string,omitempty"`
-	GestureLongClick  GestureLongClick  `json:"gesture_long_click,omitempty"`
-	GestureScroll     GestureScroll     `json:"gesture_scroll,omitempty"`
-	GestureClick      GestureClick      `json:"gesture_click,omitempty"`
-	LifecycleActivity LifecycleActivity `json:"lifecycle_activity,omitempty"`
-	LifecycleFragment LifecycleFragment `json:"lifecycle_fragment,omitempty"`
-	LifecycleApp      LifecycleApp      `json:"lifecycle_app,omitempty"`
-	ColdLaunch        ColdLaunch        `json:"cold_launch,omitempty"`
-	WarmLaunch        WarmLaunch        `json:"warm_launch,omitempty"`
-	HotLaunch         HotLaunch         `json:"hot_launch,omitempty"`
-	NetworkChange     NetworkChange     `json:"network_change,omitempty"`
-	Http              Http              `json:"http,omitempty"`
-	MemoryUsage       MemoryUsage       `json:"memory_usage,omitempty"`
-	LowMemory         LowMemory         `json:"low_memory,omitempty"`
-	TrimMemory        TrimMemory        `json:"trim_memory,omitempty"`
-	CPUUsage          CPUUsage          `json:"cpu_usage,omitempty"`
-	Navigation        Navigation        `json:"navigation,omitempty"`
-	Attributes        map[string]string `json:"attributes"`
+	ID                uuid.UUID          `json:"id"`
+	IPv4              net.IP             `json:"inet_ipv4"`
+	IPv6              net.IP             `json:"inet_ipv6"`
+	CountryCode       string             `json:"inet_country_code"`
+	SessionID         uuid.UUID          `json:"session_id" binding:"required"`
+	Timestamp         time.Time          `json:"timestamp" binding:"required"`
+	Type              string             `json:"type" binding:"required"`
+	Attributes        Attribute          `json:"attributes" binding:"required"`
+	ANR               *ANR               `json:"anr,omitempty"`
+	Exception         *Exception         `json:"exception,omitempty"`
+	AppExit           *AppExit           `json:"app_exit,omitempty"`
+	LogString         *LogString         `json:"string,omitempty"`
+	GestureLongClick  *GestureLongClick  `json:"gesture_long_click,omitempty"`
+	GestureScroll     *GestureScroll     `json:"gesture_scroll,omitempty"`
+	GestureClick      *GestureClick      `json:"gesture_click,omitempty"`
+	LifecycleActivity *LifecycleActivity `json:"lifecycle_activity,omitempty"`
+	LifecycleFragment *LifecycleFragment `json:"lifecycle_fragment,omitempty"`
+	LifecycleApp      *LifecycleApp      `json:"lifecycle_app,omitempty"`
+	ColdLaunch        *ColdLaunch        `json:"cold_launch,omitempty"`
+	WarmLaunch        *WarmLaunch        `json:"warm_launch,omitempty"`
+	HotLaunch         *HotLaunch         `json:"hot_launch,omitempty"`
+	NetworkChange     *NetworkChange     `json:"network_change,omitempty"`
+	Http              *Http              `json:"http,omitempty"`
+	MemoryUsage       *MemoryUsage       `json:"memory_usage,omitempty"`
+	LowMemory         *LowMemory         `json:"low_memory,omitempty"`
+	TrimMemory        *TrimMemory        `json:"trim_memory,omitempty"`
+	CPUUsage          *CPUUsage          `json:"cpu_usage,omitempty"`
+	Navigation        *Navigation        `json:"navigation,omitempty"`
 }
 
-func (e *EventField) IsException() bool {
+func (e EventField) IsException() bool {
 	return e.Type == TypeException
 }
 
-func (e *EventField) IsUnhandledException() bool {
+func (e EventField) IsUnhandledException() bool {
 	return e.Type == TypeException && !e.Exception.Handled
 }
 
-func (e *EventField) IsANR() bool {
+func (e EventField) IsANR() bool {
 	return e.Type == TypeANR
 }
 
-func (e *EventField) IsAppExit() bool {
+func (e EventField) IsAppExit() bool {
 	return e.Type == TypeAppExit
 }
 
-func (e *EventField) IsString() bool {
+func (e EventField) IsString() bool {
 	return e.Type == TypeString
 }
 
-func (e *EventField) IsGestureLongClick() bool {
+func (e EventField) IsGestureLongClick() bool {
 	return e.Type == TypeGestureLongClick
 }
 
-func (e *EventField) IsGestureScroll() bool {
+func (e EventField) IsGestureScroll() bool {
 	return e.Type == TypeGestureScroll
 }
 
-func (e *EventField) IsGestureClick() bool {
+func (e EventField) IsGestureClick() bool {
 	return e.Type == TypeGestureClick
 }
 
-func (e *EventField) IsLifecycleActivity() bool {
+func (e EventField) IsLifecycleActivity() bool {
 	return e.Type == TypeLifecycleActivity
 }
 
-func (e *EventField) IsLifecycleFragment() bool {
+func (e EventField) IsLifecycleFragment() bool {
 	return e.Type == TypeLifecycleFragment
 }
 
-func (e *EventField) IsLifecycleApp() bool {
+func (e EventField) IsLifecycleApp() bool {
 	return e.Type == TypeLifecycleApp
 }
 
-func (e *EventField) IsColdLaunch() bool {
+func (e EventField) IsColdLaunch() bool {
 	return e.Type == TypeColdLaunch
 }
 
-func (e *EventField) IsWarmLaunch() bool {
+func (e EventField) IsWarmLaunch() bool {
 	return e.Type == TypeWarmLaunch
 }
 
-func (e *EventField) IsHotLaunch() bool {
+func (e EventField) IsHotLaunch() bool {
 	return e.Type == TypeHotLaunch
 }
 
-func (e *EventField) IsNetworkChange() bool {
+func (e EventField) IsNetworkChange() bool {
 	return e.Type == TypeNetworkChange
 }
 
-func (e *EventField) IsHttp() bool {
+func (e EventField) IsHttp() bool {
 	return e.Type == TypeHttp
 }
 
-func (e *EventField) IsMemoryUsage() bool {
+func (e EventField) IsMemoryUsage() bool {
 	return e.Type == TypeMemoryUsage
 }
 
-func (e *EventField) IsTrimMemory() bool {
+func (e EventField) IsTrimMemory() bool {
 	return e.Type == TypeTrimMemory
 }
 
-func (e *EventField) IsCPUUsage() bool {
+func (e EventField) IsCPUUsage() bool {
 	return e.Type == TypeCPUUsage
 }
 
-// check if LowMemory event is present
-func (e *EventField) IsLowMemory() bool {
+func (e EventField) IsLowMemory() bool {
 	return e.Type == TypeLowMemory
 }
 
-func (e *EventField) IsNavigation() bool {
+func (e EventField) IsNavigation() bool {
 	return e.Type == TypeNavigation
 }
 
@@ -611,18 +601,15 @@ func (e *EventField) Validate() error {
 	if e.Timestamp.IsZero() {
 		return fmt.Errorf(`events[].timestamp is invalid. Must be a valid ISO 8601 timestamp`)
 	}
-	if e.ThreadName == "" {
-		return fmt.Errorf(`events[].thread_name is invalid`)
-	}
 	// validate all required fields of each type
 	if e.IsANR() {
-		if len(e.ANR.Exceptions) < 1 || len(e.ANR.Threads) < 1 || e.ANR.ThreadName == "" {
+		if len(e.ANR.Exceptions) < 1 || len(e.ANR.Threads) < 1 {
 			return fmt.Errorf(`anr event is invalid`)
 		}
 	}
 
 	if e.IsException() {
-		if len(e.Exception.Exceptions) < 1 || len(e.Exception.Threads) < 1 || e.Exception.ThreadName == "" {
+		if len(e.Exception.Exceptions) < 1 || len(e.Exception.Threads) < 1 {
 			return fmt.Errorf(`exception event is invalid`)
 		}
 	}
@@ -759,15 +746,6 @@ func (e *EventField) Validate() error {
 	if len(e.Type) > maxTypeChars {
 		return fmt.Errorf(`"events[].type" exceeds maximum allowed characters of (%d)`, maxTypeChars)
 	}
-	if len(e.ThreadName) > maxThreadNameChars {
-		return fmt.Errorf(`"events[].thread_name" exceeds maximum allowed characters of (%d)`, maxThreadNameChars)
-	}
-	if len(e.ANR.ThreadName) > maxThreadNameChars {
-		return fmt.Errorf(`"events[].anr.thread_name" exceeds maximum allowed characters of (%d)`, maxThreadNameChars)
-	}
-	if len(e.Exception.ThreadName) > maxThreadNameChars {
-		return fmt.Errorf(`"events[].exception.thread_name" exceeds maximum allowed characters of (%d)`, maxThreadNameChars)
-	}
 	if len(e.AppExit.Reason) > maxAppExitReasonChars {
 		return fmt.Errorf(`"events[].app_exit.reason" exceeds maximum allowed characters of (%d)`, maxAppExitReasonChars)
 	}
@@ -837,12 +815,6 @@ func (e *EventField) Validate() error {
 	if len(e.NetworkChange.NetworkProvider) == maxNetworkChangeNetworkProvider {
 		return fmt.Errorf(`events[].network_change.network_provider exceeds maximum allowed characters of (%d)`, maxNetworkChangeNetworkProvider)
 	}
-	if len(e.ANR.DeviceLocale) > maxAnrDeviceLocaleChars {
-		return fmt.Errorf(`"events[].anr.device_locale" exceeds maximum allowed characters of (%d)`, maxAnrDeviceLocaleChars)
-	}
-	if len(e.Exception.DeviceLocale) > maxExceptionDeviceLocaleChars {
-		return fmt.Errorf(`"events[].exception.device_locale" exceeds maximum allowed characters of (%d)`, maxExceptionDeviceLocaleChars)
-	}
 	if len(e.Http.Method) > maxHttpMethodChars {
 		return fmt.Errorf(`"events[].http.method" exceeds maximum allowed characters of (%d)`, maxHttpMethodChars)
 	}
@@ -851,9 +823,6 @@ func (e *EventField) Validate() error {
 	}
 	if len(e.TrimMemory.Level) > maxTrimMemoryLevelChars {
 		return fmt.Errorf(`"events[].trim_memo̦ry.level" exceeds maximum allowed characters of (%d)`, maxTrimMemoryLevelChars)
-	}
-	if len(e.Attributes) > maxAttrCount {
-		return fmt.Errorf(`"events[].attributes" exceeds maximum count of (%d)`, maxAttrCount)
 	}
 	if len(e.Navigation.Route) > maxRouteChars {
 		return fmt.Errorf(`"events[].navigation.route" exceeds maximum allowed characters of (%d)`, maxRouteChars)
