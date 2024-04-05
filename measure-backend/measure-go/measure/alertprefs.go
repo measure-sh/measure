@@ -89,6 +89,7 @@ func (pref *AlertPref) insertTx(tx pgx.Tx) error {
 		Set("launch_time_spike_slack", pref.LaunchTimeSpikeSlack).
 		Set("created_at", pref.CreatedAt).
 		Set("updated_at", pref.UpdatedAt)
+	defer stmt.Close()
 
 	_, err := tx.Exec(context.Background(), stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -108,7 +109,6 @@ func (pref *AlertPref) update() error {
 		Set("launch_time_spike_slack", pref.LaunchTimeSpikeSlack).
 		Set("updated_at", pref.UpdatedAt).
 		Where("app_id = ?", pref.AppId)
-
 	defer stmt.Close()
 
 	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), stmt.Args()...)
