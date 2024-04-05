@@ -49,6 +49,10 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [**`low_memory`**](#low_memory)
     - [**`trim_memory`**](#trim_memory)
     - [**`navigation`**](#navigation)
+  - [Attachments](#attachments)
+  - [Attachment Types](#attachment-types)
+    - [**`screenshot`**](#screenshot)
+    - [**`android_method_trace`**](#androidmethodtrace)
 
 ## Resources
 
@@ -349,7 +353,7 @@ Ingests a batch of events, which can be of different types and can range across 
 
 #### Usage Notes
 
-- Maximum size of 1MB can be sent in a single request.
+- Maximum allowed size of a single request is **20 MiB**.
 - Each request must contain a unique UUIDv4 id, set as the header `msr-req-id`. If a request fails, the client must
   retry the same payload with the same `msr-req-id` to ensure idempotency.
 - Each event must contain a nanosecond precision `timestamp` - `"2023-08-24T14:51:38.000000534Z"`
@@ -362,6 +366,7 @@ Ingests a batch of events, which can be of different types and can range across 
     - `app_build`
     - `app_unique_id`
 - At least 1 event must be present in the `events` array field. They must be one of the valid types, like `string`, `gesture_long_click` and so on.
+- Each event can have zero or more `attachments`. Each attachment must be of a valid type, like `screenshot`, `android_method_trace` and so on.
 - Successful response returns `202 Accepted`.
 - Idempotent based on `msr-req-id`. Previously seen requests matching by `msr-req-id` won't be re-processed.
 
@@ -369,20 +374,22 @@ Ingests a batch of events, which can be of different types and can range across 
 
 1. Set the Measure API key in `Authorization: Bearer <api-key>` format
 
-2. Set content type as `Content-Type: application/json; charset=utf-8`
+2. Set the content type as `Content-Type: multipart/form-data;boundary="<boundary>"` with a suitable boundary.
 
-3. Set a unique UUIDv4 id as `msr-req-id` header.
+3. Value of `<boundary>` can be any string, but make sure the value doesn't change in the same request.
+
+4. Set a unique UUIDv4 id as `msr-req-id` header.
 
 These headers must be present in each request.
 
 <details>
 <summary>Request Headers - Click to expand</summary>
 
-| **Name**        | **Value**                       |
-| --------------- | ------------------------------- |
-| `Authorization` | Bearer &lt;measure-api-key&gt;  |
-| `Content-Type`  | application/json; charset=utf-8 |
-| `msr-req-id`    | &lt;unique-uuid&gt;             |
+| **Name**        | **Value**                                               |
+|-----------------|---------------------------------------------------------|
+| `Authorization` | Bearer &lt;measure-api-key&gt;                          |
+| `Content-Type`  | Content-Type: multipart/form-data;boundary="<boundary>" |
+| `msr-req-id`    | &lt;unique-uuid&gt;                                     |
 
 </details>
 
@@ -425,334 +432,57 @@ To understand the shape of the JSON payload, take a look at this sample request.
 <details>
 <summary>Expand</summary>
 
-```json
+```
+--boundary
+Content-Disposition: form-data; name="event"
+
 {
-  "events": [
-    {
-      "type": "string",
-      "id": "233a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "string": {
-        "severity_text": "INFO",
-        "string": "This is a log from the Android logcat"
-      },
-      "timestamp": "2023-08-24T14:51:38.000000534Z",
-      "attributes": {
-        "user_id": null,
-        "installation_id": "322a2fbc-a0d1-1212-a92f-9e43e72afbc7",
-        "device_name": "sunfish",
-        "device_model": "SM-G950F",
-        "device_manufacturer": "samsung",
-        "device_type": "phone",
-        "device_is_foldable": true,
-        "device_is_physical": false,
-        "device_density_dpi": 100,
-        "device_width_px": 480,
-        "device_height_px": 800,
-        "device_density": 2,
-        "os_name": "android",
-        "os_version": "31",
-        "platform": "android",
-        "app_version": "1.0.1",
-        "app_build": "576358",
-        "app_unique_id": "com.example.app",
-        "network_type": "cellular",
-        "network_provider": "airtel",
-        "network_generation": "4g",
-        "measure_sdk_version": "0.0.1"
-      }
-    },
-    {
-      "timestamp": "2023-08-24T14:51:40.000000534Z",
-      "id": "9873a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "type": "gesture_long_click",
-      "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "gesture_long_click": {
-        "target": "some_target_name",
-        "target_id": "some-target-id",
-        "touch_down_time": "2023-09-02T07:14:22Z",
-        "touch_up_time": "2023-09-02T07:14:47Z",
-        "width": 1440,
-        "height": 996,
-        "x": 1234,
-        "y": 340
-      },
-      "attributes": {
-        "user_id": null,
-        "installation_id": "322a2fbc-a0d1-1212-a92f-9e43e72afbc7",
-        "device_name": "sunfish",
-        "device_model": "SM-G950F",
-        "device_manufacturer": "samsung",
-        "device_type": "phone",
-        "device_is_foldable": true,
-        "device_is_physical": false,
-        "device_density_dpi": 100,
-        "device_width_px": 480,
-        "device_height_px": 800,
-        "device_density": 2,
-        "os_name": "android",
-        "os_version": "31",
-        "platform": "android",
-        "app_version": "1.0.1",
-        "app_build": "576358",
-        "app_unique_id": "com.example.app",
-        "network_type": "cellular",
-        "network_provider": "airtel",
-        "network_generation": "4g",
-        "measure_sdk_version": "0.0.1"
-      }
-    },
-    {
-      "timestamp": "2023-08-24T14:51:41.000000534Z",
-      "id": "9873a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "type": "gesture_scroll",
-      "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "gesture_scroll": {
-        "target": "some-scroll-target",
-        "target_id": "scroll-target-id",
-        "touch_down_time": "2023-09-02T07:14:22Z",
-        "touch_up_time": "2023-09-02T07:14:47Z",
-        "x": 1234,
-        "y": 340,
-        "end_x": 1330,
-        "end_y": 370,
-        "velocity_px": 123,
-        "direction": 78
-      },
-      "attributes": {
-        "user_id": null,
-        "installation_id": "322a2fbc-a0d1-1212-a92f-9e43e72afbc7",
-        "device_name": "sunfish",
-        "device_model": "SM-G950F",
-        "device_manufacturer": "samsung",
-        "device_type": "phone",
-        "device_is_foldable": true,
-        "device_is_physical": false,
-        "device_density_dpi": 100,
-        "device_width_px": 480,
-        "device_height_px": 800,
-        "device_density": 2,
-        "os_name": "android",
-        "os_version": "31",
-        "platform": "android",
-        "app_version": "1.0.1",
-        "app_build": "576358",
-        "app_unique_id": "com.example.app",
-        "network_type": "cellular",
-        "network_provider": "airtel",
-        "network_generation": "4g",
-        "measure_sdk_version": "0.0.1",
-        "thread_name": "main"
-      }
-    },
-    {
-      "timestamp": "2023-08-24T14:51:41.000000534Z",
-      "type": "gesture_click",
-      "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "gesture_click": {
-        "id": "9873a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-        "target": "some-click-target",
-        "target_id": "click-target-id",
-        "touch_down_time": "2023-09-02T07:14:22Z",
-        "touch_up_time": "2023-09-02T07:14:47Z",
-        "width": 1440,
-        "height": 996,
-        "x": 1234,
-        "y": 340
-      },
-      "attributes": {
-        "user_id": null,
-        "installation_id": "322a2fbc-a0d1-1212-a92f-9e43e72afbc7",
-        "device_name": "sunfish",
-        "device_model": "SM-G950F",
-        "device_manufacturer": "samsung",
-        "device_type": "phone",
-        "device_is_foldable": true,
-        "device_is_physical": false,
-        "device_density_dpi": 100,
-        "device_width_px": 480,
-        "device_height_px": 800,
-        "device_density": 2,
-        "os_name": "android",
-        "os_version": "31",
-        "platform": "android",
-        "app_version": "1.0.1",
-        "app_build": "576358",
-        "app_unique_id": "com.example.app",
-        "network_type": "cellular",
-        "network_provider": "airtel",
-        "network_generation": "4g",
-        "measure_sdk_version": "0.0.1",
-        "thread_name": "main"
-      }
-    },
-    {
-      "timestamp": "2023-08-24T14:51:41.000000534Z",
-      "type": "http",
-      "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "http": {
-        "id": "9873a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-        "client": "okhttp",
-        "end_time": 4404308,
-        "failure_description": null,
-        "failure_reason": null,
-        "method": "get",
-        "request_headers": {
-          "accept": "application/json; charset=utf-8;",
-          "accept-encoding": "gzip",
-          "accept-language": "en",
-          "connection": "Keep-Alive",
-          "host": "www.example.com"
-        },
-        "response_headers": {
-          "x-frame-options": "SAMEORIGIN",
-          "x-xss-protection": "1; mode=block"
-        },
-        "start_time": 4400851,
-        "status_code": 304,
-        "url": "https://www.example.com/api/rest_v1/xyz/2024/01/01"
-      },
-      "request_body": null,
-      "response_body": null,
-      "attributes": {
-        "user_id": null,
-        "installation_id": "322a2fbc-a0d1-1212-a92f-9e43e72afbc7",
-        "device_name": "sunfish",
-        "device_model": "SM-G950F",
-        "device_manufacturer": "samsung",
-        "device_type": "phone",
-        "device_is_foldable": true,
-        "device_is_physical": false,
-        "device_density_dpi": 100,
-        "device_width_px": 480,
-        "device_height_px": 800,
-        "device_density": 2,
-        "os_name": "android",
-        "os_version": "31",
-        "platform": "android",
-        "app_version": "1.0.1",
-        "app_build": "576358",
-        "app_unique_id": "com.example.app",
-        "network_type": "cellular",
-        "network_provider": "airtel",
-        "network_generation": "4g",
-        "measure_sdk_version": "0.0.1",
-        "thread_name": "main"
-      }
-    },
-    {
-      "timestamp": "2023-08-24T14:51:41.000000534Z",
-      "type": "exception",
-      "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "exception": {
-        "id": "9873a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-        "handled": false,
-        "foreground": true,
-        "exceptions": [
-          {
-            "type": "java.lang.RuntimeException",
-            "event_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-            "message": "java.lang.reflect.InvocationTargetException",
-            "frames": [
-              {
-                "line_num": 558,
-                "col_num": 558,
-                "module_name": "com.android.internal.osRuntimeInit$MethodAndArgsCaller",
-                "file_name": "RuntimeInit.java",
-                "class_name": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
-                "method_name": "run"
-              },
-              {
-                "line_num": 936,
-                "col_num": 558,
-                "module_name": "com.android.internal.osRuntimeInit$MethodAndArgsCaller",
-                "file_name": "ZygoteInit.java",
-                "class_name": "com.android.internal.os.ZygoteInit",
-                "method_name": "main"
-              }
-            ]
-          }
-        ],
-        "threads": [
-          {
-            "name": "measure-thread-pool-09",
-            "frames": [
-              {
-                "line_num": -2,
-                "col_num": 158,
-                "module_name": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
-                "file_name": "VMStack.java",
-                "class_name": "dalvik.system.VMStack",
-                "method_name": "getThreadStackTrace"
-              }
-            ]
-          }
-        ]
-      },
-      "attributes": {
-        "user_id": null,
-        "installation_id": "322a2fbc-a0d1-1212-a92f-9e43e72afbc7",
-        "device_name": "sunfish",
-        "device_model": "SM-G950F",
-        "device_manufacturer": "samsung",
-        "device_type": "phone",
-        "device_is_foldable": true,
-        "device_is_physical": false,
-        "device_density_dpi": 100,
-        "device_width_px": 480,
-        "device_height_px": 800,
-        "device_density": 2,
-        "os_name": "android",
-        "os_version": "31",
-        "platform": "android",
-        "app_version": "1.0.1",
-        "app_build": "576358",
-        "app_unique_id": "com.example.app",
-        "network_type": "cellular",
-        "network_provider": "airtel",
-        "network_generation": "4g",
-        "measure_sdk_version": "0.0.1",
-        "thread_name": "main"
-      }
-    }
-  ],
+  "type": "string",
+  "id": "233a2fbc-a0d1-4912-a92f-9e43e72afbc6",
+  "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
+  "string": {
+    "severity_text": "INFO",
+    "string": "This is a log from the Android logcat"
+  },
+  "timestamp": "2023-08-24T14:51:38.000000534Z",
+  "attributes": {
+    "user_id": null,
+    "installation_id": "322a2fbc-a0d1-1212-a92f-9e43e72afbc7",
+    "device_name": "sunfish",
+    "device_model": "SM-G950F",
+    "device_manufacturer": "samsung",
+    "device_type": "phone",
+    "device_is_foldable": true,
+    "device_is_physical": false,
+    "device_density_dpi": 100,
+    "device_width_px": 480,
+    "device_height_px": 800,
+    "device_density": 2,
+    "os_name": "android",
+    "os_version": "31",
+    "platform": "android",
+    "app_version": "1.0.1",
+    "app_build": "576358",
+    "app_unique_id": "com.example.app",
+    "network_type": "cellular",
+    "network_provider": "airtel",
+    "network_generation": "4g",
+    "measure_sdk_version": "0.0.1"
+  },
   "attachments": [
     {
-      "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "timestamp": "2024-03-18T07:24:38.54000000Z",
-      "id": "9873a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "name": "cold_launch",
-      "extension": "trace",
-      "type": "android_method_trace",
-      "blob": "",
-      "attributes": {
-        "user_id": "733a2fbc-a0d1-1212-a92f-9e43e72afbc7",
-        "installation_id": "322a2fbc-a0d1-1212-a92f-9e43e72afbc7",
-        "device_name": "sunfish",
-        "device_model": "SM-G950F",
-        "device_manufacturer": "samsung",
-        "device_type": "phone",
-        "device_is_foldable": true,
-        "device_is_physical": false,
-        "device_density_dpi": 100,
-        "device_width_px": 480,
-        "device_height_px": 800,
-        "device_density": 2,
-        "os_name": "android",
-        "os_version": "31",
-        "platform": "android",
-        "app_version": "1.0.1",
-        "app_build": "576358",
-        "app_unique_id": "com.example.app",
-        "network_type": "cellular",
-        "network_provider": "airtel",
-        "network_generation": "4g",
-        "measure_sdk_version": "0.0.1",
-        "thread_name": "main"
-      }
+      "id": "322a2fbc-a0d1-1212-a92f-9e43e72afbc7",
+      "name": "screenshot-1.png",
+      "type": "screenshot",
+      "extension": "png"
     }
   ]
 }
+
+--boundary
+Content-Disposition: form-data; name="attachment"; id="322a2fbc-a0d1-1212-a92f-9e43e72afbc7"
+
+<attachment file bytes...>
 ```
 
 </details>
@@ -1281,3 +1011,29 @@ Use the `navigation` type for navigation events.
 | Field | Type   | Optional | Description            |
 | ----- | ------ | -------- | ---------------------- |
 | route | string | No       | The destination route. |
+
+
+### Attachments
+
+Attachments are binary blobs of data that can be attached to any event. Each attachment object has the following properties.
+
+* The maximum size of an attachment is 10MB.
+* Each attachment must have a UUIDv4 generated by the client.
+* An attachment must specify one of the allowed [attachment types](#attachment-types)
+
+| Field       | Type   | Optional | Comment                                                                   |
+|-------------|--------|----------|---------------------------------------------------------------------------|
+| `id`        | string | No       | A UUIDv4 string.                                                          |
+| `type`      | string | No       | The type of attachment. One of the [Attachment Types](#attachment-types). |
+| `extension` | string | No       | Extension of the file, like png, jpeg, trace, etc                         |
+
+
+### Attachment Types
+
+#### **`screenshot`**
+
+Use the `screenshot` type to capture the content of the screen or part of the screen. It supports any valid extension for an image file like png, jpeg, etc.
+
+#### **`android_method_trace`**
+
+Use the `android_method_trace` to capture a method trace from Android using `Debug.startMethodTrace`. It always has an extension of `.trace`
