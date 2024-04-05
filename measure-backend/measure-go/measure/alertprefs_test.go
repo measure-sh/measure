@@ -17,11 +17,7 @@ func TestNewAlertPref(t *testing.T) {
 	now := time.Now()
 
 	// Act
-	pref, err := newAlertPref(appID)
-	if err != nil {
-		t.Errorf("NewAlertPref failed: %v", err)
-		return
-	}
+	pref := newAlertPref(appID)
 
 	// Assert
 	if pref.AppId != appID {
