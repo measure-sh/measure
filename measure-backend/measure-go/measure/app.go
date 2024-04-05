@@ -837,23 +837,12 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		`inet.ipv6`,
 		`inet.country_code`,
 		`timestamp`,
-		`toString(thread_name)`,
-		`toString(anr.thread_name)`,
 		`anr.fingerprint`,
-		`toString(anr.network_type)`,
-		`toString(anr.network_generation)`,
-		`toString(anr.network_provider)`,
-		`toString(anr.device_locale)`,
 		`anr.foreground`,
 		`anr.exceptions`,
 		`anr.threads`,
-		`toString(exception.thread_name)`,
 		`exception.handled`,
 		`exception.fingerprint`,
-		`toString(exception.network_type)`,
-		`toString(exception.network_generation)`,
-		`toString(exception.network_provider)`,
-		`toString(exception.device_locale)`,
 		`exception.foreground`,
 		`exception.exceptions`,
 		`exception.threads`,
@@ -961,7 +950,6 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		`cpu_usage.cstime`,
 		`cpu_usage.interval_config`,
 		`toString(navigation.route)`,
-		`attributes`,
 	}
 
 	stmt := sqlf.From("default.events")
@@ -1008,7 +996,6 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		var trimMemory event.TrimMemory
 		var cpuUsage event.CPUUsage
 		var navigation event.Navigation
-		var attributes map[string]string
 
 		var coldLaunchDuration uint32
 		var warmLaunchDuration uint32
@@ -1023,27 +1010,16 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 			&session.IPv6,
 			&session.CountryCode,
 			&ev.Timestamp,
-			&ev.ThreadName,
 
 			// anr
-			&anr.ThreadName,
 			&anr.Fingerprint,
-			&anr.NetworkType,
-			&anr.NetworkGeneration,
-			&anr.NetworkProvider,
-			&anr.DeviceLocale,
 			&anr.Foreground,
 			&anrExceptions,
 			&anrThreads,
 
 			// excpetion
-			&exception.ThreadName,
 			&exception.Handled,
 			&exception.Fingerprint,
-			&exception.NetworkType,
-			&exception.NetworkGeneration,
-			&exception.NetworkProvider,
-			&exception.DeviceLocale,
 			&exception.Foreground,
 			&exceptionExceptions,
 			&exceptionThreads,
@@ -1187,16 +1163,11 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 
 			// navigation
 			&navigation.Route,
-
-			// attributes
-			&attributes,
 		}
 
 		if err := rows.Scan(dest...); err != nil {
 			return nil, err
 		}
-
-		ev.Attributes = attributes
 
 		switch ev.Type {
 		case event.TypeANR:
@@ -1206,7 +1177,7 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 			if err := json.Unmarshal([]byte(anrThreads), &anr.Threads); err != nil {
 				return nil, err
 			}
-			ev.ANR = anr
+			ev.ANR = &anr
 			session.Events = append(session.Events, ev)
 		case event.TypeException:
 			if err := json.Unmarshal([]byte(exceptionExceptions), &exception.Exceptions); err != nil {
@@ -1215,64 +1186,64 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 			if err := json.Unmarshal([]byte(exceptionThreads), &exception.Threads); err != nil {
 				return nil, err
 			}
-			ev.Exception = exception
+			ev.Exception = &exception
 			session.Events = append(session.Events, ev)
 		case event.TypeAppExit:
-			ev.AppExit = appExit
+			ev.AppExit = &appExit
 			session.Events = append(session.Events, ev)
 		case event.TypeString:
-			ev.LogString = logString
+			ev.LogString = &logString
 			session.Events = append(session.Events, ev)
 		case event.TypeGestureLongClick:
-			ev.GestureLongClick = gestureLongClick
+			ev.GestureLongClick = &gestureLongClick
 			session.Events = append(session.Events, ev)
 		case event.TypeGestureClick:
-			ev.GestureClick = gestureClick
+			ev.GestureClick = &gestureClick
 			session.Events = append(session.Events, ev)
 		case event.TypeGestureScroll:
-			ev.GestureScroll = gestureScroll
+			ev.GestureScroll = &gestureScroll
 			session.Events = append(session.Events, ev)
 		case event.TypeLifecycleActivity:
-			ev.LifecycleActivity = lifecycleActivity
+			ev.LifecycleActivity = &lifecycleActivity
 			session.Events = append(session.Events, ev)
 		case event.TypeLifecycleFragment:
-			ev.LifecycleFragment = lifecycleFragment
+			ev.LifecycleFragment = &lifecycleFragment
 			session.Events = append(session.Events, ev)
 		case event.TypeLifecycleApp:
-			ev.LifecycleApp = lifecycleApp
+			ev.LifecycleApp = &lifecycleApp
 			session.Events = append(session.Events, ev)
 		case event.TypeColdLaunch:
-			ev.ColdLaunch = coldLaunch
+			ev.ColdLaunch = &coldLaunch
 			ev.ColdLaunch.Duration = time.Duration(coldLaunchDuration)
 			session.Events = append(session.Events, ev)
 		case event.TypeWarmLaunch:
-			ev.WarmLaunch = warmLaunch
+			ev.WarmLaunch = &warmLaunch
 			ev.WarmLaunch.Duration = time.Duration(warmLaunchDuration)
 			session.Events = append(session.Events, ev)
 		case event.TypeHotLaunch:
-			ev.HotLaunch = hotLaunch
+			ev.HotLaunch = &hotLaunch
 			ev.HotLaunch.Duration = time.Duration(hotLaunchDuration)
 			session.Events = append(session.Events, ev)
 		case event.TypeNetworkChange:
-			ev.NetworkChange = networkChange
+			ev.NetworkChange = &networkChange
 			session.Events = append(session.Events, ev)
 		case event.TypeHttp:
-			ev.Http = http
+			ev.Http = &http
 			session.Events = append(session.Events, ev)
 		case event.TypeMemoryUsage:
-			ev.MemoryUsage = memoryUsage
+			ev.MemoryUsage = &memoryUsage
 			session.Events = append(session.Events, ev)
 		case event.TypeLowMemory:
-			ev.LowMemory = lowMemory
+			ev.LowMemory = &lowMemory
 			session.Events = append(session.Events, ev)
 		case event.TypeTrimMemory:
-			ev.TrimMemory = trimMemory
+			ev.TrimMemory = &trimMemory
 			session.Events = append(session.Events, ev)
 		case event.TypeCPUUsage:
-			ev.CPUUsage = cpuUsage
+			ev.CPUUsage = &cpuUsage
 			session.Events = append(session.Events, ev)
 		case event.TypeNavigation:
-			ev.Navigation = navigation
+			ev.Navigation = &navigation
 			session.Events = append(session.Events, ev)
 		default:
 			continue

@@ -14,7 +14,7 @@ func ComputeCPUUsage(events []event.EventField) (result []CPUUsage) {
 	for _, event := range events {
 		usage := CPUUsage{
 			Time:  event.Timestamp,
-			Value: calculate(&event.CPUUsage),
+			Value: calculate(event.CPUUsage),
 		}
 
 		result = append(result, usage)

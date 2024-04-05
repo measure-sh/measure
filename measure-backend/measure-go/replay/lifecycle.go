@@ -10,15 +10,14 @@ import (
 type LifecycleActivity struct {
 	EventType string `json:"event_type"`
 	*event.LifecycleActivity
-	ThreadName string            `json:"-"`
-	Timestamp  time.Time         `json:"timestamp"`
-	Attributes map[string]string `json:"attributes"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
 // where lifecycle activity took place.
 func (la LifecycleActivity) GetThreadName() string {
-	return la.ThreadName
+	return "main"
+	// return la.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -32,15 +31,14 @@ func (la LifecycleActivity) GetTimestamp() time.Time {
 type LifecycleFragment struct {
 	EventType string `json:"event_type"`
 	*event.LifecycleFragment
-	ThreadName string            `json:"-"`
-	Timestamp  time.Time         `json:"timestamp"`
-	Attributes map[string]string `json:"attributes"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
 // where lifecycle fragment event took place.
 func (lf LifecycleFragment) GetThreadName() string {
-	return lf.ThreadName
+	return "main"
+	// return lf.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -54,15 +52,14 @@ func (lf LifecycleFragment) GetTimestamp() time.Time {
 type LifecycleApp struct {
 	EventType string `json:"event_type"`
 	*event.LifecycleApp
-	ThreadName string            `json:"-"`
-	Timestamp  time.Time         `json:"timestamp"`
-	Attributes map[string]string `json:"attributes"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
 // where lifecycle app event took place.
 func (la LifecycleApp) GetThreadName() string {
-	return la.ThreadName
+	return "main"
+	// return la.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -77,10 +74,8 @@ func ComputeLifecycleActivities(events []event.EventField) (result []ThreadGroup
 	for _, event := range events {
 		activities := LifecycleActivity{
 			event.Type,
-			&event.LifecycleActivity,
-			event.ThreadName,
+			event.LifecycleActivity,
 			event.Timestamp,
-			event.Attributes,
 		}
 		result = append(result, activities)
 	}
@@ -94,10 +89,8 @@ func ComputeLifecycleFragments(events []event.EventField) (result []ThreadGroupe
 	for _, event := range events {
 		fragments := LifecycleFragment{
 			event.Type,
-			&event.LifecycleFragment,
-			event.ThreadName,
+			event.LifecycleFragment,
 			event.Timestamp,
-			event.Attributes,
 		}
 		result = append(result, fragments)
 	}
@@ -111,10 +104,8 @@ func ComputeLifecycleApps(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		apps := LifecycleApp{
 			event.Type,
-			&event.LifecycleApp,
-			event.ThreadName,
+			event.LifecycleApp,
 			event.Timestamp,
-			event.Attributes,
 		}
 		result = append(result, apps)
 	}

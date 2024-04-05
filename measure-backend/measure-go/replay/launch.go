@@ -12,17 +12,16 @@ var NominalColdLaunchThreshold = 30 * time.Second
 // ColdLaunch represents cold launch events
 // suitable for session replay.
 type ColdLaunch struct {
-	EventType  string            `json:"event_type"`
-	Duration   time.Duration     `json:"duration"`
-	ThreadName string            `json:"-"`
-	Timestamp  time.Time         `json:"timestamp"`
-	Attributes map[string]string `json:"attributes"`
+	EventType string        `json:"event_type"`
+	Duration  time.Duration `json:"duration"`
+	Timestamp time.Time     `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
 // where cold launch took place.
 func (cl ColdLaunch) GetThreadName() string {
-	return cl.ThreadName
+	return "main"
+	// return cl.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -34,20 +33,19 @@ func (cl ColdLaunch) GetTimestamp() time.Time {
 // WarmLaunch represents warm launch events
 // suitable for session replay.
 type WarmLaunch struct {
-	EventType        string            `json:"event_type"`
-	Duration         time.Duration     `json:"duration"`
-	LaunchedActivity string            `json:"launched_activity"`
-	HasSavedState    bool              `json:"has_saved_state"`
-	IntentData       string            `json:"intent_data"`
-	ThreadName       string            `json:"-"`
-	Timestamp        time.Time         `json:"timestamp"`
-	Attributes       map[string]string `json:"attributes"`
+	EventType        string        `json:"event_type"`
+	Duration         time.Duration `json:"duration"`
+	LaunchedActivity string        `json:"launched_activity"`
+	HasSavedState    bool          `json:"has_saved_state"`
+	IntentData       string        `json:"intent_data"`
+	Timestamp        time.Time     `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
 // where warm launch took place.
 func (wl WarmLaunch) GetThreadName() string {
-	return wl.ThreadName
+	return "main"
+	// return wl.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -59,20 +57,19 @@ func (wl WarmLaunch) GetTimestamp() time.Time {
 // HotLaunch represents hot launch events
 // suitable for session replay.
 type HotLaunch struct {
-	EventType        string            `json:"event_type"`
-	Duration         time.Duration     `json:"duration"`
-	LaunchedActivity string            `json:"launched_activity"`
-	HasSavedState    bool              `json:"has_saved_state"`
-	IntentData       string            `json:"intent_data"`
-	ThreadName       string            `json:"-"`
-	Timestamp        time.Time         `json:"timestamp"`
-	Attributes       map[string]string `json:"attributes"`
+	EventType        string        `json:"event_type"`
+	Duration         time.Duration `json:"duration"`
+	LaunchedActivity string        `json:"launched_activity"`
+	HasSavedState    bool          `json:"has_saved_state"`
+	IntentData       string        `json:"intent_data"`
+	Timestamp        time.Time     `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
 // where hot launch took place.
 func (hl HotLaunch) GetThreadName() string {
-	return hl.ThreadName
+	return "main"
+	// return hl.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -88,9 +85,7 @@ func ComputeColdLaunches(events []event.EventField) (result []ThreadGrouper) {
 		coldLaunches := ColdLaunch{
 			event.Type,
 			event.ColdLaunch.Duration,
-			event.ThreadName,
 			event.Timestamp,
-			event.Attributes,
 		}
 		result = append(result, coldLaunches)
 	}
@@ -108,9 +103,7 @@ func ComputeWarmLaunches(events []event.EventField) (result []ThreadGrouper) {
 			event.WarmLaunch.LaunchedActivity,
 			event.WarmLaunch.HasSavedState,
 			event.WarmLaunch.IntentData,
-			event.ThreadName,
 			event.Timestamp,
-			event.Attributes,
 		}
 		result = append(result, warmLaunches)
 	}
@@ -128,9 +121,7 @@ func ComputeHotLaunches(events []event.EventField) (result []ThreadGrouper) {
 			event.HotLaunch.LaunchedActivity,
 			event.HotLaunch.HasSavedState,
 			event.HotLaunch.IntentData,
-			event.ThreadName,
 			event.Timestamp,
-			event.Attributes,
 		}
 		result = append(result, hotLaunches)
 	}

@@ -8,22 +8,21 @@ import (
 // GestureClick represents click events suitable
 // for session replay.
 type GestureClick struct {
-	EventType  string            `json:"event_type"`
-	Target     string            `json:"target"`
-	TargetID   string            `json:"target_id"`
-	Width      uint16            `json:"width"`
-	Height     uint16            `json:"height"`
-	X          float32           `json:"x"`
-	Y          float32           `json:"y"`
-	ThreadName string            `json:"-"`
-	Timestamp  time.Time         `json:"timestamp"`
-	Attributes map[string]string `json:"attributes"`
+	EventType string    `json:"event_type"`
+	Target    string    `json:"target"`
+	TargetID  string    `json:"target_id"`
+	Width     uint16    `json:"width"`
+	Height    uint16    `json:"height"`
+	X         float32   `json:"x"`
+	Y         float32   `json:"y"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
 // where the click gesture took place.
 func (gc GestureClick) GetThreadName() string {
-	return gc.ThreadName
+	return "main"
+	// return gc.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -35,22 +34,21 @@ func (gc GestureClick) GetTimestamp() time.Time {
 // GestureLongClick represents long press events
 // suitable for session replay.
 type GestureLongClick struct {
-	EventType  string            `json:"event_type"`
-	Target     string            `json:"target"`
-	TargetID   string            `json:"target_id"`
-	Width      uint16            `json:"width"`
-	Height     uint16            `json:"height"`
-	X          float32           `json:"x"`
-	Y          float32           `json:"y"`
-	ThreadName string            `json:"-"`
-	Timestamp  time.Time         `json:"timestamp"`
-	Attributes map[string]string `json:"attributes"`
+	EventType string    `json:"event_type"`
+	Target    string    `json:"target"`
+	TargetID  string    `json:"target_id"`
+	Width     uint16    `json:"width"`
+	Height    uint16    `json:"height"`
+	X         float32   `json:"x"`
+	Y         float32   `json:"y"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
 // where the long click gesture took place.
 func (glc GestureLongClick) GetThreadName() string {
-	return glc.ThreadName
+	return "main"
+	// return glc.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -62,23 +60,22 @@ func (glc GestureLongClick) GetTimestamp() time.Time {
 // GestureScroll represents scroll gesture events
 // suitable for session replay.
 type GestureScroll struct {
-	EventType  string            `json:"event_type"`
-	Target     string            `json:"target"`
-	TargetID   string            `json:"target_id"`
-	X          float32           `json:"x"`
-	Y          float32           `json:"y"`
-	EndX       float32           `json:"end_x"`
-	EndY       float32           `json:"end_y"`
-	Direction  string            `json:"direction"`
-	ThreadName string            `json:"-"`
-	Timestamp  time.Time         `json:"timestamp"`
-	Attributes map[string]string `json:"attributes"`
+	EventType string    `json:"event_type"`
+	Target    string    `json:"target"`
+	TargetID  string    `json:"target_id"`
+	X         float32   `json:"x"`
+	Y         float32   `json:"y"`
+	EndX      float32   `json:"end_x"`
+	EndY      float32   `json:"end_y"`
+	Direction string    `json:"direction"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
 // where the scroll gesture took place.
 func (gs GestureScroll) GetThreadName() string {
-	return gs.ThreadName
+	return "main"
+	// return gs.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -99,9 +96,7 @@ func ComputeGestureClicks(events []event.EventField) (result []ThreadGrouper) {
 			event.GestureClick.Height,
 			event.GestureClick.X,
 			event.GestureClick.Y,
-			event.ThreadName,
 			event.Timestamp,
-			event.Attributes,
 		}
 		result = append(result, gestureClicks)
 	}
@@ -121,9 +116,7 @@ func ComputeGestureLongClicks(events []event.EventField) (result []ThreadGrouper
 			event.GestureLongClick.Height,
 			event.GestureLongClick.X,
 			event.GestureLongClick.Y,
-			event.ThreadName,
 			event.Timestamp,
-			event.Attributes,
 		}
 		result = append(result, gestureLongClicks)
 	}
@@ -144,9 +137,7 @@ func ComputeGestureScrolls(events []event.EventField) (result []ThreadGrouper) {
 			event.GestureScroll.EndX,
 			event.GestureScroll.EndY,
 			event.GestureScroll.Direction,
-			event.ThreadName,
 			event.Timestamp,
-			event.Attributes,
 		}
 		result = append(result, gestureScrolls)
 	}

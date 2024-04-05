@@ -8,24 +8,19 @@ import (
 // Exception represents exception events suitable
 // for session replay.
 type Exception struct {
-	EventType         string            `json:"event_type"`
-	Type              string            `json:"type"`
-	ThreadName        string            `json:"thread_name"`
-	Handled           bool              `json:"handled"`
-	Stacktrace        string            `json:"stacktrace"`
-	NetworkType       string            `json:"network_type"`
-	NetworkProvider   string            `json:"network_provider"`
-	NetworkGeneration string            `json:"network_generation"`
-	DeviceLocale      string            `json:"device_locale"`
-	Foreground        bool              `json:"foreground"`
-	Timestamp         time.Time         `json:"timestamp"`
-	Attributes        map[string]string `json:"attributes"`
+	EventType  string    `json:"event_type"`
+	Type       string    `json:"type"`
+	Handled    bool      `json:"handled"`
+	Stacktrace string    `json:"stacktrace"`
+	Foreground bool      `json:"foreground"`
+	Timestamp  time.Time `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
 // where the exception event took place.
 func (e Exception) GetThreadName() string {
-	return e.ThreadName
+	return "main"
+	// return e.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -37,23 +32,18 @@ func (e Exception) GetTimestamp() time.Time {
 // ANR represents anr events suitable
 // for session replay.
 type ANR struct {
-	EventType         string            `json:"event_type"`
-	Type              string            `json:"type"`
-	ThreadName        string            `json:"thread_name"`
-	Stacktrace        string            `json:"stacktrace"`
-	NetworkType       string            `json:"network_type"`
-	NetworkProvider   string            `json:"network_provider"`
-	NetworkGeneration string            `json:"network_generation"`
-	DeviceLocale      string            `json:"device_locale"`
-	Foreground        bool              `json:"foreground"`
-	Timestamp         time.Time         `json:"timestamp"`
-	Attributes        map[string]string `json:"attributes"`
+	EventType  string    `json:"event_type"`
+	Type       string    `json:"type"`
+	Stacktrace string    `json:"stacktrace"`
+	Foreground bool      `json:"foreground"`
+	Timestamp  time.Time `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
 // where the anr event took place.
 func (a ANR) GetThreadName() string {
-	return a.ThreadName
+	return "main"
+	// return a.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -69,16 +59,10 @@ func ComputeExceptions(events []event.EventField) (result []ThreadGrouper) {
 		exceptions := Exception{
 			event.Type,
 			event.Exception.GetType(),
-			event.Exception.ThreadName,
 			event.Exception.Handled,
 			event.Exception.Stacktrace(),
-			event.Exception.NetworkType,
-			event.Exception.NetworkProvider,
-			event.Exception.NetworkGeneration,
-			event.Exception.DeviceLocale,
 			event.Exception.Foreground,
 			event.Timestamp,
-			event.Attributes,
 		}
 		result = append(result, exceptions)
 	}
@@ -93,15 +77,9 @@ func ComputeANRs(events []event.EventField) (result []ThreadGrouper) {
 		anrs := ANR{
 			event.Type,
 			event.ANR.GetType(),
-			event.ANR.ThreadName,
 			event.ANR.Stacktrace(),
-			event.ANR.NetworkType,
-			event.ANR.NetworkProvider,
-			event.ANR.NetworkGeneration,
-			event.ANR.DeviceLocale,
 			event.ANR.Foreground,
 			event.Timestamp,
-			event.Attributes,
 		}
 		result = append(result, anrs)
 	}

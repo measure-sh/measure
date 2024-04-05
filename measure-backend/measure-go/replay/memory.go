@@ -17,15 +17,14 @@ type MemoryUsage struct {
 type TrimMemory struct {
 	EventType string `json:"event_type"`
 	*event.TrimMemory
-	ThreadName string            `json:"-"`
-	Timestamp  time.Time         `json:"timestamp"`
-	Attributes map[string]string `json:"attributes"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
 // where trim memory event took place.
 func (tm TrimMemory) GetThreadName() string {
-	return tm.ThreadName
+	return "main"
+	// return tm.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -39,15 +38,14 @@ func (tm TrimMemory) GetTimestamp() time.Time {
 type LowMemory struct {
 	EventType string `json:"event_type"`
 	*event.LowMemory
-	ThreadName string            `json:"-"`
-	Timestamp  time.Time         `json:"timestamp"`
-	Attributes map[string]string `json:"attributes"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
 // where low memory event took place.
 func (lm LowMemory) GetThreadName() string {
-	return lm.ThreadName
+	return "main"
+	// return lm.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -61,7 +59,7 @@ func (lm LowMemory) GetTimestamp() time.Time {
 func ComputeMemoryUsage(events []event.EventField) (result []MemoryUsage) {
 	for _, event := range events {
 		usage := MemoryUsage{
-			&event.MemoryUsage,
+			event.MemoryUsage,
 			event.Timestamp,
 		}
 
@@ -76,10 +74,8 @@ func ComputeTrimMemories(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		memories := TrimMemory{
 			event.Type,
-			&event.TrimMemory,
-			event.ThreadName,
+			event.TrimMemory,
 			event.Timestamp,
-			event.Attributes,
 		}
 		result = append(result, memories)
 	}
@@ -93,10 +89,8 @@ func ComputeLowMemories(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		lowMemories := LowMemory{
 			event.Type,
-			&event.LowMemory,
-			event.ThreadName,
+			event.LowMemory,
 			event.Timestamp,
-			event.Attributes,
 		}
 		result = append(result, lowMemories)
 	}

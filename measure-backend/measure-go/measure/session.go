@@ -321,7 +321,7 @@ func (s *Session) bucketUnhandledException() error {
 
 		groups = append(groups, EventGroup{
 			eventId:     event.ID,
-			exception:   event.Exception,
+			exception:   *event.Exception,
 			fingerprint: fingerprint,
 		})
 	}
@@ -391,7 +391,7 @@ func (s *Session) bucketANRs() error {
 
 		groups = append(groups, EventGroup{
 			eventId:     event.ID,
-			anr:         event.ANR,
+			anr:         *event.ANR,
 			fingerprint: fingerprint,
 		})
 	}
@@ -506,7 +506,6 @@ func (s *Session) ingest() error {
 			Set("inet.ipv6", nil).
 			Set("inet.country_code", nil).
 			Set("timestamp", nil).
-			Set("thread_name", nil).
 			Set("resource.device_name", nil).
 			Set("resource.device_model", nil).
 			Set("resource.device_manufacturer", nil).
@@ -524,13 +523,11 @@ func (s *Session) ingest() error {
 			Set("resource.app_build", nil).
 			Set("resource.app_unique_id", nil).
 			Set("resource.measure_sdk_version", nil).
-			Set("anr.thread_name", nil).
 			Set("anr.handled", nil).
 			Set("anr.fingerprint", nil).
 			Set("anr.exceptions", nil).
 			Set("anr.threads", nil).
 			Set("anr.foreground", nil).
-			Set("exception.thread_name", nil).
 			Set("exception.handled", nil).
 			Set("exception.fingerprint", nil).
 			Set("exception.exceptions", nil).
@@ -603,18 +600,10 @@ func (s *Session) ingest() error {
 			Set("network_change.network_generation", nil).
 			Set("network_change.previous_network_generation", nil).
 			Set("network_change.network_provider", nil).
-			Set("anr.network_type", nil).
-			Set("anr.network_generation", nil).
-			Set("anr.network_provider", nil).
-			Set("exception.network_type", nil).
-			Set("exception.network_generation", nil).
-			Set("exception.network_provider", nil).
 			Set("resource.network_type", nil).
 			Set("resource.network_generation", nil).
 			Set("resource.network_provider", nil).
 			Set("resource.device_locale", nil).
-			Set("anr.device_locale", nil).
-			Set("exception.device_locale", nil).
 			Set("http.url", nil).
 			Set("http.method", nil).
 			Set("http.status_code", nil).
@@ -663,7 +652,6 @@ func (s *Session) ingest() error {
 			s.IPv6,
 			s.CountryCode,
 			s.Events[i].Timestamp.Format(chrono.NanoTimeFormat),
-			s.Events[i].ThreadName,
 			s.Resource.DeviceName,
 			s.Resource.DeviceModel,
 			s.Resource.DeviceManufacturer,
@@ -681,13 +669,11 @@ func (s *Session) ingest() error {
 			s.Resource.AppBuild,
 			s.Resource.AppUniqueID,
 			s.Resource.MeasureSDKVersion,
-			s.Events[i].ANR.ThreadName,
 			s.Events[i].ANR.Handled,
 			s.Events[i].ANR.Fingerprint,
 			anrExceptions,
 			anrThreads,
 			s.Events[i].ANR.Foreground,
-			s.Events[i].Exception.ThreadName,
 			s.Events[i].Exception.Handled,
 			s.Events[i].Exception.Fingerprint,
 			exceptionExceptions,
@@ -760,18 +746,10 @@ func (s *Session) ingest() error {
 			s.Events[i].NetworkChange.NetworkGeneration,
 			s.Events[i].NetworkChange.PreviousNetworkGeneration,
 			s.Events[i].NetworkChange.NetworkProvider,
-			s.Events[i].ANR.NetworkType,
-			s.Events[i].ANR.NetworkGeneration,
-			s.Events[i].ANR.NetworkProvider,
-			s.Events[i].Exception.NetworkType,
-			s.Events[i].Exception.NetworkGeneration,
-			s.Events[i].Exception.NetworkProvider,
 			s.Resource.NetworkType,
 			s.Resource.NetworkGeneration,
 			s.Resource.NetworkProvider,
 			s.Resource.DeviceLocale,
-			s.Events[i].ANR.DeviceLocale,
-			s.Events[i].Exception.DeviceLocale,
 			s.Events[i].Http.URL,
 			s.Events[i].Http.Method,
 			s.Events[i].Http.StatusCode,

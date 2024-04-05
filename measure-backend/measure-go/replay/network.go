@@ -10,15 +10,14 @@ import (
 type NetworkChange struct {
 	EventType string `json:"event_type"`
 	*event.NetworkChange
-	ThreadName string            `json:"-"`
-	Timestamp  time.Time         `json:"timestamp"`
-	Attributes map[string]string `json:"attributes"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
 // where the network change took place.
 func (nc NetworkChange) GetThreadName() string {
-	return nc.ThreadName
+	return "main"
+	// return nc.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -32,16 +31,15 @@ func (nc NetworkChange) GetTimestamp() time.Time {
 type Http struct {
 	EventType string `json:"event_type"`
 	*event.Http
-	Duration   time.Duration     `json:"duration"`
-	ThreadName string            `json:"-"`
-	Timestamp  time.Time         `json:"timestamp"`
-	Attributes map[string]string `json:"attributes"`
+	Duration  time.Duration `json:"duration"`
+	Timestamp time.Time     `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
 // where the http event took place.
 func (h Http) GetThreadName() string {
-	return h.ThreadName
+	return "main"
+	// return h.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -56,10 +54,8 @@ func ComputeNetworkChange(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		netChanges := NetworkChange{
 			event.Type,
-			&event.NetworkChange,
-			event.ThreadName,
+			event.NetworkChange,
 			event.Timestamp,
-			event.Attributes,
 		}
 		result = append(result, netChanges)
 	}
@@ -75,11 +71,9 @@ func ComputeHttp(events []event.EventField) (result []ThreadGrouper) {
 		startTime := event.Http.StartTime
 		http := Http{
 			event.Type,
-			&event.Http,
+			event.Http,
 			time.Duration(endTime - startTime),
-			event.ThreadName,
 			event.Timestamp,
-			event.Attributes,
 		}
 		result = append(result, http)
 	}

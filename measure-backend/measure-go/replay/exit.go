@@ -10,15 +10,14 @@ import (
 type AppExit struct {
 	EventType string `json:"event_type"`
 	*event.AppExit
-	ThreadName string            `json:"-"`
-	Timestamp  time.Time         `json:"timestamp"`
-	Attributes map[string]string `json:"attributes"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
 // where the app exit event took place.
 func (ae AppExit) GetThreadName() string {
-	return ae.ThreadName
+	return "main"
+	// return ae.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -33,10 +32,8 @@ func ComputeAppExits(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		appExits := AppExit{
 			event.Type,
-			&event.AppExit,
-			event.ThreadName,
+			event.AppExit,
 			event.Timestamp,
-			event.Attributes,
 		}
 		result = append(result, appExits)
 	}
