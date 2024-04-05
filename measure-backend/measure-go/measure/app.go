@@ -563,7 +563,7 @@ func (a *App) add() (*APIKey, error) {
 		return nil, err
 	}
 
-	alertPref, err := newAlertPref(*a.ID)
+	alertPref := newAlertPref(*a.ID)
 
 	if err != nil {
 		return nil, err
@@ -2349,13 +2349,7 @@ func UpdateAlertPrefs(c *gin.Context) {
 		return
 	}
 
-	alertPref, err := newAlertPref(appId)
-	if err != nil {
-		msg := "failed to update alert preferences"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
+	alertPref := newAlertPref(appId)
 
 	var payload AlertPrefPayload
 	if err := c.ShouldBindJSON(&payload); err != nil {
