@@ -2365,8 +2365,6 @@ func UpdateAlertPrefs(c *gin.Context) {
 		return
 	}
 
-	fmt.Printf("Payload: %+v\n", payload)
-
 	alertPref.CrashRateSpikeEmail = payload.CrashRateSpike.Email
 	alertPref.CrashRateSpikeSlack = payload.CrashRateSpike.Slack
 	alertPref.AnrRateSpikeEmail = payload.AnrRateSpike.Email
