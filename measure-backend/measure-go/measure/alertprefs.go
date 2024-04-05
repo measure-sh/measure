@@ -64,7 +64,7 @@ func (pref *AlertPref) MarshalJSON() ([]byte, error) {
 	return json.Marshal(apiMap)
 }
 
-func newAlertPref(appId uuid.UUID) (*AlertPref, error) {
+func newAlertPref(appId uuid.UUID) *AlertPref {
 	return &AlertPref{
 		AppId:                appId,
 		CrashRateSpikeEmail:  true,
@@ -75,7 +75,7 @@ func newAlertPref(appId uuid.UUID) (*AlertPref, error) {
 		LaunchTimeSpikeSlack: false,
 		CreatedAt:            time.Now(),
 		UpdatedAt:            time.Now(),
-	}, nil
+	}
 }
 
 func (pref *AlertPref) insertTx(tx pgx.Tx) error {
