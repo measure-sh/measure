@@ -164,6 +164,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
 
   useEffect(() => {
     getAlertPrefs()
+    setUpdatePrefsMsg("")
   }, [selectedApp]);
 
   const saveAlertPrefs = async () => {
