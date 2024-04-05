@@ -91,6 +91,86 @@ CREATE TABLE dbmate.schema_migrations (
 
 
 --
+-- Name: alert_prefs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.alert_prefs (
+    app_id uuid NOT NULL,
+    crash_rate_spike_email boolean NOT NULL,
+    crash_rate_spike_slack boolean NOT NULL,
+    anr_rate_spike_email boolean NOT NULL,
+    anr_rate_spike_slack boolean NOT NULL,
+    launch_time_spike_email boolean NOT NULL,
+    launch_time_spike_slack boolean NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: COLUMN alert_prefs.app_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.alert_prefs.app_id IS 'linked app id';
+
+
+--
+-- Name: COLUMN alert_prefs.crash_rate_spike_email; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.alert_prefs.crash_rate_spike_email IS 'team admin/owner set pref for enabling email on crash rate spike';
+
+
+--
+-- Name: COLUMN alert_prefs.crash_rate_spike_slack; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.alert_prefs.crash_rate_spike_slack IS 'team admin/owner set pref for enabling slack message on crash rate spike';
+
+
+--
+-- Name: COLUMN alert_prefs.anr_rate_spike_email; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.alert_prefs.anr_rate_spike_email IS 'team admin/owner set pref for enabling email on ANR rate spike';
+
+
+--
+-- Name: COLUMN alert_prefs.anr_rate_spike_slack; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.alert_prefs.anr_rate_spike_slack IS 'team admin/owner set pref for enabling slack message on ANR rate spike';
+
+
+--
+-- Name: COLUMN alert_prefs.launch_time_spike_email; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.alert_prefs.launch_time_spike_email IS 'team admin/owner set pref for enabling email on launch time spike';
+
+
+--
+-- Name: COLUMN alert_prefs.launch_time_spike_slack; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.alert_prefs.launch_time_spike_slack IS 'team admin/owner set pref for enabling slack message on launch time spike';
+
+
+--
+-- Name: COLUMN alert_prefs.created_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.alert_prefs.created_at IS 'utc timestamp at the time of record creation';
+
+
+--
+-- Name: COLUMN alert_prefs.updated_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.alert_prefs.updated_at IS 'utc timestamp at the time of record update';
+
+
+--
 -- Name: anr_groups; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -469,6 +549,94 @@ COMMENT ON COLUMN public.build_sizes.created_at IS 'utc timestamp at the time of
 
 
 --
+-- Name: mapping_files; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mapping_files (
+    id uuid NOT NULL,
+    app_unique_id character varying(256) NOT NULL,
+    version_name character varying(256) NOT NULL,
+    version_code character varying(256) NOT NULL,
+    mapping_type character varying(32) NOT NULL,
+    key character varying(256) NOT NULL,
+    location character varying NOT NULL,
+    fnv1_hash character varying(34) NOT NULL,
+    file_size integer DEFAULT 0,
+    last_updated timestamp with time zone NOT NULL
+);
+
+
+--
+-- Name: COLUMN mapping_files.id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.mapping_files.id IS 'unique id for each mapping file';
+
+
+--
+-- Name: COLUMN mapping_files.app_unique_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.mapping_files.app_unique_id IS 'unique identifier of the app';
+
+
+--
+-- Name: COLUMN mapping_files.version_name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.mapping_files.version_name IS 'user visible version number of the app';
+
+
+--
+-- Name: COLUMN mapping_files.version_code; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.mapping_files.version_code IS 'incremental build number of the app';
+
+
+--
+-- Name: COLUMN mapping_files.mapping_type; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.mapping_files.mapping_type IS 'type of the mapping file, like proguard etc';
+
+
+--
+-- Name: COLUMN mapping_files.key; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.mapping_files.key IS 'key of the mapping file stored in remote object store';
+
+
+--
+-- Name: COLUMN mapping_files.location; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.mapping_files.location IS 'url of the mapping file stored in remote object store';
+
+
+--
+-- Name: COLUMN mapping_files.fnv1_hash; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.mapping_files.fnv1_hash IS '64 bit fnv1 hash of the mapping file bytes';
+
+
+--
+-- Name: COLUMN mapping_files.file_size; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.mapping_files.file_size IS 'size of mapping file in bytes';
+
+
+--
+-- Name: COLUMN mapping_files.last_updated; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.mapping_files.last_updated IS 'utc timestamp at the time of mapping file upload';
+
+
+--
 -- Name: roles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -814,6 +982,14 @@ ALTER TABLE ONLY dbmate.schema_migrations
 
 
 --
+-- Name: alert_prefs alert_prefs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.alert_prefs
+    ADD CONSTRAINT alert_prefs_pkey PRIMARY KEY (app_id);
+
+
+--
 -- Name: anr_groups anr_groups_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -862,6 +1038,14 @@ ALTER TABLE ONLY public.build_sizes
 
 
 --
+-- Name: mapping_files mapping_files_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mapping_files
+    ADD CONSTRAINT mapping_files_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: roles roles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -907,6 +1091,14 @@ ALTER TABLE ONLY public.teams
 
 ALTER TABLE ONLY public.unhandled_exception_groups
     ADD CONSTRAINT unhandled_exception_groups_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: alert_prefs alert_prefs_app_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.alert_prefs
+    ADD CONSTRAINT alert_prefs_app_id_fkey FOREIGN KEY (app_id) REFERENCES public.apps(id) ON DELETE CASCADE;
 
 
 --
@@ -1019,4 +1211,6 @@ INSERT INTO dbmate.schema_migrations (version) VALUES
     ('20231122211412'),
     ('20231228033348'),
     ('20231228044339'),
-    ('20240311054505');
+    ('20240311054505'),
+    ('20240404122712'),
+    ('20240405085551');
