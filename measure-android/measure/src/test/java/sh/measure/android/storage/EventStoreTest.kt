@@ -8,6 +8,7 @@ import org.mockito.kotlin.verify
 import sh.measure.android.applaunch.ColdLaunchData
 import sh.measure.android.applaunch.HotLaunchData
 import sh.measure.android.applaunch.WarmLaunchData
+import sh.measure.android.events.Attachment
 import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeEventFactory
@@ -61,12 +62,13 @@ internal class EventStoreTest {
                 timestamp = event.timestamp,
                 filePath = eventId,
                 sessionId = sessionIdProvider.sessionId,
+                attachmentEntities = emptyList()
             )
         )
     }
 
     @Test
-    fun `stores ANT event in file and database`() {
+    fun `stores ANR event in file and database`() {
         val eventId = idProvider.id
         val event = Event(
             timestamp = 1,
@@ -87,6 +89,7 @@ internal class EventStoreTest {
                 timestamp = event.timestamp,
                 filePath = eventId,
                 sessionId = sessionIdProvider.sessionId,
+                attachmentEntities = emptyList()
             )
         )
     }
@@ -111,6 +114,7 @@ internal class EventStoreTest {
                 timestamp = event.timestamp,
                 serializedData = Json.encodeToString(ClickData.serializer(), event.data),
                 sessionId = sessionIdProvider.sessionId,
+                attachmentEntities = emptyList()
             )
         )
     }
@@ -134,7 +138,8 @@ internal class EventStoreTest {
                 type = EventType.LONG_CLICK,
                 timestamp = event.timestamp,
                 serializedData = Json.encodeToString(LongClickData.serializer(), event.data),
-                sessionId = sessionIdProvider.sessionId
+                sessionId = sessionIdProvider.sessionId,
+                attachmentEntities = emptyList()
             )
         )
     }
@@ -158,7 +163,8 @@ internal class EventStoreTest {
                 type = EventType.SCROLL,
                 timestamp = event.timestamp,
                 serializedData = Json.encodeToString(ScrollData.serializer(), event.data),
-                sessionId = sessionIdProvider.sessionId
+                sessionId = sessionIdProvider.sessionId,
+                attachmentEntities = emptyList()
             )
         )
     }
@@ -181,8 +187,12 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.LIFECYCLE_ACTIVITY,
                 timestamp = event.timestamp,
-                serializedData = Json.encodeToString(ActivityLifecycleData.serializer(), event.data),
-                sessionId = sessionIdProvider.sessionId
+                serializedData = Json.encodeToString(
+                    ActivityLifecycleData.serializer(),
+                    event.data
+                ),
+                sessionId = sessionIdProvider.sessionId,
+                attachmentEntities = emptyList()
             )
         )
     }
@@ -205,8 +215,12 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.LIFECYCLE_FRAGMENT,
                 timestamp = event.timestamp,
-                serializedData = Json.encodeToString(FragmentLifecycleData.serializer(), event.data),
-                sessionId = sessionIdProvider.sessionId
+                serializedData = Json.encodeToString(
+                    FragmentLifecycleData.serializer(),
+                    event.data
+                ),
+                sessionId = sessionIdProvider.sessionId,
+                attachmentEntities = emptyList()
             )
         )
     }
@@ -229,8 +243,12 @@ internal class EventStoreTest {
                 id = idProvider.id,
                 type = EventType.LIFECYCLE_APP,
                 timestamp = event.timestamp,
-                serializedData = Json.encodeToString(ApplicationLifecycleData.serializer(), event.data),
-                sessionId = sessionIdProvider.sessionId
+                serializedData = Json.encodeToString(
+                    ApplicationLifecycleData.serializer(),
+                    event.data
+                ),
+                sessionId = sessionIdProvider.sessionId,
+                attachmentEntities = emptyList()
             )
         )
     }
@@ -254,7 +272,8 @@ internal class EventStoreTest {
                 type = EventType.COLD_LAUNCH,
                 timestamp = event.timestamp,
                 serializedData = Json.encodeToString(ColdLaunchData.serializer(), event.data),
-                sessionId = sessionIdProvider.sessionId
+                sessionId = sessionIdProvider.sessionId,
+                attachmentEntities = emptyList()
             )
         )
     }
@@ -278,7 +297,8 @@ internal class EventStoreTest {
                 type = EventType.WARM_LAUNCH,
                 timestamp = event.timestamp,
                 serializedData = Json.encodeToString(WarmLaunchData.serializer(), event.data),
-                sessionId = sessionIdProvider.sessionId
+                sessionId = sessionIdProvider.sessionId,
+                attachmentEntities = emptyList()
             )
         )
     }
@@ -302,7 +322,8 @@ internal class EventStoreTest {
                 type = EventType.HOT_LAUNCH,
                 timestamp = event.timestamp,
                 serializedData = Json.encodeToString(HotLaunchData.serializer(), event.data),
-                sessionId = sessionIdProvider.sessionId
+                sessionId = sessionIdProvider.sessionId,
+                attachmentEntities = emptyList()
             )
         )
     }
@@ -326,7 +347,8 @@ internal class EventStoreTest {
                 type = EventType.NETWORK_CHANGE,
                 timestamp = event.timestamp,
                 serializedData = Json.encodeToString(NetworkChangeData.serializer(), event.data),
-                sessionId = sessionIdProvider.sessionId
+                sessionId = sessionIdProvider.sessionId,
+                attachmentEntities = emptyList()
             )
         )
     }
@@ -350,7 +372,8 @@ internal class EventStoreTest {
                 type = EventType.HTTP,
                 timestamp = event.timestamp,
                 serializedData = Json.encodeToString(HttpData.serializer(), event.data),
-                sessionId = sessionIdProvider.sessionId
+                sessionId = sessionIdProvider.sessionId,
+                attachmentEntities = emptyList()
             )
         )
     }
@@ -374,7 +397,8 @@ internal class EventStoreTest {
                 type = EventType.MEMORY_USAGE,
                 timestamp = event.timestamp,
                 serializedData = Json.encodeToString(MemoryUsageData.serializer(), event.data),
-                sessionId = sessionIdProvider.sessionId
+                sessionId = sessionIdProvider.sessionId,
+                attachmentEntities = emptyList()
             )
         )
     }
@@ -398,7 +422,8 @@ internal class EventStoreTest {
                 type = EventType.LOW_MEMORY,
                 timestamp = event.timestamp,
                 serializedData = Json.encodeToString(LowMemoryData.serializer(), event.data),
-                sessionId = sessionIdProvider.sessionId
+                sessionId = sessionIdProvider.sessionId,
+                attachmentEntities = emptyList()
             )
         )
     }
@@ -422,7 +447,8 @@ internal class EventStoreTest {
                 type = EventType.TRIM_MEMORY,
                 timestamp = event.timestamp,
                 serializedData = Json.encodeToString(TrimMemoryData.serializer(), event.data),
-                sessionId = sessionIdProvider.sessionId
+                sessionId = sessionIdProvider.sessionId,
+                attachmentEntities = emptyList()
             )
         )
     }
@@ -446,7 +472,8 @@ internal class EventStoreTest {
                 type = EventType.CPU_USAGE,
                 timestamp = event.timestamp,
                 serializedData = Json.encodeToString(CpuUsageData.serializer(), event.data),
-                sessionId = sessionIdProvider.sessionId
+                sessionId = sessionIdProvider.sessionId,
+                attachmentEntities = emptyList()
             )
         )
     }
@@ -470,7 +497,80 @@ internal class EventStoreTest {
                 type = EventType.NAVIGATION,
                 timestamp = event.timestamp,
                 serializedData = Json.encodeToString(NavigationData.serializer(), event.data),
-                sessionId = sessionIdProvider.sessionId
+                sessionId = sessionIdProvider.sessionId,
+                attachmentEntities = emptyList()
+            )
+        )
+    }
+
+    @Test
+    fun `stores events having attachments with byte array content`() {
+        // Given
+        val content = byteArrayOf(1, 2, 3)
+        val event = Event(
+            timestamp = 1,
+            data = FakeEventFactory.getClickData(),
+            type = EventType.CLICK,
+        ).withAttachment(
+            Attachment("extension", "attachment-type", bytes = content),
+        )
+        `when`(fileStorage.writeAttachment(idProvider.id, content)).thenReturn("fake-path")
+
+        // When
+        eventStore.storeClick(event)
+
+        // Then
+        verify(fileStorage).writeAttachment(idProvider.id, bytes = content)
+        verify(database).insertEvent(
+            EventEntity(
+                id = idProvider.id,
+                type = EventType.CLICK,
+                timestamp = event.timestamp,
+                serializedData = Json.encodeToString(ClickData.serializer(), event.data),
+                sessionId = sessionIdProvider.sessionId,
+                attachmentEntities = listOf(
+                    AttachmentEntity(
+                        id = idProvider.id,
+                        type = "attachment-type",
+                        extension = "extension",
+                        path = "fake-path"
+                    )
+                )
+            )
+        )
+    }
+
+    @Test
+    fun `stores events having attachments with path`() {
+        // Given
+        val attachmentPath = "attachment-path"
+        val event = Event(
+            timestamp = 1,
+            data = FakeEventFactory.getClickData(),
+            type = EventType.CLICK,
+        ).withAttachment(
+            Attachment("extension", "attachment-type", path = attachmentPath),
+        )
+
+        // When
+        eventStore.storeClick(event)
+
+        // Then
+        verify(database).insertEvent(
+            EventEntity(
+                id = idProvider.id,
+                type = EventType.CLICK,
+                timestamp = event.timestamp,
+                serializedData = Json.encodeToString(ClickData.serializer(), event.data),
+                sessionId = sessionIdProvider.sessionId,
+                attachmentEntities = listOf(
+                    AttachmentEntity(
+                        id = idProvider.id,
+                        type = "attachment-type",
+                        extension = "extension",
+                        path = attachmentPath
+                    )
+                )
             )
         )
     }

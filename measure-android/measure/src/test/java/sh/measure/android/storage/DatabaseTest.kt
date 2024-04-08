@@ -39,30 +39,84 @@ class DatabaseTest {
             // first table is android_metadata, skip it.
             it.moveToNext()
             assertEquals(EventTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
+            it.moveToNext()
+            assertEquals(AttachmentTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
         }
     }
 
     @Test
-    fun `inserts event successfully`() {
-        val eventEntity = EventEntity(
+    fun `inserts event with attachments successfully`() {
+        val db = database.writableDatabase
+
+        val attachmentEntity = AttachmentEntity(
+            id = "attachment-id", type = "test", extension = "txt", path = "test-path"
+        )
+        val event = EventEntity(
             id = "event-id",
             type = "test",
             timestamp = 1234567890L,
             sessionId = "987",
-            serializedData = "test-data"
+            filePath = "test-file-path",
+            attachmentEntities = listOf(attachmentEntity)
         )
 
-        // When
-        database.insertEvent(eventEntity)
+        database.insertEvent(event)
 
-        // Then
-        val db = database.writableDatabase
         queryAllEvents(db).use {
-            assertEquals(1, it.count)
             it.moveToFirst()
-            assertEventInCursor(eventEntity, it)
+            assertEventInCursor(event, it)
+        }
+        queryAttachmentsForEvent(db, event.id).use {
+            it.moveToFirst()
+            assertAttachmentInCursor(attachmentEntity, event, it)
         }
     }
+
+    private fun assertAttachmentInCursor(
+        attachmentEntity: AttachmentEntity, event: EventEntity, cursor: Cursor
+    ) {
+        assertEquals(
+            attachmentEntity.id, cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_ID))
+        )
+        assertEquals(
+            attachmentEntity.type, cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_TYPE))
+        )
+        assertEquals(
+            attachmentEntity.path,
+            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_FILE_PATH))
+        )
+        assertEquals(
+            event.timestamp, cursor.getLong(cursor.getColumnIndex(AttachmentTable.COL_TIMESTAMP))
+        )
+        assertEquals(
+            event.sessionId, cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_SESSION_ID))
+        )
+        assertEquals(
+            event.id, cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_EVENT_ID))
+        )
+    }
+
+    @Test
+    fun `inserts event without attachments successfully`() {
+        val db = database.writableDatabase
+
+        val event = EventEntity(
+            id = "event-id",
+            type = "test",
+            timestamp = 1234567890L,
+            sessionId = "987",
+            filePath = "test-file-path",
+            attachmentEntities = emptyList()
+        )
+
+        database.insertEvent(event)
+
+        queryAllEvents(db).use {
+            it.moveToFirst()
+            assertEventInCursor(event, it)
+        }
+    }
+
 
     /**
      * Asserts that the event in the cursor matches the expected event.
@@ -95,6 +149,18 @@ class DatabaseTest {
     private fun queryAllEvents(db: SQLiteDatabase): Cursor {
         return db.query(
             EventTable.TABLE_NAME, null, null, null, null, null, null
+        )
+    }
+
+    private fun queryAttachmentsForEvent(db: SQLiteDatabase, eventId: String): Cursor {
+        return db.query(
+            AttachmentTable.TABLE_NAME,
+            null,
+            "${AttachmentTable.COL_EVENT_ID} = ?",
+            arrayOf(eventId),
+            null,
+            null,
+            null
         )
     }
 }

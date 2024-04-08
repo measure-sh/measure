@@ -24,6 +24,7 @@ internal class DatabaseImpl(
     override fun onCreate(db: SQLiteDatabase) {
         try {
             db.execSQL(Sql.CREATE_EVENTS_TABLE)
+            db.execSQL(Sql.CREATE_ATTACHMENTS_TABLE)
         } catch (e: SQLiteException) {
             logger.log(LogLevel.Error, "Failed to create database", e)
         }
@@ -39,21 +40,42 @@ internal class DatabaseImpl(
     }
 
     override fun insertEvent(event: EventEntity) {
-        val values = ContentValues().apply {
-            put(EventTable.COL_ID, event.id)
-            put(EventTable.COL_TYPE, event.type)
-            put(EventTable.COL_TIMESTAMP, event.timestamp)
-            put(EventTable.COL_SESSION_ID, event.sessionId)
-            if (event.filePath != null) {
-                put(EventTable.COL_DATA_FILE_PATH, event.filePath)
-            } else if (event.serializedData != null) {
-                put(EventTable.COL_DATA_SERIALIZED, event.serializedData)
+        writableDatabase.beginTransaction()
+        try {
+            val values = ContentValues().apply {
+                put(EventTable.COL_ID, event.id)
+                put(EventTable.COL_TYPE, event.type)
+                put(EventTable.COL_TIMESTAMP, event.timestamp)
+                put(EventTable.COL_SESSION_ID, event.sessionId)
+                if (event.filePath != null) {
+                    put(EventTable.COL_DATA_FILE_PATH, event.filePath)
+                } else if (event.serializedData != null) {
+                    put(EventTable.COL_DATA_SERIALIZED, event.serializedData)
+                }
             }
-        }
 
-        val result = writableDatabase.insert(EventTable.TABLE_NAME, null, values)
-        if (result == -1L) {
-            logger.log(LogLevel.Error, "Failed to insert event = ${event.type}")
+            val result = writableDatabase.insert(EventTable.TABLE_NAME, null, values)
+            if (result == -1L) {
+                logger.log(LogLevel.Error, "Failed to insert event = ${event.type}")
+            }
+
+            event.attachmentEntities.forEach { attachment ->
+                val attachmentValues = ContentValues().apply {
+                    put(AttachmentTable.COL_ID, attachment.id)
+                    put(AttachmentTable.COL_EVENT_ID, event.id)
+                    put(AttachmentTable.COL_TYPE, attachment.type)
+                    put(AttachmentTable.COL_TIMESTAMP, event.timestamp)
+                    put(AttachmentTable.COL_SESSION_ID, event.sessionId)
+                    put(AttachmentTable.COL_FILE_PATH, attachment.path)
+                }
+                val attachmentResult = writableDatabase.insert(AttachmentTable.TABLE_NAME, null, attachmentValues)
+                if (attachmentResult == -1L) {
+                    logger.log(LogLevel.Error, "Failed to insert attachment for event = ${event.type}")
+                }
+            }
+            writableDatabase.setTransactionSuccessful()
+        } finally {
+            writableDatabase.endTransaction()
         }
     }
 

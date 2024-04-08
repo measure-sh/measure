@@ -4,6 +4,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToStream
+import okio.BufferedSource
 import sh.measure.android.events.Event
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.logger.LogLevel
@@ -37,10 +38,18 @@ internal interface FileStorage {
      * @return The file if it exists, otherwise null.
      */
     fun getFile(path: String): File?
+
+    /**
+     * Writes an attachment to a file, with the attachment id as the file name.
+     *
+     * @param id The attachment id to use as the file name.
+     */
+    fun writeAttachment(id: String, bytes: ByteArray): String?
 }
 
 private const val EXCEPTION_DIR = "measure/exceptions"
 private const val ANR_DIR = "measure/anr"
+private const val ATTACHMENTS_DIR = "measure/attachments"
 
 @OptIn(ExperimentalSerializationApi::class)
 internal class FileStorageImpl(
@@ -62,6 +71,18 @@ internal class FileStorageImpl(
         return when {
             file.exists() -> file
             else -> null
+        }
+    }
+
+    override fun writeAttachment(id: String, bytes: ByteArray): String? {
+        val file = createFile(id, ATTACHMENTS_DIR) ?: return null
+        return try {
+            file.writeBytes(bytes)
+            file.path
+        } catch (e: IOException) {
+            logger.log(LogLevel.Error, "Error writing attachment to file", e)
+            deleteFileIfExists(file)
+            null
         }
     }
 
