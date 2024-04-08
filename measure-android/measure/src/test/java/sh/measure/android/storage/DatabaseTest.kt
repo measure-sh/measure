@@ -33,14 +33,12 @@ class DatabaseTest {
         // Sqlite master table contains metadata about all tables in the database
         // with the name of the table in the 'name' column
 
-        // verify events and attachments table has been created
+        // verify events table has been created
         db.query("sqlite_master", null, "type = ?", arrayOf("table"), null, null, null).use {
             it.moveToFirst()
             // first table is android_metadata, skip it.
             it.moveToNext()
             assertEquals(EventTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
-            it.moveToNext()
-            assertEquals(AttachmentTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
         }
     }
 
@@ -63,31 +61,6 @@ class DatabaseTest {
             assertEquals(1, it.count)
             it.moveToFirst()
             assertEventInCursor(eventEntity, it)
-        }
-    }
-
-    @Test
-    fun `inserts attachment successfully`() {
-        val attachmentEntity = AttachmentEntity(
-            id = "attachment-id",
-            path = "path",
-            name = "name",
-            extension = "extension",
-            type = "type",
-            timestamp = 1234567890L,
-            serializedAttributes = "{}",
-            sessionId = "fake-session-id"
-        )
-
-        // When
-        database.insertAttachment(attachmentEntity)
-
-        // Then
-        val db = database.writableDatabase
-        queryAllAttachments(db).use {
-            assertEquals(1, it.count)
-            it.moveToFirst()
-            assertAttachmentInCursor(attachmentEntity, it)
         }
     }
 
@@ -119,51 +92,9 @@ class DatabaseTest {
         )
     }
 
-    /**
-     * Asserts that the attachment in the cursor matches the expected attachment.
-     *
-     * @param expectedAttachment The expected attachment.
-     * @param cursor The cursor to assert.
-     */
-    private fun assertAttachmentInCursor(expectedAttachment: AttachmentEntity, cursor: Cursor) {
-        assertEquals(
-            expectedAttachment.id, cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_ID))
-        )
-        assertEquals(
-            expectedAttachment.path,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_PATH))
-        )
-        assertEquals(
-            expectedAttachment.name,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_NAME))
-        )
-        assertEquals(
-            expectedAttachment.extension,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_EXTENSION))
-        )
-        assertEquals(
-            expectedAttachment.type,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_TYPE))
-        )
-        assertEquals(
-            expectedAttachment.timestamp,
-            cursor.getLong(cursor.getColumnIndex(AttachmentTable.COL_TIMESTAMP))
-        )
-        assertEquals(
-            expectedAttachment.serializedAttributes,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_ATTRIBUTES))
-        )
-    }
-
     private fun queryAllEvents(db: SQLiteDatabase): Cursor {
         return db.query(
             EventTable.TABLE_NAME, null, null, null, null, null, null
-        )
-    }
-
-    private fun queryAllAttachments(db: SQLiteDatabase): Cursor {
-        return db.query(
-            AttachmentTable.TABLE_NAME, null, null, null, null, null, null
         )
     }
 }

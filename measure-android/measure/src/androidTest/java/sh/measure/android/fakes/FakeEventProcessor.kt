@@ -40,7 +40,6 @@ internal class FakeEventProcessor : EventProcessor {
     val trackedTrimMemoryDataEvents = mutableListOf<Event<TrimMemoryData>>()
     val trackedCPUUsageDataEvents = mutableListOf<Event<CpuUsageData>>()
     val trackedNavigationData = mutableListOf<Event<NavigationData>>()
-    val trackedAttachments = mutableListOf<Event<AttachmentInfo>>()
 
     override fun trackUnhandledException(event: Event<ExceptionData>) {
         trackedUnhandledExceptions.add(event)
@@ -112,9 +111,5 @@ internal class FakeEventProcessor : EventProcessor {
 
     override fun trackNavigation(event: Event<NavigationData>) {
         trackedNavigationData.add(event)
-    }
-
-    override fun storeAttachment(event: AttachmentInfo) {
-        // TODO: trackedAttachments.add(event)
     }
 }

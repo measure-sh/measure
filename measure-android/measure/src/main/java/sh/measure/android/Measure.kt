@@ -5,14 +5,10 @@ import android.content.Context
 import androidx.annotation.VisibleForTesting
 import sh.measure.android.anr.AnrCollector
 import sh.measure.android.applaunch.AppLaunchCollector
-import sh.measure.android.attachments.AttachmentProcessorImpl
-import sh.measure.android.attachments.AttachmentStoreImpl
-import sh.measure.android.attachments.MethodTraceImpl
 import sh.measure.android.attributes.AppAttributeProcessor
 import sh.measure.android.attributes.DeviceAttributeProcessor
 import sh.measure.android.attributes.InstallationIdAttributeProcessor
 import sh.measure.android.attributes.NetworkStateAttributeProcessor
-import sh.measure.android.utils.SessionIdProviderImpl
 import sh.measure.android.attributes.UserAttributeProcessor
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventProcessorImpl
@@ -49,6 +45,7 @@ import sh.measure.android.utils.ManifestReaderImpl
 import sh.measure.android.utils.PidProvider
 import sh.measure.android.utils.PidProviderImpl
 import sh.measure.android.utils.ProcProviderImpl
+import sh.measure.android.utils.SessionIdProviderImpl
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.SystemServiceProviderImpl
 import sh.measure.android.utils.TimeProvider
@@ -116,29 +113,12 @@ object Measure {
             installationIdAttributeGenerator,
         )
 
-        val attachmentProcessor = AttachmentProcessorImpl(
-            logger,
-            executorService,
-            AttachmentStoreImpl(
-                idProvider,
-                database,
-                fileStorage,
-                sessionIdProvider
-            ),
-            globalAttributeProcessors,
-        )
-
         eventProcessor = EventProcessorImpl(
             logger,
             executorService,
             eventStorage,
             globalAttributeProcessors,
         )
-
-        // Start cold launch trace, it ends in AppLaunchCollector
-        val methodTrace = MethodTraceImpl(attachmentProcessor, timeProvider).apply {
-            startColdLaunch()
-        }
 
         // Register data collectors
         okHttpEventProcessor =
@@ -198,7 +178,6 @@ object Measure {
             logger,
             application,
             timeProvider,
-            methodTrace,
             eventProcessor,
             coldLaunchListener = {
                 NetworkChangesCollector(

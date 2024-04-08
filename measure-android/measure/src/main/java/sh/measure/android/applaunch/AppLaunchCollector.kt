@@ -6,7 +6,6 @@ import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import sh.measure.android.attachments.MethodTrace
 import sh.measure.android.utils.TimeProvider
 
 /**
@@ -16,7 +15,6 @@ internal class AppLaunchCollector(
     private val logger: Logger,
     private val application: Application,
     private val timeProvider: TimeProvider,
-    private val methodTrace: MethodTrace,
     private val eventProcessor: EventProcessor,
     private val coldLaunchListener: () -> Unit,
 ) : LaunchCallbacks {
@@ -29,7 +27,6 @@ internal class AppLaunchCollector(
     }
 
     override fun onColdLaunch(coldLaunchData: ColdLaunchData) {
-        methodTrace.stop()
         val startUptime =
             coldLaunchData.process_start_uptime ?: coldLaunchData.content_provider_attach_uptime
             ?: return
