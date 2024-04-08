@@ -191,8 +191,8 @@ internal class EventStoreImpl(
             }
 
             else -> {
-                logger.log(LogLevel.Error, "Attachment has no data")
-                throw IllegalAccessError("Attachment has no data") // TODO: Handle this case
+                logger.log(LogLevel.Error, "Attachment(${attachment.type}) has no data")
+                return null
             }
         }
     }
