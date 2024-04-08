@@ -10,6 +10,7 @@ public final class sh/measure/android/Measure {
 	public static final field $stable I
 	public static final field INSTANCE Lsh/measure/android/Measure;
 	public final fun init (Landroid/content/Context;)V
+	public final fun setUserId (Ljava/lang/String;)V
 }
 
 public final class sh/measure/android/navigation/ComposeNavigationCollectorKt {
