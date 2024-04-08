@@ -44,7 +44,7 @@ internal class UnhandledExceptionCollector(
                         thread = thread,
                         foreground = isForegroundProcess(),
                     ),
-                )
+                ),
             )
         } catch (e: Throwable) {
             // Prevent an infinite loop of exceptions if the above code fails.

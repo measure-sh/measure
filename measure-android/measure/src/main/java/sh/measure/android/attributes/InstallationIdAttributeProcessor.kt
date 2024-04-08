@@ -2,7 +2,6 @@ package sh.measure.android.attributes
 
 import sh.measure.android.storage.PrefsStorage
 import sh.measure.android.utils.IdProvider
-import sh.measure.android.utils.UUIDProvider
 
 /**
  * Generates the installation ID. The installation ID is stored in shared preferences and is

@@ -4,7 +4,6 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToStream
-import okio.BufferedSource
 import sh.measure.android.events.Event
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.logger.LogLevel

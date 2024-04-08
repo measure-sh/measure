@@ -19,7 +19,7 @@ class FileStorageTest {
         RuntimeEnvironment.getTempDirectory().createIfNotExists("test").pathString
     private val fileStorage = FileStorageImpl(
         rootDir = rootDir,
-        logger = NoopLogger()
+        logger = NoopLogger(),
     )
 
     @After

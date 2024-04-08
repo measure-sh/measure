@@ -10,7 +10,6 @@ import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.isClassAvailable
-import sh.measure.android.utils.iso8601Timestamp
 
 /**
  * Tracks [Activity], Application and [Fragment] lifecycle events.
@@ -87,7 +86,7 @@ internal class LifecycleCollector(
                     type = ActivityLifecycleType.PAUSED,
                     class_name = activity.javaClass.name,
                 ),
-            )
+            ),
         )
     }
 
@@ -117,7 +116,7 @@ internal class LifecycleCollector(
                     type = ActivityLifecycleType.DESTROYED,
                     class_name = activity.javaClass.name,
                 ),
-            )
+            ),
         )
         if (isAndroidXFragmentAvailable() && activity is FragmentActivity) {
             activity.supportFragmentManager.unregisterFragmentLifecycleCallbacks(

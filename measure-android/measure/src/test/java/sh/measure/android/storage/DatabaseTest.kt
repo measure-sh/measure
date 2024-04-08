@@ -49,7 +49,10 @@ class DatabaseTest {
         val db = database.writableDatabase
 
         val attachmentEntity = AttachmentEntity(
-            id = "attachment-id", type = "test", extension = "txt", path = "test-path"
+            id = "attachment-id",
+            type = "test",
+            extension = "txt",
+            path = "test-path",
         )
         val event = EventEntity(
             id = "event-id",
@@ -57,7 +60,7 @@ class DatabaseTest {
             timestamp = 1234567890L,
             sessionId = "987",
             filePath = "test-file-path",
-            attachmentEntities = listOf(attachmentEntity)
+            attachmentEntities = listOf(attachmentEntity),
         )
 
         database.insertEvent(event)
@@ -73,26 +76,33 @@ class DatabaseTest {
     }
 
     private fun assertAttachmentInCursor(
-        attachmentEntity: AttachmentEntity, event: EventEntity, cursor: Cursor
+        attachmentEntity: AttachmentEntity,
+        event: EventEntity,
+        cursor: Cursor,
     ) {
         assertEquals(
-            attachmentEntity.id, cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_ID))
+            attachmentEntity.id,
+            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_ID)),
         )
         assertEquals(
-            attachmentEntity.type, cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_TYPE))
+            attachmentEntity.type,
+            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_TYPE)),
         )
         assertEquals(
             attachmentEntity.path,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_FILE_PATH))
+            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_FILE_PATH)),
         )
         assertEquals(
-            event.timestamp, cursor.getLong(cursor.getColumnIndex(AttachmentTable.COL_TIMESTAMP))
+            event.timestamp,
+            cursor.getLong(cursor.getColumnIndex(AttachmentTable.COL_TIMESTAMP)),
         )
         assertEquals(
-            event.sessionId, cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_SESSION_ID))
+            event.sessionId,
+            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_SESSION_ID)),
         )
         assertEquals(
-            event.id, cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_EVENT_ID))
+            event.id,
+            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_EVENT_ID)),
         )
     }
 
@@ -106,7 +116,7 @@ class DatabaseTest {
             timestamp = 1234567890L,
             sessionId = "987",
             filePath = "test-file-path",
-            attachmentEntities = emptyList()
+            attachmentEntities = emptyList(),
         )
 
         database.insertEvent(event)
@@ -117,7 +127,6 @@ class DatabaseTest {
         }
     }
 
-
     /**
      * Asserts that the event in the cursor matches the expected event.
      *
@@ -127,28 +136,36 @@ class DatabaseTest {
     private fun assertEventInCursor(expectedEvent: EventEntity, cursor: Cursor) {
         assertEquals(expectedEvent.id, cursor.getString(cursor.getColumnIndex(EventTable.COL_ID)))
         assertEquals(
-            expectedEvent.type, cursor.getString(cursor.getColumnIndex(EventTable.COL_TYPE))
+            expectedEvent.type,
+            cursor.getString(cursor.getColumnIndex(EventTable.COL_TYPE)),
         )
         assertEquals(
-            expectedEvent.timestamp, cursor.getLong(cursor.getColumnIndex(EventTable.COL_TIMESTAMP))
+            expectedEvent.timestamp,
+            cursor.getLong(cursor.getColumnIndex(EventTable.COL_TIMESTAMP)),
         )
         assertEquals(
             expectedEvent.sessionId,
-            cursor.getString(cursor.getColumnIndex(EventTable.COL_SESSION_ID))
+            cursor.getString(cursor.getColumnIndex(EventTable.COL_SESSION_ID)),
         )
         assertEquals(
             expectedEvent.serializedData,
-            cursor.getString(cursor.getColumnIndex(EventTable.COL_DATA_SERIALIZED))
+            cursor.getString(cursor.getColumnIndex(EventTable.COL_DATA_SERIALIZED)),
         )
         assertEquals(
             expectedEvent.filePath,
-            cursor.getString(cursor.getColumnIndex(EventTable.COL_DATA_FILE_PATH))
+            cursor.getString(cursor.getColumnIndex(EventTable.COL_DATA_FILE_PATH)),
         )
     }
 
     private fun queryAllEvents(db: SQLiteDatabase): Cursor {
         return db.query(
-            EventTable.TABLE_NAME, null, null, null, null, null, null
+            EventTable.TABLE_NAME,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
         )
     }
 
@@ -160,7 +177,7 @@ class DatabaseTest {
             arrayOf(eventId),
             null,
             null,
-            null
+            null,
         )
     }
 }

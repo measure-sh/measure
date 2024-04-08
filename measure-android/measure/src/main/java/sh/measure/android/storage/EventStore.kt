@@ -146,8 +146,8 @@ internal class EventStoreImpl(
                 timestamp = event.timestamp,
                 filePath = path,
                 sessionId = sessionIdProvider.sessionId,
-                attachmentEntities = attachmentEntities
-            )
+                attachmentEntities = attachmentEntities,
+            ),
         )
     }
 
@@ -161,8 +161,8 @@ internal class EventStoreImpl(
                 timestamp = event.timestamp,
                 serializedData = Json.encodeToString(serializer, event.data),
                 sessionId = sessionIdProvider.sessionId,
-                attachmentEntities = attachmentEntities
-            )
+                attachmentEntities = attachmentEntities,
+            ),
         )
     }
 
@@ -173,7 +173,7 @@ internal class EventStoreImpl(
                     id = idProvider.createId(),
                     type = it.type,
                     extension = it.extension,
-                    path = path
+                    path = path,
                 )
             }
         }

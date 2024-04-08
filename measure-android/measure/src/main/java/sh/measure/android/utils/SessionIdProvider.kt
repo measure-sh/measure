@@ -5,7 +5,7 @@ internal interface SessionIdProvider {
 }
 
 internal class SessionIdProviderImpl(
-    private val idProvider: IdProvider
+    private val idProvider: IdProvider,
 ) : SessionIdProvider {
     override val sessionId: String by lazy {
         idProvider.createId()

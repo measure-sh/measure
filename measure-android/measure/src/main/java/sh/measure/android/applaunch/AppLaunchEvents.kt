@@ -3,7 +3,6 @@ package sh.measure.android.applaunch
 import android.os.Process
 import curtains.onNextDraw
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import sh.measure.android.MeasureInitProvider
 
 @Serializable
@@ -41,7 +40,7 @@ internal data class ColdLaunchData(
     /**
      * The Intent data used to launch the [launched_activity].
      */
-    val intent_data: String?
+    val intent_data: String?,
 )
 
 @Serializable
