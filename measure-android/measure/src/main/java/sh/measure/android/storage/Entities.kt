@@ -11,7 +11,8 @@ internal data class EventEntity(
     val sessionId: String,
     val filePath: String? = null,
     val serializedData: String? = null,
-    val attachmentEntities: List<AttachmentEntity>,
+    val serializedAttributes: String? = null,
+    val attachmentEntities: List<AttachmentEntity>? = null,
 ) {
     init {
         require(filePath != null || serializedData != null) {

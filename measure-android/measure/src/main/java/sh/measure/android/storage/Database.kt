@@ -52,6 +52,7 @@ internal class DatabaseImpl(
                 } else if (event.serializedData != null) {
                     put(EventTable.COL_DATA_SERIALIZED, event.serializedData)
                 }
+                put(EventTable.COL_ATTRIBUTES, event.serializedAttributes)
             }
 
             val result = writableDatabase.insert(EventTable.TABLE_NAME, null, values)
@@ -59,7 +60,7 @@ internal class DatabaseImpl(
                 logger.log(LogLevel.Error, "Failed to insert event = ${event.type}")
             }
 
-            event.attachmentEntities.forEach { attachment ->
+            event.attachmentEntities?.forEach { attachment ->
                 val attachmentValues = ContentValues().apply {
                     put(AttachmentTable.COL_ID, attachment.id)
                     put(AttachmentTable.COL_EVENT_ID, event.id)

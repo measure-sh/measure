@@ -2,6 +2,7 @@ package sh.measure.android.storage
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import sh.measure.android.applaunch.ColdLaunchData
 import sh.measure.android.applaunch.HotLaunchData
 import sh.measure.android.applaunch.WarmLaunchData
@@ -26,6 +27,7 @@ import sh.measure.android.performance.MemoryUsageData
 import sh.measure.android.performance.TrimMemoryData
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.SessionIdProvider
+import sh.measure.android.utils.toJsonElement
 
 internal interface EventStore {
     fun storeUnhandledException(event: Event<ExceptionData>)
@@ -139,6 +141,7 @@ internal class EventStoreImpl(
         } ?: return
 
         val attachmentEntities = writeAttachments(event)
+        val serializedAttributes = serializeAttributes(event)
         database.insertEvent(
             EventEntity(
                 id = eventId,
@@ -147,26 +150,43 @@ internal class EventStoreImpl(
                 filePath = path,
                 sessionId = sessionIdProvider.sessionId,
                 attachmentEntities = attachmentEntities,
+                serializedAttributes = serializedAttributes,
             ),
+        )
+    }
+
+    private fun <T> serializeAttributes(event: Event<T>): String? {
+        if (event.attributes.isEmpty()) {
+            return null
+        }
+        return Json.encodeToString(
+            JsonElement.serializer(),
+            event.attributes.toJsonElement()
         )
     }
 
     private fun <T> storeEvent(event: Event<T>, serializer: KSerializer<T>) {
         val eventId = idProvider.createId()
         val attachmentEntities = writeAttachments(event)
+        val serializedData = Json.encodeToString(serializer, event.data)
+        val serializedAttributes = serializeAttributes(event)
         database.insertEvent(
             EventEntity(
                 id = eventId,
                 type = event.type,
                 timestamp = event.timestamp,
-                serializedData = Json.encodeToString(serializer, event.data),
+                serializedData = serializedData,
                 sessionId = sessionIdProvider.sessionId,
                 attachmentEntities = attachmentEntities,
+                serializedAttributes = serializedAttributes,
             ),
         )
     }
 
-    private fun <T> writeAttachments(event: Event<T>): List<AttachmentEntity> {
+    private fun <T> writeAttachments(event: Event<T>): List<AttachmentEntity>? {
+        if (event.attachments.isEmpty()) {
+            return null
+        }
         val attachmentEntities = event.attachments.mapNotNull {
             createAttachment(it)?.let { path ->
                 AttachmentEntity(

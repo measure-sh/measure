@@ -14,6 +14,7 @@ class EventEntityTest {
                 timestamp = 1234567890L,
                 sessionId = "987",
                 attachmentEntities = emptyList(),
+                serializedAttributes = null,
             )
         }
     }
@@ -29,6 +30,7 @@ class EventEntityTest {
                 filePath = "test-file-path",
                 serializedData = "test-data",
                 attachmentEntities = emptyList(),
+                serializedAttributes = null,
             )
         }
     }
