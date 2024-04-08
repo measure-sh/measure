@@ -3,7 +3,7 @@ package sh.measure.android.storage
 import android.content.Context
 import android.content.SharedPreferences
 
-interface PrefsStorage {
+internal interface PrefsStorage {
     fun getInstallationId(): String?
     fun setInstallationId(installationId: String)
 }

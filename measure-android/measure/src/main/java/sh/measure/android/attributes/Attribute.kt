@@ -1,6 +1,6 @@
 package sh.measure.android.attributes
 
-object Attribute {
+internal object Attribute {
     const val THREAD_NAME = "thread_name"
     const val DEVICE_NAME_KEY = "device_name"
     const val DEVICE_MODEL_KEY = "device_model"
