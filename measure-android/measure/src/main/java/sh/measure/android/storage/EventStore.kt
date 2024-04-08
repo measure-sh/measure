@@ -25,6 +25,7 @@ import sh.measure.android.performance.CpuUsageData
 import sh.measure.android.performance.LowMemoryData
 import sh.measure.android.performance.MemoryUsageData
 import sh.measure.android.performance.TrimMemoryData
+import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.SessionIdProvider
 import sh.measure.android.utils.toJsonElement
@@ -156,16 +157,20 @@ internal class EventStoreImpl(
     }
 
     private fun <T> serializeAttributes(event: Event<T>): String? {
+        InternalTrace.beginSection("EventStore.serializeAttributes")
         if (event.attributes.isEmpty()) {
             return null
         }
-        return Json.encodeToString(
+        val result = Json.encodeToString(
             JsonElement.serializer(),
             event.attributes.toJsonElement(),
         )
+        InternalTrace.endSection()
+        return result
     }
 
     private fun <T> storeEvent(event: Event<T>, serializer: KSerializer<T>) {
+        InternalTrace.beginSection("EventStore.storeEvent")
         val eventId = idProvider.createId()
         val attachmentEntities = writeAttachments(event)
         val serializedData = Json.encodeToString(serializer, event.data)
@@ -181,12 +186,14 @@ internal class EventStoreImpl(
                 serializedAttributes = serializedAttributes,
             ),
         )
+        InternalTrace.endSection()
     }
 
     private fun <T> writeAttachments(event: Event<T>): List<AttachmentEntity>? {
         if (event.attachments.isEmpty()) {
             return null
         }
+        InternalTrace.beginSection("EventStore.writeAttachments")
         val attachmentEntities = event.attachments.mapNotNull {
             createAttachment(it)?.let { path ->
                 AttachmentEntity(
@@ -197,6 +204,7 @@ internal class EventStoreImpl(
                 )
             }
         }
+        InternalTrace.endSection()
         return attachmentEntities
     }
 
