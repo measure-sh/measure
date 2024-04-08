@@ -89,7 +89,6 @@ internal class EventProcessorImpl(
 
     override fun trackUnhandledException(event: Event<ExceptionData>) {
         addThreadNameAttribute(event)
-        addThreadNameAttribute(event)
         processEvent(event, eventStore::storeUnhandledException, false)
     }
 
