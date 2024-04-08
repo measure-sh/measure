@@ -85,15 +85,6 @@ export default function Overview({ params }: { params: { teamId: string } }) {
             onChange={handleEmailChange}
           />
         </div>
-        <div className='table-cell px-12 py-2'>
-          <input
-            type="checkbox"
-            className={checkboxStyle}
-            value="Slack"
-            checked={slackChecked}
-            onChange={handleSlackChange}
-          />
-        </div>
       </div>
     )
   }
@@ -204,9 +195,9 @@ export default function Overview({ params }: { params: { teamId: string } }) {
       {appsApiStatus === AppsApiStatus.Success &&
         <div className="flex flex-col items-start">
           <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={apps.map((e) => e.name)} initialSelected={apps[0].name} onChangeSelected={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} />
-          <div className="py-4" />
+          {/* <div className="py-4" />
           {slackConnected && <p className="px-3 py-1 text-emerald-600 font-display text-sm border border-emerald-600 rounded-full outline-none">Slack connected</p>}
-          {!slackConnected && <Link href={`https://slack.com/apps/placeholderId`} className="outline-none justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Connect Slack</Link>}
+          {!slackConnected && <Link href={`https://slack.com/apps/placeholderId`} className="outline-none justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Connect Slack</Link>} */}
           <div className="py-4" />
 
           {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Loading && <p className='font-sans'> Fetching alert preferences...</p>}
@@ -218,7 +209,6 @@ export default function Overview({ params }: { params: { teamId: string } }) {
                   <div className="table-row">
                     <div className="table-cell py-2 font-display">Alert type</div>
                     <div className="table-cell px-8 py-2 font-display text-center">Email</div>
-                    <div className="table-cell px-8 py-2 font-display text-center">Slack</div>
                   </div>
                 </div>
                 <AlertRow
