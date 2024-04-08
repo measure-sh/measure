@@ -61,6 +61,7 @@ class DatabaseTest {
             sessionId = "987",
             filePath = "test-file-path",
             attachmentEntities = listOf(attachmentEntity),
+            serializedAttributes = null,
         )
 
         database.insertEvent(event)
@@ -117,6 +118,7 @@ class DatabaseTest {
             sessionId = "987",
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
+            serializedAttributes = null,
         )
 
         database.insertEvent(event)

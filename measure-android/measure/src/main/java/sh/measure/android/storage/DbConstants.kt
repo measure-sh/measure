@@ -13,6 +13,7 @@ internal object EventTable {
     const val COL_SESSION_ID = "session_id"
     const val COL_DATA_FILE_PATH = "file_path"
     const val COL_DATA_SERIALIZED = "serialized"
+    const val COL_ATTRIBUTES = "attributes"
 }
 
 internal object AttachmentTable {
@@ -33,7 +34,8 @@ internal object Sql {
             ${EventTable.COL_TIMESTAMP} INTEGER NOT NULL,
             ${EventTable.COL_SESSION_ID} TEXT NOT NULL,
             ${EventTable.COL_DATA_FILE_PATH} TEXT DEFAULT NULL,
-            ${EventTable.COL_DATA_SERIALIZED} TEXT DEFAULT NULL
+            ${EventTable.COL_DATA_SERIALIZED} TEXT DEFAULT NULL,
+            ${EventTable.COL_ATTRIBUTES} TEXT DEFAULT NULL
         )
     """
 
