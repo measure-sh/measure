@@ -29,7 +29,7 @@ internal class AppLaunchCollector(
     override fun onColdLaunch(coldLaunchData: ColdLaunchData) {
         val startUptime =
             coldLaunchData.process_start_uptime ?: coldLaunchData.content_provider_attach_uptime
-            ?: return
+                ?: return
         val endUptime = coldLaunchData.on_next_draw_uptime
         val duration = endUptime - startUptime
         logger.log(LogLevel.Debug, "cold launch duration: $duration ms, start uptime: $startUptime")
@@ -38,7 +38,7 @@ internal class AppLaunchCollector(
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
                 type = EventType.COLD_LAUNCH,
                 data = coldLaunchData,
-            )
+            ),
         )
         coldLaunchListener.invoke()
     }
@@ -53,7 +53,7 @@ internal class AppLaunchCollector(
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
                 type = EventType.WARM_LAUNCH,
                 data = warmLaunchData,
-            )
+            ),
         )
     }
 
@@ -67,7 +67,7 @@ internal class AppLaunchCollector(
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
                 type = EventType.HOT_LAUNCH,
                 data = hotLaunchData,
-            )
+            ),
         )
     }
 }

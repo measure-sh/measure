@@ -16,7 +16,8 @@ class InstallationIdAttributeProcessorTest {
     private val prefsStorage = mock<PrefsStorage>()
     private val idProvider = FakeIdProvider()
     private val installationIdAttributeProcessor = InstallationIdAttributeProcessor(
-        prefsStorage = prefsStorage, idProvider = idProvider
+        prefsStorage = prefsStorage,
+        idProvider = idProvider,
     )
 
     @Test

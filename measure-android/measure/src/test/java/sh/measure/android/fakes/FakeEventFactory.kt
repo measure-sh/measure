@@ -53,7 +53,8 @@ internal object FakeEventFactory {
     }
 
     fun <T> T.toEvent(
-        timestamp: Long = System.currentTimeMillis(), type: String
+        timestamp: Long = System.currentTimeMillis(),
+        type: String,
     ): Event<T> {
         return Event(
             timestamp = timestamp,
@@ -87,7 +88,7 @@ internal object FakeEventFactory {
         touchUpTime: Long = 234567609L,
     ): ScrollData {
         return ScrollData(
-            target, targetId, x, y, endX, endY, direction, touchDownTime, touchUpTime
+            target, targetId, x, y, endX, endY, direction, touchDownTime, touchUpTime,
         )
     }
 
@@ -95,7 +96,7 @@ internal object FakeEventFactory {
         type: String = ActivityLifecycleType.CREATED,
         className: String = "Activity",
         intent: String? = null,
-        savedInstanceState: Boolean = false
+        savedInstanceState: Boolean = false,
     ): ActivityLifecycleData {
         return ActivityLifecycleData(type, className, intent, savedInstanceState)
     }
@@ -104,7 +105,7 @@ internal object FakeEventFactory {
         type: String = FragmentLifecycleType.ATTACHED,
         className: String = "Fragment",
         parentActivity: String = "Activity",
-        tag: String? = null
+        tag: String? = null,
     ): FragmentLifecycleData {
         return FragmentLifecycleData(type, className, parentActivity, tag)
     }
@@ -129,7 +130,7 @@ internal object FakeEventFactory {
             onNextDrawUptime,
             launchedActivity,
             hasSavedState,
-            intentData
+            intentData,
         )
     }
 
@@ -141,7 +142,11 @@ internal object FakeEventFactory {
         intentData: String = "intent_data",
     ): WarmLaunchData {
         return WarmLaunchData(
-            appVisibleUptime, onNextDrawUptime, launchedActivity, hasSavedState, intentData
+            appVisibleUptime,
+            onNextDrawUptime,
+            launchedActivity,
+            hasSavedState,
+            intentData,
         )
     }
 
@@ -153,7 +158,11 @@ internal object FakeEventFactory {
         intentData: String = "intent_data",
     ): HotLaunchData {
         return HotLaunchData(
-            appVisibleUptime, onNextDrawUptime, launchedActivity, hasSavedState, intentData
+            appVisibleUptime,
+            onNextDrawUptime,
+            launchedActivity,
+            hasSavedState,
+            intentData,
         )
     }
 
@@ -169,7 +178,7 @@ internal object FakeEventFactory {
             networkType,
             previousNetworkGeneration,
             networkGeneration,
-            networkProvider
+            networkProvider,
         )
     }
 
@@ -199,7 +208,7 @@ internal object FakeEventFactory {
             responseHeaders,
             requestBody,
             responseBody,
-            client
+            client,
         )
     }
 
@@ -221,7 +230,7 @@ internal object FakeEventFactory {
             rss,
             nativeTotalHeap,
             nativeFreeHeap,
-            intervalConfig
+            intervalConfig,
         )
     }
 
@@ -241,12 +250,12 @@ internal object FakeEventFactory {
             totalPss,
             rss,
             nativeTotalHeap,
-            nativeFreeHeap
+            nativeFreeHeap,
         )
     }
 
     fun getTrimMemoryData(
-        level: String = "TRIM_MEMORY_UI_HIDDEN"
+        level: String = "TRIM_MEMORY_UI_HIDDEN",
     ): TrimMemoryData {
         return TrimMemoryData(level)
     }
@@ -275,7 +284,7 @@ internal object FakeEventFactory {
             cutime,
             cstime,
             stime,
-            intervalConfig
+            intervalConfig,
         )
     }
 }

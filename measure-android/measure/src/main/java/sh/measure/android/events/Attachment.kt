@@ -1,7 +1,5 @@
 package sh.measure.android.events
 
-import okio.BufferedSource
-
 internal class Attachment(
     /**
      * The extension of the attachment, e.g. "png".

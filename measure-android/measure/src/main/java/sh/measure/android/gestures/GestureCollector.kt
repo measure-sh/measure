@@ -61,7 +61,7 @@ internal class GestureCollector(
                     timestamp = gesture.timestamp,
                     type = EventType.CLICK,
                     data = ClickData.fromDetectedGesture(gesture, target),
-                )
+                ),
             )
 
             is DetectedGesture.LongClick -> tracker.trackLongClick(
@@ -69,7 +69,7 @@ internal class GestureCollector(
                     timestamp = gesture.timestamp,
                     type = EventType.LONG_CLICK,
                     data = LongClickData.fromDetectedGesture(gesture, target),
-                )
+                ),
             )
 
             is DetectedGesture.Scroll -> tracker.trackScroll(
@@ -77,7 +77,7 @@ internal class GestureCollector(
                     timestamp = gesture.timestamp,
                     type = EventType.SCROLL,
                     data = ScrollData.fromDetectedGesture(gesture, target),
-                )
+                ),
             )
         }
         InternalTrace.endSection()

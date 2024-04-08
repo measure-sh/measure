@@ -102,7 +102,11 @@ object Measure {
         val fileStorage: FileStorage = FileStorageImpl(context.filesDir.path, logger)
         val database: Database = DatabaseImpl(context, logger)
         val eventStorage = EventStoreImpl(
-            logger, fileStorage, database, idProvider, sessionIdProvider
+            logger,
+            fileStorage,
+            database,
+            idProvider,
+            sessionIdProvider,
         )
 
         val globalAttributeProcessors = listOf(

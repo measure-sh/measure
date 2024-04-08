@@ -34,8 +34,8 @@ internal class AnrCollector(
             Event(
                 timestamp = error.timestamp,
                 type = EventType.ANR,
-                data = toMeasureException(error)
-            )
+                data = toMeasureException(error),
+            ),
         )
     }
 

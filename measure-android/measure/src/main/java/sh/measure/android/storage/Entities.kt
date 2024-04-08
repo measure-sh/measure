@@ -27,5 +27,5 @@ internal data class AttachmentEntity(
     val id: String,
     val type: String,
     val extension: String,
-    val path: String
+    val path: String,
 )

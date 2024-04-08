@@ -70,7 +70,9 @@ internal class EventProcessorImpl(
      * @param async Whether to process the event asynchronously or not.
      */
     private fun <T> processEvent(
-        event: Event<T>, storeEvent: (Event<T>) -> Unit, async: Boolean = true
+        event: Event<T>,
+        storeEvent: (Event<T>) -> Unit,
+        async: Boolean = true,
     ) {
         val block: () -> Unit = {
             event.appendAttributes(attributeProcessors)
