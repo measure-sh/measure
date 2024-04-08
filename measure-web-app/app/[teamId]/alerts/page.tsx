@@ -172,6 +172,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
       case UpdateAlertPrefsApiStatus.Success:
         setUpdateAlertPrefsApiStatus(UpdateAlertPrefsApiStatus.Success)
         setUpdatePrefsMsg("Alert preferences saved!")
+        setAlertPrefs(updatedAlertPrefs)
         break
     }
   }
