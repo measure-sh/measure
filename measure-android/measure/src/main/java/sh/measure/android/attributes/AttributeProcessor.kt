@@ -1,6 +1,5 @@
 package sh.measure.android.attributes
 
-import sh.measure.android.attachments.AttachmentInfo
 import sh.measure.android.events.Event
 
 /**
@@ -21,11 +20,3 @@ internal interface AttributeProcessor {
 internal fun <T> Event<T>.appendAttributes(attributeProcessors: List<AttributeProcessor>) {
     attributeProcessors.forEach { it.appendAttributes(this.attributes) }
 }
-
-/**
- * Applies all the attribute processors to the attachment.
- */
-internal fun AttachmentInfo.appendAttributes(attributeProcessors: List<AttributeProcessor>) {
-    attributeProcessors.forEach { it.appendAttributes(this.attributes) }
-}
-

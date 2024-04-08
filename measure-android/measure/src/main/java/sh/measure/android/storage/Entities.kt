@@ -21,18 +21,3 @@ internal data class EventEntity(
         }
     }
 }
-
-/**
- * Maps an attachment to [AttachmentTable] in the database.
- */
-internal data class AttachmentEntity(
-    val id: String,
-    val path: String,
-    val name: String,
-    val extension: String?,
-    val type: String,
-    val timestamp: Long,
-    val sessionId: String,
-    // Serialized attributes of the attachment
-    val serializedAttributes: String
-)
