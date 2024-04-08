@@ -55,6 +55,7 @@ object Measure {
     private lateinit var timeProvider: TimeProvider
     private lateinit var eventProcessor: EventProcessor
     private lateinit var okHttpEventProcessor: OkHttpEventProcessor
+    private lateinit var userAttributeProcessor: UserAttributeProcessor
 
     fun init(context: Context) {
         InternalTrace.beginSection("Measure.init")
@@ -91,11 +92,11 @@ object Measure {
         val pidProvider: PidProvider = PidProviderImpl()
 
         val prefsStorage: PrefsStorage = PrefsStorageImpl(context)
-        val userIdAttributeGenerator = UserAttributeProcessor()
-        val networkStateAttributeGenerator = NetworkStateAttributeProcessor(networkInfoProvider)
-        val deviceAttributeGenerator = DeviceAttributeProcessor(logger, context, localeProvider)
-        val appAttributeGenerator = AppAttributeProcessor(context)
-        val installationIdAttributeGenerator =
+        userAttributeProcessor = UserAttributeProcessor()
+        val networkStateAttributeProcessor = NetworkStateAttributeProcessor(networkInfoProvider)
+        val deviceAttributeProcessor = DeviceAttributeProcessor(logger, context, localeProvider)
+        val appAttributeProcessor = AppAttributeProcessor(context)
+        val installationIdAttributeProcessor =
             InstallationIdAttributeProcessor(prefsStorage, idProvider)
 
         val sessionIdProvider = SessionIdProviderImpl(idProvider)
@@ -110,11 +111,11 @@ object Measure {
         )
 
         val globalAttributeProcessors = listOf(
-            userIdAttributeGenerator,
-            networkStateAttributeGenerator,
-            deviceAttributeGenerator,
-            appAttributeGenerator,
-            installationIdAttributeGenerator,
+            userAttributeProcessor,
+            networkStateAttributeProcessor,
+            deviceAttributeProcessor,
+            appAttributeProcessor,
+            installationIdAttributeProcessor,
         )
 
         eventProcessor = EventProcessorImpl(
@@ -195,6 +196,11 @@ object Measure {
         ).register()
         logger.log(LogLevel.Debug, "Measure initialization completed")
         InternalTrace.endSection()
+    }
+
+    fun setUserId(userId: String) {
+        require(::userAttributeProcessor.isInitialized)
+        userAttributeProcessor.setUserId(userId)
     }
 
     internal fun getEventTracker(): EventProcessor {
