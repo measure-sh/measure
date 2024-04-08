@@ -35,18 +35,9 @@ internal class AppLaunchCollectorTest {
         Assert.assertTrue(invoked)
     }
 
-    @Test
-    fun stops_cold_launch_trace_on_cold_launch_complete() {
-        val tracker = FakeEventProcessor()
-        val coldLaunchTrace = FakeColdLaunchTrace().apply { start() }
-        coldLaunch(tracker, coldLaunchTrace = coldLaunchTrace)
-        Assert.assertFalse(coldLaunchTrace.traceRunning)
-    }
-
     private fun coldLaunch(
         tracker: FakeEventProcessor,
         coldLaunchListener: () -> Unit = {},
-        coldLaunchTrace: ColdLaunchTrace = FakeColdLaunchTrace(),
         savedStateBundle: Bundle? = null,
     ) {
         ActivityScenario.launch(TestActivity::class.java, savedStateBundle).use { scenario ->
@@ -55,7 +46,6 @@ internal class AppLaunchCollectorTest {
                 logger = logger,
                 eventProcessor = tracker,
                 timeProvider = AndroidTimeProvider(),
-                coldLaunchTrace = coldLaunchTrace,
                 coldLaunchListener = coldLaunchListener,
             ).register()
             scenario.moveToState(Lifecycle.State.CREATED)
@@ -85,7 +75,6 @@ internal class AppLaunchCollectorTest {
                 logger = logger,
                 eventProcessor = tracker,
                 timeProvider = AndroidTimeProvider(),
-                coldLaunchTrace = FakeColdLaunchTrace(),
                 coldLaunchListener = {},
             ).register()
             scenario.moveToState(Lifecycle.State.CREATED)
@@ -106,7 +95,6 @@ internal class AppLaunchCollectorTest {
                 logger = logger,
                 eventProcessor = tracker,
                 timeProvider = AndroidTimeProvider(),
-                coldLaunchTrace = FakeColdLaunchTrace(),
                 coldLaunchListener = coldLaunchListener,
             ).register()
 
