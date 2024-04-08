@@ -76,37 +76,6 @@ class DatabaseTest {
         }
     }
 
-    private fun assertAttachmentInCursor(
-        attachmentEntity: AttachmentEntity,
-        event: EventEntity,
-        cursor: Cursor,
-    ) {
-        assertEquals(
-            attachmentEntity.id,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_ID)),
-        )
-        assertEquals(
-            attachmentEntity.type,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_TYPE)),
-        )
-        assertEquals(
-            attachmentEntity.path,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_FILE_PATH)),
-        )
-        assertEquals(
-            event.timestamp,
-            cursor.getLong(cursor.getColumnIndex(AttachmentTable.COL_TIMESTAMP)),
-        )
-        assertEquals(
-            event.sessionId,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_SESSION_ID)),
-        )
-        assertEquals(
-            event.id,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_EVENT_ID)),
-        )
-    }
-
     @Test
     fun `inserts event without attachments successfully`() {
         val db = database.writableDatabase
@@ -156,6 +125,37 @@ class DatabaseTest {
         assertEquals(
             expectedEvent.filePath,
             cursor.getString(cursor.getColumnIndex(EventTable.COL_DATA_FILE_PATH)),
+        )
+    }
+
+    private fun assertAttachmentInCursor(
+        attachmentEntity: AttachmentEntity,
+        event: EventEntity,
+        cursor: Cursor,
+    ) {
+        assertEquals(
+            attachmentEntity.id,
+            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_ID)),
+        )
+        assertEquals(
+            attachmentEntity.type,
+            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_TYPE)),
+        )
+        assertEquals(
+            attachmentEntity.path,
+            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_FILE_PATH)),
+        )
+        assertEquals(
+            event.timestamp,
+            cursor.getLong(cursor.getColumnIndex(AttachmentTable.COL_TIMESTAMP)),
+        )
+        assertEquals(
+            event.sessionId,
+            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_SESSION_ID)),
+        )
+        assertEquals(
+            event.id,
+            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_EVENT_ID)),
         )
     }
 
