@@ -198,7 +198,7 @@ internal class EventStoreTest {
                 sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = null,
 
-                ),
+            ),
         )
     }
 

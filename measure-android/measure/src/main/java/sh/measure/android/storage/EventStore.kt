@@ -161,7 +161,7 @@ internal class EventStoreImpl(
         }
         return Json.encodeToString(
             JsonElement.serializer(),
-            event.attributes.toJsonElement()
+            event.attributes.toJsonElement(),
         )
     }
 
