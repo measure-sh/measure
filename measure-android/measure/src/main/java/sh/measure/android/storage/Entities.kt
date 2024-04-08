@@ -10,6 +10,7 @@ internal data class EventEntity(
     val sessionId: String,
     val filePath: String? = null,
     val serializedData: String? = null,
+    val attachmentEntities: List<AttachmentEntity>,
 ) {
     init {
         require(filePath != null || serializedData != null) {
@@ -21,3 +22,10 @@ internal data class EventEntity(
         }
     }
 }
+
+internal data class AttachmentEntity(
+    val id: String,
+    val type: String,
+    val extension: String,
+    val path: String
+)

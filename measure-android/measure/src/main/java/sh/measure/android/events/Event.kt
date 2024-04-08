@@ -29,4 +29,19 @@ internal data class Event<T>(
      * Attributes can be set by one of the collectors or by [AttributeProcessor].
      */
     val attributes: MutableMap<String, Any?> = mutableMapOf(),
-)
+) {
+    /**
+     * Attachments that can be added to the event.
+     */
+    val attachments: MutableList<Attachment> = mutableListOf()
+
+/**
+     * Adds an attachment to the event.
+     *
+     * @param attachment The attachment to add.
+     */
+    fun withAttachment(attachment: Attachment): Event<T> {
+        attachments.add(attachment)
+        return this
+    }
+}
