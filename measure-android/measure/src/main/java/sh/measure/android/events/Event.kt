@@ -1,6 +1,7 @@
 package sh.measure.android.events
 
-import sh.measure.android.attributes.AttributeProcessor
+import kotlinx.serialization.json.JsonElement
+import sh.measure.android.utils.toJsonElement
 
 /**
  * Represents an event in Measure. This object maps very closely to the event object in
@@ -22,26 +23,36 @@ internal data class Event<T>(
      * The data collected. This can be any object that is annotated with `@Serializable`.
      */
     val data: T,
-
-    /**
-     * Additional key value pairs that can be added to the event.
-     *
-     * Attributes can be set by one of the collectors or by [AttributeProcessor].
-     */
-    val attributes: MutableMap<String, Any?> = mutableMapOf(),
 ) {
     /**
      * Attachments that can be added to the event.
      */
     val attachments: MutableList<Attachment> = mutableListOf()
 
-/**
+    /**
+     * Additional key value pairs that can be added to the event.
+     */
+    val attributes: MutableMap<String, Any?> = mutableMapOf()
+
+    /**
      * Adds an attachment to the event.
      *
      * @param attachment The attachment to add.
      */
     fun withAttachment(attachment: Attachment): Event<T> {
         attachments.add(attachment)
+        return this
+    }
+
+    /**
+     * Adds an attribute to the event.
+     *
+     * @param key The key of the attribute.
+     * @param value The value of the attribute. The value can be of any time which can be converted
+     * to a [JsonElement], see [toJsonElement] for the types that are supported.
+     */
+    fun withAttribute(key: String, value: Any?): Event<T> {
+        attributes[key] = value
         return this
     }
 }
