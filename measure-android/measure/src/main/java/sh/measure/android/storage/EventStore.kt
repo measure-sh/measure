@@ -29,6 +29,7 @@ import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.SessionIdProvider
 import sh.measure.android.utils.toJsonElement
+import java.io.File
 
 internal interface EventStore {
     fun storeUnhandledException(event: Event<ExceptionData>)
@@ -142,6 +143,9 @@ internal class EventStoreImpl(
         } ?: return
 
         val attachmentEntities = writeAttachments(event)
+        InternalTrace.beginSection("EventStore.attachmentSizeCalculation")
+        val attachmentsSize = calculateAttachmentsSize(attachmentEntities)
+        InternalTrace.endSection()
         val serializedAttributes = serializeAttributes(event)
         database.insertEvent(
             EventEntity(
@@ -152,8 +156,33 @@ internal class EventStoreImpl(
                 sessionId = sessionIdProvider.sessionId,
                 attachmentEntities = attachmentEntities,
                 serializedAttributes = serializedAttributes,
+                attachmentsSize = attachmentsSize,
             ),
         )
+    }
+
+    private fun <T> storeEvent(event: Event<T>, serializer: KSerializer<T>) {
+        InternalTrace.beginSection("EventStore.storeEvent")
+        val eventId = idProvider.createId()
+        val attachmentEntities = writeAttachments(event)
+        InternalTrace.beginSection("EventStore.attachmentSizeCalculation")
+        val attachmentsSize = calculateAttachmentsSize(attachmentEntities)
+        InternalTrace.endSection()
+        val serializedData = Json.encodeToString(serializer, event.data)
+        val serializedAttributes = serializeAttributes(event)
+        database.insertEvent(
+            EventEntity(
+                id = eventId,
+                type = event.type,
+                timestamp = event.timestamp,
+                serializedData = serializedData,
+                sessionId = sessionIdProvider.sessionId,
+                attachmentEntities = attachmentEntities,
+                serializedAttributes = serializedAttributes,
+                attachmentsSize = attachmentsSize,
+            ),
+        )
+        InternalTrace.endSection()
     }
 
     private fun <T> serializeAttributes(event: Event<T>): String? {
@@ -167,26 +196,6 @@ internal class EventStoreImpl(
         )
         InternalTrace.endSection()
         return result
-    }
-
-    private fun <T> storeEvent(event: Event<T>, serializer: KSerializer<T>) {
-        InternalTrace.beginSection("EventStore.storeEvent")
-        val eventId = idProvider.createId()
-        val attachmentEntities = writeAttachments(event)
-        val serializedData = Json.encodeToString(serializer, event.data)
-        val serializedAttributes = serializeAttributes(event)
-        database.insertEvent(
-            EventEntity(
-                id = eventId,
-                type = event.type,
-                timestamp = event.timestamp,
-                serializedData = serializedData,
-                sessionId = sessionIdProvider.sessionId,
-                attachmentEntities = attachmentEntities,
-                serializedAttributes = serializedAttributes,
-            ),
-        )
-        InternalTrace.endSection()
     }
 
     private fun <T> writeAttachments(event: Event<T>): List<AttachmentEntity>? {
@@ -223,5 +232,17 @@ internal class EventStoreImpl(
                 return null
             }
         }
+    }
+
+    private fun calculateAttachmentsSize(attachmentEntities: List<AttachmentEntity>?): Long {
+        fun fileSize(file: File): Long {
+            return try {
+                if (file.exists()) file.length() else 0
+            } catch (e: SecurityException) {
+                logger.log(LogLevel.Error, "Failed to calculate attachment size", e)
+                0
+            }
+        }
+        return attachmentEntities?.sumOf { fileSize(File(it.path)) } ?: 0
     }
 }

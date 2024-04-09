@@ -53,6 +53,7 @@ internal class DatabaseImpl(
                     put(EventTable.COL_DATA_SERIALIZED, event.serializedData)
                 }
                 put(EventTable.COL_ATTRIBUTES, event.serializedAttributes)
+                put(EventTable.COL_ATTACHMENT_SIZE, event.attachmentsSize)
             }
 
             val result = writableDatabase.insert(EventTable.TABLE_NAME, null, values)
@@ -69,9 +70,13 @@ internal class DatabaseImpl(
                     put(AttachmentTable.COL_SESSION_ID, event.sessionId)
                     put(AttachmentTable.COL_FILE_PATH, attachment.path)
                 }
-                val attachmentResult = writableDatabase.insert(AttachmentTable.TABLE_NAME, null, attachmentValues)
+                val attachmentResult =
+                    writableDatabase.insert(AttachmentTable.TABLE_NAME, null, attachmentValues)
                 if (attachmentResult == -1L) {
-                    logger.log(LogLevel.Error, "Failed to insert attachment for event = ${event.type}")
+                    logger.log(
+                        LogLevel.Error,
+                        "Failed to insert attachment ${attachment.type} for event = ${event.type}"
+                    )
                 }
             }
             writableDatabase.setTransactionSuccessful()

@@ -9,6 +9,7 @@ internal data class EventEntity(
     val type: String,
     val timestamp: Long,
     val sessionId: String,
+    val attachmentsSize: Long,
     val filePath: String? = null,
     val serializedData: String? = null,
     val serializedAttributes: String? = null,
