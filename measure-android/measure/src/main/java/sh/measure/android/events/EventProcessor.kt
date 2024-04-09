@@ -24,6 +24,7 @@ import sh.measure.android.performance.LowMemoryData
 import sh.measure.android.performance.MemoryUsageData
 import sh.measure.android.performance.TrimMemoryData
 import sh.measure.android.storage.EventStore
+import sh.measure.android.tracing.InternalTrace
 
 /**
  * An event processor is responsible for taking an input event from the Measure SDK and
@@ -75,9 +76,11 @@ internal class EventProcessorImpl(
         async: Boolean = true,
     ) {
         val block: () -> Unit = {
+            InternalTrace.beginSection("EventProcessor.processEvent")
             event.appendAttributes(attributeProcessors)
             storeEvent(event)
             logger.log(LogLevel.Debug, "Event processed = ${event.type}")
+            InternalTrace.endSection()
         }
 
         if (async) {
