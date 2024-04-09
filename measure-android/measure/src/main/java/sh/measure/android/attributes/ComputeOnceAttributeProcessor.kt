@@ -1,5 +1,7 @@
 package sh.measure.android.attributes
 
+import sh.measure.android.tracing.InternalTrace
+
 /**
  * Generates the attributes once and then caches them. Subsequent calls to [appendAttributes] will return the
  * cached attributes. This is useful for attributes that are expensive to compute and are not
@@ -13,12 +15,14 @@ internal abstract class ComputeOnceAttributeProcessor : AttributeProcessor {
     private lateinit var cachedAttrs: Map<String, Any?>
 
     override fun appendAttributes(attributes: MutableMap<String, Any?>) {
+        InternalTrace.beginSection("ComputeOnceAttributeProcessor.appendAttributes")
         if (!isComputed) {
             this.cachedAttrs = computeAttributes()
             attributes.putAll(this.cachedAttrs)
             isComputed = true
         }
-        return attributes.putAll(attributes)
+        attributes.putAll(cachedAttrs)
+        InternalTrace.endSection()
     }
 
     /**
