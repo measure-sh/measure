@@ -15,6 +15,7 @@ class EventEntityTest {
                 sessionId = "987",
                 attachmentEntities = emptyList(),
                 serializedAttributes = null,
+                attachmentsSize = 0,
             )
         }
     }
@@ -31,6 +32,7 @@ class EventEntityTest {
                 serializedData = "test-data",
                 attachmentEntities = emptyList(),
                 serializedAttributes = null,
+                attachmentsSize = 0,
             )
         }
     }

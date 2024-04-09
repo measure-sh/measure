@@ -28,6 +28,7 @@ import sh.measure.android.performance.CpuUsageData
 import sh.measure.android.performance.LowMemoryData
 import sh.measure.android.performance.MemoryUsageData
 import sh.measure.android.performance.TrimMemoryData
+import java.io.File
 
 internal class EventStoreTest {
     private val logger = NoopLogger()
@@ -67,6 +68,7 @@ internal class EventStoreTest {
                 filePath = eventId,
                 sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = null,
+                attachmentsSize = 0,
             ),
         )
     }
@@ -94,6 +96,7 @@ internal class EventStoreTest {
                 filePath = eventId,
                 sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = null,
+                attachmentsSize = 0,
             ),
         )
     }
@@ -119,6 +122,7 @@ internal class EventStoreTest {
                 serializedData = Json.encodeToString(ClickData.serializer(), event.data),
                 sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = null,
+                attachmentsSize = 0,
             ),
         )
     }
@@ -144,6 +148,7 @@ internal class EventStoreTest {
                 serializedData = Json.encodeToString(LongClickData.serializer(), event.data),
                 sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = null,
+                attachmentsSize = 0,
             ),
         )
     }
@@ -169,6 +174,7 @@ internal class EventStoreTest {
                 serializedData = Json.encodeToString(ScrollData.serializer(), event.data),
                 sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = null,
+                attachmentsSize = 0,
             ),
         )
     }
@@ -197,8 +203,9 @@ internal class EventStoreTest {
                 ),
                 sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = null,
+                attachmentsSize = 0,
 
-            ),
+                ),
         )
     }
 
@@ -226,6 +233,7 @@ internal class EventStoreTest {
                 ),
                 sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = null,
+                attachmentsSize = 0,
             ),
         )
     }
@@ -254,6 +262,7 @@ internal class EventStoreTest {
                 ),
                 sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = null,
+                attachmentsSize = 0,
             ),
         )
     }
@@ -279,6 +288,7 @@ internal class EventStoreTest {
                 serializedData = Json.encodeToString(ColdLaunchData.serializer(), event.data),
                 sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = null,
+                attachmentsSize = 0,
             ),
         )
     }
@@ -304,6 +314,7 @@ internal class EventStoreTest {
                 serializedData = Json.encodeToString(WarmLaunchData.serializer(), event.data),
                 sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = null,
+                attachmentsSize = 0,
             ),
         )
     }
@@ -329,6 +340,7 @@ internal class EventStoreTest {
                 serializedData = Json.encodeToString(HotLaunchData.serializer(), event.data),
                 sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = null,
+                attachmentsSize = 0,
             ),
         )
     }
@@ -354,6 +366,7 @@ internal class EventStoreTest {
                 serializedData = Json.encodeToString(NetworkChangeData.serializer(), event.data),
                 sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = null,
+                attachmentsSize = 0,
             ),
         )
     }
@@ -379,6 +392,7 @@ internal class EventStoreTest {
                 serializedData = Json.encodeToString(HttpData.serializer(), event.data),
                 sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = null,
+                attachmentsSize = 0,
             ),
         )
     }
@@ -404,6 +418,7 @@ internal class EventStoreTest {
                 serializedData = Json.encodeToString(MemoryUsageData.serializer(), event.data),
                 sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = null,
+                attachmentsSize = 0,
             ),
         )
     }
@@ -429,6 +444,7 @@ internal class EventStoreTest {
                 serializedData = Json.encodeToString(LowMemoryData.serializer(), event.data),
                 sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = null,
+                attachmentsSize = 0,
             ),
         )
     }
@@ -454,6 +470,7 @@ internal class EventStoreTest {
                 serializedData = Json.encodeToString(TrimMemoryData.serializer(), event.data),
                 sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = null,
+                attachmentsSize = 0,
             ),
         )
     }
@@ -479,6 +496,7 @@ internal class EventStoreTest {
                 serializedData = Json.encodeToString(CpuUsageData.serializer(), event.data),
                 sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = null,
+                attachmentsSize = 0,
             ),
         )
     }
@@ -504,6 +522,7 @@ internal class EventStoreTest {
                 serializedData = Json.encodeToString(NavigationData.serializer(), event.data),
                 sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = null,
+                attachmentsSize = 0,
             ),
         )
     }
@@ -520,6 +539,9 @@ internal class EventStoreTest {
             Attachment("extension", "attachment-type", bytes = content),
         )
         `when`(fileStorage.writeAttachment(idProvider.id, content)).thenReturn("fake-path")
+        val attachmentFile = fakeAttachmentFile()
+        val attachmentFileSize = 123L
+        `when`(fileStorage.getFile("fake-path")).thenReturn(attachmentFile)
 
         // When
         eventStore.storeClick(event)
@@ -542,6 +564,7 @@ internal class EventStoreTest {
                     ),
                 ),
                 serializedAttributes = null,
+                attachmentsSize = attachmentFileSize,
             ),
         )
     }
@@ -557,6 +580,10 @@ internal class EventStoreTest {
         ).withAttachment(
             Attachment("extension", "attachment-type", path = attachmentPath),
         )
+
+        val attachmentFile = fakeAttachmentFile()
+        val attachmentFileSize = 123L
+        `when`(fileStorage.getFile(attachmentPath)).thenReturn(attachmentFile)
 
         // When
         eventStore.storeClick(event)
@@ -578,6 +605,7 @@ internal class EventStoreTest {
                     ),
                 ),
                 serializedAttributes = null,
+                attachmentsSize = attachmentFileSize,
             ),
         )
     }
@@ -603,7 +631,16 @@ internal class EventStoreTest {
                 serializedData = Json.encodeToString(ClickData.serializer(), event.data),
                 sessionId = sessionIdProvider.sessionId,
                 serializedAttributes = "{\"key\":\"value\"}",
+                attachmentsSize = 0,
             ),
         )
+    }
+
+    private fun fakeAttachmentFile(): File {
+        val file = File.createTempFile("fake-path", "txt")
+        file.writeText(
+            "lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+        )
+        return file
     }
 }

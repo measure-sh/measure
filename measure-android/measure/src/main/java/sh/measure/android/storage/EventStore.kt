@@ -254,6 +254,8 @@ internal class EventStoreImpl(
                 0
             }
         }
-        return attachmentEntities?.sumOf { fileSize(File(it.path)) } ?: 0
+        return attachmentEntities?.sumOf {
+            fileStorage.getFile(it.path)?.let { file -> fileSize(file) } ?: 0
+        } ?: 0
     }
 }
