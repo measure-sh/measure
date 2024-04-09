@@ -52,6 +52,14 @@ internal interface EventStore {
     fun storeNavigation(event: Event<NavigationData>)
 }
 
+/**
+ * Event store implementation that writes events to the database and file storage.
+ *
+ * Events with large sizes are stored in the [FileStorage] and their paths are stored in the [Database].
+ * While, smaller events are serialized and stored directly in the [Database].
+ *
+ * All event attachments are stored in the [FileStorage] and their paths are stored in the [Database].
+ */
 internal class EventStoreImpl(
     private val logger: Logger,
     private val fileStorage: FileStorage,
@@ -234,6 +242,9 @@ internal class EventStoreImpl(
         }
     }
 
+    /**
+     * Calculates the total size of all attachments, in bytes.
+     */
     private fun calculateAttachmentsSize(attachmentEntities: List<AttachmentEntity>?): Long {
         fun fileSize(file: File): Long {
             return try {

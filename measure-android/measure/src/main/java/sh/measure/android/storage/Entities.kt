@@ -1,18 +1,46 @@
 package sh.measure.android.storage
 
 import sh.measure.android.events.AttachmentType
+import sh.measure.android.events.EventType
 /**
  * Maps an event to [EventTable] in the database.
  */
 internal data class EventEntity(
+    /**
+     * Unique identifier for the event.
+     */
     val id: String,
+    /**
+     * Type of the event. See [EventType] for possible values.
+     */
     val type: String,
+    /**
+     * Timestamp when the event was created.
+     */
     val timestamp: Long,
+    /**
+     * Unique identifier for the session.
+     */
     val sessionId: String,
+    /**
+     * Total size of all attachments in bytes.
+     */
     val attachmentsSize: Long,
+    /**
+     * The path to the file containing the serialized data, optional.
+     */
     val filePath: String? = null,
+    /**
+     * The serialized data of the event, optional.
+     */
     val serializedData: String? = null,
+    /**
+     * The serialized attributes of the event.
+     */
     val serializedAttributes: String? = null,
+    /**
+     * List of attachments associated with the event. Can be null if there are no attachments.
+     */
     val attachmentEntities: List<AttachmentEntity>? = null,
 ) {
     init {
