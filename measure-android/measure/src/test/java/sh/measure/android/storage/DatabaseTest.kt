@@ -134,7 +134,7 @@ class DatabaseTest {
         )
         assertEquals(
             expectedEvent.attachmentsSize,
-            cursor.getInt(cursor.getColumnIndex(EventTable.COL_ATTACHMENT_SIZE)),
+            cursor.getLong(cursor.getColumnIndex(EventTable.COL_ATTACHMENT_SIZE)),
         )
     }
 
