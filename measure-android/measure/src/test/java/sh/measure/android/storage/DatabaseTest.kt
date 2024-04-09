@@ -62,6 +62,7 @@ class DatabaseTest {
             filePath = "test-file-path",
             attachmentEntities = listOf(attachmentEntity),
             serializedAttributes = null,
+            attachmentsSize = 0,
         )
 
         database.insertEvent(event)
@@ -88,6 +89,7 @@ class DatabaseTest {
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
             serializedAttributes = null,
+            attachmentsSize = 500,
         )
 
         database.insertEvent(event)
@@ -125,6 +127,14 @@ class DatabaseTest {
         assertEquals(
             expectedEvent.filePath,
             cursor.getString(cursor.getColumnIndex(EventTable.COL_DATA_FILE_PATH)),
+        )
+        assertEquals(
+            expectedEvent.serializedAttributes,
+            cursor.getString(cursor.getColumnIndex(EventTable.COL_ATTRIBUTES)),
+        )
+        assertEquals(
+            expectedEvent.attachmentsSize,
+            cursor.getInt(cursor.getColumnIndex(EventTable.COL_ATTACHMENT_SIZE)),
         )
     }
 
