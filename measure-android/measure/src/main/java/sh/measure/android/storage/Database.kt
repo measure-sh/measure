@@ -9,6 +9,7 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import java.io.Closeable
 
+
 internal interface Database : Closeable {
     fun insertEvent(event: EventEntity)
 }
@@ -69,6 +70,7 @@ internal class DatabaseImpl(
                     put(AttachmentTable.COL_TIMESTAMP, event.timestamp)
                     put(AttachmentTable.COL_SESSION_ID, event.sessionId)
                     put(AttachmentTable.COL_FILE_PATH, attachment.path)
+                    put(AttachmentTable.COL_EXTENSION, attachment.path)
                 }
                 val attachmentResult =
                     writableDatabase.insert(AttachmentTable.TABLE_NAME, null, attachmentValues)
