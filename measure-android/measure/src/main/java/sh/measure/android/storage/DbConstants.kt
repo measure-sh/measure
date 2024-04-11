@@ -28,6 +28,12 @@ internal object AttachmentTable {
     const val COL_EXTENSION = "extension"
 }
 
+internal object EventsBatchTable {
+    const val TABLE_NAME = "events_batch"
+    const val COL_EVENT_ID = "event_id"
+    const val COL_BATCH_ID = "batch_id"
+}
+
 internal object Sql {
     const val CREATE_EVENTS_TABLE = """
         CREATE TABLE ${EventTable.TABLE_NAME} (
@@ -54,4 +60,31 @@ internal object Sql {
             FOREIGN KEY (${AttachmentTable.COL_EVENT_ID}) REFERENCES ${EventTable.TABLE_NAME}(${EventTable.COL_ID}) ON DELETE CASCADE
         )
     """
+
+    const val CREATE_EVENTS_BATCH_TABLE = """
+        CREATE TABLE ${EventsBatchTable.TABLE_NAME} (
+            ${EventsBatchTable.COL_EVENT_ID} TEXT NOT NULL,
+            ${EventsBatchTable.COL_BATCH_ID} TEXT NOT NULL,
+            PRIMARY KEY (${EventsBatchTable.COL_EVENT_ID}, ${EventsBatchTable.COL_BATCH_ID}),
+            FOREIGN KEY (${EventsBatchTable.COL_EVENT_ID}) REFERENCES ${EventTable.TABLE_NAME}(${EventTable.COL_ID}) ON DELETE CASCADE
+        )
+    """
+
+    /**
+     * Query to get a batch of events that are not yet batched.
+     *
+     * @param eventCount The number of events to fetch.
+     * @param ascending Whether to fetch the oldest events first or the newest.
+     */
+    fun getEventsBatchQuery(eventCount: Int, ascending: Boolean): String {
+        return """
+            SELECT ${EventTable.COL_ID}, ${EventTable.COL_ATTACHMENT_SIZE} 
+            FROM ${EventTable.TABLE_NAME}
+            WHERE ${EventTable.COL_ID} NOT IN (
+                SELECT ${EventsBatchTable.COL_EVENT_ID} FROM ${EventsBatchTable.TABLE_NAME}
+            )
+            ORDER BY ${EventTable.COL_TIMESTAMP} ${if (ascending) "ASC" else "DESC"}
+            LIMIT $eventCount
+        """
+    }
 }

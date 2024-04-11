@@ -35,8 +35,10 @@ class LifecycleCollectorTest {
             RuntimeEnvironment.getApplication(),
             eventProcessor,
             timeProvider,
-            onAppForeground = {},
-            onAppBackground = {},
+            applicationLifecycleStateListener = object : ApplicationLifecycleStateListener {
+                override fun onAppForeground() {}
+                override fun onAppBackground() {}
+            },
         ).apply { register() }
         controller = buildActivity(TestLifecycleActivity::class.java)
     }
@@ -241,8 +243,13 @@ class LifecycleCollectorTest {
             RuntimeEnvironment.getApplication(),
             eventProcessor,
             timeProvider,
-            onAppForeground = { foreground = true },
-            onAppBackground = {},
+            applicationLifecycleStateListener = object : ApplicationLifecycleStateListener {
+                override fun onAppForeground() {
+                    foreground = true
+                }
+
+                override fun onAppBackground() {}
+            },
         ).apply { register() }
         controller.setup()
         Assert.assertTrue(foreground)
@@ -255,8 +262,12 @@ class LifecycleCollectorTest {
             RuntimeEnvironment.getApplication(),
             eventProcessor,
             timeProvider,
-            onAppForeground = {},
-            onAppBackground = { background = true },
+            applicationLifecycleStateListener = object : ApplicationLifecycleStateListener {
+                override fun onAppForeground() {}
+                override fun onAppBackground() {
+                    background = true
+                }
+            },
         ).apply { register() }
         controller.setup().stop()
         Assert.assertTrue(background)

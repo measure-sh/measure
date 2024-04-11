@@ -1,10 +1,12 @@
 package sh.measure.android
 
+import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
 import androidx.annotation.VisibleForTesting
 import sh.measure.android.anr.AnrCollector
 import sh.measure.android.applaunch.AppLaunchCollector
+import sh.measure.android.applaunch.ColdLaunchListener
 import sh.measure.android.attributes.AppAttributeProcessor
 import sh.measure.android.attributes.DeviceAttributeProcessor
 import sh.measure.android.attributes.InstallationIdAttributeProcessor
@@ -15,7 +17,10 @@ import sh.measure.android.events.EventProcessorImpl
 import sh.measure.android.exceptions.UnhandledExceptionCollector
 import sh.measure.android.executors.CustomThreadFactory
 import sh.measure.android.executors.MeasureExecutorServiceImpl
+import sh.measure.android.exporter.PeriodicEventExporter
+import sh.measure.android.exporter.PeriodicEventExporterImpl
 import sh.measure.android.gestures.GestureCollector
+import sh.measure.android.lifecycle.ApplicationLifecycleStateListener
 import sh.measure.android.lifecycle.LifecycleCollector
 import sh.measure.android.logger.AndroidLogger
 import sh.measure.android.logger.LogLevel
@@ -51,11 +56,17 @@ import sh.measure.android.utils.SystemServiceProviderImpl
 import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.UUIDProvider
 
-object Measure {
+object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
     private lateinit var timeProvider: TimeProvider
     private lateinit var eventProcessor: EventProcessor
     private lateinit var okHttpEventProcessor: OkHttpEventProcessor
     private lateinit var userAttributeProcessor: UserAttributeProcessor
+
+    @SuppressLint("StaticFieldLeak") // TODO: to be fixed when Measure is refactored
+    private lateinit var networkChangesCollector: NetworkChangesCollector
+    private lateinit var cpuUsageCollector: CpuUsageCollector
+    private lateinit var memoryUsageCollector: MemoryUsageCollector
+    private lateinit var periodicEventExporter: PeriodicEventExporter
 
     fun init(context: Context) {
         InternalTrace.beginSection("Measure.init")
@@ -125,6 +136,14 @@ object Measure {
             globalAttributeProcessors,
         )
 
+        periodicEventExporter = PeriodicEventExporterImpl(
+            logger,
+            config,
+            idProvider,
+            executorService,
+            database,
+        )
+
         // Register data collectors
         okHttpEventProcessor =
             OkHttpEventProcessorImpl(logger, eventProcessor, timeProvider, config)
@@ -139,7 +158,7 @@ object Measure {
             timeProvider,
             eventProcessor,
         ).register()
-        val cpuUsageCollector = CpuUsageCollector(
+        cpuUsageCollector = CpuUsageCollector(
             logger,
             eventProcessor,
             pidProvider,
@@ -153,7 +172,7 @@ object Measure {
             pidProvider,
             ProcProviderImpl(),
         )
-        val memoryUsageCollector = MemoryUsageCollector(
+        memoryUsageCollector = MemoryUsageCollector(
             eventProcessor,
             timeProvider,
             executorService,
@@ -169,14 +188,7 @@ object Measure {
             context,
             eventProcessor,
             timeProvider,
-            onAppForeground = {
-                cpuUsageCollector.resume()
-                memoryUsageCollector.resume()
-            },
-            onAppBackground = {
-                cpuUsageCollector.pause()
-                memoryUsageCollector.pause()
-            },
+            this,
         ).register()
         GestureCollector(logger, eventProcessor, timeProvider).register()
         AppLaunchCollector(
@@ -184,16 +196,17 @@ object Measure {
             application,
             timeProvider,
             eventProcessor,
-            coldLaunchListener = {
-                NetworkChangesCollector(
-                    context,
-                    systemServiceProvider,
-                    logger,
-                    eventProcessor,
-                    timeProvider,
-                ).register()
-            },
+            coldLaunchListener = this,
         ).register()
+
+        networkChangesCollector = NetworkChangesCollector(
+            context,
+            systemServiceProvider,
+            logger,
+            eventProcessor,
+            timeProvider,
+        )
+
         logger.log(LogLevel.Debug, "Measure initialization completed")
         InternalTrace.endSection()
     }
@@ -226,5 +239,29 @@ object Measure {
     @VisibleForTesting
     internal fun setTimeProvider(provider: TimeProvider) {
         timeProvider = provider
+    }
+
+    override fun onColdLaunch() {
+        require(::networkChangesCollector.isInitialized)
+        networkChangesCollector.register()
+        periodicEventExporter.onColdLaunch()
+    }
+
+    override fun onAppForeground() {
+        require(::cpuUsageCollector.isInitialized)
+        require(::memoryUsageCollector.isInitialized)
+        require(::periodicEventExporter.isInitialized)
+        cpuUsageCollector.resume()
+        memoryUsageCollector.resume()
+        periodicEventExporter.onAppForeground()
+    }
+
+    override fun onAppBackground() {
+        require(::cpuUsageCollector.isInitialized)
+        require(::memoryUsageCollector.isInitialized)
+        require(::periodicEventExporter.isInitialized)
+        cpuUsageCollector.pause()
+        memoryUsageCollector.pause()
+        periodicEventExporter.onAppBackground()
     }
 }
