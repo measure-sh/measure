@@ -15,12 +15,34 @@ private val enabledHttpBodyContentTypePatterns = listOf(
  */
 internal interface Config {
     /**
+     * The maximum size of an attachment in bytes that can be added to one batch of events to
+     * be exported.
+     */
+    val maxAttachmentSizeInBytes: Int
+
+    /**
+     * The maximum number of events that can be added to one batch of events to be exported.
+     */
+    val maxEventsBatchSize: Int
+
+    /**
+     * The interval in milliseconds at which the events are exported.
+     */
+    val batchingIntervalMs: Long
+
+    /**
      * Returns `true` if the HTTP body should be tracked for the given URL and content type.
      */
     fun trackHttpBody(url: String, contentType: String?): Boolean
 }
 
 internal class DefaultConfig : Config {
+    override val maxAttachmentSizeInBytes: Int = 3 * 1024 * 1024 // 3 MB
+
+    override val maxEventsBatchSize: Int = 50 // 50 events
+
+    override val batchingIntervalMs: Long = 30 * 1000 // 30 seconds
+
     override fun trackHttpBody(url: String, contentType: String?): Boolean {
         if (contentType.isNullOrEmpty()) {
             return false

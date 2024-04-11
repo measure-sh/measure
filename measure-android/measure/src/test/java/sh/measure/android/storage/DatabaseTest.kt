@@ -41,6 +41,8 @@ class DatabaseTest {
             assertEquals(EventTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
             it.moveToNext()
             assertEquals(AttachmentTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
+            it.moveToNext()
+            assertEquals(EventsBatchTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
         }
     }
 
@@ -98,6 +100,157 @@ class DatabaseTest {
             it.moveToFirst()
             assertEventInCursor(event, it)
         }
+    }
+
+    @Test
+    fun `inserts batched events successfully`() {
+        val event1 = EventEntity(
+            id = "event-id-1",
+            type = "test",
+            timestamp = 1234567890L,
+            sessionId = "987",
+            filePath = "test-file-path",
+            attachmentEntities = emptyList(),
+            serializedAttributes = null,
+            attachmentsSize = 500,
+        )
+
+        val event2 = EventEntity(
+            id = "event-id-2",
+            type = "test",
+            timestamp = 1234567899L,
+            sessionId = "987",
+            filePath = "test-file-path",
+            attachmentEntities = emptyList(),
+            serializedAttributes = null,
+            attachmentsSize = 200,
+        )
+
+        database.insertEvent(event1)
+        database.insertEvent(event2)
+        database.insertBatchedEventIds(listOf(event1.id, event2.id), "batch-id")
+
+        queryAllBatchedEvents().use {
+            assertEquals(2, it.count)
+            it.moveToFirst()
+            assertBatchedEventInCursor(event1.id, "batch-id", it)
+            it.moveToNext()
+            assertBatchedEventInCursor(event2.id, "batch-id", it)
+        }
+    }
+
+    @Test
+    fun `returns event IDs to batch along with total attachments size`() {
+        val event1 = EventEntity(
+            id = "event-id-1",
+            type = "test",
+            timestamp = 1234567890L,
+            sessionId = "987",
+            filePath = "test-file-path",
+            attachmentEntities = emptyList(),
+            serializedAttributes = null,
+            attachmentsSize = 500,
+        )
+
+        val event2 = EventEntity(
+            id = "event-id-2",
+            type = "test",
+            timestamp = 1234567899L,
+            sessionId = "987",
+            filePath = "test-file-path",
+            attachmentEntities = emptyList(),
+            serializedAttributes = null,
+            attachmentsSize = 200,
+        )
+
+        database.insertEvent(event1)
+        database.insertEvent(event2)
+
+        val eventsToBatch = database.getEventsToBatch(2)
+        assertEquals(2, eventsToBatch.eventIdAttachmentSizeMap.size)
+        assertEquals(700, eventsToBatch.totalAttachmentsSize)
+    }
+
+    @Test
+    fun `returns event IDs to batch along with total attachment size, but discards already batched events`() {
+        val event1 = EventEntity(
+            id = "event-id-1",
+            type = "test",
+            timestamp = 1234567890L,
+            sessionId = "987",
+            filePath = "test-file-path",
+            attachmentEntities = emptyList(),
+            serializedAttributes = null,
+            attachmentsSize = 500,
+        )
+
+        val event2 = EventEntity(
+            id = "event-id-2",
+            type = "test",
+            timestamp = 1234567899L,
+            sessionId = "987",
+            filePath = "test-file-path",
+            attachmentEntities = emptyList(),
+            serializedAttributes = null,
+            attachmentsSize = 200,
+        )
+
+        val batchedEvent = EventEntity(
+            id = "event-id-3",
+            type = "test",
+            timestamp = 1234567899L,
+            sessionId = "987",
+            filePath = "test-file-path",
+            attachmentEntities = emptyList(),
+            serializedAttributes = null,
+            attachmentsSize = 200,
+        )
+
+        database.insertEvent(event1)
+        database.insertEvent(event2)
+        database.insertEvent(batchedEvent)
+        database.insertBatchedEventIds(listOf(batchedEvent.id), "batch-id")
+
+        val eventsToBatch = database.getEventsToBatch(2)
+        assertEquals(2, eventsToBatch.eventIdAttachmentSizeMap.size)
+        assertEquals(700, eventsToBatch.totalAttachmentsSize)
+    }
+
+    private fun queryAllEvents(db: SQLiteDatabase): Cursor {
+        return db.query(
+            EventTable.TABLE_NAME,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+        )
+    }
+
+    private fun queryAllBatchedEvents(): Cursor {
+        val db = database.writableDatabase
+        return db.query(
+            EventsBatchTable.TABLE_NAME,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+        )
+    }
+
+    private fun queryAttachmentsForEvent(db: SQLiteDatabase, eventId: String): Cursor {
+        return db.query(
+            AttachmentTable.TABLE_NAME,
+            null,
+            "${AttachmentTable.COL_EVENT_ID} = ?",
+            arrayOf(eventId),
+            null,
+            null,
+            null,
+        )
     }
 
     /**
@@ -173,27 +326,18 @@ class DatabaseTest {
         )
     }
 
-    private fun queryAllEvents(db: SQLiteDatabase): Cursor {
-        return db.query(
-            EventTable.TABLE_NAME,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
+    private fun assertBatchedEventInCursor(
+        eventId: String,
+        @Suppress("SameParameterValue") batchId: String,
+        cursor: Cursor,
+    ) {
+        assertEquals(
+            eventId,
+            cursor.getString(cursor.getColumnIndex(EventsBatchTable.COL_EVENT_ID)),
         )
-    }
-
-    private fun queryAttachmentsForEvent(db: SQLiteDatabase, eventId: String): Cursor {
-        return db.query(
-            AttachmentTable.TABLE_NAME,
-            null,
-            "${AttachmentTable.COL_EVENT_ID} = ?",
-            arrayOf(eventId),
-            null,
-            null,
-            null,
+        assertEquals(
+            batchId,
+            cursor.getString(cursor.getColumnIndex(EventsBatchTable.COL_BATCH_ID)),
         )
     }
 }

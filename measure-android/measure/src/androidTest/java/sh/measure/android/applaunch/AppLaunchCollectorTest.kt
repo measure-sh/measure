@@ -28,8 +28,10 @@ internal class AppLaunchCollectorTest {
     fun triggers_cold_launch_listener() {
         val tracker = FakeEventProcessor()
         var invoked = false
-        val coldLaunchListener = {
-            invoked = true
+        val coldLaunchListener = object : ColdLaunchListener {
+            override fun onColdLaunch() {
+                invoked = true
+            }
         }
         coldLaunch(tracker, coldLaunchListener = coldLaunchListener)
         Assert.assertTrue(invoked)
@@ -37,7 +39,9 @@ internal class AppLaunchCollectorTest {
 
     private fun coldLaunch(
         tracker: FakeEventProcessor,
-        coldLaunchListener: () -> Unit = {},
+        coldLaunchListener: ColdLaunchListener = object : ColdLaunchListener {
+            override fun onColdLaunch() {}
+        },
         savedStateBundle: Bundle? = null,
     ) {
         ActivityScenario.launch(TestActivity::class.java, savedStateBundle).use { scenario ->
@@ -75,7 +79,9 @@ internal class AppLaunchCollectorTest {
                 logger = logger,
                 eventProcessor = tracker,
                 timeProvider = AndroidTimeProvider(),
-                coldLaunchListener = {},
+                coldLaunchListener = object : ColdLaunchListener {
+                    override fun onColdLaunch() {}
+                }
             ).register()
             scenario.moveToState(Lifecycle.State.CREATED)
             scenario.moveToState(Lifecycle.State.STARTED)
@@ -89,13 +95,14 @@ internal class AppLaunchCollectorTest {
     fun tracks_hot_launch() {
         val tracker = FakeEventProcessor()
         ActivityScenario.launch(TestActivity::class.java).use { scenario ->
-            val coldLaunchListener = {}
             AppLaunchCollector(
                 application = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as Application,
                 logger = logger,
                 eventProcessor = tracker,
                 timeProvider = AndroidTimeProvider(),
-                coldLaunchListener = coldLaunchListener,
+                coldLaunchListener = object : ColdLaunchListener {
+                    override fun onColdLaunch() {}
+                }
             ).register()
 
             scenario.moveToState(Lifecycle.State.CREATED)

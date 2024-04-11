@@ -11,6 +11,11 @@ import sh.measure.android.events.EventType
 import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.isClassAvailable
 
+internal interface ApplicationLifecycleStateListener {
+    fun onAppForeground()
+    fun onAppBackground()
+}
+
 /**
  * Tracks [Activity], Application and [Fragment] lifecycle events.
  */
@@ -18,8 +23,7 @@ internal class LifecycleCollector(
     private val application: Application,
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
-    private val onAppForeground: () -> Unit,
-    private val onAppBackground: () -> Unit,
+    private val applicationLifecycleStateListener: ApplicationLifecycleStateListener
 ) : ActivityLifecycleAdapter {
     private val fragmentLifecycleCollector by lazy {
         FragmentLifecycleCollector(eventProcessor, timeProvider)
@@ -58,7 +62,7 @@ internal class LifecycleCollector(
                     ),
                 ),
             )
-            onAppForeground.invoke()
+            applicationLifecycleStateListener.onAppForeground()
         }
         val hash = Integer.toHexString(System.identityHashCode(activity))
         startedActivities.add(hash)
@@ -103,7 +107,7 @@ internal class LifecycleCollector(
                     ),
                 ),
             )
-            onAppBackground.invoke()
+            applicationLifecycleStateListener.onAppBackground()
         }
     }
 
