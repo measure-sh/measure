@@ -25,6 +25,7 @@ internal object AttachmentTable {
     const val COL_TIMESTAMP = "timestamp"
     const val COL_SESSION_ID = "session_id"
     const val COL_FILE_PATH = "file_path"
+    const val COL_EXTENSION = "extension"
 }
 
 internal object Sql {
@@ -49,6 +50,7 @@ internal object Sql {
             ${AttachmentTable.COL_TIMESTAMP} INTEGER NOT NULL,
             ${AttachmentTable.COL_SESSION_ID} TEXT NOT NULL,
             ${AttachmentTable.COL_FILE_PATH} TEXT DEFAULT NULL,
+            ${AttachmentTable.COL_EXTENSION} TEXT DEFAULT NULL,
             FOREIGN KEY (${AttachmentTable.COL_EVENT_ID}) REFERENCES ${EventTable.TABLE_NAME}(${EventTable.COL_ID}) ON DELETE CASCADE
         )
     """

@@ -156,6 +156,10 @@ class DatabaseTest {
             cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_FILE_PATH)),
         )
         assertEquals(
+            attachmentEntity.extension,
+            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_EXTENSION)),
+        )
+        assertEquals(
             event.timestamp,
             cursor.getLong(cursor.getColumnIndex(AttachmentTable.COL_TIMESTAMP)),
         )
