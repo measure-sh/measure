@@ -26,6 +26,7 @@ internal class PeriodicEventExporterImpl(
     private val idProvider: IdProvider,
     private val executorService: MeasureExecutorService,
     private val database: Database,
+    private val networkClient: NetworkClient,
     private val heartbeat: Heartbeat = HeartbeatImpl(logger, executorService)
 ) : PeriodicEventExporter, HeartbeatListener {
     @VisibleForTesting
@@ -39,7 +40,7 @@ internal class PeriodicEventExporterImpl(
         heartbeat.addListener(this)
     }
 
-    private fun createBatch() {
+    private fun createBatchAndExport() {
         if (!isBatchingInProgress.compareAndSet(false, true)) {
             // If another batching operation is in progress, skip this invocation
             // and wait for the next heartbeat. This is to prevent multiple batching operations
@@ -56,7 +57,18 @@ internal class PeriodicEventExporterImpl(
 
         val eventIds = filterEventsForMaxAttachmentSize(batchEventEntity)
         val batchId = idProvider.createId()
-        database.insertBatchedEventIds(eventIds, batchId)
+        val batchInsertionResult = database.insertBatchedEventIds(eventIds, batchId)
+        isBatchingInProgress.set(false)
+
+        if (batchInsertionResult) {
+            val events = database.getEventPackets(eventIds)
+            val attachments = database.getAttachmentPackets(eventIds)
+            enqueueExport(events, attachments)
+        }
+    }
+
+    private fun enqueueExport(events: List<EventPacket>, attachments: List<AttachmentPacket>) {
+        networkClient.enqueue(events, attachments)
     }
 
     /**
@@ -80,7 +92,7 @@ internal class PeriodicEventExporterImpl(
     }
 
     override fun pulse() {
-        createBatch()
+        createBatchAndExport()
     }
 
     override fun onAppForeground() {
@@ -94,6 +106,6 @@ internal class PeriodicEventExporterImpl(
     override fun onAppBackground() {
         heartbeat.stop()
         // Attempt to create a batch when the app goes to the background.
-        createBatch()
+        createBatchAndExport()
     }
 }

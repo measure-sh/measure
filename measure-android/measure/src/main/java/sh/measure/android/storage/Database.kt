@@ -5,6 +5,8 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteException
 import android.database.sqlite.SQLiteOpenHelper
+import sh.measure.android.exporter.AttachmentPacket
+import sh.measure.android.exporter.EventPacket
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import java.io.Closeable
@@ -31,7 +33,17 @@ internal interface Database : Closeable {
     /**
      * Inserts a list of event IDs to be marked as "batched" into the database.
      */
-    fun insertBatchedEventIds(eventIds: List<String>, batchId: String)
+    fun insertBatchedEventIds(eventIds: List<String>, batchId: String): Boolean
+
+    /**
+     * Returns a list of event packets for the given event IDs.
+     */
+    fun getEventPackets(eventIds: List<String>): List<EventPacket>
+
+    /**
+     * Returns a list of attachment packets for the given event IDs.
+     */
+    fun getAttachmentPackets(eventIds: List<String>): List<AttachmentPacket>
 }
 
 /**
@@ -76,6 +88,7 @@ internal class DatabaseImpl(
                 }
                 put(EventTable.COL_ATTRIBUTES, event.serializedAttributes)
                 put(EventTable.COL_ATTACHMENT_SIZE, event.attachmentsSize)
+                put(EventTable.COL_ATTACHMENTS, event.serializedAttachments)
             }
 
             val result = writableDatabase.insert(EventTable.TABLE_NAME, null, values)
@@ -91,7 +104,7 @@ internal class DatabaseImpl(
                     put(AttachmentTable.COL_TIMESTAMP, event.timestamp)
                     put(AttachmentTable.COL_SESSION_ID, event.sessionId)
                     put(AttachmentTable.COL_FILE_PATH, attachment.path)
-                    put(AttachmentTable.COL_EXTENSION, attachment.extension)
+                    put(AttachmentTable.COL_NAME, attachment.name)
                 }
                 val attachmentResult =
                     writableDatabase.insert(AttachmentTable.TABLE_NAME, null, attachmentValues)
@@ -128,7 +141,8 @@ internal class DatabaseImpl(
         return BatchEventEntity(eventIdAttachmentSizeMap, attachmentsSize)
     }
 
-    override fun insertBatchedEventIds(eventIds: List<String>, batchId: String) {
+    override fun insertBatchedEventIds(eventIds: List<String>, batchId: String): Boolean {
+        var isSuccess = true // Initialize isSuccess as true
         writableDatabase.beginTransaction()
         try {
             eventIds.forEach { eventId ->
@@ -139,11 +153,76 @@ internal class DatabaseImpl(
                 val result = writableDatabase.insert(EventsBatchTable.TABLE_NAME, null, values)
                 if (result == -1L) {
                     logger.log(LogLevel.Error, "Failed to insert batched event = $eventId")
+                    isSuccess = false
                 }
             }
-            writableDatabase.setTransactionSuccessful()
+            if (isSuccess) {
+                writableDatabase.setTransactionSuccessful()
+            }
         } finally {
             writableDatabase.endTransaction()
+        }
+        return isSuccess
+    }
+
+    override fun getEventPackets(eventIds: List<String>): List<EventPacket> {
+        readableDatabase.rawQuery(Sql.getEventsForIds(eventIds), null).use {
+            val eventPackets = mutableListOf<EventPacket>()
+            while (it.moveToNext()) {
+                val eventIdIndex = it.getColumnIndex(EventTable.COL_ID)
+                val sessionIdIndex = it.getColumnIndex(EventTable.COL_SESSION_ID)
+                val timestampIndex = it.getColumnIndex(EventTable.COL_TIMESTAMP)
+                val typeIndex = it.getColumnIndex(EventTable.COL_TYPE)
+                val serializedDataIndex = it.getColumnIndex(EventTable.COL_DATA_SERIALIZED)
+                val serializedDataFilePathIndex = it.getColumnIndex(EventTable.COL_DATA_FILE_PATH)
+                val attachmentsIndex = it.getColumnIndex(EventTable.COL_ATTACHMENTS)
+                val serializedAttributesIndex = it.getColumnIndex(EventTable.COL_ATTRIBUTES)
+
+                val eventId = it.getString(eventIdIndex)
+                val sessionId = it.getString(sessionIdIndex)
+                val timestamp = it.getLong(timestampIndex)
+                val type = it.getString(typeIndex)
+                val serializedData = it.getString(serializedDataIndex)
+                val serializedDataFilePath = it.getString(serializedDataFilePathIndex)
+                val attachments = it.getString(attachmentsIndex)
+                val serializedAttributes = it.getString(serializedAttributesIndex)
+
+                eventPackets.add(
+                    EventPacket(
+                        eventId,
+                        sessionId,
+                        timestamp,
+                        type,
+                        serializedData,
+                        serializedDataFilePath,
+                        attachments,
+                        serializedAttributes
+                    )
+                )
+            }
+            return eventPackets
+        }
+    }
+
+    override fun getAttachmentPackets(eventIds: List<String>): List<AttachmentPacket> {
+        readableDatabase.rawQuery(Sql.getAttachmentsForEventIds(eventIds), null).use {
+            val attachmentPackets = mutableListOf<AttachmentPacket>()
+            while (it.moveToNext()) {
+                val idIndex = it.getColumnIndex(AttachmentTable.COL_ID)
+                val eventIdIndex = it.getColumnIndex(AttachmentTable.COL_EVENT_ID)
+                val typeIndex = it.getColumnIndex(AttachmentTable.COL_TYPE)
+                val filePathIndex = it.getColumnIndex(AttachmentTable.COL_FILE_PATH)
+                val nameIndex = it.getColumnIndex(AttachmentTable.COL_NAME)
+
+                val id = it.getString(idIndex)
+                val eventId = it.getString(eventIdIndex)
+                val type = it.getString(typeIndex)
+                val filePath = it.getString(filePathIndex)
+                val name = it.getString(nameIndex)
+
+                attachmentPackets.add(AttachmentPacket(id, eventId, type, filePath, name))
+            }
+            return attachmentPackets
         }
     }
 

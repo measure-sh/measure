@@ -1,10 +1,14 @@
 package sh.measure.android.events
 
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
+
+@Serializable
 internal class Attachment(
     /**
-     * The extension of the attachment, e.g. "png".
+     * The name of the attachment, e.g. "screenshot.png".
      */
-    val extension: String,
+    val name: String,
 
     /**
      * The type of the attachment. See [AttachmentType] for the list of attachment types.
@@ -14,11 +18,13 @@ internal class Attachment(
     /**
      * An optional byte array representing the attachment.
      */
+    @Transient
     val bytes: ByteArray? = null,
 
     /**
      * An optional path to the attachment.
      */
+    @Transient
     val path: String? = null,
 ) {
     init {

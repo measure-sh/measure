@@ -24,9 +24,18 @@ class PeriodicEventExporterTest {
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val database = mock<Database>()
     private val heartbeat = mock<Heartbeat>()
+    private val networkClient = mock<NetworkClient>()
 
     private val exporter =
-        PeriodicEventExporterImpl(logger, config, idProvider, executorService, database, heartbeat)
+        PeriodicEventExporterImpl(
+            logger,
+            config,
+            idProvider,
+            executorService,
+            database,
+            networkClient,
+            heartbeat
+        )
 
     @Test
     fun `adds a listener to heartbeat`() {
@@ -122,6 +131,42 @@ class PeriodicEventExporterTest {
         exporter.pulse()
 
         verify(database).insertBatchedEventIds(listOf("event1", "event2", "event3"), batchId)
+    }
+
+    @Test
+    fun `given a batch is created successfully, exports events and attachments`() {
+        `when`(database.getEventsToBatch(config.maxEventsBatchSize, true)).thenReturn(
+            BatchEventEntity(
+                LinkedHashMap(mapOf("event1" to 100L, "event2" to 200L, "event3" to 300L)), 600
+            )
+        )
+        `when`(database.insertBatchedEventIds(any(), any())).thenReturn(true)
+        val eventPackets = listOf(
+            EventPacket(
+                eventId = "event1",
+                type = "type1",
+                timestamp = 1234567890,
+                serializedData = "data1",
+                sessionId = "session1",
+                serializedAttachments = null,
+                serializedDataFilePath = null,
+                serializedAttributes = "attributes1"
+            ),
+        )
+        val attachmentPackets = listOf<AttachmentPacket>(
+            AttachmentPacket(
+                id = "attachment1",
+                eventId = "event1",
+                type = "type1",
+                filePath = "path1",
+                name = "name1"
+            )
+        )
+        `when`(database.getEventPackets(any())).thenReturn(eventPackets)
+        `when`(database.getAttachmentPackets(any())).thenReturn(attachmentPackets)
+
+        exporter.pulse()
+        verify(networkClient).enqueue(eventPackets, attachmentPackets)
     }
 
     private fun returnEmptyEventsToBatchFromDb() {

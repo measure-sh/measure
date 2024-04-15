@@ -38,6 +38,11 @@ internal data class EventEntity(
      * The serialized attributes of the event.
      */
     val serializedAttributes: String? = null,
+
+    /**
+     * The serialized attachments of the event. Can be null if there are no attachments.
+     */
+    val serializedAttachments: String? = null,
     /**
      * List of attachments associated with the event. Can be null if there are no attachments.
      */
@@ -67,9 +72,9 @@ internal data class AttachmentEntity(
      */
     val type: String,
     /**
-     * The extension of the attachment, e.g. "jpg", "trace", etc.
+     * The name of the attachment. Example - "screenshot.png".
      */
-    val extension: String,
+    val name: String,
     /**
      * The path to the attachment.
      */
