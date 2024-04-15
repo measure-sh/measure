@@ -5,6 +5,8 @@ import okhttp3.Callback
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
 import sh.measure.android.logger.LogLevel
@@ -30,11 +32,13 @@ private const val CONNECTION_TIMEOUT_MS = 30_000L
 private const val CALL_TIMEOUT_MS = 20_000L
 private const val PATH_EVENTS = "/events"
 
+private const val ATTACHMENT_NAME_PREFIX = "blob-"
+
 internal class NetworkClientImpl(
     private val logger: Logger,
     private val secretToken: String,
     private val baseUrl: String,
-    ) : NetworkClient {
+) : NetworkClient {
     private val okHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder().connectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
             .callTimeout(CALL_TIMEOUT_MS, TimeUnit.MILLISECONDS)
@@ -57,17 +61,23 @@ internal class NetworkClientImpl(
         }
         attachmentPackets.forEach { attachmentPacket ->
             requestBodyBuilder.addFormDataPart(
-                "blob-${attachmentPacket.id}", attachmentPacket.asFormDataPart()
+                getAttachmentFormDataName(attachmentPacket),
+                null,
+                attachmentPacket.asFormDataPart()
             )
         }
         val requestBody = requestBodyBuilder.build()
-        val request: Request = Request.Builder().url("$baseUrl${PATH_EVENTS}").put(requestBody).build()
+        val request: Request =
+            Request.Builder().url("$baseUrl${PATH_EVENTS}").put(requestBody).build()
         okHttpClient.newCall(request).enqueue(CallbackAdapter(logger, callback))
     }
 
+    private fun getAttachmentFormDataName(attachmentPacket: AttachmentPacket) =
+        "$ATTACHMENT_NAME_PREFIX${attachmentPacket.id}"
+
     private fun EventPacket.asFormDataPart(): String {
         val data = serializedData ?: if (serializedDataFilePath != null) {
-            readFile(serializedDataFilePath)
+            readFileText(serializedDataFilePath)
         } else {
             throw IllegalStateException("EventPacket must have either serializedData or serializedDataFilePath")
         }
@@ -84,7 +94,7 @@ internal class NetworkClientImpl(
             """.trimIndent()
     }
 
-    private fun readFile(path: String): String {
+    private fun readFileText(path: String): String {
         val file = File(path)
         if (file.exists()) {
             return file.readText()
@@ -93,16 +103,21 @@ internal class NetworkClientImpl(
         }
     }
 
-    private fun AttachmentPacket.asFormDataPart(): String {
-        return readFile(filePath)
+    private fun AttachmentPacket.asFormDataPart(): RequestBody {
+        val file = File(filePath)
+        if (file.exists()) {
+            return file.asRequestBody()
+        } else {
+            throw IllegalStateException("No file found at path: $filePath")
+        }
     }
-
 
     internal class CallbackAdapter(
         private val logger: Logger, private val callback: NetworkCallback?
     ) : Callback {
         override fun onFailure(call: Call, e: IOException) {
             logger.log(LogLevel.Error, "Error sending request", e)
+            callback?.onError()
         }
 
         override fun onResponse(call: Call, response: Response) {

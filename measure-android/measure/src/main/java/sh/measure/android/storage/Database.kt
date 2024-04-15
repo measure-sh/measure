@@ -33,7 +33,7 @@ internal interface Database : Closeable {
     /**
      * Inserts a list of event IDs to be marked as "batched" into the database.
      */
-    fun insertBatchedEventIds(eventIds: List<String>, batchId: String): Boolean
+    fun insertBatchedEventIds(eventIds: List<String>, batchId: String, createdAt: Long): Boolean
 
     /**
      * Returns a list of event packets for the given event IDs.
@@ -49,6 +49,11 @@ internal interface Database : Closeable {
      * Deletes the events with the given IDs.
      */
     fun deleteEvents(eventIds: List<String>)
+
+    /**
+     * Returns the oldest batch that has not been synced with server.
+     */
+    fun getOldestUnSyncedBatch(): List<String>
 }
 
 /**
@@ -146,7 +151,7 @@ internal class DatabaseImpl(
         return BatchEventEntity(eventIdAttachmentSizeMap, attachmentsSize)
     }
 
-    override fun insertBatchedEventIds(eventIds: List<String>, batchId: String): Boolean {
+    override fun insertBatchedEventIds(eventIds: List<String>, batchId: String, createdAt: Long): Boolean {
         var isSuccess = true // Initialize isSuccess as true
         writableDatabase.beginTransaction()
         try {
@@ -154,6 +159,7 @@ internal class DatabaseImpl(
                 val values = ContentValues().apply {
                     put(EventsBatchTable.COL_EVENT_ID, eventId)
                     put(EventsBatchTable.COL_BATCH_ID, batchId)
+                    put(EventsBatchTable.COL_CREATED_AT, createdAt)
                 }
                 val result = writableDatabase.insert(EventsBatchTable.TABLE_NAME, null, values)
                 if (result == -1L) {
@@ -241,6 +247,18 @@ internal class DatabaseImpl(
             if (result == 0) {
                 logger.log(LogLevel.Error, "Failed to delete event = $eventId")
             }
+        }
+    }
+
+    override fun getOldestUnSyncedBatch(): List<String> {
+        readableDatabase.rawQuery(Sql.getOldestUnSyncedBatch(), null).use {
+            val eventIds = mutableListOf<String>()
+            while (it.moveToNext()) {
+                val eventIdIndex = it.getColumnIndex(EventsBatchTable.COL_EVENT_ID)
+                val eventId = it.getString(eventIdIndex)
+                eventIds.add(eventId)
+            }
+            return eventIds
         }
     }
 

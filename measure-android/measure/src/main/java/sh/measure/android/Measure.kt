@@ -148,6 +148,7 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             executorService,
             database,
             networkClient,
+            timeProvider
         )
 
         // Register data collectors
