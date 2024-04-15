@@ -17,6 +17,8 @@ import sh.measure.android.events.EventProcessorImpl
 import sh.measure.android.exceptions.UnhandledExceptionCollector
 import sh.measure.android.executors.CustomThreadFactory
 import sh.measure.android.executors.MeasureExecutorServiceImpl
+import sh.measure.android.exporter.NetworkClient
+import sh.measure.android.exporter.NetworkClientImpl
 import sh.measure.android.exporter.PeriodicEventExporter
 import sh.measure.android.exporter.PeriodicEventExporterImpl
 import sh.measure.android.gestures.GestureCollector
@@ -136,12 +138,15 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             globalAttributeProcessors,
         )
 
+        val networkClient: NetworkClient = NetworkClientImpl()
+
         periodicEventExporter = PeriodicEventExporterImpl(
             logger,
             config,
             idProvider,
             executorService,
             database,
+            networkClient,
         )
 
         // Register data collectors

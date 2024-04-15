@@ -1,6 +1,7 @@
 package sh.measure.android.storage
 
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import sh.measure.android.applaunch.ColdLaunchData
@@ -178,6 +179,7 @@ internal class EventStoreImpl(
         InternalTrace.endSection()
         val serializedData = Json.encodeToString(serializer, event.data)
         val serializedAttributes = serializeAttributes(event)
+        val serializedAttachments = serializeAttachments(event)
         database.insertEvent(
             EventEntity(
                 id = eventId,
@@ -187,10 +189,21 @@ internal class EventStoreImpl(
                 sessionId = sessionIdProvider.sessionId,
                 attachmentEntities = attachmentEntities,
                 serializedAttributes = serializedAttributes,
+                serializedAttachments = serializedAttachments,
                 attachmentsSize = attachmentsSize,
             ),
         )
         InternalTrace.endSection()
+    }
+
+    private fun <T> serializeAttachments(event: Event<T>): String? {
+        InternalTrace.beginSection("EventStore.serializeAttachments")
+        if (event.attachments.isEmpty()) {
+            return null
+        }
+        val result = Json.encodeToString(event.attachments)
+        InternalTrace.endSection()
+        return result
     }
 
     private fun <T> serializeAttributes(event: Event<T>): String? {
@@ -216,7 +229,7 @@ internal class EventStoreImpl(
                 AttachmentEntity(
                     id = idProvider.createId(),
                     type = it.type,
-                    extension = it.extension,
+                    name = it.name,
                     path = path,
                 )
             }

@@ -9,6 +9,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
+import sh.measure.android.exporter.AttachmentPacket
+import sh.measure.android.exporter.EventPacket
 import sh.measure.android.fakes.NoopLogger
 
 /**
@@ -53,7 +55,7 @@ class DatabaseTest {
         val attachmentEntity = AttachmentEntity(
             id = "attachment-id",
             type = "test",
-            extension = "txt",
+            name = "a.txt",
             path = "test-path",
         )
         val event = EventEntity(
@@ -64,6 +66,7 @@ class DatabaseTest {
             filePath = "test-file-path",
             attachmentEntities = listOf(attachmentEntity),
             serializedAttributes = null,
+            serializedAttachments = null,
             attachmentsSize = 0,
         )
 
@@ -91,6 +94,7 @@ class DatabaseTest {
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
             serializedAttributes = null,
+            serializedAttachments = null,
             attachmentsSize = 500,
         )
 
@@ -103,7 +107,7 @@ class DatabaseTest {
     }
 
     @Test
-    fun `inserts batched events successfully`() {
+    fun `inserts batched events successfully and returns true`() {
         val event1 = EventEntity(
             id = "event-id-1",
             type = "test",
@@ -128,7 +132,8 @@ class DatabaseTest {
 
         database.insertEvent(event1)
         database.insertEvent(event2)
-        database.insertBatchedEventIds(listOf(event1.id, event2.id), "batch-id")
+        val result = database.insertBatchedEventIds(listOf(event1.id, event2.id), "batch-id")
+        assertEquals(true, result)
 
         queryAllBatchedEvents().use {
             assertEquals(2, it.count)
@@ -137,6 +142,17 @@ class DatabaseTest {
             it.moveToNext()
             assertBatchedEventInCursor(event2.id, "batch-id", it)
         }
+    }
+
+    @Test
+    fun `does not insert batched events and returns false if insertion fails`() {
+        // attempt to insert a event with same ID twice, resulting in a failure
+        val result =
+            database.insertBatchedEventIds(listOf("valid-id", "event-id", "event-id"), "batch-id")
+        queryAllBatchedEvents().use {
+            assertEquals(0, it.count)
+        }
+        assertEquals(false, result)
     }
 
     @Test
@@ -209,11 +225,141 @@ class DatabaseTest {
         database.insertEvent(event1)
         database.insertEvent(event2)
         database.insertEvent(batchedEvent)
-        database.insertBatchedEventIds(listOf(batchedEvent.id), "batch-id")
+        val result = database.insertBatchedEventIds(listOf(batchedEvent.id), "batch-id")
+        assertEquals(true, result)
 
         val eventsToBatch = database.getEventsToBatch(2)
         assertEquals(2, eventsToBatch.eventIdAttachmentSizeMap.size)
         assertEquals(700, eventsToBatch.totalAttachmentsSize)
+    }
+
+    @Test
+    fun `returns event packets for given event IDs`() {
+        val event1 = EventEntity(
+            id = "event-id-1",
+            type = "test",
+            timestamp = 1234567890L,
+            sessionId = "987",
+            filePath = "test-file-path",
+            attachmentEntities = null,
+            serializedAttributes = "attributes",
+            serializedAttachments = "attachments",
+            attachmentsSize = 0,
+        )
+
+        val event2 = EventEntity(
+            id = "event-id-2",
+            type = "test",
+            timestamp = 1234567899L,
+            sessionId = "123",
+            serializedData = "data",
+            attachmentEntities = null,
+            serializedAttributes = "attributes",
+            serializedAttachments = "attachments",
+            attachmentsSize = 0,
+        )
+
+        database.insertEvent(event1)
+        database.insertEvent(event2)
+
+        val eventPackets = database.getEventPackets(listOf(event1.id, event2.id))
+        assertEquals(2, eventPackets.size)
+        assertEventPacket(event1, eventPackets[0])
+        assertEventPacket(event2, eventPackets[1])
+    }
+
+    @Test
+    fun `returns empty attachment packets if no events contain attachments`() {
+        val event1 = EventEntity(
+            id = "event-id-1",
+            type = "test",
+            timestamp = 1234567890L,
+            sessionId = "987",
+            filePath = "test-file-path",
+            attachmentEntities = null,
+            serializedAttributes = "attributes",
+            serializedAttachments = null,
+            attachmentsSize = 0,
+        )
+
+        val event2 = EventEntity(
+            id = "event-id-2",
+            type = "test",
+            timestamp = 1234567899L,
+            sessionId = "123",
+            serializedData = "data",
+            attachmentEntities = null,
+            serializedAttributes = "attributes",
+            serializedAttachments = null,
+            attachmentsSize = 0,
+        )
+
+        database.insertEvent(event1)
+        database.insertEvent(event2)
+
+        val attachmentPackets = database.getAttachmentPackets(listOf(event1.id, event2.id))
+        assertEquals(0, attachmentPackets.size)
+    }
+
+    @Test
+    fun `returns attachment packets when events contain attachments`() {
+        val attachment1 = AttachmentEntity(
+            id = "attachment-id-1",
+            type = "test",
+            name = "a.txt",
+            path = "test-path",
+        )
+
+        val attachment2 = AttachmentEntity(
+            id = "attachment-id-2",
+            type = "test",
+            name = "b.txt",
+            path = "test-path",
+        )
+
+        val event1 = EventEntity(
+            id = "event-id-1",
+            type = "test",
+            timestamp = 1234567890L,
+            sessionId = "987",
+            filePath = "test-file-path",
+            attachmentEntities = listOf(attachment1),
+            serializedAttributes = "attributes",
+            serializedAttachments = null,
+            attachmentsSize = 100,
+        )
+
+        val event2 = EventEntity(
+            id = "event-id-2",
+            type = "test",
+            timestamp = 1234567899L,
+            sessionId = "123",
+            serializedData = "data",
+            attachmentEntities = listOf(attachment2),
+            serializedAttributes = "attributes",
+            serializedAttachments = null,
+            attachmentsSize = 200,
+        )
+
+        database.insertEvent(event1)
+        database.insertEvent(event2)
+
+        val attachmentPackets = database.getAttachmentPackets(listOf(event1.id, event2.id))
+        assertEquals(2, attachmentPackets.size)
+        assertAttachmentPacket(attachment1, event1, attachmentPackets[0])
+        assertAttachmentPacket(attachment2, event2, attachmentPackets[1])
+    }
+
+    private fun assertAttachmentPacket(
+        attachment: AttachmentEntity,
+        event: EventEntity,
+        attachmentPacket: AttachmentPacket,
+    ) {
+        assertEquals(attachment.id, attachmentPacket.id)
+        assertEquals(attachment.type, attachmentPacket.type)
+        assertEquals(attachment.path, attachmentPacket.filePath)
+        assertEquals(attachment.name, attachmentPacket.name)
+        assertEquals(event.id, attachmentPacket.eventId)
     }
 
     private fun queryAllEvents(db: SQLiteDatabase): Cursor {
@@ -309,8 +455,8 @@ class DatabaseTest {
             cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_FILE_PATH)),
         )
         assertEquals(
-            attachmentEntity.extension,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_EXTENSION)),
+            attachmentEntity.name,
+            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_NAME)),
         )
         assertEquals(
             event.timestamp,
@@ -339,5 +485,16 @@ class DatabaseTest {
             batchId,
             cursor.getString(cursor.getColumnIndex(EventsBatchTable.COL_BATCH_ID)),
         )
+    }
+
+    private fun assertEventPacket(event: EventEntity, eventPacket: EventPacket) {
+        assertEquals(event.id, eventPacket.eventId)
+        assertEquals(event.type, eventPacket.type)
+        assertEquals(event.timestamp, eventPacket.timestamp)
+        assertEquals(event.sessionId, eventPacket.sessionId)
+        assertEquals(event.serializedData, eventPacket.serializedData)
+        assertEquals(event.serializedAttributes, eventPacket.serializedAttributes)
+        assertEquals(event.serializedAttachments, eventPacket.serializedAttachments)
+        assertEquals(event.filePath, eventPacket.serializedDataFilePath)
     }
 }

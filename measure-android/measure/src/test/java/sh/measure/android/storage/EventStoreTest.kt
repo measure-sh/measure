@@ -559,7 +559,7 @@ internal class EventStoreTest {
                     AttachmentEntity(
                         id = idProvider.id,
                         type = "attachment-type",
-                        extension = "extension",
+                        name = "name",
                         path = "fake-path",
                     ),
                 ),
@@ -600,7 +600,7 @@ internal class EventStoreTest {
                     AttachmentEntity(
                         id = idProvider.id,
                         type = "attachment-type",
-                        extension = "extension",
+                        name = "name",
                         path = attachmentPath,
                     ),
                 ),
