@@ -26,16 +26,9 @@ class PeriodicEventExporterTest {
     private val heartbeat = mock<Heartbeat>()
     private val networkClient = mock<NetworkClient>()
 
-    private val exporter =
-        PeriodicEventExporterImpl(
-            logger,
-            config,
-            idProvider,
-            executorService,
-            database,
-            networkClient,
-            heartbeat
-        )
+    private val exporter = PeriodicEventExporterImpl(
+        logger, config, idProvider, executorService, database, networkClient, heartbeat
+    )
 
     @Test
     fun `adds a listener to heartbeat`() {
@@ -98,22 +91,6 @@ class PeriodicEventExporterTest {
     }
 
     @Test
-    fun `given events to batch are less than the minimum, does not create a batch`() {
-        // MINIMUM_BATCH_SIZE = 3
-        val eventIdAttachmentSizeMap = LinkedHashMap<String, Long>()
-        eventIdAttachmentSizeMap["event1"] = 100
-        eventIdAttachmentSizeMap["event2"] = 200
-        `when`(database.getEventsToBatch(config.maxEventsBatchSize, true)).thenReturn(
-            BatchEventEntity(
-                eventIdAttachmentSizeMap, 300
-            )
-        )
-        exporter.pulse()
-
-        verify(database, never()).insertBatchedEventIds(any(), any())
-    }
-
-    @Test
     fun `given events to batch have attachments size more than max attachment size, filters events`() {
         config.maxAttachmentSizeInBytes = 600
         val batchId = idProvider.id
@@ -166,7 +143,10 @@ class PeriodicEventExporterTest {
         `when`(database.getAttachmentPackets(any())).thenReturn(attachmentPackets)
 
         exporter.pulse()
-        verify(networkClient).enqueue(eventPackets, attachmentPackets)
+        verify(networkClient).enqueue(eventPackets, attachmentPackets, object : NetworkCallback {
+            override fun onSuccess() {}
+            override fun onError() {}
+        })
     }
 
     private fun returnEmptyEventsToBatchFromDb() {

@@ -44,6 +44,11 @@ internal interface Database : Closeable {
      * Returns a list of attachment packets for the given event IDs.
      */
     fun getAttachmentPackets(eventIds: List<String>): List<AttachmentPacket>
+
+    /**
+     * Deletes the events with the given IDs.
+     */
+    fun deleteEvents(eventIds: List<String>)
 }
 
 /**
@@ -223,6 +228,19 @@ internal class DatabaseImpl(
                 attachmentPackets.add(AttachmentPacket(id, eventId, type, filePath, name))
             }
             return attachmentPackets
+        }
+    }
+
+    override fun deleteEvents(eventIds: List<String>) {
+        eventIds.forEach { eventId ->
+            val result = writableDatabase.delete(
+                EventTable.TABLE_NAME,
+                "${EventTable.COL_ID} = ?",
+                arrayOf(eventId)
+            )
+            if (result == 0) {
+                logger.log(LogLevel.Error, "Failed to delete event = $eventId")
+            }
         }
     }
 
