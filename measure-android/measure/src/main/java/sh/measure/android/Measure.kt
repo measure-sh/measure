@@ -138,7 +138,8 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             globalAttributeProcessors,
         )
 
-        val networkClient: NetworkClient = NetworkClientImpl()
+        val networkClient: NetworkClient =
+            NetworkClientImpl(logger, manifestMetadata.apiKey, manifestMetadata.url)
 
         periodicEventExporter = PeriodicEventExporterImpl(
             logger,
