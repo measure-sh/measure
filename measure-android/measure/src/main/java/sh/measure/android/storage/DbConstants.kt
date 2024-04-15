@@ -33,6 +33,7 @@ internal object EventsBatchTable {
     const val TABLE_NAME = "events_batch"
     const val COL_EVENT_ID = "event_id"
     const val COL_BATCH_ID = "batch_id"
+    const val COL_CREATED_AT = "created_at"
 }
 
 internal object Sql {
@@ -67,6 +68,7 @@ internal object Sql {
         CREATE TABLE ${EventsBatchTable.TABLE_NAME} (
             ${EventsBatchTable.COL_EVENT_ID} TEXT NOT NULL,
             ${EventsBatchTable.COL_BATCH_ID} TEXT NOT NULL,
+            ${EventsBatchTable.COL_CREATED_AT} INTEGER NOT NULL,
             PRIMARY KEY (${EventsBatchTable.COL_EVENT_ID}, ${EventsBatchTable.COL_BATCH_ID}),
             FOREIGN KEY (${EventsBatchTable.COL_EVENT_ID}) REFERENCES ${EventTable.TABLE_NAME}(${EventTable.COL_ID}) ON DELETE CASCADE
         )
@@ -88,6 +90,15 @@ internal object Sql {
             ORDER BY ${EventTable.COL_TIMESTAMP} ${if (ascending) "ASC" else "DESC"}
             LIMIT $eventCount
         """
+    }
+
+    fun getOldestUnSyncedBatch(): String {
+        return """
+            SELECT ${EventsBatchTable.COL_EVENT_ID}
+            FROM ${EventsBatchTable.TABLE_NAME}
+            ORDER BY ${EventsBatchTable.COL_CREATED_AT} ASC
+            LIMIT 1
+        """.trimIndent()
     }
 
     fun getEventsForIds(eventIds: List<String>): String {

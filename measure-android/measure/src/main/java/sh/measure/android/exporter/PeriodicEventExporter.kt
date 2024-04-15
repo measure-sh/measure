@@ -8,6 +8,7 @@ import sh.measure.android.logger.Logger
 import sh.measure.android.storage.BatchEventEntity
 import sh.measure.android.storage.Database
 import sh.measure.android.utils.IdProvider
+import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal interface PeriodicEventExporter {
@@ -28,6 +29,7 @@ internal class PeriodicEventExporterImpl(
     private val executorService: MeasureExecutorService,
     private val database: Database,
     private val networkClient: NetworkClient,
+    private val timeProvider: TimeProvider,
     private val heartbeat: Heartbeat = HeartbeatImpl(logger, executorService)
 ) : PeriodicEventExporter, HeartbeatListener {
     @VisibleForTesting
@@ -42,7 +44,9 @@ internal class PeriodicEventExporterImpl(
             // If another batching operation is in progress, skip this invocation
             // and wait for the next heartbeat. This is to prevent multiple batching operations
             // from running concurrently.
-            logger.log(LogLevel.Warning, "Skipping batching operation as another operation is in progress")
+            logger.log(
+                LogLevel.Warning, "Skipping batching operation as another operation is in progress"
+            )
             return
         }
         val batchEventEntity = database.getEventsToBatch(config.maxEventsBatchSize)
@@ -54,7 +58,9 @@ internal class PeriodicEventExporterImpl(
 
         val eventIds = filterEventsForMaxAttachmentSize(batchEventEntity)
         val batchId = idProvider.createId()
-        val batchInsertionResult = database.insertBatchedEventIds(eventIds, batchId)
+        val batchInsertionResult = database.insertBatchedEventIds(
+            eventIds, batchId, timeProvider.currentTimeSinceEpochInMillis
+        )
 
         isBatchingInProgress.set(false)
         if (batchInsertionResult) {
@@ -63,6 +69,14 @@ internal class PeriodicEventExporterImpl(
             logger.log(LogLevel.Warning, "Sending request ${events.size}")
             enqueueExport(events, attachments)
         }
+    }
+
+    private fun exportExistingBatchIfAny() {
+        val eventIds = database.getOldestUnSyncedBatch()
+        val events = database.getEventPackets(eventIds)
+        val attachments = database.getAttachmentPackets(eventIds)
+        logger.log(LogLevel.Debug, "Sending request ${events.size}")
+        enqueueExport(events, attachments)
     }
 
     private fun enqueueExport(events: List<EventPacket>, attachments: List<AttachmentPacket>) {
@@ -100,6 +114,7 @@ internal class PeriodicEventExporterImpl(
 
     override fun pulse() {
         createBatchAndExport()
+        exportExistingBatchIfAny()
     }
 
     override fun onAppForeground() {
@@ -114,5 +129,6 @@ internal class PeriodicEventExporterImpl(
         heartbeat.stop()
         // Attempt to create a batch when the app goes to the background.
         createBatchAndExport()
+        exportExistingBatchIfAny()
     }
 }
