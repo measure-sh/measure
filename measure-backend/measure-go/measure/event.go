@@ -98,7 +98,6 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 		e.bumpSize(int64(len(bytes)))
 		event.AppID = appId
 		if event.NeedsSymbolication() {
-			// e.symbolicate = append(e.symbolicate, event.ID)
 			e.symbolicate[event.ID] = i
 		}
 		e.events = append(e.events, event)
