@@ -51,6 +51,7 @@ func main() {
 	// SDK routes
 	r.PUT("/sessions", measure.ValidateAPIKey(), measure.PutSession)
 	r.PUT("/events", measure.ValidateAPIKey(), measure.PutEvent)
+	r.PUT("/events2", measure.ValidateAPIKey(), measure.PutEventMulti)
 	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuild)
 
 	// Dashboard rotues
