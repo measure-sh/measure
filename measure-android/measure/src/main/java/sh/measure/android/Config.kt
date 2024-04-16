@@ -41,7 +41,7 @@ internal class DefaultConfig : Config {
 
     override val maxEventsBatchSize: Int = 50 // 50 events
 
-    override val batchingIntervalMs: Long = 10 * 1000 // 10 seconds
+    override val batchingIntervalMs: Long = 10_000 // 10 seconds
 
     override fun trackHttpBody(url: String, contentType: String?): Boolean {
         if (contentType.isNullOrEmpty()) {

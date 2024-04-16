@@ -5,7 +5,6 @@ import sh.measure.android.Config
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import sh.measure.android.storage.BatchEventEntity
 import sh.measure.android.storage.Database
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.TimeProvider
@@ -19,8 +18,7 @@ internal interface PeriodicEventExporter {
 
 /**
  * Periodic event exporter that batches events to be exported periodically. Batches are attempted
- * to be created at a fixed interval or when the app goes to the background. The periodic heartbeat
- * is active only when the app is in the foreground.
+ * to be created at a fixed interval or when the app goes to the background.
  */
 internal class PeriodicEventExporterImpl(
     private val logger: Logger,
@@ -30,91 +28,25 @@ internal class PeriodicEventExporterImpl(
     private val database: Database,
     private val networkClient: NetworkClient,
     private val timeProvider: TimeProvider,
-    private val heartbeat: Heartbeat = HeartbeatImpl(logger, executorService)
+    private val heartbeat: Heartbeat = HeartbeatImpl(logger, executorService),
+    private val batchCreator: BatchCreator = BatchCreatorImpl(logger, idProvider, database, config, timeProvider)
 ) : PeriodicEventExporter, HeartbeatListener {
     @VisibleForTesting
-    internal val isBatchingInProgress = AtomicBoolean(false)
+    internal val isExportInProgress = AtomicBoolean(false)
+
+    @VisibleForTesting
+    internal var lastExportAttemptUptime = 0L
+
+    private companion object {
+        private const val MAX_UN_SYNCED_BATCHES_COUNT = 30
+    }
 
     init {
         heartbeat.addListener(this)
     }
 
-    private fun createBatchAndExport() {
-        if (!isBatchingInProgress.compareAndSet(false, true)) {
-            // If another batching operation is in progress, skip this invocation
-            // and wait for the next heartbeat. This is to prevent multiple batching operations
-            // from running concurrently.
-            logger.log(
-                LogLevel.Warning, "Skipping batching operation as another operation is in progress"
-            )
-            return
-        }
-        val batchEventEntity = database.getEventsToBatch(config.maxEventsBatchSize)
-        if (batchEventEntity.eventIdAttachmentSizeMap.isEmpty()) {
-            isBatchingInProgress.set(false)
-            logger.log(LogLevel.Warning, "No events to batch")
-            return
-        }
-
-        val eventIds = filterEventsForMaxAttachmentSize(batchEventEntity)
-        val batchId = idProvider.createId()
-        val batchInsertionResult = database.insertBatchedEventIds(
-            eventIds, batchId, timeProvider.currentTimeSinceEpochInMillis
-        )
-
-        isBatchingInProgress.set(false)
-        if (batchInsertionResult) {
-            val events = database.getEventPackets(eventIds)
-            val attachments = database.getAttachmentPackets(eventIds)
-            logger.log(LogLevel.Warning, "Sending request ${events.size}")
-            enqueueExport(events, attachments)
-        }
-    }
-
-    private fun exportExistingBatchIfAny() {
-        val eventIds = database.getOldestUnSyncedBatch()
-        val events = database.getEventPackets(eventIds)
-        val attachments = database.getAttachmentPackets(eventIds)
-        logger.log(LogLevel.Debug, "Sending request ${events.size}")
-        enqueueExport(events, attachments)
-    }
-
-    private fun enqueueExport(events: List<EventPacket>, attachments: List<AttachmentPacket>) {
-        networkClient.enqueue(events, attachments, object : NetworkCallback {
-            override fun onSuccess() {
-                logger.log(LogLevel.Debug, "Successfully exported events")
-                database.deleteEvents(events.map { it.eventId })
-            }
-
-            override fun onError() {
-                logger.log(LogLevel.Error, "Failed to export events")
-            }
-        })
-    }
-
-    /**
-     * Filters the events to be batched based on the max attachment size limit.
-     *
-     * If the total size of attachments exceeds the limit, events are filtered out until the total
-     * size is within the limit.
-     *
-     * @return List of event IDs that are within the max attachment size limit.
-     */
-    private fun filterEventsForMaxAttachmentSize(batchEventEntity: BatchEventEntity): List<String> {
-        return if (batchEventEntity.totalAttachmentsSize > config.maxAttachmentSizeInBytes) {
-            var totalSize = 0L
-            batchEventEntity.eventIdAttachmentSizeMap.asSequence().takeWhile { (_, size) ->
-                totalSize += size
-                totalSize <= config.maxAttachmentSizeInBytes
-            }.map { (key, _) -> key }.toList()
-        } else {
-            batchEventEntity.eventIdAttachmentSizeMap.keys.toList()
-        }
-    }
-
     override fun pulse() {
-        createBatchAndExport()
-        exportExistingBatchIfAny()
+        exportEvents()
     }
 
     override fun onAppForeground() {
@@ -127,8 +59,67 @@ internal class PeriodicEventExporterImpl(
 
     override fun onAppBackground() {
         heartbeat.stop()
-        // Attempt to create a batch when the app goes to the background.
-        createBatchAndExport()
-        exportExistingBatchIfAny()
+        exportEvents()
+    }
+
+    private fun exportEvents() {
+        if (!isExportInProgress.compareAndSet(false, true)) {
+            logger.log(
+                LogLevel.Debug, "Skipping export operation as another operation is in progress"
+            )
+            return
+        }
+
+        try {
+            val batches = database.getBatches(MAX_UN_SYNCED_BATCHES_COUNT)
+            if (batches.isNotEmpty()) {
+                sendBatches(batches)
+            } else {
+                createNewBatch()
+            }
+        } finally {
+            isExportInProgress.set(false)
+        }
+    }
+
+    private fun sendBatches(batches: LinkedHashMap<String, MutableList<String>>) {
+        batches.forEach { batch ->
+            sendBatch(batch.key, batch.value)
+        }
+    }
+
+    private fun createNewBatch() {
+        if (canCreateNewBatch()) {
+            val result = batchCreator.create() ?: return
+            sendBatch(result.batchId, result.eventIds)
+        } else {
+            logger.log(
+                LogLevel.Warning,
+                "Skipping batching as the last batch was created too recently"
+            )
+        }
+    }
+
+    private fun canCreateNewBatch(): Boolean {
+        return timeProvider.uptimeInMillis - lastExportAttemptUptime > config.batchingIntervalMs
+    }
+
+    private fun sendBatch(batchId: String, eventIds: List<String>) {
+        val events = database.getEventPackets(eventIds)
+        val attachments = database.getAttachmentPackets(eventIds)
+        lastExportAttemptUptime = timeProvider.uptimeInMillis
+        val isSuccessful = networkClient.execute(batchId, events, attachments)
+        handleResult(isSuccessful, eventIds, batchId)
+    }
+
+    private fun handleResult(
+        isSuccessful: Boolean, eventIds: List<String>, batchId: String
+    ) {
+        if (isSuccessful) {
+            database.deleteEvents(eventIds)
+            logger.log(LogLevel.Debug, "Successfully sent batch $batchId")
+        } else {
+            logger.log(LogLevel.Error, "Failed to send batch $batchId")
+        }
     }
 }
