@@ -28,32 +28,48 @@ internal interface Database : Closeable {
      * @param ascending If `true`, the events are returned in ascending order of timestamp. Else,
      * in descending order.
      */
-    fun getEventsToBatch(eventCount: Int, ascending: Boolean = true): BatchEventEntity
+    fun getUnBatchedEventsWithAttachmentSize(
+        eventCount: Int,
+        ascending: Boolean = true
+    ): LinkedHashMap<String, Long>
 
     /**
-     * Inserts a list of event IDs to be marked as "batched" into the database.
+     * Inserts a batch of event IDs along with their assigned batch ID.
+     *
+     * @param eventIds The list of event IDs to insert.
+     * @param batchId The batch ID to assign to the events.
+     * @param createdAt The creation time of the batch.
      */
-    fun insertBatchedEventIds(eventIds: List<String>, batchId: String, createdAt: Long): Boolean
+    fun insertBatch(eventIds: List<String>, batchId: String, createdAt: Long): Boolean
 
     /**
      * Returns a list of event packets for the given event IDs.
+     *
+     * @param eventIds The list of event IDs to get event packets for.
      */
     fun getEventPackets(eventIds: List<String>): List<EventPacket>
 
     /**
      * Returns a list of attachment packets for the given event IDs.
+     *
+     * @param eventIds The list of event IDs to fetch attachments for.
      */
     fun getAttachmentPackets(eventIds: List<String>): List<AttachmentPacket>
 
     /**
-     * Deletes the events with the given IDs.
+     * Deletes the events with the given IDs, along with related metadata.
+     *
+     * @param eventIds The list of event IDs to delete.
      */
     fun deleteEvents(eventIds: List<String>)
 
     /**
-     * Returns the oldest batch that has not been synced with server.
+     * Returns a map of batch IDs to event IDs that have not been synced with the server in
+     * ascending order of creation time.
+     *
+     * @param maxBatches The maximum number of batches to return.
      */
-    fun getOldestUnSyncedBatch(): List<String>
+    fun getBatches(maxBatches: Int): LinkedHashMap<String, MutableList<String>>
 }
 
 /**
@@ -131,11 +147,13 @@ internal class DatabaseImpl(
         }
     }
 
-    override fun getEventsToBatch(eventCount: Int, ascending: Boolean): BatchEventEntity {
+    override fun getUnBatchedEventsWithAttachmentSize(
+        eventCount: Int,
+        ascending: Boolean
+    ): LinkedHashMap<String, Long> {
         val query = Sql.getEventsBatchQuery(eventCount, ascending)
         val cursor = readableDatabase.rawQuery(query, null)
         val eventIdAttachmentSizeMap = LinkedHashMap<String, Long>()
-        var attachmentsSize = 0L
 
         cursor.use {
             while (it.moveToNext()) {
@@ -144,14 +162,17 @@ internal class DatabaseImpl(
                 val eventId = cursor.getString(eventIdIndex)
                 val attachmentSize = cursor.getLong(attachmentsSizeIndex)
                 eventIdAttachmentSizeMap[eventId] = attachmentSize
-                attachmentsSize += attachmentSize
             }
         }
 
-        return BatchEventEntity(eventIdAttachmentSizeMap, attachmentsSize)
+        return eventIdAttachmentSizeMap
     }
 
-    override fun insertBatchedEventIds(eventIds: List<String>, batchId: String, createdAt: Long): Boolean {
+    override fun insertBatch(
+        eventIds: List<String>,
+        batchId: String,
+        createdAt: Long
+    ): Boolean {
         var isSuccess = true // Initialize isSuccess as true
         writableDatabase.beginTransaction()
         try {
@@ -250,16 +271,23 @@ internal class DatabaseImpl(
         }
     }
 
-    override fun getOldestUnSyncedBatch(): List<String> {
-        readableDatabase.rawQuery(Sql.getOldestUnSyncedBatch(), null).use {
-            val eventIds = mutableListOf<String>()
-            while (it.moveToNext()) {
-                val eventIdIndex = it.getColumnIndex(EventsBatchTable.COL_EVENT_ID)
-                val eventId = it.getString(eventIdIndex)
-                eventIds.add(eventId)
+    override fun getBatches(maxBatches: Int): LinkedHashMap<String, MutableList<String>> {
+        readableDatabase.rawQuery(Sql.getUnSyncedBatches(maxBatches), null)
+            .use {
+                val batchIdToEventIds = LinkedHashMap<String, MutableList<String>>()
+                while (it.moveToNext()) {
+                    val eventIdIndex = it.getColumnIndex(EventsBatchTable.COL_EVENT_ID)
+                    val batchIdIndex = it.getColumnIndex(EventsBatchTable.COL_BATCH_ID)
+                    val eventId = it.getString(eventIdIndex)
+                    val batchId = it.getString(batchIdIndex)
+                    if (batchIdToEventIds.containsKey(batchId)) {
+                        batchIdToEventIds[batchId]!!.add(eventId)
+                    } else {
+                        batchIdToEventIds[batchId] = mutableListOf(eventId)
+                    }
+                }
+                return batchIdToEventIds
             }
-            return eventIds
-        }
     }
 
     override fun close() {

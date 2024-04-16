@@ -132,7 +132,8 @@ class DatabaseTest {
 
         database.insertEvent(event1)
         database.insertEvent(event2)
-        val result = database.insertBatchedEventIds(listOf(event1.id, event2.id), "batch-id")
+        val result =
+            database.insertBatch(listOf(event1.id, event2.id), "batch-id", 1234567890L)
         assertEquals(true, result)
 
         queryAllBatchedEvents().use {
@@ -148,7 +149,11 @@ class DatabaseTest {
     fun `does not insert batched events and returns false if insertion fails`() {
         // attempt to insert a event with same ID twice, resulting in a failure
         val result =
-            database.insertBatchedEventIds(listOf("valid-id", "event-id", "event-id"), "batch-id")
+            database.insertBatch(
+                listOf("valid-id", "event-id", "event-id"),
+                "batch-id",
+                987654321L
+            )
         queryAllBatchedEvents().use {
             assertEquals(0, it.count)
         }
@@ -156,39 +161,7 @@ class DatabaseTest {
     }
 
     @Test
-    fun `returns event IDs to batch along with total attachments size`() {
-        val event1 = EventEntity(
-            id = "event-id-1",
-            type = "test",
-            timestamp = 1234567890L,
-            sessionId = "987",
-            filePath = "test-file-path",
-            attachmentEntities = emptyList(),
-            serializedAttributes = null,
-            attachmentsSize = 500,
-        )
-
-        val event2 = EventEntity(
-            id = "event-id-2",
-            type = "test",
-            timestamp = 1234567899L,
-            sessionId = "987",
-            filePath = "test-file-path",
-            attachmentEntities = emptyList(),
-            serializedAttributes = null,
-            attachmentsSize = 200,
-        )
-
-        database.insertEvent(event1)
-        database.insertEvent(event2)
-
-        val eventsToBatch = database.getEventsToBatch(2)
-        assertEquals(2, eventsToBatch.eventIdAttachmentSizeMap.size)
-        assertEquals(700, eventsToBatch.totalAttachmentsSize)
-    }
-
-    @Test
-    fun `returns event IDs to batch along with total attachment size, but discards already batched events`() {
+    fun `returns event IDs to batch, but discards already batched events`() {
         val event1 = EventEntity(
             id = "event-id-1",
             type = "test",
@@ -225,12 +198,11 @@ class DatabaseTest {
         database.insertEvent(event1)
         database.insertEvent(event2)
         database.insertEvent(batchedEvent)
-        val result = database.insertBatchedEventIds(listOf(batchedEvent.id), "batch-id")
+        val result = database.insertBatch(listOf(batchedEvent.id), "batch-id", 987654321L)
         assertEquals(true, result)
 
-        val eventsToBatch = database.getEventsToBatch(2)
-        assertEquals(2, eventsToBatch.eventIdAttachmentSizeMap.size)
-        assertEquals(700, eventsToBatch.totalAttachmentsSize)
+        val eventsToBatch = database.getUnBatchedEventsWithAttachmentSize(2)
+        assertEquals(2, eventsToBatch.size)
     }
 
     @Test

@@ -80,11 +80,3 @@ internal data class AttachmentEntity(
      */
     val path: String,
 )
-
-/**
- * A class to hold result of a batch event query.
- */
-internal data class BatchEventEntity(
-    val eventIdAttachmentSizeMap: LinkedHashMap<String, Long>,
-    val totalAttachmentsSize: Long,
-)
