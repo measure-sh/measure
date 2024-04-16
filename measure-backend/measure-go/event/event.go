@@ -367,10 +367,12 @@ type EventField struct {
 	IPv4              net.IP             `json:"inet_ipv4"`
 	IPv6              net.IP             `json:"inet_ipv6"`
 	CountryCode       string             `json:"inet_country_code"`
+	AppID             uuid.UUID          `json:"app_id"`
 	SessionID         uuid.UUID          `json:"session_id" binding:"required"`
 	Timestamp         time.Time          `json:"timestamp" binding:"required"`
 	Type              string             `json:"type" binding:"required"`
 	Attributes        Attribute          `json:"attributes" binding:"required"`
+	Attachments       []Attachment       `json:"attachments" binding:"required"`
 	ANR               *ANR               `json:"anr,omitempty"`
 	Exception         *Exception         `json:"exception,omitempty"`
 	AppExit           *AppExit           `json:"app_exit,omitempty"`
@@ -475,6 +477,53 @@ func (e EventField) IsLowMemory() bool {
 
 func (e EventField) IsNavigation() bool {
 	return e.Type == TypeNavigation
+}
+
+// NeedsSymbolication returns true if the event needs
+// symbolication, false otherwise.
+func (e EventField) NeedsSymbolication() (result bool) {
+	result = false
+
+	if e.IsException() || e.IsANR() {
+		result = true
+		return
+	}
+
+	if e.IsAppExit() && len(e.AppExit.Trace) > 0 {
+		result = true
+		return
+	}
+
+	if e.IsLifecycleActivity() && len(e.LifecycleActivity.ClassName) > 0 {
+		result = true
+		return
+	}
+
+	if e.IsColdLaunch() && len(e.ColdLaunch.LaunchedActivity) > 0 {
+		result = true
+		return
+	}
+
+	if e.IsWarmLaunch() && len(e.WarmLaunch.LaunchedActivity) > 0 {
+		result = true
+		return
+	}
+
+	if e.IsHotLaunch() && len(e.HotLaunch.LaunchedActivity) > 0 {
+		result = true
+		return
+	}
+
+	if e.IsLifecycleFragment() {
+		hasClassName := len(e.LifecycleFragment.ClassName) > 0
+		hasParentActivity := len(e.LifecycleFragment.ParentActivity) > 0
+		if hasClassName || hasParentActivity {
+			result = true
+			return
+		}
+	}
+
+	return
 }
 
 type EventException struct {
@@ -594,238 +643,252 @@ func (e *EventField) ComputeANRFingerprint() error {
 }
 
 func (e *EventField) Validate() error {
-	validTypes := []string{TypeANR, TypeException, TypeAppExit, TypeString, TypeGestureLongClick, TypeGestureScroll, TypeGestureClick, TypeLifecycleActivity, TypeLifecycleFragment, TypeLifecycleApp, TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch, TypeNetworkChange, TypeHttp, TypeMemoryUsage, TypeLowMemory, TypeTrimMemory, TypeCPUUsage, TypeNavigation}
+	validTypes := []string{
+		TypeANR, TypeException, TypeAppExit,
+		TypeString, TypeGestureLongClick, TypeGestureScroll,
+		TypeGestureClick, TypeLifecycleActivity, TypeLifecycleFragment,
+		TypeLifecycleApp, TypeColdLaunch, TypeWarmLaunch,
+		TypeHotLaunch, TypeNetworkChange, TypeHttp,
+		TypeMemoryUsage, TypeLowMemory, TypeTrimMemory,
+		TypeCPUUsage, TypeNavigation,
+	}
+
 	if !slices.Contains(validTypes, e.Type) {
-		return fmt.Errorf(`"events[].type" is not a valid type`)
+		return fmt.Errorf(`%q is not a valid type`, `type`)
 	}
+
+	if e.AppID == uuid.Nil {
+		return fmt.Errorf(`%q must be an app's valid UUID`, `app_id`)
+	}
+
+	if len(e.Type) > maxTypeChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `type`, maxTypeChars)
+	}
+
 	if e.Timestamp.IsZero() {
-		return fmt.Errorf(`events[].timestamp is invalid. Must be a valid ISO 8601 timestamp`)
+		return fmt.Errorf(`%q must be a valid ISO 8601 timestamp`, `timestamp`)
 	}
-	// validate all required fields of each type
+
 	if e.IsANR() {
 		if len(e.ANR.Exceptions) < 1 || len(e.ANR.Threads) < 1 {
-			return fmt.Errorf(`anr event is invalid`)
+			return fmt.Errorf(`%q must contain at least one anr & thread`, `anr`)
 		}
 	}
 
 	if e.IsException() {
 		if len(e.Exception.Exceptions) < 1 || len(e.Exception.Threads) < 1 {
-			return fmt.Errorf(`exception event is invalid`)
+			return fmt.Errorf(`%q must contain at least one exception & thread`, `exception`)
 		}
 	}
 
 	if e.IsAppExit() {
 		if len(e.AppExit.Reason) < 1 || len(e.AppExit.Importance) < 1 || len(e.AppExit.ProcessName) < 1 {
-			return fmt.Errorf(`app_exit event is invalid`)
+			return fmt.Errorf(`%q, %q, %q must not be empty`, `app_exit.reason`, `app_exit.importance`, `app_exit.process_name`)
+		}
+		if len(e.AppExit.Reason) > maxAppExitReasonChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `app_exit.reason`, maxAppExitReasonChars)
+		}
+		if len(e.AppExit.Importance) > maxAppExitImportanceChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `app_exit.importance`, maxAppExitImportanceChars)
 		}
 	}
 
 	if e.IsString() {
 		if len(e.LogString.String) < 1 {
-			return fmt.Errorf(`string event is invalid`)
+			return fmt.Errorf(`%q must not be empty`, `string`)
+		}
+		if len(e.LogString.SeverityText) > maxSeverityTextChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `string.severity_text`, maxSeverityTextChars)
 		}
 	}
 
 	if e.IsGestureLongClick() {
 		if e.GestureLongClick.X < 0 || e.GestureLongClick.Y < 0 {
-			return fmt.Errorf(`gesture_long_click event is invalid`)
+			return fmt.Errorf(`%q and %q must contain valid x and y coordinate values`, `gesture_long_click.x`, `gesture_long_click.y`)
+		}
+		if len(e.GestureLongClick.Target) > maxGestureLongClickTargetChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `gesture_long_click.target`, maxGestureLongClickTargetChars)
+		}
+		if len(e.GestureLongClick.TargetID) > maxGestureLongClickTargetIDChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `gesture_long_click.target_id`, maxGestureLongClickTargetIDChars)
 		}
 	}
 
 	if e.IsGestureScroll() {
 		if e.GestureScroll.X < 0 || e.GestureScroll.Y < 0 {
-			return fmt.Errorf(`gesture_scroll event is invalid`)
+			return fmt.Errorf(`%q and %q must contain valid x and y coordinates`, `gesture_scroll.x`, `gesture_scroll.y`)
+		}
+		if len(e.GestureScroll.Target) > maxGestureScrollTargetChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `gesture_scroll.target`, maxGestureScrollTargetChars)
+		}
+		if len(e.GestureScroll.TargetID) > maxGestureScrollTargetIDChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `gesture_scroll.target_id`, maxGestureScrollTargetIDChars)
+		}
+		if len(e.GestureScroll.Direction) > maxGestureScrollDirectionChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `gesture_scroll.direction`, maxGestureScrollDirectionChars)
 		}
 	}
 
 	if e.IsGestureClick() {
 		if e.GestureClick.X < 0 || e.GestureClick.Y < 0 {
-			return fmt.Errorf(`gesture_click event is invalid`)
+			return fmt.Errorf(`%q and %q must contain valid x and y coordinates`, `gesture_click.x`, `gesture_click.y`)
+		}
+		if len(e.GestureClick.Target) > maxGestureClickTargetChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `gesture_click.target`, maxGestureClickTargetChars)
+		}
+		if len(e.GestureClick.TargetID) > maxGestureClickTargetIDChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `gesture_click.target_id`, maxGestureClickTargetIDChars)
 		}
 	}
 
 	if e.IsLifecycleActivity() {
 		if e.LifecycleActivity.Type == "" || e.LifecycleActivity.ClassName == "" {
-			return fmt.Errorf(`lifecycle_activity event is invalid`)
+			return fmt.Errorf(`%q & %q must not be empty`, `lifecycle_activity.type`, `lifecycle_activity.class_name`)
+		}
+		if len(e.LifecycleActivity.Type) > maxLifecycleActivityTypeChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_activity.type`, maxLifecycleActivityTypeChars)
+		}
+		if len(e.LifecycleActivity.ClassName) > maxLifecycleActivityClassNameChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_activity.class_name`, maxLifecycleActivityClassNameChars)
 		}
 	}
 
 	if e.IsLifecycleFragment() {
 		if e.LifecycleFragment.Type == "" || e.LifecycleFragment.ClassName == "" {
-			return fmt.Errorf(`lifecycle_fragment event is invalid`)
+			return fmt.Errorf(`%q and %q must not be empty`, `lifecycle_fragment.type`, `lifecycle_fragment.class_name`)
+		}
+		if len(e.LifecycleFragment.Type) > maxLifecycleFragmentTypeChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_fragment.type`, maxLifecycleFragmentTypeChars)
+		}
+		if len(e.LifecycleFragment.ClassName) > maxLifecycleFragmentClassNameChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_fragment.class_name`, maxLifecycleFragmentClassNameChars)
 		}
 	}
 
 	if e.IsLifecycleApp() {
 		if e.LifecycleApp.Type == "" {
-			return fmt.Errorf(`lifecycle_app event is invalid`)
+			return fmt.Errorf(`%q must not be empty`, `lifecycle_app.type`)
+		}
+		if len(e.LifecycleApp.Type) > maxLifecycleAppTypeChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_app.type`, maxLifecycleAppTypeChars)
 		}
 	}
 
 	if e.IsColdLaunch() {
 		if e.ColdLaunch.ProcessStartUptime <= 0 && e.ColdLaunch.ContentProviderAttachUptime <= 0 && e.ColdLaunch.ProcessStartRequestedUptime <= 0 {
-			return fmt.Errorf(`one of cold_launch.process_start_uptime, cold_launch.process_start_requested_uptime, cold_launch.content_provider_attach_uptime must be greater than 0`)
+			return fmt.Errorf(`one of %q, %q, or %q must be greater than 0`, `cold_launch.process_start_uptime`, `cold_launch.process_start_requested_uptime`, `cold_launch.content_provider_attach_uptime`)
 		}
 		if e.ColdLaunch.OnNextDrawUptime <= 0 {
-			return fmt.Errorf(`cold_launch.on_next_draw_uptime must be greater than 0`)
+			return fmt.Errorf(`%q must be greater than 0`, `cold_launch.on_next_draw_uptime`)
 		}
 		if e.ColdLaunch.LaunchedActivity == "" {
-			return fmt.Errorf(`cold_launch.launched_activity must not be empty`)
+			return fmt.Errorf(`%q must not be empty`, `cold_launch.launched_activity`)
+		}
+		if len(e.ColdLaunch.LaunchedActivity) >= maxColdLaunchLaunchedActivityChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `cold_launch.launched_activity`, maxColdLaunchLaunchedActivityChars)
 		}
 	}
 
 	if e.IsWarmLaunch() {
 		if e.WarmLaunch.AppVisibleUptime <= 0 {
-			return fmt.Errorf(`warm_launch.app_visible_uptime must be greater than 0`)
+			return fmt.Errorf(`%q must be greater than 0`, `warm_launch.app_visible_uptime`)
 		}
 		if e.WarmLaunch.OnNextDrawUptime <= 0 {
-			return fmt.Errorf(`warm_launch.on_next_draw_uptime must be greater than 0`)
+			return fmt.Errorf(`%q must be greater than 0`, `warm_launch.on_next_draw_uptime`)
 		}
 		if e.WarmLaunch.LaunchedActivity == "" {
-			return fmt.Errorf(`warm_launch.launched_activity must not be empty`)
+			return fmt.Errorf(`%q must not be empty`, `warm_launch.launched_activity`)
+		}
+		if len(e.WarmLaunch.LaunchedActivity) >= maxWarmLaunchLaunchedActivityChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `warm_launch.launched_activity`, maxWarmLaunchLaunchedActivityChars)
 		}
 	}
 
 	if e.IsHotLaunch() {
 		if e.HotLaunch.AppVisibleUptime <= 0 {
-			return fmt.Errorf(`hot_launch.app_visible_uptime must be greater than 0`)
+			return fmt.Errorf(`%q must be greater than 0`, `hot_launch.app_visible_uptime`)
 		}
 		if e.HotLaunch.OnNextDrawUptime <= 0 {
-			return fmt.Errorf(`hot_launch.on_next_draw_uptime must be greater than 0`)
+			return fmt.Errorf(`%q must be greater than 0`, `hot_launch.on_next_draw_uptime`)
 		}
 		if e.HotLaunch.LaunchedActivity == "" {
-			return fmt.Errorf(`hot_launch.launched_activity must not be empty`)
+			return fmt.Errorf(`%q must not be empty`, `hot_launch.launched_activity`)
+		}
+		if len(e.HotLaunch.LaunchedActivity) >= maxHotLaunchLaunchedActivityChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `hot_launch.launched_activity`, maxHotLaunchLaunchedActivityChars)
 		}
 	}
 
 	if e.IsNetworkChange() {
 		if e.NetworkChange.NetworkType == "" {
-			return fmt.Errorf(`network_change.network_type must not be empty`)
+			return fmt.Errorf(`%q must not be empty`, `network_change.network_type`)
+		}
+		if len(e.NetworkChange.NetworkType) >= maxNetworkChangeNetworkTypeChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `network_change.network_type`, maxNetworkChangeNetworkTypeChars)
+		}
+		if len(e.NetworkChange.PreviousNetworkType) >= maxNetworkChangePreviousNetworkTypeChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `network_change.previous_network_type`, maxNetworkChangePreviousNetworkTypeChars)
+		}
+		if len(e.NetworkChange.NetworkGeneration) >= maxNetworkChangeNetworkGeneration {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `network_change.network_generation`, maxNetworkChangeNetworkGeneration)
+		}
+		if len(e.NetworkChange.PreviousNetworkGeneration) >= maxNetworkChangePreviousNetworkGeneration {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `network_change.previous_network_generation`, maxNetworkChangePreviousNetworkGeneration)
+		}
+		if len(e.NetworkChange.NetworkProvider) >= maxNetworkChangeNetworkProvider {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `network_change.network_provider`, maxNetworkChangeNetworkProvider)
 		}
 	}
 
 	if e.IsHttp() {
 		if e.Http.URL == "" {
-			return fmt.Errorf(`http.url must not be empty`)
+			return fmt.Errorf(`%q must not be empty`, `http.url`)
 		}
 		if e.Http.Method == "" {
-			return fmt.Errorf(`http.method must not be empty`)
+			return fmt.Errorf(`%q must not be empty`, `http.method`)
+		}
+		if len(e.Http.Method) > maxHttpMethodChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `http.method`, maxHttpMethodChars)
+		}
+		if len(e.Http.Client) > maxHttpClientChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `http.client`, maxHttpClientChars)
 		}
 	}
 
 	if e.IsMemoryUsage() {
 		if e.MemoryUsage.IntervalConfig <= 0 {
-			return fmt.Errorf(`memory_usage.interval_config must be greater than 0`)
+			return fmt.Errorf(`%q must be greater than 0`, `memory_usage.interval_config`)
 		}
 	}
 
 	if e.IsTrimMemory() {
 		if e.TrimMemory.Level == "" {
-			return fmt.Errorf(`trim_memory.level must not be empty`)
+			return fmt.Errorf(`%q must not be empty`, `trim_memory.level`)
+		}
+		if len(e.TrimMemory.Level) > maxTrimMemoryLevelChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `trim_memory.level`, maxTrimMemoryLevelChars)
 		}
 	}
 
 	if e.IsCPUUsage() {
 		if e.CPUUsage.NumCores <= 0 {
-			return fmt.Errorf(`cpu_usage.num_cores must be greater than 0`)
+			return fmt.Errorf(`%q must be greater than 0`, `cpu_usage.num_cores`)
 		}
 		if e.CPUUsage.ClockSpeed <= 0 {
-			return fmt.Errorf(`cpu_usage.clock_speed must be greater than 0`)
+			return fmt.Errorf(`%q must be greater than 0`, `cpu_usage.clock_speed`)
 		}
 		if e.CPUUsage.IntervalConfig <= 0 {
-			return fmt.Errorf(`cpu_usage.interval_config must be greater than 0`)
+			return fmt.Errorf(`%q must be greater than 0`, `cpu_usage.interval_config`)
 		}
 	}
 
 	if e.IsNavigation() {
 		if e.Navigation.Route == "" {
-			return fmt.Errorf(`navigation.route must not be empty`)
+			return fmt.Errorf(`%q must not be empty`, `navigation.route`)
 		}
-	}
-
-	if len(e.Type) > maxTypeChars {
-		return fmt.Errorf(`"events[].type" exceeds maximum allowed characters of (%d)`, maxTypeChars)
-	}
-	if len(e.AppExit.Reason) > maxAppExitReasonChars {
-		return fmt.Errorf(`"events[].app_exit.reason" exceeds maximum allowed characters of (%d)`, maxAppExitReasonChars)
-	}
-	if len(e.AppExit.Importance) > maxAppExitImportanceChars {
-		return fmt.Errorf(`"events[].app_exit.importance exceeds maximum allowed characters of (%d)`, maxAppExitImportanceChars)
-	}
-	if len(e.LogString.SeverityText) > maxSeverityTextChars {
-		return fmt.Errorf(`"events[].string.severity_text" exceeds maximum allowed characters of (%d)`, maxSeverityTextChars)
-	}
-	if len(e.GestureLongClick.Target) > maxGestureLongClickTargetChars {
-		return fmt.Errorf(`"events[].gesture_long_click.target" exceeds maximum allowed characters of (%d)`, maxGestureLongClickTargetChars)
-	}
-	if len(e.GestureLongClick.TargetID) > maxGestureLongClickTargetIDChars {
-		return fmt.Errorf(`"events[].gesture_long_click.target_id" exceeds maximum allowed characters of (%d)`, maxGestureLongClickTargetIDChars)
-	}
-	if len(e.GestureClick.Target) > maxGestureClickTargetChars {
-		return fmt.Errorf(`"events[].gesture_click.target" exceeds maximum allowed characters of (%d)`, maxGestureClickTargetChars)
-	}
-	if len(e.GestureClick.TargetID) > maxGestureClickTargetIDChars {
-		return fmt.Errorf(`"events[].gesture_click.target_id" exceeds maximum allowed characters of (%d)`, maxGestureClickTargetIDChars)
-	}
-	if len(e.GestureScroll.Target) > maxGestureScrollTargetChars {
-		return fmt.Errorf(`"events[].gesture_scroll.target" exceeds maximum allowed characters of (%d)`, maxGestureScrollTargetChars)
-	}
-	if len(e.GestureScroll.TargetID) > maxGestureScrollTargetIDChars {
-		return fmt.Errorf(`"events[].gesture_scroll.target_id" exceeds maximum allowed characters of (%d)`, maxGestureScrollTargetIDChars)
-	}
-	if len(e.GestureScroll.Direction) > maxGestureScrollDirectionChars {
-		return fmt.Errorf(`"events[].gesture_scroll.direction" exceeds maximum allowed characters of (%d)`, maxGestureScrollDirectionChars)
-	}
-	if len(e.LifecycleActivity.Type) > maxLifecycleActivityTypeChars {
-		return fmt.Errorf(`"events[].lifecycle_activity.type" exceeds maximum allowed characters of (%d)`, maxLifecycleActivityTypeChars)
-	}
-	if len(e.LifecycleActivity.ClassName) > maxLifecycleActivityClassNameChars {
-		return fmt.Errorf(`"events[].lifecycle_activity.class_name" exceeds maximum allowed characters of (%d)`, maxLifecycleActivityClassNameChars)
-	}
-	if len(e.LifecycleFragment.Type) > maxLifecycleFragmentTypeChars {
-		return fmt.Errorf(`"events[].lifecycle_fragment.type" exceeds maximum allowed characters of (%d)`, maxLifecycleFragmentTypeChars)
-	}
-	if len(e.LifecycleFragment.ClassName) > maxLifecycleFragmentClassNameChars {
-		return fmt.Errorf(`"events[].lifecycle_fragment.class_name" exceeds maximum allowed characters of (%d)`, maxLifecycleFragmentClassNameChars)
-	}
-	if len(e.LifecycleApp.Type) > maxLifecycleAppTypeChars {
-		return fmt.Errorf(`"events[].lifecycle_app.type" exceeds maximum allowed characters of (%d)`, maxLifecycleAppTypeChars)
-	}
-	if len(e.ColdLaunch.LaunchedActivity) == maxColdLaunchLaunchedActivityChars {
-		return fmt.Errorf(`events[].cold_launch.launched_activity exceeds maximum allowed characters of (%d)`, maxColdLaunchLaunchedActivityChars)
-	}
-	if len(e.WarmLaunch.LaunchedActivity) == maxWarmLaunchLaunchedActivityChars {
-		return fmt.Errorf(`events[].warm_launch.launched_activity exceeds maximum allowed characters of (%d)`, maxWarmLaunchLaunchedActivityChars)
-	}
-	if len(e.HotLaunch.LaunchedActivity) == maxHotLaunchLaunchedActivityChars {
-		return fmt.Errorf(`events[].hot_launch.launched_activity exceeds maximum allowed characters of (%d)`, maxHotLaunchLaunchedActivityChars)
-	}
-	if len(e.NetworkChange.NetworkType) == maxNetworkChangeNetworkTypeChars {
-		return fmt.Errorf(`events[].network_change.network_type exceeds maximum allowed characters of (%d)`, maxNetworkChangeNetworkTypeChars)
-	}
-	if len(e.NetworkChange.PreviousNetworkType) == maxNetworkChangePreviousNetworkTypeChars {
-		return fmt.Errorf(`events[].network_change.previous_network_type exceeds maximum allowed characters of (%d)`, maxNetworkChangePreviousNetworkTypeChars)
-	}
-	if len(e.NetworkChange.NetworkGeneration) == maxNetworkChangeNetworkGeneration {
-		return fmt.Errorf(`events[].network_change.network_generation exceeds maximum allowed characters of (%d)`, maxNetworkChangeNetworkGeneration)
-	}
-	if len(e.NetworkChange.PreviousNetworkGeneration) == maxNetworkChangePreviousNetworkGeneration {
-		return fmt.Errorf(`events[].network_change.previous_network_generation exceeds maximum allowed characters of (%d)`, maxNetworkChangePreviousNetworkGeneration)
-	}
-	if len(e.NetworkChange.NetworkProvider) == maxNetworkChangeNetworkProvider {
-		return fmt.Errorf(`events[].network_change.network_provider exceeds maximum allowed characters of (%d)`, maxNetworkChangeNetworkProvider)
-	}
-	if len(e.Http.Method) > maxHttpMethodChars {
-		return fmt.Errorf(`"events[].http.method" exceeds maximum allowed characters of (%d)`, maxHttpMethodChars)
-	}
-	if len(e.Http.Client) > maxHttpClientChars {
-		return fmt.Errorf(`"events[].http.client" exceeds maximum allowed characters of (%d)`, maxHttpClientChars)
-	}
-	if len(e.TrimMemory.Level) > maxTrimMemoryLevelChars {
-		return fmt.Errorf(`"events[].trim_memo̦ry.level" exceeds maximum allowed characters of (%d)`, maxTrimMemoryLevelChars)
-	}
-	if len(e.Navigation.Route) > maxRouteChars {
-		return fmt.Errorf(`"events[].navigation.route" exceeds maximum allowed characters of (%d)`, maxRouteChars)
+		if len(e.Navigation.Route) > maxRouteChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `navigation.route`, maxRouteChars)
+		}
 	}
 
 	return nil
