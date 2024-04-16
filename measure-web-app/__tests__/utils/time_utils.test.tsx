@@ -1,6 +1,6 @@
 
-import { formatDateToHumanReadable, formatMillisToHumanReadable } from '@/app/utils/time_utils';
-import { jest, expect, it, describe, beforeEach, afterEach } from '@jest/globals';
+import { formatDateToHumanReadable, formatMillisToHumanReadable, formatTimeToHumanReadable } from '@/app/utils/time_utils';
+import { expect, it, describe, beforeEach, afterEach } from '@jest/globals';
 import { Settings, DateTime } from "luxon";
 
 describe('formatMillisToHumanReadable', () => {
@@ -65,5 +65,32 @@ describe('formatDateToHumanReadable', () => {
     it('should handle invalid timestamps', () => {
         const timestamp = 'invalid-timestamp';
         expect(() => formatDateToHumanReadable(timestamp)).toThrow();
+    });
+});
+
+describe('formatTimeToHumanReadable', () => {
+    beforeEach(() => {
+        Settings.now = () => 0;
+    });
+
+    afterEach(() => {
+        Settings.now = () => DateTime.now().valueOf();
+    });
+
+    it('should format a UTC timestamp to a human-readable time', () => {
+        const timestamp = '2024-04-16T12:00:00Z'; // April 16, 2024, 12:00 PM UTC
+        const expected = '5:30:00:000 PM';
+        expect(formatTimeToHumanReadable(timestamp)).toBe(expected);
+    });
+
+    it('should format a timestamp with a different date and time', () => {
+        const timestamp = '2024-04-15T03:44:00Z'; // April 15, 2024, 03:44 PM UTC
+        const expected = '9:14:00:000 AM';
+        expect(formatTimeToHumanReadable(timestamp)).toBe(expected);
+    });
+
+    it('should handle invalid timestamps', () => {
+        const timestamp = 'invalid-timestamp';
+        expect(() => formatTimeToHumanReadable(timestamp)).toThrow();
     });
 });
