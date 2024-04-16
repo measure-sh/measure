@@ -30,6 +30,11 @@ export function formatMillisToHumanReadable(millis: number) {
 
 export function formatDateToHumanReadable(timestamp: string): string {
   const utcDateTime = DateTime.fromISO(timestamp, { zone: 'utc' });
+
+  if (!utcDateTime.isValid) {
+    throw (utcDateTime.invalidReason)
+  }
+
   const localDateTime = utcDateTime.toLocal();
 
   const dayOfWeek = localDateTime.weekdayShort;
@@ -41,6 +46,11 @@ export function formatDateToHumanReadable(timestamp: string): string {
 
 export function formatTimeToHumanReadable(timestamp: string): string {
   const utcDateTime = DateTime.fromISO(timestamp, { zone: 'utc' });
+
+  if (!utcDateTime.isValid) {
+    throw (utcDateTime.invalidReason)
+  }
+
   const localDateTime = utcDateTime.toLocal();
 
   return localDateTime.toFormat('h:mm:ss:SSS a');
@@ -48,6 +58,11 @@ export function formatTimeToHumanReadable(timestamp: string): string {
 
 export function formatTimestampToChartFormat(timestamp: string): string {
   const utcDateTime = DateTime.fromISO(timestamp, { zone: 'utc' });
+
+  if (!utcDateTime.isValid) {
+    throw (utcDateTime.invalidReason)
+  }
+
   const localDateTime = utcDateTime.toLocal();
   const formattedDate = localDateTime.toFormat('yyyy-MM-dd HH:mm:ss.SSS a');
   return formattedDate
