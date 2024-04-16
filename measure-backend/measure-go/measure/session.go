@@ -34,7 +34,7 @@ type Session struct {
 	CountryCode string             `json:"inet_country_code"`
 	Resource    event.Resource     `json:"resource" binding:"required"`
 	Events      []event.EventField `json:"events" binding:"required"`
-	Attachments []Attachment       `json:"attachments"`
+	Attachments []event.Attachment `json:"attachments"`
 	CreatedAt   time.Time          `json:"created_at"`
 	UpdatedAt   time.Time          `json:"updated_at"`
 }
@@ -52,7 +52,7 @@ func (s *Session) validate() error {
 
 	if s.hasAttachments() {
 		for _, attachment := range s.Attachments {
-			if err := attachment.validate(); err != nil {
+			if err := attachment.Validate(); err != nil {
 				return err
 			}
 		}
@@ -223,19 +223,19 @@ func (s *Session) needsSymbolication() bool {
 	return result
 }
 
-func (s *Session) uploadAttachments() error {
-	for i, a := range s.Attachments {
-		a = a.Prepare()
-		result, err := a.upload(s)
-		if err != nil {
-			return err
-		}
-		a.Location = result.Location
-		s.Attachments[i] = a
-	}
+// func (s *Session) uploadAttachments() error {
+// 	for i, a := range s.Attachments {
+// 		a = a.Prepare()
+// 		result, err := a.Upload(s)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		a.Location = result.Location
+// 		s.Attachments[i] = a
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 func (s *Session) lookupCountry(rawIP string) error {
 	ip := net.ParseIP(rawIP)
@@ -932,20 +932,20 @@ func (s *Session) getMappingKey() (string, error) {
 	return key, nil
 }
 
-func (s *Session) EncodeForSymbolication() (symbol.CodecMap, []SymbolicationUnit) {
+func (s *Session) EncodeForSymbolication() (symbol.Lut, []SymbolicationUnit) {
 	var symbolicationUnits []SymbolicationUnit
-	codecMap := make(symbol.CodecMap)
+	codecMap := make(symbol.Lut)
 
 	for eventIdx, ev := range s.Events {
 		if ev.IsException() {
 			for exceptionIdx, ex := range ev.Exception.Exceptions {
 				if len(ex.Frames) > 0 {
 					idException := uuid.New()
-					unitEx := symbol.NewCodecMapVal()
+					unitEx := symbol.NewLutVal()
 					unitEx.Type = event.TypeException
-					unitEx.Event = eventIdx
-					unitEx.Exception = exceptionIdx
-					unitEx.Frames = symbol.TransformSwap
+					unitEx.EventIndex = eventIdx
+					unitEx.ExceptionIndex = exceptionIdx
+					unitEx.SwapFrames = true
 					codecMap[idException] = *unitEx
 					su := new(SymbolicationUnit)
 					su.ID = idException
@@ -956,11 +956,11 @@ func (s *Session) EncodeForSymbolication() (symbol.CodecMap, []SymbolicationUnit
 				}
 				if len(ex.Type) > 0 {
 					idExceptionType := uuid.New()
-					unitExType := symbol.NewCodecMapVal()
+					unitExType := symbol.NewLutVal()
 					unitExType.Type = event.TypeException
-					unitExType.Event = eventIdx
-					unitExType.Exception = exceptionIdx
-					unitExType.ExceptionType = symbol.TransformSwap
+					unitExType.EventIndex = eventIdx
+					unitExType.ExceptionIndex = exceptionIdx
+					unitExType.SwapExceptionType = true
 					codecMap[idExceptionType] = *unitExType
 					su := new(SymbolicationUnit)
 					su.ID = idExceptionType
@@ -971,11 +971,11 @@ func (s *Session) EncodeForSymbolication() (symbol.CodecMap, []SymbolicationUnit
 			for threadIdx, ex := range ev.Exception.Threads {
 				if len(ex.Frames) > 0 {
 					idThread := uuid.New()
-					unitTh := symbol.NewCodecMapVal()
+					unitTh := symbol.NewLutVal()
 					unitTh.Type = event.TypeException
-					unitTh.Event = eventIdx
-					unitTh.Thread = threadIdx
-					unitTh.Frames = symbol.TransformSwap
+					unitTh.EventIndex = eventIdx
+					unitTh.ThreadIndex = threadIdx
+					unitTh.SwapFrames = true
 					codecMap[idThread] = *unitTh
 					su := new(SymbolicationUnit)
 					su.ID = idThread
@@ -991,11 +991,11 @@ func (s *Session) EncodeForSymbolication() (symbol.CodecMap, []SymbolicationUnit
 			for exceptionIdx, ex := range ev.ANR.Exceptions {
 				if len(ex.Frames) > 0 {
 					idException := uuid.New()
-					unitEx := symbol.NewCodecMapVal()
+					unitEx := symbol.NewLutVal()
 					unitEx.Type = event.TypeANR
-					unitEx.Event = eventIdx
-					unitEx.Exception = exceptionIdx
-					unitEx.Frames = symbol.TransformSwap
+					unitEx.EventIndex = eventIdx
+					unitEx.ExceptionIndex = exceptionIdx
+					unitEx.SwapFrames = true
 					codecMap[idException] = *unitEx
 					su := new(SymbolicationUnit)
 					su.ID = idException
@@ -1006,11 +1006,11 @@ func (s *Session) EncodeForSymbolication() (symbol.CodecMap, []SymbolicationUnit
 				}
 				if len(ex.Type) > 0 {
 					idExceptionType := uuid.New()
-					unitExType := symbol.NewCodecMapVal()
+					unitExType := symbol.NewLutVal()
 					unitExType.Type = event.TypeANR
-					unitExType.Event = eventIdx
-					unitExType.Exception = exceptionIdx
-					unitExType.ExceptionType = symbol.TransformSwap
+					unitExType.EventIndex = eventIdx
+					unitExType.ExceptionIndex = exceptionIdx
+					unitExType.SwapExceptionType = true
 					codecMap[idExceptionType] = *unitExType
 					su := new(SymbolicationUnit)
 					su.ID = idExceptionType
@@ -1021,11 +1021,11 @@ func (s *Session) EncodeForSymbolication() (symbol.CodecMap, []SymbolicationUnit
 			for threadIdx, ex := range ev.ANR.Threads {
 				if len(ex.Frames) > 0 {
 					idThread := uuid.New()
-					unitTh := symbol.NewCodecMapVal()
+					unitTh := symbol.NewLutVal()
 					unitTh.Type = event.TypeANR
-					unitTh.Event = eventIdx
-					unitTh.Thread = threadIdx
-					unitTh.Frames = symbol.TransformSwap
+					unitTh.EventIndex = eventIdx
+					unitTh.ThreadIndex = threadIdx
+					unitTh.SwapFrames = true
 					codecMap[idThread] = *unitTh
 					su := new(SymbolicationUnit)
 					su.ID = idThread
@@ -1040,10 +1040,10 @@ func (s *Session) EncodeForSymbolication() (symbol.CodecMap, []SymbolicationUnit
 		if ev.IsAppExit() {
 			if len(ev.AppExit.Trace) > 0 {
 				idAppExit := uuid.New()
-				unitAE := symbol.NewCodecMapVal()
+				unitAE := symbol.NewLutVal()
 				unitAE.Type = event.TypeAppExit
-				unitAE.Event = eventIdx
-				unitAE.Trace = symbol.TransformSwap
+				unitAE.EventIndex = eventIdx
+				unitAE.SwapTrace = true
 				codecMap[idAppExit] = *unitAE
 				su := new(SymbolicationUnit)
 				su.ID = idAppExit
@@ -1055,10 +1055,10 @@ func (s *Session) EncodeForSymbolication() (symbol.CodecMap, []SymbolicationUnit
 		if ev.IsLifecycleActivity() {
 			if len(ev.LifecycleActivity.ClassName) > 0 {
 				idLifecycleActivity := uuid.New()
-				unitLA := symbol.NewCodecMapVal()
+				unitLA := symbol.NewLutVal()
 				unitLA.Type = event.TypeLifecycleActivity
-				unitLA.Event = eventIdx
-				unitLA.ClassName = symbol.TransformSwap
+				unitLA.EventIndex = eventIdx
+				unitLA.SwapClassName = true
 				codecMap[idLifecycleActivity] = *unitLA
 				su := new(SymbolicationUnit)
 				su.ID = idLifecycleActivity
@@ -1070,10 +1070,10 @@ func (s *Session) EncodeForSymbolication() (symbol.CodecMap, []SymbolicationUnit
 		if ev.IsLifecycleFragment() {
 			if len(ev.LifecycleFragment.ClassName) > 0 {
 				idLifecycleFragment := uuid.New()
-				unitLF := symbol.NewCodecMapVal()
+				unitLF := symbol.NewLutVal()
 				unitLF.Type = event.TypeLifecycleFragment
-				unitLF.Event = eventIdx
-				unitLF.ClassName = symbol.TransformSwap
+				unitLF.EventIndex = eventIdx
+				unitLF.SwapClassName = true
 				codecMap[idLifecycleFragment] = *unitLF
 				su := new(SymbolicationUnit)
 				su.ID = idLifecycleFragment
@@ -1083,10 +1083,10 @@ func (s *Session) EncodeForSymbolication() (symbol.CodecMap, []SymbolicationUnit
 
 			if len(ev.LifecycleFragment.ParentActivity) > 0 {
 				idLifecycleFragment := uuid.New()
-				unitLF := symbol.NewCodecMapVal()
+				unitLF := symbol.NewLutVal()
 				unitLF.Type = event.TypeLifecycleFragment
-				unitLF.Event = eventIdx
-				unitLF.ParentActivity = symbol.TransformSwap
+				unitLF.EventIndex = eventIdx
+				unitLF.SwapParentActivity = true
 				codecMap[idLifecycleFragment] = *unitLF
 				su := new(SymbolicationUnit)
 				su.ID = idLifecycleFragment
@@ -1098,10 +1098,10 @@ func (s *Session) EncodeForSymbolication() (symbol.CodecMap, []SymbolicationUnit
 		if ev.IsColdLaunch() {
 			if len(ev.ColdLaunch.LaunchedActivity) > 0 {
 				idColdLaunch := uuid.New()
-				unitCL := symbol.NewCodecMapVal()
+				unitCL := symbol.NewLutVal()
 				unitCL.Type = event.TypeColdLaunch
-				unitCL.Event = eventIdx
-				unitCL.LaunchedActivity = symbol.TransformSwap
+				unitCL.EventIndex = eventIdx
+				unitCL.SwapLaunchedActivity = true
 				codecMap[idColdLaunch] = *unitCL
 				su := new(SymbolicationUnit)
 				su.ID = idColdLaunch
@@ -1112,10 +1112,10 @@ func (s *Session) EncodeForSymbolication() (symbol.CodecMap, []SymbolicationUnit
 		if ev.IsWarmLaunch() {
 			if len(ev.WarmLaunch.LaunchedActivity) > 0 {
 				idWarmLaunch := uuid.New()
-				unitCL := symbol.NewCodecMapVal()
+				unitCL := symbol.NewLutVal()
 				unitCL.Type = event.TypeWarmLaunch
-				unitCL.Event = eventIdx
-				unitCL.LaunchedActivity = symbol.TransformSwap
+				unitCL.EventIndex = eventIdx
+				unitCL.SwapLaunchedActivity = true
 				codecMap[idWarmLaunch] = *unitCL
 				su := new(SymbolicationUnit)
 				su.ID = idWarmLaunch
@@ -1126,10 +1126,10 @@ func (s *Session) EncodeForSymbolication() (symbol.CodecMap, []SymbolicationUnit
 		if ev.IsHotLaunch() {
 			if len(ev.HotLaunch.LaunchedActivity) > 0 {
 				idHotLaunch := uuid.New()
-				unitCL := symbol.NewCodecMapVal()
+				unitCL := symbol.NewLutVal()
 				unitCL.Type = event.TypeHotLaunch
-				unitCL.Event = eventIdx
-				unitCL.LaunchedActivity = symbol.TransformSwap
+				unitCL.EventIndex = eventIdx
+				unitCL.SwapLaunchedActivity = true
 				codecMap[idHotLaunch] = *unitCL
 				su := new(SymbolicationUnit)
 				su.ID = idHotLaunch
@@ -1142,13 +1142,13 @@ func (s *Session) EncodeForSymbolication() (symbol.CodecMap, []SymbolicationUnit
 	return codecMap, symbolicationUnits
 }
 
-func (s *Session) DecodeFromSymbolication(codecMap symbol.CodecMap, symbolicationUnits []SymbolicationUnit) {
+func (s *Session) DecodeFromSymbolication(codecMap symbol.Lut, symbolicationUnits []SymbolicationUnit) {
 	for _, su := range symbolicationUnits {
 		codecMapVal := codecMap[su.ID]
 		switch codecMapVal.Type {
 		case event.TypeException:
-			if codecMapVal.Frames == symbol.TransformSwap {
-				if codecMapVal.Exception > -1 {
+			if codecMapVal.SwapFrames {
+				if codecMapVal.ExceptionIndex > -1 {
 					var frames event.Frames
 					for _, value := range su.Values {
 						frame, err := symbol.UnmarshalRetraceFrame(value, event.FramePrefix)
@@ -1163,10 +1163,10 @@ func (s *Session) DecodeFromSymbolication(codecMap symbol.CodecMap, symbolicatio
 							MethodName: frame.MethodName,
 						})
 					}
-					s.Events[codecMapVal.Event].Exception.Exceptions[codecMapVal.Exception].Frames = frames
+					s.Events[codecMapVal.EventIndex].Exception.Exceptions[codecMapVal.ExceptionIndex].Frames = frames
 				}
 
-				if codecMapVal.Thread > -1 {
+				if codecMapVal.ThreadIndex > -1 {
 					var frames event.Frames
 					for _, value := range su.Values {
 						frame, err := symbol.UnmarshalRetraceFrame(value, event.FramePrefix)
@@ -1181,17 +1181,17 @@ func (s *Session) DecodeFromSymbolication(codecMap symbol.CodecMap, symbolicatio
 							MethodName: frame.MethodName,
 						})
 					}
-					s.Events[codecMapVal.Event].Exception.Threads[codecMapVal.Thread].Frames = frames
+					s.Events[codecMapVal.EventIndex].Exception.Threads[codecMapVal.ThreadIndex].Frames = frames
 				}
 			}
 
-			if codecMapVal.ExceptionType == symbol.TransformSwap {
+			if codecMapVal.SwapExceptionType {
 				exceptionType := strings.TrimPrefix(su.Values[0], event.GenericPrefix)
-				s.Events[codecMapVal.Event].Exception.Exceptions[codecMapVal.Exception].Type = exceptionType
+				s.Events[codecMapVal.EventIndex].Exception.Exceptions[codecMapVal.ExceptionIndex].Type = exceptionType
 			}
 		case event.TypeANR:
-			if codecMapVal.Frames == symbol.TransformSwap {
-				if codecMapVal.Exception > -1 {
+			if codecMapVal.SwapFrames {
+				if codecMapVal.ExceptionIndex > -1 {
 					var frames event.Frames
 					for _, value := range su.Values {
 						frame, err := symbol.UnmarshalRetraceFrame(value, event.FramePrefix)
@@ -1206,10 +1206,10 @@ func (s *Session) DecodeFromSymbolication(codecMap symbol.CodecMap, symbolicatio
 							MethodName: frame.MethodName,
 						})
 					}
-					s.Events[codecMapVal.Event].ANR.Exceptions[codecMapVal.Exception].Frames = frames
+					s.Events[codecMapVal.EventIndex].ANR.Exceptions[codecMapVal.ExceptionIndex].Frames = frames
 				}
 
-				if codecMapVal.Thread > -1 {
+				if codecMapVal.ThreadIndex > -1 {
 					var frames event.Frames
 					for _, value := range su.Values {
 						frame, err := symbol.UnmarshalRetraceFrame(value, event.FramePrefix)
@@ -1224,40 +1224,40 @@ func (s *Session) DecodeFromSymbolication(codecMap symbol.CodecMap, symbolicatio
 							MethodName: frame.MethodName,
 						})
 					}
-					s.Events[codecMapVal.Event].ANR.Threads[codecMapVal.Thread].Frames = frames
+					s.Events[codecMapVal.EventIndex].ANR.Threads[codecMapVal.ThreadIndex].Frames = frames
 				}
 			}
 
-			if codecMapVal.ExceptionType == symbol.TransformSwap {
+			if codecMapVal.SwapExceptionType {
 				exceptionType := strings.TrimPrefix(su.Values[0], event.GenericPrefix)
-				s.Events[codecMapVal.Event].ANR.Exceptions[codecMapVal.Exception].Type = exceptionType
+				s.Events[codecMapVal.EventIndex].ANR.Exceptions[codecMapVal.ExceptionIndex].Type = exceptionType
 			}
 		case event.TypeAppExit:
-			if codecMapVal.Trace == symbol.TransformSwap {
-				s.Events[codecMapVal.Event].AppExit.Trace = strings.TrimPrefix(su.Values[0], event.GenericPrefix)
+			if codecMapVal.SwapTrace {
+				s.Events[codecMapVal.EventIndex].AppExit.Trace = strings.TrimPrefix(su.Values[0], event.GenericPrefix)
 			}
 		case event.TypeLifecycleActivity:
-			if codecMapVal.ClassName == symbol.TransformSwap {
-				s.Events[codecMapVal.Event].LifecycleActivity.ClassName = strings.TrimPrefix(su.Values[0], event.GenericPrefix)
+			if codecMapVal.SwapClassName {
+				s.Events[codecMapVal.EventIndex].LifecycleActivity.ClassName = strings.TrimPrefix(su.Values[0], event.GenericPrefix)
 			}
 		case event.TypeLifecycleFragment:
-			if codecMapVal.ClassName == symbol.TransformSwap {
-				s.Events[codecMapVal.Event].LifecycleFragment.ClassName = strings.TrimPrefix(su.Values[0], event.GenericPrefix)
+			if codecMapVal.SwapClassName {
+				s.Events[codecMapVal.EventIndex].LifecycleFragment.ClassName = strings.TrimPrefix(su.Values[0], event.GenericPrefix)
 			}
-			if codecMapVal.ParentActivity == symbol.TransformSwap {
-				s.Events[codecMapVal.Event].LifecycleFragment.ParentActivity = strings.TrimPrefix(su.Values[0], event.GenericPrefix)
+			if codecMapVal.SwapParentActivity {
+				s.Events[codecMapVal.EventIndex].LifecycleFragment.ParentActivity = strings.TrimPrefix(su.Values[0], event.GenericPrefix)
 			}
 		case event.TypeColdLaunch:
-			if codecMapVal.LaunchedActivity == symbol.TransformSwap {
-				s.Events[codecMapVal.Event].ColdLaunch.LaunchedActivity = strings.TrimPrefix(su.Values[0], event.GenericPrefix)
+			if codecMapVal.SwapLaunchedActivity {
+				s.Events[codecMapVal.EventIndex].ColdLaunch.LaunchedActivity = strings.TrimPrefix(su.Values[0], event.GenericPrefix)
 			}
 		case event.TypeWarmLaunch:
-			if codecMapVal.LaunchedActivity == symbol.TransformSwap {
-				s.Events[codecMapVal.Event].WarmLaunch.LaunchedActivity = strings.TrimPrefix(su.Values[0], event.GenericPrefix)
+			if codecMapVal.SwapLaunchedActivity {
+				s.Events[codecMapVal.EventIndex].WarmLaunch.LaunchedActivity = strings.TrimPrefix(su.Values[0], event.GenericPrefix)
 			}
 		case event.TypeHotLaunch:
-			if codecMapVal.LaunchedActivity == symbol.TransformSwap {
-				s.Events[codecMapVal.Event].HotLaunch.LaunchedActivity = strings.TrimPrefix(su.Values[0], event.GenericPrefix)
+			if codecMapVal.SwapLaunchedActivity {
+				s.Events[codecMapVal.EventIndex].HotLaunch.LaunchedActivity = strings.TrimPrefix(su.Values[0], event.GenericPrefix)
 			}
 
 		default:
@@ -1308,7 +1308,6 @@ func PutSession(c *gin.Context) {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not upload session, failed to lookup country by IP"})
 		return
-
 	}
 
 	if session.needsSymbolication() {
@@ -1319,13 +1318,13 @@ func PutSession(c *gin.Context) {
 		}
 	}
 
-	if session.hasAttachments() {
-		if err := session.uploadAttachments(); err != nil {
-			fmt.Println("error uploading attachment", err.Error())
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload attachment(s)"})
-			return
-		}
-	}
+	// if session.hasAttachments() {
+	// 	if err := session.uploadAttachments(); err != nil {
+	// 		fmt.Println("error uploading attachment", err.Error())
+	// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload attachment(s)"})
+	// 		return
+	// 	}
+	// }
 
 	if err := session.ingest(); err != nil {
 		fmt.Println("clickhouse insert error:", err)
