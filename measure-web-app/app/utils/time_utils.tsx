@@ -64,6 +64,6 @@ export function formatTimestampToChartFormat(timestamp: string): string {
   }
 
   const localDateTime = utcDateTime.toLocal();
-  const formattedDate = localDateTime.toFormat('yyyy-MM-dd HH:mm:ss.SSS a');
+  const formattedDate = localDateTime.toFormat('yyyy-MM-dd HH:mm:ss:SSS a');
   return formattedDate
 }
