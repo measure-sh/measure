@@ -8,5 +8,5 @@ internal data class EventPacket(
     val serializedData: String?,
     val serializedDataFilePath: String?,
     val serializedAttachments: String?,
-    val serializedAttributes: String
+    val serializedAttributes: String,
 )

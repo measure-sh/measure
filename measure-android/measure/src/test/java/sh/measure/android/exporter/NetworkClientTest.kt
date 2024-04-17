@@ -20,7 +20,7 @@ class NetworkClientTest {
     private val networkClient: NetworkClient = NetworkClientImpl(
         logger = NoopLogger(),
         secretToken = "secret",
-        baseUrl ="http://localhost:8080",
+        baseUrl = "http://localhost:8080",
         fileStorage = fileStorage,
     )
     private val fakeFile = File.createTempFile("file", "txt").apply { writeText(getFakeFileContent()) }
@@ -78,7 +78,6 @@ class NetworkClientTest {
         assertEquals("PUT", recordedRequest.method)
         assertTrue(recordedRequest.headers.contains(Pair("X-Request-ID", batchId)))
     }
-
 
     private fun getFakeFileContent(): String {
         return "lorem ipsum dolor sit amet"

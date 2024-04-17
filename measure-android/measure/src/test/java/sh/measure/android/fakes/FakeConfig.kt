@@ -17,5 +17,4 @@ internal class FakeConfig(
     fun setHttpBodyTracking(trackHttpBody: Boolean) {
         this.trackHttpBody = trackHttpBody
     }
-
 }

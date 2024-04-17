@@ -38,5 +38,4 @@ internal class HeartbeatTest {
         heartbeat.start(intervalMs, initialDelayMs)
         assertEquals(1, pulseInvokedCount)
     }
-
 }

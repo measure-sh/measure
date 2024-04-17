@@ -36,9 +36,11 @@ internal class NetworkClientImpl(
         OkHttpClient.Builder().connectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
             .callTimeout(CALL_TIMEOUT_MS, TimeUnit.MILLISECONDS)
             .addInterceptor(SecretTokenHeaderInterceptor(secretToken))
-            .addInterceptor(HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
-            }).build()
+            .addInterceptor(
+                HttpLoggingInterceptor().apply {
+                    level = HttpLoggingInterceptor.Level.BODY
+                },
+            ).build()
     }
 
     override fun execute(
@@ -64,7 +66,8 @@ internal class NetworkClientImpl(
     }
 
     private fun addEventParts(
-        eventPackets: List<EventPacket>, requestBodyBuilder: MultipartBody.Builder
+        eventPackets: List<EventPacket>,
+        requestBodyBuilder: MultipartBody.Builder,
     ) {
         eventPackets.forEach { eventPacket ->
             requestBodyBuilder.addFormDataPart(eventFormDataName, eventPacket.asFormDataPart())
@@ -72,11 +75,14 @@ internal class NetworkClientImpl(
     }
 
     private fun addAttachmentParts(
-        attachmentPackets: List<AttachmentPacket>, requestBodyBuilder: MultipartBody.Builder
+        attachmentPackets: List<AttachmentPacket>,
+        requestBodyBuilder: MultipartBody.Builder,
     ) {
         attachmentPackets.forEach { attachmentPacket ->
             requestBodyBuilder.addFormDataPart(
-                getAttachmentFormDataName(attachmentPacket), null, attachmentPacket.asFormDataPart()
+                getAttachmentFormDataName(attachmentPacket),
+                null,
+                attachmentPacket.asFormDataPart(),
             )
         }
     }
@@ -130,6 +136,6 @@ internal class NetworkClientImpl(
                 "attachments": $serializedAttachments,
                 "attributes": $serializedAttributes
             }
-            """.trimIndent()
+        """.trimIndent()
     }
 }

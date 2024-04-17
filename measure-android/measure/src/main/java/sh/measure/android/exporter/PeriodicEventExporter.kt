@@ -30,10 +30,15 @@ internal class PeriodicEventExporterImpl(
     private val networkClient: NetworkClient,
     private val timeProvider: TimeProvider,
     private val heartbeat: Heartbeat = HeartbeatImpl(
-        logger, heartbeatExecutorService
+        logger,
+        heartbeatExecutorService,
     ),
     private val batchCreator: BatchCreator = BatchCreatorImpl(
-        logger, idProvider, database, config, timeProvider
+        logger,
+        idProvider,
+        database,
+        config,
+        timeProvider,
     ),
 ) : PeriodicEventExporter, HeartbeatListener {
     @VisibleForTesting
@@ -57,14 +62,14 @@ internal class PeriodicEventExporterImpl(
     override fun onAppForeground() {
         heartbeat.start(
             intervalMs = config.batchingIntervalMs,
-            initialDelayMs = config.batchingIntervalMs
+            initialDelayMs = config.batchingIntervalMs,
         )
     }
 
     override fun onColdLaunch() {
         heartbeat.start(
             intervalMs = config.batchingIntervalMs,
-            initialDelayMs = config.batchingIntervalMs
+            initialDelayMs = config.batchingIntervalMs,
         )
     }
 
@@ -76,7 +81,8 @@ internal class PeriodicEventExporterImpl(
     private fun exportEvents() {
         if (!isExportInProgress.compareAndSet(false, true)) {
             logger.log(
-                LogLevel.Debug, "Skipping export operation as another operation is in progress"
+                LogLevel.Debug,
+                "Skipping export operation as another operation is in progress",
             )
             return
         }
@@ -111,7 +117,9 @@ internal class PeriodicEventExporterImpl(
     }
 
     private fun handleResult(
-        isSuccessful: Boolean, eventIds: List<String>, batchId: String
+        isSuccessful: Boolean,
+        eventIds: List<String>,
+        batchId: String,
     ) {
         if (isSuccessful) {
             database.deleteEvents(eventIds)

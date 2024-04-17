@@ -21,7 +21,7 @@ class BatchCreatorTest {
         idProvider = FakeIdProvider(),
         database = database,
         config = config,
-        timeProvider = FakeTimeProvider()
+        timeProvider = FakeTimeProvider(),
     )
 
     @Test
@@ -34,7 +34,8 @@ class BatchCreatorTest {
                 put("event1", 100)
                 put("event2", 200)
                 put("event3", 300)
-            })
+            },
+        )
         `when`(database.insertBatch(any(), any(), any())).thenReturn(true)
 
         // When
@@ -48,7 +49,7 @@ class BatchCreatorTest {
     fun `returns null if no events to batch`() {
         // Given
         `when`(database.getUnBatchedEventsWithAttachmentSize(any(), eq(true))).thenReturn(
-            LinkedHashMap()
+            LinkedHashMap(),
         )
 
         // When

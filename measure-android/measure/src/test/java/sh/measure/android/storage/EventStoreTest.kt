@@ -206,7 +206,7 @@ internal class EventStoreTest {
                 serializedAttributes = null,
                 attachmentsSize = 0,
 
-                ),
+            ),
         )
     }
 
@@ -600,7 +600,7 @@ internal class EventStoreTest {
     private fun fakeAttachmentFile(): File {
         val file = File.createTempFile("fake-path", "txt")
         file.writeText(
-            "lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+            "lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
         )
         return file
     }

@@ -147,7 +147,7 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             exportExecutorService = executorServiceRegistry.eventExportExecutor(),
             database,
             networkClient,
-            timeProvider
+            timeProvider,
         )
 
         // Register data collectors

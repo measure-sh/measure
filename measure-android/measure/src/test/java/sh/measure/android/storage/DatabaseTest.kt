@@ -152,7 +152,7 @@ class DatabaseTest {
             database.insertBatch(
                 listOf("valid-id", "event-id", "event-id"),
                 "batch-id",
-                987654321L
+                987654321L,
             )
         queryAllBatchedEvents().use {
             assertEquals(0, it.count)
