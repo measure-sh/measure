@@ -44,6 +44,7 @@ describe('formatMillisToHumanReadable', () => {
 describe('formatDateToHumanReadable', () => {
     beforeEach(() => {
         Settings.now = () => 0;
+        Settings.defaultZone = "Asia/Kolkata"
     });
 
     afterEach(() => {
@@ -71,6 +72,7 @@ describe('formatDateToHumanReadable', () => {
 describe('formatTimeToHumanReadable', () => {
     beforeEach(() => {
         Settings.now = () => 0;
+        Settings.defaultZone = "Asia/Kolkata"
     });
 
     afterEach(() => {
@@ -98,6 +100,7 @@ describe('formatTimeToHumanReadable', () => {
 describe('formatTimestampToChartFormat', () => {
     beforeEach(() => {
         Settings.now = () => 0;
+        Settings.defaultZone = "Asia/Kolkata"
     });
 
     afterEach(() => {
