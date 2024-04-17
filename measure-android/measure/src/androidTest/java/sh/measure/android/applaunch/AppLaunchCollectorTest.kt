@@ -81,7 +81,7 @@ internal class AppLaunchCollectorTest {
                 timeProvider = AndroidTimeProvider(),
                 coldLaunchListener = object : ColdLaunchListener {
                     override fun onColdLaunch() {}
-                }
+                },
             ).register()
             scenario.moveToState(Lifecycle.State.CREATED)
             scenario.moveToState(Lifecycle.State.STARTED)
@@ -102,7 +102,7 @@ internal class AppLaunchCollectorTest {
                 timeProvider = AndroidTimeProvider(),
                 coldLaunchListener = object : ColdLaunchListener {
                     override fun onColdLaunch() {}
-                }
+                },
             ).register()
 
             scenario.moveToState(Lifecycle.State.CREATED)

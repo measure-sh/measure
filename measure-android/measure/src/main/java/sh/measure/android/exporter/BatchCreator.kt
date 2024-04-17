@@ -47,7 +47,9 @@ internal class BatchCreatorImpl(
 
         val batchId = idProvider.createId()
         val batchInsertionResult = database.insertBatch(
-            eventIds, batchId, timeProvider.currentTimeSinceEpochInMillis
+            eventIds,
+            batchId,
+            timeProvider.currentTimeSinceEpochInMillis,
         )
         if (!batchInsertionResult) {
             logger.log(LogLevel.Error, "Failed to insert batched event IDs")
@@ -55,7 +57,7 @@ internal class BatchCreatorImpl(
         }
         return BatchCreationResult(
             batchId = batchId,
-            eventIds = eventIds
+            eventIds = eventIds,
         )
     }
 

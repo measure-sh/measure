@@ -295,7 +295,7 @@ internal object FakeEventFactory {
     fun fakeEventEntity(
         eventId: String,
         attachmentEntities: List<AttachmentEntity> = listOf(
-            AttachmentEntity(id = "attachment-id", type = "type", path = "path", name = "name")
+            AttachmentEntity(id = "attachment-id", type = "type", path = "path", name = "name"),
         ),
         attachmentsSize: Long = 100,
     ): EventEntity {
@@ -308,7 +308,7 @@ internal object FakeEventFactory {
             serializedData = "serialized-data",
             serializedAttributes = "serialized-attributes",
             serializedAttachments = "serialized-attachments",
-            attachmentEntities = attachmentEntities
+            attachmentEntities = attachmentEntities,
         )
     }
 
@@ -332,7 +332,7 @@ internal object FakeEventFactory {
                 id = it.id,
                 type = it.type,
                 name = it.name,
-                filePath = it.path
+                filePath = it.path,
             )
         } ?: emptyList()
     }

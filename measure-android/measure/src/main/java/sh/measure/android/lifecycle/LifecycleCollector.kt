@@ -23,7 +23,7 @@ internal class LifecycleCollector(
     private val application: Application,
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
-    private val applicationLifecycleStateListener: ApplicationLifecycleStateListener
+    private val applicationLifecycleStateListener: ApplicationLifecycleStateListener,
 ) : ActivityLifecycleAdapter {
     private val fragmentLifecycleCollector by lazy {
         FragmentLifecycleCollector(eventProcessor, timeProvider)

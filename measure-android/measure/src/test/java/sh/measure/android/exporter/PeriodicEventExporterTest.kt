@@ -47,7 +47,7 @@ class PeriodicEventExporterTest {
         networkClient,
         timeProvider,
         heartbeat,
-        batchCreator
+        batchCreator,
     )
 
     @Test

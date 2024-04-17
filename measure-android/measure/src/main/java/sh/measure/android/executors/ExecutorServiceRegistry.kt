@@ -1,6 +1,5 @@
 package sh.measure.android.executors
 
-import sh.measure.android.events.EventProcessor
 import java.util.concurrent.Executors
 import java.util.concurrent.ThreadFactory
 
@@ -26,7 +25,7 @@ internal interface ExecutorServiceRegistry {
     fun exportHeartbeatExecutor(): MeasureExecutorService
 }
 
-internal class ExecutorServiceRegistryImpl: ExecutorServiceRegistry {
+internal class ExecutorServiceRegistryImpl : ExecutorServiceRegistry {
     private val executors: MutableMap<ExecutorServiceName, MeasureExecutorService> by lazy { mutableMapOf() }
 
     override fun eventProcessorExecutor(): MeasureExecutorService {
@@ -68,5 +67,5 @@ private enum class ExecutorServiceName {
     EventIngestion,
     EventExport,
     CpuMemoryUsageCollection,
-    ExportHeartbeat
+    ExportHeartbeat,
 }

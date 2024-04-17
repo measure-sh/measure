@@ -24,7 +24,7 @@ internal interface Heartbeat {
  */
 internal class HeartbeatImpl(
     private val logger: Logger,
-    private val scheduler: MeasureExecutorService
+    private val scheduler: MeasureExecutorService,
 ) : Heartbeat {
     private var future: Future<*>? = null
 
@@ -46,7 +46,7 @@ internal class HeartbeatImpl(
                 },
                 initialDelayMs,
                 intervalMs,
-                TimeUnit.MILLISECONDS
+                TimeUnit.MILLISECONDS,
             )
         } catch (e: RejectedExecutionException) {
             logger.log(LogLevel.Error, "Failed to start ExportHeartbeat", e)

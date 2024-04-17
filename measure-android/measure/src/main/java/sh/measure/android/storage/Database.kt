@@ -12,7 +12,6 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import java.io.Closeable
 
-
 internal interface Database : Closeable {
     /**
      * Inserts an event into the database.
@@ -30,7 +29,8 @@ internal interface Database : Closeable {
      * in descending order.
      */
     fun getUnBatchedEventsWithAttachmentSize(
-        eventCount: Int, ascending: Boolean = true
+        eventCount: Int,
+        ascending: Boolean = true,
     ): LinkedHashMap<String, Long>
 
     /**
@@ -138,7 +138,7 @@ internal class DatabaseImpl(
                 if (attachmentResult == -1L) {
                     logger.log(
                         LogLevel.Error,
-                        "Failed to insert attachment ${attachment.type} for event = ${event.type}"
+                        "Failed to insert attachment ${attachment.type} for event = ${event.type}",
                     )
                 }
             }
@@ -149,7 +149,8 @@ internal class DatabaseImpl(
     }
 
     override fun getUnBatchedEventsWithAttachmentSize(
-        eventCount: Int, ascending: Boolean
+        eventCount: Int,
+        ascending: Boolean,
     ): LinkedHashMap<String, Long> {
         val query = Sql.getEventsBatchQuery(eventCount, ascending)
         val cursor = readableDatabase.rawQuery(query, null)
@@ -169,7 +170,9 @@ internal class DatabaseImpl(
     }
 
     override fun insertBatch(
-        eventIds: List<String>, batchId: String, createdAt: Long
+        eventIds: List<String>,
+        batchId: String,
+        createdAt: Long,
     ): Boolean {
         var isSuccess = true
         writableDatabase.beginTransaction()
@@ -226,8 +229,8 @@ internal class DatabaseImpl(
                         serializedData,
                         serializedDataFilePath,
                         attachments,
-                        serializedAttributes
-                    )
+                        serializedAttributes,
+                    ),
                 )
             }
             return eventPackets
@@ -258,7 +261,9 @@ internal class DatabaseImpl(
 
     override fun deleteEvents(eventIds: List<String>) {
         val result = writableDatabase.delete(
-            EventTable.TABLE_NAME, "${EventTable.COL_ID} = ?", eventIds.toTypedArray()
+            EventTable.TABLE_NAME,
+            "${EventTable.COL_ID} = ?",
+            eventIds.toTypedArray(),
         )
         if (result == 0) {
             logger.log(LogLevel.Error, "Failed to delete events")
@@ -267,20 +272,20 @@ internal class DatabaseImpl(
 
     override fun getBatches(maxBatches: Int): LinkedHashMap<String, MutableList<String>> {
         readableDatabase.rawQuery(Sql.getBatches(maxBatches), null).use {
-                val batchIdToEventIds = LinkedHashMap<String, MutableList<String>>()
-                while (it.moveToNext()) {
-                    val eventIdIndex = it.getColumnIndex(EventsBatchTable.COL_EVENT_ID)
-                    val batchIdIndex = it.getColumnIndex(EventsBatchTable.COL_BATCH_ID)
-                    val eventId = it.getString(eventIdIndex)
-                    val batchId = it.getString(batchIdIndex)
-                    if (batchIdToEventIds.containsKey(batchId)) {
-                        batchIdToEventIds[batchId]!!.add(eventId)
-                    } else {
-                        batchIdToEventIds[batchId] = mutableListOf(eventId)
-                    }
+            val batchIdToEventIds = LinkedHashMap<String, MutableList<String>>()
+            while (it.moveToNext()) {
+                val eventIdIndex = it.getColumnIndex(EventsBatchTable.COL_EVENT_ID)
+                val batchIdIndex = it.getColumnIndex(EventsBatchTable.COL_BATCH_ID)
+                val eventId = it.getString(eventIdIndex)
+                val batchId = it.getString(batchIdIndex)
+                if (batchIdToEventIds.containsKey(batchId)) {
+                    batchIdToEventIds[batchId]!!.add(eventId)
+                } else {
+                    batchIdToEventIds[batchId] = mutableListOf(eventId)
                 }
-                return batchIdToEventIds
             }
+            return batchIdToEventIds
+        }
     }
 
     override fun close() {
@@ -291,16 +296,16 @@ internal class DatabaseImpl(
     @VisibleForTesting
     internal fun getEventsCount(): Int {
         readableDatabase.rawQuery("SELECT COUNT(*) FROM ${EventTable.TABLE_NAME}", null).use {
-                it.moveToFirst()
-                return it.getInt(0)
-            }
+            it.moveToFirst()
+            return it.getInt(0)
+        }
     }
 
     @VisibleForTesting
     internal fun getBatchesCount(): Int {
         readableDatabase.rawQuery("SELECT COUNT(*) FROM ${EventsBatchTable.TABLE_NAME}", null).use {
-                it.moveToFirst()
-                return it.getInt(0)
-            }
+            it.moveToFirst()
+            return it.getInt(0)
+        }
     }
 }
