@@ -89,7 +89,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
       sessionReplay.threads[item].forEach((subItem: any) => {
         events.push({
           eventType: subItem.event_type,
-          timestamp: formatTimestampToChartFormat(subItem.timestamp),
+          timestamp: subItem.timestamp,
           thread: item,
           details: subItem
         })
