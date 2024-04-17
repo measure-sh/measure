@@ -1,5 +1,6 @@
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
 import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from "../utils/auth_utils"
+import { DateTime } from "luxon"
 
 export enum TeamsApiStatus {
     Loading,
@@ -642,8 +643,8 @@ export const fetchJourneyFromServer = async (appId: string, startDate: string, e
         }
     };
 
-    const serverFormattedStartDate = new Date(startDate).toISOString()
-    const serverFormattedEndDate = new Date(endDate).toISOString()
+    const serverFormattedStartDate = DateTime.fromFormat(startDate, 'yyyy-MM-dd').toUTC().toISO();
+    const serverFormattedEndDate = DateTime.fromFormat(endDate, 'yyyy-MM-dd').toUTC().toISO();
     const res = await fetch(`${origin}/apps/${appId}/journey?version=${appVersion.name}&version_code=${appVersion.code}&from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`, opts);
 
     if (!res.ok) {
@@ -665,8 +666,8 @@ export const fetchMetricsFromServer = async (appId: string, startDate: string, e
         }
     };
 
-    const serverFormattedStartDate = new Date(startDate).toISOString()
-    const serverFormattedEndDate = new Date(endDate).toISOString()
+    const serverFormattedStartDate = DateTime.fromFormat(startDate, 'yyyy-MM-dd').toUTC().toISO();
+    const serverFormattedEndDate = DateTime.fromFormat(endDate, 'yyyy-MM-dd').toUTC().toISO();
     const res = await fetch(`${origin}/apps/${appId}/metrics?versions=${appVersion.name}&version_codes=${appVersion.code}&from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`, opts);
 
     if (!res.ok) {
@@ -688,8 +689,8 @@ export const fetchCrashOrAnrGroupsFromServer = async (crashOrAnrType: CrashOrAnr
         }
     };
 
-    const serverFormattedStartDate = new Date(startDate).toISOString()
-    const serverFormattedEndDate = new Date(endDate).toISOString()
+    const serverFormattedStartDate = DateTime.fromFormat(startDate, 'yyyy-MM-dd').toUTC().toISO();
+    const serverFormattedEndDate = DateTime.fromFormat(endDate, 'yyyy-MM-dd').toUTC().toISO();
 
     var url = ""
     if (crashOrAnrType === CrashOrAnrType.Crash) {
@@ -731,8 +732,8 @@ export const fetchCrashOrAnrGroupDetailsFromServer = async (crashOrAnrType: Cras
         }
     };
 
-    const serverFormattedStartDate = new Date(startDate).toISOString()
-    const serverFormattedEndDate = new Date(endDate).toISOString()
+    const serverFormattedStartDate = DateTime.fromFormat(startDate, 'yyyy-MM-dd').toUTC().toISO();
+    const serverFormattedEndDate = DateTime.fromFormat(endDate, 'yyyy-MM-dd').toUTC().toISO();
 
     var url = ""
     if (crashOrAnrType === CrashOrAnrType.Crash) {
