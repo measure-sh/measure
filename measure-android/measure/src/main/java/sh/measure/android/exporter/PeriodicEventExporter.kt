@@ -24,11 +24,14 @@ internal class PeriodicEventExporterImpl(
     private val logger: Logger,
     private val config: Config,
     private val idProvider: IdProvider,
-    private val executorService: MeasureExecutorService,
+    private val heartbeatExecutorService: MeasureExecutorService,
+    private val exportExecutorService: MeasureExecutorService,
     private val database: Database,
     private val networkClient: NetworkClient,
     private val timeProvider: TimeProvider,
-    private val heartbeat: Heartbeat = HeartbeatImpl(logger, executorService),
+    private val heartbeat: Heartbeat = HeartbeatImpl(
+        logger, heartbeatExecutorService
+    ),
     private val batchCreator: BatchCreator = BatchCreatorImpl(
         logger, idProvider, database, config, timeProvider
     ),
@@ -52,11 +55,17 @@ internal class PeriodicEventExporterImpl(
     }
 
     override fun onAppForeground() {
-        heartbeat.start(intervalMs = config.batchingIntervalMs)
+        heartbeat.start(
+            intervalMs = config.batchingIntervalMs,
+            initialDelayMs = config.batchingIntervalMs
+        )
     }
 
     override fun onColdLaunch() {
-        heartbeat.start(intervalMs = config.batchingIntervalMs)
+        heartbeat.start(
+            intervalMs = config.batchingIntervalMs,
+            initialDelayMs = config.batchingIntervalMs
+        )
     }
 
     override fun onAppBackground() {
@@ -72,24 +81,26 @@ internal class PeriodicEventExporterImpl(
             return
         }
 
-        try {
-            val batches = database.getBatches(MAX_UN_SYNCED_BATCHES_COUNT)
-            if (batches.isNotEmpty()) {
-                batches.forEach { batch ->
-                    val isSuccessful = exportBatch(batch.key, batch.value)
-                    handleResult(isSuccessful, batch.value, batch.key)
-                }
-            } else {
-                if (timeProvider.uptimeInMillis - lastBatchCreationUptimeMs >= config.batchingIntervalMs) {
-                    batchCreator.create()?.let {
-                        lastBatchCreationUptimeMs = timeProvider.uptimeInMillis
-                        val isSuccessful = exportBatch(it.batchId, it.eventIds)
-                        handleResult(isSuccessful, it.eventIds, it.batchId)
+        exportExecutorService.submit {
+            try {
+                val batches = database.getBatches(MAX_UN_SYNCED_BATCHES_COUNT)
+                if (batches.isNotEmpty()) {
+                    batches.forEach { batch ->
+                        val isSuccessful = exportBatch(batch.key, batch.value)
+                        handleResult(isSuccessful, batch.value, batch.key)
+                    }
+                } else {
+                    if (timeProvider.uptimeInMillis - lastBatchCreationUptimeMs >= config.batchingIntervalMs) {
+                        batchCreator.create()?.let {
+                            lastBatchCreationUptimeMs = timeProvider.uptimeInMillis
+                            val isSuccessful = exportBatch(it.batchId, it.eventIds)
+                            handleResult(isSuccessful, it.eventIds, it.batchId)
+                        }
                     }
                 }
+            } finally {
+                isExportInProgress.set(false)
             }
-        } finally {
-            isExportInProgress.set(false)
         }
     }
 

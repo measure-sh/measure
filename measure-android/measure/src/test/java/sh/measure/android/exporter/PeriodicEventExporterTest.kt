@@ -41,7 +41,8 @@ class PeriodicEventExporterTest {
         logger,
         config,
         idProvider,
-        executorService,
+        heartbeatExecutorService = executorService,
+        exportExecutorService = executorService,
         database,
         networkClient,
         timeProvider,
@@ -55,17 +56,17 @@ class PeriodicEventExporterTest {
     }
 
     @Test
-    fun `starts heartbeat when app comes to foreground`() {
+    fun `starts heartbeat when app comes to foreground with a delay`() {
         exporter.onAppForeground()
 
-        verify(heartbeat, atMostOnce()).start(config.batchingIntervalMs)
+        verify(heartbeat, atMostOnce()).start(config.batchingIntervalMs, config.batchingIntervalMs)
     }
 
     @Test
-    fun `starts heartbeat on cold launch`() {
+    fun `starts heartbeat on cold launch with a delay`() {
         exporter.onColdLaunch()
 
-        verify(heartbeat, atMostOnce()).start(config.batchingIntervalMs)
+        verify(heartbeat, atMostOnce()).start(config.batchingIntervalMs, config.batchingIntervalMs)
     }
 
     @Test
@@ -73,6 +74,21 @@ class PeriodicEventExporterTest {
         exporter.onAppBackground()
 
         verify(heartbeat, atMostOnce()).stop()
+    }
+
+    @Test
+    fun `attempts export when app goes to background`() {
+        // setup database to have a batch to export
+        val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-id")
+        val batchId = "batch-id"
+        database.insertEvent(eventEntity)
+        database.insertBatch(listOf(eventEntity.id), batchId, 987654321L)
+
+        exporter.onAppBackground()
+
+        val eventPacket = FakeEventFactory.getEventPacket(eventEntity)
+        val attachmentPackets = FakeEventFactory.getAttachmentPackets(eventEntity)
+        verify(networkClient).execute(batchId, listOf(eventPacket), attachmentPackets)
     }
 
     @Test
