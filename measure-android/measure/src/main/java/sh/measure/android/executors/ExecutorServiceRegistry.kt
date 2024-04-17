@@ -3,6 +3,9 @@ package sh.measure.android.executors
 import java.util.concurrent.Executors
 import java.util.concurrent.ThreadFactory
 
+/**
+ * A central registry to create and manage executor services created across Measure SDK.
+ */
 internal interface ExecutorServiceRegistry {
     /**
      * Returns an executor service dedicated to process events.
