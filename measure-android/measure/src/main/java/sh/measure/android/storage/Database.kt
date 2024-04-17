@@ -5,6 +5,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteException
 import android.database.sqlite.SQLiteOpenHelper
+import androidx.annotation.VisibleForTesting
 import sh.measure.android.exporter.AttachmentPacket
 import sh.measure.android.exporter.EventPacket
 import sh.measure.android.logger.LogLevel
@@ -29,8 +30,7 @@ internal interface Database : Closeable {
      * in descending order.
      */
     fun getUnBatchedEventsWithAttachmentSize(
-        eventCount: Int,
-        ascending: Boolean = true
+        eventCount: Int, ascending: Boolean = true
     ): LinkedHashMap<String, Long>
 
     /**
@@ -97,6 +97,7 @@ internal class DatabaseImpl(
     override fun onConfigure(db: SQLiteDatabase) {
         // Enable WAL mode: https://www.sqlite.org/wal.html
         setWriteAheadLoggingEnabled(true)
+        db.setForeignKeyConstraintsEnabled(true)
     }
 
     override fun insertEvent(event: EventEntity) {
@@ -148,8 +149,7 @@ internal class DatabaseImpl(
     }
 
     override fun getUnBatchedEventsWithAttachmentSize(
-        eventCount: Int,
-        ascending: Boolean
+        eventCount: Int, ascending: Boolean
     ): LinkedHashMap<String, Long> {
         val query = Sql.getEventsBatchQuery(eventCount, ascending)
         val cursor = readableDatabase.rawQuery(query, null)
@@ -169,11 +169,9 @@ internal class DatabaseImpl(
     }
 
     override fun insertBatch(
-        eventIds: List<String>,
-        batchId: String,
-        createdAt: Long
+        eventIds: List<String>, batchId: String, createdAt: Long
     ): Boolean {
-        var isSuccess = true // Initialize isSuccess as true
+        var isSuccess = true
         writableDatabase.beginTransaction()
         try {
             eventIds.forEach { eventId ->
@@ -259,21 +257,16 @@ internal class DatabaseImpl(
     }
 
     override fun deleteEvents(eventIds: List<String>) {
-        eventIds.forEach { eventId ->
-            val result = writableDatabase.delete(
-                EventTable.TABLE_NAME,
-                "${EventTable.COL_ID} = ?",
-                arrayOf(eventId)
-            )
-            if (result == 0) {
-                logger.log(LogLevel.Error, "Failed to delete event = $eventId")
-            }
+        val result = writableDatabase.delete(
+            EventTable.TABLE_NAME, "${EventTable.COL_ID} = ?", eventIds.toTypedArray()
+        )
+        if (result == 0) {
+            logger.log(LogLevel.Error, "Failed to delete events")
         }
     }
 
     override fun getBatches(maxBatches: Int): LinkedHashMap<String, MutableList<String>> {
-        readableDatabase.rawQuery(Sql.getUnSyncedBatches(maxBatches), null)
-            .use {
+        readableDatabase.rawQuery(Sql.getBatches(maxBatches), null).use {
                 val batchIdToEventIds = LinkedHashMap<String, MutableList<String>>()
                 while (it.moveToNext()) {
                     val eventIdIndex = it.getColumnIndex(EventsBatchTable.COL_EVENT_ID)
@@ -293,5 +286,21 @@ internal class DatabaseImpl(
     override fun close() {
         writableDatabase.close()
         super.close()
+    }
+
+    @VisibleForTesting
+    internal fun getEventsCount(): Int {
+        readableDatabase.rawQuery("SELECT COUNT(*) FROM ${EventTable.TABLE_NAME}", null).use {
+                it.moveToFirst()
+                return it.getInt(0)
+            }
+    }
+
+    @VisibleForTesting
+    internal fun getBatchesCount(): Int {
+        readableDatabase.rawQuery("SELECT COUNT(*) FROM ${EventsBatchTable.TABLE_NAME}", null).use {
+                it.moveToFirst()
+                return it.getInt(0)
+            }
     }
 }

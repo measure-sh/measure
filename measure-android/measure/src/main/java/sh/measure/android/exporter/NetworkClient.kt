@@ -8,7 +8,7 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import java.io.File
+import sh.measure.android.storage.FileStorage
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
@@ -28,6 +28,7 @@ private const val ATTACHMENT_NAME_PREFIX = "blob-"
 
 internal class NetworkClientImpl(
     private val logger: Logger,
+    private val fileStorage: FileStorage,
     private val secretToken: String,
     private val baseUrl: String,
 ) : NetworkClient {
@@ -81,10 +82,8 @@ internal class NetworkClientImpl(
     }
 
     private fun buildRequest(requestBody: RequestBody, batchId: String): Request {
-        return Request.Builder().url("$baseUrl${PATH_EVENTS}")
-            .put(requestBody)
-            .header("X-Request-ID", batchId)
-            .build()
+        return Request.Builder().url("$baseUrl${PATH_EVENTS}").put(requestBody)
+            .header("X-Request-ID", batchId).build()
     }
 
     private fun executeRequest(request: Request): Boolean {
@@ -110,22 +109,14 @@ internal class NetworkClientImpl(
         "$ATTACHMENT_NAME_PREFIX${attachmentPacket.id}"
 
     private fun AttachmentPacket.asFormDataPart(): RequestBody {
-        val file = File(filePath)
-        if (file.exists()) {
-            return file.asRequestBody()
-        } else {
-            throw IllegalStateException("No file found at path: $filePath")
-        }
+        return fileStorage.getFile(filePath)?.asRequestBody()
+            ?: throw IllegalStateException("No file found at path: $filePath")
     }
 
     private fun EventPacket.asFormDataPart(): String {
         val data = serializedData ?: if (serializedDataFilePath != null) {
-            val file = File(serializedDataFilePath)
-            if (file.exists()) {
-                file.readText()
-            } else {
-                throw IllegalStateException("No file found at path: $serializedDataFilePath")
-            }
+            return fileStorage.getFile(serializedDataFilePath)?.readText()
+                ?: throw IllegalStateException("No file found at path: $serializedDataFilePath")
         } else {
             throw IllegalStateException("EventPacket must have either serializedData or serializedDataFilePath")
         }

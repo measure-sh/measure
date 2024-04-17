@@ -29,13 +29,15 @@ internal class PeriodicEventExporterImpl(
     private val networkClient: NetworkClient,
     private val timeProvider: TimeProvider,
     private val heartbeat: Heartbeat = HeartbeatImpl(logger, executorService),
-    private val batchCreator: BatchCreator = BatchCreatorImpl(logger, idProvider, database, config, timeProvider)
+    private val batchCreator: BatchCreator = BatchCreatorImpl(
+        logger, idProvider, database, config, timeProvider
+    ),
 ) : PeriodicEventExporter, HeartbeatListener {
     @VisibleForTesting
     internal val isExportInProgress = AtomicBoolean(false)
 
     @VisibleForTesting
-    internal var lastExportAttemptUptime = 0L
+    internal var lastBatchCreationUptimeMs = 0L
 
     private companion object {
         private const val MAX_UN_SYNCED_BATCHES_COUNT = 30
@@ -73,43 +75,28 @@ internal class PeriodicEventExporterImpl(
         try {
             val batches = database.getBatches(MAX_UN_SYNCED_BATCHES_COUNT)
             if (batches.isNotEmpty()) {
-                sendBatches(batches)
+                batches.forEach { batch ->
+                    val isSuccessful = exportBatch(batch.key, batch.value)
+                    handleResult(isSuccessful, batch.value, batch.key)
+                }
             } else {
-                createNewBatch()
+                if (timeProvider.uptimeInMillis - lastBatchCreationUptimeMs >= config.batchingIntervalMs) {
+                    batchCreator.create()?.let {
+                        lastBatchCreationUptimeMs = timeProvider.uptimeInMillis
+                        val isSuccessful = exportBatch(it.batchId, it.eventIds)
+                        handleResult(isSuccessful, it.eventIds, it.batchId)
+                    }
+                }
             }
         } finally {
             isExportInProgress.set(false)
         }
     }
 
-    private fun sendBatches(batches: LinkedHashMap<String, MutableList<String>>) {
-        batches.forEach { batch ->
-            sendBatch(batch.key, batch.value)
-        }
-    }
-
-    private fun createNewBatch() {
-        if (canCreateNewBatch()) {
-            val result = batchCreator.create() ?: return
-            sendBatch(result.batchId, result.eventIds)
-        } else {
-            logger.log(
-                LogLevel.Warning,
-                "Skipping batching as the last batch was created too recently"
-            )
-        }
-    }
-
-    private fun canCreateNewBatch(): Boolean {
-        return timeProvider.uptimeInMillis - lastExportAttemptUptime > config.batchingIntervalMs
-    }
-
-    private fun sendBatch(batchId: String, eventIds: List<String>) {
+    private fun exportBatch(batchId: String, eventIds: List<String>): Boolean {
         val events = database.getEventPackets(eventIds)
         val attachments = database.getAttachmentPackets(eventIds)
-        lastExportAttemptUptime = timeProvider.uptimeInMillis
-        val isSuccessful = networkClient.execute(batchId, events, attachments)
-        handleResult(isSuccessful, eventIds, batchId)
+        return networkClient.execute(batchId, events, attachments)
     }
 
     private fun handleResult(

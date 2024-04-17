@@ -1,31 +1,41 @@
 package sh.measure.android.exporter
 
 import androidx.concurrent.futures.ResolvableFuture
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.Mockito.atMostOnce
 import org.mockito.Mockito.mock
-import org.mockito.Mockito.never
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.verify
 import sh.measure.android.fakes.FakeConfig
+import sh.measure.android.fakes.FakeEventFactory
 import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
-import sh.measure.android.storage.Database
+import sh.measure.android.storage.DatabaseImpl
 
+/**
+ * Tests for [PeriodicEventExporter]. This test uses Robolectric to allow using a real database
+ * instance. This makes it easier to test this class, without needing excessive mocking or incurring
+ * test induced design
+ */
+@RunWith(AndroidJUnit4::class)
 class PeriodicEventExporterTest {
     private val logger = NoopLogger()
     private val config = FakeConfig()
     private val idProvider = FakeIdProvider()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
-    private val database = mock<Database>()
     private val timeProvider = FakeTimeProvider()
     private val heartbeat = mock<Heartbeat>()
     private val networkClient = mock<NetworkClient>()
+    private val database =
+        DatabaseImpl(InstrumentationRegistry.getInstrumentation().context, logger)
+    private val batchCreator = BatchCreatorImpl(logger, idProvider, database, config, timeProvider)
 
     private val exporter = PeriodicEventExporterImpl(
         logger,
@@ -35,28 +45,13 @@ class PeriodicEventExporterTest {
         database,
         networkClient,
         timeProvider,
-        heartbeat
+        heartbeat,
+        batchCreator
     )
 
     @Test
-    fun `adds a listener to heartbeat`() {
+    fun `adds a listener to heartbeat on initialization`() {
         verify(heartbeat).addListener(exporter)
-    }
-
-    @Test
-    fun `triggers batch creation when heartbeat pulse occurs`() {
-        returnEmptyEventsToBatchFromDb()
-        assertFalse(exporter.isExportInProgress.get())
-        exporter.pulse()
-        assertTrue(exporter.isExportInProgress.get())
-    }
-
-    @Test
-    fun `triggers batch creation when app goes to background`() {
-        returnEmptyEventsToBatchFromDb()
-        assertFalse(exporter.isExportInProgress.get())
-        exporter.onAppBackground()
-        assertTrue(exporter.isExportInProgress.get())
     }
 
     @Test
@@ -75,89 +70,75 @@ class PeriodicEventExporterTest {
 
     @Test
     fun `stops heartbeat when app goes to background`() {
-        returnEmptyEventsToBatchFromDb()
         exporter.onAppBackground()
 
         verify(heartbeat, atMostOnce()).stop()
     }
 
     @Test
-    fun `only one batch creation operation is allowed at a time`() {
-        returnEmptyEventsToBatchFromDb()
-        exporter.pulse()
+    fun `given existing batch is available, then exports it`() {
+        val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-id")
+        val eventPacket = FakeEventFactory.getEventPacket(eventEntity)
+        val attachmentPackets = FakeEventFactory.getAttachmentPackets(eventEntity)
+        val batchId = "batch-id"
+        database.insertEvent(eventEntity)
+        database.insertBatch(listOf(eventEntity.id), batchId, 987654321L)
+
         exporter.pulse()
 
-        verify(database, atMostOnce()).getUnBatchedEventsWithAttachmentSize(config.maxEventsBatchSize, true)
+        verify(networkClient).execute(batchId, listOf(eventPacket), attachmentPackets)
     }
 
     @Test
-    fun `given no events to batch, does not create a batch`() {
-        returnEmptyEventsToBatchFromDb()
+    fun `given batch is not available, and events are available, then creates new batch and exports it`() {
+        config.batchingIntervalMs = 0
+        exporter.lastBatchCreationUptimeMs = 0
+        val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-id")
+        val eventPacket = FakeEventFactory.getEventPacket(eventEntity)
+        val attachmentPackets = FakeEventFactory.getAttachmentPackets(eventEntity)
+        database.insertEvent(eventEntity)
+
         exporter.pulse()
 
-        verify(database, never()).insertBatch(any(), any(), any())
+        verify(networkClient).execute(idProvider.id, listOf(eventPacket), attachmentPackets)
     }
 
     @Test
-    fun `given events to batch have attachments size more than max attachment size, filters events`() {
-        config.maxAttachmentSizeInBytes = 600
-        val batchId = idProvider.id
-        val eventIdAttachmentSizeMap = LinkedHashMap<String, Long>()
-        eventIdAttachmentSizeMap["event1"] = 100
-        eventIdAttachmentSizeMap["event2"] = 200
-        eventIdAttachmentSizeMap["event3"] = 300
-        eventIdAttachmentSizeMap["event4"] = 400
-        eventIdAttachmentSizeMap["event5"] = 500
-        `when`(
-            database.getUnBatchedEventsWithAttachmentSize(config.maxEventsBatchSize, true)
-        ).thenReturn(eventIdAttachmentSizeMap)
+    fun `given the last batch was created less than the minimum threshold, does not create a new batch `() {
+        config.batchingIntervalMs = 5
+        exporter.lastBatchCreationUptimeMs = 1000
+        timeProvider.time = 1004
+        val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-id")
+        database.insertEvent(eventEntity)
+
         exporter.pulse()
 
-        verify(database).insertBatch(
-            listOf("event1", "event2", "event3"),
-            batchId,
-            any()
-        )
+        assertEquals(0, database.getBatchesCount())
     }
 
     @Test
-    fun `given a batch is created successfully, exports events and attachments`() {
-        `when`(
-            database.getUnBatchedEventsWithAttachmentSize(config.maxEventsBatchSize, true)
-        ).thenReturn(
-            LinkedHashMap(mapOf("event1" to 100L, "event2" to 200L, "event3" to 300L))
-        )
-        `when`(database.insertBatch(any(), any(), any())).thenReturn(true)
-        val eventPackets = listOf(
-            EventPacket(
-                eventId = "event1",
-                type = "type1",
-                timestamp = 1234567890,
-                serializedData = "data1",
-                sessionId = "session1",
-                serializedAttachments = null,
-                serializedDataFilePath = null,
-                serializedAttributes = "attributes1"
-            ),
-        )
-        val attachmentPackets = listOf<AttachmentPacket>(
-            AttachmentPacket(
-                id = "attachment1",
-                eventId = "event1",
-                type = "type1",
-                filePath = "path1",
-                name = "name1"
-            )
-        )
-        `when`(database.getEventPackets(any())).thenReturn(eventPackets)
-        `when`(database.getAttachmentPackets(any())).thenReturn(attachmentPackets)
+    fun `given a batch export succeeds, deletes the events and the batch from database`() {
+        `when`(networkClient.execute(any(), any(), any())).thenReturn(true)
+        triggerExport()
 
-        exporter.pulse()
-        verify(networkClient).execute(eventPackets, attachmentPackets)
+        assertEquals(0, database.getEventsCount())
+        assertEquals(0, database.getBatchesCount())
     }
 
-    private fun returnEmptyEventsToBatchFromDb() {
-        `when`(database.getUnBatchedEventsWithAttachmentSize(config.maxEventsBatchSize, true))
-            .thenReturn(LinkedHashMap())
+    @Test
+    fun `given a batch export fails, events and batches are not deleted`() {
+        `when`(networkClient.execute(any(), any(), any())).thenReturn(false)
+        triggerExport()
+
+        assertEquals(1, database.getEventsCount())
+        assertEquals(1, database.getBatchesCount())
+    }
+
+    private fun triggerExport() {
+        val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-id")
+        val batchId = "batch-id"
+        database.insertEvent(eventEntity)
+        database.insertBatch(listOf(eventEntity.id), batchId, 987654321L)
+        exporter.pulse()
     }
 }

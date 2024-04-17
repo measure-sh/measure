@@ -322,6 +322,39 @@ class DatabaseTest {
         assertAttachmentPacket(attachment2, event2, attachmentPackets[1])
     }
 
+    @Test
+    fun `returns all batches and it's event IDs`() {
+        val event1 = EventEntity(
+            id = "event-id-1",
+            type = "test",
+            timestamp = 1234567890L,
+            sessionId = "987",
+            filePath = "test-file-path",
+            attachmentEntities = null,
+            serializedAttributes = "attributes",
+            serializedAttachments = null,
+            attachmentsSize = 100,
+        )
+
+        val event2 = EventEntity(
+            id = "event-id-2",
+            type = "test",
+            timestamp = 1234567899L,
+            sessionId = "123",
+            serializedData = "data",
+            attachmentEntities = null,
+            serializedAttributes = "attributes",
+            serializedAttachments = null,
+            attachmentsSize = 200,
+        )
+        database.insertEvent(event1)
+        database.insertEvent(event2)
+        database.insertBatch(listOf(event1.id, event2.id), "batch-id-1", 1234567890L)
+
+        assertEquals(1, database.getBatches(2).size)
+        assertEquals(2, database.getBatches(2)["batch-id-1"]!!.size)
+    }
+
     private fun assertAttachmentPacket(
         attachment: AttachmentEntity,
         event: EventEntity,

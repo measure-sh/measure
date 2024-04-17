@@ -38,7 +38,12 @@ internal class BatchCreatorImpl(
             logger.log(LogLevel.Warning, "No events to batch")
             return null
         }
+
         val eventIds = filterEventsForMaxAttachmentSize(eventToAttachmentSizeMap)
+        if (eventIds.isEmpty()) {
+            logger.log(LogLevel.Warning, "No events to batch")
+            return null
+        }
 
         val batchId = idProvider.createId()
         val batchInsertionResult = database.insertBatch(

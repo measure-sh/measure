@@ -6,6 +6,8 @@ import sh.measure.android.applaunch.WarmLaunchData
 import sh.measure.android.events.Event
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.exceptions.ExceptionFactory
+import sh.measure.android.exporter.AttachmentPacket
+import sh.measure.android.exporter.EventPacket
 import sh.measure.android.gestures.ClickData
 import sh.measure.android.gestures.LongClickData
 import sh.measure.android.gestures.ScrollData
@@ -22,6 +24,8 @@ import sh.measure.android.performance.CpuUsageData
 import sh.measure.android.performance.LowMemoryData
 import sh.measure.android.performance.MemoryUsageData
 import sh.measure.android.performance.TrimMemoryData
+import sh.measure.android.storage.AttachmentEntity
+import sh.measure.android.storage.EventEntity
 
 internal object FakeEventFactory {
 
@@ -286,5 +290,50 @@ internal object FakeEventFactory {
             stime,
             intervalConfig,
         )
+    }
+
+    fun fakeEventEntity(
+        eventId: String,
+        attachmentEntities: List<AttachmentEntity> = listOf(
+            AttachmentEntity(id = "attachment-id", type = "type", path = "path", name = "name")
+        ),
+        attachmentsSize: Long = 100,
+    ): EventEntity {
+        return EventEntity(
+            id = eventId,
+            type = "type",
+            timestamp = 123456789L,
+            sessionId = "session-id",
+            attachmentsSize = attachmentsSize,
+            serializedData = "serialized-data",
+            serializedAttributes = "serialized-attributes",
+            serializedAttachments = "serialized-attachments",
+            attachmentEntities = attachmentEntities
+        )
+    }
+
+    fun getEventPacket(eventEntity: EventEntity): EventPacket {
+        return EventPacket(
+            eventId = eventEntity.id,
+            type = eventEntity.type,
+            timestamp = eventEntity.timestamp,
+            sessionId = eventEntity.sessionId,
+            serializedData = eventEntity.serializedData,
+            serializedAttributes = eventEntity.serializedAttributes ?: "",
+            serializedAttachments = eventEntity.serializedAttachments,
+            serializedDataFilePath = eventEntity.filePath,
+        )
+    }
+
+    fun getAttachmentPackets(eventEntity: EventEntity): List<AttachmentPacket> {
+        return eventEntity.attachmentEntities?.map {
+            AttachmentPacket(
+                eventId = eventEntity.id,
+                id = it.id,
+                type = it.type,
+                name = it.name,
+                filePath = it.path
+            )
+        } ?: emptyList()
     }
 }

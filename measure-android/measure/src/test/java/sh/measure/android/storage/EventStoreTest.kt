@@ -1,5 +1,6 @@
 package sh.measure.android.storage
 
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.Test
 import org.mockito.Mockito.mock
@@ -528,57 +529,16 @@ internal class EventStoreTest {
     }
 
     @Test
-    fun `stores events having attachments with byte array content`() {
-        // Given
-        val content = byteArrayOf(1, 2, 3)
-        val event = Event(
-            timestamp = 1,
-            data = FakeEventFactory.getClickData(),
-            type = EventType.CLICK,
-        ).withAttachment(
-            Attachment("extension", "attachment-type", bytes = content),
-        )
-        `when`(fileStorage.writeAttachment(idProvider.id, content)).thenReturn("fake-path")
-        val attachmentFile = fakeAttachmentFile()
-        val attachmentFileSize = 123L
-        `when`(fileStorage.getFile("fake-path")).thenReturn(attachmentFile)
-
-        // When
-        eventStore.storeClick(event)
-
-        // Then
-        verify(fileStorage).writeAttachment(idProvider.id, bytes = content)
-        verify(database).insertEvent(
-            EventEntity(
-                id = idProvider.id,
-                type = EventType.CLICK,
-                timestamp = event.timestamp,
-                serializedData = Json.encodeToString(ClickData.serializer(), event.data),
-                sessionId = sessionIdProvider.sessionId,
-                attachmentEntities = listOf(
-                    AttachmentEntity(
-                        id = idProvider.id,
-                        type = "attachment-type",
-                        name = "name",
-                        path = "fake-path",
-                    ),
-                ),
-                serializedAttributes = null,
-                attachmentsSize = attachmentFileSize,
-            ),
-        )
-    }
-
-    @Test
     fun `stores events having attachments with path`() {
         // Given
         val attachmentPath = "attachment-path"
+        val attachment = Attachment("name", "attachment-type", path = attachmentPath)
         val event = Event(
             timestamp = 1,
             data = FakeEventFactory.getClickData(),
             type = EventType.CLICK,
         ).withAttachment(
-            Attachment("extension", "attachment-type", path = attachmentPath),
+            attachment,
         )
 
         val attachmentFile = fakeAttachmentFile()
@@ -599,13 +559,14 @@ internal class EventStoreTest {
                 attachmentEntities = listOf(
                     AttachmentEntity(
                         id = idProvider.id,
-                        type = "attachment-type",
-                        name = "name",
-                        path = attachmentPath,
+                        type = attachment.type,
+                        name = attachment.name,
+                        path = attachment.path!!,
                     ),
                 ),
                 serializedAttributes = null,
                 attachmentsSize = attachmentFileSize,
+                serializedAttachments = Json.encodeToString(listOf(attachment)),
             ),
         )
     }
