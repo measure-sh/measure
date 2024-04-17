@@ -11,6 +11,7 @@ import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import { updateDateQueryParams } from '../utils/router_utils';
 import { formatDateToHumanReadable } from '../utils/time_utils';
 import DropdownSelect, { DropdownSelectType } from './dropdown_select';
+import { DateTime } from 'luxon';
 
 interface CrashOrAnrsOverviewProps {
   crashOrAnrType: CrashOrAnrType,
@@ -36,13 +37,13 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
   const [versions, setVersions] = useState([] as AppVersion[]);
   const [selectedVersions, setSelectedVersions] = useState([] as AppVersion[]);
 
-  const today = new Date();
-  var initialEndDate = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+  const today = DateTime.now();
+  var initialEndDate = today.toFormat('yyyy-MM-dd');
   const [endDate, setEndDate] = useState(searchParams.has("end_date") ? searchParams.get("end_date")! : initialEndDate);
   const [formattedEndDate, setFormattedEndDate] = useState(formatDateToHumanReadable(endDate));
 
-  const sevenDaysAgo = new Date(today.setDate(today.getDate() - 7));
-  var initialStartDate = `${sevenDaysAgo.getFullYear()}-${(sevenDaysAgo.getMonth() + 1).toString().padStart(2, '0')}-${sevenDaysAgo.getDate().toString().padStart(2, '0')}`;
+  const sevenDaysAgo = today.minus({ days: 7 });
+  var initialStartDate = sevenDaysAgo.toFormat('yyyy-MM-dd');
   const [startDate, setStartDate] = useState(searchParams.has("start_date") ? searchParams.get("start_date")! : initialStartDate);
   const [formattedStartDate, setFormattedStartDate] = useState(formatDateToHumanReadable(startDate));
 

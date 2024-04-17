@@ -8,6 +8,7 @@ import SessionReplayEventVerticalConnector from './session_replay_event_vertical
 import FadeInOut from './fade_in_out';
 import { formatTimestampToChartFormat } from '../utils/time_utils';
 import DropdownSelect, { DropdownSelectType } from './dropdown_select';
+import { DateTime } from 'luxon';
 
 interface SessionReplayProps {
   sessionReplay: typeof emptySessionReplay
@@ -99,9 +100,10 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
     ))
 
     events.sort((a, b) => {
-      const dateA = new Date(a.timestamp);
-      const dateB = new Date(b.timestamp);
-      return dateA.getTime() - dateB.getTime();
+      const dateA = DateTime.fromISO(a.timestamp, { zone: 'utc' });
+      const dateB = DateTime.fromISO(b.timestamp, { zone: 'utc' });
+
+      return dateA.toMillis() - dateB.toMillis();
     });
 
     let threadsArray = Array.from(threads)
@@ -289,7 +291,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
             {index > 0 && <div className='py-2' />}
             {index > 0 &&
               <FadeInOut>
-                <SessionReplayEventVerticalConnector milliseconds={new Date(e.timestamp).getMilliseconds() - new Date(events[index - 1].timestamp).getMilliseconds()} />
+                <SessionReplayEventVerticalConnector milliseconds={DateTime.fromISO(e.timestamp, { zone: 'utc' }).toMillis() - DateTime.fromISO(events[index - 1].timestamp, { zone: 'utc' }).toMillis()} />
               </FadeInOut>
             }
             {index > 0 && <div className='py-2' />}
