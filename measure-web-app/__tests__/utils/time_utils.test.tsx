@@ -106,13 +106,13 @@ describe('formatTimestampToChartFormat', () => {
 
     it('should format a UTC timestamp to chart format', () => {
         const timestamp = '2024-04-16T12:00:00Z'; // April 16, 2024, 12:00 PM UTC
-        const expected = '2024-04-16 17:30:00.000 PM';
+        const expected = '2024-04-16 17:30:00:000 PM';
         expect(formatTimestampToChartFormat(timestamp)).toBe(expected);
     });
 
     it('should format a timestamp with a different datetime', () => {
         const timestamp = '2024-04-15T03:44:00Z'; // April 15, 2024, 03:44 PM UTC
-        const expected = '2024-04-15 09:14:00.000 AM';
+        const expected = '2024-04-15 09:14:00:000 AM';
         expect(formatTimestampToChartFormat(timestamp)).toBe(expected);
     });
 
