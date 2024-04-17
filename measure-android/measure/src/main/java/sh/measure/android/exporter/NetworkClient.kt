@@ -89,7 +89,7 @@ internal class NetworkClientImpl(
     private fun executeRequest(request: Request): Boolean {
         return try {
             okHttpClient.newCall(request).execute().use {
-                if (it.code == 202) { // TODO: check with Debjeet if this should be done for any 2xx response?
+                if (it.code in 200..299) {
                     logger.log(LogLevel.Debug, "Request successful")
                     true
                 } else {
