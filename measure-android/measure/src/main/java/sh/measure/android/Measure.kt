@@ -139,7 +139,7 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
         )
 
         val networkClient: NetworkClient =
-            NetworkClientImpl(logger, manifestMetadata.apiKey, manifestMetadata.url)
+            NetworkClientImpl(logger, fileStorage, manifestMetadata.apiKey, manifestMetadata.url)
 
         periodicEventExporter = PeriodicEventExporterImpl(
             logger,

@@ -101,7 +101,7 @@ internal object Sql {
         """.trimIndent()
     }
 
-    fun getUnSyncedBatches(maxCount: Int): String {
+    fun getBatches(maxCount: Int): String {
         return """
             SELECT 
                 ${EventsBatchTable.COL_EVENT_ID},
