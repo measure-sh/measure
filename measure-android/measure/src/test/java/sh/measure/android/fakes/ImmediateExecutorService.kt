@@ -11,9 +11,6 @@ import java.util.concurrent.TimeUnit
  */
 internal class ImmediateExecutorService(private val resolvableFuture: ResolvableFuture<*>) :
     MeasureExecutorService {
-    override val isClosed: Boolean
-        get() = false
-
     override fun submit(runnable: Runnable): Future<*> {
         DirectExecutor.INSTANCE.execute(runnable)
         return resolvableFuture
@@ -32,9 +29,5 @@ internal class ImmediateExecutorService(private val resolvableFuture: Resolvable
     ): Future<*> {
         DirectExecutor.INSTANCE.execute(runnable)
         return resolvableFuture
-    }
-
-    override fun close(timeoutMillis: Long) {
-        // no-op
     }
 }

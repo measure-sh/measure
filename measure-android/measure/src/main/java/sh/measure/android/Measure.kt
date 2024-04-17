@@ -15,8 +15,7 @@ import sh.measure.android.attributes.UserAttributeProcessor
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventProcessorImpl
 import sh.measure.android.exceptions.UnhandledExceptionCollector
-import sh.measure.android.executors.CustomThreadFactory
-import sh.measure.android.executors.MeasureExecutorServiceImpl
+import sh.measure.android.executors.ExecutorServiceRegistryImpl
 import sh.measure.android.exporter.NetworkClient
 import sh.measure.android.exporter.NetworkClientImpl
 import sh.measure.android.exporter.PeriodicEventExporter
@@ -94,8 +93,7 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             return
         }
         val config = DefaultConfig()
-        val customThreadFactory = CustomThreadFactory()
-        val executorService = MeasureExecutorServiceImpl(customThreadFactory)
+        val executorServiceRegistry = ExecutorServiceRegistryImpl()
         timeProvider = AndroidTimeProvider()
         val idProvider = UUIDProvider()
         val systemServiceProvider: SystemServiceProvider = SystemServiceProviderImpl(context)
@@ -133,7 +131,7 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
 
         eventProcessor = EventProcessorImpl(
             logger,
-            executorService,
+            executorServiceRegistry.eventProcessorExecutor(),
             eventStorage,
             globalAttributeProcessors,
         )
@@ -145,7 +143,8 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             logger,
             config,
             idProvider,
-            executorService,
+            heartbeatExecutorService = executorServiceRegistry.exportHeartbeatExecutor(),
+            exportExecutorService = executorServiceRegistry.eventExportExecutor(),
             database,
             networkClient,
             timeProvider
@@ -170,7 +169,7 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             eventProcessor,
             pidProvider,
             timeProvider,
-            executorService,
+            executorServiceRegistry.cpuAndMemoryCollectionExecutor(),
         ).apply { register() }
         val memoryReader = DefaultMemoryReader(
             logger,
@@ -182,7 +181,7 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
         memoryUsageCollector = MemoryUsageCollector(
             eventProcessor,
             timeProvider,
-            executorService,
+            executorServiceRegistry.cpuAndMemoryCollectionExecutor(),
             memoryReader,
         ).apply { register() }
         ComponentCallbacksCollector(
