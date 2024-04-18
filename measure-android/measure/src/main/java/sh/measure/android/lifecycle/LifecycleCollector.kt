@@ -5,7 +5,6 @@ import android.app.Application
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
-import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.utils.TimeProvider
@@ -36,30 +35,26 @@ internal class LifecycleCollector(
 
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
         registerFragmentLifecycleCollector(activity)
-        eventProcessor.trackActivityLifecycle(
-            Event(
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                type = EventType.LIFECYCLE_ACTIVITY,
-                data = ActivityLifecycleData(
-                    type = ActivityLifecycleType.CREATED,
-                    class_name = activity.javaClass.name,
-                    // TODO(abhay): evaluate for sensitive data
-                    intent = activity.intent.dataString,
-                    saved_instance_state = savedInstanceState != null,
-                ),
+        eventProcessor.track(
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            type = EventType.LIFECYCLE_ACTIVITY,
+            data = ActivityLifecycleData(
+                type = ActivityLifecycleType.CREATED,
+                class_name = activity.javaClass.name,
+                // TODO(abhay): evaluate for sensitive data
+                intent = activity.intent.dataString,
+                saved_instance_state = savedInstanceState != null,
             ),
         )
     }
 
     override fun onActivityStarted(activity: Activity) {
         if (startedActivities.isEmpty()) {
-            eventProcessor.trackApplicationLifecycle(
-                Event(
-                    timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                    type = EventType.LIFECYCLE_APP,
-                    data = ApplicationLifecycleData(
-                        type = AppLifecycleType.FOREGROUND,
-                    ),
+            eventProcessor.track(
+                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                type = EventType.LIFECYCLE_APP,
+                data = ApplicationLifecycleData(
+                    type = AppLifecycleType.FOREGROUND,
                 ),
             )
             applicationLifecycleStateListener.onAppForeground()
@@ -69,27 +64,23 @@ internal class LifecycleCollector(
     }
 
     override fun onActivityResumed(activity: Activity) {
-        eventProcessor.trackActivityLifecycle(
-            Event(
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                type = EventType.LIFECYCLE_ACTIVITY,
-                data = ActivityLifecycleData(
-                    type = ActivityLifecycleType.RESUMED,
-                    class_name = activity.javaClass.name,
-                ),
+        eventProcessor.track(
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            type = EventType.LIFECYCLE_ACTIVITY,
+            data = ActivityLifecycleData(
+                type = ActivityLifecycleType.RESUMED,
+                class_name = activity.javaClass.name,
             ),
         )
     }
 
     override fun onActivityPaused(activity: Activity) {
-        eventProcessor.trackActivityLifecycle(
-            Event(
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                type = EventType.LIFECYCLE_ACTIVITY,
-                data = ActivityLifecycleData(
-                    type = ActivityLifecycleType.PAUSED,
-                    class_name = activity.javaClass.name,
-                ),
+        eventProcessor.track(
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            type = EventType.LIFECYCLE_ACTIVITY,
+            data = ActivityLifecycleData(
+                type = ActivityLifecycleType.PAUSED,
+                class_name = activity.javaClass.name,
             ),
         )
     }
@@ -98,13 +89,11 @@ internal class LifecycleCollector(
         val hash = Integer.toHexString(System.identityHashCode(activity))
         startedActivities.remove(hash)
         if (startedActivities.isEmpty()) {
-            eventProcessor.trackApplicationLifecycle(
-                Event(
-                    timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                    type = EventType.LIFECYCLE_APP,
-                    data = ApplicationLifecycleData(
-                        type = AppLifecycleType.BACKGROUND,
-                    ),
+            eventProcessor.track(
+                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                type = EventType.LIFECYCLE_APP,
+                data = ApplicationLifecycleData(
+                    type = AppLifecycleType.BACKGROUND,
                 ),
             )
             applicationLifecycleStateListener.onAppBackground()
@@ -112,14 +101,12 @@ internal class LifecycleCollector(
     }
 
     override fun onActivityDestroyed(activity: Activity) {
-        eventProcessor.trackActivityLifecycle(
-            Event(
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                type = EventType.LIFECYCLE_ACTIVITY,
-                data = ActivityLifecycleData(
-                    type = ActivityLifecycleType.DESTROYED,
-                    class_name = activity.javaClass.name,
-                ),
+        eventProcessor.track(
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            type = EventType.LIFECYCLE_ACTIVITY,
+            data = ActivityLifecycleData(
+                type = ActivityLifecycleType.DESTROYED,
+                class_name = activity.javaClass.name,
             ),
         )
         if (isAndroidXFragmentAvailable() && activity is FragmentActivity) {

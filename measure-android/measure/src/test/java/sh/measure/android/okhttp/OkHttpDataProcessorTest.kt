@@ -13,7 +13,6 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.times
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.verify
-import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.fakes.FakeConfig
 import sh.measure.android.fakes.FakeTimeProvider
@@ -54,124 +53,174 @@ class OkHttpDataProcessorTest {
     @Test
     fun `event contains status code for a successful request`() {
         val statusCode = 200
-        val captor = argumentCaptor<Event<HttpData>>()
+        val captor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<String>()
 
         // When
         simulateSuccessfulPostRequest(statusCode = statusCode)
 
         // Then
-        verify(eventProcessor, times(1)).trackHttp(captor.capture())
-        val actualEvent = captor.firstValue
-        Assert.assertEquals(statusCode, actualEvent.data.status_code)
+        verify(eventProcessor, times(1)).track(
+            captor.capture(),
+            timestampCaptor.capture(),
+            typeCaptor.capture()
+        )
+        val actualData = captor.firstValue
+        Assert.assertEquals(statusCode, actualData.status_code)
     }
 
     @Test
     fun `tracks HTTP method in lowercase for a successful request`() {
-        val captor = argumentCaptor<Event<HttpData>>()
+        val captor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<String>()
 
         // When
         simulateSuccessfulPostRequest()
 
         // Then
-        verify(eventProcessor, times(1)).trackHttp(captor.capture())
-        val actualEvent = captor.firstValue
-        Assert.assertEquals("post", actualEvent.data.method)
+        verify(eventProcessor, times(1)).track(
+            captor.capture(),
+            timestampCaptor.capture(),
+            typeCaptor.capture()
+        )
+        val actualData = captor.firstValue
+        Assert.assertEquals("post", actualData.method)
     }
 
     @Test
     fun `tracks request URL for a successful request`() {
         val url = "http://localhost:8080/"
-        val captor = argumentCaptor<Event<HttpData>>()
+        val captor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<String>()
 
         // When
         simulateSuccessfulPostRequest(url = url)
 
         // Then
-        verify(eventProcessor, times(1)).trackHttp(captor.capture())
-        val actualEvent = captor.firstValue
-        Assert.assertEquals(url, actualEvent.data.url)
+        verify(eventProcessor, times(1)).track(
+            captor.capture(),
+            timestampCaptor.capture(),
+            typeCaptor.capture()
+        )
+        val actualData = captor.firstValue
+        Assert.assertEquals(url, actualData.url)
     }
 
     @Test
     fun `given request body config is enabled, tracks request body for a successful request`() {
         config.setHttpBodyTracking(true)
         val requestBody = "{ \"key\": \"value\" }"
-        val captor = argumentCaptor<Event<HttpData>>()
+        val captor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<String>()
 
         // When
         simulateSuccessfulPostRequest(requestBody = requestBody)
 
         // Then
-        verify(eventProcessor, times(1)).trackHttp(captor.capture())
-        val actualEvent = captor.firstValue
-        Assert.assertEquals(requestBody, actualEvent.data.request_body)
+        verify(eventProcessor, times(1)).track(
+            captor.capture(),
+            timestampCaptor.capture(),
+            typeCaptor.capture()
+        )
+        val data = captor.firstValue
+        Assert.assertEquals(requestBody, data.request_body)
     }
 
     @Test
     fun `given interceptor is not set, does not track request body for a successful request`() {
         config.setHttpBodyTracking(true)
         val requestBody = "{ \"key\": \"value\" }"
-        val captor = argumentCaptor<Event<HttpData>>()
+        val captor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<String>()
 
         // When
         simulateSuccessfulPostRequest(requestBody = requestBody, client = clientWithoutInterceptor)
 
         // Then
-        verify(eventProcessor, times(1)).trackHttp(captor.capture())
-        val actualEvent = captor.firstValue
-        Assert.assertNull(requestBody, actualEvent.data.request_body)
+        verify(eventProcessor, times(1)).track(
+            captor.capture(),
+            timestampCaptor.capture(),
+            typeCaptor.capture()
+        )
+        val actualData = captor.firstValue
+        Assert.assertNull(requestBody, actualData.request_body)
     }
 
     @Test
     fun `given request body config is disabled, does not track request body for a successful request`() {
         config.setHttpBodyTracking(false)
         val requestBody = "{ \"key\": \"value\" }"
-        val captor = argumentCaptor<Event<HttpData>>()
+        val captor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<String>()
 
         // When
         simulateSuccessfulPostRequest(requestBody = requestBody)
 
         // Then
-        verify(eventProcessor, times(1)).trackHttp(captor.capture())
-        val actualEvent = captor.firstValue
-        Assert.assertNull(actualEvent.data.request_body)
+        verify(eventProcessor, times(1)).track(
+            captor.capture(),
+            timestampCaptor.capture(),
+            typeCaptor.capture()
+        )
+        val actualData = captor.firstValue
+        Assert.assertNull(actualData.request_body)
     }
 
     @Test
     fun `given response body config is enabled, tracks response body for a successful request`() {
         config.setHttpBodyTracking(true)
         val responseBody = "{ \"key\": \"value\" }"
-        val captor = argumentCaptor<Event<HttpData>>()
+        val captor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<String>()
 
         // When
         simulateSuccessfulPostRequest(responseBody = responseBody)
 
         // Then
-        verify(eventProcessor, times(1)).trackHttp(captor.capture())
-        val actualEvent = captor.firstValue
-        Assert.assertEquals(responseBody, actualEvent.data.response_body)
+        verify(eventProcessor, times(1)).track(
+            captor.capture(),
+            timestampCaptor.capture(),
+            typeCaptor.capture()
+        )
+        val actualData = captor.firstValue
+        Assert.assertEquals(responseBody, actualData.response_body)
     }
 
     @Test
     fun `given response body config is disabled, does not track response body for a successful request`() {
         config.setHttpBodyTracking(false)
         val responseBody = "{ \"key\": \"value\" }"
-        val captor = argumentCaptor<Event<HttpData>>()
+        val captor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<String>()
 
         // When
         simulateSuccessfulPostRequest(responseBody = responseBody)
 
         // Then
-        verify(eventProcessor, times(1)).trackHttp(captor.capture())
-        val actualEvent = captor.firstValue
-        Assert.assertNull(actualEvent.data.response_body)
+        verify(eventProcessor, times(1)).track(
+            captor.capture(),
+            timestampCaptor.capture(),
+            typeCaptor.capture()
+        )
+        val actualData = captor.firstValue
+        Assert.assertNull(actualData.response_body)
     }
 
     @Test
     fun `given interceptor is not set, does not track response body for a successful request`() {
         config.setHttpBodyTracking(true)
         val responseBody = "{ \"key\": \"value\" }"
-        val captor = argumentCaptor<Event<HttpData>>()
+        val captor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<String>()
 
         // When
         simulateSuccessfulPostRequest(
@@ -180,70 +229,100 @@ class OkHttpDataProcessorTest {
         )
 
         // Then
-        verify(eventProcessor, times(1)).trackHttp(captor.capture())
-        val actualEvent = captor.firstValue
-        Assert.assertNull(responseBody, actualEvent.data.response_body)
+        verify(eventProcessor, times(1)).track(
+            captor.capture(),
+            timestampCaptor.capture(),
+            typeCaptor.capture()
+        )
+        val actualData = captor.firstValue
+        Assert.assertNull(responseBody, actualData.response_body)
     }
 
     // Not verifying the content of the headers as OkHttp adds a number of headers automatically.
     @Test
     fun `tracks request headers for a successful request`() {
-        val captor = argumentCaptor<Event<HttpData>>()
+        val captor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<String>()
 
         // When
         simulateSuccessfulPostRequest()
 
         // Then
-        verify(eventProcessor, times(1)).trackHttp(captor.capture())
-        val actualEvent = captor.firstValue
-        Assert.assertTrue(actualEvent.data.request_headers?.isNotEmpty() == true)
+        verify(eventProcessor, times(1)).track(
+            captor.capture(),
+            timestampCaptor.capture(),
+            typeCaptor.capture()
+        )
+        val actualData = captor.firstValue
+        Assert.assertTrue(actualData.request_headers?.isNotEmpty() == true)
     }
 
     // Not verifying the content of the headers as OkHttp adds a number of headers automatically.
     @Test
     fun `tracks response headers for a successful request`() {
-        val captor = argumentCaptor<Event<HttpData>>()
+        val captor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<String>()
 
         // When
         simulateSuccessfulPostRequest()
 
         // Then
-        verify(eventProcessor, times(1)).trackHttp(captor.capture())
-        val actualEvent = captor.firstValue
-        Assert.assertTrue(actualEvent.data.response_headers?.isNotEmpty() == true)
+        verify(eventProcessor, times(1)).track(
+            captor.capture(),
+            timestampCaptor.capture(),
+            typeCaptor.capture()
+        )
+        val actualData = captor.firstValue
+        Assert.assertTrue(actualData.response_headers?.isNotEmpty() == true)
     }
 
     @Test
     fun `tracks a non null start and end time for a successful request`() {
-        val captor = argumentCaptor<Event<HttpData>>()
+        val captor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<String>()
 
         // When
         simulateSuccessfulPostRequest()
 
         // Then
-        verify(eventProcessor, times(1)).trackHttp(captor.capture())
-        val actualEvent = captor.firstValue
-        Assert.assertNotNull(actualEvent.data.start_time)
-        Assert.assertNotNull(actualEvent.data.end_time)
+        verify(eventProcessor, times(1)).track(
+            captor.capture(),
+            timestampCaptor.capture(),
+            typeCaptor.capture()
+        )
+        val actualData = captor.firstValue
+        Assert.assertNotNull(actualData.start_time)
+        Assert.assertNotNull(actualData.end_time)
     }
 
     @Test
     fun `tracks timestamp for a successful request`() {
-        val captor = argumentCaptor<Event<HttpData>>()
+        val dataCaptor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<String>()
 
         // When
         simulateSuccessfulPostRequest()
 
         // Then
-        verify(eventProcessor, times(1)).trackHttp(captor.capture())
-        val actualEvent = captor.firstValue
+        verify(eventProcessor, times(1)).track(
+            dataCaptor.capture(),
+            timestampCaptor.capture(),
+            typeCaptor.capture()
+        )
+        val actualTimestamp = timestampCaptor.firstValue
         // timestamp is non-null, initialized to -1L to remain transient
-        Assert.assertNotEquals(-1L, actualEvent.timestamp)
+        Assert.assertNotEquals(-1L, actualTimestamp)
     }
 
     @Test
     fun `tracks empty request headers map for a failed request`() {
-        val captor = argumentCaptor<Event<HttpData>>()
+        val captor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<String>()
 
         // When
         try {
@@ -257,57 +336,79 @@ class OkHttpDataProcessorTest {
         }
 
         // Then
-        verify(eventProcessor, times(1)).trackHttp(captor.capture())
-        val actualEvent = captor.firstValue
-        Assert.assertEquals(actualEvent.data.request_headers, emptyMap<String, String>())
+        verify(eventProcessor, times(1)).track(
+            captor.capture(),
+            timestampCaptor.capture(),
+            typeCaptor.capture()
+        )
+        val actualData = captor.firstValue
+        Assert.assertEquals(actualData.request_headers, emptyMap<String, String>())
     }
 
     @Test
     fun `tracks client for a successful request`() {
-        val captor = argumentCaptor<Event<HttpData>>()
+        val captor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<String>()
 
         // When
         simulateSuccessfulPostRequest()
 
         // Then
-        verify(eventProcessor, times(1)).trackHttp(captor.capture())
-        val actualEvent = captor.firstValue
-        Assert.assertEquals(HttpClientName.OK_HTTP, actualEvent.data.client)
+        verify(eventProcessor, times(1)).track(
+            captor.capture(),
+            timestampCaptor.capture(),
+            typeCaptor.capture()
+        )
+        val actualData = captor.firstValue
+        Assert.assertEquals(HttpClientName.OK_HTTP, actualData.client)
     }
 
     @Test
     fun `tracks failure reason and failure description for a connection failure`() {
-        val captor = argumentCaptor<Event<HttpData>>()
+        val captor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<String>()
 
         // When
         simulateConnectionFailed()
 
         // Then
-        verify(eventProcessor, times(1)).trackHttp(captor.capture())
-        val actualEvent = captor.firstValue
-        Assert.assertEquals("java.net.ConnectException", actualEvent.data.failure_reason)
-        Assert.assertNotNull(actualEvent.data.failure_description)
+        verify(eventProcessor, times(1)).track(
+            captor.capture(),
+            timestampCaptor.capture(),
+            typeCaptor.capture()
+        )
+        val actualData = captor.firstValue
+        Assert.assertEquals("java.net.ConnectException", actualData.failure_reason)
+        Assert.assertNotNull(actualData.failure_description)
 
         // ensure rest of the data fields are not set
-        Assert.assertNull(actualEvent.data.status_code)
-        Assert.assertNull(actualEvent.data.request_body)
-        Assert.assertNull(actualEvent.data.response_body)
-        Assert.assertEquals(actualEvent.data.request_headers, emptyMap<String, String>())
-        Assert.assertEquals(actualEvent.data.response_headers, emptyMap<String, String>())
+        Assert.assertNull(actualData.status_code)
+        Assert.assertNull(actualData.request_body)
+        Assert.assertNull(actualData.response_body)
+        Assert.assertEquals(actualData.request_headers, emptyMap<String, String>())
+        Assert.assertEquals(actualData.response_headers, emptyMap<String, String>())
     }
 
     @Test
     fun `tracks non null call start and call end for connection failure`() {
-        val captor = argumentCaptor<Event<HttpData>>()
+        val captor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<String>()
 
         // When
         simulateConnectionFailed()
 
         // Then
-        verify(eventProcessor, times(1)).trackHttp(captor.capture())
-        val actualEvent = captor.firstValue
-        Assert.assertNotNull(actualEvent.data.start_time)
-        Assert.assertNotNull(actualEvent.data.end_time)
+        verify(eventProcessor, times(1)).track(
+            captor.capture(),
+            timestampCaptor.capture(),
+            typeCaptor.capture()
+        )
+        val actualData = captor.firstValue
+        Assert.assertNotNull(actualData.start_time)
+        Assert.assertNotNull(actualData.end_time)
     }
 
     /**

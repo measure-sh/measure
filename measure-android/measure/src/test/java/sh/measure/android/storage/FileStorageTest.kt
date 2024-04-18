@@ -28,10 +28,10 @@ class FileStorageTest {
     }
 
     @Test
-    fun `writes exception data to a file`() {
+    fun `writes serialized exception data to a file`() {
         val eventId = "123"
-        val event = FakeEventFactory.getExceptionData().toEvent(type = EventType.EXCEPTION)
-        fileStorage.writeException(eventId, event)
+        val serializedData = "serialized-data"
+        fileStorage.writeException(eventId, serializedData)
 
         fileStorage.getFile("$rootDir/measure/exceptions/$eventId")?.let { file ->
             assertTrue(file.exists())
@@ -40,13 +40,15 @@ class FileStorageTest {
     }
 
     @Test
-    fun `does not write when file does not exist`() {
-        val invalidPath = "invalid-path"
-        val event = FakeEventFactory.getExceptionData().toEvent(type = EventType.EXCEPTION)
-        fileStorage.writeException(invalidPath, event)
+    fun `writes serialized ANR data to a file`() {
+        val eventId = "123"
+        val serializedData = "serialized-data"
+        fileStorage.writeAnr(eventId, serializedData)
 
-        val file = File(rootDir, invalidPath)
-        assertFalse(file.exists())
+        fileStorage.getFile("$rootDir/measure/anr/$eventId")?.let { file ->
+            assertTrue(file.exists())
+            assertTrue(file.readText().isNotEmpty())
+        }
     }
 
     @Test
@@ -59,8 +61,8 @@ class FileStorageTest {
     @Test
     fun `returns file if it exists`() {
         val eventId = "123"
-        val event = FakeEventFactory.getExceptionData().toEvent(type = EventType.EXCEPTION)
-        fileStorage.writeException(eventId, event)
+        val serializedData = "serialized-data"
+        fileStorage.writeException(eventId, serializedData)
 
         val file = fileStorage.getFile("$rootDir/measure/exceptions/$eventId")
         assertNotNull(file)

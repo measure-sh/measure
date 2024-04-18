@@ -21,7 +21,6 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowNetwork
 import org.robolectric.shadows.ShadowNetworkCapabilities
-import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeTimeProvider
@@ -118,17 +117,15 @@ class NetworkChangesCollectorTest {
         }
         triggerNetworkCapabilitiesChange(addTransportType = NetworkCapabilities.TRANSPORT_CELLULAR)
 
-        verify(eventProcessor).trackNetworkChange(
-            Event(
-                type = EventType.NETWORK_CHANGE,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                data = NetworkChangeData(
-                    previous_network_type = previousNetworkType,
-                    network_type = NetworkType.CELLULAR,
-                    previous_network_generation = null,
-                    network_generation = NetworkGeneration.FIFTH_GEN,
-                    network_provider = "Test Provider",
-                ),
+        verify(eventProcessor).track(
+            type = EventType.NETWORK_CHANGE,
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            data = NetworkChangeData(
+                previous_network_type = previousNetworkType,
+                network_type = NetworkType.CELLULAR,
+                previous_network_generation = null,
+                network_generation = NetworkGeneration.FIFTH_GEN,
+                network_provider = "Test Provider",
             ),
         )
     }
@@ -150,17 +147,15 @@ class NetworkChangesCollectorTest {
 
         triggerNetworkCapabilitiesChange(addTransportType = NetworkCapabilities.TRANSPORT_CELLULAR)
 
-        verify(eventProcessor).trackNetworkChange(
-            Event(
-                type = EventType.NETWORK_CHANGE,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                data = NetworkChangeData(
-                    previous_network_type = null,
-                    network_type = NetworkType.CELLULAR,
-                    previous_network_generation = null,
-                    network_generation = null,
-                    network_provider = "Test Provider",
-                ),
+        verify(eventProcessor).track(
+            type = EventType.NETWORK_CHANGE,
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            data = NetworkChangeData(
+                previous_network_type = null,
+                network_type = NetworkType.CELLULAR,
+                previous_network_generation = null,
+                network_generation = null,
+                network_provider = "Test Provider",
             ),
         )
     }
@@ -186,17 +181,15 @@ class NetworkChangesCollectorTest {
         }
         triggerNetworkCapabilitiesChange(addTransportType = NetworkCapabilities.TRANSPORT_CELLULAR)
 
-        verify(eventProcessor).trackNetworkChange(
-            Event(
-                type = EventType.NETWORK_CHANGE,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                data = NetworkChangeData(
-                    previous_network_type = NetworkType.WIFI,
-                    network_type = NetworkType.CELLULAR,
-                    previous_network_generation = null,
-                    network_generation = NetworkGeneration.FIFTH_GEN,
-                    network_provider = "Test Provider",
-                ),
+        verify(eventProcessor).track(
+            type = EventType.NETWORK_CHANGE,
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            data = NetworkChangeData(
+                previous_network_type = NetworkType.WIFI,
+                network_type = NetworkType.CELLULAR,
+                previous_network_generation = null,
+                network_generation = NetworkGeneration.FIFTH_GEN,
+                network_provider = "Test Provider",
             ),
         )
     }
@@ -237,17 +230,15 @@ class NetworkChangesCollectorTest {
 
         triggerNetworkCapabilitiesChange(addTransportType = NetworkCapabilities.TRANSPORT_WIFI)
 
-        verify(eventProcessor).trackNetworkChange(
-            Event(
-                type = EventType.NETWORK_CHANGE,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                data = NetworkChangeData(
-                    previous_network_type = null,
-                    network_type = NetworkType.WIFI,
-                    previous_network_generation = null,
-                    network_generation = null,
-                    network_provider = null,
-                ),
+        verify(eventProcessor).track(
+            type = EventType.NETWORK_CHANGE,
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            data = NetworkChangeData(
+                previous_network_type = null,
+                network_type = NetworkType.WIFI,
+                previous_network_generation = null,
+                network_generation = null,
+                network_provider = null,
             ),
         )
     }
@@ -383,17 +374,15 @@ class NetworkChangesCollectorTest {
 
         triggerNetworkCapabilitiesChange(addTransportType = NetworkCapabilities.TRANSPORT_VPN)
 
-        verify(eventProcessor).trackNetworkChange(
-            Event(
-                type = EventType.NETWORK_CHANGE,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                data = NetworkChangeData(
-                    previous_network_type = null,
-                    network_type = NetworkType.VPN,
-                    previous_network_generation = null,
-                    network_generation = null,
-                    network_provider = null,
-                ),
+        verify(eventProcessor).track(
+            type = EventType.NETWORK_CHANGE,
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            data = NetworkChangeData(
+                previous_network_type = null,
+                network_type = NetworkType.VPN,
+                previous_network_generation = null,
+                network_generation = null,
+                network_provider = null,
             ),
         )
     }
@@ -415,17 +404,15 @@ class NetworkChangesCollectorTest {
         val network = ShadowNetwork.newInstance(789)
         networkCallback.onLost(network)
 
-        verify(eventProcessor).trackNetworkChange(
-            Event(
-                type = EventType.NETWORK_CHANGE,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                data = NetworkChangeData(
-                    previous_network_type = null,
-                    network_type = NetworkType.NO_NETWORK,
-                    previous_network_generation = null,
-                    network_generation = null,
-                    network_provider = null,
-                ),
+        verify(eventProcessor).track(
+            type = EventType.NETWORK_CHANGE,
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            data = NetworkChangeData(
+                previous_network_type = null,
+                network_type = NetworkType.NO_NETWORK,
+                previous_network_generation = null,
+                network_generation = null,
+                network_provider = null,
             ),
         )
     }
@@ -451,17 +438,15 @@ class NetworkChangesCollectorTest {
         val network = ShadowNetwork.newInstance(789)
         networkCallback.onLost(network)
 
-        verify(eventProcessor).trackNetworkChange(
-            Event(
-                type = EventType.NETWORK_CHANGE,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                data = NetworkChangeData(
-                    previous_network_type = NetworkType.CELLULAR,
-                    network_type = NetworkType.NO_NETWORK,
-                    previous_network_generation = NetworkGeneration.FIFTH_GEN,
-                    network_generation = null,
-                    network_provider = "Test Provider",
-                ),
+        verify(eventProcessor).track(
+            type = EventType.NETWORK_CHANGE,
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            data = NetworkChangeData(
+                previous_network_type = NetworkType.CELLULAR,
+                network_type = NetworkType.NO_NETWORK,
+                previous_network_generation = NetworkGeneration.FIFTH_GEN,
+                network_generation = null,
+                network_provider = "Test Provider",
             ),
         )
     }

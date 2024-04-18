@@ -3,6 +3,7 @@ package sh.measure.android.fakes
 import sh.measure.android.applaunch.ColdLaunchData
 import sh.measure.android.applaunch.HotLaunchData
 import sh.measure.android.applaunch.WarmLaunchData
+import sh.measure.android.events.Attachment
 import sh.measure.android.events.Event
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.exceptions.ExceptionFactory
@@ -57,13 +58,21 @@ internal object FakeEventFactory {
     }
 
     fun <T> T.toEvent(
-        timestamp: Long = System.currentTimeMillis(),
+        id: String = "event-id",
+        timestamp: Long = 218723832L,
         type: String,
+        sessionId: String = "session-id",
+        attachments: List<Attachment>? = null,
+        attributes: MutableMap<String, Any?> = mutableMapOf(),
     ): Event<T> {
         return Event(
+            id = id,
             timestamp = timestamp,
             data = this,
             type = type,
+            sessionId = sessionId,
+            attachments = attachments,
+            attributes = attributes,
         )
     }
 
@@ -335,5 +344,19 @@ internal object FakeEventFactory {
                 filePath = it.path,
             )
         } ?: emptyList()
+    }
+
+    fun getAttachment(
+        type: String = "type",
+        name: String = "name",
+        path: String = "path",
+        bytes: ByteArray? = null,
+    ): Attachment {
+        return Attachment(
+            type = type,
+            name = name,
+            path = path,
+            bytes = bytes,
+        )
     }
 }

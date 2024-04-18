@@ -1,11 +1,5 @@
 package sh.measure.android.storage
 
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.encodeToStream
-import sh.measure.android.events.Event
-import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import java.io.File
@@ -15,20 +9,17 @@ internal interface FileStorage {
     /**
      * Writes exception data to a file, with the event id as the file name.
      *
-     * @param id The event id to use as the file name.
-     * @param event The event to write to the file.
      * @return The path of the file if the write was successful, otherwise null.
      */
-    fun writeException(id: String, event: Event<ExceptionData>): String?
+    fun writeException(eventId: String, serializedData: String): String?
 
     /**
      * Writes ANR data to a file, with the event id as the file name.
      *
-     * @param id The event id to use as the file name.
-     * @param event The event to write to the file.
+     * @param eventId The event id to use as the file name.
      * @return The path of the file if the write was successful, otherwise null.
      */
-    fun writeAnr(id: String, event: Event<ExceptionData>): String?
+    fun writeAnr(eventId: String, serializedData: String): String?
 
     /**
      * Gets a file from the given path.
@@ -50,19 +41,21 @@ private const val EXCEPTION_DIR = "measure/exceptions"
 private const val ANR_DIR = "measure/anr"
 private const val ATTACHMENTS_DIR = "measure/attachments"
 
-@OptIn(ExperimentalSerializationApi::class)
 internal class FileStorageImpl(
     private val rootDir: String,
     private val logger: Logger,
 ) : FileStorage {
-    override fun writeException(id: String, event: Event<ExceptionData>): String? {
-        val file = createFile(id, EXCEPTION_DIR) ?: return null
-        return writeFile(file, event)
+
+    override fun writeException(eventId: String, serializedData: String): String? {
+        val file = createFile(eventId, EXCEPTION_DIR) ?: return null
+        file.writeText(serializedData)
+        return file.path
     }
 
-    override fun writeAnr(id: String, event: Event<ExceptionData>): String? {
-        val file = createFile(id, ANR_DIR) ?: return null
-        return writeFile(file, event)
+    override fun writeAnr(eventId: String, serializedData: String): String? {
+        val file = createFile(eventId, ANR_DIR) ?: return null
+        file.writeText(serializedData)
+        return file.path
     }
 
     override fun getFile(path: String): File? {
@@ -112,22 +105,6 @@ internal class FileStorageImpl(
         }
 
         return file
-    }
-
-    private fun writeFile(file: File, event: Event<ExceptionData>): String? {
-        try {
-            val stream = file.outputStream()
-            Json.encodeToStream(event.data, stream)
-        } catch (e: IOException) {
-            logger.log(LogLevel.Error, "Error writing to file", e)
-            deleteFileIfExists(file)
-            return null
-        } catch (se: SerializationException) {
-            logger.log(LogLevel.Error, "Error writing to file", se)
-            deleteFileIfExists(file)
-            return null
-        }
-        return file.path
     }
 
     private fun deleteFileIfExists(file: File) {

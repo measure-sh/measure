@@ -7,7 +7,6 @@ import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
-import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakePidProvider
@@ -53,21 +52,19 @@ internal class CpuUsageDataCollectorTest {
     @Test
     fun `CpuUsageCollector tracks cpu usage`() {
         cpuUsageCollector.register()
-        verify(eventProcessor).trackCpuUsage(
-            Event(
-                type = EventType.CPU_USAGE,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                data = CpuUsageData(
-                    num_cores = 1,
-                    clock_speed = 100,
-                    uptime = 20_000,
-                    utime = 500,
-                    stime = 600,
-                    cutime = 100,
-                    cstime = 200,
-                    start_time = 5835385,
-                    interval_config = CPU_TRACKING_INTERVAL_MS,
-                ),
+        verify(eventProcessor).track(
+            type = EventType.CPU_USAGE,
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            data = CpuUsageData(
+                num_cores = 1,
+                clock_speed = 100,
+                uptime = 20_000,
+                utime = 500,
+                stime = 600,
+                cutime = 100,
+                cstime = 200,
+                start_time = 5835385,
+                interval_config = CPU_TRACKING_INTERVAL_MS,
             ),
         )
     }

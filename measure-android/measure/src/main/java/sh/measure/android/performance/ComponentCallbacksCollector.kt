@@ -10,7 +10,6 @@ import android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW
 import android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE
 import android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN
 import android.content.res.Configuration
-import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.utils.TimeProvider
@@ -27,19 +26,17 @@ internal class ComponentCallbacksCollector(
     }
 
     override fun onLowMemory() {
-        eventProcessor.trackLowMemory(
-            Event(
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                type = EventType.LOW_MEMORY,
-                data = LowMemoryData(
-                    java_free_heap = memoryReader.freeHeapSize(),
-                    java_max_heap = memoryReader.maxHeapSize(),
-                    java_total_heap = memoryReader.totalHeapSize(),
-                    native_free_heap = memoryReader.nativeFreeHeapSize(),
-                    native_total_heap = memoryReader.nativeTotalHeapSize(),
-                    rss = memoryReader.rss(),
-                    total_pss = memoryReader.totalPss(),
-                ),
+        eventProcessor.track(
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            type = EventType.LOW_MEMORY,
+            data = LowMemoryData(
+                java_free_heap = memoryReader.freeHeapSize(),
+                java_max_heap = memoryReader.maxHeapSize(),
+                java_total_heap = memoryReader.totalHeapSize(),
+                native_free_heap = memoryReader.nativeFreeHeapSize(),
+                native_total_heap = memoryReader.nativeTotalHeapSize(),
+                rss = memoryReader.rss(),
+                total_pss = memoryReader.totalPss(),
             ),
         )
     }
@@ -55,12 +52,10 @@ internal class ComponentCallbacksCollector(
             TRIM_MEMORY_COMPLETE -> TrimMemoryData(level = "TRIM_MEMORY_COMPLETE")
             else -> TrimMemoryData(level = "TRIM_MEMORY_UNKNOWN")
         }
-        eventProcessor.trackTrimMemory(
-            Event(
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                type = EventType.TRIM_MEMORY,
-                data = trimMemoryData,
-            ),
+        eventProcessor.track(
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            type = EventType.TRIM_MEMORY,
+            data = trimMemoryData,
         )
     }
 

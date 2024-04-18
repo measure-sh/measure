@@ -1,6 +1,5 @@
 package sh.measure.android.anr
 
-import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
@@ -30,12 +29,10 @@ internal class AnrCollector(
 
     override fun onAppNotResponding(error: AnrError) {
         logger.log(LogLevel.Error, "ANR detected", error)
-        tracker.trackAnr(
-            Event(
-                timestamp = error.timestamp,
-                type = EventType.ANR,
-                data = toMeasureException(error),
-            ),
+        tracker.track(
+            timestamp = error.timestamp,
+            type = EventType.ANR,
+            data = toMeasureException(error),
         )
     }
 

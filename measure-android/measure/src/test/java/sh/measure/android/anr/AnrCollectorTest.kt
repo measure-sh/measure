@@ -3,7 +3,6 @@ package sh.measure.android.anr
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.verify
-import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionFactory
@@ -29,16 +28,14 @@ class AnrCollectorTest {
         anrCollector.onAppNotResponding(anrError)
 
         // Then
-        verify(eventProcessor).trackAnr(
-            Event(
-                type = EventType.ANR,
-                timestamp = anrError.timestamp,
-                data = ExceptionFactory.createMeasureException(
-                    throwable = anrError,
-                    handled = false,
-                    thread = thread,
-                    foreground = false,
-                ),
+        verify(eventProcessor).track(
+            type = EventType.ANR,
+            timestamp = anrError.timestamp,
+            data = ExceptionFactory.createMeasureException(
+                throwable = anrError,
+                handled = false,
+                thread = thread,
+                foreground = false,
             ),
         )
     }

@@ -1,6 +1,5 @@
 package sh.measure.android.exceptions
 
-import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
@@ -34,16 +33,14 @@ internal class UnhandledExceptionCollector(
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
         logger.log(LogLevel.Debug, "Unhandled exception received")
         try {
-            eventProcessor.trackUnhandledException(
-                Event(
-                    timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                    type = EventType.EXCEPTION,
-                    data = ExceptionFactory.createMeasureException(
-                        throwable,
-                        handled = false,
-                        thread = thread,
-                        foreground = isForegroundProcess(),
-                    ),
+            eventProcessor.track(
+                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                type = EventType.EXCEPTION,
+                data = ExceptionFactory.createMeasureException(
+                    throwable,
+                    handled = false,
+                    thread = thread,
+                    foreground = isForegroundProcess(),
                 ),
             )
         } catch (e: Throwable) {

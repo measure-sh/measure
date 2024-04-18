@@ -2,7 +2,6 @@ package sh.measure.android.performance
 
 import android.system.OsConstants
 import androidx.annotation.VisibleForTesting
-import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.executors.MeasureExecutorService
@@ -74,12 +73,10 @@ internal class CpuUsageCollector(
         if (prevCpuUsageData?.utime == cpuUsageData.utime && prevCpuUsageData?.stime == cpuUsageData.stime) {
             return
         }
-        eventProcessor.trackCpuUsage(
-            Event(
-                type = EventType.CPU_USAGE,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                data = cpuUsageData,
-            ),
+        eventProcessor.track(
+            type = EventType.CPU_USAGE,
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            data = cpuUsageData,
         )
         prevCpuUsageData = cpuUsageData
     }
