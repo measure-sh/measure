@@ -33,7 +33,7 @@ class ComposeGestureCollectorTest {
     fun tracks_clicks_on_clickable_views() {
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.clickable_compose_view)).perform(click())
-        assertEquals(1, tracker.trackedClicks.size)
+        assertEquals(1, tracker.trackedEvents.size)
     }
 
     @Test
@@ -41,7 +41,8 @@ class ComposeGestureCollectorTest {
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.clickable_compose_view)).perform(click())
 
-        val event = tracker.trackedClicks[0]
+        val event = tracker.trackedEvents[0]
+        event.data as ClickData
         assertEquals("androidx.compose.ui.platform.AndroidComposeView", event.data.target)
         assertEquals("compose_clickable", event.data.target_id)
         assertTrue(event.data.touch_down_time > 0)
@@ -58,14 +59,14 @@ class ComposeGestureCollectorTest {
     fun ignores_clicks_on_non_clickable_views() {
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.non_clickable_compose_view)).perform(click())
-        assertEquals(0, tracker.trackedClicks.size)
+        assertEquals(0, tracker.trackedEvents.size)
     }
 
     @Test
     fun tracks_scrolls_on_scrollable_views() {
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.scrollable_compose_view)).perform(swipeUp())
-        assertEquals(1, tracker.trackedScrolls.size)
+        assertEquals(1, tracker.trackedEvents.size)
     }
 
     @Test
@@ -73,7 +74,8 @@ class ComposeGestureCollectorTest {
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.scrollable_compose_view)).perform(swipeUp())
 
-        val event = tracker.trackedScrolls[0]
+        val event = tracker.trackedEvents[0]
+        event.data as ScrollData
         assertEquals("androidx.compose.ui.platform.AndroidComposeView", event.data.target)
         assertEquals("compose_scrollable", event.data.target_id)
         assertTrue(event.data.touch_down_time > 0)
@@ -86,6 +88,6 @@ class ComposeGestureCollectorTest {
     fun ignores_scrolls_on_non_scrollable_views() {
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.clickable_compose_view)).perform(swipeUp())
-        assertEquals(0, tracker.trackedScrolls.size)
+        assertEquals(0, tracker.trackedEvents.size)
     }
 }

@@ -21,7 +21,7 @@ internal class AppLaunchCollectorTest {
     fun tracks_cold_launch() {
         val tracker = FakeEventProcessor()
         coldLaunch(tracker)
-        Assert.assertEquals(1, tracker.trackedColdLaunchData.size)
+        Assert.assertEquals(1, tracker.trackedEvents.size)
     }
 
     @Test
@@ -62,14 +62,16 @@ internal class AppLaunchCollectorTest {
     fun tracks_warm_launch() {
         val tracker = FakeEventProcessor()
         warmLaunch(tracker)
-        Assert.assertEquals(1, tracker.trackedWarmLaunchData.size)
+        Assert.assertEquals(1, tracker.trackedEvents.size)
     }
 
     @Test
     fun warm_launch_has_saved_state() {
         val tracker = FakeEventProcessor()
         warmLaunch(tracker)
-        Assert.assertTrue(tracker.trackedWarmLaunchData[0].data.has_saved_state)
+        val data = tracker.trackedEvents[0].data
+        Assert.assertTrue(data is WarmLaunchData)
+        Assert.assertTrue((data as WarmLaunchData).has_saved_state)
     }
 
     private fun warmLaunch(tracker: FakeEventProcessor) {
@@ -111,6 +113,6 @@ internal class AppLaunchCollectorTest {
             scenario.moveToState(Lifecycle.State.STARTED)
             scenario.moveToState(Lifecycle.State.RESUMED)
         }
-        Assert.assertEquals(1, tracker.trackedHotLaunchData.size)
+        Assert.assertEquals(1, tracker.trackedEvents.size)
     }
 }
