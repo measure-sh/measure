@@ -6,7 +6,6 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
-import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeMemoryReader
@@ -36,20 +35,18 @@ internal class MemoryUsageDataCollectorTest {
     @Test
     fun `MemoryUsageCollector tracks memory usage`() {
         memoryUsageCollector.register()
-        verify(eventProcessor).trackMemoryUsage(
-            Event(
-                type = EventType.MEMORY_USAGE,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                data = MemoryUsageData(
-                    java_max_heap = memoryReader.maxHeapSize(),
-                    java_total_heap = memoryReader.totalHeapSize(),
-                    java_free_heap = memoryReader.freeHeapSize(),
-                    total_pss = memoryReader.totalPss(),
-                    rss = memoryReader.rss(),
-                    native_total_heap = memoryReader.nativeTotalHeapSize(),
-                    native_free_heap = memoryReader.nativeFreeHeapSize(),
-                    interval_config = MEMORY_TRACKING_INTERVAL_MS,
-                ),
+        verify(eventProcessor).track(
+            type = EventType.MEMORY_USAGE,
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            data = MemoryUsageData(
+                java_max_heap = memoryReader.maxHeapSize(),
+                java_total_heap = memoryReader.totalHeapSize(),
+                java_free_heap = memoryReader.freeHeapSize(),
+                total_pss = memoryReader.totalPss(),
+                rss = memoryReader.rss(),
+                native_total_heap = memoryReader.nativeTotalHeapSize(),
+                native_free_heap = memoryReader.nativeFreeHeapSize(),
+                interval_config = MEMORY_TRACKING_INTERVAL_MS,
             ),
         )
     }

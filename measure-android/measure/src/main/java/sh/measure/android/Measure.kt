@@ -118,7 +118,6 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             fileStorage,
             database,
             idProvider,
-            sessionIdProvider,
         )
 
         val globalAttributeProcessors = listOf(
@@ -133,6 +132,8 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             logger,
             executorServiceRegistry.eventProcessorExecutor(),
             eventStorage,
+            idProvider,
+            sessionIdProvider,
             globalAttributeProcessors,
         )
 

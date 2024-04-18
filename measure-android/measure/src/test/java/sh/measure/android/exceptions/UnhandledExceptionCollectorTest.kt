@@ -6,7 +6,6 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
-import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeTimeProvider
@@ -60,12 +59,10 @@ internal class UnhandledExceptionCollectorTest {
         collector.uncaughtException(thread, exception)
 
         // Then
-        verify(eventProcessor).trackUnhandledException(
-            Event(
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                type = EventType.EXCEPTION,
-                data = expectedException,
-            ),
+        verify(eventProcessor).track(
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            type = EventType.EXCEPTION,
+            data = expectedException,
         )
     }
 

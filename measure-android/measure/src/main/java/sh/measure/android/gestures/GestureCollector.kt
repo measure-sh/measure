@@ -3,7 +3,6 @@ package sh.measure.android.gestures
 import android.view.MotionEvent
 import android.view.ViewGroup
 import android.view.Window
-import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
@@ -56,28 +55,22 @@ internal class GestureCollector(
 
         InternalTrace.beginSection("GestureCollector.serializeEvent")
         when (gesture) {
-            is DetectedGesture.Click -> tracker.trackClick(
-                Event(
-                    timestamp = gesture.timestamp,
-                    type = EventType.CLICK,
-                    data = ClickData.fromDetectedGesture(gesture, target),
-                ),
+            is DetectedGesture.Click -> tracker.track(
+                timestamp = gesture.timestamp,
+                type = EventType.CLICK,
+                data = ClickData.fromDetectedGesture(gesture, target),
             )
 
-            is DetectedGesture.LongClick -> tracker.trackLongClick(
-                Event(
-                    timestamp = gesture.timestamp,
-                    type = EventType.LONG_CLICK,
-                    data = LongClickData.fromDetectedGesture(gesture, target),
-                ),
+            is DetectedGesture.LongClick -> tracker.track(
+                timestamp = gesture.timestamp,
+                type = EventType.LONG_CLICK,
+                data = LongClickData.fromDetectedGesture(gesture, target),
             )
 
-            is DetectedGesture.Scroll -> tracker.trackScroll(
-                Event(
-                    timestamp = gesture.timestamp,
-                    type = EventType.SCROLL,
-                    data = ScrollData.fromDetectedGesture(gesture, target),
-                ),
+            is DetectedGesture.Scroll -> tracker.track(
+                timestamp = gesture.timestamp,
+                type = EventType.SCROLL,
+                data = ScrollData.fromDetectedGesture(gesture, target),
             )
         }
         InternalTrace.endSection()

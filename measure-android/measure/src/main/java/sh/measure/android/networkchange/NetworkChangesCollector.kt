@@ -17,7 +17,6 @@ import android.os.Build
 import android.telephony.TelephonyManager
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
-import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
@@ -134,17 +133,15 @@ internal class NetworkChangesCollector(
                 return
             }
 
-            eventProcessor.trackNetworkChange(
-                Event(
-                    type = EventType.NETWORK_CHANGE,
-                    timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                    data = NetworkChangeData(
-                        previous_network_type = previousNetworkType,
-                        network_type = newNetworkType,
-                        previous_network_generation = previousNetworkGeneration,
-                        network_generation = newNetworkGeneration,
-                        network_provider = networkProvider,
-                    ),
+            eventProcessor.track(
+                type = EventType.NETWORK_CHANGE,
+                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                data = NetworkChangeData(
+                    previous_network_type = previousNetworkType,
+                    network_type = newNetworkType,
+                    previous_network_generation = previousNetworkGeneration,
+                    network_generation = newNetworkGeneration,
+                    network_provider = networkProvider,
                 ),
             )
             currentNetworkType = newNetworkType
@@ -158,17 +155,15 @@ internal class NetworkChangesCollector(
             if (previousNetworkType == newNetworkType) {
                 return
             }
-            eventProcessor.trackNetworkChange(
-                Event(
-                    type = EventType.NETWORK_CHANGE,
-                    timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                    data = NetworkChangeData(
-                        previous_network_type = previousNetworkType,
-                        network_type = newNetworkType,
-                        previous_network_generation = previousNetworkGeneration,
-                        network_generation = null,
-                        network_provider = null,
-                    ),
+            eventProcessor.track(
+                type = EventType.NETWORK_CHANGE,
+                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                data = NetworkChangeData(
+                    previous_network_type = previousNetworkType,
+                    network_type = newNetworkType,
+                    previous_network_generation = previousNetworkGeneration,
+                    network_generation = null,
+                    network_provider = null,
                 ),
             )
             currentNetworkType = newNetworkType

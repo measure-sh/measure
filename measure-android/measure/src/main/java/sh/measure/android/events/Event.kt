@@ -1,13 +1,21 @@
 package sh.measure.android.events
 
-import kotlinx.serialization.json.JsonElement
-import sh.measure.android.utils.toJsonElement
-
 /**
  * Represents an event in Measure. This object maps very closely to the event object in
  * the Measure API.
  */
 internal data class Event<T>(
+    /**
+     * A unique identifier for the event.
+     */
+    val id: String,
+
+    /**
+     * The session id of the event. This is the session id of the session in which the event was
+     * triggered.
+     */
+    val sessionId: String,
+
     /**
      * The timestamp of the event. The time when the event was triggered. Measured in milliseconds
      * since epoch.
@@ -23,36 +31,24 @@ internal data class Event<T>(
      * The data collected. This can be any object that is annotated with `@Serializable`.
      */
     val data: T,
-) {
+
     /**
      * Attachments that can be added to the event.
      */
-    val attachments: MutableList<Attachment> = mutableListOf()
+    val attachments: List<Attachment>?,
 
     /**
      * Additional key value pairs that can be added to the event.
      */
-    val attributes: MutableMap<String, Any?> = mutableMapOf()
-
-    /**
-     * Adds an attachment to the event.
-     *
-     * @param attachment The attachment to add.
-     */
-    fun withAttachment(attachment: Attachment): Event<T> {
-        attachments.add(attachment)
-        return this
-    }
-
+    val attributes: MutableMap<String, Any?>,
+) {
     /**
      * Adds an attribute to the event.
      *
      * @param key The key of the attribute.
-     * @param value The value of the attribute. The value can be of any time which can be converted
-     * to a [JsonElement], see [toJsonElement] for the types that are supported.
+     * @param value The value of the attribute.
      */
-    fun withAttribute(key: String, value: Any?): Event<T> {
+    fun appendAttribute(key: String, value: Any?) {
         attributes[key] = value
-        return this
     }
 }

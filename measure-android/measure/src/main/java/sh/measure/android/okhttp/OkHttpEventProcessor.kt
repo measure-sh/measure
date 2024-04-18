@@ -7,7 +7,6 @@ import okhttp3.Response
 import okio.Buffer
 import okio.ByteString
 import sh.measure.android.Config
-import sh.measure.android.events.Event
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
@@ -131,12 +130,10 @@ internal class OkHttpEventProcessorImpl(
         InternalTrace.beginSection("OkHttpEventProcessor.trackEvent")
         builder?.let {
             val httpEvent = it.build()
-            eventProcessor.trackHttp(
-                Event(
-                    type = EventType.HTTP,
-                    timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                    data = httpEvent,
-                ),
+            eventProcessor.track(
+                type = EventType.HTTP,
+                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                data = httpEvent,
             )
         }
         httpDataBuilders.remove(key)
