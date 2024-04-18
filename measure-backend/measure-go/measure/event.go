@@ -24,9 +24,11 @@ import (
 var maxBatchSize = 20 * 1024 * 1024
 
 type attachment struct {
-	id     uuid.UUID
-	name   string
-	header *multipart.FileHeader
+	id       uuid.UUID
+	name     string
+	location string
+	header   *multipart.FileHeader
+	uploaded bool
 }
 
 type eventreq struct {
@@ -58,10 +60,46 @@ func (e eventreq) validate() error {
 		if err := e.events[i].Attributes.Validate(); err != nil {
 			return err
 		}
+
+		if e.hasAttachments() {
+			for j := range e.events[i].Attachments {
+				if err := e.events[i].Attachments[j].Validate(); err != nil {
+					return err
+				}
+			}
+		}
 	}
 
 	if e.size >= int64(maxBatchSize) {
 		return fmt.Errorf(`payload cannot exceed maximum allowed size of %d`, maxBatchSize)
+	}
+
+	return nil
+}
+
+// uploadAttachments prepares and uploads each attachment.
+func (e *eventreq) uploadAttachments() error {
+	for i := range e.attachments {
+		attachment := event.Attachment{
+			ID:   e.attachments[i].id,
+			Name: e.attachments[i].header.Filename,
+			Key:  e.attachments[i].id.String(),
+		}
+
+		file, err := e.attachments[i].header.Open()
+		if err != nil {
+			return err
+		}
+
+		attachment.Reader = file
+
+		output, err := attachment.Upload()
+		if err != nil {
+			return err
+		}
+
+		e.attachments[i].uploaded = true
+		e.attachments[i].location = output.Location
 	}
 
 	return nil
@@ -323,8 +361,14 @@ func PutEventMulti(c *gin.Context) {
 	}
 
 	if eventReq.hasAttachments() {
-		// upload attachments
-		fmt.Println("process attachments here")
+		if err := eventReq.uploadAttachments(); err != nil {
+			msg := `failed to ingest attachments`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
 	}
 
 	fmt.Println("events", eventReq.events)
