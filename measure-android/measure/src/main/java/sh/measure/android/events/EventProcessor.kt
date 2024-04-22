@@ -87,12 +87,16 @@ internal class EventProcessorImpl(
         }
 
         when (type) {
+            // Exceptions and ANRs need to be processed synchronously to ensure that they are not
+            // lost as the system is about to crash. They are also attempted to be exported
+            // immediately to report them as soon as possible.
             EventType.ANR, EventType.EXCEPTION -> {
                 val event = createEvent()
                 applyAttributes(event)
                 eventStore.store(event)
-                eventExporter.export(event)
-                logger.log(LogLevel.Debug, "Event processed: ${event.type}")
+                executorService.submit {
+                    eventExporter.export(event)
+                }
             }
 
             else -> {
@@ -100,9 +104,9 @@ internal class EventProcessorImpl(
                     val event = createEvent()
                     applyAttributes(event)
                     eventStore.store(event)
-                    logger.log(LogLevel.Debug, "Event processed: ${event.type}")
                 }
             }
         }
+        logger.log(LogLevel.Debug, "Event processed: $type")
     }
 }
