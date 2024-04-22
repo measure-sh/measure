@@ -27,7 +27,7 @@ internal interface EventProcessor {
     fun <T> track(
         data: T,
         timestamp: Long,
-        type: String
+        type: String,
     )
 
     /**
@@ -61,7 +61,7 @@ internal class EventProcessorImpl(
     override fun <T> track(
         data: T,
         timestamp: Long,
-        type: String
+        type: String,
     ) {
         track(data, timestamp, type, mutableMapOf(), null)
     }

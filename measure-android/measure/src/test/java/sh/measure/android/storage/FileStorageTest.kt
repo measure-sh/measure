@@ -1,15 +1,11 @@
 package sh.measure.android.storage
 
 import org.junit.After
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.robolectric.RuntimeEnvironment
-import sh.measure.android.events.EventType
-import sh.measure.android.fakes.FakeEventFactory
-import sh.measure.android.fakes.FakeEventFactory.toEvent
 import sh.measure.android.fakes.NoopLogger
 import java.io.File
 import kotlin.io.path.pathString

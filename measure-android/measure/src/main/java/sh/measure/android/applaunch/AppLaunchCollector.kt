@@ -32,7 +32,7 @@ internal class AppLaunchCollector(
     override fun onColdLaunch(coldLaunchData: ColdLaunchData) {
         val startUptime =
             coldLaunchData.process_start_uptime ?: coldLaunchData.content_provider_attach_uptime
-            ?: return
+                ?: return
         val endUptime = coldLaunchData.on_next_draw_uptime
         val duration = endUptime - startUptime
         logger.log(LogLevel.Debug, "cold launch duration: $duration ms, start uptime: $startUptime")

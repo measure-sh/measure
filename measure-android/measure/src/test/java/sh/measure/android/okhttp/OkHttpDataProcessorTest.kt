@@ -64,7 +64,7 @@ class OkHttpDataProcessorTest {
         verify(eventProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
-            typeCaptor.capture()
+            typeCaptor.capture(),
         )
         val actualData = captor.firstValue
         Assert.assertEquals(statusCode, actualData.status_code)
@@ -83,7 +83,7 @@ class OkHttpDataProcessorTest {
         verify(eventProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
-            typeCaptor.capture()
+            typeCaptor.capture(),
         )
         val actualData = captor.firstValue
         Assert.assertEquals("post", actualData.method)
@@ -103,7 +103,7 @@ class OkHttpDataProcessorTest {
         verify(eventProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
-            typeCaptor.capture()
+            typeCaptor.capture(),
         )
         val actualData = captor.firstValue
         Assert.assertEquals(url, actualData.url)
@@ -124,7 +124,7 @@ class OkHttpDataProcessorTest {
         verify(eventProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
-            typeCaptor.capture()
+            typeCaptor.capture(),
         )
         val data = captor.firstValue
         Assert.assertEquals(requestBody, data.request_body)
@@ -145,7 +145,7 @@ class OkHttpDataProcessorTest {
         verify(eventProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
-            typeCaptor.capture()
+            typeCaptor.capture(),
         )
         val actualData = captor.firstValue
         Assert.assertNull(requestBody, actualData.request_body)
@@ -166,7 +166,7 @@ class OkHttpDataProcessorTest {
         verify(eventProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
-            typeCaptor.capture()
+            typeCaptor.capture(),
         )
         val actualData = captor.firstValue
         Assert.assertNull(actualData.request_body)
@@ -187,7 +187,7 @@ class OkHttpDataProcessorTest {
         verify(eventProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
-            typeCaptor.capture()
+            typeCaptor.capture(),
         )
         val actualData = captor.firstValue
         Assert.assertEquals(responseBody, actualData.response_body)
@@ -208,7 +208,7 @@ class OkHttpDataProcessorTest {
         verify(eventProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
-            typeCaptor.capture()
+            typeCaptor.capture(),
         )
         val actualData = captor.firstValue
         Assert.assertNull(actualData.response_body)
@@ -232,7 +232,7 @@ class OkHttpDataProcessorTest {
         verify(eventProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
-            typeCaptor.capture()
+            typeCaptor.capture(),
         )
         val actualData = captor.firstValue
         Assert.assertNull(responseBody, actualData.response_body)
@@ -252,7 +252,7 @@ class OkHttpDataProcessorTest {
         verify(eventProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
-            typeCaptor.capture()
+            typeCaptor.capture(),
         )
         val actualData = captor.firstValue
         Assert.assertTrue(actualData.request_headers?.isNotEmpty() == true)
@@ -272,7 +272,7 @@ class OkHttpDataProcessorTest {
         verify(eventProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
-            typeCaptor.capture()
+            typeCaptor.capture(),
         )
         val actualData = captor.firstValue
         Assert.assertTrue(actualData.response_headers?.isNotEmpty() == true)
@@ -291,7 +291,7 @@ class OkHttpDataProcessorTest {
         verify(eventProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
-            typeCaptor.capture()
+            typeCaptor.capture(),
         )
         val actualData = captor.firstValue
         Assert.assertNotNull(actualData.start_time)
@@ -311,7 +311,7 @@ class OkHttpDataProcessorTest {
         verify(eventProcessor, times(1)).track(
             dataCaptor.capture(),
             timestampCaptor.capture(),
-            typeCaptor.capture()
+            typeCaptor.capture(),
         )
         val actualTimestamp = timestampCaptor.firstValue
         // timestamp is non-null, initialized to -1L to remain transient
@@ -339,7 +339,7 @@ class OkHttpDataProcessorTest {
         verify(eventProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
-            typeCaptor.capture()
+            typeCaptor.capture(),
         )
         val actualData = captor.firstValue
         Assert.assertEquals(actualData.request_headers, emptyMap<String, String>())
@@ -358,7 +358,7 @@ class OkHttpDataProcessorTest {
         verify(eventProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
-            typeCaptor.capture()
+            typeCaptor.capture(),
         )
         val actualData = captor.firstValue
         Assert.assertEquals(HttpClientName.OK_HTTP, actualData.client)
@@ -377,7 +377,7 @@ class OkHttpDataProcessorTest {
         verify(eventProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
-            typeCaptor.capture()
+            typeCaptor.capture(),
         )
         val actualData = captor.firstValue
         Assert.assertEquals("java.net.ConnectException", actualData.failure_reason)
@@ -404,7 +404,7 @@ class OkHttpDataProcessorTest {
         verify(eventProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
-            typeCaptor.capture()
+            typeCaptor.capture(),
         )
         val actualData = captor.firstValue
         Assert.assertNotNull(actualData.start_time)

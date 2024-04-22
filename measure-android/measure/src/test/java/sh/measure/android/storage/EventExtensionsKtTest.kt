@@ -22,15 +22,18 @@ class EventExtensionsKtTest {
     @Test
     fun `returns serialized attributes if attributes are not empty`() {
         val event = FakeEventFactory.getClickData()
-            .toEvent(attributes = mutableMapOf(
-                "key1" to "value1",
-                "key2" to "value2"
-            ), type = EventType.CLICK)
+            .toEvent(
+                attributes = mutableMapOf(
+                    "key1" to "value1",
+                    "key2" to "value2",
+                ),
+                type = EventType.CLICK,
+            )
 
         val serializedAttributes = event.serializeAttributes()
         assertEquals(
             "{\"key1\":\"value1\",\"key2\":\"value2\"}",
-            serializedAttributes
+            serializedAttributes,
         )
     }
 
@@ -45,18 +48,21 @@ class EventExtensionsKtTest {
     @Test
     fun `returns serialized attachments if attachments are not empty`() {
         val event = FakeEventFactory.getClickData()
-            .toEvent(attachments = listOf(
-                Attachment(
-                    name = "screenshot.png",
-                    type = "image/png",
-                    bytes = byteArrayOf(1, 2, 3, 4),
-                )
-            ), type = EventType.CLICK)
+            .toEvent(
+                attachments = listOf(
+                    Attachment(
+                        name = "screenshot.png",
+                        type = "image/png",
+                        bytes = byteArrayOf(1, 2, 3, 4),
+                    ),
+                ),
+                type = EventType.CLICK,
+            )
 
         val serializedAttachments = event.serializeAttachments()
         assertEquals(
             "[{\"name\":\"screenshot.png\",\"type\":\"image/png\"}]",
-            serializedAttachments
+            serializedAttachments,
         )
     }
 

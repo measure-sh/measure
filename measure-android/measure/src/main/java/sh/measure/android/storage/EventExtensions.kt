@@ -1,10 +1,8 @@
 package sh.measure.android.storage
 
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.encodeToStream
 import sh.measure.android.appexit.AppExit
 import sh.measure.android.applaunch.ColdLaunchData
 import sh.measure.android.applaunch.HotLaunchData
@@ -26,8 +24,6 @@ import sh.measure.android.performance.LowMemoryData
 import sh.measure.android.performance.MemoryUsageData
 import sh.measure.android.performance.TrimMemoryData
 import sh.measure.android.utils.toJsonElement
-import java.io.BufferedOutputStream
-import java.io.OutputStream
 
 /**
  * Serializes the attachments of the event to a JSON string.
@@ -86,21 +82,21 @@ internal fun <T> Event<T>.serializeDataToString(): String {
         EventType.LIFECYCLE_ACTIVITY -> {
             Json.encodeToString(
                 ActivityLifecycleData.serializer(),
-                data as ActivityLifecycleData
+                data as ActivityLifecycleData,
             )
         }
 
         EventType.LIFECYCLE_FRAGMENT -> {
             Json.encodeToString(
                 FragmentLifecycleData.serializer(),
-                data as FragmentLifecycleData
+                data as FragmentLifecycleData,
             )
         }
 
         EventType.LIFECYCLE_APP -> {
             Json.encodeToString(
                 ApplicationLifecycleData.serializer(),
-                data as ApplicationLifecycleData
+                data as ApplicationLifecycleData,
             )
         }
 
