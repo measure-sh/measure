@@ -25,7 +25,6 @@ internal interface LaunchCallbacks {
 internal class LaunchTracker(
     private val logger: Logger,
     private val callbacks: LaunchCallbacks,
-    private val timeProvider: TimeProvider,
 ) : ActivityLifecycleAdapter {
 
     private var coldLaunchComplete = false

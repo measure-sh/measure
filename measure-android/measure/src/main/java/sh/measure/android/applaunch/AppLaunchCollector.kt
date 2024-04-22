@@ -25,7 +25,7 @@ internal class AppLaunchCollector(
     fun register() {
         logger.log(LogLevel.Debug, "Registering AppLaunchCollector")
         application.registerActivityLifecycleCallbacks(
-            LaunchTracker(logger, this, timeProvider),
+            LaunchTracker(logger, this),
         )
     }
 
