@@ -89,6 +89,13 @@ internal interface Database : Closeable {
     fun deleteEvents(eventIds: List<String>)
 
     /**
+     * Deletes the event with the given ID, along with related metadata.
+     *
+     * @param eventId The event ID to delete.
+     */
+    fun deleteEvent(eventId: String)
+
+    /**
      * Returns a map of batch IDs to event IDs that have not been synced with the server in
      * ascending order of creation time.
      *
@@ -350,14 +357,24 @@ internal class DatabaseImpl(
     }
 
     override fun deleteEvents(eventIds: List<String>) {
+        if (eventIds.isEmpty()) {
+            return
+        }
+
+        val placeholders = eventIds.joinToString { "?" }
+        val whereClause = "${EventTable.COL_ID} IN ($placeholders)"
         val result = writableDatabase.delete(
             EventTable.TABLE_NAME,
-            "${EventTable.COL_ID} = ?",
-            eventIds.toTypedArray(),
+            whereClause,
+            eventIds.toTypedArray()
         )
         if (result == 0) {
             logger.log(LogLevel.Error, "Failed to delete events")
         }
+    }
+
+    override fun deleteEvent(eventId: String) {
+        deleteEvents(listOf(eventId))
     }
 
     override fun getBatches(maxBatches: Int): LinkedHashMap<String, MutableList<String>> {

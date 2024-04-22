@@ -34,7 +34,10 @@ internal class EventExporterImpl(
         if (batchCreated) {
             val eventPacket = database.getEventPacket(event.id)
             val attachmentPackets = database.getAttachmentPacket(event.id)
-            networkClient.execute(batchId, listOf(eventPacket), attachmentPackets)
+            val exported = networkClient.execute(batchId, listOf(eventPacket), attachmentPackets)
+            if (exported) {
+                database.deleteEvent(event.id)
+            }
         } else {
             logger.log(LogLevel.Error, "Failed to create a batch for event ${event.id}")
         }
