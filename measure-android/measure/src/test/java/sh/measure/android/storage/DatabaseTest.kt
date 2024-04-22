@@ -438,6 +438,65 @@ class DatabaseTest {
         assertAttachmentPacket(attachment, event, attachmentPackets[0])
     }
 
+    @Test
+    fun `deletes events with given event IDs`() {
+        val event1 = EventEntity(
+            id = "event-id-1",
+            type = "test",
+            timestamp = 1234567890L,
+            sessionId = "987",
+            filePath = "test-file-path",
+            attachmentEntities = null,
+            serializedAttributes = "attributes",
+            serializedAttachments = null,
+            attachmentsSize = 100,
+        )
+
+        val event2 = EventEntity(
+            id = "event-id-2",
+            type = "test",
+            timestamp = 1234567899L,
+            sessionId = "123",
+            serializedData = "data",
+            attachmentEntities = null,
+            serializedAttributes = "attributes",
+            serializedAttachments = null,
+            attachmentsSize = 200,
+        )
+
+        database.insertEvent(event1)
+        database.insertEvent(event2)
+
+        val eventIds = listOf(event1.id, event2.id)
+        database.deleteEvents(eventIds)
+
+        queryAllEvents(database.writableDatabase).use {
+            assertEquals(0, it.count)
+        }
+    }
+
+    @Test
+    fun `deletes event with given ID`() {
+        val event = EventEntity(
+            id = "event-id",
+            type = "test",
+            timestamp = 1234567890L,
+            sessionId = "987",
+            filePath = "test-file-path",
+            attachmentEntities = null,
+            serializedAttributes = "attributes",
+            serializedAttachments = null,
+            attachmentsSize = 100,
+        )
+
+        database.insertEvent(event)
+        database.deleteEvent(event.id)
+
+        queryAllEvents(database.writableDatabase).use {
+            assertEquals(0, it.count)
+        }
+    }
+
     private fun assertAttachmentPacket(
         attachment: AttachmentEntity,
         event: EventEntity,
