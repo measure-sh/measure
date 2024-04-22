@@ -92,15 +92,6 @@ internal object Sql {
         """
     }
 
-    fun getOldestUnSyncedBatch(): String {
-        return """
-            SELECT ${EventsBatchTable.COL_EVENT_ID}
-            FROM ${EventsBatchTable.TABLE_NAME}
-            ORDER BY ${EventsBatchTable.COL_CREATED_AT} ASC
-            LIMIT 1
-        """.trimIndent()
-    }
-
     fun getBatches(maxCount: Int): String {
         return """
             SELECT 
