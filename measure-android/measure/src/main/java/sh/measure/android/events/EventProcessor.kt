@@ -4,6 +4,7 @@ import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.appendAttributes
 import sh.measure.android.executors.MeasureExecutorService
+import sh.measure.android.exporter.EventExporter
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.EventStore
@@ -54,6 +55,7 @@ internal class EventProcessorImpl(
     private val idProvider: IdProvider,
     private val sessionIdProvider: SessionIdProvider,
     private val attributeProcessors: List<AttributeProcessor>,
+    private val eventExporter: EventExporter,
 ) : EventProcessor {
 
     override fun <T> track(
@@ -89,6 +91,7 @@ internal class EventProcessorImpl(
                 val event = createEvent()
                 applyAttributes(event)
                 eventStore.store(event)
+                eventExporter.export(event)
                 logger.log(LogLevel.Debug, "Event processed: ${event.type}")
             }
 

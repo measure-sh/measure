@@ -36,7 +36,7 @@ class BatchCreatorTest {
                 put("event3", 300)
             },
         )
-        `when`(database.insertBatch(any(), any(), any())).thenReturn(true)
+        `when`(database.insertBatch(any<List<String>>(), any(), any())).thenReturn(true)
 
         // When
         val result = batchCreator.create()

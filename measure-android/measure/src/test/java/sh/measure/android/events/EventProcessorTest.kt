@@ -3,8 +3,11 @@ package sh.measure.android.events
 import androidx.concurrent.futures.ResolvableFuture
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.mockito.Mockito.mock
+import org.mockito.kotlin.verify
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
+import sh.measure.android.exporter.EventExporter
 import sh.measure.android.fakes.FakeEventFactory
 import sh.measure.android.fakes.FakeEventFactory.toEvent
 import sh.measure.android.fakes.FakeEventStore
@@ -18,6 +21,7 @@ internal class EventProcessorTest {
     private val idProvider = FakeIdProvider()
     private val sessionIdProvider = FakeSessionIdProvider()
     private val eventStore = FakeEventStore()
+    private val eventExporter = mock<EventExporter>()
 
     private val eventProcessor = EventProcessorImpl(
         logger = NoopLogger(),
@@ -25,7 +29,8 @@ internal class EventProcessorTest {
         eventStore = eventStore,
         idProvider = idProvider,
         sessionIdProvider = sessionIdProvider,
-        attributeProcessors = emptyList()
+        attributeProcessors = emptyList(),
+        eventExporter = eventExporter,
     )
 
     @Test
@@ -115,7 +120,7 @@ internal class EventProcessorTest {
         val exceptionData = FakeEventFactory.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.EXCEPTION
-        val attributeProcessor = object: AttributeProcessor {
+        val attributeProcessor = object : AttributeProcessor {
             override fun appendAttributes(attributes: MutableMap<String, Any?>) {
                 attributes["key"] = "value"
             }
@@ -126,7 +131,8 @@ internal class EventProcessorTest {
             eventStore = eventStore,
             idProvider = idProvider,
             sessionIdProvider = sessionIdProvider,
-            attributeProcessors = listOf(attributeProcessor)
+            attributeProcessors = listOf(attributeProcessor),
+            eventExporter = eventExporter,
         )
 
         // When
@@ -146,5 +152,43 @@ internal class EventProcessorTest {
 
         assertEquals(1, eventStore.trackedEvents.size)
         assertEquals(expectedEvent, eventStore.trackedEvents.first())
+    }
+
+    @Test
+    fun `given an event of type exception, stores and exports the event immediately`() {
+        // Given
+        val exceptionData = FakeEventFactory.getExceptionData()
+        val timestamp = 9856564654L
+        val type = EventType.EXCEPTION
+
+        // When
+        eventProcessor.track(
+            data = exceptionData,
+            timestamp = timestamp,
+            type = type,
+        )
+
+        // Then
+        assertEquals(1, eventStore.trackedEvents.size)
+        verify(eventExporter).export(eventStore.trackedEvents.first())
+    }
+
+    @Test
+    fun `given an event of type ANR, stores and exports the event immediately`() {
+        // Given
+        val exceptionData = FakeEventFactory.getExceptionData()
+        val timestamp = 9856564654L
+        val type = EventType.ANR
+
+        // When
+        eventProcessor.track(
+            data = exceptionData,
+            timestamp = timestamp,
+            type = type,
+        )
+
+        // Then
+        assertEquals(1, eventStore.trackedEvents.size)
+        verify(eventExporter).export(eventStore.trackedEvents.first())
     }
 }

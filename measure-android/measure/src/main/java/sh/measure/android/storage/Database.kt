@@ -39,8 +39,19 @@ internal interface Database : Closeable {
      * @param eventIds The list of event IDs to insert.
      * @param batchId The batch ID to assign to the events.
      * @param createdAt The creation time of the batch.
+     * @return `true` if the events were successfully inserted, `false` otherwise.
      */
     fun insertBatch(eventIds: List<String>, batchId: String, createdAt: Long): Boolean
+
+    /**
+     * Inserts a batch with a single event Id.
+     *
+     * @param eventId The event ID to insert.
+     * @param batchId The batch ID to assign to the event.
+     * @param createdAt The creation time of the batch.
+     * @return `true` if the event was successfully inserted, `false` otherwise.
+     */
+    fun insertBatch(eventId: String, batchId: String, createdAt: Long): Boolean
 
     /**
      * Returns a list of event packets for the given event IDs.
@@ -50,11 +61,25 @@ internal interface Database : Closeable {
     fun getEventPackets(eventIds: List<String>): List<EventPacket>
 
     /**
+     * Returns a event packet for the given event ID.
+     *
+     * @param eventId The event ID to get event packet for.
+     */
+    fun getEventPacket(eventId: String): EventPacket
+
+    /**
      * Returns a list of attachment packets for the given event IDs.
      *
      * @param eventIds The list of event IDs to fetch attachments for.
      */
     fun getAttachmentPackets(eventIds: List<String>): List<AttachmentPacket>
+
+    /**
+     * Returns a list of attachment packets for the given event IDs.
+     *
+     * @param eventId The event ID to fetch attachments for.
+     */
+    fun getAttachmentPacket(eventId: String): List<AttachmentPacket>
 
     /**
      * Deletes the events with the given IDs, along with related metadata.
@@ -198,6 +223,19 @@ internal class DatabaseImpl(
         return isSuccess
     }
 
+    override fun insertBatch(eventId: String, batchId: String, createdAt: Long): Boolean {
+        val values = ContentValues().apply {
+            put(EventsBatchTable.COL_EVENT_ID, eventId)
+            put(EventsBatchTable.COL_BATCH_ID, batchId)
+            put(EventsBatchTable.COL_CREATED_AT, createdAt)
+        }
+        val result = writableDatabase.insert(EventsBatchTable.TABLE_NAME, null, values)
+        if (result == -1L) {
+            logger.log(LogLevel.Error, "Failed to insert batched event = $eventId")
+        }
+        return result != -1L
+    }
+
     override fun getEventPackets(eventIds: List<String>): List<EventPacket> {
         readableDatabase.rawQuery(Sql.getEventsForIds(eventIds), null).use {
             val eventPackets = mutableListOf<EventPacket>()
@@ -237,6 +275,39 @@ internal class DatabaseImpl(
         }
     }
 
+
+    override fun getEventPacket(eventId: String): EventPacket {
+        readableDatabase.rawQuery(Sql.getEventForId(eventId), null).use {
+            it.moveToFirst()
+            val sessionIdIndex = it.getColumnIndex(EventTable.COL_SESSION_ID)
+            val timestampIndex = it.getColumnIndex(EventTable.COL_TIMESTAMP)
+            val typeIndex = it.getColumnIndex(EventTable.COL_TYPE)
+            val serializedDataIndex = it.getColumnIndex(EventTable.COL_DATA_SERIALIZED)
+            val serializedDataFilePathIndex = it.getColumnIndex(EventTable.COL_DATA_FILE_PATH)
+            val attachmentsIndex = it.getColumnIndex(EventTable.COL_ATTACHMENTS)
+            val serializedAttributesIndex = it.getColumnIndex(EventTable.COL_ATTRIBUTES)
+
+            val sessionId = it.getString(sessionIdIndex)
+            val timestamp = it.getLong(timestampIndex)
+            val type = it.getString(typeIndex)
+            val serializedData = it.getString(serializedDataIndex)
+            val serializedDataFilePath = it.getString(serializedDataFilePathIndex)
+            val attachments = it.getString(attachmentsIndex)
+            val serializedAttributes = it.getString(serializedAttributesIndex)
+
+            return EventPacket(
+                eventId,
+                sessionId,
+                timestamp,
+                type,
+                serializedData,
+                serializedDataFilePath,
+                attachments,
+                serializedAttributes,
+            )
+        }
+    }
+
     override fun getAttachmentPackets(eventIds: List<String>): List<AttachmentPacket> {
         readableDatabase.rawQuery(Sql.getAttachmentsForEventIds(eventIds), null).use {
             val attachmentPackets = mutableListOf<AttachmentPacket>()
@@ -249,6 +320,26 @@ internal class DatabaseImpl(
 
                 val id = it.getString(idIndex)
                 val eventId = it.getString(eventIdIndex)
+                val type = it.getString(typeIndex)
+                val filePath = it.getString(filePathIndex)
+                val name = it.getString(nameIndex)
+
+                attachmentPackets.add(AttachmentPacket(id, eventId, type, filePath, name))
+            }
+            return attachmentPackets
+        }
+    }
+
+    override fun getAttachmentPacket(eventId: String): List<AttachmentPacket> {
+        readableDatabase.rawQuery(Sql.getAttachmentsForEventId(eventId), null).use {
+            val attachmentPackets = mutableListOf<AttachmentPacket>()
+            while (it.moveToNext()) {
+                val idIndex = it.getColumnIndex(AttachmentTable.COL_ID)
+                val typeIndex = it.getColumnIndex(AttachmentTable.COL_TYPE)
+                val filePathIndex = it.getColumnIndex(AttachmentTable.COL_FILE_PATH)
+                val nameIndex = it.getColumnIndex(AttachmentTable.COL_NAME)
+
+                val id = it.getString(idIndex)
                 val type = it.getString(typeIndex)
                 val filePath = it.getString(filePathIndex)
                 val name = it.getString(nameIndex)

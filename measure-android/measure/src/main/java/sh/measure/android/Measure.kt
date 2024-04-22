@@ -16,6 +16,7 @@ import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventProcessorImpl
 import sh.measure.android.exceptions.UnhandledExceptionCollector
 import sh.measure.android.executors.ExecutorServiceRegistryImpl
+import sh.measure.android.exporter.EventExporterImpl
 import sh.measure.android.exporter.NetworkClient
 import sh.measure.android.exporter.NetworkClientImpl
 import sh.measure.android.exporter.PeriodicEventExporter
@@ -128,6 +129,9 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             installationIdAttributeProcessor,
         )
 
+        val networkClient: NetworkClient =
+            NetworkClientImpl(logger, fileStorage, manifestMetadata.apiKey, manifestMetadata.url)
+
         eventProcessor = EventProcessorImpl(
             logger,
             executorServiceRegistry.eventProcessorExecutor(),
@@ -135,10 +139,8 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             idProvider,
             sessionIdProvider,
             globalAttributeProcessors,
+            EventExporterImpl(logger, database, networkClient, idProvider, timeProvider),
         )
-
-        val networkClient: NetworkClient =
-            NetworkClientImpl(logger, fileStorage, manifestMetadata.apiKey, manifestMetadata.url)
 
         periodicEventExporter = PeriodicEventExporterImpl(
             logger,
