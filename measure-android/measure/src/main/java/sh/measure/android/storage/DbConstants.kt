@@ -128,6 +128,22 @@ internal object Sql {
         """.trimIndent()
     }
 
+    fun getEventForId(eventId: String): String {
+        return """
+            SELECT 
+                ${EventTable.COL_ID},
+                ${EventTable.COL_SESSION_ID},
+                ${EventTable.COL_TIMESTAMP},
+                ${EventTable.COL_TYPE},
+                ${EventTable.COL_DATA_SERIALIZED},
+                ${EventTable.COL_DATA_FILE_PATH},
+                ${EventTable.COL_ATTACHMENTS},
+                ${EventTable.COL_ATTRIBUTES}
+            FROM ${EventTable.TABLE_NAME}
+            WHERE ${EventTable.COL_ID} = '$eventId'
+        """.trimIndent()
+    }
+
     fun getAttachmentsForEventIds(eventIds: List<String>): String {
         return """
             SELECT 
@@ -139,6 +155,20 @@ internal object Sql {
                 ${AttachmentTable.COL_NAME}
             FROM ${AttachmentTable.TABLE_NAME}
             WHERE ${AttachmentTable.COL_EVENT_ID} IN (${eventIds.joinToString(", ") { "\'$it\'" }})
+        """
+    }
+
+    fun getAttachmentsForEventId(eventId: String): String {
+        return """
+            SELECT 
+                ${AttachmentTable.COL_ID}, 
+                ${AttachmentTable.COL_EVENT_ID},
+                ${AttachmentTable.COL_TIMESTAMP},
+                ${AttachmentTable.COL_TYPE},
+                ${AttachmentTable.COL_FILE_PATH},
+                ${AttachmentTable.COL_NAME}
+            FROM ${AttachmentTable.TABLE_NAME}
+            WHERE ${AttachmentTable.COL_EVENT_ID} = '$eventId'
         """
     }
 }
