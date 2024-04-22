@@ -1,10 +1,8 @@
 package sh.measure.android.storage
 
-import kotlinx.serialization.json.Json
 import sh.measure.android.events.Attachment
 import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
-import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.IdProvider
@@ -56,7 +54,7 @@ internal class EventStoreImpl(
                             serializedAttachments = serializedAttachments,
                             filePath = path,
                             serializedData = null,
-                        )
+                        ),
                     )
                 }
             }
@@ -74,8 +72,8 @@ internal class EventStoreImpl(
                         attachmentsSize = attachmentsSize,
                         serializedAttachments = serializedAttachments,
                         serializedData = serializedData,
-                        filePath = null
-                    )
+                        filePath = null,
+                    ),
                 )
             }
         }

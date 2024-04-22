@@ -275,7 +275,6 @@ internal class DatabaseImpl(
         }
     }
 
-
     override fun getEventPacket(eventId: String): EventPacket {
         readableDatabase.rawQuery(Sql.getEventForId(eventId), null).use {
             it.moveToFirst()
