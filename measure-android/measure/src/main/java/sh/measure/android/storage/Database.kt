@@ -366,7 +366,7 @@ internal class DatabaseImpl(
         val result = writableDatabase.delete(
             EventTable.TABLE_NAME,
             whereClause,
-            eventIds.toTypedArray()
+            eventIds.toTypedArray(),
         )
         if (result == 0) {
             logger.log(LogLevel.Error, "Failed to delete events")
