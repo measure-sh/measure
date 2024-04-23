@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -32,10 +33,13 @@ type attachment struct {
 }
 
 type eventreq struct {
-	symbolicate map[uuid.UUID]int
-	size        int64
-	events      []event.EventField
-	attachments []attachment
+	appId        uuid.UUID
+	symbolicate  map[uuid.UUID]int
+	exceptionIds []int
+	anrIds       []int
+	size         int64
+	events       []event.EventField
+	attachments  []attachment
 }
 
 // hasAttachments returns true if payload
@@ -135,9 +139,19 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 		}
 		e.bumpSize(int64(len(bytes)))
 		event.AppID = appId
+
 		if event.NeedsSymbolication() {
 			e.symbolicate[event.ID] = i
 		}
+
+		if event.IsUnhandledException() {
+			e.exceptionIds = append(e.exceptionIds, i)
+		}
+
+		if event.IsANR() {
+			e.anrIds = append(e.anrIds, i)
+		}
+
 		e.events = append(e.events, event)
 	}
 
@@ -163,6 +177,183 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 			name:   header.Filename,
 			header: header,
 		})
+	}
+
+	return nil
+}
+
+// hasUnhandledExceptions returns true if event payload
+// contains unhandled exceptions.
+func (e eventreq) hasUnhandledExceptions() bool {
+	return len(e.exceptionIds) > 0
+}
+
+// hasANRs returns true if event payload contains
+// ANRs.
+func (e eventreq) hasANRs() bool {
+	return len(e.anrIds) > 0
+}
+
+// getUnhandledExceptions returns unhandled excpetions
+// from the event payload.
+func (e eventreq) getUnhandledExceptions() (events []event.EventField) {
+	if !e.hasUnhandledExceptions() {
+		return
+	}
+	for i := range e.exceptionIds {
+		events = append(events, e.events[i])
+	}
+	return
+}
+
+// getANRs returns ANRs from the event payload.
+func (e eventreq) getANRs() (events []event.EventField) {
+	if !e.hasANRs() {
+		return
+	}
+	for i := range e.anrIds {
+		events = append(events, e.events[i])
+	}
+	return
+}
+
+// bucketUnhandledExceptions groups unhandled exceptions
+// based on similarity.
+func (e eventreq) bucketUnhandledExceptions() error {
+	exceptions := e.getUnhandledExceptions()
+
+	type EventGroup struct {
+		eventId     uuid.UUID
+		exception   event.Exception
+		fingerprint uint64
+	}
+
+	var groups []EventGroup
+
+	for _, event := range exceptions {
+		if event.Exception.Fingerprint == "" {
+			msg := fmt.Sprintf("fingerprint for event %q is empty, cannot bucket", event.ID)
+			fmt.Println(msg)
+			continue
+		}
+
+		fingerprint, err := strconv.ParseUint(event.Exception.Fingerprint, 16, 64)
+		if err != nil {
+			msg := fmt.Sprintf("failed to parse fingerprint as integer for event %q", event.ID)
+			fmt.Println(msg, err)
+			return err
+		}
+
+		groups = append(groups, EventGroup{
+			eventId:     event.ID,
+			exception:   *event.Exception,
+			fingerprint: fingerprint,
+		})
+	}
+
+	app := App{
+		ID: &e.appId,
+	}
+
+	for _, group := range groups {
+		appExceptionGroups, err := app.GetExceptionGroups(nil)
+		if err != nil {
+			return err
+		}
+
+		if len(appExceptionGroups) < 1 {
+			// insert new exception group
+			return NewExceptionGroup(e.appId, group.exception.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
+		}
+
+		index, err := ClosestExceptionGroup(appExceptionGroups, group.fingerprint)
+		if err != nil {
+			return err
+		}
+		if index < 0 {
+			// when no group matches exists, create new exception group
+			NewExceptionGroup(e.appId, group.exception.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
+			continue
+		}
+		matchedGroup := appExceptionGroups[index]
+
+		if matchedGroup.EventExists(group.eventId) {
+			continue
+		}
+
+		if err := matchedGroup.AppendEventId(group.eventId); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (e eventreq) bucketANRs() error {
+	anrs := e.getANRs()
+
+	type EventGroup struct {
+		eventId     uuid.UUID
+		anr         event.ANR
+		fingerprint uint64
+	}
+
+	var groups []EventGroup
+
+	for _, event := range anrs {
+		if event.ANR.Fingerprint == "" {
+			msg := fmt.Sprintf("fingerprint for anr event %q is empty, cannot bucket", event.ID)
+			fmt.Println(msg)
+			continue
+		}
+
+		fingerprint, err := strconv.ParseUint(event.ANR.Fingerprint, 16, 64)
+		if err != nil {
+			msg := fmt.Sprintf("failed to parse fingerprint as integer for anr event %q", event.ID)
+			fmt.Println(msg, err)
+			return err
+		}
+
+		groups = append(groups, EventGroup{
+			eventId:     event.ID,
+			anr:         *event.ANR,
+			fingerprint: fingerprint,
+		})
+	}
+
+	app := App{
+		ID: &e.appId,
+	}
+
+	for _, group := range groups {
+		appANRGroups, err := app.GetANRGroups(nil)
+		if err != nil {
+			return err
+		}
+
+		if len(appANRGroups) < 1 {
+			// insert new anr group
+			return NewANRGroup(e.appId, group.anr.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
+		}
+
+		index, err := ClosestANRGroup(appANRGroups, group.fingerprint)
+		if err != nil {
+			return err
+		}
+		if index < 0 {
+			// when no group matches exists, create new anr group
+			NewANRGroup(e.appId, group.anr.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
+			continue
+		}
+		matchedGroup := appANRGroups[index]
+
+		if matchedGroup.EventExists(group.eventId) {
+			continue
+		}
+
+		if err := matchedGroup.AppendEventId(group.eventId); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -276,6 +467,7 @@ func PutEventMulti(c *gin.Context) {
 
 	msg := `failed to parse events payload`
 	eventReq := eventreq{
+		appId:       appId,
 		symbolicate: make(map[uuid.UUID]int),
 	}
 
@@ -369,6 +561,24 @@ func PutEventMulti(c *gin.Context) {
 			})
 			return
 		}
+	}
+
+	if err := eventReq.bucketUnhandledExceptions(); err != nil {
+		msg := `failed to bucket unhandled exceptions`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	if err := eventReq.bucketANRs(); err != nil {
+		msg := `failed to bucket anrs`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
 	}
 
 	fmt.Println("events", eventReq.events)
