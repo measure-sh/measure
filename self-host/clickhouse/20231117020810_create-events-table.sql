@@ -146,6 +146,7 @@ create table if not exists default.events
   `cpu_usage.cstime` UInt64 comment 'execution time in user mode with child processes, in jiffies',
   `cpu_usage.interval_config` UInt32 comment 'interval between two consecutive readings, in msec',
   `navigation.route` FixedString(128) comment 'the destination route',
+  `attachments` String comment 'attachment metadata'
 )
 engine = MergeTree
 primary key (id, app_id, timestamp)

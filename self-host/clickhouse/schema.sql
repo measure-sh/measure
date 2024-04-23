@@ -151,7 +151,8 @@ CREATE TABLE default.events
     `cpu_usage.stime` UInt64 COMMENT 'execution time in kernel mode, in jiffies',
     `cpu_usage.cstime` UInt64 COMMENT 'execution time in user mode with child processes, in jiffies',
     `cpu_usage.interval_config` UInt32 COMMENT 'interval between two consecutive readings, in msec',
-    `navigation.route` FixedString(128) COMMENT 'the destination route'
+    `navigation.route` FixedString(128) COMMENT 'the destination route',
+    `attachments` String COMMENT 'attachment metadata'
 )
 ENGINE = MergeTree
 PRIMARY KEY (id, app_id, timestamp)
