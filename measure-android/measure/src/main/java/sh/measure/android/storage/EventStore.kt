@@ -5,6 +5,7 @@ import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.okhttp.HttpData
 import sh.measure.android.utils.IdProvider
 import java.io.File
 
@@ -33,50 +34,54 @@ internal class EventStoreImpl(
         val attachmentEntities = writeAttachments(event)
         val attachmentsSize = calculateAttachmentsSize(attachmentEntities)
 
-        when (event.type) {
+        val (filePath, serializedData) = when (event.type) {
             EventType.EXCEPTION, EventType.ANR -> {
                 val serializedData = event.serializeDataToString()
-                val path = when (event.type) {
-                    EventType.EXCEPTION -> fileStorage.writeException(event.id, serializedData)
-                    EventType.ANR -> fileStorage.writeAnr(event.id, serializedData)
-                    else -> null
-                }
-                if (path != null) {
-                    database.insertEvent(
-                        EventEntity(
-                            id = event.id,
-                            sessionId = event.sessionId,
-                            timestamp = event.timestamp,
-                            type = event.type,
-                            attachmentEntities = attachmentEntities,
-                            serializedAttributes = serializedAttributes,
-                            attachmentsSize = 0,
-                            serializedAttachments = serializedAttachments,
-                            filePath = path,
-                            serializedData = null,
-                        ),
-                    )
-                }
+                val path = fileStorage.writeSerializedEventData(event.id, event.type, serializedData)
+                if (path != null) Pair(path, serializedData) else Pair(null, null)
             }
-
-            else -> {
-                val serializedData = event.serializeDataToString()
-                database.insertEvent(
-                    EventEntity(
-                        id = event.id,
-                        sessionId = event.sessionId,
-                        timestamp = event.timestamp,
-                        type = event.type,
-                        attachmentEntities = attachmentEntities,
-                        serializedAttributes = serializedAttributes,
-                        attachmentsSize = attachmentsSize,
-                        serializedAttachments = serializedAttachments,
-                        serializedData = serializedData,
-                        filePath = null,
-                    ),
-                )
+            EventType.HTTP -> {
+                if (httpDataContainsBody(event)) {
+                    val serializedData = event.serializeDataToString()
+                    val path = fileStorage.writeSerializedEventData(event.id, event.type, serializedData)
+                    if (path != null) Pair(path, serializedData) else Pair(null, null)
+                } else Pair(null, null)
             }
+            else -> Pair(null, null)
         }
+
+        val entity = when {
+            filePath != null -> EventEntity(
+                id = event.id,
+                sessionId = event.sessionId,
+                timestamp = event.timestamp,
+                type = event.type,
+                attachmentEntities = attachmentEntities,
+                serializedAttributes = serializedAttributes,
+                attachmentsSize = 0,
+                serializedAttachments = serializedAttachments,
+                filePath = filePath,
+                serializedData = serializedData,
+            )
+            else -> EventEntity(
+                id = event.id,
+                sessionId = event.sessionId,
+                timestamp = event.timestamp,
+                type = event.type,
+                attachmentEntities = attachmentEntities,
+                serializedAttributes = serializedAttributes,
+                attachmentsSize = attachmentsSize,
+                serializedAttachments = serializedAttachments,
+                serializedData = event.serializeDataToString(),
+                filePath = null,
+            )
+        }
+
+        database.insertEvent(entity)
+    }
+    private fun <T> httpDataContainsBody(event: Event<T>): Boolean {
+        val httpEvent = event.data as? HttpData ?: return false
+        return httpEvent.request_body != null || httpEvent.response_body != null
     }
 
     private fun <T> writeAttachments(event: Event<T>): List<AttachmentEntity>? {
