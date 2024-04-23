@@ -583,6 +583,7 @@ func (a *App) get() (*App, error) {
 		Select("first_version", nil).
 		From("apps").
 		Where("id = ?", nil)
+
 	defer stmt.Close()
 
 	if err := server.Server.PgPool.QueryRow(context.Background(), stmt.String(), a.ID).Scan(&onboarded, &uniqueId, &platform, &firstVersion); err != nil {
@@ -1251,6 +1252,52 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 	}
 
 	return &session, nil
+}
+
+// SelectApp selects app by its id.
+func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
+	var onboarded pgtype.Bool
+	var uniqueId pgtype.Text
+	var platform pgtype.Text
+	var firstVersion pgtype.Text
+
+	stmt := sqlf.PostgreSQL.
+		Select("onboarded").
+		Select("unique_identifier").
+		Select("platform").
+		Select("first_version").
+		From("public.apps").
+		Where("id = ?", id)
+
+	defer stmt.Close()
+
+	if err := server.Server.PgPool.QueryRow(context.Background(), stmt.String(), stmt.Args()...).Scan(&onboarded, &uniqueId, &platform, &firstVersion); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	}
+
+	if uniqueId.Valid {
+		app.UniqueId = uniqueId.String
+	} else {
+		app.UniqueId = ""
+	}
+
+	if platform.Valid {
+		app.Platform = platform.String
+	} else {
+		app.Platform = ""
+	}
+
+	if firstVersion.Valid {
+		app.FirstVersion = firstVersion.String
+	} else {
+		app.FirstVersion = ""
+	}
+
+	return
 }
 
 func GetAppJourney(c *gin.Context) {

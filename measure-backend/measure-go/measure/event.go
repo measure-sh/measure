@@ -389,6 +389,10 @@ func (e eventreq) needsSymbolication() bool {
 // validate validates the integrity of each event
 // and corresponding attachments.
 func (e eventreq) validate() error {
+	if len(e.events) < 1 {
+		return fmt.Errorf(`payload must contain at least 1 event`)
+	}
+
 	for i := range e.events {
 		if err := e.events[i].Validate(); err != nil {
 			return err
@@ -731,6 +735,18 @@ func PutEventMulti(c *gin.Context) {
 		return
 	}
 
+	ctx := c.Request.Context()
+
+	app, err := SelectApp(ctx, appId)
+	if err != nil {
+		msg := `failed to lookup app`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
 	msg := `failed to parse events payload`
 	eventReq := eventreq{
 		appId:       appId,
@@ -829,7 +845,6 @@ func PutEventMulti(c *gin.Context) {
 		}
 	}
 
-	ctx := context.Background()
 	tx, err := server.Server.PgPool.Begin(ctx)
 	if err != nil {
 		msg := `failed to ingest events, failed to acquire transaction`
@@ -863,6 +878,31 @@ func PutEventMulti(c *gin.Context) {
 
 	if err := eventReq.bucketANRs(); err != nil {
 		msg := `failed to bucket anrs`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	if !app.Onboarded {
+		firstEvent := eventReq.events[0]
+		uniqueID := firstEvent.Attribute.AppUniqueID
+		platform := firstEvent.Attribute.Platform
+		version := firstEvent.Attribute.AppVersion
+
+		if err := app.Onboard(tx, uniqueID, platform, version); err != nil {
+			msg := `failed to onboard app`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		msg := `failed to ingest events`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
