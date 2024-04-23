@@ -371,7 +371,7 @@ type EventField struct {
 	SessionID         uuid.UUID          `json:"session_id" binding:"required"`
 	Timestamp         time.Time          `json:"timestamp" binding:"required"`
 	Type              string             `json:"type" binding:"required"`
-	Attributes        Attribute          `json:"attributes" binding:"required"`
+	Attribute         Attribute          `json:"attributes" binding:"required"`
 	Attachments       []Attachment       `json:"attachments" binding:"required"`
 	ANR               *ANR               `json:"anr,omitempty"`
 	Exception         *Exception         `json:"exception,omitempty"`
@@ -526,6 +526,12 @@ func (e EventField) NeedsSymbolication() (result bool) {
 	return
 }
 
+// HasAttachments returns true if the event contains
+// at least 1 attachment.
+func (e EventField) HasAttachments() bool {
+	return len(e.Attachments) > 0
+}
+
 type EventException struct {
 	ID         uuid.UUID         `json:"id"`
 	SessionID  uuid.UUID         `json:"session_id"`
@@ -655,6 +661,10 @@ func (e *EventField) Validate() error {
 
 	if !slices.Contains(validTypes, e.Type) {
 		return fmt.Errorf(`%q is not a valid type`, `type`)
+	}
+
+	if e.ID == uuid.Nil {
+		return fmt.Errorf(`%q must be a valid UUID`, `id`)
 	}
 
 	if e.AppID == uuid.Nil {

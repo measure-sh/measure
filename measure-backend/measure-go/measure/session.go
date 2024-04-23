@@ -740,7 +740,7 @@ func (s *Session) ingest() error {
 			s.Events[i].HotLaunch.HasSavedState,
 			s.Events[i].HotLaunch.IntentData,
 			s.Events[i].HotLaunch.Duration.Milliseconds(),
-			s.Events[i].Attributes,
+			s.Events[i].Attribute,
 			s.Events[i].NetworkChange.NetworkType,
 			s.Events[i].NetworkChange.PreviousNetworkType,
 			s.Events[i].NetworkChange.NetworkGeneration,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"measure-backend/measure-go/chrono"
 	"measure-backend/measure-go/event"
 	"measure-backend/measure-go/inet"
 	"measure-backend/measure-go/server"
@@ -18,6 +19,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/ipinfo/go/v2/ipinfo"
+	"github.com/jackc/pgx/v5"
+	"github.com/leporo/sqlf"
 )
 
 // maxBatchSize is the maximum allowed payload
@@ -40,6 +43,7 @@ type eventreq struct {
 	size         int64
 	events       []event.EventField
 	attachments  []attachment
+	transaction  *pgx.Tx
 }
 
 // uploadAttachments prepares and uploads each attachment.
@@ -111,6 +115,17 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 
 		if event.IsANR() {
 			e.anrIds = append(e.anrIds, i)
+		}
+
+		// compute launch timings
+		if event.IsColdLaunch() {
+			event.ColdLaunch.Compute()
+		}
+		if event.IsWarmLaunch() {
+			event.WarmLaunch.Compute()
+		}
+		if event.IsHotLaunch() {
+			event.HotLaunch.Compute()
 		}
 
 		e.events = append(e.events, event)
@@ -374,7 +389,7 @@ func (e eventreq) validate() error {
 		if err := e.events[i].Validate(); err != nil {
 			return err
 		}
-		if err := e.events[i].Attributes.Validate(); err != nil {
+		if err := e.events[i].Attribute.Validate(); err != nil {
 			return err
 		}
 
@@ -392,6 +407,253 @@ func (e eventreq) validate() error {
 	}
 
 	return nil
+}
+
+// ingest writes the events to database.
+func (e eventreq) ingest(ctx context.Context) error {
+	stmt := sqlf.InsertInto(`default.events`)
+	defer stmt.Close()
+
+	for i := range e.events {
+		anrExceptions := "[]"
+		anrThreads := "[]"
+		exceptionExceptions := "[]"
+		exceptionThreads := "[]"
+		attachments := "[]"
+
+		if e.events[i].IsANR() {
+			marshalledExceptions, err := json.Marshal(e.events[i].ANR.Exceptions)
+			if err != nil {
+				return err
+			}
+			anrExceptions = string(marshalledExceptions)
+			marshalledThreads, err := json.Marshal(e.events[i].ANR.Threads)
+			if err != nil {
+				return err
+			}
+			anrThreads = string(marshalledThreads)
+			if err := e.events[i].ComputeANRFingerprint(); err != nil {
+				return err
+			}
+		}
+		if e.events[i].IsException() {
+			marshalledExceptions, err := json.Marshal(e.events[i].Exception.Exceptions)
+			if err != nil {
+				return err
+			}
+			exceptionExceptions = string(marshalledExceptions)
+
+			marshalledThreads, err := json.Marshal(e.events[i].Exception.Threads)
+			if err != nil {
+				return err
+			}
+			exceptionThreads = string(marshalledThreads)
+			if err := e.events[i].ComputeExceptionFingerprint(); err != nil {
+				return err
+			}
+		}
+
+		if e.events[i].HasAttachments() {
+			marshalledAttachments, err := json.Marshal(e.events[i].Attachments)
+			if err != nil {
+				return err
+			}
+			attachments = string(marshalledAttachments)
+		}
+
+		stmt.NewRow().
+			Set(`id`, e.events[i].ID).
+			Set(`type`, e.events[i].Type).
+			Set(`session_id`, e.events[i].SessionID).
+			Set(`app_id`, e.events[i].AppID).
+			Set(`inet.ipv4`, e.events[i].IPv4).
+			Set(`inet.ipv6`, e.events[i].IPv6).
+			Set(`inet.country_code`, e.events[i].CountryCode).
+			Set(`timestamp`, e.events[i].Timestamp.Format(chrono.NanoTimeFormat)).
+
+			// attribute
+			Set(`attribute.installation_id`, e.events[i].Attribute.InstallationID).
+			Set(`attribute.app_version`, e.events[i].Attribute.AppVersion).
+			Set(`attribute.app_build`, e.events[i].Attribute.AppBuild).
+			Set(`attribute.app_unique_id`, e.events[i].Attribute.AppUniqueID).
+			Set(`attribute.platform`, e.events[i].Attribute.Platform).
+			Set(`attribute.measure_sdk_version`, e.events[i].Attribute.MeasureSDKVersion).
+			Set(`attribute.thread_name`, e.events[i].Attribute.ThreadName).
+			Set(`attribute.user_id`, e.events[i].Attribute.UserID).
+			Set(`attribute.device_name`, e.events[i].Attribute.DeviceName).
+			Set(`attribute.device_model`, e.events[i].Attribute.DeviceModel).
+			Set(`attribute.device_manufacturer`, e.events[i].Attribute.DeviceManufacturer).
+			Set(`attribute.device_type`, e.events[i].Attribute.DeviceType).
+			Set(`attribute.device_is_foldable`, e.events[i].Attribute.DeviceIsFoldable).
+			Set(`attribute.device_is_physical`, e.events[i].Attribute.DeviceIsPhysical).
+			Set(`attribute.device_density_dpi`, e.events[i].Attribute.DeviceDensityDPI).
+			Set(`attribute.device_width_px`, e.events[i].Attribute.DeviceWidthPX).
+			Set(`attribute.device_height_px`, e.events[i].Attribute.DeviceHeightPX).
+			Set(`attribute.device_density`, e.events[i].Attribute.DeviceDensity).
+			Set(`attribute.device_locale`, e.events[i].Attribute.DeviceLocale).
+			Set(`attribute.os_name`, e.events[i].Attribute.OSName).
+			Set(`attribute.os_version`, e.events[i].Attribute.OSVersion).
+			Set(`attribute.network_type`, e.events[i].Attribute.NetworkType).
+			Set(`attribute.network_generation`, e.events[i].Attribute.NetworkGeneration).
+			Set(`attribute.network_provider`, e.events[i].Attribute.NetworkProvider).
+
+			// anr
+			Set(`anr.handled`, e.events[i].ANR.Handled).
+			Set(`anr.fingerprint`, e.events[i].ANR.Fingerprint).
+			Set(`anr.exceptions`, anrExceptions).
+			Set(`anr.threads`, anrThreads).
+			Set(`anr.foreground`, e.events[i].ANR.Foreground).
+
+			// exception
+			Set(`exception.handled`, e.events[i].Exception.Handled).
+			Set(`exception.fingerprint`, e.events[i].Exception.Fingerprint).
+			Set(`exception.exceptions`, exceptionExceptions).
+			Set(`exception.threads`, exceptionThreads).
+			Set(`exception.foreground`, e.events[i].Exception.Foreground).
+
+			// app exit
+			Set(`app_exit.reason`, e.events[i].AppExit.Reason).
+			Set(`app_exit.importance`, e.events[i].AppExit.Importance).
+			Set(`app_exit.trace`, e.events[i].AppExit.Trace).
+			Set(`app_exit.process_name`, e.events[i].AppExit.ProcessName).
+			Set(`app_exit.pid`, e.events[i].AppExit.PID).
+
+			// string
+			Set(`string.severity_text`, e.events[i].LogString.SeverityText).
+			Set(`string.string`, e.events[i].LogString.String).
+
+			// gesture long click
+			Set(`gesture_long_click.target`, e.events[i].GestureLongClick.Target).
+			Set(`gesture_long_click.target_id`, e.events[i].GestureLongClick.TargetID).
+			Set(`gesture_long_click.touch_down_time`, e.events[i].GestureLongClick.TouchDownTime).
+			Set(`gesture_long_click.touch_up_time`, e.events[i].GestureLongClick.TouchUpTime).
+			Set(`gesture_long_click.width`, e.events[i].GestureLongClick.Width).
+			Set(`gesture_long_click.height`, e.events[i].GestureLongClick.Height).
+			Set(`gesture_long_click.x`, e.events[i].GestureLongClick.X).
+			Set(`gesture_long_click.y`, e.events[i].GestureLongClick.Y).
+
+			// gesture click
+			Set(`gesture_click.target`, e.events[i].GestureClick.Target).
+			Set(`gesture_click.target_id`, e.events[i].GestureClick.TargetID).
+			Set(`gesture_click.touch_down_time`, e.events[i].GestureClick.TouchDownTime).
+			Set(`gesture_click.touch_up_time`, e.events[i].GestureClick.TouchUpTime).
+			Set(`gesture_click.width`, e.events[i].GestureClick.Width).
+			Set(`gesture_click.height`, e.events[i].GestureClick.Height).
+			Set(`gesture_click.x`, e.events[i].GestureClick.X).
+			Set(`gesture_click.y`, e.events[i].GestureClick.Y).
+
+			// gesture scroll
+			Set(`gesture_scroll.target`, e.events[i].GestureScroll.Target).
+			Set(`gesture_scroll.target_id`, e.events[i].GestureScroll.TargetID).
+			Set(`gesture_scroll.touch_down_time`, e.events[i].GestureScroll.TouchDownTime).
+			Set(`gesture_scroll.touch_up_time`, e.events[i].GestureScroll.TouchUpTime).
+			Set(`gesture_scroll.x`, e.events[i].GestureScroll.X).
+			Set(`gesture_scroll.y`, e.events[i].GestureScroll.Y).
+			Set(`gesture_scroll.end_x`, e.events[i].GestureScroll.EndX).
+			Set(`gesture_scroll.end_y`, e.events[i].GestureScroll.EndY).
+			Set(`gesture_scroll.direction`, e.events[i].GestureScroll.Direction).
+
+			// lifecycle activity
+			Set(`lifecycle_activity.type`, e.events[i].LifecycleActivity.Type).
+			Set(`lifecycle_activity.class_name`, e.events[i].LifecycleActivity.ClassName).
+			Set(`lifecycle_activity.intent`, e.events[i].LifecycleActivity.Intent).
+			Set(`lifecycle_activity.saved_instance_state`, e.events[i].LifecycleActivity.SavedInstanceState).
+
+			// lifecycle fragment
+			Set(`lifecycle_fragment.type`, e.events[i].LifecycleFragment.Type).
+			Set(`lifecycle_fragment.class_name`, e.events[i].LifecycleFragment.ClassName).
+			Set(`lifecycle_fragment.parent_activity`, e.events[i].LifecycleFragment.ParentActivity).
+			Set(`lifecycle_fragment.tag`, e.events[i].LifecycleFragment.Tag).
+
+			// lifecycle app
+			Set(`lifecycle_app.type`, e.events[i].LifecycleApp.Type).
+
+			// cold launch
+			Set(`cold_launch.process_start_uptime`, e.events[i].ColdLaunch.ProcessStartUptime).
+			Set(`cold_launch.process_start_requested_uptime`, e.events[i].ColdLaunch.ProcessStartRequestedUptime).
+			Set(`cold_launch.content_provider_attach_uptime`, e.events[i].ColdLaunch.ContentProviderAttachUptime).
+			Set(`cold_launch.on_next_draw_uptime`, e.events[i].ColdLaunch.OnNextDrawUptime).
+			Set(`cold_launch.launched_activity`, e.events[i].ColdLaunch.LaunchedActivity).
+			Set(`cold_launch.has_saved_state`, e.events[i].ColdLaunch.HasSavedState).
+			Set(`cold_launch.intent_data`, e.events[i].ColdLaunch.IntentData).
+			Set(`cold_launch.duration`, e.events[i].ColdLaunch.Duration.Milliseconds()).
+
+			// warm launch
+			Set(`warm_launch.app_visible_uptime`, e.events[i].WarmLaunch.AppVisibleUptime).
+			Set(`warm_launch.on_next_draw_uptime`, e.events[i].WarmLaunch.OnNextDrawUptime).
+			Set(`warm_launch.launched_activity`, e.events[i].WarmLaunch.LaunchedActivity).
+			Set(`warm_launch.has_saved_state`, e.events[i].WarmLaunch.HasSavedState).
+			Set(`warm_launch.intent_data`, e.events[i].WarmLaunch.IntentData).
+			Set(`warm_launch.duration`, e.events[i].WarmLaunch.Duration.Milliseconds()).
+
+			// hot launch
+			Set(`hot_launch.app_visible_uptime`, e.events[i].HotLaunch.AppVisibleUptime).
+			Set(`hot_launch.on_next_draw_uptime`, e.events[i].HotLaunch.OnNextDrawUptime).
+			Set(`hot_launch.launched_activity`, e.events[i].HotLaunch.LaunchedActivity).
+			Set(`hot_launch.has_saved_state`, e.events[i].HotLaunch.HasSavedState).
+			Set(`hot_launch.intent_data`, e.events[i].HotLaunch.IntentData).
+			Set(`hot_launch.duration`, e.events[i].HotLaunch.Duration.Milliseconds()).
+
+			// network change
+			Set(`network_change.network_type`, e.events[i].NetworkChange.NetworkType).
+			Set(`network_change.previous_network_type`, e.events[i].NetworkChange.PreviousNetworkType).
+			Set(`network_change.network_generation`, e.events[i].NetworkChange.NetworkGeneration).
+			Set(`network_change.previous_network_generation`, e.events[i].NetworkChange.PreviousNetworkGeneration).
+
+			// http
+			Set(`http.url`, e.events[i].Http.URL).
+			Set(`http.method`, e.events[i].Http.Method).
+			Set(`http.status_code`, e.events[i].Http.StatusCode).
+			Set(`http.start_time`, e.events[i].Http.StartTime).
+			Set(`http.end_time`, e.events[i].Http.EndTime).
+			Set(`http_request_headers`, e.events[i].Http.RequestHeaders).
+			Set(`http_response_headers`, e.events[i].Http.ResponseHeaders).
+			Set(`http.request_body`, e.events[i].Http.RequestBody).
+			Set(`http.response_body`, e.events[i].Http.ResponseBody).
+			Set(`http.failure_reason`, e.events[i].Http.FailureReason).
+			Set(`http.failure_description`, e.events[i].Http.FailureDescription).
+			Set(`http.client`, e.events[i].Http.Client).
+
+			// memory usage
+			Set(`memory_usage.java_max_heap`, e.events[i].MemoryUsage.JavaMaxHeap).
+			Set(`memory_usage.java_total_heap`, e.events[i].MemoryUsage.JavaTotalHeap).
+			Set(`memory_usage.java_free_heap`, e.events[i].MemoryUsage.JavaFreeHeap).
+			Set(`memory_usage.total_pss`, e.events[i].MemoryUsage.TotalPSS).
+			Set(`memory_usage.rss`, e.events[i].MemoryUsage.RSS).
+			Set(`memory_usage.native_total_heap`, e.events[i].MemoryUsage.NativeTotalHeap).
+			Set(`memory_usage.native_free_heap`, e.events[i].MemoryUsage.NativeFreeHeap).
+			Set(`memory_usage.interval_config`, e.events[i].MemoryUsage.IntervalConfig).
+
+			// low memory
+			Set(`low_memory.java_max_heap`, e.events[i].LowMemory.JavaMaxHeap).
+			Set(`low_memory.java_total_heap`, e.events[i].MemoryUsage.JavaTotalHeap).
+			Set(`low_memory.java_free_heap`, e.events[i].LowMemory.JavaFreeHeap).
+			Set(`low_memory.total_pss`, e.events[i].LowMemory.TotalPSS).
+			Set(`low_memory.rss`, e.events[i].LowMemory.RSS).
+			Set(`low_memory.native_total_heap`, e.events[i].LowMemory.NativeTotalHeap).
+			Set(`low_memory.native_free_heap`, e.events[i].LowMemory.NativeFreeHeap).
+
+			// trim memory
+			Set(`trim_memory.level`, e.events[i].TrimMemory.Level).
+
+			// cpu usage
+			Set(`cpu_usage.num_cores`, e.events[i].CPUUsage.NumCores).
+			Set(`cpu_usage.clock_speed`, e.events[i].CPUUsage.ClockSpeed).
+			Set(`cpu_usage.uptime`, e.events[i].CPUUsage.Uptime).
+			Set(`cpu_usage.utime`, e.events[i].CPUUsage.UTime).
+			Set(`cpu_usage.cutime`, e.events[i].CPUUsage.CUTime).
+			Set(`cpu_usage.stime`, e.events[i].CPUUsage.STime).
+			Set(`cpu_usage.cstime`, e.events[i].CPUUsage.CSTime).
+			Set(`cpu_usage.interval_config`, e.events[i].CPUUsage.IntervalConfig).
+
+			// navigation
+			Set(`navigation.route`, e.events[i].Navigation.Route).
+
+			// attachments
+			Set(`attachments`, attachments)
+	}
+
+	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), false, stmt.Args()...)
 }
 
 // lookupCountry looks up the country code for the IP
@@ -554,13 +816,36 @@ func PutEventMulti(c *gin.Context) {
 
 	if eventReq.hasAttachments() {
 		if err := eventReq.uploadAttachments(); err != nil {
-			msg := `failed to ingest attachments`
+			msg := `failed to upload attachments`
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": msg,
 			})
 			return
 		}
+	}
+
+	ctx := context.Background()
+	tx, err := server.Server.PgPool.Begin(ctx)
+	if err != nil {
+		msg := `failed to ingest events, failed to acquire transaction`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	eventReq.transaction = &tx
+	defer tx.Rollback(ctx)
+
+	if err := eventReq.ingest(ctx); err != nil {
+		msg := `failed to ingest events`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
 	}
 
 	if err := eventReq.bucketUnhandledExceptions(); err != nil {
