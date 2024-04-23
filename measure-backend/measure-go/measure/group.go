@@ -82,14 +82,16 @@ func (a ANRGroup) EventExists(id uuid.UUID) bool {
 
 // AppendEventId appends a new event id to the ExceptionGroup's
 // events array.
-func (e ExceptionGroup) AppendEventId(id uuid.UUID) error {
-	stmt := sqlf.PostgreSQL.Update("public.unhandled_exception_groups").
-		SetExpr("event_ids", "array_append(event_ids, ?)", nil).
-		Set("updated_at", nil).
-		Where("id = ?", nil)
+func (e ExceptionGroup) AppendEventId(ctx context.Context, id uuid.UUID) error {
+	stmt := sqlf.PostgreSQL.
+		Update("public.unhandled_exception_groups").
+		SetExpr("event_ids", "array_append(event_ids, ?)", id).
+		Set("updated_at", time.Now()).
+		Where("id = ?", e.ID)
 
 	defer stmt.Close()
-	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), id, time.Now(), e.ID)
+
+	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return err
 	}
@@ -99,13 +101,16 @@ func (e ExceptionGroup) AppendEventId(id uuid.UUID) error {
 
 // AppendEventId appends a new event id to the ANRGroup's
 // events array.
-func (a ANRGroup) AppendEventId(id uuid.UUID) error {
-	stmt := sqlf.PostgreSQL.Update("public.anr_groups").
-		SetExpr("event_ids", "array_append(event_ids, ?)", nil).
-		Set("updated_at", nil)
+func (a ANRGroup) AppendEventId(ctx context.Context, id uuid.UUID) error {
+	stmt := sqlf.PostgreSQL.
+		Update("public.anr_groups").
+		SetExpr("event_ids", "array_append(event_ids, ?)", id).
+		Set("updated_at", time.Now()).
+		Where("id = ?", a.ID)
 
 	defer stmt.Close()
-	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), id, time.Now())
+
+	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return err
 	}
@@ -949,22 +954,22 @@ func ComputeANRContribution(groups []ANRGroup) {
 }
 
 // Insert inserts a new ExceptionGroup into the database
-func (e *ExceptionGroup) Insert() error {
-	stmt := sqlf.PostgreSQL.InsertInto("public.unhandled_exception_groups").
-		Set("id", nil).
-		Set("app_id", nil).
-		Set("name", nil).
-		Set("fingerprint", nil).
-		Set("event_ids", nil)
-
-	defer stmt.Close()
-
+func (e *ExceptionGroup) Insert(ctx context.Context) error {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return err
 	}
+	stmt := sqlf.PostgreSQL.
+		InsertInto("public.unhandled_exception_groups").
+		Set("id", id).
+		Set("app_id", e.AppID).
+		Set("name", e.Name).
+		Set("fingerprint", e.Fingerprint).
+		Set("event_ids", e.EventIDs)
 
-	_, err = server.Server.PgPool.Exec(context.Background(), stmt.String(), id, e.AppID, e.Name, e.Fingerprint, e.EventIDs)
+	defer stmt.Close()
+
+	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return err
 	}
@@ -973,22 +978,23 @@ func (e *ExceptionGroup) Insert() error {
 }
 
 // Insert inserts a new ANRGroup into the database
-func (a *ANRGroup) Insert() error {
-	stmt := sqlf.PostgreSQL.InsertInto("public.anr_groups").
-		Set("id", nil).
-		Set("app_id", nil).
-		Set("name", nil).
-		Set("fingerprint", nil).
-		Set("event_ids", nil)
-
-	defer stmt.Close()
-
+func (a *ANRGroup) Insert(ctx context.Context) error {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return err
 	}
 
-	_, err = server.Server.PgPool.Exec(context.Background(), stmt.String(), id, a.AppID, a.Name, a.Fingerprint, a.EventIDs)
+	stmt := sqlf.PostgreSQL.
+		InsertInto("public.anr_groups").
+		Set("id", id).
+		Set("app_id", a.AppID).
+		Set("name", a.Name).
+		Set("fingerprint", a.Fingerprint).
+		Set("event_ids", a.EventIDs)
+
+	defer stmt.Close()
+
+	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return err
 	}

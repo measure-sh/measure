@@ -271,6 +271,8 @@ func (e eventreq) bucketUnhandledExceptions() error {
 		ID: &e.appId,
 	}
 
+	ctx := context.Background()
+
 	for _, group := range groups {
 		appExceptionGroups, err := app.GetExceptionGroups(nil)
 		if err != nil {
@@ -279,7 +281,7 @@ func (e eventreq) bucketUnhandledExceptions() error {
 
 		if len(appExceptionGroups) < 1 {
 			// insert new exception group
-			return NewExceptionGroup(e.appId, group.exception.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
+			return NewExceptionGroup(e.appId, group.exception.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert(ctx)
 		}
 
 		index, err := ClosestExceptionGroup(appExceptionGroups, group.fingerprint)
@@ -288,7 +290,7 @@ func (e eventreq) bucketUnhandledExceptions() error {
 		}
 		if index < 0 {
 			// when no group matches exists, create new exception group
-			NewExceptionGroup(e.appId, group.exception.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
+			NewExceptionGroup(e.appId, group.exception.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert(ctx)
 			continue
 		}
 		matchedGroup := appExceptionGroups[index]
@@ -297,7 +299,7 @@ func (e eventreq) bucketUnhandledExceptions() error {
 			continue
 		}
 
-		if err := matchedGroup.AppendEventId(group.eventId); err != nil {
+		if err := matchedGroup.AppendEventId(ctx, group.eventId); err != nil {
 			return err
 		}
 	}
@@ -342,6 +344,8 @@ func (e eventreq) bucketANRs() error {
 		ID: &e.appId,
 	}
 
+	ctx := context.Background()
+
 	for _, group := range groups {
 		appANRGroups, err := app.GetANRGroups(nil)
 		if err != nil {
@@ -350,7 +354,7 @@ func (e eventreq) bucketANRs() error {
 
 		if len(appANRGroups) < 1 {
 			// insert new anr group
-			return NewANRGroup(e.appId, group.anr.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
+			return NewANRGroup(e.appId, group.anr.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert(ctx)
 		}
 
 		index, err := ClosestANRGroup(appANRGroups, group.fingerprint)
@@ -359,7 +363,7 @@ func (e eventreq) bucketANRs() error {
 		}
 		if index < 0 {
 			// when no group matches exists, create new anr group
-			NewANRGroup(e.appId, group.anr.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert()
+			NewANRGroup(e.appId, group.anr.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert(ctx)
 			continue
 		}
 		matchedGroup := appANRGroups[index]
@@ -368,7 +372,7 @@ func (e eventreq) bucketANRs() error {
 			continue
 		}
 
-		if err := matchedGroup.AppendEventId(group.eventId); err != nil {
+		if err := matchedGroup.AppendEventId(ctx, group.eventId); err != nil {
 			return err
 		}
 	}
