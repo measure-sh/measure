@@ -42,45 +42,6 @@ type eventreq struct {
 	attachments  []attachment
 }
 
-// hasAttachments returns true if payload
-// contains attachments to be processed.
-func (e eventreq) hasAttachments() bool {
-	return len(e.attachments) > 0
-}
-
-// needsSymbolication returns true if payload
-// contains events that should be symbolicated.
-func (e eventreq) needsSymbolication() bool {
-	return len(e.symbolicate) > 0
-}
-
-// validate validates the integrity of each event
-// and corresponding attachments.
-func (e eventreq) validate() error {
-	for i := range e.events {
-		if err := e.events[i].Validate(); err != nil {
-			return err
-		}
-		if err := e.events[i].Attributes.Validate(); err != nil {
-			return err
-		}
-
-		if e.hasAttachments() {
-			for j := range e.events[i].Attachments {
-				if err := e.events[i].Attachments[j].Validate(); err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	if e.size >= int64(maxBatchSize) {
-		return fmt.Errorf(`payload cannot exceed maximum allowed size of %d`, maxBatchSize)
-	}
-
-	return nil
-}
-
 // uploadAttachments prepares and uploads each attachment.
 func (e *eventreq) uploadAttachments() error {
 	for i := range e.attachments {
@@ -182,6 +143,41 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 	return nil
 }
 
+// infuseInet looks up the country code for the IP
+// and infuses the country code and IP info to each event.
+func (e *eventreq) infuseInet(rawIP string) error {
+	ip := net.ParseIP(rawIP)
+	country, err := inet.LookupCountry(rawIP)
+	if err != nil {
+		return err
+	}
+
+	bogon, err := ipinfo.GetIPBogon(ip)
+	if err != nil {
+		return err
+	}
+
+	v4 := inet.Isv4(ip)
+
+	for i := range e.events {
+		if v4 {
+			e.events[i].IPv4 = ip
+		} else {
+			e.events[i].IPv6 = ip
+		}
+
+		if bogon {
+			e.events[i].CountryCode = "bogon"
+		} else if *country != "" {
+			e.events[i].CountryCode = *country
+		} else {
+			e.events[i].CountryCode = "not available"
+		}
+	}
+
+	return nil
+}
+
 // hasUnhandledExceptions returns true if event payload
 // contains unhandled exceptions.
 func (e eventreq) hasUnhandledExceptions() bool {
@@ -192,6 +188,11 @@ func (e eventreq) hasUnhandledExceptions() bool {
 // ANRs.
 func (e eventreq) hasANRs() bool {
 	return len(e.anrIds) > 0
+}
+
+// hasAttachments returns true if payload // contains attachments to be processed.
+func (e eventreq) hasAttachments() bool {
+	return len(e.attachments) > 0
 }
 
 // getUnhandledExceptions returns unhandled excpetions
@@ -289,6 +290,7 @@ func (e eventreq) bucketUnhandledExceptions() error {
 	return nil
 }
 
+// bucketANRs groups ANRs based on similarity.
 func (e eventreq) bucketANRs() error {
 	anrs := e.getANRs()
 
@@ -359,36 +361,34 @@ func (e eventreq) bucketANRs() error {
 	return nil
 }
 
-// infuseInet looks up the country code for the IP
-// and infuses the country code and IP info to each event.
-func (e *eventreq) infuseInet(rawIP string) error {
-	ip := net.ParseIP(rawIP)
-	country, err := inet.LookupCountry(rawIP)
-	if err != nil {
-		return err
-	}
+// needsSymbolication returns true if payload
+// contains events that should be symbolicated.
+func (e eventreq) needsSymbolication() bool {
+	return len(e.symbolicate) > 0
+}
 
-	bogon, err := ipinfo.GetIPBogon(ip)
-	if err != nil {
-		return err
-	}
-
-	v4 := inet.Isv4(ip)
-
+// validate validates the integrity of each event
+// and corresponding attachments.
+func (e eventreq) validate() error {
 	for i := range e.events {
-		if v4 {
-			e.events[i].IPv4 = ip
-		} else {
-			e.events[i].IPv6 = ip
+		if err := e.events[i].Validate(); err != nil {
+			return err
+		}
+		if err := e.events[i].Attributes.Validate(); err != nil {
+			return err
 		}
 
-		if bogon {
-			e.events[i].CountryCode = "bogon"
-		} else if *country != "" {
-			e.events[i].CountryCode = *country
-		} else {
-			e.events[i].CountryCode = "not available"
+		if e.hasAttachments() {
+			for j := range e.events[i].Attachments {
+				if err := e.events[i].Attachments[j].Validate(); err != nil {
+					return err
+				}
+			}
 		}
+	}
+
+	if e.size >= int64(maxBatchSize) {
+		return fmt.Errorf(`payload cannot exceed maximum allowed size of %d`, maxBatchSize)
 	}
 
 	return nil
