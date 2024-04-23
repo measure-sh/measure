@@ -15,7 +15,7 @@ func TestEventBatching(t *testing.T) {
 	logString := event.EventField{
 		AppID: appId,
 		Type:  event.TypeString,
-		Attributes: event.Attribute{
+		Attribute: event.Attribute{
 			AppVersion: "1.0.0",
 			AppBuild:   "1000",
 		},
@@ -24,7 +24,7 @@ func TestEventBatching(t *testing.T) {
 	gestureClick := event.EventField{
 		AppID: appId,
 		Type:  event.TypeGestureClick,
-		Attributes: event.Attribute{
+		Attribute: event.Attribute{
 			AppVersion: "1.0.0",
 			AppBuild:   "1000",
 		},
@@ -33,7 +33,7 @@ func TestEventBatching(t *testing.T) {
 	coldLaunch := event.EventField{
 		AppID: appId,
 		Type:  event.TypeColdLaunch,
-		Attributes: event.Attribute{
+		Attribute: event.Attribute{
 			AppVersion: "2.0.0",
 			AppBuild:   "1000",
 		},

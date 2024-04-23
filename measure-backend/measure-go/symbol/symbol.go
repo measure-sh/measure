@@ -120,8 +120,8 @@ func (s Symbolicator) Batch(events []event.EventField) (batches []SymbolBatch) {
 	for i := range events {
 		key := MappingKeyID{
 			appId:       events[i].AppID,
-			versionName: events[i].Attributes.AppVersion,
-			versionCode: events[i].Attributes.AppBuild,
+			versionName: events[i].Attribute.AppVersion,
+			versionCode: events[i].Attribute.AppBuild,
 			mappingType: TypeProguard,
 		}
 
