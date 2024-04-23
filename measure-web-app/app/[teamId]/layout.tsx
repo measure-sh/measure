@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import TeamSwitcher from "../components/team_switcher";
 import { TeamsApiStatus, emptyTeam, fetchTeamsFromServer } from "../api/api_calls";
 import { logout } from "../utils/auth_utils";
+import { supabase } from "@/utils/supabase/browser";
 
 export default function DashboardLayout({
   children,
@@ -69,7 +70,7 @@ export default function DashboardLayout({
   }, []);
 
   const logoutUser = async () => {
-    await logout(router)
+    await logout(supabase, router)
   }
 
   const onTeamChanged = (item: string) => {

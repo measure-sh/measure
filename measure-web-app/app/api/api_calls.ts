@@ -1,6 +1,7 @@
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
 import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from "../utils/auth_utils"
 import { DateTime } from "luxon"
+import { supabase } from "@/utils/supabase/browser"
 
 export enum TeamsApiStatus {
     Loading,
@@ -562,7 +563,7 @@ export class AppVersion {
 }
 
 export const fetchTeamsFromServer = async (router: AppRouterInstance) => {
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
         headers: {
@@ -572,7 +573,7 @@ export const fetchTeamsFromServer = async (router: AppRouterInstance) => {
 
     const res = await fetch(`${origin}/teams`, opts);
     if (!res.ok) {
-        logoutIfAuthError(router, res)
+        logoutIfAuthError(supabase, router, res)
         return { status: TeamsApiStatus.Error, data: null }
     }
 
@@ -582,7 +583,7 @@ export const fetchTeamsFromServer = async (router: AppRouterInstance) => {
 }
 
 export const fetchAppsFromServer = async (teamId: string, router: AppRouterInstance) => {
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
         headers: {
@@ -597,7 +598,7 @@ export const fetchAppsFromServer = async (teamId: string, router: AppRouterInsta
     }
 
     if (!res.ok) {
-        logoutIfAuthError(router, res)
+        logoutIfAuthError(supabase, router, res)
         return { status: AppsApiStatus.Error, data: null }
     }
 
@@ -610,7 +611,7 @@ export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, route
         return { status: FiltersApiStatus.NotOnboarded, data: null }
     }
 
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
         headers: {
@@ -621,7 +622,7 @@ export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, route
     const res = await fetch(`${origin}/apps/${selectedApp.id}/filters`, opts);
 
     if (!res.ok) {
-        logoutIfAuthError(router, res)
+        logoutIfAuthError(supabase, router, res)
         return { status: FiltersApiStatus.Error, data: null }
     }
 
@@ -635,7 +636,7 @@ export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, route
 }
 
 export const fetchJourneyFromServer = async (appId: string, startDate: string, endDate: string, appVersion: AppVersion, router: AppRouterInstance) => {
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
         headers: {
@@ -648,7 +649,7 @@ export const fetchJourneyFromServer = async (appId: string, startDate: string, e
     const res = await fetch(`${origin}/apps/${appId}/journey?version=${appVersion.name}&version_code=${appVersion.code}&from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`, opts);
 
     if (!res.ok) {
-        logoutIfAuthError(router, res)
+        logoutIfAuthError(supabase, router, res)
         return { status: JourneyApiStatus.Error, data: null }
     }
 
@@ -658,7 +659,7 @@ export const fetchJourneyFromServer = async (appId: string, startDate: string, e
 }
 
 export const fetchMetricsFromServer = async (appId: string, startDate: string, endDate: string, appVersion: AppVersion, router: AppRouterInstance) => {
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
         headers: {
@@ -671,7 +672,7 @@ export const fetchMetricsFromServer = async (appId: string, startDate: string, e
     const res = await fetch(`${origin}/apps/${appId}/metrics?versions=${appVersion.name}&version_codes=${appVersion.code}&from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`, opts);
 
     if (!res.ok) {
-        logoutIfAuthError(router, res)
+        logoutIfAuthError(supabase, router, res)
         return { status: MetricsApiStatus.Error, data: null }
     }
 
@@ -681,7 +682,7 @@ export const fetchMetricsFromServer = async (appId: string, startDate: string, e
 }
 
 export const fetchCrashOrAnrGroupsFromServer = async (crashOrAnrType: CrashOrAnrType, appId: string, startDate: string, endDate: string, appVersions: AppVersion[], keyId: string | null, limit: number, router: AppRouterInstance) => {
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
         headers: {
@@ -713,7 +714,7 @@ export const fetchCrashOrAnrGroupsFromServer = async (crashOrAnrType: CrashOrAnr
     const res = await fetch(url, opts);
 
     if (!res.ok) {
-        logoutIfAuthError(router, res)
+        logoutIfAuthError(supabase, router, res)
         return { status: CrashOrAnrGroupsApiStatus.Error, data: null }
     }
 
@@ -724,7 +725,7 @@ export const fetchCrashOrAnrGroupsFromServer = async (crashOrAnrType: CrashOrAnr
 }
 
 export const fetchCrashOrAnrGroupDetailsFromServer = async (crashOrAnrType: CrashOrAnrType, appId: string, crashOrAnrGroupId: string, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], keyId: string | null, keyTimestamp: string | null, limit: number, router: AppRouterInstance) => {
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
         headers: {
@@ -796,7 +797,7 @@ export const fetchCrashOrAnrGroupDetailsFromServer = async (crashOrAnrType: Cras
     const res = await fetch(url, opts);
 
     if (!res.ok) {
-        logoutIfAuthError(router, res)
+        logoutIfAuthError(supabase, router, res)
         return { status: CrashOrAnrGroupDetailsApiStatus.Error, data: null }
     }
 
@@ -807,7 +808,7 @@ export const fetchCrashOrAnrGroupDetailsFromServer = async (crashOrAnrType: Cras
 }
 
 export const fetchAuthzAndMembersFromServer = async (teamId: string, router: AppRouterInstance) => {
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
         headers: {
@@ -817,7 +818,7 @@ export const fetchAuthzAndMembersFromServer = async (teamId: string, router: App
 
     const res = await fetch(`${origin}/teams/${teamId}/authz`, opts);
     if (!res.ok) {
-        logoutIfAuthError(router, res)
+        logoutIfAuthError(supabase, router, res)
         return { status: AuthzAndMembersApiStatus.Error, data: null }
     }
 
@@ -827,7 +828,7 @@ export const fetchAuthzAndMembersFromServer = async (teamId: string, router: App
 }
 
 export const fetchSessionReplayFromServer = async (appId: string, sessionId: string, router: AppRouterInstance) => {
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
         headers: {
@@ -837,7 +838,7 @@ export const fetchSessionReplayFromServer = async (appId: string, sessionId: str
 
     const res = await fetch(`${origin}/apps/${appId}/sessions/${sessionId}`, opts);
     if (!res.ok) {
-        logoutIfAuthError(router, res)
+        logoutIfAuthError(supabase, router, res)
         return { status: SessionReplayApiStatus.Error, data: null }
     }
 
@@ -847,7 +848,7 @@ export const fetchSessionReplayFromServer = async (appId: string, sessionId: str
 }
 
 export const changeTeamNameFromServer = async (teamId: string, newTeamName: string, router: AppRouterInstance) => {
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
         method: 'PATCH',
@@ -859,7 +860,7 @@ export const changeTeamNameFromServer = async (teamId: string, newTeamName: stri
 
     const res = await fetch(`${origin}/teams/${teamId}/rename`, opts);
     if (!res.ok) {
-        logoutIfAuthError(router, res)
+        logoutIfAuthError(supabase, router, res)
         return { status: TeamNameChangeApiStatus.Error }
     }
 
@@ -867,7 +868,7 @@ export const changeTeamNameFromServer = async (teamId: string, newTeamName: stri
 }
 
 export const createTeamFromServer = async (teamName: string, router: AppRouterInstance) => {
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
         method: 'POST',
@@ -881,7 +882,7 @@ export const createTeamFromServer = async (teamName: string, router: AppRouterIn
     const data = await res.json()
 
     if (!res.ok) {
-        logoutIfAuthError(router, res)
+        logoutIfAuthError(supabase, router, res)
         return { status: CreateTeamApiStatus.Error, error: data.error }
     }
 
@@ -889,7 +890,7 @@ export const createTeamFromServer = async (teamName: string, router: AppRouterIn
 }
 
 export const createAppFromServer = async (teamId: string, appName: string, router: AppRouterInstance) => {
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
         method: 'POST',
@@ -903,7 +904,7 @@ export const createAppFromServer = async (teamId: string, appName: string, route
     const data = await res.json()
 
     if (!res.ok) {
-        logoutIfAuthError(router, res)
+        logoutIfAuthError(supabase, router, res)
         return { status: CreateAppApiStatus.Error, error: data.error }
     }
 
@@ -911,7 +912,7 @@ export const createAppFromServer = async (teamId: string, appName: string, route
 }
 
 export const changeRoleFromServer = async (teamId: string, newRole: string, memberId: string, router: AppRouterInstance) => {
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
         method: 'PATCH',
@@ -925,7 +926,7 @@ export const changeRoleFromServer = async (teamId: string, newRole: string, memb
     const data = await res.json()
 
     if (!res.ok) {
-        logoutIfAuthError(router, res)
+        logoutIfAuthError(supabase, router, res)
         return { status: RoleChangeApiStatus.Error, error: data.error }
     }
 
@@ -946,7 +947,7 @@ export const inviteMemberFromServer = async (teamId: string, email: string, role
     const data = await res.json()
 
     if (!res.ok) {
-        logoutIfAuthError(router, res)
+        logoutIfAuthError(supabase, router, res)
         return { status: InviteMemberApiStatus.Error, error: data.error }
     }
 
@@ -954,7 +955,7 @@ export const inviteMemberFromServer = async (teamId: string, email: string, role
 }
 
 export const removeMemberFromServer = async (teamId: string, memberId: string, router: AppRouterInstance) => {
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
         method: 'DELETE',
@@ -967,7 +968,7 @@ export const removeMemberFromServer = async (teamId: string, memberId: string, r
     const data = await res.json()
 
     if (!res.ok) {
-        logoutIfAuthError(router, res)
+        logoutIfAuthError(supabase, router, res)
         return { status: RemoveMemberApiStatus.Error, error: data.error }
     }
 
@@ -975,7 +976,7 @@ export const removeMemberFromServer = async (teamId: string, memberId: string, r
 }
 
 export const fetchAlertPrefsFromServer = async (appId: string, router: AppRouterInstance) => {
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
         headers: {
@@ -986,7 +987,7 @@ export const fetchAlertPrefsFromServer = async (appId: string, router: AppRouter
     const res = await fetch(`${origin}/apps/${appId}/alertPrefs`, opts);
 
     if (!res.ok) {
-        logoutIfAuthError(router, res)
+        logoutIfAuthError(supabase, router, res)
         return { status: FetchAlertPrefsApiStatus.Error, data: null }
     }
 
@@ -996,7 +997,7 @@ export const fetchAlertPrefsFromServer = async (appId: string, router: AppRouter
 }
 
 export const updateAlertPrefsFromServer = async (appdId: string, alertPrefs: typeof emptyAlertPrefs, router: AppRouterInstance) => {
-    const authToken = await getAccessTokenOrRedirectToAuth(router)
+    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
         method: 'PATCH',
@@ -1010,7 +1011,7 @@ export const updateAlertPrefsFromServer = async (appdId: string, alertPrefs: typ
     const data = await res.json()
 
     if (!res.ok) {
-        logoutIfAuthError(router, res)
+        logoutIfAuthError(supabase, router, res)
         return { status: UpdateAlertPrefsApiStatus.Error, error: data.error }
     }
 
