@@ -1,5 +1,6 @@
 package sh.measure.android.storage
 
+import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import java.io.File
@@ -7,19 +8,11 @@ import java.io.IOException
 
 internal interface FileStorage {
     /**
-     * Writes exception data to a file, with the event id as the file name.
+     * Writes serialized event data to a file.
      *
      * @return The path of the file if the write was successful, otherwise null.
      */
-    fun writeException(eventId: String, serializedData: String): String?
-
-    /**
-     * Writes ANR data to a file, with the event id as the file name.
-     *
-     * @param eventId The event id to use as the file name.
-     * @return The path of the file if the write was successful, otherwise null.
-     */
-    fun writeAnr(eventId: String, serializedData: String): String?
+    fun writeSerializedEventData(eventId: String, eventType:String, serializedData: String): String?
 
     /**
      * Gets a file from the given path.
@@ -37,8 +30,9 @@ internal interface FileStorage {
     fun writeAttachment(id: String, bytes: ByteArray): String?
 }
 
-private const val EXCEPTION_DIR = "measure/exceptions"
+private const val EXCEPTION_DIR = "measure/exception"
 private const val ANR_DIR = "measure/anr"
+private const val HTTP_DIR = "measure/http"
 private const val ATTACHMENTS_DIR = "measure/attachments"
 
 internal class FileStorageImpl(
@@ -46,14 +40,15 @@ internal class FileStorageImpl(
     private val logger: Logger,
 ) : FileStorage {
 
-    override fun writeException(eventId: String, serializedData: String): String? {
-        val file = createFile(eventId, EXCEPTION_DIR) ?: return null
-        file.writeText(serializedData)
-        return file.path
-    }
-
-    override fun writeAnr(eventId: String, serializedData: String): String? {
-        val file = createFile(eventId, ANR_DIR) ?: return null
+    override fun writeSerializedEventData(eventId: String, eventType: String, serializedData: String): String? {
+        val file = when(eventType) {
+           EventType.EXCEPTION ->  createFile(eventId, EXCEPTION_DIR) ?: return null
+           EventType.ANR ->  createFile(eventId, ANR_DIR) ?: return null
+           EventType.HTTP ->  createFile(eventId, HTTP_DIR) ?: return null
+            else -> {
+                return null
+            }
+        }
         file.writeText(serializedData)
         return file.path
     }
