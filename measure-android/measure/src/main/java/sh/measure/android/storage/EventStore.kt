@@ -79,6 +79,7 @@ internal class EventStoreImpl(
 
         database.insertEvent(entity)
     }
+
     private fun <T> httpDataContainsBody(event: Event<T>): Boolean {
         val httpEvent = event.data as? HttpData ?: return false
         return httpEvent.request_body != null || httpEvent.response_body != null

@@ -205,8 +205,8 @@ internal object FakeEventFactory {
         failureDescription: String = "failure-description",
         requestHeaders: Map<String, String> = emptyMap(),
         responseHeaders: Map<String, String> = emptyMap(),
-        requestBody: String = "request-body",
-        responseBody: String = "response-body",
+        requestBody: String? = "request-body",
+        responseBody: String? = "response-body",
         client: String = "client",
     ): HttpData {
         return HttpData(
@@ -349,7 +349,7 @@ internal object FakeEventFactory {
     fun getAttachment(
         type: String = "type",
         name: String = "name",
-        path: String = "path",
+        path: String? = "path",
         bytes: ByteArray? = null,
     ): Attachment {
         return Attachment(
