@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-dedup/simhash"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
 )
 
@@ -82,7 +83,7 @@ func (a ANRGroup) EventExists(id uuid.UUID) bool {
 
 // AppendEventId appends a new event id to the ExceptionGroup's
 // events array.
-func (e ExceptionGroup) AppendEventId(ctx context.Context, id uuid.UUID) error {
+func (e ExceptionGroup) AppendEventId(ctx context.Context, id uuid.UUID, tx *pgx.Tx) (err error) {
 	stmt := sqlf.PostgreSQL.
 		Update("public.unhandled_exception_groups").
 		SetExpr("event_ids", "array_append(event_ids, ?)", id).
@@ -91,17 +92,24 @@ func (e ExceptionGroup) AppendEventId(ctx context.Context, id uuid.UUID) error {
 
 	defer stmt.Close()
 
-	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return err
+	if tx != nil {
+		_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
+		if err != nil {
+			return
+		}
 	}
 
-	return nil
+	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	return
 }
 
 // AppendEventId appends a new event id to the ANRGroup's
 // events array.
-func (a ANRGroup) AppendEventId(ctx context.Context, id uuid.UUID) error {
+func (a ANRGroup) AppendEventId(ctx context.Context, id uuid.UUID, tx *pgx.Tx) (err error) {
 	stmt := sqlf.PostgreSQL.
 		Update("public.anr_groups").
 		SetExpr("event_ids", "array_append(event_ids, ?)", id).
@@ -110,12 +118,19 @@ func (a ANRGroup) AppendEventId(ctx context.Context, id uuid.UUID) error {
 
 	defer stmt.Close()
 
-	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return err
+	if tx != nil {
+		_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
+		if err != nil {
+			return
+		}
 	}
 
-	return nil
+	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	return
 }
 
 // HammingDistance calculates the hamming distance between the
@@ -954,11 +969,12 @@ func ComputeANRContribution(groups []ANRGroup) {
 }
 
 // Insert inserts a new ExceptionGroup into the database
-func (e *ExceptionGroup) Insert(ctx context.Context) error {
+func (e *ExceptionGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 	id, err := uuid.NewV7()
 	if err != nil {
-		return err
+		return
 	}
+
 	stmt := sqlf.PostgreSQL.
 		InsertInto("public.unhandled_exception_groups").
 		Set("id", id).
@@ -969,16 +985,23 @@ func (e *ExceptionGroup) Insert(ctx context.Context) error {
 
 	defer stmt.Close()
 
-	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return err
+	if tx != nil {
+		_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
+		if err != nil {
+			return
+		}
 	}
 
-	return nil
+	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	return
 }
 
 // Insert inserts a new ANRGroup into the database
-func (a *ANRGroup) Insert(ctx context.Context) error {
+func (a *ANRGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return err
@@ -994,12 +1017,19 @@ func (a *ANRGroup) Insert(ctx context.Context) error {
 
 	defer stmt.Close()
 
-	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return err
+	if tx != nil {
+		_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
+		if err != nil {
+			return
+		}
 	}
 
-	return nil
+	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	return
 }
 
 // NewExceptionGroup constructs a new ExceptionGroup and returns a pointer to it

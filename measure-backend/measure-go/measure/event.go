@@ -235,7 +235,7 @@ func (e eventreq) getANRs() (events []event.EventField) {
 
 // bucketUnhandledExceptions groups unhandled exceptions
 // based on similarity.
-func (e eventreq) bucketUnhandledExceptions() error {
+func (e eventreq) bucketUnhandledExceptions(tx *pgx.Tx) error {
 	exceptions := e.getUnhandledExceptions()
 
 	type EventGroup struct {
@@ -281,7 +281,7 @@ func (e eventreq) bucketUnhandledExceptions() error {
 
 		if len(appExceptionGroups) < 1 {
 			// insert new exception group
-			return NewExceptionGroup(e.appId, group.exception.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert(ctx)
+			return NewExceptionGroup(e.appId, group.exception.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert(ctx, tx)
 		}
 
 		index, err := ClosestExceptionGroup(appExceptionGroups, group.fingerprint)
@@ -290,7 +290,7 @@ func (e eventreq) bucketUnhandledExceptions() error {
 		}
 		if index < 0 {
 			// when no group matches exists, create new exception group
-			NewExceptionGroup(e.appId, group.exception.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert(ctx)
+			NewExceptionGroup(e.appId, group.exception.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert(ctx, tx)
 			continue
 		}
 		matchedGroup := appExceptionGroups[index]
@@ -299,7 +299,7 @@ func (e eventreq) bucketUnhandledExceptions() error {
 			continue
 		}
 
-		if err := matchedGroup.AppendEventId(ctx, group.eventId); err != nil {
+		if err := matchedGroup.AppendEventId(ctx, group.eventId, tx); err != nil {
 			return err
 		}
 	}
@@ -308,7 +308,7 @@ func (e eventreq) bucketUnhandledExceptions() error {
 }
 
 // bucketANRs groups ANRs based on similarity.
-func (e eventreq) bucketANRs() error {
+func (e eventreq) bucketANRs(tx *pgx.Tx) error {
 	anrs := e.getANRs()
 
 	type EventGroup struct {
@@ -354,7 +354,7 @@ func (e eventreq) bucketANRs() error {
 
 		if len(appANRGroups) < 1 {
 			// insert new anr group
-			return NewANRGroup(e.appId, group.anr.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert(ctx)
+			return NewANRGroup(e.appId, group.anr.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert(ctx, tx)
 		}
 
 		index, err := ClosestANRGroup(appANRGroups, group.fingerprint)
@@ -363,7 +363,7 @@ func (e eventreq) bucketANRs() error {
 		}
 		if index < 0 {
 			// when no group matches exists, create new anr group
-			NewANRGroup(e.appId, group.anr.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert(ctx)
+			NewANRGroup(e.appId, group.anr.GetType(), fmt.Sprintf("%x", group.fingerprint), []uuid.UUID{group.eventId}).Insert(ctx, tx)
 			continue
 		}
 		matchedGroup := appANRGroups[index]
@@ -372,7 +372,7 @@ func (e eventreq) bucketANRs() error {
 			continue
 		}
 
-		if err := matchedGroup.AppendEventId(ctx, group.eventId); err != nil {
+		if err := matchedGroup.AppendEventId(ctx, group.eventId, tx); err != nil {
 			return err
 		}
 	}
@@ -867,7 +867,7 @@ func PutEventMulti(c *gin.Context) {
 		return
 	}
 
-	if err := eventReq.bucketUnhandledExceptions(); err != nil {
+	if err := eventReq.bucketUnhandledExceptions(&tx); err != nil {
 		msg := `failed to bucket unhandled exceptions`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -876,7 +876,7 @@ func PutEventMulti(c *gin.Context) {
 		return
 	}
 
-	if err := eventReq.bucketANRs(); err != nil {
+	if err := eventReq.bucketANRs(&tx); err != nil {
 		msg := `failed to bucket anrs`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
