@@ -76,7 +76,7 @@ class AppExitCollectorTest {
             importance = "IMPORTANCE_VISIBLE"
         )
         appExitProvider.appExits = mapOf(pid to appExit)
-        database.insertSession(sessionId, pid)
+        database.insertSession(sessionId, pid, timeProvider.currentTimeSinceEpochInMillis)
 
         appExitCollector.onColdLaunch()
 
@@ -96,7 +96,7 @@ class AppExitCollectorTest {
         val sessionId = "session-1"
         val pid = 7654
         appExitProvider.appExits = mapOf()
-        database.insertSession(sessionId, pid)
+        database.insertSession(sessionId, pid, timeProvider.currentTimeSinceEpochInMillis)
 
         appExitCollector.onColdLaunch()
 

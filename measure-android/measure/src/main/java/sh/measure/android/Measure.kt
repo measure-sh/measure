@@ -125,7 +125,8 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             idProvider,
             database,
             executorServiceRegistry.backgroundExecutor(),
-            pidProvider
+            pidProvider,
+            timeProvider,
         )
         val globalAttributeProcessors = listOf(
             userAttributeProcessor,

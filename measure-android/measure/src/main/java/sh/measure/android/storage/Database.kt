@@ -108,8 +108,9 @@ internal interface Database : Closeable {
      *
      * @param sessionId the session id.
      * @param pid the process id.
+     * @param createdAt the creation time of the session.
      */
-    fun insertSession(sessionId: String, pid: Int): Boolean
+    fun insertSession(sessionId: String, pid: Int, createdAt: Long): Boolean
 
     /**
      * Marks a session's app exit tracked property to true.
@@ -122,6 +123,11 @@ internal interface Database : Closeable {
      * Returns a list of session Id and process ID pairs for whom app exit has not yet been tracked.
      */
     fun getSessionsWhereAppExitIsNotTracked(): List<Pair<String, Int>>
+
+    /**
+     * Cleans up old sessions that have been tracked or have passed the time threshold.
+     */
+    fun clearOldSessions(currentTime: Long, maxSessionPersistenceTime: Long)
 }
 
 /**
@@ -416,10 +422,11 @@ internal class DatabaseImpl(
         }
     }
 
-    override fun insertSession(sessionId: String, pid: Int): Boolean {
+    override fun insertSession(sessionId: String, pid: Int, createdAt: Long): Boolean {
         val values = ContentValues().apply {
             put(SessionsTable.COL_SESSION_ID, sessionId)
             put(SessionsTable.COL_PID, pid)
+            put(SessionsTable.COL_CREATED_AT, createdAt)
         }
 
         val result = writableDatabase.insert(SessionsTable.TABLE_NAME, null, values)
@@ -454,6 +461,14 @@ internal class DatabaseImpl(
             }
             return pairs
         }
+    }
+
+    override fun clearOldSessions(currentTime: Long, maxSessionPersistenceTime: Long) {
+        writableDatabase.delete(
+            SessionsTable.TABLE_NAME,
+            "${SessionsTable.COL_CREATED_AT} <= ?",
+            arrayOf((currentTime - maxSessionPersistenceTime).toString()),
+        )
     }
 
     override fun close() {
