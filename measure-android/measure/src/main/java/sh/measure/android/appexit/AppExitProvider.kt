@@ -14,7 +14,7 @@ import sh.measure.android.utils.SystemServiceProvider
 import java.io.InputStream
 
 internal interface AppExitProvider {
-    fun get(pid: Int): AppExit?
+    fun get(): Map<Int, AppExit>?
 }
 
 internal class AppExitProviderImpl(
@@ -22,13 +22,15 @@ internal class AppExitProviderImpl(
     private val systemServiceProvider: SystemServiceProvider,
 ) : AppExitProvider {
 
-    override fun get(pid: Int): AppExit? {
+    override fun get(): Map<Int, AppExit>? {
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
             return null
         }
         return systemServiceProvider.activityManager?.runCatching {
-            getHistoricalProcessExitReasons(null, pid, 1).firstOrNull()
-                ?.toAppExit()
+            getHistoricalProcessExitReasons(null, 0, 3).associateBy(
+                { it.pid },
+                { it.toAppExit() }
+            )
         }?.getOrNull()
     }
 
@@ -39,7 +41,7 @@ internal class AppExitProviderImpl(
             importance = getImportanceName(importance),
             trace = getTraceString(traceInputStream),
             process_name = processName,
-            pid = pid.toString(),
+            pid = pid,
         )
     }
 

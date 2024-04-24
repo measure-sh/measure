@@ -33,24 +33,25 @@ internal class EventStoreImpl(
         val serializedAttributes = event.serializeAttributes()
         val attachmentEntities = writeAttachments(event)
         val attachmentsSize = calculateAttachmentsSize(attachmentEntities)
+        val serializedData = event.serializeDataToString()
 
-        val (filePath, serializedData) = when (event.type) {
-            EventType.EXCEPTION, EventType.ANR -> {
-                val serializedData = event.serializeDataToString()
-                val path = fileStorage.writeSerializedEventData(event.id, event.type, serializedData)
-                if (path != null) Pair(path, serializedData) else Pair(null, null)
+        val filePath = when (event.type) {
+            EventType.EXCEPTION, EventType.ANR, EventType.APP_EXIT -> {
+                fileStorage.writeSerializedEventData(event.id, event.type, serializedData)
             }
+
             EventType.HTTP -> {
                 if (httpDataContainsBody(event)) {
-                    val serializedData = event.serializeDataToString()
-                    val path = fileStorage.writeSerializedEventData(event.id, event.type, serializedData)
-                    if (path != null) Pair(path, serializedData) else Pair(null, null)
-                } else Pair(null, null)
+                    fileStorage.writeSerializedEventData(event.id, event.type, serializedData)
+                } else {
+                    null
+                }
             }
-            else -> Pair(null, null)
+
+            else -> null
         }
 
-        val entity = when {
+        val eventEntity = when {
             filePath != null -> EventEntity(
                 id = event.id,
                 sessionId = event.sessionId,
@@ -58,11 +59,12 @@ internal class EventStoreImpl(
                 type = event.type,
                 attachmentEntities = attachmentEntities,
                 serializedAttributes = serializedAttributes,
-                attachmentsSize = 0,
+                attachmentsSize = attachmentsSize,
                 serializedAttachments = serializedAttachments,
                 filePath = filePath,
-                serializedData = serializedData,
+                serializedData = null,
             )
+
             else -> EventEntity(
                 id = event.id,
                 sessionId = event.sessionId,
@@ -72,12 +74,11 @@ internal class EventStoreImpl(
                 serializedAttributes = serializedAttributes,
                 attachmentsSize = attachmentsSize,
                 serializedAttachments = serializedAttachments,
-                serializedData = event.serializeDataToString(),
+                serializedData = serializedData,
                 filePath = null,
             )
         }
-
-        database.insertEvent(entity)
+        database.insertEvent(eventEntity)
     }
 
     private fun <T> httpDataContainsBody(event: Event<T>): Boolean {
@@ -90,7 +91,7 @@ internal class EventStoreImpl(
             return null
         }
         val attachmentEntities = event.attachments.mapNotNull {
-            createAttachment(it)?.let { path ->
+            getAttachmentPath(it)?.let { path ->
                 AttachmentEntity(
                     id = idProvider.createId(),
                     type = it.type,
@@ -102,7 +103,7 @@ internal class EventStoreImpl(
         return attachmentEntities
     }
 
-    private fun createAttachment(attachment: Attachment): String? {
+    private fun getAttachmentPath(attachment: Attachment): String? {
         return when {
             attachment.path != null -> {
                 attachment.path

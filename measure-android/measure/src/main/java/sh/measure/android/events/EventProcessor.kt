@@ -9,7 +9,7 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.EventStore
 import sh.measure.android.utils.IdProvider
-import sh.measure.android.utils.SessionIdProvider
+import sh.measure.android.SessionIdProvider
 
 /**
  * An interface for processing events. It is responsible for tracking events, processing them
@@ -28,6 +28,22 @@ internal interface EventProcessor {
         data: T,
         timestamp: Long,
         type: String,
+    )
+
+    /**
+     * Tracks an event with the given data, timestamp and type for a different session than the
+     * current one.
+     *
+     * @param data The data to be tracked.
+     * @param timestamp The timestamp of the event in milliseconds since epoch.
+     * @param type The type of the event.
+     * @param sessionId The session id for the session to track this event for.
+     */
+    fun <T> track(
+        data: T,
+        timestamp: Long,
+        type: String,
+        sessionId: String
     )
 
     /**
@@ -63,7 +79,11 @@ internal class EventProcessorImpl(
         timestamp: Long,
         type: String,
     ) {
-        track(data, timestamp, type, mutableMapOf(), null)
+        track(data, timestamp, type, mutableMapOf(), null, null)
+    }
+
+    override fun <T> track(data: T, timestamp: Long, type: String, sessionId: String) {
+        track(data, timestamp, type, mutableMapOf(), null, sessionId)
     }
 
     override fun <T> track(
@@ -73,12 +93,23 @@ internal class EventProcessorImpl(
         attributes: MutableMap<String, Any?>,
         attachments: List<Attachment>?,
     ) {
+        track(data, timestamp, type, attributes, attachments, null)
+    }
+
+    private fun <T> track(
+        data: T,
+        timestamp: Long,
+        type: String,
+        attributes: MutableMap<String, Any?>,
+        attachments: List<Attachment>?,
+        sessionId: String?
+    ) {
         val threadName = Thread.currentThread().name
 
-        fun createEvent(): Event<T> {
+        fun createEvent(sessionId: String?): Event<T> {
             val id = idProvider.createId()
-            val sessionId = sessionIdProvider.sessionId
-            return Event(id, sessionId, timestamp, type, data, attachments, attributes)
+            val resolvedSessionId = sessionId?: sessionIdProvider.sessionId
+            return Event(id, resolvedSessionId, timestamp, type, data, attachments, attributes)
         }
 
         fun applyAttributes(event: Event<T>) {
@@ -91,7 +122,7 @@ internal class EventProcessorImpl(
             // lost as the system is about to crash. They are also attempted to be exported
             // immediately to report them as soon as possible.
             EventType.ANR, EventType.EXCEPTION -> {
-                val event = createEvent()
+                val event = createEvent(sessionId)
                 applyAttributes(event)
                 eventStore.store(event)
                 executorService.submit {
@@ -101,7 +132,7 @@ internal class EventProcessorImpl(
 
             else -> {
                 executorService.submit {
-                    val event = createEvent()
+                    val event = createEvent(sessionId)
                     applyAttributes(event)
                     eventStore.store(event)
                 }

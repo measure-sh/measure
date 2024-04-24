@@ -102,6 +102,26 @@ internal interface Database : Closeable {
      * @param maxBatches The maximum number of batches to return.
      */
     fun getBatches(maxBatches: Int): LinkedHashMap<String, MutableList<String>>
+
+    /**
+     * Inserts a session ID and process ID into the database.
+     *
+     * @param sessionId the session id.
+     * @param pid the process id.
+     */
+    fun insertSession(sessionId: String, pid: Int): Boolean
+
+    /**
+     * Marks a session's app exit tracked property to true.
+     *
+     * @param sessionId the session ID for which the app exit has been tracked.
+     */
+    fun updateAppExitTracked(sessionId: String)
+
+    /**
+     * Returns a list of session Id and process ID pairs for whom app exit has not yet been tracked.
+     */
+    fun getSessionsWhereAppExitIsNotTracked(): List<Pair<String, Int>>
 }
 
 /**
@@ -117,6 +137,7 @@ internal class DatabaseImpl(
             db.execSQL(Sql.CREATE_EVENTS_TABLE)
             db.execSQL(Sql.CREATE_ATTACHMENTS_TABLE)
             db.execSQL(Sql.CREATE_EVENTS_BATCH_TABLE)
+            db.execSQL(Sql.CREATE_SESSIONS_TABLE)
         } catch (e: SQLiteException) {
             logger.log(LogLevel.Error, "Failed to create database", e)
         }
@@ -395,9 +416,61 @@ internal class DatabaseImpl(
         }
     }
 
+    override fun insertSession(sessionId: String, pid: Int): Boolean {
+        val values = ContentValues().apply {
+            put(SessionsTable.COL_SESSION_ID, sessionId)
+            put(SessionsTable.COL_PID, pid)
+        }
+
+        val result = writableDatabase.insert(SessionsTable.TABLE_NAME, null, values)
+        if (result == -1L) {
+            logger.log(LogLevel.Error, "Failed to insert pid and session id")
+        }
+        return result != -1L
+    }
+
+    override fun updateAppExitTracked(sessionId: String) {
+        writableDatabase.update(
+            SessionsTable.TABLE_NAME,
+            ContentValues().apply {
+                put(SessionsTable.COL_APP_EXIT_TRACKED, 1)
+            },
+            "${SessionsTable.COL_SESSION_ID} = ?",
+            arrayOf(sessionId),
+        )
+    }
+
+    override fun getSessionsWhereAppExitIsNotTracked(): List<Pair<String, Int>> {
+        readableDatabase.rawQuery(Sql.getSessionsWhereAppExitIsNotTracked(), null).use {
+            val pairs = mutableListOf<Pair<String, Int>>()
+            while (it.moveToNext()) {
+                val sessionIdIndex = it.getColumnIndex(SessionsTable.COL_SESSION_ID)
+                val pidIndex = it.getColumnIndex(SessionsTable.COL_PID)
+
+                val sessionId = it.getString(sessionIdIndex)
+                val pid = it.getInt(pidIndex)
+
+                pairs.add(Pair(sessionId, pid))
+            }
+            return pairs
+        }
+    }
+
     override fun close() {
         writableDatabase.close()
         super.close()
+    }
+
+    internal fun getSessionsWithTrackedAppExits(): List<String> {
+        readableDatabase.rawQuery(Sql.getSessionsWithTrackedAppExits(), null).use {
+            val sessionIds = mutableListOf<String>()
+            while (it.moveToNext()) {
+                val sessionIdIndex = it.getColumnIndex(SessionsTable.COL_SESSION_ID)
+                val sessionId = it.getString(sessionIdIndex)
+                sessionIds.add(sessionId)
+            }
+            return sessionIds
+        }
     }
 
     @VisibleForTesting

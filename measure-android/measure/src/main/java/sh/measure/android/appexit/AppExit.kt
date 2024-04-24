@@ -32,5 +32,5 @@ internal data class AppExit(
     /**
      * @see [ApplicationExitInfo.getPid]
      */
-    val pid: String,
+    val pid: Int,
 )
