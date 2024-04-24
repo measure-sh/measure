@@ -442,10 +442,10 @@ class NetworkChangesCollectorTest {
             type = EventType.NETWORK_CHANGE,
             timestamp = timeProvider.currentTimeSinceEpochInMillis,
             data = NetworkChangeData(
-                previous_network_type = NetworkType.CELLULAR,
-                network_type = NetworkType.NO_NETWORK,
-                previous_network_generation = NetworkGeneration.FIFTH_GEN,
-                network_generation = null,
+                previous_network_type = null,
+                network_type = NetworkType.CELLULAR,
+                previous_network_generation = null,
+                network_generation = NetworkGeneration.FIFTH_GEN,
                 network_provider = "Test Provider",
             ),
         )
