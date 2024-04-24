@@ -35,6 +35,9 @@ internal class EventStoreImpl(
         val attachmentsSize = calculateAttachmentsSize(attachmentEntities)
         val serializedData = event.serializeDataToString()
 
+        // the serialized data for certain events with large data sizes are stored in the file
+        // storage to avoid hitting the cursor size limit of 1MB when reading them from db.
+        // See: https://developer.android.com/reference/android/os/TransactionTooLargeException
         val filePath = when (event.type) {
             EventType.EXCEPTION, EventType.ANR, EventType.APP_EXIT -> {
                 fileStorage.writeSerializedEventData(event.id, event.type, serializedData)
