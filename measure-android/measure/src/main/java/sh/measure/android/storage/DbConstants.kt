@@ -41,6 +41,7 @@ internal object SessionsTable {
     const val COL_SESSION_ID = "session_id"
     const val COL_PID = "pid"
     const val COL_APP_EXIT_TRACKED = "is_app_exit_tracked"
+    const val COL_CREATED_AT = "created_at"
 }
 
 internal object Sql {
@@ -85,7 +86,8 @@ internal object Sql {
         CREATE TABLE ${SessionsTable.TABLE_NAME} (
             ${SessionsTable.COL_SESSION_ID} TEXT PRIMARY KEY,
             ${SessionsTable.COL_PID} INTEGER NOT NULL,
-            ${SessionsTable.COL_APP_EXIT_TRACKED} INTEGER DEFAULT 0
+            ${SessionsTable.COL_APP_EXIT_TRACKED} INTEGER DEFAULT 0,
+            ${SessionsTable.COL_CREATED_AT} INTEGER NOT NULL
         )
     """
 
