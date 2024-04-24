@@ -5,6 +5,8 @@ import android.app.Application
 import android.content.Context
 import androidx.annotation.VisibleForTesting
 import sh.measure.android.anr.AnrCollector
+import sh.measure.android.appexit.AppExitCollector
+import sh.measure.android.appexit.AppExitProviderImpl
 import sh.measure.android.applaunch.AppLaunchCollector
 import sh.measure.android.applaunch.ColdLaunchListener
 import sh.measure.android.attributes.AppAttributeProcessor
@@ -52,7 +54,6 @@ import sh.measure.android.utils.ManifestReaderImpl
 import sh.measure.android.utils.PidProvider
 import sh.measure.android.utils.PidProviderImpl
 import sh.measure.android.utils.ProcProviderImpl
-import sh.measure.android.utils.SessionIdProviderImpl
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.SystemServiceProviderImpl
 import sh.measure.android.utils.TimeProvider
@@ -69,6 +70,7 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
     private lateinit var cpuUsageCollector: CpuUsageCollector
     private lateinit var memoryUsageCollector: MemoryUsageCollector
     private lateinit var periodicEventExporter: PeriodicEventExporter
+    private lateinit var appExitCollector: AppExitCollector
 
     fun init(context: Context) {
         InternalTrace.beginSection("Measure.init")
@@ -111,7 +113,6 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
         val installationIdAttributeProcessor =
             InstallationIdAttributeProcessor(prefsStorage, idProvider)
 
-        val sessionIdProvider = SessionIdProviderImpl(idProvider)
         val fileStorage: FileStorage = FileStorageImpl(context.filesDir.path, logger)
         val database: Database = DatabaseImpl(context, logger)
         val eventStorage = EventStoreImpl(
@@ -120,7 +121,12 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             database,
             idProvider,
         )
-
+        val sessionIdProvider = SessionManager(
+            idProvider,
+            database,
+            executorServiceRegistry.backgroundExecutor(),
+            pidProvider
+        )
         val globalAttributeProcessors = listOf(
             userAttributeProcessor,
             networkStateAttributeProcessor,
@@ -140,6 +146,14 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             sessionIdProvider,
             globalAttributeProcessors,
             EventExporterImpl(logger, database, networkClient, idProvider, timeProvider),
+        )
+
+        appExitCollector = AppExitCollector(
+            appExitProvider = AppExitProviderImpl(logger, systemServiceProvider),
+            timeProvider = timeProvider,
+            database = database,
+            measureExecutorService = executorServiceRegistry.backgroundExecutor(),
+            eventProcessor = eventProcessor
         )
 
         periodicEventExporter = PeriodicEventExporterImpl(
@@ -254,6 +268,7 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
         require(::networkChangesCollector.isInitialized)
         networkChangesCollector.register()
         periodicEventExporter.onColdLaunch()
+        appExitCollector.onColdLaunch()
     }
 
     override fun onAppForeground() {

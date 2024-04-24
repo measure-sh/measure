@@ -8,6 +8,11 @@ import java.util.concurrent.ThreadFactory
  */
 internal interface ExecutorServiceRegistry {
     /**
+     * Returns an executor service which can be used to schedule background jobs.
+     */
+    fun backgroundExecutor(): MeasureExecutorService
+
+    /**
      * Returns an executor service dedicated to process events.
      */
     fun eventProcessorExecutor(): MeasureExecutorService
@@ -31,30 +36,37 @@ internal interface ExecutorServiceRegistry {
 internal class ExecutorServiceRegistryImpl : ExecutorServiceRegistry {
     private val executors: MutableMap<ExecutorServiceName, MeasureExecutorService> by lazy { mutableMapOf() }
 
+    override fun backgroundExecutor(): MeasureExecutorService {
+        return executors.getOrPut(ExecutorServiceName.AppExitCollection) {
+            val threadFactory = namedThreadFactory("msr-bg")
+            MeasureExecutorServiceImpl(threadFactory)
+        }
+    }
+
     override fun eventProcessorExecutor(): MeasureExecutorService {
         return executors.getOrPut(ExecutorServiceName.EventIngestion) {
-            val threadFactory = namedThreadFactory("msr-event-processor")
+            val threadFactory = namedThreadFactory("msr-ep")
             MeasureExecutorServiceImpl(threadFactory)
         }
     }
 
     override fun eventExportExecutor(): MeasureExecutorService {
         return executors.getOrPut(ExecutorServiceName.EventExport) {
-            val threadFactory = namedThreadFactory("msr-event-export")
+            val threadFactory = namedThreadFactory("msr-ee")
             MeasureExecutorServiceImpl(threadFactory)
         }
     }
 
     override fun cpuAndMemoryCollectionExecutor(): MeasureExecutorService {
         return executors.getOrPut(ExecutorServiceName.CpuMemoryUsageCollection) {
-            val threadFactory = namedThreadFactory("msr-cpu-mem-usage")
+            val threadFactory = namedThreadFactory("msr-cmu")
             MeasureExecutorServiceImpl(threadFactory)
         }
     }
 
     override fun exportHeartbeatExecutor(): MeasureExecutorService {
         return executors.getOrPut(ExecutorServiceName.ExportHeartbeat) {
-            val threadFactory = namedThreadFactory("msr-export-heartbeat")
+            val threadFactory = namedThreadFactory("msr-eh")
             MeasureExecutorServiceImpl(threadFactory)
         }
     }
@@ -67,6 +79,7 @@ internal class ExecutorServiceRegistryImpl : ExecutorServiceRegistry {
 }
 
 private enum class ExecutorServiceName {
+    AppExitCollection,
     EventIngestion,
     EventExport,
     CpuMemoryUsageCollection,

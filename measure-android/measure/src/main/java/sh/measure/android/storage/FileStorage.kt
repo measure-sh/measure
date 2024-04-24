@@ -33,6 +33,7 @@ internal interface FileStorage {
 private const val EXCEPTION_DIR = "measure/exception"
 private const val ANR_DIR = "measure/anr"
 private const val HTTP_DIR = "measure/http"
+private const val APP_EXIT_DIR = "measure/appexit"
 private const val ATTACHMENTS_DIR = "measure/attachments"
 
 internal class FileStorageImpl(
@@ -45,6 +46,7 @@ internal class FileStorageImpl(
            EventType.EXCEPTION ->  createFile(eventId, EXCEPTION_DIR) ?: return null
            EventType.ANR ->  createFile(eventId, ANR_DIR) ?: return null
            EventType.HTTP ->  createFile(eventId, HTTP_DIR) ?: return null
+           EventType.APP_EXIT ->  createFile(eventId, APP_EXIT_DIR) ?: return null
             else -> {
                 return null
             }
