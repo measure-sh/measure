@@ -60,17 +60,11 @@ internal class PeriodicEventExporterImpl(
     }
 
     override fun onAppForeground() {
-        heartbeat.start(
-            intervalMs = config.batchingIntervalMs,
-            initialDelayMs = config.batchingIntervalMs,
-        )
+        heartbeat.start(intervalMs = config.batchingIntervalMs)
     }
 
     override fun onColdLaunch() {
-        heartbeat.start(
-            intervalMs = config.batchingIntervalMs,
-            initialDelayMs = config.batchingIntervalMs,
-        )
+        heartbeat.start(intervalMs = config.batchingIntervalMs)
     }
 
     override fun onAppBackground() {
