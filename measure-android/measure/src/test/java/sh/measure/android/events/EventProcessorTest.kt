@@ -12,14 +12,14 @@ import sh.measure.android.fakes.FakeEventFactory
 import sh.measure.android.fakes.FakeEventFactory.toEvent
 import sh.measure.android.fakes.FakeEventStore
 import sh.measure.android.fakes.FakeIdProvider
-import sh.measure.android.fakes.FakeSessionIdProvider
+import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
 
 internal class EventProcessorTest {
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val idProvider = FakeIdProvider()
-    private val sessionIdProvider = FakeSessionIdProvider()
+    private val sessionManager = FakeSessionManager()
     private val eventStore = FakeEventStore()
     private val eventExporter = mock<EventExporter>()
 
@@ -28,7 +28,7 @@ internal class EventProcessorTest {
         executorService = executorService,
         eventStore = eventStore,
         idProvider = idProvider,
-        sessionIdProvider = sessionIdProvider,
+        sessionIdProvider = sessionManager,
         attributeProcessors = emptyList(),
         eventExporter = eventExporter,
     )
@@ -51,7 +51,7 @@ internal class EventProcessorTest {
             type = type,
             timestamp = timestamp,
             id = idProvider.id,
-            sessionId = sessionIdProvider.sessionId,
+            sessionId = sessionManager.sessionId,
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 
         assertEquals(1, eventStore.trackedEvents.size)
@@ -78,7 +78,7 @@ internal class EventProcessorTest {
             type = type,
             timestamp = timestamp,
             id = idProvider.id,
-            sessionId = sessionIdProvider.sessionId,
+            sessionId = sessionManager.sessionId,
             attachments = attachments,
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 
@@ -106,7 +106,7 @@ internal class EventProcessorTest {
             type = type,
             timestamp = timestamp,
             id = idProvider.id,
-            sessionId = sessionIdProvider.sessionId,
+            sessionId = sessionManager.sessionId,
             attributes = attributes,
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 
@@ -130,7 +130,7 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             idProvider = idProvider,
-            sessionIdProvider = sessionIdProvider,
+            sessionIdProvider = sessionManager,
             attributeProcessors = listOf(attributeProcessor),
             eventExporter = eventExporter,
         )
@@ -146,7 +146,7 @@ internal class EventProcessorTest {
             type = type,
             timestamp = timestamp,
             id = idProvider.id,
-            sessionId = sessionIdProvider.sessionId,
+            sessionId = sessionManager.sessionId,
             attributes = mutableMapOf("key" to "value"),
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 
