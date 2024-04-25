@@ -125,9 +125,11 @@ internal interface Database : Closeable {
     fun getSessions(): List<Pair<String, Int>>
 
     /**
-     * Cleans up old sessions that have been tracked or have passed the time threshold.
+     * Cleans up old sessions that were created before the given time.
+     *
+     * @param createdTime The time before which the sessions should be deleted.
      */
-    fun clearOldSessions(currentTime: Long, maxSessionPersistenceTime: Long)
+    fun clearOldSessions(createdTime: Long)
 }
 
 /**
@@ -460,29 +462,17 @@ internal class DatabaseImpl(
         }
     }
 
-    override fun clearOldSessions(currentTime: Long, maxSessionPersistenceTime: Long) {
+    override fun clearOldSessions(createdTime: Long) {
         writableDatabase.delete(
             SessionsTable.TABLE_NAME,
             "${SessionsTable.COL_CREATED_AT} <= ?",
-            arrayOf((currentTime - maxSessionPersistenceTime).toString()),
+            arrayOf(createdTime.toString()),
         )
     }
 
     override fun close() {
         writableDatabase.close()
         super.close()
-    }
-
-    internal fun getAppExitSessions(): List<String> {
-        readableDatabase.rawQuery(Sql.getAppExitSessions(), null).use {
-            val sessionIds = mutableListOf<String>()
-            while (it.moveToNext()) {
-                val sessionIdIndex = it.getColumnIndex(SessionsTable.COL_SESSION_ID)
-                val sessionId = it.getString(sessionIdIndex)
-                sessionIds.add(sessionId)
-            }
-            return sessionIds
-        }
     }
 
     @VisibleForTesting

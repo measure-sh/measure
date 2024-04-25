@@ -74,10 +74,7 @@ internal class SessionManagerImpl(
     }
 
     private fun clearOldSessions() {
-        database.clearOldSessions(
-            currentTime = timeProvider.currentTimeSinceEpochInMillis,
-            maxSessionPersistenceTime = MAX_SESSION_PERSISTENCE_TIME,
-        )
+        database.clearOldSessions(timeProvider.currentTimeSinceEpochInMillis - MAX_SESSION_PERSISTENCE_TIME)
     }
 
     private fun storeSessionId(sessionId: String): String {
