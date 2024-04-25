@@ -18,7 +18,7 @@ import java.net.Proxy
 
 internal class OkHttpDataListenerTest {
     private val delegate: EventListener = mock()
-    private val eventProcessor: OkHttpEventProcessor = mock()
+    private val eventProcessor: OkHttpEventCollector = mock()
 
     @Test
     fun `OkHttpEventListener delegates callStart to delegate and event processor`() {

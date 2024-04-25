@@ -26,7 +26,7 @@ class MeasureEventListenerFactory(
 }
 
 internal class OkHttpEventListener(
-    private val eventProcessor: OkHttpEventProcessor,
+    private val eventProcessor: OkHttpEventCollector,
     private val delegate: EventListener?,
 ) : EventListener() {
 

@@ -24,7 +24,7 @@ class OkHttpDataProcessorTest {
     private val eventProcessor = mock<EventProcessor>()
     private val timeProvider = FakeTimeProvider()
     private val config = FakeConfig()
-    private val okHttpEventProcessor: OkHttpEventProcessor = OkHttpEventProcessorImpl(
+    private val okHttpEventCollector: OkHttpEventCollector = OkHttpEventCollectorImpl(
         logger,
         eventProcessor,
         timeProvider,
@@ -32,11 +32,11 @@ class OkHttpDataProcessorTest {
     )
     private val mockWebServer = MockWebServer()
     private val clientWithInterceptor: OkHttpClient = OkHttpClient.Builder()
-        .addInterceptor(MeasureOkHttpApplicationInterceptor(okHttpEventProcessor))
-        .eventListenerFactory { okHttpEventProcessor }.build()
+        .addInterceptor(MeasureOkHttpApplicationInterceptor(okHttpEventCollector))
+        .eventListenerFactory { okHttpEventCollector }.build()
 
     private val clientWithoutInterceptor: OkHttpClient = OkHttpClient.Builder()
-        .eventListenerFactory { okHttpEventProcessor }
+        .eventListenerFactory { okHttpEventCollector }
         .build()
 
     @Before
