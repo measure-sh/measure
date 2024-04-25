@@ -58,6 +58,7 @@ class NetworkChangesCollectorTest {
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             systemServiceProvider = systemServiceProvider,
+            networkStateProvider = mock<NetworkStateProviderImpl>()
         ).register()
 
         Assert.assertEquals(0, shadowOf(connectivityManager).networkCallbacks.size)
@@ -73,6 +74,7 @@ class NetworkChangesCollectorTest {
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             systemServiceProvider = systemServiceProvider,
+            networkStateProvider = mock<NetworkStateProviderImpl>()
         ).register()
 
         Assert.assertEquals(0, shadowOf(connectivityManager).networkCallbacks.size)
@@ -88,6 +90,7 @@ class NetworkChangesCollectorTest {
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             systemServiceProvider = systemServiceProvider,
+            networkStateProvider = mock<NetworkStateProviderImpl>()
         ).register()
 
         Assert.assertEquals(1, shadowOf(connectivityManager).networkCallbacks.size)
@@ -108,6 +111,7 @@ class NetworkChangesCollectorTest {
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             systemServiceProvider = systemServiceProvider,
+            networkStateProvider = mock<NetworkStateProviderImpl>()
         ).register()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -143,6 +147,7 @@ class NetworkChangesCollectorTest {
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             systemServiceProvider = systemServiceProvider,
+            networkStateProvider = mock<NetworkStateProviderImpl>()
         ).register()
 
         triggerNetworkCapabilitiesChange(addTransportType = NetworkCapabilities.TRANSPORT_CELLULAR)
@@ -174,6 +179,7 @@ class NetworkChangesCollectorTest {
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             systemServiceProvider = systemServiceProvider,
+            networkStateProvider = mock<NetworkStateProviderImpl>()
         ).register()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -208,11 +214,49 @@ class NetworkChangesCollectorTest {
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             systemServiceProvider = systemServiceProvider,
+            networkStateProvider = mock<NetworkStateProviderImpl>()
         ).register()
 
         triggerNetworkCapabilitiesChange(addTransportType = NetworkCapabilities.TRANSPORT_CELLULAR)
 
         Mockito.verifyNoInteractions(eventProcessor)
+    }
+
+    @Test
+    @Config(sdk = [23, 33])
+    fun `NetworkChangesCollector updates network provider when network changes`() {
+        shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
+        shadowOf(context as Application).grantPermissions(Manifest.permission.READ_PHONE_STATE)
+        shadowOf(telephonyManager).setNetworkOperatorName("Test Provider")
+        setNetworkTypeInTelephonyManager(networkType = TelephonyManager.NETWORK_TYPE_NR)
+
+        val networkStateProvider = mock<NetworkStateProviderImpl>()
+        NetworkChangesCollector(
+            context = context,
+            logger = logger,
+            eventProcessor = eventProcessor,
+            timeProvider = timeProvider,
+            systemServiceProvider = systemServiceProvider,
+            networkStateProvider = networkStateProvider
+        ).register()
+
+        triggerNetworkCapabilitiesChange(addTransportType = NetworkCapabilities.TRANSPORT_WIFI)
+        verify(networkStateProvider).setNetworkState(
+            NetworkState(
+                networkType = NetworkType.WIFI,
+                networkGeneration = null,
+                networkProvider = null,
+            )
+        )
+
+        triggerNetworkCapabilitiesChange(addTransportType = NetworkCapabilities.TRANSPORT_CELLULAR)
+        verify(networkStateProvider).setNetworkState(
+            NetworkState(
+                networkType = NetworkType.CELLULAR,
+                networkGeneration = NetworkGeneration.FIFTH_GEN,
+                networkProvider = "Test Provider",
+            )
+        )
     }
 
     @Test
@@ -226,6 +270,7 @@ class NetworkChangesCollectorTest {
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             systemServiceProvider = systemServiceProvider,
+            networkStateProvider = mock<NetworkStateProviderImpl>()
         ).register()
 
         triggerNetworkCapabilitiesChange(addTransportType = NetworkCapabilities.TRANSPORT_WIFI)
@@ -259,6 +304,7 @@ class NetworkChangesCollectorTest {
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             systemServiceProvider = systemServiceProvider,
+            networkStateProvider = mock<NetworkStateProviderImpl>()
         )
 
         val shouldTrackChange = collector.shouldTrackNetworkChange(
@@ -288,6 +334,7 @@ class NetworkChangesCollectorTest {
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             systemServiceProvider = systemServiceProvider,
+            networkStateProvider = mock<NetworkStateProviderImpl>()
         )
 
         val shouldTrackChange = collector.shouldTrackNetworkChange(
@@ -317,6 +364,7 @@ class NetworkChangesCollectorTest {
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             systemServiceProvider = systemServiceProvider,
+            networkStateProvider = mock<NetworkStateProviderImpl>()
         )
 
         val shouldTrackChange = collector.shouldTrackNetworkChange(
@@ -346,6 +394,7 @@ class NetworkChangesCollectorTest {
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             systemServiceProvider = systemServiceProvider,
+            networkStateProvider = mock<NetworkStateProviderImpl>()
         )
 
         val shouldTrackChange = collector.shouldTrackNetworkChange(
@@ -370,6 +419,7 @@ class NetworkChangesCollectorTest {
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             systemServiceProvider = systemServiceProvider,
+            networkStateProvider = mock<NetworkStateProviderImpl>()
         ).register()
 
         triggerNetworkCapabilitiesChange(addTransportType = NetworkCapabilities.TRANSPORT_VPN)
@@ -392,12 +442,14 @@ class NetworkChangesCollectorTest {
     fun `NetworkChangesCollector tracks network change event when network is lost`() {
         shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
 
+        val networkStateCache = mock<NetworkStateProviderImpl>()
         NetworkChangesCollector(
             context = context,
             logger = logger,
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             systemServiceProvider = systemServiceProvider,
+            networkStateProvider = networkStateCache
         ).register()
 
         val networkCallback = shadowOf(connectivityManager).networkCallbacks.first()
@@ -419,6 +471,34 @@ class NetworkChangesCollectorTest {
 
     @Test
     @Config(sdk = [23])
+    fun `NetworkChangesCollector updates network state provider when network is lost`() {
+        shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
+
+        val networkStateCache = mock<NetworkStateProviderImpl>()
+        NetworkChangesCollector(
+            context = context,
+            logger = logger,
+            eventProcessor = eventProcessor,
+            timeProvider = timeProvider,
+            systemServiceProvider = systemServiceProvider,
+            networkStateProvider = networkStateCache
+        ).register()
+
+        val networkCallback = shadowOf(connectivityManager).networkCallbacks.first()
+        val network = ShadowNetwork.newInstance(789)
+        networkCallback.onLost(network)
+
+        verify(networkStateCache).setNetworkState(
+            NetworkState(
+                networkType = NetworkType.NO_NETWORK,
+                networkGeneration = null,
+                networkProvider = null,
+            )
+        )
+    }
+
+    @Test
+    @Config(sdk = [23])
     fun `NetworkChangesCollector discards first change with previous network when network is lost`() {
         shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
         shadowOf(context as Application).grantPermissions(Manifest.permission.READ_PHONE_STATE)
@@ -431,6 +511,7 @@ class NetworkChangesCollectorTest {
             eventProcessor = eventProcessor,
             timeProvider = timeProvider,
             systemServiceProvider = systemServiceProvider,
+            networkStateProvider = mock<NetworkStateProviderImpl>()
         ).register()
 
         triggerNetworkCapabilitiesChange(addTransportType = NetworkCapabilities.TRANSPORT_CELLULAR)

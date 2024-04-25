@@ -50,6 +50,7 @@ internal class NetworkChangesCollector(
     private val logger: Logger,
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
+    private val networkStateProvider: NetworkStateProvider,
 ) {
     private var currentNetworkType: String? = null
     private var currentNetworkGeneration: String? = null
@@ -109,6 +110,9 @@ internal class NetworkChangesCollector(
             val previousNetworkGeneration = currentNetworkGeneration
             val newNetworkGeneration = getNetworkGenerationIfAvailable(newNetworkType)
             val networkProvider = getNetworkOperatorName(newNetworkType)
+            networkStateProvider.setNetworkState(
+                NetworkState(newNetworkType, newNetworkGeneration, networkProvider)
+            )
 
             // for Android O+, the callback is called as soon as it's registered. However, we
             // only want to track changes.
@@ -152,6 +156,9 @@ internal class NetworkChangesCollector(
             val previousNetworkType = currentNetworkType
             val previousNetworkGeneration = currentNetworkGeneration
             val newNetworkType = NetworkType.NO_NETWORK
+            networkStateProvider.setNetworkState(
+                NetworkState(newNetworkType, null, null)
+            )
             if (previousNetworkType == newNetworkType) {
                 return
             }

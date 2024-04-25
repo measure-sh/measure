@@ -28,9 +28,9 @@ import sh.measure.android.lifecycle.ApplicationLifecycleStateListener
 import sh.measure.android.lifecycle.LifecycleCollector
 import sh.measure.android.logger.AndroidLogger
 import sh.measure.android.logger.LogLevel
+import sh.measure.android.networkchange.InitialNetworkStateProviderImpl
 import sh.measure.android.networkchange.NetworkChangesCollector
-import sh.measure.android.networkchange.NetworkInfoProvider
-import sh.measure.android.networkchange.NetworkInfoProviderImpl
+import sh.measure.android.networkchange.NetworkStateProviderImpl
 import sh.measure.android.okhttp.OkHttpEventProcessor
 import sh.measure.android.okhttp.OkHttpEventProcessorImpl
 import sh.measure.android.performance.ComponentCallbacksCollector
@@ -105,12 +105,14 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
 
         val prefsStorage: PrefsStorage = PrefsStorageImpl(context)
         userAttributeProcessor = UserAttributeProcessor()
-        val networkInfoProvider = NetworkInfoProviderImpl(context, logger, systemServiceProvider)
-        val networkStateAttributeProcessor = NetworkStateAttributeProcessor(networkInfoProvider)
         val deviceAttributeProcessor = DeviceAttributeProcessor(logger, context, localeProvider)
         val appAttributeProcessor = AppAttributeProcessor(context)
         val installationIdAttributeProcessor =
             InstallationIdAttributeProcessor(prefsStorage, idProvider)
+        val networkStateProviderImpl = NetworkStateProviderImpl(
+            InitialNetworkStateProviderImpl(context, logger, systemServiceProvider)
+        ).apply { init() }
+        val networkStateAttributeProcessor = NetworkStateAttributeProcessor(networkStateProviderImpl)
 
         val fileStorage: FileStorage = FileStorageImpl(context.filesDir.path, logger)
         val database: Database = DatabaseImpl(context, logger)
@@ -120,7 +122,7 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             database,
             idProvider,
         )
-        val sessionManager = SessionManager(
+        val sessionManager = SessionManagerImpl(
             idProvider,
             database,
             executorServiceRegistry.backgroundExecutor(),
@@ -228,6 +230,7 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             logger,
             eventProcessor,
             timeProvider,
+            networkStateProviderImpl
         )
 
         logger.log(LogLevel.Debug, "Measure initialization completed")

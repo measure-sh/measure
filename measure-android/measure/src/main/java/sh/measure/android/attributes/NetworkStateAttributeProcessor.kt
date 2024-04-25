@@ -1,6 +1,7 @@
 package sh.measure.android.attributes
 
-import sh.measure.android.networkchange.NetworkInfoProvider
+import sh.measure.android.networkchange.NetworkStateProvider
+import sh.measure.android.networkchange.NetworkType
 import sh.measure.android.tracing.InternalTrace
 
 /**
@@ -8,9 +9,9 @@ import sh.measure.android.tracing.InternalTrace
  * session. This class computes the attributes every time [appendAttributes] is called.
  */
 internal class NetworkStateAttributeProcessor(
-    private val networkInfoProvider: NetworkInfoProvider,
+    private val networkStateProvider: NetworkStateProvider,
 ) : AttributeProcessor {
-    private var networkType: String? = null
+    private var networkType: String? = NetworkType.UNKNOWN
     private var networkGeneration: String? = null
     private var networkProviderName: String? = null
 
@@ -26,9 +27,9 @@ internal class NetworkStateAttributeProcessor(
     }
 
     private fun computeAttributes() {
-        val type = networkInfoProvider.getNetworkType()
-        networkType = type
-        networkGeneration = networkInfoProvider.getNetworkGeneration(type).toString()
-        networkProviderName = networkInfoProvider.getNetworkProvider(type)
+        val networkState = networkStateProvider.getNetworkState()
+        networkType = networkState?.networkType
+        networkGeneration = networkState?.networkGeneration
+        networkProviderName = networkState?.networkProvider
     }
 }

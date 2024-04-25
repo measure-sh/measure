@@ -1,7 +1,7 @@
 package sh.measure.android
 
 import android.app.ApplicationExitInfo
-import sh.measure.android.SessionManager.Companion.MAX_SESSION_PERSISTENCE_TIME
+import sh.measure.android.SessionManagerImpl.Companion.MAX_SESSION_PERSISTENCE_TIME
 import sh.measure.android.appexit.AppExitCollector
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.storage.Database
@@ -9,7 +9,10 @@ import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.PidProvider
 import sh.measure.android.utils.TimeProvider
 
-internal interface SessionIdProvider {
+internal interface SessionManager {
+    /**
+     * Returns the current session Id.
+     */
     val sessionId: String
 
     /**
@@ -40,13 +43,13 @@ internal interface SessionIdProvider {
  * session and the process ID. Sessions are deleted from database once the app exit for the session
  * has been tracked or if the session is older than [MAX_SESSION_PERSISTENCE_TIME].
  */
-internal class SessionManager(
+internal class SessionManagerImpl(
     private val idProvider: IdProvider,
     private val database: Database,
     private val executorService: MeasureExecutorService,
     private val pidProvider: PidProvider,
     private val timeProvider: TimeProvider,
-) : SessionIdProvider {
+) : SessionManager {
 
     internal companion object {
         // 15 days
