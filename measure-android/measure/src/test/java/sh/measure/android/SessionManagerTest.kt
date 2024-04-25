@@ -6,7 +6,7 @@ import org.junit.Test
 import org.mockito.Mockito.atMostOnce
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
-import sh.measure.android.SessionManager.Companion.MAX_SESSION_PERSISTENCE_TIME
+import sh.measure.android.SessionManagerImpl.Companion.MAX_SESSION_PERSISTENCE_TIME
 import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakePidProvider
 import sh.measure.android.fakes.FakeTimeProvider
@@ -20,7 +20,7 @@ class SessionManagerTest {
     private val pidProvider = FakePidProvider()
     private val timeProvider = FakeTimeProvider()
 
-    private val sessionManager = SessionManager(
+    private val sessionManager = SessionManagerImpl(
         database = database,
         idProvider = idProvider,
         pidProvider = pidProvider,

@@ -21,15 +21,15 @@ import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.utils.SystemServiceProviderImpl
 
 @RunWith(AndroidJUnit4::class)
-internal class NetworkInfoProviderImplTest {
+internal class InitialInitialNetworkStateProviderTest {
 
     private val logger = NoopLogger()
     private val context = RuntimeEnvironment.getApplication()
     private val systemServiceProvider = SystemServiceProviderImpl(context)
 
     @Test
-    fun `NetworkInfoProviderImpl returns null network generation for non cellular networks`() {
-        val networkGeneration = NetworkInfoProviderImpl(
+    fun `returns null network generation for non cellular networks`() {
+        val networkGeneration = InitialNetworkStateProviderImpl(
             context = context,
             logger = logger,
             systemServiceProvider = systemServiceProvider,
@@ -39,11 +39,11 @@ internal class NetworkInfoProviderImplTest {
     }
 
     @Test
-    fun `NetworkInfoProviderImpl returns correct network generation with permission`() {
+    fun `returns correct network generation with permission`() {
         shadowOf(context as Application).grantPermissions(Manifest.permission.READ_PHONE_STATE)
         shadowOf(systemServiceProvider.telephonyManager).setNetworkType(TelephonyManager.NETWORK_TYPE_LTE)
 
-        val networkGeneration = NetworkInfoProviderImpl(
+        val networkGeneration = InitialNetworkStateProviderImpl(
             context = context,
             logger = logger,
             systemServiceProvider = systemServiceProvider,
@@ -53,11 +53,11 @@ internal class NetworkInfoProviderImplTest {
     }
 
     @Test
-    fun `NetworkInfoProviderImpl returns null network generation without permission`() {
+    fun `returns null network generation without permission`() {
         shadowOf(context as Application).denyPermissions(Manifest.permission.READ_PHONE_STATE)
         shadowOf(systemServiceProvider.telephonyManager).setNetworkType(TelephonyManager.NETWORK_TYPE_LTE)
 
-        val networkGeneration = NetworkInfoProviderImpl(
+        val networkGeneration = InitialNetworkStateProviderImpl(
             context = context,
             logger = logger,
             systemServiceProvider = systemServiceProvider,
@@ -67,8 +67,8 @@ internal class NetworkInfoProviderImplTest {
     }
 
     @Test
-    fun `NetworkInfoProviderImpl returns null network provider for non cellular networks`() {
-        val networkProvider = NetworkInfoProviderImpl(
+    fun `returns null network provider for non cellular networks`() {
+        val networkProvider = InitialNetworkStateProviderImpl(
             context = context,
             logger = logger,
             systemServiceProvider = systemServiceProvider,
@@ -78,9 +78,9 @@ internal class NetworkInfoProviderImplTest {
     }
 
     @Test
-    fun `NetworkInfoProviderImpl returns null network provider for blank network operator name`() {
+    fun `returns null network provider for blank network operator name`() {
         shadowOf(systemServiceProvider.telephonyManager).setNetworkOperatorName("")
-        val networkProvider = NetworkInfoProviderImpl(
+        val networkProvider = InitialNetworkStateProviderImpl(
             context = context,
             logger = logger,
             systemServiceProvider = systemServiceProvider,
@@ -90,9 +90,9 @@ internal class NetworkInfoProviderImplTest {
     }
 
     @Test
-    fun `NetworkInfoProviderImpl returns correct network provider`() {
+    fun `returns correct network provider`() {
         shadowOf(systemServiceProvider.telephonyManager).setNetworkOperatorName("test_provider")
-        val networkProvider = NetworkInfoProviderImpl(
+        val networkProvider = InitialNetworkStateProviderImpl(
             context = context,
             logger = logger,
             systemServiceProvider = systemServiceProvider,
@@ -102,9 +102,9 @@ internal class NetworkInfoProviderImplTest {
     }
 
     @Test
-    fun `NetworkInfoProviderImpl returns null network type without network state permission`() {
+    fun `returns null network type without network state permission`() {
         shadowOf(context as Application).denyPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
-        val networkType = NetworkInfoProviderImpl(
+        val networkType = InitialNetworkStateProviderImpl(
             context = context,
             logger = logger,
             systemServiceProvider = systemServiceProvider,
@@ -116,12 +116,12 @@ internal class NetworkInfoProviderImplTest {
     @Suppress("DEPRECATION")
     @Test
     @Config(sdk = [21])
-    fun `NetworkInfoProviderImpl returns correct network type below API 23`() {
+    fun `returns correct network type below API 23`() {
         shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
         shadowOf(systemServiceProvider.connectivityManager).setActiveNetworkInfo(
             systemServiceProvider.connectivityManager!!.getNetworkInfo(ConnectivityManager.TYPE_WIFI),
         )
-        val networkType = NetworkInfoProviderImpl(
+        val networkType = InitialNetworkStateProviderImpl(
             context = context,
             logger = logger,
             systemServiceProvider = systemServiceProvider,
@@ -132,7 +132,7 @@ internal class NetworkInfoProviderImplTest {
 
     @Test
     @Config(sdk = [23, 33])
-    fun `NetworkInfoProviderImpl returns correct network type above API 23`() {
+    fun `returns correct network type above API 23`() {
         shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
         val nc = ShadowNetworkCapabilities.newInstance()
         val network = ShadowNetwork.newInstance(789)
@@ -151,7 +151,7 @@ internal class NetworkInfoProviderImplTest {
             ),
         )
 
-        val networkType = NetworkInfoProviderImpl(
+        val networkType = InitialNetworkStateProviderImpl(
             context = context,
             logger = logger,
             systemServiceProvider = systemServiceProvider,
