@@ -353,8 +353,8 @@ class DatabaseTest {
 
         val attachmentPackets = database.getAttachmentPackets(listOf(event1.id, event2.id))
         assertEquals(2, attachmentPackets.size)
-        assertAttachmentPacket(attachment1, event1, attachmentPackets[0])
-        assertAttachmentPacket(attachment2, event2, attachmentPackets[1])
+        assertAttachmentPacket(attachment1, attachmentPackets[0])
+        assertAttachmentPacket(attachment2, attachmentPackets[1])
     }
 
     @Test
@@ -435,7 +435,7 @@ class DatabaseTest {
 
         val attachmentPackets = database.getAttachmentPacket(event.id)
         assertEquals(1, attachmentPackets.size)
-        assertAttachmentPacket(attachment, event, attachmentPackets[0])
+        assertAttachmentPacket(attachment, attachmentPackets[0])
     }
 
     @Test
@@ -549,14 +549,10 @@ class DatabaseTest {
 
     private fun assertAttachmentPacket(
         attachment: AttachmentEntity,
-        event: EventEntity,
         attachmentPacket: AttachmentPacket,
     ) {
         assertEquals(attachment.id, attachmentPacket.id)
-        assertEquals(attachment.type, attachmentPacket.type)
         assertEquals(attachment.path, attachmentPacket.filePath)
-        assertEquals(attachment.name, attachmentPacket.name)
-        assertEquals(event.id, attachmentPacket.eventId)
     }
 
     private fun queryAllEvents(db: SQLiteDatabase): Cursor {

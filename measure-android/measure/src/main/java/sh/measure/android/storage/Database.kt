@@ -348,18 +348,12 @@ internal class DatabaseImpl(
             val attachmentPackets = mutableListOf<AttachmentPacket>()
             while (it.moveToNext()) {
                 val idIndex = it.getColumnIndex(AttachmentTable.COL_ID)
-                val eventIdIndex = it.getColumnIndex(AttachmentTable.COL_EVENT_ID)
-                val typeIndex = it.getColumnIndex(AttachmentTable.COL_TYPE)
                 val filePathIndex = it.getColumnIndex(AttachmentTable.COL_FILE_PATH)
-                val nameIndex = it.getColumnIndex(AttachmentTable.COL_NAME)
 
                 val id = it.getString(idIndex)
-                val eventId = it.getString(eventIdIndex)
-                val type = it.getString(typeIndex)
                 val filePath = it.getString(filePathIndex)
-                val name = it.getString(nameIndex)
 
-                attachmentPackets.add(AttachmentPacket(id, eventId, type, filePath, name))
+                attachmentPackets.add(AttachmentPacket(id, filePath))
             }
             return attachmentPackets
         }
@@ -370,16 +364,12 @@ internal class DatabaseImpl(
             val attachmentPackets = mutableListOf<AttachmentPacket>()
             while (it.moveToNext()) {
                 val idIndex = it.getColumnIndex(AttachmentTable.COL_ID)
-                val typeIndex = it.getColumnIndex(AttachmentTable.COL_TYPE)
                 val filePathIndex = it.getColumnIndex(AttachmentTable.COL_FILE_PATH)
-                val nameIndex = it.getColumnIndex(AttachmentTable.COL_NAME)
 
                 val id = it.getString(idIndex)
-                val type = it.getString(typeIndex)
                 val filePath = it.getString(filePathIndex)
-                val name = it.getString(nameIndex)
 
-                attachmentPackets.add(AttachmentPacket(id, eventId, type, filePath, name))
+                attachmentPackets.add(AttachmentPacket(id, filePath))
             }
             return attachmentPackets
         }
