@@ -1,6 +1,7 @@
 package sh.measure.android
 
 import android.app.ApplicationExitInfo
+import sh.measure.android.SessionManager.Companion.MAX_SESSION_PERSISTENCE_TIME
 import sh.measure.android.appexit.AppExitCollector
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.storage.Database
@@ -10,16 +11,34 @@ import sh.measure.android.utils.TimeProvider
 
 internal interface SessionIdProvider {
     val sessionId: String
+
+    /**
+     * Returns a list of all sessions along with the process ID attached to the session.
+     *
+     * @return A list of pairs where the first element is the session ID and the second element is
+     * the process ID.
+     */
+    fun getSessions(): List<Pair<String, Int>>
+
+    /**
+     * Deletes the session with given sessionId.
+     *
+     * @param sessionId The session ID to delete.
+     */
+    fun deleteSession(sessionId: String)
 }
 
 /**
  * Manages creation of sessions.
  *
- * A session is created once and then kept in memory. A new session is created when the app
- * releases it's memory, which typically happens when the system kills the app.
+ * A session is created once and then kept in memory until the system kills the app.
  *
  * Sessions are also persisted to database and tied to a process ID. This is useful for
  * querying things like [ApplicationExitInfo]. See [AppExitCollector] for more details.
+ *
+ * Sessions are currently only used for tracking app exits by providing a link between the
+ * session and the process ID. Sessions are deleted from database once the app exit for the session
+ * has been tracked or if the session is older than [MAX_SESSION_PERSISTENCE_TIME].
  */
 internal class SessionManager(
     private val idProvider: IdProvider,
@@ -41,6 +60,14 @@ internal class SessionManager(
             clearOldSessions()
         }
         return@lazy id
+    }
+
+    override fun getSessions(): List<Pair<String, Int>> {
+        return database.getSessions()
+    }
+
+    override fun deleteSession(sessionId: String) {
+        database.deleteSession(sessionId)
     }
 
     private fun clearOldSessions() {

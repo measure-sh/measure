@@ -117,12 +117,12 @@ internal interface Database : Closeable {
      *
      * @param sessionId the session ID for which the app exit has been tracked.
      */
-    fun updateAppExitTracked(sessionId: String)
+    fun deleteSession(sessionId: String)
 
     /**
      * Returns a list of session Id and process ID pairs for whom app exit has not yet been tracked.
      */
-    fun getSessionsWhereAppExitIsNotTracked(): List<Pair<String, Int>>
+    fun getSessions(): List<Pair<String, Int>>
 
     /**
      * Cleans up old sessions that have been tracked or have passed the time threshold.
@@ -436,18 +436,15 @@ internal class DatabaseImpl(
         return result != -1L
     }
 
-    override fun updateAppExitTracked(sessionId: String) {
-        writableDatabase.update(
+    override fun deleteSession(sessionId: String) {
+        writableDatabase.delete(
             SessionsTable.TABLE_NAME,
-            ContentValues().apply {
-                put(SessionsTable.COL_APP_EXIT_TRACKED, 1)
-            },
             "${SessionsTable.COL_SESSION_ID} = ?",
             arrayOf(sessionId),
         )
     }
 
-    override fun getSessionsWhereAppExitIsNotTracked(): List<Pair<String, Int>> {
+    override fun getSessions(): List<Pair<String, Int>> {
         readableDatabase.rawQuery(Sql.getSessionsWhereAppExitIsNotTracked(), null).use {
             val pairs = mutableListOf<Pair<String, Int>>()
             while (it.moveToNext()) {
@@ -476,8 +473,8 @@ internal class DatabaseImpl(
         super.close()
     }
 
-    internal fun getSessionsWithTrackedAppExits(): List<String> {
-        readableDatabase.rawQuery(Sql.getSessionsWithTrackedAppExits(), null).use {
+    internal fun getAppExitSessions(): List<String> {
+        readableDatabase.rawQuery(Sql.getAppExitSessions(), null).use {
             val sessionIds = mutableListOf<String>()
             while (it.moveToNext()) {
                 val sessionIdIndex = it.getColumnIndex(SessionsTable.COL_SESSION_ID)
