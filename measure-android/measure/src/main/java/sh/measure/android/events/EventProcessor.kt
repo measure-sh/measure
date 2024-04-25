@@ -9,7 +9,7 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.EventStore
 import sh.measure.android.utils.IdProvider
-import sh.measure.android.SessionIdProvider
+import sh.measure.android.SessionManager
 
 /**
  * An interface for processing events. It is responsible for tracking events, processing them
@@ -69,7 +69,7 @@ internal class EventProcessorImpl(
     private val executorService: MeasureExecutorService,
     private val eventStore: EventStore,
     private val idProvider: IdProvider,
-    private val sessionIdProvider: SessionIdProvider,
+    private val sessionIdProvider: SessionManager,
     private val attributeProcessors: List<AttributeProcessor>,
     private val eventExporter: EventExporter,
 ) : EventProcessor {

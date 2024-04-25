@@ -4,7 +4,6 @@ import sh.measure.android.SessionManager
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.executors.MeasureExecutorService
-import sh.measure.android.storage.Database
 import sh.measure.android.utils.TimeProvider
 
 internal class AppExitCollector(
