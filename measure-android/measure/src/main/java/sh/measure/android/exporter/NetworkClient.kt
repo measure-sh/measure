@@ -126,6 +126,6 @@ internal class NetworkClientImpl(
         } else {
             throw IllegalStateException("EventPacket must have either serializedData or serializedDataFilePath")
         }
-        return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"timestamp\":$timestamp,\"type\":\"$type\",\"$type\":$data,\"attachments\":$serializedAttachments,\"attributes\":$serializedAttributes}"
+        return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"timestamp\":$timestamp,\"type\":\"$type\",\"$type\":$data,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes}"
     }
 }
