@@ -59,7 +59,7 @@ internal object FakeEventFactory {
 
     fun <T> T.toEvent(
         id: String = "event-id",
-        timestamp: Long = 218723832L,
+        timestamp: String = "2024-03-18T12:50:12.62600000Z",
         type: String,
         sessionId: String = "session-id",
         attachments: List<Attachment>? = null,
@@ -311,7 +311,7 @@ internal object FakeEventFactory {
         return EventEntity(
             id = eventId,
             type = "type",
-            timestamp = 123456789L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "session-id",
             attachmentsSize = attachmentsSize,
             serializedData = "serialized-data",

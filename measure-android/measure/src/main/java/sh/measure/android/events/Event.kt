@@ -20,7 +20,7 @@ internal data class Event<T>(
      * The timestamp of the event. The time when the event was triggered. Measured in milliseconds
      * since epoch.
      */
-    val timestamp: Long,
+    val timestamp: String,
 
     /**
      * The type of the event. See [EventType] for the list of event types.

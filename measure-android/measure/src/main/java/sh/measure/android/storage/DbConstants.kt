@@ -48,7 +48,7 @@ internal object Sql {
         CREATE TABLE ${EventTable.TABLE_NAME} (
             ${EventTable.COL_ID} TEXT PRIMARY KEY,
             ${EventTable.COL_TYPE} TEXT NOT NULL,
-            ${EventTable.COL_TIMESTAMP} INTEGER NOT NULL,
+            ${EventTable.COL_TIMESTAMP} TEXT NOT NULL,
             ${EventTable.COL_SESSION_ID} TEXT NOT NULL,
             ${EventTable.COL_DATA_FILE_PATH} TEXT DEFAULT NULL,
             ${EventTable.COL_DATA_SERIALIZED} TEXT DEFAULT NULL,
@@ -63,7 +63,7 @@ internal object Sql {
             ${AttachmentTable.COL_ID} TEXT PRIMARY KEY,
             ${AttachmentTable.COL_EVENT_ID} TEXT NOT NULL,
             ${AttachmentTable.COL_TYPE} TEXT NOT NULL,
-            ${AttachmentTable.COL_TIMESTAMP} INTEGER NOT NULL,
+            ${AttachmentTable.COL_TIMESTAMP} TEXT NOT NULL,
             ${AttachmentTable.COL_SESSION_ID} TEXT NOT NULL,
             ${AttachmentTable.COL_FILE_PATH} TEXT DEFAULT NULL,
             ${AttachmentTable.COL_NAME} TEXT DEFAULT NULL,
@@ -102,7 +102,7 @@ internal object Sql {
             WHERE ${EventTable.COL_ID} NOT IN (
                 SELECT ${EventsBatchTable.COL_EVENT_ID} FROM ${EventsBatchTable.TABLE_NAME}
             )
-            ORDER BY ${EventTable.COL_TIMESTAMP} ${if (ascending) "ASC" else "DESC"}
+            ORDER BY datetime(${EventTable.COL_TIMESTAMP}) ${if (ascending) "ASC" else "DESC"}
             LIMIT $eventCount
         """
     }
@@ -179,15 +179,6 @@ internal object Sql {
     }
 
     fun getSessionsWhereAppExitIsNotTracked(): String {
-        return """
-            SELECT
-                ${SessionsTable.COL_SESSION_ID},
-                ${SessionsTable.COL_PID}
-            FROM ${SessionsTable.TABLE_NAME}
-        """.trimIndent()
-    }
-
-    fun getAppExitSessions(): String? {
         return """
             SELECT
                 ${SessionsTable.COL_SESSION_ID},

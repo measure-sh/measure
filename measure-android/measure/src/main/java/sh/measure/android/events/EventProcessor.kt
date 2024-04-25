@@ -10,6 +10,7 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.EventStore
 import sh.measure.android.utils.IdProvider
+import sh.measure.android.utils.iso8601Timestamp
 
 /**
  * An interface for processing events. It is responsible for tracking events, processing them
@@ -109,7 +110,15 @@ internal class EventProcessorImpl(
         fun createEvent(sessionId: String?): Event<T> {
             val id = idProvider.createId()
             val resolvedSessionId = sessionId ?: sessionIdProvider.sessionId
-            return Event(id, resolvedSessionId, timestamp, type, data, attachments, attributes)
+            return Event(
+                id = id,
+                sessionId = resolvedSessionId,
+                timestamp = timestamp.iso8601Timestamp(),
+                type = type,
+                data = data,
+                attachments = attachments,
+                attributes = attributes
+            )
         }
 
         fun applyAttributes(event: Event<T>) {

@@ -11,7 +11,7 @@ class EventEntityTest {
             EventEntity(
                 id = "event-id",
                 type = "test",
-                timestamp = 1234567890L,
+                timestamp = "2024-03-18T12:50:12.62600000Z",
                 sessionId = "987",
                 attachmentEntities = emptyList(),
                 serializedAttributes = null,
@@ -26,7 +26,7 @@ class EventEntityTest {
             EventEntity(
                 id = "event-id",
                 type = "test",
-                timestamp = 1234567890L,
+                timestamp = "2024-03-18T12:50:12.62600000Z",
                 sessionId = "987",
                 filePath = "test-file-path",
                 serializedData = "test-data",
