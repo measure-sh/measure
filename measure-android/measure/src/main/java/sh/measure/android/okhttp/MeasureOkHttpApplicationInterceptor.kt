@@ -11,7 +11,7 @@ import sh.measure.android.Measure
  */
 @Suppress("unused")
 class MeasureOkHttpApplicationInterceptor internal constructor(
-    private val eventProcessor: OkHttpEventProcessor,
+    private val eventProcessor: OkHttpEventCollector,
 ) : Interceptor {
 
     constructor() : this(Measure.getOkHttpEventProcessor())

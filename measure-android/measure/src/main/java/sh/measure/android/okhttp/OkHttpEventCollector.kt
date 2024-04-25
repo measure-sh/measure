@@ -15,17 +15,17 @@ import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.TimeProvider
 import java.io.IOException
 
-internal abstract class OkHttpEventProcessor : EventListener() {
+internal abstract class OkHttpEventCollector : EventListener() {
     open fun request(call: Call, request: Request) {}
     open fun response(call: Call, request: Request, response: Response) {}
 }
 
-internal class OkHttpEventProcessorImpl(
+internal class OkHttpEventCollectorImpl(
     private val logger: Logger,
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
     private val config: Config,
-) : OkHttpEventProcessor() {
+) : OkHttpEventCollector() {
     private val httpDataBuilders: MutableMap<String, HttpData.Builder> by lazy(
         LazyThreadSafetyMode.NONE,
     ) { mutableMapOf() }

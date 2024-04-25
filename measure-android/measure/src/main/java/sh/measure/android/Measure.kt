@@ -31,8 +31,8 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.networkchange.InitialNetworkStateProviderImpl
 import sh.measure.android.networkchange.NetworkChangesCollector
 import sh.measure.android.networkchange.NetworkStateProviderImpl
-import sh.measure.android.okhttp.OkHttpEventProcessor
-import sh.measure.android.okhttp.OkHttpEventProcessorImpl
+import sh.measure.android.okhttp.OkHttpEventCollector
+import sh.measure.android.okhttp.OkHttpEventCollectorImpl
 import sh.measure.android.performance.ComponentCallbacksCollector
 import sh.measure.android.performance.CpuUsageCollector
 import sh.measure.android.performance.DefaultMemoryReader
@@ -62,7 +62,7 @@ import sh.measure.android.utils.UUIDProvider
 object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
     private lateinit var timeProvider: TimeProvider
     private lateinit var eventProcessor: EventProcessor
-    private lateinit var okHttpEventProcessor: OkHttpEventProcessor
+    private lateinit var okHttpEventCollector: OkHttpEventCollector
     private lateinit var userAttributeProcessor: UserAttributeProcessor
 
     @SuppressLint("StaticFieldLeak") // TODO: to be fixed when Measure is refactored
@@ -170,8 +170,8 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
         )
 
         // Register data collectors
-        okHttpEventProcessor =
-            OkHttpEventProcessorImpl(logger, eventProcessor, timeProvider, config)
+        okHttpEventCollector =
+            OkHttpEventCollectorImpl(logger, eventProcessor, timeProvider, config)
         UnhandledExceptionCollector(
             logger,
             eventProcessor,
@@ -252,9 +252,9 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
         return timeProvider
     }
 
-    internal fun getOkHttpEventProcessor(): OkHttpEventProcessor {
-        require(::okHttpEventProcessor.isInitialized)
-        return okHttpEventProcessor
+    internal fun getOkHttpEventProcessor(): OkHttpEventCollector {
+        require(::okHttpEventCollector.isInitialized)
+        return okHttpEventCollector
     }
 
     @VisibleForTesting

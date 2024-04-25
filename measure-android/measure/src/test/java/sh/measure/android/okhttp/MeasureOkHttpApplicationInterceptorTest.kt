@@ -14,7 +14,7 @@ import org.mockito.kotlin.verify
 class MeasureOkHttpApplicationInterceptorTest {
     private lateinit var mockWebServer: MockWebServer
     private lateinit var client: OkHttpClient
-    private val eventProcessor = mock<OkHttpEventProcessor>()
+    private val eventProcessor = mock<OkHttpEventCollector>()
 
     @Before
     fun setUp() {
