@@ -31,7 +31,7 @@ internal class AppExitCollector(
                     it.second,
                     timeProvider.currentTimeSinceEpochInMillis,
                     EventType.APP_EXIT,
-                    sessionId = it.first
+                    sessionId = it.first,
                 )
                 sessionManager.deleteSession(it.first)
             }

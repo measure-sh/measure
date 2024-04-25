@@ -23,7 +23,11 @@ class AppExitCollectorTest {
     private val sessionManager = mock<SessionManager>()
 
     private val appExitCollector = AppExitCollector(
-        appExitProvider, executorService, eventProcessor, timeProvider, sessionManager
+        appExitProvider,
+        executorService,
+        eventProcessor,
+        timeProvider,
+        sessionManager,
     )
 
     @Before
@@ -39,7 +43,7 @@ class AppExitCollectorTest {
             data = any<AppExit>(),
             timestamp = any<Long>(),
             type = any<String>(),
-            sessionId = any<String>()
+            sessionId = any<String>(),
         )
     }
 
@@ -53,7 +57,7 @@ class AppExitCollectorTest {
             pid = 7654,
             trace = null,
             process_name = "com.example.app",
-            importance = "IMPORTANCE_VISIBLE"
+            importance = "IMPORTANCE_VISIBLE",
         )
         appExitProvider.appExits = mapOf(7654 to appExit)
 
@@ -61,7 +65,7 @@ class AppExitCollectorTest {
             data = any<AppExit>(),
             timestamp = any<Long>(),
             type = any<String>(),
-            sessionId = any<String>()
+            sessionId = any<String>(),
         )
     }
 
@@ -78,7 +82,7 @@ class AppExitCollectorTest {
             data = any<AppExit>(),
             timestamp = any<Long>(),
             type = any<String>(),
-            sessionId = any<String>()
+            sessionId = any<String>(),
         )
     }
 
@@ -90,7 +94,7 @@ class AppExitCollectorTest {
             pid = pid,
             trace = null,
             process_name = "com.example.app",
-            importance = "IMPORTANCE_VISIBLE"
+            importance = "IMPORTANCE_VISIBLE",
         )
         appExitProvider.appExits = mapOf(pid to appExit)
         `when`(sessionManager.getSessions()).thenReturn(listOf(Pair("session-id", 9876)))
@@ -101,7 +105,7 @@ class AppExitCollectorTest {
             data = any<AppExit>(),
             timestamp = any<Long>(),
             type = any<String>(),
-            sessionId = any<String>()
+            sessionId = any<String>(),
         )
     }
 
@@ -114,7 +118,7 @@ class AppExitCollectorTest {
             pid = pid,
             trace = null,
             process_name = "com.example.app",
-            importance = "IMPORTANCE_VISIBLE"
+            importance = "IMPORTANCE_VISIBLE",
         )
         appExitProvider.appExits = mapOf(pid to appExit)
         `when`(sessionManager.getSessions()).thenReturn(listOf(Pair(sessionId, pid)))
@@ -125,7 +129,7 @@ class AppExitCollectorTest {
             data = appExit,
             timestamp = timeProvider.currentTimeSinceEpochInMillis,
             type = EventType.APP_EXIT,
-            sessionId = sessionId
+            sessionId = sessionId,
         )
     }
 }

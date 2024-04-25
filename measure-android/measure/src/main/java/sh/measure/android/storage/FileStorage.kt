@@ -12,7 +12,7 @@ internal interface FileStorage {
      *
      * @return The path of the file if the write was successful, otherwise null.
      */
-    fun writeSerializedEventData(eventId: String, eventType:String, serializedData: String): String?
+    fun writeSerializedEventData(eventId: String, eventType: String, serializedData: String): String?
 
     /**
      * Gets a file from the given path.
@@ -42,11 +42,11 @@ internal class FileStorageImpl(
 ) : FileStorage {
 
     override fun writeSerializedEventData(eventId: String, eventType: String, serializedData: String): String? {
-        val file = when(eventType) {
-           EventType.EXCEPTION ->  createFile(eventId, EXCEPTION_DIR) ?: return null
-           EventType.ANR ->  createFile(eventId, ANR_DIR) ?: return null
-           EventType.HTTP ->  createFile(eventId, HTTP_DIR) ?: return null
-           EventType.APP_EXIT ->  createFile(eventId, APP_EXIT_DIR) ?: return null
+        val file = when (eventType) {
+            EventType.EXCEPTION -> createFile(eventId, EXCEPTION_DIR) ?: return null
+            EventType.ANR -> createFile(eventId, ANR_DIR) ?: return null
+            EventType.HTTP -> createFile(eventId, HTTP_DIR) ?: return null
+            EventType.APP_EXIT -> createFile(eventId, APP_EXIT_DIR) ?: return null
             else -> {
                 return null
             }

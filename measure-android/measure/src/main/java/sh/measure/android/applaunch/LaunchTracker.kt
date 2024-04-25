@@ -9,7 +9,6 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.mainHandler
 import sh.measure.android.postAtFrontOfQueueAsync
-import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.isForegroundProcess
 
 internal interface LaunchCallbacks {

@@ -1,5 +1,6 @@
 package sh.measure.android.events
 
+import sh.measure.android.SessionManager
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.appendAttributes
@@ -9,7 +10,6 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.EventStore
 import sh.measure.android.utils.IdProvider
-import sh.measure.android.SessionManager
 
 /**
  * An interface for processing events. It is responsible for tracking events, processing them
@@ -43,7 +43,7 @@ internal interface EventProcessor {
         data: T,
         timestamp: Long,
         type: String,
-        sessionId: String
+        sessionId: String,
     )
 
     /**
@@ -102,13 +102,13 @@ internal class EventProcessorImpl(
         type: String,
         attributes: MutableMap<String, Any?>,
         attachments: List<Attachment>?,
-        sessionId: String?
+        sessionId: String?,
     ) {
         val threadName = Thread.currentThread().name
 
         fun createEvent(sessionId: String?): Event<T> {
             val id = idProvider.createId()
-            val resolvedSessionId = sessionId?: sessionIdProvider.sessionId
+            val resolvedSessionId = sessionId ?: sessionIdProvider.sessionId
             return Event(id, resolvedSessionId, timestamp, type, data, attachments, attributes)
         }
 

@@ -110,7 +110,7 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
         val installationIdAttributeProcessor =
             InstallationIdAttributeProcessor(prefsStorage, idProvider)
         val networkStateProviderImpl = NetworkStateProviderImpl(
-            InitialNetworkStateProviderImpl(context, logger, systemServiceProvider)
+            InitialNetworkStateProviderImpl(context, logger, systemServiceProvider),
         ).apply { init() }
         val networkStateAttributeProcessor = NetworkStateAttributeProcessor(networkStateProviderImpl)
 
@@ -230,7 +230,7 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             logger,
             eventProcessor,
             timeProvider,
-            networkStateProviderImpl
+            networkStateProviderImpl,
         )
 
         logger.log(LogLevel.Debug, "Measure initialization completed")
