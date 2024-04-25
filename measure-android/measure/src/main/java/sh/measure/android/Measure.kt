@@ -100,13 +100,12 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
         timeProvider = AndroidTimeProvider()
         val idProvider = UUIDProvider()
         val systemServiceProvider: SystemServiceProvider = SystemServiceProviderImpl(context)
-        val networkInfoProvider: NetworkInfoProvider =
-            NetworkInfoProviderImpl(context, logger, systemServiceProvider)
         val localeProvider: LocaleProvider = LocaleProviderImpl()
         val pidProvider: PidProvider = PidProviderImpl()
 
         val prefsStorage: PrefsStorage = PrefsStorageImpl(context)
         userAttributeProcessor = UserAttributeProcessor()
+        val networkInfoProvider = NetworkInfoProviderImpl(context, logger, systemServiceProvider)
         val networkStateAttributeProcessor = NetworkStateAttributeProcessor(networkInfoProvider)
         val deviceAttributeProcessor = DeviceAttributeProcessor(logger, context, localeProvider)
         val appAttributeProcessor = AppAttributeProcessor(context)
@@ -121,7 +120,7 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             database,
             idProvider,
         )
-        val sessionIdProvider = SessionManager(
+        val sessionManager = SessionManager(
             idProvider,
             database,
             executorServiceRegistry.backgroundExecutor(),
@@ -144,7 +143,7 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             executorServiceRegistry.eventProcessorExecutor(),
             eventStorage,
             idProvider,
-            sessionIdProvider,
+            sessionManager,
             globalAttributeProcessors,
             EventExporterImpl(logger, database, networkClient, idProvider, timeProvider),
         )
@@ -152,9 +151,9 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
         appExitCollector = AppExitCollector(
             appExitProvider = AppExitProviderImpl(logger, systemServiceProvider),
             timeProvider = timeProvider,
-            database = database,
             measureExecutorService = executorServiceRegistry.backgroundExecutor(),
-            eventProcessor = eventProcessor
+            eventProcessor = eventProcessor,
+            sessionManager = sessionManager,
         )
 
         periodicEventExporter = PeriodicEventExporterImpl(

@@ -87,7 +87,7 @@ class AppExitCollectorTest {
             sessionId = sessionId
         )
 
-        val trackedSessions = database.getSessionsWithTrackedAppExits()
+        val trackedSessions = database.getAppExitSessions()
         assertEquals(listOf(sessionId), trackedSessions)
     }
 
@@ -107,7 +107,7 @@ class AppExitCollectorTest {
             sessionId = any<String>()
         )
 
-        val trackedSessions = database.getSessionsWithTrackedAppExits()
+        val trackedSessions = database.getAppExitSessions()
         assertEquals(emptyList<String>(), trackedSessions)
     }
 

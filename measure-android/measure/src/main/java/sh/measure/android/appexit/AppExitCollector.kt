@@ -1,5 +1,6 @@
 package sh.measure.android.appexit
 
+import sh.measure.android.SessionManager
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.executors.MeasureExecutorService
@@ -11,7 +12,7 @@ internal class AppExitCollector(
     private val measureExecutorService: MeasureExecutorService,
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
-    private val database: Database,
+    private val sessionManager: SessionManager,
 ) {
     fun onColdLaunch() {
         trackAppExit()
@@ -23,7 +24,7 @@ internal class AppExitCollector(
             if (appExits.isNullOrEmpty()) {
                 return@submit
             }
-            val untrackedSessions = database.getSessionsWhereAppExitIsNotTracked()
+            val untrackedSessions = sessionManager.getSessions()
             val appExitsToTrack: List<Pair<String, AppExit>> =
                 getAppExitsToTrack(untrackedSessions, appExits)
             appExitsToTrack.forEach {
@@ -33,7 +34,7 @@ internal class AppExitCollector(
                     EventType.APP_EXIT,
                     sessionId = it.first
                 )
-                database.updateAppExitTracked(it.first)
+                sessionManager.deleteSession(it.first)
             }
         }
     }
