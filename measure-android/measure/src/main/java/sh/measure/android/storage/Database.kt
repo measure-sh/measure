@@ -287,7 +287,7 @@ internal class DatabaseImpl(
 
                 val eventId = it.getString(eventIdIndex)
                 val sessionId = it.getString(sessionIdIndex)
-                val timestamp = it.getLong(timestampIndex)
+                val timestamp = it.getString(timestampIndex)
                 val type = it.getString(typeIndex)
                 val serializedData = it.getString(serializedDataIndex)
                 val serializedDataFilePath = it.getString(serializedDataFilePathIndex)
@@ -323,7 +323,7 @@ internal class DatabaseImpl(
             val serializedAttributesIndex = it.getColumnIndex(EventTable.COL_ATTRIBUTES)
 
             val sessionId = it.getString(sessionIdIndex)
-            val timestamp = it.getLong(timestampIndex)
+            val timestamp = it.getString(timestampIndex)
             val type = it.getString(typeIndex)
             val serializedData = it.getString(serializedDataIndex)
             val serializedDataFilePath = it.getString(serializedDataFilePathIndex)

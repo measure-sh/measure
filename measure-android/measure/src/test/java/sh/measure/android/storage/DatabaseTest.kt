@@ -61,7 +61,7 @@ class DatabaseTest {
         val event = EventEntity(
             id = "event-id",
             type = "test",
-            timestamp = 1234567890L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
             filePath = "test-file-path",
             attachmentEntities = listOf(attachmentEntity),
@@ -89,7 +89,7 @@ class DatabaseTest {
         val event = EventEntity(
             id = "event-id",
             type = "test",
-            timestamp = 1234567890L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
@@ -111,7 +111,7 @@ class DatabaseTest {
         val event1 = EventEntity(
             id = "event-id-1",
             type = "test",
-            timestamp = 1234567890L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
@@ -122,7 +122,7 @@ class DatabaseTest {
         val event2 = EventEntity(
             id = "event-id-2",
             type = "test",
-            timestamp = 1234567899L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
@@ -150,7 +150,7 @@ class DatabaseTest {
         val event = EventEntity(
             id = "event-id",
             type = "test",
-            timestamp = 1234567890L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
@@ -200,7 +200,7 @@ class DatabaseTest {
         val event1 = EventEntity(
             id = "event-id-1",
             type = "test",
-            timestamp = 1234567890L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
@@ -211,7 +211,7 @@ class DatabaseTest {
         val event2 = EventEntity(
             id = "event-id-2",
             type = "test",
-            timestamp = 1234567899L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
@@ -222,7 +222,7 @@ class DatabaseTest {
         val batchedEvent = EventEntity(
             id = "event-id-3",
             type = "test",
-            timestamp = 1234567899L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
@@ -245,7 +245,7 @@ class DatabaseTest {
         val event1 = EventEntity(
             id = "event-id-1",
             type = "test",
-            timestamp = 1234567890L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
             filePath = "test-file-path",
             attachmentEntities = null,
@@ -257,7 +257,7 @@ class DatabaseTest {
         val event2 = EventEntity(
             id = "event-id-2",
             type = "test",
-            timestamp = 1234567899L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "123",
             serializedData = "data",
             attachmentEntities = null,
@@ -280,7 +280,7 @@ class DatabaseTest {
         val event1 = EventEntity(
             id = "event-id-1",
             type = "test",
-            timestamp = 1234567890L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
             filePath = "test-file-path",
             attachmentEntities = null,
@@ -292,7 +292,7 @@ class DatabaseTest {
         val event2 = EventEntity(
             id = "event-id-2",
             type = "test",
-            timestamp = 1234567899L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "123",
             serializedData = "data",
             attachmentEntities = null,
@@ -327,7 +327,7 @@ class DatabaseTest {
         val event1 = EventEntity(
             id = "event-id-1",
             type = "test",
-            timestamp = 1234567890L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
             filePath = "test-file-path",
             attachmentEntities = listOf(attachment1),
@@ -339,7 +339,7 @@ class DatabaseTest {
         val event2 = EventEntity(
             id = "event-id-2",
             type = "test",
-            timestamp = 1234567899L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "123",
             serializedData = "data",
             attachmentEntities = listOf(attachment2),
@@ -362,7 +362,7 @@ class DatabaseTest {
         val event1 = EventEntity(
             id = "event-id-1",
             type = "test",
-            timestamp = 1234567890L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
             filePath = "test-file-path",
             attachmentEntities = null,
@@ -374,7 +374,7 @@ class DatabaseTest {
         val event2 = EventEntity(
             id = "event-id-2",
             type = "test",
-            timestamp = 1234567899L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "123",
             serializedData = "data",
             attachmentEntities = null,
@@ -395,7 +395,7 @@ class DatabaseTest {
         val event = EventEntity(
             id = "event-id",
             type = "test",
-            timestamp = 1234567890L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
             filePath = "test-file-path",
             attachmentEntities = null,
@@ -422,7 +422,7 @@ class DatabaseTest {
         val event = EventEntity(
             id = "event-id",
             type = "test",
-            timestamp = 1234567890L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
             filePath = "test-file-path",
             attachmentEntities = listOf(attachment),
@@ -443,7 +443,7 @@ class DatabaseTest {
         val event1 = EventEntity(
             id = "event-id-1",
             type = "test",
-            timestamp = 1234567890L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
             filePath = "test-file-path",
             attachmentEntities = null,
@@ -455,7 +455,7 @@ class DatabaseTest {
         val event2 = EventEntity(
             id = "event-id-2",
             type = "test",
-            timestamp = 1234567899L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "123",
             serializedData = "data",
             attachmentEntities = null,
@@ -480,7 +480,7 @@ class DatabaseTest {
         val event = EventEntity(
             id = "event-id",
             type = "test",
-            timestamp = 1234567890L,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
             filePath = "test-file-path",
             attachmentEntities = null,
@@ -606,7 +606,7 @@ class DatabaseTest {
         )
         assertEquals(
             expectedEvent.timestamp,
-            cursor.getLong(cursor.getColumnIndex(EventTable.COL_TIMESTAMP)),
+            cursor.getString(cursor.getColumnIndex(EventTable.COL_TIMESTAMP)),
         )
         assertEquals(
             expectedEvent.sessionId,
@@ -653,7 +653,7 @@ class DatabaseTest {
         )
         assertEquals(
             event.timestamp,
-            cursor.getLong(cursor.getColumnIndex(AttachmentTable.COL_TIMESTAMP)),
+            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_TIMESTAMP)),
         )
         assertEquals(
             event.sessionId,

@@ -15,6 +15,7 @@ import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.utils.iso8601Timestamp
 
 internal class EventProcessorTest {
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
@@ -37,7 +38,7 @@ internal class EventProcessorTest {
     fun `given an event, adds session id, event id and thread name as attribute, then stores event`() {
         // Given
         val exceptionData = FakeEventFactory.getExceptionData()
-        val timestamp = 9856564654L
+        val timestamp = 1710746412L
         val type = EventType.EXCEPTION
 
         // When
@@ -49,7 +50,7 @@ internal class EventProcessorTest {
 
         val expectedEvent = exceptionData.toEvent(
             type = type,
-            timestamp = timestamp,
+            timestamp = timestamp.iso8601Timestamp(),
             id = idProvider.id,
             sessionId = sessionManager.sessionId,
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
@@ -62,7 +63,7 @@ internal class EventProcessorTest {
     fun `given event with attachments, adds session id, event id and thread name as attribute, then stores event`() {
         // Given
         val exceptionData = FakeEventFactory.getExceptionData()
-        val timestamp = 9856564654L
+        val timestamp = 1710746412L
         val type = EventType.EXCEPTION
         val attachments = listOf(FakeEventFactory.getAttachment())
 
@@ -76,7 +77,7 @@ internal class EventProcessorTest {
 
         val expectedEvent = exceptionData.toEvent(
             type = type,
-            timestamp = timestamp,
+            timestamp = timestamp.iso8601Timestamp(),
             id = idProvider.id,
             sessionId = sessionManager.sessionId,
             attachments = attachments,
@@ -90,7 +91,7 @@ internal class EventProcessorTest {
     fun `given event with attributes, adds session id, event id and thread name as attribute, then stores event`() {
         // Given
         val exceptionData = FakeEventFactory.getExceptionData()
-        val timestamp = 9856564654L
+        val timestamp = 1710746412L
         val type = EventType.EXCEPTION
         val attributes: MutableMap<String, Any?> = mutableMapOf("key" to "value")
 
@@ -104,7 +105,7 @@ internal class EventProcessorTest {
 
         val expectedEvent = exceptionData.toEvent(
             type = type,
-            timestamp = timestamp,
+            timestamp = timestamp.iso8601Timestamp(),
             id = idProvider.id,
             sessionId = sessionManager.sessionId,
             attributes = attributes,
@@ -118,7 +119,7 @@ internal class EventProcessorTest {
     fun `given attribute processors are provided, applies them to the event`() {
         // Given
         val exceptionData = FakeEventFactory.getExceptionData()
-        val timestamp = 9856564654L
+        val timestamp = 1710746412L
         val type = EventType.EXCEPTION
         val attributeProcessor = object : AttributeProcessor {
             override fun appendAttributes(attributes: MutableMap<String, Any?>) {
@@ -144,7 +145,7 @@ internal class EventProcessorTest {
 
         val expectedEvent = exceptionData.toEvent(
             type = type,
-            timestamp = timestamp,
+            timestamp = timestamp.iso8601Timestamp(),
             id = idProvider.id,
             sessionId = sessionManager.sessionId,
             attributes = mutableMapOf("key" to "value"),

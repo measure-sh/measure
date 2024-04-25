@@ -17,7 +17,7 @@ internal data class EventEntity(
     /**
      * Timestamp when the event was created.
      */
-    val timestamp: Long,
+    val timestamp: String,
     /**
      * Unique identifier for the session.
      */
