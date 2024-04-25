@@ -76,7 +76,7 @@ internal class SessionManagerImpl(
     private fun clearOldSessions() {
         database.clearOldSessions(
             currentTime = timeProvider.currentTimeSinceEpochInMillis,
-            maxSessionPersistenceTime = MAX_SESSION_PERSISTENCE_TIME
+            maxSessionPersistenceTime = MAX_SESSION_PERSISTENCE_TIME,
         )
     }
 
@@ -84,7 +84,7 @@ internal class SessionManagerImpl(
         database.insertSession(
             sessionId,
             pidProvider.getPid(),
-            timeProvider.currentTimeSinceEpochInMillis
+            timeProvider.currentTimeSinceEpochInMillis,
         )
         return sessionId
     }

@@ -21,7 +21,7 @@ import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.utils.SystemServiceProviderImpl
 
 @RunWith(AndroidJUnit4::class)
-internal class InitialInitialNetworkStateProviderTest {
+internal class InitialNetworkStateProviderTest {
 
     private val logger = NoopLogger()
     private val context = RuntimeEnvironment.getApplication()

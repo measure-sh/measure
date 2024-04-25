@@ -111,7 +111,7 @@ internal class NetworkChangesCollector(
             val newNetworkGeneration = getNetworkGenerationIfAvailable(newNetworkType)
             val networkProvider = getNetworkOperatorName(newNetworkType)
             networkStateProvider.setNetworkState(
-                NetworkState(newNetworkType, newNetworkGeneration, networkProvider)
+                NetworkState(newNetworkType, newNetworkGeneration, networkProvider),
             )
 
             // for Android O+, the callback is called as soon as it's registered. However, we
@@ -157,7 +157,7 @@ internal class NetworkChangesCollector(
             val previousNetworkGeneration = currentNetworkGeneration
             val newNetworkType = NetworkType.NO_NETWORK
             networkStateProvider.setNetworkState(
-                NetworkState(newNetworkType, null, null)
+                NetworkState(newNetworkType, null, null),
             )
             if (previousNetworkType == newNetworkType) {
                 return

@@ -37,7 +37,7 @@ class SessionManagerTest {
         verify(database).insertSession(
             idProvider.id,
             pidProvider.getPid(),
-            timeProvider.currentTimeSinceEpochInMillis
+            timeProvider.currentTimeSinceEpochInMillis,
         )
         assertEquals(result, idProvider.id)
     }
@@ -50,7 +50,7 @@ class SessionManagerTest {
 
         verify(database, atMostOnce()).clearOldSessions(
             timeProvider.currentTimeSinceEpochInMillis,
-            MAX_SESSION_PERSISTENCE_TIME
+            MAX_SESSION_PERSISTENCE_TIME,
         )
     }
 
@@ -65,7 +65,7 @@ class SessionManagerTest {
         verify(database, atMostOnce()).insertSession(
             idProvider.id,
             pidProvider.getPid(),
-            timeProvider.currentTimeSinceEpochInMillis
+            timeProvider.currentTimeSinceEpochInMillis,
         )
         assertEquals(result, idProvider.id)
     }

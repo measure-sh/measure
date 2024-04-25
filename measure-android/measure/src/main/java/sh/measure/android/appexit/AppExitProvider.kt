@@ -29,7 +29,7 @@ internal class AppExitProviderImpl(
         return systemServiceProvider.activityManager?.runCatching {
             getHistoricalProcessExitReasons(null, 0, 3).associateBy(
                 { it.pid },
-                { it.toAppExit() }
+                { it.toAppExit() },
             )
         }?.getOrNull()
     }

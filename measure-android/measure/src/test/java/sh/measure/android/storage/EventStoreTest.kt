@@ -8,7 +8,6 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.verify
-import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeEventFactory
 import sh.measure.android.fakes.FakeEventFactory.toEvent
@@ -36,9 +35,10 @@ internal class EventStoreTest {
         val argumentCaptor = argumentCaptor<EventEntity>()
         eventStore.store(event)
 
-
         val path: String? = verify(fileStorage).writeSerializedEventData(
-            event.id, EventType.EXCEPTION, event.serializeDataToString()
+            event.id,
+            EventType.EXCEPTION,
+            event.serializeDataToString(),
         )
         verify(database).insertEvent(argumentCaptor.capture())
         val eventEntity = argumentCaptor.firstValue
@@ -52,9 +52,10 @@ internal class EventStoreTest {
         val argumentCaptor = argumentCaptor<EventEntity>()
         eventStore.store(event)
 
-
         val path: String? = verify(fileStorage).writeSerializedEventData(
-            event.id, EventType.ANR, event.serializeDataToString()
+            event.id,
+            EventType.ANR,
+            event.serializeDataToString(),
         )
         verify(database).insertEvent(argumentCaptor.capture())
         val eventEntity = argumentCaptor.firstValue
@@ -70,7 +71,9 @@ internal class EventStoreTest {
         eventStore.store(event)
 
         val path: String? = verify(fileStorage).writeSerializedEventData(
-            event.id, EventType.HTTP, event.serializeDataToString()
+            event.id,
+            EventType.HTTP,
+            event.serializeDataToString(),
         )
         verify(database).insertEvent(argumentCaptor.capture())
         val eventEntity = argumentCaptor.firstValue
@@ -86,7 +89,9 @@ internal class EventStoreTest {
         eventStore.store(event)
 
         val path: String? = verify(fileStorage).writeSerializedEventData(
-            event.id, EventType.HTTP, event.serializeDataToString()
+            event.id,
+            EventType.HTTP,
+            event.serializeDataToString(),
         )
         verify(database).insertEvent(argumentCaptor.capture())
         val eventEntity = argumentCaptor.firstValue
@@ -109,7 +114,8 @@ internal class EventStoreTest {
     @Test
     fun `given attachment contains byte array, writes attachment file and inserts event to db`() {
         val attachment = FakeEventFactory.getAttachment(
-            bytes = getAttachmentContent().toByteArray(), path = null
+            bytes = getAttachmentContent().toByteArray(),
+            path = null,
         )
         val event = FakeEventFactory.getClickData()
             .toEvent(type = EventType.CLICK, attachments = listOf(attachment), id = idProvider.id)
@@ -128,7 +134,8 @@ internal class EventStoreTest {
     @Test
     fun `given attachment contains path, inserts event to db`() {
         val attachment = FakeEventFactory.getAttachment(
-            bytes = null, path = "fake-path"
+            bytes = null,
+            path = "fake-path",
         )
         val event = FakeEventFactory.getClickData()
             .toEvent(type = EventType.CLICK, attachments = listOf(attachment), id = idProvider.id)
@@ -145,7 +152,10 @@ internal class EventStoreTest {
     @Test
     fun `given attachments are present, serializes and store them to db`() {
         val attachment = FakeEventFactory.getAttachment(
-            bytes = null, path = "fake-path", name = "name", type = "type"
+            bytes = null,
+            path = "fake-path",
+            name = "name",
+            type = "type",
         )
         val event = FakeEventFactory.getClickData()
             .toEvent(type = EventType.CLICK, attachments = listOf(attachment), id = idProvider.id)
@@ -194,7 +204,9 @@ internal class EventStoreTest {
     @Test
     fun `serializes attributes and stores them to db`() {
         val event = FakeEventFactory.getClickData().toEvent(
-            type = EventType.CLICK, id = idProvider.id, attributes = mutableMapOf("key" to "value")
+            type = EventType.CLICK,
+            id = idProvider.id,
+            attributes = mutableMapOf("key" to "value"),
         )
 
         eventStore.store(event)

@@ -10,8 +10,8 @@ internal class FakeAppExitProvider : AppExitProvider {
             pid = 7654,
             trace = null,
             process_name = "com.example.app",
-            importance = "IMPORTANCE_VISIBLE"
-        )
+            importance = "IMPORTANCE_VISIBLE",
+        ),
     )
 
     override fun get(): Map<Int, AppExit> {
