@@ -497,6 +497,56 @@ class DatabaseTest {
         }
     }
 
+    @Test
+    fun `clears old sessions from sessions table`() {
+        database.insertSession("session-id-1", 123, 500)
+        database.insertSession("session-id-2", 987, 700)
+
+        database.clearOldSessions(600)
+        assertEquals(1, database.getSessions().size)
+    }
+
+    @Test
+    fun `returns all sessions from sessions table`() {
+        database.insertSession("session-id-1", 123, 500)
+        database.insertSession("session-id-2", 987, 700)
+
+        val sessions = database.getSessions()
+        assertEquals(2, sessions.size)
+    }
+
+    @Test
+    fun `deletes session with given session ID`() {
+        val sessionId = "session-id-1"
+        database.insertSession(sessionId, 123, 500)
+
+        database.deleteSession(sessionId)
+        assertEquals(0, database.getSessions().size)
+    }
+
+    @Test
+    fun `inserts a new session successfully`() {
+        val sessionId = "session-id"
+        val pid = 123
+        database.insertSession(sessionId, pid, 500)
+
+        val db = database.writableDatabase
+        db.query(
+            SessionsTable.TABLE_NAME,
+            null,
+            "${SessionsTable.COL_SESSION_ID} = ?",
+            arrayOf(sessionId),
+            null,
+            null,
+            null,
+        ).use {
+            assertEquals(1, it.count)
+            it.moveToFirst()
+            assertEquals(sessionId, it.getString(it.getColumnIndex(SessionsTable.COL_SESSION_ID)))
+            assertEquals(pid, it.getInt(it.getColumnIndex(SessionsTable.COL_PID)))
+        }
+    }
+
     private fun assertAttachmentPacket(
         attachment: AttachmentEntity,
         event: EventEntity,
