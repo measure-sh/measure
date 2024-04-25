@@ -52,7 +52,7 @@ class NetworkClientTest {
         // Assert
         assertTrue(result)
         assertEquals("PUT", recordedRequest.method)
-        assertTrue(recordedRequest.headers.contains(Pair("X-Request-ID", batchId)))
+        assertTrue(recordedRequest.headers.contains(Pair("msr-request-id", batchId)))
     }
 
     @Test
@@ -76,7 +76,7 @@ class NetworkClientTest {
         // Assert
         assertFalse(result)
         assertEquals("PUT", recordedRequest.method)
-        assertTrue(recordedRequest.headers.contains(Pair("X-Request-ID", batchId)))
+        assertTrue(recordedRequest.headers.contains(Pair("msr-request-id", batchId)))
     }
 
     private fun getFakeFileContent(): String {

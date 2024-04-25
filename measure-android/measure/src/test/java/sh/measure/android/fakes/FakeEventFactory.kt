@@ -337,10 +337,7 @@ internal object FakeEventFactory {
     fun getAttachmentPackets(eventEntity: EventEntity): List<AttachmentPacket> {
         return eventEntity.attachmentEntities?.map {
             AttachmentPacket(
-                eventId = eventEntity.id,
                 id = it.id,
-                type = it.type,
-                name = it.name,
                 filePath = it.path,
             )
         } ?: emptyList()
