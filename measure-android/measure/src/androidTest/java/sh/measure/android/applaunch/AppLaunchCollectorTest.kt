@@ -9,6 +9,7 @@ import org.junit.Assert
 import org.junit.Ignore
 import org.junit.Test
 import sh.measure.android.TestActivity
+import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeEventProcessor
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.utils.AndroidTimeProvider
@@ -21,7 +22,7 @@ internal class AppLaunchCollectorTest {
     fun tracks_cold_launch() {
         val eventProcessor = FakeEventProcessor()
         coldLaunch(eventProcessor)
-        Assert.assertEquals(1, eventProcessor.trackedEvents.size)
+        Assert.assertEquals(1, eventProcessor.getTrackedEventsByType(EventType.COLD_LAUNCH).size)
     }
 
     @Test
@@ -62,14 +63,14 @@ internal class AppLaunchCollectorTest {
     fun tracks_warm_launch() {
         val eventProcessor = FakeEventProcessor()
         warmLaunch(eventProcessor)
-        Assert.assertEquals(1, eventProcessor.trackedEvents.size)
+        Assert.assertEquals(1, eventProcessor.getTrackedEventsByType(EventType.WARM_LAUNCH).size)
     }
 
     @Test
     fun warm_launch_has_saved_state() {
         val eventProcessor = FakeEventProcessor()
         warmLaunch(eventProcessor)
-        val data = eventProcessor.trackedEvents[0].data
+        val data = eventProcessor.getTrackedEventsByType(EventType.WARM_LAUNCH)[0].data
         Assert.assertTrue(data is WarmLaunchData)
         Assert.assertTrue((data as WarmLaunchData).has_saved_state)
     }
@@ -113,6 +114,6 @@ internal class AppLaunchCollectorTest {
             scenario.moveToState(Lifecycle.State.STARTED)
             scenario.moveToState(Lifecycle.State.RESUMED)
         }
-        Assert.assertEquals(1, eventProcessor.trackedEvents.size)
+        Assert.assertEquals(1, eventProcessor.getTrackedEventsByType(EventType.HOT_LAUNCH).size)
     }
 }
