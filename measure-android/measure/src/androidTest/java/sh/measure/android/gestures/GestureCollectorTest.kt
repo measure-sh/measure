@@ -12,6 +12,7 @@ import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeEventProcessor
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
@@ -34,7 +35,7 @@ internal class GestureCollectorTest {
         GestureCollector(logger, tracker, timeProvider).register()
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.button)).perform(click())
-        Assert.assertEquals(1, tracker.trackedEvents.size)
+        Assert.assertEquals(1, tracker.getTrackedEventsByType(EventType.CLICK).size)
     }
 
     @Test
@@ -43,7 +44,7 @@ internal class GestureCollectorTest {
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.button)).perform(click())
 
-        val event = tracker.trackedEvents[0]
+        val event = tracker.getTrackedEventsByType(EventType.CLICK)[0]
         event.data as ClickData
         Assert.assertEquals("android.widget.Button", event.data.target)
         Assert.assertEquals("button", event.data.target_id)
@@ -66,7 +67,7 @@ internal class GestureCollectorTest {
         GestureCollector(logger, tracker, timeProvider).register()
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.text)).perform(click())
-        Assert.assertEquals(0, tracker.trackedEvents.size)
+        Assert.assertEquals(0, tracker.getTrackedEventsByType(EventType.CLICK).size)
     }
 
     @Test
@@ -74,7 +75,7 @@ internal class GestureCollectorTest {
         GestureCollector(logger, tracker, timeProvider).register()
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.button)).perform(longClick())
-        Assert.assertEquals(1, tracker.trackedEvents.size)
+        Assert.assertEquals(1, tracker.getTrackedEventsByType(EventType.LONG_CLICK).size)
     }
 
     @Test
@@ -83,7 +84,7 @@ internal class GestureCollectorTest {
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.button)).perform(longClick())
 
-        val event = tracker.trackedEvents[0]
+        val event = tracker.getTrackedEventsByType(EventType.LONG_CLICK)[0]
         event.data as LongClickData
         Assert.assertEquals("android.widget.Button", event.data.target)
         Assert.assertEquals("button", event.data.target_id)
@@ -106,7 +107,7 @@ internal class GestureCollectorTest {
         GestureCollector(logger, tracker, timeProvider).register()
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.text)).perform(longClick())
-        Assert.assertEquals(0, tracker.trackedEvents.size)
+        Assert.assertEquals(0, tracker.getTrackedEventsByType(EventType.LONG_CLICK).size)
     }
 
     @Test
@@ -114,7 +115,7 @@ internal class GestureCollectorTest {
         GestureCollector(logger, tracker, timeProvider).register()
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.scroll_view)).perform(swipeUp())
-        Assert.assertEquals(1, tracker.trackedEvents.size)
+        Assert.assertEquals(1, tracker.getTrackedEventsByType(EventType.SCROLL).size)
     }
 
     @Test
@@ -123,7 +124,7 @@ internal class GestureCollectorTest {
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.scroll_view)).perform(swipeUp())
 
-        val event = tracker.trackedEvents[0]
+        val event = tracker.getTrackedEventsByType(EventType.SCROLL)[0]
         event.data as ScrollData
         Assert.assertEquals("android.widget.ScrollView", event.data.target)
         Assert.assertEquals("scroll_view", event.data.target_id)
@@ -138,6 +139,6 @@ internal class GestureCollectorTest {
         GestureCollector(logger, tracker, timeProvider).register()
         ActivityScenario.launch(GestureTestActivity::class.java)
         onView(withId(R.id.text)).perform(swipeUp())
-        Assert.assertEquals(0, tracker.trackedEvents.size)
+        Assert.assertEquals(0, tracker.getTrackedEventsByType(EventType.SCROLL).size)
     }
 }

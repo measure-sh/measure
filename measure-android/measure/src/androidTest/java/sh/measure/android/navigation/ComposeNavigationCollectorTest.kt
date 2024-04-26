@@ -11,6 +11,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import sh.measure.android.Measure
+import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeEventProcessor
 import sh.measure.android.fakes.FakeTimeProvider
 
@@ -36,17 +37,26 @@ class ComposeNavigationCollectorTest {
         }
 
         // initial state
-        assertEquals(1, tracker.trackedEvents.size)
-        assertEquals("home", (tracker.trackedEvents[0].data as NavigationData).route)
+        assertEquals(1, tracker.getTrackedEventsByType(EventType.NAVIGATION).size)
+        assertEquals(
+            "home",
+            (tracker.getTrackedEventsByType(EventType.NAVIGATION)[0].data as NavigationData).route
+        )
 
         // forward navigation
         composeRule.onNodeWithText("Checkout").performClick()
-        assertEquals(2, tracker.trackedEvents.size)
-        assertEquals("checkout", (tracker.trackedEvents[1].data as NavigationData).route)
+        assertEquals(2, tracker.getTrackedEventsByType(EventType.NAVIGATION).size)
+        assertEquals(
+            "checkout",
+            (tracker.getTrackedEventsByType(EventType.NAVIGATION)[1].data as NavigationData).route
+        )
 
         // back
         pressBack()
-        assertEquals(3, tracker.trackedEvents.size)
-        assertEquals("home", (tracker.trackedEvents[2].data as NavigationData).route)
+        assertEquals(3, tracker.getTrackedEventsByType(EventType.NAVIGATION).size)
+        assertEquals(
+            "home",
+            (tracker.getTrackedEventsByType(EventType.NAVIGATION)[2].data as NavigationData).route
+        )
     }
 }
