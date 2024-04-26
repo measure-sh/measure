@@ -83,7 +83,7 @@ func writeEvent(c *gin.Context) {
 	form, err := c.MultipartForm()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": parseErr,
+			"error": parseErr("multipart form").Error(),
 		})
 		return
 	}
@@ -215,6 +215,7 @@ func writeEvent(c *gin.Context) {
 				})
 				return
 			}
+
 			dst, err := os.Create(blobFile)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{
@@ -223,6 +224,7 @@ func writeEvent(c *gin.Context) {
 				return
 			}
 			defer dst.Close()
+
 			src, err := file.Open()
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{
