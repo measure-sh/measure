@@ -22,7 +22,7 @@ const multipartBoundary = "___sessionator___"
 
 // sourceDir is the source directory where the program
 // reads and processes the sessions, build info and
-// mapping file.
+// mapping file(s).
 var sourceDir string
 
 // origin is the origin of the server where the program
@@ -39,7 +39,7 @@ var configLocation string
 var configData *config.Config
 
 // metrics is used to store progress of ingestion
-// opeations.
+// operations.
 var metrics Metrics
 
 func init() {
