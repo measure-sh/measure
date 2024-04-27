@@ -89,7 +89,7 @@ internal class NetworkClientImpl(
 
     private fun buildRequest(requestBody: RequestBody, batchId: String): Request {
         return Request.Builder().url("$baseUrl${PATH_EVENTS}").put(requestBody)
-            .header("msr-request-id", batchId).build()
+            .header("msr-req-id", batchId).build()
     }
 
     private fun executeRequest(request: Request): Boolean {
