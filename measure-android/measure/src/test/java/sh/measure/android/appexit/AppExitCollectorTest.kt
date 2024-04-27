@@ -54,7 +54,7 @@ class AppExitCollectorTest {
 
         val appExit = AppExit(
             reason = "REASON_USER_REQUESTED",
-            pid = 7654,
+            pid = 7654.toString(),
             trace = null,
             process_name = "com.example.app",
             importance = "IMPORTANCE_VISIBLE",
@@ -91,7 +91,7 @@ class AppExitCollectorTest {
         val pid = 7654
         val appExit = AppExit(
             reason = "REASON_USER_REQUESTED",
-            pid = pid,
+            pid = pid.toString(),
             trace = null,
             process_name = "com.example.app",
             importance = "IMPORTANCE_VISIBLE",
@@ -115,7 +115,7 @@ class AppExitCollectorTest {
         val pid = 7654
         val appExit = AppExit(
             reason = "REASON_USER_REQUESTED",
-            pid = pid,
+            pid = pid.toString(),
             trace = null,
             process_name = "com.example.app",
             importance = "IMPORTANCE_VISIBLE",

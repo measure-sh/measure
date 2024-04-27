@@ -41,7 +41,7 @@ internal class AppExitProviderImpl(
             importance = getImportanceName(importance),
             trace = getTraceString(traceInputStream),
             process_name = processName,
-            pid = pid,
+            pid = pid.toString(),
         )
     }
 
