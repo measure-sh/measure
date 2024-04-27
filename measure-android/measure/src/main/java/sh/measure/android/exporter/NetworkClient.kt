@@ -121,7 +121,7 @@ internal class NetworkClientImpl(
 
     private fun EventPacket.asFormDataPart(): String {
         val data = serializedData ?: if (serializedDataFilePath != null) {
-            return fileStorage.getFile(serializedDataFilePath)?.readText()
+            fileStorage.getFile(serializedDataFilePath)?.readText()
                 ?: throw IllegalStateException("No file found at path: $serializedDataFilePath")
         } else {
             throw IllegalStateException("EventPacket must have either serializedData or serializedDataFilePath")
