@@ -3,7 +3,7 @@ package sh.measure.android
 private val disabledHttpBodyUrlPatterns = listOf(
     // measure sessions endpoint for local development
     // TODO(abhay): always ignore all measure endpoints
-    "10.0.2.2:8080/sessions",
+    "10.0.2.2:8080/events",
 )
 
 private val enabledHttpBodyContentTypePatterns = listOf(
