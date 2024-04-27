@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"sessionator/app"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -97,9 +96,9 @@ func writeEvent(c *gin.Context) {
 	}
 
 	events := []event.EventField{}
+	rawEvents := []json.RawMessage{}
 	hasBlob := false
 	blobCount := 0
-	var b strings.Builder
 
 	for i := range eventFields {
 		if eventFields[i] == "" {
@@ -130,24 +129,7 @@ func writeEvent(c *gin.Context) {
 		}
 
 		events = append(events, event)
-
-		first := i == 0
-		last := i == len(eventFields)-1
-		mid := !first && !last
-
-		if first {
-			b.WriteString("[")
-		}
-
-		if mid || last {
-			b.WriteString(",")
-		}
-
-		b.WriteString(eventFields[i])
-
-		if last {
-			b.WriteString("]")
-		}
+		rawEvents = append(rawEvents, json.RawMessage(eventFields[i]))
 	}
 
 	fmt.Printf("found %d event(s)\n", len(eventFields))
@@ -174,7 +156,14 @@ func writeEvent(c *gin.Context) {
 		}
 	}
 
-	if err := os.WriteFile(eventFile, []byte(b.String()), 0644); err != nil {
+	jsonBytes, err := json.Marshal(rawEvents)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to encode events as json",
+		})
+		return
+	}
+	if err := os.WriteFile(eventFile, jsonBytes, 0644); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Errorf("failed to write events to %q", eventFile),
 		})
