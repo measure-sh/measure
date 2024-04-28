@@ -18,6 +18,8 @@ type App struct {
 	MappingFile string
 	BuildInfo   BuildInfo
 	Sessions    []string
+	EventFiles  []string
+	BlobFiles   []string
 }
 
 // ReadBuild decodes and parses build info data

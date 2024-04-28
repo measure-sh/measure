@@ -1,11 +1,12 @@
 package app
 
 import (
-	"errors"
 	"fmt"
 	"io/fs"
 	"path/filepath"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 // hidden validates if file or dir
@@ -16,7 +17,7 @@ func hidden(name string) bool {
 
 // Scan reads and validates session data directory
 // and sets up internal data structures for apps,
-// builds and sessions.
+// builds, events and blobs.
 func Scan(rootPath string) (apps *Apps, err error) {
 	apps = &Apps{}
 	rootbase := filepath.Base(rootPath)
@@ -55,10 +56,10 @@ func Scan(rootPath string) (apps *Apps, err error) {
 			if jsonMatch {
 				app := apps.Lookup(parts[0], parts[1])
 				if info.Size() < 1 {
-					msg := fmt.Sprintf("%q:%q has empty session file. check %q", app.Name, app.Version, rel)
-					return errors.New(msg)
+					return fmt.Errorf("%q has empty an events file. check %q", app.FullName(), rel)
 				}
 				app.Sessions = append(app.Sessions, path)
+				app.EventFiles = append(app.EventFiles, path)
 			}
 
 			mapping, err := filepath.Match("*/*/mapping.txt", rel)
@@ -72,8 +73,7 @@ func Scan(rootPath string) (apps *Apps, err error) {
 					return err
 				}
 				if info.Size() < 1 {
-					msg := fmt.Sprintf("%q:%q has empty mapping.txt file. check %q", app.Name, app.Version, rel)
-					return errors.New(msg)
+					return fmt.Errorf("%q has empty mapping.txt file. check %q", app.FullName(), rel)
 				}
 				app.MappingFile = path
 			}
@@ -89,20 +89,39 @@ func Scan(rootPath string) (apps *Apps, err error) {
 					return err
 				}
 				if info.Size() < 1 {
-					msg := fmt.Sprintf("%q:%q has empty build.toml. check %q", app.Name, app.Version, rel)
-					return errors.New(msg)
+					return fmt.Errorf("%q has empty build.toml. check %q", app.FullName(), rel)
 				}
 				if err := app.ReadBuild(path); err != nil {
 					return err
 				}
 				if app.BuildInfo.Size < 1 {
-					msg := fmt.Sprintf("%q:%q has zero build size. check %q", app.Name, app.Version, rel)
-					return errors.New(msg)
+					return fmt.Errorf("%q has zero build size. check %q", app.FullName(), rel)
 				}
 				if app.BuildInfo.Type == "" {
-					msg := fmt.Sprintf("%q:%q has empty build type. check %q", app.Name, app.Version, rel)
-					return errors.New(msg)
+					return fmt.Errorf("%q has empty build type. check %q", app.FullName(), rel)
 				}
+			}
+
+			blob, err := filepath.Match("*/*/blobs/*", rel)
+			if err != nil {
+				return err
+			}
+			if blob {
+				app := apps.Lookup(parts[0], parts[1])
+				info, err := d.Info()
+				if err != nil {
+					return err
+				}
+
+				if err := uuid.Validate(info.Name()); err != nil {
+					return fmt.Errorf("%q contains blob file with invalid name. check %q", app.FullName(), rel)
+				}
+
+				if info.Size() < 1 {
+					return fmt.Errorf("%q contains empty blob file. check %q", app.FullName(), rel)
+				}
+
+				app.BlobFiles = append(app.BlobFiles, path)
 			}
 		}
 
