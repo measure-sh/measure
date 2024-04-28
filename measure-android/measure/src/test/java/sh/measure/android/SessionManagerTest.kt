@@ -49,7 +49,8 @@ class SessionManagerTest {
         sessionManager.sessionId
 
         verify(database, atMostOnce()).clearOldSessions(
-            timeProvider.currentTimeSinceEpochInMillis - MAX_SESSION_PERSISTENCE_TIME)
+            timeProvider.currentTimeSinceEpochInMillis - MAX_SESSION_PERSISTENCE_TIME,
+        )
     }
 
     @Test

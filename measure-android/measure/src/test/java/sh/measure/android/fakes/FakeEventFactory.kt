@@ -347,7 +347,7 @@ internal object FakeEventFactory {
         type: String = "type",
         path: String = "path",
         name: String = "name",
-    ) : AttachmentEntity {
+    ): AttachmentEntity {
         return AttachmentEntity(
             id = id,
             type = type,

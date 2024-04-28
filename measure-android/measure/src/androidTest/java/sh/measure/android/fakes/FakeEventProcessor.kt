@@ -22,7 +22,12 @@ internal class FakeEventProcessor : EventProcessor {
 
     override fun <T> track(data: T, timestamp: Long, type: String) {
         track(
-            data, timestamp, type, attributes = mutableMapOf(), attachments = null, sessionId = null
+            data,
+            timestamp,
+            type,
+            attributes = mutableMapOf(),
+            attachments = null,
+            sessionId = null,
         )
     }
 
@@ -33,7 +38,7 @@ internal class FakeEventProcessor : EventProcessor {
             type,
             attributes = mutableMapOf(),
             attachments = null,
-            sessionId = sessionId
+            sessionId = sessionId,
         )
     }
 
@@ -50,7 +55,7 @@ internal class FakeEventProcessor : EventProcessor {
             type,
             attributes = attributes,
             attachments = attachments,
-            sessionId = null
+            sessionId = null,
         )
     }
 
@@ -70,8 +75,8 @@ internal class FakeEventProcessor : EventProcessor {
                 type = type,
                 attributes = attributes,
                 attachments = attachments,
-                sessionId = sessionId
-            )
+                sessionId = sessionId,
+            ),
         )
     }
 }
