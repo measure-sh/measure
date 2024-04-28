@@ -6,6 +6,7 @@ import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.Database
+import sh.measure.android.storage.FileStorage
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.atomic.AtomicBoolean
@@ -27,6 +28,7 @@ internal class PeriodicEventExporterImpl(
     private val heartbeatExecutorService: MeasureExecutorService,
     private val exportExecutorService: MeasureExecutorService,
     private val database: Database,
+    private val fileStorage: FileStorage,
     private val networkClient: NetworkClient,
     private val timeProvider: TimeProvider,
     private val heartbeat: Heartbeat = HeartbeatImpl(
@@ -83,41 +85,57 @@ internal class PeriodicEventExporterImpl(
 
         exportExecutorService.submit {
             try {
-                val batches = database.getBatches(MAX_UN_SYNCED_BATCHES_COUNT)
-                if (batches.isNotEmpty()) {
-                    batches.forEach { batch ->
-                        val isSuccessful = exportBatch(batch.key, batch.value)
-                        handleResult(isSuccessful, batch.value, batch.key)
-                    }
-                } else {
-                    if (timeProvider.uptimeInMillis - lastBatchCreationUptimeMs >= config.batchingIntervalMs) {
-                        batchCreator.create()?.let {
-                            lastBatchCreationUptimeMs = timeProvider.uptimeInMillis
-                            val isSuccessful = exportBatch(it.batchId, it.eventIds)
-                            handleResult(isSuccessful, it.eventIds, it.batchId)
-                        }
-                    }
-                }
+                processBatches()
             } finally {
                 isExportInProgress.set(false)
             }
         }
     }
 
-    private fun exportBatch(batchId: String, eventIds: List<String>): Boolean {
-        val events = database.getEventPackets(eventIds)
-        val attachments = database.getAttachmentPackets(eventIds)
-        return networkClient.execute(batchId, events, attachments)
+    private fun processBatches() {
+        val batches = database.getBatches(MAX_UN_SYNCED_BATCHES_COUNT)
+        if (batches.isNotEmpty()) {
+            processExistingBatches(batches)
+        } else {
+            processNewBatchIfTimeElapsed()
+        }
     }
 
-    private fun handleResult(
+    private fun processExistingBatches(batches: LinkedHashMap<String, MutableList<String>>) {
+        batches.forEach { batch ->
+            val events = database.getEventPackets(batch.value)
+            val attachments = database.getAttachmentPackets(batch.value)
+            val isSuccessful = networkClient.execute(batch.key, events, attachments)
+            handleBatchProcessingResult(isSuccessful, batch.key, events, attachments)
+        }
+    }
+
+    private fun processNewBatchIfTimeElapsed() {
+        if (timeProvider.uptimeInMillis - lastBatchCreationUptimeMs >= config.batchingIntervalMs) {
+            batchCreator.create()?.let { result ->
+                lastBatchCreationUptimeMs = timeProvider.uptimeInMillis
+                val events = database.getEventPackets(result.eventIds)
+                val attachments = database.getAttachmentPackets(result.eventIds)
+                val isSuccessful = networkClient.execute(result.batchId, events, attachments)
+                handleBatchProcessingResult(isSuccessful, result.batchId, events, attachments)
+            }
+        }
+    }
+
+    private fun handleBatchProcessingResult(
         isSuccessful: Boolean,
-        eventIds: List<String>,
         batchId: String,
+        events: List<EventPacket>,
+        attachments: List<AttachmentPacket>
     ) {
         if (isSuccessful) {
+            val eventIds = events.map { it.eventId }
             database.deleteEvents(eventIds)
-            logger.log(LogLevel.Debug, "Successfully sent batch $batchId")
+            fileStorage.deleteEventsIfExist(eventIds, attachments.map { it.id })
+            logger.log(
+                LogLevel.Debug,
+                "Successfully sent batch $batchId"
+            )
         } else {
             logger.log(LogLevel.Error, "Failed to send batch $batchId")
         }

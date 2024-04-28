@@ -4,6 +4,7 @@ import sh.measure.android.events.Event
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.Database
+import sh.measure.android.storage.FileStorage
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.TimeProvider
 
@@ -23,6 +24,7 @@ internal interface EventExporter {
 internal class EventExporterImpl(
     private val logger: Logger,
     private val database: Database,
+    private val fileStorage: FileStorage,
     private val networkClient: NetworkClient,
     private val idProvider: IdProvider,
     private val timeProvider: TimeProvider,
@@ -37,6 +39,7 @@ internal class EventExporterImpl(
             val exported = networkClient.execute(batchId, listOf(eventPacket), attachmentPackets)
             if (exported) {
                 database.deleteEvent(event.id)
+                fileStorage.deleteEventIfExist(event.id, attachmentPackets.map { it.id })
             }
         } else {
             logger.log(LogLevel.Error, "Failed to create a batch for event ${event.id}")

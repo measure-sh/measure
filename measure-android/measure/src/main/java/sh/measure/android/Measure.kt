@@ -147,7 +147,7 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             idProvider,
             sessionManager,
             globalAttributeProcessors,
-            EventExporterImpl(logger, database, networkClient, idProvider, timeProvider),
+            EventExporterImpl(logger, database, fileStorage, networkClient, idProvider, timeProvider),
         )
 
         appExitCollector = AppExitCollector(
@@ -165,6 +165,7 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             heartbeatExecutorService = executorServiceRegistry.exportHeartbeatExecutor(),
             exportExecutorService = executorServiceRegistry.eventExportExecutor(),
             database,
+            fileStorage,
             networkClient,
             timeProvider,
         )
