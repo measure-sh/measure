@@ -149,9 +149,10 @@ class PeriodicEventExporterTest {
     fun `given a batch export succeeds, deletes the events from file storage`() {
         `when`(networkClient.execute(any(), any(), any())).thenReturn(true)
         val eventEntity = FakeEventFactory.fakeEventEntity(
-            eventId = "event-id", attachmentEntities = listOf(
-                AttachmentEntity("attachment-id", type = "type", path = "path", name = "name")
-            )
+            eventId = "event-id",
+            attachmentEntities = listOf(
+                AttachmentEntity("attachment-id", type = "type", path = "path", name = "name"),
+            ),
         )
         val batchId = "batch-id"
         database.insertEvent(eventEntity)

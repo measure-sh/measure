@@ -126,7 +126,7 @@ internal class PeriodicEventExporterImpl(
         isSuccessful: Boolean,
         batchId: String,
         events: List<EventPacket>,
-        attachments: List<AttachmentPacket>
+        attachments: List<AttachmentPacket>,
     ) {
         if (isSuccessful) {
             val eventIds = events.map { it.eventId }
@@ -134,7 +134,7 @@ internal class PeriodicEventExporterImpl(
             fileStorage.deleteEventsIfExist(eventIds, attachments.map { it.id })
             logger.log(
                 LogLevel.Debug,
-                "Successfully sent batch $batchId"
+                "Successfully sent batch $batchId",
             )
         } else {
             logger.log(LogLevel.Error, "Failed to send batch $batchId")
