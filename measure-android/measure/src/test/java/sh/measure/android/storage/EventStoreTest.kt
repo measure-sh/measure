@@ -35,9 +35,8 @@ internal class EventStoreTest {
         val argumentCaptor = argumentCaptor<EventEntity>()
         eventStore.store(event)
 
-        val path: String? = verify(fileStorage).writeSerializedEventData(
+        val path: String? = verify(fileStorage).writeEventData(
             event.id,
-            EventType.EXCEPTION,
             event.serializeDataToString(),
         )
         verify(database).insertEvent(argumentCaptor.capture())
@@ -52,9 +51,8 @@ internal class EventStoreTest {
         val argumentCaptor = argumentCaptor<EventEntity>()
         eventStore.store(event)
 
-        val path: String? = verify(fileStorage).writeSerializedEventData(
+        val path: String? = verify(fileStorage).writeEventData(
             event.id,
-            EventType.ANR,
             event.serializeDataToString(),
         )
         verify(database).insertEvent(argumentCaptor.capture())
@@ -70,9 +68,8 @@ internal class EventStoreTest {
         val argumentCaptor = argumentCaptor<EventEntity>()
         eventStore.store(event)
 
-        val path: String? = verify(fileStorage).writeSerializedEventData(
+        val path: String? = verify(fileStorage).writeEventData(
             event.id,
-            EventType.HTTP,
             event.serializeDataToString(),
         )
         verify(database).insertEvent(argumentCaptor.capture())
@@ -88,9 +85,8 @@ internal class EventStoreTest {
         val argumentCaptor = argumentCaptor<EventEntity>()
         eventStore.store(event)
 
-        val path: String? = verify(fileStorage).writeSerializedEventData(
+        val path: String? = verify(fileStorage).writeEventData(
             event.id,
-            EventType.HTTP,
             event.serializeDataToString(),
         )
         verify(database).insertEvent(argumentCaptor.capture())
