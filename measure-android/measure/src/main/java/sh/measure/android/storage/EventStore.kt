@@ -40,12 +40,12 @@ internal class EventStoreImpl(
         // See: https://developer.android.com/reference/android/os/TransactionTooLargeException
         val filePath = when (event.type) {
             EventType.EXCEPTION, EventType.ANR, EventType.APP_EXIT -> {
-                fileStorage.writeSerializedEventData(event.id, event.type, serializedData)
+                fileStorage.writeEventData(event.id, serializedData)
             }
 
             EventType.HTTP -> {
                 if (httpDataContainsBody(event)) {
-                    fileStorage.writeSerializedEventData(event.id, event.type, serializedData)
+                    fileStorage.writeEventData(event.id, serializedData)
                 } else {
                     null
                 }

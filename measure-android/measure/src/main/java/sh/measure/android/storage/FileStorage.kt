@@ -1,6 +1,5 @@
 package sh.measure.android.storage
 
-import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import java.io.File
@@ -12,7 +11,7 @@ internal interface FileStorage {
      *
      * @return The path of the file if the write was successful, otherwise null.
      */
-    fun writeSerializedEventData(eventId: String, eventType: String, serializedData: String): String?
+    fun writeEventData(eventId: String, serializedData: String): String?
 
     /**
      * Gets a file from the given path.
@@ -25,46 +24,32 @@ internal interface FileStorage {
     /**
      * Writes an attachment to a file, with the attachment id as the file name.
      *
-     * @param id The attachment id to use as the file name.
+     * @param attachmentId The attachment id to use as the file name.
      */
-    fun writeAttachment(id: String, bytes: ByteArray): String?
+    fun writeAttachment(attachmentId: String, bytes: ByteArray): String?
 }
 
-private const val EXCEPTION_DIR = "measure/exception"
-private const val ANR_DIR = "measure/anr"
-private const val HTTP_DIR = "measure/http"
-private const val APP_EXIT_DIR = "measure/appexit"
-private const val ATTACHMENTS_DIR = "measure/attachments"
+private const val MEASURE_DIR = "measure"
 
 internal class FileStorageImpl(
     private val rootDir: String,
     private val logger: Logger,
 ) : FileStorage {
 
-    override fun writeSerializedEventData(eventId: String, eventType: String, serializedData: String): String? {
-        val file = when (eventType) {
-            EventType.EXCEPTION -> createFile(eventId, EXCEPTION_DIR) ?: return null
-            EventType.ANR -> createFile(eventId, ANR_DIR) ?: return null
-            EventType.HTTP -> createFile(eventId, HTTP_DIR) ?: return null
-            EventType.APP_EXIT -> createFile(eventId, APP_EXIT_DIR) ?: return null
-            else -> {
-                return null
-            }
+    override fun writeEventData(eventId: String, serializedData: String): String? {
+        val file = createFile(eventId) ?: return null
+        try {
+            file.writeText(serializedData)
+        } catch (e: IOException) {
+            logger.log(LogLevel.Error, "Error writing serialized event data to file", e)
+            deleteFileIfExists(file)
+            return null
         }
-        file.writeText(serializedData)
         return file.path
     }
 
-    override fun getFile(path: String): File? {
-        val file = File(path)
-        return when {
-            file.exists() -> file
-            else -> null
-        }
-    }
-
-    override fun writeAttachment(id: String, bytes: ByteArray): String? {
-        val file = createFile(id, ATTACHMENTS_DIR) ?: return null
+    override fun writeAttachment(attachmentId: String, bytes: ByteArray): String? {
+        val file = createFile(attachmentId) ?: return null
         return try {
             file.writeBytes(bytes)
             file.path
@@ -75,8 +60,16 @@ internal class FileStorageImpl(
         }
     }
 
-    private fun createFile(eventId: String, directory: String): File? {
-        val dirPath = "$rootDir/$directory"
+    override fun getFile(path: String): File? {
+        val file = File(path)
+        return when {
+            file.exists() -> file
+            else -> null
+        }
+    }
+
+    private fun createFile(id: String): File? {
+        val dirPath = "$rootDir/$MEASURE_DIR"
         val rootDir = File(dirPath)
 
         // Create directories if they don't exist
@@ -85,19 +78,19 @@ internal class FileStorageImpl(
                 rootDir.mkdirs()
             }
         } catch (e: SecurityException) {
-            logger.log(LogLevel.Error, "Unable to create file for eventId=$eventId", e)
+            logger.log(LogLevel.Error, "Unable to create file with id=$id", e)
             return null
         }
 
         // Create file with event id as file name
-        val filePath = "$dirPath/$eventId"
+        val filePath = "$dirPath/$id"
         val file = File(filePath)
         try {
             if (!file.exists()) {
                 file.createNewFile()
             }
         } catch (e: IOException) {
-            logger.log(LogLevel.Error, "Error creating file for eventId=$eventId", e)
+            logger.log(LogLevel.Error, "Error creating file with id=$id", e)
             return null
         }
 

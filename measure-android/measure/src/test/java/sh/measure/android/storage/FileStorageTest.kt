@@ -6,7 +6,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.robolectric.RuntimeEnvironment
-import sh.measure.android.events.EventType
 import sh.measure.android.fakes.NoopLogger
 import java.io.File
 import kotlin.io.path.pathString
@@ -28,9 +27,9 @@ class FileStorageTest {
     fun `writes serialized exception data to a file`() {
         val eventId = "123"
         val serializedData = "serialized-data"
-        fileStorage.writeSerializedEventData(eventId, EventType.EXCEPTION, serializedData)
+        fileStorage.writeEventData(eventId, serializedData)
 
-        fileStorage.getFile("$rootDir/measure/exceptions/$eventId")?.let { file ->
+        fileStorage.getFile("$rootDir/measure/$eventId")?.let { file ->
             assertTrue(file.exists())
             assertTrue(file.readText().isNotEmpty())
         }
@@ -40,9 +39,9 @@ class FileStorageTest {
     fun `writes serialized ANR data to a file`() {
         val eventId = "123"
         val serializedData = "serialized-data"
-        fileStorage.writeSerializedEventData(eventId, EventType.ANR, serializedData)
+        fileStorage.writeEventData(eventId, serializedData)
 
-        fileStorage.getFile("$rootDir/measure/anr/$eventId")?.let { file ->
+        fileStorage.getFile("$rootDir/measure/$eventId")?.let { file ->
             assertTrue(file.exists())
             assertTrue(file.readText().isNotEmpty())
         }
@@ -59,9 +58,9 @@ class FileStorageTest {
     fun `returns file if it exists`() {
         val eventId = "123"
         val serializedData = "serialized-data"
-        fileStorage.writeSerializedEventData(eventId, EventType.EXCEPTION, serializedData)
+        fileStorage.writeEventData(eventId, serializedData)
 
-        val file = fileStorage.getFile("$rootDir/measure/exception/$eventId")
+        val file = fileStorage.getFile("$rootDir/measure/$eventId")
         assertNotNull(file)
     }
 }
