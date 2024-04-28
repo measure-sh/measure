@@ -17,7 +17,7 @@ class DefaultConfigTest {
 
     @Test
     fun `returns false for a disallowed URL`() {
-        val url = "10.0.2.2:8080/sessions"
+        val url = "10.0.2.2:8080/events"
         val contentType = "application/json"
         assertFalse(config.trackHttpBody(url, contentType))
     }
