@@ -117,7 +117,7 @@ internal class EventProcessorImpl(
                 type = type,
                 data = data,
                 attachments = attachments,
-                attributes = attributes
+                attributes = attributes,
             )
         }
 
