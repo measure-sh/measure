@@ -302,22 +302,30 @@ internal object FakeEventFactory {
     }
 
     fun fakeEventEntity(
-        eventId: String,
+        eventId: String = "event-id",
+        type: String = "string",
+        sessionId: String = "session-id",
+        timestamp: String = "2024-03-18T12:50:12.62600000Z",
+        attachmentSize: Long = 100,
+        serializedData: String? = "serialized-data",
+        serializedAttributes: String = "serialized-attributes",
+        serializedAttachments: String = "serialized-attachments",
+        filePath: String? = null,
         attachmentEntities: List<AttachmentEntity> = listOf(
             AttachmentEntity(id = "attachment-id", type = "type", path = "path", name = "name"),
         ),
-        attachmentsSize: Long = 100,
     ): EventEntity {
         return EventEntity(
             id = eventId,
-            type = "type",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id",
-            attachmentsSize = attachmentsSize,
-            serializedData = "serialized-data",
-            serializedAttributes = "serialized-attributes",
-            serializedAttachments = "serialized-attachments",
+            type = type,
+            timestamp = timestamp,
+            sessionId = sessionId,
+            attachmentsSize = attachmentSize,
+            serializedData = serializedData,
+            serializedAttributes = serializedAttributes,
+            serializedAttachments = serializedAttachments,
             attachmentEntities = attachmentEntities,
+            filePath = filePath,
         )
     }
 
@@ -331,6 +339,20 @@ internal object FakeEventFactory {
             serializedAttributes = eventEntity.serializedAttributes ?: "",
             serializedAttachments = eventEntity.serializedAttachments,
             serializedDataFilePath = eventEntity.filePath,
+        )
+    }
+
+    fun getAttachmentEntity(
+        id: String = "id",
+        type: String = "type",
+        path: String = "path",
+        name: String = "name",
+    ) : AttachmentEntity {
+        return AttachmentEntity(
+            id = id,
+            type = type,
+            path = path,
+            name = name,
         )
     }
 

@@ -23,7 +23,8 @@ class NetworkClientTest {
         baseUrl = "http://localhost:8080",
         fileStorage = fileStorage,
     )
-    private val fakeFile = File.createTempFile("file", "txt").apply { writeText(getFakeFileContent()) }
+    private val fakeFile =
+        File.createTempFile("file", "txt").apply { writeText(getFakeFileContent()) }
 
     @After
     fun tearDown() {
@@ -77,6 +78,30 @@ class NetworkClientTest {
         assertFalse(result)
         assertEquals("PUT", recordedRequest.method)
         assertTrue(recordedRequest.headers.contains(Pair("msr-req-id", batchId)))
+    }
+
+    @Test
+    fun `given event data is in serialized data, request form data for event is valid`() {
+        val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-id")
+        val eventPacket = FakeEventFactory.getEventPacket(eventEntity)
+
+        val formDataPart = eventPacket.asFormDataPart(fileStorage)
+
+        val expectedData =
+            "{\"id\":\"${eventEntity.id}\",\"session_id\":\"${eventEntity.sessionId}\",\"timestamp\":\"${eventEntity.timestamp}\",\"type\":\"${eventEntity.type}\",\"${eventEntity.type}\":serialized-data,\"attachments\":${eventEntity.serializedAttachments},\"attribute\":${eventEntity.serializedAttributes}}"
+        assertEquals(expectedData, formDataPart)
+    }
+
+    @Test
+    fun `given event data is in file, request form data for event is valid`() {
+        val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-id")
+        val eventPacket = FakeEventFactory.getEventPacket(eventEntity)
+
+        val formDataPart = eventPacket.asFormDataPart(fileStorage)
+
+        val expectedData =
+            "{\"id\":\"${eventEntity.id}\",\"session_id\":\"${eventEntity.sessionId}\",\"timestamp\":\"${eventEntity.timestamp}\",\"type\":\"${eventEntity.type}\",\"${eventEntity.type}\":serialized-data,\"attachments\":${eventEntity.serializedAttachments},\"attribute\":${eventEntity.serializedAttributes}}"
+        assertEquals(expectedData, formDataPart)
     }
 
     private fun getFakeFileContent(): String {
