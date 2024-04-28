@@ -14,7 +14,9 @@ import sh.measure.android.fakes.FakeEventFactory.toEvent
 import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.storage.AttachmentEntity
 import sh.measure.android.storage.DatabaseImpl
+import sh.measure.android.storage.FileStorage
 
 @RunWith(AndroidJUnit4::class)
 class EventExporterTest {
@@ -25,6 +27,7 @@ class EventExporterTest {
     private val networkClient = mock<NetworkClient>()
     private val idProvider = FakeIdProvider()
     private val timeProvider = FakeTimeProvider()
+    private val fileStorage = mock<FileStorage>()
 
     private val eventExporter = EventExporterImpl(
         logger = logger,
@@ -32,6 +35,7 @@ class EventExporterTest {
         networkClient = networkClient,
         idProvider = idProvider,
         timeProvider = timeProvider,
+        fileStorage = fileStorage,
     )
 
     @Test
@@ -45,6 +49,24 @@ class EventExporterTest {
 
         Assert.assertEquals(0, database.getEventsCount())
         Assert.assertEquals(0, database.getBatchesCount())
+    }
+
+    @Test
+    fun `given export succeeds, deletes the events from file storage`() {
+        Mockito.`when`(networkClient.execute(any(), any(), any())).thenReturn(true)
+        val exceptionData = FakeEventFactory.getExceptionData()
+        val event = exceptionData.toEvent(id = "event-id", type = EventType.EXCEPTION)
+        database.insertEvent(
+            FakeEventFactory.fakeEventEntity(
+                eventId = event.id, attachmentEntities = listOf(
+                    AttachmentEntity("attachment-id", type = "type", path = "path", name = "name")
+                )
+            )
+        )
+
+        eventExporter.export(event)
+
+        Mockito.verify(fileStorage).deleteEventIfExist(event.id, listOf("attachment-id"))
     }
 
     @Test

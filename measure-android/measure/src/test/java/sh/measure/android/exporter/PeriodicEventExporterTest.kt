@@ -17,7 +17,9 @@ import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.storage.AttachmentEntity
 import sh.measure.android.storage.DatabaseImpl
+import sh.measure.android.storage.FileStorage
 
 /**
  * Tests for [PeriodicEventExporter]. This test uses Robolectric to allow using a real database
@@ -33,6 +35,7 @@ class PeriodicEventExporterTest {
     private val timeProvider = FakeTimeProvider()
     private val heartbeat = mock<Heartbeat>()
     private val networkClient = mock<NetworkClient>()
+    private val fileStorage = mock<FileStorage>()
     private val database =
         DatabaseImpl(InstrumentationRegistry.getInstrumentation().context, logger)
     private val batchCreator = BatchCreatorImpl(logger, idProvider, database, config, timeProvider)
@@ -44,6 +47,7 @@ class PeriodicEventExporterTest {
         heartbeatExecutorService = executorService,
         exportExecutorService = executorService,
         database,
+        fileStorage,
         networkClient,
         timeProvider,
         heartbeat,
@@ -139,6 +143,22 @@ class PeriodicEventExporterTest {
 
         assertEquals(0, database.getEventsCount())
         assertEquals(0, database.getBatchesCount())
+    }
+
+    @Test
+    fun `given a batch export succeeds, deletes the events from file storage`() {
+        `when`(networkClient.execute(any(), any(), any())).thenReturn(true)
+        val eventEntity = FakeEventFactory.fakeEventEntity(
+            eventId = "event-id", attachmentEntities = listOf(
+                AttachmentEntity("attachment-id", type = "type", path = "path", name = "name")
+            )
+        )
+        val batchId = "batch-id"
+        database.insertEvent(eventEntity)
+        database.insertBatch(listOf(eventEntity.id), batchId, 987654321L)
+        exporter.pulse()
+
+        verify(fileStorage).deleteEventsIfExist(listOf("event-id"), listOf("attachment-id"))
     }
 
     @Test

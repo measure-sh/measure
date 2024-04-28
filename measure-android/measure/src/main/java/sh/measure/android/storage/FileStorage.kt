@@ -27,6 +27,22 @@ internal interface FileStorage {
      * @param attachmentId The attachment id to use as the file name.
      */
     fun writeAttachment(attachmentId: String, bytes: ByteArray): String?
+
+    /**
+     * Deletes events and their attachments.
+     *
+     * @param eventIds The list of event ids to delete.
+     * @param attachmentIds The list of attachment ids to delete.
+     */
+    fun deleteEventsIfExist(eventIds: List<String>, attachmentIds: List<String>)
+
+    /**
+     * Deletes an event and its attachments.
+     *
+     * @param eventId The event id to delete.
+     * @param attachmentIds The list of attachment ids to delete.
+     */
+    fun deleteEventIfExist(eventId: String, attachmentIds: List<String>)
 }
 
 private const val MEASURE_DIR = "measure"
@@ -57,6 +73,16 @@ internal class FileStorageImpl(
             logger.log(LogLevel.Error, "Error writing attachment to file", e)
             deleteFileIfExists(file)
             null
+        }
+    }
+
+    override fun deleteEventIfExist(eventId: String, attachmentIds: List<String>) {
+        deleteEventsIfExist(listOf(eventId), attachmentIds)
+    }
+
+    override fun deleteEventsIfExist(eventIds: List<String>, attachmentIds: List<String>) {
+        (eventIds + attachmentIds).forEach { id ->
+            getFile("$rootDir/$MEASURE_DIR/$id")?.delete()
         }
     }
 
