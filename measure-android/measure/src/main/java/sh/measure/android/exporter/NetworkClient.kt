@@ -70,7 +70,7 @@ internal class NetworkClientImpl(
         requestBodyBuilder: MultipartBody.Builder,
     ) {
         eventPackets.forEach { eventPacket ->
-            requestBodyBuilder.addFormDataPart(eventFormDataName, eventPacket.asFormDataPart())
+            requestBodyBuilder.addFormDataPart(eventFormDataName, eventPacket.asFormDataPart(fileStorage))
         }
     }
 
@@ -82,7 +82,7 @@ internal class NetworkClientImpl(
             requestBodyBuilder.addFormDataPart(
                 getAttachmentFormDataName(attachmentPacket),
                 null,
-                attachmentPacket.asFormDataPart(),
+                attachmentPacket.asFormDataPart(fileStorage),
             )
         }
     }
@@ -114,18 +114,18 @@ internal class NetworkClientImpl(
     private fun getAttachmentFormDataName(attachmentPacket: AttachmentPacket): String =
         "$ATTACHMENT_NAME_PREFIX${attachmentPacket.id}"
 
-    private fun AttachmentPacket.asFormDataPart(): RequestBody {
+    private fun AttachmentPacket.asFormDataPart(fileStorage: FileStorage): RequestBody {
         return fileStorage.getFile(filePath)?.asRequestBody()
             ?: throw IllegalStateException("No file found at path: $filePath")
     }
+}
 
-    private fun EventPacket.asFormDataPart(): String {
-        val data = serializedData ?: if (serializedDataFilePath != null) {
-            fileStorage.getFile(serializedDataFilePath)?.readText()
-                ?: throw IllegalStateException("No file found at path: $serializedDataFilePath")
-        } else {
-            throw IllegalStateException("EventPacket must have either serializedData or serializedDataFilePath")
-        }
-        return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":$data,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes}"
+internal fun EventPacket.asFormDataPart(fileStorage: FileStorage): String {
+    val data = serializedData ?: if (serializedDataFilePath != null) {
+        fileStorage.getFile(serializedDataFilePath)?.readText()
+            ?: throw IllegalStateException("No file found at path: $serializedDataFilePath")
+    } else {
+        throw IllegalStateException("EventPacket must have either serializedData or serializedDataFilePath")
     }
+    return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":$data,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes}"
 }
