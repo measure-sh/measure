@@ -17,7 +17,7 @@ import sh.measure.android.utils.iso8601Timestamp
  * by applying various attributes and transformations, and then eventually storing them or sending
  * them to the server.
  */
-internal interface  EventProcessor {
+internal interface EventProcessor {
     /**
      * Tracks an event with the given data, timestamp and type.
      *

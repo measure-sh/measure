@@ -58,10 +58,11 @@ class EventExporterTest {
         val event = exceptionData.toEvent(id = "event-id", type = EventType.EXCEPTION)
         database.insertEvent(
             FakeEventFactory.fakeEventEntity(
-                eventId = event.id, attachmentEntities = listOf(
-                    AttachmentEntity("attachment-id", type = "type", path = "path", name = "name")
-                )
-            )
+                eventId = event.id,
+                attachmentEntities = listOf(
+                    AttachmentEntity("attachment-id", type = "type", path = "path", name = "name"),
+                ),
+            ),
         )
 
         eventExporter.export(event)
