@@ -58,7 +58,6 @@ func Scan(rootPath string) (apps *Apps, err error) {
 				if info.Size() < 1 {
 					return fmt.Errorf("%q has empty an events file. check %q", app.FullName(), rel)
 				}
-				app.Sessions = append(app.Sessions, path)
 				app.EventFiles = append(app.EventFiles, path)
 			}
 
