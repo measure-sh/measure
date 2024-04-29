@@ -1,5 +1,6 @@
 package sh.measure.android.exporter
 
+import androidx.concurrent.futures.ResolvableFuture
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert
@@ -13,6 +14,7 @@ import sh.measure.android.fakes.FakeEventFactory
 import sh.measure.android.fakes.FakeEventFactory.toEvent
 import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakeTimeProvider
+import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.storage.AttachmentEntity
 import sh.measure.android.storage.DatabaseImpl
@@ -28,6 +30,7 @@ class EventExporterTest {
     private val idProvider = FakeIdProvider()
     private val timeProvider = FakeTimeProvider()
     private val fileStorage = mock<FileStorage>()
+    private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
 
     private val eventExporter = EventExporterImpl(
         logger = logger,
@@ -36,6 +39,7 @@ class EventExporterTest {
         idProvider = idProvider,
         timeProvider = timeProvider,
         fileStorage = fileStorage,
+        executorService = executorService,
     )
 
     @Test

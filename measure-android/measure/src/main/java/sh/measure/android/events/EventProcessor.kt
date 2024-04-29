@@ -134,9 +134,7 @@ internal class EventProcessorImpl(
                 val event = createEvent(sessionId)
                 applyAttributes(event)
                 eventStore.store(event)
-                executorService.submit {
-                    eventExporter.export(event)
-                }
+                eventExporter.export(event)
             }
 
             else -> {

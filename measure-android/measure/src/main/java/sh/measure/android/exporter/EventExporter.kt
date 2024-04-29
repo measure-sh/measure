@@ -1,6 +1,7 @@
 package sh.measure.android.exporter
 
 import sh.measure.android.events.Event
+import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.Database
@@ -28,6 +29,7 @@ internal class EventExporterImpl(
     private val networkClient: NetworkClient,
     private val idProvider: IdProvider,
     private val timeProvider: TimeProvider,
+    private val executorService: MeasureExecutorService,
 ) : EventExporter {
     override fun <T> export(event: Event<T>) {
         val batchId = idProvider.createId()
@@ -36,10 +38,13 @@ internal class EventExporterImpl(
         if (batchCreated) {
             val eventPacket = database.getEventPacket(event.id)
             val attachmentPackets = database.getAttachmentPacket(event.id)
-            val exported = networkClient.execute(batchId, listOf(eventPacket), attachmentPackets)
-            if (exported) {
-                database.deleteEvent(event.id)
-                fileStorage.deleteEventIfExist(event.id, attachmentPackets.map { it.id })
+            executorService.submit {
+                val exported =
+                    networkClient.execute(batchId, listOf(eventPacket), attachmentPackets)
+                if (exported) {
+                    database.deleteEvent(event.id)
+                    fileStorage.deleteEventIfExist(event.id, attachmentPackets.map { it.id })
+                }
             }
         } else {
             logger.log(LogLevel.Error, "Failed to create a batch for event ${event.id}")
