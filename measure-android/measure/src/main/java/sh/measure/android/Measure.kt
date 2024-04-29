@@ -147,7 +147,15 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
             idProvider,
             sessionManager,
             globalAttributeProcessors,
-            EventExporterImpl(logger, database, fileStorage, networkClient, idProvider, timeProvider),
+            EventExporterImpl(
+                logger,
+                database,
+                fileStorage,
+                networkClient,
+                idProvider,
+                timeProvider,
+                executorService = executorServiceRegistry.eventExportExecutor(),
+            )
         )
 
         appExitCollector = AppExitCollector(
