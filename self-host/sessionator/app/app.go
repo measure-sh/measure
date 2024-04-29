@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"measure-backend/measure-go/event"
 	"os"
 	"sessionator/config"
 
@@ -11,13 +12,12 @@ import (
 )
 
 // App represents each combination of app and version
-// along with its sessions and related build info.
+// along with its events and related build info.
 type App struct {
 	Name        string
 	Version     string
 	MappingFile string
 	BuildInfo   BuildInfo
-	Sessions    []string
 	EventFiles  []string
 	BlobFiles   []string
 }
@@ -32,21 +32,22 @@ func (a *App) ReadBuild(path string) error {
 	return nil
 }
 
-// Resource provides the session resource from the first
-// session of the app.
-func (a *App) Resource() (resource *Resource, err error) {
-	content, err := os.ReadFile(a.Sessions[0])
+// Attribute provides the event attribute from the first
+// event of the app.
+func (a *App) Attribute() (attribute *event.Attribute, err error) {
+	content, err := os.ReadFile(a.EventFiles[0])
 	if err != nil {
 		return nil, err
 	}
 
-	session := &Session{}
+	events := []event.EventField{}
 
-	if err := json.Unmarshal(content, session); err != nil {
+	if err := json.Unmarshal(content, &events); err != nil {
 		return nil, err
 	}
 
-	resource = &session.Resource
+	attribute = &events[0].Attribute
+
 	return
 }
 

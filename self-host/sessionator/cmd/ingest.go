@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log"
+	"measure-backend/measure-go/event"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -21,13 +23,13 @@ import (
 const multipartBoundary = "___sessionator___"
 
 // sourceDir is the source directory where the program
-// reads and processes the sessions, build info and
+// reads and processes the events, build info and
 // mapping file(s).
 var sourceDir string
 
 // origin is the origin of the server where the program
-// will send and upload sessions, build info and
-// mapping file.
+// will send and upload events, attachments, build info
+// and mapping file.
 var origin string
 
 // configLocation is the path to the `config.toml` file
@@ -43,8 +45,8 @@ var configData *config.Config
 var metrics Metrics
 
 func init() {
-	ingestCmd.Flags().StringVarP(&sourceDir, "source", "s", "../session-data", "source diretory to read sessions from")
-	ingestCmd.Flags().StringVarP(&origin, "origin", "o", "http://localhost:8080", "origin of session ingestion server")
+	ingestCmd.Flags().StringVarP(&sourceDir, "source", "s", "../session-data", "source diretory to read events from")
+	ingestCmd.Flags().StringVarP(&origin, "origin", "o", "http://localhost:8080", "origin of event ingestion server")
 	ingestCmd.Flags().StringVarP(&configLocation, "config", "c", "../session-data/config.toml", "location to config.toml file")
 	rootCmd.AddCommand(ingestCmd)
 }
@@ -65,17 +67,17 @@ func ValidateFlags() bool {
 	return true
 }
 
-// IngestSerial serially ingests each session and
-// build of each app version.
+// IngestSerial serially ingests batches of
+// events and build of each app version.
 func IngestSerial(apps *app.Apps, origin string) {
-	sessionURL := fmt.Sprintf("%s/sessions", origin)
+	eventURL := fmt.Sprintf("%s/events", origin)
 	mappingURL := fmt.Sprintf("%s/builds", origin)
 
 	for _, app := range apps.Items {
 		fmt.Printf("%s\n", app.FullName())
 
-		if len(app.Sessions) < 1 {
-			fmt.Printf("app %q has no sessions, skipping...\n", app.FullName())
+		if len(app.EventFiles) < 1 {
+			fmt.Printf("app %q has no events, skipping...\n", app.FullName())
 			continue
 		}
 
@@ -94,15 +96,15 @@ func IngestSerial(apps *app.Apps, origin string) {
 		fmt.Printf("🟢 %s \n", status)
 		metrics.bumpBuild()
 
-		for j := range app.Sessions {
-			session := app.Sessions[j]
-			content, err := os.ReadFile(session)
+		for i := range app.EventFiles {
+			eventFile := app.EventFiles[i]
+			content, err := prepareEvents(eventFile)
 			if err != nil {
 				log.Fatal(err)
 			}
-			base := filepath.Base(session)
-			fmt.Printf("Ingesting session %q... ", base)
-			status, err := UploadSession(sessionURL, apiKey, content)
+			base := filepath.Base(eventFile)
+			fmt.Printf("Ingesting events %q...", base)
+			status, err := UploadEvents(eventURL, apiKey, content)
 			if err != nil {
 				if status == "" {
 					status = err.Error()
@@ -111,7 +113,7 @@ func IngestSerial(apps *app.Apps, origin string) {
 				log.Fatal(err)
 			}
 			fmt.Printf("🟢 %s \n", status)
-			metrics.bumpSession()
+			metrics.bumpEvent()
 		}
 
 		fmt.Printf("\n")
@@ -126,7 +128,7 @@ func UploadBuild(url, apiKey string, app app.App) (string, error) {
 	w := multipart.NewWriter(&buff)
 	w.SetBoundary(multipartBoundary)
 
-	resource, err := app.Resource()
+	attribute, err := app.Attribute()
 	if err != nil {
 		return "", err
 	}
@@ -135,13 +137,13 @@ func UploadBuild(url, apiKey string, app app.App) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	fw.Write([]byte(resource.AppVersion))
+	fw.Write([]byte(attribute.AppVersion))
 
 	fw, err = w.CreateFormField("version_code")
 	if err != nil {
 		return "", err
 	}
-	fw.Write([]byte(resource.AppBuild))
+	fw.Write([]byte(attribute.AppBuild))
 
 	if app.MappingFile != "" {
 		f, err := os.Open(app.MappingFile)
@@ -184,11 +186,91 @@ func UploadBuild(url, apiKey string, app app.App) (string, error) {
 	return sendRequest(url, apiKey, headers, buff.Bytes())
 }
 
-// UploadSession prepares & sends the request to upload
-// session files.
-func UploadSession(url, apiKey string, data []byte) (string, error) {
+// prepareEvents prepares request for events.
+func prepareEvents(eventFile string) (data []byte, err error) {
+	events := []event.EventField{}
+	rawEvents := []json.RawMessage{}
+	content, err := os.ReadFile(eventFile)
+	if err != nil {
+		return
+	}
+	if err := json.Unmarshal(content, &events); err != nil {
+		return data, err
+	}
+
+	decoder := json.NewDecoder(bytes.NewBuffer(content))
+	_, err = decoder.Token()
+	if err != nil {
+		return
+	}
+	for decoder.More() {
+		var r json.RawMessage
+		if err = decoder.Decode(&r); err != nil {
+			return
+		}
+		rawEvents = append(rawEvents, r)
+	}
+
+	if len(rawEvents) != len(events) {
+		err = fmt.Errorf("mismatch found in number of events while preparing events request")
+		return
+	}
+
+	var buff bytes.Buffer
+	w := multipart.NewWriter(&buff)
+	w.SetBoundary(multipartBoundary)
+
+	for i := range rawEvents {
+		fw, err := w.CreateFormField("event")
+		if err != nil {
+			return data, err
+		}
+		fw.Write(rawEvents[i])
+
+		if len(events[i].Attachments) < 1 {
+			continue
+		}
+
+		for j := range events[i].Attachments {
+			appDir := filepath.Dir(eventFile)
+			id := events[i].Attachments[j].ID.String()
+			filename := events[i].Attachments[j].Name
+			key := `blob-` + id
+			blobPath := filepath.Join(appDir, "blobs", id)
+			blobFile, err := os.Open(blobPath)
+			if err != nil {
+				return data, err
+			}
+			ff, err := w.CreateFormFile(key, filename)
+			if err != nil {
+				return data, err
+			}
+
+			_, err = io.Copy(ff, blobFile)
+			if err != nil {
+				return data, err
+			}
+			if err := blobFile.Close(); err != nil {
+				return data, err
+			}
+		}
+	}
+
+	data = buff.Bytes()
+
+	return
+}
+
+// UploadEvents prepares & sends the request to upload
+// events.
+func UploadEvents(url, apiKey string, data []byte) (status string, err error) {
+	events := []event.EventField{}
+	if err := json.Unmarshal(data, &events); err != nil {
+		return "", err
+	}
+
 	headers := map[string]string{
-		"Content-Type": "application/json",
+		"Content-Type": fmt.Sprintf("multipart/form-data; boundary=%s", multipartBoundary),
 	}
 
 	return sendRequest(url, apiKey, headers, data)
@@ -239,8 +321,8 @@ func sendRequest(url, apiKey string, headers map[string]string, data []byte) (st
 
 var ingestCmd = &cobra.Command{
 	Use:   "ingest",
-	Short: "Ingest sessions",
-	Long: `Ingest sessions from a local directory.
+	Short: "Ingest events",
+	Long: `Ingest events from a local directory.
 
 Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -277,7 +359,7 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 				mapping = "found"
 			}
 			fmt.Printf("app (%d): %s\n", i+1, app.FullName())
-			fmt.Printf("session count: %d\n", len(app.Sessions))
+			fmt.Printf("event batch count: %d\n", len(app.EventFiles))
 			fmt.Printf("mapping file: %s\n\n", mapping)
 		}
 
@@ -287,6 +369,6 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 
 		fmt.Printf("apps: %d\n", metrics.AppCount)
 		fmt.Printf("builds: %d\n", metrics.BuildCount)
-		fmt.Printf("sessions: %d\n", metrics.SessionCount)
+		fmt.Printf("events: %d\n", metrics.EventCount)
 	},
 }
