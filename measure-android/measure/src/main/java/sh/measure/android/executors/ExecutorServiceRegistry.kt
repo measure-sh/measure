@@ -44,7 +44,7 @@ internal class ExecutorServiceRegistryImpl : ExecutorServiceRegistry {
     }
 
     override fun eventProcessorExecutor(): MeasureExecutorService {
-        return executors.getOrPut(ExecutorServiceName.EventIngestion) {
+        return executors.getOrPut(ExecutorServiceName.EventProcessor) {
             val threadFactory = namedThreadFactory("msr-ep")
             MeasureExecutorServiceImpl(threadFactory)
         }
@@ -80,7 +80,7 @@ internal class ExecutorServiceRegistryImpl : ExecutorServiceRegistry {
 
 private enum class ExecutorServiceName {
     AppExitCollection,
-    EventIngestion,
+    EventProcessor,
     EventExport,
     CpuMemoryUsageCollection,
     ExportHeartbeat,
