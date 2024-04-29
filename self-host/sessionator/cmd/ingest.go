@@ -258,6 +258,7 @@ func prepareEvents(eventFile string) (data []byte, err error) {
 	}
 
 	data = buff.Bytes()
+	w.Close()
 
 	return
 }
