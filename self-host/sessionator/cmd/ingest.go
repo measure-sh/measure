@@ -104,7 +104,8 @@ func IngestSerial(apps *app.Apps, origin string) {
 			}
 			base := filepath.Base(eventFile)
 			fmt.Printf("Ingesting events %q...", base)
-			status, err := UploadEvents(eventURL, apiKey, content)
+			reqId := base[:len(base)-len(filepath.Ext(base))]
+			status, err := UploadEvents(eventURL, apiKey, reqId, content)
 			if err != nil {
 				if status == "" {
 					status = err.Error()
@@ -263,13 +264,14 @@ func prepareEvents(eventFile string) (data []byte, err error) {
 
 // UploadEvents prepares & sends the request to upload
 // events.
-func UploadEvents(url, apiKey string, data []byte) (status string, err error) {
+func UploadEvents(url, apiKey, reqId string, data []byte) (status string, err error) {
 	events := []event.EventField{}
 	if err := json.Unmarshal(data, &events); err != nil {
 		return "", err
 	}
 
 	headers := map[string]string{
+		"msr-req-id":   reqId,
 		"Content-Type": fmt.Sprintf("multipart/form-data; boundary=%s", multipartBoundary),
 	}
 
