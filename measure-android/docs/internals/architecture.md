@@ -1,14 +1,10 @@
 # Architecture
 
-* [Thread management](#thread-management)
 * [Storage](#storage)
 * [Batching & export](#batching--export)
-  * [Periodic batching and export](#periodic-batching-and-export)
-  * [Exceptions and ANRs export](#exceptions-and-anrs-export)
-
-# Thread management
-
-Coming soon...
+    * [Periodic batching and export](#periodic-batching-and-export)
+    * [Exceptions and ANRs export](#exceptions-and-anrs-export)
+* [Thread management](#thread-management)
 
 # Storage
 
@@ -18,7 +14,7 @@ stored in the database and which are stored in the file system is based on the s
 Even though SQLite can store large blobs, due to the cursor window size limit on Android, it can
 lead to
 a [TransactionTooLargeException](https://developer.android.com/reference/android/os/TransactionTooLargeException)
-if a query exceeds the limit and it makes working with large blobs cumbersome.
+if a query exceeds the limit, and it makes working with large blobs cumbersome.
 
 Sqlite database is configured with the following settings:
 
@@ -84,6 +80,23 @@ In worse case scenarios the following must be ensured:
 
 ## Exceptions and ANRs export
 
-All events except for exceptions and ANRs are sent to the server in batches. Exceptions and ANRs however, are sent to
-the server immediately as soon as they are received. This is done to ensure that clients can be notified of issues
-as soon as possible.
+All events except for exceptions and ANRs are sent to the server in batches, periodically, as shown
+above. Exceptions
+and ANRs however, are sent to the server immediately as soon as they are received. This is done to
+ensure that clients
+can be notified of issues as soon as possible.
+
+# Thread management
+
+Measure maintains a pool of threads to handle background tasks using executors. Broadly the SDK
+follows the following
+thread management strategy:
+
+1. Use single threaded executors unless there is a need for parallel execution, which is rare.
+2. Use a single thread to apply attributes and store the events in database/file storage. This
+   ensures that there are no concurrent writes to the database.
+3. Use a single thread to export events to the server. This ensures that there are no
+   concurrent network requests as expected by the export algorithm mentioned
+   in [Periodic batching and export](#periodic-batching-and-export) section.
+4. For collectors, use the `background executor` for all tasks which are not time-consuming. For tasks
+   which are time-consuming or block on IO, use a different thread.

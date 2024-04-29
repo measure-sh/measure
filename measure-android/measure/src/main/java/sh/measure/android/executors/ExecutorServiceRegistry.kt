@@ -37,7 +37,7 @@ internal class ExecutorServiceRegistryImpl : ExecutorServiceRegistry {
     private val executors: MutableMap<ExecutorServiceName, MeasureExecutorService> by lazy { mutableMapOf() }
 
     override fun backgroundExecutor(): MeasureExecutorService {
-        return executors.getOrPut(ExecutorServiceName.AppExitCollection) {
+        return executors.getOrPut(ExecutorServiceName.BackgroundExecutor) {
             val threadFactory = namedThreadFactory("msr-bg")
             MeasureExecutorServiceImpl(threadFactory)
         }
@@ -79,7 +79,7 @@ internal class ExecutorServiceRegistryImpl : ExecutorServiceRegistry {
 }
 
 private enum class ExecutorServiceName {
-    AppExitCollection,
+    BackgroundExecutor,
     EventProcessor,
     EventExport,
     CpuMemoryUsageCollection,
