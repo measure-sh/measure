@@ -32,6 +32,8 @@ internal class EventExporterImpl(
     private val executorService: MeasureExecutorService,
 ) : EventExporter {
     override fun <T> export(event: Event<T>) {
+        // Create a batch for the event synchronously to ensure that the event is not duplicated
+        // in another batch by [PeriodicEventExporter].
         val batchId = idProvider.createId()
         val batchCreated =
             database.insertBatch(event.id, batchId, timeProvider.currentTimeSinceEpochInMillis)
