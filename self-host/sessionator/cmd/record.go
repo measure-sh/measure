@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -33,21 +32,21 @@ var outputDir string
 var port string
 
 func init() {
-	recordCmd.Flags().StringVarP(&outputDir, "path", "p", "../session-data", "Path to store sessions")
+	recordCmd.Flags().StringVarP(&outputDir, "path", "p", "../session-data", "Path to store event requests")
 	recordCmd.Flags().StringVarP(&port, "port", "P", "8080", "Port to run the server")
 	rootCmd.AddCommand(recordCmd)
 }
 
 var recordCmd = &cobra.Command{
 	Use:   "record",
-	Short: "Records sessions & mappings",
-	Long: `Records sessions & mappings to disk.
+	Short: "Records events & mappings",
+	Long: `Records events & mappings to disk.
 	
 Structue of "session-data" directory once written:` + "\n" + DirTree() + "\n" + ValidNote(),
 	Run: func(cmd *cobra.Command, args []string) {
 		r := gin.Default()
 
-		r.PUT("/sessions", writeSession)
+		// r.PUT("/sessions", writeSession)
 		r.PUT("/builds", writeBuild)
 		r.PUT("/events", writeEvent)
 
@@ -240,39 +239,39 @@ func writeEvent(c *gin.Context) {
 	})
 }
 
-func writeSession(c *gin.Context) {
-	body, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read request body: " + err.Error()})
-		return
-	}
-	c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
+// func writeSession(c *gin.Context) {
+// 	body, err := io.ReadAll(c.Request.Body)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read request body: " + err.Error()})
+// 		return
+// 	}
+// 	c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
 
-	session := app.Session{}
-	if err := c.ShouldBindJSON(&session); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "unable to parse request: " + err.Error()})
-		return
-	}
+// 	session := app.Session{}
+// 	if err := c.ShouldBindJSON(&session); err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "unable to parse request: " + err.Error()})
+// 		return
+// 	}
 
-	filePath := filepath.Join(outputDir, session.Resource.AppUniqueID, session.Resource.AppVersion, session.SessionID+".json")
+// 	filePath := filepath.Join(outputDir, session.Resource.AppUniqueID, session.Resource.AppVersion, session.SessionID+".json")
 
-	if _, err := os.Stat(filePath); err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "session {session.SessionID} already exists"})
-		return
-	}
+// 	if _, err := os.Stat(filePath); err == nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "session {session.SessionID} already exists"})
+// 		return
+// 	}
 
-	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create session: " + err.Error()})
-		return
-	}
+// 	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create session: " + err.Error()})
+// 		return
+// 	}
 
-	if err := os.WriteFile(filePath, body, 0644); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create session: " + err.Error()})
-		return
-	}
+// 	if err := os.WriteFile(filePath, body, 0644); err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create session: " + err.Error()})
+// 		return
+// 	}
 
-	c.Status(http.StatusAccepted)
-}
+// 	c.Status(http.StatusAccepted)
+// }
 
 func writeBuild(c *gin.Context) {
 	if err := c.Request.ParseMultipartForm(100 << 20); err != nil {
