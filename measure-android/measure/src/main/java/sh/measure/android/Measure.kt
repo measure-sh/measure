@@ -155,7 +155,7 @@ object Measure : ColdLaunchListener, ApplicationLifecycleStateListener {
                 idProvider,
                 timeProvider,
                 executorService = executorServiceRegistry.eventExportExecutor(),
-            )
+            ),
         )
 
         appExitCollector = AppExitCollector(
