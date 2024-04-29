@@ -144,4 +144,4 @@ Coming soon...
 
 # Internals
 
-* [Persistence and syncing](docs/internals/persistence_and_syncing.md)
+* [Architecture](docs/internals/architecture)
