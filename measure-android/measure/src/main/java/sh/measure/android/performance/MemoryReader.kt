@@ -4,8 +4,8 @@ import android.os.Debug
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.DebugProvider
-import sh.measure.android.utils.PidProvider
 import sh.measure.android.utils.ProcProvider
+import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.RuntimeProvider
 
 internal const val PAGE_SIZE = 4
@@ -55,7 +55,7 @@ internal class DefaultMemoryReader(
     private val logger: Logger,
     private val debugProvider: DebugProvider,
     private val runtimeProvider: RuntimeProvider,
-    private val pidProvider: PidProvider,
+    private val processInfo: ProcessInfoProvider,
     private val procProvider: ProcProvider,
 ) : MemoryReader {
     override fun maxHeapSize() = runtimeProvider.maxMemory() / BYTES_TO_KB_FACTOR
@@ -71,7 +71,7 @@ internal class DefaultMemoryReader(
     }
 
     override fun rss(): Long? {
-        val pid = pidProvider.getPid()
+        val pid = processInfo.getPid()
         val file = procProvider.getStatmFile(pid)
         if (file.exists()) {
             try {

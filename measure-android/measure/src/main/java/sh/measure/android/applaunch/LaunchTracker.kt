@@ -9,7 +9,7 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.mainHandler
 import sh.measure.android.postAtFrontOfQueueAsync
-import sh.measure.android.utils.isForegroundProcess
+import sh.measure.android.utils.ProcessInfoProvider
 
 internal interface LaunchCallbacks {
     fun onColdLaunch(coldLaunchData: ColdLaunchData)
@@ -23,6 +23,7 @@ internal interface LaunchCallbacks {
  */
 internal class LaunchTracker(
     private val logger: Logger,
+    private val processInfo: ProcessInfoProvider,
     private val callbacks: LaunchCallbacks,
 ) : ActivityLifecycleAdapter {
 
@@ -161,7 +162,7 @@ internal class LaunchTracker(
                     "Hot"
                 }
             }
-            isForegroundProcess() -> "Cold"
+            processInfo.isForegroundProcess() -> "Cold"
             else -> "Warm"
         }
     }
