@@ -1261,6 +1261,8 @@ func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 	var platform pgtype.Text
 	var firstVersion pgtype.Text
 
+	app = &App{}
+
 	stmt := sqlf.PostgreSQL.
 		Select("onboarded").
 		Select("unique_identifier").
