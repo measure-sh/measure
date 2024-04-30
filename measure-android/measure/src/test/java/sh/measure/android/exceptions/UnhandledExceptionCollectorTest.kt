@@ -32,7 +32,7 @@ internal class UnhandledExceptionCollectorTest {
             logger,
             eventProcessor,
             timeProvider,
-            processInfo
+            processInfo,
         ).apply { register() }
         val currentDefaultHandler = Thread.getDefaultUncaughtExceptionHandler()
 
@@ -46,7 +46,7 @@ internal class UnhandledExceptionCollectorTest {
             logger,
             eventProcessor,
             timeProvider,
-            processInfo
+            processInfo,
         ).apply { register() }
 
         // Given
@@ -80,7 +80,7 @@ internal class UnhandledExceptionCollectorTest {
             logger,
             eventProcessor,
             timeProvider,
-            processInfo
+            processInfo,
         ).apply { register() }
 
         // Given

@@ -4,8 +4,8 @@ import android.os.Debug
 import org.junit.Assert
 import org.junit.Test
 import sh.measure.android.fakes.FakeDebugProvider
-import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.FakeProcProvider
+import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.utils.DefaultRuntimeProvider
 
