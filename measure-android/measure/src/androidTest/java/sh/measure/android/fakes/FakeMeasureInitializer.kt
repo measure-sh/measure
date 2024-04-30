@@ -21,7 +21,7 @@ import sh.measure.android.performance.MemoryUsageCollector
 import sh.measure.android.utils.ManifestReader
 import sh.measure.android.utils.TimeProvider
 
-internal class FakeMeasureInitializer: MeasureInitializer {
+internal class FakeMeasureInitializer : MeasureInitializer {
     override lateinit var application: Application
     override lateinit var logger: Logger
     override lateinit var timeProvider: TimeProvider
@@ -41,5 +41,4 @@ internal class FakeMeasureInitializer: MeasureInitializer {
     override lateinit var networkChangesCollector: NetworkChangesCollector
     override lateinit var periodicEventExporter: PeriodicEventExporter
     override lateinit var userAttributeProcessor: UserAttributeProcessor
-
 }
