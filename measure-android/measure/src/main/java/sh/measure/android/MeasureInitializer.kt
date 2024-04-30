@@ -79,7 +79,7 @@ internal class MeasureInitializerImpl(
     private val executorServiceRegistry: ExecutorServiceRegistry = ExecutorServiceRegistryImpl(),
     private val fileStorage: FileStorage = FileStorageImpl(
         rootDir = application.filesDir.path,
-        logger = logger
+        logger = logger,
     ),
     val database: Database = DatabaseImpl(context = application, logger = logger),
     override val manifestReader: ManifestReaderImpl = ManifestReaderImpl(application, logger),
@@ -115,11 +115,13 @@ internal class MeasureInitializerImpl(
         systemServiceProvider = systemServiceProvider,
     ),
     private val networkStateProvider: NetworkStateProvider = NetworkStateProviderImpl(
-        initialNetworkStateProvider = initialNetworkStateProvider
+        initialNetworkStateProvider = initialNetworkStateProvider,
     ),
     override val userAttributeProcessor: UserAttributeProcessor = UserAttributeProcessor(),
     private val deviceAttributeProcessor: DeviceAttributeProcessor = DeviceAttributeProcessor(
-        logger, context = application, localeProvider = localeProvider
+        logger,
+        context = application,
+        localeProvider = localeProvider,
     ),
     private val appAttributeProcessor: AppAttributeProcessor = AppAttributeProcessor(
         context = application,
@@ -164,7 +166,8 @@ internal class MeasureInitializerImpl(
     ),
     val config: Config = DefaultConfig(),
     private val periodicHeartbeat: Heartbeat = HeartbeatImpl(
-        logger, executorServiceRegistry.exportHeartbeatExecutor()
+        logger,
+        executorServiceRegistry.exportHeartbeatExecutor(),
     ),
     private val batchCreator: BatchCreator = BatchCreatorImpl(
         logger = logger,
@@ -182,7 +185,7 @@ internal class MeasureInitializerImpl(
         heartbeat = periodicHeartbeat,
         batchCreator = batchCreator,
         networkClient = networkClient,
-        fileStorage = fileStorage
+        fileStorage = fileStorage,
     ),
     private val osSysConfProvider: OsSysConfProvider = OsSysConfProviderImpl(),
     override val okHttpEventCollector: OkHttpEventCollector = OkHttpEventCollectorImpl(
@@ -258,7 +261,7 @@ internal class MeasureInitializerImpl(
         timeProvider = timeProvider,
         networkStateProvider = networkStateProvider,
     ),
-): MeasureInitializer
+) : MeasureInitializer
 
 internal interface MeasureInitializer {
     val application: Application

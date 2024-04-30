@@ -26,10 +26,12 @@ class ComposeNavigationCollectorTest {
 
     @Before
     fun setup() {
-        Measure.initForInstrumentationTest(FakeMeasureInitializer().apply {
-            eventProcessor = this@ComposeNavigationCollectorTest.eventProcessor
-            timeProvider = this@ComposeNavigationCollectorTest.timeProvider
-        })
+        Measure.initForInstrumentationTest(
+            FakeMeasureInitializer().apply {
+                eventProcessor = this@ComposeNavigationCollectorTest.eventProcessor
+                timeProvider = this@ComposeNavigationCollectorTest.timeProvider
+            },
+        )
     }
 
     @Test
