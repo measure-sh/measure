@@ -232,6 +232,7 @@ internal class MeasureInitializerImpl(
         timeProvider = timeProvider,
         executorService = executorServiceRegistry.cpuAndMemoryCollectionExecutor(),
         memoryReader = memoryReader,
+        processInfo = processInfoProvider,
     ),
     override val componentCallbacksCollector: ComponentCallbacksCollector = ComponentCallbacksCollector(
         application = application,
