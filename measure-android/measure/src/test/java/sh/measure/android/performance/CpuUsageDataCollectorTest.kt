@@ -9,7 +9,7 @@ import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
-import sh.measure.android.fakes.FakePidProvider
+import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
@@ -20,7 +20,7 @@ import java.io.File
 internal class CpuUsageDataCollectorTest {
     private val logger = NoopLogger()
     private val eventProcessor = mock<EventProcessor>()
-    private val pidProvider = FakePidProvider()
+    private val processInfo = FakeProcessInfoProvider()
     private val procProvider = mock<ProcProvider>()
     private val osSysConfProvider = mock<OsSysConfProvider>()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
@@ -34,7 +34,7 @@ internal class CpuUsageDataCollectorTest {
         cpuUsageCollector = CpuUsageCollector(
             logger,
             eventProcessor,
-            pidProvider,
+            processInfo,
             timeProvider,
             executorService,
             procProvider,
@@ -43,7 +43,7 @@ internal class CpuUsageDataCollectorTest {
 
         // setup mocks
         val file = createDummyProcStatFile()
-        `when`(procProvider.getStatFile(pidProvider.getPid())).thenReturn(file)
+        `when`(procProvider.getStatFile(processInfo.getPid())).thenReturn(file)
         // The OsConstants are all zero, hence we need to depend on sequence of calls in code.
         // The first call is for _SC_NPROCESSORS_CONF and the second call is for _SC_CLK_TCK.
         `when`(osSysConfProvider.get(0)).thenReturn(1, 100)

@@ -4,8 +4,8 @@ import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TimeProvider
-import sh.measure.android.utils.isForegroundProcess
 import java.lang.Thread.UncaughtExceptionHandler
 
 /**
@@ -17,6 +17,7 @@ internal class UnhandledExceptionCollector(
     private val logger: Logger,
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
+    private val processInfo: ProcessInfoProvider,
 ) : UncaughtExceptionHandler {
 
     private val originalHandler: UncaughtExceptionHandler? =
@@ -40,7 +41,7 @@ internal class UnhandledExceptionCollector(
                     throwable,
                     handled = false,
                     thread = thread,
-                    foreground = isForegroundProcess(),
+                    foreground = processInfo.isForegroundProcess(),
                 ),
             )
         } catch (e: Throwable) {

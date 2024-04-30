@@ -9,9 +9,9 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.OsSysConfProvider
 import sh.measure.android.utils.OsSysConfProviderImpl
-import sh.measure.android.utils.PidProvider
 import sh.measure.android.utils.ProcProvider
 import sh.measure.android.utils.ProcProviderImpl
+import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
@@ -21,7 +21,7 @@ internal const val CPU_TRACKING_INTERVAL_MS = 3000L
 internal class CpuUsageCollector(
     private val logger: Logger,
     private val eventProcessor: EventProcessor,
-    private val pidProvider: PidProvider,
+    private val processInfo: ProcessInfoProvider,
     private val timeProvider: TimeProvider,
     private val executorService: MeasureExecutorService,
     private val procProvider: ProcProvider = ProcProviderImpl(),
@@ -82,7 +82,7 @@ internal class CpuUsageCollector(
     }
 
     private fun readStatFile(): Array<Long>? {
-        val pid = pidProvider.getPid()
+        val pid = processInfo.getPid()
         val file = procProvider.getStatFile(pid)
         return if (file.exists()) {
             val stat = file.readText()

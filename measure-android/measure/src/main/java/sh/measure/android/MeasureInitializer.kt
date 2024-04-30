@@ -62,10 +62,10 @@ import sh.measure.android.utils.ManifestReader
 import sh.measure.android.utils.ManifestReaderImpl
 import sh.measure.android.utils.OsSysConfProvider
 import sh.measure.android.utils.OsSysConfProviderImpl
-import sh.measure.android.utils.PidProvider
-import sh.measure.android.utils.PidProviderImpl
 import sh.measure.android.utils.ProcProvider
 import sh.measure.android.utils.ProcProviderImpl
+import sh.measure.android.utils.ProcessInfoProvider
+import sh.measure.android.utils.ProcessInfoProviderImpl
 import sh.measure.android.utils.RuntimeProvider
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.SystemServiceProviderImpl
@@ -88,12 +88,12 @@ internal class MeasureInitializerImpl(
         fileStorage = fileStorage,
     ),
     val idProvider: IdProvider = UUIDProvider(),
-    private val pidProvider: PidProvider = PidProviderImpl(),
+    private val processInfoProvider: ProcessInfoProvider = ProcessInfoProviderImpl(),
     private val sessionManager: SessionManager = SessionManagerImpl(
         timeProvider = timeProvider,
         database = database,
         idProvider = idProvider,
-        pidProvider = pidProvider,
+        processInfo = processInfoProvider,
         executorService = executorServiceRegistry.backgroundExecutor(),
     ),
     private val procProvider: ProcProvider = ProcProviderImpl(),
@@ -101,7 +101,7 @@ internal class MeasureInitializerImpl(
     private val runtimeProvider: RuntimeProvider = DefaultRuntimeProvider(),
     private val memoryReader: MemoryReader = DefaultMemoryReader(
         logger = logger,
-        pidProvider = pidProvider,
+        processInfo = processInfoProvider,
         procProvider = procProvider,
         debugProvider = debugProvider,
         runtimeProvider = runtimeProvider,
@@ -198,12 +198,14 @@ internal class MeasureInitializerImpl(
         logger = logger,
         timeProvider = timeProvider,
         eventProcessor = eventProcessor,
+        processInfo = processInfoProvider,
     ),
     override val anrCollector: AnrCollector = AnrCollector(
         logger = logger,
         systemServiceProvider = systemServiceProvider,
         timeProvider = timeProvider,
         eventProcessor = eventProcessor,
+        processInfo = processInfoProvider,
     ),
     private val appExitProvider: AppExitProvider = AppExitProviderImpl(
         logger = logger,
@@ -220,7 +222,7 @@ internal class MeasureInitializerImpl(
         logger = logger,
         timeProvider = timeProvider,
         eventProcessor = eventProcessor,
-        pidProvider = pidProvider,
+        processInfo = processInfoProvider,
         procProvider = procProvider,
         osSysConfProvider = osSysConfProvider,
         executorService = executorServiceRegistry.cpuAndMemoryCollectionExecutor(),
@@ -252,6 +254,7 @@ internal class MeasureInitializerImpl(
         application = application,
         eventProcessor = eventProcessor,
         timeProvider = timeProvider,
+        processInfo = processInfoProvider,
     ),
     override val networkChangesCollector: NetworkChangesCollector = NetworkChangesCollector(
         logger = logger,

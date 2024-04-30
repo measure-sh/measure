@@ -7,6 +7,7 @@ import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.storage.Database
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.PidProvider
+import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TimeProvider
 
 internal interface SessionManager {
@@ -47,7 +48,7 @@ internal class SessionManagerImpl(
     private val idProvider: IdProvider,
     private val database: Database,
     private val executorService: MeasureExecutorService,
-    private val pidProvider: PidProvider,
+    private val processInfo: ProcessInfoProvider,
     private val timeProvider: TimeProvider,
 ) : SessionManager {
 
@@ -80,7 +81,7 @@ internal class SessionManagerImpl(
     private fun storeSessionId(sessionId: String): String {
         database.insertSession(
             sessionId,
-            pidProvider.getPid(),
+            processInfo.getPid(),
             timeProvider.currentTimeSinceEpochInMillis,
         )
         return sessionId

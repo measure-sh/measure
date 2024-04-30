@@ -6,9 +6,9 @@ import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.exceptions.ExceptionFactory
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.TimeProvider
-import sh.measure.android.utils.isForegroundProcess
 
 private const val ANR_TIMEOUT_MILLIS = 5000
 
@@ -17,6 +17,7 @@ internal class AnrCollector(
     private val systemServiceProvider: SystemServiceProvider,
     private val timeProvider: TimeProvider,
     private val eventProcessor: EventProcessor,
+    private val processInfo: ProcessInfoProvider,
 ) : ANRWatchDog.ANRListener {
     fun register() {
         ANRWatchDog(
@@ -41,7 +42,7 @@ internal class AnrCollector(
             throwable = anr,
             handled = false,
             thread = anr.thread,
-            foreground = isForegroundProcess(),
+            foreground = processInfo.isForegroundProcess(),
         )
     }
 }

@@ -8,6 +8,7 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
 
@@ -17,6 +18,7 @@ internal class UnhandledExceptionCollectorTest {
     private val logger = NoopLogger()
     private val timeProvider = FakeTimeProvider()
     private val eventProcessor = mock<EventProcessor>()
+    private val processInfo = FakeProcessInfoProvider()
 
     @Before
     fun setUp() {
@@ -30,6 +32,7 @@ internal class UnhandledExceptionCollectorTest {
             logger,
             eventProcessor,
             timeProvider,
+            processInfo
         ).apply { register() }
         val currentDefaultHandler = Thread.getDefaultUncaughtExceptionHandler()
 
@@ -43,6 +46,7 @@ internal class UnhandledExceptionCollectorTest {
             logger,
             eventProcessor,
             timeProvider,
+            processInfo
         ).apply { register() }
 
         // Given
@@ -52,7 +56,7 @@ internal class UnhandledExceptionCollectorTest {
             exception,
             handled = false,
             thread = thread,
-            foreground = false,
+            foreground = processInfo.isForegroundProcess(),
         )
 
         // When
@@ -76,6 +80,7 @@ internal class UnhandledExceptionCollectorTest {
             logger,
             eventProcessor,
             timeProvider,
+            processInfo
         ).apply { register() }
 
         // Given
