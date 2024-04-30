@@ -3,7 +3,6 @@ package sh.measure.android.performance
 import androidx.concurrent.futures.ResolvableFuture
 import org.junit.Assert
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
@@ -19,7 +18,7 @@ import sh.measure.android.utils.OsSysConfProvider
 import sh.measure.android.utils.ProcProvider
 import java.io.File
 
-internal class CpuUsageDataCollectorTest {
+internal class CpuUsageCollectorTest {
     private val logger = NoopLogger()
     private val eventProcessor = mock<EventProcessor>()
     private val processInfo = FakeProcessInfoProvider()

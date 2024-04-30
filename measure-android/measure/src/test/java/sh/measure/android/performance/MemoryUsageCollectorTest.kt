@@ -6,9 +6,7 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
-import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
-import org.mockito.kotlin.any
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeMemoryReader
@@ -17,7 +15,7 @@ import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.utils.TimeProvider
 
-internal class MemoryUsageDataCollectorTest {
+internal class MemoryUsageCollectorTest {
     private lateinit var memoryUsageCollector: MemoryUsageCollector
     private lateinit var timeProvider: TimeProvider
     private val eventProcessor = mock<EventProcessor>()
