@@ -4,6 +4,7 @@ import androidx.annotation.VisibleForTesting
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.executors.MeasureExecutorService
+import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
@@ -16,11 +17,13 @@ internal class MemoryUsageCollector(
     private val timeProvider: TimeProvider,
     private val executorService: MeasureExecutorService,
     private val memoryReader: MemoryReader,
+    private val processInfo: ProcessInfoProvider,
 ) {
     @VisibleForTesting
     var future: Future<*>? = null
 
     fun register() {
+        if (!processInfo.isForegroundProcess()) return
         if (future != null) return
         future = executorService.scheduleAtFixedRate(
             {

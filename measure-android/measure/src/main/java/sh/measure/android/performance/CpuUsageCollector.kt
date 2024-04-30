@@ -33,6 +33,7 @@ internal class CpuUsageCollector(
     var future: Future<*>? = null
 
     fun register() {
+        if (!processInfo.isForegroundProcess()) return
         if (future != null) return
         future = executorService.scheduleAtFixedRate(
             {

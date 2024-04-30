@@ -2,13 +2,17 @@ package sh.measure.android.performance
 
 import androidx.concurrent.futures.ResolvableFuture
 import org.junit.Assert
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
+import org.mockito.kotlin.any
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeMemoryReader
+import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.utils.TimeProvider
@@ -19,6 +23,7 @@ internal class MemoryUsageDataCollectorTest {
     private val eventProcessor = mock<EventProcessor>()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val memoryReader = FakeMemoryReader()
+    private val processInfo = FakeProcessInfoProvider()
 
     @Before
     fun setUp() {
@@ -29,6 +34,7 @@ internal class MemoryUsageDataCollectorTest {
             timeProvider,
             executorService,
             memoryReader,
+            processInfo,
         )
     }
 
@@ -59,5 +65,12 @@ internal class MemoryUsageDataCollectorTest {
         Assert.assertNull(memoryUsageCollector.future)
         memoryUsageCollector.resume()
         Assert.assertNotNull(memoryUsageCollector.future)
+    }
+
+    @Test
+    fun `MemoryUsageCollector does not track memory usage when not foreground process`() {
+        processInfo.foregroundProcess = false
+        memoryUsageCollector.register()
+        assertNull(memoryUsageCollector.future)
     }
 }

@@ -2,6 +2,8 @@ package sh.measure.android.performance
 
 import androidx.concurrent.futures.ResolvableFuture
 import org.junit.Assert
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
@@ -77,6 +79,13 @@ internal class CpuUsageDataCollectorTest {
         Assert.assertNull(cpuUsageCollector.future)
         cpuUsageCollector.resume()
         Assert.assertNotNull(cpuUsageCollector.future)
+    }
+
+    @Test
+    fun `CpuUsageCollector does not track if not foreground process`() {
+        processInfo.foregroundProcess = false
+        cpuUsageCollector.register()
+        assertNull(cpuUsageCollector.future)
     }
 
     /**
