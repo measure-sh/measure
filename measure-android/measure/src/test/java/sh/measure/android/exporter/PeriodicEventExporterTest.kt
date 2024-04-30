@@ -43,9 +43,7 @@ class PeriodicEventExporterTest {
     private val exporter = PeriodicEventExporterImpl(
         logger,
         config,
-        idProvider,
-        heartbeatExecutorService = executorService,
-        exportExecutorService = executorService,
+        executorService,
         database,
         fileStorage,
         networkClient,

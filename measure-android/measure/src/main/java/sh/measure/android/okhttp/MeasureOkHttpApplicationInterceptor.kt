@@ -11,17 +11,17 @@ import sh.measure.android.Measure
  */
 @Suppress("unused")
 class MeasureOkHttpApplicationInterceptor internal constructor(
-    private val eventProcessor: OkHttpEventCollector,
+    private val okHttpEventCollector: OkHttpEventCollector?,
 ) : Interceptor {
 
-    constructor() : this(Measure.getOkHttpEventProcessor())
+    constructor() : this(Measure.getOkHttpEventCollector())
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val call = chain.call()
         val request: Request = chain.request()
-        eventProcessor.request(call, request)
+        okHttpEventCollector?.request(call, request)
         val response: Response = chain.proceed(request)
-        eventProcessor.response(call, request, response)
+        okHttpEventCollector?.response(call, request, response)
         return response
     }
 

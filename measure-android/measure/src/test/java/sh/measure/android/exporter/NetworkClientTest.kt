@@ -19,10 +19,10 @@ class NetworkClientTest {
     private val fileStorage = mock<FileStorage>()
     private val networkClient: NetworkClient = NetworkClientImpl(
         logger = NoopLogger(),
-        secretToken = "secret",
-        baseUrl = "http://localhost:8080",
         fileStorage = fileStorage,
-    )
+    ).apply {
+        init(apiKey = "secret", baseUrl = "http://localhost:8080")
+    }
     private val fakeFile =
         File.createTempFile("file", "txt").apply { writeText(getFakeFileContent()) }
 

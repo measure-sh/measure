@@ -13,6 +13,7 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 internal interface NetworkClient {
+    fun init(baseUrl: String, apiKey: String)
     fun execute(
         batchId: String,
         eventPackets: List<EventPacket>,
@@ -29,14 +30,15 @@ private const val ATTACHMENT_NAME_PREFIX = "blob-"
 internal class NetworkClientImpl(
     private val logger: Logger,
     private val fileStorage: FileStorage,
-    private val secretToken: String,
-    private val baseUrl: String,
 ) : NetworkClient {
-    private val okHttpClient: OkHttpClient by lazy {
-        OkHttpClient.Builder().connectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+    private var okHttpClient: OkHttpClient? = null
+    private var baseUrl: String? = null
+
+    override fun init(baseUrl: String, apiKey: String) {
+        this.baseUrl = baseUrl
+        okHttpClient = OkHttpClient.Builder().connectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
             .callTimeout(CALL_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-            .addInterceptor(SecretTokenHeaderInterceptor(secretToken))
-            .addInterceptor(
+            .addInterceptor(SecretTokenHeaderInterceptor(apiKey)).addInterceptor(
                 HttpLoggingInterceptor().apply {
                     level = HttpLoggingInterceptor.Level.BODY
                 },
@@ -88,13 +90,15 @@ internal class NetworkClientImpl(
     }
 
     private fun buildRequest(requestBody: RequestBody, batchId: String): Request {
+        requireNotNull(baseUrl) { "NetworkClient must be initialized before executing requests" }
         return Request.Builder().url("$baseUrl${PATH_EVENTS}").put(requestBody)
             .header("msr-req-id", batchId).build()
     }
 
     private fun executeRequest(request: Request): Boolean {
+        requireNotNull(okHttpClient) { "NetworkClient must be initialized before executing requests" }
         return try {
-            okHttpClient.newCall(request).execute().use {
+            okHttpClient!!.newCall(request).execute().use {
                 if (it.code in 200..299) {
                     logger.log(LogLevel.Debug, "Request successful")
                     true

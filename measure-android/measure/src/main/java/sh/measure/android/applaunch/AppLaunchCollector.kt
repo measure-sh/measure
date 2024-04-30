@@ -19,14 +19,19 @@ internal class AppLaunchCollector(
     private val application: Application,
     private val timeProvider: TimeProvider,
     private val eventProcessor: EventProcessor,
-    private val coldLaunchListener: ColdLaunchListener,
 ) : LaunchCallbacks {
+
+    private var coldLaunchListener: ColdLaunchListener? = null
 
     fun register() {
         logger.log(LogLevel.Debug, "Registering AppLaunchCollector")
         application.registerActivityLifecycleCallbacks(
             LaunchTracker(logger, this),
         )
+    }
+
+    fun setColdLaunchListener(listener: ColdLaunchListener) {
+        coldLaunchListener = listener
     }
 
     override fun onColdLaunch(coldLaunchData: ColdLaunchData) {
@@ -41,7 +46,7 @@ internal class AppLaunchCollector(
             type = EventType.COLD_LAUNCH,
             data = coldLaunchData,
         )
-        coldLaunchListener.onColdLaunch()
+        coldLaunchListener?.onColdLaunch()
     }
 
     override fun onWarmLaunch(warmLaunchData: WarmLaunchData) {
