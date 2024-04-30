@@ -16,7 +16,7 @@ internal class AnrCollector(
     private val logger: Logger,
     private val systemServiceProvider: SystemServiceProvider,
     private val timeProvider: TimeProvider,
-    private val tracker: EventProcessor,
+    private val eventProcessor: EventProcessor,
 ) : ANRWatchDog.ANRListener {
     fun register() {
         ANRWatchDog(
@@ -29,7 +29,7 @@ internal class AnrCollector(
 
     override fun onAppNotResponding(error: AnrError) {
         logger.log(LogLevel.Error, "ANR detected", error)
-        tracker.track(
+        eventProcessor.track(
             timestamp = error.timestamp,
             type = EventType.ANR,
             data = toMeasureException(error),
