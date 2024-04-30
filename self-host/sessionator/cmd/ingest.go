@@ -70,7 +70,7 @@ func ValidateFlags() bool {
 // IngestSerial serially ingests batches of
 // events and build of each app version.
 func IngestSerial(apps *app.Apps, origin string) {
-	eventURL := fmt.Sprintf("%s/events", origin)
+	eventURL := fmt.Sprintf("%s/events2", origin)
 	mappingURL := fmt.Sprintf("%s/builds", origin)
 
 	for _, app := range apps.Items {
@@ -226,7 +226,10 @@ func prepareEvents(eventFile string) (data []byte, err error) {
 		if err != nil {
 			return data, err
 		}
-		fw.Write(rawEvents[i])
+		_, err = fw.Write(rawEvents[i])
+		if err != nil {
+			return data, err
+		}
 
 		if len(events[i].Attachments) < 1 {
 			continue
@@ -257,8 +260,10 @@ func prepareEvents(eventFile string) (data []byte, err error) {
 		}
 	}
 
-	data = buff.Bytes()
+	// important to close the writer
+	// to indicate that we are done writing
 	w.Close()
+	data = buff.Bytes()
 
 	return
 }
@@ -266,11 +271,6 @@ func prepareEvents(eventFile string) (data []byte, err error) {
 // UploadEvents prepares & sends the request to upload
 // events.
 func UploadEvents(url, apiKey, reqId string, data []byte) (status string, err error) {
-	events := []event.EventField{}
-	if err := json.Unmarshal(data, &events); err != nil {
-		return "", err
-	}
-
 	headers := map[string]string{
 		"msr-req-id":   reqId,
 		"Content-Type": fmt.Sprintf("multipart/form-data; boundary=%s", multipartBoundary),
