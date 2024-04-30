@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"measure-backend/measure-go/event"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/google/uuid"
@@ -115,7 +116,7 @@ func NewSymbolicator(opts *Options) (symbolicator *Symbolicator, err error) {
 // Batch creates groups of events based on the event's attribute
 // values.
 func (s Symbolicator) Batch(events []event.EventField) (batches []SymbolBatch) {
-	keys := make(map[MappingKeyID]SymbolBatch)
+	keys := make(map[string]SymbolBatch)
 
 	for i := range events {
 		key := MappingKeyID{
@@ -125,7 +126,7 @@ func (s Symbolicator) Batch(events []event.EventField) (batches []SymbolBatch) {
 			mappingType: TypeProguard,
 		}
 
-		batch, exists := keys[key]
+		batch, exists := keys[key.String()]
 
 		if exists {
 			batch.add(events[i])
@@ -133,11 +134,19 @@ func (s Symbolicator) Batch(events []event.EventField) (batches []SymbolBatch) {
 			batch.mappingKeyID = key
 			batch.add(events[i])
 		}
-
-		keys[key] = batch
+		keys[key.String()] = batch
 	}
 
+	sortedKeys := []string{}
+
 	for key := range keys {
+		sortedKeys = append(sortedKeys, key)
+	}
+
+	// since go's map keys are unordered
+	slices.Sort(sortedKeys)
+
+	for _, key := range sortedKeys {
 		batches = append(batches, keys[key])
 	}
 
