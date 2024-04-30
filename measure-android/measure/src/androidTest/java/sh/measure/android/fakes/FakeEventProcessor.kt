@@ -41,7 +41,7 @@ internal class FakeEventProcessor : EventProcessor {
             sessionId = sessionId,
         )
     }
-    
+
     override fun <T> track(
         data: T,
         timestamp: Long,

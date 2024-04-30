@@ -144,6 +144,8 @@ internal class MeasureInitializerImpl(
         database = database,
         networkClient = networkClient,
         idProvider = idProvider,
+        executorService = executorServiceRegistry.eventExportExecutor(),
+        fileStorage = fileStorage,
     ),
     private val eventStore: EventStore = EventStoreImpl(
         logger = logger,
@@ -180,6 +182,7 @@ internal class MeasureInitializerImpl(
         heartbeat = periodicHeartbeat,
         batchCreator = batchCreator,
         networkClient = networkClient,
+        fileStorage = fileStorage
     ),
     private val osSysConfProvider: OsSysConfProvider = OsSysConfProviderImpl(),
     override val okHttpEventCollector: OkHttpEventCollector = OkHttpEventCollectorImpl(

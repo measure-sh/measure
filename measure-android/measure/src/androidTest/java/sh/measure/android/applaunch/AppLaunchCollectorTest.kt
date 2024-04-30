@@ -6,7 +6,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Ignore
 import org.junit.Test
@@ -37,7 +36,7 @@ internal class AppLaunchCollectorTest {
             }
         }
         coldLaunch(eventProcessor, coldLaunchListener = coldLaunchListener)
-        Assert.assertTrue(invoked)
+        assertTrue(invoked)
     }
 
     private fun coldLaunch(
@@ -67,17 +66,16 @@ internal class AppLaunchCollectorTest {
     fun tracks_warm_launch() {
         val eventProcessor = FakeEventProcessor()
         warmLaunch(eventProcessor)
-        assertNotNull(eventProcessor.trackedEvents.find { it.type == EventType.WARM_LAUNCH })
+        Assert.assertEquals(1, eventProcessor.getTrackedEventsByType(EventType.WARM_LAUNCH).size)
     }
 
     @Test
     fun warm_launch_has_saved_state() {
         val eventProcessor = FakeEventProcessor()
         warmLaunch(eventProcessor)
-        val event = eventProcessor.trackedEvents.find { it.type == EventType.WARM_LAUNCH }
-        assertNotNull(event)
-        assertTrue(event?.data is WarmLaunchData)
-        assertTrue((event?.data as WarmLaunchData).has_saved_state)
+        val data = eventProcessor.getTrackedEventsByType(EventType.WARM_LAUNCH)[0].data
+        assertTrue(data is WarmLaunchData)
+        assertTrue((data as WarmLaunchData).has_saved_state)
     }
 
     private fun warmLaunch(eventProcessor: FakeEventProcessor) {

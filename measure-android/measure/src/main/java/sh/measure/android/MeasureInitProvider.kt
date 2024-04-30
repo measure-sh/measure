@@ -21,7 +21,7 @@ internal class MeasureInitProvider : ContentProvider() {
             Log.e("Measure", "ContextProvider got null application context.")
             return false
         }
-        Measure.initForInstrumentationTest(context!!)
+        Measure.init(context!!)
         return true
     }
 
