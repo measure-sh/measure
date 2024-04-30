@@ -176,7 +176,7 @@ func (s Symbolicator) GetKey(ctx context.Context, batch SymbolBatch) (key string
 
 	defer stmt.Close()
 
-	if err := store.QueryRow(ctx, stmt.String(), stmt.Args).Scan(&key); err != nil {
+	if err := store.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&key); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", nil
 		}
@@ -588,5 +588,8 @@ func (kc keyCache) Get(key string) (val string, exists bool) {
 // Set sets the value in the cache against
 // the key.
 func (kc *keyCache) Set(key, val string) {
+	if kc.cache == nil {
+		kc.cache = map[string]string{}
+	}
 	kc.cache[key] = val
 }
