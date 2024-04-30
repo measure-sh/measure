@@ -29,7 +29,7 @@ internal class EventProcessorTest {
         executorService = executorService,
         eventStore = eventStore,
         idProvider = idProvider,
-        sessionIdProvider = sessionManager,
+        sessionManager = sessionManager,
         attributeProcessors = emptyList(),
         eventExporter = eventExporter,
     )
@@ -131,7 +131,7 @@ internal class EventProcessorTest {
             executorService = executorService,
             eventStore = eventStore,
             idProvider = idProvider,
-            sessionIdProvider = sessionManager,
+            sessionManager = sessionManager,
             attributeProcessors = listOf(attributeProcessor),
             eventExporter = eventExporter,
         )

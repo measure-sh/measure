@@ -70,7 +70,7 @@ internal class EventProcessorImpl(
     private val executorService: MeasureExecutorService,
     private val eventStore: EventStore,
     private val idProvider: IdProvider,
-    private val sessionIdProvider: SessionManager,
+    private val sessionManager: SessionManager,
     private val attributeProcessors: List<AttributeProcessor>,
     private val eventExporter: EventExporter,
 ) : EventProcessor {
@@ -109,7 +109,7 @@ internal class EventProcessorImpl(
 
         fun createEvent(sessionId: String?): Event<T> {
             val id = idProvider.createId()
-            val resolvedSessionId = sessionId ?: sessionIdProvider.sessionId
+            val resolvedSessionId = sessionId ?: sessionManager.sessionId
             return Event(
                 id = id,
                 sessionId = resolvedSessionId,
