@@ -12,7 +12,7 @@ import sh.measure.android.utils.TimeProvider
 
 internal class GestureCollector(
     private val logger: Logger,
-    private val tracker: EventProcessor,
+    private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
 ) {
     fun register() {
@@ -55,19 +55,19 @@ internal class GestureCollector(
 
         InternalTrace.beginSection("GestureCollector.serializeEvent")
         when (gesture) {
-            is DetectedGesture.Click -> tracker.track(
+            is DetectedGesture.Click -> eventProcessor.track(
                 timestamp = gesture.timestamp,
                 type = EventType.CLICK,
                 data = ClickData.fromDetectedGesture(gesture, target),
             )
 
-            is DetectedGesture.LongClick -> tracker.track(
+            is DetectedGesture.LongClick -> eventProcessor.track(
                 timestamp = gesture.timestamp,
                 type = EventType.LONG_CLICK,
                 data = LongClickData.fromDetectedGesture(gesture, target),
             )
 
-            is DetectedGesture.Scroll -> tracker.track(
+            is DetectedGesture.Scroll -> eventProcessor.track(
                 timestamp = gesture.timestamp,
                 type = EventType.SCROLL,
                 data = ScrollData.fromDetectedGesture(gesture, target),
