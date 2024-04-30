@@ -6,7 +6,6 @@ import sh.measure.android.appexit.AppExitCollector
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.storage.Database
 import sh.measure.android.utils.IdProvider
-import sh.measure.android.utils.PidProvider
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TimeProvider
 

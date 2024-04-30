@@ -37,7 +37,7 @@ class AnrCollectorTest {
                 throwable = anrError,
                 handled = false,
                 thread = thread,
-                foreground = processInfo.isForegroundProcess()
+                foreground = processInfo.isForegroundProcess(),
             ),
         )
     }
