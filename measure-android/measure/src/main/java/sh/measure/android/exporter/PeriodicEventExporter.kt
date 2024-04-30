@@ -7,7 +7,6 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.Database
 import sh.measure.android.storage.FileStorage
-import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -24,24 +23,13 @@ internal interface PeriodicEventExporter {
 internal class PeriodicEventExporterImpl(
     private val logger: Logger,
     private val config: Config,
-    private val idProvider: IdProvider,
-    private val heartbeatExecutorService: MeasureExecutorService,
-    private val exportExecutorService: MeasureExecutorService,
+    private val executorService: MeasureExecutorService,
     private val database: Database,
     private val fileStorage: FileStorage,
     private val networkClient: NetworkClient,
     private val timeProvider: TimeProvider,
-    private val heartbeat: Heartbeat = HeartbeatImpl(
-        logger,
-        heartbeatExecutorService,
-    ),
-    private val batchCreator: BatchCreator = BatchCreatorImpl(
-        logger,
-        idProvider,
-        database,
-        config,
-        timeProvider,
-    ),
+    private val heartbeat: Heartbeat,
+    private val batchCreator: BatchCreator,
 ) : PeriodicEventExporter, HeartbeatListener {
     @VisibleForTesting
     internal val isExportInProgress = AtomicBoolean(false)
@@ -83,7 +71,7 @@ internal class PeriodicEventExporterImpl(
             return
         }
 
-        exportExecutorService.submit {
+        executorService.submit {
             try {
                 processBatches()
             } finally {

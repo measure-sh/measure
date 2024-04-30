@@ -22,15 +22,19 @@ internal class LifecycleCollector(
     private val application: Application,
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
-    private val applicationLifecycleStateListener: ApplicationLifecycleStateListener,
 ) : ActivityLifecycleAdapter {
     private val fragmentLifecycleCollector by lazy {
         FragmentLifecycleCollector(eventProcessor, timeProvider)
     }
     private val startedActivities = mutableSetOf<String>()
+    private var applicationLifecycleStateListener: ApplicationLifecycleStateListener? = null
 
     fun register() {
         application.registerActivityLifecycleCallbacks(this)
+    }
+
+    fun setApplicationLifecycleStateListener(listener: ApplicationLifecycleStateListener) {
+        applicationLifecycleStateListener = listener
     }
 
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
@@ -57,7 +61,7 @@ internal class LifecycleCollector(
                     type = AppLifecycleType.FOREGROUND,
                 ),
             )
-            applicationLifecycleStateListener.onAppForeground()
+            applicationLifecycleStateListener?.onAppForeground()
         }
         val hash = Integer.toHexString(System.identityHashCode(activity))
         startedActivities.add(hash)
@@ -96,7 +100,7 @@ internal class LifecycleCollector(
                     type = AppLifecycleType.BACKGROUND,
                 ),
             )
-            applicationLifecycleStateListener.onAppBackground()
+            applicationLifecycleStateListener?.onAppBackground()
         }
     }
 

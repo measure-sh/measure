@@ -46,9 +46,11 @@ private class MeasureNavigationObserver(
     private val destinationChangedListener =
         NavController.OnDestinationChangedListener { controller, _, _ ->
             controller.currentDestination?.route?.let {
-                Measure.getEventTracker().track(
+                val timeProvider = Measure.getTimeProvider() ?: return@let
+                val eventProcessor = Measure.getEventProcessor() ?: return@let
+                eventProcessor.track(
                     type = EventType.NAVIGATION,
-                    timestamp = Measure.getTimeProvider().currentTimeSinceEpochInMillis,
+                    timestamp = timeProvider.currentTimeSinceEpochInMillis,
                     data = NavigationData(it),
                 )
             }
