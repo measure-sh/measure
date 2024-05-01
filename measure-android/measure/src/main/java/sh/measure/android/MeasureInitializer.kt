@@ -73,7 +73,7 @@ import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.UUIDProvider
 
 internal class MeasureInitializerImpl(
-    override val application: Application,
+    private val application: Application,
     override val logger: Logger = AndroidLogger(),
     override val timeProvider: TimeProvider = AndroidTimeProvider(),
     private val executorServiceRegistry: ExecutorServiceRegistry = ExecutorServiceRegistryImpl(),
@@ -81,13 +81,13 @@ internal class MeasureInitializerImpl(
         rootDir = application.filesDir.path,
         logger = logger,
     ),
-    val database: Database = DatabaseImpl(context = application, logger = logger),
+    private val database: Database = DatabaseImpl(context = application, logger = logger),
     override val manifestReader: ManifestReaderImpl = ManifestReaderImpl(application, logger),
     override val networkClient: NetworkClient = NetworkClientImpl(
         logger = logger,
         fileStorage = fileStorage,
     ),
-    val idProvider: IdProvider = UUIDProvider(),
+    private val idProvider: IdProvider = UUIDProvider(),
     private val processInfoProvider: ProcessInfoProvider = ProcessInfoProviderImpl(),
     private val sessionManager: SessionManager = SessionManagerImpl(
         timeProvider = timeProvider,
@@ -164,7 +164,7 @@ internal class MeasureInitializerImpl(
         eventStore = eventStore,
         sessionManager = sessionManager,
     ),
-    val config: Config = DefaultConfig(),
+    private val config: Config = DefaultConfig(),
     private val periodicHeartbeat: Heartbeat = HeartbeatImpl(
         logger,
         executorServiceRegistry.exportHeartbeatExecutor(),
@@ -206,6 +206,7 @@ internal class MeasureInitializerImpl(
         timeProvider = timeProvider,
         eventProcessor = eventProcessor,
         processInfo = processInfoProvider,
+        config = config,
     ),
     private val appExitProvider: AppExitProvider = AppExitProviderImpl(
         logger = logger,
@@ -268,7 +269,6 @@ internal class MeasureInitializerImpl(
 ) : MeasureInitializer
 
 internal interface MeasureInitializer {
-    val application: Application
     val logger: Logger
     val timeProvider: TimeProvider
     val networkClient: NetworkClient
