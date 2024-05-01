@@ -6,6 +6,7 @@ import org.mockito.kotlin.verify
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionFactory
+import sh.measure.android.fakes.FakeConfig
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
@@ -17,10 +18,11 @@ class AnrCollectorTest {
     private val eventProcessor = mock<EventProcessor>()
     private val systemServiceProvider = mock<SystemServiceProvider>()
     private val processInfo = FakeProcessInfoProvider()
+    private val config = FakeConfig()
 
     @Test
     fun `AnrCollector tracks exception using event tracker, when ANR is detected`() {
-        val anrCollector = AnrCollector(logger, systemServiceProvider, timeProvider, eventProcessor, processInfo)
+        val anrCollector = AnrCollector(logger, systemServiceProvider, timeProvider, eventProcessor, processInfo, config)
         val thread = Thread.currentThread()
         val message = "ANR"
         val timestamp = timeProvider.currentTimeSinceEpochInMillis
