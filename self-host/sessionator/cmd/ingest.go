@@ -76,16 +76,16 @@ func IngestSerial(apps *app.Apps, origin string) {
 	mappingURL := fmt.Sprintf("%s/builds", origin)
 
 	for _, app := range apps.Items {
-		fmt.Printf("%s\n", app.FullName())
+		fmt.Printf("Processing %q\n", app.FullName())
 
 		if len(app.EventFiles) < 1 {
-			fmt.Printf("app %q has no events, skipping...\n", app.FullName())
+			fmt.Println("No event files found, skipping...")
 			continue
 		}
 
 		apiKey := configData.Apps[app.Name].ApiKey
 
-		fmt.Printf("Uploading build info... ")
+		fmt.Printf("Uploading build info...")
 		status, err := UploadBuild(mappingURL, apiKey, app)
 		if err != nil {
 			if status == "" {
@@ -105,7 +105,7 @@ func IngestSerial(apps *app.Apps, origin string) {
 				log.Fatal(err)
 			}
 			base := filepath.Base(eventFile)
-			fmt.Printf("Ingesting events %q...", base)
+			fmt.Printf("%3d) Ingesting events %q...", i+1, base)
 			reqId := base[:len(base)-len(filepath.Ext(base))]
 			status, err := UploadEvents(eventURL, apiKey, reqId, content)
 			if err != nil {
@@ -370,6 +370,7 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 			}
 			fmt.Printf("app (%d): %s\n", i+1, app.FullName())
 			fmt.Printf("event files count: %d\n", len(app.EventFiles))
+			fmt.Printf("blob files count: %d\n", len(app.BlobFiles))
 			fmt.Printf("mapping file: %s\n\n", mapping)
 		}
 
@@ -381,6 +382,6 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 		fmt.Printf("builds: %d\n", metrics.BuildCount)
 		fmt.Printf("event files: %d\n", metrics.EventFileCount)
 		fmt.Printf("events: %d\n", metrics.EventCount)
-		fmt.Printf("serial ingest took: %v\n", metrics.ingestDuration)
+		fmt.Printf("ingest took: %v\n", metrics.ingestDuration)
 	},
 }
