@@ -1004,15 +1004,10 @@ func (a *ANRGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 
 	if tx != nil {
 		_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
-		if err != nil {
-			return
-		}
+		return
 	}
 
 	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
 
 	return
 }
