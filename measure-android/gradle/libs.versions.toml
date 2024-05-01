@@ -1,5 +1,5 @@
 [versions]
-agp = "8.2.1"
+agp = "8.3.2"
 bundletool = "1.15.6"
 android-tools = "30.4.2"
 junit-platform-launcher = "1.10.2"
