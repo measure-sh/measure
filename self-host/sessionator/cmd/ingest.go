@@ -98,7 +98,7 @@ func IngestSerial(apps *app.Apps, origin string) {
 
 		for i := range app.EventFiles {
 			eventFile := app.EventFiles[i]
-			content, err := prepareEvents(eventFile)
+			content, eventCount, err := prepareEvents(eventFile)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -114,7 +114,8 @@ func IngestSerial(apps *app.Apps, origin string) {
 				log.Fatal(err)
 			}
 			fmt.Printf("🟢 %s \n", status)
-			metrics.bumpEvent()
+			metrics.bumpEventFile()
+			metrics.bumpEvent(eventCount)
 		}
 
 		fmt.Printf("\n")
@@ -188,15 +189,15 @@ func UploadBuild(url, apiKey string, app app.App) (string, error) {
 }
 
 // prepareEvents prepares request for events.
-func prepareEvents(eventFile string) (data []byte, err error) {
+func prepareEvents(eventFile string) (data []byte, eventCount int, err error) {
 	events := []event.EventField{}
 	rawEvents := []json.RawMessage{}
 	content, err := os.ReadFile(eventFile)
 	if err != nil {
 		return
 	}
-	if err := json.Unmarshal(content, &events); err != nil {
-		return data, err
+	if err = json.Unmarshal(content, &events); err != nil {
+		return
 	}
 
 	decoder := json.NewDecoder(bytes.NewBuffer(content))
@@ -224,12 +225,14 @@ func prepareEvents(eventFile string) (data []byte, err error) {
 	for i := range rawEvents {
 		fw, err := w.CreateFormField("event")
 		if err != nil {
-			return data, err
+			return data, eventCount, err
 		}
 		_, err = fw.Write(rawEvents[i])
 		if err != nil {
-			return data, err
+			return data, eventCount, err
 		}
+
+		eventCount = eventCount + 1
 
 		if len(events[i].Attachments) < 1 {
 			continue
@@ -243,19 +246,19 @@ func prepareEvents(eventFile string) (data []byte, err error) {
 			blobPath := filepath.Join(appDir, "blobs", id)
 			blobFile, err := os.Open(blobPath)
 			if err != nil {
-				return data, err
+				return data, eventCount, err
 			}
 			ff, err := w.CreateFormFile(key, filename)
 			if err != nil {
-				return data, err
+				return data, eventCount, err
 			}
 
 			_, err = io.Copy(ff, blobFile)
 			if err != nil {
-				return data, err
+				return data, eventCount, err
 			}
 			if err := blobFile.Close(); err != nil {
-				return data, err
+				return data, eventCount, err
 			}
 		}
 	}
@@ -372,6 +375,7 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 
 		fmt.Printf("apps: %d\n", metrics.AppCount)
 		fmt.Printf("builds: %d\n", metrics.BuildCount)
+		fmt.Printf("event files: %d\n", metrics.EventFileCount)
 		fmt.Printf("events: %d\n", metrics.EventCount)
 	},
 }
