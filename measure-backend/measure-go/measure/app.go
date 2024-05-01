@@ -1281,6 +1281,8 @@ func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 		}
 	}
 
+	app.Onboarded = onboarded.Bool
+
 	if uniqueId.Valid {
 		app.UniqueId = uniqueId.String
 	} else {
