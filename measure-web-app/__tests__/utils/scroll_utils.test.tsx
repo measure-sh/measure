@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { expect, it, describe } from '@jest/globals'
 import { useScrollDirection } from '@/app/utils/scroll_utils'
 import '@testing-library/jest-dom/jest-globals';
