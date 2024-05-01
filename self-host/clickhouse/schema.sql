@@ -155,8 +155,8 @@ CREATE TABLE default.events
     `attachments` String COMMENT 'attachment metadata'
 )
 ENGINE = MergeTree
-PRIMARY KEY (id, app_id, timestamp)
-ORDER BY (id, app_id, timestamp)
+PRIMARY KEY (app_id, session_id, id)
+ORDER BY (app_id, session_id, id, timestamp)
 SETTINGS index_granularity = 8192
 COMMENT 'events master table';
 
