@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
+    "test:update-snapshot": "jest --updateSnapshot",
     "test:watch": "jest --watch"
   },
   "dependencies": {
