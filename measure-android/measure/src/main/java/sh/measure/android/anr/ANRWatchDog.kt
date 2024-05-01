@@ -36,7 +36,7 @@ import sh.measure.android.utils.TimeProvider
  */
 internal class ANRWatchDog(
     private val systemServiceProvider: SystemServiceProvider,
-    private val timeoutInterval: Int,
+    private val timeoutInterval: Long,
     private val timeProvider: TimeProvider,
     private val anrListener: ANRListener,
     private val mainHandler: Handler = Handler(Looper.getMainLooper()),
@@ -59,7 +59,7 @@ internal class ANRWatchDog(
      * @noinspection BusyWait
      */
     override fun run() {
-        var interval = timeoutInterval.toLong()
+        var interval = timeoutInterval
         while (!isInterrupted) {
             val needPost = tick == 0L
             tick += interval
@@ -100,7 +100,7 @@ internal class ANRWatchDog(
                 message,
             )
             anrListener.onAppNotResponding(error)
-            interval = timeoutInterval.toLong()
+            interval = timeoutInterval
             reported = true
         }
     }

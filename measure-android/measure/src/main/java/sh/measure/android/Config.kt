@@ -14,6 +14,8 @@ private val enabledHttpBodyContentTypePatterns = listOf(
  * Configures behavior of the Measure SDK.
  */
 internal interface Config {
+    val anrTimeoutMs: Long
+
     /**
      * The maximum size of an attachment in bytes that can be added to one batch of events to
      * be exported.
@@ -37,6 +39,8 @@ internal interface Config {
 }
 
 internal class DefaultConfig : Config {
+    override val anrTimeoutMs: Long = 5_000 // 5 seconds
+
     override val maxAttachmentSizeInBytes: Int = 3 * 1024 * 1024 // 3 MB
 
     override val maxEventsBatchSize: Int = 50 // 50 events
