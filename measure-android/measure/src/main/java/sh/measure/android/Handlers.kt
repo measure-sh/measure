@@ -5,14 +5,6 @@ import android.os.Looper
 import android.os.Message
 import androidx.core.os.MessageCompat
 
-internal val isMainThread: Boolean get() = Looper.getMainLooper().thread === Thread.currentThread()
-
-internal fun checkMainThread() {
-    check(isMainThread) {
-        "This method must be called from the main thread, but current thread is ${Thread.currentThread().name}"
-    }
-}
-
 internal val mainHandler by lazy {
     Handler(Looper.getMainLooper())
 }
