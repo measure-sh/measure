@@ -1,5 +1,7 @@
 package cmd
 
+import "time"
+
 // Metrics stores certain metrics used by the program
 // to keep track of progress of ingestion operations.
 type Metrics struct {
@@ -7,6 +9,7 @@ type Metrics struct {
 	EventFileCount int
 	EventCount     int
 	BuildCount     int
+	ingestDuration time.Duration
 }
 
 // bumpBuild bumps the build count of
@@ -31,4 +34,10 @@ func (m *Metrics) bumpEvent(n int) {
 // Metrics.
 func (m *Metrics) bumpApp() {
 	m.AppCount = m.AppCount + 1
+}
+
+// setIngestDuration sets the total duration of
+// events ingestion.
+func (m *Metrics) setIngestDuration(d time.Duration) {
+	m.ingestDuration = d
 }

@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"sessionator/app"
 	"sessionator/config"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -70,6 +71,7 @@ func ValidateFlags() bool {
 // IngestSerial serially ingests batches of
 // events and build of each app version.
 func IngestSerial(apps *app.Apps, origin string) {
+	startTime := time.Now()
 	eventURL := fmt.Sprintf("%s/events2", origin)
 	mappingURL := fmt.Sprintf("%s/builds", origin)
 
@@ -121,6 +123,8 @@ func IngestSerial(apps *app.Apps, origin string) {
 		fmt.Printf("\n")
 		metrics.bumpApp()
 	}
+
+	metrics.setIngestDuration(time.Since(startTime))
 }
 
 // UploadBuild prepares & sends the request to
@@ -357,7 +361,7 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 		}
 
 		// log info about parsed apps
-		fmt.Printf("number of apps: %d\n\n", len(apps.Items))
+		fmt.Printf("number of apps found: %d\n\n", len(apps.Items))
 
 		for i, app := range apps.Items {
 			mapping := "not found"
@@ -365,7 +369,7 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 				mapping = "found"
 			}
 			fmt.Printf("app (%d): %s\n", i+1, app.FullName())
-			fmt.Printf("event batch count: %d\n", len(app.EventFiles))
+			fmt.Printf("event files count: %d\n", len(app.EventFiles))
 			fmt.Printf("mapping file: %s\n\n", mapping)
 		}
 
@@ -377,5 +381,6 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 		fmt.Printf("builds: %d\n", metrics.BuildCount)
 		fmt.Printf("event files: %d\n", metrics.EventFileCount)
 		fmt.Printf("events: %d\n", metrics.EventCount)
+		fmt.Printf("serial ingest took: %v\n", metrics.ingestDuration)
 	},
 }
