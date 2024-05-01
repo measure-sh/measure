@@ -94,15 +94,10 @@ func (e ExceptionGroup) AppendEventId(ctx context.Context, id uuid.UUID, tx *pgx
 
 	if tx != nil {
 		_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
-		if err != nil {
-			return
-		}
+		return
 	}
 
 	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
 
 	return
 }
@@ -120,15 +115,10 @@ func (a ANRGroup) AppendEventId(ctx context.Context, id uuid.UUID, tx *pgx.Tx) (
 
 	if tx != nil {
 		_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
-		if err != nil {
-			return
-		}
+		return
 	}
 
 	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
 
 	return
 }
