@@ -117,7 +117,8 @@ class MeasurePluginTest {
             return Stream.of(
                 Arguments.of(SemVer(7, 4, 1), GradleVersion.version("7.5")),
                 Arguments.of(SemVer(8, 0, 2), GradleVersion.version("8.0")),
-                Arguments.of(SemVer(8, 2, 1), GradleVersion.version("8.2"))
+                Arguments.of(SemVer(8, 2, 1), GradleVersion.version("8.2")),
+                Arguments.of(SemVer(8, 3, 2), GradleVersion.version("8.5")),
             )
         }
     }
