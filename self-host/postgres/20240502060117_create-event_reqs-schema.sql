@@ -21,4 +21,3 @@ comment on column public.event_reqs.created_at is 'utc timestamp at the time of 
 
 -- migrate:down
 drop table if exists public.event_reqs;
-
