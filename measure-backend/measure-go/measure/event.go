@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -37,15 +38,15 @@ type attachment struct {
 }
 
 type eventreq struct {
-	reqId        uuid.UUID
-	appId        uuid.UUID
-	symbolicate  map[uuid.UUID]int
-	exceptionIds []int
-	anrIds       []int
-	size         int64
-	events       []event.EventField
-	attachments  []attachment
-	transaction  *pgx.Tx
+	id                     uuid.UUID
+	appId                  uuid.UUID
+	symbolicate            map[uuid.UUID]int
+	exceptionIds           []int
+	anrIds                 []int
+	size                   int64
+	symbolicationAttempted int
+	events                 []event.EventField
+	attachments            []attachment
 }
 
 // uploadAttachments prepares and uploads each attachment.
@@ -82,6 +83,12 @@ func (e *eventreq) bumpSize(n int64) {
 	e.size = e.size + n
 }
 
+// bumpSymbolication increases count of symbolication
+// attempted by 1.
+func (e *eventreq) bumpSymbolication() {
+	e.symbolicationAttempted = e.symbolicationAttempted + 1
+}
+
 // read parses and validates the event request payload for
 // events and attachments.
 func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
@@ -96,7 +103,7 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 		return fmt.Errorf("%q value is not a valid UUID", reqIdKey)
 	}
 
-	e.reqId = reqId
+	e.id = reqId
 
 	form, err := c.MultipartForm()
 	if err != nil {
@@ -214,18 +221,38 @@ func (e eventreq) seen(ctx context.Context) (seen bool, err error) {
 	stmt := sqlf.PostgreSQL.
 		From(`public.event_reqs`).
 		Select("1").
-		Where("id = ? and app_id = ?", e.reqId, e.appId)
+		Where("id = ? and app_id = ?", e.id, e.appId)
 
 	defer stmt.Close()
 
-	if err = server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(); err != nil {
+	if err = server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(nil); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return
+			return false, nil
 		}
 		return
 	}
 
 	seen = true
+
+	return
+}
+
+// save saves the processed event request to persistent
+// storage.
+func (e eventreq) save(ctx context.Context, tx *pgx.Tx) (err error) {
+	stmt := sqlf.PostgreSQL.
+		InsertInto(`public.event_reqs`).
+		Set(`id`, e.id).
+		Set(`app_id`, e.appId).
+		Set(`event_count`, len(e.events)).
+		Set(`attachment_count`, len(e.attachments)).
+		Set(`session_count`, e.sessionCount()).
+		Set(`bytes_in`, e.size).
+		Set(`symbolication_attempts_count`, e.symbolicationAttempted)
+
+	defer stmt.Close()
+
+	_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
 
 	return
 }
@@ -933,6 +960,20 @@ func (e eventreq) ingest(ctx context.Context) error {
 	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), false, stmt.Args()...)
 }
 
+// sessionCount counts and provides the number of
+// sessions in event request.
+func (e eventreq) sessionCount() (count int) {
+	sessions := []uuid.UUID{}
+
+	for i := range e.events {
+		if !slices.Contains(sessions, e.events[i].SessionID) {
+			sessions = append(sessions, e.events[i].SessionID)
+		}
+	}
+
+	return len(sessions)
+}
+
 // lookupCountry looks up the country code for the IP
 // and infuses the country code and IP info to each event.
 func lookCountry(events []event.EventField, rawIP string) error {
@@ -1043,6 +1084,7 @@ func PutEventMulti(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
 		})
+		return
 	} else if seen {
 		c.JSON(http.StatusAccepted, gin.H{
 			"ok": "accepted, known event request",
@@ -1109,8 +1151,9 @@ func PutEventMulti(c *gin.Context) {
 				eventReq.events[idx] = batches[i].Events[j]
 				delete(eventReq.symbolicate, eventId)
 			}
-
 		}
+
+		eventReq.bumpSymbolication()
 	}
 
 	if eventReq.hasAttachments() {
@@ -1134,7 +1177,6 @@ func PutEventMulti(c *gin.Context) {
 		return
 	}
 
-	eventReq.transaction = &tx
 	defer tx.Rollback(ctx)
 
 	if err := eventReq.ingest(ctx); err != nil {
@@ -1180,6 +1222,15 @@ func PutEventMulti(c *gin.Context) {
 		}
 	}
 
+	if err := eventReq.save(ctx, &tx); err != nil {
+		msg := `failed to save event request`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		msg := `failed to ingest events`
 		fmt.Println(msg, err)
@@ -1188,8 +1239,6 @@ func PutEventMulti(c *gin.Context) {
 		})
 		return
 	}
-
-	eventReq.transaction = nil
 
 	c.JSON(http.StatusAccepted, gin.H{"ok": "accepted"})
 }
