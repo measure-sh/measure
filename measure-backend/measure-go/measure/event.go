@@ -3,6 +3,7 @@ package measure
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"measure-backend/measure-go/chrono"
 	"measure-backend/measure-go/event"
@@ -205,6 +206,28 @@ func (e *eventreq) infuseInet(rawIP string) error {
 	}
 
 	return nil
+}
+
+// seen checks if the event request has been
+// processed already or not.
+func (e eventreq) seen(ctx context.Context) (seen bool, err error) {
+	stmt := sqlf.PostgreSQL.
+		From(`public.event_reqs`).
+		Select("1").
+		Where("id = ? and app_id = ?", e.reqId, e.appId)
+
+	defer stmt.Close()
+
+	if err = server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return
+		}
+		return
+	}
+
+	seen = true
+
+	return
 }
 
 // hasUnhandledExceptions returns true if event payload
@@ -1010,6 +1033,19 @@ func PutEventMulti(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   msg,
 			"details": err.Error(),
+		})
+		return
+	}
+
+	if seen, err := eventReq.seen(ctx); err != nil {
+		msg := `failed to check existing event request`
+		fmt.Println(msg, err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+	} else if seen {
+		c.JSON(http.StatusAccepted, gin.H{
+			"ok": "accepted, known event request",
 		})
 		return
 	}
