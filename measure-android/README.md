@@ -11,10 +11,11 @@ help you answer questions about your app in production.
 
 ### Minimum Requirements
 
-| Name                  | Minimum Version   |
-|-----------------------|-------------------|
-| Android Gradle Plugin | 7.4               |
-| Android SDK           | API 21 (Lollipop) |
+| Name                  | Minimum Version |
+|-----------------------|-----------------|
+| Android Gradle Plugin | 7.4             |
+| Min SDK               | 21 (Lollipop)   |
+| Target SDK            | 31              |
 
 # Getting Started
 
