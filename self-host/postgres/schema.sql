@@ -469,6 +469,78 @@ COMMENT ON COLUMN public.build_sizes.created_at IS 'utc timestamp at the time of
 
 
 --
+-- Name: event_reqs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.event_reqs (
+    id uuid NOT NULL,
+    app_id uuid,
+    event_count integer DEFAULT 0,
+    attachment_count integer DEFAULT 0,
+    session_count integer DEFAULT 0,
+    bytes_in integer DEFAULT 0,
+    symbolication_attempts_count integer DEFAULT 0,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: COLUMN event_reqs.id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.event_reqs.id IS 'id of the event request';
+
+
+--
+-- Name: COLUMN event_reqs.app_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.event_reqs.app_id IS 'id of the associated app';
+
+
+--
+-- Name: COLUMN event_reqs.event_count; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.event_reqs.event_count IS 'number of events in the event request';
+
+
+--
+-- Name: COLUMN event_reqs.attachment_count; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.event_reqs.attachment_count IS 'number of attachments in the event request';
+
+
+--
+-- Name: COLUMN event_reqs.session_count; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.event_reqs.session_count IS 'number of sessions in the event request';
+
+
+--
+-- Name: COLUMN event_reqs.bytes_in; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.event_reqs.bytes_in IS 'total payload size of the request';
+
+
+--
+-- Name: COLUMN event_reqs.symbolication_attempts_count; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.event_reqs.symbolication_attempts_count IS 'number of times symbolication was attempted for this event request';
+
+
+--
+-- Name: COLUMN event_reqs.created_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.event_reqs.created_at IS 'utc timestamp at the time of record creation';
+
+
+--
 -- Name: roles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -580,12 +652,11 @@ COMMENT ON COLUMN public.sessions.updated_at IS 'utc timestamp at the time of re
 CREATE TABLE public.sessions_attachments (
     id uuid NOT NULL,
     session_id uuid,
-    name character varying(256) NOT NULL,
-    extension character varying(32) NOT NULL,
     type character varying(32) NOT NULL,
     key character varying(256) NOT NULL,
     location character varying NOT NULL,
-    "timestamp" timestamp with time zone NOT NULL
+    "timestamp" timestamp with time zone NOT NULL,
+    event_id uuid NOT NULL
 );
 
 
@@ -601,20 +672,6 @@ COMMENT ON COLUMN public.sessions_attachments.id IS 'unique id for each session 
 --
 
 COMMENT ON COLUMN public.sessions_attachments.session_id IS 'session_id of the containing session';
-
-
---
--- Name: COLUMN sessions_attachments.name; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.sessions_attachments.name IS 'original name of the attachment file';
-
-
---
--- Name: COLUMN sessions_attachments.extension; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.sessions_attachments.extension IS 'original extension of the attachment file';
 
 
 --
@@ -862,6 +919,14 @@ ALTER TABLE ONLY public.build_sizes
 
 
 --
+-- Name: event_reqs event_reqs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_reqs
+    ADD CONSTRAINT event_reqs_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: roles roles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -950,6 +1015,14 @@ ALTER TABLE ONLY public.build_sizes
 
 
 --
+-- Name: event_reqs event_reqs_app_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.event_reqs
+    ADD CONSTRAINT event_reqs_app_id_fkey FOREIGN KEY (app_id) REFERENCES public.apps(id) ON DELETE CASCADE;
+
+
+--
 -- Name: sessions sessions_app_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1019,4 +1092,6 @@ INSERT INTO dbmate.schema_migrations (version) VALUES
     ('20231122211412'),
     ('20231228033348'),
     ('20231228044339'),
-    ('20240311054505');
+    ('20240311054505'),
+    ('20240405083738'),
+    ('20240502060117');
