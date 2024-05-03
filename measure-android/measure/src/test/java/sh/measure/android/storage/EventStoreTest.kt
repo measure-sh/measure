@@ -146,7 +146,7 @@ internal class EventStoreTest {
     }
 
     @Test
-    fun `given attachments are present, serializes and store them to db`() {
+    fun `serializes attachment with path`() {
         val attachment = FakeEventFactory.getAttachment(
             bytes = null,
             path = "fake-path",
@@ -162,7 +162,34 @@ internal class EventStoreTest {
         verify(database).insertEvent(argumentCaptor.capture())
         val eventEntity = argumentCaptor.firstValue
         assertNotNull(eventEntity.serializedAttachments)
-        assertEquals("[{\"name\":\"name\",\"type\":\"type\"}]", eventEntity.serializedAttachments)
+        assertEquals(
+            "[{\"id\":\"${idProvider.id}\",\"type\":\"${attachment.type}\",\"name\":\"${attachment.name}\"}]",
+            eventEntity.serializedAttachments
+        )
+    }
+
+    @Test
+    fun `serializes attachment with bytes`() {
+        val attachment = FakeEventFactory.getAttachment(
+            bytes = byteArrayOf(1, 2, 3),
+            path = null,
+            name = "name",
+            type = "type",
+        )
+        `when`(fileStorage.writeAttachment(idProvider.id, attachment.bytes!!)).thenReturn("fake-path")
+        val event = FakeEventFactory.getClickData()
+            .toEvent(type = EventType.CLICK, attachments = listOf(attachment), id = idProvider.id)
+
+        eventStore.store(event)
+
+        val argumentCaptor = argumentCaptor<EventEntity>()
+        verify(database).insertEvent(argumentCaptor.capture())
+        val eventEntity = argumentCaptor.firstValue
+        assertNotNull(eventEntity.serializedAttachments)
+        assertEquals(
+            "[{\"id\":\"${idProvider.id}\",\"type\":\"${attachment.type}\",\"name\":\"${attachment.name}\"}]",
+            eventEntity.serializedAttachments
+        )
     }
 
     @Test
@@ -181,8 +208,7 @@ internal class EventStoreTest {
     @Test
     fun `given attachments are present, calculates total size and stores it to db`() {
         val attachmentContent = getAttachmentContent()
-        val attachment =
-            FakeEventFactory.getAttachment(bytes = null, path = "fake-path")
+        val attachment = FakeEventFactory.getAttachment(bytes = null, path = "fake-path")
         val event = FakeEventFactory.getClickData()
             .toEvent(type = EventType.CLICK, attachments = listOf(attachment), id = idProvider.id)
         val file =

@@ -26,17 +26,6 @@ import sh.measure.android.performance.TrimMemoryData
 import sh.measure.android.utils.toJsonElement
 
 /**
- * Serializes the attachments of the event to a JSON string.
- */
-internal fun <T> Event<T>.serializeAttachments(): String? {
-    if (attachments.isNullOrEmpty()) {
-        return null
-    }
-    val result = Json.encodeToString(attachments)
-    return result
-}
-
-/**
  * Serializes the attributes of the event to a JSON string.
  */
 internal fun <T> Event<T>.serializeAttributes(): String? {

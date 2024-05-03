@@ -38,35 +38,6 @@ class EventExtensionsKtTest {
     }
 
     @Test
-    fun `returns null if attachments are null`() {
-        val event = FakeEventFactory.getClickData()
-            .toEvent(attachments = null, type = EventType.CLICK)
-
-        assertNull(event.serializeAttachments())
-    }
-
-    @Test
-    fun `returns serialized attachments if attachments are not empty`() {
-        val event = FakeEventFactory.getClickData()
-            .toEvent(
-                attachments = listOf(
-                    Attachment(
-                        name = "screenshot.png",
-                        type = "image/png",
-                        bytes = byteArrayOf(1, 2, 3, 4),
-                    ),
-                ),
-                type = EventType.CLICK,
-            )
-
-        val serializedAttachments = event.serializeAttachments()
-        assertEquals(
-            "[{\"name\":\"screenshot.png\",\"type\":\"image/png\"}]",
-            serializedAttachments,
-        )
-    }
-
-    @Test
     fun `serialization succeeds for known event types`() {
         val exceptionEvent = FakeEventFactory.getExceptionData().toEvent(type = EventType.EXCEPTION)
         assert(exceptionEvent.serializeDataToString().isNotEmpty())
