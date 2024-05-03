@@ -81,9 +81,10 @@ internal class NetworkClientImpl(
         requestBodyBuilder: MultipartBody.Builder,
     ) {
         attachmentPackets.forEach { attachmentPacket ->
+            val name = getAttachmentFormDataName(attachmentPacket)
             requestBodyBuilder.addFormDataPart(
-                getAttachmentFormDataName(attachmentPacket),
-                null,
+                name,
+                name,
                 attachmentPacket.asFormDataPart(fileStorage),
             )
         }
