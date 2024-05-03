@@ -974,41 +974,6 @@ func (e eventreq) sessionCount() (count int) {
 	return len(sessions)
 }
 
-// lookupCountry looks up the country code for the IP
-// and infuses the country code and IP info to each event.
-func lookCountry(events []event.EventField, rawIP string) error {
-	ip := net.ParseIP(rawIP)
-	country, err := inet.LookupCountry(rawIP)
-	if err != nil {
-		return err
-	}
-
-	bogon, err := ipinfo.GetIPBogon(ip)
-	if err != nil {
-		return err
-	}
-
-	v4 := inet.Isv4(ip)
-
-	for i := range events {
-		if v4 {
-			events[i].IPv4 = ip
-		} else {
-			events[i].IPv6 = ip
-		}
-
-		if bogon {
-			events[i].CountryCode = "bogon"
-		} else if *country != "" {
-			events[i].CountryCode = *country
-		} else {
-			events[i].CountryCode = "not available"
-		}
-	}
-
-	return nil
-}
-
 func PutEvents(c *gin.Context) {
 	appId, err := uuid.Parse(c.GetString("appId"))
 	if err != nil {
