@@ -574,16 +574,14 @@ func (e *EventException) ComputeView() {
 }
 
 type EventANR struct {
-	ID         uuid.UUID         `json:"id"`
-	SessionID  uuid.UUID         `json:"session_id"`
-	Timestamp  chrono.ISOTime    `json:"timestamp"`
-	Type       string            `json:"type"`
-	ThreadName string            `json:"thread_name"`
-	Resource   Resource          `json:"resource"`
-	ANR        ANR               `json:"-"`
-	ANRs       []ANRView         `json:"anrs"`
-	Threads    []ThreadView      `json:"threads"`
-	Attributes map[string]string `json:"attributes"`
+	ID        uuid.UUID      `json:"id"`
+	SessionID uuid.UUID      `json:"session_id"`
+	Timestamp chrono.ISOTime `json:"timestamp"`
+	Type      string         `json:"type"`
+	Attribute Attribute      `json:"attribute"`
+	ANR       ANR            `json:"-"`
+	ANRs      []ANRView      `json:"anrs"`
+	Threads   []ThreadView   `json:"threads"`
 }
 
 type ANRView struct {

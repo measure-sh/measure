@@ -114,14 +114,14 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (*ExceptionGro
 
 // GetANRGroup queries a single anr group from the anr
 // group id and returns a pointer to ANRGroup.
-func (a App) GetANRGroup(id uuid.UUID) (*ANRGroup, error) {
+func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (*ANRGroup, error) {
 	stmt := sqlf.PostgreSQL.
 		Select("id, app_id, name, fingerprint, array_length(event_ids, 1) as count, event_ids, created_at, updated_at").
 		From("anr_groups").
 		Where("id = ?", nil)
 	defer stmt.Close()
 
-	rows, err := server.Server.PgPool.Query(context.Background(), stmt.String(), id)
+	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), id)
 	if err != nil {
 		return nil, err
 	}
@@ -1913,6 +1913,7 @@ func GetANRGroups(c *gin.Context) {
 }
 
 func GetANRGroupANRs(c *gin.Context) {
+	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		msg := `id invalid or missing`
@@ -1989,7 +1990,7 @@ func GetANRGroupANRs(c *gin.Context) {
 		return
 	}
 
-	group, err := app.GetANRGroup(anrGroupId)
+	group, err := app.GetANRGroup(ctx, anrGroupId)
 	if err != nil {
 		msg := fmt.Sprintf("failed to get anr group with id %q", anrGroupId.String())
 		fmt.Println(msg, err)
@@ -1997,7 +1998,7 @@ func GetANRGroupANRs(c *gin.Context) {
 		return
 	}
 
-	eventANRs, next, previous, err := GetANRsWithFilter(group.EventIDs, &af)
+	eventANRs, next, previous, err := GetANRsWithFilter(ctx, group.EventIDs, &af)
 	if err != nil {
 		msg := `failed to get anr group's anr events`
 		fmt.Println(msg, err)
@@ -2005,7 +2006,13 @@ func GetANRGroupANRs(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"results": eventANRs, "meta": gin.H{"next": next, "previous": previous}})
+	c.JSON(http.StatusOK, gin.H{
+		"results": eventANRs,
+		"meta": gin.H{
+			"next":     next,
+			"previous": previous,
+		},
+	})
 }
 
 func CreateApp(c *gin.Context) {
