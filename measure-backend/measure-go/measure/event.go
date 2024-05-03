@@ -314,7 +314,7 @@ func (e eventreq) getANRs() (events []event.EventField) {
 
 // bucketUnhandledExceptions groups unhandled exceptions
 // based on similarity.
-func (e eventreq) bucketUnhandledExceptions(tx *pgx.Tx) error {
+func (e eventreq) bucketUnhandledExceptions(ctx context.Context, tx *pgx.Tx) error {
 	exceptions := e.getUnhandledExceptions()
 
 	type EventGroup struct {
@@ -349,8 +349,6 @@ func (e eventreq) bucketUnhandledExceptions(tx *pgx.Tx) error {
 	app := App{
 		ID: &e.appId,
 	}
-
-	ctx := context.Background()
 
 	for _, group := range groups {
 		appExceptionGroups, err := app.GetExceptionGroups(nil)
@@ -388,7 +386,7 @@ func (e eventreq) bucketUnhandledExceptions(tx *pgx.Tx) error {
 }
 
 // bucketANRs groups ANRs based on similarity.
-func (e eventreq) bucketANRs(tx *pgx.Tx) error {
+func (e eventreq) bucketANRs(ctx context.Context, tx *pgx.Tx) error {
 	anrs := e.getANRs()
 
 	type EventGroup struct {
@@ -423,8 +421,6 @@ func (e eventreq) bucketANRs(tx *pgx.Tx) error {
 	app := App{
 		ID: &e.appId,
 	}
-
-	ctx := context.Background()
 
 	for _, group := range groups {
 		appANRGroups, err := app.GetANRGroups(nil)
