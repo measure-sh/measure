@@ -923,7 +923,7 @@ func PaginateGroups[T GroupID](groups []T, af *AppFilter) (sliced []T, next bool
 }
 
 // SortExceptionGroups first sorts a slice of ExceptionGroup
-// with descending count and then ascending ID
+// with descending count and then ascending ID.
 func SortExceptionGroups(groups []ExceptionGroup) {
 	sort.SliceStable(groups, func(i, j int) bool {
 		if groups[i].Count != groups[j].Count {
@@ -934,7 +934,7 @@ func SortExceptionGroups(groups []ExceptionGroup) {
 }
 
 // SortANRGroups first sorts a slice of ANRGroup
-// with descending count and then ascending ID
+// with descending count and then ascending ID.
 func SortANRGroups(groups []ANRGroup) {
 	sort.SliceStable(groups, func(i, j int) bool {
 		if groups[i].Count != groups[j].Count {
@@ -958,7 +958,7 @@ func ComputeANRContribution(groups []ANRGroup) {
 	}
 }
 
-// Insert inserts a new ExceptionGroup into the database
+// Insert inserts a new ExceptionGroup into the database.
 func (e *ExceptionGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 	id, err := uuid.NewV7()
 	if err != nil {
@@ -985,7 +985,7 @@ func (e *ExceptionGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 	return
 }
 
-// Insert inserts a new ANRGroup into the database
+// Insert inserts a new ANRGroup into the database.
 func (a *ANRGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 	id, err := uuid.NewV7()
 	if err != nil {
@@ -1012,7 +1012,7 @@ func (a *ANRGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 	return
 }
 
-// NewExceptionGroup constructs a new ExceptionGroup and returns a pointer to it
+// NewExceptionGroup constructs a new ExceptionGroup and returns a pointer to it.
 func NewExceptionGroup(appId uuid.UUID, name string, fingerprint string, eventIds []uuid.UUID) *ExceptionGroup {
 	return &ExceptionGroup{
 		AppID:       appId,
@@ -1022,7 +1022,7 @@ func NewExceptionGroup(appId uuid.UUID, name string, fingerprint string, eventId
 	}
 }
 
-// NewANRGroup constructs a new ANRGroup and returns a pointer to it
+// NewANRGroup constructs a new ANRGroup and returns a pointer to it.
 func NewANRGroup(appId uuid.UUID, name string, fingerprint string, eventIds []uuid.UUID) *ANRGroup {
 	return &ANRGroup{
 		AppID:       appId,
