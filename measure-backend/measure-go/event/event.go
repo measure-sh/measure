@@ -533,16 +533,14 @@ func (e EventField) HasAttachments() bool {
 }
 
 type EventException struct {
-	ID         uuid.UUID         `json:"id"`
-	SessionID  uuid.UUID         `json:"session_id"`
-	Timestamp  chrono.ISOTime    `json:"timestamp"`
-	Type       string            `json:"type"`
-	ThreadName string            `json:"thread_name"`
-	Resource   Resource          `json:"resource"`
-	Exception  Exception         `json:"-"`
-	Exceptions []ExceptionView   `json:"exceptions"`
-	Threads    []ThreadView      `json:"threads"`
-	Attributes map[string]string `json:"attributes"`
+	ID         uuid.UUID       `json:"id"`
+	SessionID  uuid.UUID       `json:"session_id"`
+	Timestamp  chrono.ISOTime  `json:"timestamp"`
+	Type       string          `json:"type"`
+	Attribute  Attribute       `json:"attribute"`
+	Exception  Exception       `json:"-"`
+	Exceptions []ExceptionView `json:"exceptions"`
+	Threads    []ThreadView    `json:"threads"`
 }
 
 type ExceptionView struct {

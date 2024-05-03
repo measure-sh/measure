@@ -93,14 +93,14 @@ func (a App) MarshalJSON() ([]byte, error) {
 
 // GetExceptionGroup queries a single exception group from the exception
 // group id and returns a pointer to ExceptionGroup.
-func (a App) GetExceptionGroup(id uuid.UUID) (*ExceptionGroup, error) {
+func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (*ExceptionGroup, error) {
 	stmt := sqlf.PostgreSQL.
 		Select("id, app_id, name, fingerprint, array_length(event_ids, 1) as count, event_ids, created_at, updated_at").
 		From("unhandled_exception_groups").
 		Where("id = ?", nil)
 	defer stmt.Close()
 
-	rows, err := server.Server.PgPool.Query(context.Background(), stmt.String(), id)
+	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), id)
 	if err != nil {
 		return nil, err
 	}
@@ -1696,6 +1696,7 @@ func GetCrashGroups(c *gin.Context) {
 }
 
 func GetCrashGroupCrashes(c *gin.Context) {
+	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		msg := `id invalid or missing`
@@ -1772,7 +1773,7 @@ func GetCrashGroupCrashes(c *gin.Context) {
 		return
 	}
 
-	group, err := app.GetExceptionGroup(crashGroupId)
+	group, err := app.GetExceptionGroup(ctx, crashGroupId)
 	if err != nil {
 		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId.String())
 		fmt.Println(msg, err)
@@ -1780,7 +1781,7 @@ func GetCrashGroupCrashes(c *gin.Context) {
 		return
 	}
 
-	eventExceptions, next, previous, err := GetExceptionsWithFilter(group.EventIDs, &af)
+	eventExceptions, next, previous, err := GetExceptionsWithFilter(ctx, group.EventIDs, &af)
 	if err != nil {
 		msg := `failed to get exception group's exception events`
 		fmt.Println(msg, err)
@@ -1788,7 +1789,13 @@ func GetCrashGroupCrashes(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"results": eventExceptions, "meta": gin.H{"next": next, "previous": previous}})
+	c.JSON(http.StatusOK, gin.H{
+		"results": eventExceptions,
+		"meta": gin.H{
+			"next":     next,
+			"previous": previous,
+		},
+	})
 }
 
 func GetANRGroups(c *gin.Context) {

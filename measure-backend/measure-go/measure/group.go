@@ -163,7 +163,7 @@ func GetExceptionGroup(eg *ExceptionGroup) error {
 // GetExceptionsWithFilter returns a slice of EventException for the given slice of
 // event id and matching AppFilter. Also computes the next, previous pagination meta
 // values.
-func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []event.EventException, next bool, previous bool, err error) {
+func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *AppFilter) (events []event.EventException, next bool, previous bool, err error) {
 	var edgecount int
 	var countStmt *sqlf.Stmt
 	var exceptions string
@@ -204,12 +204,12 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []even
 		args = append(args, eventIds, timestamp, timestamp, af.KeyID)
 
 		if len(af.Versions) > 0 {
-			countStmt.Where("`resource.app_version` in (?)", nil)
+			countStmt.Where("`attribute.app_version` in (?)", nil)
 			args = append(args, af.Versions)
 		}
 
 		if len(af.VersionCodes) > 0 {
-			countStmt.Where("`resource.app_build` in (?)", nil)
+			countStmt.Where("`attribute.app_build` in (?)", nil)
 			args = append(args, af.VersionCodes)
 		}
 
@@ -219,32 +219,32 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []even
 		}
 
 		if len(af.DeviceNames) > 0 {
-			countStmt.Where("`resource.device_name` in (?)", nil)
+			countStmt.Where("`attribute.device_name` in (?)", nil)
 			args = append(args, af.DeviceNames)
 		}
 
 		if len(af.DeviceManufacturers) > 0 {
-			countStmt.Where("`resource.device_manufacturer` in (?)", nil)
+			countStmt.Where("`attribute.device_manufacturer` in (?)", nil)
 			args = append(args, af.DeviceManufacturers)
 		}
 
 		if len(af.Locales) > 0 {
-			countStmt.Where("`exception.device_locale` in (?)", nil)
+			countStmt.Where("`attribute.device_locale` in (?)", nil)
 			args = append(args, af.Locales)
 		}
 
 		if len(af.NetworkProviders) > 0 {
-			countStmt.Where("`exception.network_provider` in (?)", nil)
+			countStmt.Where("`attribute.network_provider` in (?)", nil)
 			args = append(args, af.NetworkProviders)
 		}
 
 		if len(af.NetworkTypes) > 0 {
-			countStmt.Where("`exception.network_type` in (?)", nil)
+			countStmt.Where("`attribute.network_type` in (?)", nil)
 			args = append(args, af.NetworkTypes)
 		}
 
 		if len(af.NetworkGenerations) > 0 {
-			countStmt.Where("`exception.network_generation` in (?)", nil)
+			countStmt.Where("`attribute.network_generation` in (?)", nil)
 			args = append(args, af.NetworkGenerations)
 		}
 
@@ -256,7 +256,7 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []even
 		// add limit
 		args = append(args, 1)
 
-		rows, err := server.Server.ChPool.Query(context.Background(), countStmt.String(), args...)
+		rows, err := server.Server.ChPool.Query(ctx, countStmt.String(), args...)
 		if err != nil {
 			return nil, next, previous, err
 		}
@@ -274,33 +274,32 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []even
 		`session_id`,
 		`toString(type)`,
 		`timestamp`,
-		`toString(thread_name)`,
-		`toString(resource.device_name)`,
-		`toString(resource.device_model)`,
-		`toString(resource.device_manufacturer)`,
-		`toString(resource.device_type)`,
-		`resource.device_is_foldable`,
-		`resource.device_is_physical`,
-		`resource.device_density_dpi`,
-		`resource.device_width_px`,
-		`resource.device_height_px`,
-		`resource.device_density`,
-		`toString(resource.device_locale)`,
-		`toString(resource.os_name)`,
-		`toString(resource.os_version)`,
-		`toString(resource.platform)`,
-		`toString(resource.app_version)`,
-		`toString(resource.app_build)`,
-		`toString(resource.app_unique_id)`,
-		`toString(resource.measure_sdk_version)`,
-		`toString(resource.network_type)`,
-		`toString(resource.network_generation)`,
-		`toString(resource.network_provider)`,
+		`toString(attribute.device_name)`,
+		`toString(attribute.device_model)`,
+		`toString(attribute.device_manufacturer)`,
+		`toString(attribute.device_type)`,
+		`attribute.device_is_foldable`,
+		`attribute.device_is_physical`,
+		`attribute.device_density_dpi`,
+		`attribute.device_width_px`,
+		`attribute.device_height_px`,
+		`attribute.device_density`,
+		`toString(attribute.device_locale)`,
+		`toString(attribute.os_name)`,
+		`toString(attribute.os_version)`,
+		`toString(attribute.platform)`,
+		`toString(attribute.thread_name)`,
+		`toString(attribute.app_version)`,
+		`toString(attribute.app_build)`,
+		`toString(attribute.app_unique_id)`,
+		`toString(attribute.measure_sdk_version)`,
+		`toString(attribute.network_type)`,
+		`toString(attribute.network_generation)`,
+		`toString(attribute.network_provider)`,
 		`exception.handled`,
 		`exception.fingerprint`,
 		`exception.exceptions`,
 		`exception.threads`,
-		`attributes`,
 	}
 
 	stmt := sqlf.From(`default.events`)
@@ -321,12 +320,12 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []even
 	args := []any{eventIds}
 
 	if len(af.Versions) > 0 {
-		stmt.Where("`resource.app_version` in (?)", nil)
+		stmt.Where("`attribute.app_version` in (?)", nil)
 		args = append(args, af.Versions)
 	}
 
 	if len(af.VersionCodes) > 0 {
-		stmt.Where("`resource.app_build` in (?)", nil)
+		stmt.Where("`attribute.app_build` in (?)", nil)
 		args = append(args, af.VersionCodes)
 	}
 
@@ -336,32 +335,32 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []even
 	}
 
 	if len(af.DeviceNames) > 0 {
-		stmt.Where("`resource.device_name` in (?)", nil)
+		stmt.Where("`attribute.device_name` in (?)", nil)
 		args = append(args, af.DeviceNames)
 	}
 
 	if len(af.DeviceManufacturers) > 0 {
-		stmt.Where("`resource.device_manufacturer` in (?)", nil)
+		stmt.Where("`attribute.device_manufacturer` in (?)", nil)
 		args = append(args, af.DeviceManufacturers)
 	}
 
 	if len(af.Locales) > 0 {
-		stmt.Where("`exception.device_locale` in (?)", nil)
+		stmt.Where("`attribute.device_locale` in (?)", nil)
 		args = append(args, af.Locales)
 	}
 
 	if len(af.NetworkProviders) > 0 {
-		stmt.Where("`exception.network_provider` in (?)", nil)
+		stmt.Where("`attribute.network_provider` in (?)", nil)
 		args = append(args, af.NetworkProviders)
 	}
 
 	if len(af.NetworkTypes) > 0 {
-		stmt.Where("`exception.network_type` in (?)", nil)
+		stmt.Where("`attribute.network_type` in (?)", nil)
 		args = append(args, af.NetworkTypes)
 	}
 
 	if len(af.NetworkGenerations) > 0 {
-		stmt.Where("`exception.network_generation` in (?)", nil)
+		stmt.Where("`attribute.network_generation` in (?)", nil)
 		args = append(args, af.NetworkGenerations)
 	}
 
@@ -378,7 +377,7 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []even
 
 	args = append(args, limit)
 
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), args...)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), args...)
 	if err != nil {
 		return
 	}
@@ -390,33 +389,32 @@ func GetExceptionsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []even
 			&e.SessionID,
 			&e.Type,
 			&e.Timestamp,
-			&e.ThreadName,
-			&e.Resource.DeviceName,
-			&e.Resource.DeviceModel,
-			&e.Resource.DeviceManufacturer,
-			&e.Resource.DeviceType,
-			&e.Resource.DeviceIsFoldable,
-			&e.Resource.DeviceIsPhysical,
-			&e.Resource.DeviceDensityDPI,
-			&e.Resource.DeviceWidthPX,
-			&e.Resource.DeviceHeightPX,
-			&e.Resource.DeviceDensity,
-			&e.Resource.DeviceLocale,
-			&e.Resource.OSName,
-			&e.Resource.OSVersion,
-			&e.Resource.Platform,
-			&e.Resource.AppVersion,
-			&e.Resource.AppBuild,
-			&e.Resource.AppUniqueID,
-			&e.Resource.MeasureSDKVersion,
-			&e.Resource.NetworkType,
-			&e.Resource.NetworkGeneration,
-			&e.Resource.NetworkProvider,
+			&e.Attribute.DeviceName,
+			&e.Attribute.DeviceModel,
+			&e.Attribute.DeviceManufacturer,
+			&e.Attribute.DeviceType,
+			&e.Attribute.DeviceIsFoldable,
+			&e.Attribute.DeviceIsPhysical,
+			&e.Attribute.DeviceDensityDPI,
+			&e.Attribute.DeviceWidthPX,
+			&e.Attribute.DeviceHeightPX,
+			&e.Attribute.DeviceDensity,
+			&e.Attribute.DeviceLocale,
+			&e.Attribute.OSName,
+			&e.Attribute.OSVersion,
+			&e.Attribute.Platform,
+			&e.Attribute.ThreadName,
+			&e.Attribute.AppVersion,
+			&e.Attribute.AppBuild,
+			&e.Attribute.AppUniqueID,
+			&e.Attribute.MeasureSDKVersion,
+			&e.Attribute.NetworkType,
+			&e.Attribute.NetworkGeneration,
+			&e.Attribute.NetworkProvider,
 			&e.Exception.Handled,
 			&e.Exception.Fingerprint,
 			&exceptions,
 			&threads,
-			&e.Attributes,
 		}
 
 		if err := rows.Scan(fields...); err != nil {
