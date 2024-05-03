@@ -1491,6 +1491,8 @@ func GetAppFilters(c *gin.Context) {
 		Limit: DefaultPaginationLimit,
 	}
 
+	ctx := c.Request.Context()
+
 	if err := c.ShouldBindQuery(&af); err != nil {
 		msg := `failed to parse query parameters`
 		fmt.Println(msg, err)
@@ -1508,6 +1510,7 @@ func GetAppFilters(c *gin.Context) {
 	app := App{
 		ID: &id,
 	}
+
 	team, err := app.getTeam()
 	if err != nil {
 		msg := "failed to get team from app id"
@@ -1546,7 +1549,7 @@ func GetAppFilters(c *gin.Context) {
 
 	var fl FilterList
 
-	if err := af.getGenericFilters(&fl); err != nil {
+	if err := af.getGenericFilters(ctx, &fl); err != nil {
 		msg := `failed to query app filters`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})

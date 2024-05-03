@@ -222,36 +222,36 @@ func (af *AppFilter) setDefaultTimeRange() {
 // getGenericFilters finds distinct values of app versions, network type,
 // network provider and other such event parameters from available events
 // with appropriate filters applied.
-func (af *AppFilter) getGenericFilters(fl *FilterList) error {
-	if err := af.getAppVersions(fl); err != nil {
+func (af *AppFilter) getGenericFilters(ctx context.Context, fl *FilterList) error {
+	if err := af.getAppVersions(ctx, fl); err != nil {
 		return err
 	}
 
-	if err := af.getCountries(fl); err != nil {
+	if err := af.getCountries(ctx, fl); err != nil {
 		return err
 	}
 
-	if err := af.getNetworkProviders(fl); err != nil {
+	if err := af.getNetworkProviders(ctx, fl); err != nil {
 		return err
 	}
 
-	if err := af.getNetworkTypes(fl); err != nil {
+	if err := af.getNetworkTypes(ctx, fl); err != nil {
 		return err
 	}
 
-	if err := af.getNetworkGenerations(fl); err != nil {
+	if err := af.getNetworkGenerations(ctx, fl); err != nil {
 		return err
 	}
 
-	if err := af.getDeviceLocales(fl); err != nil {
+	if err := af.getDeviceLocales(ctx, fl); err != nil {
 		return err
 	}
 
-	if err := af.getDeviceManufacturers(fl); err != nil {
+	if err := af.getDeviceManufacturers(ctx, fl); err != nil {
 		return err
 	}
 
-	if err := af.getDeviceNames(fl); err != nil {
+	if err := af.getDeviceNames(ctx, fl); err != nil {
 		return err
 	}
 
@@ -263,7 +263,7 @@ func (af *AppFilter) getGenericFilters(fl *FilterList) error {
 //
 // Additionally, filters for `exception` and `anr` event
 // types.
-func (af *AppFilter) getAppVersions(fl *FilterList) error {
+func (af *AppFilter) getAppVersions(ctx context.Context, fl *FilterList) error {
 	stmt := sqlf.
 		From("default.events").
 		Select("distinct toString(attribute.app_version), toString(attribute.app_build)").
@@ -309,7 +309,7 @@ func (af *AppFilter) getAppVersions(fl *FilterList) error {
 // from available events.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getCountries(fl *FilterList) error {
+func (af *AppFilter) getCountries(ctx context.Context, fl *FilterList) error {
 	stmt := sqlf.
 		From("default.events").
 		Select("distinct toString(inet.country_code)").
@@ -351,7 +351,7 @@ func (af *AppFilter) getCountries(fl *FilterList) error {
 // providers from available events.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getNetworkProviders(fl *FilterList) error {
+func (af *AppFilter) getNetworkProviders(ctx context.Context, fl *FilterList) error {
 	stmt := sqlf.
 		From("default.events").
 		Select("distinct toString(attribute.network_provider)").
@@ -397,7 +397,7 @@ func (af *AppFilter) getNetworkProviders(fl *FilterList) error {
 // types from available events.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getNetworkTypes(fl *FilterList) error {
+func (af *AppFilter) getNetworkTypes(ctx context.Context, fl *FilterList) error {
 	stmt := sqlf.
 		From("default.events").
 		Select("distinct toString(attribute.network_type)").
@@ -440,7 +440,7 @@ func (af *AppFilter) getNetworkTypes(fl *FilterList) error {
 // generations from available events.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getNetworkGenerations(fl *FilterList) error {
+func (af *AppFilter) getNetworkGenerations(ctx context.Context, fl *FilterList) error {
 	stmt := sqlf.
 		From("default.events").
 		Select("distinct toString(attribute.network_generation)").
@@ -486,7 +486,7 @@ func (af *AppFilter) getNetworkGenerations(fl *FilterList) error {
 // locales from available events.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getDeviceLocales(fl *FilterList) error {
+func (af *AppFilter) getDeviceLocales(ctx context.Context, fl *FilterList) error {
 	stmt := sqlf.
 		From("default.events").
 		Select("distinct toString(attribute.device_locale)").
@@ -529,7 +529,7 @@ func (af *AppFilter) getDeviceLocales(fl *FilterList) error {
 // manufacturers from available events.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getDeviceManufacturers(fl *FilterList) error {
+func (af *AppFilter) getDeviceManufacturers(ctx context.Context, fl *FilterList) error {
 	stmt := sqlf.
 		From("default.events").
 		Select("distinct toString(attribute.device_manufacturer)").
@@ -572,7 +572,7 @@ func (af *AppFilter) getDeviceManufacturers(fl *FilterList) error {
 // names from available events.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getDeviceNames(fl *FilterList) error {
+func (af *AppFilter) getDeviceNames(ctx context.Context, fl *FilterList) error {
 	stmt := sqlf.
 		From("default.events").
 		Select("distinct toString(attribute.device_name)").
