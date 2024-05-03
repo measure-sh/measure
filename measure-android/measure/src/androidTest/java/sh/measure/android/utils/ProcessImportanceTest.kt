@@ -15,14 +15,14 @@ class ProcessImportanceTest {
     fun returnsFalseWhenAppIsInBackground() {
         ActivityScenario.launch(TestActivity::class.java)
         Espresso.pressBackUnconditionally()
-        val result = isForegroundProcess()
+        val result = ProcessInfoProviderImpl().isForegroundProcess()
         assertEquals(false, result)
     }
 
     @Test
     fun returnsTrueWhenAppIsInForeground() {
         ActivityScenario.launch(TestActivity::class.java)
-        val result = isForegroundProcess()
+        val result = ProcessInfoProviderImpl().isForegroundProcess()
         assertEquals(true, result)
     }
 }

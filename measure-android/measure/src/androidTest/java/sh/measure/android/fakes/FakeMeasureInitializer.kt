@@ -19,14 +19,16 @@ import sh.measure.android.performance.ComponentCallbacksCollector
 import sh.measure.android.performance.CpuUsageCollector
 import sh.measure.android.performance.MemoryUsageCollector
 import sh.measure.android.utils.ManifestReader
+import sh.measure.android.utils.ResumedActivityProvider
 import sh.measure.android.utils.TimeProvider
 
 internal class FakeMeasureInitializer : MeasureInitializer {
-    override lateinit var application: Application
+    lateinit var application: Application
     override lateinit var logger: Logger
     override lateinit var timeProvider: TimeProvider
     override lateinit var networkClient: NetworkClient
     override lateinit var manifestReader: ManifestReader
+    override lateinit var resumedActivityProvider: ResumedActivityProvider
     override lateinit var eventProcessor: EventProcessor
     override lateinit var okHttpEventCollector: OkHttpEventCollector
     override lateinit var unhandledExceptionCollector: UnhandledExceptionCollector

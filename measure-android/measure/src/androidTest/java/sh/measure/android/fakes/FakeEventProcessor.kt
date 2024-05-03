@@ -47,7 +47,7 @@ internal class FakeEventProcessor : EventProcessor {
         timestamp: Long,
         type: String,
         attributes: MutableMap<String, Any?>,
-        attachments: List<Attachment>?,
+        attachments: MutableList<Attachment>,
     ) {
         track(
             data,
