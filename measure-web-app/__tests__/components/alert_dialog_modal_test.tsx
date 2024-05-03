@@ -1,7 +1,6 @@
 import '@testing-library/jest-dom'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { expect, describe, it } from '@jest/globals'
-import Accordion from '@/app/components/accordion'
 import AlertDialogModal from '@/app/components/alert_dialog_modal'
 
 describe('Alert Dialog Modal', () => {
