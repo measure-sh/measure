@@ -1,8 +1,6 @@
 package sh.measure.android.lifecycle
 
-import android.os.Bundle
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentActivity
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert
 import org.junit.Before
@@ -16,6 +14,7 @@ import org.mockito.kotlin.never
 import org.robolectric.Robolectric.buildActivity
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.android.controller.ActivityController
+import sh.measure.android.TestLifecycleActivity
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeTimeProvider
@@ -245,13 +244,6 @@ class LifecycleCollectorTest {
         }
         controller.setup().stop()
         Assert.assertTrue(background)
-    }
-}
-
-internal class TestLifecycleActivity : FragmentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        supportFragmentManager.beginTransaction().add(TestFragment(), "test-fragment").commit()
     }
 }
 

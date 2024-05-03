@@ -2,12 +2,14 @@ package sh.measure.android.events
 
 import androidx.concurrent.futures.ResolvableFuture
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.verify
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.exporter.EventExporter
+import sh.measure.android.fakes.FakeConfig
 import sh.measure.android.fakes.FakeEventFactory
 import sh.measure.android.fakes.FakeEventFactory.toEvent
 import sh.measure.android.fakes.FakeEventStore
@@ -15,6 +17,7 @@ import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.utils.ScreenshotHelper
 import sh.measure.android.utils.iso8601Timestamp
 
 internal class EventProcessorTest {
@@ -23,6 +26,8 @@ internal class EventProcessorTest {
     private val sessionManager = FakeSessionManager()
     private val eventStore = FakeEventStore()
     private val eventExporter = mock<EventExporter>()
+    private val screenshotHelper = mock<ScreenshotHelper>()
+    private val config = FakeConfig()
 
     private val eventProcessor = EventProcessorImpl(
         logger = NoopLogger(),
@@ -32,7 +37,14 @@ internal class EventProcessorTest {
         sessionManager = sessionManager,
         attributeProcessors = emptyList(),
         eventExporter = eventExporter,
+        screenshotHelper = screenshotHelper,
+        config = config
     )
+
+    @Before
+    fun setUp() {
+        config.captureScreenshotForExceptions = false
+    }
 
     @Test
     fun `given an event, adds session id, event id and thread name as attribute, then stores event`() {
@@ -65,7 +77,7 @@ internal class EventProcessorTest {
         val exceptionData = FakeEventFactory.getExceptionData()
         val timestamp = 1710746412L
         val type = EventType.EXCEPTION
-        val attachments = listOf(FakeEventFactory.getAttachment())
+        val attachments = mutableListOf(FakeEventFactory.getAttachment())
 
         // When
         eventProcessor.track(
@@ -134,6 +146,8 @@ internal class EventProcessorTest {
             sessionManager = sessionManager,
             attributeProcessors = listOf(attributeProcessor),
             eventExporter = eventExporter,
+            screenshotHelper = screenshotHelper,
+            config = config
         )
 
         // When

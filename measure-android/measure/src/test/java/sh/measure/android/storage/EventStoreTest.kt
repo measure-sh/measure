@@ -114,7 +114,7 @@ internal class EventStoreTest {
             path = null,
         )
         val event = FakeEventFactory.getClickData()
-            .toEvent(type = EventType.CLICK, attachments = listOf(attachment), id = idProvider.id)
+            .toEvent(type = EventType.CLICK, attachments = mutableListOf(attachment), id = idProvider.id)
         `when`(fileStorage.writeAttachment(event.id, attachment.bytes!!)).thenReturn("fake-path")
 
         eventStore.store(event)
@@ -134,7 +134,7 @@ internal class EventStoreTest {
             path = "fake-path",
         )
         val event = FakeEventFactory.getClickData()
-            .toEvent(type = EventType.CLICK, attachments = listOf(attachment), id = idProvider.id)
+            .toEvent(type = EventType.CLICK, attachments = mutableListOf(attachment), id = idProvider.id)
 
         eventStore.store(event)
 
@@ -154,7 +154,7 @@ internal class EventStoreTest {
             type = "type",
         )
         val event = FakeEventFactory.getClickData()
-            .toEvent(type = EventType.CLICK, attachments = listOf(attachment), id = idProvider.id)
+            .toEvent(type = EventType.CLICK, attachments = mutableListOf(attachment), id = idProvider.id)
 
         eventStore.store(event)
 
@@ -178,7 +178,7 @@ internal class EventStoreTest {
         )
         `when`(fileStorage.writeAttachment(idProvider.id, attachment.bytes!!)).thenReturn("fake-path")
         val event = FakeEventFactory.getClickData()
-            .toEvent(type = EventType.CLICK, attachments = listOf(attachment), id = idProvider.id)
+            .toEvent(type = EventType.CLICK, attachments = mutableListOf(attachment), id = idProvider.id)
 
         eventStore.store(event)
 
@@ -195,7 +195,7 @@ internal class EventStoreTest {
     @Test
     fun `given no attachments, serialized attachments are set to null`() {
         val event = FakeEventFactory.getClickData()
-            .toEvent(type = EventType.CLICK, attachments = null, id = idProvider.id)
+            .toEvent(type = EventType.CLICK, attachments = mutableListOf(), id = idProvider.id)
 
         eventStore.store(event)
 
@@ -210,7 +210,7 @@ internal class EventStoreTest {
         val attachmentContent = getAttachmentContent()
         val attachment = FakeEventFactory.getAttachment(bytes = null, path = "fake-path")
         val event = FakeEventFactory.getClickData()
-            .toEvent(type = EventType.CLICK, attachments = listOf(attachment), id = idProvider.id)
+            .toEvent(type = EventType.CLICK, attachments = mutableListOf(attachment), id = idProvider.id)
         val file =
             File.createTempFile("fake-attachment", "txt").apply { writeText(attachmentContent) }
         `when`(fileStorage.getFile(attachment.path!!)).thenReturn(file)
