@@ -285,7 +285,7 @@ func (af *AppFilter) getAppVersions(ctx context.Context, fl *FilterList) error {
 		stmt.Where("type = 'anr'")
 	}
 
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), af.AppID)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), af.AppID)
 	if err != nil {
 		msg := `failed to query app versions`
 		fmt.Println(msg, err)
@@ -329,7 +329,7 @@ func (af *AppFilter) getCountries(ctx context.Context, fl *FilterList) error {
 		stmt.Where("type = 'anr'")
 	}
 
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), af.AppID)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), af.AppID)
 	if err != nil {
 		msg := `failed to query countries from ip`
 		fmt.Println(msg, err)
@@ -372,7 +372,7 @@ func (af *AppFilter) getNetworkProviders(ctx context.Context, fl *FilterList) er
 		stmt.Where("type = 'anr'")
 	}
 
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), af.AppID)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), af.AppID)
 	if err != nil {
 		msg := `failed to query app network providers`
 		fmt.Println(msg, err)
@@ -418,7 +418,7 @@ func (af *AppFilter) getNetworkTypes(ctx context.Context, fl *FilterList) error 
 		stmt.Where("type = 'anr'")
 	}
 
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), af.AppID)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), af.AppID)
 	if err != nil {
 		msg := `failed to query app network types`
 		fmt.Println(msg, err)
@@ -461,7 +461,7 @@ func (af *AppFilter) getNetworkGenerations(ctx context.Context, fl *FilterList) 
 		stmt.Where("type = 'anr'")
 	}
 
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), af.AppID)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), af.AppID)
 	if err != nil {
 		msg := `failed to query app network generations`
 		fmt.Println(msg, err)
@@ -507,7 +507,7 @@ func (af *AppFilter) getDeviceLocales(ctx context.Context, fl *FilterList) error
 		stmt.Where("type = 'anr'")
 	}
 
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), af.AppID)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), af.AppID)
 	if err != nil {
 		msg := `failed to query app device locales`
 		fmt.Println(msg, err)
@@ -550,7 +550,7 @@ func (af *AppFilter) getDeviceManufacturers(ctx context.Context, fl *FilterList)
 		stmt.Where("type = 'anr'")
 	}
 
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), af.AppID)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), af.AppID)
 	if err != nil {
 		msg := `failed to query app device manufacturers`
 		fmt.Println(msg, err)
@@ -593,7 +593,7 @@ func (af *AppFilter) getDeviceNames(ctx context.Context, fl *FilterList) error {
 		stmt.Where("type = 'anr'")
 	}
 
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), af.AppID)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), af.AppID)
 	if err != nil {
 		msg := `failed to query app device names`
 		fmt.Println(msg, err)
