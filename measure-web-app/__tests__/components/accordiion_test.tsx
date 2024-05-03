@@ -25,4 +25,20 @@ describe('Accordion', () => {
 
         expect(container).toMatchSnapshot()
     })
+
+    it('renders correctly once it\'s openened and closed again', () => {
+        const title = 'TITLE'
+        const id = 'ID'
+        const body = 'SOME BODY TEXT'
+
+        const container = render(<Accordion title={title} id={id}>{body}</Accordion>)
+
+        fireEvent.click(screen.getByText(title))
+
+        expect(container).toMatchSnapshot()
+
+        fireEvent.click(screen.getByText(title))
+
+        expect(container).toMatchSnapshot()
+    })
 })
