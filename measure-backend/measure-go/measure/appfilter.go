@@ -264,10 +264,11 @@ func (af *AppFilter) getGenericFilters(fl *FilterList) error {
 // Additionally, filters for `exception` and `anr` event
 // types.
 func (af *AppFilter) getAppVersions(fl *FilterList) error {
-	stmt := sqlf.Select("distinct toString(resource.app_version), toString(resource.app_build)").
-		From("events").
+	stmt := sqlf.
+		From("default.events").
+		Select("distinct toString(attribute.app_version), toString(attribute.app_build)").
 		Where("app_id = toUUID(?)").
-		OrderBy("resource.app_build desc")
+		OrderBy("attribute.app_build desc")
 
 	defer stmt.Close()
 
@@ -309,8 +310,9 @@ func (af *AppFilter) getAppVersions(fl *FilterList) error {
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getCountries(fl *FilterList) error {
-	stmt := sqlf.Select("distinct toString(inet.country_code)").
-		From("events").
+	stmt := sqlf.
+		From("default.events").
+		Select("distinct toString(inet.country_code)").
 		Where("app_id = toUUID(?)")
 	defer stmt.Close()
 
@@ -350,9 +352,11 @@ func (af *AppFilter) getCountries(fl *FilterList) error {
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getNetworkProviders(fl *FilterList) error {
-	stmt := sqlf.Select("distinct toString(resource.network_provider)").
-		From("events").
+	stmt := sqlf.
+		From("default.events").
+		Select("distinct toString(attribute.network_provider)").
 		Where("app_id = toUUID(?)")
+
 	defer stmt.Close()
 
 	if af.Exception {
@@ -394,9 +398,11 @@ func (af *AppFilter) getNetworkProviders(fl *FilterList) error {
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getNetworkTypes(fl *FilterList) error {
-	stmt := sqlf.Select("distinct toString(resource.network_type)").
-		From("events").
+	stmt := sqlf.
+		From("default.events").
+		Select("distinct toString(attribute.network_type)").
 		Where("app_id = toUUID(?)")
+
 	defer stmt.Close()
 
 	if af.Exception {
@@ -435,9 +441,11 @@ func (af *AppFilter) getNetworkTypes(fl *FilterList) error {
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getNetworkGenerations(fl *FilterList) error {
-	stmt := sqlf.Select("distinct toString(resource.network_generation)").
-		From("events").
+	stmt := sqlf.
+		From("default.events").
+		Select("distinct toString(attribute.network_generation)").
 		Where("app_id = toUUID(?)")
+
 	defer stmt.Close()
 
 	if af.Exception {
@@ -479,9 +487,11 @@ func (af *AppFilter) getNetworkGenerations(fl *FilterList) error {
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getDeviceLocales(fl *FilterList) error {
-	stmt := sqlf.Select("distinct toString(resource.device_locale)").
-		From("events").
+	stmt := sqlf.
+		From("default.events").
+		Select("distinct toString(attribute.device_locale)").
 		Where("app_id = toUUID(?)")
+
 	defer stmt.Close()
 
 	if af.Exception {
@@ -520,9 +530,11 @@ func (af *AppFilter) getDeviceLocales(fl *FilterList) error {
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getDeviceManufacturers(fl *FilterList) error {
-	stmt := sqlf.Select("distinct toString(resource.device_manufacturer)").
-		From("events").
+	stmt := sqlf.
+		From("default.events").
+		Select("distinct toString(attribute.device_manufacturer)").
 		Where("app_id = toUUID(?)")
+
 	defer stmt.Close()
 
 	if af.Exception {
@@ -561,9 +573,11 @@ func (af *AppFilter) getDeviceManufacturers(fl *FilterList) error {
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getDeviceNames(fl *FilterList) error {
-	stmt := sqlf.Select("distinct toString(resource.device_name)").
-		From("events").
+	stmt := sqlf.
+		From("default.events").
+		Select("distinct toString(attribute.device_name)").
 		Where("app_id = toUUID(?)")
+
 	defer stmt.Close()
 
 	if af.Exception {
