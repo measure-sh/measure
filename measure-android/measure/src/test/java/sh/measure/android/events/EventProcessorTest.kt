@@ -2,9 +2,11 @@ package sh.measure.android.events
 
 import androidx.concurrent.futures.ResolvableFuture
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
 import org.mockito.kotlin.verify
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
@@ -205,5 +207,93 @@ internal class EventProcessorTest {
         // Then
         assertEquals(1, eventStore.trackedEvents.size)
         verify(eventExporter).export(eventStore.trackedEvents.first())
+    }
+
+    @Test
+    fun `given an event of type exception and config to capture screenshot, adds screenshot as attachment`() {
+        // Given
+        val exceptionData = FakeEventFactory.getExceptionData()
+        val timestamp = 9856564654L
+        val type = EventType.EXCEPTION
+        config.captureScreenshotForExceptions = true
+        val screenshotBytes = byteArrayOf(1, 2, 3, 4)
+        `when`(screenshotHelper.takeScreenshot()).thenReturn(screenshotBytes)
+
+        // When
+        eventProcessor.track(
+            data = exceptionData,
+            timestamp = timestamp,
+            type = type,
+        )
+
+        // Then
+        assertEquals(1, eventStore.trackedEvents.size)
+        val attachments = eventStore.trackedEvents.first().attachments
+        assertEquals(1, attachments.size)
+        assertEquals("screenshot.png", attachments.first().name)
+        assertTrue(screenshotBytes.contentEquals(attachments.first().bytes))
+    }
+
+    @Test
+    fun `given an event of type exception and config to not capture screenshot, does not add screenshot as attachment`() {
+        // Given
+        val exceptionData = FakeEventFactory.getExceptionData()
+        val timestamp = 9856564654L
+        val type = EventType.EXCEPTION
+        config.captureScreenshotForExceptions = false
+
+        // When
+        eventProcessor.track(
+            data = exceptionData,
+            timestamp = timestamp,
+            type = type,
+        )
+
+        // Then
+        assertEquals(1, eventStore.trackedEvents.size)
+        val attachments = eventStore.trackedEvents.first().attachments
+        assertEquals(0, attachments.size)
+    }
+
+    @Test
+    fun `given an event of type ANR and config to capture screenshot, does not add screenshot as attachment`() {
+        // Given
+        val exceptionData = FakeEventFactory.getExceptionData()
+        val timestamp = 9856564654L
+        val type = EventType.ANR
+        config.captureScreenshotForExceptions = true
+
+        // When
+        eventProcessor.track(
+            data = exceptionData,
+            timestamp = timestamp,
+            type = type,
+        )
+
+        // Then
+        assertEquals(1, eventStore.trackedEvents.size)
+        val attachments = eventStore.trackedEvents.first().attachments
+        assertEquals(0, attachments.size)
+    }
+
+    @Test
+    fun `given an event of type ANR and config to not capture screenshot, does not add screenshot as attachment`() {
+        // Given
+        val exceptionData = FakeEventFactory.getExceptionData()
+        val timestamp = 9856564654L
+        val type = EventType.ANR
+        config.captureScreenshotForExceptions = false
+
+        // When
+        eventProcessor.track(
+            data = exceptionData,
+            timestamp = timestamp,
+            type = type,
+        )
+
+        // Then
+        assertEquals(1, eventStore.trackedEvents.size)
+        val attachments = eventStore.trackedEvents.first().attachments
+        assertEquals(0, attachments.size)
     }
 }

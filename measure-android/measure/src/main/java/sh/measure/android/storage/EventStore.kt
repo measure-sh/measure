@@ -105,7 +105,7 @@ internal class EventStoreImpl(
      * with the path where the bytes were written to.
      */
     private fun <T> createAttachmentEntities(event: Event<T>): List<AttachmentEntity>? {
-        if (event.attachments.isNullOrEmpty()) {
+        if (event.attachments.isEmpty()) {
             return null
         }
         val attachmentEntities = event.attachments.mapNotNull { attachment ->
