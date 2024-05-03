@@ -66,7 +66,11 @@ import sh.measure.android.utils.ProcProvider
 import sh.measure.android.utils.ProcProviderImpl
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.ProcessInfoProviderImpl
+import sh.measure.android.utils.ResumedActivityProvider
+import sh.measure.android.utils.ResumedActivityProviderImpl
 import sh.measure.android.utils.RuntimeProvider
+import sh.measure.android.utils.ScreenshotHelper
+import sh.measure.android.utils.ScreenshotHelperImpl
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.SystemServiceProviderImpl
 import sh.measure.android.utils.TimeProvider
@@ -155,16 +159,20 @@ internal class MeasureInitializerImpl(
         fileStorage = fileStorage,
         idProvider = idProvider,
     ),
+    override val resumedActivityProvider: ResumedActivityProvider = ResumedActivityProviderImpl(application),
+    private val screenshotHelper: ScreenshotHelper = ScreenshotHelperImpl(logger, resumedActivityProvider),
+    private val config: Config = DefaultConfig(),
     override val eventProcessor: EventProcessor = EventProcessorImpl(
         logger = logger,
         executorService = executorServiceRegistry.eventProcessorExecutor(),
+        eventStore = eventStore,
         idProvider = idProvider,
+        sessionManager = sessionManager,
         attributeProcessors = attributeProcessors,
         eventExporter = eventExporter,
-        eventStore = eventStore,
-        sessionManager = sessionManager,
+        screenshotHelper = screenshotHelper,
+        config = config,
     ),
-    private val config: Config = DefaultConfig(),
     private val periodicHeartbeat: Heartbeat = HeartbeatImpl(
         logger,
         executorServiceRegistry.exportHeartbeatExecutor(),
@@ -273,6 +281,7 @@ internal interface MeasureInitializer {
     val timeProvider: TimeProvider
     val networkClient: NetworkClient
     val manifestReader: ManifestReader
+    val resumedActivityProvider: ResumedActivityProvider
     val eventProcessor: EventProcessor
     val okHttpEventCollector: OkHttpEventCollector
     val unhandledExceptionCollector: UnhandledExceptionCollector

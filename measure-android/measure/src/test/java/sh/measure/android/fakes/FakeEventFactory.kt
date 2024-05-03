@@ -62,7 +62,7 @@ internal object FakeEventFactory {
         timestamp: String = "2024-03-18T12:50:12.62600000Z",
         type: String,
         sessionId: String = "session-id",
-        attachments: List<Attachment>? = null,
+        attachments: MutableList<Attachment> = mutableListOf(),
         attributes: MutableMap<String, Any?> = mutableMapOf(),
     ): Event<T> {
         return Event(
@@ -339,20 +339,6 @@ internal object FakeEventFactory {
             serializedAttributes = eventEntity.serializedAttributes ?: "",
             serializedAttachments = eventEntity.serializedAttachments,
             serializedDataFilePath = eventEntity.filePath,
-        )
-    }
-
-    fun getAttachmentEntity(
-        id: String = "id",
-        type: String = "type",
-        path: String = "path",
-        name: String = "name",
-    ): AttachmentEntity {
-        return AttachmentEntity(
-            id = id,
-            type = type,
-            path = path,
-            name = name,
         )
     }
 

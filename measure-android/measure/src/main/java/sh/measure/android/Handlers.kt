@@ -5,6 +5,10 @@ import android.os.Looper
 import android.os.Message
 import androidx.core.os.MessageCompat
 
+internal fun isMainThread(): Boolean {
+    return Looper.myLooper() == Looper.getMainLooper()
+}
+
 internal val mainHandler by lazy {
     Handler(Looper.getMainLooper())
 }

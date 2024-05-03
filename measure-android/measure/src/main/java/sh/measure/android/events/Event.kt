@@ -35,7 +35,7 @@ internal data class Event<T>(
     /**
      * Attachments that can be added to the event.
      */
-    val attachments: List<Attachment>?,
+    val attachments: MutableList<Attachment>,
 
     /**
      * Additional key value pairs that can be added to the event.
@@ -50,5 +50,9 @@ internal data class Event<T>(
      */
     fun appendAttribute(key: String, value: Any?) {
         attributes[key] = value
+    }
+
+    fun addAttachment(attachment: Attachment) {
+        attachments.add(attachment)
     }
 }

@@ -14,6 +14,14 @@ private val enabledHttpBodyContentTypePatterns = listOf(
  * Configures behavior of the Measure SDK.
  */
 internal interface Config {
+    /**
+     * Whether screenshot should be automatically captured for exceptions and ANRs.
+     */
+    val captureScreenshotForExceptions: Boolean
+
+    /**
+     * The timeout in milliseconds after which an ANR is detected.
+     */
     val anrTimeoutMs: Long
 
     /**
@@ -39,6 +47,8 @@ internal interface Config {
 }
 
 internal class DefaultConfig : Config {
+    override val captureScreenshotForExceptions: Boolean = false
+
     override val anrTimeoutMs: Long = 5_000 // 5 seconds
 
     override val maxAttachmentSizeInBytes: Int = 3 * 1024 * 1024 // 3 MB

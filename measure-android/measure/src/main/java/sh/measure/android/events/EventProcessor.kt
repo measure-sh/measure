@@ -1,5 +1,6 @@
 package sh.measure.android.events
 
+import sh.measure.android.Config
 import sh.measure.android.SessionManager
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
@@ -10,6 +11,7 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.EventStore
 import sh.measure.android.utils.IdProvider
+import sh.measure.android.utils.ScreenshotHelper
 import sh.measure.android.utils.iso8601Timestamp
 
 /**
@@ -61,7 +63,7 @@ internal interface EventProcessor {
         timestamp: Long,
         type: String,
         attributes: MutableMap<String, Any?> = mutableMapOf(),
-        attachments: List<Attachment>? = null,
+        attachments: MutableList<Attachment> = mutableListOf(),
     )
 }
 
@@ -73,6 +75,8 @@ internal class EventProcessorImpl(
     private val sessionManager: SessionManager,
     private val attributeProcessors: List<AttributeProcessor>,
     private val eventExporter: EventExporter,
+    private val screenshotHelper: ScreenshotHelper,
+    private val config: Config,
 ) : EventProcessor {
 
     override fun <T> track(
@@ -80,11 +84,11 @@ internal class EventProcessorImpl(
         timestamp: Long,
         type: String,
     ) {
-        track(data, timestamp, type, mutableMapOf(), null, null)
+        track(data, timestamp, type, mutableMapOf(), mutableListOf(), null)
     }
 
     override fun <T> track(data: T, timestamp: Long, type: String, sessionId: String) {
-        track(data, timestamp, type, mutableMapOf(), null, sessionId)
+        track(data, timestamp, type, mutableMapOf(), mutableListOf(), sessionId)
     }
 
     override fun <T> track(
@@ -92,7 +96,7 @@ internal class EventProcessorImpl(
         timestamp: Long,
         type: String,
         attributes: MutableMap<String, Any?>,
-        attachments: List<Attachment>?,
+        attachments: MutableList<Attachment>,
     ) {
         track(data, timestamp, type, attributes, attachments, null)
     }
@@ -102,7 +106,7 @@ internal class EventProcessorImpl(
         timestamp: Long,
         type: String,
         attributes: MutableMap<String, Any?>,
-        attachments: List<Attachment>?,
+        attachments: MutableList<Attachment>,
         sessionId: String?,
     ) {
         val threadName = Thread.currentThread().name
@@ -132,6 +136,9 @@ internal class EventProcessorImpl(
             // immediately to report them as soon as possible.
             EventType.ANR, EventType.EXCEPTION -> {
                 val event = createEvent(sessionId)
+                if (config.captureScreenshotForExceptions) {
+                    addScreenshotAsAttachment(event)
+                }
                 applyAttributes(event)
                 eventStore.store(event)
                 eventExporter.export(event)
@@ -146,5 +153,18 @@ internal class EventProcessorImpl(
             }
         }
         logger.log(LogLevel.Debug, "Event processed: $type")
+    }
+
+    private fun <T> addScreenshotAsAttachment(event: Event<T>) {
+        val bytes = screenshotHelper.takeScreenshot()
+        if (bytes != null) {
+            event.addAttachment(
+                Attachment(
+                    name = "screenshot.png",
+                    type = AttachmentType.SCREENSHOT,
+                    bytes = bytes,
+                )
+            )
+        }
     }
 }
