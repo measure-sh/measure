@@ -14,10 +14,12 @@ import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeEventProcessor
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.utils.AndroidTimeProvider
+import sh.measure.android.utils.ProcessInfoProviderImpl
 
 internal class AppLaunchCollectorTest {
 
     private val logger = NoopLogger()
+    private val processInfoProvider = ProcessInfoProviderImpl()
 
     @Test
     fun tracks_cold_launch() {
@@ -52,6 +54,7 @@ internal class AppLaunchCollectorTest {
                 logger = logger,
                 eventProcessor = eventProcessor,
                 timeProvider = AndroidTimeProvider(),
+                processInfo = processInfoProvider
             ).apply {
                 register()
                 setColdLaunchListener(listener = coldLaunchListener)
@@ -85,6 +88,7 @@ internal class AppLaunchCollectorTest {
                 logger = logger,
                 eventProcessor = eventProcessor,
                 timeProvider = AndroidTimeProvider(),
+                processInfo = processInfoProvider,
             ).register()
             scenario.moveToState(Lifecycle.State.CREATED)
             scenario.moveToState(Lifecycle.State.STARTED)
@@ -103,6 +107,7 @@ internal class AppLaunchCollectorTest {
                 logger = logger,
                 eventProcessor = eventProcessor,
                 timeProvider = AndroidTimeProvider(),
+                processInfo = processInfoProvider,
             ).register()
 
             scenario.moveToState(Lifecycle.State.CREATED)
