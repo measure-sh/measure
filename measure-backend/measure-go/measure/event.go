@@ -1126,7 +1126,7 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
-	if err := eventReq.bucketUnhandledExceptions(&tx); err != nil {
+	if err := eventReq.bucketUnhandledExceptions(ctx, &tx); err != nil {
 		msg := `failed to bucket unhandled exceptions`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -1135,7 +1135,7 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
-	if err := eventReq.bucketANRs(&tx); err != nil {
+	if err := eventReq.bucketANRs(ctx, &tx); err != nil {
 		msg := `failed to bucket anrs`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
