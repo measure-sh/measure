@@ -1,6 +1,5 @@
 package sh.measure.android.storage
 
-import sh.measure.android.events.Attachment
 import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
@@ -31,7 +30,7 @@ internal class EventStoreImpl(
     override fun <T> store(event: Event<T>) {
         val serializedAttachments = event.serializeAttachments()
         val serializedAttributes = event.serializeAttributes()
-        val attachmentEntities = writeAttachments(event)
+        val attachmentEntities = createAttachmentEntities(event)
         val attachmentsSize = calculateAttachmentsSize(attachmentEntities)
         val serializedData = event.serializeDataToString()
 
@@ -89,38 +88,47 @@ internal class EventStoreImpl(
         return httpEvent.request_body != null || httpEvent.response_body != null
     }
 
-    private fun <T> writeAttachments(event: Event<T>): List<AttachmentEntity>? {
+    /**
+     * Creates a list of [AttachmentEntity] from the attachments of the event.
+     *
+     * If the attachment has a path, it directly returns the [AttachmentEntity].
+     * If the attachment has bytes, it writes the bytes to the file storage and returns the [AttachmentEntity]
+     * with the path where the bytes were written to.
+     */
+    private fun <T> createAttachmentEntities(event: Event<T>): List<AttachmentEntity>? {
         if (event.attachments.isNullOrEmpty()) {
             return null
         }
-        val attachmentEntities = event.attachments.mapNotNull {
-            getAttachmentPath(it)?.let { path ->
-                AttachmentEntity(
-                    id = idProvider.createId(),
-                    type = it.type,
-                    name = it.name,
-                    path = path,
-                )
+        val attachmentEntities = event.attachments.mapNotNull { attachment ->
+            val id = idProvider.createId()
+            when {
+                attachment.path != null -> {
+                    AttachmentEntity(
+                        id = id,
+                        path = attachment.path,
+                        name = attachment.name,
+                        type = attachment.type,
+                    )
+                }
+
+                attachment.bytes != null -> {
+                    fileStorage.writeAttachment(id, attachment.bytes)?.let { path ->
+                        AttachmentEntity(
+                            id = id,
+                            path = path,
+                            name = attachment.name,
+                            type = attachment.type,
+                        )
+                    }
+                }
+
+                else -> {
+                    logger.log(LogLevel.Error, "Attachment has no path or bytes")
+                    null
+                }
             }
         }
         return attachmentEntities
-    }
-
-    private fun getAttachmentPath(attachment: Attachment): String? {
-        return when {
-            attachment.path != null -> {
-                attachment.path
-            }
-
-            attachment.bytes != null -> {
-                fileStorage.writeAttachment(idProvider.createId(), attachment.bytes)
-            }
-
-            else -> {
-                logger.log(LogLevel.Error, "Attachment(${attachment.type}) has no data")
-                return null
-            }
-        }
     }
 
     /**
