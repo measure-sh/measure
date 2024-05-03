@@ -135,12 +135,13 @@ func (a App) GetANRGroup(id uuid.UUID) (*ANRGroup, error) {
 
 // GetExceptionGroups returns slice of ExceptionGroup after applying matching
 // AppFilter values
-func (a App) GetExceptionGroups(af *AppFilter) ([]ExceptionGroup, error) {
+func (a App) GetExceptionGroups(ctx context.Context, af *AppFilter) ([]ExceptionGroup, error) {
 	stmt := sqlf.PostgreSQL.
 		Select("id, app_id, name, fingerprint, array_length(event_ids, 1) as count, event_ids, created_at, updated_at").
 		From("public.unhandled_exception_groups").
 		OrderBy("count desc").
 		Where("app_id = ?", nil)
+
 	defer stmt.Close()
 
 	args := []any{a.ID}
@@ -152,7 +153,7 @@ func (a App) GetExceptionGroups(af *AppFilter) ([]ExceptionGroup, error) {
 		}
 	}
 
-	rows, err := server.Server.PgPool.Query(context.Background(), stmt.String(), args...)
+	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), args...)
 	if err != nil {
 		return nil, err
 	}
@@ -1576,6 +1577,7 @@ func GetAppFilters(c *gin.Context) {
 }
 
 func GetCrashGroups(c *gin.Context) {
+	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		msg := `id invalid or missing`
@@ -1648,7 +1650,7 @@ func GetCrashGroups(c *gin.Context) {
 		return
 	}
 
-	groups, err := app.GetExceptionGroups(&af)
+	groups, err := app.GetExceptionGroups(ctx, &af)
 	if err != nil {
 		msg := "failed to get app's exception groups"
 		fmt.Println(msg, err)
@@ -1658,7 +1660,7 @@ func GetCrashGroups(c *gin.Context) {
 
 	var crashGroups []ExceptionGroup
 	for i := range groups {
-		ids, err := GetEventIdsMatchingFilter(groups[i].EventIDs, &af)
+		ids, err := GetEventIdsMatchingFilter(ctx, groups[i].EventIDs, &af)
 		if err != nil {
 			msg := "failed to get app's exception group's event ids"
 			fmt.Println(msg, err)
@@ -1687,7 +1689,10 @@ func GetCrashGroups(c *gin.Context) {
 	crashGroups, next, previous := PaginateGroups(crashGroups, &af)
 	meta := gin.H{"next": next, "previous": previous}
 
-	c.JSON(http.StatusOK, gin.H{"results": crashGroups, "meta": meta})
+	c.JSON(http.StatusOK, gin.H{
+		"results": crashGroups,
+		"meta":    meta,
+	})
 }
 
 func GetCrashGroupCrashes(c *gin.Context) {

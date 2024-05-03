@@ -333,7 +333,7 @@ func (s *Session) bucketUnhandledException() error {
 	ctx := context.Background()
 
 	for _, group := range groups {
-		appExceptionGroups, err := app.GetExceptionGroups(nil)
+		appExceptionGroups, err := app.GetExceptionGroups(ctx, nil)
 		if err != nil {
 			return err
 		}

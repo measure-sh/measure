@@ -763,22 +763,23 @@ func GetANRsWithFilter(eventIds []uuid.UUID, af *AppFilter) (events []event.Even
 
 // GetEventIdsWithFilter gets the event ids matching event ids and optionally
 // applies matching AppFilter.
-func GetEventIdsMatchingFilter(eventIds []uuid.UUID, af *AppFilter) ([]uuid.UUID, error) {
-	stmt := sqlf.Select("id").
+func GetEventIdsMatchingFilter(ctx context.Context, eventIds []uuid.UUID, af *AppFilter) ([]uuid.UUID, error) {
+	stmt := sqlf.
 		From("default.events").
+		Select("id").
 		Where("`id` in (?)")
 
 	defer stmt.Close()
 
 	if len(af.Versions) > 0 {
-		stmt.Where("`resource.app_version` in (?)")
+		stmt.Where("`attribute.app_version` in (?)")
 	}
 
 	if len(af.VersionCodes) > 0 {
-		stmt.Where("`resource.app_build` in (?)")
+		stmt.Where("`attribute.app_build` in (?)")
 	}
 
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), eventIds, af.Versions, af.VersionCodes)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), eventIds, af.Versions, af.VersionCodes)
 	if err != nil {
 		return nil, err
 	}
