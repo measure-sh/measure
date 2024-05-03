@@ -1792,6 +1792,7 @@ func GetCrashGroupCrashes(c *gin.Context) {
 }
 
 func GetANRGroups(c *gin.Context) {
+	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		msg := `id invalid or missing`
