@@ -1872,7 +1872,7 @@ func GetANRGroups(c *gin.Context) {
 
 	var anrGroups []ANRGroup
 	for i := range groups {
-		ids, err := GetEventIdsMatchingFilter(groups[i].EventIDs, &af)
+		ids, err := GetEventIdsMatchingFilter(ctx, groups[i].EventIDs, &af)
 		if err != nil {
 			msg := "failed to get app's anr group's event ids"
 			fmt.Println(msg, err)
