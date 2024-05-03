@@ -1,5 +1,7 @@
 package sh.measure.android.storage
 
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import sh.measure.android.events.AttachmentType
 import sh.measure.android.events.EventType
 /**
@@ -62,6 +64,7 @@ internal data class EventEntity(
 /**
  * Maps an attachment to [AttachmentTable] in the database.
  */
+@Serializable
 internal data class AttachmentEntity(
     /**
      * Unique identifier for the attachment.
@@ -78,5 +81,6 @@ internal data class AttachmentEntity(
     /**
      * The path to the attachment.
      */
-    val path: String,
+    @Transient
+    val path: String = "",
 )

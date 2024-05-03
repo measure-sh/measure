@@ -1,5 +1,7 @@
 package sh.measure.android.storage
 
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
@@ -28,9 +30,9 @@ internal class EventStoreImpl(
 ) : EventStore {
 
     override fun <T> store(event: Event<T>) {
-        val serializedAttachments = event.serializeAttachments()
         val serializedAttributes = event.serializeAttributes()
         val attachmentEntities = createAttachmentEntities(event)
+        val serializedAttachments = serializeAttachmentEntities(attachmentEntities)
         val attachmentsSize = calculateAttachmentsSize(attachmentEntities)
         val serializedData = event.serializeDataToString()
 
@@ -81,6 +83,13 @@ internal class EventStoreImpl(
             )
         }
         database.insertEvent(eventEntity)
+    }
+
+    private fun serializeAttachmentEntities(attachmentEntities: List<AttachmentEntity>?): String? {
+        if (attachmentEntities.isNullOrEmpty()) {
+            return null
+        }
+        return Json.encodeToString(attachmentEntities)
     }
 
     private fun <T> httpDataContainsBody(event: Event<T>): Boolean {
