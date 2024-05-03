@@ -1009,30 +1009,7 @@ func lookCountry(events []event.EventField, rawIP string) error {
 	return nil
 }
 
-func PutEvent(c *gin.Context) {
-	type payload struct {
-		Events []event.EventField `json:"events" binding:"required"`
-	}
-
-	var p payload
-	if err := c.ShouldBindJSON(&p); err != nil {
-		msg := `failed to decode events payload`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := lookCountry(p.Events, c.ClientIP()); err != nil {
-		msg := fmt.Sprintf(`could not process request, failed to lookup country info for IP %q`, c.ClientIP())
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	c.JSON(http.StatusNotImplemented, gin.H{"ok": "ok"})
-}
-
-func PutEventMulti(c *gin.Context) {
+func PutEvents(c *gin.Context) {
 	appId, err := uuid.Parse(c.GetString("appId"))
 	if err != nil {
 		msg := `error parsing app's uuid`

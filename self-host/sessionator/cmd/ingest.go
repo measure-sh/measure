@@ -72,7 +72,7 @@ func ValidateFlags() bool {
 // events and build of each app version.
 func IngestSerial(apps *app.Apps, origin string) {
 	startTime := time.Now()
-	eventURL := fmt.Sprintf("%s/events2", origin)
+	eventURL := fmt.Sprintf("%s/events", origin)
 	mappingURL := fmt.Sprintf("%s/builds", origin)
 
 	for _, app := range apps.Items {
