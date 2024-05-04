@@ -164,7 +164,7 @@ internal class EventStoreTest {
         assertNotNull(eventEntity.serializedAttachments)
         assertEquals(
             "[{\"id\":\"${idProvider.id}\",\"type\":\"${attachment.type}\",\"name\":\"${attachment.name}\"}]",
-            eventEntity.serializedAttachments
+            eventEntity.serializedAttachments,
         )
     }
 
@@ -188,7 +188,7 @@ internal class EventStoreTest {
         assertNotNull(eventEntity.serializedAttachments)
         assertEquals(
             "[{\"id\":\"${idProvider.id}\",\"type\":\"${attachment.type}\",\"name\":\"${attachment.name}\"}]",
-            eventEntity.serializedAttachments
+            eventEntity.serializedAttachments,
         )
     }
 
