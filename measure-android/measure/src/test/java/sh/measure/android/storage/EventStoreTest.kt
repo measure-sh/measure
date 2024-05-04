@@ -246,7 +246,7 @@ internal class EventStoreTest {
         val exceptionData = FakeEventFactory.getExceptionData()
         val event = exceptionData.toEvent(
             type = EventType.EXCEPTION,
-            attachments = listOf(
+            attachments = mutableListOf(
                 FakeEventFactory.getAttachment(bytes = null, path = "fake-path"),
                 FakeEventFactory.getAttachment(bytes = null, path = "fake-path"),
             ),
