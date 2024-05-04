@@ -6,6 +6,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
@@ -70,8 +71,9 @@ class DatabaseTest {
             attachmentsSize = 0,
         )
 
-        database.insertEvent(event)
+        val result = database.insertEvent(event)
 
+        assertTrue(result)
         queryAllEvents(db).use {
             it.moveToFirst()
             assertEventInCursor(event, it)
@@ -98,11 +100,70 @@ class DatabaseTest {
             attachmentsSize = 500,
         )
 
-        database.insertEvent(event)
+        val result = database.insertEvent(event)
 
+        assertTrue(result)
         queryAllEvents(db).use {
             it.moveToFirst()
             assertEventInCursor(event, it)
+        }
+    }
+
+    @Test
+    fun `returns false when event insertion fails`() {
+        val event = EventEntity(
+            id = "event-id",
+            type = "test",
+            timestamp = "2024-03-18T12:50:12.62600000Z",
+            sessionId = "987",
+            filePath = "test-file-path",
+            attachmentEntities = emptyList(),
+            serializedAttributes = null,
+            serializedAttachments = null,
+            attachmentsSize = 500,
+        )
+
+        database.insertEvent(event)
+        // attempt to insert a event with same ID twice, resulting in a failure
+        val result = database.insertEvent(event)
+        assertEquals(false, result)
+        queryAllEvents(database.writableDatabase).use {
+            assertEquals(1, it.count)
+        }
+    }
+
+    @Test
+    fun `returns false when event insertion fails due to attachment insertion failure`() {
+        val event = EventEntity(
+            id = "event-id",
+            type = "test",
+            timestamp = "2024-03-18T12:50:12.62600000Z",
+            sessionId = "987",
+            filePath = "test-file-path",
+            attachmentEntities = listOf(
+                AttachmentEntity(
+                    id = "attachment-id",
+                    type = "test",
+                    name = "a.txt",
+                    path = "test-path",
+                ),
+                // insert a attachment with same ID twice, resulting in a failure
+                AttachmentEntity(
+                    id = "attachment-id",
+                    type = "test",
+                    name = "a.txt",
+                    path = "test-path",
+                )
+            ),
+            serializedAttributes = null,
+            serializedAttachments = null,
+            attachmentsSize = 500,
+        )
+
+        val result = database.insertEvent(event)
+        assertEquals(false, result)
+        queryAllEvents(database.writableDatabase).use {
+            assertEquals(0, it.count)
         }
     }
 

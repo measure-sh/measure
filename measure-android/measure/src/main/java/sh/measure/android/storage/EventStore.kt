@@ -82,8 +82,14 @@ internal class EventStoreImpl(
                 filePath = null,
             )
         }
-        database.insertEvent(eventEntity)
+        val success = database.insertEvent(eventEntity)
+        if (!success) {
+            fileStorage.deleteEventIfExist(eventEntity.id,
+                eventEntity.attachmentEntities?.map { it.id } ?: emptyList())
+            logger.log(LogLevel.Error, "Failed to insert event into database, deleting related files")
+        }
     }
+
 
     private fun serializeAttachmentEntities(attachmentEntities: List<AttachmentEntity>?): String? {
         if (attachmentEntities.isNullOrEmpty()) {

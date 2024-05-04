@@ -6,6 +6,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
+import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.verify
 import sh.measure.android.events.EventType
@@ -238,6 +239,25 @@ internal class EventStoreTest {
         val eventEntity = argumentCaptor.firstValue
         assertNotNull(eventEntity.serializedAttributes)
         assertEquals("{\"key\":\"value\"}", eventEntity.serializedAttributes)
+    }
+
+    @Test
+    fun `given event insertion in db fails, deletes event and attachment data from file storage`() {
+        val exceptionData = FakeEventFactory.getExceptionData()
+        val event = exceptionData.toEvent(type = EventType.EXCEPTION, attachments = listOf(
+            FakeEventFactory.getAttachment(bytes = null, path = "fake-path"),
+            FakeEventFactory.getAttachment(bytes = null, path = "fake-path")
+        ))
+        `when`(database.insertEvent(any())).thenReturn(false)
+
+        eventStore.store(event)
+
+        // verify that the event and its attachments are deleted from file storage
+        // attachment IDs are repeated because the event has two attachments
+        verify(fileStorage).deleteEventIfExist(
+            eventId = event.id,
+            attachmentIds = listOf(idProvider.id, idProvider.id)
+        )
     }
 
     private fun getAttachmentContent(): String {
