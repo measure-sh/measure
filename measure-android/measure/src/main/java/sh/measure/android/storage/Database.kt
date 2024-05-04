@@ -17,8 +17,9 @@ internal interface Database : Closeable {
      * Inserts an event into the database.
      *
      * @param event The event entity to insert.
+     * @return `true` if the event was successfully inserted, `false` otherwise.
      */
-    fun insertEvent(event: EventEntity)
+    fun insertEvent(event: EventEntity): Boolean
 
     /**
      * Returns a list of maximum [eventCount] event IDs that have not yet been batched. By default
@@ -161,7 +162,7 @@ internal class DatabaseImpl(
         db.setForeignKeyConstraintsEnabled(true)
     }
 
-    override fun insertEvent(event: EventEntity) {
+    override fun insertEvent(event: EventEntity): Boolean {
         writableDatabase.beginTransaction()
         try {
             val values = ContentValues().apply {
@@ -182,6 +183,7 @@ internal class DatabaseImpl(
             val result = writableDatabase.insert(EventTable.TABLE_NAME, null, values)
             if (result == -1L) {
                 logger.log(LogLevel.Error, "Failed to insert event = ${event.type}")
+                return false  // Rollback the transaction if event insertion fails
             }
 
             event.attachmentEntities?.forEach { attachment ->
@@ -201,9 +203,11 @@ internal class DatabaseImpl(
                         LogLevel.Error,
                         "Failed to insert attachment ${attachment.type} for event = ${event.type}",
                     )
+                    return false // Rollback the transaction if attachment insertion fails
                 }
             }
             writableDatabase.setTransactionSuccessful()
+            return true
         } finally {
             writableDatabase.endTransaction()
         }
@@ -235,7 +239,6 @@ internal class DatabaseImpl(
         batchId: String,
         createdAt: Long,
     ): Boolean {
-        var isSuccess = true
         writableDatabase.beginTransaction()
         try {
             eventIds.forEach { eventId ->
@@ -247,16 +250,14 @@ internal class DatabaseImpl(
                 val result = writableDatabase.insert(EventsBatchTable.TABLE_NAME, null, values)
                 if (result == -1L) {
                     logger.log(LogLevel.Error, "Failed to insert batched event = $eventId")
-                    isSuccess = false
+                    return false
                 }
             }
-            if (isSuccess) {
-                writableDatabase.setTransactionSuccessful()
-            }
+            writableDatabase.setTransactionSuccessful()
+            return true
         } finally {
             writableDatabase.endTransaction()
         }
-        return isSuccess
     }
 
     override fun insertBatch(eventId: String, batchId: String, createdAt: Long): Boolean {
