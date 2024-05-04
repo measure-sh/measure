@@ -729,7 +729,7 @@ func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 	return a, nil
 }
 
-func (a *App) getTeam() (*Team, error) {
+func (a *App) getTeam(ctx context.Context) (*Team, error) {
 	team := &Team{}
 
 	stmt := sqlf.PostgreSQL.
@@ -738,7 +738,7 @@ func (a *App) getTeam() (*Team, error) {
 		Where("id = ?", nil)
 	defer stmt.Close()
 
-	if err := server.Server.PgPool.QueryRow(context.Background(), stmt.String(), a.ID).Scan(&team.ID); err != nil {
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), a.ID).Scan(&team.ID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		} else {
@@ -1512,7 +1512,7 @@ func GetAppFilters(c *gin.Context) {
 		ID: &id,
 	}
 
-	team, err := app.getTeam()
+	team, err := app.getTeam(ctx)
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
@@ -1614,7 +1614,7 @@ func GetCrashGroups(c *gin.Context) {
 	app := App{
 		ID: &id,
 	}
-	team, err := app.getTeam()
+	team, err := app.getTeam(ctx)
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
@@ -1737,7 +1737,7 @@ func GetCrashGroupCrashes(c *gin.Context) {
 	app := App{
 		ID: &id,
 	}
-	team, err := app.getTeam()
+	team, err := app.getTeam(ctx)
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
@@ -1834,7 +1834,7 @@ func GetANRGroups(c *gin.Context) {
 	app := App{
 		ID: &id,
 	}
-	team, err := app.getTeam()
+	team, err := app.getTeam(ctx)
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
@@ -1954,7 +1954,7 @@ func GetANRGroupANRs(c *gin.Context) {
 	app := App{
 		ID: &id,
 	}
-	team, err := app.getTeam()
+	team, err := app.getTeam(ctx)
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
@@ -2061,6 +2061,7 @@ func CreateApp(c *gin.Context) {
 }
 
 func GetAppSession(c *gin.Context) {
+	ctx := c.Request.Context()
 	appId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		msg := `app id invalid or missing`
@@ -2080,7 +2081,7 @@ func GetAppSession(c *gin.Context) {
 	app := &App{
 		ID: &appId,
 	}
-	team, err := app.getTeam()
+	team, err := app.getTeam(ctx)
 	if err != nil {
 		msg := `failed to fetch team from app`
 		fmt.Println(msg, err)
