@@ -40,7 +40,7 @@ internal class EventProcessorTest {
         attributeProcessors = emptyList(),
         eventExporter = eventExporter,
         screenshotHelper = screenshotHelper,
-        config = config
+        config = config,
     )
 
     @Before
@@ -149,7 +149,7 @@ internal class EventProcessorTest {
             attributeProcessors = listOf(attributeProcessor),
             eventExporter = eventExporter,
             screenshotHelper = screenshotHelper,
-            config = config
+            config = config,
         )
 
         // When

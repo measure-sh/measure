@@ -54,7 +54,7 @@ internal class AppLaunchCollectorTest {
                 logger = logger,
                 eventProcessor = eventProcessor,
                 timeProvider = AndroidTimeProvider(),
-                processInfo = processInfoProvider
+                processInfo = processInfoProvider,
             ).apply {
                 register()
                 setColdLaunchListener(listener = coldLaunchListener)
