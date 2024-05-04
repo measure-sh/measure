@@ -244,10 +244,13 @@ internal class EventStoreTest {
     @Test
     fun `given event insertion in db fails, deletes event and attachment data from file storage`() {
         val exceptionData = FakeEventFactory.getExceptionData()
-        val event = exceptionData.toEvent(type = EventType.EXCEPTION, attachments = listOf(
-            FakeEventFactory.getAttachment(bytes = null, path = "fake-path"),
-            FakeEventFactory.getAttachment(bytes = null, path = "fake-path")
-        ))
+        val event = exceptionData.toEvent(
+            type = EventType.EXCEPTION,
+            attachments = listOf(
+                FakeEventFactory.getAttachment(bytes = null, path = "fake-path"),
+                FakeEventFactory.getAttachment(bytes = null, path = "fake-path"),
+            ),
+        )
         `when`(database.insertEvent(any())).thenReturn(false)
 
         eventStore.store(event)
@@ -256,7 +259,7 @@ internal class EventStoreTest {
         // attachment IDs are repeated because the event has two attachments
         verify(fileStorage).deleteEventIfExist(
             eventId = event.id,
-            attachmentIds = listOf(idProvider.id, idProvider.id)
+            attachmentIds = listOf(idProvider.id, idProvider.id),
         )
     }
 

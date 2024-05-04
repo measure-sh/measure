@@ -153,7 +153,7 @@ class DatabaseTest {
                     type = "test",
                     name = "a.txt",
                     path = "test-path",
-                )
+                ),
             ),
             serializedAttributes = null,
             serializedAttachments = null,

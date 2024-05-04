@@ -183,7 +183,7 @@ internal class DatabaseImpl(
             val result = writableDatabase.insert(EventTable.TABLE_NAME, null, values)
             if (result == -1L) {
                 logger.log(LogLevel.Error, "Failed to insert event = ${event.type}")
-                return false  // Rollback the transaction if event insertion fails
+                return false // Rollback the transaction if event insertion fails
             }
 
             event.attachmentEntities?.forEach { attachment ->
