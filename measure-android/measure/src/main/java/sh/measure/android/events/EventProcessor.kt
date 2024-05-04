@@ -163,7 +163,7 @@ internal class EventProcessorImpl(
                     name = "screenshot.png",
                     type = AttachmentType.SCREENSHOT,
                     bytes = bytes,
-                )
+                ),
             )
         }
     }
