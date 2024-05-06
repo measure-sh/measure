@@ -508,7 +508,7 @@ func (b *SymbolBatch) decode(frags []Fragment) {
 							MethodName: frame.MethodName,
 						})
 					}
-					b.Events[lut.EventIndex].ANR.Exceptions[lut.ExceptionIndex].Frames = frames
+					b.Events[lut.EventIndex].ANR.Threads[lut.ThreadIndex].Frames = frames
 				}
 			}
 
