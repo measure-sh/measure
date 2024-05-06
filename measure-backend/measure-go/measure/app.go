@@ -201,7 +201,7 @@ func (a App) GetSizeMetrics(af *AppFilter) (size *metrics.SizeMetric, err error)
 	stmt := sqlf.Select("count(id) as count").
 		From("default.events").
 		Where("app_id = ?", nil).
-		Where("`resource.app_version` = ? and `resource.app_build` = ?", nil, nil).
+		Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil).
 		Where("timestamp >= ? and timestamp <= ?", nil, nil)
 
 	defer stmt.Close()
@@ -250,17 +250,17 @@ func (a App) GetCrashFreeMetrics(af *AppFilter) (crashFree *metrics.CrashFreeSes
 	stmt := sqlf.
 		With("all_sessions",
 			sqlf.From("default.events").
-				Select("session_id, resource.app_version, resource.app_build, type, exception.handled").
+				Select("session_id, attribute.app_version, attribute.app_build, type, exception.handled").
 				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, nil, nil, nil)).
 		With("t1",
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as total_sessions_selected").
-				Where("`resource.app_version` = ? and `resource.app_build` = ?", nil, nil)).
+				Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil)).
 		With("t2",
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as count_exception_selected").
 				Where("`type` = 'exception' and `exception.handled` = false").
-				Where("`resource.app_version` = ? and `resource.app_build` = ?", nil, nil)).
+				Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil)).
 		With("t3",
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as count_not_exception").
@@ -269,7 +269,7 @@ func (a App) GetCrashFreeMetrics(af *AppFilter) (crashFree *metrics.CrashFreeSes
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as count_not_exception_selected").
 				Where("`type` != 'exception'").
-				Where("`resource.app_version` = ? and `resource.app_build` = ?", nil, nil)).
+				Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil)).
 		Select("round((1 - (t2.count_exception_selected / t1.total_sessions_selected)) * 100, 2) as crash_free_sessions").
 		Select("round(((t4.count_not_exception_selected - t3.count_not_exception) / t3.count_not_exception) * 100, 2) as delta").
 		From("t1, t2, t3, t4")
@@ -296,17 +296,17 @@ func (a App) GetANRFreeMetrics(af *AppFilter) (anrFree *metrics.ANRFreeSession, 
 	stmt := sqlf.
 		With("all_sessions",
 			sqlf.From("default.events").
-				Select("session_id, resource.app_version, resource.app_build, type").
+				Select("session_id, attribute.app_version, attribute.app_build, type").
 				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, nil, nil, nil)).
 		With("t1",
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as total_sessions_selected").
-				Where("`resource.app_version` = ? and `resource.app_build` = ?", nil, nil)).
+				Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil)).
 		With("t2",
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as count_anr_selected").
 				Where("`type` = 'anr'").
-				Where("`resource.app_version` = ? and `resource.app_build` = ?", nil, nil)).
+				Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil)).
 		With("t3",
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as count_not_anr").
@@ -315,7 +315,7 @@ func (a App) GetANRFreeMetrics(af *AppFilter) (anrFree *metrics.ANRFreeSession, 
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as count_not_anr_selected").
 				Where("`type` != 'anr'").
-				Where("`resource.app_version` = ? and `resource.app_build` = ?", nil, nil)).
+				Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil)).
 		Select("round((1 - (t2.count_anr_selected / t1.total_sessions_selected)) * 100, 2) as anr_free_sessions").
 		Select("round(((t4.count_not_anr_selected - t3.count_not_anr) / t3.count_not_anr) * 100, 2) as delta").
 		From("t1, t2, t3, t4")
@@ -342,17 +342,17 @@ func (a App) GetPerceivedCrashFreeMetrics(af *AppFilter) (crashFree *metrics.Per
 	stmt := sqlf.
 		With("all_sessions",
 			sqlf.From("default.events").
-				Select("session_id, resource.app_version, resource.app_build, type, exception.handled, exception.foreground").
+				Select("session_id, attribute.app_version, attribute.app_build, type, exception.handled, exception.foreground").
 				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, nil, nil, nil)).
 		With("t1",
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as total_sessions_selected").
-				Where("`resource.app_version` = ? and `resource.app_build` = ?", nil, nil)).
+				Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil)).
 		With("t2",
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as count_exception_selected").
 				Where("`type` = 'exception' and `exception.handled` = false and `exception.foreground` = true").
-				Where("`resource.app_version` = ? and `resource.app_build` = ?", nil, nil)).
+				Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil)).
 		With("t3",
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as count_not_exception").
@@ -361,7 +361,7 @@ func (a App) GetPerceivedCrashFreeMetrics(af *AppFilter) (crashFree *metrics.Per
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as count_not_exception_selected").
 				Where("`type` != 'exception'").
-				Where("`resource.app_version` = ? and `resource.app_build` = ?", nil, nil)).
+				Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil)).
 		Select("round((1 - (t2.count_exception_selected / t1.total_sessions_selected)) * 100, 2) as crash_free_sessions").
 		Select("round(((t4.count_not_exception_selected - t3.count_not_exception) / t3.count_not_exception) * 100, 2) as delta").
 		From("t1, t2, t3, t4")
@@ -388,17 +388,17 @@ func (a App) GetPerceivedANRFreeMetrics(af *AppFilter) (anrFree *metrics.Perceiv
 	stmt := sqlf.
 		With("all_sessions",
 			sqlf.From("default.events").
-				Select("session_id, resource.app_version, resource.app_build, type, anr.foreground").
+				Select("session_id, attribute.app_version, attribute.app_build, type, anr.foreground").
 				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, nil, nil, nil)).
 		With("t1",
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as total_sessions_selected").
-				Where("`resource.app_version` = ? and `resource.app_build` = ?", nil, nil)).
+				Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil)).
 		With("t2",
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as count_anr_selected").
 				Where("`type` = 'anr' and `anr.foreground` = true").
-				Where("`resource.app_version` = ? and `resource.app_build` = ?", nil, nil)).
+				Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil)).
 		With("t3",
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as count_not_anr").
@@ -407,7 +407,7 @@ func (a App) GetPerceivedANRFreeMetrics(af *AppFilter) (anrFree *metrics.Perceiv
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as count_not_anr_selected").
 				Where("`type` != 'anr'").
-				Where("`resource.app_version` = ? and `resource.app_build` = ?", nil, nil)).
+				Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil)).
 		Select("round((1 - (t2.count_anr_selected / t1.total_sessions_selected)) * 100, 2) as anr_free_sessions").
 		Select("round(((t4.count_not_anr_selected - t3.count_not_anr) / t3.count_not_anr) * 100, 2) as delta").
 		From("t1, t2, t3, t4")
@@ -434,7 +434,7 @@ func (a App) GetAdoptionMetrics(af *AppFilter) (adoption *metrics.SessionAdoptio
 	stmt := sqlf.From("default.events").
 		With("all_sessions",
 			sqlf.From("default.events").
-				Select("session_id, resource.app_version, resource.app_build").
+				Select("session_id, attribute.app_version, attribute.app_build").
 				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, nil, nil, nil)).
 		With("all_versions",
 			sqlf.From("all_sessions").
@@ -442,7 +442,7 @@ func (a App) GetAdoptionMetrics(af *AppFilter) (adoption *metrics.SessionAdoptio
 		With("selected_version",
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as selected_app_version").
-				Where("`resource.app_version` = ? and `resource.app_build` = ?", nil, nil)).
+				Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil)).
 		Select("t1.all_app_versions as all_app_versions", nil).
 		Select("t2.selected_app_version as selected_app_version", nil).
 		Select("round((t2.selected_app_version/t1.all_app_versions) * 100, 2) as adoption").
@@ -468,7 +468,7 @@ func (a App) GetLaunchMetrics(af *AppFilter) (launch *metrics.LaunchMetric, err 
 	stmt := sqlf.
 		With("timings",
 			sqlf.From("default.events").
-				Select("type, cold_launch.duration, warm_launch.duration, hot_launch.duration, resource.app_version, resource.app_build").
+				Select("type, cold_launch.duration, warm_launch.duration, hot_launch.duration, attribute.app_version, attribute.app_build").
 				Where("app_id = ?", nil).
 				Where("timestamp >= ? and timestamp <= ?", nil, nil).
 				Where("(type = 'cold_launch' or type = 'warm_launch' or type = 'hot_launch')")).
@@ -489,19 +489,19 @@ func (a App) GetLaunchMetrics(af *AppFilter) (launch *metrics.LaunchMetric, err 
 				Select("round(quantile(0.95)(cold_launch.duration), 2) as cold_launch").
 				Where("type = 'cold_launch'").
 				Where("cold_launch.duration > 0").
-				Where("resource.app_version = ? and resource.app_build = ?", nil, nil)).
+				Where("attribute.app_version = ? and attribute.app_build = ?", nil, nil)).
 		With("warm_selected",
 			sqlf.From("timings").
 				Select("round(quantile(0.95)(warm_launch.duration), 2) as warm_launch").
 				Where("type = 'warm_launch'").
 				Where("warm_launch.duration > 0").
-				Where("resource.app_version = ? and resource.app_build = ?", nil, nil)).
+				Where("attribute.app_version = ? and attribute.app_build = ?", nil, nil)).
 		With("hot_selected",
 			sqlf.From("timings").
 				Select("round(quantile(0.95)(hot_launch.duration), 2) as hot_launch").
 				Where("type = 'hot_launch'").
 				Where("hot_launch.duration > 0").
-				Where("resource.app_version = ? and resource.app_build = ?", nil, nil)).
+				Where("attribute.app_version = ? and attribute.app_build = ?", nil, nil)).
 		Select("cold_selected.cold_launch as cold_launch_p95").
 		Select("warm_selected.warm_launch as warm_launch_p95").
 		Select("hot_selected.hot_launch as hot_launch_p95").
