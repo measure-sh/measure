@@ -1,20 +1,24 @@
 "use client"
 
 import React, { useEffect, useRef, useState } from 'react';
-import { TeamsApiStatus } from '../api/api_calls';
+
+export enum TeamsSwitcherStatus {
+  Loading,
+  Success,
+  Error
+}
 
 interface TeamSwitcherProps {
   items: string[];
   initialItemIndex?: number;
-  teamsApiStatus: TeamsApiStatus;
+  teamsSwitcherStatus: TeamsSwitcherStatus;
   onChangeSelectedItem?: (item: string) => void;
 }
 
-const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0, teamsApiStatus, onChangeSelectedItem }) => {
+const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0, teamsSwitcherStatus, onChangeSelectedItem }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const teamSwitcherRef = useRef<HTMLDivElement | null>(null);
-
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -61,11 +65,11 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0
       <button
         type="button"
         onClick={toggleTeamSwitcher}
-        disabled={teamsApiStatus === TeamsApiStatus.Loading || teamsApiStatus === TeamsApiStatus.Error}
+        disabled={teamsSwitcherStatus === TeamsSwitcherStatus.Loading || teamsSwitcherStatus === TeamsSwitcherStatus.Error}
         className="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
-        {teamsApiStatus == TeamsApiStatus.Loading && <p className="pl-8 truncate w-max">Updating...</p>}
-        {teamsApiStatus == TeamsApiStatus.Error && <p className="pl-8 truncate w-max">Error</p>}
-        {teamsApiStatus == TeamsApiStatus.Success &&
+        {teamsSwitcherStatus == TeamsSwitcherStatus.Loading && <p className="pl-8 truncate w-max">Updating...</p>}
+        {teamsSwitcherStatus == TeamsSwitcherStatus.Error && <p className="pl-8 truncate w-max">Error</p>}
+        {teamsSwitcherStatus == TeamsSwitcherStatus.Success &&
           <div className="flex flex-row justify-center">
             <p className="pl-8 truncate w-max">{selectedItem ? selectedItem : items[initialItemIndex]}</p>
             <p className="pl-3 pr-4 pt-1 text-sm">⏷</p>
