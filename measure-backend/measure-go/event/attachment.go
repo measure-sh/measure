@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io"
 	"slices"
-	"time"
 
 	"measure-backend/measure-go/server"
 
@@ -26,13 +25,16 @@ type Attachment struct {
 	Extension string    `json:"extension"`
 	Key       string    `json:"key"`
 	Location  string    `json:"location"`
-	Timestamp time.Time `json:"timestamp" binding:"required"`
 }
 
 // Validate validates the attachment
 func (a Attachment) Validate() error {
-	if a.Timestamp.IsZero() {
-		return errors.New(`one of the attachment's "timestamp" is invalid`)
+	if a.Name == "" {
+		return errors.New(`one of the attachment's "name" is empty`)
+	}
+
+	if a.Type == "" {
+		return errors.New(`one of the attachment's "type" is empty`)
 	}
 
 	if !slices.Contains(attachmentTypes, a.Type) {

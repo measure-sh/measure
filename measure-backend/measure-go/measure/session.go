@@ -865,9 +865,9 @@ func (s *Session) saveWithContext(c *gin.Context) error {
 				Set("extension", nil).
 				Set("type", nil).
 				Set("key", nil).
-				Set("location", nil).
-				Set("timestamp", nil)
-			args = append(args, a.ID, s.SessionID, a.Name, a.Extension, a.Type, a.Key, a.Location, a.Timestamp)
+				Set("location", nil)
+
+			args = append(args, a.ID, s.SessionID, a.Name, a.Extension, a.Type, a.Key, a.Location)
 		}
 		_, err := tx.Exec(context.Background(), stmt.String(), args...)
 		if err != nil {
