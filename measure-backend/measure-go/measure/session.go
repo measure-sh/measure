@@ -87,10 +87,14 @@ func (s *Session) GetLastEventTime() time.Time {
 	return time.Time{}
 }
 
+// Duration calculates time duration between the last
+// event and the first event in the session.
 func (s Session) Duration() time.Duration {
 	return s.GetLastEventTime().Sub(s.GetFirstEventTime())
 }
 
+// hasEvents returns true if the session contains at least
+// one event.
 func (s *Session) hasEvents() bool {
 	return len(s.Events) > 0
 }
