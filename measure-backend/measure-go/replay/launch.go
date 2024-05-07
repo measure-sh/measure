@@ -12,16 +12,16 @@ var NominalColdLaunchThreshold = 30 * time.Second
 // ColdLaunch represents cold launch events
 // suitable for session replay.
 type ColdLaunch struct {
-	EventType string        `json:"event_type"`
-	Duration  time.Duration `json:"duration"`
-	Timestamp time.Time     `json:"timestamp"`
+	EventType  string        `json:"event_type"`
+	ThreadName string        `json:"thread_name"`
+	Duration   time.Duration `json:"duration"`
+	Timestamp  time.Time     `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
 // where cold launch took place.
 func (cl ColdLaunch) GetThreadName() string {
-	return "main"
-	// return cl.ThreadName
+	return cl.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -34,6 +34,7 @@ func (cl ColdLaunch) GetTimestamp() time.Time {
 // suitable for session replay.
 type WarmLaunch struct {
 	EventType        string        `json:"event_type"`
+	ThreadName       string        `json:"thread_name"`
 	Duration         time.Duration `json:"duration"`
 	LaunchedActivity string        `json:"launched_activity"`
 	HasSavedState    bool          `json:"has_saved_state"`
@@ -44,8 +45,7 @@ type WarmLaunch struct {
 // GetThreadName provides the name of the thread
 // where warm launch took place.
 func (wl WarmLaunch) GetThreadName() string {
-	return "main"
-	// return wl.ThreadName
+	return wl.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -58,6 +58,7 @@ func (wl WarmLaunch) GetTimestamp() time.Time {
 // suitable for session replay.
 type HotLaunch struct {
 	EventType        string        `json:"event_type"`
+	ThreadName       string        `json:"thread_name"`
 	Duration         time.Duration `json:"duration"`
 	LaunchedActivity string        `json:"launched_activity"`
 	HasSavedState    bool          `json:"has_saved_state"`
@@ -68,8 +69,7 @@ type HotLaunch struct {
 // GetThreadName provides the name of the thread
 // where hot launch took place.
 func (hl HotLaunch) GetThreadName() string {
-	return "main"
-	// return hl.ThreadName
+	return hl.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -84,6 +84,7 @@ func ComputeColdLaunches(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		coldLaunches := ColdLaunch{
 			event.Type,
+			event.Attribute.ThreadName,
 			event.ColdLaunch.Duration,
 			event.Timestamp,
 		}
@@ -99,6 +100,7 @@ func ComputeWarmLaunches(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		warmLaunches := WarmLaunch{
 			event.Type,
+			event.Attribute.ThreadName,
 			event.WarmLaunch.Duration,
 			event.WarmLaunch.LaunchedActivity,
 			event.WarmLaunch.HasSavedState,
@@ -117,6 +119,7 @@ func ComputeHotLaunches(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		hotLaunches := HotLaunch{
 			event.Type,
+			event.Attribute.ThreadName,
 			event.HotLaunch.Duration,
 			event.HotLaunch.LaunchedActivity,
 			event.HotLaunch.HasSavedState,
