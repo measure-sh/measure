@@ -10,6 +10,7 @@ import (
 type Exception struct {
 	EventType  string    `json:"event_type"`
 	Type       string    `json:"type"`
+	ThreadName string    `json:"thread_name"`
 	Handled    bool      `json:"handled"`
 	Stacktrace string    `json:"stacktrace"`
 	Foreground bool      `json:"foreground"`
@@ -19,8 +20,7 @@ type Exception struct {
 // GetThreadName provides the name of the thread
 // where the exception event took place.
 func (e Exception) GetThreadName() string {
-	return "main"
-	// return e.ThreadName
+	return e.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -34,6 +34,7 @@ func (e Exception) GetTimestamp() time.Time {
 type ANR struct {
 	EventType  string    `json:"event_type"`
 	Type       string    `json:"type"`
+	ThreadName string    `json:"thread_name"`
 	Stacktrace string    `json:"stacktrace"`
 	Foreground bool      `json:"foreground"`
 	Timestamp  time.Time `json:"timestamp"`
@@ -42,8 +43,7 @@ type ANR struct {
 // GetThreadName provides the name of the thread
 // where the anr event took place.
 func (a ANR) GetThreadName() string {
-	return "main"
-	// return a.ThreadName
+	return a.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -59,6 +59,7 @@ func ComputeExceptions(events []event.EventField) (result []ThreadGrouper) {
 		exceptions := Exception{
 			event.Type,
 			event.Exception.GetType(),
+			event.Attribute.ThreadName,
 			event.Exception.Handled,
 			event.Exception.Stacktrace(),
 			event.Exception.Foreground,
@@ -77,6 +78,7 @@ func ComputeANRs(events []event.EventField) (result []ThreadGrouper) {
 		anrs := ANR{
 			event.Type,
 			event.ANR.GetType(),
+			event.Attribute.ThreadName,
 			event.ANR.Stacktrace(),
 			event.ANR.Foreground,
 			event.Timestamp,
