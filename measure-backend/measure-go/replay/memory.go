@@ -15,7 +15,8 @@ type MemoryUsage struct {
 // TrimMemory represents trim memory events
 // suitable for session replay.
 type TrimMemory struct {
-	EventType string `json:"event_type"`
+	EventType  string `json:"event_type"`
+	ThreadName string `json:"thread_name"`
 	*event.TrimMemory
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -23,8 +24,7 @@ type TrimMemory struct {
 // GetThreadName provides the name of the thread
 // where trim memory event took place.
 func (tm TrimMemory) GetThreadName() string {
-	return "main"
-	// return tm.ThreadName
+	return tm.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -36,7 +36,8 @@ func (tm TrimMemory) GetTimestamp() time.Time {
 // LowMemory represents low memory events
 // suitable for session replay.
 type LowMemory struct {
-	EventType string `json:"event_type"`
+	EventType  string `json:"event_type"`
+	ThreadName string `json:"thread_name"`
 	*event.LowMemory
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -44,8 +45,7 @@ type LowMemory struct {
 // GetThreadName provides the name of the thread
 // where low memory event took place.
 func (lm LowMemory) GetThreadName() string {
-	return "main"
-	// return lm.ThreadName
+	return lm.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -74,6 +74,7 @@ func ComputeTrimMemories(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		memories := TrimMemory{
 			event.Type,
+			event.Attribute.ThreadName,
 			event.TrimMemory,
 			event.Timestamp,
 		}
@@ -89,6 +90,7 @@ func ComputeLowMemories(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		lowMemories := LowMemory{
 			event.Type,
+			event.Attribute.ThreadName,
 			event.LowMemory,
 			event.Timestamp,
 		}
