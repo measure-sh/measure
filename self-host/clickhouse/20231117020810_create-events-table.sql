@@ -139,6 +139,7 @@ create table if not exists default.events
   `trim_memory.level` LowCardinality(FixedString(64)) comment 'one of the trim memory constants as received by component callback',
   `cpu_usage.num_cores` UInt8 comment 'number of cores on the device',
   `cpu_usage.clock_speed` UInt32 comment 'clock speed of the processor, in hz',
+  `cpu_usage.start_time` UInt64 comment 'process start time, in jiffies',
   `cpu_usage.uptime` UInt64 comment 'time since the device booted, in msec',
   `cpu_usage.utime` UInt64 comment 'execution time in user mode, in jiffies',
   `cpu_usage.cutime` UInt64 comment 'execution time in user mode with child processes, in jiffies',

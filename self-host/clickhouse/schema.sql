@@ -145,6 +145,7 @@ CREATE TABLE default.events
     `trim_memory.level` LowCardinality(FixedString(64)) COMMENT 'one of the trim memory constants as received by component callback',
     `cpu_usage.num_cores` UInt8 COMMENT 'number of cores on the device',
     `cpu_usage.clock_speed` UInt32 COMMENT 'clock speed of the processor, in hz',
+    `cpu_usage.start_time` UInt64 COMMENT 'process start time, in jiffies',
     `cpu_usage.uptime` UInt64 COMMENT 'time since the device booted, in msec',
     `cpu_usage.utime` UInt64 COMMENT 'execution time in user mode, in jiffies',
     `cpu_usage.cutime` UInt64 COMMENT 'execution time in user mode with child processes, in jiffies',
