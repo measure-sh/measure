@@ -8,7 +8,8 @@ import (
 // LogString represents log events suitable
 // for session replay.
 type LogString struct {
-	EventType string `json:"event_type"`
+	EventType  string `json:"event_type"`
+	ThreadName string `json:"thread_name"`
 	*event.LogString
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -16,8 +17,7 @@ type LogString struct {
 // GetThreadName provides the name of the thread
 // where logging took place.
 func (ls LogString) GetThreadName() string {
-	return "main"
-	// return ls.ThreadName
+	return ls.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
@@ -32,6 +32,7 @@ func ComputeLogString(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		logs := LogString{
 			event.Type,
+			event.Attribute.ThreadName,
 			event.LogString,
 			event.Timestamp,
 		}
