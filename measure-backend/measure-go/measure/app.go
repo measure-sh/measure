@@ -541,10 +541,6 @@ func (a *App) add() (*APIKey, error) {
 
 	alertPref := newAlertPref(*a.ID)
 
-	if err != nil {
-		return nil, err
-	}
-
 	if err := alertPref.insertTx(tx); err != nil {
 		return nil, err
 	}
