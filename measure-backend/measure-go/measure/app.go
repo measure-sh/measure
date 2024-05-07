@@ -2329,6 +2329,7 @@ func GetAlertPrefs(c *gin.Context) {
 }
 
 func UpdateAlertPrefs(c *gin.Context) {
+	ctx := c.Request.Context()
 	userId := c.GetString("userId")
 
 	appId, err := uuid.Parse(c.Param("id"))
@@ -2344,7 +2345,7 @@ func UpdateAlertPrefs(c *gin.Context) {
 	}
 
 	var team *Team
-	if team, err = app.getTeam(); err != nil {
+	if team, err = app.getTeam(ctx); err != nil {
 		msg := "failed to get app"
 		fmt.Println(msg, err)
 		return
