@@ -6,58 +6,59 @@ import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert
+import org.junit.Assert.assertTrue
 import org.junit.Ignore
 import org.junit.Test
 import sh.measure.android.TestActivity
-import sh.measure.android.fakes.FakeEventTracker
+import sh.measure.android.events.EventType
+import sh.measure.android.fakes.FakeEventProcessor
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.utils.AndroidTimeProvider
+import sh.measure.android.utils.ProcessInfoProviderImpl
 
 internal class AppLaunchCollectorTest {
 
     private val logger = NoopLogger()
+    private val processInfoProvider = ProcessInfoProviderImpl()
 
     @Test
     fun tracks_cold_launch() {
-        val tracker = FakeEventTracker()
-        coldLaunch(tracker)
-        Assert.assertEquals(1, tracker.trackedColdLaunchEvents.size)
+        val eventProcessor = FakeEventProcessor()
+        coldLaunch(eventProcessor)
+        Assert.assertEquals(1, eventProcessor.getTrackedEventsByType(EventType.COLD_LAUNCH).size)
     }
 
     @Test
     fun triggers_cold_launch_listener() {
-        val tracker = FakeEventTracker()
+        val eventProcessor = FakeEventProcessor()
         var invoked = false
-        val coldLaunchListener = {
-            invoked = true
+        val coldLaunchListener = object : ColdLaunchListener {
+            override fun onColdLaunch() {
+                invoked = true
+            }
         }
-        coldLaunch(tracker, coldLaunchListener = coldLaunchListener)
-        Assert.assertTrue(invoked)
-    }
-
-    @Test
-    fun stops_cold_launch_trace_on_cold_launch_complete() {
-        val tracker = FakeEventTracker()
-        val coldLaunchTrace = FakeColdLaunchTrace().apply { start() }
-        coldLaunch(tracker, coldLaunchTrace = coldLaunchTrace)
-        Assert.assertFalse(coldLaunchTrace.traceRunning)
+        coldLaunch(eventProcessor, coldLaunchListener = coldLaunchListener)
+        assertTrue(invoked)
     }
 
     private fun coldLaunch(
-        tracker: FakeEventTracker,
-        coldLaunchListener: () -> Unit = {},
-        coldLaunchTrace: ColdLaunchTrace = FakeColdLaunchTrace(),
+        eventProcessor: FakeEventProcessor,
+        coldLaunchListener: ColdLaunchListener = object : ColdLaunchListener {
+            override fun onColdLaunch() {}
+        },
         savedStateBundle: Bundle? = null,
     ) {
         ActivityScenario.launch(TestActivity::class.java, savedStateBundle).use { scenario ->
             AppLaunchCollector(
                 application = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as Application,
                 logger = logger,
-                eventTracker = tracker,
+                eventProcessor = eventProcessor,
                 timeProvider = AndroidTimeProvider(),
-                coldLaunchTrace = coldLaunchTrace,
-                coldLaunchListener = coldLaunchListener,
-            ).register()
+                processInfo = processInfoProvider,
+            ).apply {
+                register()
+                setColdLaunchListener(listener = coldLaunchListener)
+            }
             scenario.moveToState(Lifecycle.State.CREATED)
             scenario.moveToState(Lifecycle.State.STARTED)
             scenario.moveToState(Lifecycle.State.RESUMED)
@@ -66,27 +67,28 @@ internal class AppLaunchCollectorTest {
 
     @Test
     fun tracks_warm_launch() {
-        val tracker = FakeEventTracker()
-        warmLaunch(tracker)
-        Assert.assertEquals(1, tracker.trackedWarmLaunchEvents.size)
+        val eventProcessor = FakeEventProcessor()
+        warmLaunch(eventProcessor)
+        Assert.assertEquals(1, eventProcessor.getTrackedEventsByType(EventType.WARM_LAUNCH).size)
     }
 
     @Test
     fun warm_launch_has_saved_state() {
-        val tracker = FakeEventTracker()
-        warmLaunch(tracker)
-        Assert.assertTrue(tracker.trackedWarmLaunchEvents[0].has_saved_state)
+        val eventProcessor = FakeEventProcessor()
+        warmLaunch(eventProcessor)
+        val data = eventProcessor.getTrackedEventsByType(EventType.WARM_LAUNCH)[0].data
+        assertTrue(data is WarmLaunchData)
+        assertTrue((data as WarmLaunchData).has_saved_state)
     }
 
-    private fun warmLaunch(tracker: FakeEventTracker) {
+    private fun warmLaunch(eventProcessor: FakeEventProcessor) {
         ActivityScenario.launch(TestActivity::class.java).use { scenario ->
             AppLaunchCollector(
                 application = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as Application,
                 logger = logger,
-                eventTracker = tracker,
+                eventProcessor = eventProcessor,
                 timeProvider = AndroidTimeProvider(),
-                coldLaunchTrace = FakeColdLaunchTrace(),
-                coldLaunchListener = {},
+                processInfo = processInfoProvider,
             ).register()
             scenario.moveToState(Lifecycle.State.CREATED)
             scenario.moveToState(Lifecycle.State.STARTED)
@@ -98,16 +100,14 @@ internal class AppLaunchCollectorTest {
     @Test
     @Ignore("Unable to reproduce a hot launch")
     fun tracks_hot_launch() {
-        val tracker = FakeEventTracker()
+        val eventProcessor = FakeEventProcessor()
         ActivityScenario.launch(TestActivity::class.java).use { scenario ->
-            val coldLaunchListener = {}
             AppLaunchCollector(
                 application = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as Application,
                 logger = logger,
-                eventTracker = tracker,
+                eventProcessor = eventProcessor,
                 timeProvider = AndroidTimeProvider(),
-                coldLaunchTrace = FakeColdLaunchTrace(),
-                coldLaunchListener = coldLaunchListener,
+                processInfo = processInfoProvider,
             ).register()
 
             scenario.moveToState(Lifecycle.State.CREATED)
@@ -116,6 +116,6 @@ internal class AppLaunchCollectorTest {
             scenario.moveToState(Lifecycle.State.STARTED)
             scenario.moveToState(Lifecycle.State.RESUMED)
         }
-        Assert.assertEquals(1, tracker.trackedHotLaunchEvents.size)
+        Assert.assertEquals(1, eventProcessor.getTrackedEventsByType(EventType.HOT_LAUNCH).size)
     }
 }

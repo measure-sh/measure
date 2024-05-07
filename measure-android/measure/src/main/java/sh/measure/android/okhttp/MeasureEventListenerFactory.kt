@@ -26,29 +26,29 @@ class MeasureEventListenerFactory(
 }
 
 internal class OkHttpEventListener(
-    private val eventProcessor: OkHttpEventProcessor,
+    private val eventProcessor: OkHttpEventCollector?,
     private val delegate: EventListener?,
 ) : EventListener() {
 
-    constructor(delegate: EventListener?) : this(Measure.getOkHttpEventProcessor(), delegate)
+    constructor(delegate: EventListener?) : this(Measure.getOkHttpEventCollector(), delegate)
 
     override fun callStart(call: Call) {
-        eventProcessor.callStart(call)
+        eventProcessor?.callStart(call)
         delegate?.callStart(call)
     }
 
     override fun dnsStart(call: Call, domainName: String) {
-        eventProcessor.dnsStart(call, domainName)
+        eventProcessor?.dnsStart(call, domainName)
         delegate?.dnsStart(call, domainName)
     }
 
     override fun dnsEnd(call: Call, domainName: String, inetAddressList: List<InetAddress>) {
-        eventProcessor.dnsEnd(call, domainName, inetAddressList)
+        eventProcessor?.dnsEnd(call, domainName, inetAddressList)
         delegate?.dnsEnd(call, domainName, inetAddressList)
     }
 
     override fun connectStart(call: Call, inetSocketAddress: InetSocketAddress, proxy: Proxy) {
-        eventProcessor.connectStart(call, inetSocketAddress, proxy)
+        eventProcessor?.connectStart(call, inetSocketAddress, proxy)
         delegate?.connectStart(call, inetSocketAddress, proxy)
     }
 
@@ -58,7 +58,7 @@ internal class OkHttpEventListener(
         proxy: Proxy,
         protocol: Protocol?,
     ) {
-        eventProcessor.connectEnd(call, inetSocketAddress, proxy, protocol)
+        eventProcessor?.connectEnd(call, inetSocketAddress, proxy, protocol)
         delegate?.connectEnd(call, inetSocketAddress, proxy, protocol)
     }
 
@@ -69,68 +69,67 @@ internal class OkHttpEventListener(
         protocol: Protocol?,
         ioe: IOException,
     ) {
-        eventProcessor
-            .connectFailed(call, inetSocketAddress, proxy, protocol, ioe)
+        eventProcessor?.connectFailed(call, inetSocketAddress, proxy, protocol, ioe)
         delegate?.connectFailed(call, inetSocketAddress, proxy, protocol, ioe)
     }
 
     override fun requestHeadersStart(call: Call) {
-        eventProcessor.requestHeadersStart(call)
+        eventProcessor?.requestHeadersStart(call)
         delegate?.requestHeadersStart(call)
     }
 
     override fun requestHeadersEnd(call: Call, request: Request) {
-        eventProcessor.requestHeadersEnd(call, request)
+        eventProcessor?.requestHeadersEnd(call, request)
         delegate?.requestHeadersEnd(call, request)
     }
 
     override fun requestBodyStart(call: Call) {
-        eventProcessor.requestBodyStart(call)
+        eventProcessor?.requestBodyStart(call)
         delegate?.requestBodyStart(call)
     }
 
     override fun requestBodyEnd(call: Call, byteCount: Long) {
-        eventProcessor.requestBodyEnd(call, byteCount)
+        eventProcessor?.requestBodyEnd(call, byteCount)
         delegate?.requestBodyEnd(call, byteCount)
     }
 
     override fun requestFailed(call: Call, ioe: IOException) {
-        eventProcessor.requestFailed(call, ioe)
+        eventProcessor?.requestFailed(call, ioe)
         delegate?.requestFailed(call, ioe)
     }
 
     override fun responseHeadersStart(call: Call) {
-        eventProcessor.responseHeadersStart(call)
+        eventProcessor?.responseHeadersStart(call)
         delegate?.responseHeadersStart(call)
     }
 
     override fun responseHeadersEnd(call: Call, response: Response) {
-        eventProcessor.responseHeadersEnd(call, response)
+        eventProcessor?.responseHeadersEnd(call, response)
         delegate?.responseHeadersEnd(call, response)
     }
 
     override fun responseBodyStart(call: Call) {
-        eventProcessor.responseBodyStart(call)
+        eventProcessor?.responseBodyStart(call)
         delegate?.responseBodyStart(call)
     }
 
     override fun responseBodyEnd(call: Call, byteCount: Long) {
-        eventProcessor.responseBodyEnd(call, byteCount)
+        eventProcessor?.responseBodyEnd(call, byteCount)
         delegate?.responseBodyEnd(call, byteCount)
     }
 
     override fun responseFailed(call: Call, ioe: IOException) {
-        eventProcessor.responseFailed(call, ioe)
+        eventProcessor?.responseFailed(call, ioe)
         delegate?.responseFailed(call, ioe)
     }
 
     override fun callEnd(call: Call) {
-        eventProcessor.callEnd(call)
+        eventProcessor?.callEnd(call)
         delegate?.callEnd(call)
     }
 
     override fun callFailed(call: Call, ioe: IOException) {
-        eventProcessor.callFailed(call, ioe)
+        eventProcessor?.callFailed(call, ioe)
         delegate?.callFailed(call, ioe)
     }
 

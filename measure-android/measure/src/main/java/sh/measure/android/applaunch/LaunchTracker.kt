@@ -9,13 +9,12 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.mainHandler
 import sh.measure.android.postAtFrontOfQueueAsync
-import sh.measure.android.utils.TimeProvider
-import sh.measure.android.utils.isForegroundProcess
+import sh.measure.android.utils.ProcessInfoProvider
 
 internal interface LaunchCallbacks {
-    fun onColdLaunch(coldLaunchEvent: ColdLaunchEvent)
-    fun onWarmLaunch(warmLaunchEvent: WarmLaunchEvent)
-    fun onHotLaunch(hotLaunchEvent: HotLaunchEvent)
+    fun onColdLaunch(coldLaunchData: ColdLaunchData)
+    fun onWarmLaunch(warmLaunchData: WarmLaunchData)
+    fun onHotLaunch(hotLaunchData: HotLaunchData)
 }
 
 /**
@@ -24,8 +23,8 @@ internal interface LaunchCallbacks {
  */
 internal class LaunchTracker(
     private val logger: Logger,
+    private val processInfo: ProcessInfoProvider,
     private val callbacks: LaunchCallbacks,
-    private val timeProvider: TimeProvider,
 ) : ActivityLifecycleAdapter {
 
     private var coldLaunchComplete = false
@@ -110,7 +109,7 @@ internal class LaunchTracker(
                     "Cold" -> {
                         coldLaunchComplete = true
                         callbacks.onColdLaunch(
-                            coldLaunchEvent = ColdLaunchEvent(
+                            coldLaunchData = ColdLaunchData(
                                 process_start_uptime = LaunchState.processStartUptime,
                                 process_start_requested_uptime = LaunchState.processStartRequestedUptime,
                                 content_provider_attach_uptime = LaunchState.contentLoaderAttachUptime,
@@ -118,36 +117,30 @@ internal class LaunchTracker(
                                 launched_activity = onCreateRecord.activityName,
                                 has_saved_state = onCreateRecord.hasSavedState,
                                 intent_data = onCreateRecord.intentData,
-                                thread_name = Thread.currentThread().name,
-                                timestamp = timeProvider.currentTimeSinceEpochInMillis,
                             ),
                         )
                     }
 
                     "Hot" -> {
                         callbacks.onHotLaunch(
-                            HotLaunchEvent(
+                            HotLaunchData(
                                 app_visible_uptime = LaunchState.lastAppVisibleTime!!,
                                 on_next_draw_uptime = onNextDrawUptime,
                                 launched_activity = onCreateRecord.activityName,
                                 has_saved_state = onCreateRecord.hasSavedState,
                                 intent_data = onCreateRecord.intentData,
-                                thread_name = Thread.currentThread().name,
-                                timestamp = timeProvider.currentTimeSinceEpochInMillis,
                             ),
                         )
                     }
 
                     "Warm" -> {
                         callbacks.onWarmLaunch(
-                            WarmLaunchEvent(
+                            WarmLaunchData(
                                 app_visible_uptime = LaunchState.lastAppVisibleTime!!,
                                 on_next_draw_uptime = onNextDrawUptime,
                                 launched_activity = onCreateRecord.activityName,
                                 has_saved_state = onCreateRecord.hasSavedState,
                                 intent_data = onCreateRecord.intentData,
-                                thread_name = Thread.currentThread().name,
-                                timestamp = timeProvider.currentTimeSinceEpochInMillis,
                             ),
                         )
                     }
@@ -169,7 +162,7 @@ internal class LaunchTracker(
                     "Hot"
                 }
             }
-            isForegroundProcess() -> "Cold"
+            processInfo.isForegroundProcess() -> "Cold"
             else -> "Warm"
         }
     }

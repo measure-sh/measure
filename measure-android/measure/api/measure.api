@@ -6,10 +6,16 @@ public final class sh/measure/android/BuildConfig {
 	public fun <init> ()V
 }
 
-public final class sh/measure/android/Measure {
+public final class sh/measure/android/Measure : sh/measure/android/MeasureApi {
 	public static final field $stable I
 	public static final field INSTANCE Lsh/measure/android/Measure;
-	public final fun init (Landroid/content/Context;)V
+	public fun init (Landroid/content/Context;)V
+	public fun setUserId (Ljava/lang/String;)V
+}
+
+public abstract interface class sh/measure/android/MeasureApi {
+	public abstract fun init (Landroid/content/Context;)V
+	public abstract fun setUserId (Ljava/lang/String;)V
 }
 
 public final class sh/measure/android/navigation/ComposeNavigationCollectorKt {

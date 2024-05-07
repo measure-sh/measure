@@ -1,10 +1,9 @@
 package sh.measure.android.performance
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 
 @Serializable
-internal data class MemoryUsage(
+internal data class MemoryUsageData(
     val java_max_heap: Long,
     val java_total_heap: Long,
     val java_free_heap: Long,
@@ -13,12 +12,10 @@ internal data class MemoryUsage(
     val native_total_heap: Long,
     val native_free_heap: Long,
     val interval_config: Long,
-    @Transient val timestamp: Long = 0L,
-    @Transient val thread_name: String = "",
 )
 
 @Serializable
-internal data class LowMemory(
+internal data class LowMemoryData(
     val java_max_heap: Long,
     val java_total_heap: Long,
     val java_free_heap: Long,
@@ -26,17 +23,9 @@ internal data class LowMemory(
     val rss: Long?,
     val native_total_heap: Long,
     val native_free_heap: Long,
-    @Transient
-    val timestamp: Long = 0L,
-    @Transient
-    val thread_name: String = "",
 )
 
 @Serializable
-internal data class TrimMemory(
+internal data class TrimMemoryData(
     val level: String,
-    @Transient
-    val timestamp: Long = 0L,
-    @Transient
-    val thread_name: String = "",
 )

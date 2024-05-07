@@ -4,14 +4,14 @@ import android.os.Debug
 import org.junit.Assert
 import org.junit.Test
 import sh.measure.android.fakes.FakeDebugProvider
-import sh.measure.android.fakes.FakePidProvider
 import sh.measure.android.fakes.FakeProcProvider
+import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.utils.DefaultRuntimeProvider
 
 internal class DefaultMemoryReaderTest {
     private val debugProvider = FakeDebugProvider()
-    private val pidProvider = FakePidProvider()
+    private val processInfo = FakeProcessInfoProvider()
     private val procProvider = FakeProcProvider()
 
     // Using the real implementation of RuntimeProvider as it is available in tests.
@@ -21,7 +21,7 @@ internal class DefaultMemoryReaderTest {
         logger = NoopLogger(),
         debugProvider = debugProvider,
         runtimeProvider = runtimeProvider,
-        pidProvider = pidProvider,
+        processInfo = processInfo,
         procProvider = procProvider,
     )
 

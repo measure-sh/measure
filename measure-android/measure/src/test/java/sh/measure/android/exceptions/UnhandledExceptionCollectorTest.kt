@@ -6,9 +6,9 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
-import sh.measure.android.events.EventTracker
-import sh.measure.android.fakes.FakeLocaleProvider
-import sh.measure.android.fakes.FakeNetworkInfoProvider
+import sh.measure.android.events.EventProcessor
+import sh.measure.android.events.EventType
+import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
 
@@ -17,9 +17,8 @@ internal class UnhandledExceptionCollectorTest {
     private var originalDefaultHandler: Thread.UncaughtExceptionHandler? = null
     private val logger = NoopLogger()
     private val timeProvider = FakeTimeProvider()
-    private val networkInfoProvider = FakeNetworkInfoProvider()
-    private val localeProvider = FakeLocaleProvider()
-    private val eventTracker = mock<EventTracker>()
+    private val eventProcessor = mock<EventProcessor>()
+    private val processInfo = FakeProcessInfoProvider()
 
     @Before
     fun setUp() {
@@ -31,10 +30,9 @@ internal class UnhandledExceptionCollectorTest {
         // When
         val collector = UnhandledExceptionCollector(
             logger,
-            eventTracker,
+            eventProcessor,
             timeProvider,
-            networkInfoProvider,
-            localeProvider,
+            processInfo,
         ).apply { register() }
         val currentDefaultHandler = Thread.getDefaultUncaughtExceptionHandler()
 
@@ -46,34 +44,29 @@ internal class UnhandledExceptionCollectorTest {
     fun `UnhandledExceptionCollector tracks uncaught exceptions`() {
         val collector = UnhandledExceptionCollector(
             logger,
-            eventTracker,
+            eventProcessor,
             timeProvider,
-            networkInfoProvider,
-            localeProvider,
+            processInfo,
         ).apply { register() }
 
         // Given
         val thread = Thread.currentThread()
         val exception = RuntimeException("Test exception")
-        val networkType = networkInfoProvider.getNetworkType()
         val expectedException = ExceptionFactory.createMeasureException(
             exception,
             handled = false,
-            timeProvider.currentTimeSinceEpochInMillis,
             thread = thread,
-            networkType = networkType,
-            networkGeneration = networkInfoProvider.getNetworkGeneration(networkType),
-            networkProvider = networkInfoProvider.getNetworkProvider(networkType),
-            foreground = false,
-            deviceLocale = localeProvider.getLocale(),
+            foreground = processInfo.isForegroundProcess(),
         )
 
         // When
         collector.uncaughtException(thread, exception)
 
         // Then
-        verify(eventTracker).trackUnhandledException(
-            measureException = expectedException,
+        verify(eventProcessor).track(
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            type = EventType.EXCEPTION,
+            data = expectedException,
         )
     }
 
@@ -85,10 +78,9 @@ internal class UnhandledExceptionCollectorTest {
         }
         val collector = UnhandledExceptionCollector(
             logger,
-            eventTracker,
+            eventProcessor,
             timeProvider,
-            networkInfoProvider,
-            localeProvider,
+            processInfo,
         ).apply { register() }
 
         // Given

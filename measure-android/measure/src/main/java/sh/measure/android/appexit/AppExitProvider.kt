@@ -10,40 +10,38 @@ import okio.buffer
 import okio.source
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.SystemServiceProvider
 import java.io.InputStream
 
 internal interface AppExitProvider {
-    fun get(pid: Int): AppExit?
+    fun get(): Map<Int, AppExit>?
 }
 
 internal class AppExitProviderImpl(
     private val logger: Logger,
-    private val currentThread: CurrentThread,
     private val systemServiceProvider: SystemServiceProvider,
 ) : AppExitProvider {
 
-    override fun get(pid: Int): AppExit? {
+    override fun get(): Map<Int, AppExit>? {
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
             return null
         }
         return systemServiceProvider.activityManager?.runCatching {
-            getHistoricalProcessExitReasons(null, pid, 1).firstOrNull()
-                ?.toAppExit(currentThread.name)
+            getHistoricalProcessExitReasons(null, 0, 3).associateBy(
+                { it.pid },
+                { it.toAppExit() },
+            )
         }?.getOrNull()
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    fun ApplicationExitInfo.toAppExit(threadName: String): AppExit {
+    fun ApplicationExitInfo.toAppExit(): AppExit {
         return AppExit(
             reason = getReasonName(reason),
             importance = getImportanceName(importance),
-            timestamp = timestamp,
             trace = getTraceString(traceInputStream),
             process_name = processName,
             pid = pid.toString(),
-            thread_name = threadName,
         )
     }
 

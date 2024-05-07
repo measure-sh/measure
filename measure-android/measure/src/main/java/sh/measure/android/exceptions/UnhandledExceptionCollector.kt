@@ -1,12 +1,11 @@
 package sh.measure.android.exceptions
 
-import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventProcessor
+import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import sh.measure.android.networkchange.NetworkInfoProvider
-import sh.measure.android.utils.LocaleProvider
+import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TimeProvider
-import sh.measure.android.utils.isForegroundProcess
 import java.lang.Thread.UncaughtExceptionHandler
 
 /**
@@ -16,10 +15,9 @@ import java.lang.Thread.UncaughtExceptionHandler
  */
 internal class UnhandledExceptionCollector(
     private val logger: Logger,
-    private val eventTracker: EventTracker,
+    private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
-    private val networkInfoProvider: NetworkInfoProvider,
-    private val localeProvider: LocaleProvider,
+    private val processInfo: ProcessInfoProvider,
 ) : UncaughtExceptionHandler {
 
     private val originalHandler: UncaughtExceptionHandler? =
@@ -36,19 +34,16 @@ internal class UnhandledExceptionCollector(
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
         logger.log(LogLevel.Debug, "Unhandled exception received")
         try {
-            val networkType = networkInfoProvider.getNetworkType()
-            val measureException = ExceptionFactory.createMeasureException(
-                throwable,
-                handled = false,
+            eventProcessor.track(
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread = thread,
-                networkType = networkType,
-                networkGeneration = networkInfoProvider.getNetworkGeneration(networkType),
-                networkProvider = networkInfoProvider.getNetworkProvider(networkType),
-                foreground = isForegroundProcess(),
-                deviceLocale = localeProvider.getLocale(),
+                type = EventType.EXCEPTION,
+                data = ExceptionFactory.createMeasureException(
+                    throwable,
+                    handled = false,
+                    thread = thread,
+                    foreground = processInfo.isForegroundProcess(),
+                ),
             )
-            eventTracker.trackUnhandledException(measureException)
         } catch (e: Throwable) {
             // Prevent an infinite loop of exceptions if the above code fails.
             logger.log(LogLevel.Error, "Failed to track exception", e)

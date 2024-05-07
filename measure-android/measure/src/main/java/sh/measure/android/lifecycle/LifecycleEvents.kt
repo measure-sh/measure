@@ -1,33 +1,26 @@
 package sh.measure.android.lifecycle
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 
 @Serializable
-internal data class ActivityLifecycleEvent(
+internal data class ActivityLifecycleData(
     val type: String,
     val class_name: String,
     val intent: String? = null,
     val saved_instance_state: Boolean = false,
-    @Transient val timestamp: String = "",
-    @Transient val thread_name: String = "",
 )
 
 @Serializable
-internal data class FragmentLifecycleEvent(
+internal data class FragmentLifecycleData(
     val type: String,
     val class_name: String,
     val parent_activity: String?,
     val tag: String? = null,
-    @Transient val timestamp: String = "",
-    @Transient val thread_name: String = "",
 )
 
 @Serializable
-internal data class ApplicationLifecycleEvent(
+internal data class ApplicationLifecycleData(
     val type: String,
-    @Transient val timestamp: String = "",
-    @Transient val thread_name: String = "",
 )
 
 internal object AppLifecycleType {

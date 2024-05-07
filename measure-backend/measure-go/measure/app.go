@@ -539,6 +539,16 @@ func (a *App) add() (*APIKey, error) {
 		return nil, err
 	}
 
+	alertPref := newAlertPref(*a.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := alertPref.insertTx(tx); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(context.Background()); err != nil {
 		return nil, err
 	}
@@ -2296,4 +2306,81 @@ func GetAppSession(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+func GetAlertPrefs(c *gin.Context) {
+	appId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `app id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	alertPref, err := getAlertPref(appId)
+	if err != nil {
+		msg := `unable to fetch notif prefs`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, alertPref)
+}
+
+func UpdateAlertPrefs(c *gin.Context) {
+	userId := c.GetString("userId")
+
+	appId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := "app id invalid or missing"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	app := &App{
+		ID: &appId,
+	}
+
+	var team *Team
+	if team, err = app.getTeam(); err != nil {
+		msg := "failed to get app"
+		fmt.Println(msg, err)
+		return
+	}
+
+	ok, err := PerformAuthz(userId, team.ID.String(), *ScopeAppAll)
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`you don't have permissions to update alert preferences in team [%s]`, app.TeamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	alertPref := newAlertPref(appId)
+
+	var payload AlertPrefPayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		msg := `failed to parse alert preferences json payload`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	alertPref.CrashRateSpikeEmail = payload.CrashRateSpike.Email
+	alertPref.CrashRateSpikeSlack = payload.CrashRateSpike.Slack
+	alertPref.AnrRateSpikeEmail = payload.AnrRateSpike.Email
+	alertPref.AnrRateSpikeSlack = payload.AnrRateSpike.Slack
+	alertPref.LaunchTimeSpikeEmail = payload.LaunchTimeSpike.Email
+	alertPref.LaunchTimeSpikeSlack = payload.LaunchTimeSpike.Slack
+
+	alertPref.update()
+
+	c.JSON(http.StatusOK, gin.H{"ok": "done"})
 }

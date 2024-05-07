@@ -1,0 +1,34 @@
+name: Webapp CI
+
+on:
+  pull_request:
+    paths:
+      - 'measure-web-app/**'
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'measure-web-app/**'
+
+jobs:
+  unit-test:
+    name: Run web app unit tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: measure-web-app
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '21'
+
+      - name: Install dependencies for CI
+        run: npm ci
+
+      - name: Run Jest tests
+        run: npm test

@@ -1,9 +1,10 @@
 package sh.measure.android.performance
 
 import androidx.annotation.VisibleForTesting
-import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventProcessor
+import sh.measure.android.events.EventType
 import sh.measure.android.executors.MeasureExecutorService
-import sh.measure.android.utils.CurrentThread
+import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
@@ -12,16 +13,17 @@ internal const val MEMORY_TRACKING_INTERVAL_MS = 2000L
 internal const val BYTES_TO_KB_FACTOR = 1024
 
 internal class MemoryUsageCollector(
-    private val eventTracker: EventTracker,
+    private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
-    private val currentThread: CurrentThread,
     private val executorService: MeasureExecutorService,
     private val memoryReader: MemoryReader,
+    private val processInfo: ProcessInfoProvider,
 ) {
     @VisibleForTesting
     var future: Future<*>? = null
 
     fun register() {
+        if (!processInfo.isForegroundProcess()) return
         if (future != null) return
         future = executorService.scheduleAtFixedRate(
             {
@@ -43,8 +45,10 @@ internal class MemoryUsageCollector(
     }
 
     private fun trackMemoryUsage() {
-        eventTracker.trackMemoryUsage(
-            MemoryUsage(
+        eventProcessor.track(
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            type = EventType.MEMORY_USAGE,
+            data = MemoryUsageData(
                 java_max_heap = memoryReader.maxHeapSize(),
                 java_total_heap = memoryReader.totalHeapSize(),
                 java_free_heap = memoryReader.freeHeapSize(),
@@ -53,8 +57,6 @@ internal class MemoryUsageCollector(
                 native_total_heap = memoryReader.nativeTotalHeapSize(),
                 native_free_heap = memoryReader.nativeFreeHeapSize(),
                 interval_config = MEMORY_TRACKING_INTERVAL_MS,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name,
             ),
         )
     }

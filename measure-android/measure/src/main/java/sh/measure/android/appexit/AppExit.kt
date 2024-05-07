@@ -2,16 +2,12 @@ package sh.measure.android.appexit
 
 import android.app.ActivityManager
 import android.app.ApplicationExitInfo
-import android.os.Build
-import androidx.annotation.RequiresApi
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 
 /**
  * Represents the data that is collected when an application exits.
  */
 @Serializable
-@RequiresApi(Build.VERSION_CODES.R)
 internal data class AppExit(
     /**
      * @see [ApplicationExitInfo.getReason]
@@ -37,13 +33,4 @@ internal data class AppExit(
      * @see [ApplicationExitInfo.getPid]
      */
     val pid: String,
-
-    /**
-     * @see [ApplicationExitInfo.getTimestamp] converted to ISO-8601 format.
-     */
-    @Transient
-    val timestamp: Long = 0L,
-
-    @Transient
-    val thread_name: String = "",
 )

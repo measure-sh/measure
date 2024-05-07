@@ -11,25 +11,27 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import sh.measure.android.Measure
-import sh.measure.android.fakes.FakeEventTracker
+import sh.measure.android.events.EventType
+import sh.measure.android.fakes.FakeEventProcessor
+import sh.measure.android.fakes.FakeMeasureInitializer
 import sh.measure.android.fakes.FakeTimeProvider
-import sh.measure.android.utils.CurrentThread
 
 @RunWith(AndroidJUnit4::class)
 class ComposeNavigationCollectorTest {
-    private val timeProvider = FakeTimeProvider()
-    private lateinit var tracker: FakeEventTracker
-    private val currentThread = CurrentThread()
+    private var eventProcessor = FakeEventProcessor()
+    private var timeProvider = FakeTimeProvider()
 
     @get:Rule
     val composeRule = createComposeRule()
 
     @Before
     fun setup() {
-        tracker = FakeEventTracker()
-        Measure.setEventTracker(tracker)
-        Measure.setTimeProvider(timeProvider)
-        Measure.setCurrentThread(currentThread)
+        Measure.initForInstrumentationTest(
+            FakeMeasureInitializer().apply {
+                eventProcessor = this@ComposeNavigationCollectorTest.eventProcessor
+                timeProvider = this@ComposeNavigationCollectorTest.timeProvider
+            },
+        )
     }
 
     @Test
@@ -39,17 +41,26 @@ class ComposeNavigationCollectorTest {
         }
 
         // initial state
-        assertEquals(1, tracker.trackedNavigationEvents.size)
-        assertEquals("home", tracker.trackedNavigationEvents[0].route)
+        assertEquals(1, eventProcessor.getTrackedEventsByType(EventType.NAVIGATION).size)
+        assertEquals(
+            "home",
+            (eventProcessor.getTrackedEventsByType(EventType.NAVIGATION)[0].data as NavigationData).route,
+        )
 
         // forward navigation
         composeRule.onNodeWithText("Checkout").performClick()
-        assertEquals(2, tracker.trackedNavigationEvents.size)
-        assertEquals("checkout", tracker.trackedNavigationEvents[1].route)
+        assertEquals(2, eventProcessor.getTrackedEventsByType(EventType.NAVIGATION).size)
+        assertEquals(
+            "checkout",
+            (eventProcessor.getTrackedEventsByType(EventType.NAVIGATION)[1].data as NavigationData).route,
+        )
 
         // back
         pressBack()
-        assertEquals(3, tracker.trackedNavigationEvents.size)
-        assertEquals("home", tracker.trackedNavigationEvents[2].route)
+        assertEquals(3, eventProcessor.getTrackedEventsByType(EventType.NAVIGATION).size)
+        assertEquals(
+            "home",
+            (eventProcessor.getTrackedEventsByType(EventType.NAVIGATION)[2].data as NavigationData).route,
+        )
     }
 }

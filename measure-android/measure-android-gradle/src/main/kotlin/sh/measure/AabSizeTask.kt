@@ -1,23 +1,24 @@
 package sh.measure
 
 import com.android.SdkConstants
-import com.android.build.gradle.internal.SdkLocator
-import com.android.builder.errors.DefaultIssueReporter
 import com.android.prefs.AndroidLocationsSingleton
 import com.android.repository.api.ProgressIndicatorAdapter
 import com.android.sdklib.repository.AndroidSdkHandler
 import com.android.tools.build.bundletool.androidtools.Aapt2Command
 import com.android.tools.build.bundletool.commands.BuildApksCommand
 import com.android.tools.build.bundletool.commands.GetSizeCommand
-import com.android.utils.StdLogger
 import org.gradle.api.DefaultTask
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import java.io.File
 import java.io.PrintStream
 import java.nio.file.Path
+import org.gradle.api.tasks.Optional
 
 /**
  * Task to measure the size of an app bundle.
@@ -37,6 +38,10 @@ import java.nio.file.Path
  */
 abstract class AabSizeTask : DefaultTask() {
 
+    @get:Optional
+    @get:InputDirectory
+    abstract val androidSdkDir: DirectoryProperty
+
     @get:InputFile
     abstract val bundleFileProperty: RegularFileProperty
 
@@ -48,19 +53,15 @@ abstract class AabSizeTask : DefaultTask() {
 
     @TaskAction
     fun calculateAppSize() {
-//        val apkOutputDir = apkDirectoryProperty.getOrNull()?.asFile
-//        val apkFile = apkOutputDir?.listFiles()?.find { it.extension == "apk" }
         val bundleFile = bundleFileProperty.getOrNull()?.asFile
         val appSizeOutputFile = appSizeOutputFileProperty.get().asFile
-//        if (apkFile?.exists() == true) {
-//            writeApkSize(apkFile, appSizeOutputFile)
-//        }
+        val sdkDirectory = androidSdkDir.getOrNull()?.asFile
         if (bundleFile != null) {
-            writeAabSize(bundleFile, appSizeOutputFile)
+            writeAabSize(bundleFile, appSizeOutputFile, sdkDirectory)
         }
     }
 
-    private fun writeAabSize(bundleFile: File, appSizeOutputFile: File) {
+    private fun writeAabSize(bundleFile: File, appSizeOutputFile: File, sdkDirectory: File?) {
         val apksFile = apksOutputDir.get().asFile.apply {
             deleteRecursively()
         }
@@ -68,7 +69,7 @@ abstract class AabSizeTask : DefaultTask() {
         // bundletool build-apks --bundle=app.aab --output=bundle.apks
         val path = BuildApksCommand.builder().setBundlePath(bundleFile.toPath())
             .setOutputFile(apksFile.toPath())
-            .setAapt2Command(Aapt2Command.createFromExecutablePath(getAapt2Location()))
+            .setAapt2Command(Aapt2Command.createFromExecutablePath(getAapt2Location(sdkDirectory)))
             .setOutputFormat(BuildApksCommand.OutputFormat.APK_SET).build().execute()
 
         // Effectively runs the following command:
@@ -101,20 +102,14 @@ abstract class AabSizeTask : DefaultTask() {
     /**
      * Finds and returns the location of the aapt2 executable.
      */
-    private fun getAapt2Location(): Path {
-        val sdkLocation = getAndroidSdkLocation()
-        val sdkHandler = AndroidSdkHandler.getInstance(AndroidLocationsSingleton, sdkLocation)
-        val progressIndicator = object : ProgressIndicatorAdapter() {}
+    private fun getAapt2Location(sdkDirectory: File?): Path {
+        val sdkLocation = (sdkDirectory ?: File(checkNotNull(System.getenv("ANDROID_HOME")) {
+            "Missing 'ANDROID_HOME' environment variable"
+        }))
+        val sdkHandler =
+            AndroidSdkHandler.getInstance(AndroidLocationsSingleton, sdkLocation.toPath())
+        val progressIndicator = object : ProgressIndicatorAdapter() { /* No progress reporting */ }
         val buildToolInfo = sdkHandler.getLatestBuildTool(progressIndicator, true)
         return buildToolInfo.location.resolve(SdkConstants.FN_AAPT2)
-    }
-
-    /**
-     * Finds and returns the location of the Android SDK.
-     */
-    private fun getAndroidSdkLocation(): Path {
-        val logger = StdLogger(StdLogger.Level.WARNING)
-        val issueReporter = DefaultIssueReporter(logger)
-        return SdkLocator.getSdkDirectory(project.rootDir, issueReporter).toPath()
     }
 }

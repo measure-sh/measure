@@ -3,18 +3,17 @@ package sh.measure.android.gestures
 import android.view.MotionEvent
 import android.view.ViewGroup
 import android.view.Window
-import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventProcessor
+import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.tracing.InternalTrace
-import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.TimeProvider
 
 internal class GestureCollector(
     private val logger: Logger,
-    private val tracker: EventTracker,
+    private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
-    private val currentThread: CurrentThread,
 ) {
     fun register() {
         logger.log(LogLevel.Debug, "Registering gesture collector")
@@ -32,8 +31,7 @@ internal class GestureCollector(
 
     private fun trackGesture(motionEvent: MotionEvent, window: Window) {
         InternalTrace.beginSection("GestureCollector.trackGesture")
-        val gesture =
-            GestureDetector.detect(window.context, motionEvent, timeProvider, currentThread)
+        val gesture = GestureDetector.detect(window.context, motionEvent, timeProvider)
         if (gesture == null || motionEvent.action != MotionEvent.ACTION_UP) {
             return
         }
@@ -57,16 +55,22 @@ internal class GestureCollector(
 
         InternalTrace.beginSection("GestureCollector.serializeEvent")
         when (gesture) {
-            is DetectedGesture.Click -> tracker.trackClick(
-                ClickEvent.fromDetectedGesture(gesture, target),
+            is DetectedGesture.Click -> eventProcessor.track(
+                timestamp = gesture.timestamp,
+                type = EventType.CLICK,
+                data = ClickData.fromDetectedGesture(gesture, target),
             )
 
-            is DetectedGesture.LongClick -> tracker.trackLongClick(
-                LongClickEvent.fromDetectedGesture(gesture, target),
+            is DetectedGesture.LongClick -> eventProcessor.track(
+                timestamp = gesture.timestamp,
+                type = EventType.LONG_CLICK,
+                data = LongClickData.fromDetectedGesture(gesture, target),
             )
 
-            is DetectedGesture.Scroll -> tracker.trackScroll(
-                ScrollEvent.fromDetectedGesture(gesture, target),
+            is DetectedGesture.Scroll -> eventProcessor.track(
+                timestamp = gesture.timestamp,
+                type = EventType.SCROLL,
+                data = ScrollData.fromDetectedGesture(gesture, target),
             )
         }
         InternalTrace.endSection()

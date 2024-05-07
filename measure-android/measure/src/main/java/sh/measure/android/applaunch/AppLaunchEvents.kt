@@ -3,11 +3,10 @@ package sh.measure.android.applaunch
 import android.os.Process
 import curtains.onNextDraw
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import sh.measure.android.MeasureInitProvider
 
 @Serializable
-internal data class ColdLaunchEvent(
+internal data class ColdLaunchData(
     /**
      * The start time captured using [Process.getStartUptimeMillis].
      */
@@ -42,20 +41,10 @@ internal data class ColdLaunchEvent(
      * The Intent data used to launch the [launched_activity].
      */
     val intent_data: String?,
-
-    /**
-     * The name of the thread on which the cold launch was measured.
-     */
-    @Transient val thread_name: String = "",
-
-    /**
-     * The time since epoch at which cold launch was measured.
-     */
-    @Transient val timestamp: Long = -1,
 )
 
 @Serializable
-internal data class WarmLaunchEvent(
+internal data class WarmLaunchData(
     /**
      * The time at which the app became visible to the user.
      */
@@ -80,12 +69,10 @@ internal data class WarmLaunchEvent(
      * The Intent data used to launch the [launched_activity].
      */
     val intent_data: String?,
-    @Transient val thread_name: String = "",
-    @Transient val timestamp: Long = -1,
 )
 
 @Serializable
-internal data class HotLaunchEvent(
+internal data class HotLaunchData(
     /**
      * The time at which the app became visible to the user.
      */
@@ -110,6 +97,4 @@ internal data class HotLaunchEvent(
      * The Intent data used to launch the [launched_activity].
      */
     val intent_data: String?,
-    @Transient val thread_name: String = "",
-    @Transient val timestamp: Long = -1,
 )

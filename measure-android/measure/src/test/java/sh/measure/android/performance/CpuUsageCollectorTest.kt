@@ -2,26 +2,26 @@ package sh.measure.android.performance
 
 import androidx.concurrent.futures.ResolvableFuture
 import org.junit.Assert
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
-import sh.measure.android.events.EventTracker
-import sh.measure.android.fakes.FakePidProvider
+import sh.measure.android.events.EventProcessor
+import sh.measure.android.events.EventType
+import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
-import sh.measure.android.utils.CurrentThread
 import sh.measure.android.utils.OsSysConfProvider
 import sh.measure.android.utils.ProcProvider
 import java.io.File
 
 internal class CpuUsageCollectorTest {
     private val logger = NoopLogger()
-    private val eventTracker = mock<EventTracker>()
-    private val pidProvider = FakePidProvider()
-    private val currentThread = CurrentThread()
+    private val eventProcessor = mock<EventProcessor>()
+    private val processInfo = FakeProcessInfoProvider()
     private val procProvider = mock<ProcProvider>()
     private val osSysConfProvider = mock<OsSysConfProvider>()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
@@ -34,10 +34,9 @@ internal class CpuUsageCollectorTest {
         timeProvider = FakeTimeProvider(fakeElapsedRealtime = currentElapsedRealtime)
         cpuUsageCollector = CpuUsageCollector(
             logger,
-            eventTracker,
-            pidProvider,
+            eventProcessor,
+            processInfo,
             timeProvider,
-            currentThread,
             executorService,
             procProvider,
             osSysConfProvider,
@@ -45,7 +44,7 @@ internal class CpuUsageCollectorTest {
 
         // setup mocks
         val file = createDummyProcStatFile()
-        `when`(procProvider.getStatFile(pidProvider.getPid())).thenReturn(file)
+        `when`(procProvider.getStatFile(processInfo.getPid())).thenReturn(file)
         // The OsConstants are all zero, hence we need to depend on sequence of calls in code.
         // The first call is for _SC_NPROCESSORS_CONF and the second call is for _SC_CLK_TCK.
         `when`(osSysConfProvider.get(0)).thenReturn(1, 100)
@@ -54,8 +53,10 @@ internal class CpuUsageCollectorTest {
     @Test
     fun `CpuUsageCollector tracks cpu usage`() {
         cpuUsageCollector.register()
-        verify(eventTracker).trackCpuUsage(
-            CpuUsage(
+        verify(eventProcessor).track(
+            type = EventType.CPU_USAGE,
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            data = CpuUsageData(
                 num_cores = 1,
                 clock_speed = 100,
                 uptime = 20_000,
@@ -65,8 +66,6 @@ internal class CpuUsageCollectorTest {
                 cstime = 200,
                 start_time = 5835385,
                 interval_config = CPU_TRACKING_INTERVAL_MS,
-                thread_name = currentThread.name,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
             ),
         )
     }
@@ -79,6 +78,13 @@ internal class CpuUsageCollectorTest {
         Assert.assertNull(cpuUsageCollector.future)
         cpuUsageCollector.resume()
         Assert.assertNotNull(cpuUsageCollector.future)
+    }
+
+    @Test
+    fun `CpuUsageCollector does not track if not foreground process`() {
+        processInfo.foregroundProcess = false
+        cpuUsageCollector.register()
+        assertNull(cpuUsageCollector.future)
     }
 
     /**

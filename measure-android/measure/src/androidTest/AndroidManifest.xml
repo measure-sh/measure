@@ -12,7 +12,6 @@
     <uses-sdk tools:overrideLibrary="android_libs.ub_uiautomator" />
 
     <application>
-        <activity android:name="sh.measure.android.navigation.ComposeNavigationTestActivity" />
         <activity android:name="sh.measure.android.gestures.GestureTestActivity" />
         <activity android:name="sh.measure.android.TestActivity" />
 

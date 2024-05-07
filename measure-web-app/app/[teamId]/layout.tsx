@@ -4,9 +4,10 @@ import Link from "next/link";
 import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useRouter } from 'next/navigation';
-import TeamSwitcher from "../components/team_switcher";
+import TeamSwitcher, { TeamsSwitcherStatus } from "../components/team_switcher";
 import { TeamsApiStatus, emptyTeam, fetchTeamsFromServer } from "../api/api_calls";
 import { logout } from "../utils/auth_utils";
+import { supabase } from "@/utils/supabase/browser";
 
 export default function DashboardLayout({
   children,
@@ -69,7 +70,7 @@ export default function DashboardLayout({
   }, []);
 
   const logoutUser = async () => {
-    await logout(router)
+    await logout(supabase, router)
   }
 
   const onTeamChanged = (item: string) => {
@@ -78,6 +79,12 @@ export default function DashboardLayout({
     router.push(newPath)
   }
 
+  const teamsApiStatusToTeamsSwitcherStatus = {
+    [TeamsApiStatus.Loading]: TeamsSwitcherStatus.Loading,
+    [TeamsApiStatus.Success]: TeamsSwitcherStatus.Success,
+    [TeamsApiStatus.Error]: TeamsSwitcherStatus.Error
+  };
+
   return (
     <div>
       {/* Side nav and main content layout on normal+ size screens */}
@@ -85,7 +92,7 @@ export default function DashboardLayout({
         <aside className="border-black border-r sticky top-0 h-screen">
           <nav className="flex flex-col p-2 h-full w-60">
             <div className="py-4" />
-            <TeamSwitcher items={teams.map((e) => e.name)} initialItemIndex={teams.findIndex((e) => e.id === selectedTeam)} teamsApiStatus={teamsApiStatus} onChangeSelectedItem={(item) => onTeamChanged(item)} />
+            <TeamSwitcher items={teams.map((e) => e.name)} initialItemIndex={teams.findIndex((e) => e.id === selectedTeam)} teamsSwitcherStatus={teamsApiStatusToTeamsSwitcherStatus[teamsApiStatus]} onChangeSelectedItem={(item) => onTeamChanged(item)} />
             {teamsApiStatus === TeamsApiStatus.Error && <p className="text-lg text-center font-display pt-4">Please refresh page to try again.</p>}
             {teamsApiStatus === TeamsApiStatus.Success && <div className="py-4" />}
             {teamsApiStatus === TeamsApiStatus.Success &&
@@ -109,7 +116,7 @@ export default function DashboardLayout({
         <aside>
           <nav className="flex flex-col p-2 h-full w-screen">
             <div className="py-4" />
-            <TeamSwitcher items={teams.map((e) => e.name)} initialItemIndex={teams.findIndex((e) => e.id === selectedTeam)} teamsApiStatus={teamsApiStatus} onChangeSelectedItem={(item) => onTeamChanged(item)} />
+            <TeamSwitcher items={teams.map((e) => e.name)} initialItemIndex={teams.findIndex((e) => e.id === selectedTeam)} teamsSwitcherStatus={teamsApiStatusToTeamsSwitcherStatus[teamsApiStatus]} onChangeSelectedItem={(item) => onTeamChanged(item)} />
             {teamsApiStatus === TeamsApiStatus.Error && <p className="text-lg text-center font-display pt-4">Please refresh page to try again.</p>}
             {teamsApiStatus === TeamsApiStatus.Success && <div className="py-4" />}
             {teamsApiStatus === TeamsApiStatus.Success &&

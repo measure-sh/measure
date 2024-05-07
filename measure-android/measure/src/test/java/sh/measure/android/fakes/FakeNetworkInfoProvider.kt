@@ -1,10 +1,10 @@
 package sh.measure.android.fakes
 
+import sh.measure.android.networkchange.InitialNetworkStateProvider
 import sh.measure.android.networkchange.NetworkGeneration
-import sh.measure.android.networkchange.NetworkInfoProvider
 import sh.measure.android.networkchange.NetworkType
 
-internal class FakeNetworkInfoProvider : NetworkInfoProvider {
+internal class FakeNetworkInfoProvider : InitialNetworkStateProvider {
     override fun getNetworkGeneration(networkType: String?): String {
         return NetworkGeneration.FIFTH_GEN
     }

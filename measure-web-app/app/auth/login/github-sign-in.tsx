@@ -1,10 +1,9 @@
 "use client";
 
-import { createBrowserClient } from "@/utils/supabase/browser";
+import { supabase } from "@/utils/supabase/browser";
 
 async function doGitHubLogin() {
   const url = new URL(window.location.href)
-  const supabase = createBrowserClient()
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'github',
     options: {

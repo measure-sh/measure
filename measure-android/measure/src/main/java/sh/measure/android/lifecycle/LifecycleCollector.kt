@@ -5,80 +5,86 @@ import android.app.Application
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
-import sh.measure.android.events.EventTracker
-import sh.measure.android.utils.CurrentThread
+import sh.measure.android.events.EventProcessor
+import sh.measure.android.events.EventType
 import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.isClassAvailable
-import sh.measure.android.utils.iso8601Timestamp
+
+internal interface ApplicationLifecycleStateListener {
+    fun onAppForeground()
+    fun onAppBackground()
+}
 
 /**
  * Tracks [Activity], Application and [Fragment] lifecycle events.
  */
 internal class LifecycleCollector(
     private val application: Application,
-    private val eventTracker: EventTracker,
+    private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
-    private val currentThread: CurrentThread,
-    private val onAppForeground: () -> Unit,
-    private val onAppBackground: () -> Unit,
 ) : ActivityLifecycleAdapter {
     private val fragmentLifecycleCollector by lazy {
-        FragmentLifecycleCollector(eventTracker, timeProvider, currentThread)
+        FragmentLifecycleCollector(eventProcessor, timeProvider)
     }
     private val startedActivities = mutableSetOf<String>()
+    private var applicationLifecycleStateListener: ApplicationLifecycleStateListener? = null
 
     fun register() {
         application.registerActivityLifecycleCallbacks(this)
     }
 
+    fun setApplicationLifecycleStateListener(listener: ApplicationLifecycleStateListener) {
+        applicationLifecycleStateListener = listener
+    }
+
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
         registerFragmentLifecycleCollector(activity)
-        eventTracker.trackActivityLifecycleEvent(
-            ActivityLifecycleEvent(
+        eventProcessor.track(
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            type = EventType.LIFECYCLE_ACTIVITY,
+            data = ActivityLifecycleData(
                 type = ActivityLifecycleType.CREATED,
                 class_name = activity.javaClass.name,
                 // TODO(abhay): evaluate for sensitive data
                 intent = activity.intent.dataString,
                 saved_instance_state = savedInstanceState != null,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-                thread_name = currentThread.name,
             ),
         )
     }
 
     override fun onActivityStarted(activity: Activity) {
         if (startedActivities.isEmpty()) {
-            eventTracker.trackApplicationLifecycleEvent(
-                ApplicationLifecycleEvent(
+            eventProcessor.track(
+                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                type = EventType.LIFECYCLE_APP,
+                data = ApplicationLifecycleData(
                     type = AppLifecycleType.FOREGROUND,
-                    timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-                    thread_name = currentThread.name,
                 ),
             )
-            onAppForeground.invoke()
+            applicationLifecycleStateListener?.onAppForeground()
         }
         val hash = Integer.toHexString(System.identityHashCode(activity))
         startedActivities.add(hash)
     }
 
     override fun onActivityResumed(activity: Activity) {
-        eventTracker.trackActivityLifecycleEvent(
-            ActivityLifecycleEvent(
+        eventProcessor.track(
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            type = EventType.LIFECYCLE_ACTIVITY,
+            data = ActivityLifecycleData(
                 type = ActivityLifecycleType.RESUMED,
                 class_name = activity.javaClass.name,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-                thread_name = currentThread.name,
             ),
         )
     }
 
     override fun onActivityPaused(activity: Activity) {
-        eventTracker.trackActivityLifecycleEvent(
-            ActivityLifecycleEvent(
+        eventProcessor.track(
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            type = EventType.LIFECYCLE_ACTIVITY,
+            data = ActivityLifecycleData(
                 type = ActivityLifecycleType.PAUSED,
                 class_name = activity.javaClass.name,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -87,24 +93,24 @@ internal class LifecycleCollector(
         val hash = Integer.toHexString(System.identityHashCode(activity))
         startedActivities.remove(hash)
         if (startedActivities.isEmpty()) {
-            eventTracker.trackApplicationLifecycleEvent(
-                ApplicationLifecycleEvent(
+            eventProcessor.track(
+                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                type = EventType.LIFECYCLE_APP,
+                data = ApplicationLifecycleData(
                     type = AppLifecycleType.BACKGROUND,
-                    timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-                    thread_name = currentThread.name,
                 ),
             )
-            onAppBackground.invoke()
+            applicationLifecycleStateListener?.onAppBackground()
         }
     }
 
     override fun onActivityDestroyed(activity: Activity) {
-        eventTracker.trackActivityLifecycleEvent(
-            ActivityLifecycleEvent(
+        eventProcessor.track(
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            type = EventType.LIFECYCLE_ACTIVITY,
+            data = ActivityLifecycleData(
                 type = ActivityLifecycleType.DESTROYED,
                 class_name = activity.javaClass.name,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis.iso8601Timestamp(),
-                thread_name = currentThread.name,
             ),
         )
         if (isAndroidXFragmentAvailable() && activity is FragmentActivity) {
@@ -123,5 +129,6 @@ internal class LifecycleCollector(
         }
     }
 
-    private fun isAndroidXFragmentAvailable() = isClassAvailable("androidx.fragment.app.FragmentActivity")
+    private fun isAndroidXFragmentAvailable() =
+        isClassAvailable("androidx.fragment.app.FragmentActivity")
 }

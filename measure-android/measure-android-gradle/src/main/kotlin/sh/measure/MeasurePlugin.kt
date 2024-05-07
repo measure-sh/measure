@@ -4,11 +4,11 @@ import com.android.build.api.artifact.SingleArtifact
 import com.android.build.api.instrumentation.FramesComputationMode
 import com.android.build.api.instrumentation.InstrumentationScope
 import com.android.build.api.variant.AndroidComponentsExtension
-import com.android.build.api.variant.CanMinifyCode
 import com.android.build.api.variant.Variant
 import com.android.build.gradle.internal.tasks.factory.dependsOn
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.file.Directory
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
 import sh.measure.navigation.NavigationVisitorFactory
@@ -40,6 +40,7 @@ class MeasurePlugin : Plugin<Project> {
         }
 
         val androidComponents = project.extensions.getByType(AndroidComponentsExtension::class.java)
+        val sdkDirectory = androidComponents.sdkComponents.sdkDirectory
         val httpClientProvider = project.gradle.sharedServices.registerIfAbsent(
             SHARED_SERVICE_HTTP_CLIENT, MeasureHttpClient::class.java
         ) { spec ->
@@ -48,7 +49,7 @@ class MeasurePlugin : Plugin<Project> {
         androidComponents.onVariants { variant ->
             injectOkHttpListener(variant)
             injectComposeNavigationListener(variant)
-            registerBuildUploadTask(variant, project, httpClientProvider)
+            registerBuildUploadTask(variant, project, httpClientProvider, sdkDirectory)
         }
     }
 
@@ -67,7 +68,10 @@ class MeasurePlugin : Plugin<Project> {
     }
 
     private fun registerBuildUploadTask(
-        variant: Variant, project: Project, httpClientProvider: Provider<MeasureHttpClient>
+        variant: Variant,
+        project: Project,
+        httpClientProvider: Provider<MeasureHttpClient>,
+        sdkDirectory: Provider<Directory>
     ) {
         val extractManifestDataProvider = project.tasks.register(
             extractManifestDataTaskName(variant), ExtractManifestDataTask::class.java
@@ -86,6 +90,7 @@ class MeasurePlugin : Plugin<Project> {
         val aabSizeProvider = project.tasks.register(
             extractAabSizeTaskName(variant), AabSizeTask::class.java
         ) {
+            it.androidSdkDir.set(sdkDirectory)
             it.bundleFileProperty.set(variant.artifacts.get(SingleArtifact.BUNDLE))
             it.apksOutputDir.set(apksDirProvider(project, variant))
             it.appSizeOutputFileProperty.set(appSizeFileProvider(project, variant))

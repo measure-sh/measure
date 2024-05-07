@@ -1,10 +1,9 @@
 package sh.measure.android.gestures
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 
 @Serializable
-internal data class ClickEvent(
+internal data class ClickData(
     val target: String,
     val target_id: String?,
     val width: Int?,
@@ -13,14 +12,10 @@ internal data class ClickEvent(
     val y: Float,
     val touch_down_time: Long,
     val touch_up_time: Long,
-    @Transient
-    val timestamp: Long = -1,
-    @Transient
-    val thread_name: String = "",
 ) {
     companion object {
-        fun fromDetectedGesture(gesture: DetectedGesture.Click, target: Target): ClickEvent {
-            return ClickEvent(
+        fun fromDetectedGesture(gesture: DetectedGesture.Click, target: Target): ClickData {
+            return ClickData(
                 target = target.className,
                 target_id = target.id,
                 width = target.width,
@@ -29,15 +24,13 @@ internal data class ClickEvent(
                 y = gesture.y,
                 touch_down_time = gesture.touchDownTime,
                 touch_up_time = gesture.touchUpTime,
-                timestamp = gesture.timestamp,
-                thread_name = gesture.threadName,
             )
         }
     }
 }
 
 @Serializable
-internal data class LongClickEvent(
+internal data class LongClickData(
     val target: String,
     val target_id: String?,
     val width: Int?,
@@ -46,14 +39,10 @@ internal data class LongClickEvent(
     val y: Float,
     val touch_down_time: Long,
     val touch_up_time: Long,
-    @Transient
-    val timestamp: Long = -1,
-    @Transient
-    val thread_name: String = "",
 ) {
     companion object {
-        fun fromDetectedGesture(gesture: DetectedGesture.LongClick, target: Target): LongClickEvent {
-            return LongClickEvent(
+        fun fromDetectedGesture(gesture: DetectedGesture.LongClick, target: Target): LongClickData {
+            return LongClickData(
                 target = target.className,
                 target_id = target.id,
                 width = target.width,
@@ -62,15 +51,13 @@ internal data class LongClickEvent(
                 y = gesture.y,
                 touch_down_time = gesture.touchDownTime,
                 touch_up_time = gesture.touchUpTime,
-                timestamp = gesture.timestamp,
-                thread_name = gesture.threadName,
             )
         }
     }
 }
 
 @Serializable
-internal data class ScrollEvent(
+internal data class ScrollData(
     val target: String,
     val target_id: String?,
     val x: Float,
@@ -80,14 +67,10 @@ internal data class ScrollEvent(
     val direction: String,
     val touch_down_time: Long,
     val touch_up_time: Long,
-    @Transient
-    val timestamp: Long = -1,
-    @Transient
-    val thread_name: String = "",
 ) {
     companion object {
-        fun fromDetectedGesture(gesture: DetectedGesture.Scroll, target: Target): ScrollEvent {
-            return ScrollEvent(
+        fun fromDetectedGesture(gesture: DetectedGesture.Scroll, target: Target): ScrollData {
+            return ScrollData(
                 target = target.className,
                 target_id = target.id,
                 x = gesture.x,
@@ -97,8 +80,6 @@ internal data class ScrollEvent(
                 touch_down_time = gesture.touchDownTime,
                 touch_up_time = gesture.touchUpTime,
                 direction = gesture.direction.name.lowercase(),
-                timestamp = gesture.timestamp,
-                thread_name = gesture.threadName,
             )
         }
     }

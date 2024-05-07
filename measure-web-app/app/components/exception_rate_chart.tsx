@@ -2,37 +2,33 @@
 
 import React from 'react';
 import { ResponsiveLine } from '@nivo/line'
+import { DateTime } from 'luxon';
 
-var today = new Date();
-const sevenDaysAgo = new Date(today.setDate(today.getDate() - 7));
-const date1 = `${sevenDaysAgo.getFullYear()}-${(sevenDaysAgo.getMonth() + 1).toString().padStart(2, '0')}-${sevenDaysAgo.getDate().toString().padStart(2, '0')}`;
+const dateFormat = 'yyyy-MM-dd'
+const today = DateTime.now();
 
-today = new Date();
-const sixDaysAgo = new Date(today.setDate(today.getDate() - 6));
-const date2 = `${sixDaysAgo.getFullYear()}-${(sixDaysAgo.getMonth() + 1).toString().padStart(2, '0')}-${sixDaysAgo.getDate().toString().padStart(2, '0')}`;
+const sevenDaysAgo = today.minus({ days: 7 });
+const date1 = sevenDaysAgo.toFormat(dateFormat);
 
-today = new Date();
-const fiveDaysAgo = new Date(today.setDate(today.getDate() - 5));
-const date3 = `${fiveDaysAgo.getFullYear()}-${(fiveDaysAgo.getMonth() + 1).toString().padStart(2, '0')}-${fiveDaysAgo.getDate().toString().padStart(2, '0')}`;
+const sixDaysAgo = today.minus({ days: 6 });
+const date2 = sixDaysAgo.toFormat(dateFormat);
 
-today = new Date();
-const fourDaysAgo = new Date(today.setDate(today.getDate() - 4));
-const date4 = `${fourDaysAgo.getFullYear()}-${(fourDaysAgo.getMonth() + 1).toString().padStart(2, '0')}-${fourDaysAgo.getDate().toString().padStart(2, '0')}`;
+const fiveDaysAgo = today.minus({ days: 5 });
+const date3 = fiveDaysAgo.toFormat(dateFormat);
 
-today = new Date();
-const threeDaysAgo = new Date(today.setDate(today.getDate() - 3));
-const date5 = `${threeDaysAgo.getFullYear()}-${(threeDaysAgo.getMonth() + 1).toString().padStart(2, '0')}-${threeDaysAgo.getDate().toString().padStart(2, '0')}`;
+const fourDaysAgo = today.minus({ days: 4 });
+const date4 = fourDaysAgo.toFormat(dateFormat);
 
-today = new Date();
-const twoDaysAgo = new Date(today.setDate(today.getDate() - 2));
-const date6 = `${twoDaysAgo.getFullYear()}-${(twoDaysAgo.getMonth() + 1).toString().padStart(2, '0')}-${twoDaysAgo.getDate().toString().padStart(2, '0')}`;
+const threeDaysAgo = today.minus({ days: 3 });
+const date5 = threeDaysAgo.toFormat(dateFormat);
 
-today = new Date();
-const oneDayAgo = new Date(today.setDate(today.getDate() - 1));
-const date7 = `${oneDayAgo.getFullYear()}-${(oneDayAgo.getMonth() + 1).toString().padStart(2, '0')}-${oneDayAgo.getDate().toString().padStart(2, '0')}`;
+const twoDaysAgo = today.minus({ days: 2 });
+const date6 = twoDaysAgo.toFormat(dateFormat);
 
-today = new Date();
-const date8 = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+const oneDayAgo = today.minus({ days: 1 });
+const date7 = oneDayAgo.toFormat(dateFormat);
+
+const date8 = today.toFormat(dateFormat);
 
 const data = [
   {

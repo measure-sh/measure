@@ -91,6 +91,86 @@ CREATE TABLE dbmate.schema_migrations (
 
 
 --
+-- Name: alert_prefs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.alert_prefs (
+    app_id uuid NOT NULL,
+    crash_rate_spike_email boolean NOT NULL,
+    crash_rate_spike_slack boolean NOT NULL,
+    anr_rate_spike_email boolean NOT NULL,
+    anr_rate_spike_slack boolean NOT NULL,
+    launch_time_spike_email boolean NOT NULL,
+    launch_time_spike_slack boolean NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: COLUMN alert_prefs.app_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.alert_prefs.app_id IS 'linked app id';
+
+
+--
+-- Name: COLUMN alert_prefs.crash_rate_spike_email; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.alert_prefs.crash_rate_spike_email IS 'team admin/owner set pref for enabling email on crash rate spike';
+
+
+--
+-- Name: COLUMN alert_prefs.crash_rate_spike_slack; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.alert_prefs.crash_rate_spike_slack IS 'team admin/owner set pref for enabling slack message on crash rate spike';
+
+
+--
+-- Name: COLUMN alert_prefs.anr_rate_spike_email; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.alert_prefs.anr_rate_spike_email IS 'team admin/owner set pref for enabling email on ANR rate spike';
+
+
+--
+-- Name: COLUMN alert_prefs.anr_rate_spike_slack; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.alert_prefs.anr_rate_spike_slack IS 'team admin/owner set pref for enabling slack message on ANR rate spike';
+
+
+--
+-- Name: COLUMN alert_prefs.launch_time_spike_email; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.alert_prefs.launch_time_spike_email IS 'team admin/owner set pref for enabling email on launch time spike';
+
+
+--
+-- Name: COLUMN alert_prefs.launch_time_spike_slack; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.alert_prefs.launch_time_spike_slack IS 'team admin/owner set pref for enabling slack message on launch time spike';
+
+
+--
+-- Name: COLUMN alert_prefs.created_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.alert_prefs.created_at IS 'utc timestamp at the time of record creation';
+
+
+--
+-- Name: COLUMN alert_prefs.updated_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.alert_prefs.updated_at IS 'utc timestamp at the time of record update';
+
+
+--
 -- Name: anr_groups; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -485,6 +565,7 @@ CREATE TABLE public.event_reqs (
 
 
 --
+<<<<<<< HEAD
 -- Name: COLUMN event_reqs.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -871,6 +952,14 @@ ALTER TABLE ONLY dbmate.schema_migrations
 
 
 --
+-- Name: alert_prefs alert_prefs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.alert_prefs
+    ADD CONSTRAINT alert_prefs_pkey PRIMARY KEY (app_id);
+
+
+--
 -- Name: anr_groups anr_groups_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -919,11 +1008,19 @@ ALTER TABLE ONLY public.build_sizes
 
 
 --
+<<<<<<< HEAD
 -- Name: event_reqs event_reqs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.event_reqs
     ADD CONSTRAINT event_reqs_pkey PRIMARY KEY (id);
+=======
+-- Name: mapping_files mapping_files_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mapping_files
+    ADD CONSTRAINT mapping_files_pkey PRIMARY KEY (id);
+>>>>>>> main
 
 
 --
@@ -972,6 +1069,14 @@ ALTER TABLE ONLY public.teams
 
 ALTER TABLE ONLY public.unhandled_exception_groups
     ADD CONSTRAINT unhandled_exception_groups_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: alert_prefs alert_prefs_app_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.alert_prefs
+    ADD CONSTRAINT alert_prefs_app_id_fkey FOREIGN KEY (app_id) REFERENCES public.apps(id) ON DELETE CASCADE;
 
 
 --
@@ -1093,5 +1198,10 @@ INSERT INTO dbmate.schema_migrations (version) VALUES
     ('20231228033348'),
     ('20231228044339'),
     ('20240311054505'),
+<<<<<<< HEAD
     ('20240405083738'),
     ('20240502060117');
+=======
+    ('20240404122712'),
+    ('20240405085551');
+>>>>>>> main

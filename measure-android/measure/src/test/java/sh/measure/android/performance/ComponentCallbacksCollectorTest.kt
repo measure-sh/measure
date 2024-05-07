@@ -11,15 +11,14 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
-import sh.measure.android.events.EventTracker
+import sh.measure.android.events.EventProcessor
+import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeMemoryReader
 import sh.measure.android.fakes.FakeTimeProvider
-import sh.measure.android.utils.CurrentThread
 
 internal class ComponentCallbacksCollectorTest {
-    private val eventTracker = mock<EventTracker>()
+    private val eventProcessor = mock<EventProcessor>()
     private val timeProvider = FakeTimeProvider()
-    private val currentThread = CurrentThread()
     private val memoryReader = FakeMemoryReader()
     private lateinit var componentCallbacksCollector: ComponentCallbacksCollector
 
@@ -27,9 +26,8 @@ internal class ComponentCallbacksCollectorTest {
     fun setUp() {
         componentCallbacksCollector = ComponentCallbacksCollector(
             mock(),
-            eventTracker,
+            eventProcessor,
             timeProvider,
-            currentThread,
             memoryReader,
         ).apply { register() }
     }
@@ -38,9 +36,10 @@ internal class ComponentCallbacksCollectorTest {
     fun `ComponentCallbacksCollector tracks low memory event`() {
         componentCallbacksCollector.onLowMemory()
 
-        verify(eventTracker).trackLowMemory(
-            LowMemory(
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+        verify(eventProcessor).track(
+            type = EventType.LOW_MEMORY,
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            data = LowMemoryData(
                 java_max_heap = memoryReader.maxHeapSize(),
                 java_free_heap = memoryReader.freeHeapSize(),
                 java_total_heap = memoryReader.totalHeapSize(),
@@ -48,7 +47,6 @@ internal class ComponentCallbacksCollectorTest {
                 native_total_heap = memoryReader.nativeTotalHeapSize(),
                 rss = memoryReader.rss(),
                 total_pss = memoryReader.totalPss(),
-                thread_name = currentThread.name,
             ),
         )
     }
@@ -67,11 +65,11 @@ internal class ComponentCallbacksCollectorTest {
 
     private fun testTrimMemoryEvent(trimLevel: Int, expectedLevel: String) {
         componentCallbacksCollector.onTrimMemory(trimLevel)
-        verify(eventTracker).trackTrimMemory(
-            TrimMemory(
+        verify(eventProcessor).track(
+            type = EventType.TRIM_MEMORY,
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            data = TrimMemoryData(
                 level = expectedLevel,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                thread_name = currentThread.name,
             ),
         )
     }
