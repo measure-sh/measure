@@ -36,31 +36,6 @@ type App struct {
 	UpdatedAt    time.Time  `json:"updated_at"`
 }
 
-// Validates if a session for an app actually
-// exists.
-func (a App) SessionExists(sessionId uuid.UUID) (exists bool, err error) {
-	exists = false
-	stmt := sqlf.PostgreSQL.
-		Select(`1`, nil).
-		From(`public.sessions`).
-		Where(`id = ? and app_id = ?`, nil)
-
-	defer stmt.Close()
-
-	ctx := context.Background()
-	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), sessionId, a.ID).Scan(nil); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return false, nil
-		} else {
-			return false, err
-		}
-	}
-
-	exists = true
-
-	return
-}
-
 func (a App) MarshalJSON() ([]byte, error) {
 	type Alias App
 	return json.Marshal(&struct {
@@ -829,7 +804,7 @@ func (a *App) GetEventResource(id uuid.UUID) (resource *event.Resource, err erro
 	return
 }
 
-func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
+func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Session, error) {
 	cols := []string{
 		`id`,
 		`toString(type)`,
@@ -839,6 +814,30 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		`inet.ipv6`,
 		`inet.country_code`,
 		`timestamp`,
+		`attribute.installation_id`,
+		`toString(attribute.app_version)`,
+		`toString(attribute.app_build)`,
+		`toString(attribute.app_unique_id)`,
+		`toString(attribute.platform)`,
+		`toString(attribute.measure_sdk_version)`,
+		`toString(attribute.thread_name)`,
+		`toString(attribute.user_id)`,
+		`toString(attribute.device_name)`,
+		`toString(attribute.device_model)`,
+		`toString(attribute.device_manufacturer)`,
+		`toString(attribute.device_type)`,
+		`attribute.device_is_foldable`,
+		`attribute.device_is_physical`,
+		`attribute.device_density_dpi`,
+		`attribute.device_width_px`,
+		`attribute.device_height_px`,
+		`attribute.device_density`,
+		`toString(attribute.device_locale)`,
+		`toString(attribute.os_name)`,
+		`toString(attribute.os_version)`,
+		`toString(attribute.network_type)`,
+		`toString(attribute.network_generation)`,
+		`toString(attribute.network_provider)`,
 		`anr.fingerprint`,
 		`anr.foreground`,
 		`anr.exceptions`,
@@ -958,13 +957,13 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 	defer stmt.Close()
 
 	for i := range cols {
-		stmt.Select(cols[i], nil)
+		stmt.Select(cols[i])
 	}
 
-	stmt.Where("app_id = ? and session_id = ?", nil, nil)
+	stmt.Where("app_id = ? and session_id = ?", a.ID, sessionId)
 	stmt.OrderBy("timestamp")
 
-	rows, err := server.Server.ChPool.Query(context.Background(), stmt.String(), a.ID, sessionId)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 
 	if err != nil {
 		return nil, err
@@ -1008,10 +1007,36 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 			&ev.Type,
 			&session.SessionID,
 			&session.AppID,
-			&session.IPv4,
-			&session.IPv6,
-			&session.CountryCode,
+			&ev.IPv4,
+			&ev.IPv6,
+			&ev.CountryCode,
 			&ev.Timestamp,
+
+			// attribute
+			&ev.Attribute.InstallationID,
+			&ev.Attribute.AppVersion,
+			&ev.Attribute.AppBuild,
+			&ev.Attribute.AppUniqueID,
+			&ev.Attribute.Platform,
+			&ev.Attribute.MeasureSDKVersion,
+			&ev.Attribute.ThreadName,
+			&ev.Attribute.UserID,
+			&ev.Attribute.DeviceName,
+			&ev.Attribute.DeviceModel,
+			&ev.Attribute.DeviceManufacturer,
+			&ev.Attribute.DeviceType,
+			&ev.Attribute.DeviceIsFoldable,
+			&ev.Attribute.DeviceIsPhysical,
+			&ev.Attribute.DeviceDensityDPI,
+			&ev.Attribute.DeviceWidthPX,
+			&ev.Attribute.DeviceHeightPX,
+			&ev.Attribute.DeviceDensity,
+			&ev.Attribute.DeviceLocale,
+			&ev.Attribute.OSName,
+			&ev.Attribute.OSVersion,
+			&ev.Attribute.NetworkType,
+			&ev.Attribute.NetworkGeneration,
+			&ev.Attribute.NetworkProvider,
 
 			// anr
 			&anr.Fingerprint,
@@ -1250,6 +1275,13 @@ func (a *App) GetSessionEvents(sessionId uuid.UUID) (*Session, error) {
 		default:
 			continue
 		}
+	}
+
+	// attach session's first event attribute
+	// as the session's attributes
+	if len(session.Events) > 0 {
+		attr := session.Events[0].Attribute
+		session.Attribute = &attr
 	}
 
 	return &session, nil
@@ -2123,24 +2155,19 @@ func GetAppSession(c *gin.Context) {
 		return
 	}
 
-	ok, err = app.SessionExists(sessionId)
+	session, err := app.GetSessionEvents(ctx, sessionId)
 	if err != nil {
 		msg := `failed to fetch session data for replay`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-	if !ok {
-		msg := fmt.Sprintf(`session %q for app %q does not exist`, sessionId, app.ID)
-		c.JSON(http.StatusNotFound, gin.H{"error": msg})
 		return
 	}
 
-	session, err := app.GetSessionEvents(sessionId)
-	if err != nil {
-		msg := `failed to fetch session data for replay`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+	if len(session.Events) < 1 {
+		msg := fmt.Sprintf(`session %q for app %q does not exist`, sessionId, app.ID)
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -2303,23 +2330,9 @@ func GetAppSession(c *gin.Context) {
 
 	threads.Sort()
 
-	resource := &session.Resource
-
-	if session.hasEvents() {
-		firstEvent := session.firstEvent()
-		res, err := app.GetEventResource(firstEvent.ID)
-		if err != nil {
-			msg := `failed to fetch session resource`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-			return
-		}
-		resource = res
-	}
-
 	response := gin.H{
 		"session_id":   sessionId,
-		"resource":     resource,
+		"attribute":    session.Attribute,
 		"app_id":       appId,
 		"duration":     duration,
 		"cpu_usage":    cpuUsages,
