@@ -49,7 +49,6 @@ func main() {
 	})
 
 	// SDK routes
-	// r.PUT("/sessions", measure.ValidateAPIKey(), measure.PutSession)
 	r.PUT("/events", measure.ValidateAPIKey(), measure.PutEvents)
 	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuild)
 
