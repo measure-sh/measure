@@ -546,51 +546,6 @@ func (a *App) add() (*APIKey, error) {
 	return apiKey, nil
 }
 
-func (a *App) get() (*App, error) {
-	var onboarded pgtype.Bool
-	var uniqueId pgtype.Text
-	var platform pgtype.Text
-	var firstVersion pgtype.Text
-
-	stmt := sqlf.PostgreSQL.
-		Select("onboarded", nil).
-		Select("unique_identifier", nil).
-		Select("platform", nil).
-		Select("first_version", nil).
-		From("apps").
-		Where("id = ?", nil)
-
-	defer stmt.Close()
-
-	if err := server.Server.PgPool.QueryRow(context.Background(), stmt.String(), a.ID).Scan(&onboarded, &uniqueId, &platform, &firstVersion); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil
-		} else {
-			return nil, err
-		}
-	}
-
-	if uniqueId.Valid {
-		a.UniqueId = uniqueId.String
-	} else {
-		a.UniqueId = ""
-	}
-
-	if platform.Valid {
-		a.Platform = platform.String
-	} else {
-		a.Platform = ""
-	}
-
-	if firstVersion.Valid {
-		a.FirstVersion = firstVersion.String
-	} else {
-		a.FirstVersion = ""
-	}
-
-	return a, nil
-}
-
 func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 	var appName pgtype.Text
 	var uniqueId pgtype.Text
