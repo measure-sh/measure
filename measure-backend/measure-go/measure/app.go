@@ -1274,7 +1274,7 @@ func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 
 	defer stmt.Close()
 
-	if err := server.Server.PgPool.QueryRow(context.Background(), stmt.String(), stmt.Args()...).Scan(&onboarded, &uniqueId, &platform, &firstVersion); err != nil {
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&onboarded, &uniqueId, &platform, &firstVersion); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		} else {
