@@ -136,6 +136,8 @@ dependencies {
     implementation(libs.squareup.okhttp.logging)
     implementation(libs.squareup.curtains)
 
+    implementation(project(":measure-anr"))
+
     testImplementation(libs.mockito.kotlin)
     testImplementation(libs.junit)
     testImplementation(libs.androidx.junit.ktx)
