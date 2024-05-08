@@ -565,7 +565,6 @@ CREATE TABLE public.event_reqs (
 
 
 --
-<<<<<<< HEAD
 -- Name: COLUMN event_reqs.id; Type: COMMENT; Schema: public; Owner: -
 --
 
@@ -644,143 +643,6 @@ COMMENT ON COLUMN public.roles.name IS 'unique role name';
 --
 
 COMMENT ON COLUMN public.roles.scopes IS 'valid scopes for this role';
-
-
---
--- Name: sessions; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.sessions (
-    id uuid NOT NULL,
-    app_id uuid,
-    event_count integer DEFAULT 0,
-    attachment_count integer DEFAULT 0,
-    bytes_in integer DEFAULT 0,
-    symbolication_attempts_count integer DEFAULT 0,
-    "timestamp" timestamp with time zone NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone NOT NULL
-);
-
-
---
--- Name: COLUMN sessions.id; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.sessions.id IS 'unique uuidv4 session id';
-
-
---
--- Name: COLUMN sessions.app_id; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.sessions.app_id IS 'app id of the app this session belongs to';
-
-
---
--- Name: COLUMN sessions.event_count; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.sessions.event_count IS 'number of events in the session';
-
-
---
--- Name: COLUMN sessions.attachment_count; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.sessions.attachment_count IS 'number of attachments in the session';
-
-
---
--- Name: COLUMN sessions.bytes_in; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.sessions.bytes_in IS 'total session payload size in bytes';
-
-
---
--- Name: COLUMN sessions.symbolication_attempts_count; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.sessions.symbolication_attempts_count IS 'number of times symbolication was attempted for this session';
-
-
---
--- Name: COLUMN sessions."timestamp"; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.sessions."timestamp" IS 'utc timestamp at the time of session ingestion';
-
-
---
--- Name: COLUMN sessions.created_at; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.sessions.created_at IS 'utc timestamp at the time of record creation';
-
-
---
--- Name: COLUMN sessions.updated_at; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.sessions.updated_at IS 'utc timestamp at the time of record updation';
-
-
---
--- Name: sessions_attachments; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.sessions_attachments (
-    id uuid NOT NULL,
-    session_id uuid,
-    type character varying(32) NOT NULL,
-    key character varying(256) NOT NULL,
-    location character varying NOT NULL,
-    "timestamp" timestamp with time zone NOT NULL,
-    event_id uuid NOT NULL
-);
-
-
---
--- Name: COLUMN sessions_attachments.id; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.sessions_attachments.id IS 'unique id for each session attachment';
-
-
---
--- Name: COLUMN sessions_attachments.session_id; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.sessions_attachments.session_id IS 'session_id of the containing session';
-
-
---
--- Name: COLUMN sessions_attachments.type; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.sessions_attachments.type IS 'type of attachment, like screenshot etc';
-
-
---
--- Name: COLUMN sessions_attachments.key; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.sessions_attachments.key IS 'key of the attachment file stored in remote object store';
-
-
---
--- Name: COLUMN sessions_attachments.location; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.sessions_attachments.location IS 'url of the attachment file stored in remote object store';
-
-
---
--- Name: COLUMN sessions_attachments."timestamp"; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.sessions_attachments."timestamp" IS 'utc timestamp at the time of attachment file upload';
 
 
 --
@@ -1008,19 +870,11 @@ ALTER TABLE ONLY public.build_sizes
 
 
 --
-<<<<<<< HEAD
 -- Name: event_reqs event_reqs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.event_reqs
     ADD CONSTRAINT event_reqs_pkey PRIMARY KEY (id);
-=======
--- Name: mapping_files mapping_files_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.mapping_files
-    ADD CONSTRAINT mapping_files_pkey PRIMARY KEY (id);
->>>>>>> main
 
 
 --
@@ -1029,22 +883,6 @@ ALTER TABLE ONLY public.mapping_files
 
 ALTER TABLE ONLY public.roles
     ADD CONSTRAINT roles_pkey PRIMARY KEY (name);
-
-
---
--- Name: sessions_attachments sessions_attachments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sessions_attachments
-    ADD CONSTRAINT sessions_attachments_pkey PRIMARY KEY (id);
-
-
---
--- Name: sessions sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sessions
-    ADD CONSTRAINT sessions_pkey PRIMARY KEY (id);
 
 
 --
@@ -1128,22 +966,6 @@ ALTER TABLE ONLY public.event_reqs
 
 
 --
--- Name: sessions sessions_app_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sessions
-    ADD CONSTRAINT sessions_app_id_fkey FOREIGN KEY (app_id) REFERENCES public.apps(id) ON DELETE CASCADE;
-
-
---
--- Name: sessions_attachments sessions_attachments_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sessions_attachments
-    ADD CONSTRAINT sessions_attachments_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id) ON DELETE CASCADE;
-
-
---
 -- Name: team_membership team_membership_role_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1187,8 +1009,6 @@ ALTER TABLE ONLY public.unhandled_exception_groups
 INSERT INTO dbmate.schema_migrations (version) VALUES
     ('20231117010312'),
     ('20231117010526'),
-    ('20231117010802'),
-    ('20231117011042'),
     ('20231117011737'),
     ('20231117012011'),
     ('20231117012219'),
@@ -1198,10 +1018,5 @@ INSERT INTO dbmate.schema_migrations (version) VALUES
     ('20231228033348'),
     ('20231228044339'),
     ('20240311054505'),
-<<<<<<< HEAD
-    ('20240405083738'),
-    ('20240502060117');
-=======
     ('20240404122712'),
-    ('20240405085551');
->>>>>>> main
+    ('20240502060117');
