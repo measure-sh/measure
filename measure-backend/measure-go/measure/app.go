@@ -685,20 +685,20 @@ func (a *App) getTeam(ctx context.Context) (*Team, error) {
 	return team, nil
 }
 
-func (a *App) Onboard(tx pgx.Tx, uniqueIdentifier, platform, firstVersion string) error {
+func (a *App) Onboard(ctx context.Context, tx *pgx.Tx, uniqueIdentifier, platform, firstVersion string) error {
 	now := time.Now()
-	stmt := sqlf.PostgreSQL.Update("apps").
-		Set("onboarded", nil).
-		Set("unique_identifier", nil).
-		Set("platform", nil).
-		Set("first_version", nil).
-		Set("onboarded_at", nil).
-		Set("updated_at", nil).
-		Where("id = ?", nil)
+	stmt := sqlf.PostgreSQL.Update("public.apps").
+		Set("onboarded", true).
+		Set("unique_identifier", uniqueIdentifier).
+		Set("platform", platform).
+		Set("first_version", firstVersion).
+		Set("onboarded_at", now).
+		Set("updated_at", now).
+		Where("id = ?", a.ID)
 
 	defer stmt.Close()
 
-	_, err := tx.Exec(context.Background(), stmt.String(), true, uniqueIdentifier, platform, firstVersion, now, now, a.ID)
+	_, err := (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return err
 	}
@@ -1255,9 +1255,8 @@ func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 	var platform pgtype.Text
 	var firstVersion pgtype.Text
 
-	app = &App{}
-
 	stmt := sqlf.PostgreSQL.
+		Select("id").
 		Select("onboarded").
 		Select("unique_identifier").
 		Select("platform").
@@ -1267,7 +1266,11 @@ func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 
 	defer stmt.Close()
 
-	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&onboarded, &uniqueId, &platform, &firstVersion); err != nil {
+	if app == nil {
+		app = &App{}
+	}
+
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&app.ID, &onboarded, &uniqueId, &platform, &firstVersion); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		} else {
@@ -1275,7 +1278,11 @@ func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 		}
 	}
 
-	app.Onboarded = onboarded.Bool
+	if onboarded.Valid {
+		app.Onboarded = onboarded.Bool
+	} else {
+		app.Onboarded = false
+	}
 
 	if uniqueId.Valid {
 		app.UniqueId = uniqueId.String

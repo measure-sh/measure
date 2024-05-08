@@ -982,7 +982,7 @@ func PutEvents(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	app, err := SelectApp(ctx, appId)
-	if err != nil {
+	if app == nil || err != nil {
 		msg := `failed to lookup app`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -1150,7 +1150,7 @@ func PutEvents(c *gin.Context) {
 		platform := firstEvent.Attribute.Platform
 		version := firstEvent.Attribute.AppVersion
 
-		if err := app.Onboard(tx, uniqueID, platform, version); err != nil {
+		if err := app.Onboard(ctx, &tx, uniqueID, platform, version); err != nil {
 			msg := `failed to onboard app`
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
