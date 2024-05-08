@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`FilterPill renders correctly in collapsed state 1`] = `
+exports[`FilterPill renders correctly 1`] = `
 {
   "asFragment": [Function],
   "baseElement": <body>
