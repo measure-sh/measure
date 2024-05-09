@@ -1,7 +1,9 @@
 package sh.measure.android
 
 import android.app.Application
+import sh.measure.NativeBridgeImpl
 import sh.measure.android.anr.AnrCollector
+import sh.measure.android.anr.AnrCollectorV2
 import sh.measure.android.appexit.AppExitCollector
 import sh.measure.android.appexit.AppExitProvider
 import sh.measure.android.appexit.AppExitProviderImpl
@@ -159,8 +161,13 @@ internal class MeasureInitializerImpl(
         fileStorage = fileStorage,
         idProvider = idProvider,
     ),
-    override val resumedActivityProvider: ResumedActivityProvider = ResumedActivityProviderImpl(application),
-    private val screenshotHelper: ScreenshotHelper = ScreenshotHelperImpl(logger, resumedActivityProvider),
+    override val resumedActivityProvider: ResumedActivityProvider = ResumedActivityProviderImpl(
+        application
+    ),
+    private val screenshotHelper: ScreenshotHelper = ScreenshotHelperImpl(
+        logger,
+        resumedActivityProvider
+    ),
     private val config: Config = DefaultConfig(),
     override val eventProcessor: EventProcessor = EventProcessorImpl(
         logger = logger,
@@ -215,6 +222,13 @@ internal class MeasureInitializerImpl(
         eventProcessor = eventProcessor,
         processInfo = processInfoProvider,
         config = config,
+    ),
+    private val nativeBridgeImpl: NativeBridgeImpl = NativeBridgeImpl(),
+    override val anrCollectorV2: AnrCollectorV2 = AnrCollectorV2(
+        logger = logger,
+        processInfo = processInfoProvider,
+        eventProcessor = eventProcessor,
+        nativeBridge = nativeBridgeImpl,
     ),
     private val appExitProvider: AppExitProvider = AppExitProviderImpl(
         logger = logger,
@@ -286,6 +300,7 @@ internal interface MeasureInitializer {
     val okHttpEventCollector: OkHttpEventCollector
     val unhandledExceptionCollector: UnhandledExceptionCollector
     val anrCollector: AnrCollector
+    val anrCollectorV2: AnrCollectorV2
     val appExitCollector: AppExitCollector
     val cpuUsageCollector: CpuUsageCollector
     val memoryUsageCollector: MemoryUsageCollector
