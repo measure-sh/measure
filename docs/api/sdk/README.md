@@ -18,8 +18,6 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [Request Body](#request-body-1)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-1)
 - [References](#references)
-  - [Session](#session)
-  - [Resource](#resource)
   - [Attributes](#attributes)
   - [Attachments](#attachments)
   - [Events](#events)
@@ -267,54 +265,6 @@ List of HTTP status codes for success and failures.
 
 Exhaustive list of all JSON fields.
 
-### Session
-
-The top-level Session object has the following properties.
-
-```json
-{
-  "session_id": "",
-  "timestamp": "",
-  "resource": {},
-  "events": [],
-  "attachments": []
-}
-```
-
-| Field        | Type   | Optional | Comment                                                   |
-| ------------ | ------ | -------- | --------------------------------------------------------- |
-| `session_id` | string | No       | UUIDv4 string                                             |
-| `timestamp`  | string | No       | Nanosecond precision timestamp in ISO 8601 format         |
-| `resource`   | object | No       | Resource object. See below.                               |
-| `events`     | array  | No       | Events array containing various event objects. See below. |
-
-### Resource
-
-Resource object has the following properties.
-
-| Field                 | Type    | Optional | Comment                                                                   |
-| --------------------- | ------- | -------- | ------------------------------------------------------------------------- |
-| `device_name`         | string  | Yes      | Name of the device                                                        |
-| `device_model`        | string  | Yes      | Device model                                                              |
-| `device_manufacturer` | string  | Yes      | Name of the device manufacturer                                           |
-| `device_type`         | string  | Yes      | `phone` or `tablet`                                                       |
-| `device_is_foldable`  | boolean | Yes      | `true` for foldable devices                                               |
-| `device_is_physical`  | boolean | Yes      | `true` for physical devices                                               |
-| `device_density_dpi`  | number  | Yes      | DPI density                                                               |
-| `device_width_px`     | number  | Yes      | Screen width                                                              |
-| `device_height_px`    | number  | Yes      | Screen height                                                             |
-| `device_density`      | number  | Yes      | Device model                                                              |
-| `device_locale`       | string  | Yes      | Locale based on RFC 5646, eg. en-US                                       |
-| `os_name`             | string  | Yes      | Operating system name                                                     |
-| `os_version`          | string  | Yes      | Operating system version                                                  |
-| `app_version`         | string  | Yes      | App version identifier                                                    |
-| `app_build`           | string  | Yes      | App build identifier                                                      |
-| `app_unique_id`       | string  | Yes      | App bundle identifier                                                     |
-| `network_type`        | string  | Yes      | One of<br/>- wifi<br/>- cellular<br/>- vpn<br/>- unknown<br/>- no_network |
-| `network_provider`    | string  | Yes      | Example: airtel, T-mobile                                                 |
-| `network_generation`  | string  | Yes      | One of:<br/>- 2g<br/>- 3g<br/>- 4g<br/>- 5g                               |
-| `measure_sdk_version` | string  | Yes      | Measure SDK version identifier                                            |
-
 ### Attributes
 
 Events can contain the following attributes, some of which are mandatory.
@@ -350,17 +300,15 @@ Events can contain the following attributes, some of which are mandatory.
 
 Attachments are arbitrary files associated with the session each having the following properties.
 
-| Field       | Type   | Optional | Comment                                                                 |
-| ----------- | ------ | -------- | ----------------------------------------------------------------------- |
-| `name`      | string | No       | name of the attachment                                                  |
-| `type`      | string | No       | One of the following:<br />- `screenshot`<br />- `android_method_trace` |
-| `extension` | string | Yes      | Extension of the file, like png, jpeg, atrace etc                       |
-| `timestamp` | string | No       | ISO 8601 timestamp at the of attachment's creation                      |
-| `blob`      | string | Yes      | Bytes of the file base64 encoded                                        |
+| Field  | Type   | Optional | Comment                                                                 |
+| ------ | ------ | -------- | ----------------------------------------------------------------------- |
+| `id`   | string | No       | id of the attachment                                                    |
+| `name` | string | No       | name of the attachment                                                  |
+| `type` | string | No       | One of the following:<br />- `screenshot`<br />- `android_method_trace` |
 
 ### Events
 
-Event objects have the following shape. Additionally, each object must contain one of the event types of the same name.
+Event objects have the following shape. Additionally, each object must contain one of the event types of the same name. The following is an example event of type `gesture_click`.
 
 ```jsonc
 {
@@ -371,20 +319,24 @@ Event objects have the following shape. Additionally, each object must contain o
   "gesture_click": {
     // snip gesture_click fields
   },
-  "attributes": {
+  "attribute": {
     // snip attributes fields
+  },
+  "attachments": {
+    // snip attachment fields
   }
 }
 ```
 
-| Field          | Type   | Optional | Comment                                                        |
-| -------------- | ------ | -------- | -------------------------------------------------------------- |
-| `id`           | string | No       | UUID of the event                                              |
-| `type`         | string | No       | Type of the event                                              |
-| `session_id`   | string | No       | UUID of the session                                            |
-| `timestamp`    | string | No       | Nanosecond precision timestamp                                 |
-| `<event type>` | object | No       | Any of the event object, like `gesture_click`, `exception` etc |
-| `attributes`   | object | No       | Event attributes                                               |
+| Field          | Type   | Optional | Comment                                                                                                                    |
+| -------------- | ------ | -------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `id`           | string | No       | UUID of the event                                                                                                          |
+| `type`         | string | No       | Type of the event                                                                                                          |
+| `session_id`   | string | No       | UUID of the session                                                                                                        |
+| `timestamp`    | string | No       | Nanosecond precision timestamp                                                                                             |
+| `<event type>` | object | No       | Any of the event object, like `gesture_click`, `exception` etc                                                             |
+| `attributes`   | object | No       | Event attributes                                                                                                           |
+| `attachments`  | object | No       | Attachments for the event. Must be an array of attachment objects. Represent with emtpy array if there are no attachments. |
 
 ### Event Types
 
@@ -493,8 +445,8 @@ Use the `gesture_long_click` body type for longer press and hold gestures.
 | ----------------- | ------ | -------- | ------------------------------------------- |
 | `target`          | string | Yes      | Class/Instance name of the originating view |
 | `target_id`       | string | Yes      | Unique identifier for the target            |
-| `touch_down_time` | string | Yes      | ISO 8601 timestamp when target was pressed  |
-| `touch_up_time`   | string | Yes      | ISO 8601 timestamp when target was released |
+| `touch_down_time` | string | Yes      | System uptime when target was pressed       |
+| `touch_up_time`   | string | Yes      | System uptime when target was released      |
 | `width`           | number | Yes      | Width of the target view in pixels          |
 | `height`          | number | Yes      | Height of the target view in pixels         |
 | `x`               | number | No       | X coordinate of the target view             |
@@ -504,18 +456,18 @@ Use the `gesture_long_click` body type for longer press and hold gestures.
 
 Use the `gesture_scroll` body type for scroll events.
 
-| Field             | Type   | Optional | Comment                                           |
-| ----------------- | ------ | -------- | ------------------------------------------------- |
-| `target`          | string | Yes      | Class/Instance name of the originating view       |
-| `target_id`       | string | Yes      | Unique identifier for the target                  |
-| `touch_down_time` | string | Yes      | ISO 8601 start timestamp when target was scrolled |
-| `touch_up_time`   | string | Yes      | ISO 8601 end timestamp when target scroll ended   |
-| `x`               | number | No       | X coordinate of the target where scroll started   |
-| `y`               | number | No       | Y coordinate of the target where scroll started   |
-| `end_x`           | number | No       | X coordinate of the target where scroll ended     |
-| `end_y`           | number | No       | Y coordinate of the target where scroll ended     |
-| `velocity_px`     | number | Yes      | Velocity at the time of scroll release            |
-| `direction`       | number | Yes      | Angle at which the scroll took place              |
+| Field             | Type   | Optional | Comment                                         |
+| ----------------- | ------ | -------- | ----------------------------------------------- |
+| `target`          | string | Yes      | Class/Instance name of the originating view     |
+| `target_id`       | string | Yes      | Unique identifier for the target                |
+| `touch_down_time` | string | Yes      | System uptime when target scroll started        |
+| `touch_up_time`   | string | Yes      | System uptime when target scroll ended          |
+| `x`               | number | No       | X coordinate of the target where scroll started |
+| `y`               | number | No       | Y coordinate of the target where scroll started |
+| `end_x`           | number | No       | X coordinate of the target where scroll ended   |
+| `end_y`           | number | No       | Y coordinate of the target where scroll ended   |
+| `velocity_px`     | number | Yes      | Velocity at the time of scroll release          |
+| `direction`       | number | Yes      | Angle at which the scroll took place            |
 
 #### **`gesture_click`**
 
@@ -525,8 +477,8 @@ Use the `gesture_click` body type for taps or clicks.
 | ----------------- | ------ | -------- | ----------------------------------------------- |
 | `target`          | string | Yes      | Class/Instance name of the originating view     |
 | `target_id`       | string | Yes      | Unique identifier for the target                |
-| `touch_down_time` | string | Yes      | ISO 8601 timestamp when target was pressed      |
-| `touch_up_time`   | string | Yes      | ISO 8601 timestamp when target was released     |
+| `touch_down_time` | string | Yes      | System uptime when target was pressed           |
+| `touch_up_time`   | string | Yes      | System uptime when target was released          |
 | `width`           | number | Yes      | Width of the target view in pixels              |
 | `height`          | number | Yes      | Height of the target view in pixels             |
 | `x`               | number | No       | X coordinate of the target where click happened |
@@ -549,7 +501,7 @@ Use the `http` body type for tracking a single HTTP network.
 | `response_headers`      | map    | Yes      | The response headers.                                                           |
 | `request_body`          | string | Yes      | The request body, if any. Only supported for json body.                         |
 | `response_body`         | string | Yes      | The response body, if any. Only supported for json body.                        |
-| `http_protocol_version` | string | Yes      | Version of the HTTP protocol. `1.0`, `1.1`, `2` etc                             |
+| `client`         | string | Yes      | Name of the http client like `Okhttp`              |
 
 
 #### **`network_change`**
@@ -679,7 +631,18 @@ Use the `memory_usage` type for memory usage of JVM applications.
 
 #### **`low_memory`**
 
-Use the `low_memory` type for a low memory event from the system. This type has no additional fields.
+Use the `low_memory` type for a low memory event from the system.
+
+| Field             | Type   | Optional | Description                                                                                                                   |
+| ----------------- | :----- | :------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| java_max_heap     | number | No       | Maximum size of the Java heap allocated to the application. Measured in kB.                                                   |
+| java_total_heap   | number | No       | Total size of the Java heap available for memory allocation. Measured in kB.                                                  |
+| java_free_heap    | number | No       | Amount of free memory available in the Java heap. Measured in kB.                                                             |
+| total_pss         | number | No       | Total proportional set size - the amount of memory used by the process, including shared memory and code. Measured in kB.     |
+| rss               | number | Yes      | Resident set size of the Java process - the amount of physical memory currently used by the Java application. Measured in kB. |
+| native_total_heap | number | No       | Total size of the native heap (memory outside of Java's control) available for memory allocation. Measured in kB.             |
+| native_free_heap  | number | No       | Amount of free memory available in the native heap. Measured in kB.                                                           |
+| interval_config   | number | No       | The interval between two consecutive readings. Measured in ms.                                                                |
 
 #### **`trim_memory`**
 
