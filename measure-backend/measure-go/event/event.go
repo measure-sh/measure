@@ -80,6 +80,31 @@ const TypeNavigation = "navigation"
 // of a nominal cold launch duration.
 const NominalColdLaunchThreshold = 30 * time.Second
 
+// ValidLifecycleActivityTypes defines allowed
+// `lifecycle_activity.type` values.
+var ValidLifecycleActivityTypes = []string{
+	"created",
+	"resumed",
+	"paused",
+	"destroyed",
+}
+
+// ValidLifecycleFragmentTypes defines allowed
+// `lifecycle_fragment.type` values.
+var ValidLifecycleFragmentTypes = []string{
+	"attached",
+	"resumed",
+	"paused",
+	"detached",
+}
+
+// ValidLifecycleAppTypes defines allowed
+// `lifecycle_app.type` values.
+var ValidLifecycleAppTypes = []string{
+	"background",
+	"foreground",
+}
+
 type Frame struct {
 	LineNum    int    `json:"line_num"`
 	ColNum     int    `json:"col_num"`
@@ -177,11 +202,11 @@ type AppExit struct {
 	Importance  string `json:"importance" binding:"required"`
 	Trace       string `json:"trace"`
 	ProcessName string `json:"process_name" binding:"required"`
-	PID         string `json:"pid" binding:"required"`
+	PID         string `json:"pid"`
 }
 
 type LogString struct {
-	SeverityText string `json:"severity_text" binding:"required"`
+	SeverityText string `json:"severity_text"`
 	String       string `json:"string" binding:"required"`
 }
 
@@ -192,8 +217,8 @@ type GestureLongClick struct {
 	TouchUpTime   uint32  `json:"touch_up_time"`
 	Width         uint16  `json:"width"`
 	Height        uint16  `json:"height"`
-	X             float32 `json:"x"`
-	Y             float32 `json:"y"`
+	X             float32 `json:"x" binding:"required"`
+	Y             float32 `json:"y" binding:"required"`
 }
 
 type GestureScroll struct {
@@ -724,6 +749,9 @@ func (e *EventField) Validate() error {
 		if e.GestureScroll.X < 0 || e.GestureScroll.Y < 0 {
 			return fmt.Errorf(`%q and %q must contain valid x and y coordinates`, `gesture_scroll.x`, `gesture_scroll.y`)
 		}
+		if e.GestureScroll.EndX < 0 || e.GestureScroll.EndY < 0 {
+			return fmt.Errorf(`%q and %q must contain valid x and y coordinates`, `gesture_scroll.end_x`, `gesture_scroll.end_y`)
+		}
 		if len(e.GestureScroll.Target) > maxGestureScrollTargetChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `gesture_scroll.target`, maxGestureScrollTargetChars)
 		}
@@ -757,6 +785,9 @@ func (e *EventField) Validate() error {
 		if len(e.LifecycleActivity.ClassName) > maxLifecycleActivityClassNameChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_activity.class_name`, maxLifecycleActivityClassNameChars)
 		}
+		if !slices.Contains(ValidLifecycleActivityTypes, e.LifecycleActivity.Type) {
+			return fmt.Errorf(`%q contains invalid lifecycle activity type`, `lifecycle_activity.type`)
+		}
 	}
 
 	if e.IsLifecycleFragment() {
@@ -769,6 +800,12 @@ func (e *EventField) Validate() error {
 		if len(e.LifecycleFragment.ClassName) > maxLifecycleFragmentClassNameChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_fragment.class_name`, maxLifecycleFragmentClassNameChars)
 		}
+		if len(e.LifecycleFragment.ParentActivity) > maxLifecycleFragmentClassNameChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_fragment.parent_activity`, maxLifecycleFragmentClassNameChars)
+		}
+		if !slices.Contains(ValidLifecycleFragmentTypes, e.LifecycleFragment.Type) {
+			return fmt.Errorf(`%q contains invalid lifecycle fragment type`, `lifecycle_fragment.type`)
+		}
 	}
 
 	if e.IsLifecycleApp() {
@@ -777,6 +814,9 @@ func (e *EventField) Validate() error {
 		}
 		if len(e.LifecycleApp.Type) > maxLifecycleAppTypeChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_app.type`, maxLifecycleAppTypeChars)
+		}
+		if !slices.Contains(ValidLifecycleAppTypes, e.LifecycleApp.Type) {
+			return fmt.Errorf(`%q contains invalid lifecycle app type`, `lifecycle_app.type`)
 		}
 	}
 
