@@ -109,7 +109,7 @@ These headers must be present in each request.
 
   ```json
   {
-    "ok": "accepted, known request"
+    "ok": "accepted, known event request"
   }
   ```
 
