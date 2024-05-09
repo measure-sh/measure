@@ -22,6 +22,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     private val manifestReader by lazy { measureInitializer.manifestReader }
     private val unhandledExceptionCollector by lazy { measureInitializer.unhandledExceptionCollector }
     private val anrCollector by lazy { measureInitializer.anrCollector }
+    private val anrCollectorV2 by lazy { measureInitializer.anrCollectorV2 }
     private val cpuUsageCollector by lazy { measureInitializer.cpuUsageCollector }
     private val memoryUsageCollector by lazy { measureInitializer.memoryUsageCollector }
     private val componentCallbacksCollector by lazy { measureInitializer.componentCallbacksCollector }
@@ -66,6 +67,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
         resumedActivityProvider.register()
         unhandledExceptionCollector.register()
         anrCollector.register()
+        anrCollectorV2.register()
         cpuUsageCollector.register()
         memoryUsageCollector.register()
         componentCallbacksCollector.register()
@@ -82,6 +84,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     }
 
     override fun onAppBackground() {
+        // TODO: verify if needed - anrCollectorV2.unregister()
         cpuUsageCollector.pause()
         memoryUsageCollector.pause()
         periodicEventExporter.onAppBackground()

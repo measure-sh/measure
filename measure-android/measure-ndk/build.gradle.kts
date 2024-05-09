@@ -27,7 +27,7 @@ android {
         }
     }
     packaging {
-        jniLibs.pickFirsts += "**/libmeasure-anr.so"
+        jniLibs.pickFirsts += "**/libmeasure-ndk.so"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -36,7 +36,4 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
-}
-
-dependencies {
 }
