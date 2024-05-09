@@ -1378,110 +1378,16 @@ These headers must be present in each request.
 
   ```json
   {
-    "app_id": "75d66815-d9ac-4afc-acec-1addf3766b14",
-    "cpu_usage": [
-      {
-        "timestamp": "2024-02-22T09:45:38.787Z",
-        "value": 1
-      },
-      {
-        "timestamp": "2024-02-22T09:45:41.775Z",
-        "value": 9.333333333333334
-      },
-      {
-        "timestamp": "2024-02-22T09:45:44.218Z",
-        "value": 10.666666666666668
-      },
-      {
-        "timestamp": "2024-02-22T09:45:47.218Z",
-        "value": 21
-      },
-      {
-        "timestamp": "2024-02-22T09:45:50.218Z",
-        "value": 23.666666666666668
-      }
-    ],
-    "duration": 11799,
-    "memory_usage": [
-      {
-        "java_max_heap": 196608,
-        "java_total_heap": 196608,
-        "java_free_heap": 190138,
-        "total_pss": 29390,
-        "rss": 101940,
-        "native_total_heap": 19300,
-        "native_free_heap": 1231,
-        "interval_config": 2000,
-        "timestamp": "2024-02-22T09:45:38.803Z"
-      },
-      {
-        "java_max_heap": 196608,
-        "java_total_heap": 49152,
-        "java_free_heap": 39791,
-        "total_pss": 48597,
-        "rss": 135796,
-        "native_total_heap": 22268,
-        "native_free_heap": 1120,
-        "interval_config": 2000,
-        "timestamp": "2024-02-22T09:45:40.789Z"
-      },
-      {
-        "java_max_heap": 196608,
-        "java_total_heap": 49152,
-        "java_free_heap": 39600,
-        "total_pss": 49548,
-        "rss": 136800,
-        "native_total_heap": 23292,
-        "native_free_heap": 1340,
-        "interval_config": 2000,
-        "timestamp": "2024-02-22T09:45:42.793Z"
-      },
-      {
-        "java_max_heap": 196608,
-        "java_total_heap": 49152,
-        "java_free_heap": 39346,
-        "total_pss": 49839,
-        "rss": 137620,
-        "native_total_heap": 23292,
-        "native_free_heap": 1532,
-        "interval_config": 2000,
-        "timestamp": "2024-02-22T09:45:44.273Z"
-      },
-      {
-        "java_max_heap": 196608,
-        "java_total_heap": 49152,
-        "java_free_heap": 37336,
-        "total_pss": 53357,
-        "rss": 141260,
-        "native_total_heap": 23292,
-        "native_free_heap": 1279,
-        "interval_config": 2000,
-        "timestamp": "2024-02-22T09:45:46.232Z"
-      },
-      {
-        "java_max_heap": 196608,
-        "java_total_heap": 49152,
-        "java_free_heap": 36683,
-        "total_pss": 54135,
-        "rss": 142024,
-        "native_total_heap": 23804,
-        "native_free_heap": 1215,
-        "interval_config": 2000,
-        "timestamp": "2024-02-22T09:45:48.267Z"
-      },
-      {
-        "java_max_heap": 196608,
-        "java_total_heap": 11650,
-        "java_free_heap": 5740,
-        "total_pss": 50964,
-        "rss": 136624,
-        "native_total_heap": 23804,
-        "native_free_heap": 2156,
-        "interval_config": 2000,
-        "timestamp": "2024-02-22T09:45:50.232Z"
-      }
-    ],
-    "resource": {
+    "app_id": "b11fb47e-86ea-43b8-9b73-c6384298b1af",
+    "attribute": {
+      "installation_id": "d96cd6d5-0730-4aa4-8eec-3e580e9819ec",
+      "app_version": "7.62",
+      "app_build": "9223",
+      "app_unique_id": "au.com.shiftyjelly.pocketcasts.debug",
+      "measure_sdk_version": "0.1.0",
+      "platform": "android",
+      "thread_name": "msr-cmu",
+      "user_id": "",
       "device_name": "emu64a",
       "device_model": "sdk_gphone64_arm64",
       "device_manufacturer": "Google",
@@ -1495,273 +1401,83 @@ These headers must be present in each request.
       "device_locale": "en-US",
       "os_name": "android",
       "os_version": "33",
-      "platform": "android",
-      "app_version": "1.0",
-      "app_build": "1",
-      "app_unique_id": "sh.measure.sample",
-      "measure_sdk_version": "0.1.0",
       "network_type": "wifi",
-      "network_generation": "",
-      "network_provider": ""
+      "network_provider": "",
+      "network_generation": ""
     },
-    "session_id": "7552607a-055a-4726-90e3-82d8484e2b87",
+    "cpu_usage": [
+      {
+        "timestamp": "2024-04-29T12:07:09.677Z",
+        "value": 8.666666666666668
+      }
+    ],
+    "duration": 949,
+    "memory_usage": [
+      {
+        "java_max_heap": 524288,
+        "java_total_heap": 524288,
+        "java_free_heap": 512257,
+        "total_pss": 70564,
+        "rss": 152364,
+        "native_total_heap": 12004,
+        "native_free_heap": 1531,
+        "interval_config": 2000,
+        "timestamp": "2024-04-29T12:07:09.71Z"
+      }
+    ],
+    "session_id": "1755de51-18c8-4c14-a58d-ad677485130e",
     "threads": {
-      "OkHttp http://10.0.2.2:8080/...": [
-        {
-          "event_type": "http",
-          "url": "http://10.0.2.2:8080/sessions",
-          "method": "put",
-          "status_code": 202,
-          "request_body_size": 13352,
-          "response_body_size": 0,
-          "request_timestamp": "2024-02-22T09:45:39Z",
-          "response_timestamp": "2024-02-22T09:45:39Z",
-          "start_time": 330871,
-          "end_time": 330968,
-          "dns_start": 0,
-          "dns_end": 0,
-          "connect_start": 330905,
-          "connect_end": 330923,
-          "request_start": 330929,
-          "request_end": 330952,
-          "request_headers_start": 330929,
-          "request_headers_end": 330930,
-          "request_body_start": 330930,
-          "request_body_end": 330952,
-          "response_start": 330956,
-          "response_end": 330956,
-          "response_headers_start": 330956,
-          "response_headers_end": 330956,
-          "response_body_start": 330956,
-          "response_body_end": 330956,
-          "request_headers_size": 273,
-          "response_headers_size": 56,
-          "failure_reason": "",
-          "failure_description": "",
-          "request_headers": {
-            "accept-encoding": "gzip",
-            "authorization": "Bearer msrsh_fd74e9a252711d267b1ae8c84613d29a5276f73f43cd1a41116201bc2ad24aa0_8686a17b",
-            "connection": "Keep-Alive",
-            "content-type": "application/json; charset=utf-8",
-            "host": "10.0.2.2:8080",
-            "transfer-encoding": "chunked",
-            "user-agent": "okhttp/4.12.0"
-          },
-          "response_headers": {
-            "content-length": "0",
-            "date": "Thu, 22 Feb 2024 09:45:42 GMT"
-          },
-          "client": "okhttp",
-          "duration": 97,
-          "timestamp": "2024-02-22T09:45:39.367Z",
-          "attributes": {}
-        }
-      ],
       "main": [
         {
           "event_type": "lifecycle_activity",
+          "thread_name": "main",
           "type": "created",
-          "class_name": "sh.measure.sample.ExceptionDemoActivity",
+          "class_name": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
           "intent": "",
           "saved_instance_state": false,
-          "timestamp": "2024-02-22T09:45:38.936Z",
-          "attributes": {}
+          "timestamp": "2024-04-29T12:07:10.305Z"
+        },
+        {
+          "event_type": "lifecycle_fragment",
+          "thread_name": "main",
+          "type": "attached",
+          "class_name": "au.com.shiftyjelly.pocketcasts.player.view.PlayerContainerFragment",
+          "parent_activity": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+          "tag": "",
+          "timestamp": "2024-04-29T12:07:10.436Z"
+        },
+        {
+          "event_type": "lifecycle_fragment",
+          "thread_name": "main",
+          "type": "attached",
+          "class_name": "au.com.shiftyjelly.pocketcasts.player.view.UpNextFragment",
+          "parent_activity": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+          "tag": "",
+          "timestamp": "2024-04-29T12:07:10.491Z"
         },
         {
           "event_type": "lifecycle_app",
+          "thread_name": "main",
           "type": "foreground",
-          "timestamp": "2024-02-22T09:45:38.97Z",
-          "attributes": {}
+          "timestamp": "2024-04-29T12:07:10.586Z"
         },
         {
-          "event_type": "lifecycle_activity",
-          "type": "resumed",
-          "class_name": "sh.measure.sample.ExceptionDemoActivity",
-          "intent": "",
-          "saved_instance_state": false,
-          "timestamp": "2024-02-22T09:45:38.971Z",
-          "attributes": {}
+          "event_type": "lifecycle_fragment",
+          "thread_name": "main",
+          "type": "attached",
+          "class_name": "au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment",
+          "parent_activity": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+          "tag": "au.com.shiftyjelly.pocketcasts.navigator|au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment||95d520b8-6284-4e84-811d-61fea327f849|",
+          "timestamp": "2024-04-29T12:07:10.602Z"
         },
         {
-          "event_type": "cold_launch",
-          "duration": 413,
-          "timestamp": "2024-02-22T09:45:39.051Z",
-          "attributes": {}
-        },
-        {
-          "event_type": "gesture_click",
-          "target": "com.google.android.material.button.MaterialButton",
-          "target_id": "btn_infinite_loop",
-          "width": 398,
-          "height": 132,
-          "x": 521.97144,
-          "y": 1219.9567,
-          "timestamp": "2024-02-22T09:45:40.976Z",
-          "attributes": {}
-        },
-        {
-          "event_type": "lifecycle_activity",
-          "type": "paused",
-          "class_name": "sh.measure.sample.ExceptionDemoActivity",
-          "intent": "",
-          "saved_instance_state": false,
-          "timestamp": "2024-02-22T09:45:43.315Z",
-          "attributes": {}
-        },
-        {
-          "event_type": "trim_memory",
-          "level": "TRIM_MEMORY_UI_HIDDEN",
-          "timestamp": "2024-02-22T09:45:43.981Z",
-          "attributes": {}
-        },
-        {
-          "event_type": "lifecycle_app",
-          "type": "background",
-          "timestamp": "2024-02-22T09:45:43.985Z",
-          "attributes": {}
-        },
-        {
-          "event_type": "lifecycle_app",
-          "type": "foreground",
-          "timestamp": "2024-02-22T09:45:44.216Z",
-          "attributes": {}
-        },
-        {
-          "event_type": "lifecycle_activity",
-          "type": "resumed",
-          "class_name": "sh.measure.sample.ExceptionDemoActivity",
-          "intent": "",
-          "saved_instance_state": false,
-          "timestamp": "2024-02-22T09:45:44.246Z",
-          "attributes": {}
-        },
-        {
-          "event_type": "hot_launch",
-          "duration": 48,
-          "launched_activity": "sh.measure.sample.ExceptionDemoActivity",
-          "has_saved_state": false,
-          "intent_data": "",
-          "timestamp": "2024-02-22T09:45:44.266Z",
-          "attributes": {}
-        },
-        {
-          "event_type": "gesture_click",
-          "target": "com.google.android.material.button.MaterialButton",
-          "target_id": "btn_compose",
-          "width": 297,
-          "height": 132,
-          "x": 586.96655,
-          "y": 1607.8876,
-          "timestamp": "2024-02-22T09:45:45.11Z",
-          "attributes": {}
-        },
-        {
-          "event_type": "lifecycle_activity",
-          "type": "paused",
-          "class_name": "sh.measure.sample.ExceptionDemoActivity",
-          "intent": "",
-          "saved_instance_state": false,
-          "timestamp": "2024-02-22T09:45:45.119Z",
-          "attributes": {}
-        },
-        {
-          "event_type": "lifecycle_activity",
-          "type": "created",
-          "class_name": "sh.measure.sample.ComposeActivity",
-          "intent": "",
-          "saved_instance_state": false,
-          "timestamp": "2024-02-22T09:45:45.131Z",
-          "attributes": {}
-        },
-        {
-          "event_type": "lifecycle_activity",
-          "type": "resumed",
-          "class_name": "sh.measure.sample.ComposeActivity",
-          "intent": "",
-          "saved_instance_state": false,
-          "timestamp": "2024-02-22T09:45:45.135Z",
-          "attributes": {}
-        },
-        {
-          "event_type": "gesture_scroll",
-          "target": "androidx.compose.ui.platform.AndroidComposeView",
-          "target_id": "",
-          "x": 127.97974,
-          "y": 1528.8922,
-          "end_x": 1048.9526,
-          "end_y": 1409.9249,
-          "direction": "right",
-          "timestamp": "2024-02-22T09:45:46.263Z",
-          "attributes": {}
-        },
-        {
-          "event_type": "lifecycle_activity",
-          "type": "paused",
-          "class_name": "sh.measure.sample.ComposeActivity",
-          "intent": "",
-          "saved_instance_state": false,
-          "timestamp": "2024-02-22T09:45:47.37Z",
-          "attributes": {}
-        },
-        {
-          "event_type": "lifecycle_activity",
-          "type": "resumed",
-          "class_name": "sh.measure.sample.ExceptionDemoActivity",
-          "intent": "",
-          "saved_instance_state": false,
-          "timestamp": "2024-02-22T09:45:47.373Z",
-          "attributes": {}
-        },
-        {
-          "event_type": "lifecycle_activity",
-          "type": "destroyed",
-          "class_name": "sh.measure.sample.ComposeActivity",
-          "intent": "",
-          "saved_instance_state": false,
-          "timestamp": "2024-02-22T09:45:47.913Z",
-          "attributes": {}
-        },
-        {
-          "event_type": "lifecycle_activity",
-          "type": "paused",
-          "class_name": "sh.measure.sample.ExceptionDemoActivity",
-          "intent": "",
-          "saved_instance_state": false,
-          "timestamp": "2024-02-22T09:45:50.474Z",
-          "attributes": {}
-        },
-        {
-          "event_type": "lifecycle_app",
-          "type": "background",
-          "timestamp": "2024-02-22T09:45:50.481Z",
-          "attributes": {}
-        },
-        {
-          "event_type": "trim_memory",
-          "level": "TRIM_MEMORY_UI_HIDDEN",
-          "timestamp": "2024-02-22T09:45:50.496Z",
-          "attributes": {}
-        },
-        {
-          "event_type": "lifecycle_activity",
-          "type": "destroyed",
-          "class_name": "sh.measure.sample.ExceptionDemoActivity",
-          "intent": "",
-          "saved_instance_state": false,
-          "timestamp": "2024-02-22T09:45:50.58299999Z",
-          "attributes": {}
-        }
-      ],
-      "measure-thread-#0": [
-        {
-          "event_type": "app_exit",
-          "reason": "USER_REQUESTED",
-          "importance": "CACHED",
-          "trace": "",
-          "process_name": "sh.measure.sample",
-          "pid": "6886",
-          "timestamp": "2024-02-22T09:45:50.586Z",
-          "attributes": {}
+          "event_type": "exception",
+          "type": "java.lang.IllegalStateException",
+          "thread_name": "main",
+          "handled": false,
+          "stacktrace": "java.lang.IllegalStateException\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:704)\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:701)\n\tat io.reactivex.internal.observers.LambdaObserver.onError(LambdaObserver.java:77)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:67)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n\tat retrofit2.Utils.methodError(Utils.java:54)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:116)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n\tat retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory.get(RxJava2CallAdapterFactory.java:118)\n\tat retrofit2.Retrofit.nextCallAdapter(Retrofit.java:253)\n\tat retrofit2.Retrofit.callAdapter(Retrofit.java:237)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:114)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n",
+          "foreground": true,
+          "timestamp": "2024-04-29T12:07:10.626Z"
         }
       ]
     }
