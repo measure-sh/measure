@@ -52,7 +52,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-8)
   - [PATCH `/apps/:id/alertPrefs`](#patch-appsidalertprefs)
     - [Usage Notes](#usage-notes-9)
-    - [Request Body](#request-body)
+    - [Request body](#request-body)
     - [Authorization \& Content Type](#authorization--content-type-9)
     - [Response Body](#response-body-9)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-9)
@@ -68,51 +68,51 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Response Body](#response-body-11)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-11)
   - [GET `/teams/:id/apps`](#get-teamsidapps)
-    - [Usage Notes](#usage-notes-12)
+    - [Usage Notes](#usage-notes-11)
     - [Authorization \& Content Type](#authorization--content-type-12)
     - [Response Body](#response-body-12)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-12)
   - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
-    - [Usage Notes](#usage-notes-13)
+    - [Usage Notes](#usage-notes-12)
     - [Authorization \& Content Type](#authorization--content-type-13)
     - [Response Body](#response-body-13)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-13)
   - [POST `/teams/:id/apps`](#post-teamsidapps)
-    - [Usage Notes](#usage-notes-14)
+    - [Usage Notes](#usage-notes-13)
     - [Request body](#request-body-2)
     - [Authorization \& Content Type](#authorization--content-type-14)
     - [Response Body](#response-body-14)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-14)
   - [POST `/auth/invite`](#post-authinvite)
-    - [Usage Notes](#usage-notes-15)
+    - [Usage Notes](#usage-notes-14)
     - [Request body](#request-body-3)
     - [Authorization \& Content Type](#authorization--content-type-15)
     - [Response Body](#response-body-15)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-15)
   - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
-    - [Usage Notes](#usage-notes-16)
+    - [Usage Notes](#usage-notes-15)
     - [Request body](#request-body-4)
     - [Authorization \& Content Type](#authorization--content-type-16)
     - [Response Body](#response-body-16)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-16)
   - [GET `/teams/:id/members`](#get-teamsidmembers)
-    - [Usage Notes](#usage-notes-17)
+    - [Usage Notes](#usage-notes-16)
     - [Authorization \& Content Type](#authorization--content-type-17)
     - [Response Body](#response-body-17)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-17)
   - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
-    - [Usage Notes](#usage-notes-18)
+    - [Usage Notes](#usage-notes-17)
     - [Authorization \& Content Type](#authorization--content-type-18)
     - [Response Body](#response-body-18)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-18)
   - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
-    - [Usage Notes](#usage-notes-19)
+    - [Usage Notes](#usage-notes-18)
     - [Request body](#request-body-5)
     - [Authorization \& Content Type](#authorization--content-type-19)
     - [Response Body](#response-body-19)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-19)
   - [GET `/teams/:id/authz`](#get-teamsidauthz)
-    - [Usage Notes](#usage-notes-20)
+    - [Usage Notes](#usage-notes-19)
     - [Authorization \& Content Type](#authorization--content-type-20)
     - [Response Body](#response-body-20)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-20)
@@ -425,57 +425,57 @@ These headers must be present in each request.
 
   <details><summary>Click to expand</summary>
 
-```json
-{
-  "adoption": {
-    "all_versions": 33,
-    "selected_version": 7,
-    "adoption": 21.21,
-    "nan": false
-  },
-  "anr_free_sessions": {
-    "anr_free_sessions": 100,
-    "delta": -78.79,
-    "nan": false
-  },
-  "cold_launch": {
-    "delta": 34.8,
-    "nan": false,
-    "p95": 2771.8
-  },
-  "crash_free_sessions": {
-    "crash_free_sessions": 71.43,
-    "delta": -78.79,
-    "nan": false
-  },
-  "hot_launch": {
-    "delta": 0,
-    "nan": false,
-    "p95": 475.9
-  },
-  "perceived_anr_free_sessions": {
-    "perceived_anr_free_sessions": 100,
-    "delta": -78.79,
-    "nan": false
-  },
-  "perceived_crash_free_sessions": {
-    "perceived_crash_free_sessions": 71.43,
-    "delta": -78.79,
-    "nan": false
-  },
-  "sizes": {
-    "average_app_size": 32359196.33,
-    "selected_app_size": 45196797,
-    "delta": 12837600.67,
-    "nan": false
-  },
-  "warm_launch": {
-    "delta": -129.9,
-    "nan": false,
-    "p95": 554.6
+  ```json
+  {
+    "adoption": {
+      "all_versions": 33,
+      "selected_version": 7,
+      "adoption": 21.21,
+      "nan": false
+    },
+    "anr_free_sessions": {
+      "anr_free_sessions": 100,
+      "delta": -78.79,
+      "nan": false
+    },
+    "cold_launch": {
+      "delta": 34.8,
+      "nan": false,
+      "p95": 2771.8
+    },
+    "crash_free_sessions": {
+      "crash_free_sessions": 71.43,
+      "delta": -78.79,
+      "nan": false
+    },
+    "hot_launch": {
+      "delta": 0,
+      "nan": false,
+      "p95": 475.9
+    },
+    "perceived_anr_free_sessions": {
+      "perceived_anr_free_sessions": 100,
+      "delta": -78.79,
+      "nan": false
+    },
+    "perceived_crash_free_sessions": {
+      "perceived_crash_free_sessions": 71.43,
+      "delta": -78.79,
+      "nan": false
+    },
+    "sizes": {
+      "average_app_size": 32359196.33,
+      "selected_app_size": 45196797,
+      "delta": 12837600.67,
+      "nan": false
+    },
+    "warm_launch": {
+      "delta": -129.9,
+      "nan": false,
+      "p95": 554.6
+    }
   }
-}
-```
+  ```
 
   </details>
 
@@ -2134,22 +2134,22 @@ Update alert preferences of an app.
 
 #### Request body
 
-```json
-{
-    "crash_rate_spike": {
-      "email": true,
-      "slack": false
-    },
-    "anr_rate_spike": {
-      "email": true,
-      "slack": false
-    },
-    "launch_time_spike": {
-      "email": true,
-      "slack": false
+  ```json
+  {
+      "crash_rate_spike": {
+        "email": true,
+        "slack": false
+      },
+      "anr_rate_spike": {
+        "email": true,
+        "slack": false
+      },
+      "launch_time_spike": {
+        "email": true,
+        "slack": false
+      }
     }
-  }
-```
+  ```
 
 #### Authorization & Content Type
 
