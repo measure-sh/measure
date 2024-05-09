@@ -16,7 +16,7 @@ interface SessionReplayProps {
 
 const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
 
-  const cpuData = [
+  const cpuData = sessionReplay.cpu_usage != null ? [
     {
       id: '% CPU Usage',
       data: sessionReplay.cpu_usage.map(item => ({
@@ -24,9 +24,9 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
         y: item.value
       }))
     }
-  ]
+  ] : null
 
-  const memoryData = [
+  const memoryData = sessionReplay.memory_usage != null ? [
     {
       id: 'Java Free Heap',
       data: sessionReplay.memory_usage.map(item => ({
@@ -76,7 +76,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
         y: item.total_pss
       }))
     }
-  ]
+  ] : null
 
   const { events, threads, eventTypes } = parseEventsThreadsAndEventTypesFromSessionReplay()
 
@@ -119,14 +119,14 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
   // such that all y values are 0. Then we implement a timer that sets the real
   // data after a delay. This is needed because there is no current way to 
   // animate lines in directly on render in nivo charts
-  const [cpuChartData, setCpuChartData] = useState(cpuData.map(d => ({
+  const [cpuChartData, setCpuChartData] = useState(cpuData == null ? null : cpuData?.map(d => ({
     id: d.id,
     data: d.data.map(p => ({
       x: p.x,
       y: 0
     }))
   })));
-  const [memoryChartData, setMemoryChartData] = useState(memoryData.map(d => ({
+  const [memoryChartData, setMemoryChartData] = useState(memoryData == null ? null : memoryData?.map(d => ({
     id: d.id,
     data: d.data.map(p => ({
       x: p.x,
@@ -144,138 +144,142 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
   return (
     <div className="flex flex-col w-screen font-sans text-black">
       {/* Memory line */}
-      <div className="h-96">
-        <ResponsiveLine
-          animate
-          data={memoryChartData}
-          curve="monotoneX"
-          crosshairType="cross"
-          margin={{ top: 40, right: 160, bottom: 80, left: 90 }}
-          xFormat='time:%Y-%m-%d %H:%M:%S:%L %p'
-          xScale={{
-            format: '%Y-%m-%d %I:%M:%S:%L %p',
-            precision: 'millisecond',
-            type: 'time',
-            min: 'auto',
-            max: 'auto',
-            useUTC: false
-          }}
-          yScale={{
-            type: 'linear',
-            min: 0,
-            max: 'auto'
-          }}
-          yFormat=" >-.2f"
-          axisTop={null}
-          axisRight={null}
-          axisBottom={{
-            format: '%I:%M:%S %p',
-            legendPosition: 'middle'
-          }}
-          axisLeft={{
-            tickSize: 1,
-            tickPadding: 5,
-            legend: 'Memory in MB',
-            legendOffset: -80,
-            legendPosition: 'middle'
-          }}
-          useMesh={true}
-          colors={{ scheme: 'nivo' }}
-          defs={[
-            {
-              colors: [
-                {
-                  color: 'inherit',
-                  offset: 0
-                },
-                {
-                  color: 'inherit',
-                  offset: 100,
-                  opacity: 0
-                }
-              ],
-              id: 'memoryGradient',
-              type: 'linearGradient'
-            }
-          ]}
-          enableArea
-          enableSlices="x"
-          enableCrosshair
-          fill={[
-            {
-              id: 'memoryGradient',
-              match: '*'
-            }
-          ]}
+      {memoryChartData != null &&
+        <div className="h-96">
+          <ResponsiveLine
+            animate
+            data={memoryChartData}
+            curve="monotoneX"
+            crosshairType="cross"
+            margin={{ top: 40, right: 160, bottom: 80, left: 90 }}
+            xFormat='time:%Y-%m-%d %H:%M:%S:%L %p'
+            xScale={{
+              format: '%Y-%m-%d %I:%M:%S:%L %p',
+              precision: 'millisecond',
+              type: 'time',
+              min: 'auto',
+              max: 'auto',
+              useUTC: false
+            }}
+            yScale={{
+              type: 'linear',
+              min: 0,
+              max: 'auto'
+            }}
+            yFormat=" >-.2f"
+            axisTop={null}
+            axisRight={null}
+            axisBottom={{
+              format: '%I:%M:%S %p',
+              legendPosition: 'middle'
+            }}
+            axisLeft={{
+              tickSize: 1,
+              tickPadding: 5,
+              legend: 'Memory in MB',
+              legendOffset: -80,
+              legendPosition: 'middle'
+            }}
+            useMesh={true}
+            colors={{ scheme: 'nivo' }}
+            defs={[
+              {
+                colors: [
+                  {
+                    color: 'inherit',
+                    offset: 0
+                  },
+                  {
+                    color: 'inherit',
+                    offset: 100,
+                    opacity: 0
+                  }
+                ],
+                id: 'memoryGradient',
+                type: 'linearGradient'
+              }
+            ]}
+            enableArea
+            enableSlices="x"
+            enableCrosshair
+            fill={[
+              {
+                id: 'memoryGradient',
+                match: '*'
+              }
+            ]}
 
-        />
-      </div>
+          />
+        </div>
+      }
       {/* CPU line */}
-      <div className="h-56">
-        <ResponsiveLine
-          animate
-          data={cpuChartData}
-          curve="monotoneX"
-          crosshairType="cross"
-          margin={{ top: 40, right: 160, bottom: 80, left: 90 }}
-          xFormat='time:%Y-%m-%d %I:%M:%S:%L %p'
-          xScale={{
-            format: '%Y-%m-%d %I:%M:%S:%L %p',
-            precision: 'millisecond',
-            type: 'time',
-            min: 'auto',
-            max: 'auto',
-            useUTC: false
-          }}
-          yScale={{
-            type: 'linear',
-            min: 0,
-            max: 'auto'
-          }}
-          yFormat=" >-.2f"
-          axisTop={null}
-          axisRight={null}
-          axisBottom={{
-            format: '%I:%M:%S %p',
-            legendPosition: 'middle'
-          }}
-          axisLeft={{
-            tickSize: 1,
-            tickPadding: 5,
-            legend: '% CPU Usage',
-            legendOffset: -80,
-            legendPosition: 'middle'
-          }}
-          useMesh={true}
-          colors={{ scheme: 'nivo' }}
-          defs={[
-            {
-              colors: [
-                {
-                  color: 'inherit',
-                  offset: 0
-                },
-                {
-                  color: 'inherit',
-                  offset: 100,
-                  opacity: 0
-                }
-              ],
-              id: 'cpuGradient',
-              type: 'linearGradient'
-            }
-          ]}
-          enableArea
-          enableCrosshair
-          enableSlices="x"
-          fill={[
-            {
-              id: 'cpuGradient',
-              match: '*'
-            }
-          ]}
-        />
-      </div>
+      {cpuChartData != null &&
+        <div className="h-56">
+          <ResponsiveLine
+            animate
+            data={cpuChartData}
+            curve="monotoneX"
+            crosshairType="cross"
+            margin={{ top: 40, right: 160, bottom: 80, left: 90 }}
+            xFormat='time:%Y-%m-%d %I:%M:%S:%L %p'
+            xScale={{
+              format: '%Y-%m-%d %I:%M:%S:%L %p',
+              precision: 'millisecond',
+              type: 'time',
+              min: 'auto',
+              max: 'auto',
+              useUTC: false
+            }}
+            yScale={{
+              type: 'linear',
+              min: 0,
+              max: 'auto'
+            }}
+            yFormat=" >-.2f"
+            axisTop={null}
+            axisRight={null}
+            axisBottom={{
+              format: '%I:%M:%S %p',
+              legendPosition: 'middle'
+            }}
+            axisLeft={{
+              tickSize: 1,
+              tickPadding: 5,
+              legend: '% CPU Usage',
+              legendOffset: -80,
+              legendPosition: 'middle'
+            }}
+            useMesh={true}
+            colors={{ scheme: 'nivo' }}
+            defs={[
+              {
+                colors: [
+                  {
+                    color: 'inherit',
+                    offset: 0
+                  },
+                  {
+                    color: 'inherit',
+                    offset: 100,
+                    opacity: 0
+                  }
+                ],
+                id: 'cpuGradient',
+                type: 'linearGradient'
+              }
+            ]}
+            enableArea
+            enableCrosshair
+            enableSlices="x"
+            fill={[
+              {
+                id: 'cpuGradient',
+                match: '*'
+              }
+            ]}
+          />
+        </div>
+      }
       {/* Events*/}
       <div>
         <div className="py-4" />
