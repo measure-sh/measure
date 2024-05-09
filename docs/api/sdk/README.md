@@ -5,30 +5,18 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
 ## Contents <!-- omit in toc -->
 
 - [Resources](#resources)
-  - [PUT `/sessions`](#put-sessions)
+  - [PUT `/events`](#put-events)
     - [Usage Notes](#usage-notes)
-    - [Authorization \& Content Type](#authorization--content-type)
+    - [Request Headers](#request-headers)
     - [Response Body](#response-body)
     - [Request Body](#request-body)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting)
-  - [PUT `/events`](#put-events)
+  - [PUT `/builds`](#put-builds)
     - [Usage Notes](#usage-notes-1)
-    - [Request Headers](#request-headers)
+    - [Authorization \& Content Type](#authorization--content-type)
     - [Response Body](#response-body-1)
     - [Request Body](#request-body-1)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-1)
-  - [PUT `/attachments`](#put-attachments)
-    - [Usage Notes](#usage-notes-2)
-    - [Authorization \& Content Type](#authorization--content-type-1)
-    - [Response Body](#response-body-2)
-    - [Request Body](#request-body-2)
-    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-2)
-  - [PUT `/builds`](#put-builds)
-    - [Usage Notes](#usage-notes-3)
-    - [Authorization \& Content Type](#authorization--content-type-2)
-    - [Response Body](#response-body-3)
-    - [Request Body](#request-body-3)
-    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-3)
 - [References](#references)
   - [Session](#session)
   - [Resource](#resource)
@@ -59,296 +47,8 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
 
 ## Resources
 
-- [**PUT `/sessions`**](#put-sessions) - Send entire log of a session containing all events, attachments, metrics and traces via this unified endpoint.
 - [**PUT `/events`**](#put-events) - Send a batch of events, attachments, metrics and traces via this endpoint.
-
-### PUT `/sessions`
-
-Ingests everything that was captured in a single Measure session. Broadly, these are:
-
-- **Resource** - various device properties like device name, screen dimensions
-- **Events** (optional) - text logs, interactive gestures, network request/response pairs, exceptions
-- **Attachments** (optional) - screenshots, system traces
-- _Metrics_ (optional) - _coming soon_
-- _Traces_ (optional)- _coming soon_
-
-#### Usage Notes
-
-- Each session must contain a unique UUIDv4 id.
-- Each event must contain a nanosecond precision `timestamp` - `"2023-08-24T14:51:38.000000534Z"`
-- Each session must contain a `resource` field containing various device characteristics.
-- Multiple events must be sent in the `events` array field. They must be one of the valid types, like `string`, `gesture_long_click` and so on.
-- Each event can contain upto **10** arbitrary key/value pairs called `Attributes`
-- Successful response returns `202 Accepted`.
-- Idempotent. Previously seen sessions matching by `session_id` won't be re-processed.
-
-#### Authorization & Content Type
-
-1. Set the Measure API key in `Authorization: Bearer <api-key>` format
-
-2. Set content type as `Content-Type: application/json; charset=utf-8`
-
-These headers must be present in each request.
-
-<details>
-<summary>Request Headers - Click to expand</summary>
-
-| **Name**        | **Value**                       |
-| --------------- | ------------------------------- |
-| `Authorization` | Bearer &lt;measure-api-key&gt;  |
-| `Content-Type`  | application/json; charset=utf-8 |
-</details>
-
-#### Response Body
-
-- For new sessions
-
-  ```json
-  {
-    "ok": "accepted"
-  }
-  ```
-
-- For already seen sessions
-
-  ```json
-  {
-    "ok": "accepted, known session"
-  }
-  ```
-
-  > ⚠ **Note**
-  >
-  > A success response of `202 Accepted` means the server has accepted the session, but it may choose to not process & discard some events, metrics, traces and attachments depending on various conditions.
-
-- Failed requests have the following response shape
-
-  ```json
-  {
-    "error": "error message appears here"
-  }
-  ```
-
-#### Request Body
-
-To understand the shape of the JSON payload, take a look at this sample request. You'll find detailed reference of `resource`, `events` &amp; `attachments` shapes below.
-
-**Example payload**
-
-<details>
-<summary>Expand</summary>
-
-```json
-{
-  "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-  "timestamp": "2023-08-24T14:51:38.000000534Z",
-  "resource": {
-    "device_name": "sunfish",
-    "device_model": "SM-G950F",
-    "device_manufacturer": "samsung",
-    "device_type": "phone",
-    "device_is_foldable": true,
-    "device_is_physical": false,
-    "device_density_dpi": 100,
-    "device_width_px": 480,
-    "device_height_px": 800,
-    "device_density": 2,
-    "os_name": "android",
-    "os_version": "31",
-    "platform": "android",
-    "app_version": "1.0.1",
-    "app_build": "576358",
-    "app_unique_id": "com.example.app",
-    "network_type": "cellular",
-    "network_provider": "airtel",
-    "network_generation": "4g",
-    "measure_sdk_version": "0.0.1"
-  },
-  "events": [
-    {
-      "timestamp": "2023-08-24T14:51:39.000000534Z",
-      "type": "string",
-      "string": {
-        "severity_text": "INFO",
-        "string": "This is a log from the Android logcat"
-      },
-      "attributes": {
-        "key1": "value1",
-        "key2": "value2"
-      }
-    },
-    {
-      "timestamp": "2023-08-24T14:51:40.000000534Z",
-      "type": "gesture_long_click",
-      "gesture_long_click": {
-        "target": "some_target_name",
-        "target_id": "some-target-id",
-        "touch_down_time": "2023-09-02T07:14:22Z",
-        "touch_up_time": "2023-09-02T07:14:47Z",
-        "width": 1440,
-        "height": 996,
-        "x": 1234,
-        "y": 340
-      },
-      "attributes": {
-        "key1": "value1",
-        "key2": "value2"
-      }
-    },
-    {
-      "timestamp": "2023-08-24T14:51:41.000000534Z",
-      "type": "gesture_scroll",
-      "gesture_scroll": {
-        "target": "some-scroll-target",
-        "target_id": "scroll-target-id",
-        "touch_down_time": "2023-09-02T07:14:22Z",
-        "touch_up_time": "2023-09-02T07:14:47Z",
-        "x": 1234,
-        "y": 340,
-        "end_x": 1330,
-        "end_y": 370,
-        "velocity_px": 123,
-        "direction": 78
-      },
-      "attributes": {
-        "key1": "value1",
-        "key2": "value2"
-      }
-    },
-    {
-      "type": "gesture_click",
-      "gesture_click": {
-        "target": "some-click-target",
-        "target_id": "click-target-id",
-        "touch_down_time": "2023-09-02T07:14:22Z",
-        "touch_up_time": "2023-09-02T07:14:47Z",
-        "width": 1440,
-        "height": 996,
-        "x": 1234,
-        "y": 340
-      },
-      "attributes": {
-        "key1": "value1",
-        "key2": "value2"
-      }
-    },
-    {
-      "type": "http",
-      "http": {
-        "client": "okhttp",
-        "end_time": 4404308,
-        "failure_description": null,
-        "failure_reason": null,
-        "method": "get",
-        "request_headers": {
-          "accept": "application/json; charset=utf-8;",
-          "accept-encoding": "gzip",
-          "accept-language": "en",
-          "connection": "Keep-Alive",
-          "host": "www.example.com",
-        },
-        "response_headers": {
-          "x-frame-options": "SAMEORIGIN",
-          "x-xss-protection": "1; mode=block"
-        },
-        "start_time": 4400851,
-        "status_code": 304,
-        "url": "https://www.example.com/api/rest_v1/xyz/2024/01/01"
-      },
-      "request_body": null,
-      "response_body": null,
-      "attributes": {
-        "key1": "value1",
-        "key2": "value2"
-      }
-    },
-    {
-      "timestamp": "2023-08-24T14:51:41.000000534Z",
-      "type": "exception",
-      "exception": {
-        "thread_name": "main",
-        "handled": false,
-        "foreground": true,
-        "exceptions": [
-          {
-            "type": "java.lang.RuntimeException",
-            "message": "java.lang.reflect.InvocationTargetException",
-            "frames": [
-              {
-                "line_num": 558,
-                "col_num": 558,
-                "module_name": "com.android.internal.osRuntimeInit$MethodAndArgsCaller",
-                "file_name": "RuntimeInit.java",
-                "class_name": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
-                "method_name": "run"
-              },
-              {
-                "line_num": 936,
-                "col_num": 558,
-                "module_name": "com.android.internal.osRuntimeInit$MethodAndArgsCaller",
-                "file_name": "ZygoteInit.java",
-                "class_name": "com.android.internal.os.ZygoteInit",
-                "method_name": "main"
-              }
-            ]
-          }
-        ],
-        "threads": [
-          {
-            "name": "measure-thread-pool-09",
-            "frames": [
-              {
-                "line_num": -2,
-                "col_num": 158,
-                "module_name": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
-                "file_name": "VMStack.java",
-                "class_name": "dalvik.system.VMStack",
-                "method_name": "getThreadStackTrace"
-              }
-            ]
-          }
-        ]
-      },
-      "attributes": {
-        "key1": "value1",
-        "key2": "value2"
-      }
-    }
-  ],
-  "attachments": [
-    {
-      "name": "attachment-1.png",
-      "type" "screenshot",
-      "extension": "png",
-      "blob": "iVBORw0KGgoAAAANSUhEUgAABDkAAAkkCAYAAAAWEaSRAAAAAX..."
-    },
-    {
-      "name": "attachment-2.png",
-      "type" "screenshot",
-      "extension": "png",
-      "blob": "iVBORw0KGgoAAAANSUhEUgAABDkAAAkkCAYAAAAWEaSRAAAAAX..."
-    }
-  ]
-}
-```
-
-</details>
-
-#### Status Codes & Troubleshooting
-
-List of HTTP status codes for success and failures.
-
-<details>
-<summary>Status Codes - Click to expand</summary>
-
-| **Status**                  | **Meaning**                                                                                                             |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `202 Accepted`              | Request was accepted and will be processed                                                                              |
-| `400 Bad Request`           | Request body is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
-| `401 Unauthorized`          | Either the Measure API key is not present or has expired.                                                               |
-| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                              |
-
-</details>
+- [**PUT `/builds`**]() - Send build mappings and build sizes via this API.
 
 ### PUT `/events`
 
@@ -356,7 +56,7 @@ Ingests a batch of events, which can be of different types and can range across 
 
 #### Usage Notes
 
-- Maximum size of 1MB can be sent in a single request.
+- Maximum size of one request must not exceed **20 MiB**. This limit is includes the combination of events and blob data.
 - Each request must contain a unique UUIDv4 id, set as the header `msr-req-id`. If a request fails, the client must
   retry the same payload with the same `msr-req-id` to ensure idempotency.
 - Each event must contain a nanosecond precision `timestamp` - `"2023-08-24T14:51:38.000000534Z"`
@@ -376,20 +76,24 @@ Ingests a batch of events, which can be of different types and can range across 
 
 1. Set the Measure API key in `Authorization: Bearer <api-key>` format
 
-2. Set content type as `Content-Type: application/json; charset=utf-8`
+2. Set content type as `Content-Type: multipart/form-data; boundary=SDKBoundary`. The value of boundary can be any arbitrary string. Make sure the value doesn' change in a single request.
 
 3. Set a unique UUIDv4 id as `msr-req-id` header.
+
+4. Name of each field must be present in a `Content-Disposition` field. Example - `Content-Disposition: form-data; name="event"`
+
+5. Each blob field must start with the `blob-` prefix followed by the id of the blob. Example - `blob-14228029-d52d-45c7-8054-c8e9586d009a`.
 
 These headers must be present in each request.
 
 <details>
 <summary>Request Headers - Click to expand</summary>
 
-| **Name**        | **Value**                       |
-| --------------- | ------------------------------- |
-| `Authorization` | Bearer &lt;measure-api-key&gt;  |
-| `Content-Type`  | application/json; charset=utf-8 |
-| `msr-req-id`    | &lt;unique-uuid&gt;             |
+| **Name**        | **Value**                                 |
+| --------------- | ----------------------------------------- |
+| `Authorization` | Bearer &lt;measure-api-key&gt;            |
+| `Content-Type`  | multipart/form-data; boundary=SDKBoundary |
+| `msr-req-id`    | &lt;unique-uuid&gt;                       |
 
 </details>
 
@@ -425,341 +129,31 @@ These headers must be present in each request.
 
 #### Request Body
 
-To understand the shape of the JSON payload, take a look at this sample request. You'll find detailed reference of `events` shapes below.
+To understand the shape of the multipart/form-data payload, take a look at this sample request. You'll find detailed reference of `events` shapes below.
 
 **Example payload**
 
 <details>
 <summary>Expand</summary>
 
-```json
-{
-  "events": [
-    {
-      "type": "string",
-      "id": "233a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "string": {
-        "severity_text": "INFO",
-        "string": "This is a log from the Android logcat"
-      },
-      "timestamp": "2023-08-24T14:51:38.000000534Z",
-      "attributes": {
-        "user_id": null,
-        "installation_id": "322a2fbc-a0d1-1212-a92f-9e43e72afbc7",
-        "device_name": "sunfish",
-        "device_model": "SM-G950F",
-        "device_manufacturer": "samsung",
-        "device_type": "phone",
-        "device_is_foldable": true,
-        "device_is_physical": false,
-        "device_density_dpi": 100,
-        "device_width_px": 480,
-        "device_height_px": 800,
-        "device_density": 2,
-        "os_name": "android",
-        "os_version": "31",
-        "platform": "android",
-        "app_version": "1.0.1",
-        "app_build": "576358",
-        "app_unique_id": "com.example.app",
-        "network_type": "cellular",
-        "network_provider": "airtel",
-        "network_generation": "4g",
-        "measure_sdk_version": "0.0.1"
-      }
-    },
-    {
-      "timestamp": "2023-08-24T14:51:40.000000534Z",
-      "id": "9873a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "type": "gesture_long_click",
-      "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "gesture_long_click": {
-        "target": "some_target_name",
-        "target_id": "some-target-id",
-        "touch_down_time": "2023-09-02T07:14:22Z",
-        "touch_up_time": "2023-09-02T07:14:47Z",
-        "width": 1440,
-        "height": 996,
-        "x": 1234,
-        "y": 340
-      },
-      "attributes": {
-        "user_id": null,
-        "installation_id": "322a2fbc-a0d1-1212-a92f-9e43e72afbc7",
-        "device_name": "sunfish",
-        "device_model": "SM-G950F",
-        "device_manufacturer": "samsung",
-        "device_type": "phone",
-        "device_is_foldable": true,
-        "device_is_physical": false,
-        "device_density_dpi": 100,
-        "device_width_px": 480,
-        "device_height_px": 800,
-        "device_density": 2,
-        "os_name": "android",
-        "os_version": "31",
-        "platform": "android",
-        "app_version": "1.0.1",
-        "app_build": "576358",
-        "app_unique_id": "com.example.app",
-        "network_type": "cellular",
-        "network_provider": "airtel",
-        "network_generation": "4g",
-        "measure_sdk_version": "0.0.1"
-      }
-    },
-    {
-      "timestamp": "2023-08-24T14:51:41.000000534Z",
-      "id": "9873a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "type": "gesture_scroll",
-      "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "gesture_scroll": {
-        "target": "some-scroll-target",
-        "target_id": "scroll-target-id",
-        "touch_down_time": "2023-09-02T07:14:22Z",
-        "touch_up_time": "2023-09-02T07:14:47Z",
-        "x": 1234,
-        "y": 340,
-        "end_x": 1330,
-        "end_y": 370,
-        "velocity_px": 123,
-        "direction": 78
-      },
-      "attributes": {
-        "user_id": null,
-        "installation_id": "322a2fbc-a0d1-1212-a92f-9e43e72afbc7",
-        "device_name": "sunfish",
-        "device_model": "SM-G950F",
-        "device_manufacturer": "samsung",
-        "device_type": "phone",
-        "device_is_foldable": true,
-        "device_is_physical": false,
-        "device_density_dpi": 100,
-        "device_width_px": 480,
-        "device_height_px": 800,
-        "device_density": 2,
-        "os_name": "android",
-        "os_version": "31",
-        "platform": "android",
-        "app_version": "1.0.1",
-        "app_build": "576358",
-        "app_unique_id": "com.example.app",
-        "network_type": "cellular",
-        "network_provider": "airtel",
-        "network_generation": "4g",
-        "measure_sdk_version": "0.0.1",
-        "thread_name": "main"
-      }
-    },
-    {
-      "timestamp": "2023-08-24T14:51:41.000000534Z",
-      "type": "gesture_click",
-      "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "gesture_click": {
-        "id": "9873a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-        "target": "some-click-target",
-        "target_id": "click-target-id",
-        "touch_down_time": "2023-09-02T07:14:22Z",
-        "touch_up_time": "2023-09-02T07:14:47Z",
-        "width": 1440,
-        "height": 996,
-        "x": 1234,
-        "y": 340
-      },
-      "attributes": {
-        "user_id": null,
-        "installation_id": "322a2fbc-a0d1-1212-a92f-9e43e72afbc7",
-        "device_name": "sunfish",
-        "device_model": "SM-G950F",
-        "device_manufacturer": "samsung",
-        "device_type": "phone",
-        "device_is_foldable": true,
-        "device_is_physical": false,
-        "device_density_dpi": 100,
-        "device_width_px": 480,
-        "device_height_px": 800,
-        "device_density": 2,
-        "os_name": "android",
-        "os_version": "31",
-        "platform": "android",
-        "app_version": "1.0.1",
-        "app_build": "576358",
-        "app_unique_id": "com.example.app",
-        "network_type": "cellular",
-        "network_provider": "airtel",
-        "network_generation": "4g",
-        "measure_sdk_version": "0.0.1",
-        "thread_name": "main"
-      }
-    },
-    {
-      "timestamp": "2023-08-24T14:51:41.000000534Z",
-      "type": "http",
-      "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "http": {
-        "id": "9873a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-        "client": "okhttp",
-        "end_time": 4404308,
-        "failure_description": null,
-        "failure_reason": null,
-        "method": "get",
-        "request_headers": {
-          "accept": "application/json; charset=utf-8;",
-          "accept-encoding": "gzip",
-          "accept-language": "en",
-          "connection": "Keep-Alive",
-          "host": "www.example.com"
-        },
-        "response_headers": {
-          "x-frame-options": "SAMEORIGIN",
-          "x-xss-protection": "1; mode=block"
-        },
-        "start_time": 4400851,
-        "status_code": 304,
-        "url": "https://www.example.com/api/rest_v1/xyz/2024/01/01"
-      },
-      "request_body": null,
-      "response_body": null,
-      "attributes": {
-        "user_id": null,
-        "installation_id": "322a2fbc-a0d1-1212-a92f-9e43e72afbc7",
-        "device_name": "sunfish",
-        "device_model": "SM-G950F",
-        "device_manufacturer": "samsung",
-        "device_type": "phone",
-        "device_is_foldable": true,
-        "device_is_physical": false,
-        "device_density_dpi": 100,
-        "device_width_px": 480,
-        "device_height_px": 800,
-        "device_density": 2,
-        "os_name": "android",
-        "os_version": "31",
-        "platform": "android",
-        "app_version": "1.0.1",
-        "app_build": "576358",
-        "app_unique_id": "com.example.app",
-        "network_type": "cellular",
-        "network_provider": "airtel",
-        "network_generation": "4g",
-        "measure_sdk_version": "0.0.1",
-        "thread_name": "main"
-      }
-    },
-    {
-      "timestamp": "2023-08-24T14:51:41.000000534Z",
-      "type": "exception",
-      "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "exception": {
-        "id": "9873a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-        "handled": false,
-        "foreground": true,
-        "exceptions": [
-          {
-            "type": "java.lang.RuntimeException",
-            "event_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-            "message": "java.lang.reflect.InvocationTargetException",
-            "frames": [
-              {
-                "line_num": 558,
-                "col_num": 558,
-                "module_name": "com.android.internal.osRuntimeInit$MethodAndArgsCaller",
-                "file_name": "RuntimeInit.java",
-                "class_name": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
-                "method_name": "run"
-              },
-              {
-                "line_num": 936,
-                "col_num": 558,
-                "module_name": "com.android.internal.osRuntimeInit$MethodAndArgsCaller",
-                "file_name": "ZygoteInit.java",
-                "class_name": "com.android.internal.os.ZygoteInit",
-                "method_name": "main"
-              }
-            ]
-          }
-        ],
-        "threads": [
-          {
-            "name": "measure-thread-pool-09",
-            "frames": [
-              {
-                "line_num": -2,
-                "col_num": 158,
-                "module_name": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
-                "file_name": "VMStack.java",
-                "class_name": "dalvik.system.VMStack",
-                "method_name": "getThreadStackTrace"
-              }
-            ]
-          }
-        ]
-      },
-      "attributes": {
-        "user_id": null,
-        "installation_id": "322a2fbc-a0d1-1212-a92f-9e43e72afbc7",
-        "device_name": "sunfish",
-        "device_model": "SM-G950F",
-        "device_manufacturer": "samsung",
-        "device_type": "phone",
-        "device_is_foldable": true,
-        "device_is_physical": false,
-        "device_density_dpi": 100,
-        "device_width_px": 480,
-        "device_height_px": 800,
-        "device_density": 2,
-        "os_name": "android",
-        "os_version": "31",
-        "platform": "android",
-        "app_version": "1.0.1",
-        "app_build": "576358",
-        "app_unique_id": "com.example.app",
-        "network_type": "cellular",
-        "network_provider": "airtel",
-        "network_generation": "4g",
-        "measure_sdk_version": "0.0.1",
-        "thread_name": "main"
-      }
-    }
-  ],
-  "attachments": [
-    {
-      "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "timestamp": "2024-03-18T07:24:38.54000000Z",
-      "id": "9873a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-      "name": "cold_launch",
-      "extension": "trace",
-      "type": "android_method_trace",
-      "blob": "",
-      "attributes": {
-        "user_id": "733a2fbc-a0d1-1212-a92f-9e43e72afbc7",
-        "installation_id": "322a2fbc-a0d1-1212-a92f-9e43e72afbc7",
-        "device_name": "sunfish",
-        "device_model": "SM-G950F",
-        "device_manufacturer": "samsung",
-        "device_type": "phone",
-        "device_is_foldable": true,
-        "device_is_physical": false,
-        "device_density_dpi": 100,
-        "device_width_px": 480,
-        "device_height_px": 800,
-        "device_density": 2,
-        "os_name": "android",
-        "os_version": "31",
-        "platform": "android",
-        "app_version": "1.0.1",
-        "app_build": "576358",
-        "app_unique_id": "com.example.app",
-        "network_type": "cellular",
-        "network_provider": "airtel",
-        "network_generation": "4g",
-        "measure_sdk_version": "0.0.1",
-        "thread_name": "main"
-      }
-    }
-  ]
-}
+```
+--PieBoundary123456789012345678901234567
+Content-Disposition: form-data; name="event"
+
+{"type":"string","id":"233a2fbc-a0d1-4912-a92f-9e43e72afbc6","session_id":"633a2fbc-a0d1-4912-a92f-9e43e72afbc6","string":{"severity_text":"INFO","string":"This is a log from the Android logcat"},"timestamp":"2023-08-24T14:51:38.000000534Z","attributes":{"user_id":null,"installation_id":"322a2fbc-a0d1-1212-a92f-9e43e72afbc7","device_name":"sunfish","device_model":"SM-G950F","device_manufacturer":"samsung","device_type":"phone","device_is_foldable":true,"device_is_physical":false,"device_density_dpi":100,"device_width_px":480,"device_height_px":800,"device_density":2,"os_name":"android","os_version":"31","platform":"android","app_version":"1.0.1","app_build":"576358","app_unique_id":"com.example.app","network_type":"cellular","network_provider":"airtel","network_generation":"4g","measure_sdk_version":"0.0.1"},"attachments":[]}
+--PieBoundary123456789012345678901234567
+Content-Disposition: form-data; name="event"
+
+{"type":"gesture_long_click","id":"9873a2fb-a0d1-4912-a92f-9e43e72afbc6","timestamp":"2023-08-24T14:51:40.000000534Z","session_id":"633a2fbc-a0d1-4912-a92f-9e43e72afbc6","gesture_long_click":{"target":"some_target_name","target_id":"some-target-id","touch_down_time":3394122,"touch_up_time":3395418,"width":1440,"height":996,"x":1234,"y":340},"attributes":{"user_id":null,"installation_id":"322a2fbc-a0d1-1212-a92f-9e43e72afbc7","device_name":"sunfish","device_model":"SM-G950F","device_manufacturer":"samsung","device_type":"phone","device_is_foldable":true,"device_is_physical":false,"device_density_dpi":100,"device_width_px":480,"device_height_px":800,"device_density":2,"os_name":"android","os_version":"31","platform":"android","app_version":"1.0.1","app_build":"576358","app_unique_id":"com.example.app","network_type":"cellular","network_provider":"airtel","network_generation":"4g","measure_sdk_version":"0.0.1"},"attachments":[{"id":"9e45a0bc-9277-468c-92f6-5eba2afc26e8","name":"screenshot-bla-bla.png","type":"screenshot","extension":"png", "timestamp": "2024-03-18T07:24:52.17200000Z"}]}
+--PieBoundary123456789012345678901234567
+Content-Disposition: form-data; name="event"
+
+{"type":"gesture_scroll","id":"9873a2fb-a0d1-4912-a92f-9e43e72afbc6","timestamp":"2023-08-24T14:51:41.000000534Z","session_id":"633a2fbc-a0d1-4912-a92f-9e43e72afbc6","gesture_scroll":{"target":"some-scroll-target","target_id":"scroll-target-id","touch_down_time":3394122,"touch_up_time":3395418,"x":1234,"y":340,"end_x":1330,"end_y":370,"velocity_px":123,"direction":"up"},"attributes":{"user_id":null,"installation_id":"322a2fbc-a0d1-1212-a92f-9e43e72afbc7","device_name":"sunfish","device_model":"SM-G950F","device_manufacturer":"samsung","device_type":"phone","device_is_foldable":true,"device_is_physical":false,"device_density_dpi":100,"device_width_px":480,"device_height_px":800,"device_density":2,"os_name":"android","os_version":"31","platform":"android","app_version":"1.0.1","app_build":"576358","app_unique_id":"com.example.app","network_type":"cellular","network_provider":"airtel","network_generation":"4g","measure_sdk_version":"0.0.1","thread_name":"main"},"attachments":[]}
+--PieBoundary123456789012345678901234567
+Content-Disposition: form-data; name="blob-9e45a0bc-9277-468c-92f6-5eba2afc26e8"
+
+
+--PieBoundary123456789012345678901234567--
 ```
 
 </details>
@@ -776,200 +170,6 @@ List of HTTP status codes for success and failures.
 | `202 Accepted`              | Request was accepted and will be processed                                                                              |
 | `400 Bad Request`           | Request body is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
 | `401 Unauthorized`          | Either the Measure API key is not present or has expired.                                                               |
-| `429 Too Many Requests`     | Rate limit has exceeded. Retry request respecting `Retry-After` response header.                                        |
-| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                              |
-| `503 Service Unavailable`   | Measure server is temporarily unavailable. Retry request respecting `Retry-After` response header.                      |
-
-</details>
-
-### PUT `/attachments`
-
-Ingests one or more attachments, where the attachment is a base64 encoded binary blob.
-
-#### Usage Notes
-
-- Maximum size of an attachment is 5 MiB.
-- Maximum of 50 MiB can be sent in a single request.
-- Each request must contain a unique UUIDv4 id, set as the header `msr-req-id`. If a request fails, the client must
-  retry the same payload with the same `msr-req-id` to ensure idempotency.
-- Each attachment must contain a nanosecond precision `timestamp` - `"2023-08-24T14:51:38.000000534Z"`
-- Successful response returns `202 Accepted`.
-- Idempotent. Previously seen attachments matching by `msr-req-id` won't be re-processed.
-
-#### Authorization \& Content Type
-
-1. Set the Measure API key in `Authorization: Bearer <api-key>` format
-
-2. Set a unique UUIDv4 id as `msr-req-id` header.
-
-3. Set the content type as `Content-Type: multipart/form-data;boundary="<boundary>"` with a suitable boundary.
-
-4. Value of `<boundary>` can be string, but make sure the value doesn't change in the same request.
-
-These headers must be present in each request.
-
-<details>
-<summary>Request Headers - Click to expand</summary>
-
-| **Name**        | **Value**                       |
-| --------------- | ------------------------------- |
-| `Authorization` | Bearer &lt;measure-api-key&gt;  |
-| `Content-Type`  | application/json; charset=utf-8 |
-| `msr-req-id`    | &lt;unique-uuid&gt;             |
-
-</details>
-
-#### Response Body
-
-- For new sessions
-
-  ```json
-  {
-    "ok": "accepted"
-  }
-  ```
-
-- For already seen `msr-req-id`
-
-  ```json
-  {
-    "ok": "accepted, known request"
-  }
-  ```
-
-  > ⚠ **Note**
-  >
-  > A success response of `202 Accepted` means the server has accepted the attachments, but it may choose to not process & discard some attachments depending on various conditions.
-
-- Failed requests have the following response shape
-
-  ```json
-  {
-    "error": "error message appears here"
-  }
-  ```
-
-#### Request Body
-
-Payload must be a `multipart/form-data` each field separated using `Content-Disposition` fields. Typically, you would use the facilities provided by your programming language's standard library or other third party request libraries to issue such requests.
-
-To understand the shape of the payload, take a look at this sample request. Each `multipart/form-data` payload must contain multiple of 3 named parameters.
-
-1. **`attatchment`**
-2. **`attribute`**
-3. **`blob`**
-
-The number of `attachment`, `attribute` and `blob` fields should match. For example, if uploadng 2 attachments, the payload should look like below.
-
-**Example payload**
-
-<details>
-<summary>Expand</summary>
-
-```
---boundary
-Content-Disposition: form-data; name="attachment"
-
-{
-  "extension": "trace",
-  "id": "9873a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-  "name": "cold_launch",
-  "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-  "timestamp": "2024-03-18T07:24:38.54000000Z",
-  "type": "android_method_trace",
-}
---boundary
-Content-Disposition: form-data; name="attribute"
-
-{
-  "user_id": "733a2fbc-a0d1-1212-a92f-9e43e72afbc7",
-  "installation_id": "322a2fbc-a0d1-1212-a92f-9e43e72afbc7",
-  "device_name": "sunfish",
-  "device_model": "SM-G950F",
-  "device_manufacturer": "samsung",
-  "device_type": "phone",
-  "device_is_foldable": true,
-  "device_is_physical": false,
-  "device_density_dpi": 100,
-  "device_width_px": 480,
-  "device_height_px": 800,
-  "device_density": 2,
-  "os_name": "android",
-  "os_version": "31",
-  "platform": "android",
-  "app_version": "1.0.1",
-  "app_build": "576358",
-  "app_unique_id": "com.example.app",
-  "network_type": "cellular",
-  "network_provider": "airtel",
-  "network_generation": "4g",
-  "measure_sdk_version": "0.0.1",
-  "thread_name": "main"
-}
---boundary
-Content-Disposition: form-data; name="blob"; filename="cold_launch.trace"
-
-<...file bytes...>
---boundary
-Content-Disposition: form-data; name="attachment"
-
-{
-  "extension": "trace",
-  "id": "9873a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-  "name": "cold_launch",
-  "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
-  "timestamp": "2024-03-18T07:24:38.54000000Z",
-  "type": "android_method_trace",
-}
---boundary
-Content-Disposition: form-data; name="attribute"
-
-{
-  "user_id": "733a2fbc-a0d1-1212-a92f-9e43e72afbc7",
-  "installation_id": "322a2fbc-a0d1-1212-a92f-9e43e72afbc7",
-  "device_name": "sunfish",
-  "device_model": "SM-G950F",
-  "device_manufacturer": "samsung",
-  "device_type": "phone",
-  "device_is_foldable": true,
-  "device_is_physical": false,
-  "device_density_dpi": 100,
-  "device_width_px": 480,
-  "device_height_px": 800,
-  "device_density": 2,
-  "os_name": "android",
-  "os_version": "31",
-  "platform": "android",
-  "app_version": "1.0.1",
-  "app_build": "576358",
-  "app_unique_id": "com.example.app",
-  "network_type": "cellular",
-  "network_provider": "airtel",
-  "network_generation": "4g",
-  "measure_sdk_version": "0.0.1",
-  "thread_name": "main"
-}
---boundary
-Content-Disposition: form-data; name="blob"; filename="cold_launch.trace"
-
-<...file bytes...>
-```
-
-</details>
-
-#### Status Codes & Troubleshooting
-
-List of HTTP status codes for success and failures.
-
-<details>
-<summary>Status Codes - Click to expand</summary>
-
-| **Status**                  | **Meaning**                                                                                                             |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `202 Accepted`              | Request was accepted and will be processed                                                                              |
-| `400 Bad Request`           | Request body is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
-| `401 Unauthorized`          | Either the Measure API key is not present or has expired.                                                               |
-| `413 Content Too Large`     | Attachment file size exceeded maximum allowed limit.                                                                    |
 | `429 Too Many Requests`     | Rate limit has exceeded. Retry request respecting `Retry-After` response header.                                        |
 | `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                              |
 | `503 Service Unavailable`   | Measure server is temporarily unavailable. Retry request respecting `Retry-After` response header.                      |
@@ -1164,9 +364,10 @@ Event objects have the following shape. Additionally, each object must contain o
 
 ```jsonc
 {
-  "timestamp": "2023-08-24T14:51:41.000000534Z",
+  "id": "1c8a5e51-4d7d-4b2c-9be8-1abb31d38f90",
   "type": "gesture_click",
   "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
+  "timestamp": "2023-08-24T14:51:41.000000534Z",
   "gesture_click": {
     // snip gesture_click fields
   },
@@ -1176,11 +377,14 @@ Event objects have the following shape. Additionally, each object must contain o
 }
 ```
 
-| Field        | Type   | Optional | Comment                                                                                                    |
-| ------------ | ------ | -------- | ---------------------------------------------------------------------------------------------------------- |
-| `timestamp`  | string | No       | Nanosecond precision timestamp                                                                             |
-| `type`       | string | No       | Device model                                                                                               |
-| `attributes` | object | Yes      | Additional arbitrary metadata. All values must be of `string` type. Cannot contain more than **10** items. |
+| Field          | Type   | Optional | Comment                                                        |
+| -------------- | ------ | -------- | -------------------------------------------------------------- |
+| `id`           | string | No       | UUID of the event                                              |
+| `type`         | string | No       | Type of the event                                              |
+| `session_id`   | string | No       | UUID of the session                                            |
+| `timestamp`    | string | No       | Nanosecond precision timestamp                                 |
+| `<event type>` | object | No       | Any of the event object, like `gesture_click`, `exception` etc |
+| `attributes`   | object | No       | Event attributes                                               |
 
 ### Event Types
 
