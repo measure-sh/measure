@@ -235,7 +235,7 @@ const emptyCrashGroupDetails = {
     "timestamp": "",
     "type": "",
     "thread_name": "",
-    "resource": {
+    "attribute": {
         "device_name": "",
         "device_model": "",
         "device_manufacturer": "",
@@ -291,7 +291,7 @@ const emptyAnrGroupDetails = {
     "timestamp": "",
     "type": "",
     "thread_name": "",
-    "resource": {
+    "attribute": {
         "device_name": "",
         "device_model": "",
         "device_manufacturer": "",
@@ -388,7 +388,7 @@ export const emptySessionReplay = {
             "timestamp": ""
         }
     ],
-    "resource": {
+    "attribute": {
         "device_name": "",
         "device_model": "",
         "device_manufacturer": "",

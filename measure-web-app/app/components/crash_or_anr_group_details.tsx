@@ -293,9 +293,9 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
               {/* We show ... in loading state for Crash/Anr ID so that user knows some API call is happening */}
               <p className="font-display text-xl"> Id: {crashOrAnrGroupDetailsApiStatus == CrashOrAnrGroupDetailsApiStatus.Loading ? '...' : crashOrAnrGroupDetails.results[0].id}</p>
               <p className="font-sans"> Date & time: {formatDateToHumanReadable(crashOrAnrGroupDetails.results[0].timestamp)}, {formatTimeToHumanReadable(crashOrAnrGroupDetails.results[0].timestamp)}</p>
-              <p className="font-sans"> Device: {crashOrAnrGroupDetails.results[0].resource.device_manufacturer + crashOrAnrGroupDetails.results[0].resource.device_model}</p>
-              <p className="font-sans"> App version: {crashOrAnrGroupDetails.results[0].resource.app_version}</p>
-              <p className="font-sans"> Network type: {crashOrAnrGroupDetails.results[0].resource.network_type}</p>
+              <p className="font-sans"> Device: {crashOrAnrGroupDetails.results[0].attribute.device_manufacturer + crashOrAnrGroupDetails.results[0].attribute.device_model}</p>
+              <p className="font-sans"> App version: {crashOrAnrGroupDetails.results[0].attribute.app_version}</p>
+              <p className="font-sans"> Network type: {crashOrAnrGroupDetails.results[0].attribute.network_type}</p>
               <div className="py-2" />
               <Link key={crashOrAnrGroupDetails.results[0].id} href={`/${teamId}/sessions/${appId}/${crashOrAnrGroupDetails.results[0].session_id}`} className="outline-none justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">View Session </Link>
               <div className="py-4" />
