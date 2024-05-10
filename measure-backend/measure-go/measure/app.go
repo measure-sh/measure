@@ -1374,17 +1374,24 @@ func GetAppMetrics(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
-		fmt.Println(err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		msg := `failed to parse app metrics request`
+		fmt.Println(msg, err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
 		return
 	}
 
 	af.expand()
 
 	if err := af.validate(); err != nil {
-		msg := "app journey request validation failed"
+		msg := "app metrics request validation failed"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
 		return
 	}
 
