@@ -698,65 +698,6 @@ func (a *App) Onboard(ctx context.Context, tx *pgx.Tx, uniqueIdentifier, platfor
 	return nil
 }
 
-func (a *App) GetEventResource(id uuid.UUID) (resource *event.Resource, err error) {
-	resource = &event.Resource{}
-	stmt := sqlf.From(`default.events`).
-		Select(`toString(resource.device_name)`, nil).
-		Select(`toString(resource.device_model)`, nil).
-		Select(`toString(resource.device_manufacturer)`, nil).
-		Select(`toString(resource.device_type)`, nil).
-		Select(`resource.device_is_foldable`, nil).
-		Select(`resource.device_is_physical`, nil).
-		Select(`resource.device_density_dpi`, nil).
-		Select(`resource.device_width_px`, nil).
-		Select(`resource.device_height_px`, nil).
-		Select(`resource.device_density`, nil).
-		Select(`toString(resource.device_locale)`, nil).
-		Select(`toString(resource.os_name)`, nil).
-		Select(`toString(resource.os_version)`, nil).
-		Select(`toString(resource.platform)`, nil).
-		Select(`toString(resource.app_version)`, nil).
-		Select(`toString(resource.app_build)`, nil).
-		Select(`toString(resource.app_unique_id)`, nil).
-		Select(`toString(resource.measure_sdk_version)`, nil).
-		Select(`toString(resource.network_type)`, nil).
-		Select(`toString(resource.network_generation)`, nil).
-		Select(`toString(resource.network_provider)`, nil).
-		Where(`id = ?`)
-
-	defer stmt.Close()
-
-	dest := []any{
-		&resource.DeviceName,
-		&resource.DeviceModel,
-		&resource.DeviceManufacturer,
-		&resource.DeviceType,
-		&resource.DeviceIsFoldable,
-		&resource.DeviceIsPhysical,
-		&resource.DeviceDensityDPI,
-		&resource.DeviceWidthPX,
-		&resource.DeviceHeightPX,
-		&resource.DeviceDensity,
-		&resource.DeviceLocale,
-		&resource.OSName,
-		&resource.OSVersion,
-		&resource.Platform,
-		&resource.AppVersion,
-		&resource.AppBuild,
-		&resource.AppUniqueID,
-		&resource.MeasureSDKVersion,
-		&resource.NetworkType,
-		&resource.NetworkGeneration,
-		&resource.NetworkProvider,
-	}
-
-	if err := server.Server.ChPool.QueryRow(context.Background(), stmt.String(), id).Scan(dest...); err != nil {
-		return nil, err
-	}
-
-	return
-}
-
 func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Session, error) {
 	cols := []string{
 		`id`,
