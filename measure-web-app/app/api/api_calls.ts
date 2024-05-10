@@ -24,6 +24,12 @@ export enum FiltersApiStatus {
     NoData
 }
 
+export enum FiltersApiType {
+    All,
+    Crash,
+    Anr
+}
+
 export enum JourneyApiStatus {
     Loading,
     Success,
@@ -606,7 +612,7 @@ export const fetchAppsFromServer = async (teamId: string, router: AppRouterInsta
     return { status: AppsApiStatus.Success, data: data }
 }
 
-export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, router: AppRouterInstance) => {
+export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filtersApiType: FiltersApiType, router: AppRouterInstance) => {
     if (!selectedApp.onboarded) {
         return { status: FiltersApiStatus.NotOnboarded, data: null }
     }
@@ -619,7 +625,16 @@ export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, route
         }
     };
 
-    const res = await fetch(`${origin}/apps/${selectedApp.id}/filters`, opts);
+    let url = `${origin}/apps/${selectedApp.id}/filters`
+
+    // if filter is for Crashes or Anrs, we append a query param indicating it
+    if (filtersApiType === FiltersApiType.Crash) {
+        url += '?crash=1'
+    } else if (filtersApiType === FiltersApiType.Anr) {
+        url += '?anr=1'
+    }
+
+    const res = await fetch(url, opts);
 
     if (!res.ok) {
         logoutIfAuthError(supabase, router, res)

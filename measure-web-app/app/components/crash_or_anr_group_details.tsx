@@ -6,7 +6,7 @@ import ExceptionCountChart from "@/app/components/exception_count_chart";
 import FilterPill from "@/app/components/filter_pill";
 import UserFlowCrashOrAnrGroupDetails from "@/app/components/user_flow_crash_details";
 import Link from "next/link";
-import { AppsApiStatus, CrashOrAnrGroupDetailsApiStatus, CrashOrAnrType, FiltersApiStatus, emptyApp, emptyCrashGroupDetailsResponse, emptyAnrGroupDetailsResponse, fetchAppsFromServer, fetchCrashOrAnrGroupDetailsFromServer, fetchFiltersFromServer, AppVersion } from '@/app/api/api_calls';
+import { AppsApiStatus, CrashOrAnrGroupDetailsApiStatus, CrashOrAnrType, FiltersApiStatus, emptyApp, emptyCrashGroupDetailsResponse, emptyAnrGroupDetailsResponse, fetchAppsFromServer, fetchCrashOrAnrGroupDetailsFromServer, fetchFiltersFromServer, AppVersion, FiltersApiType } from '@/app/api/api_calls';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import { updateDateQueryParams } from '../utils/router_utils';
@@ -108,7 +108,7 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
 
     setFiltersApiStatus(FiltersApiStatus.Loading)
 
-    const result = await fetchFiltersFromServer(selectedApp, router)
+    const result = await fetchFiltersFromServer(selectedApp, crashOrAnrType === CrashOrAnrType.Crash ? FiltersApiType.Crash : FiltersApiType.Anr, router)
 
     switch (result.status) {
       case FiltersApiStatus.NotOnboarded:
