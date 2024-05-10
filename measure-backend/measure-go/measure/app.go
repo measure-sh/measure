@@ -1362,9 +1362,11 @@ func GetAppJourney(c *gin.Context) {
 func GetAppMetrics(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		msg := `id invalid or missing`
+		msg := `app id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -1385,8 +1387,18 @@ func GetAppMetrics(c *gin.Context) {
 
 	af.expand()
 
+	msg := `app metrics request validation failed`
+
 	if err := af.validate(); err != nil {
-		msg := "app metrics request validation failed"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.validateVersions(); err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   msg,
@@ -1399,64 +1411,72 @@ func GetAppMetrics(c *gin.Context) {
 		af.setDefaultTimeRange()
 	}
 
-	if len(af.Versions) < 1 || len(af.VersionCodes) < 1 {
-		msg := `version and version code is missing`
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
-	}
-
 	app := App{
 		ID: &id,
 	}
 
-	msg := `failed to fetch app metrics`
+	msg = `failed to fetch app metrics`
 
 	launch, err := app.GetLaunchMetrics(&af)
 	if err != nil {
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	adoption, err := app.GetAdoptionMetrics(&af)
 	if err != nil {
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	sizes, err := app.GetSizeMetrics(&af)
 	if err != nil {
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	crashFree, err := app.GetCrashFreeMetrics(&af)
 	if err != nil {
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	anrFree, err := app.GetANRFreeMetrics(&af)
 	if err != nil {
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	perceivedCrashFree, err := app.GetPerceivedCrashFreeMetrics(&af)
 	if err != nil {
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	perceivedANRFree, err := app.GetPerceivedANRFreeMetrics(&af)
 	if err != nil {
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
