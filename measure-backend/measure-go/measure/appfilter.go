@@ -158,6 +158,15 @@ func (af *AppFilter) validate() error {
 	return nil
 }
 
+// validateVersions validates presence of valid
+// version name and version code.
+func (af *AppFilter) validateVersions() error {
+	if len(af.Versions) < 1 || len(af.VersionCodes) < 1 {
+		return fmt.Errorf(`version and version code is required`)
+	}
+	return nil
+}
+
 // expand expands comma separated fields to slice
 // of strings
 func (af *AppFilter) expand() {
