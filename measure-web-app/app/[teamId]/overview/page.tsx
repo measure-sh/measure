@@ -6,7 +6,7 @@ import Journey from "@/app/components/journey";
 import MetricsOverview from '@/app/components/metrics_overview';
 import { useRouter, useSearchParams } from 'next/navigation';
 import CreateApp from '@/app/components/create_app';
-import { AppVersion, AppsApiStatus, FiltersApiStatus, emptyApp, fetchAppsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
+import { AppVersion, AppsApiStatus, FiltersApiStatus, FiltersApiType, emptyApp, fetchAppsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
 import { updateDateQueryParams } from '@/app/utils/router_utils';
 import { formatDateToHumanReadable } from '@/app/utils/time_utils';
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select';
@@ -74,7 +74,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
 
     setFiltersApiStatus(FiltersApiStatus.Loading)
 
-    const result = await fetchFiltersFromServer(selectedApp, router)
+    const result = await fetchFiltersFromServer(selectedApp, FiltersApiType.All, router)
 
     switch (result.status) {
       case FiltersApiStatus.NotOnboarded:

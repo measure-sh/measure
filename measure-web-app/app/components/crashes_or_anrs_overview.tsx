@@ -6,7 +6,7 @@ import FilterPill from "@/app/components/filter_pill";
 import Link from "next/link";
 import { useRouter, useSearchParams } from 'next/navigation';
 import CreateApp from '@/app/components/create_app';
-import { AppVersion, AppsApiStatus, CrashOrAnrGroupsApiStatus, CrashOrAnrType, FiltersApiStatus, emptyApp, emptyCrashOrAnrGroupsResponse, fetchAppsFromServer, fetchCrashOrAnrGroupsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
+import { AppVersion, AppsApiStatus, CrashOrAnrGroupsApiStatus, CrashOrAnrType, FiltersApiStatus, FiltersApiType, emptyApp, emptyCrashOrAnrGroupsResponse, fetchAppsFromServer, fetchCrashOrAnrGroupsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import { updateDateQueryParams } from '../utils/router_utils';
 import { formatDateToHumanReadable } from '../utils/time_utils';
@@ -86,7 +86,7 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
 
     setFiltersApiStatus(FiltersApiStatus.Loading)
 
-    const result = await fetchFiltersFromServer(selectedApp, router)
+    const result = await fetchFiltersFromServer(selectedApp, crashOrAnrType === CrashOrAnrType.Crash ? FiltersApiType.Crash : FiltersApiType.Anr, router)
 
     switch (result.status) {
       case FiltersApiStatus.NotOnboarded:
