@@ -32,24 +32,78 @@ type AppFilter struct {
 	// these fields should be exportable
 	// otherwise gin doesn't bind them
 	// and fails silently
-	AppID               uuid.UUID
-	From                time.Time `form:"from" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
-	To                  time.Time `form:"to" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
-	Versions            []string  `form:"versions"`
-	VersionCodes        []string  `form:"version_codes"`
-	Countries           []string  `form:"countries"`
-	DeviceNames         []string  `form:"device_names"`
-	DeviceManufacturers []string  `form:"device_manufacturers"`
-	Locales             []string  `form:"locales"`
-	NetworkProviders    []string  `form:"network_providers"`
-	NetworkGenerations  []string  `form:"network_generations"`
-	NetworkTypes        []string  `form:"network_types"`
-	Exception           bool      `form:"exception"`
-	Crash               bool      `form:"crash"`
-	ANR                 bool      `form:"anr"`
-	KeyID               string    `form:"key_id"`
-	KeyTimestamp        time.Time `form:"key_timestamp"`
-	Limit               int       `form:"limit"`
+
+	// ID is the unique id of the app.
+	AppID uuid.UUID
+
+	// From represents the lower time bound of
+	// the filter time range.
+	From time.Time `form:"from" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
+
+	// To represents the upper time bound of
+	// the filter time range.
+	To time.Time `form:"to" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
+
+	// Versions is the list of version string
+	// to be matched & filtered on.
+	Versions []string `form:"versions"`
+
+	// VersionCodes is the list of version code
+	// to be matched & filtered on.
+	VersionCodes []string `form:"version_codes"`
+
+	// Countries is the list of country codes
+	// to be matched on & filtered on.
+	Countries []string `form:"countries"`
+
+	// DeviceNames is the list of device names
+	// to be matched & filtered on.
+	DeviceNames []string `form:"device_names"`
+
+	// DeviceManufacturers is the list of device
+	// manufacturers to be matched & filtered on.
+	DeviceManufacturers []string `form:"device_manufacturers"`
+
+	// Locales is the list of device locales to
+	// be matched & filtered on.
+	Locales []string `form:"locales"`
+
+	// NetworkProviders is the list of network
+	// providers to be matched & filtered on.
+	NetworkProviders []string `form:"network_providers"`
+
+	// NetworkGenerations is the list of network
+	// generations to be matched & filtered on.
+	NetworkGenerations []string `form:"network_generations"`
+
+	// NetworkTypes is the list of network types
+	// to be matched & filtered on.
+	NetworkTypes []string `form:"network_types"`
+
+	// Exception indicates the filtering should
+	// only consider exception events, both
+	// handled & unhandled.
+	Exception bool `form:"exception"`
+
+	// Crash indicates the filtering should
+	// only consider unhandled exception events.
+	Crash bool `form:"crash"`
+
+	// ANR indicates the filtering should only
+	// consider ANR events.
+	ANR bool `form:"anr"`
+
+	// KeyID is the anchor point for keyset
+	// pagination.
+	KeyID string `form:"key_id"`
+
+	// KeyTimestamp is the anchor point for
+	// keyset pagination.
+	KeyTimestamp time.Time `form:"key_timestamp"`
+
+	// Limit is the count of matching results to
+	// limit to.
+	Limit int `form:"limit"`
 }
 
 // FilterList holds various filter parameter values that are
