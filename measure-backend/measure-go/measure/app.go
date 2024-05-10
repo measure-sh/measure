@@ -1308,9 +1308,11 @@ func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 func GetAppJourney(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		msg := `id invalid or missing`
+		msg := `app id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	af := AppFilter{
@@ -1324,10 +1326,22 @@ func GetAppJourney(c *gin.Context) {
 		return
 	}
 
+	af.expand()
+
+	msg := "app journey request validation failed"
+
 	if err := af.validate(); err != nil {
-		msg := "app journey request validation failed"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		return
+	}
+
+	if err := af.validateVersions(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
 		return
 	}
 
