@@ -171,7 +171,7 @@ func (a App) GetANRGroups(af *AppFilter) ([]ANRGroup, error) {
 	return groups, nil
 }
 
-func (a App) GetSizeMetrics(af *AppFilter) (size *metrics.SizeMetric, err error) {
+func (a App) GetSizeMetrics(ctx context.Context, af *AppFilter) (size *metrics.SizeMetric, err error) {
 	size = &metrics.SizeMetric{}
 	stmt := sqlf.Select("count(id) as count").
 		From("default.events").
@@ -184,7 +184,6 @@ func (a App) GetSizeMetrics(af *AppFilter) (size *metrics.SizeMetric, err error)
 	args := []any{a.ID, af.Versions[0], af.VersionCodes[0], af.From, af.To}
 	var count uint64
 
-	ctx := context.Background()
 	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), args...).Scan(&count); err != nil {
 		return nil, err
 	}
@@ -220,7 +219,7 @@ func (a App) GetSizeMetrics(af *AppFilter) (size *metrics.SizeMetric, err error)
 	return
 }
 
-func (a App) GetCrashFreeMetrics(af *AppFilter) (crashFree *metrics.CrashFreeSession, err error) {
+func (a App) GetCrashFreeMetrics(ctx context.Context, af *AppFilter) (crashFree *metrics.CrashFreeSession, err error) {
 	crashFree = &metrics.CrashFreeSession{}
 	stmt := sqlf.
 		With("all_sessions",
@@ -256,7 +255,6 @@ func (a App) GetCrashFreeMetrics(af *AppFilter) (crashFree *metrics.CrashFreeSes
 
 	args := []any{a.ID, af.From, af.To, version, code, version, code, version, code}
 
-	ctx := context.Background()
 	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), args...).Scan(&crashFree.CrashFreeSessions, &crashFree.Delta); err != nil {
 		return nil, err
 	}
@@ -266,7 +264,7 @@ func (a App) GetCrashFreeMetrics(af *AppFilter) (crashFree *metrics.CrashFreeSes
 	return
 }
 
-func (a App) GetANRFreeMetrics(af *AppFilter) (anrFree *metrics.ANRFreeSession, err error) {
+func (a App) GetANRFreeMetrics(ctx context.Context, af *AppFilter) (anrFree *metrics.ANRFreeSession, err error) {
 	anrFree = &metrics.ANRFreeSession{}
 	stmt := sqlf.
 		With("all_sessions",
@@ -302,7 +300,6 @@ func (a App) GetANRFreeMetrics(af *AppFilter) (anrFree *metrics.ANRFreeSession, 
 
 	args := []any{a.ID, af.From, af.To, version, code, version, code, version, code}
 
-	ctx := context.Background()
 	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), args...).Scan(&anrFree.ANRFreeSessions, &anrFree.Delta); err != nil {
 		return nil, err
 	}
@@ -312,7 +309,7 @@ func (a App) GetANRFreeMetrics(af *AppFilter) (anrFree *metrics.ANRFreeSession, 
 	return
 }
 
-func (a App) GetPerceivedCrashFreeMetrics(af *AppFilter) (crashFree *metrics.PerceivedCrashFreeSession, err error) {
+func (a App) GetPerceivedCrashFreeMetrics(ctx context.Context, af *AppFilter) (crashFree *metrics.PerceivedCrashFreeSession, err error) {
 	crashFree = &metrics.PerceivedCrashFreeSession{}
 	stmt := sqlf.
 		With("all_sessions",
@@ -348,7 +345,6 @@ func (a App) GetPerceivedCrashFreeMetrics(af *AppFilter) (crashFree *metrics.Per
 
 	args := []any{a.ID, af.From, af.To, version, code, version, code, version, code}
 
-	ctx := context.Background()
 	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), args...).Scan(&crashFree.CrashFreeSessions, &crashFree.Delta); err != nil {
 		return nil, err
 	}
@@ -358,7 +354,7 @@ func (a App) GetPerceivedCrashFreeMetrics(af *AppFilter) (crashFree *metrics.Per
 	return
 }
 
-func (a App) GetPerceivedANRFreeMetrics(af *AppFilter) (anrFree *metrics.PerceivedANRFreeSession, err error) {
+func (a App) GetPerceivedANRFreeMetrics(ctx context.Context, af *AppFilter) (anrFree *metrics.PerceivedANRFreeSession, err error) {
 	anrFree = &metrics.PerceivedANRFreeSession{}
 	stmt := sqlf.
 		With("all_sessions",
@@ -394,7 +390,6 @@ func (a App) GetPerceivedANRFreeMetrics(af *AppFilter) (anrFree *metrics.Perceiv
 
 	args := []any{a.ID, af.From, af.To, version, code, version, code, version, code}
 
-	ctx := context.Background()
 	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), args...).Scan(&anrFree.ANRFreeSessions, &anrFree.Delta); err != nil {
 		return nil, err
 	}
@@ -404,7 +399,7 @@ func (a App) GetPerceivedANRFreeMetrics(af *AppFilter) (anrFree *metrics.Perceiv
 	return
 }
 
-func (a App) GetAdoptionMetrics(af *AppFilter) (adoption *metrics.SessionAdoption, err error) {
+func (a App) GetAdoptionMetrics(ctx context.Context, af *AppFilter) (adoption *metrics.SessionAdoption, err error) {
 	adoption = &metrics.SessionAdoption{}
 	stmt := sqlf.From("default.events").
 		With("all_sessions",
@@ -427,8 +422,6 @@ func (a App) GetAdoptionMetrics(af *AppFilter) (adoption *metrics.SessionAdoptio
 
 	args := []any{a.ID, af.From, af.To, af.Versions[0], af.VersionCodes[0]}
 
-	ctx := context.Background()
-
 	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), args...).Scan(&adoption.AllVersions, &adoption.SelectedVersion, &adoption.Adoption); err != nil {
 		return nil, err
 	}
@@ -438,7 +431,7 @@ func (a App) GetAdoptionMetrics(af *AppFilter) (adoption *metrics.SessionAdoptio
 	return
 }
 
-func (a App) GetLaunchMetrics(af *AppFilter) (launch *metrics.LaunchMetric, err error) {
+func (a App) GetLaunchMetrics(ctx context.Context, af *AppFilter) (launch *metrics.LaunchMetric, err error) {
 	launch = &metrics.LaunchMetric{}
 	stmt := sqlf.
 		With("timings",
@@ -491,7 +484,6 @@ func (a App) GetLaunchMetrics(af *AppFilter) (launch *metrics.LaunchMetric, err 
 	code := af.VersionCodes[0]
 	args := []any{a.ID, af.From, af.To, version, code, version, code, version, code}
 
-	ctx := context.Background()
 	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), args...).Scan(&launch.ColdLaunchP95, &launch.WarmLaunchP95, &launch.HotLaunchP95, &launch.ColdDelta, &launch.WarmDelta, &launch.ColdDelta); err != nil {
 		return nil, err
 	}
@@ -1374,6 +1366,7 @@ func GetAppJourney(c *gin.Context) {
 }
 
 func GetAppMetrics(c *gin.Context) {
+	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		msg := `app id invalid or missing`
@@ -1431,7 +1424,7 @@ func GetAppMetrics(c *gin.Context) {
 
 	msg = `failed to fetch app metrics`
 
-	launch, err := app.GetLaunchMetrics(&af)
+	launch, err := app.GetLaunchMetrics(ctx, &af)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -1440,7 +1433,7 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	adoption, err := app.GetAdoptionMetrics(&af)
+	adoption, err := app.GetAdoptionMetrics(ctx, &af)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -1449,7 +1442,7 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	sizes, err := app.GetSizeMetrics(&af)
+	sizes, err := app.GetSizeMetrics(ctx, &af)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -1458,7 +1451,7 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	crashFree, err := app.GetCrashFreeMetrics(&af)
+	crashFree, err := app.GetCrashFreeMetrics(ctx, &af)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -1467,7 +1460,7 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	anrFree, err := app.GetANRFreeMetrics(&af)
+	anrFree, err := app.GetANRFreeMetrics(ctx, &af)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -1476,7 +1469,7 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	perceivedCrashFree, err := app.GetPerceivedCrashFreeMetrics(&af)
+	perceivedCrashFree, err := app.GetPerceivedCrashFreeMetrics(ctx, &af)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -1485,7 +1478,7 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	perceivedANRFree, err := app.GetPerceivedANRFreeMetrics(&af)
+	perceivedANRFree, err := app.GetPerceivedANRFreeMetrics(ctx, &af)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
