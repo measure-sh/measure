@@ -493,212 +493,7 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *AppFilter) (launch *metri
 	return
 }
 
-func NewApp(teamId uuid.UUID) *App {
-	now := time.Now()
-	id := uuid.New()
-	return &App{
-		ID:        &id,
-		TeamId:    teamId,
-		CreatedAt: now,
-		UpdatedAt: now,
-	}
-}
-
-func (a *App) add() (*APIKey, error) {
-	id := uuid.New()
-	a.ID = &id
-	tx, err := server.Server.PgPool.Begin(context.Background())
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback(context.Background())
-
-	_, err = tx.Exec(context.Background(), "insert into public.apps(id, team_id, app_name, created_at, updated_at) values ($1, $2, $3, $4, $5);", a.ID, a.TeamId, a.AppName, a.CreatedAt, a.UpdatedAt)
-
-	if err != nil {
-		return nil, err
-	}
-
-	apiKey, err := NewAPIKey(*a.ID)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if err := apiKey.saveTx(tx); err != nil {
-		return nil, err
-	}
-
-	alertPref := newAlertPref(*a.ID)
-
-	if err := alertPref.insertTx(tx); err != nil {
-		return nil, err
-	}
-
-	if err := tx.Commit(context.Background()); err != nil {
-		return nil, err
-	}
-
-	return apiKey, nil
-}
-
-func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
-	var appName pgtype.Text
-	var uniqueId pgtype.Text
-	var platform pgtype.Text
-	var firstVersion pgtype.Text
-	var onboarded pgtype.Bool
-	var onboardedAt pgtype.Timestamptz
-	var apiKeyLastSeen pgtype.Timestamptz
-	var apiKeyCreatedAt pgtype.Timestamptz
-	var createdAt pgtype.Timestamptz
-	var updatedAt pgtype.Timestamptz
-
-	apiKey := new(APIKey)
-
-	cols := []string{
-		"apps.app_name",
-		"apps.unique_identifier",
-		"apps.platform",
-		"apps.first_version",
-		"apps.onboarded",
-		"apps.onboarded_at",
-		"api_keys.key_prefix",
-		"api_keys.key_value",
-		"api_keys.checksum",
-		"api_keys.last_seen",
-		"api_keys.created_at",
-		"apps.created_at",
-		"apps.updated_at",
-	}
-
-	stmt := sqlf.PostgreSQL.
-		Select(strings.Join(cols, ",")).
-		From("public.apps").
-		LeftJoin("public.api_keys", "api_keys.app_id = apps.id").
-		Where("apps.id = ? and apps.team_id = ?", nil, nil)
-
-	defer stmt.Close()
-
-	dest := []any{
-		&appName,
-		&uniqueId,
-		&platform,
-		&firstVersion,
-		&onboarded,
-		&onboardedAt,
-		&apiKey.keyPrefix,
-		&apiKey.keyValue,
-		&apiKey.checksum,
-		&apiKeyLastSeen,
-		&apiKeyCreatedAt,
-		&createdAt,
-		&updatedAt,
-	}
-
-	if err := server.Server.PgPool.QueryRow(context.Background(), stmt.String(), id, a.TeamId).Scan(dest...); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil
-		} else {
-			return nil, err
-		}
-	}
-
-	if appName.Valid {
-		a.AppName = appName.String
-	}
-
-	if uniqueId.Valid {
-		a.UniqueId = uniqueId.String
-	} else {
-		a.UniqueId = ""
-	}
-
-	if platform.Valid {
-		a.Platform = platform.String
-	} else {
-		a.Platform = ""
-	}
-
-	if firstVersion.Valid {
-		a.FirstVersion = firstVersion.String
-	} else {
-		a.FirstVersion = ""
-	}
-
-	if onboarded.Valid {
-		a.Onboarded = onboarded.Bool
-	}
-
-	if onboardedAt.Valid {
-		a.OnboardedAt = onboardedAt.Time
-	}
-
-	if apiKeyLastSeen.Valid {
-		apiKey.lastSeen = apiKeyLastSeen.Time
-	}
-
-	if apiKeyCreatedAt.Valid {
-		apiKey.createdAt = apiKeyCreatedAt.Time
-	}
-
-	if createdAt.Valid {
-		a.CreatedAt = createdAt.Time
-	}
-
-	if updatedAt.Valid {
-		a.UpdatedAt = updatedAt.Time
-	}
-
-	a.APIKey = apiKey
-
-	return a, nil
-}
-
-func (a *App) getTeam(ctx context.Context) (*Team, error) {
-	team := &Team{}
-
-	stmt := sqlf.PostgreSQL.
-		Select("team_id").
-		From("apps").
-		Where("id = ?", nil)
-	defer stmt.Close()
-
-	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), a.ID).Scan(&team.ID); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil
-		} else {
-			return nil, err
-		}
-	}
-
-	return team, nil
-}
-
-func (a *App) Onboard(ctx context.Context, tx *pgx.Tx, uniqueIdentifier, platform, firstVersion string) error {
-	now := time.Now()
-	stmt := sqlf.PostgreSQL.Update("public.apps").
-		Set("onboarded", true).
-		Set("unique_identifier", uniqueIdentifier).
-		Set("platform", platform).
-		Set("first_version", firstVersion).
-		Set("onboarded_at", now).
-		Set("updated_at", now).
-		Where("id = ?", a.ID)
-
-	defer stmt.Close()
-
-	_, err := (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Session, error) {
+func (a App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Session, error) {
 	cols := []string{
 		`id`,
 		`toString(type)`,
@@ -1179,6 +974,211 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 	}
 
 	return &session, nil
+}
+
+func NewApp(teamId uuid.UUID) *App {
+	now := time.Now()
+	id := uuid.New()
+	return &App{
+		ID:        &id,
+		TeamId:    teamId,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+}
+
+func (a *App) add() (*APIKey, error) {
+	id := uuid.New()
+	a.ID = &id
+	tx, err := server.Server.PgPool.Begin(context.Background())
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback(context.Background())
+
+	_, err = tx.Exec(context.Background(), "insert into public.apps(id, team_id, app_name, created_at, updated_at) values ($1, $2, $3, $4, $5);", a.ID, a.TeamId, a.AppName, a.CreatedAt, a.UpdatedAt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	apiKey, err := NewAPIKey(*a.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := apiKey.saveTx(tx); err != nil {
+		return nil, err
+	}
+
+	alertPref := newAlertPref(*a.ID)
+
+	if err := alertPref.insertTx(tx); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(context.Background()); err != nil {
+		return nil, err
+	}
+
+	return apiKey, nil
+}
+
+func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
+	var appName pgtype.Text
+	var uniqueId pgtype.Text
+	var platform pgtype.Text
+	var firstVersion pgtype.Text
+	var onboarded pgtype.Bool
+	var onboardedAt pgtype.Timestamptz
+	var apiKeyLastSeen pgtype.Timestamptz
+	var apiKeyCreatedAt pgtype.Timestamptz
+	var createdAt pgtype.Timestamptz
+	var updatedAt pgtype.Timestamptz
+
+	apiKey := new(APIKey)
+
+	cols := []string{
+		"apps.app_name",
+		"apps.unique_identifier",
+		"apps.platform",
+		"apps.first_version",
+		"apps.onboarded",
+		"apps.onboarded_at",
+		"api_keys.key_prefix",
+		"api_keys.key_value",
+		"api_keys.checksum",
+		"api_keys.last_seen",
+		"api_keys.created_at",
+		"apps.created_at",
+		"apps.updated_at",
+	}
+
+	stmt := sqlf.PostgreSQL.
+		Select(strings.Join(cols, ",")).
+		From("public.apps").
+		LeftJoin("public.api_keys", "api_keys.app_id = apps.id").
+		Where("apps.id = ? and apps.team_id = ?", nil, nil)
+
+	defer stmt.Close()
+
+	dest := []any{
+		&appName,
+		&uniqueId,
+		&platform,
+		&firstVersion,
+		&onboarded,
+		&onboardedAt,
+		&apiKey.keyPrefix,
+		&apiKey.keyValue,
+		&apiKey.checksum,
+		&apiKeyLastSeen,
+		&apiKeyCreatedAt,
+		&createdAt,
+		&updatedAt,
+	}
+
+	if err := server.Server.PgPool.QueryRow(context.Background(), stmt.String(), id, a.TeamId).Scan(dest...); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	}
+
+	if appName.Valid {
+		a.AppName = appName.String
+	}
+
+	if uniqueId.Valid {
+		a.UniqueId = uniqueId.String
+	} else {
+		a.UniqueId = ""
+	}
+
+	if platform.Valid {
+		a.Platform = platform.String
+	} else {
+		a.Platform = ""
+	}
+
+	if firstVersion.Valid {
+		a.FirstVersion = firstVersion.String
+	} else {
+		a.FirstVersion = ""
+	}
+
+	if onboarded.Valid {
+		a.Onboarded = onboarded.Bool
+	}
+
+	if onboardedAt.Valid {
+		a.OnboardedAt = onboardedAt.Time
+	}
+
+	if apiKeyLastSeen.Valid {
+		apiKey.lastSeen = apiKeyLastSeen.Time
+	}
+
+	if apiKeyCreatedAt.Valid {
+		apiKey.createdAt = apiKeyCreatedAt.Time
+	}
+
+	if createdAt.Valid {
+		a.CreatedAt = createdAt.Time
+	}
+
+	if updatedAt.Valid {
+		a.UpdatedAt = updatedAt.Time
+	}
+
+	a.APIKey = apiKey
+
+	return a, nil
+}
+
+func (a *App) getTeam(ctx context.Context) (*Team, error) {
+	team := &Team{}
+
+	stmt := sqlf.PostgreSQL.
+		Select("team_id").
+		From("apps").
+		Where("id = ?", nil)
+	defer stmt.Close()
+
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), a.ID).Scan(&team.ID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	}
+
+	return team, nil
+}
+
+func (a *App) Onboard(ctx context.Context, tx *pgx.Tx, uniqueIdentifier, platform, firstVersion string) error {
+	now := time.Now()
+	stmt := sqlf.PostgreSQL.Update("public.apps").
+		Set("onboarded", true).
+		Set("unique_identifier", uniqueIdentifier).
+		Set("platform", platform).
+		Set("first_version", firstVersion).
+		Set("onboarded_at", now).
+		Set("updated_at", now).
+		Where("id = ?", a.ID)
+
+	defer stmt.Close()
+
+	_, err := (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // SelectApp selects app by its id.
