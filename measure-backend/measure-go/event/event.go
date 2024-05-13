@@ -76,6 +76,19 @@ const TypeTrimMemory = "trim_memory"
 const TypeCPUUsage = "cpu_usage"
 const TypeNavigation = "navigation"
 
+const LifecycleActivityTypeCreated = "created"
+const LifecycleActivityTypeResumed = "resumed"
+const LifecycleActivityTypePaused = "paused"
+const LifecycleActivityTypeDestroyed = "destroyed"
+
+const LifecycleFragmentTypeAttached = "attached"
+const LifecycleFragmentTypeResumed = "resumed"
+const LifecycleFragmentTypePaused = "paused"
+const LifecycleFragmentTypeDetached = "detached"
+
+const LifecycleAppTypeBackground = "background"
+const LifecycleAppTypeForeground = "foreground"
+
 // NominalColdLaunchThreshold defines the upper bound
 // of a nominal cold launch duration.
 const NominalColdLaunchThreshold = 30 * time.Second
@@ -83,26 +96,26 @@ const NominalColdLaunchThreshold = 30 * time.Second
 // ValidLifecycleActivityTypes defines allowed
 // `lifecycle_activity.type` values.
 var ValidLifecycleActivityTypes = []string{
-	"created",
-	"resumed",
-	"paused",
-	"destroyed",
+	LifecycleActivityTypeCreated,
+	LifecycleActivityTypeResumed,
+	LifecycleActivityTypePaused,
+	LifecycleActivityTypeDestroyed,
 }
 
 // ValidLifecycleFragmentTypes defines allowed
 // `lifecycle_fragment.type` values.
 var ValidLifecycleFragmentTypes = []string{
-	"attached",
-	"resumed",
-	"paused",
-	"detached",
+	LifecycleFragmentTypeAttached,
+	LifecycleFragmentTypeResumed,
+	LifecycleFragmentTypePaused,
+	LifecycleFragmentTypeDetached,
 }
 
 // ValidLifecycleAppTypes defines allowed
 // `lifecycle_app.type` values.
 var ValidLifecycleAppTypes = []string{
-	"background",
-	"foreground",
+	LifecycleAppTypeBackground,
+	LifecycleAppTypeForeground,
 }
 
 type Frame struct {
