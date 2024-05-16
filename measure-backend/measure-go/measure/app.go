@@ -539,12 +539,6 @@ func (a *App) add() (*APIKey, error) {
 		return nil, err
 	}
 
-	alertPref := newAlertPref(*a.ID)
-
-	if err := alertPref.insertTx(tx); err != nil {
-		return nil, err
-	}
-
 	if err := tx.Commit(context.Background()); err != nil {
 		return nil, err
 	}
@@ -2320,7 +2314,15 @@ func GetAlertPrefs(c *gin.Context) {
 		return
 	}
 
-	alertPref, err := getAlertPref(appId)
+	userIdString := c.GetString("userId")
+
+	userId, err := uuid.Parse(userIdString)
+	if err != nil {
+		fmt.Println("Error parsing userId:", err)
+		return
+	}
+
+	alertPref, err := getAlertPref(appId, userId)
 	if err != nil {
 		msg := `unable to fetch notif prefs`
 		fmt.Println(msg, err)
@@ -2332,8 +2334,13 @@ func GetAlertPrefs(c *gin.Context) {
 }
 
 func UpdateAlertPrefs(c *gin.Context) {
-	ctx := c.Request.Context()
-	userId := c.GetString("userId")
+	userIdString := c.GetString("userId")
+
+	userId, err := uuid.Parse(userIdString)
+	if err != nil {
+		fmt.Println("Error parsing userId:", err)
+		return
+	}
 
 	appId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -2343,31 +2350,7 @@ func UpdateAlertPrefs(c *gin.Context) {
 		return
 	}
 
-	app := &App{
-		ID: &appId,
-	}
-
-	var team *Team
-	if team, err = app.getTeam(ctx); err != nil {
-		msg := "failed to get app"
-		fmt.Println(msg, err)
-		return
-	}
-
-	ok, err := PerformAuthz(userId, team.ID.String(), *ScopeAppAll)
-	if err != nil {
-		msg := `couldn't perform authorization checks`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-	if !ok {
-		msg := fmt.Sprintf(`you don't have permissions to update alert preferences in team [%s]`, app.TeamId)
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
-		return
-	}
-
-	alertPref := newAlertPref(appId)
+	alertPref := newAlertPref(appId, userId)
 
 	var payload AlertPrefPayload
 	if err := c.ShouldBindJSON(&payload); err != nil {
@@ -2378,11 +2361,8 @@ func UpdateAlertPrefs(c *gin.Context) {
 	}
 
 	alertPref.CrashRateSpikeEmail = payload.CrashRateSpike.Email
-	alertPref.CrashRateSpikeSlack = payload.CrashRateSpike.Slack
 	alertPref.AnrRateSpikeEmail = payload.AnrRateSpike.Email
-	alertPref.AnrRateSpikeSlack = payload.AnrRateSpike.Slack
 	alertPref.LaunchTimeSpikeEmail = payload.LaunchTimeSpike.Email
-	alertPref.LaunchTimeSpikeSlack = payload.LaunchTimeSpike.Slack
 
 	alertPref.update()
 
