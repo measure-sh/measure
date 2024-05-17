@@ -56,7 +56,8 @@ func main() {
 	r.Use(cors).Use(measure.ValidateAccessToken())
 	apps := r.Group("/apps")
 	{
-		apps.GET(":id/journey", measure.GetAppJourney)
+		apps.GET(":id/journey", measure.GetAppJourneyOld)
+		apps.GET(":id/journey2", measure.GetAppJourney)
 		apps.GET(":id/metrics", measure.GetAppMetrics)
 		apps.GET(":id/filters", measure.GetAppFilters)
 		apps.GET(":id/crashGroups", measure.GetCrashGroups)
