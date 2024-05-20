@@ -3,6 +3,7 @@ package sh.measure.android.fakes
 import android.app.Application
 import sh.measure.android.MeasureInitializer
 import sh.measure.android.anr.AnrCollector
+import sh.measure.android.anr.AnrCollectorV2
 import sh.measure.android.appexit.AppExitCollector
 import sh.measure.android.applaunch.AppLaunchCollector
 import sh.measure.android.attributes.UserAttributeProcessor
@@ -33,6 +34,7 @@ internal class FakeMeasureInitializer : MeasureInitializer {
     override lateinit var okHttpEventCollector: OkHttpEventCollector
     override lateinit var unhandledExceptionCollector: UnhandledExceptionCollector
     override lateinit var anrCollector: AnrCollector
+    override lateinit var anrCollectorV2: AnrCollectorV2
     override lateinit var appExitCollector: AppExitCollector
     override lateinit var cpuUsageCollector: CpuUsageCollector
     override lateinit var memoryUsageCollector: MemoryUsageCollector

@@ -26,6 +26,7 @@ internal class AnrCollectorV2(
     }
 
     override fun onAnrDetected(timestamp: Long) {
+        logger.log(LogLevel.Info, "ANR detected at $timestamp")
         val anrError = AnrError(
             mainLooper.thread,
             timestamp,
