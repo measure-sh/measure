@@ -43,7 +43,7 @@ android {
 
     defaultConfig {
         minSdk = 21
-
+        ndkVersion = "23.1.7779620"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
     }
