@@ -22,7 +22,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     private val manifestReader by lazy { measureInitializer.manifestReader }
     private val unhandledExceptionCollector by lazy { measureInitializer.unhandledExceptionCollector }
     private val anrCollector by lazy { measureInitializer.anrCollector }
-    private val anrCollectorV2 by lazy { measureInitializer.anrCollectorV2 }
+    private val anrCollectorV2 by lazy { measureInitializer.anrCollector }
     private val cpuUsageCollector by lazy { measureInitializer.cpuUsageCollector }
     private val memoryUsageCollector by lazy { measureInitializer.memoryUsageCollector }
     private val componentCallbacksCollector by lazy { measureInitializer.componentCallbacksCollector }
