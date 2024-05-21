@@ -161,11 +161,11 @@ internal class MeasureInitializerImpl(
         idProvider = idProvider,
     ),
     override val resumedActivityProvider: ResumedActivityProvider = ResumedActivityProviderImpl(
-        application
+        application,
     ),
     private val screenshotHelper: ScreenshotHelper = ScreenshotHelperImpl(
         logger,
-        resumedActivityProvider
+        resumedActivityProvider,
     ),
     private val config: Config = DefaultConfig(),
     override val eventProcessor: EventProcessor = EventProcessorImpl(

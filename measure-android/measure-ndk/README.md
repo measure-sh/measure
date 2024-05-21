@@ -1,4 +1,4 @@
-# Measure ANR
+# measure-ndk
 
 This module notifies measure-sdk when a `SIGQUIT` event (triggered when an ANR occurs) is detected.
 
@@ -6,9 +6,8 @@ This module notifies measure-sdk when a `SIGQUIT` event (triggered when an ANR o
 
 Android OS triggers a `SIGQUIT` signal when an ANR occurs. To be able to detect ANRs accurately and
 report them as soon
-as possible, the signal needs to be detected and tracked. Before we dive into the details of how to
-detect and track the
-signal, let's understand what a signal is and how it is delivered by the OS:
+as possible, the signal needs to be detected and tracked. Primer on the concepts used by the
+implementation:
 
 ## Signal
 
@@ -106,14 +105,16 @@ thread).
 The `sigwait` function suspends execution of the calling thread until one of the signals specified
 in the signal set
 becomes `pending`. **Once a signal processed by this thread, it is automatically cleared from the
-set of pending signals
-**. It then returns that signal number. No signal handlers set using `sigaction` are triggered for
+set of pending signals**. It then returns that signal number. No signal handlers set
+using `sigaction` are triggered for
 this signal once
 cleared by `sigwait`.
 
 `sigwait` makes it easy to handle the signals synchronously in normal program execution.
 
 ## Semaphores
+
+The implementation relies on Semaphores to synchronize the threads.
 
 ### sem_wait(3)
 
@@ -124,7 +125,7 @@ value rises above zero).
 
 ### sem_post(3)
 
-sem_post() increments (unlocks) the semaphore pointed to by sem. If the semaphore's value
+`sem_post` increments (unlocks) the semaphore. If the semaphore's value
 consequently becomes greater than zero, then the thread blocked in a `sem_wait` call
 will be woken up and proceed to lock the semaphore.
 
@@ -138,9 +139,10 @@ every
 app ([reference](https://android.googlesource.com/platform/art/+/refs/heads/main/runtime/signal_catcher.cc)).
 Hence, simply registering a `sigaction` will not have any effect as noted earlier.
 
-1. Find the thread ID of
-   the "[Signal Catcher](https://android.googlesource.com/platform/art/+/refs/heads/main/runtime/signal_catcher.cc)".
-   This is done by looping over the directory `/proc/<pid>/task/` and reading the thread name from
+1. Find the thread ID of the thread
+   called "[Signal Catcher](https://android.googlesource.com/platform/art/+/refs/heads/main/runtime/signal_catcher.cc)".
+   This is the thread using which Android registers the `sigwait`.
+   Thread ID is found by looping over the directory `/proc/<pid>/task/` and reading the thread name from
    the contents of
    the `comm` file in each subdirectory to find the thread name. More on this can be
    found [here](https://man.freebsd.org/cgi/man.cgi?apropos=0&arch=default&format=html&manpath=CentOS+7.1&query=proc&sektion=5#:~:text=%2Fproc%2F%5Bpid%5D%2Ftask%09(since%20Linux%202.6.0%2Dtest6)).
@@ -163,8 +165,3 @@ Hence, simply registering a `sigaction` will not have any effect as noted earlie
     ```c
     syscall(SYS_tgkill, pid, signal_catcher_tid, SIGQUIT);
     ```
-
-## Cleaning up resources
-
-1. Using `pthread_key_create`
-2. 
