@@ -4,8 +4,8 @@
  * team
  */
 create or replace trigger create_team_for_user
-after update on auth.users
+after insert on public.users
 for each row execute function create_team();
 
 -- migrate:down
-drop trigger if exists create_team_for_user on auth.users;
+drop trigger if exists create_team_for_user on public.users;

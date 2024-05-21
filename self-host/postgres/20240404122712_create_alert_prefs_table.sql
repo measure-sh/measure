@@ -1,7 +1,7 @@
 -- migrate:up
 create table if not exists public.alert_prefs (
     app_id uuid not null references public.apps(id) on delete cascade,
-    user_id uuid not null references auth.users(id) on delete cascade,
+    user_id uuid not null references public.users(id) on delete cascade,
     crash_rate_spike_email boolean not null,
     anr_rate_spike_email boolean not null,
     launch_time_spike_email boolean not null,
