@@ -23,7 +23,7 @@ static sem_t watchdog_thread_semaphore;
 static JavaVM *jvm = NULL;
 static pthread_key_t jni_cleanup_key;
 
-static jclass bridgeObj = NULL;
+static jobject gBridgeObj = NULL;
 static jmethodID notifyAnrDetectedMethod = NULL;
 
 static pid_t signal_catcher_tid = -1;
@@ -129,7 +129,7 @@ static void notifyAnrDetected(long timeMs) {
         MSR_LOGE("JavaVM not initialized");
         return;
     }
-    if (bridgeObj == NULL || notifyAnrDetectedMethod == NULL) {
+    if (gBridgeObj == NULL || notifyAnrDetectedMethod == NULL) {
         MSR_LOGE("JNI class or methods not initialized");
         return;
     }
@@ -158,7 +158,7 @@ static void notifyAnrDetected(long timeMs) {
             break;
     }
 
-    (*env)->CallVoidMethod(env, bridgeObj, notifyAnrDetectedMethod, timeMs);
+    (*env)->CallVoidMethod(env, gBridgeObj, notifyAnrDetectedMethod, timeMs);
     if (check_and_clear_exc(env)) {
         MSR_LOGE("Failed to call notifyAnrDetected");
     }
@@ -242,8 +242,8 @@ static bool init_jni(JNIEnv *env, jobject bridge) {
     }
 
     // Create a global reference for the bridge object
-    bridgeObj = (*env)->NewGlobalRef(env, bridge);
-    if (bridgeObj == NULL) {
+    gBridgeObj = (*env)->NewGlobalRef(env, bridge); // TODO: verify how to clear this
+    if (gBridgeObj == NULL) {
         MSR_LOGE("Failed to create global reference for ");
         return false;
     }
