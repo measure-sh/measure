@@ -15,9 +15,9 @@
 #define MSR_LOGE(...) __android_log_print(ANDROID_LOG_ERROR, MSR_LOG_TAG, __VA_ARGS__)
 
 static bool is_anr_handler_enabled = false;
+static pthread_mutex_t anr_handler_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static pthread_t watchdog_thread;
-static pthread_mutex_t anr_handler_lock = PTHREAD_MUTEX_INITIALIZER;
 static sem_t watchdog_thread_semaphore;
 
 static JavaVM *jvm = NULL;
