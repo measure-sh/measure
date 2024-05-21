@@ -148,9 +148,15 @@ func (j *JourneyAndroid) buildGraph() {
 
 		// collapse repeating alike events
 		shouldDiscard := false
+
 		if currEvent.IsLifecycleActivity() && nextEvent.IsLifecycleActivity() && currNode.Name == nextNode.Name {
 			shouldDiscard = true
 		}
+
+		if currEvent.IsLifecycleFragment() && nextEvent.IsLifecycleFragment() && currNode.Name == nextNode.Name {
+			shouldDiscard = true
+		}
+
 		if shouldDiscard {
 			continue
 		}
