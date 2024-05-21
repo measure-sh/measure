@@ -36,7 +36,7 @@ COMMENT ON SCHEMA public IS 'standard public schema';
 
 CREATE FUNCTION public.create_team() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'auth', 'public'
+    SET search_path TO 'public'
     AS $$
 declare
   team_id uuid;
@@ -52,7 +52,7 @@ begin
   end if;
 
   -- prepare new user's team name
-  user_name = new.raw_user_meta_data->>'name';
+  user_name = new.name;
   if user_name is not null then
     team_name = substring(user_name from 1 for position(' ' in user_name) - 1);
   else
@@ -60,8 +60,8 @@ begin
   end if;
 
   -- get invite details
-  inviter_team_id = new.raw_user_meta_data->'invite'->>'teamId';
-  invitee_role = new.raw_user_meta_data->'invite'->>'role';
+  inviter_team_id = new.invited_to_team_id;
+  invitee_role = new.invited_as_role;
 
   -- update tables
   time_now = now();
@@ -790,6 +790,87 @@ COMMENT ON COLUMN public.unhandled_exception_groups.updated_at IS 'utc timestamp
 
 
 --
+-- Name: users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.users (
+    id uuid NOT NULL,
+    name character varying(256),
+    email character varying(256) NOT NULL,
+    invited_by_user_id uuid,
+    invited_to_team_id uuid,
+    invited_as_role character varying(256),
+    confirmed_at timestamp with time zone,
+    last_sign_in_at timestamp with time zone NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL
+);
+
+
+--
+-- Name: COLUMN users.id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.users.id IS 'unique id for each user';
+
+
+--
+-- Name: COLUMN users.name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.users.name IS 'name of the user';
+
+
+--
+-- Name: COLUMN users.invited_by_user_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.users.invited_by_user_id IS 'id of user who invited this user';
+
+
+--
+-- Name: COLUMN users.invited_to_team_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.users.invited_to_team_id IS 'id of team to which this user was invited';
+
+
+--
+-- Name: COLUMN users.invited_as_role; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.users.invited_as_role IS 'role as which this user was invited';
+
+
+--
+-- Name: COLUMN users.confirmed_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.users.confirmed_at IS 'utc timestamp at which user was confirmed';
+
+
+--
+-- Name: COLUMN users.last_sign_in_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.users.last_sign_in_at IS 'utc timestamp at the time of last user sign in';
+
+
+--
+-- Name: COLUMN users.created_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.users.created_at IS 'utc timestamp at the time of user creation';
+
+
+--
+-- Name: COLUMN users.updated_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.users.updated_at IS 'utc timestmap at the time of user update';
+
+
+--
 -- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: dbmate; Owner: -
 --
 
@@ -894,6 +975,21 @@ ALTER TABLE ONLY public.unhandled_exception_groups
 
 
 --
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: users create_team_for_user; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER create_team_for_user AFTER INSERT ON public.users FOR EACH ROW EXECUTE FUNCTION public.create_team();
+
+
+--
 -- Name: alert_prefs alert_prefs_app_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -906,7 +1002,7 @@ ALTER TABLE ONLY public.alert_prefs
 --
 
 ALTER TABLE ONLY public.alert_prefs
-    ADD CONSTRAINT alert_prefs_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT alert_prefs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -978,7 +1074,7 @@ ALTER TABLE ONLY public.team_membership
 --
 
 ALTER TABLE ONLY public.team_membership
-    ADD CONSTRAINT team_membership_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT team_membership_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -999,6 +1095,7 @@ ALTER TABLE ONLY public.unhandled_exception_groups
 --
 
 INSERT INTO dbmate.schema_migrations (version) VALUES
+    ('20231117010311'),
     ('20231117010312'),
     ('20231117010526'),
     ('20231117011737'),
@@ -1011,5 +1108,4 @@ INSERT INTO dbmate.schema_migrations (version) VALUES
     ('20231228044339'),
     ('20240311054505'),
     ('20240404122712'),
-    ('20240502060117'),
-    ('20240516155840');
+    ('20240502060117');

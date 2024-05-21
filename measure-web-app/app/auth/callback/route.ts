@@ -1,5 +1,6 @@
 import { createRouteClient } from '@/utils/supabase/route'
 import { NextResponse } from 'next/server'
+import { syncSupabaseUserToMeasureServerFromServer } from '@/utils/supabase/sync_user_server'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,6 +23,11 @@ export async function GET(request: Request) {
   }
 
   const accessToken = data.session.access_token
+
+  const userCreationRes = await syncSupabaseUserToMeasureServerFromServer()
+  if (!userCreationRes.ok) {
+    return NextResponse.redirect(errRedirectUrl, { status: 302 })
+  }
 
   const origin = process?.env?.NEXT_PUBLIC_API_BASE_URL
 

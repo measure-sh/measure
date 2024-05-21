@@ -134,7 +134,7 @@ func newScope(resource, perm string) *scope {
 
 func PerformAuthz(uid string, rid string, scope scope) (bool, error) {
 	u := &User{
-		id: uid,
+		ID: &uid,
 	}
 
 	role, err := u.getRole(rid)

@@ -38,7 +38,7 @@ func main() {
 	r := gin.Default()
 	cors := cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000", "https://www.measure.sh"},
-		AllowMethods:     []string{"GET", "OPTIONS", "PATCH", "DELETE"},
+		AllowMethods:     []string{"GET", "OPTIONS", "PATCH", "DELETE", "PUT"},
 		AllowHeaders:     []string{"Authorization"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
@@ -54,6 +54,11 @@ func main() {
 
 	// Dashboard rotues
 	r.Use(cors).Use(measure.ValidateAccessToken())
+	users := r.Group("/users")
+	{
+		users.PUT("", measure.CreateUser)
+	}
+
 	apps := r.Group("/apps")
 	{
 		apps.GET(":id/journey", measure.GetAppJourney)

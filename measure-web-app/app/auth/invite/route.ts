@@ -49,16 +49,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: `invited ${email}` })
   }
 
-  const redirectUrl = `${requestUrl.origin}/${teamId}/overview`
+  const redirectUrl = `${requestUrl.origin}/auth/login/invited`
 
   const { error } = await supabase.auth.admin.inviteUserByEmail(email, {
     redirectTo: redirectUrl,
     data: {
-      invite: {
-        userId: session?.user.id,
-        teamId,
-        role
-      }
+      invited_by_user_id: session?.user.id,
+      invited_to_team_id: teamId,
+      invited_as_role: role
     }
   })
 
