@@ -11,26 +11,70 @@ import (
 
 // TODO: Create a node interface
 
+// NodeAndroid represents each
+// node of the journey graph
+// for android.
 type NodeAndroid struct {
-	ID         int
-	Name       string
+	// ID is the sequence number
+	// of the event in the list
+	// of events.
+	ID int
+
+	// Name is the name of the
+	// lifecycle activity or
+	// fragment's class name.
+	Name string
+
+	// IsActivity indicates the node
+	// is a lifecycle activity.
 	IsActivity bool
+
+	// IsFragment indicates the node
+	// is a lifecycle fragment.
 	IsFragment bool
 }
 
+// nodetuple represents a journey
+// graph's node's vertex & nodeid
+// in a combined tuple.
 type nodetuple struct {
+	// vertex is the vertex id
+	// of the graph's node.
 	vertex int
+
+	// nodeid is the id of the
+	// node.
 	nodeid int
 }
 
+// JourneyAndroid represents
+// a complete journey from
+// relevant Android events.
 type JourneyAndroid struct {
-	Events  []event.EventField
-	Nodes   []NodeAndroid
-	Graph   *graph.Mutable
+	// Events is the list of events.
+	Events []event.EventField
+
+	// Nodes is the list of nodes.
+	Nodes []NodeAndroid
+
+	// Graph is the generated journey
+	// graph.
+	Graph *graph.Mutable
+
+	// nodelut is a lookup table mapping
+	// "v->w" string key to respective
+	// nodetuple(s).
 	nodelut map[string]nodetuple
+
+	// metalut is a lookup table mapping
+	// "v->w" string key to respective
+	// set of ids.
 	metalut map[string]*UUIDSet
 }
 
+// buildGraph builds a graph structure
+// from available events data in the
+// journey.
 func (j *JourneyAndroid) buildGraph() {
 	j.Graph = graph.New(len(j.nodelut))
 	if j.metalut == nil {
@@ -129,6 +173,7 @@ func (j *JourneyAndroid) buildGraph() {
 	fmt.Println("metalut", j.metalut)
 }
 
+// addEdgeID adds the id to an edge from v to w.
 func (j *JourneyAndroid) addEdgeID(v, w int, id uuid.UUID) {
 	key := j.makeKey(v, w)
 	set, ok := j.metalut[key]
@@ -140,10 +185,14 @@ func (j *JourneyAndroid) addEdgeID(v, w int, id uuid.UUID) {
 	set.Add(id)
 }
 
+// makeKey creates a string key in the form
+// of "v->w" from v and w graph vertices.
 func (j *JourneyAndroid) makeKey(v, w int) string {
 	return fmt.Sprintf("%d->%d", v, w)
 }
 
+// GetEdgeSessions computes list of unique session ids
+// for a single edge from `v` to `w`.
 func (j *JourneyAndroid) GetEdgeSessions(v, w int) (sessionIds []uuid.UUID) {
 	key := j.makeKey(v, w)
 	return j.metalut[key].Slice()
@@ -154,6 +203,8 @@ func (j JourneyAndroid) isFragmentOrphan(i int) bool {
 	return event.IsLifecycleFragment() && event.LifecycleFragment.ParentActivity == ""
 }
 
+// String generates a graph represented
+// in the graphviz dot format.
 func (j JourneyAndroid) String() string {
 	var b strings.Builder
 
@@ -187,6 +238,8 @@ func (j JourneyAndroid) String() string {
 
 }
 
+// NewJourneyAndroid creates a journey graph object
+// from a list of events.
 func NewJourneyAndroid(events []event.EventField) (journey JourneyAndroid) {
 	journey.Events = events
 	journey.nodelut = make(map[string]nodetuple)
