@@ -60,7 +60,7 @@ static inline uint64_t sigmask_for_signal(uint64_t sig) {
     return (((uint64_t) 1) << (sig - 1));
 }
 
-static bool is_thread_signal_catcher_sigblk(pid_t tid) {
+static bool is_sigquit_blocked(pid_t tid) {
     static const char *SIGBLK_HEADER = "SigBlk:\t";
     const size_t SIGBLK_HEADER_LENGTH = strlen(SIGBLK_HEADER);
 
@@ -102,7 +102,7 @@ static bool init_signal_catcher_tid() {
 
         tid = strtol(dent->d_name, NULL, 10);
         if (is_thread_named_signal_catcher(tid) &&
-            is_thread_signal_catcher_sigblk(tid)) {
+                is_sigquit_blocked(tid)) {
             break;
         }
         tid = -1;
@@ -242,7 +242,7 @@ static bool init_jni(JNIEnv *env, jobject bridge) {
     }
 
     // Create a global reference for the bridge object
-    gBridgeObj = (*env)->NewGlobalRef(env, bridge); // TODO: verify how to clear this
+    gBridgeObj = (*env)->NewGlobalRef(env, bridge);
     if (gBridgeObj == NULL) {
         MSR_LOGE("Failed to create global reference for ");
         return false;
