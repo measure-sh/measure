@@ -1,0 +1,326 @@
+[
+  {
+    "id": "60e18c2a-171d-44a7-9ab8-f0d809ac3fc9",
+    "session_id": "4339f2be-ec13-4858-9b7f-322e5ddf55f4",
+    "timestamp": "2024-04-29T12:06:51.86Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+      "intent": "",
+      "saved_instance_state": false
+    },
+    "lifecycle_fragment": {
+      "type": "",
+      "class_name": "",
+      "parent_activity": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "4b3ccd60-1b8b-4d9f-a806-c693a7baff0b",
+    "session_id": "4339f2be-ec13-4858-9b7f-322e5ddf55f4",
+    "timestamp": "2024-04-29T12:06:52.066Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_activity": {
+      "type": "",
+      "class_name": "",
+      "intent": "",
+      "saved_instance_state": false
+    },
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "au.com.shiftyjelly.pocketcasts.player.view.PlayerContainerFragment",
+      "parent_activity": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+      "tag": ""
+    }
+  },
+  {
+    "id": "3dee4eae-169c-428e-9b9c-7a0a931d85ab",
+    "session_id": "4339f2be-ec13-4858-9b7f-322e5ddf55f4",
+    "timestamp": "2024-04-29T12:06:52.107Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_activity": {
+      "type": "",
+      "class_name": "",
+      "intent": "",
+      "saved_instance_state": false
+    },
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "au.com.shiftyjelly.pocketcasts.player.view.UpNextFragment",
+      "parent_activity": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+      "tag": ""
+    }
+  },
+  {
+    "id": "d29fc0d2-5575-4478-a55d-fcf0793ab134",
+    "session_id": "4339f2be-ec13-4858-9b7f-322e5ddf55f4",
+    "timestamp": "2024-04-29T12:06:52.262Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_activity": {
+      "type": "",
+      "class_name": "",
+      "intent": "",
+      "saved_instance_state": false
+    },
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment",
+      "parent_activity": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+      "tag": ""
+    }
+  },
+  {
+    "id": "eeab5d2d-c577-40e7-87ab-12368ebf8ba3",
+    "session_id": "65aaf877-e000-4ff3-9f8f-a0dbb10e9b00",
+    "timestamp": "2024-04-29T12:06:53.631Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "au.com.shiftyjelly.pocketcasts.account.onboarding.OnboardingActivity",
+      "intent": "",
+      "saved_instance_state": false
+    },
+    "lifecycle_fragment": {
+      "type": "",
+      "class_name": "",
+      "parent_activity": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "4d68ac8c-2cb4-4a93-878c-a09bac2e0993",
+    "session_id": "65aaf877-e000-4ff3-9f8f-a0dbb10e9b00",
+    "timestamp": "2024-04-29T12:06:53.658Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "au.com.shiftyjelly.pocketcasts.account.onboarding.OnboardingActivity",
+      "intent": "",
+      "saved_instance_state": false
+    },
+    "lifecycle_fragment": {
+      "type": "",
+      "class_name": "",
+      "parent_activity": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "46a81626-1cc6-4d7c-beac-2177662f3f8f",
+    "session_id": "65aaf877-e000-4ff3-9f8f-a0dbb10e9b00",
+    "timestamp": "2024-04-29T12:06:53.709Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+      "intent": "",
+      "saved_instance_state": false
+    },
+    "lifecycle_fragment": {
+      "type": "",
+      "class_name": "",
+      "parent_activity": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "52486ac3-039e-44d4-b804-2b33c3ffe0e8",
+    "session_id": "65aaf877-e000-4ff3-9f8f-a0dbb10e9b00",
+    "timestamp": "2024-04-29T12:06:53.821Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_activity": {
+      "type": "",
+      "class_name": "",
+      "intent": "",
+      "saved_instance_state": false
+    },
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "au.com.shiftyjelly.pocketcasts.player.view.PlayerContainerFragment",
+      "parent_activity": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+      "tag": ""
+    }
+  },
+  {
+    "id": "c253f3ed-ef37-4c3a-b7ac-503f78736cb2",
+    "session_id": "65aaf877-e000-4ff3-9f8f-a0dbb10e9b00",
+    "timestamp": "2024-04-29T12:06:53.869Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_activity": {
+      "type": "",
+      "class_name": "",
+      "intent": "",
+      "saved_instance_state": false
+    },
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "au.com.shiftyjelly.pocketcasts.player.view.UpNextFragment",
+      "parent_activity": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+      "tag": ""
+    }
+  },
+  {
+    "id": "5a846d6f-e5c3-4569-a543-a4b57b89c136",
+    "session_id": "65aaf877-e000-4ff3-9f8f-a0dbb10e9b00",
+    "timestamp": "2024-04-29T12:06:53.972Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_activity": {
+      "type": "",
+      "class_name": "",
+      "intent": "",
+      "saved_instance_state": false
+    },
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment",
+      "parent_activity": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+      "tag": ""
+    }
+  },
+  {
+    "id": "d7a8439e-7806-4779-82ce-6e89bc7f33e6",
+    "session_id": "1755de51-18c8-4c14-a58d-ad677485130e",
+    "timestamp": "2024-04-29T12:07:10.305Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+      "intent": "",
+      "saved_instance_state": false
+    },
+    "lifecycle_fragment": {
+      "type": "",
+      "class_name": "",
+      "parent_activity": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "56630b3e-8a0e-46de-91aa-ec42b79597b1",
+    "session_id": "1755de51-18c8-4c14-a58d-ad677485130e",
+    "timestamp": "2024-04-29T12:07:10.436Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_activity": {
+      "type": "",
+      "class_name": "",
+      "intent": "",
+      "saved_instance_state": false
+    },
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "au.com.shiftyjelly.pocketcasts.player.view.PlayerContainerFragment",
+      "parent_activity": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+      "tag": ""
+    }
+  },
+  {
+    "id": "8de4834a-f014-429e-98b0-4fc482a15679",
+    "session_id": "1755de51-18c8-4c14-a58d-ad677485130e",
+    "timestamp": "2024-04-29T12:07:10.491Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_activity": {
+      "type": "",
+      "class_name": "",
+      "intent": "",
+      "saved_instance_state": false
+    },
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "au.com.shiftyjelly.pocketcasts.player.view.UpNextFragment",
+      "parent_activity": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+      "tag": ""
+    }
+  },
+  {
+    "id": "b2ce95a8-a914-490c-bf66-abbc3d6dc10d",
+    "session_id": "1755de51-18c8-4c14-a58d-ad677485130e",
+    "timestamp": "2024-04-29T12:07:10.602Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_activity": {
+      "type": "",
+      "class_name": "",
+      "intent": "",
+      "saved_instance_state": false
+    },
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment",
+      "parent_activity": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+      "tag": ""
+    }
+  },
+  {
+    "id": "e397868b-6226-4fbc-ae7d-c9dab31253aa",
+    "session_id": "bcafd264-43eb-433b-8851-00306ecc2706",
+    "timestamp": "2024-04-29T12:08:24.822Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+      "intent": "",
+      "saved_instance_state": false
+    },
+    "lifecycle_fragment": {
+      "type": "",
+      "class_name": "",
+      "parent_activity": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "8017a37a-8472-4fc0-87be-1e1257b7635c",
+    "session_id": "bcafd264-43eb-433b-8851-00306ecc2706",
+    "timestamp": "2024-04-29T12:08:25.024Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_activity": {
+      "type": "",
+      "class_name": "",
+      "intent": "",
+      "saved_instance_state": false
+    },
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "au.com.shiftyjelly.pocketcasts.player.view.PlayerContainerFragment",
+      "parent_activity": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+      "tag": ""
+    }
+  },
+  {
+    "id": "469c4e6c-c830-4f77-a6ea-771b07b6256d",
+    "session_id": "bcafd264-43eb-433b-8851-00306ecc2706",
+    "timestamp": "2024-04-29T12:08:25.141Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_activity": {
+      "type": "",
+      "class_name": "",
+      "intent": "",
+      "saved_instance_state": false
+    },
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "au.com.shiftyjelly.pocketcasts.player.view.UpNextFragment",
+      "parent_activity": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+      "tag": ""
+    }
+  },
+  {
+    "id": "0b181b11-f8b9-4d42-a609-0e7a92a3e22b",
+    "session_id": "bcafd264-43eb-433b-8851-00306ecc2706",
+    "timestamp": "2024-04-29T12:08:25.309Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_activity": {
+      "type": "",
+      "class_name": "",
+      "intent": "",
+      "saved_instance_state": false
+    },
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment",
+      "parent_activity": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+      "tag": ""
+    }
+  }
+]
