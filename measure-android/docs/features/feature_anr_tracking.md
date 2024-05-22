@@ -7,17 +7,8 @@ to enable this feature.
 
 ## How it works
 
-Measure uses the
-popular [ANR Watchdog](https://github.com/measure-sh/measure/blob/main/measure-android/measure/src/main/java/sh/measure/android/anr/ANRWatchDog.kt)
-approach to detect ANRs. The ANR Watchdog uses a thread which posts a runnable to the main thread every 5 seconds.
-If the runnable is not executed within 5 seconds, it means the main thread is blocked. We also check
-the [ActivityManager.getProcessesInErrorState]() to ensure the application is in "not responding" state before recording
-the ANR to reduce false positives. The stack trace of all the threads, including main thread, is then sent to the
-Measure server.
-
-In case the stack trace is obfuscated using ProGuard or R8, Measure automatically
-de-obfuscates it and shows the original class and method names. Read more details about the
-symbolication process [here](../features/symbolication.md).
+Measure SDK detects ANRs by monitoring the `SIGQUIT` signal using the `measure-ndk`. Checkout the
+details of how this works in depth in the [measure-ndk README](/measure-ndk/README.md).
 
 ## Data collected
 
