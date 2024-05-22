@@ -2,6 +2,13 @@
 
 This module notifies measure-sdk when a `SIGQUIT` event (triggered when an ANR occurs) is detected.
 
+* [Introduction](#introduction)
+  * [Signal](#signal)
+  * [Signal delivery](#signal-delivery)
+  * [Handling signals](#handling-signals)
+  * [Semaphores](#semaphores)
+* [Detecting SIGQUIT on Android](#detecting-sigquit-on-android)
+
 # Introduction
 
 Android OS triggers a `SIGQUIT` signal when an ANR occurs. To be able to detect ANRs accurately and
