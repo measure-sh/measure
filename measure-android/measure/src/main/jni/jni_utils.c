@@ -1,3 +1,4 @@
+#include <android/log.h>
 #include "jni_utils.h"
 
 bool check_and_clear_exc(JNIEnv *env) {

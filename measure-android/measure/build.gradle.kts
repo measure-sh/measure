@@ -43,7 +43,6 @@ android {
 
     defaultConfig {
         minSdk = 21
-        ndkVersion = "23.1.7779620"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
     }
@@ -57,7 +56,7 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
+                "consumer-rules.pro",
             )
         }
     }
@@ -77,6 +76,14 @@ android {
     buildFeatures {
         buildConfig = true
         compose = true
+    }
+    externalNativeBuild {
+        cmake {
+            path("CMakeLists.txt")
+        }
+    }
+    packaging {
+        jniLibs.pickFirsts += "**/libmeasure-ndk.so"
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.7"
@@ -135,7 +142,6 @@ dependencies {
     implementation(libs.squareup.okhttp)
     implementation(libs.squareup.okhttp.logging)
     implementation(libs.squareup.curtains)
-    implementation(project(":measure-ndk"))
 
     testImplementation(libs.mockito.kotlin)
     testImplementation(libs.junit)

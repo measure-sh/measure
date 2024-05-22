@@ -1,7 +1,6 @@
 package sh.measure.android
 
 import android.app.Application
-import sh.measure.NativeBridgeImpl
 import sh.measure.android.anr.AnrCollector
 import sh.measure.android.appexit.AppExitCollector
 import sh.measure.android.appexit.AppExitProvider

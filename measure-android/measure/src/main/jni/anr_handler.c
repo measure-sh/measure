@@ -123,8 +123,6 @@ static void notifyAnrDetected(long timeMs) {
         MSR_LOGD("ANR handler not enabled, discarding detected ANR");
         return;
     }
-    MSR_LOGD("ANR detected at %ld, notifying via JNI",
-             timeMs);
     if (jvm == NULL) {
         MSR_LOGE("JavaVM not initialized");
         return;
@@ -140,7 +138,6 @@ static void notifyAnrDetected(long timeMs) {
         case JNI_OK:
             break;
         case JNI_EDETACHED:
-            MSR_LOGD("Attaching current thread");
             if ((*jvm)->AttachCurrentThread(jvm, &env, NULL) != JNI_OK) {
                 MSR_LOGE("Failed to attach current thread");
                 return;
@@ -158,6 +155,7 @@ static void notifyAnrDetected(long timeMs) {
             break;
     }
 
+    MSR_LOGD("ANR detected at %ld, notifying via JNI", timeMs);
     (*env)->CallVoidMethod(env, gBridgeObj, notifyAnrDetectedMethod, timeMs);
     if (check_and_clear_exc(env)) {
         MSR_LOGE("Failed to call notifyAnrDetected");
@@ -228,7 +226,7 @@ static bool init_jni(JNIEnv *env, jobject bridge) {
         return false;
     }
 
-    jclass bridgeClass = safe_find_class(env, "sh/measure/NativeBridgeImpl");
+    jclass bridgeClass = safe_find_class(env, "sh/measure/android/NativeBridgeImpl");
     if (bridgeClass == NULL) {
         MSR_LOGE("Failed to find NativeBridgeImpl class");
         return false;
