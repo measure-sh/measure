@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"measure-backend/measure-go/event"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/yourbasic/graph"
 )
 
 func readEvents(path string) (events []event.EventField, err error) {
@@ -184,6 +186,20 @@ func TestNewJourneyAndroidOne(t *testing.T) {
 		}
 	}
 
+	{
+		expected := graph.Stats{
+			Size:     6,
+			Multi:    0,
+			Weighted: 0,
+			Loops:    0,
+			Isolated: 0,
+		}
+		got := graph.Check(journey.Graph)
+
+		if !reflect.DeepEqual(expected, got) {
+			t.Errorf("Expected %v graph stats, but got %v", expected, got)
+		}
+	}
 }
 
 func TestNewJourneyAndroidTwo(t *testing.T) {
@@ -333,6 +349,21 @@ func TestNewJourneyAndroidTwo(t *testing.T) {
 		}
 		if expected[0] != sessionIds[0] {
 			t.Errorf("Expected %v, but got %v", expected[0], sessionIds[0])
+		}
+	}
+
+	{
+		expected := graph.Stats{
+			Size:     4,
+			Multi:    0,
+			Weighted: 0,
+			Loops:    0,
+			Isolated: 3,
+		}
+		got := graph.Check(journey.Graph)
+
+		if !reflect.DeepEqual(expected, got) {
+			t.Errorf("Expected %v graph stats, but got %v", expected, got)
 		}
 	}
 }
