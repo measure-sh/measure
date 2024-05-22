@@ -1,8 +1,8 @@
 package sh.measure.android.anr
 
 import android.os.Looper
-import sh.measure.AnrListener
-import sh.measure.NativeBridge
+import sh.measure.android.AnrListener
+import sh.measure.android.NativeBridge
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData

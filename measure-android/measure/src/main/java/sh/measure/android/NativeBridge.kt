@@ -1,9 +1,9 @@
-package sh.measure
+package sh.measure.android
 
 /**
  * Listener interface for receiving ANR detection events.
  */
-interface AnrListener {
+internal interface AnrListener {
     /**
      * Called when an ANR is detected.
      *
@@ -12,7 +12,7 @@ interface AnrListener {
     fun onAnrDetected(timestamp: Long)
 }
 
-interface NativeBridge {
+internal interface NativeBridge {
     fun enableAnrReporting(anrListener: AnrListener): Boolean
     fun disableAnrReporting()
 }
@@ -20,7 +20,7 @@ interface NativeBridge {
 /**
  * A bridge between Kotlin and native code.
  */
-class NativeBridgeImpl : NativeBridge {
+internal class NativeBridgeImpl : NativeBridge {
     companion object {
         init {
             System.loadLibrary("measure-ndk")

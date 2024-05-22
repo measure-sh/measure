@@ -1,2 +1,3 @@
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
+-keep class sh.measure.android.NativeBridgeImpl { *; }

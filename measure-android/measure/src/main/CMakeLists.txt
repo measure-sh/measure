@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.4.1)
 
 add_library(measure-ndk SHARED
-        cpp/measure.cpp
-        cpp/anr_handler.c
-        cpp/jni_utils.c
+        jni/measure.cpp
+        jni/anr_handler.c
+        jni/jni_utils.c
 )
 
 target_link_libraries(measure-ndk
