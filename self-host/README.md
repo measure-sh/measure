@@ -17,7 +17,7 @@ If you don't already have docker running, follow the official instructions on [d
 
 > How Measure uses Supabase
 >
-> We use Supabase as a replacement for running a postgres instance from scratch. To try out measure on a local machine you don't need a Supabase account.
+> We use Supabase for auth. To try out measure on a local machine you don't need a Supabase account.
 
 If you don't have [supabase/cli](https://github.com/supabase/cli) installed, follow the instructions on the [README](https://github.com/supabase/cli/blob/main/README.md) page to install it first.
 
