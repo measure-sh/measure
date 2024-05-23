@@ -48,8 +48,8 @@ type nodetuple struct {
 	// node.
 	nodeid int
 
-	crashes *UUIDSet
-	anrs    *UUIDSet
+	exceptions *UUIDSet
+	anrs       *UUIDSet
 }
 
 // JourneyAndroid represents
@@ -96,7 +96,7 @@ func (j *JourneyAndroid) computeIssues() {
 				continue
 			}
 			if issueEvent.IsUnhandledException() {
-				tuple.crashes.Add(issueEvent.ID)
+				tuple.exceptions.Add(issueEvent.ID)
 			} else if issueEvent.IsANR() {
 				tuple.anrs.Add(issueEvent.ID)
 			}
@@ -217,14 +217,6 @@ func (j *JourneyAndroid) makeKey(v, w int) string {
 	return fmt.Sprintf("%d->%d", v, w)
 }
 
-// isFragmentOrphan tells if the event indexed by `i`
-// is a lifecycle fragment and if the lifecycle fragment
-// lacks a parent activity.
-func (j JourneyAndroid) isFragmentOrphan(i int) bool {
-	event := j.Events[i]
-	return event.IsLifecycleFragment() && event.LifecycleFragment.ParentActivity == ""
-}
-
 // GetEdgeSessions computes list of unique session ids
 // for the edge `v->w`.
 func (j *JourneyAndroid) GetEdgeSessions(v, w int) (sessionIds []uuid.UUID) {
@@ -243,6 +235,14 @@ func (j *JourneyAndroid) GetEdgeSessionCount(v, w int) int {
 // the vertex's index.
 func (j *JourneyAndroid) GetNodeName(v int) string {
 	return j.nodelutinverse[v]
+}
+
+// isFragmentOrphan tells if the event indexed by `i`
+// is a lifecycle fragment and if the lifecycle fragment
+// lacks a parent activity.
+func (j JourneyAndroid) isFragmentOrphan(i int) bool {
+	event := j.Events[i]
+	return event.IsLifecycleFragment() && event.LifecycleFragment.ParentActivity == ""
 }
 
 // String generates a graph represented
@@ -308,10 +308,10 @@ func NewJourneyAndroid(events []event.EventField) (journey JourneyAndroid) {
 			if !ok {
 				vertex := len(journey.nodelut)
 				journey.nodelut[node.Name] = nodetuple{
-					vertex:  vertex,
-					nodeid:  node.ID,
-					crashes: NewUUIDSet(),
-					anrs:    NewUUIDSet(),
+					vertex:     vertex,
+					nodeid:     node.ID,
+					exceptions: NewUUIDSet(),
+					anrs:       NewUUIDSet(),
 				}
 
 				journey.nodelutinverse[vertex] = node.Name
@@ -324,8 +324,8 @@ func NewJourneyAndroid(events []event.EventField) (journey JourneyAndroid) {
 
 	// TODO: Remove later
 	for k, v := range journey.nodelut {
-		if v.crashes.Size() > 0 {
-			fmt.Printf("name: %s, vertex: %d, crashIds: %v\n", k, v.vertex, v.crashes.Slice())
+		if v.exceptions.Size() > 0 {
+			fmt.Printf("name: %s, vertex: %d, crashIds: %v\n", k, v.vertex, v.exceptions.Slice())
 		}
 
 		if v.anrs.Size() > 0 {
