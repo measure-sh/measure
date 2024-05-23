@@ -12,7 +12,7 @@ type Set[T any] interface {
 	Slice() []T
 }
 
-// UUIDSet is a set to store UUIDs
+// UUIDSet is a Set to store UUIDs.
 type UUIDSet struct {
 	elements map[uuid.UUID]struct{}
 	slice    []*uuid.UUID
