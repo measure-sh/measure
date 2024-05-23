@@ -32,6 +32,8 @@ type NodeAndroid struct {
 	// IsFragment indicates the node
 	// is a lifecycle fragment.
 	IsFragment bool
+
+	IssueEvents []int
 }
 
 // nodetuple represents a journey
@@ -45,6 +47,9 @@ type nodetuple struct {
 	// nodeid is the id of the
 	// node.
 	nodeid int
+
+	crashes *UUIDSet
+	anrs    *UUIDSet
 }
 
 // JourneyAndroid represents
@@ -63,13 +68,40 @@ type JourneyAndroid struct {
 
 	// nodelut is a lookup table mapping
 	// "v->w" string key to respective
-	// nodetuple(s).
+	// nodetuple.
 	nodelut map[string]nodetuple
+
+	// nodelutinverse is a lookup table
+	// mapping vertex id to the node's
+	// class name.
+	nodelutinverse map[int]string
 
 	// metalut is a lookup table mapping
 	// "v->w" string key to respective
 	// set of ids.
 	metalut map[string]*UUIDSet
+}
+
+func (j *JourneyAndroid) computeIssues() {
+	for i := range j.Nodes {
+		fmt.Println("node", j.Nodes[i])
+		if len(j.Nodes[i].IssueEvents) < 1 {
+			continue
+		}
+		for k := range j.Nodes[i].IssueEvents {
+			issueEvent := j.Events[j.Nodes[i].IssueEvents[k]]
+			name := j.Nodes[i].Name
+			tuple, ok := j.nodelut[name]
+			if !ok {
+				continue
+			}
+			if issueEvent.IsUnhandledException() {
+				tuple.crashes.Add(issueEvent.ID)
+			} else if issueEvent.IsANR() {
+				tuple.anrs.Add(issueEvent.ID)
+			}
+		}
+	}
 }
 
 // buildGraph builds a graph structure
@@ -165,12 +197,6 @@ func (j *JourneyAndroid) buildGraph() {
 			return false
 		})
 	}
-
-	fmt.Println("graph", j.Graph.String())
-	fmt.Println("order", j.Graph.Order())
-	fmt.Println("acyclic", graph.Acyclic(j.Graph))
-	fmt.Println("nodelut", j.nodelut)
-	fmt.Println("metalut", j.metalut)
 }
 
 // addEdgeID adds the id to an edge from v to w.
@@ -191,16 +217,32 @@ func (j *JourneyAndroid) makeKey(v, w int) string {
 	return fmt.Sprintf("%d->%d", v, w)
 }
 
+// isFragmentOrphan tells if the event indexed by `i`
+// is a lifecycle fragment and if the lifecycle fragment
+// lacks a parent activity.
+func (j JourneyAndroid) isFragmentOrphan(i int) bool {
+	event := j.Events[i]
+	return event.IsLifecycleFragment() && event.LifecycleFragment.ParentActivity == ""
+}
+
 // GetEdgeSessions computes list of unique session ids
-// for a single edge from `v` to `w`.
+// for the edge `v->w`.
 func (j *JourneyAndroid) GetEdgeSessions(v, w int) (sessionIds []uuid.UUID) {
 	key := j.makeKey(v, w)
 	return j.metalut[key].Slice()
 }
 
-func (j JourneyAndroid) isFragmentOrphan(i int) bool {
-	event := j.Events[i]
-	return event.IsLifecycleFragment() && event.LifecycleFragment.ParentActivity == ""
+// GetEdgeSessionCount computes the count of sessions
+// for the edge `v->w`.
+func (j *JourneyAndroid) GetEdgeSessionCount(v, w int) int {
+	key := j.makeKey(v, w)
+	return j.metalut[key].Size()
+}
+
+// GetNodeName provides the node name mapped to
+// the vertex's index.
+func (j *JourneyAndroid) GetNodeName(v int) string {
+	return j.nodelutinverse[v]
 }
 
 // String generates a graph represented
@@ -208,21 +250,13 @@ func (j JourneyAndroid) isFragmentOrphan(i int) bool {
 func (j JourneyAndroid) String() string {
 	var b strings.Builder
 
-	// need a reverse map that looks
-	// up node's name from it's graph
-	// vertex.
-	reverse := make(map[int]string)
-	for k, v := range j.nodelut {
-		reverse[v.vertex] = k
-	}
-
 	b.WriteString("digraph G {\n")
 	b.WriteString("  rankdir=LR;\n")
 
 	for v := range j.Graph.Order() {
 		j.Graph.Visit(v, func(w int, c int64) bool {
-			vName := reverse[v]
-			wName := reverse[w]
+			vName := j.nodelutinverse[v]
+			wName := j.nodelutinverse[w]
 			key := j.makeKey(v, w)
 			n := j.metalut[key].Size()
 
@@ -235,7 +269,6 @@ func (j JourneyAndroid) String() string {
 	b.WriteString("}\n")
 
 	return b.String()
-
 }
 
 // NewJourneyAndroid creates a journey graph object
@@ -243,6 +276,7 @@ func (j JourneyAndroid) String() string {
 func NewJourneyAndroid(events []event.EventField) (journey JourneyAndroid) {
 	journey.Events = events
 	journey.nodelut = make(map[string]nodetuple)
+	journey.nodelutinverse = make(map[int]string)
 
 	for i := range events {
 		var node NodeAndroid
@@ -254,16 +288,48 @@ func NewJourneyAndroid(events []event.EventField) (journey JourneyAndroid) {
 		} else if events[i].IsLifecycleFragment() {
 			node.Name = events[i].LifecycleFragment.ClassName
 			node.IsFragment = true
+		} else if i > 0 && events[i].IsUnhandledException() || events[i].IsANR() {
+			// find the previous activity or fragment node
+			// and attach the issue to the node.
+			c := i
+			for {
+				c--
+				if journey.Nodes[c].IsActivity || journey.Nodes[c].IsFragment {
+					journey.Nodes[c].IssueEvents = append(journey.Nodes[c].IssueEvents, i)
+					break
+				}
+			}
 		}
 
 		journey.Nodes = append(journey.Nodes, node)
 
-		_, ok := journey.nodelut[node.Name]
-		if !ok {
-			journey.nodelut[node.Name] = nodetuple{
-				vertex: len(journey.nodelut),
-				nodeid: node.ID,
+		if node.IsActivity || node.IsFragment {
+			_, ok := journey.nodelut[node.Name]
+			if !ok {
+				vertex := len(journey.nodelut)
+				journey.nodelut[node.Name] = nodetuple{
+					vertex:  vertex,
+					nodeid:  node.ID,
+					crashes: NewUUIDSet(),
+					anrs:    NewUUIDSet(),
+				}
+
+				journey.nodelutinverse[vertex] = node.Name
 			}
+		}
+
+	}
+
+	journey.computeIssues()
+
+	// TODO: Remove later
+	for k, v := range journey.nodelut {
+		if v.crashes.Size() > 0 {
+			fmt.Printf("name: %s, vertex: %d, crashIds: %v\n", k, v.vertex, v.crashes.Slice())
+		}
+
+		if v.anrs.Size() > 0 {
+			fmt.Printf("name: %s, vertex: %d, anrIds: %v\n", k, v.vertex, v.anrs.Slice())
 		}
 	}
 

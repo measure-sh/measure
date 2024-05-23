@@ -21,7 +21,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/leporo/sqlf"
-	"github.com/yourbasic/graph"
 )
 
 type App struct {
@@ -978,9 +977,79 @@ func (a App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessio
 	return &session, nil
 }
 
+func (a App) getIssues(ctx context.Context, af *AppFilter) (events []event.EventField, err error) {
+	eventTypes := []any{event.TypeException, event.TypeANR}
+
+	stmt := sqlf.
+		From(`default.events`).
+		Select(`id`).
+		Select(`type`).
+		Select(`timestamp`).
+		Select(`session_id`).
+		Select(`exception.fingerprint`).
+		Select(`anr.fingerprint`).
+		Where(`app_id = ?`, a.ID).
+		Where("`attribute.app_version` in ?", af.Versions).
+		Where("`attribute.app_build` in ?", af.VersionCodes).
+		Where("`timestamp` >= ? and `timestamp` <= ?", af.From, af.To).
+		Where(`(type = ? or type = ?)`, eventTypes...).
+		OrderBy(`timestamp`)
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var ev event.EventField
+		var exception event.Exception
+		var anr event.ANR
+		ev.Exception = &exception
+		ev.ANR = &anr
+
+		dest := []any{
+			&ev.ID,
+			&ev.Type,
+			&ev.Timestamp,
+			&ev.SessionID,
+			&ev.Exception.Fingerprint,
+			&ev.ANR.Fingerprint,
+		}
+		if err := rows.Scan(dest...); err != nil {
+			return nil, err
+		}
+
+		events = append(events, ev)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return
+}
+
 // getJourneyEvents queries all relevant lifecycle events involved in forming
 // an implicit navigational journey.
 func (a App) getJourneyEvents(ctx context.Context, af *AppFilter) (events []event.EventField, err error) {
+	whereVals := []any{
+		event.TypeLifecycleActivity,
+		[]string{
+			event.LifecycleActivityTypeCreated,
+			event.LifecycleActivityTypeResumed,
+		},
+		event.TypeLifecycleFragment,
+		[]string{
+			event.LifecycleFragmentTypeAttached,
+			event.LifecycleFragmentTypeResumed,
+		},
+		event.TypeException,
+		false,
+		event.TypeANR,
+	}
+
 	stmt := sqlf.
 		From(`default.events`).
 		Select(`id`).
@@ -996,8 +1065,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *AppFilter) (events []even
 		Where("`attribute.app_version` in ?", af.Versions).
 		Where("`attribute.app_build` in ?", af.VersionCodes).
 		Where("`timestamp` >= ? and `timestamp` <= ?", af.From, af.To).
-		Where(`(type = ? or type = ?)`, event.TypeLifecycleActivity, event.TypeLifecycleFragment).
-		Where(`(lifecycle_activity.type = ? or lifecycle_activity.type = ? or lifecycle_fragment.type = ? or lifecycle_fragment.type = ?)`, event.LifecycleActivityTypeCreated, event.LifecycleActivityTypeResumed, event.LifecycleFragmentTypeAttached, event.LifecycleFragmentTypeResumed).
+		Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or ((type = ? and `exception.handled` = ?) or type = ?))", whereVals...).
 		OrderBy(`timestamp`)
 
 	defer stmt.Close()
@@ -1009,25 +1077,43 @@ func (a App) getJourneyEvents(ctx context.Context, af *AppFilter) (events []even
 
 	for rows.Next() {
 		var ev event.EventField
-		var lifecycleActivity event.LifecycleActivity
-		var lifecycleFragment event.LifecycleFragment
-		ev.LifecycleActivity = &lifecycleActivity
-		ev.LifecycleFragment = &lifecycleFragment
+		var lifecycleActivityType string
+		var lifecycleActivityClassName string
+		var lifecycleFragmentType string
+		var lifecycleFragmentClassName string
+		var lifecycleFragmentParentActivity string
 
 		dest := []any{
 			&ev.ID,
 			&ev.Type,
 			&ev.Timestamp,
 			&ev.SessionID,
-			&ev.LifecycleActivity.Type,
-			&ev.LifecycleActivity.ClassName,
-			&ev.LifecycleFragment.Type,
-			&ev.LifecycleFragment.ClassName,
-			&ev.LifecycleFragment.ParentActivity,
+			&lifecycleActivityType,
+			&lifecycleActivityClassName,
+			&lifecycleFragmentType,
+			&lifecycleFragmentClassName,
+			&lifecycleFragmentParentActivity,
 		}
 
 		if err := rows.Scan(dest...); err != nil {
 			return nil, err
+		}
+
+		if ev.IsLifecycleActivity() {
+			ev.LifecycleActivity = &event.LifecycleActivity{
+				Type:      lifecycleActivityType,
+				ClassName: lifecycleActivityClassName,
+			}
+		} else if ev.IsLifecycleFragment() {
+			ev.LifecycleFragment = &event.LifecycleFragment{
+				Type:           lifecycleFragmentType,
+				ClassName:      lifecycleFragmentClassName,
+				ParentActivity: lifecycleFragmentParentActivity,
+			}
+		} else if ev.IsException() {
+			ev.Exception = &event.Exception{}
+		} else if ev.IsANR() {
+			ev.ANR = &event.ANR{}
 		}
 
 		events = append(events, ev)
@@ -1371,9 +1457,9 @@ func GetAppJourney(c *gin.Context) {
 		ID: &id,
 	}
 
+	msg = `failed to compute app's journey`
 	journeyEvents, err := app.getJourneyEvents(ctx, &af)
 	if err != nil {
-		msg := `failed to compute app's journey`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
@@ -1381,29 +1467,110 @@ func GetAppJourney(c *gin.Context) {
 		return
 	}
 
-	// TODO: Remove this after completing journey API
-	for i := range journeyEvents {
-		fmt.Println("id: ", i)
-		fmt.Println("session id:", journeyEvents[i].SessionID)
-		fmt.Println("lifecycle type: ", journeyEvents[i].Type)
-		if journeyEvents[i].IsLifecycleActivity() {
-			fmt.Println("activity type: ", journeyEvents[i].LifecycleActivity.Type)
-			fmt.Println("class name:", journeyEvents[i].LifecycleActivity.ClassName)
-		}
-		if journeyEvents[i].IsLifecycleFragment() {
-			fmt.Println("fragment type: ", journeyEvents[i].LifecycleFragment.Type)
-			fmt.Println("class name:", journeyEvents[i].LifecycleFragment.ClassName)
-		}
-		fmt.Println("---------------")
-		fmt.Printf("\n")
+	fmt.Println("len journey events: ", len(journeyEvents))
+	jsonBytes, _ := json.MarshalIndent(journeyEvents, "", "  ")
+	fmt.Println("journey events")
+	fmt.Println(string(jsonBytes))
+
+	issueEvents, err := app.getIssues(ctx, &af)
+	if err != nil {
+		msg = `failed to compute app's journey`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
 	}
+
+	sessionIds := journey.NewUUIDSet()
+
+	for i := range issueEvents {
+		sessionIds.Add(issueEvents[i].SessionID)
+	}
+
+	fmt.Println("issues: ", issueEvents)
+	fmt.Println("len: ", len(issueEvents))
+	fmt.Println("session ids: ", sessionIds.Slice(), sessionIds.Size())
+
+	// TODO: Remove this after completing journey API
+	// for i := range journeyEvents {
+	// 	fmt.Println("id: ", i)
+	// 	fmt.Println("session id:", journeyEvents[i].SessionID)
+	// 	fmt.Println("lifecycle type: ", journeyEvents[i].Type)
+	// 	if journeyEvents[i].IsLifecycleActivity() {
+	// 		fmt.Println("activity type: ", journeyEvents[i].LifecycleActivity.Type)
+	// 		fmt.Println("class name:", journeyEvents[i].LifecycleActivity.ClassName)
+	// 	}
+	// 	if journeyEvents[i].IsLifecycleFragment() {
+	// 		fmt.Println("fragment type: ", journeyEvents[i].LifecycleFragment.Type)
+	// 		fmt.Println("class name:", journeyEvents[i].LifecycleFragment.ClassName)
+	// 	}
+	// 	fmt.Println("---------------")
+	// 	fmt.Printf("\n")
+	// }
 
 	journeyAndroid := journey.NewJourneyAndroid(journeyEvents)
 	fmt.Println(journeyAndroid.String())
 
+	set := journey.NewUUIDSet()
+
+	for v := range journeyAndroid.Graph.Order() {
+		journeyAndroid.Graph.Visit(v, func(w int, c int64) bool {
+			slice := journeyAndroid.GetEdgeSessions(v, w)
+			for i := range slice {
+				if !set.Has(slice[i]) {
+					set.Add(slice[i])
+				}
+			}
+			return false
+		})
+	}
+
+	fmt.Println("unique sessions: ", set.Slice())
+
+	type Link struct {
+		Source string `json:"source"`
+		Target string `json:"target"`
+		Value  int    `json:"value"`
+	}
+
+	type Issue struct {
+		Title string `json:"title"`
+		Count int    `json:"count"`
+	}
+
+	type Node struct {
+		ID     string `json:"id"`
+		Issues gin.H  `json:"issues"`
+	}
+
+	var nodes []Node
+	var links []Link
+
+	for v := range journeyAndroid.Graph.Order() {
+		journeyAndroid.Graph.Visit(v, func(w int, c int64) bool {
+			var link Link
+			link.Source = journeyAndroid.GetNodeName(v)
+			link.Target = journeyAndroid.GetNodeName(w)
+			link.Value = journeyAndroid.GetEdgeSessionCount(v, w)
+			links = append(links, link)
+
+			var node Node
+			node.ID = link.Target
+			node.Issues = gin.H{
+				"crashes": []Issue{},
+				"anrs":    []Issue{},
+			}
+			nodes = append(nodes, node)
+
+			return false
+		})
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"ok":          "whatever",
-		"graph_stats": graph.Check(journeyAndroid.Graph),
+		"totalIssues": len(issueEvents),
+		"nodes":       nodes,
+		"links":       links,
 	})
 }
 
