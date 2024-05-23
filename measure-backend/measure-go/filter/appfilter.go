@@ -1,4 +1,4 @@
-package measure
+package filter
 
 import (
 	"context"
@@ -121,10 +121,10 @@ type FilterList struct {
 	DeviceNames         []string `json:"device_names"`
 }
 
-// validate validates each app filtering parameter and sets
+// Validate validates each app filtering parameter and sets
 // defaults for unspecified parameters. Returns error if any
 // parameter is invalid or incomplete.
-func (af *AppFilter) validate() error {
+func (af *AppFilter) Validate() error {
 	// app UUID validations
 	if af.AppID == uuid.Nil {
 		return fmt.Errorf("app id is invalid or empty")
@@ -158,18 +158,18 @@ func (af *AppFilter) validate() error {
 	return nil
 }
 
-// validateVersions validates presence of valid
+// ValidateVersions validates presence of valid
 // version name and version code.
-func (af *AppFilter) validateVersions() error {
+func (af *AppFilter) ValidateVersions() error {
 	if len(af.Versions) < 1 || len(af.VersionCodes) < 1 {
 		return fmt.Errorf(`version and version code is required`)
 	}
 	return nil
 }
 
-// expand expands comma separated fields to slice
+// Expand expands comma separated fields to slice
 // of strings
-func (af *AppFilter) expand() {
+func (af *AppFilter) Expand() {
 	if len(af.Versions) > 0 {
 		versions := af.Versions[0]
 		versions = strings.TrimSpace(versions)
@@ -225,46 +225,36 @@ func (af *AppFilter) expand() {
 	}
 }
 
-// hasTimeRange checks if the time values are
+// HasTimeRange checks if the time values are
 // appropriately set.
-func (af *AppFilter) hasTimeRange() bool {
+func (af *AppFilter) HasTimeRange() bool {
 	return !af.From.IsZero() && !af.To.IsZero()
 }
 
-// hasKeyID checks if key id is a valid non-empty
-// value.
-func (af *AppFilter) hasKeyID() bool {
-	return af.KeyID != ""
-}
-
-// hasKeyTimestamp checks if key timestamp is a valid non-empty
-// value.
-func (af *AppFilter) hasKeyTimestamp() bool {
-	return !time.Time.IsZero(af.KeyTimestamp)
-}
-
-// hasKeyset checks if key id and key timestamp
+// HasKeyset checks if key id and key timestamp
 // values are present and valid.
-func (af *AppFilter) hasKeyset() bool {
+func (af *AppFilter) HasKeyset() bool {
 	return af.hasKeyID() && af.hasKeyTimestamp()
 }
 
-// hasPositiveLimit checks if limit is greater
+// HasPositiveLimit checks if limit is greater
 // than zero.
-func (af *AppFilter) hasPositiveLimit() bool {
+func (af *AppFilter) HasPositiveLimit() bool {
 	return af.Limit > 0
 }
 
-// limitAbs returns the absolute value of limit
-func (af *AppFilter) limitAbs() int {
-	if !af.hasPositiveLimit() {
+// LimitAbs returns the absolute value of limit
+func (af *AppFilter) LimitAbs() int {
+	if !af.HasPositiveLimit() {
 		return -af.Limit
 	}
 	return af.Limit
 }
 
-func (af *AppFilter) extendLimit() int {
-	if af.hasPositiveLimit() {
+// ExtendLimit extends the limit by one
+// in a signed way.
+func (af *AppFilter) ExtendLimit() int {
+	if af.HasPositiveLimit() {
 		return af.Limit + 1
 	} else {
 		limit := -af.Limit
@@ -272,9 +262,9 @@ func (af *AppFilter) extendLimit() int {
 	}
 }
 
-// setDefaultTimeRange sets the time range to last
+// SetDefaultTimeRange sets the time range to last
 // default duration from current UTC time
-func (af *AppFilter) setDefaultTimeRange() {
+func (af *AppFilter) SetDefaultTimeRange() {
 	to := time.Now().UTC()
 	from := to.Add(-DefaultDuration)
 
@@ -282,10 +272,10 @@ func (af *AppFilter) setDefaultTimeRange() {
 	af.To = to
 }
 
-// getGenericFilters finds distinct values of app versions, network type,
+// GetGenericFilters finds distinct values of app versions, network type,
 // network provider and other such event parameters from available events
 // with appropriate filters applied.
-func (af *AppFilter) getGenericFilters(ctx context.Context, fl *FilterList) error {
+func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) error {
 	if err := af.getAppVersions(ctx, fl); err != nil {
 		return err
 	}
@@ -319,6 +309,18 @@ func (af *AppFilter) getGenericFilters(ctx context.Context, fl *FilterList) erro
 	}
 
 	return nil
+}
+
+// hasKeyID checks if key id is a valid non-empty
+// value.
+func (af *AppFilter) hasKeyID() bool {
+	return af.KeyID != ""
+}
+
+// hasKeyTimestamp checks if key timestamp is a valid non-empty
+// value.
+func (af *AppFilter) hasKeyTimestamp() bool {
+	return !time.Time.IsZero(af.KeyTimestamp)
 }
 
 // getAppVersions finds distinct pairs of app versions &

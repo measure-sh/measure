@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"measure-backend/measure-go/event"
+	"measure-backend/measure-go/filter"
 	"measure-backend/measure-go/journey"
 	"measure-backend/measure-go/metrics"
 	"measure-backend/measure-go/replay"
@@ -111,7 +112,7 @@ func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (*ANRGroup, error) {
 
 // GetExceptionGroups returns slice of ExceptionGroup after applying matching
 // AppFilter values
-func (a App) GetExceptionGroups(ctx context.Context, af *AppFilter) ([]ExceptionGroup, error) {
+func (a App) GetExceptionGroups(ctx context.Context, af *filter.AppFilter) ([]ExceptionGroup, error) {
 	stmt := sqlf.PostgreSQL.
 		Select("id, app_id, name, fingerprint, array_length(event_ids, 1) as count, event_ids, created_at, updated_at").
 		From("public.unhandled_exception_groups").
@@ -123,7 +124,7 @@ func (a App) GetExceptionGroups(ctx context.Context, af *AppFilter) ([]Exception
 	args := []any{a.ID}
 
 	if af != nil {
-		if af.hasTimeRange() {
+		if af.HasTimeRange() {
 			stmt.Where("created_at >= ? and created_at <= ?", nil, nil)
 			args = append(args, af.From, af.To)
 		}
@@ -143,7 +144,7 @@ func (a App) GetExceptionGroups(ctx context.Context, af *AppFilter) ([]Exception
 
 // GetANRGroups returns slice of ANRGroup after applying matching
 // AppFilter values
-func (a App) GetANRGroups(af *AppFilter) ([]ANRGroup, error) {
+func (a App) GetANRGroups(af *filter.AppFilter) ([]ANRGroup, error) {
 	stmt := sqlf.PostgreSQL.
 		Select("id, app_id, name, fingerprint, array_length(event_ids, 1) as count, event_ids, created_at, updated_at").
 		From("public.anr_groups").
@@ -154,7 +155,7 @@ func (a App) GetANRGroups(af *AppFilter) ([]ANRGroup, error) {
 	args := []any{a.ID}
 
 	if af != nil {
-		if af.hasTimeRange() {
+		if af.HasTimeRange() {
 			stmt.Where("created_at >= ? and created_at <= ?", nil, nil)
 			args = append(args, af.From, af.To)
 		}
@@ -172,7 +173,7 @@ func (a App) GetANRGroups(af *AppFilter) ([]ANRGroup, error) {
 	return groups, nil
 }
 
-func (a App) GetSizeMetrics(ctx context.Context, af *AppFilter) (size *metrics.SizeMetric, err error) {
+func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter) (size *metrics.SizeMetric, err error) {
 	size = &metrics.SizeMetric{}
 	stmt := sqlf.Select("count(id) as count").
 		From("default.events").
@@ -220,7 +221,7 @@ func (a App) GetSizeMetrics(ctx context.Context, af *AppFilter) (size *metrics.S
 	return
 }
 
-func (a App) GetCrashFreeMetrics(ctx context.Context, af *AppFilter) (crashFree *metrics.CrashFreeSession, err error) {
+func (a App) GetCrashFreeMetrics(ctx context.Context, af *filter.AppFilter) (crashFree *metrics.CrashFreeSession, err error) {
 	crashFree = &metrics.CrashFreeSession{}
 	stmt := sqlf.
 		With("all_sessions",
@@ -265,7 +266,7 @@ func (a App) GetCrashFreeMetrics(ctx context.Context, af *AppFilter) (crashFree 
 	return
 }
 
-func (a App) GetANRFreeMetrics(ctx context.Context, af *AppFilter) (anrFree *metrics.ANRFreeSession, err error) {
+func (a App) GetANRFreeMetrics(ctx context.Context, af *filter.AppFilter) (anrFree *metrics.ANRFreeSession, err error) {
 	anrFree = &metrics.ANRFreeSession{}
 	stmt := sqlf.
 		With("all_sessions",
@@ -310,7 +311,7 @@ func (a App) GetANRFreeMetrics(ctx context.Context, af *AppFilter) (anrFree *met
 	return
 }
 
-func (a App) GetPerceivedCrashFreeMetrics(ctx context.Context, af *AppFilter) (crashFree *metrics.PerceivedCrashFreeSession, err error) {
+func (a App) GetPerceivedCrashFreeMetrics(ctx context.Context, af *filter.AppFilter) (crashFree *metrics.PerceivedCrashFreeSession, err error) {
 	crashFree = &metrics.PerceivedCrashFreeSession{}
 	stmt := sqlf.
 		With("all_sessions",
@@ -355,7 +356,7 @@ func (a App) GetPerceivedCrashFreeMetrics(ctx context.Context, af *AppFilter) (c
 	return
 }
 
-func (a App) GetPerceivedANRFreeMetrics(ctx context.Context, af *AppFilter) (anrFree *metrics.PerceivedANRFreeSession, err error) {
+func (a App) GetPerceivedANRFreeMetrics(ctx context.Context, af *filter.AppFilter) (anrFree *metrics.PerceivedANRFreeSession, err error) {
 	anrFree = &metrics.PerceivedANRFreeSession{}
 	stmt := sqlf.
 		With("all_sessions",
@@ -400,7 +401,7 @@ func (a App) GetPerceivedANRFreeMetrics(ctx context.Context, af *AppFilter) (anr
 	return
 }
 
-func (a App) GetAdoptionMetrics(ctx context.Context, af *AppFilter) (adoption *metrics.SessionAdoption, err error) {
+func (a App) GetAdoptionMetrics(ctx context.Context, af *filter.AppFilter) (adoption *metrics.SessionAdoption, err error) {
 	adoption = &metrics.SessionAdoption{}
 	stmt := sqlf.From("default.events").
 		With("all_sessions",
@@ -432,7 +433,7 @@ func (a App) GetAdoptionMetrics(ctx context.Context, af *AppFilter) (adoption *m
 	return
 }
 
-func (a App) GetLaunchMetrics(ctx context.Context, af *AppFilter) (launch *metrics.LaunchMetric, err error) {
+func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch *metrics.LaunchMetric, err error) {
 	launch = &metrics.LaunchMetric{}
 	stmt := sqlf.
 		With("timings",
@@ -977,7 +978,7 @@ func (a App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessio
 	return &session, nil
 }
 
-func (a App) getIssues(ctx context.Context, af *AppFilter) (events []event.EventField, err error) {
+func (a App) getIssues(ctx context.Context, af *filter.AppFilter) (events []event.EventField, err error) {
 	eventTypes := []any{event.TypeException, event.TypeANR}
 
 	stmt := sqlf.
@@ -1033,7 +1034,7 @@ func (a App) getIssues(ctx context.Context, af *AppFilter) (events []event.Event
 
 // getJourneyEvents queries all relevant lifecycle events involved in forming
 // an implicit navigational journey.
-func (a App) getJourneyEvents(ctx context.Context, af *AppFilter) (events []event.EventField, err error) {
+func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter) (events []event.EventField, err error) {
 	whereVals := []any{
 		event.TypeLifecycleActivity,
 		[]string{
@@ -1419,9 +1420,9 @@ func GetAppJourney(c *gin.Context) {
 		})
 		return
 	}
-	af := AppFilter{
+	af := filter.AppFilter{
 		AppID: id,
-		Limit: DefaultPaginationLimit,
+		Limit: filter.DefaultPaginationLimit,
 	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
@@ -1430,17 +1431,17 @@ func GetAppJourney(c *gin.Context) {
 		return
 	}
 
-	af.expand()
+	af.Expand()
 
 	msg := "app journey request validation failed"
 
-	if err := af.validate(); err != nil {
+	if err := af.Validate(); err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
 		return
 	}
 
-	if err := af.validateVersions(); err != nil {
+	if err := af.ValidateVersions(); err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   msg,
@@ -1449,8 +1450,8 @@ func GetAppJourney(c *gin.Context) {
 		return
 	}
 
-	if !af.hasTimeRange() {
-		af.setDefaultTimeRange()
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
 	}
 
 	app := App{
@@ -1586,9 +1587,9 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	af := AppFilter{
+	af := filter.AppFilter{
 		AppID: id,
-		Limit: DefaultPaginationLimit,
+		Limit: filter.DefaultPaginationLimit,
 	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
@@ -1601,11 +1602,11 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	af.expand()
+	af.Expand()
 
 	msg := `app metrics request validation failed`
 
-	if err := af.validate(); err != nil {
+	if err := af.Validate(); err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   msg,
@@ -1614,7 +1615,7 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	if err := af.validateVersions(); err != nil {
+	if err := af.ValidateVersions(); err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   msg,
@@ -1623,8 +1624,8 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	if !af.hasTimeRange() {
-		af.setDefaultTimeRange()
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
 	}
 
 	app := App{
@@ -1730,9 +1731,9 @@ func GetAppFilters(c *gin.Context) {
 		return
 	}
 
-	af := AppFilter{
+	af := filter.AppFilter{
 		AppID: id,
-		Limit: DefaultPaginationLimit,
+		Limit: filter.DefaultPaginationLimit,
 	}
 
 	ctx := c.Request.Context()
@@ -1744,7 +1745,7 @@ func GetAppFilters(c *gin.Context) {
 		return
 	}
 
-	if err := af.validate(); err != nil {
+	if err := af.Validate(); err != nil {
 		msg := "app filters request validation failed"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
@@ -1791,9 +1792,9 @@ func GetAppFilters(c *gin.Context) {
 		return
 	}
 
-	var fl FilterList
+	var fl filter.FilterList
 
-	if err := af.getGenericFilters(ctx, &fl); err != nil {
+	if err := af.GetGenericFilters(ctx, &fl); err != nil {
 		msg := `failed to query app filters`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
@@ -1829,9 +1830,9 @@ func GetCrashGroups(c *gin.Context) {
 		return
 	}
 
-	af := AppFilter{
+	af := filter.AppFilter{
 		AppID: id,
-		Limit: DefaultPaginationLimit,
+		Limit: filter.DefaultPaginationLimit,
 	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
@@ -1841,17 +1842,17 @@ func GetCrashGroups(c *gin.Context) {
 		return
 	}
 
-	af.expand()
+	af.Expand()
 
-	if err := af.validate(); err != nil {
+	if err := af.Validate(); err != nil {
 		msg := "app filters request validation failed"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
 		return
 	}
 
-	if !af.hasTimeRange() {
-		af.setDefaultTimeRange()
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
 	}
 
 	app := App{
@@ -1956,9 +1957,9 @@ func GetCrashGroupCrashes(c *gin.Context) {
 		return
 	}
 
-	af := AppFilter{
+	af := filter.AppFilter{
 		AppID: id,
-		Limit: DefaultPaginationLimit,
+		Limit: filter.DefaultPaginationLimit,
 	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
@@ -1968,9 +1969,9 @@ func GetCrashGroupCrashes(c *gin.Context) {
 		return
 	}
 
-	af.expand()
+	af.Expand()
 
-	if err := af.validate(); err != nil {
+	if err := af.Validate(); err != nil {
 		msg := "app filters request validation failed"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
@@ -2051,9 +2052,9 @@ func GetANRGroups(c *gin.Context) {
 		return
 	}
 
-	af := AppFilter{
+	af := filter.AppFilter{
 		AppID: id,
-		Limit: DefaultPaginationLimit,
+		Limit: filter.DefaultPaginationLimit,
 	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
@@ -2063,15 +2064,15 @@ func GetANRGroups(c *gin.Context) {
 		return
 	}
 
-	if err := af.validate(); err != nil {
+	if err := af.Validate(); err != nil {
 		msg := "app filters request validation failed"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
 		return
 	}
 
-	if !af.hasTimeRange() {
-		af.setDefaultTimeRange()
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
 	}
 
 	app := App{
@@ -2173,9 +2174,9 @@ func GetANRGroupANRs(c *gin.Context) {
 		return
 	}
 
-	af := AppFilter{
+	af := filter.AppFilter{
 		AppID: id,
-		Limit: DefaultPaginationLimit,
+		Limit: filter.DefaultPaginationLimit,
 	}
 
 	if err := c.ShouldBindQuery(&af); err != nil {
@@ -2185,9 +2186,9 @@ func GetANRGroupANRs(c *gin.Context) {
 		return
 	}
 
-	af.expand()
+	af.Expand()
 
-	if err := af.validate(); err != nil {
+	if err := af.Validate(); err != nil {
 		msg := "app filters request validation failed"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})

@@ -1,6 +1,7 @@
 package measure
 
 import (
+	"measure-backend/measure-go/filter"
 	"reflect"
 	"testing"
 
@@ -32,7 +33,7 @@ var groups = []ExceptionGroup{
 }
 
 func TestPaginateGroups(t *testing.T) {
-	subgroup, next, previous := PaginateGroups[ExceptionGroup](groups, &AppFilter{})
+	subgroup, next, previous := PaginateGroups[ExceptionGroup](groups, &filter.AppFilter{})
 
 	{
 		expected := len(groups)
@@ -76,7 +77,7 @@ func TestPaginateGroups(t *testing.T) {
 }
 
 func TestForwardLimitOne(t *testing.T) {
-	subgroup, next, previous := PaginateGroups[ExceptionGroup](groups, &AppFilter{
+	subgroup, next, previous := PaginateGroups[ExceptionGroup](groups, &filter.AppFilter{
 		Limit: 1,
 	})
 
@@ -114,7 +115,7 @@ func TestForwardLimitOne(t *testing.T) {
 }
 
 func TestBackwardLimitOne(t *testing.T) {
-	subgroup, next, previous := PaginateGroups[ExceptionGroup](groups, &AppFilter{
+	subgroup, next, previous := PaginateGroups[ExceptionGroup](groups, &filter.AppFilter{
 		Limit: -1,
 	})
 
@@ -144,7 +145,7 @@ func TestBackwardLimitOne(t *testing.T) {
 }
 
 func TestForwardLimitWithID(t *testing.T) {
-	subgroup, next, previous := PaginateGroups[ExceptionGroup](groups, &AppFilter{
+	subgroup, next, previous := PaginateGroups[ExceptionGroup](groups, &filter.AppFilter{
 		KeyID: groups[0].ID.String(),
 		Limit: 1,
 	})
@@ -181,7 +182,7 @@ func TestForwardLimitWithID(t *testing.T) {
 		}
 	}
 
-	subgroup, next, previous = PaginateGroups[ExceptionGroup](groups, &AppFilter{
+	subgroup, next, previous = PaginateGroups[ExceptionGroup](groups, &filter.AppFilter{
 		KeyID: groups[len(groups)-1].ID.String(),
 		Limit: 1,
 	})
@@ -212,7 +213,7 @@ func TestForwardLimitWithID(t *testing.T) {
 }
 
 func TestBackwardLimitWithID(t *testing.T) {
-	subgroup, next, previous := PaginateGroups[ExceptionGroup](groups, &AppFilter{
+	subgroup, next, previous := PaginateGroups[ExceptionGroup](groups, &filter.AppFilter{
 		KeyID: groups[0].ID.String(),
 		Limit: -1,
 	})

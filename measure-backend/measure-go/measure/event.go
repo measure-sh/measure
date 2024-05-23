@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"measure-backend/measure-go/chrono"
 	"measure-backend/measure-go/event"
+	"measure-backend/measure-go/filter"
 	"measure-backend/measure-go/inet"
 	"measure-backend/measure-go/server"
 	"measure-backend/measure-go/symbol"
@@ -973,28 +974,28 @@ func (e eventreq) sessionCount() (count int) {
 // GetExceptionsWithFilter returns a slice of EventException for the given slice of
 // event id and matching AppFilter. Also computes the next, previous pagination meta
 // values.
-func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *AppFilter) (events []event.EventException, next bool, previous bool, err error) {
+func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filter.AppFilter) (events []event.EventException, next bool, previous bool, err error) {
 	var edgecount int
 	var countStmt *sqlf.Stmt
 	var exceptions string
 	var threads string
-	limit := af.extendLimit()
-	forward := af.hasPositiveLimit()
+	limit := af.ExtendLimit()
+	forward := af.HasPositiveLimit()
 	next = false
 	previous = false
 	timeformat := "2006-01-02T15:04:05.000"
-	abs := af.limitAbs()
+	abs := af.LimitAbs()
 	op := "<"
 	if !forward {
 		op = ">"
 	}
 
-	if !af.hasKeyset() && !forward {
+	if !af.HasKeyset() && !forward {
 		next = true
 		return
 	}
 
-	if af.hasKeyset() {
+	if af.HasKeyset() {
 		args := []any{}
 		op := ">"
 		if !forward {
@@ -1058,7 +1059,7 @@ func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *AppF
 			args = append(args, af.NetworkGenerations)
 		}
 
-		if af.hasTimeRange() {
+		if af.HasTimeRange() {
 			countStmt.Where("`timestamp` >= ? and `timestamp` <= ?", nil, nil)
 			args = append(args, af.From, af.To)
 		}
@@ -1176,12 +1177,12 @@ func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *AppF
 		args = append(args, af.NetworkGenerations)
 	}
 
-	if af.hasTimeRange() {
+	if af.HasTimeRange() {
 		stmt.Where("`timestamp` >= ? and `timestamp` <= ?", nil, nil)
 		args = append(args, af.From, af.To)
 	}
 
-	if af.hasKeyset() {
+	if af.HasKeyset() {
 		stmt.Where("`timestamp` "+op+" ? or (`timestamp` = ? and `id` "+op+" ?)", nil, nil, nil)
 		timestamp := af.KeyTimestamp.Format(timeformat)
 		args = append(args, timestamp, timestamp, af.KeyID)
@@ -1253,7 +1254,7 @@ func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *AppF
 			next = true
 			events = events[:length-1]
 		}
-		if edgecount > -1 && af.hasKeyset() {
+		if edgecount > -1 && af.HasKeyset() {
 			previous = true
 		}
 	} else {
@@ -1275,28 +1276,28 @@ func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *AppF
 
 // GetANRsWithFilter returns a slice of EventANR for the given slice of
 // event id and matching AppFilter.
-func GetANRsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *AppFilter) (events []event.EventANR, next bool, previous bool, err error) {
+func GetANRsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filter.AppFilter) (events []event.EventANR, next bool, previous bool, err error) {
 	var edgecount int
 	var countStmt *sqlf.Stmt
 	var exceptions string
 	var threads string
-	limit := af.extendLimit()
-	forward := af.hasPositiveLimit()
+	limit := af.ExtendLimit()
+	forward := af.HasPositiveLimit()
 	next = false
 	previous = false
 	timeformat := "2006-01-02T15:04:05.000"
-	abs := af.limitAbs()
+	abs := af.LimitAbs()
 	op := "<"
 	if !forward {
 		op = ">"
 	}
 
-	if !af.hasKeyset() && !forward {
+	if !af.HasKeyset() && !forward {
 		next = true
 		return
 	}
 
-	if af.hasKeyset() {
+	if af.HasKeyset() {
 		args := []any{}
 		op := ">"
 		if !forward {
@@ -1361,7 +1362,7 @@ func GetANRsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *AppFilter)
 			args = append(args, af.NetworkGenerations)
 		}
 
-		if af.hasTimeRange() {
+		if af.HasTimeRange() {
 			countStmt.Where("`timestamp` >= ? and `timestamp` <= ?", nil, nil)
 			args = append(args, af.From, af.To)
 		}
@@ -1478,12 +1479,12 @@ func GetANRsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *AppFilter)
 		args = append(args, af.NetworkGenerations)
 	}
 
-	if af.hasTimeRange() {
+	if af.HasTimeRange() {
 		stmt.Where("`timestamp` >= ? and `timestamp` <= ?", nil, nil)
 		args = append(args, af.From, af.To)
 	}
 
-	if af.hasKeyset() {
+	if af.HasKeyset() {
 		stmt.Where("`timestamp` "+op+" ? or (`timestamp` = ? and `id` "+op+" ?)", nil, nil, nil)
 		timestamp := af.KeyTimestamp.Format(timeformat)
 		args = append(args, timestamp, timestamp, af.KeyID)
@@ -1555,7 +1556,7 @@ func GetANRsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *AppFilter)
 			next = true
 			events = events[:length-1]
 		}
-		if edgecount > -1 && af.hasKeyset() {
+		if edgecount > -1 && af.HasKeyset() {
 			previous = true
 		}
 	} else {
@@ -1577,7 +1578,7 @@ func GetANRsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *AppFilter)
 
 // GetEventIdsWithFilter gets the event ids matching event ids and optionally
 // applies matching AppFilter.
-func GetEventIdsMatchingFilter(ctx context.Context, eventIds []uuid.UUID, af *AppFilter) ([]uuid.UUID, error) {
+func GetEventIdsMatchingFilter(ctx context.Context, eventIds []uuid.UUID, af *filter.AppFilter) ([]uuid.UUID, error) {
 	stmt := sqlf.
 		From("default.events").
 		Select("id").

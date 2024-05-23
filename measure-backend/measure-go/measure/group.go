@@ -4,6 +4,7 @@ import (
 	"context"
 	"measure-backend/measure-go/chrono"
 	"measure-backend/measure-go/event"
+	"measure-backend/measure-go/filter"
 	"measure-backend/measure-go/server"
 	"slices"
 	"sort"
@@ -235,7 +236,7 @@ func ComputeANRContribution(groups []ANRGroup) {
 
 // PaginateGroups accepts slice of interface GroupID and computes and
 // returns a subset slice along with pagination meta, like next and previous.
-func PaginateGroups[T GroupID](groups []T, af *AppFilter) (sliced []T, next bool, previous bool) {
+func PaginateGroups[T GroupID](groups []T, af *filter.AppFilter) (sliced []T, next bool, previous bool) {
 	sliced = groups
 	next = false
 	previous = false
