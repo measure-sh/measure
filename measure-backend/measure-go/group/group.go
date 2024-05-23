@@ -56,22 +56,10 @@ func (e ExceptionGroup) GetID() uuid.UUID {
 	return e.ID
 }
 
-func (a ANRGroup) GetID() uuid.UUID {
-	return a.ID
-}
-
 // EventExists checks if the given event id exists in
 // the ExceptionGroup's events array.
 func (e ExceptionGroup) EventExists(id uuid.UUID) bool {
 	return slices.ContainsFunc(e.EventIDs, func(eventId uuid.UUID) bool {
-		return eventId.String() == id.String()
-	})
-}
-
-// EventExists checks if the given event id exists in
-// the ANRGroup's events array.
-func (a ANRGroup) EventExists(id uuid.UUID) bool {
-	return slices.ContainsFunc(a.EventIDs, func(eventId uuid.UUID) bool {
 		return eventId.String() == id.String()
 	})
 }
@@ -84,27 +72,6 @@ func (e ExceptionGroup) AppendEventId(ctx context.Context, id uuid.UUID, tx *pgx
 		SetExpr("event_ids", "array_append(event_ids, ?)", id).
 		Set("updated_at", time.Now()).
 		Where("id = ?", e.ID)
-
-	defer stmt.Close()
-
-	if tx != nil {
-		_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
-		return
-	}
-
-	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-
-	return
-}
-
-// AppendEventId appends a new event id to the ANRGroup's
-// events array.
-func (a ANRGroup) AppendEventId(ctx context.Context, id uuid.UUID, tx *pgx.Tx) (err error) {
-	stmt := sqlf.PostgreSQL.
-		Update("public.anr_groups").
-		SetExpr("event_ids", "array_append(event_ids, ?)", id).
-		Set("updated_at", time.Now()).
-		Where("id = ?", a.ID)
 
 	defer stmt.Close()
 
@@ -131,6 +98,66 @@ func (e ExceptionGroup) HammingDistance(a uint64) (uint8, error) {
 	return simhash.Compare(a, b), nil
 }
 
+// Insert inserts a new ExceptionGroup into the database.
+func (e *ExceptionGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
+	id, err := uuid.NewV7()
+	if err != nil {
+		return
+	}
+
+	stmt := sqlf.PostgreSQL.
+		InsertInto("public.unhandled_exception_groups").
+		Set("id", id).
+		Set("app_id", e.AppID).
+		Set("name", e.Name).
+		Set("fingerprint", e.Fingerprint).
+		Set("event_ids", e.EventIDs)
+
+	defer stmt.Close()
+
+	if tx != nil {
+		_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
+		return
+	}
+
+	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+
+	return
+}
+
+func (a ANRGroup) GetID() uuid.UUID {
+	return a.ID
+}
+
+// EventExists checks if the given event id exists in
+// the ANRGroup's events array.
+func (a ANRGroup) EventExists(id uuid.UUID) bool {
+	return slices.ContainsFunc(a.EventIDs, func(eventId uuid.UUID) bool {
+		return eventId.String() == id.String()
+	})
+}
+
+// AppendEventId appends a new event id to the ANRGroup's
+// events array.
+func (a ANRGroup) AppendEventId(ctx context.Context, id uuid.UUID, tx *pgx.Tx) (err error) {
+	stmt := sqlf.PostgreSQL.
+		Update("public.anr_groups").
+		SetExpr("event_ids", "array_append(event_ids, ?)", id).
+		Set("updated_at", time.Now()).
+		Where("id = ?", a.ID)
+
+	defer stmt.Close()
+
+	if tx != nil {
+		_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
+		return
+	}
+
+	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+
+	return
+}
+
 // HammingDistance calculates the hamming distance between the
 // anr's fingerprint with any arbitrary fingerprint
 // represented as a 64 bit unsigned integer returning
@@ -142,6 +169,33 @@ func (anr ANRGroup) HammingDistance(a uint64) (uint8, error) {
 	}
 
 	return simhash.Compare(a, b), nil
+}
+
+// Insert inserts a new ANRGroup into the database.
+func (a *ANRGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
+	id, err := uuid.NewV7()
+	if err != nil {
+		return err
+	}
+
+	stmt := sqlf.PostgreSQL.
+		InsertInto("public.anr_groups").
+		Set("id", id).
+		Set("app_id", a.AppID).
+		Set("name", a.Name).
+		Set("fingerprint", a.Fingerprint).
+		Set("event_ids", a.EventIDs)
+
+	defer stmt.Close()
+
+	if tx != nil {
+		_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
+		return
+	}
+
+	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+
+	return
 }
 
 // GetExceptionGroup gets the ExceptionGroup by matching
@@ -234,6 +288,28 @@ func ComputeANRContribution(groups []ANRGroup) {
 	}
 }
 
+// SortExceptionGroups first sorts a slice of ExceptionGroup
+// with descending count and then ascending ID.
+func SortExceptionGroups(groups []ExceptionGroup) {
+	sort.SliceStable(groups, func(i, j int) bool {
+		if groups[i].Count != groups[j].Count {
+			return groups[i].Count > groups[j].Count
+		}
+		return groups[i].ID.String() < groups[j].ID.String()
+	})
+}
+
+// SortANRGroups first sorts a slice of ANRGroup
+// with descending count and then ascending ID.
+func SortANRGroups(groups []ANRGroup) {
+	sort.SliceStable(groups, func(i, j int) bool {
+		if groups[i].Count != groups[j].Count {
+			return groups[i].Count > groups[j].Count
+		}
+		return groups[i].ID.String() < groups[j].ID.String()
+	})
+}
+
 // PaginateGroups accepts slice of interface GroupID and computes and
 // returns a subset slice along with pagination meta, like next and previous.
 func PaginateGroups[T GroupID](groups []T, af *filter.AppFilter) (sliced []T, next bool, previous bool) {
@@ -289,82 +365,6 @@ func PaginateGroups[T GroupID](groups []T, af *filter.AppFilter) (sliced []T, ne
 		}
 		sliced = groups[end:start]
 	}
-
-	return
-}
-
-// SortExceptionGroups first sorts a slice of ExceptionGroup
-// with descending count and then ascending ID.
-func SortExceptionGroups(groups []ExceptionGroup) {
-	sort.SliceStable(groups, func(i, j int) bool {
-		if groups[i].Count != groups[j].Count {
-			return groups[i].Count > groups[j].Count
-		}
-		return groups[i].ID.String() < groups[j].ID.String()
-	})
-}
-
-// SortANRGroups first sorts a slice of ANRGroup
-// with descending count and then ascending ID.
-func SortANRGroups(groups []ANRGroup) {
-	sort.SliceStable(groups, func(i, j int) bool {
-		if groups[i].Count != groups[j].Count {
-			return groups[i].Count > groups[j].Count
-		}
-		return groups[i].ID.String() < groups[j].ID.String()
-	})
-}
-
-// Insert inserts a new ExceptionGroup into the database.
-func (e *ExceptionGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
-	id, err := uuid.NewV7()
-	if err != nil {
-		return
-	}
-
-	stmt := sqlf.PostgreSQL.
-		InsertInto("public.unhandled_exception_groups").
-		Set("id", id).
-		Set("app_id", e.AppID).
-		Set("name", e.Name).
-		Set("fingerprint", e.Fingerprint).
-		Set("event_ids", e.EventIDs)
-
-	defer stmt.Close()
-
-	if tx != nil {
-		_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
-		return
-	}
-
-	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-
-	return
-}
-
-// Insert inserts a new ANRGroup into the database.
-func (a *ANRGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
-	id, err := uuid.NewV7()
-	if err != nil {
-		return err
-	}
-
-	stmt := sqlf.PostgreSQL.
-		InsertInto("public.anr_groups").
-		Set("id", id).
-		Set("app_id", a.AppID).
-		Set("name", a.Name).
-		Set("fingerprint", a.Fingerprint).
-		Set("event_ids", a.EventIDs)
-
-	defer stmt.Close()
-
-	if tx != nil {
-		_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
-		return
-	}
-
-	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 
 	return
 }
