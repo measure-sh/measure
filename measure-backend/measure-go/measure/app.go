@@ -12,6 +12,7 @@ import (
 
 	"measure-backend/measure-go/event"
 	"measure-backend/measure-go/filter"
+	"measure-backend/measure-go/group"
 	"measure-backend/measure-go/journey"
 	"measure-backend/measure-go/metrics"
 	"measure-backend/measure-go/replay"
@@ -70,7 +71,7 @@ func (a App) MarshalJSON() ([]byte, error) {
 
 // GetExceptionGroup queries a single exception group from the exception
 // group id and returns a pointer to ExceptionGroup.
-func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (*ExceptionGroup, error) {
+func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (*group.ExceptionGroup, error) {
 	stmt := sqlf.PostgreSQL.
 		Select("id, app_id, name, fingerprint, array_length(event_ids, 1) as count, event_ids, created_at, updated_at").
 		From("unhandled_exception_groups").
@@ -81,7 +82,7 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (*ExceptionGro
 	if err != nil {
 		return nil, err
 	}
-	group, err := pgx.CollectOneRow(rows, pgx.RowToStructByNameLax[ExceptionGroup])
+	group, err := pgx.CollectOneRow(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +92,7 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (*ExceptionGro
 
 // GetANRGroup queries a single anr group from the anr
 // group id and returns a pointer to ANRGroup.
-func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (*ANRGroup, error) {
+func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (*group.ANRGroup, error) {
 	stmt := sqlf.PostgreSQL.
 		Select("id, app_id, name, fingerprint, array_length(event_ids, 1) as count, event_ids, created_at, updated_at").
 		From("anr_groups").
@@ -102,7 +103,7 @@ func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (*ANRGroup, error) {
 	if err != nil {
 		return nil, err
 	}
-	group, err := pgx.CollectOneRow(rows, pgx.RowToStructByNameLax[ANRGroup])
+	group, err := pgx.CollectOneRow(rows, pgx.RowToStructByNameLax[group.ANRGroup])
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +113,7 @@ func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (*ANRGroup, error) {
 
 // GetExceptionGroups returns slice of ExceptionGroup after applying matching
 // AppFilter values
-func (a App) GetExceptionGroups(ctx context.Context, af *filter.AppFilter) ([]ExceptionGroup, error) {
+func (a App) GetExceptionGroups(ctx context.Context, af *filter.AppFilter) ([]group.ExceptionGroup, error) {
 	stmt := sqlf.PostgreSQL.
 		Select("id, app_id, name, fingerprint, array_length(event_ids, 1) as count, event_ids, created_at, updated_at").
 		From("public.unhandled_exception_groups").
@@ -134,7 +135,7 @@ func (a App) GetExceptionGroups(ctx context.Context, af *filter.AppFilter) ([]Ex
 	if err != nil {
 		return nil, err
 	}
-	groups, err := pgx.CollectRows(rows, pgx.RowToStructByNameLax[ExceptionGroup])
+	groups, err := pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +145,7 @@ func (a App) GetExceptionGroups(ctx context.Context, af *filter.AppFilter) ([]Ex
 
 // GetANRGroups returns slice of ANRGroup after applying matching
 // AppFilter values
-func (a App) GetANRGroups(af *filter.AppFilter) ([]ANRGroup, error) {
+func (a App) GetANRGroups(af *filter.AppFilter) ([]group.ANRGroup, error) {
 	stmt := sqlf.PostgreSQL.
 		Select("id, app_id, name, fingerprint, array_length(event_ids, 1) as count, event_ids, created_at, updated_at").
 		From("public.anr_groups").
@@ -165,7 +166,7 @@ func (a App) GetANRGroups(af *filter.AppFilter) ([]ANRGroup, error) {
 	if err != nil {
 		return nil, err
 	}
-	groups, err := pgx.CollectRows(rows, pgx.RowToStructByNameLax[ANRGroup])
+	groups, err := pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ANRGroup])
 	if err != nil {
 		return nil, err
 	}
@@ -1902,7 +1903,7 @@ func GetCrashGroups(c *gin.Context) {
 		return
 	}
 
-	var crashGroups []ExceptionGroup
+	var crashGroups []group.ExceptionGroup
 	for i := range groups {
 		ids, err := GetEventIdsMatchingFilter(ctx, groups[i].EventIDs, &af)
 		if err != nil {
@@ -1928,9 +1929,9 @@ func GetCrashGroups(c *gin.Context) {
 		}
 	}
 
-	ComputeCrashContribution(crashGroups)
-	SortExceptionGroups(crashGroups)
-	crashGroups, next, previous := PaginateGroups(crashGroups, &af)
+	group.ComputeCrashContribution(crashGroups)
+	group.SortExceptionGroups(crashGroups)
+	crashGroups, next, previous := group.PaginateGroups(crashGroups, &af)
 	meta := gin.H{"next": next, "previous": previous}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -2122,7 +2123,7 @@ func GetANRGroups(c *gin.Context) {
 		return
 	}
 
-	var anrGroups []ANRGroup
+	var anrGroups []group.ANRGroup
 	for i := range groups {
 		ids, err := GetEventIdsMatchingFilter(ctx, groups[i].EventIDs, &af)
 		if err != nil {
@@ -2148,9 +2149,9 @@ func GetANRGroups(c *gin.Context) {
 		}
 	}
 
-	ComputeANRContribution(anrGroups)
-	SortANRGroups(anrGroups)
-	anrGroups, next, previous := PaginateGroups(anrGroups, &af)
+	group.ComputeANRContribution(anrGroups)
+	group.SortANRGroups(anrGroups)
+	anrGroups, next, previous := group.PaginateGroups(anrGroups, &af)
 	meta := gin.H{"next": next, "previous": previous}
 
 	c.JSON(http.StatusOK, gin.H{"results": anrGroups, "meta": meta})

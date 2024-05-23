@@ -1,4 +1,4 @@
-package measure
+package group
 
 import (
 	"measure-backend/measure-go/filter"
