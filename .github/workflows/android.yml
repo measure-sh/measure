@@ -25,7 +25,7 @@ jobs:
     defaults:
       run:
         working-directory: measure-android
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v3
