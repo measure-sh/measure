@@ -970,6 +970,649 @@ func (e eventreq) sessionCount() (count int) {
 	return len(sessions)
 }
 
+// GetExceptionsWithFilter returns a slice of EventException for the given slice of
+// event id and matching AppFilter. Also computes the next, previous pagination meta
+// values.
+func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *AppFilter) (events []event.EventException, next bool, previous bool, err error) {
+	var edgecount int
+	var countStmt *sqlf.Stmt
+	var exceptions string
+	var threads string
+	limit := af.extendLimit()
+	forward := af.hasPositiveLimit()
+	next = false
+	previous = false
+	timeformat := "2006-01-02T15:04:05.000"
+	abs := af.limitAbs()
+	op := "<"
+	if !forward {
+		op = ">"
+	}
+
+	if !af.hasKeyset() && !forward {
+		next = true
+		return
+	}
+
+	if af.hasKeyset() {
+		args := []any{}
+		op := ">"
+		if !forward {
+			op = "<"
+		}
+
+		var ids []uuid.UUID
+		countStmt = sqlf.Select("id").
+			From("default.events").
+			Where("`id` in (?)", nil).
+			Where("`timestamp` "+op+" ? or (`timestamp` = ? and `id` "+op+" ?)", nil, nil, nil).
+			OrderBy("`timestamp` desc", "`id` desc").
+			Limit(nil)
+		defer countStmt.Close()
+
+		timestamp := af.KeyTimestamp.Format(timeformat)
+		args = append(args, eventIds, timestamp, timestamp, af.KeyID)
+
+		if len(af.Versions) > 0 {
+			countStmt.Where("`attribute.app_version` in (?)", nil)
+			args = append(args, af.Versions)
+		}
+
+		if len(af.VersionCodes) > 0 {
+			countStmt.Where("`attribute.app_build` in (?)", nil)
+			args = append(args, af.VersionCodes)
+		}
+
+		if len(af.Countries) > 0 {
+			countStmt.Where("`inet.country_code` in (?)", nil)
+			args = append(args, af.Countries)
+		}
+
+		if len(af.DeviceNames) > 0 {
+			countStmt.Where("`attribute.device_name` in (?)", nil)
+			args = append(args, af.DeviceNames)
+		}
+
+		if len(af.DeviceManufacturers) > 0 {
+			countStmt.Where("`attribute.device_manufacturer` in (?)", nil)
+			args = append(args, af.DeviceManufacturers)
+		}
+
+		if len(af.Locales) > 0 {
+			countStmt.Where("`attribute.device_locale` in (?)", nil)
+			args = append(args, af.Locales)
+		}
+
+		if len(af.NetworkProviders) > 0 {
+			countStmt.Where("`attribute.network_provider` in (?)", nil)
+			args = append(args, af.NetworkProviders)
+		}
+
+		if len(af.NetworkTypes) > 0 {
+			countStmt.Where("`attribute.network_type` in (?)", nil)
+			args = append(args, af.NetworkTypes)
+		}
+
+		if len(af.NetworkGenerations) > 0 {
+			countStmt.Where("`attribute.network_generation` in (?)", nil)
+			args = append(args, af.NetworkGenerations)
+		}
+
+		if af.hasTimeRange() {
+			countStmt.Where("`timestamp` >= ? and `timestamp` <= ?", nil, nil)
+			args = append(args, af.From, af.To)
+		}
+
+		// add limit
+		args = append(args, 1)
+
+		rows, err := server.Server.ChPool.Query(ctx, countStmt.String(), args...)
+		if err != nil {
+			return nil, next, previous, err
+		}
+
+		for rows.Next() {
+			var id uuid.UUID
+			rows.Scan(&id)
+			ids = append(ids, id)
+		}
+		edgecount = len(ids)
+	}
+
+	cols := []string{
+		`id`,
+		`session_id`,
+		`toString(type)`,
+		`timestamp`,
+		`attribute.installation_id`,
+		`toString(attribute.device_name)`,
+		`toString(attribute.device_model)`,
+		`toString(attribute.device_manufacturer)`,
+		`toString(attribute.device_type)`,
+		`attribute.device_is_foldable`,
+		`attribute.device_is_physical`,
+		`attribute.device_density_dpi`,
+		`attribute.device_width_px`,
+		`attribute.device_height_px`,
+		`attribute.device_density`,
+		`toString(attribute.device_locale)`,
+		`toString(attribute.os_name)`,
+		`toString(attribute.os_version)`,
+		`toString(attribute.platform)`,
+		`toString(attribute.thread_name)`,
+		`toString(attribute.user_id)`,
+		`toString(attribute.app_version)`,
+		`toString(attribute.app_build)`,
+		`toString(attribute.app_unique_id)`,
+		`toString(attribute.measure_sdk_version)`,
+		`toString(attribute.network_type)`,
+		`toString(attribute.network_generation)`,
+		`toString(attribute.network_provider)`,
+		`exception.handled`,
+		`exception.fingerprint`,
+		`exception.exceptions`,
+		`exception.threads`,
+	}
+
+	stmt := sqlf.From(`default.events`)
+	defer stmt.Close()
+
+	for i := range cols {
+		stmt.Select(cols[i], nil)
+	}
+
+	stmt.Where("`id` in (?)", nil)
+
+	if forward {
+		stmt.OrderBy("`timestamp` desc", "`id` desc")
+	} else {
+		stmt.OrderBy("`timestamp`", "`id`")
+	}
+	stmt.Limit(nil)
+	args := []any{eventIds}
+
+	if len(af.Versions) > 0 {
+		stmt.Where("`attribute.app_version` in (?)", nil)
+		args = append(args, af.Versions)
+	}
+
+	if len(af.VersionCodes) > 0 {
+		stmt.Where("`attribute.app_build` in (?)", nil)
+		args = append(args, af.VersionCodes)
+	}
+
+	if len(af.Countries) > 0 {
+		stmt.Where("`inet.country_code` in (?)", nil)
+		args = append(args, af.Countries)
+	}
+
+	if len(af.DeviceNames) > 0 {
+		stmt.Where("`attribute.device_name` in (?)", nil)
+		args = append(args, af.DeviceNames)
+	}
+
+	if len(af.DeviceManufacturers) > 0 {
+		stmt.Where("`attribute.device_manufacturer` in (?)", nil)
+		args = append(args, af.DeviceManufacturers)
+	}
+
+	if len(af.Locales) > 0 {
+		stmt.Where("`attribute.device_locale` in (?)", nil)
+		args = append(args, af.Locales)
+	}
+
+	if len(af.NetworkProviders) > 0 {
+		stmt.Where("`attribute.network_provider` in (?)", nil)
+		args = append(args, af.NetworkProviders)
+	}
+
+	if len(af.NetworkTypes) > 0 {
+		stmt.Where("`attribute.network_type` in (?)", nil)
+		args = append(args, af.NetworkTypes)
+	}
+
+	if len(af.NetworkGenerations) > 0 {
+		stmt.Where("`attribute.network_generation` in (?)", nil)
+		args = append(args, af.NetworkGenerations)
+	}
+
+	if af.hasTimeRange() {
+		stmt.Where("`timestamp` >= ? and `timestamp` <= ?", nil, nil)
+		args = append(args, af.From, af.To)
+	}
+
+	if af.hasKeyset() {
+		stmt.Where("`timestamp` "+op+" ? or (`timestamp` = ? and `id` "+op+" ?)", nil, nil, nil)
+		timestamp := af.KeyTimestamp.Format(timeformat)
+		args = append(args, timestamp, timestamp, af.KeyID)
+	}
+
+	args = append(args, limit)
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), args...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var e event.EventException
+		fields := []any{
+			&e.ID,
+			&e.SessionID,
+			&e.Type,
+			&e.Timestamp,
+			&e.Attribute.InstallationID,
+			&e.Attribute.DeviceName,
+			&e.Attribute.DeviceModel,
+			&e.Attribute.DeviceManufacturer,
+			&e.Attribute.DeviceType,
+			&e.Attribute.DeviceIsFoldable,
+			&e.Attribute.DeviceIsPhysical,
+			&e.Attribute.DeviceDensityDPI,
+			&e.Attribute.DeviceWidthPX,
+			&e.Attribute.DeviceHeightPX,
+			&e.Attribute.DeviceDensity,
+			&e.Attribute.DeviceLocale,
+			&e.Attribute.OSName,
+			&e.Attribute.OSVersion,
+			&e.Attribute.Platform,
+			&e.Attribute.ThreadName,
+			&e.Attribute.UserID,
+			&e.Attribute.AppVersion,
+			&e.Attribute.AppBuild,
+			&e.Attribute.AppUniqueID,
+			&e.Attribute.MeasureSDKVersion,
+			&e.Attribute.NetworkType,
+			&e.Attribute.NetworkGeneration,
+			&e.Attribute.NetworkProvider,
+			&e.Exception.Handled,
+			&e.Exception.Fingerprint,
+			&exceptions,
+			&threads,
+		}
+
+		if err := rows.Scan(fields...); err != nil {
+			return nil, next, previous, err
+		}
+
+		if err := json.Unmarshal([]byte(exceptions), &e.Exception.Exceptions); err != nil {
+			return nil, next, previous, err
+		}
+		if err := json.Unmarshal([]byte(threads), &e.Exception.Threads); err != nil {
+			return nil, next, previous, err
+		}
+
+		e.ComputeView()
+		events = append(events, e)
+	}
+
+	length := len(events)
+
+	if forward {
+		if length > abs {
+			next = true
+			events = events[:length-1]
+		}
+		if edgecount > -1 && af.hasKeyset() {
+			previous = true
+		}
+	} else {
+		// reverse
+		for i, j := 0, len(events)-1; i < j; i, j = i+1, j-1 {
+			events[i], events[j] = events[j], events[i]
+		}
+		if length > abs {
+			previous = true
+			events = events[1:]
+		}
+		if edgecount > -1 {
+			next = true
+		}
+	}
+
+	return
+}
+
+// GetANRsWithFilter returns a slice of EventANR for the given slice of
+// event id and matching AppFilter.
+func GetANRsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *AppFilter) (events []event.EventANR, next bool, previous bool, err error) {
+	var edgecount int
+	var countStmt *sqlf.Stmt
+	var exceptions string
+	var threads string
+	limit := af.extendLimit()
+	forward := af.hasPositiveLimit()
+	next = false
+	previous = false
+	timeformat := "2006-01-02T15:04:05.000"
+	abs := af.limitAbs()
+	op := "<"
+	if !forward {
+		op = ">"
+	}
+
+	if !af.hasKeyset() && !forward {
+		next = true
+		return
+	}
+
+	if af.hasKeyset() {
+		args := []any{}
+		op := ">"
+		if !forward {
+			op = "<"
+		}
+
+		var ids []uuid.UUID
+		countStmt = sqlf.Select("id").
+			From("default.events").
+			Where("`id` in (?)", nil).
+			Where("`timestamp` "+op+" ? or (`timestamp` = ? and `id` "+op+" ?)", nil, nil, nil).
+			OrderBy("`timestamp` desc", "`id` desc").
+			Limit(nil)
+		defer countStmt.Close()
+
+		timestamp := af.KeyTimestamp.Format(timeformat)
+
+		args = append(args, eventIds, timestamp, timestamp, af.KeyID)
+
+		if len(af.Versions) > 0 {
+			countStmt.Where("`attribute.app_version` in (?)", nil)
+			args = append(args, af.Versions)
+		}
+
+		if len(af.VersionCodes) > 0 {
+			countStmt.Where("`attribute.app_build` in (?)", nil)
+			args = append(args, af.VersionCodes)
+		}
+
+		if len(af.Countries) > 0 {
+			countStmt.Where("`inet.country_code` in (?)", nil)
+			args = append(args, af.Countries)
+		}
+
+		if len(af.DeviceNames) > 0 {
+			countStmt.Where("`attribute.device_name` in (?)", nil)
+			args = append(args, af.DeviceNames)
+		}
+
+		if len(af.DeviceManufacturers) > 0 {
+			countStmt.Where("`attribute.device_manufacturer` in (?)", nil)
+			args = append(args, af.DeviceManufacturers)
+		}
+
+		if len(af.Locales) > 0 {
+			countStmt.Where("`attribute.device_locale` in (?)", nil)
+			args = append(args, af.Locales)
+		}
+
+		if len(af.NetworkProviders) > 0 {
+			countStmt.Where("`attribute.network_provider` in (?)", nil)
+			args = append(args, af.NetworkProviders)
+		}
+
+		if len(af.NetworkTypes) > 0 {
+			countStmt.Where("`attribute.network_type` in (?)", nil)
+			args = append(args, af.NetworkTypes)
+		}
+
+		if len(af.NetworkGenerations) > 0 {
+			countStmt.Where("`attribute.network_generation` in (?)", nil)
+			args = append(args, af.NetworkGenerations)
+		}
+
+		if af.hasTimeRange() {
+			countStmt.Where("`timestamp` >= ? and `timestamp` <= ?", nil, nil)
+			args = append(args, af.From, af.To)
+		}
+
+		// add limit
+		args = append(args, 1)
+
+		rows, err := server.Server.ChPool.Query(ctx, countStmt.String(), args...)
+		if err != nil {
+			return nil, next, previous, err
+		}
+		for rows.Next() {
+			var id uuid.UUID
+			rows.Scan(&id)
+			ids = append(ids, id)
+		}
+		edgecount = len(ids)
+	}
+
+	cols := []string{
+		`id`,
+		`session_id`,
+		`toString(type)`,
+		`timestamp`,
+		`attribute.installation_id`,
+		`toString(attribute.device_name)`,
+		`toString(attribute.device_model)`,
+		`toString(attribute.device_manufacturer)`,
+		`toString(attribute.device_type)`,
+		`attribute.device_is_foldable`,
+		`attribute.device_is_physical`,
+		`attribute.device_density_dpi`,
+		`attribute.device_width_px`,
+		`attribute.device_height_px`,
+		`attribute.device_density`,
+		`toString(attribute.device_locale)`,
+		`toString(attribute.os_name)`,
+		`toString(attribute.os_version)`,
+		`toString(attribute.platform)`,
+		`toString(attribute.thread_name)`,
+		`toString(attribute.user_id)`,
+		`toString(attribute.app_version)`,
+		`toString(attribute.app_build)`,
+		`toString(attribute.app_unique_id)`,
+		`toString(attribute.measure_sdk_version)`,
+		`toString(attribute.network_type)`,
+		`toString(attribute.network_generation)`,
+		`toString(attribute.network_provider)`,
+		`anr.handled`,
+		`anr.fingerprint`,
+		`anr.exceptions`,
+		`anr.threads`,
+	}
+
+	stmt := sqlf.From(`default.events`)
+	defer stmt.Close()
+
+	for i := range cols {
+		stmt.Select(cols[i], nil)
+	}
+
+	stmt.Where("`id` in (?)", nil)
+
+	if forward {
+		stmt.OrderBy("`timestamp` desc", "`id` desc")
+	} else {
+		stmt.OrderBy("`timestamp`", "`id`")
+	}
+	stmt.Limit(nil)
+	args := []any{eventIds}
+
+	if len(af.Versions) > 0 {
+		stmt.Where("`attribute.app_version` in (?)", nil)
+		args = append(args, af.Versions)
+	}
+
+	if len(af.VersionCodes) > 0 {
+		stmt.Where("`attribute.app_build` in (?)", nil)
+		args = append(args, af.VersionCodes)
+	}
+
+	if len(af.Countries) > 0 {
+		stmt.Where("`inet.country_code` in (?)", nil)
+		args = append(args, af.Countries)
+	}
+
+	if len(af.DeviceNames) > 0 {
+		stmt.Where("`attribute.device_name` in (?)", nil)
+		args = append(args, af.DeviceNames)
+	}
+
+	if len(af.DeviceManufacturers) > 0 {
+		stmt.Where("`attribute.device_manufacturer` in (?)", nil)
+		args = append(args, af.DeviceManufacturers)
+	}
+
+	if len(af.Locales) > 0 {
+		stmt.Where("`attribute.device_locale` in (?)", nil)
+		args = append(args, af.Locales)
+	}
+
+	if len(af.NetworkProviders) > 0 {
+		stmt.Where("`attribute.network_provider` in (?)", nil)
+		args = append(args, af.NetworkProviders)
+	}
+
+	if len(af.NetworkTypes) > 0 {
+		stmt.Where("`attribute.network_type` in (?)", nil)
+		args = append(args, af.NetworkTypes)
+	}
+
+	if len(af.NetworkGenerations) > 0 {
+		stmt.Where("`attribute.network_generation` in (?)", nil)
+		args = append(args, af.NetworkGenerations)
+	}
+
+	if af.hasTimeRange() {
+		stmt.Where("`timestamp` >= ? and `timestamp` <= ?", nil, nil)
+		args = append(args, af.From, af.To)
+	}
+
+	if af.hasKeyset() {
+		stmt.Where("`timestamp` "+op+" ? or (`timestamp` = ? and `id` "+op+" ?)", nil, nil, nil)
+		timestamp := af.KeyTimestamp.Format(timeformat)
+		args = append(args, timestamp, timestamp, af.KeyID)
+	}
+
+	args = append(args, limit)
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), args...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var e event.EventANR
+		fields := []any{
+			&e.ID,
+			&e.SessionID,
+			&e.Type,
+			&e.Timestamp,
+			&e.Attribute.InstallationID,
+			&e.Attribute.DeviceName,
+			&e.Attribute.DeviceModel,
+			&e.Attribute.DeviceManufacturer,
+			&e.Attribute.DeviceType,
+			&e.Attribute.DeviceIsFoldable,
+			&e.Attribute.DeviceIsPhysical,
+			&e.Attribute.DeviceDensityDPI,
+			&e.Attribute.DeviceWidthPX,
+			&e.Attribute.DeviceHeightPX,
+			&e.Attribute.DeviceDensity,
+			&e.Attribute.DeviceLocale,
+			&e.Attribute.OSName,
+			&e.Attribute.OSVersion,
+			&e.Attribute.Platform,
+			&e.Attribute.ThreadName,
+			&e.Attribute.UserID,
+			&e.Attribute.AppVersion,
+			&e.Attribute.AppBuild,
+			&e.Attribute.AppUniqueID,
+			&e.Attribute.MeasureSDKVersion,
+			&e.Attribute.NetworkType,
+			&e.Attribute.NetworkGeneration,
+			&e.Attribute.NetworkProvider,
+			&e.ANR.Handled,
+			&e.ANR.Fingerprint,
+			&exceptions,
+			&threads,
+		}
+
+		if err := rows.Scan(fields...); err != nil {
+			return nil, next, previous, err
+		}
+
+		if err := json.Unmarshal([]byte(exceptions), &e.ANR.Exceptions); err != nil {
+			return nil, next, previous, err
+		}
+		if err := json.Unmarshal([]byte(threads), &e.ANR.Threads); err != nil {
+			return nil, next, previous, err
+		}
+
+		e.ComputeView()
+		events = append(events, e)
+	}
+
+	length := len(events)
+
+	if forward {
+		if length > abs {
+			next = true
+			events = events[:length-1]
+		}
+		if edgecount > -1 && af.hasKeyset() {
+			previous = true
+		}
+	} else {
+		// reverse
+		for i, j := 0, len(events)-1; i < j; i, j = i+1, j-1 {
+			events[i], events[j] = events[j], events[i]
+		}
+		if length > abs {
+			previous = true
+			events = events[1:]
+		}
+		if edgecount > -1 {
+			next = true
+		}
+	}
+
+	return
+}
+
+// GetEventIdsWithFilter gets the event ids matching event ids and optionally
+// applies matching AppFilter.
+func GetEventIdsMatchingFilter(ctx context.Context, eventIds []uuid.UUID, af *AppFilter) ([]uuid.UUID, error) {
+	stmt := sqlf.
+		From("default.events").
+		Select("id").
+		Where("`id` in (?)")
+
+	defer stmt.Close()
+
+	if len(af.Versions) > 0 {
+		stmt.Where("`attribute.app_version` in (?)")
+	}
+
+	if len(af.VersionCodes) > 0 {
+		stmt.Where("`attribute.app_build` in (?)")
+	}
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), eventIds, af.Versions, af.VersionCodes)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var ids []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+
+		ids = append(ids, id)
+	}
+
+	return ids, nil
+}
+
 func PutEvents(c *gin.Context) {
 	appId, err := uuid.Parse(c.GetString("appId"))
 	if err != nil {
