@@ -1461,6 +1461,42 @@ func GetAppJourney(c *gin.Context) {
 		ID: &id,
 	}
 
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
 	msg = `failed to compute app's journey`
 	journeyEvents, err := app.getJourneyEvents(ctx, &af)
 	if err != nil {
