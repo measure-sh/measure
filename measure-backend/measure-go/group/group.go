@@ -310,6 +310,26 @@ func SortANRGroups(groups []ANRGroup) {
 	})
 }
 
+// GetExceptionGroupsFromExceptionIds gets exception groups
+// matched by exception ids.
+func GetExceptionGroupsFromExceptionIds(ctx context.Context, eventIds []uuid.UUID) (exceptionGroups []ExceptionGroup, err error) {
+	stmt := sqlf.PostgreSQL.
+		From(`public.unhandled_exception_groups`).
+		Select(`id`).
+		Select(`name`).
+		Select(`event_ids`).
+		// `&&` matches rows by list of uuids
+		Where(`event_ids && ?`, eventIds)
+
+	defer stmt.Close()
+
+	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
+	exceptionGroups, err = pgx.CollectRows(rows, pgx.RowToStructByNameLax[ExceptionGroup])
+
+	err = rows.Err()
+
+	return
+}
 // PaginateGroups accepts slice of interface GroupID and computes and
 // returns a subset slice along with pagination meta, like next and previous.
 func PaginateGroups[T GroupID](groups []T, af *filter.AppFilter) (sliced []T, next bool, previous bool) {
