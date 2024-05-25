@@ -2,6 +2,7 @@ package journey
 
 import (
 	"encoding/json"
+	"fmt"
 	"measure-backend/measure-go/event"
 	"os"
 	"reflect"
@@ -513,6 +514,116 @@ func TestGetEdgeSessionsTwo(t *testing.T) {
 
 		if !reflect.DeepEqual(expected, got) {
 			t.Errorf("Expected %v sessions, but got %v", expected, got)
+		}
+	}
+}
+
+func TestGetEdgeSessionsCountOne(t *testing.T) {
+	events, err := readEvents("events_one.json")
+	if err != nil {
+		panic(err)
+	}
+
+	journey := NewJourneyAndroid(events)
+
+	{
+		expected := 4
+		got := journey.GetEdgeSessionCount(0, 1)
+
+		if expected != got {
+			t.Errorf("Expected %d session count, but got %v", expected, got)
+		}
+	}
+
+	{
+		expected := 3
+		got := journey.GetEdgeSessionCount(0, 2)
+
+		if expected != got {
+			t.Errorf("Expected %d session count, but got %v", expected, got)
+		}
+	}
+
+	{
+		expected := 2
+		got := journey.GetEdgeSessionCount(0, 3)
+
+		if expected != got {
+			t.Errorf("Expected %d session count, but got %v", expected, got)
+		}
+	}
+
+	{
+		expected := 4
+		got := journey.GetEdgeSessionCount(1, 0)
+
+		if expected != got {
+			t.Errorf("Expected %d session count, but got %v", expected, got)
+		}
+	}
+
+	{
+		expected := 3
+		got := journey.GetEdgeSessionCount(2, 0)
+
+		if expected != got {
+			t.Errorf("Expected %d session count, but got %v", expected, got)
+		}
+	}
+
+	{
+		expected := 2
+		got := journey.GetEdgeSessionCount(3, 0)
+
+		if expected != got {
+			t.Errorf("Expected %d session count, but got %v", expected, got)
+		}
+	}
+}
+
+func TestGetEdgeSessionsCountTwo(t *testing.T) {
+	events, err := readEvents("events_two.json")
+	if err != nil {
+		panic(err)
+	}
+
+	journey := NewJourneyAndroid(events)
+
+	fmt.Println(journey.Graph.String())
+
+	{
+		expected := 4
+		got := journey.GetEdgeSessionCount(0, 1)
+
+		if expected != got {
+			t.Errorf("Expected %d session count, but got %v", expected, got)
+		}
+	}
+
+	{
+		expected := 4
+		got := journey.GetEdgeSessionCount(0, 2)
+
+		if expected != got {
+			t.Errorf("Expected %d session count, but got %v", expected, got)
+		}
+	}
+
+	{
+		expected := 4
+		got := journey.GetEdgeSessionCount(0, 3)
+
+		if expected != got {
+			t.Errorf("Expected %d session count, but got %v", expected, got)
+		}
+	}
+
+	{
+		expected := 1
+		got := journey.GetEdgeSessionCount(4, 0)
+
+		if expected != got {
+			t.Errorf("Expected %d session count, but got %v", expected, got)
 		}
 	}
 }
