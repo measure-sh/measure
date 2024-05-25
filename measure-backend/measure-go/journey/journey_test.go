@@ -367,3 +367,152 @@ func TestNewJourneyAndroidTwo(t *testing.T) {
 		}
 	}
 }
+
+func TestGetEdgeSessionsOne(t *testing.T) {
+	events, err := readEvents("events_one.json")
+	if err != nil {
+		panic(err)
+	}
+
+	journey := NewJourneyAndroid(events)
+
+	{
+		expected := []uuid.UUID{
+			uuid.MustParse("9e44aa3a-3d67-4a56-8a76-a9fff7e2aae9"),
+			uuid.MustParse("a3d629f5-6bab-4a43-8e75-fa5d6b539d33"),
+			uuid.MustParse("58e94ae9-a084-479f-9049-2c5135f6090f"),
+			uuid.MustParse("460765ab-1834-454e-b207-d8235b2160d9"),
+		}
+		got := journey.GetEdgeSessions(0, 1)
+
+		if !reflect.DeepEqual(expected, got) {
+			t.Errorf("Expected %v sessions, but got %v", expected, got)
+		}
+	}
+
+	{
+		expected := []uuid.UUID{
+			uuid.MustParse("9e44aa3a-3d67-4a56-8a76-a9fff7e2aae9"),
+			uuid.MustParse("a3d629f5-6bab-4a43-8e75-fa5d6b539d33"),
+			uuid.MustParse("460765ab-1834-454e-b207-d8235b2160d9"),
+		}
+		got := journey.GetEdgeSessions(0, 2)
+
+		if !reflect.DeepEqual(expected, got) {
+			t.Errorf("Expected %v sessions, but got %v", expected, got)
+		}
+	}
+
+	{
+		expected := []uuid.UUID{
+			uuid.MustParse("9e44aa3a-3d67-4a56-8a76-a9fff7e2aae9"),
+			uuid.MustParse("460765ab-1834-454e-b207-d8235b2160d9"),
+		}
+		got := journey.GetEdgeSessions(0, 3)
+
+		if !reflect.DeepEqual(expected, got) {
+			t.Errorf("Expected %v sessions, but got %v", expected, got)
+		}
+	}
+
+	{
+		expected := []uuid.UUID{
+			uuid.MustParse("9e44aa3a-3d67-4a56-8a76-a9fff7e2aae9"),
+			uuid.MustParse("a3d629f5-6bab-4a43-8e75-fa5d6b539d33"),
+			uuid.MustParse("58e94ae9-a084-479f-9049-2c5135f6090f"),
+			uuid.MustParse("460765ab-1834-454e-b207-d8235b2160d9"),
+		}
+		got := journey.GetEdgeSessions(1, 0)
+
+		if !reflect.DeepEqual(expected, got) {
+			t.Errorf("Expected %v sessions, but got %v", expected, got)
+		}
+	}
+
+	{
+		expected := []uuid.UUID{
+			uuid.MustParse("9e44aa3a-3d67-4a56-8a76-a9fff7e2aae9"),
+			uuid.MustParse("a3d629f5-6bab-4a43-8e75-fa5d6b539d33"),
+			uuid.MustParse("460765ab-1834-454e-b207-d8235b2160d9"),
+		}
+		got := journey.GetEdgeSessions(2, 0)
+
+		if !reflect.DeepEqual(expected, got) {
+			t.Errorf("Expected %v sessions, but got %v", expected, got)
+		}
+	}
+
+	{
+		expected := []uuid.UUID{
+			uuid.MustParse("9e44aa3a-3d67-4a56-8a76-a9fff7e2aae9"),
+			uuid.MustParse("460765ab-1834-454e-b207-d8235b2160d9"),
+		}
+		got := journey.GetEdgeSessions(3, 0)
+
+		if !reflect.DeepEqual(expected, got) {
+			t.Errorf("Expected %v sessions, but got %v", expected, got)
+		}
+	}
+}
+
+func TestGetEdgeSessionsTwo(t *testing.T) {
+	events, err := readEvents("events_two.json")
+	if err != nil {
+		panic(err)
+	}
+
+	journey := NewJourneyAndroid(events)
+
+	{
+		expected := []uuid.UUID{
+			uuid.MustParse("4339f2be-ec13-4858-9b7f-322e5ddf55f4"),
+			uuid.MustParse("65aaf877-e000-4ff3-9f8f-a0dbb10e9b00"),
+			uuid.MustParse("1755de51-18c8-4c14-a58d-ad677485130e"),
+			uuid.MustParse("bcafd264-43eb-433b-8851-00306ecc2706"),
+		}
+		got := journey.GetEdgeSessions(0, 1)
+
+		if !reflect.DeepEqual(expected, got) {
+			t.Errorf("Expected %v sessions, but got %v", expected, got)
+		}
+	}
+
+	{
+		expected := []uuid.UUID{
+			uuid.MustParse("4339f2be-ec13-4858-9b7f-322e5ddf55f4"),
+			uuid.MustParse("65aaf877-e000-4ff3-9f8f-a0dbb10e9b00"),
+			uuid.MustParse("1755de51-18c8-4c14-a58d-ad677485130e"),
+			uuid.MustParse("bcafd264-43eb-433b-8851-00306ecc2706"),
+		}
+		got := journey.GetEdgeSessions(0, 2)
+
+		if !reflect.DeepEqual(expected, got) {
+			t.Errorf("Expected %v sessions, but got %v", expected, got)
+		}
+	}
+
+	{
+		expected := []uuid.UUID{
+			uuid.MustParse("4339f2be-ec13-4858-9b7f-322e5ddf55f4"),
+			uuid.MustParse("65aaf877-e000-4ff3-9f8f-a0dbb10e9b00"),
+			uuid.MustParse("1755de51-18c8-4c14-a58d-ad677485130e"),
+			uuid.MustParse("bcafd264-43eb-433b-8851-00306ecc2706"),
+		}
+		got := journey.GetEdgeSessions(0, 3)
+
+		if !reflect.DeepEqual(expected, got) {
+			t.Errorf("Expected %v sessions, but got %v", expected, got)
+		}
+	}
+
+	{
+		expected := []uuid.UUID{
+			uuid.MustParse("65aaf877-e000-4ff3-9f8f-a0dbb10e9b00"),
+		}
+		got := journey.GetEdgeSessions(4, 0)
+
+		if !reflect.DeepEqual(expected, got) {
+			t.Errorf("Expected %v sessions, but got %v", expected, got)
+		}
+	}
+}
