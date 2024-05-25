@@ -280,10 +280,11 @@ func (j *JourneyAndroid) GetNodeName(v int) string {
 	return j.nodelutinverse[v]
 }
 
-// IterNodeExceptions iterates over each node passing
+// SetNodeExceptionGroups iterates over each node passing
 // down exception event ids and expecting matching
-// exception groups.
-func (j *JourneyAndroid) IterNodeExceptions(iterator func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error)) (err error) {
+// exception groups. It applies received exception
+// groups to the journe.
+func (j *JourneyAndroid) SetNodeExceptionGroups(iterator func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error)) (err error) {
 	for k, v := range j.nodelut {
 		exceptionGroups, err := iterator(v.exceptionIds.Slice())
 		if err != nil {
@@ -295,10 +296,11 @@ func (j *JourneyAndroid) IterNodeExceptions(iterator func(eventIds []uuid.UUID) 
 	return
 }
 
-// IterNodeANRs iterates over each node passing
+// SetNodeANRGroups iterates over each node passing
 // down exception event ids and expecting matching
-// exception groups.
-func (j *JourneyAndroid) IterNodeANRs(iterator func(eventIds []uuid.UUID) (anrGroups []group.ANRGroup, err error)) (err error) {
+// exception groups. It applies received exception
+// groups to the journey.
+func (j *JourneyAndroid) SetNodeANRGroups(iterator func(eventIds []uuid.UUID) (anrGroups []group.ANRGroup, err error)) (err error) {
 	for k, v := range j.nodelut {
 		anrGroups, err := iterator(v.anrIds.Slice())
 		if err != nil {

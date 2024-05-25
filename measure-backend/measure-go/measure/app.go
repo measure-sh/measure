@@ -1503,7 +1503,7 @@ func GetAppJourney(c *gin.Context) {
 		})
 	}
 
-	if err := journeyAndroid.IterNodeExceptions(func(eventIds []uuid.UUID) ([]group.ExceptionGroup, error) {
+	if err := journeyAndroid.SetNodeExceptionGroups(func(eventIds []uuid.UUID) ([]group.ExceptionGroup, error) {
 		exceptionGroups, err := group.GetExceptionGroupsFromExceptionIds(ctx, eventIds)
 		if err != nil {
 			return nil, err
@@ -1517,7 +1517,7 @@ func GetAppJourney(c *gin.Context) {
 		return
 	}
 
-	if err := journeyAndroid.IterNodeANRs(func(eventIds []uuid.UUID) ([]group.ANRGroup, error) {
+	if err := journeyAndroid.SetNodeANRGroups(func(eventIds []uuid.UUID) ([]group.ANRGroup, error) {
 		anrGroups, err := group.GetANRGroupsFromANRIds(ctx, eventIds)
 		if err != nil {
 			return nil, err
