@@ -136,7 +136,7 @@ type JourneyAndroid struct {
 	metalut map[string]*set.UUIDSet
 }
 
-// computeIssues rsolves issue event UUIDs
+// computeIssues resolves issue event UUIDs
 // from index and stores them in each node.
 func (j *JourneyAndroid) computeIssues() {
 	for i := range j.Nodes {
