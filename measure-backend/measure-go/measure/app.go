@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"measure-backend/measure-go/metrics"
 	"measure-backend/measure-go/replay"
 	"measure-backend/measure-go/server"
+	"measure-backend/measure-go/set"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -1469,11 +1471,6 @@ func GetAppJourney(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("len journey events: ", len(journeyEvents))
-	jsonBytes, _ := json.MarshalIndent(journeyEvents, "", "  ")
-	fmt.Println("journey events")
-	fmt.Println(string(jsonBytes))
-
 	issueEvents, err := app.getIssues(ctx, &af)
 	if err != nil {
 		msg = `failed to compute app's journey`
@@ -1484,51 +1481,55 @@ func GetAppJourney(c *gin.Context) {
 		return
 	}
 
-	sessionIds := journey.NewUUIDSet()
+	sessionIds := set.NewUUIDSet()
 
 	for i := range issueEvents {
 		sessionIds.Add(issueEvents[i].SessionID)
 	}
 
-	fmt.Println("issues: ", issueEvents)
-	fmt.Println("len: ", len(issueEvents))
-	fmt.Println("session ids: ", sessionIds.Slice(), sessionIds.Size())
-
-	// TODO: Remove this after completing journey API
-	// for i := range journeyEvents {
-	// 	fmt.Println("id: ", i)
-	// 	fmt.Println("session id:", journeyEvents[i].SessionID)
-	// 	fmt.Println("lifecycle type: ", journeyEvents[i].Type)
-	// 	if journeyEvents[i].IsLifecycleActivity() {
-	// 		fmt.Println("activity type: ", journeyEvents[i].LifecycleActivity.Type)
-	// 		fmt.Println("class name:", journeyEvents[i].LifecycleActivity.ClassName)
-	// 	}
-	// 	if journeyEvents[i].IsLifecycleFragment() {
-	// 		fmt.Println("fragment type: ", journeyEvents[i].LifecycleFragment.Type)
-	// 		fmt.Println("class name:", journeyEvents[i].LifecycleFragment.ClassName)
-	// 	}
-	// 	fmt.Println("---------------")
-	// 	fmt.Printf("\n")
-	// }
-
 	journeyAndroid := journey.NewJourneyAndroid(journeyEvents)
-	fmt.Println(journeyAndroid.String())
 
-	set := journey.NewUUIDSet()
+	uuidset := set.NewUUIDSet()
 
 	for v := range journeyAndroid.Graph.Order() {
 		journeyAndroid.Graph.Visit(v, func(w int, c int64) bool {
 			slice := journeyAndroid.GetEdgeSessions(v, w)
 			for i := range slice {
-				if !set.Has(slice[i]) {
-					set.Add(slice[i])
+				if !uuidset.Has(slice[i]) {
+					uuidset.Add(slice[i])
 				}
 			}
 			return false
 		})
 	}
 
-	fmt.Println("unique sessions: ", set.Slice())
+	if err := journeyAndroid.IterNodeExceptions(func(eventIds []uuid.UUID) ([]group.ExceptionGroup, error) {
+		exceptionGroups, err := group.GetExceptionGroupsFromExceptionIds(ctx, eventIds)
+		if err != nil {
+			return nil, err
+		}
+		return exceptionGroups, nil
+	}); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	if err := journeyAndroid.IterNodeANRs(func(eventIds []uuid.UUID) ([]group.ANRGroup, error) {
+		anrGroups, err := group.GetANRGroupsFromANRIds(ctx, eventIds)
+		if err != nil {
+			return nil, err
+		}
+		return anrGroups, nil
+	}); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
 
 	type Link struct {
 		Source string `json:"source"`
@@ -1537,17 +1538,19 @@ func GetAppJourney(c *gin.Context) {
 	}
 
 	type Issue struct {
-		Title string `json:"title"`
-		Count int    `json:"count"`
+		ID    uuid.UUID `json:"id"`
+		Title string    `json:"title"`
+		Count int       `json:"count"`
 	}
 
 	type Node struct {
-		ID     string `json:"id"`
-		Issues gin.H  `json:"issues"`
+		// ID     string `json:"id"`
+		Issues gin.H `json:"issues"`
 	}
 
-	var nodes []Node
+	// var nodes []Node
 	var links []Link
+	nodes := make(map[string]Node)
 
 	for v := range journeyAndroid.Graph.Order() {
 		journeyAndroid.Graph.Visit(v, func(w int, c int64) bool {
@@ -1557,13 +1560,49 @@ func GetAppJourney(c *gin.Context) {
 			link.Value = journeyAndroid.GetEdgeSessionCount(v, w)
 			links = append(links, link)
 
-			var node Node
-			node.ID = link.Target
-			node.Issues = gin.H{
-				"crashes": []Issue{},
-				"anrs":    []Issue{},
+			node, ok := nodes[link.Source]
+			if ok {
+				return false
 			}
-			nodes = append(nodes, node)
+
+			exceptionGroups := journeyAndroid.GetNodeExceptionGroups(link.Source)
+			crashes := []Issue{}
+
+			for i := range exceptionGroups {
+				issue := Issue{
+					ID:    exceptionGroups[i].ID,
+					Title: exceptionGroups[i].Name,
+					Count: len(exceptionGroups[i].EventIDs),
+				}
+				crashes = append(crashes, issue)
+			}
+
+			sort.Slice(crashes, func(i, j int) bool {
+				return crashes[i].Count > crashes[j].Count
+			})
+
+			anrGroups := journeyAndroid.GetNodeANRGroups(link.Source)
+			anrs := []Issue{}
+
+			for i := range anrGroups {
+				issue := Issue{
+					ID:    anrGroups[i].ID,
+					Title: anrGroups[i].Name,
+					Count: len(anrGroups[i].EventIDs),
+				}
+				anrs = append(anrs, issue)
+			}
+
+			sort.Slice(anrs, func(i, j int) bool {
+				return anrs[i].Count > anrs[j].Count
+			})
+
+			node.Issues = gin.H{
+				"crashes": crashes,
+				"anrs":    anrs,
+			}
+			// nodes = append(nodes, node)
+			nodes[link.Source] = node
 
 			return false
 		})

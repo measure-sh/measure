@@ -3,6 +3,8 @@ package journey
 import (
 	"fmt"
 	"measure-backend/measure-go/event"
+	"measure-backend/measure-go/group"
+	"measure-backend/measure-go/set"
 	"strings"
 
 	"github.com/google/uuid"
@@ -33,6 +35,8 @@ type NodeAndroid struct {
 	// is a lifecycle fragment.
 	IsFragment bool
 
+	// IssueEvents is the list
+	// of issue slice index.
 	IssueEvents []int
 }
 
@@ -48,8 +52,25 @@ type nodetuple struct {
 	// node.
 	nodeid int
 
-	exceptions *UUIDSet
-	anrs       *UUIDSet
+	// exceptionIds stores a set
+	// of UUIDs associated with
+	// this node.
+	exceptionIds *set.UUIDSet
+
+	// anrIds stores a set of
+	// UUIDs associated with
+	// this node.
+	anrIds *set.UUIDSet
+
+	// exceptionGroups stores a
+	// slice of exception groups
+	// associated with this node.
+	exceptionGroups []group.ExceptionGroup
+
+	// anrGroups stores a slice of
+	// anr groups associated with
+	// this node.
+	anrGroups []group.ANRGroup
 }
 
 // JourneyAndroid represents
@@ -69,7 +90,7 @@ type JourneyAndroid struct {
 	// nodelut is a lookup table mapping
 	// "v->w" string key to respective
 	// nodetuple.
-	nodelut map[string]nodetuple
+	nodelut map[string]*nodetuple
 
 	// nodelutinverse is a lookup table
 	// mapping vertex id to the node's
@@ -79,12 +100,11 @@ type JourneyAndroid struct {
 	// metalut is a lookup table mapping
 	// "v->w" string key to respective
 	// set of ids.
-	metalut map[string]*UUIDSet
+	metalut map[string]*set.UUIDSet
 }
 
 func (j *JourneyAndroid) computeIssues() {
 	for i := range j.Nodes {
-		fmt.Println("node", j.Nodes[i])
 		if len(j.Nodes[i].IssueEvents) < 1 {
 			continue
 		}
@@ -96,9 +116,9 @@ func (j *JourneyAndroid) computeIssues() {
 				continue
 			}
 			if issueEvent.IsUnhandledException() {
-				tuple.exceptions.Add(issueEvent.ID)
+				tuple.exceptionIds.Add(issueEvent.ID)
 			} else if issueEvent.IsANR() {
-				tuple.anrs.Add(issueEvent.ID)
+				tuple.anrIds.Add(issueEvent.ID)
 			}
 		}
 	}
@@ -110,7 +130,7 @@ func (j *JourneyAndroid) computeIssues() {
 func (j *JourneyAndroid) buildGraph() {
 	j.Graph = graph.New(len(j.nodelut))
 	if j.metalut == nil {
-		j.metalut = make(map[string]*UUIDSet)
+		j.metalut = make(map[string]*set.UUIDSet)
 	}
 	lastActivity := -1
 
@@ -174,7 +194,6 @@ func (j *JourneyAndroid) buildGraph() {
 		if nextNode.IsFragment && !j.isFragmentOrphan(nextNode.ID) {
 			if !j.Graph.Edge(v.vertex, w.vertex) {
 				j.Graph.Add(v.vertex, w.vertex)
-				fmt.Printf("v:%d --> w:%d\n", v.vertex, w.vertex)
 			}
 			continue
 		}
@@ -182,33 +201,33 @@ func (j *JourneyAndroid) buildGraph() {
 		if nextNode.IsActivity {
 			if !j.Graph.Edge(v.vertex, w.vertex) {
 				j.Graph.Add(v.vertex, w.vertex)
-				fmt.Printf("v:%d --> w:%d\n", v.vertex, w.vertex)
 			}
 			continue
 		}
 	}
 
-	for v := range j.Graph.Order() {
-		j.Graph.Visit(v, func(w int, c int64) bool {
-			if j.Graph.Edge(v, w) {
-				key := j.makeKey(v, w)
-				fmt.Printf("%d -> %d: size(%d) slice(%v)\n", v, w, j.metalut[key].Size(), j.metalut[key].Slice())
-			}
-			return false
-		})
-	}
+	// for v := range j.Graph.Order() {
+	// 	j.Graph.Visit(v, func(w int, c int64) bool {
+	// 		if j.Graph.Edge(v, w) {
+	// 			key := j.makeKey(v, w)
+	// 			fmt.Printf("%d -> %d: size(%d) slice(%v)\n", v, w, j.metalut[key].Size(), j.metalut[key].Slice())
+	// 		}
+
+	// 		return false
+	// 	})
+	// }
 }
 
 // addEdgeID adds the id to an edge from v to w.
 func (j *JourneyAndroid) addEdgeID(v, w int, id uuid.UUID) {
 	key := j.makeKey(v, w)
-	set, ok := j.metalut[key]
+	uuidset, ok := j.metalut[key]
 	if !ok {
-		j.metalut[key] = NewUUIDSet()
-		set = j.metalut[key]
+		j.metalut[key] = set.NewUUIDSet()
+		uuidset = j.metalut[key]
 	}
 
-	set.Add(id)
+	uuidset.Add(id)
 }
 
 // makeKey creates a string key in the form
@@ -235,6 +254,48 @@ func (j *JourneyAndroid) GetEdgeSessionCount(v, w int) int {
 // the vertex's index.
 func (j *JourneyAndroid) GetNodeName(v int) string {
 	return j.nodelutinverse[v]
+}
+
+// IterNodeExceptions iterates over each node passing
+// down exception event ids and expecting matching
+// exception groups.
+func (j *JourneyAndroid) IterNodeExceptions(iterator func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error)) (err error) {
+	for k, v := range j.nodelut {
+		exceptionGroups, err := iterator(v.exceptionIds.Slice())
+		if err != nil {
+			return err
+		}
+
+		j.nodelut[k].exceptionGroups = exceptionGroups
+	}
+	return
+}
+
+// IterNodeANRs iterates over each node passing
+// down exception event ids and expecting matching
+// exception groups.
+func (j *JourneyAndroid) IterNodeANRs(iterator func(eventIds []uuid.UUID) (anrGroups []group.ANRGroup, err error)) (err error) {
+	for k, v := range j.nodelut {
+		anrGroups, err := iterator(v.anrIds.Slice())
+		if err != nil {
+			return err
+		}
+
+		j.nodelut[k].anrGroups = anrGroups
+	}
+	return
+}
+
+// GetNodeExceptionGroups gets the exception group for
+// a node. Matches with node's string.
+func (j *JourneyAndroid) GetNodeExceptionGroups(name string) (exceptionGroups []group.ExceptionGroup) {
+	return j.nodelut[name].exceptionGroups
+}
+
+// GetNodeANRGroups gets the anr group for
+// a node. Matches with node's string.
+func (j *JourneyAndroid) GetNodeANRGroups(name string) (anrGroups []group.ANRGroup) {
+	return j.nodelut[name].anrGroups
 }
 
 // isFragmentOrphan tells if the event indexed by `i`
@@ -275,7 +336,7 @@ func (j JourneyAndroid) String() string {
 // from a list of events.
 func NewJourneyAndroid(events []event.EventField) (journey JourneyAndroid) {
 	journey.Events = events
-	journey.nodelut = make(map[string]nodetuple)
+	journey.nodelut = make(map[string]*nodetuple)
 	journey.nodelutinverse = make(map[int]string)
 
 	for i := range events {
@@ -307,11 +368,11 @@ func NewJourneyAndroid(events []event.EventField) (journey JourneyAndroid) {
 			_, ok := journey.nodelut[node.Name]
 			if !ok {
 				vertex := len(journey.nodelut)
-				journey.nodelut[node.Name] = nodetuple{
-					vertex:     vertex,
-					nodeid:     node.ID,
-					exceptions: NewUUIDSet(),
-					anrs:       NewUUIDSet(),
+				journey.nodelut[node.Name] = &nodetuple{
+					vertex:       vertex,
+					nodeid:       node.ID,
+					exceptionIds: set.NewUUIDSet(),
+					anrIds:       set.NewUUIDSet(),
 				}
 
 				journey.nodelutinverse[vertex] = node.Name
@@ -321,18 +382,6 @@ func NewJourneyAndroid(events []event.EventField) (journey JourneyAndroid) {
 	}
 
 	journey.computeIssues()
-
-	// TODO: Remove later
-	for k, v := range journey.nodelut {
-		if v.exceptions.Size() > 0 {
-			fmt.Printf("name: %s, vertex: %d, crashIds: %v\n", k, v.vertex, v.exceptions.Slice())
-		}
-
-		if v.anrs.Size() > 0 {
-			fmt.Printf("name: %s, vertex: %d, anrIds: %v\n", k, v.vertex, v.anrs.Slice())
-		}
-	}
-
 	journey.buildGraph()
 
 	return
