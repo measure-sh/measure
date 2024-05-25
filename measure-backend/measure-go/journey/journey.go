@@ -11,7 +11,39 @@ import (
 	"github.com/yourbasic/graph"
 )
 
-// TODO: Create a node interface
+// Journey is the interface to express
+// and operate journey maps.
+type Journey interface {
+	// GetEdgeSessions computes list of unique session ids
+	// for the edge `v->w`.
+	GetEdgeSessions(v, w int) (sessionIds []uuid.UUID)
+
+	// GetEdgeSessionCount computes the count of sessions
+	// for the edge `v->w`.
+	GetEdgeSessionCount(v, w int) int
+
+	// GetNodeName provides the node name mapped to
+	// the vertex's index.
+	GetNodeName(v int) string
+
+	// IterNodeExceptions iterates over each node passing
+	// down exception event ids and expecting matching
+	// exception groups.
+	IterNodeExceptions(iterator func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error)) (err error)
+
+	// IterNodeANRs iterates over each node passing
+	// down exception event ids and expecting matching
+	// exception groups.
+	IterNodeANRs(iterator func(eventIds []uuid.UUID) (anrGroups []group.ANRGroup, err error)) (err error)
+
+	// GetNodeExceptionGroups gets the exception group for
+	// a node. Matches with node's string.
+	GetNodeExceptionGroups(name string) (exceptionGroups []group.ExceptionGroup)
+
+	// GetNodeANRGroups gets the anr group for
+	// a node. Matches with node's string.
+	GetNodeANRGroups(name string) (anrGroups []group.ANRGroup)
+}
 
 // NodeAndroid represents each
 // node of the journey graph
@@ -40,10 +72,12 @@ type NodeAndroid struct {
 	IssueEvents []int
 }
 
-// nodetuple represents a journey
-// graph's node's vertex & nodeid
-// in a combined tuple.
-type nodetuple struct {
+// nodebag represents a journey
+// graph's node's additional
+// properties like vertex index,
+// node index, issue ids and
+// issue groups.
+type nodebag struct {
 	// vertex is the vertex id
 	// of the graph's node.
 	vertex int
@@ -88,9 +122,8 @@ type JourneyAndroid struct {
 	Graph *graph.Mutable
 
 	// nodelut is a lookup table mapping
-	// "v->w" string key to respective
-	// nodetuple.
-	nodelut map[string]*nodetuple
+	// node name to respective nodebag.
+	nodelut map[string]*nodebag
 
 	// nodelutinverse is a lookup table
 	// mapping vertex id to the node's
@@ -103,6 +136,8 @@ type JourneyAndroid struct {
 	metalut map[string]*set.UUIDSet
 }
 
+// computeIssues rsolves issue event UUIDs
+// from index and stores them in each node.
 func (j *JourneyAndroid) computeIssues() {
 	for i := range j.Nodes {
 		if len(j.Nodes[i].IssueEvents) < 1 {
@@ -111,14 +146,14 @@ func (j *JourneyAndroid) computeIssues() {
 		for k := range j.Nodes[i].IssueEvents {
 			issueEvent := j.Events[j.Nodes[i].IssueEvents[k]]
 			name := j.Nodes[i].Name
-			tuple, ok := j.nodelut[name]
+			bag, ok := j.nodelut[name]
 			if !ok {
 				continue
 			}
 			if issueEvent.IsUnhandledException() {
-				tuple.exceptionIds.Add(issueEvent.ID)
+				bag.exceptionIds.Add(issueEvent.ID)
 			} else if issueEvent.IsANR() {
-				tuple.anrIds.Add(issueEvent.ID)
+				bag.anrIds.Add(issueEvent.ID)
 			}
 		}
 	}
@@ -205,17 +240,6 @@ func (j *JourneyAndroid) buildGraph() {
 			continue
 		}
 	}
-
-	// for v := range j.Graph.Order() {
-	// 	j.Graph.Visit(v, func(w int, c int64) bool {
-	// 		if j.Graph.Edge(v, w) {
-	// 			key := j.makeKey(v, w)
-	// 			fmt.Printf("%d -> %d: size(%d) slice(%v)\n", v, w, j.metalut[key].Size(), j.metalut[key].Slice())
-	// 		}
-
-	// 		return false
-	// 	})
-	// }
 }
 
 // addEdgeID adds the id to an edge from v to w.
@@ -336,7 +360,7 @@ func (j JourneyAndroid) String() string {
 // from a list of events.
 func NewJourneyAndroid(events []event.EventField) (journey JourneyAndroid) {
 	journey.Events = events
-	journey.nodelut = make(map[string]*nodetuple)
+	journey.nodelut = make(map[string]*nodebag)
 	journey.nodelutinverse = make(map[int]string)
 
 	for i := range events {
@@ -368,7 +392,7 @@ func NewJourneyAndroid(events []event.EventField) (journey JourneyAndroid) {
 			_, ok := journey.nodelut[node.Name]
 			if !ok {
 				vertex := len(journey.nodelut)
-				journey.nodelut[node.Name] = &nodetuple{
+				journey.nodelut[node.Name] = &nodebag{
 					vertex:       vertex,
 					nodeid:       node.ID,
 					exceptionIds: set.NewUUIDSet(),
