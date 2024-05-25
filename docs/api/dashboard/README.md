@@ -132,16 +132,18 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
 
 ### GET `/apps/:id/journey`
 
-Fetch an app's issue journey map. Filter time range using `from` &amp; `to` query string parameters. Filter version using `version` query string parameter.
+Fetch an app's issue journey map. Filter time range using `from` &amp; `to` query string parameters. Filter versions using `versions` & `version_codes` query string parameter.
 
 #### Usage Notes
 
 - App's UUID must be passed in the URI
 - All filters must be passed as query strings
+- `versions` & `version_codes` MUST be present
 - All filters are optional. If any filter is not present, the server will compute results assuming a default value for that filter.
 - `from` &amp; `to` values must be ISO 8601 UTC strings in milliseconds precision. Example: `?from=2023-11-01T18:30:00.000Z&to=2023-11-08T18:30:00.000Z`
 - `from` &amp; `to` will default to a last 7 days time range.
-- `version` will default to the app's latest version.
+- `versions` can accept multiple version identifiers separated with comma.
+- `version_codes` can accept multiple version codes separated with comma.
 
 #### Authorization & Content Type
 
@@ -168,194 +170,82 @@ These headers must be present in each request.
 
   ```json
   {
-    "nodes": [
+    "links": [
       {
-        "id": "Home Screen",
-        "nodeColor": "hsl(142, 69%, 58%)",
-        "issues": {
-          "crashes": [],
-          "anrs": []
-        }
+        "source": "sh.measure.sample.ExceptionDemoActivity",
+        "target": "sh.measure.sample.ComposeNavigationActivity",
+        "value": 2
       },
       {
-        "id": "Order History",
-        "nodeColor": "hsl(142, 69%, 58%)",
-        "issues": {
-          "crashes": [],
-          "anrs": []
-        }
+        "source": "sh.measure.sample.ExceptionDemoActivity",
+        "target": "sh.measure.sample.OkHttpActivity",
+        "value": 4
       },
       {
-        "id": "Order Status",
-        "nodeColor": "hsl(142, 69%, 58%)",
-        "issues": {
-          "crashes": [],
-          "anrs": []
-        }
+        "source": "sh.measure.sample.ExceptionDemoActivity",
+        "target": "sh.measure.sample.ComposeActivity",
+        "value": 3
       },
       {
-        "id": "Support",
-        "nodeColor": "hsl(142, 69%, 58%)",
-        "issues": {
-          "crashes": [],
-          "anrs": []
-        }
+        "source": "sh.measure.sample.OkHttpActivity",
+        "target": "sh.measure.sample.ExceptionDemoActivity",
+        "value": 4
       },
       {
-        "id": "List Of Items",
-        "nodeColor": "hsl(142, 69%, 58%)",
-        "issues": {
-          "crashes": [],
-          "anrs": []
-        }
+        "source": "sh.measure.sample.ComposeActivity",
+        "target": "sh.measure.sample.ExceptionDemoActivity",
+        "value": 3
       },
       {
-        "id": "Sales Offer",
-        "nodeColor": "hsl(142, 69%, 58%)",
+        "source": "sh.measure.sample.ComposeNavigationActivity",
+        "target": "sh.measure.sample.ExceptionDemoActivity",
+        "value": 2
+      }
+    ],
+    "nodes": {
+      "sh.measure.sample.ComposeActivity": {
         "issues": {
-          "crashes": [],
-          "anrs": []
+          "anrs": [],
+          "crashes": []
         }
       },
-      {
-        "id": "View Item Images",
-        "nodeColor": "hsl(142, 69%, 58%)",
+      "sh.measure.sample.ComposeNavigationActivity": {
         "issues": {
-          "crashes": [],
-          "anrs": []
+          "anrs": [],
+          "crashes": []
         }
       },
-      {
-        "id": "View Item Detail",
-        "nodeColor": "hsl(142, 69%, 58%)",
+      "sh.measure.sample.ExceptionDemoActivity": {
         "issues": {
-          "crashes": [],
-          "anrs": []
-        }
-      },
-      {
-        "id": "Cyber Monday Sale Items List",
-        "nodeColor": "hsl(0, 72%, 51%)",
-        "issues": {
-          "crashes": [
-            {
-              "title": "NullPointerException.java",
-              "count": 37893
-            },
-            {
-              "title": "LayoutInflaterException.java",
-              "count": 12674
-            }
-          ],
           "anrs": [
             {
-              "title": "CyberMondayActivity.java",
-              "count": 97321
+              "id": "018f5c68-fced-7285-bb19-d39210c355a9",
+              "title": "sh.measure.android.anr.AnrError",
+              "count": 1
+            }
+          ],
+          "crashes": [
+            {
+              "id": "018f5c68-f95a-7560-8a50-b14eefefb831",
+              "title": "java.lang.IllegalAccessException",
+              "count": 8
             },
             {
-              "title": "CyberMondayFragment.kt",
-              "count": 8005
+              "id": "018f5c69-0a0e-7696-ad93-c4e464c47abb",
+              "title": "java.lang.StackOverflowError",
+              "count": 1
             }
           ]
         }
       },
-      {
-        "id": "Add To Cart",
-        "nodeColor": "hsl(142, 69%, 58%)",
+      "sh.measure.sample.OkHttpActivity": {
         "issues": {
-          "crashes": [],
-          "anrs": []
-        }
-      },
-      {
-        "id": "Pay",
-        "nodeColor": "hsl(142, 69%, 58%)",
-        "issues": {
-          "crashes": [],
-          "anrs": []
-        }
-      },
-      {
-        "id": "Explore Discounts",
-        "nodeColor": "hsl(142, 69%, 58%)",
-        "issues": {
-          "crashes": [],
-          "anrs": []
+          "anrs": [],
+          "crashes": []
         }
       }
-    ],
-    "links": [
-      {
-        "source": "Home Screen",
-        "target": "Order History",
-        "value": 50000
-      },
-      {
-        "source": "Home Screen",
-        "target": "List Of Items",
-        "value": 73356
-      },
-      {
-        "source": "Home Screen",
-        "target": "Cyber Monday Sale Items List",
-        "value": 97652
-      },
-      {
-        "source": "Order History",
-        "target": "Order Status",
-        "value": 9782
-      },
-      {
-        "source": "Order History",
-        "target": "Support",
-        "value": 2837
-      },
-      {
-        "source": "List Of Items",
-        "target": "Sales Offer",
-        "value": 14678
-      },
-      {
-        "source": "List Of Items",
-        "target": "View Item Detail",
-        "value": 23654
-      },
-      {
-        "source": "Cyber Monday Sale Items List",
-        "target": "View Item Detail",
-        "value": 43889
-      },
-      {
-        "source": "Cyber Monday Sale Items List",
-        "target": "Explore Discounts",
-        "value": 34681
-      },
-      {
-        "source": "Sales Offer",
-        "target": "View Item Images",
-        "value": 12055
-      },
-      {
-        "source": "View Item Detail",
-        "target": "View Item Images",
-        "value": 16793
-      },
-      {
-        "source": "View Item Detail",
-        "target": "Add To Cart",
-        "value": 11537
-      },
-      {
-        "source": "Add To Cart",
-        "target": "Pay",
-        "value": 10144
-      },
-      {
-        "source": "Add To Cart",
-        "target": "Explore Discounts",
-        "value": 4007
-      }
-    ]
+    },
+    "totalIssues": 10
   }
   ```
 
@@ -400,7 +290,7 @@ Fetch an app's health metrics. Filter time range using `from` &amp; `to` query s
 - `from` &amp; `to` values must be ISO 8601 UTC strings in milliseconds precision. Example: `?from=2023-11-01T18:30:00.000Z&to=2023-11-08T18:30:00.000Z`
 - `from` &amp; `to` will default to a last 7 days time range if not supplied.
 - `versions` can accept multiple version identifiers separated with comma. Only the first version will be used to query at the moment.
-- `version_codes` can accept multiple version identifiers separated with comman. Only the first version will be used to query at the moment.
+- `version_codes` can accept multiple version identifiers separated with comma. Only the first version will be used to query at the moment.
 
 #### Authorization & Content Type
 
