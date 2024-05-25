@@ -3,6 +3,7 @@ package journey
 import (
 	"encoding/json"
 	"measure-backend/measure-go/event"
+	"measure-backend/measure-go/group"
 	"os"
 	"reflect"
 	"testing"
@@ -638,5 +639,77 @@ func TestGetNodeName(t *testing.T) {
 
 	if expected != got {
 		t.Errorf("Expected %s node name, but got %s", expected, got)
+	}
+}
+
+func TestExceptionGroupAccessors(t *testing.T) {
+	events, err := readEvents("events_one.json")
+	if err != nil {
+		panic(err)
+	}
+
+	journey := NewJourneyAndroid(events)
+
+	groupOne := group.ExceptionGroup{
+		ID:   uuid.MustParse("b863efbe-585e-4e14-856d-fe6a3f31b64e"),
+		Name: "some bla bla exception one",
+		EventIDs: []uuid.UUID{
+			uuid.MustParse("bd10e744-da4b-4685-bd83-fe29e4ac6ed9"),
+			uuid.MustParse("5e56a02f-30cf-4259-a542-d48dc15fd000"),
+		},
+	}
+
+	expectedLen := 0
+	gotLen := len(journey.GetNodeExceptionGroups("sh.measure.sample.ExceptionDemoActivity"))
+
+	if expectedLen != gotLen {
+		t.Errorf("Expected %d exception groups, but got %d", expectedLen, gotLen)
+	}
+
+	journey.SetNodeExceptionGroups(func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error) {
+		return []group.ExceptionGroup{groupOne}, nil
+	})
+
+	expectedLen = 1
+	gotLen = len(journey.GetNodeExceptionGroups("sh.measure.sample.ExceptionDemoActivity"))
+
+	if expectedLen != gotLen {
+		t.Errorf("Expected %d exception groups, but got %d", expectedLen, gotLen)
+	}
+}
+
+func TestANRGroupAccessors(t *testing.T) {
+	events, err := readEvents("events_one.json")
+	if err != nil {
+		panic(err)
+	}
+
+	journey := NewJourneyAndroid(events)
+
+	groupOne := group.ANRGroup{
+		ID:   uuid.MustParse("b863efbe-585e-4e14-856d-fe6a3f31b64e"),
+		Name: "some bla bla anr one",
+		EventIDs: []uuid.UUID{
+			uuid.MustParse("bd10e744-da4b-4685-bd83-fe29e4ac6ed9"),
+			uuid.MustParse("5e56a02f-30cf-4259-a542-d48dc15fd000"),
+		},
+	}
+
+	expectedLen := 0
+	gotLen := len(journey.GetNodeANRGroups("sh.measure.sample.ExceptionDemoActivity"))
+
+	if expectedLen != gotLen {
+		t.Errorf("Expected %d exception groups, but got %d", expectedLen, gotLen)
+	}
+
+	journey.SetNodeANRGroups(func(eventIds []uuid.UUID) (anrGroups []group.ANRGroup, err error) {
+		return []group.ANRGroup{groupOne}, nil
+	})
+
+	expectedLen = 1
+	gotLen = len(journey.GetNodeANRGroups("sh.measure.sample.ExceptionDemoActivity"))
+
+	if expectedLen != gotLen {
+		t.Errorf("Expected %d exception groups, but got %d", expectedLen, gotLen)
 	}
 }
