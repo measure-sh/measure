@@ -2,7 +2,6 @@ package journey
 
 import (
 	"encoding/json"
-	"fmt"
 	"measure-backend/measure-go/event"
 	"os"
 	"reflect"
@@ -589,8 +588,6 @@ func TestGetEdgeSessionsCountTwo(t *testing.T) {
 
 	journey := NewJourneyAndroid(events)
 
-	fmt.Println(journey.Graph.String())
-
 	{
 		expected := 4
 		got := journey.GetEdgeSessionCount(0, 1)
@@ -625,5 +622,21 @@ func TestGetEdgeSessionsCountTwo(t *testing.T) {
 		if expected != got {
 			t.Errorf("Expected %d session count, but got %v", expected, got)
 		}
+	}
+}
+
+func TestGetNodeName(t *testing.T) {
+	events, err := readEvents("events_one.json")
+	if err != nil {
+		panic(err)
+	}
+
+	journey := NewJourneyAndroid(events)
+
+	expected := "sh.measure.sample.ExceptionDemoActivity"
+	got := journey.GetNodeName(0)
+
+	if expected != got {
+		t.Errorf("Expected %s node name, but got %s", expected, got)
 	}
 }
