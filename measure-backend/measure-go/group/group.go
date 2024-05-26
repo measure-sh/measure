@@ -60,8 +60,32 @@ func (e ExceptionGroup) GetID() uuid.UUID {
 // the ExceptionGroup's events array.
 func (e ExceptionGroup) EventExists(id uuid.UUID) bool {
 	return slices.ContainsFunc(e.EventIDs, func(eventId uuid.UUID) bool {
-		return eventId.String() == id.String()
+		return eventId == id
 	})
+}
+
+// GetMatchingEventCount counts how many times any of
+// the event UUIDs occur in the exception group's event
+// UUID list.
+func (e ExceptionGroup) GetMatchingEventCount(eventIds []uuid.UUID) (count int) {
+	for i := range eventIds {
+		if e.EventExists(eventIds[i]) {
+			count = count + 1
+		}
+	}
+	return
+}
+
+// GetMatchingEventCount counts how many times any of
+// the event UUIDs occur in the anr group's event
+// UUID list.
+func (e ANRGroup) GetMatchingEventCount(eventIds []uuid.UUID) (count int) {
+	for i := range eventIds {
+		if e.EventExists(eventIds[i]) {
+			count = count + 1
+		}
+	}
+	return
 }
 
 // AppendEventId appends a new event id to the ExceptionGroup's
