@@ -2,7 +2,7 @@
 create table if not exists public.team_membership (
     id uuid primary key not null default gen_random_uuid(),
     team_id uuid references public.teams(id) on delete cascade,
-    user_id uuid references auth.users(id) on delete cascade,
+    user_id uuid references public.users(id) on delete cascade,
     role varchar(256) references public.roles(name) on delete cascade,
     role_updated_at timestamptz not null,
     created_at timestamptz not null default current_timestamp

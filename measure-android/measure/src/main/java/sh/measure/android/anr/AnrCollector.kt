@@ -1,40 +1,47 @@
 package sh.measure.android.anr
 
-import sh.measure.android.Config
+import android.os.Looper
+import sh.measure.android.AnrListener
+import sh.measure.android.NativeBridge
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.exceptions.ExceptionFactory
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.mainHandler
 import sh.measure.android.utils.ProcessInfoProvider
-import sh.measure.android.utils.SystemServiceProvider
-import sh.measure.android.utils.TimeProvider
 
 internal class AnrCollector(
     private val logger: Logger,
-    private val systemServiceProvider: SystemServiceProvider,
-    private val timeProvider: TimeProvider,
-    private val eventProcessor: EventProcessor,
     private val processInfo: ProcessInfoProvider,
-    private val config: Config,
-) : ANRWatchDog.ANRListener {
+    private val eventProcessor: EventProcessor,
+    private val nativeBridge: NativeBridge,
+    private val mainLooper: Looper = mainHandler.looper,
+) : AnrListener {
+
     fun register() {
-        ANRWatchDog(
-            systemServiceProvider = systemServiceProvider,
-            timeoutInterval = config.anrTimeoutMs,
-            timeProvider = timeProvider,
-            anrListener = this,
-        ).start()
+        logger.log(LogLevel.Debug, "Registering ANR collector V2")
+        nativeBridge.enableAnrReporting(anrListener = this)
     }
 
-    override fun onAppNotResponding(error: AnrError) {
-        logger.log(LogLevel.Error, "ANR detected", error)
-        eventProcessor.track(
-            timestamp = error.timestamp,
-            type = EventType.ANR,
-            data = toMeasureException(error),
+    override fun onAnrDetected(timestamp: Long) {
+        logger.log(LogLevel.Info, "ANR detected at $timestamp")
+        val anrError = AnrError(
+            mainLooper.thread,
+            timestamp,
+            "Application Not Responding for at least 5s",
         )
+        eventProcessor.track(
+            timestamp = anrError.timestamp,
+            type = EventType.ANR,
+            data = toMeasureException(anrError),
+        )
+    }
+
+    @Suppress("unused")
+    fun unregister() {
+        nativeBridge.disableAnrReporting()
     }
 
     private fun toMeasureException(anr: AnrError): ExceptionData {

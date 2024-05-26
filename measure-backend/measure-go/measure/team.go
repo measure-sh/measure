@@ -139,12 +139,12 @@ func (t *Team) getMembers() ([]*Member, error) {
 	ctx := context.Background()
 	stmt := sqlf.PostgreSQL.From("public.team_membership tm").
 		Select("tm.user_id").
-		Select("auth.users.raw_user_meta_data->>'name' as name").
-		Select("auth.users.email").
+		Select("public.users.name").
+		Select("public.users.email").
 		Select("tm.role").
-		Select("auth.users.last_sign_in_at").
-		Select("auth.users.created_at").
-		LeftJoin("auth.users", "tm.user_id = auth.users.id").
+		Select("public.users.last_sign_in_at").
+		Select("public.users.created_at").
+		LeftJoin("public.users", "tm.user_id = public.users.id").
 		Where("tm.team_id = $1")
 
 	defer stmt.Close()
@@ -300,7 +300,7 @@ func (t *Team) create(u *User) error {
 
 	defer stmtMembership.Close()
 
-	_, err = tx.Exec(ctx, stmtMembership.String(), t.ID, u.id, roleMap["owner"].String(), now, now)
+	_, err = tx.Exec(ctx, stmtMembership.String(), t.ID, u.ID, roleMap["owner"].String(), now, now)
 	if err != nil {
 		return err
 	}
@@ -315,7 +315,7 @@ func (t *Team) create(u *User) error {
 func CreateTeam(c *gin.Context) {
 	userId := c.GetString("userId")
 	u := &User{
-		id: userId,
+		ID: &userId,
 	}
 
 	ownTeam, err := u.getOwnTeam()
@@ -328,7 +328,7 @@ func CreateTeam(c *gin.Context) {
 
 	if ownTeam == nil {
 		// use does not have team
-		msg := fmt.Sprintf("no associated team for user %q", u.id)
+		msg := fmt.Sprintf("no associated team for user %q", *u.ID)
 		fmt.Println(msg)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -372,7 +372,7 @@ func CreateTeam(c *gin.Context) {
 func GetTeams(c *gin.Context) {
 	userId := c.GetString("userId")
 	u := &User{
-		id: userId,
+		ID: &userId,
 	}
 
 	teams, err := u.getTeams()
@@ -544,7 +544,7 @@ func InviteMembers(c *gin.Context) {
 		return
 	}
 	user := &User{
-		id: userId,
+		ID: &userId,
 	}
 	userRole, err := user.getRole(teamId.String())
 	if err != nil {
@@ -629,7 +629,7 @@ func RenameTeam(c *gin.Context) {
 	}
 
 	user := &User{
-		id: userId,
+		ID: &userId,
 	}
 
 	userRole, err := user.getRole(teamId.String())
@@ -685,7 +685,7 @@ func GetAuthzRoles(c *gin.Context) {
 	}
 
 	user := &User{
-		id: userId,
+		ID: &userId,
 	}
 
 	userRole, err := user.getRole(teamId.String())
@@ -761,7 +761,7 @@ func GetTeamMembers(c *gin.Context) {
 	}
 
 	user := &User{
-		id: userId,
+		ID: &userId,
 	}
 
 	userRole, err := user.getRole(teamId.String())
@@ -826,7 +826,7 @@ func RemoveTeamMember(c *gin.Context) {
 	}
 
 	user := &User{
-		id: userId,
+		ID: &userId,
 	}
 
 	userRole, err := user.getRole(teamId.String())
@@ -890,7 +890,7 @@ func ChangeMemberRole(c *gin.Context) {
 	}
 
 	user := &User{
-		id: userId,
+		ID: &userId,
 	}
 
 	userRole, err := user.getRole(teamId.String())

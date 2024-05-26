@@ -159,8 +159,13 @@ internal class MeasureInitializerImpl(
         fileStorage = fileStorage,
         idProvider = idProvider,
     ),
-    override val resumedActivityProvider: ResumedActivityProvider = ResumedActivityProviderImpl(application),
-    private val screenshotHelper: ScreenshotHelper = ScreenshotHelperImpl(logger, resumedActivityProvider),
+    override val resumedActivityProvider: ResumedActivityProvider = ResumedActivityProviderImpl(
+        application,
+    ),
+    private val screenshotHelper: ScreenshotHelper = ScreenshotHelperImpl(
+        logger,
+        resumedActivityProvider,
+    ),
     private val config: Config = DefaultConfig(),
     override val eventProcessor: EventProcessor = EventProcessorImpl(
         logger = logger,
@@ -208,13 +213,12 @@ internal class MeasureInitializerImpl(
         eventProcessor = eventProcessor,
         processInfo = processInfoProvider,
     ),
+    private val nativeBridgeImpl: NativeBridgeImpl = NativeBridgeImpl(),
     override val anrCollector: AnrCollector = AnrCollector(
         logger = logger,
-        systemServiceProvider = systemServiceProvider,
-        timeProvider = timeProvider,
-        eventProcessor = eventProcessor,
         processInfo = processInfoProvider,
-        config = config,
+        eventProcessor = eventProcessor,
+        nativeBridge = nativeBridgeImpl,
     ),
     private val appExitProvider: AppExitProvider = AppExitProviderImpl(
         logger = logger,

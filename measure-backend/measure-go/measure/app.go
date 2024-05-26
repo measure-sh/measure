@@ -496,7 +496,344 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 	return
 }
 
-func (a App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Session, error) {
+func (a App) getIssues(ctx context.Context, af *filter.AppFilter) (events []event.EventField, err error) {
+	eventTypes := []any{event.TypeException, event.TypeANR}
+
+	stmt := sqlf.
+		From(`default.events`).
+		Select(`id`).
+		Select(`toString(type)`).
+		Select(`timestamp`).
+		Select(`session_id`).
+		Select(`exception.fingerprint`).
+		Select(`anr.fingerprint`).
+		Where(`app_id = ?`, a.ID).
+		Where("`attribute.app_version` in ?", af.Versions).
+		Where("`attribute.app_build` in ?", af.VersionCodes).
+		Where("`timestamp` >= ? and `timestamp` <= ?", af.From, af.To).
+		Where(`(type = ? or type = ?)`, eventTypes...).
+		OrderBy(`timestamp`)
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var ev event.EventField
+		var exception event.Exception
+		var anr event.ANR
+		ev.Exception = &exception
+		ev.ANR = &anr
+
+		dest := []any{
+			&ev.ID,
+			&ev.Type,
+			&ev.Timestamp,
+			&ev.SessionID,
+			&ev.Exception.Fingerprint,
+			&ev.ANR.Fingerprint,
+		}
+		if err := rows.Scan(dest...); err != nil {
+			return nil, err
+		}
+
+		events = append(events, ev)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return
+}
+
+// getJourneyEvents queries all relevant lifecycle events involved in forming
+// an implicit navigational journey.
+func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter) (events []event.EventField, err error) {
+	whereVals := []any{
+		event.TypeLifecycleActivity,
+		[]string{
+			event.LifecycleActivityTypeCreated,
+			event.LifecycleActivityTypeResumed,
+		},
+		event.TypeLifecycleFragment,
+		[]string{
+			event.LifecycleFragmentTypeAttached,
+			event.LifecycleFragmentTypeResumed,
+		},
+		event.TypeException,
+		false,
+		event.TypeANR,
+	}
+
+	stmt := sqlf.
+		From(`default.events`).
+		Select(`id`).
+		Select(`toString(type)`).
+		Select(`timestamp`).
+		Select(`session_id`).
+		Select(`toString(lifecycle_activity.type)`).
+		Select(`toString(lifecycle_activity.class_name)`).
+		Select(`toString(lifecycle_fragment.type)`).
+		Select(`toString(lifecycle_fragment.class_name)`).
+		Select(`toString(lifecycle_fragment.parent_activity)`).
+		Where(`app_id = ?`, a.ID).
+		Where("`attribute.app_version` in ?", af.Versions).
+		Where("`attribute.app_build` in ?", af.VersionCodes).
+		Where("`timestamp` >= ? and `timestamp` <= ?", af.From, af.To).
+		Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or ((type = ? and `exception.handled` = ?) or type = ?))", whereVals...).
+		OrderBy(`timestamp`)
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var ev event.EventField
+		var lifecycleActivityType string
+		var lifecycleActivityClassName string
+		var lifecycleFragmentType string
+		var lifecycleFragmentClassName string
+		var lifecycleFragmentParentActivity string
+
+		dest := []any{
+			&ev.ID,
+			&ev.Type,
+			&ev.Timestamp,
+			&ev.SessionID,
+			&lifecycleActivityType,
+			&lifecycleActivityClassName,
+			&lifecycleFragmentType,
+			&lifecycleFragmentClassName,
+			&lifecycleFragmentParentActivity,
+		}
+
+		if err := rows.Scan(dest...); err != nil {
+			return nil, err
+		}
+
+		if ev.IsLifecycleActivity() {
+			ev.LifecycleActivity = &event.LifecycleActivity{
+				Type:      lifecycleActivityType,
+				ClassName: lifecycleActivityClassName,
+			}
+		} else if ev.IsLifecycleFragment() {
+			ev.LifecycleFragment = &event.LifecycleFragment{
+				Type:           lifecycleFragmentType,
+				ClassName:      lifecycleFragmentClassName,
+				ParentActivity: lifecycleFragmentParentActivity,
+			}
+		} else if ev.IsException() {
+			ev.Exception = &event.Exception{}
+		} else if ev.IsANR() {
+			ev.ANR = &event.ANR{}
+		}
+
+		events = append(events, ev)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return
+}
+
+func (a *App) add() (*APIKey, error) {
+	id := uuid.New()
+	a.ID = &id
+	tx, err := server.Server.PgPool.Begin(context.Background())
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback(context.Background())
+
+	_, err = tx.Exec(context.Background(), "insert into public.apps(id, team_id, app_name, created_at, updated_at) values ($1, $2, $3, $4, $5);", a.ID, a.TeamId, a.AppName, a.CreatedAt, a.UpdatedAt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	apiKey, err := NewAPIKey(*a.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := apiKey.saveTx(tx); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(context.Background()); err != nil {
+		return nil, err
+	}
+
+	return apiKey, nil
+}
+
+func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
+	var appName pgtype.Text
+	var uniqueId pgtype.Text
+	var platform pgtype.Text
+	var firstVersion pgtype.Text
+	var onboarded pgtype.Bool
+	var onboardedAt pgtype.Timestamptz
+	var apiKeyLastSeen pgtype.Timestamptz
+	var apiKeyCreatedAt pgtype.Timestamptz
+	var createdAt pgtype.Timestamptz
+	var updatedAt pgtype.Timestamptz
+
+	apiKey := new(APIKey)
+
+	cols := []string{
+		"apps.app_name",
+		"apps.unique_identifier",
+		"apps.platform",
+		"apps.first_version",
+		"apps.onboarded",
+		"apps.onboarded_at",
+		"api_keys.key_prefix",
+		"api_keys.key_value",
+		"api_keys.checksum",
+		"api_keys.last_seen",
+		"api_keys.created_at",
+		"apps.created_at",
+		"apps.updated_at",
+	}
+
+	stmt := sqlf.PostgreSQL.
+		Select(strings.Join(cols, ",")).
+		From("public.apps").
+		LeftJoin("public.api_keys", "api_keys.app_id = apps.id").
+		Where("apps.id = ? and apps.team_id = ?", nil, nil)
+
+	defer stmt.Close()
+
+	dest := []any{
+		&appName,
+		&uniqueId,
+		&platform,
+		&firstVersion,
+		&onboarded,
+		&onboardedAt,
+		&apiKey.keyPrefix,
+		&apiKey.keyValue,
+		&apiKey.checksum,
+		&apiKeyLastSeen,
+		&apiKeyCreatedAt,
+		&createdAt,
+		&updatedAt,
+	}
+
+	if err := server.Server.PgPool.QueryRow(context.Background(), stmt.String(), id, a.TeamId).Scan(dest...); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	}
+
+	if appName.Valid {
+		a.AppName = appName.String
+	}
+
+	if uniqueId.Valid {
+		a.UniqueId = uniqueId.String
+	} else {
+		a.UniqueId = ""
+	}
+
+	if platform.Valid {
+		a.Platform = platform.String
+	} else {
+		a.Platform = ""
+	}
+
+	if firstVersion.Valid {
+		a.FirstVersion = firstVersion.String
+	} else {
+		a.FirstVersion = ""
+	}
+
+	if onboarded.Valid {
+		a.Onboarded = onboarded.Bool
+	}
+
+	if onboardedAt.Valid {
+		a.OnboardedAt = onboardedAt.Time
+	}
+
+	if apiKeyLastSeen.Valid {
+		apiKey.lastSeen = apiKeyLastSeen.Time
+	}
+
+	if apiKeyCreatedAt.Valid {
+		apiKey.createdAt = apiKeyCreatedAt.Time
+	}
+
+	if createdAt.Valid {
+		a.CreatedAt = createdAt.Time
+	}
+
+	if updatedAt.Valid {
+		a.UpdatedAt = updatedAt.Time
+	}
+
+	a.APIKey = apiKey
+
+	return a, nil
+}
+
+func (a *App) getTeam(ctx context.Context) (*Team, error) {
+	team := &Team{}
+
+	stmt := sqlf.PostgreSQL.
+		Select("team_id").
+		From("apps").
+		Where("id = ?", nil)
+	defer stmt.Close()
+
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), a.ID).Scan(&team.ID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	}
+
+	return team, nil
+}
+
+func (a *App) Onboard(ctx context.Context, tx *pgx.Tx, uniqueIdentifier, platform, firstVersion string) error {
+	now := time.Now()
+	stmt := sqlf.PostgreSQL.Update("public.apps").
+		Set("onboarded", true).
+		Set("unique_identifier", uniqueIdentifier).
+		Set("platform", platform).
+		Set("first_version", firstVersion).
+		Set("onboarded_at", now).
+		Set("updated_at", now).
+		Where("id = ?", a.ID)
+
+	defer stmt.Close()
+
+	_, err := (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Session, error) {
 	cols := []string{
 		`id`,
 		`toString(type)`,
@@ -979,155 +1316,6 @@ func (a App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessio
 	return &session, nil
 }
 
-func (a App) getIssues(ctx context.Context, af *filter.AppFilter) (events []event.EventField, err error) {
-	eventTypes := []any{event.TypeException, event.TypeANR}
-
-	stmt := sqlf.
-		From(`default.events`).
-		Select(`id`).
-		Select(`toString(type)`).
-		Select(`timestamp`).
-		Select(`session_id`).
-		Select(`exception.fingerprint`).
-		Select(`anr.fingerprint`).
-		Where(`app_id = ?`, a.ID).
-		Where("`attribute.app_version` in ?", af.Versions).
-		Where("`attribute.app_build` in ?", af.VersionCodes).
-		Where("`timestamp` >= ? and `timestamp` <= ?", af.From, af.To).
-		Where(`(type = ? or type = ?)`, eventTypes...).
-		OrderBy(`timestamp`)
-
-	defer stmt.Close()
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	for rows.Next() {
-		var ev event.EventField
-		var exception event.Exception
-		var anr event.ANR
-		ev.Exception = &exception
-		ev.ANR = &anr
-
-		dest := []any{
-			&ev.ID,
-			&ev.Type,
-			&ev.Timestamp,
-			&ev.SessionID,
-			&ev.Exception.Fingerprint,
-			&ev.ANR.Fingerprint,
-		}
-		if err := rows.Scan(dest...); err != nil {
-			return nil, err
-		}
-
-		events = append(events, ev)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return
-}
-
-// getJourneyEvents queries all relevant lifecycle events involved in forming
-// an implicit navigational journey.
-func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter) (events []event.EventField, err error) {
-	whereVals := []any{
-		event.TypeLifecycleActivity,
-		[]string{
-			event.LifecycleActivityTypeCreated,
-			event.LifecycleActivityTypeResumed,
-		},
-		event.TypeLifecycleFragment,
-		[]string{
-			event.LifecycleFragmentTypeAttached,
-			event.LifecycleFragmentTypeResumed,
-		},
-		event.TypeException,
-		false,
-		event.TypeANR,
-	}
-
-	stmt := sqlf.
-		From(`default.events`).
-		Select(`id`).
-		Select(`toString(type)`).
-		Select(`timestamp`).
-		Select(`session_id`).
-		Select(`toString(lifecycle_activity.type)`).
-		Select(`toString(lifecycle_activity.class_name)`).
-		Select(`toString(lifecycle_fragment.type)`).
-		Select(`toString(lifecycle_fragment.class_name)`).
-		Select(`toString(lifecycle_fragment.parent_activity)`).
-		Where(`app_id = ?`, a.ID).
-		Where("`attribute.app_version` in ?", af.Versions).
-		Where("`attribute.app_build` in ?", af.VersionCodes).
-		Where("`timestamp` >= ? and `timestamp` <= ?", af.From, af.To).
-		Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or ((type = ? and `exception.handled` = ?) or type = ?))", whereVals...).
-		OrderBy(`timestamp`)
-
-	defer stmt.Close()
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	for rows.Next() {
-		var ev event.EventField
-		var lifecycleActivityType string
-		var lifecycleActivityClassName string
-		var lifecycleFragmentType string
-		var lifecycleFragmentClassName string
-		var lifecycleFragmentParentActivity string
-
-		dest := []any{
-			&ev.ID,
-			&ev.Type,
-			&ev.Timestamp,
-			&ev.SessionID,
-			&lifecycleActivityType,
-			&lifecycleActivityClassName,
-			&lifecycleFragmentType,
-			&lifecycleFragmentClassName,
-			&lifecycleFragmentParentActivity,
-		}
-
-		if err := rows.Scan(dest...); err != nil {
-			return nil, err
-		}
-
-		if ev.IsLifecycleActivity() {
-			ev.LifecycleActivity = &event.LifecycleActivity{
-				Type:      lifecycleActivityType,
-				ClassName: lifecycleActivityClassName,
-			}
-		} else if ev.IsLifecycleFragment() {
-			ev.LifecycleFragment = &event.LifecycleFragment{
-				Type:           lifecycleFragmentType,
-				ClassName:      lifecycleFragmentClassName,
-				ParentActivity: lifecycleFragmentParentActivity,
-			}
-		} else if ev.IsException() {
-			ev.Exception = &event.Exception{}
-		} else if ev.IsANR() {
-			ev.ANR = &event.ANR{}
-		}
-
-		events = append(events, ev)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return
-}
-
 func NewApp(teamId uuid.UUID) *App {
 	now := time.Now()
 	id := uuid.New()
@@ -1137,200 +1325,6 @@ func NewApp(teamId uuid.UUID) *App {
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
-}
-
-func (a *App) add() (*APIKey, error) {
-	id := uuid.New()
-	a.ID = &id
-	tx, err := server.Server.PgPool.Begin(context.Background())
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback(context.Background())
-
-	_, err = tx.Exec(context.Background(), "insert into public.apps(id, team_id, app_name, created_at, updated_at) values ($1, $2, $3, $4, $5);", a.ID, a.TeamId, a.AppName, a.CreatedAt, a.UpdatedAt)
-
-	if err != nil {
-		return nil, err
-	}
-
-	apiKey, err := NewAPIKey(*a.ID)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if err := apiKey.saveTx(tx); err != nil {
-		return nil, err
-	}
-
-	alertPref := newAlertPref(*a.ID)
-
-	if err := alertPref.insertTx(tx); err != nil {
-		return nil, err
-	}
-
-	if err := tx.Commit(context.Background()); err != nil {
-		return nil, err
-	}
-
-	return apiKey, nil
-}
-
-func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
-	var appName pgtype.Text
-	var uniqueId pgtype.Text
-	var platform pgtype.Text
-	var firstVersion pgtype.Text
-	var onboarded pgtype.Bool
-	var onboardedAt pgtype.Timestamptz
-	var apiKeyLastSeen pgtype.Timestamptz
-	var apiKeyCreatedAt pgtype.Timestamptz
-	var createdAt pgtype.Timestamptz
-	var updatedAt pgtype.Timestamptz
-
-	apiKey := new(APIKey)
-
-	cols := []string{
-		"apps.app_name",
-		"apps.unique_identifier",
-		"apps.platform",
-		"apps.first_version",
-		"apps.onboarded",
-		"apps.onboarded_at",
-		"api_keys.key_prefix",
-		"api_keys.key_value",
-		"api_keys.checksum",
-		"api_keys.last_seen",
-		"api_keys.created_at",
-		"apps.created_at",
-		"apps.updated_at",
-	}
-
-	stmt := sqlf.PostgreSQL.
-		Select(strings.Join(cols, ",")).
-		From("public.apps").
-		LeftJoin("public.api_keys", "api_keys.app_id = apps.id").
-		Where("apps.id = ? and apps.team_id = ?", nil, nil)
-
-	defer stmt.Close()
-
-	dest := []any{
-		&appName,
-		&uniqueId,
-		&platform,
-		&firstVersion,
-		&onboarded,
-		&onboardedAt,
-		&apiKey.keyPrefix,
-		&apiKey.keyValue,
-		&apiKey.checksum,
-		&apiKeyLastSeen,
-		&apiKeyCreatedAt,
-		&createdAt,
-		&updatedAt,
-	}
-
-	if err := server.Server.PgPool.QueryRow(context.Background(), stmt.String(), id, a.TeamId).Scan(dest...); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil
-		} else {
-			return nil, err
-		}
-	}
-
-	if appName.Valid {
-		a.AppName = appName.String
-	}
-
-	if uniqueId.Valid {
-		a.UniqueId = uniqueId.String
-	} else {
-		a.UniqueId = ""
-	}
-
-	if platform.Valid {
-		a.Platform = platform.String
-	} else {
-		a.Platform = ""
-	}
-
-	if firstVersion.Valid {
-		a.FirstVersion = firstVersion.String
-	} else {
-		a.FirstVersion = ""
-	}
-
-	if onboarded.Valid {
-		a.Onboarded = onboarded.Bool
-	}
-
-	if onboardedAt.Valid {
-		a.OnboardedAt = onboardedAt.Time
-	}
-
-	if apiKeyLastSeen.Valid {
-		apiKey.lastSeen = apiKeyLastSeen.Time
-	}
-
-	if apiKeyCreatedAt.Valid {
-		apiKey.createdAt = apiKeyCreatedAt.Time
-	}
-
-	if createdAt.Valid {
-		a.CreatedAt = createdAt.Time
-	}
-
-	if updatedAt.Valid {
-		a.UpdatedAt = updatedAt.Time
-	}
-
-	a.APIKey = apiKey
-
-	return a, nil
-}
-
-func (a *App) getTeam(ctx context.Context) (*Team, error) {
-	team := &Team{}
-
-	stmt := sqlf.PostgreSQL.
-		Select("team_id").
-		From("apps").
-		Where("id = ?", nil)
-	defer stmt.Close()
-
-	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), a.ID).Scan(&team.ID); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil
-		} else {
-			return nil, err
-		}
-	}
-
-	return team, nil
-}
-
-func (a *App) Onboard(ctx context.Context, tx *pgx.Tx, uniqueIdentifier, platform, firstVersion string) error {
-	now := time.Now()
-	stmt := sqlf.PostgreSQL.Update("public.apps").
-		Set("onboarded", true).
-		Set("unique_identifier", uniqueIdentifier).
-		Set("platform", platform).
-		Set("first_version", firstVersion).
-		Set("onboarded_at", now).
-		Set("updated_at", now).
-		Where("id = ?", a.ID)
-
-	defer stmt.Close()
-
-	_, err := (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // SelectApp selects app by its id.
@@ -2606,7 +2600,15 @@ func GetAlertPrefs(c *gin.Context) {
 		return
 	}
 
-	alertPref, err := getAlertPref(appId)
+	userIdString := c.GetString("userId")
+
+	userId, err := uuid.Parse(userIdString)
+	if err != nil {
+		fmt.Println("Error parsing userId:", err)
+		return
+	}
+
+	alertPref, err := getAlertPref(appId, userId)
 	if err != nil {
 		msg := `unable to fetch notif prefs`
 		fmt.Println(msg, err)
@@ -2618,8 +2620,13 @@ func GetAlertPrefs(c *gin.Context) {
 }
 
 func UpdateAlertPrefs(c *gin.Context) {
-	ctx := c.Request.Context()
-	userId := c.GetString("userId")
+	userIdString := c.GetString("userId")
+
+	userId, err := uuid.Parse(userIdString)
+	if err != nil {
+		fmt.Println("Error parsing userId:", err)
+		return
+	}
 
 	appId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -2629,31 +2636,7 @@ func UpdateAlertPrefs(c *gin.Context) {
 		return
 	}
 
-	app := &App{
-		ID: &appId,
-	}
-
-	var team *Team
-	if team, err = app.getTeam(ctx); err != nil {
-		msg := "failed to get app"
-		fmt.Println(msg, err)
-		return
-	}
-
-	ok, err := PerformAuthz(userId, team.ID.String(), *ScopeAppAll)
-	if err != nil {
-		msg := `couldn't perform authorization checks`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-	if !ok {
-		msg := fmt.Sprintf(`you don't have permissions to update alert preferences in team [%s]`, app.TeamId)
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
-		return
-	}
-
-	alertPref := newAlertPref(appId)
+	alertPref := newAlertPref(appId, userId)
 
 	var payload AlertPrefPayload
 	if err := c.ShouldBindJSON(&payload); err != nil {
@@ -2664,11 +2647,8 @@ func UpdateAlertPrefs(c *gin.Context) {
 	}
 
 	alertPref.CrashRateSpikeEmail = payload.CrashRateSpike.Email
-	alertPref.CrashRateSpikeSlack = payload.CrashRateSpike.Slack
 	alertPref.AnrRateSpikeEmail = payload.AnrRateSpike.Email
-	alertPref.AnrRateSpikeSlack = payload.AnrRateSpike.Slack
 	alertPref.LaunchTimeSpikeEmail = payload.LaunchTimeSpike.Email
-	alertPref.LaunchTimeSpikeSlack = payload.LaunchTimeSpike.Slack
 
 	alertPref.update()
 

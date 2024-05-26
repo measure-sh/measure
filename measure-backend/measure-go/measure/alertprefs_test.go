@@ -13,33 +13,28 @@ import (
 
 func TestNewAlertPref(t *testing.T) {
 	// Setup
-	appID := uuid.New()
+	appId := uuid.New()
+	userId := uuid.New()
 	now := time.Now()
 
 	// Act
-	pref := newAlertPref(appID)
+	pref := newAlertPref(appId, userId)
 
 	// Assert
-	if pref.AppId != appID {
-		t.Errorf("appId mismatch: expected %v, got %v", appID, pref.AppId)
+	if pref.AppId != appId {
+		t.Errorf("appId mismatch: expected %v, got %v", appId, pref.AppId)
+	}
+	if pref.UserId != userId {
+		t.Errorf("userId mismatch: expected %v, got %v", userId, pref.UserId)
 	}
 	if !pref.CrashRateSpikeEmail {
 		t.Errorf("crashRateSpikeEmail should be true")
 	}
-	if pref.CrashRateSpikeSlack {
-		t.Errorf("crashRateSpikeSlack should be false")
-	}
 	if !pref.AnrRateSpikeEmail {
 		t.Errorf("anrRateSpikeEmail should be true")
 	}
-	if pref.AnrRateSpikeSlack {
-		t.Errorf("anrRateSpikeSlack should be false")
-	}
 	if !pref.LaunchTimeSpikeEmail {
 		t.Errorf("launchTimeSpikeEmail should be true")
-	}
-	if pref.LaunchTimeSpikeSlack {
-		t.Errorf("launchTimeSpikeSlack should be false")
 	}
 	if pref.CreatedAt.Sub(now) > time.Second {
 		t.Errorf("createdAt should be around current time")
@@ -51,34 +46,30 @@ func TestNewAlertPref(t *testing.T) {
 
 func TestAlertPrefMarshalJSON(t *testing.T) {
 	// Setup
-	appID := uuid.New()
+	appId := uuid.New()
+	userId := uuid.New()
 	createdAt := time.Date(2023, 4, 4, 12, 0, 0, 0, time.UTC)
 	updatedAt := time.Date(2023, 4, 5, 12, 0, 0, 0, time.UTC)
 
 	pref := AlertPref{
-		AppId:                appID,
+		AppId:                appId,
+		UserId:               userId,
 		CrashRateSpikeEmail:  true,
-		CrashRateSpikeSlack:  false,
 		AnrRateSpikeEmail:    false,
-		AnrRateSpikeSlack:    true,
 		LaunchTimeSpikeEmail: false,
-		LaunchTimeSpikeSlack: false,
 		CreatedAt:            createdAt,
 		UpdatedAt:            updatedAt,
 	}
 
 	expectedJSON := `{
         "crash_rate_spike": {
-            "email": true,
-            "slack": false
+            "email": true
         },
         "anr_rate_spike": {
-            "email": false,
-            "slack": true
+            "email": false
         },
         "launch_time_spike": {
-            "email": false,
-            "slack": false
+            "email": false
         },
         "created_at": "2023-04-04T12:00:00Z",
         "updated_at": "2023-04-05T12:00:00Z"
@@ -110,23 +101,22 @@ func TestAlertPrefMarshalJSON(t *testing.T) {
 
 func TestAlertPrefString(t *testing.T) {
 	// Setup
-	appID := uuid.New()
+	appId := uuid.New()
+	userId := uuid.New()
 	createdAt := time.Date(2023, 4, 4, 12, 0, 0, 0, time.UTC)
 	updatedAt := time.Date(2023, 4, 5, 12, 0, 0, 0, time.UTC)
 
 	pref := AlertPref{
-		AppId:                appID,
+		AppId:                appId,
+		UserId:               userId,
 		CrashRateSpikeEmail:  true,
-		CrashRateSpikeSlack:  false,
 		AnrRateSpikeEmail:    false,
-		AnrRateSpikeSlack:    true,
 		LaunchTimeSpikeEmail: true,
-		LaunchTimeSpikeSlack: false,
 		CreatedAt:            createdAt,
 		UpdatedAt:            updatedAt,
 	}
 
-	expectedString := fmt.Sprintf("AlertPref - appId: %s, crash_rate_spike_email: true, crash_rate_spike_slack: false, anr_rate_spike_email: false, anr_rate_spike_slack: true, launch_time_spike_email: true, launch_time_spike_slack: false, created_at: %s, updated_at: %s", appID, createdAt, updatedAt)
+	expectedString := fmt.Sprintf("AlertPref - appId: %s, userId: %s, crash_rate_spike_email: true, anr_rate_spike_email: false, launch_time_spike_email: true, created_at: %s, updated_at: %s", appId, userId, createdAt, updatedAt)
 
 	// Act
 	actualString := pref.String()

@@ -543,16 +543,13 @@ export const emptySessionReplay = {
 
 export const emptyAlertPrefs = {
     crash_rate_spike: {
-        email: true,
-        slack: false
+        email: true
     },
     anr_rate_spike: {
-        email: true,
-        slack: false
+        email: true
     },
     launch_time_spike: {
-        email: true,
-        slack: false
+        email: true
     }
 }
 
