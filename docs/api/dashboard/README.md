@@ -172,80 +172,85 @@ These headers must be present in each request.
   {
     "links": [
       {
-        "source": "sh.measure.sample.ExceptionDemoActivity",
-        "target": "sh.measure.sample.ComposeNavigationActivity",
-        "value": 2
-      },
-      {
-        "source": "sh.measure.sample.ExceptionDemoActivity",
-        "target": "sh.measure.sample.OkHttpActivity",
+        "source": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+        "target": "au.com.shiftyjelly.pocketcasts.player.view.PlayerContainerFragment",
         "value": 4
       },
       {
-        "source": "sh.measure.sample.ExceptionDemoActivity",
-        "target": "sh.measure.sample.ComposeActivity",
-        "value": 3
-      },
-      {
-        "source": "sh.measure.sample.OkHttpActivity",
-        "target": "sh.measure.sample.ExceptionDemoActivity",
+        "source": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+        "target": "au.com.shiftyjelly.pocketcasts.player.view.UpNextFragment",
         "value": 4
       },
       {
-        "source": "sh.measure.sample.ComposeActivity",
-        "target": "sh.measure.sample.ExceptionDemoActivity",
-        "value": 3
+        "source": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+        "target": "au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment",
+        "value": 4
       },
       {
-        "source": "sh.measure.sample.ComposeNavigationActivity",
-        "target": "sh.measure.sample.ExceptionDemoActivity",
-        "value": 2
+        "source": "au.com.shiftyjelly.pocketcasts.account.onboarding.OnboardingActivity",
+        "target": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+        "value": 1
       }
     ],
-    "nodes": {
-      "sh.measure.sample.ComposeActivity": {
+    "nodes": [
+      {
+        "id": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
         "issues": {
           "anrs": [],
           "crashes": []
         }
       },
-      "sh.measure.sample.ComposeNavigationActivity": {
+      {
+        "id": "au.com.shiftyjelly.pocketcasts.player.view.PlayerContainerFragment",
         "issues": {
           "anrs": [],
           "crashes": []
         }
       },
-      "sh.measure.sample.ExceptionDemoActivity": {
+      {
+        "id": "au.com.shiftyjelly.pocketcasts.player.view.UpNextFragment",
         "issues": {
-          "anrs": [
-            {
-              "id": "018f5c68-fced-7285-bb19-d39210c355a9",
-              "title": "sh.measure.android.anr.AnrError",
-              "count": 1
-            }
-          ],
+          "anrs": [],
+          "crashes": []
+        }
+      },
+      {
+        "id": "au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment",
+        "issues": {
+          "anrs": [],
           "crashes": [
             {
-              "id": "018f5c68-f95a-7560-8a50-b14eefefb831",
-              "title": "java.lang.IllegalAccessException",
-              "count": 8
+              "id": "018f5c68-6fe0-75c9-81ba-b36871c8b5fa",
+              "title": "java.lang.IllegalStateException",
+              "count": 18
             },
             {
-              "id": "018f5c69-0a0e-7696-ad93-c4e464c47abb",
-              "title": "java.lang.StackOverflowError",
-              "count": 1
+              "id": "018f5c68-b814-739d-bf8f-b8235da0e458",
+              "title": "java.lang.IllegalStateException",
+              "count": 6
+            },
+            {
+              "id": "018f5c68-cab2-76f4-9404-3d3eb0de83f0",
+              "title": "java.lang.IllegalStateException",
+              "count": 4
+            },
+            {
+              "id": "018f5c68-d389-732f-882b-8be086c82093",
+              "title": "java.lang.IllegalStateException",
+              "count": 2
             }
           ]
         }
       },
-      "sh.measure.sample.OkHttpActivity": {
+      {
+        "id": "au.com.shiftyjelly.pocketcasts.account.onboarding.OnboardingActivity",
         "issues": {
           "anrs": [],
           "crashes": []
         }
       }
-    },
-    "totalIssues": 10
+    ],
+    "totalIssues": 30
   }
   ```
 
