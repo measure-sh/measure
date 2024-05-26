@@ -5,6 +5,7 @@ import (
 	"measure-backend/measure-go/event"
 	"measure-backend/measure-go/group"
 	"measure-backend/measure-go/set"
+	"slices"
 	"strings"
 
 	"github.com/google/uuid"
@@ -278,6 +279,18 @@ func (j *JourneyAndroid) GetEdgeSessionCount(v, w int) int {
 // the vertex's index.
 func (j *JourneyAndroid) GetNodeName(v int) string {
 	return j.nodelutinverse[v]
+}
+
+// GetNodeVertices provides the graph's node
+// vertices in ascending sorted order.
+func (j *JourneyAndroid) GetNodeVertices() (ids []int) {
+	for k := range j.nodelut {
+		ids = append(ids, j.nodelut[k].vertex)
+	}
+
+	slices.Sort(ids)
+
+	return
 }
 
 // SetNodeExceptionGroups iterates over each node passing
