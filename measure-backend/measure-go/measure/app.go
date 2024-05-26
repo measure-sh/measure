@@ -496,6 +496,8 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 	return
 }
 
+// getJourneyEvents queries all relevant issue events satisfying
+// all app's filter criteria.
 func (a App) getIssues(ctx context.Context, af *filter.AppFilter) (events []event.EventField, err error) {
 	eventTypes := []any{event.TypeException, event.TypeANR}
 
