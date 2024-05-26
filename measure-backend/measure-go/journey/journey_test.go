@@ -713,3 +713,19 @@ func TestANRGroupAccessors(t *testing.T) {
 		t.Errorf("Expected %d exception groups, but got %d", expectedLen, gotLen)
 	}
 }
+
+func TestGetNodeVertices(t *testing.T) {
+	events, err := readEvents("events_one.json")
+	if err != nil {
+		panic(err)
+	}
+
+	journey := NewJourneyAndroid(events)
+
+	expected := []int{0, 1, 2, 3}
+	got := journey.GetNodeVertices()
+
+	if !reflect.DeepEqual(expected, got) {
+		t.Errorf("Expected %v node vertices, but got %v", expected, got)
+	}
+}
