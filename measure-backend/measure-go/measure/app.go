@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"sort"
 	"strings"
@@ -18,7 +17,6 @@ import (
 	"measure-backend/measure-go/metrics"
 	"measure-backend/measure-go/replay"
 	"measure-backend/measure-go/server"
-	"measure-backend/measure-go/set"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -987,7 +985,7 @@ func (a App) getIssues(ctx context.Context, af *filter.AppFilter) (events []even
 	stmt := sqlf.
 		From(`default.events`).
 		Select(`id`).
-		Select(`type`).
+		Select(`toString(type)`).
 		Select(`timestamp`).
 		Select(`session_id`).
 		Select(`exception.fingerprint`).
@@ -1392,26 +1390,6 @@ func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 	return
 }
 
-func GetAppJourneyOld(c *gin.Context) {
-	data1 := `{"nodes":[{"id":"Home Screen","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}},{"id":"Order History","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}},{"id":"Order Status","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}},{"id":"Support","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}},{"id":"List Of Items","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}},{"id":"Sales Offer","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}},{"id":"View Item Images","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}},{"id":"View Item Detail","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}},{"id":"Cyber Monday Sale Items List","nodeColor":"hsl(0, 72%, 51%)","issues":{"crashes":[{"title":"NullPointerException.java","count":37893},{"title":"LayoutInflaterException.java","count":12674}],"anrs":[{"title":"CyberMondayActivity.java","count":97321},{"title":"CyberMondayFragment.kt","count":8005}]}},{"id":"Add To Cart","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}},{"id":"Pay","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}},{"id":"Explore Discounts","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}}],"links":[{"source":"Home Screen","target":"Order History","value":50000},{"source":"Home Screen","target":"List Of Items","value":73356},{"source":"Home Screen","target":"Cyber Monday Sale Items List","value":97652},{"source":"Order History","target":"Order Status","value":9782},{"source":"Order History","target":"Support","value":2837},{"source":"List Of Items","target":"Sales Offer","value":14678},{"source":"List Of Items","target":"View Item Detail","value":23654},{"source":"Cyber Monday Sale Items List","target":"View Item Detail","value":43889},{"source":"Cyber Monday Sale Items List","target":"Explore Discounts","value":34681},{"source":"Sales Offer","target":"View Item Images","value":12055},{"source":"View Item Detail","target":"View Item Images","value":16793},{"source":"View Item Detail","target":"Add To Cart","value":11537},{"source":"Add To Cart","target":"Pay","value":10144},{"source":"Add To Cart","target":"Explore Discounts","value":4007}]}`
-
-	data2 := `{"nodes":[{"id":"Home Screen","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}},{"id":"Order History","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}},{"id":"Order Status","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}},{"id":"Support","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}},{"id":"List Of Items","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}},{"id":"Sales Offer","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}},{"id":"View Item Images","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}},{"id":"View Item Detail","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}},{"id":"Cyber Monday Sale Items List","nodeColor":"hsl(0, 72%, 51%)","issues":{"crashes":[{"title":"NullPointerException.java","count":32893},{"title":"LayoutInflaterException.java","count":12874}],"anrs":[{"title":"CyberMondayActivity.java","count":77321},{"title":"CyberMondayFragment.kt","count":6305}]}},{"id":"Add To Cart","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}},{"id":"Pay","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}},{"id":"Explore Discounts","nodeColor":"hsl(142, 69%, 58%)","issues":{"crashes":[],"anrs":[]}}],"links":[{"source":"Home Screen","target":"Order History","value":60000},{"source":"Home Screen","target":"List Of Items","value":53356},{"source":"Home Screen","target":"Cyber Monday Sale Items List","value":96652},{"source":"Order History","target":"Order Status","value":9822},{"source":"Order History","target":"Support","value":2287},{"source":"List Of Items","target":"Sales Offer","value":12628},{"source":"List Of Items","target":"View Item Detail","value":53254},{"source":"Cyber Monday Sale Items List","target":"View Item Detail","value":43889},{"source":"Cyber Monday Sale Items List","target":"Explore Discounts","value":34681},{"source":"Sales Offer","target":"View Item Images","value":12055},{"source":"View Item Detail","target":"View Item Images","value":12793},{"source":"View Item Detail","target":"Add To Cart","value":16537},{"source":"Add To Cart","target":"Pay","value":10144},{"source":"Add To Cart","target":"Explore Discounts","value":3007}]}`
-
-	var data string
-	randomInt := rand.Intn(100)
-	if randomInt > 85 {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "API server is experiencing intermittent issues"})
-		return
-	}
-	if randomInt%2 == 0 {
-		data = data1
-	} else {
-		data = data2
-	}
-
-	c.Data(http.StatusOK, "application/json", []byte(data))
-}
-
 func GetAppJourney(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
@@ -1517,27 +1495,18 @@ func GetAppJourney(c *gin.Context) {
 		return
 	}
 
-	sessionIds := set.NewUUIDSet()
-
+	var exceptionIds []uuid.UUID
+	var anrIds []uuid.UUID
 	for i := range issueEvents {
-		sessionIds.Add(issueEvents[i].SessionID)
+		if issueEvents[i].IsException() {
+			exceptionIds = append(exceptionIds, issueEvents[i].ID)
+		}
+		if issueEvents[i].IsANR() {
+			anrIds = append(anrIds, issueEvents[i].ID)
+		}
 	}
 
 	journeyAndroid := journey.NewJourneyAndroid(journeyEvents)
-
-	uuidset := set.NewUUIDSet()
-
-	for v := range journeyAndroid.Graph.Order() {
-		journeyAndroid.Graph.Visit(v, func(w int, c int64) bool {
-			slice := journeyAndroid.GetEdgeSessions(v, w)
-			for i := range slice {
-				if !uuidset.Has(slice[i]) {
-					uuidset.Add(slice[i])
-				}
-			}
-			return false
-		})
-	}
 
 	if err := journeyAndroid.SetNodeExceptionGroups(func(eventIds []uuid.UUID) ([]group.ExceptionGroup, error) {
 		exceptionGroups, err := group.GetExceptionGroupsFromExceptionIds(ctx, eventIds)
@@ -1580,13 +1549,12 @@ func GetAppJourney(c *gin.Context) {
 	}
 
 	type Node struct {
-		// ID     string `json:"id"`
-		Issues gin.H `json:"issues"`
+		ID     string `json:"id"`
+		Issues gin.H  `json:"issues"`
 	}
 
-	// var nodes []Node
+	var nodes []Node
 	var links []Link
-	nodes := make(map[string]Node)
 
 	for v := range journeyAndroid.Graph.Order() {
 		journeyAndroid.Graph.Visit(v, func(w int, c int64) bool {
@@ -1595,53 +1563,51 @@ func GetAppJourney(c *gin.Context) {
 			link.Target = journeyAndroid.GetNodeName(w)
 			link.Value = journeyAndroid.GetEdgeSessionCount(v, w)
 			links = append(links, link)
-
-			node, ok := nodes[link.Source]
-			if ok {
-				return false
-			}
-
-			exceptionGroups := journeyAndroid.GetNodeExceptionGroups(link.Source)
-			crashes := []Issue{}
-
-			for i := range exceptionGroups {
-				issue := Issue{
-					ID:    exceptionGroups[i].ID,
-					Title: exceptionGroups[i].Name,
-					Count: len(exceptionGroups[i].EventIDs),
-				}
-				crashes = append(crashes, issue)
-			}
-
-			sort.Slice(crashes, func(i, j int) bool {
-				return crashes[i].Count > crashes[j].Count
-			})
-
-			anrGroups := journeyAndroid.GetNodeANRGroups(link.Source)
-			anrs := []Issue{}
-
-			for i := range anrGroups {
-				issue := Issue{
-					ID:    anrGroups[i].ID,
-					Title: anrGroups[i].Name,
-					Count: len(anrGroups[i].EventIDs),
-				}
-				anrs = append(anrs, issue)
-			}
-
-			sort.Slice(anrs, func(i, j int) bool {
-				return anrs[i].Count > anrs[j].Count
-			})
-
-			node.Issues = gin.H{
-				"crashes": crashes,
-				"anrs":    anrs,
-			}
-			// nodes = append(nodes, node)
-			nodes[link.Source] = node
-
 			return false
 		})
+	}
+
+	for _, v := range journeyAndroid.GetNodeVertices() {
+		var node Node
+		name := journeyAndroid.GetNodeName(v)
+		exceptionGroups := journeyAndroid.GetNodeExceptionGroups(name)
+		crashes := []Issue{}
+
+		for i := range exceptionGroups {
+			issue := Issue{
+				ID:    exceptionGroups[i].ID,
+				Title: exceptionGroups[i].Name,
+				Count: exceptionGroups[i].GetMatchingEventCount(exceptionIds),
+			}
+			crashes = append(crashes, issue)
+		}
+
+		sort.Slice(crashes, func(i, j int) bool {
+			return crashes[i].Count > crashes[j].Count
+		})
+
+		anrGroups := journeyAndroid.GetNodeANRGroups(name)
+		anrs := []Issue{}
+
+		for i := range anrGroups {
+			issue := Issue{
+				ID:    anrGroups[i].ID,
+				Title: anrGroups[i].Name,
+				Count: anrGroups[i].GetMatchingEventCount(anrIds),
+			}
+			anrs = append(anrs, issue)
+		}
+
+		sort.Slice(anrs, func(i, j int) bool {
+			return anrs[i].Count > anrs[j].Count
+		})
+
+		node.ID = name
+		node.Issues = gin.H{
+			"crashes": crashes,
+			"anrs":    anrs,
+		}
+		nodes = append(nodes, node)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
