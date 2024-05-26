@@ -496,62 +496,6 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 	return
 }
 
-// getJourneyEvents queries all relevant issue events satisfying
-// all app's filter criteria.
-func (a App) getIssues(ctx context.Context, af *filter.AppFilter) (events []event.EventField, err error) {
-	eventTypes := []any{event.TypeException, event.TypeANR}
-
-	stmt := sqlf.
-		From(`default.events`).
-		Select(`id`).
-		Select(`toString(type)`).
-		Select(`timestamp`).
-		Select(`session_id`).
-		Select(`exception.fingerprint`).
-		Select(`anr.fingerprint`).
-		Where(`app_id = ?`, a.ID).
-		Where("`attribute.app_version` in ?", af.Versions).
-		Where("`attribute.app_build` in ?", af.VersionCodes).
-		Where("`timestamp` >= ? and `timestamp` <= ?", af.From, af.To).
-		Where(`(type = ? or type = ?)`, eventTypes...).
-		OrderBy(`timestamp`)
-
-	defer stmt.Close()
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	for rows.Next() {
-		var ev event.EventField
-		var exception event.Exception
-		var anr event.ANR
-		ev.Exception = &exception
-		ev.ANR = &anr
-
-		dest := []any{
-			&ev.ID,
-			&ev.Type,
-			&ev.Timestamp,
-			&ev.SessionID,
-			&ev.Exception.Fingerprint,
-			&ev.ANR.Fingerprint,
-		}
-		if err := rows.Scan(dest...); err != nil {
-			return nil, err
-		}
-
-		events = append(events, ev)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return
-}
-
 // getJourneyEvents queries all relevant lifecycle events involved in forming
 // an implicit navigational journey.
 func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter) (events []event.EventField, err error) {
@@ -1481,24 +1425,18 @@ func GetAppJourney(c *gin.Context) {
 		return
 	}
 
-	issueEvents, err := app.getIssues(ctx, &af)
-	if err != nil {
-		msg = `failed to compute app's journey`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
+	var issueEvents []event.EventField
 	var exceptionIds []uuid.UUID
 	var anrIds []uuid.UUID
-	for i := range issueEvents {
-		if issueEvents[i].IsException() {
-			exceptionIds = append(exceptionIds, issueEvents[i].ID)
+
+	for i := range journeyEvents {
+		if journeyEvents[i].IsUnhandledException() {
+			issueEvents = append(issueEvents, journeyEvents[i])
+			exceptionIds = append(exceptionIds, journeyEvents[i].ID)
 		}
-		if issueEvents[i].IsANR() {
-			anrIds = append(anrIds, issueEvents[i].ID)
+		if journeyEvents[i].IsANR() {
+			issueEvents = append(issueEvents, journeyEvents[i])
+			anrIds = append(anrIds, journeyEvents[i].ID)
 		}
 	}
 
