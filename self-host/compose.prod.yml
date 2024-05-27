@@ -4,5 +4,5 @@ services:
       - GIN_MODE=release
 
   clickhouse:
-    ports: !reset
+    ports: !reset # see: https://docs.docker.com/compose/compose-file/13-merge/#reset-value
       - "9000:9000/tcp"
