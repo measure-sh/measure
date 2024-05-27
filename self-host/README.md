@@ -33,6 +33,21 @@ brew install supabase/tap/supabase
 
 Measure uses [dbmate](https://github.com/amacneil/dbmate) for running database migrations to postgres and clickhouse instances. Follow the instructions on their GitHub README to install on your machine.
 
+> [!Note]
+>
+> The `dbmate dump` &amp; `dbmate load` commands need [`pg_dump`](https://www.postgresql.org/docs/current/app-pgdump.html) to be present in your system path.
+>
+> If using homebrew, install `libpq` to get `pg_dump`.
+>
+> ```sh
+> brew install libpq
+> ```
+> Since, libpq is keg-only, you'll have to link too.
+>
+> ```sh
+> brew link libpq
+> ```
+
 ### Installing node/npm
 
 Skip this step if you already have node/npm.
