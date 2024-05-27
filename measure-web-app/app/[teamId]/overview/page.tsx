@@ -141,7 +141,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
               <FilterPill title={selectedVersion.displayName} />
             </div>}
           <div className="py-8" />
-          {filtersApiStatus === FiltersApiStatus.Success && <Journey appId={selectedApp.id} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />}
+          {filtersApiStatus === FiltersApiStatus.Success && <Journey teamId={params.teamId} appId={selectedApp.id} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />}
           <div className="py-8" />
           {filtersApiStatus === FiltersApiStatus.Success && <MetricsOverview appId={selectedApp.id} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />}
         </div>}

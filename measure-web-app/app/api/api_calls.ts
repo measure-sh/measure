@@ -33,7 +33,8 @@ export enum FiltersApiType {
 export enum JourneyApiStatus {
     Loading,
     Success,
-    Error
+    Error,
+    NoData
 }
 
 export enum MetricsApiStatus {
@@ -147,23 +148,35 @@ export const emptyApp = {
 }
 
 export const emptyJourney = {
-    "nodes": [
-        {
-            "id": "",
-            "nodeColor": "",
-            "issues": {
-                "crashes": [],
-                "anrs": []
-            }
-        },
-    ],
     "links": [
         {
             "source": "",
             "target": "",
             "value": 0
-        },
-    ]
+        }
+    ],
+    "nodes": [
+        {
+            "id": "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
+            "issues": {
+                "anrs": [
+                    {
+                        "id": "",
+                        "title": "",
+                        "count": 0
+                    },
+                ],
+                "crashes": [
+                    {
+                        "id": "",
+                        "title": "",
+                        "count": 0
+                    },
+                ]
+            }
+        }
+    ],
+    "totalIssues": 0
 }
 
 export const emptyMetrics = {
@@ -658,7 +671,7 @@ export const fetchJourneyFromServer = async (appId: string, startDate: string, e
 
     const serverFormattedStartDate = DateTime.fromFormat(startDate, 'yyyy-MM-dd').toUTC().toISO();
     const serverFormattedEndDate = DateTime.fromFormat(endDate, 'yyyy-MM-dd').toUTC().toISO();
-    const res = await fetch(`${origin}/apps/${appId}/journey?version=${appVersion.name}&version_code=${appVersion.code}&from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`, opts);
+    const res = await fetch(`${origin}/apps/${appId}/journey?versions=${appVersion.name}&version_codes=${appVersion.code}&from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`, opts);
 
     if (!res.ok) {
         logoutIfAuthError(supabase, router, res)

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppVersion, JourneyApiStatus, emptyJourney, fetchJourneyFromServer } from '../api/api_calls';
 import Dagre from '@dagrejs/dagre';
@@ -11,8 +11,10 @@ import ReactFlow, {
   Handle,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import Link from 'next/link';
 
 interface JourneyProps {
+  teamId: string,
   appId: string,
   startDate: string,
   endDate: string,
@@ -28,11 +30,16 @@ type Node = {
   sourcePosition: Position | undefined
   targetPosition: Position | undefined
   data: {
-    label: string
+    label: string,
+    teamId: string,
+    appId: string,
+    startDate: string,
+    endDate: string,
     issues: {
-      crashes: { title: string; count: number }[];
-      anrs: { title: string; count: number }[];
-    }
+      crashes: { id: string, title: string; count: number }[];
+      anrs: { id: string, title: string; count: number }[];
+    },
+    nodeIssueContribution: number
   }
 }
 
@@ -57,29 +64,38 @@ const formatter = Intl.NumberFormat('en', { notation: 'compact' });
 
 {/* @ts-ignore */ }
 function MeasureNode({ data, isConnectable }) {
+
+  const isNodeWithIssues = data.issues.crashes.length > 0 || data.issues.anrs.length > 0
   return (
-    <div className={`group p-4 border-black rounded-md transition ease-in-out duration-300 hover:-translate-y-1 hover:scale-110 ${data.issues.crashes.length > 0 || data.issues.anrs.length > 0 ? 'bg-red-400' : 'bg-emerald-400'}`}>
-      <Handle type="target" id="a" position={Position.Left} isConnectable={isConnectable} />
-      <Handle type="source" id="b" position={Position.Right} isConnectable={isConnectable} />
+    <div className='group border-black rounded-md transition ease-in-out duration-300 hover:-translate-y-1 hover:scale-110'>
+      <Handle type="target" id="a" position={Position.Top} isConnectable={isConnectable} />
+      <Handle type="source" id="b" position={Position.Bottom} isConnectable={isConnectable} />
 
       {/* this div is a hack to animate label position from center to left and back again on hover */}
-      <div className='w-full flex flex-row'>
+      <div className={`w-full flex flex-row p-4 ${isNodeWithIssues ? 'bg-neutral-950' : 'bg-emerald-400'}`}>
         <div className="grow group-hover:grow-0 transition-[flex-grow] ease-out duration-300" />
         <p className="font-sans text-white w-fit">{data.label}</p>
         <div className="grow group-hover:grow-0 transition-[flex-grow] ease-out duration-300" />
       </div>
 
-      <div className='h-0 opacity-0 group-hover:opacity-100 group-hover:h-full transition ease-in-out duration-300 '>
+      {/* Indicator line to show percentage contribution of issues */}
+      {isNodeWithIssues &&
+        <div className='w-full bg-neutral-950'>
+          <div className={`h-1 bg-red-500`} style={{ width: `${data.nodeIssueContribution * 100}%` }} />
+        </div>}
+
+      <div className='h-0 rounded-b-md opacity-0 bg-neutral-950 group-hover:pl-2 group-hover:pr-2 group-hover:opacity-100 group-hover:h-full transition ease-in-out duration-300 '>
         {data.issues.crashes.length > 0 && (
           <div>
-            <div className="py-2" />
-            <p className="font-sans text-white">Crashes:</p>
-            <ul className="list-disc list-inside text-white p-2">
+            <p className="font-sans text-white pt-2">Crashes:</p>
+            <ul className="list-disc list-inside text-white pt-2 pb-4 pl-2 pr-2">
               {/* @ts-ignore */}
-              {data.issues.crashes.map(({ title, count }) => (
+              {data.issues.crashes.map(({ id, title, count }) => (
                 <li key={title}>
                   <span className="font-sans text-xs">
-                    {title} - {formatter.format(count)}
+                    <Link href={`/${data.teamId}/crashes/${data.appId}/${id}/${title}?start_date=${data.startDate}&end_date=${data.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
+                      {title} - {formatter.format(count)}
+                    </Link>
                   </span>
                 </li>
               ))}
@@ -88,14 +104,15 @@ function MeasureNode({ data, isConnectable }) {
         )}
         {data.issues.anrs.length > 0 && (
           <div>
-            <div className="py-2" />
-            <p className="font-sans text-white">ANRs:</p>
-            <ul className="list-disc list-inside text-white p-2">
+            <p className="font-sans text-white pt-2">ANRs:</p>
+            <ul className="list-disc list-inside text-white pt-2 pb-4 pl-2 pr-2">
               {/* @ts-ignore */}
-              {data.issues.anrs.map(({ title, count }) => (
+              {data.issues.anrs.map(({ id, title, count }) => (
                 <li key={title}>
                   <span className="font-sans text-xs">
-                    {title} - {formatter.format(count)}
+                    <Link href={`/${data.teamId}/anrs/${data.appId}/${id}/${title}?start_date=${data.startDate}&end_date=${data.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
+                      {title} - {formatter.format(count)}
+                    </Link>
                   </span>
                 </li>
               ))}
@@ -103,40 +120,61 @@ function MeasureNode({ data, isConnectable }) {
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 };
 
-const getReactFlowFromJourney = (journey: typeof emptyJourney) => {
+const getReactFlowFromJourney = (teamId: string, appId: string, startDate: string, endDate: string, journey: typeof emptyJourney) => {
+  // Return null flow if no nodes
+  if (journey.nodes === null) {
+    return { nodes: [], edges: [] }
+  }
+
   const nodes = journey.nodes.map(node => {
-    const { id, nodeColor, issues } = node;
+    const { id, issues } = node;
+
+    let nodeTotalIssueCount = 0
+    node.issues.crashes.map((crash) => {
+      nodeTotalIssueCount += crash.count
+    })
+
+    node.issues.anrs.map((anr) => {
+      nodeTotalIssueCount += anr.count
+    })
+
+    const nodeIssueContribution = nodeTotalIssueCount / journey.totalIssues
+
     return {
       id,
       position: { x: 0, y: 0 },
-      width: 200,
-      height: 100,
+      width: 500,
+      height: 200,
       type: 'measureNode',
       sourcePosition: undefined,
       targetPosition: undefined,
-      data: { label: id, issues: issues }
+      data: {
+        label: id,
+        teamId,
+        appId,
+        startDate,
+        endDate,
+        issues: issues, nodeIssueContribution
+      }
     };
   });
 
-  const maxLinkValue = Math.max(...journey.links.map(link => link.value));
-  const minLinkValue = Math.min(...journey.links.map(link => link.value));
+  // Return flow with only nodes if no links
+  if (journey.links === null) {
+    return { nodes, edges: [] }
+  }
 
   const edges = journey.links.map(link => {
     const { source, target, value } = link;
-    const strokeWidth = 2 + ((value - minLinkValue) * 16) / (maxLinkValue - minLinkValue);
 
     return {
       id: source + '-' + target,
       source,
       target,
-      style: {
-        strokeWidth: strokeWidth,
-        stroke: "#9CA3AF"
-      },
       sourceHandle: 'b',
       label: formatter.format(value) + ' sessions',
       animated: true
@@ -153,7 +191,7 @@ const dagreGraph = new Dagre.graphlib.Graph();
 dagreGraph.setDefaultEdgeLabel(() => ({}));
 
 const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
-  dagreGraph.setGraph({ rankdir: 'LR', nodesep: 100, edgesep: 200 });
+  dagreGraph.setGraph({ rankdir: 'TB', align: 'DR', nodesep: 200, edgesep: 400 });
 
   nodes.forEach((node) => dagreGraph.setNode(node.id, node));
   edges.forEach((edge) => dagreGraph.setEdge(edge.source, edge.target));
@@ -162,8 +200,6 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
 
   nodes.forEach((node) => {
     const nodeWithPosition = dagreGraph.node(node.id);
-    node.targetPosition = Position.Left;
-    node.sourcePosition = Position.Right;
     node.position = {
       x: nodeWithPosition.x,
       y: nodeWithPosition.y
@@ -174,7 +210,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
   return { nodes, edges };
 };
 
-const Journey: React.FC<JourneyProps> = ({ appId, startDate, endDate, appVersion }) => {
+const Journey: React.FC<JourneyProps> = ({ teamId, appId, startDate, endDate, appVersion }) => {
 
   const [journeyApiStatus, setJourneyApiStatus] = useState(JourneyApiStatus.Loading);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -193,7 +229,13 @@ const Journey: React.FC<JourneyProps> = ({ appId, startDate, endDate, appVersion
         break
       case JourneyApiStatus.Success:
         setJourneyApiStatus(JourneyApiStatus.Success)
-        let flow = getReactFlowFromJourney(result.data)
+        let flow = getReactFlowFromJourney(teamId, appId, startDate, endDate, result.data)
+
+        if (flow.nodes.length === 0) {
+          setJourneyApiStatus(JourneyApiStatus.NoData)
+          break
+        }
+
         const layoutedFlow = getLayoutedElements(flow.nodes as Node[], flow.edges as Edge[]);
         setNodes(layoutedFlow.nodes)
         setEdges(layoutedFlow.edges)
@@ -206,9 +248,10 @@ const Journey: React.FC<JourneyProps> = ({ appId, startDate, endDate, appVersion
   }, [appId, startDate, endDate, appVersion]);
 
   return (
-    <div className="flex items-center justify-center border border-black text-black font-sans text-sm w-5/6 h-screen">
+    <div className="flex items-center justify-center border border-black text-black font-sans text-sm w-5/6 h-[600px]">
       {journeyApiStatus === JourneyApiStatus.Loading && <p className="text-lg">Updating journey...</p>}
       {journeyApiStatus === JourneyApiStatus.Error && <p className="text-lg">Error fetching journey. Please refresh page or change filters to try again.</p>}
+      {journeyApiStatus === JourneyApiStatus.NoData && <p className="text-lg">No data</p>}
       {journeyApiStatus === JourneyApiStatus.Success
         && <ReactFlow
           nodes={nodes}
