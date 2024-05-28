@@ -43,6 +43,8 @@ import sh.measure.android.performance.CpuUsageCollector
 import sh.measure.android.performance.DefaultMemoryReader
 import sh.measure.android.performance.MemoryReader
 import sh.measure.android.performance.MemoryUsageCollector
+import sh.measure.android.screenshot.ScreenshotCollector
+import sh.measure.android.screenshot.ScreenshotCollectorImpl
 import sh.measure.android.storage.Database
 import sh.measure.android.storage.DatabaseImpl
 import sh.measure.android.storage.EventStore
@@ -58,6 +60,7 @@ import sh.measure.android.utils.DefaultRuntimeProvider
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.LocaleProvider
 import sh.measure.android.utils.LocaleProviderImpl
+import sh.measure.android.utils.LowMemoryCheck
 import sh.measure.android.utils.ManifestReader
 import sh.measure.android.utils.ManifestReaderImpl
 import sh.measure.android.utils.OsSysConfProvider
@@ -69,8 +72,6 @@ import sh.measure.android.utils.ProcessInfoProviderImpl
 import sh.measure.android.utils.ResumedActivityProvider
 import sh.measure.android.utils.ResumedActivityProviderImpl
 import sh.measure.android.utils.RuntimeProvider
-import sh.measure.android.utils.ScreenshotHelper
-import sh.measure.android.utils.ScreenshotHelperImpl
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.SystemServiceProviderImpl
 import sh.measure.android.utils.TimeProvider
@@ -162,11 +163,16 @@ internal class MeasureInitializerImpl(
     override val resumedActivityProvider: ResumedActivityProvider = ResumedActivityProviderImpl(
         application,
     ),
-    private val screenshotHelper: ScreenshotHelper = ScreenshotHelperImpl(
-        logger,
-        resumedActivityProvider,
+    private val lowMemoryCheck: LowMemoryCheck = LowMemoryCheck(
+        activityManager = systemServiceProvider.activityManager,
     ),
     private val config: Config = DefaultConfig(),
+    override val screenshotCollector: ScreenshotCollector = ScreenshotCollectorImpl(
+        logger = logger,
+        resumedActivityProvider = resumedActivityProvider,
+        lowMemoryCheck = lowMemoryCheck,
+        config = config,
+    ),
     override val eventProcessor: EventProcessor = EventProcessorImpl(
         logger = logger,
         executorService = executorServiceRegistry.eventProcessorExecutor(),
@@ -175,7 +181,7 @@ internal class MeasureInitializerImpl(
         sessionManager = sessionManager,
         attributeProcessors = attributeProcessors,
         eventExporter = eventExporter,
-        screenshotHelper = screenshotHelper,
+        screenshotCollector = screenshotCollector,
         config = config,
     ),
     private val periodicHeartbeat: Heartbeat = HeartbeatImpl(
@@ -300,4 +306,5 @@ internal interface MeasureInitializer {
     val networkChangesCollector: NetworkChangesCollector
     val periodicEventExporter: PeriodicEventExporter
     val userAttributeProcessor: UserAttributeProcessor
+    val screenshotCollector: ScreenshotCollector
 }

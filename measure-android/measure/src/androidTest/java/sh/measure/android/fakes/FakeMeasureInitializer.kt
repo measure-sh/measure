@@ -18,6 +18,7 @@ import sh.measure.android.okhttp.OkHttpEventCollector
 import sh.measure.android.performance.ComponentCallbacksCollector
 import sh.measure.android.performance.CpuUsageCollector
 import sh.measure.android.performance.MemoryUsageCollector
+import sh.measure.android.screenshot.ScreenshotCollector
 import sh.measure.android.utils.ManifestReader
 import sh.measure.android.utils.ResumedActivityProvider
 import sh.measure.android.utils.TimeProvider
@@ -43,4 +44,5 @@ internal class FakeMeasureInitializer : MeasureInitializer {
     override lateinit var networkChangesCollector: NetworkChangesCollector
     override lateinit var periodicEventExporter: PeriodicEventExporter
     override lateinit var userAttributeProcessor: UserAttributeProcessor
+    override lateinit var screenshotCollector: ScreenshotCollector
 }
