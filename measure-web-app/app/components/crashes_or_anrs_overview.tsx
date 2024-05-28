@@ -38,8 +38,8 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
   const [selectedVersions, setSelectedVersions] = useState([] as AppVersion[]);
 
   const today = DateTime.now();
-  var initialEndDate = today.toFormat('yyyy-MM-dd');
-  const [endDate, setEndDate] = useState(searchParams.has("end_date") ? searchParams.get("end_date")! : initialEndDate);
+  const todayDate = today.toFormat('yyyy-MM-dd');
+  const [endDate, setEndDate] = useState(searchParams.has("end_date") ? searchParams.get("end_date")! : todayDate);
   const [formattedEndDate, setFormattedEndDate] = useState(formatDateToHumanReadable(endDate));
 
   const sevenDaysAgo = today.minus({ days: 7 });
@@ -183,7 +183,7 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
               <div className="flex flex-row items-center">
                 <input type="date" defaultValue={startDate} max={endDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setStartDate(e.target.value)} />
                 <p className="font-display px-2">to</p>
-                <input type="date" defaultValue={endDate} min={startDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
+                <input type="date" defaultValue={endDate} min={startDate} max={todayDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
               </div>}
             {filtersApiStatus === FiltersApiStatus.Success && <DropdownSelect title="App versions" type={DropdownSelectType.MultiAppVersion} items={versions} initialSelected={selectedVersions} onChangeSelected={(items) => setSelectedVersions(items as AppVersion[])} />}
           </div>

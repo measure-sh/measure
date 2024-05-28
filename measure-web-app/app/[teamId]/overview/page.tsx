@@ -26,8 +26,8 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   const [selectedVersion, setSelectedVersion] = useState(versions[0]);
 
   const today = DateTime.now();
-  var initialEndDate = today.toFormat('yyyy-MM-dd');
-  const [endDate, setEndDate] = useState(searchParams.has("end_date") ? searchParams.get("end_date")! : initialEndDate);
+  const todayDate = today.toFormat('yyyy-MM-dd');
+  const [endDate, setEndDate] = useState(searchParams.has("end_date") ? searchParams.get("end_date")! : todayDate);
   const [formattedEndDate, setFormattedEndDate] = useState(formatDateToHumanReadable(endDate));
 
   const sevenDaysAgo = today.minus({ days: 7 });
@@ -123,7 +123,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
               <div className="flex flex-row items-center">
                 <input type="date" defaultValue={startDate} max={endDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setStartDate(e.target.value)} />
                 <p className="font-display px-2">to</p>
-                <input type="date" defaultValue={endDate} min={startDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
+                <input type="date" defaultValue={endDate} min={startDate} max={todayDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
               </div>}
             {filtersApiStatus === FiltersApiStatus.Success && <DropdownSelect title="App Version" type={DropdownSelectType.SingleAppVersion} items={versions} initialSelected={selectedVersion} onChangeSelected={(item) => setSelectedVersion(item as AppVersion)} />}
           </div>
