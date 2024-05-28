@@ -11,7 +11,7 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.EventStore
 import sh.measure.android.utils.IdProvider
-import sh.measure.android.utils.ScreenshotHelper
+import sh.measure.android.screenshot.ScreenshotCollector
 import sh.measure.android.utils.iso8601Timestamp
 
 /**
@@ -75,7 +75,7 @@ internal class EventProcessorImpl(
     private val sessionManager: SessionManager,
     private val attributeProcessors: List<AttributeProcessor>,
     private val eventExporter: EventExporter,
-    private val screenshotHelper: ScreenshotHelper,
+    private val screenshotCollector: ScreenshotCollector,
     private val config: Config,
 ) : EventProcessor {
 
@@ -156,13 +156,13 @@ internal class EventProcessorImpl(
     }
 
     private fun <T> addScreenshotAsAttachment(event: Event<T>) {
-        val bytes = screenshotHelper.takeScreenshot()
-        if (bytes != null) {
+        val screenshot = screenshotCollector.takeScreenshot()
+        if (screenshot != null) {
             event.addAttachment(
                 Attachment(
-                    name = "screenshot.png",
+                    name = "screenshot.${screenshot.extension}",
                     type = AttachmentType.SCREENSHOT,
-                    bytes = bytes,
+                    bytes = screenshot.data,
                 ),
             )
         }

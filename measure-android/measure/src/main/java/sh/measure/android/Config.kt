@@ -20,9 +20,30 @@ internal interface Config {
     val captureScreenshotForExceptions: Boolean
 
     /**
-     * The timeout in milliseconds after which an ANR is detected.
+     * Whether to mask all text in screenshots.
      */
-    val anrTimeoutMs: Long
+    val maskAllTextInScreenshots: Boolean
+
+    /**
+     * The color of the mask to apply to the screenshot. The value should be a hex color string.
+     * For example, "#222222".
+     */
+    val screenshotMaskHexColor: String
+
+    /**
+     * The compression quality of the JPEG screenshot.
+     */
+    val screenshotJpegQuality: Int
+
+    /**
+     * The compression quality of the webp screenshot.
+     */
+    val screenshotWebpQuality: Int
+
+    /**
+     * The radius of the rounded rectangle mask to apply to the screenshot.
+     */
+    val screenshotMaskRadius: Float
 
     /**
      * The maximum size of an attachment in bytes that can be added to one batch of events to
@@ -47,9 +68,12 @@ internal interface Config {
 }
 
 internal class DefaultConfig : Config {
-    override val captureScreenshotForExceptions: Boolean = false
-
-    override val anrTimeoutMs: Long = 5_000 // 5 seconds
+    override val captureScreenshotForExceptions: Boolean = true
+    override val maskAllTextInScreenshots: Boolean = false
+    override val screenshotMaskHexColor: String = "#222222"
+    override val screenshotJpegQuality: Int = 25
+    override val screenshotWebpQuality: Int = 25
+    override val screenshotMaskRadius: Float = 8f
 
     override val maxAttachmentSizeInBytes: Int = 3 * 1024 * 1024 // 3 MB
 

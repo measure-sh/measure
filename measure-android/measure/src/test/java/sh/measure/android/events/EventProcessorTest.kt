@@ -19,7 +19,8 @@ import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
-import sh.measure.android.utils.ScreenshotHelper
+import sh.measure.android.screenshot.Screenshot
+import sh.measure.android.screenshot.ScreenshotCollector
 import sh.measure.android.utils.iso8601Timestamp
 
 internal class EventProcessorTest {
@@ -28,7 +29,7 @@ internal class EventProcessorTest {
     private val sessionManager = FakeSessionManager()
     private val eventStore = FakeEventStore()
     private val eventExporter = mock<EventExporter>()
-    private val screenshotHelper = mock<ScreenshotHelper>()
+    private val screenshotCollector = mock<ScreenshotCollector>()
     private val config = FakeConfig()
 
     private val eventProcessor = EventProcessorImpl(
@@ -39,7 +40,7 @@ internal class EventProcessorTest {
         sessionManager = sessionManager,
         attributeProcessors = emptyList(),
         eventExporter = eventExporter,
-        screenshotHelper = screenshotHelper,
+        screenshotCollector = screenshotCollector,
         config = config,
     )
 
@@ -148,7 +149,7 @@ internal class EventProcessorTest {
             sessionManager = sessionManager,
             attributeProcessors = listOf(attributeProcessor),
             eventExporter = eventExporter,
-            screenshotHelper = screenshotHelper,
+            screenshotCollector = screenshotCollector,
             config = config,
         )
 
@@ -216,8 +217,8 @@ internal class EventProcessorTest {
         val timestamp = 9856564654L
         val type = EventType.EXCEPTION
         config.captureScreenshotForExceptions = true
-        val screenshotBytes = byteArrayOf(1, 2, 3, 4)
-        `when`(screenshotHelper.takeScreenshot()).thenReturn(screenshotBytes)
+        val screenshot = Screenshot(data = byteArrayOf(1, 2, 3, 4), extension = "png")
+        `when`(screenshotCollector.takeScreenshot()).thenReturn(screenshot)
 
         // When
         eventProcessor.track(
@@ -231,7 +232,7 @@ internal class EventProcessorTest {
         val attachments = eventStore.trackedEvents.first().attachments
         assertEquals(1, attachments.size)
         assertEquals("screenshot.png", attachments.first().name)
-        assertTrue(screenshotBytes.contentEquals(attachments.first().bytes))
+        assertTrue(screenshot.data.contentEquals(attachments.first().bytes))
     }
 
     @Test
