@@ -72,7 +72,7 @@ function MeasureNode({ data, isConnectable }) {
       <Handle type="source" id="b" position={Position.Bottom} isConnectable={isConnectable} />
 
       {/* this div is a hack to animate label position from center to left and back again on hover */}
-      <div className={`w-full flex flex-row p-4 ${isNodeWithIssues ? 'bg-neutral-950' : 'bg-emerald-400'}`}>
+      <div className={`w-full flex flex-row p-4 ${isNodeWithIssues ? 'bg-red-400' : 'bg-emerald-400'}`}>
         <div className="grow group-hover:grow-0 transition-[flex-grow] ease-out duration-300" />
         <p className="font-sans text-white w-fit">{data.label}</p>
         <div className="grow group-hover:grow-0 transition-[flex-grow] ease-out duration-300" />
@@ -80,8 +80,8 @@ function MeasureNode({ data, isConnectable }) {
 
       {/* Indicator line to show percentage contribution of issues */}
       {isNodeWithIssues &&
-        <div className='w-full bg-neutral-950'>
-          <div className={`h-1 bg-red-500`} style={{ width: `${data.nodeIssueContribution * 100}%` }} />
+        <div className='w-full bg-red-400'>
+          <div className={`h-1 bg-neutral-950`} style={{ width: `${data.nodeIssueContribution * 100}%` }} />
         </div>}
 
       <div className='h-0 rounded-b-md opacity-0 bg-neutral-950 group-hover:pl-2 group-hover:pr-2 group-hover:opacity-100 group-hover:h-full transition ease-in-out duration-300 '>
