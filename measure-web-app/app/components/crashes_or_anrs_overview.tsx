@@ -199,7 +199,7 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
 
       {/* Error states for filters fetch */}
       {filtersApiStatus === FiltersApiStatus.Error && <p className="text-lg font-display">Error fetching filters, please refresh page or select a different app to try again</p>}
-      {filtersApiStatus === FiltersApiStatus.NoData && <p className="text-lg font-display">We don&apos;t seem to have any data for this app. It could have been removed due to exceeding data retention period. Please contact <a href="mailto:support@measure.sh" className="underline text-blue-500">Measure support.</a></p>}
+      {filtersApiStatus === FiltersApiStatus.NoData && <p className="text-lg font-display">No {crashOrAnrType === CrashOrAnrType.Crash ? 'Crashes' : 'ANRs'} recorded so far!</p>}
       {filtersApiStatus === FiltersApiStatus.NotOnboarded && <CreateApp teamId={teamId} existingAppName={selectedApp.name} existingApiKey={selectedApp.api_key.key} />}
 
       {/* Error state for crash groups fetch */}
