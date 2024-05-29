@@ -7,6 +7,8 @@ import android.os.Looper
 import android.util.Log
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
+import sh.measure.sample.screenshot.ComposeScreenshotActivity
+import sh.measure.sample.screenshot.ViewScreenshotActivity
 import java.io.IOException
 
 class ExceptionDemoActivity : AppCompatActivity() {
@@ -47,6 +49,12 @@ class ExceptionDemoActivity : AppCompatActivity() {
         }
         findViewById<Button>(R.id.btn_compose_navigation).setOnClickListener {
             startActivity(Intent(this, ComposeNavigationActivity::class.java))
+        }
+        findViewById<Button>(R.id.btn_view_screenshot).setOnClickListener {
+            startActivity(Intent(this, ViewScreenshotActivity::class.java))
+        }
+        findViewById<Button>(R.id.btn_compose_screenshot).setOnClickListener {
+            startActivity(Intent(this, ComposeScreenshotActivity::class.java))
         }
     }
 

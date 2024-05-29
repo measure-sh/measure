@@ -10,4 +10,10 @@
     <string name="compose">Compose</string>
     <string name="compose_navigation">Compose Navigation</string>
     <string name="title_activity_compose_navigation">ComposeNavigation</string>
+    <string name="title_activity_view_screenshot">ViewScreenshot</string>
+    <string name="title_activity_compose_screenshot">ComposeScreenshot</string>
+    <string name="view_screenshot">View Screenshot</string>
+    <string name="compose_screenshot">Compose Screenshot</string>
+    <string name="crash">Throw unhandled exception</string>
+    <string name="anr">ANR</string>
 </resources>

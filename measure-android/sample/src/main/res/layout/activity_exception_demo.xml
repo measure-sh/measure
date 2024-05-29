@@ -1,65 +1,82 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:gravity="center"
-    android:orientation="vertical"
-    tools:context="sh.measure.sample.ExceptionDemoActivity">
+    android:layout_height="match_parent">
 
-    <Button
-        android:id="@+id/btn_single_exception"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/single_exception" />
+        android:gravity="center"
+        android:orientation="vertical"
+        tools:context="sh.measure.sample.ExceptionDemoActivity">
 
-    <Button
-        android:id="@+id/btn_chained_exception"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/chained_exceptions" />
+        <Button
+            android:id="@+id/btn_single_exception"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/single_exception" />
 
-    <Button
-        android:id="@+id/btn_oom_exception"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/oom_exception" />
+        <Button
+            android:id="@+id/btn_chained_exception"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/chained_exceptions" />
 
-    <Button
-        android:id="@+id/btn_stack_overflow_exception"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/stack_overflow_exception" />
+        <Button
+            android:id="@+id/btn_oom_exception"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/oom_exception" />
 
-    <Button
-        android:id="@+id/btn_infinite_loop"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/infinite_loop" />
+        <Button
+            android:id="@+id/btn_stack_overflow_exception"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/stack_overflow_exception" />
 
-    <Button
-        android:id="@+id/btn_deadlock"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/deadlock" />
+        <Button
+            android:id="@+id/btn_infinite_loop"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/infinite_loop" />
 
-    <Button
-        android:id="@+id/btn_okhttp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/okhttp" />
+        <Button
+            android:id="@+id/btn_deadlock"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/deadlock" />
+
+        <Button
+            android:id="@+id/btn_okhttp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/okhttp" />
 
 
-    <Button
-        android:id="@+id/btn_compose"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/compose" />
+        <Button
+            android:id="@+id/btn_compose"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/compose" />
 
-    <Button
-        android:id="@+id/btn_compose_navigation"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/compose_navigation" />
+        <Button
+            android:id="@+id/btn_compose_navigation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/compose_navigation" />
 
-</LinearLayout>
+        <Button
+            android:id="@+id/btn_view_screenshot"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/view_screenshot" />
+
+        <Button
+            android:id="@+id/btn_compose_screenshot"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/compose_screenshot" />
+
+    </LinearLayout>
+</ScrollView>
