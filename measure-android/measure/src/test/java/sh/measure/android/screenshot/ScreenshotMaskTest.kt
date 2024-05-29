@@ -21,7 +21,6 @@ import org.junit.runner.RunWith
 import org.robolectric.Robolectric.buildActivity
 import sh.measure.android.fakes.FakeConfig
 
-
 @ExperimentalMaterial3Api
 @RunWith(AndroidJUnit4::class)
 class ScreenshotMaskTest {
@@ -254,7 +253,7 @@ class ScreenshotMaskTest {
                 value = "input",
                 onValueChange = {},
                 visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             )
         }
         initActivityWithView(composeView)
@@ -275,7 +274,7 @@ class ScreenshotMaskTest {
                 value = "input",
                 onValueChange = {},
                 visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             )
         }
         initActivityWithView(composeView)

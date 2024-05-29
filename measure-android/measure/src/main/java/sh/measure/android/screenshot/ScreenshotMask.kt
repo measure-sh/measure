@@ -86,10 +86,12 @@ internal class ScreenshotMask(private val config: Config) {
     }
 
     private fun shouldMaskComposeText(isClickable: Boolean, isPassword: Boolean): Boolean {
-        return (config.screenshotMaskLevel == ScreenshotMaskLevel.AllTextAndMedia
-                || config.screenshotMaskLevel == ScreenshotMaskLevel.AllText
-                || (config.screenshotMaskLevel == ScreenshotMaskLevel.AllTextExceptClickable && !isClickable)
-                || (config.screenshotMaskLevel == ScreenshotMaskLevel.SensitiveFieldsOnly && isPassword))
+        return (
+            config.screenshotMaskLevel == ScreenshotMaskLevel.AllTextAndMedia ||
+                config.screenshotMaskLevel == ScreenshotMaskLevel.AllText ||
+                (config.screenshotMaskLevel == ScreenshotMaskLevel.AllTextExceptClickable && !isClickable) ||
+                (config.screenshotMaskLevel == ScreenshotMaskLevel.SensitiveFieldsOnly && isPassword)
+            )
     }
 
     private fun isNodeImage(node: SemanticsNode): Boolean {

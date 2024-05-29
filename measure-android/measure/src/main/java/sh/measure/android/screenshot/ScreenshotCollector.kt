@@ -201,7 +201,6 @@ internal class ScreenshotCollectorImpl(
         }
     }
 
-
     private fun isActivityAlive(activity: Activity): Boolean {
         return !activity.isFinishing && !activity.isDestroyed
     }
