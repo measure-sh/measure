@@ -12,29 +12,15 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.view.PixelCopy
 import android.view.View
-import android.view.ViewGroup
 import android.view.Window
-import android.widget.ImageView
-import android.widget.TextView
-import android.widget.VideoView
 import androidx.annotation.RequiresApi
-import androidx.compose.ui.node.RootForTest
-import androidx.compose.ui.semantics.SemanticsActions
-import androidx.compose.ui.semantics.SemanticsNode
-import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.semantics.SemanticsProperties.ContentDescription
-import androidx.compose.ui.semantics.getAllSemanticsNodes
-import androidx.compose.ui.semantics.getOrNull
-import androidx.core.view.isVisible
 import sh.measure.android.Config
 import sh.measure.android.isMainThread
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.tracing.InternalTrace
-import sh.measure.android.utils.ComposeHelper
 import sh.measure.android.utils.LowMemoryCheck
 import sh.measure.android.utils.ResumedActivityProvider
-import sh.measure.android.utils.isSensitiveInputType
 import java.io.ByteArrayOutputStream
 import kotlin.LazyThreadSafetyMode.NONE
 
@@ -119,7 +105,7 @@ internal class ScreenshotCollectorImpl(
         }
 
         InternalTrace.beginSection("find-rects-to-mask")
-        val rectsToMask = findRectsToMask(view)
+        val rectsToMask = ScreenshotMask(config).findRectsToMask(view)
         InternalTrace.endSection()
         val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -134,88 +120,6 @@ internal class ScreenshotCollectorImpl(
         } else {
             captureBitmapUsingCanvas(activity, view, bitmap, rectsToMask)
         }
-    }
-
-    private fun findRectsToMask(view: View): List<Rect> {
-        val rects = mutableListOf<Rect>()
-        recursivelyFindRectsToMask(view, rects)
-        return rects
-    }
-
-    private fun recursivelyFindRectsToMask(view: View, rectsToMask: MutableList<Rect>) {
-        if (!view.isVisible) {
-            return
-        }
-        when {
-            view is ImageView || view is VideoView || isExoplayerView(view) -> {
-                if (config.screenshotMaskLevel == ScreenshotMaskLevel.AllTextAndMedia) {
-                    val rect = Rect()
-                    if (view.getGlobalVisibleRect(rect)) {
-                        rectsToMask.add(rect)
-                    }
-                }
-            }
-
-            view is TextView -> {
-                if (view.isSensitiveInputType() || (shouldMaskText(config.screenshotMaskLevel) && !view.isClickable)) {
-                    val rect = Rect()
-                    if (view.getGlobalVisibleRect(rect)) {
-                        rectsToMask.add(rect)
-                    }
-                }
-            }
-
-            ComposeHelper.isComposeView(view) -> {
-                findComposableRectsToMask(view, rectsToMask)
-            }
-
-            view is ViewGroup -> {
-                (0 until view.childCount).forEach {
-                    recursivelyFindRectsToMask(view.getChildAt(it), rectsToMask)
-                }
-            }
-        }
-    }
-
-    private fun shouldMaskText(screenshotMaskLevel: ScreenshotMaskLevel): Boolean {
-        return screenshotMaskLevel == ScreenshotMaskLevel.AllTextAndMedia
-                || screenshotMaskLevel == ScreenshotMaskLevel.AllText
-                || screenshotMaskLevel == ScreenshotMaskLevel.AllTextExceptClickable
-    }
-
-    private fun findComposableRectsToMask(view: View, rectsToMask: MutableList<Rect>) {
-        val semanticsOwner = (view as? RootForTest)?.semanticsOwner ?: return
-        val semanticsNodes = semanticsOwner.getAllSemanticsNodes(true)
-
-        semanticsNodes.forEach { node ->
-            val hasEditableText = node.config.getOrNull(SemanticsProperties.EditableText) != null
-            val isPassword = node.config.getOrNull(SemanticsProperties.Password) != null
-            val hasText = node.config.getOrNull(SemanticsProperties.Text) != null
-            val isClickable = isNodeClickable(node)
-            val isImage = isNodeImage(node)
-
-            if (isImage && config.screenshotMaskLevel == ScreenshotMaskLevel.AllTextAndMedia) {
-                rectsToMask.add(node.boundsInWindow.toRect())
-            }
-
-            if (hasEditableText && (isPassword || shouldMaskText(config.screenshotMaskLevel))) {
-                rectsToMask.add(node.boundsInWindow.toRect())
-            }
-
-            if (hasText && shouldMaskText(config.screenshotMaskLevel) && !isClickable) {
-                rectsToMask.add(node.boundsInWindow.toRect())
-            }
-        }
-    }
-
-    private fun isNodeImage(node: SemanticsNode): Boolean {
-        return node.config.getOrNull(ContentDescription) != null
-    }
-
-    private fun isNodeClickable(node: SemanticsNode): Boolean {
-        return node.config.getOrNull(SemanticsActions.OnClick) != null || node.config.getOrNull(
-            SemanticsActions.OnLongClick,
-        ) != null
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -297,15 +201,8 @@ internal class ScreenshotCollectorImpl(
         }
     }
 
-    private fun isExoplayerView(view: View): Boolean {
-        return view.javaClass.name.equals("androidx.media3.ui.PlayerView")
-    }
 
     private fun isActivityAlive(activity: Activity): Boolean {
         return !activity.isFinishing && !activity.isDestroyed
     }
-}
-
-private fun androidx.compose.ui.geometry.Rect.toRect(): Rect {
-    return Rect(left.toInt(), top.toInt(), right.toInt(), bottom.toInt())
 }

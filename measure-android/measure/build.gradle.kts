@@ -150,6 +150,8 @@ dependencies {
     testImplementation(libs.androidx.fragment.testing)
     testImplementation(libs.androidx.rules)
     testImplementation(libs.androidx.compose.runtime.android)
+    testImplementation(libs.androidx.compose.ui)
+    testImplementation(libs.androidx.material3)
     testImplementation(libs.squareup.okhttp.mockwebserver)
 
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.4.3") {
