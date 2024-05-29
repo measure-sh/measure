@@ -5,6 +5,9 @@ to [various reasons](https://developer.android.com/topic/performance/anrs/diagno
 Measure tracks ANRs in your app automatically, no additional code is required
 to enable this feature.
 
+A screenshot of the app, as soon as it crashes due to an ANR, is also captured and sent to the server.
+See more details about screenshots in the [Screenshot](#screenshot) section.
+
 ## How it works
 
 Measure SDK detects ANRs by tracking the `SIGQUIT` signal. When an ANR occurs, the `SIGQUIT` signal is
