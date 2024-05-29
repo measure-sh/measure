@@ -238,23 +238,23 @@ func (e Exception) Stacktrace() string {
 
 // Stacktrace writes a formatted stacktrace
 // from the ANR.
-func (e ANR) Stacktrace() string {
+func (a ANR) Stacktrace() string {
 	var b strings.Builder
 
-	for i := len(e.Exceptions) - 1; i >= 0; i-- {
-		firstException := i == len(e.Exceptions)-1
+	for i := len(a.Exceptions) - 1; i >= 0; i-- {
+		firstException := i == len(a.Exceptions)-1
 		lastException := i == 0
-		exType := e.Exceptions[i].Type
-		message := e.Exceptions[i].Message
-		hasFrames := len(e.Exceptions[i].Frames) > 0
+		exType := a.Exceptions[i].Type
+		message := a.Exceptions[i].Message
+		hasFrames := len(a.Exceptions[i].Frames) > 0
 
 		title := makeTitle(exType, message)
 
 		if firstException {
 			b.WriteString(title)
-		} else if e.IsNested() {
-			prevType := e.Exceptions[i+1].Type
-			prevMsg := e.Exceptions[i+1].Message
+		} else if a.IsNested() {
+			prevType := a.Exceptions[i+1].Type
+			prevMsg := a.Exceptions[i+1].Message
 			title := makeTitle(prevType, prevMsg)
 			b.WriteString("Caused by: " + title)
 		}
@@ -263,9 +263,9 @@ func (e ANR) Stacktrace() string {
 			b.WriteString("\n")
 		}
 
-		for j := range e.Exceptions[i].Frames {
-			lastFrame := j == len(e.Exceptions[i].Frames)-1
-			frame := e.Exceptions[i].Frames[j].String()
+		for j := range a.Exceptions[i].Frames {
+			lastFrame := j == len(a.Exceptions[i].Frames)-1
+			frame := a.Exceptions[i].Frames[j].String()
 			b.WriteString(FramePrefix + frame)
 			if !lastFrame || !lastException {
 				b.WriteString("\n")
