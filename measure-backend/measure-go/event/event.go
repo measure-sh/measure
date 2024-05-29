@@ -123,7 +123,7 @@ var ValidLifecycleAppTypes = []string{
 func makeTitle(t, m string) (typeMessage string) {
 	typeMessage = t
 	if m != "" {
-		typeMessage += ": " + m
+		typeMessage += GenericPrefix + m
 	}
 	return
 }
@@ -216,7 +216,7 @@ func (e Exception) Stacktrace() string {
 			prevType := e.Exceptions[i+1].Type
 			prevMsg := e.Exceptions[i+1].Message
 			title := makeTitle(prevType, prevMsg)
-			b.WriteString("Caused by: " + title)
+			b.WriteString("Caused by" + GenericPrefix + title)
 		}
 
 		if hasFrames {
@@ -256,7 +256,7 @@ func (a ANR) Stacktrace() string {
 			prevType := a.Exceptions[i+1].Type
 			prevMsg := a.Exceptions[i+1].Message
 			title := makeTitle(prevType, prevMsg)
-			b.WriteString("Caused by: " + title)
+			b.WriteString("Caused by" + GenericPrefix + title)
 		}
 
 		if hasFrames {
