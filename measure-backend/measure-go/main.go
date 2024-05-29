@@ -52,7 +52,7 @@ func main() {
 	r.PUT("/events", measure.ValidateAPIKey(), measure.PutEvents)
 	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuild)
 
-	// Dashboard rotues
+	// Dashboard routes
 	r.Use(cors).Use(measure.ValidateAccessToken())
 	users := r.Group("/users")
 	{
