@@ -686,24 +686,20 @@ type EventANR struct {
 	Type      string         `json:"type"`
 	Attribute Attribute      `json:"attribute"`
 	ANR       ANR            `json:"-"`
-	ANRs      []ANRView      `json:"anrs"`
+	ANRView   ANRView        `json:"anr"`
 	Threads   []ThreadView   `json:"threads"`
 }
 
 type ANRView struct {
-	Type       string `json:"type"`
-	Message    string `json:"message"`
-	Location   string `json:"location"`
+	Title      string `json:"title"`
 	Stacktrace string `json:"stacktrace"`
 }
 
 func (e *EventANR) ComputeView() {
-	var av ANRView
-	av.Type = e.ANR.GetType()
-	av.Message = e.ANR.GetMessage()
-	av.Location = e.ANR.GetLocation()
-	av.Stacktrace = e.ANR.Stacktrace()
-	e.ANRs = append(e.ANRs, av)
+	e.ANRView = ANRView{
+		Title:      e.ANR.GetTitle(),
+		Stacktrace: e.ANR.Stacktrace(),
+	}
 
 	for i := range e.ANR.Threads {
 		var tv ThreadView
@@ -1049,9 +1045,4 @@ func (a ANR) GetType() string {
 
 func (a ANR) GetMessage() string {
 	return a.Exceptions[len(a.Exceptions)-1].Message
-}
-
-func (a ANR) GetLocation() string {
-	frame := a.Exceptions[len(a.Exceptions)-1].Frames[0]
-	return frame.String()
 }
