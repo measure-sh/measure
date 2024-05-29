@@ -14,12 +14,15 @@ import android.view.PixelCopy
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
+import android.widget.ImageView
 import android.widget.TextView
+import android.widget.VideoView
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.SemanticsProperties.ContentDescription
 import androidx.compose.ui.semantics.getAllSemanticsNodes
 import androidx.compose.ui.semantics.getOrNull
 import androidx.core.view.isVisible
@@ -144,8 +147,17 @@ internal class ScreenshotCollectorImpl(
             return
         }
         when {
+            view is ImageView || view is VideoView || isExoplayerView(view) -> {
+                if (config.screenshotMaskLevel == ScreenshotMaskLevel.AllTextAndMedia) {
+                    val rect = Rect()
+                    if (view.getGlobalVisibleRect(rect)) {
+                        rectsToMask.add(rect)
+                    }
+                }
+            }
+
             view is TextView -> {
-                if (view.isSensitiveInputType() || (config.maskAllTextInScreenshots && !view.isClickable)) {
+                if (view.isSensitiveInputType() || (shouldMaskText(config.screenshotMaskLevel) && !view.isClickable)) {
                     val rect = Rect()
                     if (view.getGlobalVisibleRect(rect)) {
                         rectsToMask.add(rect)
@@ -165,6 +177,12 @@ internal class ScreenshotCollectorImpl(
         }
     }
 
+    private fun shouldMaskText(screenshotMaskLevel: ScreenshotMaskLevel): Boolean {
+        return screenshotMaskLevel == ScreenshotMaskLevel.AllTextAndMedia
+                || screenshotMaskLevel == ScreenshotMaskLevel.AllText
+                || screenshotMaskLevel == ScreenshotMaskLevel.AllTextExceptClickable
+    }
+
     private fun findComposableRectsToMask(view: View, rectsToMask: MutableList<Rect>) {
         val semanticsOwner = (view as? RootForTest)?.semanticsOwner ?: return
         val semanticsNodes = semanticsOwner.getAllSemanticsNodes(true)
@@ -174,15 +192,24 @@ internal class ScreenshotCollectorImpl(
             val isPassword = node.config.getOrNull(SemanticsProperties.Password) != null
             val hasText = node.config.getOrNull(SemanticsProperties.Text) != null
             val isClickable = isNodeClickable(node)
+            val isImage = isNodeImage(node)
 
-            if (hasEditableText && (isPassword || config.maskAllTextInScreenshots)) {
+            if (isImage && config.screenshotMaskLevel == ScreenshotMaskLevel.AllTextAndMedia) {
                 rectsToMask.add(node.boundsInWindow.toRect())
             }
 
-            if (hasText && config.maskAllTextInScreenshots && !isClickable) {
+            if (hasEditableText && (isPassword || shouldMaskText(config.screenshotMaskLevel))) {
+                rectsToMask.add(node.boundsInWindow.toRect())
+            }
+
+            if (hasText && shouldMaskText(config.screenshotMaskLevel) && !isClickable) {
                 rectsToMask.add(node.boundsInWindow.toRect())
             }
         }
+    }
+
+    private fun isNodeImage(node: SemanticsNode): Boolean {
+        return node.config.getOrNull(ContentDescription) != null
     }
 
     private fun isNodeClickable(node: SemanticsNode): Boolean {
@@ -268,6 +295,10 @@ internal class ScreenshotCollectorImpl(
             logger.log(LogLevel.Error, "Failed to take screenshot, compression to PNG failed", e)
             return null
         }
+    }
+
+    private fun isExoplayerView(view: View): Boolean {
+        return view.javaClass.name.equals("androidx.media3.ui.PlayerView")
     }
 
     private fun isActivityAlive(activity: Activity): Boolean {

@@ -1,5 +1,7 @@
 package sh.measure.android
 
+import sh.measure.android.screenshot.ScreenshotMaskLevel
+
 private val disabledHttpBodyUrlPatterns = listOf(
     // measure sessions endpoint for local development
     // TODO(abhay): always ignore all measure endpoints
@@ -20,9 +22,9 @@ internal interface Config {
     val captureScreenshotForExceptions: Boolean
 
     /**
-     * Whether to mask all text in screenshots.
+     * The
      */
-    val maskAllTextInScreenshots: Boolean
+    val screenshotMaskLevel: ScreenshotMaskLevel
 
     /**
      * The color of the mask to apply to the screenshot. The value should be a hex color string.
@@ -69,7 +71,7 @@ internal interface Config {
 
 internal class DefaultConfig : Config {
     override val captureScreenshotForExceptions: Boolean = true
-    override val maskAllTextInScreenshots: Boolean = false
+    override val screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.AllTextAndMedia
     override val screenshotMaskHexColor: String = "#222222"
     override val screenshotJpegQuality: Int = 25
     override val screenshotWebpQuality: Int = 25
