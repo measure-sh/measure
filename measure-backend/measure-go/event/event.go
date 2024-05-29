@@ -118,9 +118,9 @@ var ValidLifecycleAppTypes = []string{
 	LifecycleAppTypeForeground,
 }
 
-// makeTypeMessage appends the message to the type
+// makeTitle appends the message to the type
 // if message is present.
-func makeTypeMessage(t, m string) (typeMessage string) {
+func makeTitle(t, m string) (typeMessage string) {
 	typeMessage = t
 	if m != "" {
 		typeMessage += ": " + m
@@ -208,15 +208,15 @@ func (e Exception) Stacktrace() string {
 		message := e.Exceptions[i].Message
 		hasFrames := len(e.Exceptions[i].Frames) > 0
 
-		typeMessage := makeTypeMessage(exType, message)
+		title := makeTitle(exType, message)
 
 		if firstException {
-			b.WriteString(typeMessage)
+			b.WriteString(title)
 		} else if e.IsNested() {
 			prevType := e.Exceptions[i+1].Type
 			prevMsg := e.Exceptions[i+1].Message
-			typeMessage = makeTypeMessage(prevType, prevMsg)
-			b.WriteString("Caused by: " + typeMessage)
+			title := makeTitle(prevType, prevMsg)
+			b.WriteString("Caused by: " + title)
 		}
 
 		if hasFrames {
