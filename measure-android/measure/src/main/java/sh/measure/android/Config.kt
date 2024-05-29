@@ -22,7 +22,7 @@ internal interface Config {
     val captureScreenshotForExceptions: Boolean
 
     /**
-     * The
+     * The level of mask to apply to the screenshot.
      */
     val screenshotMaskLevel: ScreenshotMaskLevel
 
@@ -71,7 +71,7 @@ internal interface Config {
 
 internal class DefaultConfig : Config {
     override val captureScreenshotForExceptions: Boolean = true
-    override val screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.AllTextAndMedia
+    override val screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.SensitiveFieldsOnly
     override val screenshotMaskHexColor: String = "#222222"
     override val screenshotJpegQuality: Int = 25
     override val screenshotWebpQuality: Int = 25

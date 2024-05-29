@@ -19,8 +19,8 @@ Android versions 11 and above. For devices running on Android versions below 11,
 
 ## Masking PII and Sensitive Data
 
-Note that screenshots can leak sensitive information. To prevent this, Measure masks sensitive information in the
-screenshot by default and provides a way to hide all text from the screenshots as well.
+Note that screenshots can leak sensitive information. To prevent this, Measure masks all text and media from screenshots
+by default. Masking levels can be configured to suit your requirements as described below.
 
 ### Configuring Masking Level
 
@@ -35,9 +35,12 @@ The following levels of masking can be applied to the screenshots:
 
 Masks all text, buttons, input fields, image views and video.
 
+For View based UI, video masking is performed on VideoView and Exoplayer's `androidx.media3.ui.PlayerView`
+and image masking is performed on `ImageView`. Image and video masking is currently not supported for Compose based UI.
+
 Example:
 
-![Mask All Text And Media](../images/maskAllTextAndMedia.jpeg)
+![Mask All Text And Media](../images/maskAllTextAndMedia.png)
 
 #### maskAllText
 
@@ -45,7 +48,7 @@ Masks all text, buttons & input fields.
 
 Example:
 
-![Mask All Text](../images/maskAllText.jpeg)
+![Mask All Text](../images/maskAllText.png)
 
 #### maskTextExceptClickable
 
@@ -53,7 +56,7 @@ Masks all text & input fields except clickable views like buttons.
 
 Example:
 
-![Mask Text Except Clickable](../images/maskTextExceptClickable.jpeg)
+![Mask Text Except Clickable](../images/maskTextExceptClickable.png)
 
 #### maskSensitiveInputFields
 
@@ -70,9 +73,9 @@ are masked in the screenshot by default.
 
 Example:
 
-|                                                                         |                                                                         |
-|-------------------------------------------------------------------------|-------------------------------------------------------------------------|
-| ![Mask Text Except Clickable](../images/maskSensitiveInputFields2.jpeg) | ![Mask Sensitive Input Fields](../images/maskSensitiveInputFields.jpeg) |
+|                                                                      |                                                                      |
+|----------------------------------------------------------------------|----------------------------------------------------------------------|
+| ![Mask Text Except Clickable](../images/maskSensitiveInputFields2.png) | ![Mask Sensitive Input Fields](../images/maskSensitiveInputFields.png) |
 
 ### Mask entire screen from screenshots
 
