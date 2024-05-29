@@ -743,20 +743,20 @@ These headers must be present in each request.
   ```json
   {
     "meta": {
-      "next": false,
+      "next": true,
       "previous": false
     },
     "results": [
       {
-        "id": "5204777e-2e9f-4ecc-ac20-cf9291fb0f0f",
-        "session_id": "9e44aa3a-3d67-4a56-8a76-a9fff7e2aae9",
-        "timestamp": "2024-04-29T11:39:19.536Z",
+        "id": "db08c0ae-bc5e-49cb-9047-71a39b80f535",
+        "session_id": "1d8b13f3-e226-4ac8-bf5f-cdf2e1443b4c",
+        "timestamp": "2024-04-29T12:08:36.962Z",
         "type": "exception",
         "attribute": {
-          "installation_id": "f577ccfe-277b-4ebf-8569-f1a98f0bd0bb",
-          "app_version": "1.0",
-          "app_build": "1",
-          "app_unique_id": "sh.measure.sample",
+          "installation_id": "b0ba2ee2-aae9-4cb1-b08b-82c1aadee68c",
+          "app_version": "7.62",
+          "app_build": "9223",
+          "app_unique_id": "au.com.shiftyjelly.pocketcasts.debug",
           "measure_sdk_version": "0.1.0",
           "platform": "android",
           "thread_name": "main",
@@ -778,17 +778,71 @@ These headers must be present in each request.
           "network_provider": "",
           "network_generation": ""
         },
-        "exceptions": [
-          {
-            "type": "java.lang.StackOverflowError",
-            "message": "stack size 8188KB",
-            "location": "sh.measure.sample.ExceptionDemoActivity.recursiveFunction(ExceptionDemoActivity.kt:60)",
-            "stacktrace": "java.lang.StackOverflowError\n\tat sh.measure.sample.ExceptionDemoActivity.recursiveFunction(ExceptionDemoActivity.kt:60)\n\tat sh.measure.sample.ExceptionDemoActivity.recursiveFunction(ExceptionDemoActivity.kt:60)\n\tat sh.measure.sample.ExceptionDemoActivity.recursiveFunction(ExceptionDemoActivity.kt:60)\n\tat sh.measure.sample.ExceptionDemoActivity.recursiveFunction(ExceptionDemoActivity.kt:60)\n\tat sh.measure.sample.ExceptionDemoActivity.recursiveFunction(ExceptionDemoActivity.kt:60)\n\tat sh.measure.sample.ExceptionDemoActivity.recursiveFunction(ExceptionDemoActivity.kt:60)\n\tat sh.measure.sample.ExceptionDemoActivity.recursiveFunction(ExceptionDemoActivity.kt:60)\n\tat sh.measure.sample.ExceptionDemoActivity.onCreate$lambda$3(ExceptionDemoActivity.kt:34)\n\tat android.view.View.performClick(View.java:7506)\n\tat com.google.android.material.button.MaterialButton.performClick(MaterialButton.java:1218)\n\tat android.view.View.performClickInternal(View.java:7483)\n\tat android.view.View.-$$Nest$mperformClickInternal\n\tat android.view.View$PerformClick.run(View.java:29334)\n\tat android.os.Handler.handleCallback(Handler.java:942)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n"
-          }
-        ],
+        "exception": {
+          "title": "java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>",
+          "stacktrace": "java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>\n\tat retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory.get(RxJava2CallAdapterFactory.java:118)\n\tat retrofit2.Retrofit.nextCallAdapter(Retrofit.java:253)\n\tat retrofit2.Retrofit.callAdapter(Retrofit.java:237)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:114)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>\n\tat retrofit2.Utils.methodError(Utils.java:54)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:116)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalArgumentException: Unable to create call adapter for class io.reactivex.Single\n    for method ListWebService.getDiscoverFeedWithCategoriesAtTheTop\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:704)\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:701)\n\tat io.reactivex.internal.observers.LambdaObserver.onError(LambdaObserver.java:77)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:67)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)"
+        },
         "threads": [
           {
-            "name": "w5.a0 TaskRunner",
+            "name": "ConnectivityThread",
+            "frames": [
+              "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
+              "android.os.MessageQueue.next(MessageQueue.java:335)",
+              "android.os.Looper.loopOnce(Looper.java:161)",
+              "android.os.Looper.loop(Looper.java:288)",
+              "android.os.HandlerThread.run(HandlerThread.java:67)"
+            ]
+          },
+          {
+            "name": "FinalizerWatchdogDaemon",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "java.lang.Object.wait(Object.java:442)",
+              "java.lang.Object.wait(Object.java:568)",
+              "java.lang.Daemons$FinalizerWatchdogDaemon.sleepUntilNeeded(Daemons.java:385)",
+              "java.lang.Daemons$FinalizerWatchdogDaemon.runInternal(Daemons.java:365)",
+              "java.lang.Daemons$Daemon.run(Daemons.java:140)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "Measurement Worker",
+            "frames": [
+              "android.os.MessageQueue.nativeWake(MessageQueue.java:-2)",
+              "android.os.MessageQueue.enqueueMessage(MessageQueue.java:598)",
+              "android.os.Handler.enqueueMessage(Handler.java:778)",
+              "android.os.Handler.sendMessageAtTime(Handler.java:727)",
+              "android.os.Handler.sendMessageDelayed(Handler.java:697)",
+              "android.os.Handler.sendEmptyMessageDelayed(Handler.java:662)",
+              "android.app.QueuedWork.queue(QueuedWork.java:229)",
+              "android.app.SharedPreferencesImpl.enqueueDiskWrite(SharedPreferencesImpl.java:696)",
+              "android.app.SharedPreferencesImpl.-$$Nest$menqueueDiskWrite",
+              "android.app.SharedPreferencesImpl$EditorImpl.apply(SharedPreferencesImpl.java:505)",
+              "java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:463)",
+              "java.util.concurrent.FutureTask.run(FutureTask.java:264)"
+            ]
+          },
+          {
+            "name": "OkHttp ConnectionPool",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "com.android.okhttp.ConnectionPool$1.run(ConnectionPool.java:106)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1137)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "Thread-2",
+            "frames": [
+              "java.lang.Thread.sleep(Thread.java:-2)",
+              "java.lang.Thread.sleep(Thread.java:450)",
+              "java.lang.Thread.sleep(Thread.java:355)",
+              "sh.measure.android.anr.ANRWatchDog.run(ANRWatchDog.kt:70)"
+            ]
+          },
+          {
+            "name": "pool-21-thread-1",
             "frames": [
               "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
               "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
@@ -798,6 +852,469 @@ These headers must be present in each request.
               "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
               "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
               "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxCachedThreadScheduler-3",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "pool-5-thread-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)",
+              "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxSchedulerPurge-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "pool-6-thread-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)",
+              "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxComputationThreadPool-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "DefaultDispatcher-worker-3",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:357)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.park(CoroutineScheduler.kt:856)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.tryPark(CoroutineScheduler.kt:801)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:749)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:702)"
+            ]
+          },
+          {
+            "name": "WM.task-2",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:433)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "FinalizerDaemon",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "java.lang.Object.wait(Object.java:442)",
+              "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:203)",
+              "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:224)",
+              "java.lang.Daemons$FinalizerDaemon.runInternal(Daemons.java:300)",
+              "java.lang.Daemons$Daemon.run(Daemons.java:140)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "pool-2-thread-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)",
+              "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "aa782688-76e9-446b-b6b3-11feae59a5d1",
+        "session_id": "df022f65-9ed0-40f3-92d2-6d9a234350e1",
+        "timestamp": "2024-04-29T12:08:34.616Z",
+        "type": "exception",
+        "attribute": {
+          "installation_id": "b0ba2ee2-aae9-4cb1-b08b-82c1aadee68c",
+          "app_version": "7.62",
+          "app_build": "9223",
+          "app_unique_id": "au.com.shiftyjelly.pocketcasts.debug",
+          "measure_sdk_version": "0.1.0",
+          "platform": "android",
+          "thread_name": "main",
+          "user_id": "",
+          "device_name": "emu64a",
+          "device_model": "sdk_gphone64_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "phone",
+          "device_is_foldable": true,
+          "device_is_physical": false,
+          "device_density_dpi": 440,
+          "device_width_px": 1080,
+          "device_height_px": 2154,
+          "device_density": 2.75,
+          "device_locale": "en-US",
+          "os_name": "android",
+          "os_version": "33",
+          "network_type": "wifi",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "exception": {
+          "title": "java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>",
+          "stacktrace": "java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>\n\tat retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory.get(RxJava2CallAdapterFactory.java:118)\n\tat retrofit2.Retrofit.nextCallAdapter(Retrofit.java:253)\n\tat retrofit2.Retrofit.callAdapter(Retrofit.java:237)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:114)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>\n\tat retrofit2.Utils.methodError(Utils.java:54)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:116)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalArgumentException: Unable to create call adapter for class io.reactivex.Single\n    for method ListWebService.getDiscoverFeedWithCategoriesAtTheTop\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:704)\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:701)\n\tat io.reactivex.internal.observers.LambdaObserver.onError(LambdaObserver.java:77)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:67)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)"
+        },
+        "threads": [
+          {
+            "name": "heartbeat-information-executor",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.LinkedBlockingQueue.poll(LinkedBlockingQueue.java:458)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxCachedWorkerPoolEvictor-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "arch_disk_io_1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:433)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "queued-work-looper",
+            "frames": [
+              "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
+              "android.os.MessageQueue.next(MessageQueue.java:335)",
+              "android.os.Looper.loopOnce(Looper.java:161)",
+              "android.os.Looper.loop(Looper.java:288)",
+              "android.os.HandlerThread.run(HandlerThread.java:67)"
+            ]
+          },
+          {
+            "name": "kotlinx.coroutines.DefaultExecutor",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "kotlinx.coroutines.DefaultExecutor.run(DefaultExecutor.kt:118)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "Thread-2",
+            "frames": [
+              "java.lang.Thread.sleep(Thread.java:-2)",
+              "java.lang.Thread.sleep(Thread.java:450)",
+              "java.lang.Thread.sleep(Thread.java:355)",
+              "sh.measure.android.anr.ANRWatchDog.run(ANRWatchDog.kt:70)"
+            ]
+          },
+          {
+            "name": "ReferenceQueueDaemon",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "java.lang.Object.wait(Object.java:442)",
+              "java.lang.Object.wait(Object.java:568)",
+              "java.lang.Daemons$ReferenceQueueDaemon.runInternal(Daemons.java:232)",
+              "java.lang.Daemons$Daemon.run(Daemons.java:140)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxCachedThreadScheduler-3",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "ScionFrontendApi",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.LinkedBlockingQueue.poll(LinkedBlockingQueue.java:458)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "arch_disk_io_0",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:433)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxCachedThreadScheduler-4",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "pool-2-thread-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)",
+              "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxSchedulerPurge-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "WM.task-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:433)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "a9b9d960-e57b-4fbf-89d7-965d84d80a04",
+        "session_id": "ec601398-93ef-4007-869a-66f217c492ed",
+        "timestamp": "2024-04-29T12:08:30.008Z",
+        "type": "exception",
+        "attribute": {
+          "installation_id": "b0ba2ee2-aae9-4cb1-b08b-82c1aadee68c",
+          "app_version": "7.62",
+          "app_build": "9223",
+          "app_unique_id": "au.com.shiftyjelly.pocketcasts.debug",
+          "measure_sdk_version": "0.1.0",
+          "platform": "android",
+          "thread_name": "main",
+          "user_id": "",
+          "device_name": "emu64a",
+          "device_model": "sdk_gphone64_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "phone",
+          "device_is_foldable": true,
+          "device_is_physical": false,
+          "device_density_dpi": 440,
+          "device_width_px": 1080,
+          "device_height_px": 2154,
+          "device_density": 2.75,
+          "device_locale": "en-US",
+          "os_name": "android",
+          "os_version": "33",
+          "network_type": "wifi",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "exception": {
+          "title": "java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>",
+          "stacktrace": "java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>\n\tat retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory.get(RxJava2CallAdapterFactory.java:118)\n\tat retrofit2.Retrofit.nextCallAdapter(Retrofit.java:253)\n\tat retrofit2.Retrofit.callAdapter(Retrofit.java:237)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:114)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>\n\tat retrofit2.Utils.methodError(Utils.java:54)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:116)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalArgumentException: Unable to create call adapter for class io.reactivex.Single\n    for method ListWebService.getDiscoverFeedWithCategoriesAtTheTop\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:704)\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:701)\n\tat io.reactivex.internal.observers.LambdaObserver.onError(LambdaObserver.java:77)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:67)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)"
+        },
+        "threads": [
+          {
+            "name": "msr-ee",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxCachedThreadScheduler-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "heartbeat-information-executor",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.LinkedBlockingQueue.poll(LinkedBlockingQueue.java:458)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxCachedThreadScheduler-4",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "msr-bg",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "pool-6-thread-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)",
+              "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "Thread-8",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "java.lang.Object.wait(Object.java:442)",
+              "java.lang.Object.wait(Object.java:568)",
+              "com.automattic.android.tracks.TracksClient$3.run(TracksClient.java:224)",
               "java.lang.Thread.run(Thread.java:1012)"
             ]
           },
@@ -812,28 +1329,42 @@ These headers must be present in each request.
             ]
           },
           {
-            "name": "Thread-2",
+            "name": "AsyncTask #1",
             "frames": [
-              "java.lang.Thread.sleep(Thread.java:-2)",
-              "java.lang.Thread.sleep(Thread.java:450)",
-              "java.lang.Thread.sleep(Thread.java:355)",
-              "sh.measure.android.anr.ANRWatchDog.run(ANRWatchDog.kt:70)"
-            ]
-          },
-          {
-            "name": "w5.a0 TaskRunner",
-            "frames": [
-              "java.lang.Object.wait(Object.java:-2)",
-              "okhttp3.internal.concurrent.TaskRunner$RealBackend.coordinatorWait(TaskRunner.kt:294)",
-              "okhttp3.internal.concurrent.TaskRunner.awaitTaskToRun(TaskRunner.kt:218)",
-              "okhttp3.internal.concurrent.TaskRunner$runnable$1.run(TaskRunner.kt:59)",
-              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1137)",
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:461)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)",
+              "java.util.concurrent.SynchronousQueue.take(SynchronousQueue.java:922)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
               "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
               "java.lang.Thread.run(Thread.java:1012)"
             ]
           },
           {
-            "name": "msr-ep",
+            "name": "Measurement Worker",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "java.lang.Object.wait(Object.java:442)"
+            ]
+          },
+          {
+            "name": "pool-2-thread-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)",
+              "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxCachedThreadScheduler-2",
             "frames": [
               "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
               "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
@@ -847,28 +1378,197 @@ These headers must be present in each request.
             ]
           },
           {
-            "name": "w5.a0 httpbin.org",
+            "name": "pool-16-thread-1",
             "frames": [
-              "java.net.SocketInputStream.socketRead0(SocketInputStream.java:-2)",
-              "java.net.SocketInputStream.socketRead(SocketInputStream.java:118)",
-              "java.net.SocketInputStream.read(SocketInputStream.java:173)",
-              "java.net.SocketInputStream.read(SocketInputStream.java:143)",
-              "com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.readFromSocket(ConscryptEngineSocket.java:945)",
-              "com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.processDataFromSocket(ConscryptEngineSocket.java:909)",
-              "com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.readUntilDataAvailable(ConscryptEngineSocket.java:824)",
-              "com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.read(ConscryptEngineSocket.java:797)",
-              "okio.InputStreamSource.read(JvmOkio.kt:93)",
-              "okio.AsyncTimeout$source$1.read(AsyncTimeout.kt:128)",
-              "okio.RealBufferedSource.request(RealBufferedSource.kt:209)",
-              "okio.RealBufferedSource.require(RealBufferedSource.kt:202)",
-              "okhttp3.internal.http2.Http2Reader.nextFrame(Http2Reader.kt:89)",
-              "okhttp3.internal.http2.Http2Connection$ReaderRunnable.invoke(Http2Connection.kt:618)",
-              "okhttp3.internal.http2.Http2Connection$ReaderRunnable.invoke(Http2Connection.kt:609)",
-              "okhttp3.internal.concurrent.TaskQueue$execute$1.runOnce(TaskQueue.kt:98)",
-              "okhttp3.internal.concurrent.TaskRunner.runTask(TaskRunner.kt:116)",
-              "okhttp3.internal.concurrent.TaskRunner.access$runTask(TaskRunner.kt:42)",
-              "okhttp3.internal.concurrent.TaskRunner$runnable$1.run(TaskRunner.kt:65)",
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:433)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "OkHttp ConnectionPool",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "com.android.okhttp.ConnectionPool$1.run(ConnectionPool.java:106)",
               "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1137)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c2832a21-ffe2-459e-9234-3ec7a1cc5feb",
+        "session_id": "fd54fac2-4be7-4cb4-a953-7e9c38fbc629",
+        "timestamp": "2024-04-29T12:08:27.729Z",
+        "type": "exception",
+        "attribute": {
+          "installation_id": "b0ba2ee2-aae9-4cb1-b08b-82c1aadee68c",
+          "app_version": "7.62",
+          "app_build": "9223",
+          "app_unique_id": "au.com.shiftyjelly.pocketcasts.debug",
+          "measure_sdk_version": "0.1.0",
+          "platform": "android",
+          "thread_name": "main",
+          "user_id": "",
+          "device_name": "emu64a",
+          "device_model": "sdk_gphone64_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "phone",
+          "device_is_foldable": true,
+          "device_is_physical": false,
+          "device_density_dpi": 440,
+          "device_width_px": 1080,
+          "device_height_px": 2154,
+          "device_density": 2.75,
+          "device_locale": "en-US",
+          "os_name": "android",
+          "os_version": "33",
+          "network_type": "wifi",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "exception": {
+          "title": "java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>",
+          "stacktrace": "java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>\n\tat retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory.get(RxJava2CallAdapterFactory.java:118)\n\tat retrofit2.Retrofit.nextCallAdapter(Retrofit.java:253)\n\tat retrofit2.Retrofit.callAdapter(Retrofit.java:237)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:114)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>\n\tat retrofit2.Utils.methodError(Utils.java:54)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:116)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalArgumentException: Unable to create call adapter for class io.reactivex.Single\n    for method ListWebService.getDiscoverFeedWithCategoriesAtTheTop\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:704)\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:701)\n\tat io.reactivex.internal.observers.LambdaObserver.onError(LambdaObserver.java:77)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:67)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)"
+        },
+        "threads": [
+          {
+            "name": "FinalizerDaemon",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "java.lang.Object.wait(Object.java:442)",
+              "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:203)",
+              "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:224)",
+              "java.lang.Daemons$FinalizerDaemon.runInternal(Daemons.java:300)",
+              "java.lang.Daemons$Daemon.run(Daemons.java:140)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "DefaultDispatcher-worker-2",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:357)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.park(CoroutineScheduler.kt:856)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.tryPark(CoroutineScheduler.kt:801)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:749)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:702)"
+            ]
+          },
+          {
+            "name": "pool-5-thread-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)",
+              "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxComputationThreadPool-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "ScionFrontendApi",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.LinkedBlockingQueue.poll(LinkedBlockingQueue.java:458)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "Thread-2",
+            "frames": [
+              "java.lang.Thread.sleep(Thread.java:-2)",
+              "java.lang.Thread.sleep(Thread.java:450)",
+              "java.lang.Thread.sleep(Thread.java:355)",
+              "sh.measure.android.anr.ANRWatchDog.run(ANRWatchDog.kt:70)"
+            ]
+          },
+          {
+            "name": "heartbeat-information-executor",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.LinkedBlockingQueue.poll(LinkedBlockingQueue.java:458)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "arch_disk_io_3",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:433)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "pool-16-thread-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:433)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "OkHttp ConnectionPool",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "com.android.okhttp.ConnectionPool$1.run(ConnectionPool.java:106)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1137)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "arch_disk_io_0",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:433)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
               "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
               "java.lang.Thread.run(Thread.java:1012)"
             ]
@@ -886,7 +1586,225 @@ These headers must be present in each request.
             ]
           },
           {
-            "name": "w5.a0 TaskRunner",
+            "name": "RxCachedThreadScheduler-4",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "DefaultDispatcher-worker-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:357)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.park(CoroutineScheduler.kt:856)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.tryPark(CoroutineScheduler.kt:801)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:749)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:702)"
+            ]
+          },
+          {
+            "name": "WM.task-2",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:433)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxCachedThreadScheduler-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "00805630-9158-4cd4-9e0c-2bf904f8fa5a",
+        "session_id": "bcafd264-43eb-433b-8851-00306ecc2706",
+        "timestamp": "2024-04-29T12:08:25.33Z",
+        "type": "exception",
+        "attribute": {
+          "installation_id": "b0ba2ee2-aae9-4cb1-b08b-82c1aadee68c",
+          "app_version": "7.62",
+          "app_build": "9223",
+          "app_unique_id": "au.com.shiftyjelly.pocketcasts.debug",
+          "measure_sdk_version": "0.1.0",
+          "platform": "android",
+          "thread_name": "main",
+          "user_id": "",
+          "device_name": "emu64a",
+          "device_model": "sdk_gphone64_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "phone",
+          "device_is_foldable": true,
+          "device_is_physical": false,
+          "device_density_dpi": 440,
+          "device_width_px": 1080,
+          "device_height_px": 2154,
+          "device_density": 2.75,
+          "device_locale": "en-US",
+          "os_name": "android",
+          "os_version": "33",
+          "network_type": "wifi",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "exception": {
+          "title": "java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>",
+          "stacktrace": "java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>\n\tat retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory.get(RxJava2CallAdapterFactory.java:118)\n\tat retrofit2.Retrofit.nextCallAdapter(Retrofit.java:253)\n\tat retrofit2.Retrofit.callAdapter(Retrofit.java:237)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:114)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>\n\tat retrofit2.Utils.methodError(Utils.java:54)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:116)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalArgumentException: Unable to create call adapter for class io.reactivex.Single\n    for method ListWebService.getDiscoverFeedWithCategoriesAtTheTop\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:704)\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:701)\n\tat io.reactivex.internal.observers.LambdaObserver.onError(LambdaObserver.java:77)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:67)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)"
+        },
+        "threads": [
+          {
+            "name": "msr-cmu",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxCachedThreadScheduler-4",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "DefaultDispatcher-worker-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:357)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.park(CoroutineScheduler.kt:856)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.tryPark(CoroutineScheduler.kt:801)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:749)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:702)"
+            ]
+          },
+          {
+            "name": "GmsDynamite",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "java.lang.Object.wait(Object.java:442)",
+              "java.lang.Object.wait(Object.java:568)",
+              "com.google.android.gms.dynamite.zza.run(com.google.android.gms:play-services-basement@@18.3.0:2)"
+            ]
+          },
+          {
+            "name": "Thread-9",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "java.lang.Object.wait(Object.java:442)",
+              "java.lang.Object.wait(Object.java:568)",
+              "com.automattic.android.tracks.TracksClient$3.run(TracksClient.java:224)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "Thread-7",
+            "frames": [
+              "com.automattic.android.tracks.TracksClient$1.run(TracksClient.java:112)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "heartbeat-information-executor",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.LinkedBlockingQueue.poll(LinkedBlockingQueue.java:458)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxCachedThreadScheduler-3",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "kotlinx.coroutines.DefaultExecutor",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "kotlinx.coroutines.DefaultExecutor.run(DefaultExecutor.kt:118)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxCachedWorkerPoolEvictor-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "WM.task-2",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:433)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "pool-5-thread-1",
             "frames": [
               "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
               "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
@@ -900,7 +1818,730 @@ These headers must be present in each request.
             ]
           },
           {
-            "name": "w5.a0 TaskRunner",
+            "name": "RxSchedulerPurge-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "Thread-10",
+            "frames": [
+              "com.automattic.android.tracks.TracksClient$5.run(TracksClient.java:390)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "queued-work-looper",
+            "frames": [
+              "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
+              "android.os.MessageQueue.next(MessageQueue.java:335)",
+              "android.os.Looper.loopOnce(Looper.java:161)",
+              "android.os.Looper.loop(Looper.java:288)",
+              "android.os.HandlerThread.run(HandlerThread.java:67)"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "e2196f50-1d0b-44bb-a4f8-6011dec209e6",
+        "session_id": "b14625e1-c5bd-41eb-ae62-e9ad8e3071be",
+        "timestamp": "2024-04-29T12:07:34.194Z",
+        "type": "exception",
+        "attribute": {
+          "installation_id": "d96cd6d5-0730-4aa4-8eec-3e580e9819ec",
+          "app_version": "7.62",
+          "app_build": "9223",
+          "app_unique_id": "au.com.shiftyjelly.pocketcasts.debug",
+          "measure_sdk_version": "0.1.0",
+          "platform": "android",
+          "thread_name": "main",
+          "user_id": "",
+          "device_name": "emu64a",
+          "device_model": "sdk_gphone64_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "phone",
+          "device_is_foldable": true,
+          "device_is_physical": false,
+          "device_density_dpi": 440,
+          "device_width_px": 1080,
+          "device_height_px": 2154,
+          "device_density": 2.75,
+          "device_locale": "en-US",
+          "os_name": "android",
+          "os_version": "33",
+          "network_type": "wifi",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "exception": {
+          "title": "java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>",
+          "stacktrace": "java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>\n\tat retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory.get(RxJava2CallAdapterFactory.java:118)\n\tat retrofit2.Retrofit.nextCallAdapter(Retrofit.java:253)\n\tat retrofit2.Retrofit.callAdapter(Retrofit.java:237)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:114)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>\n\tat retrofit2.Utils.methodError(Utils.java:54)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:116)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalArgumentException: Unable to create call adapter for class io.reactivex.Single\n    for method ListWebService.getDiscoverFeedWithCategoriesAtTheTop\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:704)\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:701)\n\tat io.reactivex.internal.observers.LambdaObserver.onError(LambdaObserver.java:77)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:67)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)"
+        },
+        "threads": [
+          {
+            "name": "msr-ep",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxSchedulerPurge-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "pool-5-thread-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)",
+              "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "firebase-installations-executor-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.LinkedBlockingQueue.poll(LinkedBlockingQueue.java:458)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "arch_disk_io_2",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:433)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "WM.task-2",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:433)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "Thread-2",
+            "frames": [
+              "java.lang.Thread.sleep(Thread.java:-2)",
+              "java.lang.Thread.sleep(Thread.java:450)",
+              "java.lang.Thread.sleep(Thread.java:355)",
+              "sh.measure.android.anr.ANRWatchDog.run(ANRWatchDog.kt:70)"
+            ]
+          },
+          {
+            "name": "heartbeat-information-executor",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.LinkedBlockingQueue.poll(LinkedBlockingQueue.java:458)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "FinalizerWatchdogDaemon",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "java.lang.Object.wait(Object.java:442)",
+              "java.lang.Object.wait(Object.java:568)",
+              "java.lang.Daemons$FinalizerWatchdogDaemon.sleepUntilNeeded(Daemons.java:385)",
+              "java.lang.Daemons$FinalizerWatchdogDaemon.runInternal(Daemons.java:365)",
+              "java.lang.Daemons$Daemon.run(Daemons.java:140)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "arch_disk_io_3",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:433)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "ScionFrontendApi",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.LinkedBlockingQueue.poll(LinkedBlockingQueue.java:458)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "DefaultDispatcher-worker-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:357)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.park(CoroutineScheduler.kt:856)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.tryPark(CoroutineScheduler.kt:801)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:749)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:702)"
+            ]
+          },
+          {
+            "name": "ConnectivityThread",
+            "frames": [
+              "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
+              "android.os.MessageQueue.next(MessageQueue.java:335)",
+              "android.os.Looper.loopOnce(Looper.java:161)",
+              "android.os.Looper.loop(Looper.java:288)",
+              "android.os.HandlerThread.run(HandlerThread.java:67)"
+            ]
+          },
+          {
+            "name": "RxCachedWorkerPoolEvictor-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "GmsDynamite",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "java.lang.Object.wait(Object.java:442)",
+              "java.lang.Object.wait(Object.java:568)",
+              "com.google.android.gms.dynamite.zza.run(com.google.android.gms:play-services-basement@@18.3.0:2)"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "b8f0190e-ed24-46ec-9d9d-1c6ad68302c0",
+        "session_id": "b5d0f1f6-01ef-4ae3-b24c-50cfb48411fd",
+        "timestamp": "2024-04-29T12:07:32.186Z",
+        "type": "exception",
+        "attribute": {
+          "installation_id": "d96cd6d5-0730-4aa4-8eec-3e580e9819ec",
+          "app_version": "7.62",
+          "app_build": "9223",
+          "app_unique_id": "au.com.shiftyjelly.pocketcasts.debug",
+          "measure_sdk_version": "0.1.0",
+          "platform": "android",
+          "thread_name": "main",
+          "user_id": "",
+          "device_name": "emu64a",
+          "device_model": "sdk_gphone64_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "phone",
+          "device_is_foldable": true,
+          "device_is_physical": false,
+          "device_density_dpi": 440,
+          "device_width_px": 1080,
+          "device_height_px": 2154,
+          "device_density": 2.75,
+          "device_locale": "en-US",
+          "os_name": "android",
+          "os_version": "33",
+          "network_type": "wifi",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "exception": {
+          "title": "java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>",
+          "stacktrace": "java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>\n\tat retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory.get(RxJava2CallAdapterFactory.java:118)\n\tat retrofit2.Retrofit.nextCallAdapter(Retrofit.java:253)\n\tat retrofit2.Retrofit.callAdapter(Retrofit.java:237)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:114)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>\n\tat retrofit2.Utils.methodError(Utils.java:54)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:116)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalArgumentException: Unable to create call adapter for class io.reactivex.Single\n    for method ListWebService.getDiscoverFeedWithCategoriesAtTheTop\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:704)\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:701)\n\tat io.reactivex.internal.observers.LambdaObserver.onError(LambdaObserver.java:77)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:67)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)"
+        },
+        "threads": [
+          {
+            "name": "pool-5-thread-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)",
+              "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxCachedThreadScheduler-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "Measurement Worker",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "java.lang.Object.wait(Object.java:442)"
+            ]
+          },
+          {
+            "name": "AsyncTask #1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:461)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)",
+              "java.util.concurrent.SynchronousQueue.take(SynchronousQueue.java:922)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "OkHttp ConnectionPool",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "com.android.okhttp.ConnectionPool$1.run(ConnectionPool.java:106)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1137)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "Thread-7",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "java.lang.Object.wait(Object.java:442)",
+              "java.lang.Object.wait(Object.java:568)",
+              "com.automattic.android.tracks.TracksClient$2.run(TracksClient.java:193)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "GoogleApiHandler",
+            "frames": [
+              "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
+              "android.os.MessageQueue.next(MessageQueue.java:335)",
+              "android.os.Looper.loopOnce(Looper.java:161)",
+              "android.os.Looper.loop(Looper.java:288)",
+              "android.os.HandlerThread.run(HandlerThread.java:67)"
+            ]
+          },
+          {
+            "name": "RxCachedThreadScheduler-3",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxCachedThreadScheduler-2",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "ReferenceQueueDaemon",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "java.lang.Object.wait(Object.java:442)",
+              "java.lang.Object.wait(Object.java:568)",
+              "java.lang.Daemons$ReferenceQueueDaemon.runInternal(Daemons.java:232)",
+              "java.lang.Daemons$Daemon.run(Daemons.java:140)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "pool-6-thread-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)",
+              "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxCachedWorkerPoolEvictor-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "WM.task-2",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:433)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "2e8876ab-df6b-4325-b21a-1d04fdb03c2c",
+        "session_id": "6c122af3-e411-45f5-963e-dbf210f5ec38",
+        "timestamp": "2024-04-29T12:07:30.986Z",
+        "type": "exception",
+        "attribute": {
+          "installation_id": "d96cd6d5-0730-4aa4-8eec-3e580e9819ec",
+          "app_version": "7.62",
+          "app_build": "9223",
+          "app_unique_id": "au.com.shiftyjelly.pocketcasts.debug",
+          "measure_sdk_version": "0.1.0",
+          "platform": "android",
+          "thread_name": "main",
+          "user_id": "",
+          "device_name": "emu64a",
+          "device_model": "sdk_gphone64_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "phone",
+          "device_is_foldable": true,
+          "device_is_physical": false,
+          "device_density_dpi": 440,
+          "device_width_px": 1080,
+          "device_height_px": 2154,
+          "device_density": 2.75,
+          "device_locale": "en-US",
+          "os_name": "android",
+          "os_version": "33",
+          "network_type": "wifi",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "exception": {
+          "title": "java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>",
+          "stacktrace": "java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>\n\tat retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory.get(RxJava2CallAdapterFactory.java:118)\n\tat retrofit2.Retrofit.nextCallAdapter(Retrofit.java:253)\n\tat retrofit2.Retrofit.callAdapter(Retrofit.java:237)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:114)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>\n\tat retrofit2.Utils.methodError(Utils.java:54)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:116)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalArgumentException: Unable to create call adapter for class io.reactivex.Single\n    for method ListWebService.getDiscoverFeedWithCategoriesAtTheTop\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:704)\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:701)\n\tat io.reactivex.internal.observers.LambdaObserver.onError(LambdaObserver.java:77)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:67)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)"
+        },
+        "threads": [
+          {
+            "name": "pool-4-thread-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)",
+              "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "pool-6-thread-2",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)",
+              "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "DefaultDispatcher-worker-2",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:357)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.park(CoroutineScheduler.kt:856)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.tryPark(CoroutineScheduler.kt:801)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:749)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:702)"
+            ]
+          },
+          {
+            "name": "pool-21-thread-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)",
+              "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "kotlinx.coroutines.DefaultExecutor",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "kotlinx.coroutines.DefaultExecutor.run(DefaultExecutor.kt:118)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxComputationThreadPool-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "DefaultDispatcher-worker-3",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:357)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.park(CoroutineScheduler.kt:856)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.tryPark(CoroutineScheduler.kt:801)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:749)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:702)"
+            ]
+          },
+          {
+            "name": "pool-5-thread-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)",
+              "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "msr-cmu",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxCachedThreadScheduler-2",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "Thread-2",
+            "frames": [
+              "java.lang.Thread.sleep(Thread.java:-2)",
+              "java.lang.Thread.sleep(Thread.java:450)",
+              "java.lang.Thread.sleep(Thread.java:355)",
+              "sh.measure.android.anr.ANRWatchDog.run(ANRWatchDog.kt:70)"
+            ]
+          },
+          {
+            "name": "Okio Watchdog",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2211)",
+              "okio.AsyncTimeout$Companion.awaitTimeout$okio(AsyncTimeout.kt:320)",
+              "okio.AsyncTimeout$Watchdog.run(AsyncTimeout.kt:186)"
+            ]
+          },
+          {
+            "name": "firebase-installations-executor-2",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.LinkedBlockingQueue.poll(LinkedBlockingQueue.java:458)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "Thread-6",
+            "frames": [
+              "com.automattic.android.tracks.TracksClient$1.run(TracksClient.java:112)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "7b9e79ab-fac4-406e-8e92-31e93ef367fd",
+        "session_id": "284cb4bb-68bc-4069-9788-f2e2b7839885",
+        "timestamp": "2024-04-29T12:07:28.835Z",
+        "type": "exception",
+        "attribute": {
+          "installation_id": "d96cd6d5-0730-4aa4-8eec-3e580e9819ec",
+          "app_version": "7.62",
+          "app_build": "9223",
+          "app_unique_id": "au.com.shiftyjelly.pocketcasts.debug",
+          "measure_sdk_version": "0.1.0",
+          "platform": "android",
+          "thread_name": "main",
+          "user_id": "",
+          "device_name": "emu64a",
+          "device_model": "sdk_gphone64_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "phone",
+          "device_is_foldable": true,
+          "device_is_physical": false,
+          "device_density_dpi": 440,
+          "device_width_px": 1080,
+          "device_height_px": 2154,
+          "device_density": 2.75,
+          "device_locale": "en-US",
+          "os_name": "android",
+          "os_version": "33",
+          "network_type": "wifi",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "exception": {
+          "title": "java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>",
+          "stacktrace": "java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>\n\tat retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory.get(RxJava2CallAdapterFactory.java:118)\n\tat retrofit2.Retrofit.nextCallAdapter(Retrofit.java:253)\n\tat retrofit2.Retrofit.callAdapter(Retrofit.java:237)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:114)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>\n\tat retrofit2.Utils.methodError(Utils.java:54)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:116)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalArgumentException: Unable to create call adapter for class io.reactivex.Single\n    for method ListWebService.getDiscoverFeedWithCategoriesAtTheTop\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:704)\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:701)\n\tat io.reactivex.internal.observers.LambdaObserver.onError(LambdaObserver.java:77)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:67)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)"
+        },
+        "threads": [
+          {
+            "name": "msr-ep",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxSchedulerPurge-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "pool-5-thread-1",
             "frames": [
               "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
               "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
@@ -928,7 +2569,174 @@ These headers must be present in each request.
             ]
           },
           {
-            "name": "w5.a0 TaskRunner",
+            "name": "arch_disk_io_2",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:433)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "Okio Watchdog",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2211)",
+              "okio.AsyncTimeout$Companion.awaitTimeout$okio(AsyncTimeout.kt:320)",
+              "okio.AsyncTimeout$Watchdog.run(AsyncTimeout.kt:186)"
+            ]
+          },
+          {
+            "name": "Thread-2",
+            "frames": [
+              "java.lang.Thread.sleep(Thread.java:-2)",
+              "java.lang.Thread.sleep(Thread.java:450)",
+              "java.lang.Thread.sleep(Thread.java:355)",
+              "sh.measure.android.anr.ANRWatchDog.run(ANRWatchDog.kt:70)"
+            ]
+          },
+          {
+            "name": "heartbeat-information-executor",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.LinkedBlockingQueue.poll(LinkedBlockingQueue.java:458)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "FinalizerWatchdogDaemon",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "java.lang.Object.wait(Object.java:442)",
+              "java.lang.Object.wait(Object.java:568)",
+              "java.lang.Daemons$FinalizerWatchdogDaemon.sleepUntilNeeded(Daemons.java:385)",
+              "java.lang.Daemons$FinalizerWatchdogDaemon.runInternal(Daemons.java:365)",
+              "java.lang.Daemons$Daemon.run(Daemons.java:140)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "arch_disk_io_3",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.LinkedBlockingQueue.take(LinkedBlockingQueue.java:433)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "ScionFrontendApi",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.LinkedBlockingQueue.poll(LinkedBlockingQueue.java:458)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "DefaultDispatcher-worker-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:357)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.park(CoroutineScheduler.kt:856)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.tryPark(CoroutineScheduler.kt:801)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:749)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:702)"
+            ]
+          },
+          {
+            "name": "Measurement Worker",
+            "frames": [
+              "android.os.BinderProxy.transactNative(BinderProxy.java:-2)",
+              "android.os.BinderProxy.transact(BinderProxy.java:584)",
+              "android.content.pm.IPackageManager$Stub$Proxy.isInstantApp(IPackageManager.java:7213)",
+              "android.app.ApplicationPackageManager.isInstantApp(ApplicationPackageManager.java:1323)",
+              "android.app.ApplicationPackageManager.isInstantApp(ApplicationPackageManager.java:1317)",
+              "java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:463)",
+              "java.util.concurrent.FutureTask.run(FutureTask.java:264)"
+            ]
+          },
+          {
+            "name": "RxCachedWorkerPoolEvictor-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "GmsDynamite",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "java.lang.Object.wait(Object.java:442)",
+              "java.lang.Object.wait(Object.java:568)",
+              "com.google.android.gms.dynamite.zza.run(com.google.android.gms:play-services-basement@@18.3.0:2)"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ee10115d-b076-4533-8138-99b6800d5d6a",
+        "session_id": "8b336778-803d-41fe-88d7-4eee6f8ec194",
+        "timestamp": "2024-04-29T12:07:25.764Z",
+        "type": "exception",
+        "attribute": {
+          "installation_id": "d96cd6d5-0730-4aa4-8eec-3e580e9819ec",
+          "app_version": "7.62",
+          "app_build": "9223",
+          "app_unique_id": "au.com.shiftyjelly.pocketcasts.debug",
+          "measure_sdk_version": "0.1.0",
+          "platform": "android",
+          "thread_name": "main",
+          "user_id": "",
+          "device_name": "emu64a",
+          "device_model": "sdk_gphone64_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "phone",
+          "device_is_foldable": true,
+          "device_is_physical": false,
+          "device_density_dpi": 440,
+          "device_width_px": 1080,
+          "device_height_px": 2154,
+          "device_density": 2.75,
+          "device_locale": "en-US",
+          "os_name": "android",
+          "os_version": "33",
+          "network_type": "wifi",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "exception": {
+          "title": "java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>",
+          "stacktrace": "java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>\n\tat retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory.get(RxJava2CallAdapterFactory.java:118)\n\tat retrofit2.Retrofit.nextCallAdapter(Retrofit.java:253)\n\tat retrofit2.Retrofit.callAdapter(Retrofit.java:237)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:114)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalStateException: Single return type must be parameterized as Single<Foo> or Single<? extends Foo>\n\tat retrofit2.Utils.methodError(Utils.java:54)\n\tat retrofit2.HttpServiceMethod.createCallAdapter(HttpServiceMethod.java:116)\n\tat retrofit2.HttpServiceMethod.parseAnnotations(HttpServiceMethod.java:67)\n\tat retrofit2.ServiceMethod.parseAnnotations(ServiceMethod.java:39)\n\tat retrofit2.Retrofit.loadServiceMethod(Retrofit.java:202)\n\tat retrofit2.Retrofit$1.invoke(Retrofit.java:160)\n\tat java.lang.reflect.Proxy.invoke(Proxy.java:1006)\n\tat $Proxy10.getDiscoverFeedWithCategoriesAtTheTop(-1)\n\tat au.com.shiftyjelly.pocketcasts.servers.server.ListRepository.getDiscoverFeedWithCategoriesAtTheTop(ListRepository.kt:19)\n\tat au.com.shiftyjelly.pocketcasts.discover.viewmodel.DiscoverViewModel.loadData(DiscoverViewModel.kt:77)\n\tat au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment.onCreateView(DiscoverFragment.kt:172)\n\tat androidx.fragment.app.Fragment.performCreateView(Fragment.java:3104)\n\tat androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:524)\n\tat androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:261)\n\tat androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1890)\n\tat androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1814)\n\tat androidx.fragment.app.FragmentManager.execSingleAction(FragmentManager.java:1720)\n\tat androidx.fragment.app.BackStackRecord.commitNow(BackStackRecord.java:317)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.addAndShowFragment(FragmentTransactionHandler.kt:149)\n\tat au.com.shiftyjelly.pocketcasts.navigation.FragmentTransactionHandler.handle(FragmentTransactionHandler.kt:43)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:40)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate$onActivityStart$1.invoke(ActivityDelegate.kt:39)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart$lambda$0(ActivityDelegate.kt:39)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:63)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalArgumentException: Unable to create call adapter for class io.reactivex.Single\n    for method ListWebService.getDiscoverFeedWithCategoriesAtTheTop\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:704)\n\tat io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:701)\n\tat io.reactivex.internal.observers.LambdaObserver.onError(LambdaObserver.java:77)\n\tat io.reactivex.internal.observers.LambdaObserver.onNext(LambdaObserver.java:67)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.drain(UnicastWorkSubject.java:258)\n\tat hu.akarnokd.rxjava2.subjects.UnicastWorkSubject.subscribeActual(UnicastWorkSubject.java:159)\n\tat io.reactivex.Observable.subscribe(Observable.java:12284)\n\tat io.reactivex.Observable.subscribe(Observable.java:12270)\n\tat io.reactivex.Observable.subscribe(Observable.java:12172)\n\tat au.com.shiftyjelly.pocketcasts.navigation.ActivityDelegate.onActivityStart(ActivityDelegate.kt:39)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat androidx.lifecycle.ClassesInfoCache$MethodReference.invokeCallback(ClassesInfoCache.java:222)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeMethodsForEvent(ClassesInfoCache.java:199)\n\tat androidx.lifecycle.ClassesInfoCache$CallbackInfo.invokeCallbacks(ClassesInfoCache.java:190)\n\tat androidx.lifecycle.ReflectiveGenericLifecycleObserver.onStateChanged(ReflectiveGenericLifecycleObserver.java:40)\n\tat androidx.lifecycle.LifecycleRegistry$ObserverWithState.dispatchEvent(LifecycleRegistry.kt:322)\n\tat androidx.lifecycle.LifecycleRegistry.forwardPass(LifecycleRegistry.kt:258)\n\tat androidx.lifecycle.LifecycleRegistry.sync(LifecycleRegistry.kt:294)\n\tat androidx.lifecycle.LifecycleRegistry.moveToState(LifecycleRegistry.kt:143)\n\tat androidx.lifecycle.LifecycleRegistry.handleLifecycleEvent(LifecycleRegistry.kt:126)\n\tat androidx.lifecycle.ReportFragment$Companion.dispatch$lifecycle_runtime_release(ReportFragment.kt:190)\n\tat androidx.lifecycle.ReportFragment$LifecycleCallbacks.onActivityPostStarted(ReportFragment.kt:119)\n\tat android.app.Activity.dispatchActivityPostStarted(Activity.java:1418)\n\tat android.app.Activity.performStart(Activity.java:8367)\n\tat android.app.ActivityThread.handleStartActivity(ActivityThread.java:3670)\n\tat android.app.servertransaction.TransactionExecutor.performLifecycleSequence(TransactionExecutor.java:221)\n\tat android.app.servertransaction.TransactionExecutor.cycleToPath(TransactionExecutor.java:201)\n\tat android.app.servertransaction.TransactionExecutor.executeLifecycleState(TransactionExecutor.java:173)\n\tat android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:97)\n\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:2307)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)"
+        },
+        "threads": [
+          {
+            "name": "pool-4-thread-1",
             "frames": [
               "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
               "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
@@ -936,6 +2744,160 @@ These headers must be present in each request.
               "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)",
               "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)",
               "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxCachedThreadScheduler-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "pool-5-thread-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)",
+              "java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "DefaultDispatcher-worker-2",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:357)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.park(CoroutineScheduler.kt:856)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.tryPark(CoroutineScheduler.kt:801)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:749)",
+              "kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:702)"
+            ]
+          },
+          {
+            "name": "msr-ee",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "AsyncTask #1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:461)",
+              "java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)",
+              "java.util.concurrent.SynchronousQueue.take(SynchronousQueue.java:922)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "msr-cmu",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "Thread-2",
+            "frames": [
+              "java.lang.Thread.sleep(Thread.java:-2)",
+              "java.lang.Thread.sleep(Thread.java:450)",
+              "java.lang.Thread.sleep(Thread.java:355)",
+              "sh.measure.android.anr.ANRWatchDog.run(ANRWatchDog.kt:70)"
+            ]
+          },
+          {
+            "name": "msr-eh",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "heartbeat-information-executor",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.LinkedBlockingQueue.poll(LinkedBlockingQueue.java:458)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "firebase-installations-executor-2",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.LinkedBlockingQueue.poll(LinkedBlockingQueue.java:458)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "Thread-7",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "java.lang.Object.wait(Object.java:442)",
+              "java.lang.Object.wait(Object.java:568)",
+              "com.automattic.android.tracks.TracksClient$2.run(TracksClient.java:193)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "RxComputationThreadPool-1",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
               "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
               "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
               "java.lang.Thread.run(Thread.java:1012)"
