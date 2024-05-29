@@ -118,6 +118,16 @@ var ValidLifecycleAppTypes = []string{
 	LifecycleAppTypeForeground,
 }
 
+// makeTypeMessage appends the message to the type
+// if message is present.
+func makeTypeMessage(t, m string) (typeMessage string) {
+	typeMessage = t
+	if m != "" {
+		typeMessage += ": " + m
+	}
+	return
+}
+
 type Frame struct {
 	LineNum    int    `json:"line_num"`
 	ColNum     int    `json:"col_num"`
@@ -186,18 +196,10 @@ func (e Exception) IsNested() bool {
 	return len(e.Exceptions) > 1
 }
 
+// Stacktrace writes a formatted stacktrace
+// from the exception.
 func (e Exception) Stacktrace() string {
 	var b strings.Builder
-
-	// makeTypeMessage appends the message to the type
-	// if message is present.
-	var makeTypeMessage = func(t, m string) (typeMessage string) {
-		typeMessage = t
-		if m != "" {
-			typeMessage += ": " + m
-		}
-		return
-	}
 
 	for i := len(e.Exceptions) - 1; i >= 0; i-- {
 		firstException := i == len(e.Exceptions)-1
