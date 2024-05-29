@@ -76,7 +76,8 @@ internal class ScreenshotCollectorImpl(
     override fun takeScreenshot(): Screenshot? {
         if (lowMemoryCheck.isLowMemory()) {
             logger.log(
-                LogLevel.Debug, "Unable to take screenshot, system has low memory."
+                LogLevel.Debug,
+                "Unable to take screenshot, system has low memory.",
             )
             return null
         }
@@ -186,7 +187,7 @@ internal class ScreenshotCollectorImpl(
 
     private fun isNodeClickable(node: SemanticsNode): Boolean {
         return node.config.getOrNull(SemanticsActions.OnClick) != null || node.config.getOrNull(
-            SemanticsActions.OnLongClick
+            SemanticsActions.OnLongClick,
         ) != null
     }
 
@@ -245,12 +246,14 @@ internal class ScreenshotCollectorImpl(
                     bitmap.compress(
                         Bitmap.CompressFormat.WEBP_LOSSY,
                         webpScreenshotCompression,
-                        byteArrayOutputStream
+                        byteArrayOutputStream,
                     )
                     "webp"
                 } else {
                     bitmap.compress(
-                        Bitmap.CompressFormat.JPEG, jpegScreenshotCompression, byteArrayOutputStream
+                        Bitmap.CompressFormat.JPEG,
+                        jpegScreenshotCompression,
+                        byteArrayOutputStream,
                     )
                     "jpeg"
                 }

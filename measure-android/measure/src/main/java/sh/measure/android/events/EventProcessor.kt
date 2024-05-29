@@ -9,9 +9,9 @@ import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.exporter.EventExporter
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.screenshot.ScreenshotCollector
 import sh.measure.android.storage.EventStore
 import sh.measure.android.utils.IdProvider
-import sh.measure.android.screenshot.ScreenshotCollector
 import sh.measure.android.utils.iso8601Timestamp
 
 /**
