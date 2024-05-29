@@ -24,5 +24,5 @@ internal enum class ScreenshotMaskLevel {
      * email and phone number fields.
      */
     @Suppress("unused")
-    SensitiveInputFieldsOnly,
+    SensitiveFieldsOnly,
 }
