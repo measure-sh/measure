@@ -3,11 +3,8 @@ package event
 import (
 	"encoding/json"
 	"fmt"
-	"measure-backend/measure-go/chrono"
-	"measure-backend/measure-go/text"
 	"net"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -51,9 +48,6 @@ const (
 	maxTrimMemoryLevelChars                   = 64
 	maxRouteChars                             = 128
 )
-
-const FramePrefix = "\tat "
-const GenericPrefix = ": "
 
 const TypeANR = "anr"
 const TypeException = "exception"
@@ -128,37 +122,6 @@ func makeTitle(t, m string) (typeMessage string) {
 	return
 }
 
-type Frame struct {
-	LineNum    int    `json:"line_num"`
-	ColNum     int    `json:"col_num"`
-	ModuleName string `json:"module_name"`
-	FileName   string `json:"file_name"`
-	ClassName  string `json:"class_name"`
-	MethodName string `json:"method_name"`
-}
-
-func (f Frame) String() string {
-	className := f.ClassName
-	methodName := f.MethodName
-	fileName := f.FileName
-	var lineNum = ""
-
-	if f.LineNum != 0 {
-		lineNum = strconv.Itoa(f.LineNum)
-	}
-
-	codeInfo := text.JoinNonEmptyStrings(".", className, methodName)
-	fileInfo := text.JoinNonEmptyStrings(":", fileName, lineNum)
-
-	if fileInfo != "" {
-		fileInfo = fmt.Sprintf(`(%s)`, fileInfo)
-	}
-
-	return fmt.Sprintf(`%s%s`, codeInfo, fileInfo)
-}
-
-type Frames []Frame
-
 type ExceptionUnit struct {
 	Type    string `json:"type" binding:"required"`
 	Message string `json:"message"`
@@ -188,98 +151,6 @@ type Exception struct {
 	Threads     Threads        `json:"threads" binding:"required"`
 	Fingerprint string         `json:"fingerprint"`
 	Foreground  bool           `json:"foreground" binding:"required"`
-}
-
-// IsNested returns true in case of
-// multiple nested exceptions.
-func (e Exception) IsNested() bool {
-	return len(e.Exceptions) > 1
-}
-
-// Stacktrace writes a formatted stacktrace
-// from the exception.
-func (e Exception) Stacktrace() string {
-	var b strings.Builder
-
-	for i := len(e.Exceptions) - 1; i >= 0; i-- {
-		firstException := i == len(e.Exceptions)-1
-		lastException := i == 0
-		exType := e.Exceptions[i].Type
-		message := e.Exceptions[i].Message
-		hasFrames := len(e.Exceptions[i].Frames) > 0
-
-		title := makeTitle(exType, message)
-
-		if firstException {
-			b.WriteString(title)
-		} else if e.IsNested() {
-			prevType := e.Exceptions[i+1].Type
-			prevMsg := e.Exceptions[i+1].Message
-			title := makeTitle(prevType, prevMsg)
-			b.WriteString("Caused by" + GenericPrefix + title)
-		}
-
-		if hasFrames {
-			b.WriteString("\n")
-		}
-
-		for j := range e.Exceptions[i].Frames {
-			lastFrame := j == len(e.Exceptions[i].Frames)-1
-			frame := e.Exceptions[i].Frames[j].String()
-			b.WriteString(FramePrefix + frame)
-			if !lastFrame || !lastException {
-				b.WriteString("\n")
-			}
-		}
-	}
-
-	return b.String()
-}
-
-// Stacktrace writes a formatted stacktrace
-// from the ANR.
-func (a ANR) Stacktrace() string {
-	var b strings.Builder
-
-	for i := len(a.Exceptions) - 1; i >= 0; i-- {
-		firstException := i == len(a.Exceptions)-1
-		lastException := i == 0
-		exType := a.Exceptions[i].Type
-		message := a.Exceptions[i].Message
-		hasFrames := len(a.Exceptions[i].Frames) > 0
-
-		title := makeTitle(exType, message)
-
-		if firstException {
-			b.WriteString(title)
-		} else if a.IsNested() {
-			prevType := a.Exceptions[i+1].Type
-			prevMsg := a.Exceptions[i+1].Message
-			title := makeTitle(prevType, prevMsg)
-			b.WriteString("Caused by" + GenericPrefix + title)
-		}
-
-		if hasFrames {
-			b.WriteString("\n")
-		}
-
-		for j := range a.Exceptions[i].Frames {
-			lastFrame := j == len(a.Exceptions[i].Frames)-1
-			frame := a.Exceptions[i].Frames[j].String()
-			b.WriteString(FramePrefix + frame)
-			if !lastFrame || !lastException {
-				b.WriteString("\n")
-			}
-		}
-	}
-
-	return b.String()
-}
-
-// IsNested returns true in case of
-// multiple nested ANRs.
-func (a ANR) IsNested() bool {
-	return len(a.Exceptions) > 1
 }
 
 type AppExit struct {
@@ -358,28 +229,6 @@ type ColdLaunch struct {
 	Duration                    time.Duration `json:"duration"`
 }
 
-// Compute computes the most accurate cold launch timing
-//
-// Android reports varied process uptime values over
-// varied api levels. Computes as a best effort case
-// based on what values are available.
-func (cl *ColdLaunch) Compute() {
-	uptime := cl.ProcessStartRequestedUptime
-	if uptime < 1 {
-		uptime = cl.ProcessStartUptime
-	}
-	if uptime < 1 {
-		uptime = cl.ContentProviderAttachUptime
-	}
-
-	onNextDrawUptime := cl.OnNextDrawUptime
-	cl.Duration = time.Duration(onNextDrawUptime-uptime) * time.Millisecond
-
-	if cl.Duration >= NominalColdLaunchThreshold {
-		fmt.Printf(`anomaly in cold_launch duration compute. nominal threshold: < %v . actual value: %f\n`, NominalColdLaunchThreshold, cl.Duration.Seconds())
-	}
-}
-
 type WarmLaunch struct {
 	AppVisibleUptime uint32        `json:"app_visible_uptime"`
 	OnNextDrawUptime uint32        `json:"on_next_draw_uptime" binding:"required"`
@@ -389,11 +238,6 @@ type WarmLaunch struct {
 	Duration         time.Duration `json:"duration"`
 }
 
-// Compute computes the warm launch duration.
-func (wl *WarmLaunch) Compute() {
-	wl.Duration = time.Duration(wl.OnNextDrawUptime-wl.AppVisibleUptime) * time.Millisecond
-}
-
 type HotLaunch struct {
 	AppVisibleUptime uint32        `json:"app_visible_uptime"`
 	OnNextDrawUptime uint32        `json:"on_next_draw_uptime" binding:"required"`
@@ -401,11 +245,6 @@ type HotLaunch struct {
 	HasSavedState    bool          `json:"has_saved_state" binding:"required"`
 	IntentData       string        `json:"intent_data"`
 	Duration         time.Duration `json:"duration"`
-}
-
-// Compute computes the hot launch duration.
-func (hl *HotLaunch) Compute() {
-	hl.Duration = time.Duration(hl.OnNextDrawUptime-hl.AppVisibleUptime) * time.Millisecond
 }
 
 type NetworkChange struct {
@@ -503,6 +342,38 @@ type EventField struct {
 	TrimMemory        *TrimMemory        `json:"trim_memory,omitempty"`
 	CPUUsage          *CPUUsage          `json:"cpu_usage,omitempty"`
 	Navigation        *Navigation        `json:"navigation,omitempty"`
+}
+
+// Compute computes the most accurate cold launch timing
+//
+// Android reports varied process uptime values over
+// varied api levels. Computes as a best effort case
+// based on what values are available.
+func (cl *ColdLaunch) Compute() {
+	uptime := cl.ProcessStartRequestedUptime
+	if uptime < 1 {
+		uptime = cl.ProcessStartUptime
+	}
+	if uptime < 1 {
+		uptime = cl.ContentProviderAttachUptime
+	}
+
+	onNextDrawUptime := cl.OnNextDrawUptime
+	cl.Duration = time.Duration(onNextDrawUptime-uptime) * time.Millisecond
+
+	if cl.Duration >= NominalColdLaunchThreshold {
+		fmt.Printf(`anomaly in cold_launch duration compute. nominal threshold: < %v . actual value: %f\n`, NominalColdLaunchThreshold, cl.Duration.Seconds())
+	}
+}
+
+// Compute computes the warm launch duration.
+func (wl *WarmLaunch) Compute() {
+	wl.Duration = time.Duration(wl.OnNextDrawUptime-wl.AppVisibleUptime) * time.Millisecond
+}
+
+// Compute computes the hot launch duration.
+func (hl *HotLaunch) Compute() {
+	hl.Duration = time.Duration(hl.OnNextDrawUptime-hl.AppVisibleUptime) * time.Millisecond
 }
 
 func (e EventField) IsException() bool {
@@ -640,114 +511,6 @@ func (e EventField) NeedsSymbolication() (result bool) {
 // at least 1 attachment.
 func (e EventField) HasAttachments() bool {
 	return len(e.Attachments) > 0
-}
-
-type EventException struct {
-	ID            uuid.UUID      `json:"id"`
-	SessionID     uuid.UUID      `json:"session_id"`
-	Timestamp     chrono.ISOTime `json:"timestamp"`
-	Type          string         `json:"type"`
-	Attribute     Attribute      `json:"attribute"`
-	Exception     Exception      `json:"-"`
-	ExceptionView ExceptionView  `json:"exception"`
-	Threads       []ThreadView   `json:"threads"`
-}
-
-type ExceptionView struct {
-	Title      string `json:"title"`
-	Stacktrace string `json:"stacktrace"`
-}
-
-type ThreadView struct {
-	Name   string   `json:"name"`
-	Frames []string `json:"frames"`
-}
-
-// ComputeView computes a consumer friendly
-// version of the exception.
-func (e *EventException) ComputeView() {
-	e.ExceptionView = ExceptionView{
-		Title:      e.Exception.GetTitle(),
-		Stacktrace: e.Exception.Stacktrace(),
-	}
-
-	for i := range e.Exception.Threads {
-		var tv ThreadView
-		tv.Name = e.Exception.Threads[i].Name
-		for j := range e.Exception.Threads[i].Frames {
-			tv.Frames = append(tv.Frames, e.Exception.Threads[i].Frames[j].String())
-		}
-		e.Threads = append(e.Threads, tv)
-	}
-}
-
-type EventANR struct {
-	ID        uuid.UUID      `json:"id"`
-	SessionID uuid.UUID      `json:"session_id"`
-	Timestamp chrono.ISOTime `json:"timestamp"`
-	Type      string         `json:"type"`
-	Attribute Attribute      `json:"attribute"`
-	ANR       ANR            `json:"-"`
-	ANRView   ANRView        `json:"anr"`
-	Threads   []ThreadView   `json:"threads"`
-}
-
-type ANRView struct {
-	Title      string `json:"title"`
-	Stacktrace string `json:"stacktrace"`
-}
-
-// ComputeView computes a consumer friendly
-// version of the ANR.
-func (e *EventANR) ComputeView() {
-	e.ANRView = ANRView{
-		Title:      e.ANR.GetTitle(),
-		Stacktrace: e.ANR.Stacktrace(),
-	}
-
-	for i := range e.ANR.Threads {
-		var tv ThreadView
-		tv.Name = e.ANR.Threads[i].Name
-		for j := range e.ANR.Threads[i].Frames {
-			tv.Frames = append(tv.Frames, e.ANR.Threads[i].Frames[j].String())
-		}
-		e.Threads = append(e.Threads, tv)
-	}
-}
-
-func (e *EventField) ComputeExceptionFingerprint() error {
-	if !e.IsException() {
-		return nil
-	}
-
-	if e.Exception.Handled {
-		return nil
-	}
-
-	marshalledException, err := json.Marshal(e.Exception)
-	if err != nil {
-		return err
-	}
-
-	sh := simhash.NewSimhash()
-	e.Exception.Fingerprint = fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet(marshalledException)))
-
-	return nil
-}
-
-func (e *EventField) ComputeANRFingerprint() error {
-	if !e.IsANR() {
-		return nil
-	}
-
-	marshalledANR, err := json.Marshal(e.ANR)
-	if err != nil {
-		return err
-	}
-
-	sh := simhash.NewSimhash()
-	e.ANR.Fingerprint = fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet(marshalledANR)))
-	return nil
 }
 
 func (e *EventField) Validate() error {
@@ -1021,6 +784,12 @@ func (e *EventField) Validate() error {
 	return nil
 }
 
+// IsNested returns true in case of
+// multiple nested exceptions.
+func (e Exception) IsNested() bool {
+	return len(e.Exceptions) > 1
+}
+
 // GetTitle provides the combined
 // exception's type and message as
 // a formatted string.
@@ -1040,6 +809,64 @@ func (e Exception) GetMessage() string {
 	return e.Exceptions[len(e.Exceptions)-1].Message
 }
 
+// Stacktrace writes a formatted stacktrace
+// from the exception.
+func (e Exception) Stacktrace() string {
+	var b strings.Builder
+
+	for i := len(e.Exceptions) - 1; i >= 0; i-- {
+		firstException := i == len(e.Exceptions)-1
+		lastException := i == 0
+		exType := e.Exceptions[i].Type
+		message := e.Exceptions[i].Message
+		hasFrames := len(e.Exceptions[i].Frames) > 0
+
+		title := makeTitle(exType, message)
+
+		if firstException {
+			b.WriteString(title)
+		} else if e.IsNested() {
+			prevType := e.Exceptions[i+1].Type
+			prevMsg := e.Exceptions[i+1].Message
+			title := makeTitle(prevType, prevMsg)
+			b.WriteString("Caused by" + GenericPrefix + title)
+		}
+
+		if hasFrames {
+			b.WriteString("\n")
+		}
+
+		for j := range e.Exceptions[i].Frames {
+			lastFrame := j == len(e.Exceptions[i].Frames)-1
+			frame := e.Exceptions[i].Frames[j].String()
+			b.WriteString(FramePrefix + frame)
+			if !lastFrame || !lastException {
+				b.WriteString("\n")
+			}
+		}
+	}
+
+	return b.String()
+}
+
+func (e *Exception) ComputeExceptionFingerprint() (err error) {
+	marshalledException, err := json.Marshal(e)
+	if err != nil {
+		return
+	}
+
+	sh := simhash.NewSimhash()
+	e.Fingerprint = fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet(marshalledException)))
+
+	return
+}
+
+// IsNested returns true in case of
+// multiple nested ANRs.
+func (a ANR) IsNested() bool {
+	return len(a.Exceptions) > 1
+}
+
 // GetTitle provides the combined
 // anr's type and message as a
 // formatted string.
@@ -1057,4 +884,56 @@ func (a ANR) GetType() string {
 // the ANR.
 func (a ANR) GetMessage() string {
 	return a.Exceptions[len(a.Exceptions)-1].Message
+}
+
+// Stacktrace writes a formatted stacktrace
+// from the ANR.
+func (a ANR) Stacktrace() string {
+	var b strings.Builder
+
+	for i := len(a.Exceptions) - 1; i >= 0; i-- {
+		firstException := i == len(a.Exceptions)-1
+		lastException := i == 0
+		exType := a.Exceptions[i].Type
+		message := a.Exceptions[i].Message
+		hasFrames := len(a.Exceptions[i].Frames) > 0
+
+		title := makeTitle(exType, message)
+
+		if firstException {
+			b.WriteString(title)
+		} else if a.IsNested() {
+			prevType := a.Exceptions[i+1].Type
+			prevMsg := a.Exceptions[i+1].Message
+			title := makeTitle(prevType, prevMsg)
+			b.WriteString("Caused by" + GenericPrefix + title)
+		}
+
+		if hasFrames {
+			b.WriteString("\n")
+		}
+
+		for j := range a.Exceptions[i].Frames {
+			lastFrame := j == len(a.Exceptions[i].Frames)-1
+			frame := a.Exceptions[i].Frames[j].String()
+			b.WriteString(FramePrefix + frame)
+			if !lastFrame || !lastException {
+				b.WriteString("\n")
+			}
+		}
+	}
+
+	return b.String()
+}
+
+func (e *ANR) ComputeANRFingerprint() (err error) {
+	marshalledANR, err := json.Marshal(e)
+	if err != nil {
+		return
+	}
+
+	sh := simhash.NewSimhash()
+	e.Fingerprint = fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet(marshalledANR)))
+
+	return
 }
