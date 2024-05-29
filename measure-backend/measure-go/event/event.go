@@ -663,6 +663,8 @@ type ThreadView struct {
 	Frames []string `json:"frames"`
 }
 
+// ComputeView computes a consumer friendly
+// version of the exception.
 func (e *EventException) ComputeView() {
 	e.ExceptionView = ExceptionView{
 		Title:      e.Exception.GetTitle(),
@@ -695,6 +697,8 @@ type ANRView struct {
 	Stacktrace string `json:"stacktrace"`
 }
 
+// ComputeView computes a consumer friendly
+// version of the ANR.
 func (e *EventANR) ComputeView() {
 	e.ANRView = ANRView{
 		Title:      e.ANR.GetTitle(),
@@ -1024,10 +1028,14 @@ func (e Exception) GetTitle() string {
 	return makeTitle(e.GetType(), e.GetMessage())
 }
 
+// GetType provides the type of
+// the exception.
 func (e Exception) GetType() string {
 	return e.Exceptions[len(e.Exceptions)-1].Type
 }
 
+// GetMessage provides the message of
+// the exception.
 func (e Exception) GetMessage() string {
 	return e.Exceptions[len(e.Exceptions)-1].Message
 }
@@ -1039,10 +1047,14 @@ func (a ANR) GetTitle() string {
 	return makeTitle(a.GetType(), a.GetMessage())
 }
 
+// GetType provides the type of
+// the ANR.
 func (a ANR) GetType() string {
 	return a.Exceptions[len(a.Exceptions)-1].Type
 }
 
+// GetMessage provides the message of
+// the ANR.
 func (a ANR) GetMessage() string {
 	return a.Exceptions[len(a.Exceptions)-1].Message
 }
