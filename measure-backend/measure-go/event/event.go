@@ -180,15 +180,54 @@ type Exception struct {
 	Foreground  bool           `json:"foreground" binding:"required"`
 }
 
+// IsNested returns true in case of
+// multiple nested exceptions.
+func (e Exception) IsNested() bool {
+	return len(e.Exceptions) > 1
+}
+
 func (e Exception) Stacktrace() string {
 	var b strings.Builder
 
-	b.WriteString(e.GetType() + "\n")
+	// makeTypeMessage appends the message to the type
+	// if message is present.
+	var makeTypeMessage = func(t, m string) (typeMessage string) {
+		typeMessage = t
+		if m != "" {
+			typeMessage += ": " + m
+		}
+		return
+	}
 
-	for i := range e.Exceptions {
+	for i := len(e.Exceptions) - 1; i >= 0; i-- {
+		firstException := i == len(e.Exceptions)-1
+		lastException := i == 0
+		exType := e.Exceptions[i].Type
+		message := e.Exceptions[i].Message
+		hasFrames := len(e.Exceptions[i].Frames) > 0
+
+		typeMessage := makeTypeMessage(exType, message)
+
+		if firstException {
+			b.WriteString(typeMessage)
+		} else if e.IsNested() {
+			prevType := e.Exceptions[i+1].Type
+			prevMsg := e.Exceptions[i+1].Message
+			typeMessage = makeTypeMessage(prevType, prevMsg)
+			b.WriteString("Caused by: " + typeMessage)
+		}
+
+		if hasFrames {
+			b.WriteString("\n")
+		}
+
 		for j := range e.Exceptions[i].Frames {
+			lastFrame := j == len(e.Exceptions[i].Frames)-1
 			frame := e.Exceptions[i].Frames[j].String()
-			b.WriteString(FramePrefix + frame + "\n")
+			b.WriteString(FramePrefix + frame)
+			if !lastFrame || !lastException {
+				b.WriteString("\n")
+			}
 		}
 	}
 
