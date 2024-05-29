@@ -37,7 +37,7 @@ class ScreenshotHelperTest {
             logger,
             resumedActivityProvider,
             lowMemoryCheck,
-            config
+            config,
         ).takeScreenshot()
         assertNotNull(screenshot)
     }
@@ -56,7 +56,7 @@ class ScreenshotHelperTest {
             logger,
             resumedActivityProvider,
             lowMemoryCheck,
-            config
+            config,
 
         ).takeScreenshot()
         assertNull(screenshot)
@@ -75,7 +75,7 @@ class ScreenshotHelperTest {
             logger,
             resumedActivityProvider,
             lowMemoryCheck,
-            config
+            config,
         ).takeScreenshot()
         assertNull(screenshot)
     }
@@ -93,7 +93,7 @@ class ScreenshotHelperTest {
             logger,
             resumedActivityProvider,
             lowMemoryCheck,
-            config
+            config,
         ).takeScreenshot()
         assertNotNull(screenshot)
     }
