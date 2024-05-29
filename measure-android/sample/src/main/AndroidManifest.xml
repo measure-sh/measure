@@ -28,6 +28,18 @@
             android:theme="@style/Theme.MeasureAndroid" />
 
         <activity
+            android:name=".screenshot.ViewScreenshotActivity"
+            android:exported="false"
+            android:label="@string/title_activity_view_screenshot"
+            android:theme="@style/Theme.MeasureAndroid" />
+
+        <activity
+            android:name=".screenshot.ComposeScreenshotActivity"
+            android:exported="false"
+            android:label="@string/title_activity_compose_screenshot"
+            android:theme="@style/Theme.MeasureAndroid" />
+
+        <activity
             android:name=".ExceptionDemoActivity"
             android:exported="true">
             <intent-filter>
