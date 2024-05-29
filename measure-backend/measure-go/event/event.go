@@ -643,20 +643,18 @@ func (e EventField) HasAttachments() bool {
 }
 
 type EventException struct {
-	ID         uuid.UUID       `json:"id"`
-	SessionID  uuid.UUID       `json:"session_id"`
-	Timestamp  chrono.ISOTime  `json:"timestamp"`
-	Type       string          `json:"type"`
-	Attribute  Attribute       `json:"attribute"`
-	Exception  Exception       `json:"-"`
-	Exceptions []ExceptionView `json:"exceptions"`
-	Threads    []ThreadView    `json:"threads"`
+	ID            uuid.UUID      `json:"id"`
+	SessionID     uuid.UUID      `json:"session_id"`
+	Timestamp     chrono.ISOTime `json:"timestamp"`
+	Type          string         `json:"type"`
+	Attribute     Attribute      `json:"attribute"`
+	Exception     Exception      `json:"-"`
+	ExceptionView ExceptionView  `json:"exception"`
+	Threads       []ThreadView   `json:"threads"`
 }
 
 type ExceptionView struct {
-	Type       string `json:"type"`
-	Message    string `json:"message"`
-	Location   string `json:"location"`
+	Title      string `json:"title"`
 	Stacktrace string `json:"stacktrace"`
 }
 
@@ -666,12 +664,10 @@ type ThreadView struct {
 }
 
 func (e *EventException) ComputeView() {
-	var ev ExceptionView
-	ev.Type = e.Exception.GetType()
-	ev.Message = e.Exception.GetMessage()
-	ev.Location = e.Exception.GetLocation()
-	ev.Stacktrace = e.Exception.Stacktrace()
-	e.Exceptions = append(e.Exceptions, ev)
+	e.ExceptionView = ExceptionView{
+		Title:      e.Exception.GetTitle(),
+		Stacktrace: e.Exception.Stacktrace(),
+	}
 
 	for i := range e.Exception.Threads {
 		var tv ThreadView
@@ -1025,6 +1021,13 @@ func (e *EventField) Validate() error {
 	return nil
 }
 
+// GetTitle provides the combined
+// exception's type and message as
+// a formatted string.
+func (e Exception) GetTitle() string {
+	return makeTitle(e.GetType(), e.GetMessage())
+}
+
 func (e Exception) GetType() string {
 	return e.Exceptions[len(e.Exceptions)-1].Type
 }
@@ -1033,9 +1036,11 @@ func (e Exception) GetMessage() string {
 	return e.Exceptions[len(e.Exceptions)-1].Message
 }
 
-func (e Exception) GetLocation() string {
-	frame := e.Exceptions[len(e.Exceptions)-1].Frames[0]
-	return frame.String()
+// GetTitle provides the combined
+// anr's type and message as a
+// formatted string.
+func (a ANR) GetTitle() string {
+	return makeTitle(a.GetType(), a.GetMessage())
 }
 
 func (a ANR) GetType() string {
