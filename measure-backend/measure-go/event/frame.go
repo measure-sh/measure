@@ -25,6 +25,8 @@ type Frame struct {
 
 type Frames []Frame
 
+// String provides a serialized
+// version of the frame.
 func (f Frame) String() string {
 	className := f.ClassName
 	methodName := f.MethodName
