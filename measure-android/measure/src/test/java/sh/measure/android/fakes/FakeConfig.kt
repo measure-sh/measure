@@ -1,12 +1,13 @@
 package sh.measure.android.fakes
 
 import sh.measure.android.Config
+import sh.measure.android.screenshot.ScreenshotMaskLevel
 
 internal class FakeConfig(
     private var trackHttpBody: Boolean = true,
 ) : Config {
     override var captureScreenshotForExceptions: Boolean = false
-    override var maskAllTextInScreenshots: Boolean = true
+    override var screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.AllTextAndMedia
     override var screenshotMaskHexColor: String = "#222222"
     override var screenshotJpegQuality: Int = 25
     override var screenshotWebpQuality: Int = 25
