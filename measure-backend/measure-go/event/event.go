@@ -12,7 +12,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// maximum character limits for event fields
+// constants defining maximum character
+// limits for various event fields.
 const (
 	maxTypeChars                              = 32
 	maxExceptionDeviceLocaleChars             = 64
@@ -376,86 +377,127 @@ func (hl *HotLaunch) Compute() {
 	hl.Duration = time.Duration(hl.OnNextDrawUptime-hl.AppVisibleUptime) * time.Millisecond
 }
 
+// IsException returns true for
+// exception event.
 func (e EventField) IsException() bool {
 	return e.Type == TypeException
 }
 
+// IsUnhandledException returns true
+// for unhandled exception event.
 func (e EventField) IsUnhandledException() bool {
 	return e.Type == TypeException && !e.Exception.Handled
 }
 
+// IsANR returns true for anr
+// event.
 func (e EventField) IsANR() bool {
 	return e.Type == TypeANR
 }
 
+// IsAppExit returns true for app
+// exit event.
 func (e EventField) IsAppExit() bool {
 	return e.Type == TypeAppExit
 }
 
+// IsSring returns true for string
+// event.
 func (e EventField) IsString() bool {
 	return e.Type == TypeString
 }
 
+// IsGestureLongClick returns true for
+// gesture long click event.
 func (e EventField) IsGestureLongClick() bool {
 	return e.Type == TypeGestureLongClick
 }
 
+// IsGestureScroll returns true for
+// gesture scroll event.
 func (e EventField) IsGestureScroll() bool {
 	return e.Type == TypeGestureScroll
 }
 
+// IsGestureClick returns true for
+// gesture click event.
 func (e EventField) IsGestureClick() bool {
 	return e.Type == TypeGestureClick
 }
 
+// IsLifecycleActivity returns true for
+// lifecycle activity event.
 func (e EventField) IsLifecycleActivity() bool {
 	return e.Type == TypeLifecycleActivity
 }
 
+// IsLifecycleFragment returns true for
+// lifecycle fragment event.
 func (e EventField) IsLifecycleFragment() bool {
 	return e.Type == TypeLifecycleFragment
 }
 
+// IsLifecycleApp returns true for
+// lifecycle app event.
 func (e EventField) IsLifecycleApp() bool {
 	return e.Type == TypeLifecycleApp
 }
 
+// IsColdLaunch returns true for cold
+// launch event.
 func (e EventField) IsColdLaunch() bool {
 	return e.Type == TypeColdLaunch
 }
 
+// IsWarmLaunch returns true for warm
+// launch event.
 func (e EventField) IsWarmLaunch() bool {
 	return e.Type == TypeWarmLaunch
 }
 
+// IsHotLaunch returns true for hot
+// launch event.
 func (e EventField) IsHotLaunch() bool {
 	return e.Type == TypeHotLaunch
 }
 
+// IsNetworkChange returns true for
+// network change event.
 func (e EventField) IsNetworkChange() bool {
 	return e.Type == TypeNetworkChange
 }
 
+// IsHttp returns true for http event.
 func (e EventField) IsHttp() bool {
 	return e.Type == TypeHttp
 }
 
+// IsMemoryUsage returns true for
+// memory usage event.
 func (e EventField) IsMemoryUsage() bool {
 	return e.Type == TypeMemoryUsage
 }
 
+// IsTrimMemory returns true for trim
+// memory event.
 func (e EventField) IsTrimMemory() bool {
 	return e.Type == TypeTrimMemory
 }
 
+// IsCPUUsage returns true for cpu usage
+// event.
 func (e EventField) IsCPUUsage() bool {
 	return e.Type == TypeCPUUsage
 }
 
+// IsLowMemory returns true for low
+// memory event.
 func (e EventField) IsLowMemory() bool {
 	return e.Type == TypeLowMemory
 }
 
+// IsNavigation returns true for navigation
+// event.
 func (e EventField) IsNavigation() bool {
 	return e.Type == TypeNavigation
 }
@@ -513,6 +555,8 @@ func (e EventField) HasAttachments() bool {
 	return len(e.Attachments) > 0
 }
 
+// Validate validates the event for data
+// integrity.
 func (e *EventField) Validate() error {
 	validTypes := []string{
 		TypeANR, TypeException, TypeAppExit,
@@ -849,6 +893,8 @@ func (e Exception) Stacktrace() string {
 	return b.String()
 }
 
+// ComputeExceptionFingerprint computes a fingerprint
+// from the exception data.
 func (e *Exception) ComputeExceptionFingerprint() (err error) {
 	marshalledException, err := json.Marshal(e)
 	if err != nil {
@@ -926,6 +972,8 @@ func (a ANR) Stacktrace() string {
 	return b.String()
 }
 
+// ComputeANRFingerprint computes a fingerprint
+// from the ANR data.
 func (e *ANR) ComputeANRFingerprint() (err error) {
 	marshalledANR, err := json.Marshal(e)
 	if err != nil {
