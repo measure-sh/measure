@@ -236,6 +236,8 @@ func (e Exception) Stacktrace() string {
 	return b.String()
 }
 
+// Stacktrace writes a formatted stacktrace
+// from the ANR.
 func (e ANR) Stacktrace() string {
 	var b strings.Builder
 
