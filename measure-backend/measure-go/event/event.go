@@ -239,16 +239,45 @@ func (e Exception) Stacktrace() string {
 func (e ANR) Stacktrace() string {
 	var b strings.Builder
 
-	b.WriteString(e.GetType() + "\n")
+	for i := len(e.Exceptions) - 1; i >= 0; i-- {
+		firstException := i == len(e.Exceptions)-1
+		lastException := i == 0
+		exType := e.Exceptions[i].Type
+		message := e.Exceptions[i].Message
+		hasFrames := len(e.Exceptions[i].Frames) > 0
 
-	for i := range e.Exceptions {
+		title := makeTitle(exType, message)
+
+		if firstException {
+			b.WriteString(title)
+		} else if e.IsNested() {
+			prevType := e.Exceptions[i+1].Type
+			prevMsg := e.Exceptions[i+1].Message
+			title := makeTitle(prevType, prevMsg)
+			b.WriteString("Caused by: " + title)
+		}
+
+		if hasFrames {
+			b.WriteString("\n")
+		}
+
 		for j := range e.Exceptions[i].Frames {
+			lastFrame := j == len(e.Exceptions[i].Frames)-1
 			frame := e.Exceptions[i].Frames[j].String()
-			b.WriteString(FramePrefix + frame + "\n")
+			b.WriteString(FramePrefix + frame)
+			if !lastFrame || !lastException {
+				b.WriteString("\n")
+			}
 		}
 	}
 
 	return b.String()
+}
+
+// IsNested returns true in case of
+// multiple nested ANRs.
+func (a ANR) IsNested() bool {
+	return len(a.Exceptions) > 1
 }
 
 type AppExit struct {
