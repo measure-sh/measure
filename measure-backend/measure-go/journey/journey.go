@@ -261,13 +261,6 @@ func (j *JourneyAndroid) makeKey(v, w int) string {
 	return fmt.Sprintf("%d->%d", v, w)
 }
 
-// GetEdgeSessions computes list of unique session ids
-// for the edge `v->w`.
-func (j *JourneyAndroid) GetEdgeSessions(v, w int) (sessionIds []uuid.UUID) {
-	key := j.makeKey(v, w)
-	return j.metalut[key].Slice()
-}
-
 // GetEdgeSessionCount computes the count of sessions
 // for the edge `v->w`.
 func (j *JourneyAndroid) GetEdgeSessionCount(v, w int) int {
@@ -289,6 +282,52 @@ func (j *JourneyAndroid) GetNodeVertices() (ids []int) {
 	}
 
 	slices.Sort(ids)
+
+	return
+}
+
+// GetNodeANRCount computes total count of ANR events
+// occurring in the ANR group.
+func (j *JourneyAndroid) GetNodeANRCount(v int, anrGroupId uuid.UUID) (anrCount int) {
+	name := j.nodelutinverse[v]
+	node := j.nodelut[name]
+
+	anrGroups := node.anrGroups
+	anrIds := node.anrIds.Slice()
+
+	for i := range anrGroups {
+		if anrGroups[i].ID != anrGroupId {
+			continue
+		}
+		for j := range anrIds {
+			if anrGroups[i].EventExists(anrIds[j]) {
+				anrCount += 1
+			}
+		}
+	}
+
+	return
+}
+
+// GetNodeExceptionCount computes total count of exception
+// events occurring in the exception group.
+func (j *JourneyAndroid) GetNodeExceptionCount(v int, exceptionGroupId uuid.UUID) (crashCount int) {
+	name := j.nodelutinverse[v]
+	node := j.nodelut[name]
+
+	exceptionGroups := node.exceptionGroups
+	exceptionIds := node.exceptionIds.Slice()
+
+	for i := range exceptionGroups {
+		if exceptionGroups[i].ID != exceptionGroupId {
+			continue
+		}
+		for j := range exceptionIds {
+			if exceptionGroups[i].EventExists(exceptionIds[j]) {
+				crashCount += 1
+			}
+		}
+	}
 
 	return
 }
@@ -337,14 +376,6 @@ func (j *JourneyAndroid) GetNodeANRGroups(name string) (anrGroups []group.ANRGro
 	return j.nodelut[name].anrGroups
 }
 
-// isFragmentOrphan tells if the event indexed by `i`
-// is a lifecycle fragment and if the lifecycle fragment
-// lacks a parent activity.
-func (j JourneyAndroid) isFragmentOrphan(i int) bool {
-	event := j.Events[i]
-	return event.IsLifecycleFragment() && event.LifecycleFragment.ParentActivity == ""
-}
-
 // String generates a graph represented
 // in the graphviz dot format.
 func (j JourneyAndroid) String() string {
@@ -369,6 +400,14 @@ func (j JourneyAndroid) String() string {
 	b.WriteString("}\n")
 
 	return b.String()
+}
+
+// isFragmentOrphan tells if the event indexed by `i`
+// is a lifecycle fragment and if the lifecycle fragment
+// lacks a parent activity.
+func (j JourneyAndroid) isFragmentOrphan(i int) bool {
+	event := j.Events[i]
+	return event.IsLifecycleFragment() && event.LifecycleFragment.ParentActivity == ""
 }
 
 // NewJourneyAndroid creates a journey graph object

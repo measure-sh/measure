@@ -1426,17 +1426,13 @@ func GetAppJourney(c *gin.Context) {
 	}
 
 	var issueEvents []event.EventField
-	var exceptionIds []uuid.UUID
-	var anrIds []uuid.UUID
 
 	for i := range journeyEvents {
 		if journeyEvents[i].IsUnhandledException() {
 			issueEvents = append(issueEvents, journeyEvents[i])
-			exceptionIds = append(exceptionIds, journeyEvents[i].ID)
 		}
 		if journeyEvents[i].IsANR() {
 			issueEvents = append(issueEvents, journeyEvents[i])
-			anrIds = append(anrIds, journeyEvents[i].ID)
 		}
 	}
 
@@ -1511,7 +1507,7 @@ func GetAppJourney(c *gin.Context) {
 			issue := Issue{
 				ID:    exceptionGroups[i].ID,
 				Title: exceptionGroups[i].Name,
-				Count: exceptionGroups[i].GetMatchingEventCount(exceptionIds),
+				Count: journeyAndroid.GetNodeExceptionCount(v, exceptionGroups[i].ID),
 			}
 			crashes = append(crashes, issue)
 		}
@@ -1527,7 +1523,7 @@ func GetAppJourney(c *gin.Context) {
 			issue := Issue{
 				ID:    anrGroups[i].ID,
 				Title: anrGroups[i].Name,
-				Count: anrGroups[i].GetMatchingEventCount(anrIds),
+				Count: journeyAndroid.GetNodeANRCount(v, anrGroups[i].ID),
 			}
 			anrs = append(anrs, issue)
 		}
