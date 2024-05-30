@@ -300,22 +300,14 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
               <Link key={crashOrAnrGroupDetails.results[0].id} href={`/${teamId}/sessions/${appId}/${crashOrAnrGroupDetails.results[0].session_id}`} className="outline-none justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">View Session </Link>
               <div className="py-4" />
               {crashOrAnrType === CrashOrAnrType.Crash &&
-                <div>
-                  {(crashOrAnrGroupDetails as typeof emptyCrashGroupDetailsResponse).results[0].exceptions.map((e, index) => (
-                    <Accordion key={index} title={'Thread: ' + crashOrAnrGroupDetails.results[0].attribute.thread_name} id={`${e.type}-${index}`} active={true}>
-                      {e.stacktrace}
-                    </Accordion>
-                  ))}
-                </div>
+                <Accordion key='crash-thread' title={'Thread: ' + crashOrAnrGroupDetails.results[0].attribute.thread_name} id='crash' active={true}>
+                  {(crashOrAnrGroupDetails as typeof emptyCrashGroupDetailsResponse).results[0].exception.stacktrace}
+                </Accordion>
               }
               {crashOrAnrType === CrashOrAnrType.Anr &&
-                <div>
-                  {(crashOrAnrGroupDetails as typeof emptyAnrGroupDetailsResponse).results[0].anrs.map((e, index) => (
-                    <Accordion key={index} title={'Thread: ' + crashOrAnrGroupDetails.results[0].attribute.thread_name} id={`${e.type}-${index}`} active={true}>
-                      {e.stacktrace}
-                    </Accordion>
-                  ))}
-                </div>
+                <Accordion key='anr-thread' title={'Thread: ' + crashOrAnrGroupDetails.results[0].attribute.thread_name} id='anr' active={true}>
+                  {(crashOrAnrGroupDetails as typeof emptyAnrGroupDetailsResponse).results[0].anr.stacktrace}
+                </Accordion>
               }
               <div>
                 {crashOrAnrGroupDetails.results[0].threads.map((e, index) => (

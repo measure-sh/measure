@@ -280,14 +280,10 @@ const emptyCrashGroupDetails = {
         "network_provider": "",
         "network_generation": ""
     },
-    "exceptions": [
-        {
-            "type": "",
-            "message": "",
-            "location": "",
-            "stacktrace": ""
-        }
-    ],
+    "exception": {
+        "title": "",
+        "stacktrace": ""
+    },
     "threads": [
         {
             "name": "",
@@ -339,14 +335,10 @@ const emptyAnrGroupDetails = {
         "network_provider": "",
         "network_generation": ""
     },
-    "anrs": [
-        {
-            "type": "",
-            "message": "",
-            "location": "",
-            "stacktrace": ""
-        }
-    ],
+    "anr": {
+        "title": "",
+        "stacktrace": ""
+    },
     "threads": [
         {
             "name": "",
