@@ -43,7 +43,7 @@ func TestNewJourneyAndroidOne(t *testing.T) {
 
 	// forward direction
 	{
-		sessionIds := journey.GetEdgeSessions(0, 1)
+		sessionIds := journey.metalut[journey.makeKey(0, 1)].Slice()
 		expectedLen := 4
 		gotLen := len(sessionIds)
 		if expectedLen != gotLen {
@@ -71,7 +71,7 @@ func TestNewJourneyAndroidOne(t *testing.T) {
 	}
 
 	{
-		sessionIds := journey.GetEdgeSessions(0, 2)
+		sessionIds := journey.metalut[journey.makeKey(0, 2)].Slice()
 		expectedLen := 3
 		gotLen := len(sessionIds)
 		if expectedLen != gotLen {
@@ -95,7 +95,7 @@ func TestNewJourneyAndroidOne(t *testing.T) {
 	}
 
 	{
-		sessionIds := journey.GetEdgeSessions(0, 3)
+		sessionIds := journey.metalut[journey.makeKey(0, 3)].Slice()
 		expectedLen := 2
 		gotLen := len(sessionIds)
 		if expectedLen != gotLen {
@@ -116,7 +116,7 @@ func TestNewJourneyAndroidOne(t *testing.T) {
 
 	// reverse direction
 	{
-		sessionIds := journey.GetEdgeSessions(1, 0)
+		sessionIds := journey.metalut[journey.makeKey(1, 0)].Slice()
 		expectedLen := 4
 		gotLen := len(sessionIds)
 		if expectedLen != gotLen {
@@ -144,7 +144,7 @@ func TestNewJourneyAndroidOne(t *testing.T) {
 	}
 
 	{
-		sessionIds := journey.GetEdgeSessions(2, 0)
+		sessionIds := journey.metalut[journey.makeKey(2, 0)].Slice()
 		expectedLen := 3
 		gotLen := len(sessionIds)
 		if expectedLen != gotLen {
@@ -168,7 +168,7 @@ func TestNewJourneyAndroidOne(t *testing.T) {
 	}
 
 	{
-		sessionIds := journey.GetEdgeSessions(3, 0)
+		sessionIds := journey.metalut[journey.makeKey(3, 0)].Slice()
 		expectedLen := 2
 		gotLen := len(sessionIds)
 		if expectedLen != gotLen {
@@ -226,7 +226,7 @@ func TestNewJourneyAndroidTwo(t *testing.T) {
 	}
 
 	{
-		sessionIds := journey.GetEdgeSessions(0, 1)
+		sessionIds := journey.metalut[journey.makeKey(0, 1)].Slice()
 		expectedLen := 4
 		gotLen := len(sessionIds)
 		if expectedLen != gotLen {
@@ -254,7 +254,7 @@ func TestNewJourneyAndroidTwo(t *testing.T) {
 	}
 
 	{
-		sessionIds := journey.GetEdgeSessions(0, 2)
+		sessionIds := journey.metalut[journey.makeKey(0, 2)].Slice()
 		expectedLen := 4
 		gotLen := len(sessionIds)
 		if expectedLen != gotLen {
@@ -282,7 +282,7 @@ func TestNewJourneyAndroidTwo(t *testing.T) {
 	}
 
 	{
-		sessionIds := journey.GetEdgeSessions(0, 3)
+		sessionIds := journey.metalut[journey.makeKey(0, 3)].Slice()
 		expectedLen := 4
 		gotLen := len(sessionIds)
 		if expectedLen != gotLen {
@@ -310,7 +310,7 @@ func TestNewJourneyAndroidTwo(t *testing.T) {
 	}
 
 	{
-		sessionIds := journey.GetEdgeSessions(0, 3)
+		sessionIds := journey.metalut[journey.makeKey(0, 3)].Slice()
 		expectedLen := 4
 		gotLen := len(sessionIds)
 		if expectedLen != gotLen {
@@ -338,7 +338,7 @@ func TestNewJourneyAndroidTwo(t *testing.T) {
 	}
 
 	{
-		sessionIds := journey.GetEdgeSessions(4, 0)
+		sessionIds := journey.metalut[journey.makeKey(4, 0)].Slice()
 		expectedLen := 1
 		gotLen := len(sessionIds)
 		if expectedLen != gotLen {
@@ -384,7 +384,7 @@ func TestGetEdgeSessionsOne(t *testing.T) {
 			uuid.MustParse("58e94ae9-a084-479f-9049-2c5135f6090f"),
 			uuid.MustParse("460765ab-1834-454e-b207-d8235b2160d9"),
 		}
-		got := journey.GetEdgeSessions(0, 1)
+		got := journey.metalut[journey.makeKey(0, 1)].Slice()
 
 		if !reflect.DeepEqual(expected, got) {
 			t.Errorf("Expected %v sessions, but got %v", expected, got)
@@ -397,7 +397,7 @@ func TestGetEdgeSessionsOne(t *testing.T) {
 			uuid.MustParse("a3d629f5-6bab-4a43-8e75-fa5d6b539d33"),
 			uuid.MustParse("460765ab-1834-454e-b207-d8235b2160d9"),
 		}
-		got := journey.GetEdgeSessions(0, 2)
+		got := journey.metalut[journey.makeKey(0, 2)].Slice()
 
 		if !reflect.DeepEqual(expected, got) {
 			t.Errorf("Expected %v sessions, but got %v", expected, got)
@@ -409,7 +409,7 @@ func TestGetEdgeSessionsOne(t *testing.T) {
 			uuid.MustParse("9e44aa3a-3d67-4a56-8a76-a9fff7e2aae9"),
 			uuid.MustParse("460765ab-1834-454e-b207-d8235b2160d9"),
 		}
-		got := journey.GetEdgeSessions(0, 3)
+		got := journey.metalut[journey.makeKey(0, 3)].Slice()
 
 		if !reflect.DeepEqual(expected, got) {
 			t.Errorf("Expected %v sessions, but got %v", expected, got)
@@ -423,7 +423,7 @@ func TestGetEdgeSessionsOne(t *testing.T) {
 			uuid.MustParse("58e94ae9-a084-479f-9049-2c5135f6090f"),
 			uuid.MustParse("460765ab-1834-454e-b207-d8235b2160d9"),
 		}
-		got := journey.GetEdgeSessions(1, 0)
+		got := journey.metalut[journey.makeKey(1, 0)].Slice()
 
 		if !reflect.DeepEqual(expected, got) {
 			t.Errorf("Expected %v sessions, but got %v", expected, got)
@@ -436,7 +436,7 @@ func TestGetEdgeSessionsOne(t *testing.T) {
 			uuid.MustParse("a3d629f5-6bab-4a43-8e75-fa5d6b539d33"),
 			uuid.MustParse("460765ab-1834-454e-b207-d8235b2160d9"),
 		}
-		got := journey.GetEdgeSessions(2, 0)
+		got := journey.metalut[journey.makeKey(2, 0)].Slice()
 
 		if !reflect.DeepEqual(expected, got) {
 			t.Errorf("Expected %v sessions, but got %v", expected, got)
@@ -448,7 +448,7 @@ func TestGetEdgeSessionsOne(t *testing.T) {
 			uuid.MustParse("9e44aa3a-3d67-4a56-8a76-a9fff7e2aae9"),
 			uuid.MustParse("460765ab-1834-454e-b207-d8235b2160d9"),
 		}
-		got := journey.GetEdgeSessions(3, 0)
+		got := journey.metalut[journey.makeKey(3, 0)].Slice()
 
 		if !reflect.DeepEqual(expected, got) {
 			t.Errorf("Expected %v sessions, but got %v", expected, got)
@@ -471,7 +471,7 @@ func TestGetEdgeSessionsTwo(t *testing.T) {
 			uuid.MustParse("1755de51-18c8-4c14-a58d-ad677485130e"),
 			uuid.MustParse("bcafd264-43eb-433b-8851-00306ecc2706"),
 		}
-		got := journey.GetEdgeSessions(0, 1)
+		got := journey.metalut[journey.makeKey(0, 1)].Slice()
 
 		if !reflect.DeepEqual(expected, got) {
 			t.Errorf("Expected %v sessions, but got %v", expected, got)
@@ -485,7 +485,7 @@ func TestGetEdgeSessionsTwo(t *testing.T) {
 			uuid.MustParse("1755de51-18c8-4c14-a58d-ad677485130e"),
 			uuid.MustParse("bcafd264-43eb-433b-8851-00306ecc2706"),
 		}
-		got := journey.GetEdgeSessions(0, 2)
+		got := journey.metalut[journey.makeKey(0, 2)].Slice()
 
 		if !reflect.DeepEqual(expected, got) {
 			t.Errorf("Expected %v sessions, but got %v", expected, got)
@@ -499,7 +499,7 @@ func TestGetEdgeSessionsTwo(t *testing.T) {
 			uuid.MustParse("1755de51-18c8-4c14-a58d-ad677485130e"),
 			uuid.MustParse("bcafd264-43eb-433b-8851-00306ecc2706"),
 		}
-		got := journey.GetEdgeSessions(0, 3)
+		got := journey.metalut[journey.makeKey(0, 3)].Slice()
 
 		if !reflect.DeepEqual(expected, got) {
 			t.Errorf("Expected %v sessions, but got %v", expected, got)
@@ -510,7 +510,7 @@ func TestGetEdgeSessionsTwo(t *testing.T) {
 		expected := []uuid.UUID{
 			uuid.MustParse("65aaf877-e000-4ff3-9f8f-a0dbb10e9b00"),
 		}
-		got := journey.GetEdgeSessions(4, 0)
+		got := journey.metalut[journey.makeKey(4, 0)].Slice()
 
 		if !reflect.DeepEqual(expected, got) {
 			t.Errorf("Expected %v sessions, but got %v", expected, got)
