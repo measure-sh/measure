@@ -1,0 +1,684 @@
+{
+  "handled": false,
+  "exceptions": [
+    {
+      "type": "java.lang.OutOfMemoryError",
+      "message": "Failed to allocate a 104857616 byte allocation with 25165824 free bytes and 87MB until OOM, target footprint 134540152, growth limit 201326592",
+      "frames": [
+        {
+          "line_num": 29,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "ExceptionDemoActivity.kt",
+          "class_name": "sh.measure.sample.ExceptionDemoActivity",
+          "method_name": "onCreate$lambda$2"
+        },
+        {
+          "line_num": 0,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "",
+          "class_name": "sh.measure.sample.ExceptionDemoActivity",
+          "method_name": "$r8$lambda$itIQQMXgA5GFCPpehqNC2ZDufqA"
+        },
+        {
+          "line_num": 0,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "D8$$SyntheticClass",
+          "class_name": "sh.measure.sample.ExceptionDemoActivity$$ExternalSyntheticLambda3",
+          "method_name": "onClick"
+        },
+        {
+          "line_num": 7506,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "View.java",
+          "class_name": "android.view.View",
+          "method_name": "performClick"
+        },
+        {
+          "line_num": 1218,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "MaterialButton.java",
+          "class_name": "com.google.android.material.button.MaterialButton",
+          "method_name": "performClick"
+        },
+        {
+          "line_num": 7483,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "View.java",
+          "class_name": "android.view.View",
+          "method_name": "performClickInternal"
+        },
+        {
+          "line_num": 0,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "",
+          "class_name": "android.view.View",
+          "method_name": "-$$Nest$mperformClickInternal"
+        },
+        {
+          "line_num": 29334,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "View.java",
+          "class_name": "android.view.View$PerformClick",
+          "method_name": "run"
+        },
+        {
+          "line_num": 942,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Handler.java",
+          "class_name": "android.os.Handler",
+          "method_name": "handleCallback"
+        },
+        {
+          "line_num": 99,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Handler.java",
+          "class_name": "android.os.Handler",
+          "method_name": "dispatchMessage"
+        },
+        {
+          "line_num": 201,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Looper.java",
+          "class_name": "android.os.Looper",
+          "method_name": "loopOnce"
+        },
+        {
+          "line_num": 288,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Looper.java",
+          "class_name": "android.os.Looper",
+          "method_name": "loop"
+        },
+        {
+          "line_num": 7872,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "ActivityThread.java",
+          "class_name": "android.app.ActivityThread",
+          "method_name": "main"
+        },
+        {
+          "line_num": -2,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Method.java",
+          "class_name": "java.lang.reflect.Method",
+          "method_name": "invoke"
+        },
+        {
+          "line_num": 548,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "RuntimeInit.java",
+          "class_name": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
+          "method_name": "run"
+        },
+        {
+          "line_num": 936,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "ZygoteInit.java",
+          "class_name": "com.android.internal.os.ZygoteInit",
+          "method_name": "main"
+        }
+      ]
+    }
+  ],
+  "threads": [
+    {
+      "name": "Thread-2",
+      "frames": [
+        {
+          "line_num": -2,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Thread.java",
+          "class_name": "java.lang.Thread",
+          "method_name": "sleep"
+        },
+        {
+          "line_num": 450,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Thread.java",
+          "class_name": "java.lang.Thread",
+          "method_name": "sleep"
+        },
+        {
+          "line_num": 355,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Thread.java",
+          "class_name": "java.lang.Thread",
+          "method_name": "sleep"
+        },
+        {
+          "line_num": 70,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "ANRWatchDog.kt",
+          "class_name": "sh.measure.android.anr.ANRWatchDog",
+          "method_name": "run"
+        }
+      ]
+    },
+    {
+      "name": "LeakCanary-Heap-Dump",
+      "frames": [
+        {
+          "line_num": -2,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "MessageQueue.java",
+          "class_name": "android.os.MessageQueue",
+          "method_name": "nativePollOnce"
+        },
+        {
+          "line_num": 335,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "MessageQueue.java",
+          "class_name": "android.os.MessageQueue",
+          "method_name": "next"
+        },
+        {
+          "line_num": 161,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Looper.java",
+          "class_name": "android.os.Looper",
+          "method_name": "loopOnce"
+        },
+        {
+          "line_num": 288,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Looper.java",
+          "class_name": "android.os.Looper",
+          "method_name": "loop"
+        },
+        {
+          "line_num": 67,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "HandlerThread.java",
+          "class_name": "android.os.HandlerThread",
+          "method_name": "run"
+        }
+      ]
+    },
+    {
+      "name": "Okio Watchdog",
+      "frames": [
+        {
+          "line_num": -2,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Unsafe.java",
+          "class_name": "jdk.internal.misc.Unsafe",
+          "method_name": "park"
+        },
+        {
+          "line_num": 234,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "LockSupport.java",
+          "class_name": "java.util.concurrent.locks.LockSupport",
+          "method_name": "parkNanos"
+        },
+        {
+          "line_num": 2211,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "AbstractQueuedSynchronizer.java",
+          "class_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject",
+          "method_name": "await"
+        },
+        {
+          "line_num": 370,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "AsyncTimeout.kt",
+          "class_name": "okio.AsyncTimeout$Companion",
+          "method_name": "awaitTimeout"
+        },
+        {
+          "line_num": 211,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "AsyncTimeout.kt",
+          "class_name": "okio.AsyncTimeout$Watchdog",
+          "method_name": "run"
+        }
+      ]
+    },
+    {
+      "name": "FinalizerDaemon",
+      "frames": [
+        {
+          "line_num": -2,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Object.java",
+          "class_name": "java.lang.Object",
+          "method_name": "wait"
+        },
+        {
+          "line_num": 442,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Object.java",
+          "class_name": "java.lang.Object",
+          "method_name": "wait"
+        },
+        {
+          "line_num": 203,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "ReferenceQueue.java",
+          "class_name": "java.lang.ref.ReferenceQueue",
+          "method_name": "remove"
+        },
+        {
+          "line_num": 224,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "ReferenceQueue.java",
+          "class_name": "java.lang.ref.ReferenceQueue",
+          "method_name": "remove"
+        },
+        {
+          "line_num": 300,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Daemons.java",
+          "class_name": "java.lang.Daemons$FinalizerDaemon",
+          "method_name": "runInternal"
+        },
+        {
+          "line_num": 140,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Daemons.java",
+          "class_name": "java.lang.Daemons$Daemon",
+          "method_name": "run"
+        },
+        {
+          "line_num": 1012,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Thread.java",
+          "class_name": "java.lang.Thread",
+          "method_name": "run"
+        }
+      ]
+    },
+    {
+      "name": "ReferenceQueueDaemon",
+      "frames": [
+        {
+          "line_num": -2,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Object.java",
+          "class_name": "java.lang.Object",
+          "method_name": "wait"
+        },
+        {
+          "line_num": 442,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Object.java",
+          "class_name": "java.lang.Object",
+          "method_name": "wait"
+        },
+        {
+          "line_num": 568,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Object.java",
+          "class_name": "java.lang.Object",
+          "method_name": "wait"
+        },
+        {
+          "line_num": 232,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Daemons.java",
+          "class_name": "java.lang.Daemons$ReferenceQueueDaemon",
+          "method_name": "runInternal"
+        },
+        {
+          "line_num": 140,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Daemons.java",
+          "class_name": "java.lang.Daemons$Daemon",
+          "method_name": "run"
+        },
+        {
+          "line_num": 1012,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Thread.java",
+          "class_name": "java.lang.Thread",
+          "method_name": "run"
+        }
+      ]
+    },
+    {
+      "name": "msr-ep",
+      "frames": [
+        {
+          "line_num": -2,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Unsafe.java",
+          "class_name": "jdk.internal.misc.Unsafe",
+          "method_name": "park"
+        },
+        {
+          "line_num": 194,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "LockSupport.java",
+          "class_name": "java.util.concurrent.locks.LockSupport",
+          "method_name": "park"
+        },
+        {
+          "line_num": 2081,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "AbstractQueuedSynchronizer.java",
+          "class_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject",
+          "method_name": "await"
+        },
+        {
+          "line_num": 1176,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "ScheduledThreadPoolExecutor.java",
+          "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+          "method_name": "take"
+        },
+        {
+          "line_num": 905,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "ScheduledThreadPoolExecutor.java",
+          "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+          "method_name": "take"
+        },
+        {
+          "line_num": 1063,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "ThreadPoolExecutor.java",
+          "class_name": "java.util.concurrent.ThreadPoolExecutor",
+          "method_name": "getTask"
+        },
+        {
+          "line_num": 1123,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "ThreadPoolExecutor.java",
+          "class_name": "java.util.concurrent.ThreadPoolExecutor",
+          "method_name": "runWorker"
+        },
+        {
+          "line_num": 637,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "ThreadPoolExecutor.java",
+          "class_name": "java.util.concurrent.ThreadPoolExecutor$Worker",
+          "method_name": "run"
+        },
+        {
+          "line_num": 1012,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Thread.java",
+          "class_name": "java.lang.Thread",
+          "method_name": "run"
+        }
+      ]
+    },
+    {
+      "name": "msr-bg",
+      "frames": [
+        {
+          "line_num": -2,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Unsafe.java",
+          "class_name": "jdk.internal.misc.Unsafe",
+          "method_name": "park"
+        },
+        {
+          "line_num": 194,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "LockSupport.java",
+          "class_name": "java.util.concurrent.locks.LockSupport",
+          "method_name": "park"
+        },
+        {
+          "line_num": 2081,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "AbstractQueuedSynchronizer.java",
+          "class_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject",
+          "method_name": "await"
+        },
+        {
+          "line_num": 1176,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "ScheduledThreadPoolExecutor.java",
+          "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+          "method_name": "take"
+        },
+        {
+          "line_num": 905,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "ScheduledThreadPoolExecutor.java",
+          "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+          "method_name": "take"
+        },
+        {
+          "line_num": 1063,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "ThreadPoolExecutor.java",
+          "class_name": "java.util.concurrent.ThreadPoolExecutor",
+          "method_name": "getTask"
+        },
+        {
+          "line_num": 1123,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "ThreadPoolExecutor.java",
+          "class_name": "java.util.concurrent.ThreadPoolExecutor",
+          "method_name": "runWorker"
+        },
+        {
+          "line_num": 637,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "ThreadPoolExecutor.java",
+          "class_name": "java.util.concurrent.ThreadPoolExecutor$Worker",
+          "method_name": "run"
+        },
+        {
+          "line_num": 1012,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Thread.java",
+          "class_name": "java.lang.Thread",
+          "method_name": "run"
+        }
+      ]
+    },
+    {
+      "name": "FinalizerWatchdogDaemon",
+      "frames": [
+        {
+          "line_num": -2,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Thread.java",
+          "class_name": "java.lang.Thread",
+          "method_name": "sleep"
+        },
+        {
+          "line_num": 450,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Thread.java",
+          "class_name": "java.lang.Thread",
+          "method_name": "sleep"
+        },
+        {
+          "line_num": 355,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Thread.java",
+          "class_name": "java.lang.Thread",
+          "method_name": "sleep"
+        },
+        {
+          "line_num": 438,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Daemons.java",
+          "class_name": "java.lang.Daemons$FinalizerWatchdogDaemon",
+          "method_name": "sleepForNanos"
+        },
+        {
+          "line_num": 480,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Daemons.java",
+          "class_name": "java.lang.Daemons$FinalizerWatchdogDaemon",
+          "method_name": "waitForProgress"
+        },
+        {
+          "line_num": 369,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Daemons.java",
+          "class_name": "java.lang.Daemons$FinalizerWatchdogDaemon",
+          "method_name": "runInternal"
+        },
+        {
+          "line_num": 140,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Daemons.java",
+          "class_name": "java.lang.Daemons$Daemon",
+          "method_name": "run"
+        },
+        {
+          "line_num": 1012,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Thread.java",
+          "class_name": "java.lang.Thread",
+          "method_name": "run"
+        }
+      ]
+    },
+    {
+      "name": "msr-ee",
+      "frames": [
+        {
+          "line_num": -2,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Unsafe.java",
+          "class_name": "jdk.internal.misc.Unsafe",
+          "method_name": "park"
+        },
+        {
+          "line_num": 194,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "LockSupport.java",
+          "class_name": "java.util.concurrent.locks.LockSupport",
+          "method_name": "park"
+        },
+        {
+          "line_num": 2081,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "AbstractQueuedSynchronizer.java",
+          "class_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject",
+          "method_name": "await"
+        },
+        {
+          "line_num": 1176,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "ScheduledThreadPoolExecutor.java",
+          "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+          "method_name": "take"
+        },
+        {
+          "line_num": 905,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "ScheduledThreadPoolExecutor.java",
+          "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+          "method_name": "take"
+        },
+        {
+          "line_num": 1063,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "ThreadPoolExecutor.java",
+          "class_name": "java.util.concurrent.ThreadPoolExecutor",
+          "method_name": "getTask"
+        },
+        {
+          "line_num": 1123,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "ThreadPoolExecutor.java",
+          "class_name": "java.util.concurrent.ThreadPoolExecutor",
+          "method_name": "runWorker"
+        },
+        {
+          "line_num": 637,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "ThreadPoolExecutor.java",
+          "class_name": "java.util.concurrent.ThreadPoolExecutor$Worker",
+          "method_name": "run"
+        },
+        {
+          "line_num": 1012,
+          "col_num": 0,
+          "module_name": "",
+          "file_name": "Thread.java",
+          "class_name": "java.lang.Thread",
+          "method_name": "run"
+        }
+      ]
+    }
+  ],
+  "fingerprint": "c3f8c85cc0d013fd",
+  "foreground": false
+}

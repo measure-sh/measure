@@ -1,0 +1,17 @@
+java.lang.OutOfMemoryError: Failed to allocate a 104857616 byte allocation with 25165824 free bytes and 87MB until OOM, target footprint 134540152, growth limit 201326592
+	at sh.measure.sample.ExceptionDemoActivity.onCreate$lambda$2(ExceptionDemoActivity.kt:29)
+	at sh.measure.sample.ExceptionDemoActivity.$r8$lambda$itIQQMXgA5GFCPpehqNC2ZDufqA
+	at sh.measure.sample.ExceptionDemoActivity$$ExternalSyntheticLambda3.onClick(D8$$SyntheticClass)
+	at android.view.View.performClick(View.java:7506)
+	at com.google.android.material.button.MaterialButton.performClick(MaterialButton.java:1218)
+	at android.view.View.performClickInternal(View.java:7483)
+	at android.view.View.-$$Nest$mperformClickInternal
+	at android.view.View$PerformClick.run(View.java:29334)
+	at android.os.Handler.handleCallback(Handler.java:942)
+	at android.os.Handler.dispatchMessage(Handler.java:99)
+	at android.os.Looper.loopOnce(Looper.java:201)
+	at android.os.Looper.loop(Looper.java:288)
+	at android.app.ActivityThread.main(ActivityThread.java:7872)
+	at java.lang.reflect.Method.invoke(Method.java:-2)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)
