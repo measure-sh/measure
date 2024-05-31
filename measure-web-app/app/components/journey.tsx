@@ -10,6 +10,7 @@ import ReactFlow, {
   Position,
   Handle,
   Controls,
+  getNodesBounds,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import Link from 'next/link';
@@ -264,6 +265,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, startDate, endDate, ap
           proOptions={{ hideAttribution: true }}
           // @ts-ignore
           nodeTypes={nodeTypes}
+          minZoom={0.01}
           fitView
         > <Controls position='bottom-right' showInteractive={false} showFitView={false} /></ReactFlow>}
     </div>
