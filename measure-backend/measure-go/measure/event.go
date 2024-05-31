@@ -1275,6 +1275,74 @@ func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filt
 	return
 }
 
+// GetExceptionsPlot queries and prepares aggregated crash instances
+// based on datetime and filters.
+func GetExceptionsPlot(ctx context.Context, eventIds []uuid.UUID, af *filter.AppFilter) (crashInstances []event.CrashInstance, err error) {
+	stmt := sqlf.
+		From(`default.events`).
+		Select("formatDateTime(timestamp, '%Y-%m-%d') as datetime").
+		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build),')') as version").
+		Select("count(id) as instances").
+		Where("`id` in (?)", eventIds).
+		GroupBy("version, formatDateTime(timestamp, '%Y-%m-%d') as datetime").
+		OrderBy("version, formatDateTime(timestamp, '%Y-%m-%d') as datetime")
+
+	stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+	if len(af.Versions) > 0 {
+		stmt.Where("attribute.app_version in (?)", af.Versions)
+	}
+
+	if len(af.VersionCodes) > 0 {
+		stmt.Where("attribute.app_build in (?)", af.VersionCodes)
+	}
+
+	if len(af.Countries) > 0 {
+		stmt.Where("inet.country_code in (?)", af.Countries)
+	}
+
+	if len(af.NetworkTypes) > 0 {
+		stmt.Where("attribute.network_type in (?)", af.NetworkTypes)
+	}
+
+	if len(af.NetworkGenerations) > 0 {
+		stmt.Where("attribute.network_generation in (?)", af.NetworkGenerations)
+	}
+
+	if len(af.Locales) > 0 {
+		stmt.Where("attribute.device_locale in (?)", af.Locales)
+	}
+
+	if len(af.DeviceManufacturers) > 0 {
+		stmt.Where(("attribute.device_manufacturer in (?)"), af.DeviceManufacturers)
+	}
+
+	if len(af.DeviceNames) > 0 {
+		stmt.Where(("attribute.device_name in (?)"), af.DeviceNames)
+	}
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var crashInstance event.CrashInstance
+		if err := rows.Scan(&crashInstance.DateTime, &crashInstance.Version, &crashInstance.Instances); err != nil {
+			return nil, err
+		}
+		crashInstances = append(crashInstances, crashInstance)
+	}
+
+	if rows.Err() != nil {
+		return
+	}
+
+	return
+}
+
 // GetANRsWithFilter returns a slice of EventANR for the given slice of
 // event id and matching AppFilter.
 func GetANRsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filter.AppFilter) (events []event.EventANR, next bool, previous bool, err error) {
