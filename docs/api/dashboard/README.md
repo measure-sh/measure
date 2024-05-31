@@ -25,17 +25,17 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-3)
     - [Response Body](#response-body-3)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-3)
-  - [GET `/apps/:id/anrGroups`](#get-appsidanrgroups)
+  - [GET `/apps/:id/crashGroups/:id/crashes`](#get-appsidcrashgroupsidcrashes)
     - [Usage Notes](#usage-notes-4)
     - [Authorization \& Content Type](#authorization--content-type-4)
     - [Response Body](#response-body-4)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-4)
-  - [GET `/apps/:id/crashGroups/:id/crashes`](#get-appsidcrashgroupsidcrashes)
+  - [GET `/apps/:id/crashGroups/:id/plot`](#get-appsidcrashgroupsidplot)
     - [Usage Notes](#usage-notes-5)
     - [Authorization \& Content Type](#authorization--content-type-5)
     - [Response Body](#response-body-5)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-5)
-  - [GET `/apps/:id/crashGroups/:id/plot`](#get-appsidcrashgroupsidplot)
+  - [GET `/apps/:id/anrGroups`](#get-appsidanrgroups)
     - [Usage Notes](#usage-notes-6)
     - [Authorization \& Content Type](#authorization--content-type-6)
     - [Response Body](#response-body-6)
@@ -45,82 +45,87 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-7)
     - [Response Body](#response-body-7)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-7)
-  - [GET `/apps/:id/sessions/:id`](#get-appsidsessionsid)
+  - [GET `/apps/:id/anrGroups/:id/plot`](#get-appsidanrgroupsidplot)
     - [Usage Notes](#usage-notes-8)
     - [Authorization \& Content Type](#authorization--content-type-8)
     - [Response Body](#response-body-8)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-8)
-  - [GET `/apps/:id/alertPrefs`](#get-appsidalertprefs)
+  - [GET `/apps/:id/sessions/:id`](#get-appsidsessionsid)
     - [Usage Notes](#usage-notes-9)
     - [Authorization \& Content Type](#authorization--content-type-9)
     - [Response Body](#response-body-9)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-9)
-  - [PATCH `/apps/:id/alertPrefs`](#patch-appsidalertprefs)
+  - [GET `/apps/:id/alertPrefs`](#get-appsidalertprefs)
     - [Usage Notes](#usage-notes-10)
-    - [Request body](#request-body)
     - [Authorization \& Content Type](#authorization--content-type-10)
     - [Response Body](#response-body-10)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-10)
-- [Teams](#teams)
-  - [POST `/teams`](#post-teams)
-    - [Authorization \& Content Type](#authorization--content-type-11)
-    - [Request Body](#request-body-1)
+  - [PATCH `/apps/:id/alertPrefs`](#patch-appsidalertprefs)
     - [Usage Notes](#usage-notes-11)
+    - [Request body](#request-body)
+    - [Authorization \& Content Type](#authorization--content-type-11)
     - [Response Body](#response-body-11)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-11)
-  - [GET `/teams`](#get-teams)
+- [Teams](#teams)
+  - [POST `/teams`](#post-teams)
     - [Authorization \& Content Type](#authorization--content-type-12)
+    - [Request Body](#request-body-1)
+    - [Usage Notes](#usage-notes-12)
     - [Response Body](#response-body-12)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-12)
-  - [GET `/teams/:id/apps`](#get-teamsidapps)
-    - [Usage Notes](#usage-notes-12)
+  - [GET `/teams`](#get-teams)
     - [Authorization \& Content Type](#authorization--content-type-13)
     - [Response Body](#response-body-13)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-13)
-  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
+  - [GET `/teams/:id/apps`](#get-teamsidapps)
     - [Usage Notes](#usage-notes-13)
     - [Authorization \& Content Type](#authorization--content-type-14)
     - [Response Body](#response-body-14)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-14)
-  - [POST `/teams/:id/apps`](#post-teamsidapps)
+  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
     - [Usage Notes](#usage-notes-14)
-    - [Request body](#request-body-2)
     - [Authorization \& Content Type](#authorization--content-type-15)
     - [Response Body](#response-body-15)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-15)
-  - [POST `/auth/invite`](#post-authinvite)
+  - [POST `/teams/:id/apps`](#post-teamsidapps)
     - [Usage Notes](#usage-notes-15)
-    - [Request body](#request-body-3)
+    - [Request body](#request-body-2)
     - [Authorization \& Content Type](#authorization--content-type-16)
     - [Response Body](#response-body-16)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-16)
-  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
+  - [POST `/auth/invite`](#post-authinvite)
     - [Usage Notes](#usage-notes-16)
-    - [Request body](#request-body-4)
+    - [Request body](#request-body-3)
     - [Authorization \& Content Type](#authorization--content-type-17)
     - [Response Body](#response-body-17)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-17)
-  - [GET `/teams/:id/members`](#get-teamsidmembers)
+  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
     - [Usage Notes](#usage-notes-17)
+    - [Request body](#request-body-4)
     - [Authorization \& Content Type](#authorization--content-type-18)
     - [Response Body](#response-body-18)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-18)
-  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+  - [GET `/teams/:id/members`](#get-teamsidmembers)
     - [Usage Notes](#usage-notes-18)
     - [Authorization \& Content Type](#authorization--content-type-19)
     - [Response Body](#response-body-19)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-19)
-  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
     - [Usage Notes](#usage-notes-19)
-    - [Request body](#request-body-5)
     - [Authorization \& Content Type](#authorization--content-type-20)
     - [Response Body](#response-body-20)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-20)
-  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
     - [Usage Notes](#usage-notes-20)
+    - [Request body](#request-body-5)
     - [Authorization \& Content Type](#authorization--content-type-21)
     - [Response Body](#response-body-21)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-21)
+  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+    - [Usage Notes](#usage-notes-21)
+    - [Authorization \& Content Type](#authorization--content-type-22)
+    - [Response Body](#response-body-22)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-22)
 
 ## Apps
 
@@ -601,102 +606,6 @@ List of HTTP status codes for success and failures.
 
 </details>
 
-### GET `/apps/:id/anrGroups`
-
-Fetch a list of ANR groups for an app.
-
-#### Usage Notes
-
-- App's UUID must be passed in the URI
-- Accepted query parameters
-  - `from` (_optional_) - Start time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
-  - `to` (_optional_) - End time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
-  - `versions` (_optional_) - List of comma separated version identifier strings to return anr groups that have events matching the version.
-  - `version_codes` (_optional_) - List of comma separated version codes to return anr groups that have events matching the version code.
-  - `key_id` (_optional_) - UUID of the last item. Used for keyset based pagination. Should be used along with `limit`.
-  - `limit` (_optional_) - Number of items to return. Used for keyset based pagination. Should be used along with `key_id`. Negative values traverses backward along with `limit`.
-
-#### Authorization & Content Type
-
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
-
-2. Set content type as `Content-Type: application/json; charset=utf-8`
-
-These headers must be present in each request.
-
-<details>
-<summary>Request Headers - Click to expand</summary>
-
-| **Name**        | **Value**                        |
-| --------------- | -------------------------------- |
-| `Authorization` | Bearer &lt;user-access-token&gt; |
-| `Content-Type`  | application/json; charset=utf-8  |
-</details>
-
-#### Response Body
-
-- Response
-
-  <details><summary>Click to expand</summary>
-
-  ```json
-  {
-    "meta": {
-      "next": false,
-      "previous": false
-    },
-    "results": [
-      {
-        "id": "018da687-f827-71d7-a136-0d3674e57943",
-        "app_id": "45b3788e-2226-4f39-9e3c-710016c6c075",
-        "name": "sh.measure.android.anr.AnrError",
-        "fingerprint": "a97a4d1c40613ffb",
-        "count": 2,
-        "percentage_contribution": 50,
-        "created_at": "2024-02-14T07:32:25.255Z",
-        "updated_at": "2024-02-14T07:33:03.679Z"
-      },
-      {
-        "id": "018da688-209a-739e-a7d2-6116fdc5ca6d",
-        "app_id": "45b3788e-2226-4f39-9e3c-710016c6c075",
-        "name": "c4.c",
-        "fingerprint": "c378c85cc0c113f9",
-        "count": 2,
-        "percentage_contribution": 50,
-        "created_at": "2024-02-14T07:32:35.61Z",
-        "updated_at": "2024-02-14T07:33:03.679Z"
-      }
-    ]
-  }
-  ```
-
-  </details>
-
-- Failed requests have the following response shape
-
-  ```json
-  {
-    "error": "Error message"
-  }
-  ```
-
-#### Status Codes &amp; Troubleshooting
-
-List of HTTP status codes for success and failures.
-
-<details>
-<summary>Status Codes - Click to expand</summary>
-
-| **Status**                  | **Meaning**                                                                                                            |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `200 Ok`                    | Successful response, no errors.                                                                                        |
-| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
-| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
-| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
-| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
-| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
-
-</details>
 
 ### GET `/apps/:id/crashGroups/:id/crashes`
 
@@ -3037,6 +2946,103 @@ List of HTTP status codes for success and failures.
 
 </details>
 
+### GET `/apps/:id/anrGroups`
+
+Fetch a list of ANR groups for an app.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Accepted query parameters
+  - `from` (_optional_) - Start time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
+  - `to` (_optional_) - End time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
+  - `versions` (_optional_) - List of comma separated version identifier strings to return anr groups that have events matching the version.
+  - `version_codes` (_optional_) - List of comma separated version codes to return anr groups that have events matching the version code.
+  - `key_id` (_optional_) - UUID of the last item. Used for keyset based pagination. Should be used along with `limit`.
+  - `limit` (_optional_) - Number of items to return. Used for keyset based pagination. Should be used along with `key_id`. Negative values traverses backward along with `limit`.
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  {
+    "meta": {
+      "next": false,
+      "previous": false
+    },
+    "results": [
+      {
+        "id": "018da687-f827-71d7-a136-0d3674e57943",
+        "app_id": "45b3788e-2226-4f39-9e3c-710016c6c075",
+        "name": "sh.measure.android.anr.AnrError",
+        "fingerprint": "a97a4d1c40613ffb",
+        "count": 2,
+        "percentage_contribution": 50,
+        "created_at": "2024-02-14T07:32:25.255Z",
+        "updated_at": "2024-02-14T07:33:03.679Z"
+      },
+      {
+        "id": "018da688-209a-739e-a7d2-6116fdc5ca6d",
+        "app_id": "45b3788e-2226-4f39-9e3c-710016c6c075",
+        "name": "c4.c",
+        "fingerprint": "c378c85cc0c113f9",
+        "count": 2,
+        "percentage_contribution": 50,
+        "created_at": "2024-02-14T07:32:35.61Z",
+        "updated_at": "2024-02-14T07:33:03.679Z"
+      }
+    ]
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
 ### GET `/apps/:id/anrGroups/:id/anrs`
 
 Fetch list of anrs of an anr group for an app.
@@ -3403,6 +3409,92 @@ These headers must be present in each request.
       }
     ]
   }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/anrGroups/:id/plot`
+
+Fetch list of ANR instances aggregrated by parameters like time & version.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Accepted query parameters
+  - `from` (_optional_) - ISO8601 timestamp to include crashes after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include crashes before this time.
+  - `versions` (_optional_) - List of comma separated version identifier strings to return only matching crashes.
+  - `version_codes` (_optional_) - List of comma separated version codes to return only matching crashes.
+  - `countries` (_optional_) - List of comma separated country identifier strings to return only matching crashes.
+  - `device_names` (_optional_) - List of comma separated device name identifier strings to return only matching crashes.
+  - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings to return only matching crashes.
+  - `locales` (_optional_) - List of comma separated device locale identifier strings to return only matching crashes.
+  - `network_providers` (_optional_) - List of comma separated network provider identifier strings to return only matching crashes.
+  - `network_types` (_optional_) - List of comma separated network type identifier strings to return only matching crashes.
+  - `network_generations` (_optional_) - List of comma separated network generation identifier strings to return only matching crashes.
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+
+#### Authorization &amp; Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  [
+    {
+      "id": "1.0 (1)",
+      "data": [
+        {
+          "datetime": "2024-05-03",
+          "instances": 1
+        }
+      ]
+    }
+  ]
   ```
 
   </details>
