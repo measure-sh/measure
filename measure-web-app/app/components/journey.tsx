@@ -64,25 +64,27 @@ const formatter = Intl.NumberFormat('en', { notation: 'compact' });
 
 {/* @ts-ignore */ }
 function MeasureNode({ data, isConnectable }) {
-
   const isNodeWithIssues = data.issues.crashes.length > 0 || data.issues.anrs.length > 0
+  let nodeHeaderBgColour
+  if (isNodeWithIssues) {
+    const greenPercentage = isNodeWithIssues ? (1 - data.nodeIssueContribution) * 100 : 100
+    const redPercentage = isNodeWithIssues ? data.nodeIssueContribution * 100 : 0
+    nodeHeaderBgColour = { background: `linear-gradient(to right, #4ADE80 ${greenPercentage}%, ${greenPercentage}%, #F87171 ${redPercentage}%)` }
+  } else {
+    nodeHeaderBgColour = { background: '#4ADE80' }
+  }
+
   return (
     <div className='group border-black rounded-md transition ease-in-out duration-300 hover:-translate-y-1 hover:scale-110'>
       <Handle type="target" id="a" position={Position.Top} isConnectable={isConnectable} />
       <Handle type="source" id="b" position={Position.Bottom} isConnectable={isConnectable} />
 
       {/* this div is a hack to animate label position from center to left and back again on hover */}
-      <div className={`w-full flex flex-row p-4 ${isNodeWithIssues ? 'bg-red-400' : 'bg-emerald-400'}`}>
+      <div className={`w-full flex flex-row p-4`} style={nodeHeaderBgColour}>
         <div className="grow group-hover:grow-0 transition-[flex-grow] ease-out duration-300" />
         <p className="font-sans text-white w-fit">{data.label}</p>
         <div className="grow group-hover:grow-0 transition-[flex-grow] ease-out duration-300" />
       </div>
-
-      {/* Indicator line to show percentage contribution of issues */}
-      {isNodeWithIssues &&
-        <div className='w-full bg-red-400'>
-          <div className={`h-1 bg-neutral-950`} style={{ width: `${data.nodeIssueContribution * 100}%` }} />
-        </div>}
 
       <div className='h-0 rounded-b-md opacity-0 bg-neutral-950 group-hover:pl-2 group-hover:pr-2 group-hover:opacity-100 group-hover:h-full transition ease-in-out duration-300 '>
         {data.issues.crashes.length > 0 && (
