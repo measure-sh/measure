@@ -2136,7 +2136,7 @@ func GetCrashGroupCrashesPlot(c *gin.Context) {
 		return
 	}
 
-	crashInstances, err := GetExceptionsPlot(ctx, group.EventIDs, &af)
+	crashInstances, err := GetIssuesPlot(ctx, group.EventIDs, &af)
 	if err != nil {
 		msg := `failed to query data for crash instances plot`
 		fmt.Println(msg, err)
@@ -2394,6 +2394,135 @@ func GetANRGroupANRs(c *gin.Context) {
 			"previous": previous,
 		},
 	})
+}
+
+func GetANRGroupANRsPlot(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	anrGroupId, err := uuid.Parse(c.Param("anrGroupId"))
+	if err != nil {
+		msg := `anr group id is invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		return
+	}
+
+	af.Expand()
+
+	if err := af.Validate(); err != nil {
+		msg := "app filters request validation failed"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		return
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	group, err := app.GetANRGroup(ctx, anrGroupId)
+	if err != nil {
+		msg := fmt.Sprintf("failed to get anr group with id %q", anrGroupId.String())
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	anrInstances, err := GetIssuesPlot(ctx, group.EventIDs, &af)
+	if err != nil {
+		msg := `failed to query data for anr instances plot`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	type instance struct {
+		ID   string  `json:"id"`
+		Data []gin.H `json:"data"`
+	}
+
+	response := make(map[string]instance)
+
+	var instances []instance
+
+	for i := range anrInstances {
+		var instance instance
+		instance.ID = anrInstances[i].Version
+		instance.Data = append(instance.Data, gin.H{
+			"datetime":  anrInstances[i].DateTime,
+			"instances": anrInstances[i].Instances,
+		})
+
+		value, ok := response[anrInstances[i].Version]
+		if !ok {
+			response[anrInstances[i].Version] = instance
+		} else {
+			value.Data = append(value.Data, gin.H{
+				"datetime":  anrInstances[i].DateTime,
+				"instances": anrInstances[i].Instances,
+			})
+		}
+
+		instances = append(instances, instance)
+	}
+
+	c.JSON(http.StatusOK, instances)
 }
 
 func CreateApp(c *gin.Context) {

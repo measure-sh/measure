@@ -1,8 +1,8 @@
 package event
 
-// CrashInstance represents an entity
-// for plotting crash instances.
-type CrashInstance struct {
+// IssueInstance represents an entity
+// for plotting crash or ANR instances.
+type IssueInstance struct {
 	DateTime  string  `json:"datetime"`
 	Version   string  `json:"version"`
 	Instances *uint64 `json:"instances"`

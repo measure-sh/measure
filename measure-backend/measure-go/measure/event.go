@@ -1275,9 +1275,9 @@ func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filt
 	return
 }
 
-// GetExceptionsPlot queries and prepares aggregated crash instances
+// GetIssuesPlot queries and prepares aggregated issue instances
 // based on datetime and filters.
-func GetExceptionsPlot(ctx context.Context, eventIds []uuid.UUID, af *filter.AppFilter) (crashInstances []event.CrashInstance, err error) {
+func GetIssuesPlot(ctx context.Context, eventIds []uuid.UUID, af *filter.AppFilter) (issueInstances []event.IssueInstance, err error) {
 	stmt := sqlf.
 		From(`default.events`).
 		Select("formatDateTime(timestamp, '%Y-%m-%d') as datetime").
@@ -1329,11 +1329,11 @@ func GetExceptionsPlot(ctx context.Context, eventIds []uuid.UUID, af *filter.App
 	}
 
 	for rows.Next() {
-		var crashInstance event.CrashInstance
-		if err := rows.Scan(&crashInstance.DateTime, &crashInstance.Version, &crashInstance.Instances); err != nil {
+		var instance event.IssueInstance
+		if err := rows.Scan(&instance.DateTime, &instance.Version, &instance.Instances); err != nil {
 			return nil, err
 		}
-		crashInstances = append(crashInstances, crashInstance)
+		issueInstances = append(issueInstances, instance)
 	}
 
 	if rows.Err() != nil {
