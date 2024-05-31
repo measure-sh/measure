@@ -9,6 +9,7 @@ import ReactFlow, {
   useEdgesState,
   Position,
   Handle,
+  Controls,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import Link from 'next/link';
@@ -264,7 +265,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, startDate, endDate, ap
           // @ts-ignore
           nodeTypes={nodeTypes}
           fitView
-        />}
+        > <Controls position='bottom-right' showInteractive={false} showFitView={false} /></ReactFlow>}
     </div>
   );
 };
