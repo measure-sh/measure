@@ -1,7 +1,7 @@
 package sh.measure.android.exporter
 
 import androidx.annotation.VisibleForTesting
-import sh.measure.android.Config
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
@@ -22,7 +22,7 @@ internal interface PeriodicEventExporter {
  */
 internal class PeriodicEventExporterImpl(
     private val logger: Logger,
-    private val config: Config,
+    private val configProvider: ConfigProvider,
     private val executorService: MeasureExecutorService,
     private val database: Database,
     private val fileStorage: FileStorage,
@@ -50,11 +50,11 @@ internal class PeriodicEventExporterImpl(
     }
 
     override fun onAppForeground() {
-        heartbeat.start(intervalMs = config.batchingIntervalMs)
+        heartbeat.start(intervalMs = configProvider.eventsBatchingIntervalMs)
     }
 
     override fun onColdLaunch() {
-        heartbeat.start(intervalMs = config.batchingIntervalMs)
+        heartbeat.start(intervalMs = configProvider.eventsBatchingIntervalMs)
     }
 
     override fun onAppBackground() {
@@ -99,7 +99,7 @@ internal class PeriodicEventExporterImpl(
     }
 
     private fun processNewBatchIfTimeElapsed() {
-        if (timeProvider.uptimeInMillis - lastBatchCreationUptimeMs >= config.batchingIntervalMs) {
+        if (timeProvider.uptimeInMillis - lastBatchCreationUptimeMs >= configProvider.eventsBatchingIntervalMs) {
             batchCreator.create()?.let { result ->
                 lastBatchCreationUptimeMs = timeProvider.uptimeInMillis
                 val events = database.getEventPackets(result.eventIds)

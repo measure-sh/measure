@@ -28,6 +28,7 @@ internal interface Database : Closeable {
      * @param eventCount The number of events to return.
      * @param ascending If `true`, the events are returned in ascending order of timestamp. Else,
      * in descending order.
+     * @return a map of event Id to the size of attachments in the event in bytes.
      */
     fun getUnBatchedEventsWithAttachmentSize(
         eventCount: Int,

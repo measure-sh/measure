@@ -57,8 +57,6 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { trackWarmLaunchIntent }
     override val trackHotLaunchIntent: Boolean
         get() = getMergedConfig { trackHotLaunchIntent }
-    override val maxEventsBatchSizeMb: Int
-        get() = getMergedConfig { maxEventsBatchSizeMb }
     override val eventsBatchingIntervalMs: Long
         get() = getMergedConfig { eventsBatchingIntervalMs }
     override val maxEventsInBatch: Int
@@ -69,6 +67,8 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { restrictedHttpHeadersBlocklist }
     override val restrictedHttpUrlBlocklist: List<String>
         get() = getMergedConfig { restrictedHttpUrlBlocklist }
+    override val maxEventsAttachmentSizeInBatchBytes: Int
+        get() = getMergedConfig { maxEventsAttachmentSizeInBatchBytes }
 
     private fun <T> getMergedConfig(selector: MeasureConfig.() -> T): T {
         if (networkConfig != null) {
