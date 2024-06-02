@@ -192,7 +192,7 @@ internal class MeasureInitializerImpl(
         attributeProcessors = attributeProcessors,
         eventExporter = eventExporter,
         screenshotCollector = screenshotCollector,
-        config = config,
+        configProvider = configProvider,
     ),
     private val periodicHeartbeat: Heartbeat = HeartbeatImpl(
         logger,
