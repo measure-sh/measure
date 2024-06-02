@@ -11,7 +11,7 @@ import org.mockito.kotlin.verify
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.exporter.EventExporter
-import sh.measure.android.fakes.FakeConfig
+import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeEventFactory
 import sh.measure.android.fakes.FakeEventFactory.toEvent
 import sh.measure.android.fakes.FakeEventStore
@@ -30,7 +30,7 @@ internal class EventProcessorTest {
     private val eventStore = FakeEventStore()
     private val eventExporter = mock<EventExporter>()
     private val screenshotCollector = mock<ScreenshotCollector>()
-    private val config = FakeConfig()
+    private val config = FakeConfigProvider()
 
     private val eventProcessor = EventProcessorImpl(
         logger = NoopLogger(),
@@ -41,12 +41,12 @@ internal class EventProcessorTest {
         attributeProcessors = emptyList(),
         eventExporter = eventExporter,
         screenshotCollector = screenshotCollector,
-        config = config,
+        configProvider = config,
     )
 
     @Before
     fun setUp() {
-        config.captureScreenshotForExceptions = false
+        config.trackScreenshotOnCrash = false
     }
 
     @Test
@@ -150,7 +150,7 @@ internal class EventProcessorTest {
             attributeProcessors = listOf(attributeProcessor),
             eventExporter = eventExporter,
             screenshotCollector = screenshotCollector,
-            config = config,
+            configProvider = config,
         )
 
         // When
@@ -216,7 +216,7 @@ internal class EventProcessorTest {
         val exceptionData = FakeEventFactory.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.EXCEPTION
-        config.captureScreenshotForExceptions = true
+        config.trackScreenshotOnCrash = true
         val screenshot = Screenshot(data = byteArrayOf(1, 2, 3, 4), extension = "png")
         `when`(screenshotCollector.takeScreenshot()).thenReturn(screenshot)
 
@@ -241,7 +241,7 @@ internal class EventProcessorTest {
         val exceptionData = FakeEventFactory.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.EXCEPTION
-        config.captureScreenshotForExceptions = false
+        config.trackScreenshotOnCrash = false
 
         // When
         eventProcessor.track(
@@ -262,7 +262,7 @@ internal class EventProcessorTest {
         val exceptionData = FakeEventFactory.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.ANR
-        config.captureScreenshotForExceptions = true
+        config.trackScreenshotOnCrash = true
 
         // When
         eventProcessor.track(
@@ -283,7 +283,7 @@ internal class EventProcessorTest {
         val exceptionData = FakeEventFactory.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.ANR
-        config.captureScreenshotForExceptions = false
+        config.trackScreenshotOnCrash = false
 
         // When
         eventProcessor.track(

@@ -1,10 +1,10 @@
 package sh.measure.android.events
 
-import sh.measure.android.Config
 import sh.measure.android.SessionManager
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.appendAttributes
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.exporter.EventExporter
 import sh.measure.android.logger.LogLevel
@@ -76,7 +76,7 @@ internal class EventProcessorImpl(
     private val attributeProcessors: List<AttributeProcessor>,
     private val eventExporter: EventExporter,
     private val screenshotCollector: ScreenshotCollector,
-    private val config: Config,
+    private val configProvider: ConfigProvider,
 ) : EventProcessor {
 
     override fun <T> track(
@@ -136,7 +136,7 @@ internal class EventProcessorImpl(
             // immediately to report them as soon as possible.
             EventType.ANR, EventType.EXCEPTION -> {
                 val event = createEvent(sessionId)
-                if (config.captureScreenshotForExceptions) {
+                if (configProvider.trackScreenshotOnCrash) {
                     addScreenshotAsAttachment(event)
                 }
                 applyAttributes(event)
