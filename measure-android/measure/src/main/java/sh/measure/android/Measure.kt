@@ -3,6 +3,7 @@ package sh.measure.android
 import android.app.Application
 import android.content.Context
 import androidx.annotation.VisibleForTesting
+import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.okhttp.OkHttpEventCollector
 import sh.measure.android.utils.TimeProvider
@@ -11,11 +12,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 /**
  * The public API of Measure SDK.
  */
-object Measure : MeasureApi {
+object Measure {
     private val isInitialized = AtomicBoolean(false)
     private lateinit var measure: MeasureInternal
 
-    override fun init(context: Context) {
+    fun init(context: Context, measureConfig: MeasureConfig = MeasureConfig()) {
         if (isInitialized.compareAndSet(false, true)) {
             val application = context.applicationContext as Application
             val initializer = MeasureInitializerImpl(application)
@@ -32,7 +33,7 @@ object Measure : MeasureApi {
         }
     }
 
-    override fun setUserId(userId: String) {
+    fun setUserId(userId: String) {
         if (isInitialized.get()) {
             measure.setUserId(userId)
         }
