@@ -1,26 +1,26 @@
 package sh.measure.android.config
 
-class MeasureConfig(
+internal interface IMeasureConfig {
     /**
      * Whether to capture a screenshot of the app when it crashes due to an unhandled exception or
      * ANR. Defaults to `true`.
      */
-    val trackScreenshotOnCrash: Boolean = true,
+    val trackScreenshotOnCrash: Boolean
 
     /**
      * The level of masking to apply to the screenshot. Defaults to [ScreenshotMaskLevel.AllTextAndMedia].
      */
-    val screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.AllTextAndMedia,
+    val screenshotMaskLevel: ScreenshotMaskLevel
 
     /**
      * Whether to capture http headers of a network request and response. Defaults to `false`.
      */
-    val enableHttpHeadersCapture: Boolean = false,
+    val enableHttpHeadersCapture: Boolean
 
     /**
      * Whether to capture http body of a network request and response. Defaults to `false`.
      */
-    val enableHttpBodyCapture: Boolean = false,
+    val enableHttpBodyCapture: Boolean
 
     /**
      * List of HTTP headers to not capture for network request and response. Defaults to an empty
@@ -29,7 +29,7 @@ class MeasureConfig(
      * Internally, this list is combined with [restrictedHttpHeadersBlocklist] to form the final
      * blocklist.
      */
-    val httpHeadersBlocklist: List<String> = emptyList(),
+    val httpHeadersBlocklist: List<String>
 
     /**
      * List of HTTP URLs to not capture for network request and response. Defaults to an empty list.
@@ -37,56 +37,82 @@ class MeasureConfig(
      * Internally, this list is combined with [restrictedHttpUrlBlocklist] to form the final
      * blocklist.
      */
-    val httpUrlBlocklist: List<String> = emptyList(),
+    val httpUrlBlocklist: List<String>
 
     /**
      * Whether to capture lifecycle activity intent data. Defaults to `false`.
      */
-    val trackLifecycleActivityIntent: Boolean = false,
+    val trackLifecycleActivityIntent: Boolean
 
     /**
      * Whether to capture intent data for the activity launched as part of a cold launch. Defaults
      * to `false`.
      */
-    val trackColdLaunchIntent: Boolean = false,
+    val trackColdLaunchIntent: Boolean
 
     /**
      * Whether to capture intent data for the activity launched as part of a warm launch. Defaults
      * to `false`.
      */
-    val trackWarmLaunchIntent: Boolean = false,
+    val trackWarmLaunchIntent: Boolean
 
     /**
      * Whether to capture intent data for the activity launched as part of a hot launch. Defaults
      * to `false`.
      */
-    val trackHotLaunchIntent: Boolean = false,
-) {
+    val trackHotLaunchIntent: Boolean
+
     /**
      * The maximum size of a batch to export in /events API, in MB. Defaults to 5 MB.
      */
-    val maxEventsBatchSizeMb: Int = 5
+    val maxEventsBatchSizeMb: Int
 
     /**
      * The maximum number of events to export in /events API. Defaults to 1000.
      */
-    val eventsBatchingIntervalMs: Long = 30_000 // 30 seconds
+    val eventsBatchingIntervalMs: Long
 
     /**
      * The maximum number of events to export in /events API. Defaults to 500.
      */
-    val maxEventsInBatch: Int = 500
+    val maxEventsInBatch: Int
 
     /**
      * When `httpBodyCapture` is enabled, this determines whether to capture the body or not based
      * on the content type of the request/response. Defaults to `application/json`.
      */
-    val httpContentTypeAllowlist: List<String> = listOf("application/json")
+    val httpContentTypeAllowlist: List<String>
 
     /**
      * List of HTTP headers to not capture for network request and response.
      */
-    val restrictedHttpHeadersBlocklist: List<String> = listOf(
+    val restrictedHttpHeadersBlocklist: List<String>
+
+    /**
+     * List of HTTP URLs to not capture for network request and response.
+     *
+     * // TODO: describe the logic of how the URLs are matched.
+     */
+    val restrictedHttpUrlBlocklist: List<String>
+}
+
+class MeasureConfig(
+    override val trackScreenshotOnCrash: Boolean = true,
+    override val screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.AllTextAndMedia,
+    override val enableHttpHeadersCapture: Boolean = false,
+    override val enableHttpBodyCapture: Boolean = false,
+    override val httpHeadersBlocklist: List<String> = emptyList(),
+    override val httpUrlBlocklist: List<String> = emptyList(),
+    override val trackLifecycleActivityIntent: Boolean = false,
+    override val trackColdLaunchIntent: Boolean = false,
+    override val trackWarmLaunchIntent: Boolean = false,
+    override val trackHotLaunchIntent: Boolean = false,
+) : IMeasureConfig {
+    override val maxEventsBatchSizeMb: Int = 5
+    override val eventsBatchingIntervalMs: Long = 30_000 // 30 seconds
+    override val maxEventsInBatch: Int = 500
+    override val httpContentTypeAllowlist: List<String> = listOf("application/json")
+    override val restrictedHttpHeadersBlocklist: List<String> = listOf(
         "Authorization",
         "Cookie",
         "Set-Cookie",
@@ -94,13 +120,7 @@ class MeasureConfig(
         "WWW-Authenticate",
         "X-Api-Key",
     )
-
-    /**
-     * List of HTTP URLs to not capture for network request and response.
-     *
-     * // TODO: describe the logic of how the URLs are matched.
-     */
-    val restrictedHttpUrlBlocklist: List<String> = listOf(
+    override val restrictedHttpUrlBlocklist: List<String> = listOf(
         // TODO(abhay): review this list to block all measure API endpoints.
         "api.measure.sh",
         "localhost:8080/events",
