@@ -11,17 +11,11 @@ import android.util.Log
 import sh.measure.android.applaunch.LaunchState
 
 /**
- * A content provider used to initialise Measure SDK.
- * See [link](https://firebase.blog/posts/2016/12/how-does-firebase-initialize-on-android/)
- * for more details.
+ * A content provider used to mark the start time of the application, used to calculate the cold
+ * start time.
  */
 internal class MeasureInitProvider : ContentProvider() {
     override fun onCreate(): Boolean {
-        if (context == null) {
-            Log.e("Measure", "ContextProvider got null application context.")
-            return false
-        }
-        Measure.init(context!!)
         return true
     }
 
