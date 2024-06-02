@@ -1,9 +1,9 @@
-package sh.measure.android.screenshot
+package sh.measure.android.config
 
 /**
  * The level of masking to apply to the screenshot.
  */
-internal enum class ScreenshotMaskLevel {
+enum class ScreenshotMaskLevel {
     /**
      * The strictest level of masking which masks all text, input fields, images and videos.
      */

@@ -1,7 +1,7 @@
 package sh.measure.android.fakes
 
 import sh.measure.android.Config
-import sh.measure.android.screenshot.ScreenshotMaskLevel
+import sh.measure.android.config.ScreenshotMaskLevel
 
 internal class FakeConfig(
     private var trackHttpBody: Boolean = true,

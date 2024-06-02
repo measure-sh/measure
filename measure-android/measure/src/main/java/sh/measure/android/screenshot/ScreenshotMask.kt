@@ -14,6 +14,7 @@ import androidx.compose.ui.semantics.getAllSemanticsNodes
 import androidx.compose.ui.semantics.getOrNull
 import androidx.core.view.isVisible
 import sh.measure.android.Config
+import sh.measure.android.config.ScreenshotMaskLevel
 import sh.measure.android.utils.ComposeHelper
 import sh.measure.android.utils.isSensitiveInputType
 
