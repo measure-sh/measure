@@ -1,6 +1,6 @@
 package sh.measure.android
 
-import sh.measure.android.screenshot.ScreenshotMaskLevel
+import sh.measure.android.config.ScreenshotMaskLevel
 
 private val disabledHttpBodyUrlPatterns = listOf(
     // measure sessions endpoint for local development
