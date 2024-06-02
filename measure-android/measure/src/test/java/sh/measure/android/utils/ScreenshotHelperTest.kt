@@ -12,7 +12,7 @@ import org.mockito.Mockito.`when`
 import org.robolectric.Robolectric
 import org.robolectric.annotation.Config
 import sh.measure.android.TestLifecycleActivity
-import sh.measure.android.fakes.FakeConfig
+import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.screenshot.ScreenshotCollectorImpl
 
@@ -20,7 +20,7 @@ import sh.measure.android.screenshot.ScreenshotCollectorImpl
 class ScreenshotHelperTest {
     private val logger = NoopLogger()
     private val lowMemoryCheck = mock<LowMemoryCheck>()
-    private val config = FakeConfig()
+    private val config = FakeConfigProvider()
     private val controller = Robolectric.buildActivity(TestLifecycleActivity::class.java)
 
     @Test

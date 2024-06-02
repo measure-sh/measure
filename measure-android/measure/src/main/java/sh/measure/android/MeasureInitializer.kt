@@ -181,7 +181,7 @@ internal class MeasureInitializerImpl(
         logger = logger,
         resumedActivityProvider = resumedActivityProvider,
         lowMemoryCheck = lowMemoryCheck,
-        config = config,
+        config = configProvider,
     ),
     override val eventProcessor: EventProcessor = EventProcessorImpl(
         logger = logger,

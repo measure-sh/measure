@@ -37,6 +37,10 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { trackScreenshotOnCrash }
     override val screenshotMaskLevel: ScreenshotMaskLevel
         get() = getMergedConfig { screenshotMaskLevel }
+    override val screenshotMaskHexColor: String
+        get() = getMergedConfig { screenshotMaskHexColor }
+    override val screenshotCompressionQuality: Int
+        get() = getMergedConfig { screenshotCompressionQuality }
     override val enableHttpHeadersCapture: Boolean
         get() = getMergedConfig { enableHttpHeadersCapture }
     override val enableHttpBodyCapture: Boolean

@@ -13,12 +13,12 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getAllSemanticsNodes
 import androidx.compose.ui.semantics.getOrNull
 import androidx.core.view.isVisible
-import sh.measure.android.Config
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.ScreenshotMaskLevel
 import sh.measure.android.utils.ComposeHelper
 import sh.measure.android.utils.isSensitiveInputType
 
-internal class ScreenshotMask(private val config: Config) {
+internal class ScreenshotMask(private val configProvider: ConfigProvider) {
 
     fun findRectsToMask(view: View): List<Rect> {
         val rects = mutableListOf<Rect>()
@@ -32,7 +32,7 @@ internal class ScreenshotMask(private val config: Config) {
         }
         when {
             view is ImageView || view is VideoView || isExoplayerView(view) -> {
-                if (config.screenshotMaskLevel == ScreenshotMaskLevel.AllTextAndMedia) {
+                if (configProvider.screenshotMaskLevel == ScreenshotMaskLevel.AllTextAndMedia) {
                     val rect = Rect()
                     if (view.getGlobalVisibleRect(rect)) {
                         rectsToMask.add(rect)
@@ -72,7 +72,7 @@ internal class ScreenshotMask(private val config: Config) {
             val isClickable = isNodeClickable(node)
             val isImage = isNodeImage(node)
 
-            if (isImage && config.screenshotMaskLevel == ScreenshotMaskLevel.AllTextAndMedia) {
+            if (isImage && configProvider.screenshotMaskLevel == ScreenshotMaskLevel.AllTextAndMedia) {
                 rectsToMask.add(node.boundsInWindow.toRect())
             }
 
@@ -83,16 +83,16 @@ internal class ScreenshotMask(private val config: Config) {
     }
 
     private fun shouldMaskTextView(view: TextView): Boolean {
-        return config.screenshotMaskLevel == ScreenshotMaskLevel.AllTextAndMedia || config.screenshotMaskLevel == ScreenshotMaskLevel.AllText || (config.screenshotMaskLevel == ScreenshotMaskLevel.AllTextExceptClickable && !view.isClickable) || (config.screenshotMaskLevel == ScreenshotMaskLevel.SensitiveFieldsOnly && view.isSensitiveInputType())
+        return configProvider.screenshotMaskLevel == ScreenshotMaskLevel.AllTextAndMedia || configProvider.screenshotMaskLevel == ScreenshotMaskLevel.AllText || (configProvider.screenshotMaskLevel == ScreenshotMaskLevel.AllTextExceptClickable && !view.isClickable) || (configProvider.screenshotMaskLevel == ScreenshotMaskLevel.SensitiveFieldsOnly && view.isSensitiveInputType())
     }
 
     private fun shouldMaskComposeText(isClickable: Boolean, isPassword: Boolean): Boolean {
         return (
-            config.screenshotMaskLevel == ScreenshotMaskLevel.AllTextAndMedia ||
-                config.screenshotMaskLevel == ScreenshotMaskLevel.AllText ||
-                (config.screenshotMaskLevel == ScreenshotMaskLevel.AllTextExceptClickable && !isClickable) ||
-                (config.screenshotMaskLevel == ScreenshotMaskLevel.SensitiveFieldsOnly && isPassword)
-            )
+                configProvider.screenshotMaskLevel == ScreenshotMaskLevel.AllTextAndMedia ||
+                        configProvider.screenshotMaskLevel == ScreenshotMaskLevel.AllText ||
+                        (configProvider.screenshotMaskLevel == ScreenshotMaskLevel.AllTextExceptClickable && !isClickable) ||
+                        (configProvider.screenshotMaskLevel == ScreenshotMaskLevel.SensitiveFieldsOnly && isPassword)
+                )
     }
 
     private fun isNodeImage(node: SemanticsNode): Boolean {
