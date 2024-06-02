@@ -16,10 +16,12 @@ object Measure {
     private val isInitialized = AtomicBoolean(false)
     private lateinit var measure: MeasureInternal
 
+    @JvmStatic
+    @JvmOverloads
     fun init(context: Context, measureConfig: MeasureConfig = MeasureConfig()) {
         if (isInitialized.compareAndSet(false, true)) {
             val application = context.applicationContext as Application
-            val initializer = MeasureInitializerImpl(application)
+            val initializer = MeasureInitializerImpl(application, defaultConfig = measureConfig)
             measure = MeasureInternal(initializer)
             measure.init()
         }

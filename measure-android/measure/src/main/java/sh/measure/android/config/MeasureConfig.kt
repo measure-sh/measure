@@ -123,6 +123,6 @@ class MeasureConfig(
     override val restrictedHttpUrlBlocklist: List<String> = listOf(
         // TODO(abhay): review this list to block all measure API endpoints.
         "api.measure.sh",
-        "localhost:8080/events",
+        "10.0.2.2:8080/events",
     )
 }

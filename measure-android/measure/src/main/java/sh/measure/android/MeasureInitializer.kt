@@ -12,6 +12,11 @@ import sh.measure.android.attributes.DeviceAttributeProcessor
 import sh.measure.android.attributes.InstallationIdAttributeProcessor
 import sh.measure.android.attributes.NetworkStateAttributeProcessor
 import sh.measure.android.attributes.UserAttributeProcessor
+import sh.measure.android.config.ConfigLoader
+import sh.measure.android.config.ConfigLoaderImpl
+import sh.measure.android.config.ConfigProvider
+import sh.measure.android.config.ConfigProviderImpl
+import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventProcessorImpl
 import sh.measure.android.exceptions.UnhandledExceptionCollector
@@ -79,6 +84,7 @@ import sh.measure.android.utils.UUIDProvider
 
 internal class MeasureInitializerImpl(
     private val application: Application,
+    private val defaultConfig: MeasureConfig,
     override val logger: Logger = AndroidLogger(),
     override val timeProvider: TimeProvider = AndroidTimeProvider(),
     private val executorServiceRegistry: ExecutorServiceRegistry = ExecutorServiceRegistryImpl(),
@@ -91,6 +97,10 @@ internal class MeasureInitializerImpl(
     override val networkClient: NetworkClient = NetworkClientImpl(
         logger = logger,
         fileStorage = fileStorage,
+    ),
+    override val configProvider: ConfigProvider = ConfigProviderImpl(
+        defaultConfig = defaultConfig,
+        configLoader = ConfigLoaderImpl(),
     ),
     private val idProvider: IdProvider = UUIDProvider(),
     private val processInfoProvider: ProcessInfoProvider = ProcessInfoProviderImpl(),
@@ -290,6 +300,7 @@ internal interface MeasureInitializer {
     val logger: Logger
     val timeProvider: TimeProvider
     val networkClient: NetworkClient
+    val configProvider: ConfigProvider
     val manifestReader: ManifestReader
     val resumedActivityProvider: ResumedActivityProvider
     val eventProcessor: EventProcessor
