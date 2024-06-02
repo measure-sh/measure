@@ -20,7 +20,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override var trackColdLaunchIntent: Boolean= false
     override var trackWarmLaunchIntent: Boolean= false
     override var trackHotLaunchIntent: Boolean= false
-    override var maxEventsBatchSizeMb: Int = 3
+    override var maxEventsAttachmentSizeInBatchBytes: Int = 3
     override var eventsBatchingIntervalMs: Long = 10_000
     override var maxEventsInBatch: Int = 100
     override var httpContentTypeAllowlist: List<String> = emptyList()

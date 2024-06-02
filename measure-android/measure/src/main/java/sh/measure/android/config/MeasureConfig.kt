@@ -75,9 +75,9 @@ internal interface IMeasureConfig {
     val trackHotLaunchIntent: Boolean
 
     /**
-     * The maximum size of a batch to export in /events API, in MB. Defaults to 5 MB.
+     * The maximum size of attachments allowed in a single batch. Defaults to 3MB
      */
-    val maxEventsBatchSizeMb: Int
+    val maxEventsAttachmentSizeInBatchBytes: Int
 
     /**
      * The maximum number of events to export in /events API. Defaults to 1000.
@@ -122,7 +122,7 @@ class MeasureConfig(
 ) : IMeasureConfig {
     override val screenshotMaskHexColor: String = "#222222"
     override val screenshotCompressionQuality: Int = 25
-    override val maxEventsBatchSizeMb: Int = 5
+    override val maxEventsAttachmentSizeInBatchBytes: Int = 3
     override val eventsBatchingIntervalMs: Long = 30_000 // 30 seconds
     override val maxEventsInBatch: Int = 500
     override val httpContentTypeAllowlist: List<String> = listOf("application/json")

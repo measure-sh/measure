@@ -1,6 +1,6 @@
 package sh.measure.android.exporter
 
-import sh.measure.android.Config
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.Database
@@ -27,13 +27,13 @@ internal class BatchCreatorImpl(
     private val logger: Logger,
     private val idProvider: IdProvider,
     private val database: Database,
-    private val config: Config,
+    private val configProvider: ConfigProvider,
     private val timeProvider: TimeProvider,
 ) : BatchCreator {
 
     override fun create(): BatchCreationResult? {
         val eventToAttachmentSizeMap =
-            database.getUnBatchedEventsWithAttachmentSize(config.maxEventsBatchSize)
+            database.getUnBatchedEventsWithAttachmentSize(configProvider.maxEventsInBatch)
         if (eventToAttachmentSizeMap.isEmpty()) {
             logger.log(LogLevel.Warning, "No events to batch")
             return null
@@ -65,7 +65,7 @@ internal class BatchCreatorImpl(
         var totalSize = 0L
         return eventToAttachmentSizeMap.asSequence().takeWhile { (_, size) ->
             totalSize += size
-            totalSize <= config.maxAttachmentSizeInBytes
+            totalSize <= configProvider.maxEventsAttachmentSizeInBatchBytes
         }.map { (key, _) -> key }.toList()
     }
 }

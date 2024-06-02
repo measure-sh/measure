@@ -12,6 +12,7 @@ import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.verify
 import sh.measure.android.fakes.FakeConfig
+import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeEventFactory
 import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakeTimeProvider
@@ -29,7 +30,7 @@ import sh.measure.android.storage.FileStorage
 @RunWith(AndroidJUnit4::class)
 class PeriodicEventExporterTest {
     private val logger = NoopLogger()
-    private val config = FakeConfig()
+    private val config = FakeConfigProvider()
     private val idProvider = FakeIdProvider()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val timeProvider = FakeTimeProvider()
@@ -61,14 +62,14 @@ class PeriodicEventExporterTest {
     fun `starts heartbeat when app comes to foreground with a delay`() {
         exporter.onAppForeground()
 
-        verify(heartbeat, atMostOnce()).start(config.batchingIntervalMs, config.batchingIntervalMs)
+        verify(heartbeat, atMostOnce()).start(config.eventsBatchingIntervalMs, config.eventsBatchingIntervalMs)
     }
 
     @Test
     fun `starts heartbeat on cold launch with a delay`() {
         exporter.onColdLaunch()
 
-        verify(heartbeat, atMostOnce()).start(config.batchingIntervalMs, config.batchingIntervalMs)
+        verify(heartbeat, atMostOnce()).start(config.eventsBatchingIntervalMs, config.eventsBatchingIntervalMs)
     }
 
     @Test
@@ -109,7 +110,7 @@ class PeriodicEventExporterTest {
 
     @Test
     fun `given batch is not available, and events are available, then creates new batch and exports it`() {
-        config.batchingIntervalMs = 0
+        config.eventsBatchingIntervalMs = 0
         exporter.lastBatchCreationUptimeMs = 0
         val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-id")
         val eventPacket = FakeEventFactory.getEventPacket(eventEntity)
@@ -123,7 +124,7 @@ class PeriodicEventExporterTest {
 
     @Test
     fun `given the last batch was created less than the minimum threshold, does not create a new batch `() {
-        config.batchingIntervalMs = 5
+        config.eventsBatchingIntervalMs = 5
         exporter.lastBatchCreationUptimeMs = 1000
         timeProvider.time = 1004
         val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-id")

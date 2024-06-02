@@ -12,7 +12,6 @@ import sh.measure.android.attributes.DeviceAttributeProcessor
 import sh.measure.android.attributes.InstallationIdAttributeProcessor
 import sh.measure.android.attributes.NetworkStateAttributeProcessor
 import sh.measure.android.attributes.UserAttributeProcessor
-import sh.measure.android.config.ConfigLoader
 import sh.measure.android.config.ConfigLoaderImpl
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.ConfigProviderImpl
@@ -202,14 +201,14 @@ internal class MeasureInitializerImpl(
         logger = logger,
         timeProvider = timeProvider,
         database = database,
-        config = config,
+        configProvider = configProvider,
         idProvider = idProvider,
     ),
     override val periodicEventExporter: PeriodicEventExporter = PeriodicEventExporterImpl(
         logger = logger,
         timeProvider = timeProvider,
         database = database,
-        config = config,
+        configProvider = configProvider,
         executorService = executorServiceRegistry.eventExportExecutor(),
         heartbeat = periodicHeartbeat,
         batchCreator = batchCreator,
