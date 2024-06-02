@@ -13,6 +13,18 @@ internal interface IMeasureConfig {
     val screenshotMaskLevel: ScreenshotMaskLevel
 
     /**
+     * The color of the mask to apply to the screenshot. The value should be a hex color string.
+     * For example, "#222222".
+     */
+    val screenshotMaskHexColor: String
+
+    /**
+     * The compression quality of the screenshot. Must be between 0 and 100, where 0 is lowest quality
+     * and smallest size while 100 is highest quality and largest size.
+     */
+    val screenshotCompressionQuality: Int
+
+    /**
      * Whether to capture http headers of a network request and response. Defaults to `false`.
      */
     val enableHttpHeadersCapture: Boolean
@@ -108,6 +120,8 @@ class MeasureConfig(
     override val trackWarmLaunchIntent: Boolean = false,
     override val trackHotLaunchIntent: Boolean = false,
 ) : IMeasureConfig {
+    override val screenshotMaskHexColor: String = "#222222"
+    override val screenshotCompressionQuality: Int = 25
     override val maxEventsBatchSizeMb: Int = 5
     override val eventsBatchingIntervalMs: Long = 30_000 // 30 seconds
     override val maxEventsInBatch: Int = 500

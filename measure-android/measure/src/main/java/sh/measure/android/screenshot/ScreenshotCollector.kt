@@ -14,7 +14,7 @@ import android.view.PixelCopy
 import android.view.View
 import android.view.Window
 import androidx.annotation.RequiresApi
-import sh.measure.android.Config
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.isMainThread
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
@@ -50,7 +50,7 @@ internal class ScreenshotCollectorImpl(
     private val logger: Logger,
     private val resumedActivityProvider: ResumedActivityProvider,
     private val lowMemoryCheck: LowMemoryCheck,
-    private val config: Config,
+    private val config: ConfigProvider,
 ) : ScreenshotCollector {
     private val maskPaint by lazy(NONE) {
         Paint().apply {
@@ -58,9 +58,8 @@ internal class ScreenshotCollectorImpl(
             style = Paint.Style.FILL
         }
     }
-    private val maskRadius = config.screenshotMaskRadius
-    private val webpScreenshotCompression = config.screenshotWebpQuality
-    private val jpegScreenshotCompression = config.screenshotWebpQuality
+    private val maskRadius = 8f
+    private val screenshotCompressionQuality = config.screenshotCompressionQuality
 
     override fun takeScreenshot(): Screenshot? {
         if (lowMemoryCheck.isLowMemory()) {
@@ -176,14 +175,14 @@ internal class ScreenshotCollectorImpl(
                 val extension = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     bitmap.compress(
                         Bitmap.CompressFormat.WEBP_LOSSY,
-                        webpScreenshotCompression,
+                        screenshotCompressionQuality,
                         byteArrayOutputStream,
                     )
                     "webp"
                 } else {
                     bitmap.compress(
                         Bitmap.CompressFormat.JPEG,
-                        jpegScreenshotCompression,
+                        screenshotCompressionQuality,
                         byteArrayOutputStream,
                     )
                     "jpeg"

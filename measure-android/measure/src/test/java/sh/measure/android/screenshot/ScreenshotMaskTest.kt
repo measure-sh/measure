@@ -21,11 +21,12 @@ import org.junit.runner.RunWith
 import org.robolectric.Robolectric.buildActivity
 import sh.measure.android.config.ScreenshotMaskLevel
 import sh.measure.android.fakes.FakeConfig
+import sh.measure.android.fakes.FakeConfigProvider
 
 @ExperimentalMaterial3Api
 @RunWith(AndroidJUnit4::class)
 class ScreenshotMaskTest {
-    private val config = FakeConfig()
+    private val config = FakeConfigProvider()
     private val controller = buildActivity(ScreenshotTestActivity::class.java)
 
     @Test
