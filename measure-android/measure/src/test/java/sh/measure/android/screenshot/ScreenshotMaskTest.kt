@@ -20,7 +20,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric.buildActivity
 import sh.measure.android.config.ScreenshotMaskLevel
-import sh.measure.android.fakes.FakeConfig
 import sh.measure.android.fakes.FakeConfigProvider
 
 @ExperimentalMaterial3Api
