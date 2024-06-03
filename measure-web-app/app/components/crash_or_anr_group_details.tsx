@@ -10,7 +10,7 @@ import { AppsApiStatus, CrashOrAnrGroupDetailsApiStatus, CrashOrAnrType, Filters
 import { useRouter, useSearchParams } from 'next/navigation';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import { updateDateQueryParams } from '../utils/router_utils';
-import { formatDateToHumanReadable, formatTimeToHumanReadable } from '../utils/time_utils';
+import { formatDateToHumanReadable, formatTimeToHumanReadable, isValidTimestamp } from '../utils/time_utils';
 import DropdownSelect, { DropdownSelectType } from './dropdown_select';
 import { DateTime } from 'luxon';
 
@@ -230,9 +230,17 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
         <div>
           <div className="flex flex-wrap gap-8 items-center w-5/6">
             <div className="flex flex-row items-center">
-              <input type="date" defaultValue={startDate} max={endDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setStartDate(e.target.value)} />
+              <input type="date" defaultValue={startDate} max={endDate} className="font-display border border-black rounded-md p-2" onChange={(e) => {
+                if (isValidTimestamp(e.target.value)) {
+                  setStartDate(e.target.value)
+                }
+              }} />
               <p className="font-display px-2">to</p>
-              <input type="date" defaultValue={endDate} min={startDate} max={todayDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
+              <input type="date" defaultValue={endDate} min={startDate} max={todayDate} className="font-display border border-black rounded-md p-2" onChange={(e) => {
+                if (isValidTimestamp(e.target.value)) {
+                  setEndDate(e.target.value)
+                }
+              }} />
             </div>
             <DropdownSelect title="App versions" type={DropdownSelectType.MultiAppVersion} items={versions} initialSelected={selectedVersions} onChangeSelected={(items) => setSelectedVersions(items as AppVersion[])} />
             {countries.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Country" items={countries} initialSelected={countries} onChangeSelected={(items) => setSelectedCountries(items as string[])} />}
