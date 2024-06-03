@@ -14,7 +14,7 @@ import org.mockito.Mockito.times
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.verify
 import sh.measure.android.events.EventProcessor
-import sh.measure.android.fakes.FakeConfig
+import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
 import java.net.ConnectException
@@ -23,12 +23,12 @@ class OkHttpDataProcessorTest {
     private val logger = NoopLogger()
     private val eventProcessor = mock<EventProcessor>()
     private val timeProvider = FakeTimeProvider()
-    private val config = FakeConfig()
+    private val configProvider = FakeConfigProvider()
     private val okHttpEventCollector: OkHttpEventCollector = OkHttpEventCollectorImpl(
         logger,
         eventProcessor,
         timeProvider,
-        config,
+        configProvider,
     )
     private val mockWebServer = MockWebServer()
     private val clientWithInterceptor: OkHttpClient = OkHttpClient.Builder()
@@ -42,7 +42,7 @@ class OkHttpDataProcessorTest {
     @Before
     fun setUp() {
         // enable body tracking by default
-        config.setHttpBodyTracking(true)
+        configProvider.shouldTrackHttpBody = true
     }
 
     @After
@@ -111,7 +111,7 @@ class OkHttpDataProcessorTest {
 
     @Test
     fun `given request body config is enabled, tracks request body for a successful request`() {
-        config.setHttpBodyTracking(true)
+        configProvider.shouldTrackHttpBody = true
         val requestBody = "{ \"key\": \"value\" }"
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
@@ -132,7 +132,7 @@ class OkHttpDataProcessorTest {
 
     @Test
     fun `given interceptor is not set, does not track request body for a successful request`() {
-        config.setHttpBodyTracking(true)
+        configProvider.shouldTrackHttpBody = true
         val requestBody = "{ \"key\": \"value\" }"
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
@@ -153,7 +153,7 @@ class OkHttpDataProcessorTest {
 
     @Test
     fun `given request body config is disabled, does not track request body for a successful request`() {
-        config.setHttpBodyTracking(false)
+        configProvider.shouldTrackHttpBody = false
         val requestBody = "{ \"key\": \"value\" }"
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
@@ -174,7 +174,7 @@ class OkHttpDataProcessorTest {
 
     @Test
     fun `given response body config is enabled, tracks response body for a successful request`() {
-        config.setHttpBodyTracking(true)
+        configProvider.shouldTrackHttpBody = true
         val responseBody = "{ \"key\": \"value\" }"
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
@@ -195,7 +195,7 @@ class OkHttpDataProcessorTest {
 
     @Test
     fun `given response body config is disabled, does not track response body for a successful request`() {
-        config.setHttpBodyTracking(false)
+        configProvider.shouldTrackHttpBody = false
         val responseBody = "{ \"key\": \"value\" }"
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
@@ -216,7 +216,7 @@ class OkHttpDataProcessorTest {
 
     @Test
     fun `given interceptor is not set, does not track response body for a successful request`() {
-        config.setHttpBodyTracking(true)
+        configProvider.shouldTrackHttpBody = true
         val responseBody = "{ \"key\": \"value\" }"
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()

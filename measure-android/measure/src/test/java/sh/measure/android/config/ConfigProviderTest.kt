@@ -1,5 +1,6 @@
 package sh.measure.android.config
 
+import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.mockito.Mockito.mock
@@ -69,4 +70,31 @@ class ConfigProviderTest {
         assertEquals(true, configProvider.trackScreenshotOnCrash)
     }
 
+    @Test
+    fun `returns true for a allowed URL and content type`() {
+        val url = "https://example.com/"
+        val contentType = "application/json"
+        Assert.assertTrue(configProvider.shouldTrackHttpBody(url, contentType))
+    }
+
+    @Test
+    fun `returns false for a disallowed URL`() {
+        val url = "10.0.2.2:8080/events"
+        val contentType = "application/json"
+        Assert.assertFalse(configProvider.shouldTrackHttpBody(url, contentType))
+    }
+
+    @Test
+    fun `returns false for a disallowed content type`() {
+        val url = "https://example.com/"
+        val contentType = "text/plain"
+        Assert.assertFalse(configProvider.shouldTrackHttpBody(url, contentType))
+    }
+
+    @Test
+    fun `returns false for a disallowed URL and content type`() {
+        val url = "10.0.2.2:8080/sessions/sessions"
+        val contentType = "text/plain"
+        Assert.assertFalse(configProvider.shouldTrackHttpBody(url, contentType))
+    }
 }

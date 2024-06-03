@@ -7,6 +7,7 @@ import kotlin.concurrent.write
 
 internal interface ConfigProvider : IMeasureConfig {
     fun loadNetworkConfig()
+    fun shouldTrackHttpBody(url: String, contentType: String?): Boolean
 }
 
 internal class ConfigProviderImpl(
@@ -35,6 +36,7 @@ internal class ConfigProviderImpl(
 
     override val trackScreenshotOnCrash: Boolean
         get() = getMergedConfig { trackScreenshotOnCrash }
+
     override val screenshotMaskLevel: ScreenshotMaskLevel
         get() = getMergedConfig { screenshotMaskLevel }
     override val screenshotMaskHexColor: String
@@ -69,6 +71,16 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { restrictedHttpUrlBlocklist }
     override val maxEventsAttachmentSizeInBatchBytes: Int
         get() = getMergedConfig { maxEventsAttachmentSizeInBatchBytes }
+    override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
+        if (contentType.isNullOrEmpty()) {
+            return false
+        }
+        if ((restrictedHttpUrlBlocklist + httpUrlBlocklist).any { url.contains(it) }) {
+            return false
+        }
+        return httpContentTypeAllowlist.any { contentType.startsWith(it) }
+    }
+
 
     private fun <T> getMergedConfig(selector: MeasureConfig.() -> T): T {
         if (networkConfig != null) {

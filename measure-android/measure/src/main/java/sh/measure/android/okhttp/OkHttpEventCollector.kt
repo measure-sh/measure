@@ -6,7 +6,7 @@ import okhttp3.Request
 import okhttp3.Response
 import okio.Buffer
 import okio.ByteString
-import sh.measure.android.Config
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
@@ -24,7 +24,7 @@ internal class OkHttpEventCollectorImpl(
     private val logger: Logger,
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
-    private val config: Config,
+    private val configProvider: ConfigProvider,
 ) : OkHttpEventCollector() {
     private val httpDataBuilders: MutableMap<String, HttpData.Builder> by lazy(
         LazyThreadSafetyMode.NONE,
@@ -103,7 +103,7 @@ internal class OkHttpEventCollectorImpl(
         InternalTrace.beginSection("OkHttpEventProcessor.request")
         val key = getIdentityHash(call)
         val builder = httpDataBuilders[key]
-        if (config.trackHttpBody(request.url.toString(), getContentTypeHeader(request))) {
+        if (configProvider.shouldTrackHttpBody(request.url.toString(), getContentTypeHeader(request))) {
             val requestBody = getRequestBodyByteArray(request)
             val decodedBody = requestBody?.decodeToString(0, requestBody.size, false)
             builder?.requestBody(decodedBody)
@@ -115,7 +115,7 @@ internal class OkHttpEventCollectorImpl(
         InternalTrace.beginSection("OkHttpEventProcessor.response")
         val key = getIdentityHash(call)
         val builder = httpDataBuilders[key]
-        if (config.trackHttpBody(request.url.toString(), getContentTypeHeader(response))) {
+        if (configProvider.shouldTrackHttpBody(request.url.toString(), getContentTypeHeader(response))) {
             val responseBody = getResponseBodyByteString(response)
             builder?.responseBody(responseBody?.utf8())
         }
