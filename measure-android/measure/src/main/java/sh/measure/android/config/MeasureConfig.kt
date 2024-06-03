@@ -80,7 +80,7 @@ internal interface IMeasureConfig {
     val maxEventsAttachmentSizeInBatchBytes: Int
 
     /**
-     * The maximum number of events to export in /events API. Defaults to 1000.
+     * The interval at which to create a batch for export.
      */
     val eventsBatchingIntervalMs: Long
 

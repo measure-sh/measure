@@ -220,7 +220,7 @@ internal class MeasureInitializerImpl(
         logger = logger,
         timeProvider = timeProvider,
         eventProcessor = eventProcessor,
-        config = config,
+        configProvider = configProvider,
     ),
     override val unhandledExceptionCollector: UnhandledExceptionCollector = UnhandledExceptionCollector(
         logger = logger,

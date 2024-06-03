@@ -26,4 +26,9 @@ internal class FakeConfigProvider : ConfigProvider {
     override var httpContentTypeAllowlist: List<String> = emptyList()
     override var restrictedHttpHeadersBlocklist: List<String> = emptyList()
     override var restrictedHttpUrlBlocklist: List<String> = emptyList()
+
+    var shouldTrackHttpBody = false
+    override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
+        return shouldTrackHttpBody
+    }
 }
