@@ -11,7 +11,6 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.verify
-import sh.measure.android.fakes.FakeConfig
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeEventFactory
 import sh.measure.android.fakes.FakeIdProvider
@@ -30,7 +29,7 @@ import sh.measure.android.storage.FileStorage
 @RunWith(AndroidJUnit4::class)
 class PeriodicEventExporterTest {
     private val logger = NoopLogger()
-    private val config = FakeConfigProvider()
+    private val configProvider = FakeConfigProvider()
     private val idProvider = FakeIdProvider()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val timeProvider = FakeTimeProvider()
@@ -39,11 +38,11 @@ class PeriodicEventExporterTest {
     private val fileStorage = mock<FileStorage>()
     private val database =
         DatabaseImpl(InstrumentationRegistry.getInstrumentation().context, logger)
-    private val batchCreator = BatchCreatorImpl(logger, idProvider, database, config, timeProvider)
+    private val batchCreator = BatchCreatorImpl(logger, idProvider, database, configProvider, timeProvider)
 
     private val exporter = PeriodicEventExporterImpl(
         logger,
-        config,
+        configProvider,
         executorService,
         database,
         fileStorage,
@@ -62,14 +61,14 @@ class PeriodicEventExporterTest {
     fun `starts heartbeat when app comes to foreground with a delay`() {
         exporter.onAppForeground()
 
-        verify(heartbeat, atMostOnce()).start(config.eventsBatchingIntervalMs, config.eventsBatchingIntervalMs)
+        verify(heartbeat, atMostOnce()).start(configProvider.eventsBatchingIntervalMs, configProvider.eventsBatchingIntervalMs)
     }
 
     @Test
     fun `starts heartbeat on cold launch with a delay`() {
         exporter.onColdLaunch()
 
-        verify(heartbeat, atMostOnce()).start(config.eventsBatchingIntervalMs, config.eventsBatchingIntervalMs)
+        verify(heartbeat, atMostOnce()).start(configProvider.eventsBatchingIntervalMs, configProvider.eventsBatchingIntervalMs)
     }
 
     @Test
@@ -110,8 +109,9 @@ class PeriodicEventExporterTest {
 
     @Test
     fun `given batch is not available, and events are available, then creates new batch and exports it`() {
-        config.eventsBatchingIntervalMs = 0
+        configProvider.eventsBatchingIntervalMs = 0
         exporter.lastBatchCreationUptimeMs = 0
+        configProvider.maxEventsAttachmentSizeInBatchBytes = 1000
         val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-id")
         val eventPacket = FakeEventFactory.getEventPacket(eventEntity)
         val attachmentPackets = FakeEventFactory.getAttachmentPackets(eventEntity)
@@ -124,7 +124,7 @@ class PeriodicEventExporterTest {
 
     @Test
     fun `given the last batch was created less than the minimum threshold, does not create a new batch `() {
-        config.eventsBatchingIntervalMs = 5
+        configProvider.eventsBatchingIntervalMs = 5
         exporter.lastBatchCreationUptimeMs = 1000
         timeProvider.time = 1004
         val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-id")
