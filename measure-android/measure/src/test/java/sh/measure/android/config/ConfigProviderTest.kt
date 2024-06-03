@@ -12,7 +12,8 @@ class ConfigProviderTest {
     private val configLoader = mock<ConfigLoader>()
     private val defaultConfig = MeasureConfig()
     private val configProvider = ConfigProviderImpl(
-        defaultConfig = defaultConfig, configLoader = configLoader
+        defaultConfig = defaultConfig,
+        configLoader = configLoader,
     )
 
     @Test
@@ -37,7 +38,7 @@ class ConfigProviderTest {
         `when`(configLoader.getCachedConfig()).thenReturn(MeasureConfig(trackScreenshotOnCrash = false))
         val configProvider = ConfigProviderImpl(
             defaultConfig = MeasureConfig(trackScreenshotOnCrash = false),
-            configLoader = configLoader
+            configLoader = configLoader,
         )
 
         val networkConfig = MeasureConfig(trackScreenshotOnCrash = true)
@@ -51,7 +52,7 @@ class ConfigProviderTest {
         `when`(configLoader.getCachedConfig()).thenReturn(MeasureConfig(trackScreenshotOnCrash = true))
         val configProvider = ConfigProviderImpl(
             defaultConfig = MeasureConfig(trackScreenshotOnCrash = false),
-            configLoader = configLoader
+            configLoader = configLoader,
         )
         configProvider.networkConfig = null
 
@@ -63,7 +64,7 @@ class ConfigProviderTest {
         `when`(configLoader.getCachedConfig()).thenReturn(null)
         val configProvider = ConfigProviderImpl(
             defaultConfig = MeasureConfig(trackScreenshotOnCrash = true),
-            configLoader = configLoader
+            configLoader = configLoader,
         )
         configProvider.networkConfig = null
 

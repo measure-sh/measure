@@ -81,12 +81,11 @@ internal class ConfigProviderImpl(
         return httpContentTypeAllowlist.any { contentType.startsWith(it) }
     }
 
-
     private fun <T> getMergedConfig(selector: MeasureConfig.() -> T): T {
         if (networkConfig != null) {
             networkConfigLock.read {
                 return networkConfig?.selector() ?: cachedConfig?.selector()
-                ?: defaultConfig.selector()
+                    ?: defaultConfig.selector()
             }
         }
         return cachedConfig?.selector() ?: defaultConfig.selector()
