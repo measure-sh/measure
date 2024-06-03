@@ -119,7 +119,39 @@ or, add the following to your app's `build.gradle`file.
 implementation 'sh.measure:measure-android:0.1.0'
 ```
 
-### 5. Verify
+### 5. Initialize the SDK
+
+Add the following to your app's Application class. Ideally, done as soon as `Application.onCreate` is
+called to allow tracking events as early as possible.
+
+```kotlin
+Measure.init(context)
+```
+
+If you wish to configure the SDK during initialization with a custom config use the overloaded function:
+
+```kotlin
+Measure.init(
+    this, MeasureConfig(
+        trackScreenshotOnCrash = true,
+        screenshotMaskLevel = if (BuildConfig.DEBUG) {
+            ScreenshotMaskLevel.SensitiveFieldsOnly
+        } else {
+            ScreenshotMaskLevel.AllTextAndMedia
+        },
+        enableHttpHeaders = true,
+        enableHttpBody = true,
+        trackLifecycleActivityIntentData = true,
+        trackColdLaunchIntentData = true,
+        trackWarmLaunchIntentData = true,
+        trackHotLaunchIntentData = true,
+    )
+)
+```
+
+See all the [configuration options](#configure-the-sdk) available below.
+
+### 6. Verify
 
 Launch the app on any device or emulator. Kill and reopen. You should see a session in the
 Measure dashboard.
@@ -167,15 +199,16 @@ for all the options available.
 It defaults
 to [ScreenshotMaskLevel.AllTextAndMedia](docs/features/feature_screenshot.md#maskalltextandmedia)
 
-## Http
+## Http Options
 
 Measure collects `http` events along with with request/response body & headers. The following
 configuration options are available to control this feature:
 
-### `restrictedHttpUrlBlocklist`
+### `httpUrlBlocklist`
 
 Allows disabling collection of `http` events for certain URLs. This is useful to setup if you do not
-want to collect data for certain endpoints or third party domains. See [Http URL blocklist] for
+want to collect data for certain endpoints or third party domains.
+See [Http URL blocklist](docs/features/feature_network_monitoring.md#httpheadersblocklist) for
 more.
 
 ### `enableHttpHeaders`
@@ -196,29 +229,38 @@ more.
 
 Allows enabling/disabling capturing of HTTP request and response body. Disabled by default.
 
-## Intent data
+## Intent data options
 
-Android [Intent](https://developer.android.com/reference/android/content/Intent#standard-extra-data) can contain 
-a bundle with any arbitrary information. While this can be useful to debug certain issues which require
+Android [Intent](https://developer.android.com/reference/android/content/Intent#standard-extra-data)
+can contain
+a bundle with any arbitrary information. While this can be useful to debug certain issues which
+require
 checking what data was passed as part of the bundle, it might also contain sensitive information.
 
 The following configurations are available:
 
 ### `trackLifecycleActivityIntentData`
-Allows enabling/disabling of collection of intent data along with `lifecycle_activity.created` event, which
+
+Allows enabling/disabling of collection of intent data along with `lifecycle_activity.created`
+event, which
 is collected with the Activity lifecycle event `onCreate` is triggered. Disabled by default.
 
 ### `trackColdLaunchIntentData`
-Allows enabling/disabling of collection of intent data along with `cold_launch` event, which collects
+
+Allows enabling/disabling of collection of intent data along with `cold_launch` event, which
+collects
 the intent data for the first activity launched. This is generally useful for debugging deeplinks
 which are typically added to the intent bundle. Disabled by default.
 
 ### `trackWarmLaunchIntentData`
-Allows enabling/disabling of collection of intent data along with `warm_launch` event, which collects
+
+Allows enabling/disabling of collection of intent data along with `warm_launch` event, which
+collects
 the intent data for the activity launched. This is generally useful for debugging deeplinks
 which are typically added to the intent bundle. Disabled by default.
 
 ### `trackHotLaunchIntentData`
+
 Allows enabling/disabling of collection of intent data along with `hot_launch` event, which collects
 the intent data for the activity launched. This is generally useful for debugging deeplinks
 which are typically added to the intent bundle. Disabled by default
