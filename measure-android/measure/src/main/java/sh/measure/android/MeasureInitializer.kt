@@ -175,7 +175,6 @@ internal class MeasureInitializerImpl(
     private val lowMemoryCheck: LowMemoryCheck = LowMemoryCheck(
         activityManager = systemServiceProvider.activityManager,
     ),
-    private val config: Config = DefaultConfig(),
     override val screenshotCollector: ScreenshotCollector = ScreenshotCollectorImpl(
         logger = logger,
         resumedActivityProvider = resumedActivityProvider,
