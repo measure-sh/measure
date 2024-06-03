@@ -6,16 +6,48 @@ public final class sh/measure/android/BuildConfig {
 	public fun <init> ()V
 }
 
-public final class sh/measure/android/Measure : sh/measure/android/MeasureApi {
+public final class sh/measure/android/Measure {
 	public static final field $stable I
 	public static final field INSTANCE Lsh/measure/android/Measure;
-	public fun init (Landroid/content/Context;)V
-	public fun setUserId (Ljava/lang/String;)V
+	public static final fun init (Landroid/content/Context;)V
+	public static final fun init (Landroid/content/Context;Lsh/measure/android/config/MeasureConfig;)V
+	public static synthetic fun init$default (Landroid/content/Context;Lsh/measure/android/config/MeasureConfig;ILjava/lang/Object;)V
+	public final fun setUserId (Ljava/lang/String;)V
 }
 
-public abstract interface class sh/measure/android/MeasureApi {
-	public abstract fun init (Landroid/content/Context;)V
-	public abstract fun setUserId (Ljava/lang/String;)V
+public final class sh/measure/android/config/MeasureConfig : sh/measure/android/config/IMeasureConfig {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun <init> (ZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;ZZZZ)V
+	public synthetic fun <init> (ZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;ZZZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getEnableHttpBody ()Z
+	public fun getEnableHttpHeaders ()Z
+	public fun getEventsBatchingIntervalMs ()J
+	public fun getHttpContentTypeAllowlist ()Ljava/util/List;
+	public fun getHttpHeadersBlocklist ()Ljava/util/List;
+	public fun getHttpUrlBlocklist ()Ljava/util/List;
+	public fun getMaxEventsAttachmentSizeInBatchBytes ()I
+	public fun getMaxEventsInBatch ()I
+	public fun getRestrictedHttpHeadersBlocklist ()Ljava/util/List;
+	public fun getRestrictedHttpUrlBlocklist ()Ljava/util/List;
+	public fun getScreenshotCompressionQuality ()I
+	public fun getScreenshotMaskHexColor ()Ljava/lang/String;
+	public fun getScreenshotMaskLevel ()Lsh/measure/android/config/ScreenshotMaskLevel;
+	public fun getTrackColdLaunchIntentData ()Z
+	public fun getTrackHotLaunchIntentData ()Z
+	public fun getTrackLifecycleActivityIntentData ()Z
+	public fun getTrackScreenshotOnCrash ()Z
+	public fun getTrackWarmLaunchIntentData ()Z
+}
+
+public final class sh/measure/android/config/ScreenshotMaskLevel : java/lang/Enum {
+	public static final field AllText Lsh/measure/android/config/ScreenshotMaskLevel;
+	public static final field AllTextAndMedia Lsh/measure/android/config/ScreenshotMaskLevel;
+	public static final field AllTextExceptClickable Lsh/measure/android/config/ScreenshotMaskLevel;
+	public static final field SensitiveFieldsOnly Lsh/measure/android/config/ScreenshotMaskLevel;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lsh/measure/android/config/ScreenshotMaskLevel;
+	public static fun values ()[Lsh/measure/android/config/ScreenshotMaskLevel;
 }
 
 public final class sh/measure/android/navigation/ComposeNavigationCollectorKt {
