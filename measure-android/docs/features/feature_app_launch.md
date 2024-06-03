@@ -7,7 +7,6 @@ bottlenecks.
 ## How it works
 
 * [Cold launch](#cold-launch)
-    * [Cold launch method trace](#cold-launch-method-trace)
 * [Warm launch](#warm-launch)
 * [Hot launch](#hot-launch)
 
@@ -52,29 +51,6 @@ in the following way:
    the decor view.
 3. [Post a runnable in front of the next draw callback](https://github.com/square/papa/blob/main/papa/src/main/java/papa/internal/Handlers.kt#L8-L13)
    to record the time just before the first frame was displayed.
-
-### Cold launch method trace
-
-Measure automatically collects
-a [method trace](https://developer.android.com/studio/profile/generate-trace-logs#instrument) for every cold launch. The
-method trace is captured from the time when Measure SDK is initialized, up to the time when the first frame is
-displayed. This method trace can be used to identify any bottlenecks in the app's startup process.
-
-> [!NOTE]  
-> The method trace is only available for cold launches and is currently collected for every cold launch with hardcoded
-> interval. A configuration will be exposed to control this in the future. The progress can be tracked
-> [here](https://github.com/measure-sh/measure/issues/550)
-
-Any custom trace points added using [Trace](https://developer.android.com/reference/kotlin/androidx/tracing/Trace) will
-also be captured along with the method trace, we recommend using this API to add custom traces to provide a detailed
-view of the app's startup process.
-
-To view the trace, any of the following tools can be used:
-
-1. [YAMP](https://github.com/Grigory-Rylov/android-methods-profiler) - it supports opening the trace file,
-   applying symbolication by providing the mapping file and an advanced search.
-2. [Android Studio](https://developer.android.com/studio/profile/cpu-profiler) - drag and drop the trace file to view it
-   in Android Studio.
 
 ### Warm launch
 
