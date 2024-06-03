@@ -9,7 +9,7 @@ import CreateApp from '@/app/components/create_app';
 import { AppVersion, AppsApiStatus, CrashOrAnrGroupsApiStatus, CrashOrAnrType, FiltersApiStatus, FiltersApiType, emptyApp, emptyCrashOrAnrGroupsResponse, fetchAppsFromServer, fetchCrashOrAnrGroupsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import { updateDateQueryParams } from '../utils/router_utils';
-import { formatDateToHumanReadable } from '../utils/time_utils';
+import { formatDateToHumanReadable, isValidTimestamp } from '../utils/time_utils';
 import DropdownSelect, { DropdownSelectType } from './dropdown_select';
 import { DateTime } from 'luxon';
 
@@ -181,9 +181,17 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
             <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={apps.map((e) => e.name)} initialSelected={apps[0].name} onChangeSelected={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} />
             {filtersApiStatus === FiltersApiStatus.Success &&
               <div className="flex flex-row items-center">
-                <input type="date" defaultValue={startDate} max={endDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setStartDate(e.target.value)} />
+                <input type="date" defaultValue={startDate} max={endDate} className="font-display border border-black rounded-md p-2" onChange={(e) => {
+                  if (isValidTimestamp(e.target.value)) {
+                    setStartDate(e.target.value)
+                  }
+                }} />
                 <p className="font-display px-2">to</p>
-                <input type="date" defaultValue={endDate} min={startDate} max={todayDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
+                <input type="date" defaultValue={endDate} min={startDate} max={todayDate} className="font-display border border-black rounded-md p-2" onChange={(e) => {
+                  if (isValidTimestamp(e.target.value)) {
+                    setEndDate(e.target.value)
+                  }
+                }} />
               </div>}
             {filtersApiStatus === FiltersApiStatus.Success && <DropdownSelect title="App versions" type={DropdownSelectType.MultiAppVersion} items={versions} initialSelected={selectedVersions} onChangeSelected={(items) => setSelectedVersions(items as AppVersion[])} />}
           </div>

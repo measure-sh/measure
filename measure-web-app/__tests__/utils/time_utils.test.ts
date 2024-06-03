@@ -1,5 +1,5 @@
 
-import { formatDateToHumanReadable, formatMillisToHumanReadable, formatTimeToHumanReadable, formatTimestampToChartFormat } from '@/app/utils/time_utils';
+import { formatDateToHumanReadable, formatMillisToHumanReadable, formatTimeToHumanReadable, formatTimestampToChartFormat, isValidTimestamp } from '@/app/utils/time_utils';
 import { expect, it, describe, beforeEach, afterEach } from '@jest/globals';
 import { Settings, DateTime } from "luxon";
 
@@ -63,7 +63,7 @@ describe('formatDateToHumanReadable', () => {
         expect(formatDateToHumanReadable(timestamp)).toBe(expected);
     });
 
-    it('should handle invalid timestamps', () => {
+    it('should throw on invalid timestamps', () => {
         const timestamp = 'invalid-timestamp';
         expect(() => formatDateToHumanReadable(timestamp)).toThrow();
     });
@@ -91,7 +91,7 @@ describe('formatTimeToHumanReadable', () => {
         expect(formatTimeToHumanReadable(timestamp)).toBe(expected);
     });
 
-    it('should handle invalid timestamps', () => {
+    it('should throw on invalid timestamps', () => {
         const timestamp = 'invalid-timestamp';
         expect(() => formatTimeToHumanReadable(timestamp)).toThrow();
     });
@@ -119,8 +119,29 @@ describe('formatTimestampToChartFormat', () => {
         expect(formatTimestampToChartFormat(timestamp)).toBe(expected);
     });
 
-    it('should handle invalid timestamps', () => {
+    it('should throw on invalid timestamps', () => {
         const timestamp = 'invalid-timestamp';
         expect(() => formatTimestampToChartFormat(timestamp)).toThrow();
+    });
+});
+
+describe('isValidTimestamp', () => {
+    beforeEach(() => {
+        Settings.now = () => 0;
+        Settings.defaultZone = "Asia/Kolkata"
+    });
+
+    afterEach(() => {
+        Settings.now = () => DateTime.now().valueOf();
+    });
+
+    it('should return true on valid timestamp', () => {
+        const timestamp = '2024-04-16T12:00:00Z'; // April 16, 2024, 12:00 PM UTC
+        expect(isValidTimestamp(timestamp)).toBe(true);
+    });
+
+    it('should return false on invalid timestamp', () => {
+        const timestamp = 'invalid-timestamp';
+        expect(isValidTimestamp(timestamp)).toBe(false);
     });
 });

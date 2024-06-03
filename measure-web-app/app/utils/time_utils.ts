@@ -67,3 +67,8 @@ export function formatTimestampToChartFormat(timestamp: string): string {
   const formattedDate = localDateTime.toFormat('yyyy-MM-dd HH:mm:ss:SSS a');
   return formattedDate
 }
+
+export function isValidTimestamp(timestamp: string): boolean {
+  const utcDateTime = DateTime.fromISO(timestamp, { zone: 'utc' });
+  return utcDateTime.isValid
+}

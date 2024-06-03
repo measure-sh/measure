@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import CreateApp from '@/app/components/create_app';
 import { AppVersion, AppsApiStatus, FiltersApiStatus, FiltersApiType, emptyApp, fetchAppsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
 import { updateDateQueryParams } from '@/app/utils/router_utils';
-import { formatDateToHumanReadable } from '@/app/utils/time_utils';
+import { formatDateToHumanReadable, isValidTimestamp } from '@/app/utils/time_utils';
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select';
 import { DateTime } from 'luxon';
 
@@ -121,9 +121,17 @@ export default function Overview({ params }: { params: { teamId: string } }) {
             <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={apps.map((e) => e.name)} initialSelected={apps[0].name} onChangeSelected={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} />
             {filtersApiStatus === FiltersApiStatus.Success &&
               <div className="flex flex-row items-center">
-                <input type="date" defaultValue={startDate} max={endDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setStartDate(e.target.value)} />
+                <input type="date" defaultValue={startDate} max={endDate} className="font-display border border-black rounded-md p-2" onChange={(e) => {
+                  if (isValidTimestamp(e.target.value)) {
+                    setStartDate(e.target.value)
+                  }
+                }} />
                 <p className="font-display px-2">to</p>
-                <input type="date" defaultValue={endDate} min={startDate} max={todayDate} className="font-display border border-black rounded-md p-2" onChange={(e) => setEndDate(e.target.value)} />
+                <input type="date" defaultValue={endDate} min={startDate} max={todayDate} className="font-display border border-black rounded-md p-2" onChange={(e) => {
+                  if (isValidTimestamp(e.target.value)) {
+                    setEndDate(e.target.value)
+                  }
+                }} />
               </div>}
             {filtersApiStatus === FiltersApiStatus.Success && <DropdownSelect title="App Version" type={DropdownSelectType.SingleAppVersion} items={versions} initialSelected={selectedVersion} onChangeSelected={(item) => setSelectedVersion(item as AppVersion)} />}
           </div>
