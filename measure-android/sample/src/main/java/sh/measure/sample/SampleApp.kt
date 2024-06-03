@@ -16,12 +16,12 @@ class SampleApp : Application() {
                 } else {
                     ScreenshotMaskLevel.AllTextAndMedia
                 },
-                enableHttpHeadersCapture = true,
-                enableHttpBodyCapture = true,
-                trackLifecycleActivityIntent = true,
-                trackColdLaunchIntent = true,
-                trackWarmLaunchIntent = true,
-                trackHotLaunchIntent = true,
+                enableHttpHeaders = true,
+                enableHttpBody = true,
+                trackLifecycleActivityIntentData = true,
+                trackColdLaunchIntentData = true,
+                trackWarmLaunchIntentData = true,
+                trackHotLaunchIntentData = true,
             )
         )
     }

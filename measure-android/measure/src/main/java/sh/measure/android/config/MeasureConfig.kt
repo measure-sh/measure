@@ -1,5 +1,8 @@
 package sh.measure.android.config
 
+/**
+ * Defines all the configuration options for the Measure SDK.
+ */
 internal interface IMeasureConfig {
     /**
      * Whether to capture a screenshot of the app when it crashes due to an unhandled exception or
@@ -27,12 +30,12 @@ internal interface IMeasureConfig {
     /**
      * Whether to capture http headers of a network request and response. Defaults to `false`.
      */
-    val enableHttpHeadersCapture: Boolean
+    val enableHttpHeaders: Boolean
 
     /**
      * Whether to capture http body of a network request and response. Defaults to `false`.
      */
-    val enableHttpBodyCapture: Boolean
+    val enableHttpBody: Boolean
 
     /**
      * List of HTTP headers to not capture for network request and response. Defaults to an empty
@@ -54,25 +57,25 @@ internal interface IMeasureConfig {
     /**
      * Whether to capture lifecycle activity intent data. Defaults to `false`.
      */
-    val trackLifecycleActivityIntent: Boolean
+    val trackLifecycleActivityIntentData: Boolean
 
     /**
      * Whether to capture intent data for the activity launched as part of a cold launch. Defaults
      * to `false`.
      */
-    val trackColdLaunchIntent: Boolean
+    val trackColdLaunchIntentData: Boolean
 
     /**
      * Whether to capture intent data for the activity launched as part of a warm launch. Defaults
      * to `false`.
      */
-    val trackWarmLaunchIntent: Boolean
+    val trackWarmLaunchIntentData: Boolean
 
     /**
      * Whether to capture intent data for the activity launched as part of a hot launch. Defaults
      * to `false`.
      */
-    val trackHotLaunchIntent: Boolean
+    val trackHotLaunchIntentData: Boolean
 
     /**
      * The maximum size of attachments allowed in a single batch. Defaults to 3MB
@@ -111,14 +114,14 @@ internal interface IMeasureConfig {
 class MeasureConfig(
     override val trackScreenshotOnCrash: Boolean = true,
     override val screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.AllTextAndMedia,
-    override val enableHttpHeadersCapture: Boolean = false,
-    override val enableHttpBodyCapture: Boolean = false,
+    override val enableHttpHeaders: Boolean = false,
+    override val enableHttpBody: Boolean = false,
     override val httpHeadersBlocklist: List<String> = emptyList(),
     override val httpUrlBlocklist: List<String> = emptyList(),
-    override val trackLifecycleActivityIntent: Boolean = false,
-    override val trackColdLaunchIntent: Boolean = false,
-    override val trackWarmLaunchIntent: Boolean = false,
-    override val trackHotLaunchIntent: Boolean = false,
+    override val trackLifecycleActivityIntentData: Boolean = false,
+    override val trackColdLaunchIntentData: Boolean = false,
+    override val trackWarmLaunchIntentData: Boolean = false,
+    override val trackHotLaunchIntentData: Boolean = false,
 ) : IMeasureConfig {
     override val screenshotMaskHexColor: String = "#222222"
     override val screenshotCompressionQuality: Int = 25

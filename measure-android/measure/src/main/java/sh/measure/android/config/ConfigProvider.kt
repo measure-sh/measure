@@ -43,22 +43,22 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { screenshotMaskHexColor }
     override val screenshotCompressionQuality: Int
         get() = getMergedConfig { screenshotCompressionQuality }
-    override val enableHttpHeadersCapture: Boolean
-        get() = getMergedConfig { enableHttpHeadersCapture }
-    override val enableHttpBodyCapture: Boolean
-        get() = getMergedConfig { enableHttpBodyCapture }
+    override val enableHttpHeaders: Boolean
+        get() = getMergedConfig { enableHttpHeaders }
+    override val enableHttpBody: Boolean
+        get() = getMergedConfig { enableHttpBody }
     override val httpHeadersBlocklist: List<String>
         get() = getMergedConfig { httpHeadersBlocklist }
     override val httpUrlBlocklist: List<String>
         get() = getMergedConfig { httpUrlBlocklist }
-    override val trackLifecycleActivityIntent: Boolean
-        get() = getMergedConfig { trackLifecycleActivityIntent }
-    override val trackColdLaunchIntent: Boolean
-        get() = getMergedConfig { trackColdLaunchIntent }
-    override val trackWarmLaunchIntent: Boolean
-        get() = getMergedConfig { trackWarmLaunchIntent }
-    override val trackHotLaunchIntent: Boolean
-        get() = getMergedConfig { trackHotLaunchIntent }
+    override val trackLifecycleActivityIntentData: Boolean
+        get() = getMergedConfig { trackLifecycleActivityIntentData }
+    override val trackColdLaunchIntentData: Boolean
+        get() = getMergedConfig { trackColdLaunchIntentData }
+    override val trackWarmLaunchIntentData: Boolean
+        get() = getMergedConfig { trackWarmLaunchIntentData }
+    override val trackHotLaunchIntentData: Boolean
+        get() = getMergedConfig { trackHotLaunchIntentData }
     override val eventsBatchingIntervalMs: Long
         get() = getMergedConfig { eventsBatchingIntervalMs }
     override val maxEventsInBatch: Int
