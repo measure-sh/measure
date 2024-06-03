@@ -658,7 +658,7 @@ export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filte
     return { status: FiltersApiStatus.Success, data: data }
 }
 
-export const fetchJourneyFromServer = async (appId: string, startDate: string, endDate: string, appVersion: AppVersion, router: AppRouterInstance) => {
+export const fetchJourneyFromServer = async (appId: string, startDate: string, endDate: string, appVersions: AppVersion[], router: AppRouterInstance) => {
     const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
@@ -669,7 +669,14 @@ export const fetchJourneyFromServer = async (appId: string, startDate: string, e
 
     const serverFormattedStartDate = DateTime.fromFormat(startDate, 'yyyy-MM-dd').toUTC().toISO();
     const serverFormattedEndDate = DateTime.fromFormat(endDate, 'yyyy-MM-dd').toUTC().toISO();
-    const res = await fetch(`${origin}/apps/${appId}/journey?versions=${appVersion.name}&version_codes=${appVersion.code}&from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`, opts);
+
+    let url = `${origin}/apps/${appId}/journey?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
+
+    // Append versions
+    url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
+    url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
+
+    const res = await fetch(url, opts);
 
     if (!res.ok) {
         logoutIfAuthError(supabase, router, res)
@@ -681,7 +688,7 @@ export const fetchJourneyFromServer = async (appId: string, startDate: string, e
     return { status: JourneyApiStatus.Success, data: data }
 }
 
-export const fetchMetricsFromServer = async (appId: string, startDate: string, endDate: string, appVersion: AppVersion, router: AppRouterInstance) => {
+export const fetchMetricsFromServer = async (appId: string, startDate: string, endDate: string, appVersions: AppVersion[], router: AppRouterInstance) => {
     const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
@@ -692,7 +699,14 @@ export const fetchMetricsFromServer = async (appId: string, startDate: string, e
 
     const serverFormattedStartDate = DateTime.fromFormat(startDate, 'yyyy-MM-dd').toUTC().toISO();
     const serverFormattedEndDate = DateTime.fromFormat(endDate, 'yyyy-MM-dd').toUTC().toISO();
-    const res = await fetch(`${origin}/apps/${appId}/metrics?versions=${appVersion.name}&version_codes=${appVersion.code}&from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`, opts);
+
+    let url = `${origin}/apps/${appId}/metrics?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
+
+    // Append versions
+    url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
+    url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
+
+    const res = await fetch(url, opts);
 
     if (!res.ok) {
         logoutIfAuthError(supabase, router, res)

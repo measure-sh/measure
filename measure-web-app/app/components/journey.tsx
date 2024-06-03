@@ -20,7 +20,7 @@ interface JourneyProps {
   appId: string,
   startDate: string,
   endDate: string,
-  appVersion: AppVersion,
+  appVersions: AppVersion[],
 }
 
 type Node = {
@@ -211,7 +211,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
   return { nodes, edges };
 };
 
-const Journey: React.FC<JourneyProps> = ({ teamId, appId, startDate, endDate, appVersion }) => {
+const Journey: React.FC<JourneyProps> = ({ teamId, appId, startDate, endDate, appVersions }) => {
 
   const [journeyApiStatus, setJourneyApiStatus] = useState(JourneyApiStatus.Loading);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -219,10 +219,10 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, startDate, endDate, ap
 
   const router = useRouter()
 
-  const getJourney = async (appId: string, startDate: string, endDate: string, appVersion: AppVersion) => {
+  const getJourney = async (appId: string, startDate: string, endDate: string, appVersions: AppVersion[]) => {
     setJourneyApiStatus(JourneyApiStatus.Loading)
 
-    const result = await fetchJourneyFromServer(appId, startDate, endDate, appVersion, router)
+    const result = await fetchJourneyFromServer(appId, startDate, endDate, appVersions, router)
 
     switch (result.status) {
       case JourneyApiStatus.Error:
@@ -245,8 +245,8 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, startDate, endDate, ap
   }
 
   useEffect(() => {
-    getJourney(appId, startDate, endDate, appVersion)
-  }, [appId, startDate, endDate, appVersion]);
+    getJourney(appId, startDate, endDate, appVersions)
+  }, [appId, startDate, endDate, appVersions]);
 
   return (
     <div className="flex items-center justify-center border border-black text-black font-sans text-sm w-5/6 h-[600px]">

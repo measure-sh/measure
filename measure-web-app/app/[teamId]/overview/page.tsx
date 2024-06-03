@@ -23,7 +23,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   const [selectedApp, setSelectedApp] = useState(emptyApp);
 
   const [versions, setVersions] = useState([] as AppVersion[]);
-  const [selectedVersion, setSelectedVersion] = useState(versions[0]);
+  const [selectedVersions, setSelectedVersions] = useState([] as AppVersion[]);
 
   const today = DateTime.now();
   const todayDate = today.toFormat('yyyy-MM-dd');
@@ -90,7 +90,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         setFiltersApiStatus(FiltersApiStatus.Success)
         let versions = result.data.versions.map((v: { name: string; code: string; }) => new AppVersion(v.name, v.code))
         setVersions(versions)
-        setSelectedVersion(versions[0])
+        setSelectedVersions(versions)
         break
     }
   }
@@ -133,7 +133,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
                   }
                 }} />
               </div>}
-            {filtersApiStatus === FiltersApiStatus.Success && <DropdownSelect title="App Version" type={DropdownSelectType.SingleAppVersion} items={versions} initialSelected={selectedVersion} onChangeSelected={(item) => setSelectedVersion(item as AppVersion)} />}
+            {filtersApiStatus === FiltersApiStatus.Success && <DropdownSelect title="App versions" type={DropdownSelectType.MultiAppVersion} items={versions} initialSelected={selectedVersions} onChangeSelected={(items) => setSelectedVersions(items as AppVersion[])} />}
           </div>
           <div className="py-4" />
 
@@ -146,12 +146,12 @@ export default function Overview({ params }: { params: { teamId: string } }) {
             <div className="flex flex-wrap gap-2 items-center w-5/6">
               <FilterPill title={selectedApp.name} />
               <FilterPill title={`${formattedStartDate} to ${formattedEndDate}`} />
-              <FilterPill title={selectedVersion.displayName} />
+              {selectedVersions.length > 0 && <FilterPill title={Array.from(selectedVersions).map((v) => v.displayName).join(', ')} />}
             </div>}
           <div className="py-8" />
-          {filtersApiStatus === FiltersApiStatus.Success && <Journey teamId={params.teamId} appId={selectedApp.id} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />}
+          {filtersApiStatus === FiltersApiStatus.Success && <Journey teamId={params.teamId} appId={selectedApp.id} startDate={startDate} endDate={endDate} appVersions={selectedVersions} />}
           <div className="py-8" />
-          {filtersApiStatus === FiltersApiStatus.Success && <MetricsOverview appId={selectedApp.id} startDate={startDate} endDate={endDate} appVersion={selectedVersion} />}
+          {filtersApiStatus === FiltersApiStatus.Success && <MetricsOverview appId={selectedApp.id} startDate={startDate} endDate={endDate} appVersions={selectedVersions} />}
         </div>}
     </div>
   )
