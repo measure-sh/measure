@@ -12,20 +12,20 @@ interface MetricsOverviewProps {
   appId: string,
   startDate: string,
   endDate: string,
-  appVersion: AppVersion,
+  appVersions: AppVersion[],
 }
 
-const MetricsOverview: React.FC<MetricsOverviewProps> = ({ appId, startDate, endDate, appVersion }) => {
+const MetricsOverview: React.FC<MetricsOverviewProps> = ({ appId, startDate, endDate, appVersions }) => {
 
   const [metrics, setMetrics] = useState(emptyMetrics);
   const [metricsApiStatus, setMetricsApiStatus] = useState(MetricsApiStatus.Loading);
 
   const router = useRouter()
 
-  const getMetrics = async (appId: string, startDate: string, endDate: string, appVersion: AppVersion) => {
+  const getMetrics = async (appId: string, startDate: string, endDate: string, appVersions: AppVersion[]) => {
     setMetricsApiStatus(MetricsApiStatus.Loading)
 
-    const result = await fetchMetricsFromServer(appId, startDate, endDate, appVersion, router)
+    const result = await fetchMetricsFromServer(appId, startDate, endDate, appVersions, router)
 
     switch (result.status) {
       case MetricsApiStatus.Error:
@@ -39,8 +39,8 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ appId, startDate, end
   }
 
   useEffect(() => {
-    getMetrics(appId, startDate, endDate, appVersion)
-  }, [appId, startDate, endDate, appVersion]);
+    getMetrics(appId, startDate, endDate, appVersions)
+  }, [appId, startDate, endDate, appVersions]);
 
   return (
     <div className="flex flex-wrap gap-16 w-5/6">
