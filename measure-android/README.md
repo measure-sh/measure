@@ -141,7 +141,87 @@ Measure dashboard.
 
 # Configure the SDK
 
-Coming soon...
+The following configuration options are available in the SDK.
+
+## Screenshot Options
+
+Measure captures a screenshot of the app as soon as it crashes due to an unhandled exception or an
+ANR. This screenshot is sent to the server as
+an [attachment](../../../docs/api/sdk/README.md#attachments) along with
+the crash report.
+
+The following configs are available to control this feature:
+
+### `trackScreenshotOnCrash`
+
+Allows enabling/disabling capturing screenshot for crash due to an exception or ANR. It defaults
+to `false`.
+
+### `screenshotMaskLevel`
+
+Allows changing the masking level of screenshots to prevent sensitive
+information from leaking.
+See [Configuring masking level](docs/features/feature_screenshot.md#configuring-masking-level)
+for all the options available.
+
+It defaults
+to [ScreenshotMaskLevel.AllTextAndMedia](docs/features/feature_screenshot.md#maskalltextandmedia)
+
+## Http
+
+Measure collects `http` events along with with request/response body & headers. The following
+configuration options are available to control this feature:
+
+### `restrictedHttpUrlBlocklist`
+
+Allows disabling collection of `http` events for certain URLs. This is useful to setup if you do not
+want to collect data for certain endpoints or third party domains. See [Http URL blocklist] for
+more.
+
+### `enableHttpHeaders`
+
+Allows enabling/disabling capturing of HTTP request and response headers. Disabled by default.
+
+### `httpHeadersBlocklist`
+
+Allows specifying HTTP headers which should not be captured.
+See [HTTP headers blocklist](docs/features/feature_network_monitoring.md#httpHeadersBlocklist)
+
+By default all common headers which contain sensitive information like `Authorization` are never
+collected.
+See [HTTP headers blocklist](docs/features/feature_network_monitoring.md#httpHeadersBlocklist) for
+more.
+
+### `enableHttpBody`
+
+Allows enabling/disabling capturing of HTTP request and response body. Disabled by default.
+
+## Intent data
+
+Android [Intent](https://developer.android.com/reference/android/content/Intent#standard-extra-data) can contain 
+a bundle with any arbitrary information. While this can be useful to debug certain issues which require
+checking what data was passed as part of the bundle, it might also contain sensitive information.
+
+The following configurations are available:
+
+### `trackLifecycleActivityIntentData`
+Allows enabling/disabling of collection of intent data along with `lifecycle_activity.created` event, which
+is collected with the Activity lifecycle event `onCreate` is triggered. Disabled by default.
+
+### `trackColdLaunchIntentData`
+Allows enabling/disabling of collection of intent data along with `cold_launch` event, which collects
+the intent data for the first activity launched. This is generally useful for debugging deeplinks
+which are typically added to the intent bundle. Disabled by default.
+
+### `trackWarmLaunchIntentData`
+Allows enabling/disabling of collection of intent data along with `warm_launch` event, which collects
+the intent data for the activity launched. This is generally useful for debugging deeplinks
+which are typically added to the intent bundle. Disabled by default.
+
+### `trackHotLaunchIntentData`
+Allows enabling/disabling of collection of intent data along with `hot_launch` event, which collects
+the intent data for the activity launched. This is generally useful for debugging deeplinks
+which are typically added to the intent bundle. Disabled by default
 
 # Internals
 
