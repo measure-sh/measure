@@ -25,3 +25,52 @@ instrumentation [here](../../measure-android-gradle/README.md#automatic-instrume
 
 Checkout the data collected by Measure for each HTTP request in the [HTTP Event](../../../docs/api/sdk/README.md#http) section.
 
+### Configuration
+
+#### `restrictedHttpUrlBlocklist`
+
+Allows disabling collection of `http` events for certain URLs. This is useful to setup if you do not
+want to collect data for certain endpoints or third party domains. By default, Measure endpoints
+are always disabled.
+
+Example:
+
+```kotlin
+MeasureConfig(
+    restrictedHttpUrlBlocklist = listOf(
+        "measure.sh", // disables a domain
+        "api.example.com", // disable a subdomain
+        "example.com/order" // disable a particular path
+    )
+)
+```
+
+#### `enableHttpHeaders`
+
+Allows enabling/disabling capturing of HTTP request and response headers. Disabled by default.
+
+#### `enableHttpBody`
+
+Allows enabling/disabling capturing of HTTP request and response body. Disabled by default.
+
+#### `httpHeadersBlocklist`
+
+Allows specifying HTTP headers which should not be captured.
+
+Example:
+
+```kotlin
+MeasureConfig(
+    enableHttpHeaders = listOf("X-Request-Id")
+)
+```
+
+By default, the following headers are always disallowed to prevent sensitive information from
+leaking:
+
+* Authorization
+* Cookie
+* Set-Cookie
+* Proxy-Authorization
+* WWW-Authenticate
+* X-Api-Key
