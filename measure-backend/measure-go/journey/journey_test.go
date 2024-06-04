@@ -749,3 +749,117 @@ func TestGetNodeVertices(t *testing.T) {
 		t.Errorf("Expected %v node vertices, but got %v", expected, got)
 	}
 }
+
+func TestNewJourneyAndroidBigraphOne(t *testing.T) {
+	events, err := readEvents("events_one.json")
+	if err != nil {
+		panic(err)
+	}
+
+	journey := NewJourneyAndroid(events, &Options{
+		BiGraph: false,
+	})
+
+	expectedOrder := 4
+	gotOrder := journey.Graph.Order()
+
+	if expectedOrder != gotOrder {
+		t.Errorf("Expected %d order, but got %d", expectedOrder, gotOrder)
+	}
+
+	expectedString := "4 [(0 1) (0 2) (0 3)]"
+	gotString := journey.Graph.String()
+
+	if expectedString != gotString {
+		t.Errorf("Expected %q, got %q", expectedString, gotString)
+	}
+
+	// forward direction
+	{
+		sessionIds := journey.metalut[journey.makeKey(0, 1)].Slice()
+		expectedLen := 4
+		gotLen := len(sessionIds)
+		if expectedLen != gotLen {
+			t.Errorf("Expected %d length, got %d", expectedLen, gotLen)
+		}
+
+		expected := []uuid.UUID{
+			uuid.MustParse("9e44aa3a-3d67-4a56-8a76-a9fff7e2aae9"),
+			uuid.MustParse("a3d629f5-6bab-4a43-8e75-fa5d6b539d33"),
+			uuid.MustParse("58e94ae9-a084-479f-9049-2c5135f6090f"),
+			uuid.MustParse("460765ab-1834-454e-b207-d8235b2160d9"),
+		}
+		if expected[0] != sessionIds[0] {
+			t.Errorf("Expected %v, but got %v", expected[0], sessionIds[0])
+		}
+		if expected[1] != sessionIds[1] {
+			t.Errorf("Expected %v, but got %v", expected[1], sessionIds[1])
+		}
+		if expected[2] != sessionIds[2] {
+			t.Errorf("Expected %v, but got %v", expected[2], sessionIds[2])
+		}
+		if expected[3] != sessionIds[3] {
+			t.Errorf("Expected %v, but got %v", expected[3], sessionIds[3])
+		}
+	}
+
+	{
+		sessionIds := journey.metalut[journey.makeKey(0, 2)].Slice()
+		expectedLen := 3
+		gotLen := len(sessionIds)
+		if expectedLen != gotLen {
+			t.Errorf("Expected %d length, got %d", expectedLen, gotLen)
+		}
+
+		expected := []uuid.UUID{
+			uuid.MustParse("9e44aa3a-3d67-4a56-8a76-a9fff7e2aae9"),
+			uuid.MustParse("a3d629f5-6bab-4a43-8e75-fa5d6b539d33"),
+			uuid.MustParse("460765ab-1834-454e-b207-d8235b2160d9"),
+		}
+		if expected[0] != sessionIds[0] {
+			t.Errorf("Expected %v, but got %v", expected[0], sessionIds[0])
+		}
+		if expected[1] != sessionIds[1] {
+			t.Errorf("Expected %v, but got %v", expected[1], sessionIds[1])
+		}
+		if expected[2] != sessionIds[2] {
+			t.Errorf("Expected %v, but got %v", expected[2], sessionIds[2])
+		}
+	}
+
+	{
+		sessionIds := journey.metalut[journey.makeKey(0, 3)].Slice()
+		expectedLen := 2
+		gotLen := len(sessionIds)
+		if expectedLen != gotLen {
+			t.Errorf("Expected %d length, got %d", expectedLen, gotLen)
+		}
+
+		expected := []uuid.UUID{
+			uuid.MustParse("9e44aa3a-3d67-4a56-8a76-a9fff7e2aae9"),
+			uuid.MustParse("460765ab-1834-454e-b207-d8235b2160d9"),
+		}
+		if expected[0] != sessionIds[0] {
+			t.Errorf("Expected %v, but got %v", expected[0], sessionIds[0])
+		}
+		if expected[1] != sessionIds[1] {
+			t.Errorf("Expected %v, but got %v", expected[1], sessionIds[1])
+		}
+	}
+
+	// reverse direction
+	{
+		expected := false
+		got := journey.Graph.Edge(1, 0)
+		if expected != got {
+			t.Errorf("Expected %v, but got %v", expected, got)
+		}
+	}
+	{
+		expected := false
+		got := journey.Graph.Edge(2, 0)
+		if expected != got {
+			t.Errorf("Expected %v, but got %v", expected, got)
+		}
+	}
+}
