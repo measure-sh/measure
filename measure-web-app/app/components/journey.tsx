@@ -9,8 +9,7 @@ import ReactFlow, {
   useEdgesState,
   Position,
   Handle,
-  Controls,
-  getNodesBounds,
+  Controls
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import Link from 'next/link';
@@ -18,6 +17,7 @@ import Link from 'next/link';
 interface JourneyProps {
   teamId: string,
   appId: string,
+  bidirectional: boolean,
   startDate: string,
   endDate: string,
   appVersions: AppVersion[],
@@ -211,7 +211,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
   return { nodes, edges };
 };
 
-const Journey: React.FC<JourneyProps> = ({ teamId, appId, startDate, endDate, appVersions }) => {
+const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, startDate, endDate, appVersions }) => {
 
   const [journeyApiStatus, setJourneyApiStatus] = useState(JourneyApiStatus.Loading);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -219,10 +219,10 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, startDate, endDate, ap
 
   const router = useRouter()
 
-  const getJourney = async (appId: string, startDate: string, endDate: string, appVersions: AppVersion[]) => {
+  const getJourney = async (teamId: string, appId: string, bidirectional: boolean, startDate: string, endDate: string, appVersions: AppVersion[]) => {
     setJourneyApiStatus(JourneyApiStatus.Loading)
 
-    const result = await fetchJourneyFromServer(appId, startDate, endDate, appVersions, router)
+    const result = await fetchJourneyFromServer(appId, bidirectional, startDate, endDate, appVersions, router)
 
     switch (result.status) {
       case JourneyApiStatus.Error:
@@ -245,8 +245,8 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, startDate, endDate, ap
   }
 
   useEffect(() => {
-    getJourney(appId, startDate, endDate, appVersions)
-  }, [appId, startDate, endDate, appVersions]);
+    getJourney(teamId, appId, bidirectional, startDate, endDate, appVersions)
+  }, [teamId, appId, bidirectional, startDate, endDate, appVersions]);
 
   return (
     <div className="flex items-center justify-center border border-black text-black font-sans text-sm w-5/6 h-[600px]">

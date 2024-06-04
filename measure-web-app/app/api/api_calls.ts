@@ -677,7 +677,7 @@ export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filte
     return { status: FiltersApiStatus.Success, data: data }
 }
 
-export const fetchJourneyFromServer = async (appId: string, startDate: string, endDate: string, appVersions: AppVersion[], router: AppRouterInstance) => {
+export const fetchJourneyFromServer = async (appId: string, bidirectional: boolean, startDate: string, endDate: string, appVersions: AppVersion[], router: AppRouterInstance) => {
     const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
@@ -694,6 +694,9 @@ export const fetchJourneyFromServer = async (appId: string, startDate: string, e
     // Append versions
     url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
     url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
+
+    // Append bidirectional value
+    url = url + `&bigraph=${bidirectional ? '1' : '0'}`
 
     const res = await fetch(url, opts);
 
