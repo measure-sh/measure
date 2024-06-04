@@ -545,6 +545,34 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?))", whereVals...)
 	}
 
+	if len(af.Countries) > 0 {
+		stmt.Where("`inet.country_code` in ?", af.Countries)
+	}
+
+	if len(af.DeviceNames) > 0 {
+		stmt.Where("`attribute.device_name` in ?", af.DeviceNames)
+	}
+
+	if len(af.DeviceManufacturers) > 0 {
+		stmt.Where("`attribute.device_manufacturer` in ?", af.DeviceManufacturers)
+	}
+
+	if len(af.Locales) > 0 {
+		stmt.Where("`attribute.device_locale` in ?", af.Locales)
+	}
+
+	if len(af.NetworkProviders) > 0 {
+		stmt.Where("`attribute.network_provider` in ?", af.NetworkProviders)
+	}
+
+	if len(af.NetworkTypes) > 0 {
+		stmt.Where("`attribute.network_type` in ?", af.NetworkTypes)
+	}
+
+	if len(af.NetworkGenerations) > 0 {
+		stmt.Where("`attribute.network_generation` in ?", af.NetworkGenerations)
+	}
+
 	stmt.OrderBy(`timestamp`)
 
 	defer stmt.Close()
