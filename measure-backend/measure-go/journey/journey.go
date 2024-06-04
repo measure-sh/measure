@@ -15,10 +15,6 @@ import (
 // Journey is the interface to express
 // and operate journey maps.
 type Journey interface {
-	// GetEdgeSessions computes list of unique session ids
-	// for the edge `v->w`.
-	GetEdgeSessions(v, w int) (sessionIds []uuid.UUID)
-
 	// GetEdgeSessionCount computes the count of sessions
 	// for the edge `v->w`.
 	GetEdgeSessionCount(v, w int) int
@@ -26,6 +22,18 @@ type Journey interface {
 	// GetNodeName provides the node name mapped to
 	// the vertex's index.
 	GetNodeName(v int) string
+
+	// GetNodeVertices provides the graph's node
+	// vertices in ascending sorted order.
+	GetNodeVertices() []int
+
+	// GetNodeANRCount computes total count of ANR events
+	// occurring in the ANR group.
+	GetNodeANRCount(v int, anrGroupId uuid.UUID) (anrCount int)
+
+	// GetNodeExceptionCount computes total count of exception
+	// events occurring in the exception group.
+	GetNodeExceptionCount(v int, exceptionGroupId uuid.UUID) (crashCount int)
 
 	// IterNodeExceptions iterates over each node passing
 	// down exception event ids and expecting matching
@@ -41,9 +49,30 @@ type Journey interface {
 	// a node. Matches with node's string.
 	GetNodeExceptionGroups(name string) (exceptionGroups []group.ExceptionGroup)
 
+	// SetNodeExceptionGroups iterates over each node passing
+	// down exception event ids and expecting matching
+	// exception groups. It applies received exception
+	// groups to the journey.
+	SetNodeExceptionGroups(iterator func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error)) (err error)
+
 	// GetNodeANRGroups gets the anr group for
 	// a node. Matches with node's string.
 	GetNodeANRGroups(name string) (anrGroups []group.ANRGroup)
+
+	// SetNodeANRGroups iterates over each node passing
+	// down exception event ids and expecting matching
+	// exception groups. It applies received exception
+	// groups to the journey.
+	SetNodeANRGroups(iterator func(eventIds []uuid.UUID) (anrGroups []group.ANRGroup, err error)) (err error)
+}
+
+// Options is the options to
+// configure journey's properties.
+type Options struct {
+	// BiGraph is true if bidirectional
+	// journey creation should create
+	// backlinks.
+	BiGraph bool
 }
 
 // NodeAndroid represents each
@@ -135,6 +164,9 @@ type JourneyAndroid struct {
 	// "v->w" string key to respective
 	// set of ids.
 	metalut map[string]*set.UUIDSet
+
+	// options is the journey's options
+	options *Options
 }
 
 // computeIssues resolves issue event UUIDs
@@ -228,15 +260,28 @@ func (j *JourneyAndroid) buildGraph() {
 		}
 
 		if nextNode.IsFragment && !j.isFragmentOrphan(nextNode.ID) {
-			if !j.Graph.Edge(v.vertex, w.vertex) {
-				j.Graph.Add(v.vertex, w.vertex)
+			if j.options.BiGraph {
+				if !j.Graph.Edge(v.vertex, w.vertex) {
+					j.Graph.Add(v.vertex, w.vertex)
+				}
+			} else {
+				if !j.Graph.Edge(w.vertex, v.vertex) {
+					j.Graph.Add(v.vertex, w.vertex)
+				}
+
 			}
 			continue
 		}
 
 		if nextNode.IsActivity {
-			if !j.Graph.Edge(v.vertex, w.vertex) {
-				j.Graph.Add(v.vertex, w.vertex)
+			if j.options.BiGraph {
+				if !j.Graph.Edge(v.vertex, w.vertex) {
+					j.Graph.Add(v.vertex, w.vertex)
+				}
+			} else {
+				if !j.Graph.Edge(w.vertex, v.vertex) {
+					j.Graph.Add(v.vertex, w.vertex)
+				}
 			}
 			continue
 		}
@@ -245,6 +290,9 @@ func (j *JourneyAndroid) buildGraph() {
 
 // addEdgeID adds the id to an edge from v to w.
 func (j *JourneyAndroid) addEdgeID(v, w int, id uuid.UUID) {
+	if !j.options.BiGraph && j.Graph.Edge(w, v) {
+		return
+	}
 	key := j.makeKey(v, w)
 	uuidset, ok := j.metalut[key]
 	if !ok {
@@ -335,7 +383,7 @@ func (j *JourneyAndroid) GetNodeExceptionCount(v int, exceptionGroupId uuid.UUID
 // SetNodeExceptionGroups iterates over each node passing
 // down exception event ids and expecting matching
 // exception groups. It applies received exception
-// groups to the journe.
+// groups to the journey.
 func (j *JourneyAndroid) SetNodeExceptionGroups(iterator func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error)) (err error) {
 	for k, v := range j.nodelut {
 		exceptionGroups, err := iterator(v.exceptionIds.Slice())
@@ -412,10 +460,11 @@ func (j JourneyAndroid) isFragmentOrphan(i int) bool {
 
 // NewJourneyAndroid creates a journey graph object
 // from a list of events.
-func NewJourneyAndroid(events []event.EventField) (journey JourneyAndroid) {
+func NewJourneyAndroid(events []event.EventField, opts *Options) (journey JourneyAndroid) {
 	journey.Events = events
 	journey.nodelut = make(map[string]*nodebag)
 	journey.nodelutinverse = make(map[int]string)
+	journey.options = opts
 
 	for i := range events {
 		var node NodeAndroid
