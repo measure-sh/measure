@@ -60,6 +60,13 @@ export enum CrashOrAnrGroupDetailsApiStatus {
     Error
 }
 
+export enum CrashOrAnrGroupDetailsPlotApiStatus {
+    Loading,
+    Success,
+    Error,
+    NoData
+}
+
 export enum CreateTeamApiStatus {
     Init,
     Loading,
@@ -357,6 +364,18 @@ export const emptyAnrGroupDetailsResponse = {
     },
     "results": [] as typeof emptyAnrGroupDetails[]
 }
+
+export const emptyCrashOrAnrGroupDetailsPlotResponse = [
+    {
+        "id": "",
+        "data": [
+            {
+                "datetime": "",
+                "instances": 0
+            }
+        ]
+    }
+]
 
 export const defaultAuthzAndMembers = {
     "can_invite": [
@@ -842,6 +861,82 @@ export const fetchCrashOrAnrGroupDetailsFromServer = async (crashOrAnrType: Cras
 
     return { status: CrashOrAnrGroupDetailsApiStatus.Success, data: data }
 
+}
+
+export const fetchCrashOrAnrGroupDetailsPlotFromServer = async (appId: string, crashOrAnrType: CrashOrAnrType, crashOrAnrGroupId: string, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], router: AppRouterInstance) => {
+    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+        headers: {
+            "Authorization": `Bearer ${authToken}`
+        }
+    };
+
+    const serverFormattedStartDate = DateTime.fromFormat(startDate, 'yyyy-MM-dd').toUTC().toISO();
+    const serverFormattedEndDate = DateTime.fromFormat(endDate, 'yyyy-MM-dd').toUTC().toISO();
+
+    var url = ""
+    if (crashOrAnrType === CrashOrAnrType.Crash) {
+        url = `${origin}/apps/${appId}/crashGroups/${crashOrAnrGroupId}/plot?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
+    } else {
+        url = `${origin}/apps/${appId}/anrGroups/${crashOrAnrGroupId}/plot?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
+    }
+
+    // Append versions if present
+    if (appVersions.length > 0) {
+        url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
+        url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
+    }
+
+    // Append countries if present
+    if (countries.length > 0) {
+        url = url + `&countries=${Array.from(countries).join(',')}`
+    }
+
+    // Append network providers if present
+    if (networkProviders.length > 0) {
+        url = url + `&network_providers=${Array.from(networkProviders).join(',')}`
+    }
+
+    // Append network types if present
+    if (networkTypes.length > 0) {
+        url = url + `&network_types=${Array.from(networkTypes).join(',')}`
+    }
+
+    // Append network generations if present
+    if (networkGenerations.length > 0) {
+        url = url + `&network_generations=${Array.from(networkGenerations).join(',')}`
+    }
+
+    // Append locales if present
+    if (locales.length > 0) {
+        url = url + `&locales=${Array.from(locales).join(',')}`
+    }
+
+    // Append device manufacturers if present
+    if (deviceManufacturers.length > 0) {
+        url = url + `&device_manufacturers=${Array.from(deviceManufacturers).join(',')}`
+    }
+
+    // Append device names if present
+    if (deviceNames.length > 0) {
+        url = url + `&device_names=${Array.from(deviceNames).join(',')}`
+    }
+
+    const res = await fetch(url, opts);
+
+    if (!res.ok) {
+        logoutIfAuthError(supabase, router, res)
+        return { status: CrashOrAnrGroupDetailsPlotApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data === null) {
+        return { status: CrashOrAnrGroupDetailsPlotApiStatus.NoData, data: null }
+    }
+
+    return { status: CrashOrAnrGroupDetailsPlotApiStatus.Success, data: data }
 }
 
 export const fetchAuthzAndMembersFromServer = async (teamId: string, router: AppRouterInstance) => {
