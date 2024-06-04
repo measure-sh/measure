@@ -90,6 +90,7 @@ const CrashOrAnrGroupDetailsPlot: React.FC<CrashOrAnrGroupDetailsPlotProps> = ({
           axisRight={null}
           axisBottom={{
             legend: 'Date',
+            tickPadding: 10,
             legendOffset: 100,
             format: '%b %d, %Y',
             tickRotation: 90,
