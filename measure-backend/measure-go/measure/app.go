@@ -2301,8 +2301,6 @@ func GetCrashDetailPlotJourney(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("group event ids:", exceptionGroup.EventIDs)
-
 	opts := filter.JourneyOpts{
 		Exceptions: true,
 	}
@@ -2313,13 +2311,6 @@ func GetCrashDetailPlotJourney(c *gin.Context) {
 			"error": msg,
 		})
 		return
-	}
-
-	var exceptionEvents []event.EventField
-	for i := range journeyEvents {
-		if journeyEvents[i].IsUnhandledException() {
-			exceptionEvents = append(exceptionEvents, journeyEvents[i])
-		}
 	}
 
 	journeyAndroid := journey.NewJourneyAndroid(journeyEvents, &journey.Options{
