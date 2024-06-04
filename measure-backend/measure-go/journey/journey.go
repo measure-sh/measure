@@ -73,6 +73,11 @@ type Options struct {
 	// journey creation should create
 	// backlinks.
 	BiGraph bool
+
+	// ExceptionGroup limits journey
+	// creation to be bound by exceptions
+	// from the exception group.
+	ExceptionGroup *group.ExceptionGroup
 }
 
 // NodeAndroid represents each
@@ -469,22 +474,41 @@ func NewJourneyAndroid(events []event.EventField, opts *Options) (journey Journe
 	for i := range events {
 		var node NodeAndroid
 		node.ID = i
+		activity := events[i].IsLifecycleActivity()
+		fragment := events[i].IsLifecycleFragment()
+		issue := i > 0 && events[i].IsUnhandledException() || events[i].IsANR()
 
-		if events[i].IsLifecycleActivity() {
+		if activity {
 			node.Name = events[i].LifecycleActivity.ClassName
 			node.IsActivity = true
-		} else if events[i].IsLifecycleFragment() {
+		} else if fragment {
 			node.Name = events[i].LifecycleFragment.ClassName
 			node.IsFragment = true
-		} else if i > 0 && events[i].IsUnhandledException() || events[i].IsANR() {
+		} else if issue {
 			// find the previous activity or fragment node
 			// and attach the issue to the node.
 			c := i
 			for {
 				c--
-				if journey.Nodes[c].IsActivity || journey.Nodes[c].IsFragment {
-					journey.Nodes[c].IssueEvents = append(journey.Nodes[c].IssueEvents, i)
+				if c < 1 {
 					break
+				}
+
+				if journey.Nodes[c].IsActivity || journey.Nodes[c].IsFragment {
+					addIssue := false
+
+					if journey.options.ExceptionGroup != nil && journey.options.ExceptionGroup.EventExists(events[i].ID) {
+						addIssue = true
+					}
+
+					if journey.options.ExceptionGroup == nil {
+						addIssue = true
+					}
+
+					if addIssue {
+						journey.Nodes[c].IssueEvents = append(journey.Nodes[c].IssueEvents, i)
+						break
+					}
 				}
 			}
 		}

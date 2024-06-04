@@ -104,6 +104,11 @@ type AppFilter struct {
 	// Limit is the count of matching results to
 	// limit to.
 	Limit int `form:"limit"`
+
+	// BiGraph represents if journey plot
+	// constructions should be bidirectional
+	// or not.
+	BiGraph bool `form:"bigraph"`
 }
 
 // FilterList holds various filter parameter values that are

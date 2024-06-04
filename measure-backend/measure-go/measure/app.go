@@ -496,9 +496,10 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 	return
 }
 
-// getJourneyEvents queries all relevant lifecycle events involved in forming
+// getJourneyEvents queries all relevant lifecycle
+// and issue events involved in forming
 // an implicit navigational journey.
-func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter) (events []event.EventField, err error) {
+func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts filter.JourneyOpts) (events []event.EventField, err error) {
 	whereVals := []any{
 		event.TypeLifecycleActivity,
 		[]string{
@@ -510,9 +511,14 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter) (events
 			event.LifecycleFragmentTypeAttached,
 			event.LifecycleFragmentTypeResumed,
 		},
-		event.TypeException,
-		false,
-		event.TypeANR,
+	}
+
+	if opts.All {
+		whereVals = append(whereVals, event.TypeException, false, event.TypeANR)
+	} else if opts.Exceptions {
+		whereVals = append(whereVals, event.TypeException, false)
+	} else if opts.ANRs {
+		whereVals = append(whereVals, event.TypeANR)
 	}
 
 	stmt := sqlf.
@@ -529,9 +535,17 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter) (events
 		Where(`app_id = ?`, a.ID).
 		Where("`attribute.app_version` in ?", af.Versions).
 		Where("`attribute.app_build` in ?", af.VersionCodes).
-		Where("`timestamp` >= ? and `timestamp` <= ?", af.From, af.To).
-		Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or ((type = ? and `exception.handled` = ?) or type = ?))", whereVals...).
-		OrderBy(`timestamp`)
+		Where("`timestamp` >= ? and `timestamp` <= ?", af.From, af.To)
+
+	if opts.All {
+		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or ((type = ? and `exception.handled` = ?) or type = ?))", whereVals...)
+	} else if opts.Exceptions {
+		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ? and `exception.handled` = ?))", whereVals...)
+	} else if opts.ANRs {
+		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?))", whereVals...)
+	}
+
+	stmt.OrderBy(`timestamp`)
 
 	defer stmt.Close()
 
@@ -1353,18 +1367,16 @@ func GetAppJourney(c *gin.Context) {
 		return
 	}
 
-	bigraph := true
-	if c.Query("bigraph") == "0" {
-		bigraph = false
-	}
-
 	af.Expand()
 
 	msg := "app journey request validation failed"
 
 	if err := af.Validate(); err != nil {
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
 		return
 	}
 
@@ -1422,7 +1434,10 @@ func GetAppJourney(c *gin.Context) {
 	}
 
 	msg = `failed to compute app's journey`
-	journeyEvents, err := app.getJourneyEvents(ctx, &af)
+	opts := filter.JourneyOpts{
+		All: true,
+	}
+	journeyEvents, err := app.getJourneyEvents(ctx, &af, opts)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -1442,11 +1457,11 @@ func GetAppJourney(c *gin.Context) {
 		}
 	}
 
-	journey := journey.NewJourneyAndroid(journeyEvents, &journey.Options{
-		BiGraph: bigraph,
+	journeyAndroid := journey.NewJourneyAndroid(journeyEvents, &journey.Options{
+		BiGraph: af.BiGraph,
 	})
 
-	if err := journey.SetNodeExceptionGroups(func(eventIds []uuid.UUID) ([]group.ExceptionGroup, error) {
+	if err := journeyAndroid.SetNodeExceptionGroups(func(eventIds []uuid.UUID) ([]group.ExceptionGroup, error) {
 		exceptionGroups, err := group.GetExceptionGroupsFromExceptionIds(ctx, eventIds)
 		if err != nil {
 			return nil, err
@@ -1460,7 +1475,7 @@ func GetAppJourney(c *gin.Context) {
 		return
 	}
 
-	if err := journey.SetNodeANRGroups(func(eventIds []uuid.UUID) ([]group.ANRGroup, error) {
+	if err := journeyAndroid.SetNodeANRGroups(func(eventIds []uuid.UUID) ([]group.ANRGroup, error) {
 		anrGroups, err := group.GetANRGroupsFromANRIds(ctx, eventIds)
 		if err != nil {
 			return nil, err
@@ -1494,28 +1509,28 @@ func GetAppJourney(c *gin.Context) {
 	var nodes []Node
 	var links []Link
 
-	for v := range journey.Graph.Order() {
-		journey.Graph.Visit(v, func(w int, c int64) bool {
+	for v := range journeyAndroid.Graph.Order() {
+		journeyAndroid.Graph.Visit(v, func(w int, c int64) bool {
 			var link Link
-			link.Source = journey.GetNodeName(v)
-			link.Target = journey.GetNodeName(w)
-			link.Value = journey.GetEdgeSessionCount(v, w)
+			link.Source = journeyAndroid.GetNodeName(v)
+			link.Target = journeyAndroid.GetNodeName(w)
+			link.Value = journeyAndroid.GetEdgeSessionCount(v, w)
 			links = append(links, link)
 			return false
 		})
 	}
 
-	for _, v := range journey.GetNodeVertices() {
+	for _, v := range journeyAndroid.GetNodeVertices() {
 		var node Node
-		name := journey.GetNodeName(v)
-		exceptionGroups := journey.GetNodeExceptionGroups(name)
+		name := journeyAndroid.GetNodeName(v)
+		exceptionGroups := journeyAndroid.GetNodeExceptionGroups(name)
 		crashes := []Issue{}
 
 		for i := range exceptionGroups {
 			issue := Issue{
 				ID:    exceptionGroups[i].ID,
 				Title: exceptionGroups[i].Name,
-				Count: journey.GetNodeExceptionCount(v, exceptionGroups[i].ID),
+				Count: journeyAndroid.GetNodeExceptionCount(v, exceptionGroups[i].ID),
 			}
 			crashes = append(crashes, issue)
 		}
@@ -1524,14 +1539,14 @@ func GetAppJourney(c *gin.Context) {
 			return crashes[i].Count > crashes[j].Count
 		})
 
-		anrGroups := journey.GetNodeANRGroups(name)
+		anrGroups := journeyAndroid.GetNodeANRGroups(name)
 		anrs := []Issue{}
 
 		for i := range anrGroups {
 			issue := Issue{
 				ID:    anrGroups[i].ID,
 				Title: anrGroups[i].Name,
-				Count: journey.GetNodeANRCount(v, anrGroups[i].ID),
+				Count: journeyAndroid.GetNodeANRCount(v, anrGroups[i].ID),
 			}
 			anrs = append(anrs, issue)
 		}
@@ -2058,7 +2073,7 @@ func GetCrashDetailCrashes(c *gin.Context) {
 	})
 }
 
-func GetCrashDetailInstancesPlot(c *gin.Context) {
+func GetCrashDetailPlotInstances(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -2182,6 +2197,211 @@ func GetCrashDetailInstancesPlot(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, instances)
+}
+
+func GetCrashDetailPlotJourney(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	crashGroupId, err := uuid.Parse(c.Param("crashGroupId"))
+	if err != nil {
+		msg := `crash group id is invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		return
+	}
+
+	af.Expand()
+
+	msg := `crash detail journey plot request validation failed`
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.ValidateVersions(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	exceptionGroup, err := app.GetExceptionGroup(ctx, crashGroupId)
+	if err != nil {
+		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId.String())
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	fmt.Println("group event ids:", exceptionGroup.EventIDs)
+
+	opts := filter.JourneyOpts{
+		Exceptions: true,
+	}
+	journeyEvents, err := app.getJourneyEvents(ctx, &af, opts)
+	if err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	var exceptionEvents []event.EventField
+	for i := range journeyEvents {
+		if journeyEvents[i].IsUnhandledException() {
+			exceptionEvents = append(exceptionEvents, journeyEvents[i])
+		}
+	}
+
+	journeyAndroid := journey.NewJourneyAndroid(journeyEvents, &journey.Options{
+		BiGraph:        af.BiGraph,
+		ExceptionGroup: exceptionGroup,
+	})
+
+	if err := journeyAndroid.SetNodeExceptionGroups(func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error) {
+		exceptionGroups = []group.ExceptionGroup{*exceptionGroup}
+		return
+	}); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	type Link struct {
+		Source string `json:"source"`
+		Target string `json:"target"`
+		Value  int    `json:"value"`
+	}
+
+	type Issue struct {
+		ID    uuid.UUID `json:"id"`
+		Title string    `json:"title"`
+		Count int       `json:"count"`
+	}
+
+	type Node struct {
+		ID     string `json:"id"`
+		Issues gin.H  `json:"issues"`
+	}
+
+	var nodes []Node
+	var links []Link
+
+	for v := range journeyAndroid.Graph.Order() {
+		journeyAndroid.Graph.Visit(v, func(w int, c int64) bool {
+			var link Link
+			link.Source = journeyAndroid.GetNodeName(v)
+			link.Target = journeyAndroid.GetNodeName(w)
+			link.Value = journeyAndroid.GetEdgeSessionCount(v, w)
+			links = append(links, link)
+			return false
+		})
+	}
+
+	for _, v := range journeyAndroid.GetNodeVertices() {
+		var node Node
+		name := journeyAndroid.GetNodeName(v)
+		exceptionGroups := journeyAndroid.GetNodeExceptionGroups(name)
+		crashes := []Issue{}
+
+		for i := range exceptionGroups {
+			issue := Issue{
+				ID:    exceptionGroups[i].ID,
+				Title: exceptionGroups[i].Name,
+				Count: journeyAndroid.GetNodeExceptionCount(v, exceptionGroups[i].ID),
+			}
+			if issue.Count > 0 {
+				crashes = append(crashes, issue)
+			}
+		}
+
+		sort.Slice(crashes, func(i, j int) bool {
+			return crashes[i].Count > crashes[j].Count
+		})
+
+		node.ID = name
+		node.Issues = gin.H{
+			"crashes": crashes,
+		}
+		nodes = append(nodes, node)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"totalIssues": len(exceptionGroup.EventIDs),
+		"nodes":       nodes,
+		"links":       links,
+	})
 }
 
 func GetANRGroups(c *gin.Context) {
@@ -2401,7 +2621,7 @@ func GetANRDetailANRs(c *gin.Context) {
 	})
 }
 
-func GetANRDetailInstancesPlot(c *gin.Context) {
+func GetANRDetailPlotInstances(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
