@@ -98,7 +98,7 @@ const CrashOrAnrGroupDetailsPlot: React.FC<CrashOrAnrGroupDetailsPlotProps> = ({
           axisLeft={{
             tickSize: 1,
             tickPadding: 5,
-            legend: 'Crash instances',
+            legend: crashOrAnrType === CrashOrAnrType.Crash ? 'Crash instances' : 'ANR instances',
             legendOffset: -80,
             legendPosition: 'middle'
           }}
