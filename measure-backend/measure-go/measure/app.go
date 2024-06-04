@@ -2502,29 +2502,26 @@ func GetANRGroupANRsPlot(c *gin.Context) {
 		Data []gin.H `json:"data"`
 	}
 
-	response := make(map[string]instance)
-
+	lut := make(map[string]int)
 	var instances []instance
 
 	for i := range anrInstances {
-		var instance instance
-		instance.ID = anrInstances[i].Version
-		instance.Data = append(instance.Data, gin.H{
-			"datetime":  anrInstances[i].DateTime,
-			"instances": anrInstances[i].Instances,
-		})
-
-		value, ok := response[anrInstances[i].Version]
-		if !ok {
-			response[anrInstances[i].Version] = instance
-		} else {
-			value.Data = append(value.Data, gin.H{
+		instance := instance{
+			ID: anrInstances[i].Version,
+			Data: []gin.H{{
 				"datetime":  anrInstances[i].DateTime,
 				"instances": anrInstances[i].Instances,
-			})
+			}},
 		}
 
-		instances = append(instances, instance)
+		ndx, ok := lut[anrInstances[i].Version]
+
+		if ok {
+			instances[ndx].Data = append(instances[ndx].Data, instance.Data...)
+		} else {
+			lut[anrInstances[i].Version] = i
+			instances = append(instances, instance)
+		}
 	}
 
 	c.JSON(http.StatusOK, instances)
