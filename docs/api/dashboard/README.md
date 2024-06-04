@@ -135,6 +135,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
 - [**GET `/apps/:id/crashGroups`**](#get-appsidcrashgroups) - Fetch list of crash groups for an app
 - [**GET `/apps/:id/anrGroups`**](#get-appsidanrgroups) - Fetch list of ANR groups for an app
 - [**GET `/apps/:id/crashGroups/:id/crashes`**](#get-appsidcrashgroupsidcrashes) - Fetch list of crashes for a crash group
+- [**GET `/apps/:id/crashGroups/:id/plot`**](#get-appsidcrashgroupsidplot) - Fetch list of crash instances aggregrated by parameters like time & version.
 - [**GET `/apps/:id/anrGroups/:id/anrs`**](#get-appsidanrgroupsidanrs) - Fetch list of anrs for an anr group
 - [**GET `/apps/:id/sessions/:id`**](#get-appsidsessionsid) - Fetch an app's session replay
 - [**GET `/apps/:id/alertPrefs`**](#get-appsidalertprefs) - Fetch an app's alert preferences
@@ -154,6 +155,7 @@ Fetch an app's issue journey map. Filter time range using `from` &amp; `to` quer
 - `from` &amp; `to` will default to a last 7 days time range.
 - `versions` can accept multiple version identifiers separated with comma.
 - `version_codes` can accept multiple version codes separated with comma.
+- `bigraph` if `0` will compute a unidirectional graph. Default is `1`.
 
 #### Authorization & Content Type
 
