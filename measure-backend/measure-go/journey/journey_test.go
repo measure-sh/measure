@@ -25,7 +25,9 @@ func TestNewJourneyAndroidOne(t *testing.T) {
 		panic(err)
 	}
 
-	journey := NewJourneyAndroid(events)
+	journey := NewJourneyAndroid(events, &Options{
+		BiGraph: true,
+	})
 
 	expectedOrder := 4
 	gotOrder := journey.Graph.Order()
@@ -209,7 +211,9 @@ func TestNewJourneyAndroidTwo(t *testing.T) {
 		panic(err)
 	}
 
-	journey := NewJourneyAndroid(events)
+	journey := NewJourneyAndroid(events, &Options{
+		BiGraph: true,
+	})
 
 	expectedOrder := 5
 	gotOrder := journey.Graph.Order()
@@ -375,7 +379,9 @@ func TestGetEdgeSessionsOne(t *testing.T) {
 		panic(err)
 	}
 
-	journey := NewJourneyAndroid(events)
+	journey := NewJourneyAndroid(events, &Options{
+		BiGraph: true,
+	})
 
 	{
 		expected := []uuid.UUID{
@@ -462,7 +468,9 @@ func TestGetEdgeSessionsTwo(t *testing.T) {
 		panic(err)
 	}
 
-	journey := NewJourneyAndroid(events)
+	journey := NewJourneyAndroid(events, &Options{
+		BiGraph: true,
+	})
 
 	{
 		expected := []uuid.UUID{
@@ -524,7 +532,9 @@ func TestGetEdgeSessionsCountOne(t *testing.T) {
 		panic(err)
 	}
 
-	journey := NewJourneyAndroid(events)
+	journey := NewJourneyAndroid(events, &Options{
+		BiGraph: true,
+	})
 
 	{
 		expected := 4
@@ -587,7 +597,9 @@ func TestGetEdgeSessionsCountTwo(t *testing.T) {
 		panic(err)
 	}
 
-	journey := NewJourneyAndroid(events)
+	journey := NewJourneyAndroid(events, &Options{
+		BiGraph: true,
+	})
 
 	{
 		expected := 4
@@ -632,7 +644,9 @@ func TestGetNodeName(t *testing.T) {
 		panic(err)
 	}
 
-	journey := NewJourneyAndroid(events)
+	journey := NewJourneyAndroid(events, &Options{
+		BiGraph: true,
+	})
 
 	expected := "sh.measure.sample.ExceptionDemoActivity"
 	got := journey.GetNodeName(0)
@@ -648,7 +662,9 @@ func TestExceptionGroupAccessors(t *testing.T) {
 		panic(err)
 	}
 
-	journey := NewJourneyAndroid(events)
+	journey := NewJourneyAndroid(events, &Options{
+		BiGraph: true,
+	})
 
 	groupOne := group.ExceptionGroup{
 		ID:   uuid.MustParse("b863efbe-585e-4e14-856d-fe6a3f31b64e"),
@@ -684,7 +700,9 @@ func TestANRGroupAccessors(t *testing.T) {
 		panic(err)
 	}
 
-	journey := NewJourneyAndroid(events)
+	journey := NewJourneyAndroid(events, &Options{
+		BiGraph: true,
+	})
 
 	groupOne := group.ANRGroup{
 		ID:   uuid.MustParse("b863efbe-585e-4e14-856d-fe6a3f31b64e"),
@@ -720,7 +738,9 @@ func TestGetNodeVertices(t *testing.T) {
 		panic(err)
 	}
 
-	journey := NewJourneyAndroid(events)
+	journey := NewJourneyAndroid(events, &Options{
+		BiGraph: true,
+	})
 
 	expected := []int{0, 1, 2, 3}
 	got := journey.GetNodeVertices()

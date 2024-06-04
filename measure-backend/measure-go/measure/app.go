@@ -1341,6 +1341,7 @@ func GetAppJourney(c *gin.Context) {
 		})
 		return
 	}
+
 	af := filter.AppFilter{
 		AppID: id,
 		Limit: filter.DefaultPaginationLimit,
@@ -1350,6 +1351,11 @@ func GetAppJourney(c *gin.Context) {
 		fmt.Println(err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	bigraph := true
+	if c.Query("bigraph") == "0" {
+		bigraph = false
 	}
 
 	af.Expand()
@@ -1436,9 +1442,11 @@ func GetAppJourney(c *gin.Context) {
 		}
 	}
 
-	journeyAndroid := journey.NewJourneyAndroid(journeyEvents)
+	journey := journey.NewJourneyAndroid(journeyEvents, &journey.Options{
+		BiGraph: bigraph,
+	})
 
-	if err := journeyAndroid.SetNodeExceptionGroups(func(eventIds []uuid.UUID) ([]group.ExceptionGroup, error) {
+	if err := journey.SetNodeExceptionGroups(func(eventIds []uuid.UUID) ([]group.ExceptionGroup, error) {
 		exceptionGroups, err := group.GetExceptionGroupsFromExceptionIds(ctx, eventIds)
 		if err != nil {
 			return nil, err
@@ -1452,7 +1460,7 @@ func GetAppJourney(c *gin.Context) {
 		return
 	}
 
-	if err := journeyAndroid.SetNodeANRGroups(func(eventIds []uuid.UUID) ([]group.ANRGroup, error) {
+	if err := journey.SetNodeANRGroups(func(eventIds []uuid.UUID) ([]group.ANRGroup, error) {
 		anrGroups, err := group.GetANRGroupsFromANRIds(ctx, eventIds)
 		if err != nil {
 			return nil, err
@@ -1486,28 +1494,28 @@ func GetAppJourney(c *gin.Context) {
 	var nodes []Node
 	var links []Link
 
-	for v := range journeyAndroid.Graph.Order() {
-		journeyAndroid.Graph.Visit(v, func(w int, c int64) bool {
+	for v := range journey.Graph.Order() {
+		journey.Graph.Visit(v, func(w int, c int64) bool {
 			var link Link
-			link.Source = journeyAndroid.GetNodeName(v)
-			link.Target = journeyAndroid.GetNodeName(w)
-			link.Value = journeyAndroid.GetEdgeSessionCount(v, w)
+			link.Source = journey.GetNodeName(v)
+			link.Target = journey.GetNodeName(w)
+			link.Value = journey.GetEdgeSessionCount(v, w)
 			links = append(links, link)
 			return false
 		})
 	}
 
-	for _, v := range journeyAndroid.GetNodeVertices() {
+	for _, v := range journey.GetNodeVertices() {
 		var node Node
-		name := journeyAndroid.GetNodeName(v)
-		exceptionGroups := journeyAndroid.GetNodeExceptionGroups(name)
+		name := journey.GetNodeName(v)
+		exceptionGroups := journey.GetNodeExceptionGroups(name)
 		crashes := []Issue{}
 
 		for i := range exceptionGroups {
 			issue := Issue{
 				ID:    exceptionGroups[i].ID,
 				Title: exceptionGroups[i].Name,
-				Count: journeyAndroid.GetNodeExceptionCount(v, exceptionGroups[i].ID),
+				Count: journey.GetNodeExceptionCount(v, exceptionGroups[i].ID),
 			}
 			crashes = append(crashes, issue)
 		}
@@ -1516,14 +1524,14 @@ func GetAppJourney(c *gin.Context) {
 			return crashes[i].Count > crashes[j].Count
 		})
 
-		anrGroups := journeyAndroid.GetNodeANRGroups(name)
+		anrGroups := journey.GetNodeANRGroups(name)
 		anrs := []Issue{}
 
 		for i := range anrGroups {
 			issue := Issue{
 				ID:    anrGroups[i].ID,
 				Title: anrGroups[i].Name,
-				Count: journeyAndroid.GetNodeANRCount(v, anrGroups[i].ID),
+				Count: journey.GetNodeANRCount(v, anrGroups[i].ID),
 			}
 			anrs = append(anrs, issue)
 		}
