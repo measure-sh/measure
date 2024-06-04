@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Accordion from "@/app/components/accordion";
-import ExceptionCountChart from "@/app/components/exception_count_chart";
 import FilterPill from "@/app/components/filter_pill";
 import UserFlowCrashOrAnrGroupDetails from "@/app/components/user_flow_crash_details";
 import Link from "next/link";
@@ -13,6 +12,7 @@ import { updateDateQueryParams } from '../utils/router_utils';
 import { formatDateToHumanReadable, formatTimeToHumanReadable, isValidTimestamp } from '../utils/time_utils';
 import DropdownSelect, { DropdownSelectType } from './dropdown_select';
 import { DateTime } from 'luxon';
+import CrashOrAnrGroupDetailsPlot from './crash_or_anr_group_details_plot';
 
 interface CrashOrAnrGroupDetailsProps {
   crashOrAnrType: CrashOrAnrType,
@@ -265,11 +265,22 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
           </div>
           <div className="py-6" />
           <div className="flex flex-col md:flex-row w-full">
-            <div className="border border-black font-sans text-sm w-full h-[24rem]">
-              <ExceptionCountChart />
-            </div>
+            <CrashOrAnrGroupDetailsPlot
+              appId={appId}
+              crashOrAnrType={crashOrAnrType}
+              crashOrAnrGroupId={crashOrAnrGroupId}
+              startDate={startDate}
+              endDate={endDate}
+              appVersions={selectedVersions}
+              countries={selectedCountries}
+              networkProviders={selectedNetworkProviders}
+              networkTypes={selectedNetworkTypes}
+              networkGenerations={selectedNetworkGenerations}
+              locales={selectedLocales}
+              deviceManufacturers={selectedDeviceManufacturers}
+              deviceNames={selectedDeviceNames} />
             <div className="p-2" />
-            <div className="border border-black font-sans text-sm w-full h-[24rem]">
+            <div className="border border-black font-sans text-sm w-full h-[32rem]">
               <UserFlowCrashOrAnrGroupDetails />
             </div>
           </div>
