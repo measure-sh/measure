@@ -1955,7 +1955,7 @@ func GetCrashGroups(c *gin.Context) {
 	})
 }
 
-func GetCrashGroupCrashes(c *gin.Context) {
+func GetCrashDetailCrashes(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -2058,7 +2058,7 @@ func GetCrashGroupCrashes(c *gin.Context) {
 	})
 }
 
-func GetCrashGroupCrashesPlot(c *gin.Context) {
+func GetCrashDetailInstancesPlot(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -2298,7 +2298,7 @@ func GetANRGroups(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"results": anrGroups, "meta": meta})
 }
 
-func GetANRGroupANRs(c *gin.Context) {
+func GetANRDetailANRs(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -2401,7 +2401,7 @@ func GetANRGroupANRs(c *gin.Context) {
 	})
 }
 
-func GetANRGroupANRsPlot(c *gin.Context) {
+func GetANRDetailInstancesPlot(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
