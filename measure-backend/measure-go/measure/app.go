@@ -2159,29 +2159,26 @@ func GetCrashGroupCrashesPlot(c *gin.Context) {
 		Data []gin.H `json:"data"`
 	}
 
-	response := make(map[string]instance)
-
+	lut := make(map[string]int)
 	var instances []instance
 
 	for i := range crashInstances {
-		var instance instance
-		instance.ID = crashInstances[i].Version
-		instance.Data = append(instance.Data, gin.H{
-			"datetime":  crashInstances[i].DateTime,
-			"instances": crashInstances[i].Instances,
-		})
-
-		value, ok := response[crashInstances[i].Version]
-		if !ok {
-			response[crashInstances[i].Version] = instance
-		} else {
-			value.Data = append(value.Data, gin.H{
+		instance := instance{
+			ID: crashInstances[i].Version,
+			Data: []gin.H{{
 				"datetime":  crashInstances[i].DateTime,
 				"instances": crashInstances[i].Instances,
-			})
+			}},
 		}
 
-		instances = append(instances, instance)
+		ndx, ok := lut[crashInstances[i].Version]
+
+		if ok {
+			instances[ndx].Data = append(instances[ndx].Data, instance.Data...)
+		} else {
+			lut[crashInstances[i].Version] = i
+			instances = append(instances, instance)
+		}
 	}
 
 	c.JSON(http.StatusOK, instances)
