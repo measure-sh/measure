@@ -2,17 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import Accordion from "@/app/components/accordion";
-import FilterPill from "@/app/components/filter_pill";
 import UserFlowCrashOrAnrGroupDetails from "@/app/components/user_flow_crash_details";
 import Link from "next/link";
-import { AppsApiStatus, CrashOrAnrGroupDetailsApiStatus, CrashOrAnrType, FiltersApiStatus, emptyApp, emptyCrashGroupDetailsResponse, emptyAnrGroupDetailsResponse, fetchAppsFromServer, fetchCrashOrAnrGroupDetailsFromServer, fetchFiltersFromServer, AppVersion, FiltersApiType } from '@/app/api/api_calls';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { CrashOrAnrGroupDetailsApiStatus, CrashOrAnrType, emptyCrashGroupDetailsResponse, emptyAnrGroupDetailsResponse, fetchCrashOrAnrGroupDetailsFromServer, FiltersApiType } from '@/app/api/api_calls';
+import { useRouter } from 'next/navigation';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
-import { updateDateQueryParams } from '../utils/router_utils';
-import { formatDateToHumanReadable, formatTimeToHumanReadable, isValidTimestamp } from '../utils/time_utils';
-import DropdownSelect, { DropdownSelectType } from './dropdown_select';
-import { DateTime } from 'luxon';
+import { formatDateToHumanReadable, formatTimeToHumanReadable } from '../utils/time_utils';
 import CrashOrAnrGroupDetailsPlot from './crash_or_anr_group_details_plot';
+import Filters, { defaultSelectedFilters } from './filters';
 
 interface CrashOrAnrGroupDetailsProps {
   crashOrAnrType: CrashOrAnrType,
@@ -24,155 +21,18 @@ interface CrashOrAnrGroupDetailsProps {
 
 export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ crashOrAnrType, teamId, appId, crashOrAnrGroupId, crashOrAnrGroupName }) => {
   const router = useRouter()
-  const searchParams = useSearchParams()
 
-  const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading);
-  const [filtersApiStatus, setFiltersApiStatus] = useState(FiltersApiStatus.Loading);
   const [crashOrAnrGroupDetailsApiStatus, setCrashOrAnrGroupDetailsApiStatus] = useState(CrashOrAnrGroupDetailsApiStatus.Loading);
 
-  const [versions, setVersions] = useState([] as AppVersion[]);
-  const [selectedVersions, setSelectedVersions] = useState([] as AppVersion[]);
-
-  const [selectedApp, setSelectedApp] = useState(emptyApp);
-
-  const [countries, setCountries] = useState([] as string[]);
-  const [selectedCountries, setSelectedCountries] = useState([] as string[]);
-
-  const [networkProviders, setNetworkProviders] = useState([] as string[]);
-  const [selectedNetworkProviders, setSelectedNetworkProviders] = useState([] as string[]);
-
-  const [networkTypes, setNetworkTypes] = useState([] as string[]);
-  const [selectedNetworkTypes, setSelectedNetworkTypes] = useState([] as string[]);
-
-  const [networkGenerations, setNetworkGenerations] = useState([] as string[]);
-  const [selectedNetworkGenerations, setSelectedNetworkGenerations] = useState([] as string[]);
-
-  const [locales, setLocales] = useState([] as string[]);
-  const [selectedLocales, setSelectedLocales] = useState([] as string[]);
-
-  const [deviceManufacturers, setDeviceManufacturers] = useState([] as string[]);
-  const [selectedDeviceManufacturers, setSelectedDeviceManufacturers] = useState([] as string[]);
-
-  const [deviceNames, setDeviceNames] = useState([] as string[]);
-  const [selectedDeviceNames, setSelectedDeviceNames] = useState([] as string[]);
+  const [selectedFilters, setSelectedFilters] = useState(defaultSelectedFilters);
 
   const [crashOrAnrGroupDetails, setCrashOrAnrGroupDetails] = useState(crashOrAnrType === CrashOrAnrType.Crash ? emptyCrashGroupDetailsResponse : emptyAnrGroupDetailsResponse)
   const [paginationIndex, setPaginationIndex] = useState(0)
   const [paginationDirection, setPaginationDirection] = useState(PaginationDirection.None)
 
-  const today = DateTime.now();
-  const todayDate = today.toFormat('yyyy-MM-dd');
-  const [endDate, setEndDate] = useState(searchParams.has("end_date") ? searchParams.get("end_date")! : todayDate);
-  const [formattedEndDate, setFormattedEndDate] = useState(formatDateToHumanReadable(endDate));
-
-  const sevenDaysAgo = today.minus({ days: 7 });
-  var initialStartDate = sevenDaysAgo.toFormat('yyyy-MM-dd');
-  const [startDate, setStartDate] = useState(searchParams.has("start_date") ? searchParams.get("start_date")! : initialStartDate);
-  const [formattedStartDate, setFormattedStartDate] = useState(formatDateToHumanReadable(startDate));
-
-  useEffect(() => {
-    setFormattedStartDate(formatDateToHumanReadable(startDate));
-    setFormattedEndDate(formatDateToHumanReadable(endDate));
-
-    updateDateQueryParams(router, searchParams, startDate, endDate)
-  }, [startDate, endDate]);
-
-  const getApps = async () => {
-    setAppsApiStatus(AppsApiStatus.Loading)
-
-    const result = await fetchAppsFromServer(teamId, router)
-
-    switch (result.status) {
-      case AppsApiStatus.NoApps:
-        setAppsApiStatus(AppsApiStatus.NoApps)
-        break
-      case AppsApiStatus.Error:
-        setAppsApiStatus(AppsApiStatus.Error)
-        break
-      case AppsApiStatus.Success:
-        setAppsApiStatus(AppsApiStatus.Success)
-        setSelectedApp(result.data.find((e: typeof emptyApp) => e.id === appId))
-        break
-    }
-  }
-
-  useEffect(() => {
-    getApps()
-  }, []);
-
-  const getFilters = async () => {
-    // Don't try to fetch filters if app id is not yet set
-    if (selectedApp.id === "") {
-      return
-    }
-
-    setFiltersApiStatus(FiltersApiStatus.Loading)
-
-    const result = await fetchFiltersFromServer(selectedApp, crashOrAnrType === CrashOrAnrType.Crash ? FiltersApiType.Crash : FiltersApiType.Anr, router)
-
-    switch (result.status) {
-      case FiltersApiStatus.NotOnboarded:
-        setFiltersApiStatus(FiltersApiStatus.NotOnboarded)
-        break
-      case FiltersApiStatus.NoData:
-        setFiltersApiStatus(FiltersApiStatus.NoData)
-        break
-      case FiltersApiStatus.Error:
-        setFiltersApiStatus(FiltersApiStatus.Error)
-        break
-      case FiltersApiStatus.Success:
-        setFiltersApiStatus(FiltersApiStatus.Success)
-
-        let versions = result.data.versions.map((v: { name: string; code: string; }) => new AppVersion(v.name, v.code))
-        setVersions(versions)
-        setSelectedVersions(versions)
-
-        if (result.data.countries !== null) {
-          setCountries(result.data.countries)
-          setSelectedCountries(result.data.countries)
-        }
-
-        if (result.data.network_providers !== null) {
-          setNetworkProviders(result.data.network_providers)
-          setSelectedNetworkProviders(result.data.network_providers)
-        }
-
-        if (result.data.network_types !== null) {
-          setNetworkTypes(result.data.network_types)
-          setSelectedNetworkTypes(result.data.network_types)
-        }
-
-        if (result.data.network_generations !== null) {
-          setNetworkGenerations(result.data.network_generations)
-          setSelectedNetworkGenerations(result.data.network_generations)
-        }
-
-        if (result.data.locales !== null) {
-          setLocales(result.data.locales)
-          setSelectedLocales(result.data.locales)
-        }
-
-        if (result.data.device_manufacturers !== null) {
-          setDeviceManufacturers(result.data.device_manufacturers)
-          setSelectedDeviceManufacturers(result.data.device_manufacturers)
-        }
-
-        if (result.data.device_names !== null) {
-          setDeviceNames(result.data.device_names)
-          setSelectedDeviceNames(result.data.device_names)
-        }
-
-        break
-    }
-  }
-
-  useEffect(() => {
-    getFilters()
-  }, [selectedApp]);
-
   const getCrashOrAnrGroupDetails = async () => {
     // Don't try to fetch crashes or ANR group details if app id is not yet set
-    if (selectedApp.id === "") {
+    if (selectedFilters.selectedApp.id === "") {
       return
     }
 
@@ -192,7 +52,7 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
       limit = - limit
     }
 
-    const result = await fetchCrashOrAnrGroupDetailsFromServer(crashOrAnrType, appId, crashOrAnrGroupId, startDate, endDate, selectedVersions, selectedCountries, selectedNetworkProviders, selectedNetworkTypes, selectedNetworkGenerations, selectedLocales, selectedDeviceManufacturers, selectedDeviceNames, keyId, keyTimestamp, limit, router)
+    const result = await fetchCrashOrAnrGroupDetailsFromServer(crashOrAnrType, appId, crashOrAnrGroupId, selectedFilters.selectedStartDate, selectedFilters.selectedEndDate, selectedFilters.selectedVersions, selectedFilters.selectedCountries, selectedFilters.selectedNetworkProviders, selectedFilters.selectedNetworkTypes, selectedFilters.selectedNetworkGenerations, selectedFilters.selectedLocales, selectedFilters.selectedDeviceManufacturers, selectedFilters.selectedDeviceNames, keyId, keyTimestamp, limit, router)
 
     switch (result.status) {
       case CrashOrAnrGroupDetailsApiStatus.Error:
@@ -209,76 +69,49 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
 
   useEffect(() => {
     getCrashOrAnrGroupDetails()
-  }, [paginationIndex, startDate, endDate, selectedVersions, selectedCountries, selectedNetworkProviders, selectedNetworkTypes, selectedNetworkGenerations, selectedLocales, selectedDeviceManufacturers, selectedDeviceNames]);
+  }, [paginationIndex, selectedFilters]);
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
       <div className="py-4" />
-      <p className="font-display font-normal text-4xl max-w-6xl text-center">{selectedApp.name}</p>
+      <p className="font-display font-normal text-4xl max-w-6xl text-center">{selectedFilters.selectedApp.name}</p>
       <div className="py-1" />
       <p className="font-display font-light text-3xl max-w-6xl text-center">{crashOrAnrGroupName}</p>
-      <div className="py-6" />
+      <div className="py-4" />
 
-      {/* Error state for apps fetch */}
-      {appsApiStatus === AppsApiStatus.Error && <p className="text-lg font-display">Error fetching apps, please check if Team ID is valid or refresh page to try again</p>}
+      <Filters
+        teamId={teamId}
+        appId={appId}
+        filtersApiType={crashOrAnrType === CrashOrAnrType.Crash ? FiltersApiType.Crash : FiltersApiType.Anr}
+        showCountries={true}
+        showNetworkTypes={true}
+        showNetworkProviders={true}
+        showNetworkGenerations={true}
+        showLocales={true}
+        showDeviceManufacturers={true}
+        showDeviceNames={true}
+        onFiltersChanged={(updatedFilters) => setSelectedFilters(updatedFilters)} />
 
-      {/* Error state for filters fetch */}
-      {filtersApiStatus === FiltersApiStatus.Error && <p className="text-lg font-display">Error fetching filters, please refresh page or select a different app to try again</p>}
+      <div className="py-4" />
 
-      {/* Main UI */}
-      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success &&
+      {selectedFilters.ready &&
         <div>
-          <div className="flex flex-wrap gap-8 items-center w-5/6">
-            <div className="flex flex-row items-center">
-              <input type="date" defaultValue={startDate} max={endDate} className="font-display border border-black rounded-md p-2" onChange={(e) => {
-                if (isValidTimestamp(e.target.value)) {
-                  setStartDate(e.target.value)
-                }
-              }} />
-              <p className="font-display px-2">to</p>
-              <input type="date" defaultValue={endDate} min={startDate} max={todayDate} className="font-display border border-black rounded-md p-2" onChange={(e) => {
-                if (isValidTimestamp(e.target.value)) {
-                  setEndDate(e.target.value)
-                }
-              }} />
-            </div>
-            <DropdownSelect title="App versions" type={DropdownSelectType.MultiAppVersion} items={versions} initialSelected={selectedVersions} onChangeSelected={(items) => setSelectedVersions(items as AppVersion[])} />
-            {countries.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Country" items={countries} initialSelected={countries} onChangeSelected={(items) => setSelectedCountries(items as string[])} />}
-            {networkProviders.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Network Provider" items={networkProviders} initialSelected={networkProviders} onChangeSelected={(items) => setSelectedNetworkProviders(items as string[])} />}
-            {networkTypes.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Network type" items={networkTypes} initialSelected={networkTypes} onChangeSelected={(items) => setSelectedNetworkTypes(items as string[])} />}
-            {networkGenerations.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Network generation" items={networkGenerations} initialSelected={networkGenerations} onChangeSelected={(items) => setSelectedNetworkGenerations(items as string[])} />}
-            {locales.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Locale" items={locales} initialSelected={locales} onChangeSelected={(items) => setSelectedLocales(items as string[])} />}
-            {deviceManufacturers.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Device Manufacturer" items={deviceManufacturers} initialSelected={deviceManufacturers} onChangeSelected={(items) => setSelectedDeviceManufacturers(items as string[])} />}
-            {deviceNames.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Device Name" items={deviceNames} initialSelected={deviceNames} onChangeSelected={(items) => setSelectedDeviceNames(items as string[])} />}
-          </div>
-          <div className="py-4" />
-          <div className="flex flex-wrap gap-2 items-center w-5/6">
-            <FilterPill title={`${formattedStartDate} to ${formattedEndDate}`} />
-            {selectedVersions.length > 0 && <FilterPill title={Array.from(selectedVersions).map((v) => v.displayName).join(', ')} />}
-            {selectedCountries.length > 0 && <FilterPill title={Array.from(selectedCountries).join(', ')} />}
-            {selectedNetworkProviders.length > 0 && <FilterPill title={Array.from(selectedNetworkProviders).join(', ')} />}
-            {selectedNetworkTypes.length > 0 && <FilterPill title={Array.from(selectedNetworkTypes).join(', ')} />}
-            {selectedNetworkGenerations.length > 0 && <FilterPill title={Array.from(selectedNetworkGenerations).join(', ')} />}
-            {selectedLocales.length > 0 && <FilterPill title={Array.from(selectedLocales).join(', ')} />}
-            {selectedDeviceManufacturers.length > 0 && <FilterPill title={Array.from(selectedDeviceManufacturers).join(', ')} />}
-            {selectedDeviceNames.length > 0 && <FilterPill title={Array.from(selectedDeviceNames).join(', ')} />}
-          </div>
           <div className="py-6" />
           <div className="flex flex-col md:flex-row w-full">
             <CrashOrAnrGroupDetailsPlot
               appId={appId}
               crashOrAnrType={crashOrAnrType}
               crashOrAnrGroupId={crashOrAnrGroupId}
-              startDate={startDate}
-              endDate={endDate}
-              appVersions={selectedVersions}
-              countries={selectedCountries}
-              networkProviders={selectedNetworkProviders}
-              networkTypes={selectedNetworkTypes}
-              networkGenerations={selectedNetworkGenerations}
-              locales={selectedLocales}
-              deviceManufacturers={selectedDeviceManufacturers}
-              deviceNames={selectedDeviceNames} />
+              startDate={selectedFilters.selectedStartDate}
+              endDate={selectedFilters.selectedEndDate}
+              appVersions={selectedFilters.selectedVersions}
+              countries={selectedFilters.selectedCountries}
+              networkProviders={selectedFilters.selectedNetworkProviders}
+              networkTypes={selectedFilters.selectedNetworkTypes}
+              networkGenerations={selectedFilters.selectedNetworkGenerations}
+              locales={selectedFilters.selectedLocales}
+              deviceManufacturers={selectedFilters.selectedDeviceManufacturers}
+              deviceNames={selectedFilters.selectedDeviceNames} />
             <div className="p-2" />
             <div className="border border-black font-sans text-sm w-full h-[32rem]">
               <UserFlowCrashOrAnrGroupDetails />
