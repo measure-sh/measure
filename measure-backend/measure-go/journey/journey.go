@@ -78,6 +78,11 @@ type Options struct {
 	// creation to be bound by exceptions
 	// from the exception group.
 	ExceptionGroup *group.ExceptionGroup
+
+	// ANRGroup limits journey creation
+	// to be bound by ANRs from the ANR
+	// group.
+	ANRGroup *group.ANRGroup
 }
 
 // NodeAndroid represents each
@@ -466,6 +471,10 @@ func (j JourneyAndroid) isFragmentOrphan(i int) bool {
 // NewJourneyAndroid creates a journey graph object
 // from a list of events.
 func NewJourneyAndroid(events []event.EventField, opts *Options) (journey JourneyAndroid) {
+	if opts.ExceptionGroup != nil && opts.ANRGroup != nil {
+		panic("cannot accept exception & ANR group both.")
+	}
+
 	journey.Events = events
 	journey.nodelut = make(map[string]*nodebag)
 	journey.nodelutinverse = make(map[int]string)
@@ -501,7 +510,11 @@ func NewJourneyAndroid(events []event.EventField, opts *Options) (journey Journe
 						addIssue = true
 					}
 
-					if journey.options.ExceptionGroup == nil {
+					if journey.options.ANRGroup != nil && journey.options.ANRGroup.EventExists(events[i].ID) {
+						addIssue = true
+					}
+
+					if journey.options.ExceptionGroup == nil && journey.options.ANRGroup == nil {
 						addIssue = true
 					}
 
