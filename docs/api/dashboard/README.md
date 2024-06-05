@@ -30,7 +30,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-4)
     - [Response Body](#response-body-4)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-4)
-  - [GET `/apps/:id/crashGroups/:id/plot`](#get-appsidcrashgroupsidplot)
+  - [GET `/apps/:id/crashGroups/:id/plots/instances`](#get-appsidcrashgroupsidplotsinstances)
     - [Usage Notes](#usage-notes-5)
     - [Authorization \& Content Type](#authorization--content-type-5)
     - [Response Body](#response-body-5)
@@ -135,7 +135,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
 - [**GET `/apps/:id/crashGroups`**](#get-appsidcrashgroups) - Fetch list of crash groups for an app
 - [**GET `/apps/:id/anrGroups`**](#get-appsidanrgroups) - Fetch list of ANR groups for an app
 - [**GET `/apps/:id/crashGroups/:id/crashes`**](#get-appsidcrashgroupsidcrashes) - Fetch list of crashes for a crash group
-- [**GET `/apps/:id/crashGroups/:id/plot`**](#get-appsidcrashgroupsidplot) - Fetch list of crash instances aggregrated by parameters like time & version.
+- [**GET `/apps/:id/crashGroups/:id/plots/instances`**](#get-appsidcrashgroupsidplotsinstances) - Fetch list of crash instances aggregrated by parameters like time & version.
 - [**GET `/apps/:id/anrGroups/:id/anrs`**](#get-appsidanrgroupsidanrs) - Fetch list of anrs for an anr group
 - [**GET `/apps/:id/sessions/:id`**](#get-appsidsessionsid) - Fetch an app's session replay
 - [**GET `/apps/:id/alertPrefs`**](#get-appsidalertprefs) - Fetch an app's alert preferences
@@ -2853,7 +2853,7 @@ List of HTTP status codes for success and failures.
 
 </details>
 
-### GET `/apps/:id/crashGroups/:id/plot`
+### GET `/apps/:id/crashGroups/:id/plots/instances`
 
 Fetch list of crash instances aggregrated by parameters like time & version.
 
