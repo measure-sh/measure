@@ -2329,10 +2329,9 @@ func GetCrashDetailPlotJourney(c *gin.Context) {
 		return
 	}
 
-	opts := filter.JourneyOpts{
+	journeyEvents, err := app.getJourneyEvents(ctx, &af, filter.JourneyOpts{
 		Exceptions: true,
-	}
-	journeyEvents, err := app.getJourneyEvents(ctx, &af, opts)
+	})
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
