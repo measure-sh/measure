@@ -35,111 +35,118 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-5)
     - [Response Body](#response-body-5)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-5)
-  - [GET `/apps/:id/anrGroups`](#get-appsidanrgroups)
+  - [GET `/apps/:id/crashGroups/:id/plots/journey`](#get-appsidcrashgroupsidplotsjourney)
     - [Usage Notes](#usage-notes-6)
     - [Authorization \& Content Type](#authorization--content-type-6)
     - [Response Body](#response-body-6)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-6)
-  - [GET `/apps/:id/anrGroups/:id/anrs`](#get-appsidanrgroupsidanrs)
+  - [GET `/apps/:id/anrGroups`](#get-appsidanrgroups)
     - [Usage Notes](#usage-notes-7)
     - [Authorization \& Content Type](#authorization--content-type-7)
     - [Response Body](#response-body-7)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-7)
-  - [GET `/apps/:id/anrGroups/:id/plot`](#get-appsidanrgroupsidplot)
+  - [GET `/apps/:id/anrGroups/:id/anrs`](#get-appsidanrgroupsidanrs)
     - [Usage Notes](#usage-notes-8)
     - [Authorization \& Content Type](#authorization--content-type-8)
     - [Response Body](#response-body-8)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-8)
-  - [GET `/apps/:id/sessions/:id`](#get-appsidsessionsid)
+  - [GET `/apps/:id/anrGroups/:id/plots/instances`](#get-appsidanrgroupsidplotsinstances)
     - [Usage Notes](#usage-notes-9)
     - [Authorization \& Content Type](#authorization--content-type-9)
     - [Response Body](#response-body-9)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-9)
-  - [GET `/apps/:id/alertPrefs`](#get-appsidalertprefs)
+  - [GET `/apps/:id/sessions/:id`](#get-appsidsessionsid)
     - [Usage Notes](#usage-notes-10)
     - [Authorization \& Content Type](#authorization--content-type-10)
     - [Response Body](#response-body-10)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-10)
-  - [PATCH `/apps/:id/alertPrefs`](#patch-appsidalertprefs)
+  - [GET `/apps/:id/alertPrefs`](#get-appsidalertprefs)
     - [Usage Notes](#usage-notes-11)
-    - [Request body](#request-body)
     - [Authorization \& Content Type](#authorization--content-type-11)
     - [Response Body](#response-body-11)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-11)
-- [Teams](#teams)
-  - [POST `/teams`](#post-teams)
-    - [Authorization \& Content Type](#authorization--content-type-12)
-    - [Request Body](#request-body-1)
+  - [PATCH `/apps/:id/alertPrefs`](#patch-appsidalertprefs)
     - [Usage Notes](#usage-notes-12)
+    - [Request body](#request-body)
+    - [Authorization \& Content Type](#authorization--content-type-12)
     - [Response Body](#response-body-12)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-12)
-  - [GET `/teams`](#get-teams)
+- [Teams](#teams)
+  - [POST `/teams`](#post-teams)
     - [Authorization \& Content Type](#authorization--content-type-13)
+    - [Request Body](#request-body-1)
+    - [Usage Notes](#usage-notes-13)
     - [Response Body](#response-body-13)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-13)
-  - [GET `/teams/:id/apps`](#get-teamsidapps)
-    - [Usage Notes](#usage-notes-13)
+  - [GET `/teams`](#get-teams)
     - [Authorization \& Content Type](#authorization--content-type-14)
     - [Response Body](#response-body-14)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-14)
-  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
+  - [GET `/teams/:id/apps`](#get-teamsidapps)
     - [Usage Notes](#usage-notes-14)
     - [Authorization \& Content Type](#authorization--content-type-15)
     - [Response Body](#response-body-15)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-15)
-  - [POST `/teams/:id/apps`](#post-teamsidapps)
+  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
     - [Usage Notes](#usage-notes-15)
-    - [Request body](#request-body-2)
     - [Authorization \& Content Type](#authorization--content-type-16)
     - [Response Body](#response-body-16)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-16)
-  - [POST `/auth/invite`](#post-authinvite)
+  - [POST `/teams/:id/apps`](#post-teamsidapps)
     - [Usage Notes](#usage-notes-16)
-    - [Request body](#request-body-3)
+    - [Request body](#request-body-2)
     - [Authorization \& Content Type](#authorization--content-type-17)
     - [Response Body](#response-body-17)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-17)
-  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
+  - [POST `/auth/invite`](#post-authinvite)
     - [Usage Notes](#usage-notes-17)
-    - [Request body](#request-body-4)
+    - [Request body](#request-body-3)
     - [Authorization \& Content Type](#authorization--content-type-18)
     - [Response Body](#response-body-18)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-18)
-  - [GET `/teams/:id/members`](#get-teamsidmembers)
+  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
     - [Usage Notes](#usage-notes-18)
+    - [Request body](#request-body-4)
     - [Authorization \& Content Type](#authorization--content-type-19)
     - [Response Body](#response-body-19)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-19)
-  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+  - [GET `/teams/:id/members`](#get-teamsidmembers)
     - [Usage Notes](#usage-notes-19)
     - [Authorization \& Content Type](#authorization--content-type-20)
     - [Response Body](#response-body-20)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-20)
-  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
     - [Usage Notes](#usage-notes-20)
-    - [Request body](#request-body-5)
     - [Authorization \& Content Type](#authorization--content-type-21)
     - [Response Body](#response-body-21)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-21)
-  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
     - [Usage Notes](#usage-notes-21)
+    - [Request body](#request-body-5)
     - [Authorization \& Content Type](#authorization--content-type-22)
     - [Response Body](#response-body-22)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-22)
+  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+    - [Usage Notes](#usage-notes-22)
+    - [Authorization \& Content Type](#authorization--content-type-23)
+    - [Response Body](#response-body-23)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-23)
 
 ## Apps
 
 - [**GET `/apps/:id/journey`**](#get-appsidjourney) - Fetch an app's issue journey map for a time range &amp; version.
 - [**GET `/apps/:id/metrics`**](#get-appsidmetrics) - Fetch an app's health metrics for a time range &amp; version.
 - [**GET `/apps/:id/filters`**](#get-appsidfilters) - Fetch an app's filters.
-- [**GET `/apps/:id/crashGroups`**](#get-appsidcrashgroups) - Fetch list of crash groups for an app
-- [**GET `/apps/:id/anrGroups`**](#get-appsidanrgroups) - Fetch list of ANR groups for an app
-- [**GET `/apps/:id/crashGroups/:id/crashes`**](#get-appsidcrashgroupsidcrashes) - Fetch list of crashes for a crash group
-- [**GET `/apps/:id/crashGroups/:id/plots/instances`**](#get-appsidcrashgroupsidplotsinstances) - Fetch list of crash instances aggregrated by parameters like time & version.
-- [**GET `/apps/:id/anrGroups/:id/anrs`**](#get-appsidanrgroupsidanrs) - Fetch list of anrs for an anr group
-- [**GET `/apps/:id/sessions/:id`**](#get-appsidsessionsid) - Fetch an app's session replay
-- [**GET `/apps/:id/alertPrefs`**](#get-appsidalertprefs) - Fetch an app's alert preferences
-- [**PATCH `/apps/:id/alertPrefs`**](#patch-appsidalertprefs) - Update an app's alert preferences
+- [**GET `/apps/:id/crashGroups`**](#get-appsidcrashgroups) - Fetch an app's crash overview.
+- [**GET `/apps/:id/crashGroups/:id/crashes`**](#get-appsidcrashgroupsidcrashes) - Fetch an app's crash detail.
+- [**GET `/apps/:id/crashGroups/:id/plots/instances`**](#get-appsidcrashgroupsidplotsinstances) - Fetch an app's crash instances aggregrated by parameters like time & version.
+- [**GET `/apps/:id/crashGroups/:id/plots/journey`**](#get-appsidcrashgroupsidplotsjourney) - Fetch an app's crash journey map.
+- [**GET `/apps/:id/anrGroups`**](#get-appsidanrgroups) - Fetch an app's ANR overview.
+- [**GET `/apps/:id/anrGroups/:id/anrs`**](#get-appsidanrgroupsidanrs) - Fetch an app's ANR detail.
+- [**GET `/apps/:id/anrGroups/:id/plots/instances`**](#get-appsidanrgroupsidplotsinstances) - Fetch an app's ANR instances aggregated by parameters like time & version.
+- [**GET `/apps/:id/sessions/:id`**](#get-appsidsessionsid) - Fetch an app's session replay.
+- [**GET `/apps/:id/alertPrefs`**](#get-appsidalertprefs) - Fetch an app's alert preferences.
+- [**PATCH `/apps/:id/alertPrefs`**](#patch-appsidalertprefs) - Update an app's alert preferences.
 
 ### GET `/apps/:id/journey`
 
@@ -148,14 +155,12 @@ Fetch an app's issue journey map. Filter time range using `from` &amp; `to` quer
 #### Usage Notes
 
 - App's UUID must be passed in the URI
-- All filters must be passed as query strings
-- `versions` & `version_codes` MUST be present
-- All filters are optional. If any filter is not present, the server will compute results assuming a default value for that filter.
-- `from` &amp; `to` values must be ISO 8601 UTC strings in milliseconds precision. Example: `?from=2023-11-01T18:30:00.000Z&to=2023-11-08T18:30:00.000Z`
-- `from` &amp; `to` will default to a last 7 days time range.
-- `versions` can accept multiple version identifiers separated with comma.
-- `version_codes` can accept multiple version codes separated with comma.
-- `bigraph` if `0` will compute a unidirectional graph. Default is `1`.
+- Accepted query parameters
+  - `from` - ISO8601 timestamp to include crashes after this time.
+  - `to` - ISO8601 timestamp to include crashes before this time.
+  - `versions` - List of comma separated version identifier strings to return only matching crashes.
+  - `version_codes` - List of comma separated version codes to return only matching crashes.
+  - `bigraph` (_optional_) - Choose journey's directionality. `0` computes a unidirectional graph. Default is `1`.
 
 #### Authorization & Content Type
 
@@ -513,7 +518,7 @@ List of HTTP status codes for success and failures.
 
 ### GET `/apps/:id/crashGroups`
 
-Fetch a list of crash groups for an app.
+Fetch an app's crash overview.
 
 #### Usage Notes
 
@@ -611,7 +616,7 @@ List of HTTP status codes for success and failures.
 
 ### GET `/apps/:id/crashGroups/:id/crashes`
 
-Fetch list of crashes of a crash group for an app.
+Fetch an app's crash detail.
 
 #### Usage Notes
 
@@ -2855,7 +2860,7 @@ List of HTTP status codes for success and failures.
 
 ### GET `/apps/:id/crashGroups/:id/plots/instances`
 
-Fetch list of crash instances aggregrated by parameters like time & version.
+Fetch an app's crash instances aggregrated by parameters like time & version.
 
 #### Usage Notes
 
@@ -2948,9 +2953,149 @@ List of HTTP status codes for success and failures.
 
 </details>
 
+### GET `/apps/:id/crashGroups/:id/plots/journey`
+
+Fetch an app's crash journey map.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Accepted query parameters
+  - `from` - ISO8601 timestamp to include crashes after this time.
+  - `to` - ISO8601 timestamp to include crashes before this time.
+  - `versions` - List of comma separated version identifier strings to return only matching crashes.
+  - `version_codes` - List of comma separated version codes to return only matching crashes.
+  - `bigraph` - Choose journey's directionality. `0` computes a unidirectional graph. Default is `1`.
+  - `countries` (_optional_) - List of comma separated country identifier strings to return only matching crashes.
+  - `device_names` (_optional_) - List of comma separated device name identifier strings to return only matching crashes.
+  - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings to return only matching crashes.
+  - `locales` (_optional_) - List of comma separated device locale identifier strings to return only matching crashes.
+  - `network_providers` (_optional_) - List of comma separated network provider identifier strings to return only matching crashes.
+  - `network_types` (_optional_) - List of comma separated network type identifier strings to return only matching crashes.
+  - `network_generations` (_optional_) - List of comma separated network generation identifier strings to return only matching crashes.
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+
+#### Authorization &amp; Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  {
+    "links": [
+      {
+        "source": "sh.measure.sample.ExceptionDemoActivity",
+        "target": "sh.measure.sample.OkHttpActivity",
+        "value": 6
+      },
+      {
+        "source": "sh.measure.sample.ExceptionDemoActivity",
+        "target": "sh.measure.sample.ComposeActivity",
+        "value": 5
+      },
+      {
+        "source": "sh.measure.sample.ExceptionDemoActivity",
+        "target": "sh.measure.sample.ComposeNavigationActivity",
+        "value": 6
+      }
+    ],
+    "nodes": [
+      {
+        "id": "sh.measure.sample.ExceptionDemoActivity",
+        "issues": {
+          "crashes": [
+            {
+              "id": "018fba31-0012-7274-8874-8b062b9f6690",
+              "title": "java.lang.IllegalAccessException",
+              "count": 7
+            }
+          ]
+        }
+      },
+      {
+        "id": "sh.measure.sample.OkHttpActivity",
+        "issues": {
+          "crashes": [
+            {
+              "id": "018fba31-0012-7274-8874-8b062b9f6690",
+              "title": "java.lang.IllegalAccessException",
+              "count": 1
+            }
+          ]
+        }
+      },
+      {
+        "id": "sh.measure.sample.ComposeActivity",
+        "issues": {
+          "crashes": []
+        }
+      },
+      {
+        "id": "sh.measure.sample.ComposeNavigationActivity",
+        "issues": {
+          "crashes": [
+            {
+              "id": "018fba31-0012-7274-8874-8b062b9f6690",
+              "title": "java.lang.IllegalAccessException",
+              "count": 9
+            }
+          ]
+        }
+      }
+    ],
+    "totalIssues": 17
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
 ### GET `/apps/:id/anrGroups`
 
-Fetch a list of ANR groups for an app.
+Fetch an app's ANR overview.
 
 #### Usage Notes
 
@@ -3047,7 +3192,7 @@ List of HTTP status codes for success and failures.
 
 ### GET `/apps/:id/anrGroups/:id/anrs`
 
-Fetch list of anrs of an anr group for an app.
+Fetch an app's ANR detail.
 
 #### Usage Notes
 
@@ -3441,9 +3586,9 @@ List of HTTP status codes for success and failures.
 
 </details>
 
-### GET `/apps/:id/anrGroups/:id/plot`
+### GET `/apps/:id/anrGroups/:id/plots/instances`
 
-Fetch list of ANR instances aggregrated by parameters like time & version.
+Fetch an app's ANR instances aggregated by parameters like time & version.
 
 #### Usage Notes
 
@@ -3773,7 +3918,7 @@ List of HTTP status codes for success and failures.
 
 ### PATCH `/apps/:id/alertPrefs`
 
-Update alert preferences of an app.
+Update an app's alert preferences.
 
 #### Usage Notes
 
