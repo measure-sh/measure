@@ -2,16 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import ExceptionRateChart from "@/app/components/exception_rate_chart";
-import FilterPill from "@/app/components/filter_pill";
 import Link from "next/link";
-import { useRouter, useSearchParams } from 'next/navigation';
-import CreateApp from '@/app/components/create_app';
-import { AppVersion, AppsApiStatus, CrashOrAnrGroupsApiStatus, CrashOrAnrType, FiltersApiStatus, FiltersApiType, emptyApp, emptyCrashOrAnrGroupsResponse, fetchAppsFromServer, fetchCrashOrAnrGroupsFromServer, fetchFiltersFromServer } from '@/app/api/api_calls';
+import { useRouter } from 'next/navigation';
+import { CrashOrAnrGroupsApiStatus, CrashOrAnrType, FiltersApiType, emptyCrashOrAnrGroupsResponse, fetchCrashOrAnrGroupsFromServer } from '@/app/api/api_calls';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
-import { updateDateQueryParams } from '../utils/router_utils';
-import { formatDateToHumanReadable, isValidTimestamp } from '../utils/time_utils';
-import DropdownSelect, { DropdownSelectType } from './dropdown_select';
-import { DateTime } from 'luxon';
+import Filters, { defaultSelectedFilters } from './filters';
 
 interface CrashOrAnrsOverviewProps {
   crashOrAnrType: CrashOrAnrType,
@@ -20,100 +15,19 @@ interface CrashOrAnrsOverviewProps {
 
 export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ crashOrAnrType, teamId }) => {
   const router = useRouter()
-  const searchParams = useSearchParams()
-
-  const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading);
-  const [filtersApiStatus, setFiltersApiStatus] = useState(FiltersApiStatus.Loading);
   const [crashOrAnrGroupsApiStatus, setCrashOrAnrGroupsApiStatus] = useState(CrashOrAnrGroupsApiStatus.Loading);
 
-  const [apps, setApps] = useState([] as typeof emptyApp[]);
-  const [selectedApp, setSelectedApp] = useState(emptyApp);
+  const [selectedFilters, setSelectedFilters] = useState(defaultSelectedFilters);
 
   const [crashOrAnrGroups, setCrashOrAnrGroups] = useState(emptyCrashOrAnrGroupsResponse);
   const paginationOffset = 10
   const [paginationRange, setPaginationRange] = useState({ start: 1, end: paginationOffset })
   const [paginationDirection, setPaginationDirection] = useState(PaginationDirection.None)
 
-  const [versions, setVersions] = useState([] as AppVersion[]);
-  const [selectedVersions, setSelectedVersions] = useState([] as AppVersion[]);
-
-  const today = DateTime.now();
-  const todayDate = today.toFormat('yyyy-MM-dd');
-  const [endDate, setEndDate] = useState(searchParams.has("end_date") ? searchParams.get("end_date")! : todayDate);
-  const [formattedEndDate, setFormattedEndDate] = useState(formatDateToHumanReadable(endDate));
-
-  const sevenDaysAgo = today.minus({ days: 7 });
-  var initialStartDate = sevenDaysAgo.toFormat('yyyy-MM-dd');
-  const [startDate, setStartDate] = useState(searchParams.has("start_date") ? searchParams.get("start_date")! : initialStartDate);
-  const [formattedStartDate, setFormattedStartDate] = useState(formatDateToHumanReadable(startDate));
-
-  useEffect(() => {
-    setFormattedStartDate(formatDateToHumanReadable(startDate));
-    setFormattedEndDate(formatDateToHumanReadable(endDate));
-
-    updateDateQueryParams(router, searchParams, startDate, endDate)
-  }, [startDate, endDate]);
-
-  const getApps = async () => {
-    setAppsApiStatus(AppsApiStatus.Loading)
-
-    const result = await fetchAppsFromServer(teamId, router)
-
-    switch (result.status) {
-      case AppsApiStatus.NoApps:
-        setAppsApiStatus(AppsApiStatus.NoApps)
-        break
-      case AppsApiStatus.Error:
-        setAppsApiStatus(AppsApiStatus.Error)
-        break
-      case AppsApiStatus.Success:
-        setAppsApiStatus(AppsApiStatus.Success)
-        setApps(result.data)
-        setSelectedApp(result.data[0])
-        break
-    }
-  }
-
-  useEffect(() => {
-    getApps()
-  }, []);
-
-  const getFilters = async () => {
-    // Don't try to fetch filters if app id is not yet set
-    if (selectedApp.id === "") {
-      return
-    }
-
-    setFiltersApiStatus(FiltersApiStatus.Loading)
-
-    const result = await fetchFiltersFromServer(selectedApp, crashOrAnrType === CrashOrAnrType.Crash ? FiltersApiType.Crash : FiltersApiType.Anr, router)
-
-    switch (result.status) {
-      case FiltersApiStatus.NotOnboarded:
-        setFiltersApiStatus(FiltersApiStatus.NotOnboarded)
-        break
-      case FiltersApiStatus.NoData:
-        setFiltersApiStatus(FiltersApiStatus.NoData)
-        break
-      case FiltersApiStatus.Error:
-        setFiltersApiStatus(FiltersApiStatus.Error)
-        break
-      case FiltersApiStatus.Success:
-        setFiltersApiStatus(FiltersApiStatus.Success)
-        let versions = result.data.versions.map((v: { name: string; code: string; }) => new AppVersion(v.name, v.code))
-        setVersions(versions)
-        setSelectedVersions(versions)
-        break
-    }
-  }
-
-  useEffect(() => {
-    getFilters()
-  }, [selectedApp]);
 
   const getCrashOrAnrGroups = async () => {
     // Don't try to fetch crashes or ANRs if app id is not yet set
-    if (selectedApp.id === "") {
+    if (selectedFilters.selectedApp.id === "") {
       return
     }
 
@@ -135,7 +49,7 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
       limit = - limit
     }
 
-    const result = await fetchCrashOrAnrGroupsFromServer(crashOrAnrType, selectedApp.id, startDate, endDate, selectedVersions, keyId, limit, router)
+    const result = await fetchCrashOrAnrGroupsFromServer(crashOrAnrType, selectedFilters.selectedApp.id, selectedFilters.selectedStartDate, selectedFilters.selectedEndDate, selectedFilters.selectedVersions, keyId, limit, router)
 
     switch (result.status) {
       case CrashOrAnrGroupsApiStatus.Error:
@@ -152,12 +66,12 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
 
   useEffect(() => {
     getCrashOrAnrGroups()
-  }, [selectedApp, startDate, endDate, selectedVersions, paginationRange]);
+  }, [paginationRange, selectedFilters]);
 
   // Reset pagination range if any filters change
   useEffect(() => {
     setPaginationRange({ start: 1, end: paginationOffset })
-  }, [selectedApp, selectedVersions, startDate, endDate]);
+  }, [selectedFilters]);
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
@@ -165,59 +79,34 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
       <p className="font-display font-regular text-4xl max-w-6xl text-center">{crashOrAnrType === CrashOrAnrType.Crash ? 'Crashes' : 'ANRs'}</p>
       <div className="py-4" />
 
-      {/* Error states for apps fetch */}
-      {appsApiStatus === AppsApiStatus.Error && <p className="text-lg font-display">Error fetching apps, please check if Team ID is valid or refresh page to try again</p>}
-      {appsApiStatus === AppsApiStatus.NoApps &&
-        <div>
-          <p className="text-lg font-display">Looks like you don&apos;t have any apps yet. Get started by creating your first app!</p>
-          <div className="py-4" />
-          <CreateApp teamId={teamId} />
-        </div>}
-
-      {/* Main apps & filters UI */}
-      {appsApiStatus === AppsApiStatus.Success &&
-        <div>
-          <div className="flex flex-wrap gap-8 items-center">
-            <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={apps.map((e) => e.name)} initialSelected={apps[0].name} onChangeSelected={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} />
-            {filtersApiStatus === FiltersApiStatus.Success &&
-              <div className="flex flex-row items-center">
-                <input type="date" defaultValue={startDate} max={endDate} className="font-display border border-black rounded-md p-2" onChange={(e) => {
-                  if (isValidTimestamp(e.target.value)) {
-                    setStartDate(e.target.value)
-                  }
-                }} />
-                <p className="font-display px-2">to</p>
-                <input type="date" defaultValue={endDate} min={startDate} max={todayDate} className="font-display border border-black rounded-md p-2" onChange={(e) => {
-                  if (isValidTimestamp(e.target.value)) {
-                    setEndDate(e.target.value)
-                  }
-                }} />
-              </div>}
-            {filtersApiStatus === FiltersApiStatus.Success && <DropdownSelect title="App versions" type={DropdownSelectType.MultiAppVersion} items={versions} initialSelected={selectedVersions} onChangeSelected={(items) => setSelectedVersions(items as AppVersion[])} />}
-          </div>
-          <div className="py-4" />
-          {filtersApiStatus === FiltersApiStatus.Success &&
-            <div className="flex flex-wrap gap-2 items-center w-5/6">
-              <FilterPill title={selectedApp.name} />
-              <FilterPill title={`${formattedStartDate} to ${formattedEndDate}`} />
-              {selectedVersions.length > 0 && <FilterPill title={Array.from(selectedVersions).map((v) => v.displayName).join(', ')} />}
-            </div>}
-          <div className="py-4" />
-        </div>}
-
-      {/* Error states for filters fetch */}
-      {filtersApiStatus === FiltersApiStatus.Error && <p className="text-lg font-display">Error fetching filters, please refresh page or select a different app to try again</p>}
-      {filtersApiStatus === FiltersApiStatus.NoData && <p className="text-lg font-display">No {crashOrAnrType === CrashOrAnrType.Crash ? 'Crashes' : 'ANRs'} recorded so far!</p>}
-      {filtersApiStatus === FiltersApiStatus.NotOnboarded && <CreateApp teamId={teamId} existingAppName={selectedApp.name} existingApiKey={selectedApp.api_key.key} />}
+      <Filters
+        teamId={teamId}
+        filtersApiType={crashOrAnrType === CrashOrAnrType.Crash ? FiltersApiType.Crash : FiltersApiType.Anr}
+        showCountries={true}
+        showNetworkTypes={true}
+        showNetworkProviders={true}
+        showNetworkGenerations={true}
+        showLocales={true}
+        showDeviceManufacturers={true}
+        showDeviceNames={true}
+        onFiltersChanged={(updatedFilters) => setSelectedFilters(updatedFilters)} />
+      <div className="py-4" />
 
       {/* Error state for crash groups fetch */}
-      {crashOrAnrGroupsApiStatus === CrashOrAnrGroupsApiStatus.Error && <p className="text-lg font-display">Error fetching list of {crashOrAnrType === CrashOrAnrType.Crash ? 'crashes' : 'ANRs'}, please change filters, refresh page or select a different app to try again</p>}
+      {selectedFilters.ready
+        && crashOrAnrGroupsApiStatus === CrashOrAnrGroupsApiStatus.Error
+        && <p className="text-lg font-display">Error fetching list of {crashOrAnrType === CrashOrAnrType.Crash ? 'crashes' : 'ANRs'}, please change filters, refresh page or select a different app to try again</p>}
 
       {/* Empty state for crash groups fetch */}
-      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && crashOrAnrGroupsApiStatus === CrashOrAnrGroupsApiStatus.Success && crashOrAnrGroups.results === null && <p className="text-lg font-display">It seems there are no {crashOrAnrType === CrashOrAnrType.Crash ? 'crashes' : 'ANRs'} for the current combination of filters. Please change filters to try again</p>}
+      {selectedFilters.ready
+        && crashOrAnrGroupsApiStatus === CrashOrAnrGroupsApiStatus.Success
+        && crashOrAnrGroups.results === null
+        && <p className="text-lg font-display">It seems there are no {crashOrAnrType === CrashOrAnrType.Crash ? 'crashes' : 'ANRs'} for the current combination of filters. Please change filters to try again</p>}
 
       {/* Main crash groups list UI */}
-      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && (crashOrAnrGroupsApiStatus === CrashOrAnrGroupsApiStatus.Success || crashOrAnrGroupsApiStatus === CrashOrAnrGroupsApiStatus.Loading) && crashOrAnrGroups.results !== null &&
+      {selectedFilters.ready
+        && (crashOrAnrGroupsApiStatus === CrashOrAnrGroupsApiStatus.Success || crashOrAnrGroupsApiStatus === CrashOrAnrGroupsApiStatus.Loading)
+        && crashOrAnrGroups.results !== null &&
         <div className="flex flex-col items-center">
           <div className="py-4" />
           <div className="border border-black font-sans text-sm w-full h-[36rem]">
@@ -234,7 +123,7 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
             </div>
             <div className="table-row-group">
               {crashOrAnrGroups.results.map(({ id, name, count, percentage_contribution }) => (
-                <Link key={id} href={`/${teamId}/${crashOrAnrType === CrashOrAnrType.Crash ? 'crashes' : 'anrs'}/${selectedApp.id}/${id}/${name}?start_date=${startDate}&end_date=${endDate}`} className="table-row hover:bg-yellow-200 active:bg-yellow-300">
+                <Link key={id} href={`/${teamId}/${crashOrAnrType === CrashOrAnrType.Crash ? 'crashes' : 'anrs'}/${selectedFilters.selectedApp.id}/${id}/${name}?start_date=${selectedFilters.selectedStartDate}&end_date=${selectedFilters.selectedEndDate}`} className="table-row hover:bg-yellow-200 active:bg-yellow-300">
                   <div className="table-cell border border-black p-2 hover:bg-yellow-200 active:bg-yellow-300">{name}</div>
                   <div className="table-cell border border-black p-2 text-center">{count} instances</div>
                   <div className="table-cell border border-black p-2 text-center">{percentage_contribution}%</div>
