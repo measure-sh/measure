@@ -73,6 +73,7 @@ func main() {
 		apps.GET(":id/anrGroups/:anrGroupId/anrs", measure.GetANRDetailANRs)
 		apps.GET(":id/anrGroups/:anrGroupId/plot", measure.GetANRDetailPlotInstances)
 		apps.GET(":id/anrGroups/:anrGroupId/plots/instances", measure.GetANRDetailPlotInstances)
+		apps.GET(":id/anrGroups/:anrGroupId/plots/journey", measure.GetANRDetailPlotJourney)
 		apps.GET(":id/sessions/:sessionId", measure.GetAppSession)
 		apps.GET(":id/alertPrefs", measure.GetAlertPrefs)
 		apps.PATCH(":id/alertPrefs", measure.UpdateAlertPrefs)
