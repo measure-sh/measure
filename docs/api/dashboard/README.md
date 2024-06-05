@@ -55,82 +55,87 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-9)
     - [Response Body](#response-body-9)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-9)
-  - [GET `/apps/:id/sessions/:id`](#get-appsidsessionsid)
+  - [GET `/apps/:id/anrGroups/:id/plots/journey`](#get-appsidanrgroupsidplotsjourney)
     - [Usage Notes](#usage-notes-10)
     - [Authorization \& Content Type](#authorization--content-type-10)
     - [Response Body](#response-body-10)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-10)
-  - [GET `/apps/:id/alertPrefs`](#get-appsidalertprefs)
+  - [GET `/apps/:id/sessions/:id`](#get-appsidsessionsid)
     - [Usage Notes](#usage-notes-11)
     - [Authorization \& Content Type](#authorization--content-type-11)
     - [Response Body](#response-body-11)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-11)
-  - [PATCH `/apps/:id/alertPrefs`](#patch-appsidalertprefs)
+  - [GET `/apps/:id/alertPrefs`](#get-appsidalertprefs)
     - [Usage Notes](#usage-notes-12)
-    - [Request body](#request-body)
     - [Authorization \& Content Type](#authorization--content-type-12)
     - [Response Body](#response-body-12)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-12)
-- [Teams](#teams)
-  - [POST `/teams`](#post-teams)
-    - [Authorization \& Content Type](#authorization--content-type-13)
-    - [Request Body](#request-body-1)
+  - [PATCH `/apps/:id/alertPrefs`](#patch-appsidalertprefs)
     - [Usage Notes](#usage-notes-13)
+    - [Request body](#request-body)
+    - [Authorization \& Content Type](#authorization--content-type-13)
     - [Response Body](#response-body-13)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-13)
-  - [GET `/teams`](#get-teams)
+- [Teams](#teams)
+  - [POST `/teams`](#post-teams)
     - [Authorization \& Content Type](#authorization--content-type-14)
+    - [Request Body](#request-body-1)
+    - [Usage Notes](#usage-notes-14)
     - [Response Body](#response-body-14)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-14)
-  - [GET `/teams/:id/apps`](#get-teamsidapps)
-    - [Usage Notes](#usage-notes-14)
+  - [GET `/teams`](#get-teams)
     - [Authorization \& Content Type](#authorization--content-type-15)
     - [Response Body](#response-body-15)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-15)
-  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
+  - [GET `/teams/:id/apps`](#get-teamsidapps)
     - [Usage Notes](#usage-notes-15)
     - [Authorization \& Content Type](#authorization--content-type-16)
     - [Response Body](#response-body-16)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-16)
-  - [POST `/teams/:id/apps`](#post-teamsidapps)
+  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
     - [Usage Notes](#usage-notes-16)
-    - [Request body](#request-body-2)
     - [Authorization \& Content Type](#authorization--content-type-17)
     - [Response Body](#response-body-17)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-17)
-  - [POST `/auth/invite`](#post-authinvite)
+  - [POST `/teams/:id/apps`](#post-teamsidapps)
     - [Usage Notes](#usage-notes-17)
-    - [Request body](#request-body-3)
+    - [Request body](#request-body-2)
     - [Authorization \& Content Type](#authorization--content-type-18)
     - [Response Body](#response-body-18)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-18)
-  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
+  - [POST `/auth/invite`](#post-authinvite)
     - [Usage Notes](#usage-notes-18)
-    - [Request body](#request-body-4)
+    - [Request body](#request-body-3)
     - [Authorization \& Content Type](#authorization--content-type-19)
     - [Response Body](#response-body-19)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-19)
-  - [GET `/teams/:id/members`](#get-teamsidmembers)
+  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
     - [Usage Notes](#usage-notes-19)
+    - [Request body](#request-body-4)
     - [Authorization \& Content Type](#authorization--content-type-20)
     - [Response Body](#response-body-20)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-20)
-  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+  - [GET `/teams/:id/members`](#get-teamsidmembers)
     - [Usage Notes](#usage-notes-20)
     - [Authorization \& Content Type](#authorization--content-type-21)
     - [Response Body](#response-body-21)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-21)
-  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
     - [Usage Notes](#usage-notes-21)
-    - [Request body](#request-body-5)
     - [Authorization \& Content Type](#authorization--content-type-22)
     - [Response Body](#response-body-22)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-22)
-  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
     - [Usage Notes](#usage-notes-22)
+    - [Request body](#request-body-5)
     - [Authorization \& Content Type](#authorization--content-type-23)
     - [Response Body](#response-body-23)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-23)
+  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+    - [Usage Notes](#usage-notes-23)
+    - [Authorization \& Content Type](#authorization--content-type-24)
+    - [Response Body](#response-body-24)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-24)
 
 ## Apps
 
@@ -144,6 +149,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
 - [**GET `/apps/:id/anrGroups`**](#get-appsidanrgroups) - Fetch an app's ANR overview.
 - [**GET `/apps/:id/anrGroups/:id/anrs`**](#get-appsidanrgroupsidanrs) - Fetch an app's ANR detail.
 - [**GET `/apps/:id/anrGroups/:id/plots/instances`**](#get-appsidanrgroupsidplotsinstances) - Fetch an app's ANR instances aggregated by parameters like time & version.
+- [**GET `/apps/:id/anrGroups/:id/plots/journey`**](#get-appsidanrgroupsidplotsjourney) - Fetch an app's ANR journey map.
 - [**GET `/apps/:id/sessions/:id`**](#get-appsidsessionsid) - Fetch an app's session replay.
 - [**GET `/apps/:id/alertPrefs`**](#get-appsidalertprefs) - Fetch an app's alert preferences.
 - [**PATCH `/apps/:id/alertPrefs`**](#patch-appsidalertprefs) - Update an app's alert preferences.
@@ -3642,6 +3648,155 @@ These headers must be present in each request.
       ]
     }
   ]
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/anrGroups/:id/plots/journey`
+
+Fetch an app's ANR journey map.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Accepted query parameters
+  - `from` - ISO8601 timestamp to include crashes after this time.
+  - `to` - ISO8601 timestamp to include crashes before this time.
+  - `versions` - List of comma separated version identifier strings to return only matching crashes.
+  - `version_codes` - List of comma separated version codes to return only matching crashes.
+  - `bigraph` - Choose journey's directionality. `0` computes a unidirectional graph. Default is `1`.
+  - `countries` (_optional_) - List of comma separated country identifier strings to return only matching crashes.
+  - `device_names` (_optional_) - List of comma separated device name identifier strings to return only matching crashes.
+  - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings to return only matching crashes.
+  - `locales` (_optional_) - List of comma separated device locale identifier strings to return only matching crashes.
+  - `network_providers` (_optional_) - List of comma separated network provider identifier strings to return only matching crashes.
+  - `network_types` (_optional_) - List of comma separated network type identifier strings to return only matching crashes.
+  - `network_generations` (_optional_) - List of comma separated network generation identifier strings to return only matching crashes.
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+
+#### Authorization &amp; Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  {
+    "links": [
+      {
+        "source": "sh.measure.sample.ExceptionDemoActivity",
+        "target": "sh.measure.sample.ComposeActivity",
+        "value": 5
+      },
+      {
+        "source": "sh.measure.sample.ExceptionDemoActivity",
+        "target": "sh.measure.sample.ComposeNavigationActivity",
+        "value": 6
+      },
+      {
+        "source": "sh.measure.sample.ExceptionDemoActivity",
+        "target": "sh.measure.sample.OkHttpActivity",
+        "value": 6
+      },
+      {
+        "source": "sh.measure.sample.OkHttpActivity",
+        "target": "sh.measure.sample.ExceptionDemoActivity",
+        "value": 5
+      },
+      {
+        "source": "sh.measure.sample.ComposeActivity",
+        "target": "sh.measure.sample.ExceptionDemoActivity",
+        "value": 5
+      },
+      {
+        "source": "sh.measure.sample.ComposeNavigationActivity",
+        "target": "sh.measure.sample.ExceptionDemoActivity",
+        "value": 6
+      }
+    ],
+    "nodes": [
+      {
+        "id": "sh.measure.sample.ExceptionDemoActivity",
+        "issues": {
+          "anrs": [
+            {
+              "id": "018fba31-057c-70db-83c5-a7fa3c27f3f5",
+              "title": "sh.measure.android.anr.AnrError",
+              "count": 1
+            }
+          ]
+        }
+      },
+      {
+        "id": "sh.measure.sample.OkHttpActivity",
+        "issues": {
+          "anrs": []
+        }
+      },
+      {
+        "id": "sh.measure.sample.ComposeActivity",
+        "issues": {
+          "anrs": []
+        }
+      },
+      {
+        "id": "sh.measure.sample.ComposeNavigationActivity",
+        "issues": {
+          "anrs": [
+            {
+              "id": "018fba31-057c-70db-83c5-a7fa3c27f3f5",
+              "title": "sh.measure.android.anr.AnrError",
+              "count": 1
+            }
+          ]
+        }
+      }
+    ],
+    "totalIssues": 2
+  }
   ```
 
   </details>
