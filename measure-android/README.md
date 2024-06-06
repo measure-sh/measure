@@ -133,18 +133,7 @@ If you wish to configure the SDK during initialization with a custom config use 
 ```kotlin
 Measure.init(
     this, MeasureConfig(
-        trackScreenshotOnCrash = true,
-        screenshotMaskLevel = if (BuildConfig.DEBUG) {
-            ScreenshotMaskLevel.SensitiveFieldsOnly
-        } else {
-            ScreenshotMaskLevel.AllTextAndMedia
-        },
-        enableHttpHeaders = true,
-        enableHttpBody = true,
-        trackLifecycleActivityIntentData = true,
-        trackColdLaunchIntentData = true,
-        trackWarmLaunchIntentData = true,
-        trackHotLaunchIntentData = true,
+        // override the default config values here
     )
 )
 ```
