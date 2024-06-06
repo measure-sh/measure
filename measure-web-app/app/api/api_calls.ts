@@ -678,7 +678,7 @@ export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filte
     return { status: FiltersApiStatus.Success, data: data }
 }
 
-export const fetchJourneyFromServer = async (appId: string, journeyType: JourneyType, bidirectional: boolean, startDate: string, endDate: string, appVersions: AppVersion[], router: AppRouterInstance, crashOrAnrGroupId?: string) => {
+export const fetchJourneyFromServer = async (appId: string, journeyType: JourneyType, crashOrAnrGroupId: string | null, bidirectional: boolean, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], router: AppRouterInstance) => {
     // Must pass in crashOrAnrGroupdId if journey type is crash or anr details
     if ((journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) && crashOrAnrGroupId === undefined) {
         return { status: JourneyApiStatus.Error, data: null }
@@ -712,6 +712,41 @@ export const fetchJourneyFromServer = async (appId: string, journeyType: Journey
 
     // Append bidirectional value
     url = url + `&bigraph=${bidirectional ? '1' : '0'}`
+
+    // Append countries if present
+    if (countries.length > 0) {
+        url = url + `&countries=${Array.from(countries).join(',')}`
+    }
+
+    // Append network providers if present
+    if (networkProviders.length > 0) {
+        url = url + `&network_providers=${Array.from(networkProviders).join(',')}`
+    }
+
+    // Append network types if present
+    if (networkTypes.length > 0) {
+        url = url + `&network_types=${Array.from(networkTypes).join(',')}`
+    }
+
+    // Append network generations if present
+    if (networkGenerations.length > 0) {
+        url = url + `&network_generations=${Array.from(networkGenerations).join(',')}`
+    }
+
+    // Append locales if present
+    if (locales.length > 0) {
+        url = url + `&locales=${Array.from(locales).join(',')}`
+    }
+
+    // Append device manufacturers if present
+    if (deviceManufacturers.length > 0) {
+        url = url + `&device_manufacturers=${Array.from(deviceManufacturers).join(',')}`
+    }
+
+    // Append device names if present
+    if (deviceNames.length > 0) {
+        url = url + `&device_names=${Array.from(deviceNames).join(',')}`
+    }
 
     const res = await fetch(url, opts);
 

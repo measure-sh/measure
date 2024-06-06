@@ -36,9 +36,17 @@ export default function Overview({ params }: { params: { teamId: string } }) {
             appId={selectedFilters.selectedApp.id}
             bidirectional={false}
             journeyType={JourneyType.Overview}
+            crashOrAnrGroupId={null}
             startDate={selectedFilters.selectedStartDate}
             endDate={selectedFilters.selectedEndDate}
-            appVersions={selectedFilters.selectedVersions} />
+            appVersions={selectedFilters.selectedVersions}
+            countries={[]}
+            networkProviders={[]}
+            networkTypes={[]}
+            networkGenerations={[]}
+            locales={[]}
+            deviceManufacturers={[]}
+            deviceNames={[]} />
         </div>
       }
       <div className="py-8" />

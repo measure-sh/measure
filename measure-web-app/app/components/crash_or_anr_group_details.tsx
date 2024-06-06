@@ -123,7 +123,14 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
                 crashOrAnrGroupId={crashOrAnrGroupId}
                 startDate={selectedFilters.selectedStartDate}
                 endDate={selectedFilters.selectedEndDate}
-                appVersions={selectedFilters.selectedVersions} />
+                appVersions={selectedFilters.selectedVersions}
+                countries={selectedFilters.selectedCountries}
+                networkProviders={selectedFilters.selectedNetworkProviders}
+                networkTypes={selectedFilters.selectedNetworkTypes}
+                networkGenerations={selectedFilters.selectedNetworkGenerations}
+                locales={selectedFilters.selectedLocales}
+                deviceManufacturers={selectedFilters.selectedDeviceManufacturers}
+                deviceNames={selectedFilters.selectedDeviceNames} />
             </div>
           </div>
           <div className="py-8" />
