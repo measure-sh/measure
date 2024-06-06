@@ -8,6 +8,7 @@ import kotlin.concurrent.write
 internal interface ConfigProvider : IMeasureConfig {
     fun loadNetworkConfig()
     fun shouldTrackHttpBody(url: String, contentType: String?): Boolean
+    fun shouldTrackHttpUrl(url: String): Boolean
 }
 
 internal class ConfigProviderImpl(
@@ -19,6 +20,12 @@ internal class ConfigProviderImpl(
     @VisibleForTesting
     internal var networkConfig: MeasureConfig? = null
     private val networkConfigLock = ReentrantReadWriteLock()
+
+    /**
+     * The combined url blocklist of [restrictedHttpUrlBlocklist] and [httpUrlBlocklist].
+     */
+    private val combinedHttpUrlBlocklist = restrictedHttpUrlBlocklist + httpUrlBlocklist
+
 
     init {
         // Synchronously load the cached config. This allows the SDK to start with a previously
@@ -65,6 +72,7 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { restrictedHttpUrlBlocklist }
     override val maxEventsAttachmentSizeInBatchBytes: Int
         get() = getMergedConfig { maxEventsAttachmentSizeInBatchBytes }
+
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         if (contentType.isNullOrEmpty()) {
             return false
@@ -75,11 +83,15 @@ internal class ConfigProviderImpl(
         return httpContentTypeAllowlist.any { contentType.startsWith(it) }
     }
 
+    override fun shouldTrackHttpUrl(url: String): Boolean {
+        return combinedHttpUrlBlocklist.any { url.contains(it, ignoreCase = true) }
+    }
+
     private fun <T> getMergedConfig(selector: MeasureConfig.() -> T): T {
         if (networkConfig != null) {
             networkConfigLock.read {
                 return networkConfig?.selector() ?: cachedConfig?.selector()
-                    ?: defaultConfig.selector()
+                ?: defaultConfig.selector()
             }
         }
         return cachedConfig?.selector() ?: defaultConfig.selector()

@@ -28,4 +28,8 @@ internal class FakeConfigProvider : ConfigProvider {
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         return shouldTrackHttpBody
     }
+
+    override fun shouldTrackHttpUrl(url: String): Boolean {
+        return false
+    }
 }
