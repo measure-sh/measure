@@ -880,9 +880,9 @@ export const fetchCrashOrAnrGroupDetailsPlotFromServer = async (appId: string, c
 
     var url = ""
     if (crashOrAnrType === CrashOrAnrType.Crash) {
-        url = `${origin}/apps/${appId}/crashGroups/${crashOrAnrGroupId}/plot?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
+        url = `${origin}/apps/${appId}/crashGroups/${crashOrAnrGroupId}/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
     } else {
-        url = `${origin}/apps/${appId}/anrGroups/${crashOrAnrGroupId}/plot?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
+        url = `${origin}/apps/${appId}/anrGroups/${crashOrAnrGroupId}/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
     }
 
     // Append versions if present
