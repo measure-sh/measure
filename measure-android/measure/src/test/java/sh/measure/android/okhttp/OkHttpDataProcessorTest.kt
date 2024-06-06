@@ -12,6 +12,7 @@ import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.times
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.fakes.FakeConfigProvider
@@ -44,6 +45,8 @@ class OkHttpDataProcessorTest {
     fun setUp() {
         // enable body tracking by default
         configProvider.shouldTrackHttpBody = true
+        // track all URLs by default
+        configProvider.httpHeadersBlocklist = listOf()
     }
 
     @After
@@ -496,6 +499,24 @@ class OkHttpDataProcessorTest {
         val actualData = captor.firstValue
         Assert.assertNotNull(actualData.start_time)
         Assert.assertNotNull(actualData.end_time)
+    }
+
+    @Test
+    fun `given http url pattern is in blocklist, does not track http event`() {
+        configProvider.httpUrlBlocklist = listOf("localhost")
+        val captor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<String>()
+
+        // When
+        simulateSuccessfulPostRequest(url = "http://localhost:8080/")
+
+        // Then
+        verify(eventProcessor, never()).track(
+            captor.capture(),
+            timestampCaptor.capture(),
+            typeCaptor.capture(),
+        )
     }
 
     /**
