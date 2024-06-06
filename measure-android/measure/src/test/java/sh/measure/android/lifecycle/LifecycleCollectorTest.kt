@@ -17,6 +17,7 @@ import org.robolectric.android.controller.ActivityController
 import sh.measure.android.TestLifecycleActivity
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeTimeProvider
 
 @RunWith(AndroidJUnit4::class)
@@ -25,6 +26,7 @@ class LifecycleCollectorTest {
     private lateinit var lifecycleCollector: LifecycleCollector
     private val eventProcessor: EventProcessor = mock()
     private val timeProvider = FakeTimeProvider()
+    private val configProvider = FakeConfigProvider()
     private lateinit var controller: ActivityController<TestLifecycleActivity>
 
     @Before
@@ -33,6 +35,7 @@ class LifecycleCollectorTest {
             RuntimeEnvironment.getApplication(),
             eventProcessor,
             timeProvider,
+            configProvider
         ).apply { register() }
         controller = buildActivity(TestLifecycleActivity::class.java)
     }
@@ -211,6 +214,7 @@ class LifecycleCollectorTest {
             RuntimeEnvironment.getApplication(),
             eventProcessor,
             timeProvider,
+            configProvider
         ).apply {
             register()
             setApplicationLifecycleStateListener(object : ApplicationLifecycleStateListener {
@@ -232,6 +236,7 @@ class LifecycleCollectorTest {
             RuntimeEnvironment.getApplication(),
             eventProcessor,
             timeProvider,
+            configProvider
         ).apply {
             register()
             setApplicationLifecycleStateListener(object :

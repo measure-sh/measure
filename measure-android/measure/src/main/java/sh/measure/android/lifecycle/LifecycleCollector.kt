@@ -5,6 +5,7 @@ import android.app.Application
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.utils.TimeProvider
@@ -22,6 +23,7 @@ internal class LifecycleCollector(
     private val application: Application,
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
+    private val configProvider: ConfigProvider,
 ) : ActivityLifecycleAdapter {
     private val fragmentLifecycleCollector by lazy {
         FragmentLifecycleCollector(eventProcessor, timeProvider)
@@ -45,9 +47,12 @@ internal class LifecycleCollector(
             data = ActivityLifecycleData(
                 type = ActivityLifecycleType.CREATED,
                 class_name = activity.javaClass.name,
-                // TODO(abhay): evaluate for sensitive data
-                intent = activity.intent.dataString,
                 saved_instance_state = savedInstanceState != null,
+                intent = if (configProvider.trackActivityIntentData) {
+                    activity.intent.dataString
+                } else {
+                    null
+                },
             ),
         )
     }

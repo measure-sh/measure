@@ -1,6 +1,7 @@
 package sh.measure.android.applaunch
 
 import android.app.Application
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
@@ -21,6 +22,7 @@ internal class AppLaunchCollector(
     private val timeProvider: TimeProvider,
     private val eventProcessor: EventProcessor,
     private val processInfo: ProcessInfoProvider,
+    private val configProvider: ConfigProvider,
 ) : LaunchCallbacks {
 
     private var coldLaunchListener: ColdLaunchListener? = null
@@ -28,7 +30,7 @@ internal class AppLaunchCollector(
     fun register() {
         logger.log(LogLevel.Debug, "Registering AppLaunchCollector")
         application.registerActivityLifecycleCallbacks(
-            LaunchTracker(logger, processInfo, this),
+            LaunchTracker(logger, processInfo, this, configProvider = configProvider),
         )
     }
 
