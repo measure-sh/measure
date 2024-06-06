@@ -68,6 +68,28 @@ export function formatTimestampToChartFormat(timestamp: string): string {
   return formattedDate
 }
 
+export enum UserInputDateType {
+  From,
+  To
+}
+
+export function formatUserInputDateToServerFormat(date: string, inputDateType: UserInputDateType): string {
+  // Parse date string, time will be 00:00:00 
+  let localDateTime = DateTime.fromFormat(date, 'yyyy-MM-dd')
+
+  // Throw error if invalid
+  if (!localDateTime.isValid) {
+    throw (localDateTime.invalidReason)
+  }
+
+  // If "To" date, set time to end of day to include whole of the day
+  if (inputDateType === UserInputDateType.To) {
+    localDateTime = localDateTime.plus({ hours: 23, minutes: 59, seconds: 59, milliseconds: 999 })
+  }
+
+  return localDateTime.toUTC().toISO()!
+}
+
 export function isValidTimestamp(timestamp: string): boolean {
   const utcDateTime = DateTime.fromISO(timestamp, { zone: 'utc' });
   return utcDateTime.isValid
