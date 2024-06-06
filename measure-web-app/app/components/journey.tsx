@@ -18,9 +18,17 @@ interface JourneyProps {
   teamId: string,
   appId: string,
   bidirectional: boolean,
+  journeyType: JourneyType,
+  crashOrAnrGroupId?: string,
   startDate: string,
   endDate: string,
-  appVersions: AppVersion[],
+  appVersions: AppVersion[]
+}
+
+export enum JourneyType {
+  Overview,
+  CrashDetails,
+  AnrDetails
 }
 
 type Node = {
@@ -35,6 +43,7 @@ type Node = {
     label: string,
     teamId: string,
     appId: string,
+    journeyType: JourneyType,
     startDate: string,
     endDate: string,
     issues: {
@@ -66,7 +75,7 @@ const formatter = Intl.NumberFormat('en', { notation: 'compact' });
 
 {/* @ts-ignore */ }
 function MeasureNode({ data, isConnectable }) {
-  const isNodeWithIssues = data.issues.crashes.length > 0 || data.issues.anrs.length > 0
+  const isNodeWithIssues = data.issues.crashes?.length > 0 || data.issues.anrs?.length > 0
   let nodeHeaderBgColour
   if (isNodeWithIssues) {
     const greenPercentage = isNodeWithIssues ? (1 - data.nodeIssueContribution) * 100 : 100
@@ -86,35 +95,53 @@ function MeasureNode({ data, isConnectable }) {
       </div>
 
       <div className='h-0 rounded-b-md opacity-0 bg-neutral-950 group-hover:pl-2 group-hover:pr-2 group-hover:opacity-100 group-hover:h-full transition ease-in-out duration-300 '>
-        {data.issues.crashes.length > 0 && (
+        {data.issues.crashes?.length > 0 && (
           <div>
             <p className="font-sans text-white pt-2">Crashes:</p>
             <ul className="list-disc list-inside text-white pt-2 pb-4 pl-2 pr-2">
               {/* @ts-ignore */}
               {data.issues.crashes.map(({ id, title, count }) => (
                 <li key={title}>
-                  <span className="font-sans text-xs">
-                    <Link href={`/${data.teamId}/crashes/${data.appId}/${id}/${title}?start_date=${data.startDate}&end_date=${data.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
+                  {/* Show clickable link if overview journey type */}
+                  {data.journeyType === JourneyType.Overview &&
+                    <span className="font-sans text-xs">
+                      <Link href={`/${data.teamId}/crashes/${data.appId}/${id}/${title}?start_date=${data.startDate}&end_date=${data.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
+                        {title} - {formatter.format(count)}
+                      </Link>
+                    </span>
+                  }
+                  {/* Show only title and count if crash or anr journey type */}
+                  {(data.journeyType === JourneyType.CrashDetails || data.journeyType === JourneyType.AnrDetails) &&
+                    <span className="font-sans text-xs">
                       {title} - {formatter.format(count)}
-                    </Link>
-                  </span>
+                    </span>
+                  }
                 </li>
               ))}
             </ul>
           </div>
         )}
-        {data.issues.anrs.length > 0 && (
+        {data.issues.anrs?.length > 0 && (
           <div>
             <p className="font-sans text-white pt-2">ANRs:</p>
             <ul className="list-disc list-inside text-white pt-2 pb-4 pl-2 pr-2">
               {/* @ts-ignore */}
               {data.issues.anrs.map(({ id, title, count }) => (
                 <li key={title}>
-                  <span className="font-sans text-xs">
-                    <Link href={`/${data.teamId}/anrs/${data.appId}/${id}/${title}?start_date=${data.startDate}&end_date=${data.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
+                  {/* Show clickable link if overview journey type */}
+                  {data.journeyType === JourneyType.Overview &&
+                    <span className="font-sans text-xs">
+                      <Link href={`/${data.teamId}/anrs/${data.appId}/${id}/${title}?start_date=${data.startDate}&end_date=${data.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
+                        {title} - {formatter.format(count)}
+                      </Link>
+                    </span>
+                  }
+                  {/* Show only title and count if crash or anr journey type */}
+                  {(data.journeyType === JourneyType.CrashDetails || data.journeyType === JourneyType.AnrDetails) &&
+                    <span className="font-sans text-xs">
                       {title} - {formatter.format(count)}
-                    </Link>
-                  </span>
+                    </span>
+                  }
                 </li>
               ))}
             </ul>
@@ -125,7 +152,7 @@ function MeasureNode({ data, isConnectable }) {
   );
 };
 
-const getReactFlowFromJourney = (teamId: string, appId: string, startDate: string, endDate: string, journey: typeof emptyJourney) => {
+const getReactFlowFromJourney = (teamId: string, appId: string, journeyType: JourneyType, startDate: string, endDate: string, journey: typeof emptyJourney) => {
   // Return null flow if no nodes
   if (journey.nodes === null) {
     return { nodes: [], edges: [] }
@@ -135,11 +162,11 @@ const getReactFlowFromJourney = (teamId: string, appId: string, startDate: strin
     const { id, issues } = node;
 
     let nodeTotalIssueCount = 0
-    node.issues.crashes.map((crash) => {
+    node.issues.crashes?.map((crash) => {
       nodeTotalIssueCount += crash.count
     })
 
-    node.issues.anrs.map((anr) => {
+    node.issues.anrs?.map((anr) => {
       nodeTotalIssueCount += anr.count
     })
 
@@ -157,6 +184,7 @@ const getReactFlowFromJourney = (teamId: string, appId: string, startDate: strin
         label: id,
         teamId,
         appId,
+        journeyType,
         startDate,
         endDate,
         issues: issues, nodeIssueContribution
@@ -211,7 +239,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
   return { nodes, edges };
 };
 
-const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, startDate, endDate, appVersions }) => {
+const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journeyType, crashOrAnrGroupId, startDate, endDate, appVersions }) => {
 
   const [journeyApiStatus, setJourneyApiStatus] = useState(JourneyApiStatus.Loading);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -222,7 +250,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, startDa
   const getJourney = async (teamId: string, appId: string, bidirectional: boolean, startDate: string, endDate: string, appVersions: AppVersion[]) => {
     setJourneyApiStatus(JourneyApiStatus.Loading)
 
-    const result = await fetchJourneyFromServer(appId, bidirectional, startDate, endDate, appVersions, router)
+    const result = await fetchJourneyFromServer(appId, journeyType, bidirectional, startDate, endDate, appVersions, router, crashOrAnrGroupId)
 
     switch (result.status) {
       case JourneyApiStatus.Error:
@@ -230,7 +258,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, startDa
         break
       case JourneyApiStatus.Success:
         setJourneyApiStatus(JourneyApiStatus.Success)
-        let flow = getReactFlowFromJourney(teamId, appId, startDate, endDate, result.data)
+        let flow = getReactFlowFromJourney(teamId, appId, journeyType, startDate, endDate, result.data)
 
         if (flow.nodes.length === 0) {
           setJourneyApiStatus(JourneyApiStatus.NoData)
@@ -249,10 +277,10 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, startDa
   }, [teamId, appId, bidirectional, startDate, endDate, appVersions]);
 
   return (
-    <div className="flex items-center justify-center border border-black text-black font-sans text-sm w-5/6 h-[600px]">
-      {journeyApiStatus === JourneyApiStatus.Loading && <p className="text-lg">Updating journey...</p>}
-      {journeyApiStatus === JourneyApiStatus.Error && <p className="text-lg">Error fetching journey. Please refresh page or change filters to try again.</p>}
-      {journeyApiStatus === JourneyApiStatus.NoData && <p className="text-lg">No data</p>}
+    <div className="flex items-center justify-center border border-black text-black font-sans text-sm w-full h-full">
+      {journeyApiStatus === JourneyApiStatus.Loading && <p className="text-lg font-display text-center p-4">Updating journey...</p>}
+      {journeyApiStatus === JourneyApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching journey. Please refresh page or change filters to try again.</p>}
+      {journeyApiStatus === JourneyApiStatus.NoData && <p className="text-lg font-display text-center p-4">No data</p>}
       {journeyApiStatus === JourneyApiStatus.Success
         && <ReactFlow
           nodes={nodes}
