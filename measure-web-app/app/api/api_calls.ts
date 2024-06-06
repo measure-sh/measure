@@ -2,6 +2,7 @@ import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.share
 import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from "../utils/auth_utils"
 import { DateTime } from "luxon"
 import { supabase } from "@/utils/supabase/browser"
+import { JourneyType } from "../components/journey"
 
 export enum TeamsApiStatus {
     Loading,
@@ -677,7 +678,12 @@ export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filte
     return { status: FiltersApiStatus.Success, data: data }
 }
 
-export const fetchJourneyFromServer = async (appId: string, bidirectional: boolean, startDate: string, endDate: string, appVersions: AppVersion[], router: AppRouterInstance) => {
+export const fetchJourneyFromServer = async (appId: string, journeyType: JourneyType, bidirectional: boolean, startDate: string, endDate: string, appVersions: AppVersion[], router: AppRouterInstance, crashOrAnrGroupId?: string) => {
+    // Must pass in crashOrAnrGroupdId if journey type is crash or anr details
+    if ((journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) && crashOrAnrGroupId === undefined) {
+        return { status: JourneyApiStatus.Error, data: null }
+    }
+
     const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
@@ -686,10 +692,19 @@ export const fetchJourneyFromServer = async (appId: string, bidirectional: boole
         }
     };
 
+    let url = ''
+    if (journeyType === JourneyType.CrashDetails) {
+        url = `${origin}/apps/${appId}/crashGroups/${crashOrAnrGroupId}/plots/journey`
+    } else if (journeyType === JourneyType.AnrDetails) {
+        url = `${origin}/apps/${appId}/anrGroups/${crashOrAnrGroupId}/plots/journey`
+    } else {
+        url = `${origin}/apps/${appId}/journey`
+    }
+
+    // Append dates
     const serverFormattedStartDate = DateTime.fromFormat(startDate, 'yyyy-MM-dd').toUTC().toISO();
     const serverFormattedEndDate = DateTime.fromFormat(endDate, 'yyyy-MM-dd').toUTC().toISO();
-
-    let url = `${origin}/apps/${appId}/journey?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
+    url = url + `?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
 
     // Append versions
     url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`

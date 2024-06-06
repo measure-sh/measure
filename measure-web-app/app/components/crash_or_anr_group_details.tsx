@@ -10,6 +10,7 @@ import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import { formatDateToHumanReadable, formatTimeToHumanReadable } from '../utils/time_utils';
 import CrashOrAnrGroupDetailsPlot from './crash_or_anr_group_details_plot';
 import Filters, { defaultSelectedFilters } from './filters';
+import Journey, { JourneyType } from './journey';
 
 interface CrashOrAnrGroupDetailsProps {
   crashOrAnrType: CrashOrAnrType,
@@ -113,8 +114,16 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
               deviceManufacturers={selectedFilters.selectedDeviceManufacturers}
               deviceNames={selectedFilters.selectedDeviceNames} />
             <div className="p-2" />
-            <div className="border border-black font-sans text-sm w-full h-[32rem]">
-              <UserFlowCrashOrAnrGroupDetails />
+            <div className="w-full h-[32rem]">
+              <Journey
+                teamId={teamId}
+                appId={selectedFilters.selectedApp.id}
+                bidirectional={false}
+                journeyType={crashOrAnrType === CrashOrAnrType.Crash ? JourneyType.CrashDetails : JourneyType.AnrDetails}
+                crashOrAnrGroupId={crashOrAnrGroupId}
+                startDate={selectedFilters.selectedStartDate}
+                endDate={selectedFilters.selectedEndDate}
+                appVersions={selectedFilters.selectedVersions} />
             </div>
           </div>
           <div className="py-8" />
