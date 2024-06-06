@@ -6,6 +6,7 @@ import sh.measure.android.anr.AnrCollector
 import sh.measure.android.appexit.AppExitCollector
 import sh.measure.android.applaunch.AppLaunchCollector
 import sh.measure.android.attributes.UserAttributeProcessor
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.exceptions.UnhandledExceptionCollector
 import sh.measure.android.exporter.NetworkClient
@@ -28,6 +29,7 @@ internal class FakeMeasureInitializer : MeasureInitializer {
     override lateinit var logger: Logger
     override lateinit var timeProvider: TimeProvider
     override lateinit var networkClient: NetworkClient
+    override lateinit var configProvider: ConfigProvider
     override lateinit var manifestReader: ManifestReader
     override lateinit var resumedActivityProvider: ResumedActivityProvider
     override lateinit var eventProcessor: EventProcessor

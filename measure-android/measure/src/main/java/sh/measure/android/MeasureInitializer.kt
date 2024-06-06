@@ -271,6 +271,7 @@ internal class MeasureInitializerImpl(
         application = application,
         eventProcessor = eventProcessor,
         timeProvider = timeProvider,
+        configProvider = configProvider,
     ),
     override val gestureCollector: GestureCollector = GestureCollector(
         logger = logger,
@@ -283,6 +284,7 @@ internal class MeasureInitializerImpl(
         eventProcessor = eventProcessor,
         timeProvider = timeProvider,
         processInfo = processInfoProvider,
+        configProvider = configProvider,
     ),
     override val networkChangesCollector: NetworkChangesCollector = NetworkChangesCollector(
         logger = logger,

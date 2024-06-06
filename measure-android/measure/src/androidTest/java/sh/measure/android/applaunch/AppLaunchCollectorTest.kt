@@ -10,8 +10,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Ignore
 import org.junit.Test
 import sh.measure.android.TestActivity
+import sh.measure.android.config.ConfigProviderImpl
+import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeEventProcessor
+import sh.measure.android.fakes.NoopConfigLoader
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.ProcessInfoProviderImpl
@@ -20,6 +23,7 @@ internal class AppLaunchCollectorTest {
 
     private val logger = NoopLogger()
     private val processInfoProvider = ProcessInfoProviderImpl()
+    private val configLoader = NoopConfigLoader()
 
     @Test
     fun tracks_cold_launch() {
@@ -55,6 +59,7 @@ internal class AppLaunchCollectorTest {
                 eventProcessor = eventProcessor,
                 timeProvider = AndroidTimeProvider(),
                 processInfo = processInfoProvider,
+                configProvider = getConfigProvider()
             ).apply {
                 register()
                 setColdLaunchListener(listener = coldLaunchListener)
@@ -89,6 +94,7 @@ internal class AppLaunchCollectorTest {
                 eventProcessor = eventProcessor,
                 timeProvider = AndroidTimeProvider(),
                 processInfo = processInfoProvider,
+                configProvider = getConfigProvider()
             ).register()
             scenario.moveToState(Lifecycle.State.CREATED)
             scenario.moveToState(Lifecycle.State.STARTED)
@@ -108,6 +114,7 @@ internal class AppLaunchCollectorTest {
                 eventProcessor = eventProcessor,
                 timeProvider = AndroidTimeProvider(),
                 processInfo = processInfoProvider,
+                configProvider = getConfigProvider()
             ).register()
 
             scenario.moveToState(Lifecycle.State.CREATED)
@@ -117,5 +124,9 @@ internal class AppLaunchCollectorTest {
             scenario.moveToState(Lifecycle.State.RESUMED)
         }
         Assert.assertEquals(1, eventProcessor.getTrackedEventsByType(EventType.HOT_LAUNCH).size)
+    }
+
+    private fun getConfigProvider(defaultConfig: MeasureConfig = MeasureConfig()): ConfigProviderImpl {
+        return ConfigProviderImpl(defaultConfig = defaultConfig, configLoader)
     }
 }

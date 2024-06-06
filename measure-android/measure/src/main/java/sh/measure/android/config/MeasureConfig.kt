@@ -57,25 +57,7 @@ internal interface IMeasureConfig {
     /**
      * Whether to capture lifecycle activity intent data. Defaults to `false`.
      */
-    val trackLifecycleActivityIntentData: Boolean
-
-    /**
-     * Whether to capture intent data for the activity launched as part of a cold launch. Defaults
-     * to `false`.
-     */
-    val trackColdLaunchIntentData: Boolean
-
-    /**
-     * Whether to capture intent data for the activity launched as part of a warm launch. Defaults
-     * to `false`.
-     */
-    val trackWarmLaunchIntentData: Boolean
-
-    /**
-     * Whether to capture intent data for the activity launched as part of a hot launch. Defaults
-     * to `false`.
-     */
-    val trackHotLaunchIntentData: Boolean
+    val trackActivityIntentData: Boolean
 
     /**
      * The maximum size of attachments allowed in a single batch. Defaults to 3MB
@@ -118,10 +100,7 @@ class MeasureConfig(
     override val enableHttpBody: Boolean = false,
     override val httpHeadersBlocklist: List<String> = emptyList(),
     override val httpUrlBlocklist: List<String> = emptyList(),
-    override val trackLifecycleActivityIntentData: Boolean = false,
-    override val trackColdLaunchIntentData: Boolean = false,
-    override val trackWarmLaunchIntentData: Boolean = false,
-    override val trackHotLaunchIntentData: Boolean = false,
+    override val trackActivityIntentData: Boolean = false,
 ) : IMeasureConfig {
     override val screenshotMaskHexColor: String = "#222222"
     override val screenshotCompressionQuality: Int = 25

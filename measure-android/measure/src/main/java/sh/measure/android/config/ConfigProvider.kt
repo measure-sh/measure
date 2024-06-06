@@ -51,14 +51,8 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { httpHeadersBlocklist }
     override val httpUrlBlocklist: List<String>
         get() = getMergedConfig { httpUrlBlocklist }
-    override val trackLifecycleActivityIntentData: Boolean
-        get() = getMergedConfig { trackLifecycleActivityIntentData }
-    override val trackColdLaunchIntentData: Boolean
-        get() = getMergedConfig { trackColdLaunchIntentData }
-    override val trackWarmLaunchIntentData: Boolean
-        get() = getMergedConfig { trackWarmLaunchIntentData }
-    override val trackHotLaunchIntentData: Boolean
-        get() = getMergedConfig { trackHotLaunchIntentData }
+    override val trackActivityIntentData: Boolean
+        get() = getMergedConfig { trackActivityIntentData }
     override val eventsBatchingIntervalMs: Long
         get() = getMergedConfig { eventsBatchingIntervalMs }
     override val maxEventsInBatch: Int

@@ -18,10 +18,7 @@ class SampleApp : Application() {
                 },
                 enableHttpHeaders = true,
                 enableHttpBody = true,
-                trackLifecycleActivityIntentData = true,
-                trackColdLaunchIntentData = true,
-                trackWarmLaunchIntentData = true,
-                trackHotLaunchIntentData = true,
+                trackActivityIntentData = true,
             )
         )
     }
