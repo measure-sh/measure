@@ -36,8 +36,14 @@ internal class OkHttpEventCollectorImpl(
         InternalTrace.beginSection("OkHttpEventProcessor.callStart")
         val key = getIdentityHash(call)
         val request = call.request()
+        val url = request.url.toString()
+
+        if (configProvider.httpUrlBlocklist.any { url.contains(it, ignoreCase = true) }) {
+            return
+        }
+
         httpDataBuilders[key] =
-            HttpData.Builder().url(request.url.toString()).startTime(timeProvider.uptimeInMillis)
+            HttpData.Builder().url(url).startTime(timeProvider.uptimeInMillis)
                 .method(request.method.lowercase()).startTime(timeProvider.uptimeInMillis)
                 .client(HttpClientName.OK_HTTP)
         InternalTrace.endSection()

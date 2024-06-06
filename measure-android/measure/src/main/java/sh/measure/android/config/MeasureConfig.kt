@@ -47,10 +47,26 @@ internal interface IMeasureConfig {
     val httpHeadersBlocklist: List<String>
 
     /**
-     * List of HTTP URLs to not capture for network request and response. Defaults to an empty list.
+     * Allows disabling collection of `http` events for certain URLs. This is useful to setup if you do not
+     * want to collect data for certain endpoints or third party domains. By default, Measure endpoints
+     * are always disabled.
      *
-     * Internally, this list is combined with [restrictedHttpUrlBlocklist] to form the final
-     * blocklist.
+     * Internally, this list is combined with [restrictedHttpUrlBlocklist] to form the final blocklist.
+     *
+     * Example:
+     *
+     * ```kotlin
+     * MeasureConfig(
+     *     httpUrlBlocklist = listOf(
+     *         "example.com", // disables a domain
+     *         "api.example.com", // disable a subdomain
+     *         "example.com/order" // disable a particular path
+     *     )
+     * )
+     * ```
+     *
+     * The check is made in order of the list and uses a simple `contains` check. So, if you want to
+     * disable a particular path, make sure to add it to the list after the domain.
      */
     val httpUrlBlocklist: List<String>
 
@@ -80,15 +96,14 @@ internal interface IMeasureConfig {
      */
     val httpContentTypeAllowlist: List<String>
 
+
     /**
-     * List of HTTP headers to not capture for network request and response.
+     * Default list of HTTP headers to not capture for network request and response.
      */
     val restrictedHttpHeadersBlocklist: List<String>
 
     /**
-     * List of HTTP URLs to not capture for network request and response.
-     *
-     * // TODO: describe the logic of how the URLs are matched.
+     * Default list of HTTP URLs to not capture for network request and response.
      */
     val restrictedHttpUrlBlocklist: List<String>
 }
