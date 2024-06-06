@@ -1,5 +1,5 @@
 
-import { formatDateToHumanReadable, formatMillisToHumanReadable, formatTimeToHumanReadable, formatTimestampToChartFormat, isValidTimestamp } from '@/app/utils/time_utils';
+import { UserInputDateType, formatDateToHumanReadable, formatMillisToHumanReadable, formatTimeToHumanReadable, formatTimestampToChartFormat, formatUserInputDateToServerFormat, isValidTimestamp } from '@/app/utils/time_utils';
 import { expect, it, describe, beforeEach, afterEach } from '@jest/globals';
 import { Settings, DateTime } from "luxon";
 
@@ -117,6 +117,34 @@ describe('formatTimestampToChartFormat', () => {
         const timestamp = '2024-04-15T03:44:00Z'; // April 15, 2024, 03:44 PM UTC
         const expected = '2024-04-15 09:14:00:000 AM';
         expect(formatTimestampToChartFormat(timestamp)).toBe(expected);
+    });
+
+    it('should throw on invalid timestamps', () => {
+        const timestamp = 'invalid-timestamp';
+        expect(() => formatTimestampToChartFormat(timestamp)).toThrow();
+    });
+});
+
+describe('formatUserSelectedDateToServerFormat', () => {
+    beforeEach(() => {
+        Settings.now = () => 0;
+        Settings.defaultZone = "Asia/Kolkata"
+    });
+
+    afterEach(() => {
+        Settings.now = () => DateTime.now().valueOf();
+    });
+
+    it('should format a From user input date to server format', () => {
+        const timestamp = '2024-04-16'; // April 16, 2024
+        const expected = '2024-04-15T18:30:00.000Z';
+        expect(formatUserInputDateToServerFormat(timestamp, UserInputDateType.From)).toBe(expected);
+    });
+
+    it('should format a To user input date to server format', () => {
+        const timestamp = '2024-04-16'; // April 16
+        const expected = '2024-04-16T18:29:59.999Z';
+        expect(formatUserInputDateToServerFormat(timestamp, UserInputDateType.To)).toBe(expected);
     });
 
     it('should throw on invalid timestamps', () => {

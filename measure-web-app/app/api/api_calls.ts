@@ -1,8 +1,8 @@
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
 import { getAccessTokenOrRedirectToAuth, logoutIfAuthError } from "../utils/auth_utils"
-import { DateTime } from "luxon"
 import { supabase } from "@/utils/supabase/browser"
 import { JourneyType } from "../components/journey"
+import { UserInputDateType, formatUserInputDateToServerFormat } from "../utils/time_utils"
 
 export enum TeamsApiStatus {
     Loading,
@@ -702,8 +702,8 @@ export const fetchJourneyFromServer = async (appId: string, journeyType: Journey
     }
 
     // Append dates
-    const serverFormattedStartDate = DateTime.fromFormat(startDate, 'yyyy-MM-dd').toUTC().toISO();
-    const serverFormattedEndDate = DateTime.fromFormat(endDate, 'yyyy-MM-dd').toUTC().toISO();
+    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate, UserInputDateType.From)
+    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate, UserInputDateType.To)
     url = url + `?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
 
     // Append versions
@@ -769,8 +769,8 @@ export const fetchMetricsFromServer = async (appId: string, startDate: string, e
         }
     };
 
-    const serverFormattedStartDate = DateTime.fromFormat(startDate, 'yyyy-MM-dd').toUTC().toISO();
-    const serverFormattedEndDate = DateTime.fromFormat(endDate, 'yyyy-MM-dd').toUTC().toISO();
+    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate, UserInputDateType.From)
+    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate, UserInputDateType.To)
 
     let url = `${origin}/apps/${appId}/metrics?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
 
@@ -799,8 +799,8 @@ export const fetchCrashOrAnrGroupsFromServer = async (crashOrAnrType: CrashOrAnr
         }
     };
 
-    const serverFormattedStartDate = DateTime.fromFormat(startDate, 'yyyy-MM-dd').toUTC().toISO();
-    const serverFormattedEndDate = DateTime.fromFormat(endDate, 'yyyy-MM-dd').toUTC().toISO();
+    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate, UserInputDateType.From)
+    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate, UserInputDateType.To)
 
     var url = ""
     if (crashOrAnrType === CrashOrAnrType.Crash) {
@@ -842,8 +842,8 @@ export const fetchCrashOrAnrGroupDetailsFromServer = async (crashOrAnrType: Cras
         }
     };
 
-    const serverFormattedStartDate = DateTime.fromFormat(startDate, 'yyyy-MM-dd').toUTC().toISO();
-    const serverFormattedEndDate = DateTime.fromFormat(endDate, 'yyyy-MM-dd').toUTC().toISO();
+    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate, UserInputDateType.From)
+    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate, UserInputDateType.To)
 
     var url = ""
     if (crashOrAnrType === CrashOrAnrType.Crash) {
@@ -925,8 +925,8 @@ export const fetchCrashOrAnrGroupDetailsPlotFromServer = async (appId: string, c
         }
     };
 
-    const serverFormattedStartDate = DateTime.fromFormat(startDate, 'yyyy-MM-dd').toUTC().toISO();
-    const serverFormattedEndDate = DateTime.fromFormat(endDate, 'yyyy-MM-dd').toUTC().toISO();
+    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate, UserInputDateType.From)
+    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate, UserInputDateType.To)
 
     var url = ""
     if (crashOrAnrType === CrashOrAnrType.Crash) {
