@@ -82,13 +82,13 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
       <Filters
         teamId={teamId}
         filtersApiType={crashOrAnrType === CrashOrAnrType.Crash ? FiltersApiType.Crash : FiltersApiType.Anr}
-        showCountries={true}
-        showNetworkTypes={true}
-        showNetworkProviders={true}
-        showNetworkGenerations={true}
-        showLocales={true}
-        showDeviceManufacturers={true}
-        showDeviceNames={true}
+        showCountries={false}
+        showNetworkTypes={false}
+        showNetworkProviders={false}
+        showNetworkGenerations={false}
+        showLocales={false}
+        showDeviceManufacturers={false}
+        showDeviceNames={false}
         onFiltersChanged={(updatedFilters) => setSelectedFilters(updatedFilters)} />
       <div className="py-4" />
 
