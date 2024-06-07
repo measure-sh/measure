@@ -1879,7 +1879,7 @@ func GetAppFilters(c *gin.Context) {
 	})
 }
 
-func GetCrashGroups(c *gin.Context) {
+func GetCrashOverview(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -2422,7 +2422,7 @@ func GetCrashDetailPlotJourney(c *gin.Context) {
 	})
 }
 
-func GetANRGroups(c *gin.Context) {
+func GetANROverview(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
