@@ -59,7 +59,6 @@ internal class AppLaunchCollectorTest {
                 eventProcessor = eventProcessor,
                 timeProvider = AndroidTimeProvider(),
                 processInfo = processInfoProvider,
-                configProvider = getConfigProvider()
             ).apply {
                 register()
                 setColdLaunchListener(listener = coldLaunchListener)
@@ -94,7 +93,6 @@ internal class AppLaunchCollectorTest {
                 eventProcessor = eventProcessor,
                 timeProvider = AndroidTimeProvider(),
                 processInfo = processInfoProvider,
-                configProvider = getConfigProvider()
             ).register()
             scenario.moveToState(Lifecycle.State.CREATED)
             scenario.moveToState(Lifecycle.State.STARTED)
@@ -114,7 +112,6 @@ internal class AppLaunchCollectorTest {
                 eventProcessor = eventProcessor,
                 timeProvider = AndroidTimeProvider(),
                 processInfo = processInfoProvider,
-                configProvider = getConfigProvider()
             ).register()
 
             scenario.moveToState(Lifecycle.State.CREATED)
@@ -124,9 +121,5 @@ internal class AppLaunchCollectorTest {
             scenario.moveToState(Lifecycle.State.RESUMED)
         }
         Assert.assertEquals(1, eventProcessor.getTrackedEventsByType(EventType.HOT_LAUNCH).size)
-    }
-
-    private fun getConfigProvider(defaultConfig: MeasureConfig = MeasureConfig()): ConfigProviderImpl {
-        return ConfigProviderImpl(defaultConfig = defaultConfig, configLoader)
     }
 }

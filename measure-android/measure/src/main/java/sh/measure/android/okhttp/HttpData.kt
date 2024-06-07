@@ -42,22 +42,22 @@ internal data class HttpData(
     /**
      * The request headers.
      */
-    val request_headers: Map<String, String>?,
+    var request_headers: Map<String, String>?,
 
     /**
      * The response headers.
      */
-    val response_headers: Map<String, String>?,
+    var response_headers: Map<String, String>?,
 
     /**
      * The request body.
      */
-    val request_body: String?,
+    var request_body: String?,
 
     /**
      * The response body.
      */
-    val response_body: String?,
+    var response_body: String?,
 
     /**
      * The name of the client that sent the request.

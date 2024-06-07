@@ -40,7 +40,7 @@ internal data class ColdLaunchData(
     /**
      * The Intent data used to launch the [launched_activity].
      */
-    val intent_data: String?,
+    var intent_data: String?,
 )
 
 @Serializable
@@ -68,7 +68,7 @@ internal data class WarmLaunchData(
     /**
      * The Intent data used to launch the [launched_activity].
      */
-    val intent_data: String?,
+    var intent_data: String?,
 )
 
 @Serializable
@@ -96,5 +96,5 @@ internal data class HotLaunchData(
     /**
      * The Intent data used to launch the [launched_activity].
      */
-    val intent_data: String?,
+    var intent_data: String?,
 )

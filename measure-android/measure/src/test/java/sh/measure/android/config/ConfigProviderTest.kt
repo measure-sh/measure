@@ -73,15 +73,23 @@ class ConfigProviderTest {
 
     @Test
     fun `shouldTrackHttpBody returns true for a allowed URL and content type`() {
-        val url = "https://example.com/"
+        val url = "example.com"
         val contentType = "application/json"
+        val configProvider = ConfigProviderImpl(
+            defaultConfig = MeasureConfig(httpUrlBlocklist = listOf("allowed.com")),
+            configLoader = configLoader,
+        )
         Assert.assertTrue(configProvider.shouldTrackHttpBody(url, contentType))
     }
 
     @Test
     fun `shouldTrackHttpBody returns false for a disallowed URL`() {
-        val url = "10.0.2.2:8080/events"
+        val url = "example.com"
         val contentType = "application/json"
+        val configProvider = ConfigProviderImpl(
+            defaultConfig = MeasureConfig(httpUrlBlocklist = listOf("example.com")),
+            configLoader = configLoader,
+        )
         Assert.assertFalse(configProvider.shouldTrackHttpBody(url, contentType))
     }
 
@@ -94,22 +102,30 @@ class ConfigProviderTest {
 
     @Test
     fun `shouldTrackHttpBody returns false for a disallowed URL and content type`() {
-        val url = "10.0.2.2:8080/sessions/sessions"
+        val url = "example.com/sessions"
         val contentType = "text/plain"
+        val configProvider = ConfigProviderImpl(
+            defaultConfig = MeasureConfig(httpUrlBlocklist = listOf("example.com")),
+            configLoader = configLoader,
+        )
         Assert.assertFalse(configProvider.shouldTrackHttpBody(url, contentType))
     }
 
     @Test
-    fun `shouldTrackHttpUrl returns false for a disallowed URL`() {
-        val config = MeasureConfig(httpUrlBlocklist = listOf("example.com"))
+    fun `shouldTrackHttpHeader returns true for a allowed header`() {
         val configProvider = ConfigProviderImpl(
-            defaultConfig = config,
+            defaultConfig = MeasureConfig(httpHeadersBlocklist = listOf("key1")),
             configLoader = configLoader,
         )
-        var url = "example.com"
-        Assert.assertFalse(configProvider.shouldTrackHttpUrl(url))
+        Assert.assertTrue(configProvider.shouldTrackHttpHeader("key2"))
+    }
 
-        url = "api.example.com"
-        Assert.assertFalse(configProvider.shouldTrackHttpUrl(url))
+    @Test
+    fun `shouldTrackHttpHeader returns false for a blocked header`() {
+        val configProvider = ConfigProviderImpl(
+            defaultConfig = MeasureConfig(httpHeadersBlocklist = listOf("key1")),
+            configLoader = configLoader,
+        )
+        Assert.assertFalse(configProvider.shouldTrackHttpHeader("key1"))
     }
 }

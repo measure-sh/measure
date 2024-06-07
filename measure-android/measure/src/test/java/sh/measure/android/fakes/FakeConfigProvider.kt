@@ -12,8 +12,8 @@ internal class FakeConfigProvider : ConfigProvider {
     override var screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.SensitiveFieldsOnly
     override var screenshotMaskHexColor: String = "#222222"
     override var screenshotCompressionQuality: Int = 25
-    override var enableHttpHeaders: Boolean = false
-    override var enableHttpBody: Boolean = false
+    override var trackHttpHeaders: Boolean = false
+    override var trackHttpBody: Boolean = false
     override var httpHeadersBlocklist: List<String> = emptyList()
     override var httpUrlBlocklist: List<String> = emptyList()
     override var trackActivityIntentData: Boolean = false
@@ -21,15 +21,21 @@ internal class FakeConfigProvider : ConfigProvider {
     override var eventsBatchingIntervalMs: Long = 10_000
     override var maxEventsInBatch: Int = 100
     override var httpContentTypeAllowlist: List<String> = emptyList()
-    override var restrictedHttpHeadersBlocklist: List<String> = emptyList()
-    override var restrictedHttpUrlBlocklist: List<String> = emptyList()
+    override var defaultHttpHeadersBlocklist: List<String> = emptyList()
+    override var defaultHttpUrlBlocklist: List<String> = emptyList()
 
     var shouldTrackHttpBody = false
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         return shouldTrackHttpBody
     }
 
+    var shouldTrackHttpUrl = false
     override fun shouldTrackHttpUrl(url: String): Boolean {
-        return false
+        return shouldTrackHttpUrl
+    }
+
+    var headerKeysToBlock = emptyList<String>()
+    override fun shouldTrackHttpHeader(key: String): Boolean {
+        return headerKeysToBlock.any { key.contains(it, ignoreCase = true) }
     }
 }
