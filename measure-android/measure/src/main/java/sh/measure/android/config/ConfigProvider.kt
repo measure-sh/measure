@@ -9,6 +9,7 @@ internal interface ConfigProvider : IMeasureConfig {
     fun loadNetworkConfig()
     fun shouldTrackHttpBody(url: String, contentType: String?): Boolean
     fun shouldTrackHttpUrl(url: String): Boolean
+    fun shouldTrackHttpHeader(key: String): Boolean
 }
 
 internal class ConfigProviderImpl(
@@ -22,9 +23,10 @@ internal class ConfigProviderImpl(
     private val networkConfigLock = ReentrantReadWriteLock()
 
     /**
-     * The combined url blocklist of [restrictedHttpUrlBlocklist] and [httpUrlBlocklist].
+     * The combined url blocklist of [defaultHttpUrlBlocklist] and [httpUrlBlocklist].
      */
-    private val combinedHttpUrlBlocklist = restrictedHttpUrlBlocklist + httpUrlBlocklist
+    private val combinedHttpUrlBlocklist = defaultHttpUrlBlocklist + httpUrlBlocklist
+    private val combinedHttpHeadersBlocklist = defaultHttpHeadersBlocklist + httpHeadersBlocklist
 
 
     init {
@@ -50,10 +52,10 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { screenshotMaskHexColor }
     override val screenshotCompressionQuality: Int
         get() = getMergedConfig { screenshotCompressionQuality }
-    override val enableHttpHeaders: Boolean
-        get() = getMergedConfig { enableHttpHeaders }
-    override val enableHttpBody: Boolean
-        get() = getMergedConfig { enableHttpBody }
+    override val trackHttpHeaders: Boolean
+        get() = getMergedConfig { trackHttpHeaders }
+    override val trackHttpBody: Boolean
+        get() = getMergedConfig { trackHttpBody }
     override val httpHeadersBlocklist: List<String>
         get() = getMergedConfig { httpHeadersBlocklist }
     override val httpUrlBlocklist: List<String>
@@ -66,10 +68,10 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { maxEventsInBatch }
     override val httpContentTypeAllowlist: List<String>
         get() = getMergedConfig { httpContentTypeAllowlist }
-    override val restrictedHttpHeadersBlocklist: List<String>
-        get() = getMergedConfig { restrictedHttpHeadersBlocklist }
-    override val restrictedHttpUrlBlocklist: List<String>
-        get() = getMergedConfig { restrictedHttpUrlBlocklist }
+    override val defaultHttpHeadersBlocklist: List<String>
+        get() = getMergedConfig { defaultHttpHeadersBlocklist }
+    override val defaultHttpUrlBlocklist: List<String>
+        get() = getMergedConfig { defaultHttpUrlBlocklist }
     override val maxEventsAttachmentSizeInBatchBytes: Int
         get() = getMergedConfig { maxEventsAttachmentSizeInBatchBytes }
 
@@ -77,14 +79,18 @@ internal class ConfigProviderImpl(
         if (contentType.isNullOrEmpty()) {
             return false
         }
-        if ((restrictedHttpUrlBlocklist + httpUrlBlocklist).any { url.contains(it) }) {
+        if ((defaultHttpUrlBlocklist + httpUrlBlocklist).any { url.contains(it) }) {
             return false
         }
         return httpContentTypeAllowlist.any { contentType.startsWith(it) }
     }
 
     override fun shouldTrackHttpUrl(url: String): Boolean {
-        return combinedHttpUrlBlocklist.any { url.contains(it, ignoreCase = true) }
+        return !combinedHttpUrlBlocklist.any { url.contains(it, ignoreCase = true) }
+    }
+
+    override fun shouldTrackHttpHeader(key: String): Boolean {
+        return !combinedHttpHeadersBlocklist.any { key.contains(it, ignoreCase = true) }
     }
 
     private fun <T> getMergedConfig(selector: MeasureConfig.() -> T): T {

@@ -33,14 +33,17 @@ Allows disabling collection of `http` events for certain URLs. This is useful to
 want to collect data for certain endpoints or third party domains. By default, Measure endpoints
 are always disabled.
 
-Example:
+The check is made in order of the list and uses a simple `contains` check to see if the URL
+contains any of the strings in the list.
 
+Internally, this list is combined with [restrictedHttpUrlBlocklist] to form the final blocklist.
+Example:
 ```kotlin
 MeasureConfig(
-    restrictedHttpUrlBlocklist = listOf(
-        "measure.sh", // disables a domain
-        "api.example.com", // disable a subdomain
-        "example.com/order" // disable a particular path
+    httpUrlBlocklist = listOf(
+        "example.com", // disables a domain, it's subdomains and paths
+        "api.example.com", // disable a subdomain and it's paths
+        "example.com/order" // disable a particular path on a domain
     )
 )
 ```

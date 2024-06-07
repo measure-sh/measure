@@ -7,30 +7,24 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert
-import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.times
 import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import sh.measure.android.events.EventProcessor
-import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
-import sh.measure.android.utils.containsIgnoreCase
 import java.net.ConnectException
 
 class OkHttpDataProcessorTest {
     private val logger = NoopLogger()
     private val eventProcessor = mock<EventProcessor>()
     private val timeProvider = FakeTimeProvider()
-    private val configProvider = FakeConfigProvider()
     private val okHttpEventCollector: OkHttpEventCollector = OkHttpEventCollectorImpl(
         logger,
         eventProcessor,
         timeProvider,
-        configProvider,
     )
     private val mockWebServer = MockWebServer()
     private val clientWithInterceptor: OkHttpClient = OkHttpClient.Builder()
@@ -40,14 +34,6 @@ class OkHttpDataProcessorTest {
     private val clientWithoutInterceptor: OkHttpClient = OkHttpClient.Builder()
         .eventListenerFactory { okHttpEventCollector }
         .build()
-
-    @Before
-    fun setUp() {
-        // enable body tracking by default
-        configProvider.shouldTrackHttpBody = true
-        // track all URLs by default
-        configProvider.httpHeadersBlocklist = listOf()
-    }
 
     @After
     fun tearDown() {
@@ -114,8 +100,7 @@ class OkHttpDataProcessorTest {
     }
 
     @Test
-    fun `given request body config is enabled, tracks request body for a successful request`() {
-        configProvider.shouldTrackHttpBody = true
+    fun `tracks request body for a successful request`() {
         val requestBody = "{ \"key\": \"value\" }"
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
@@ -136,7 +121,6 @@ class OkHttpDataProcessorTest {
 
     @Test
     fun `given interceptor is not set, does not track request body for a successful request`() {
-        configProvider.shouldTrackHttpBody = true
         val requestBody = "{ \"key\": \"value\" }"
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
@@ -156,29 +140,7 @@ class OkHttpDataProcessorTest {
     }
 
     @Test
-    fun `given request body config is disabled, does not track request body for a successful request`() {
-        configProvider.shouldTrackHttpBody = false
-        val requestBody = "{ \"key\": \"value\" }"
-        val captor = argumentCaptor<HttpData>()
-        val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
-
-        // When
-        simulateSuccessfulPostRequest(requestBody = requestBody)
-
-        // Then
-        verify(eventProcessor, times(1)).track(
-            captor.capture(),
-            timestampCaptor.capture(),
-            typeCaptor.capture(),
-        )
-        val actualData = captor.firstValue
-        Assert.assertNull(actualData.request_body)
-    }
-
-    @Test
-    fun `given response body config is enabled, tracks response body for a successful request`() {
-        configProvider.shouldTrackHttpBody = true
+    fun `tracks response body for a successful request`() {
         val responseBody = "{ \"key\": \"value\" }"
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
@@ -198,29 +160,7 @@ class OkHttpDataProcessorTest {
     }
 
     @Test
-    fun `given response body config is disabled, does not track response body for a successful request`() {
-        configProvider.shouldTrackHttpBody = false
-        val responseBody = "{ \"key\": \"value\" }"
-        val captor = argumentCaptor<HttpData>()
-        val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
-
-        // When
-        simulateSuccessfulPostRequest(responseBody = responseBody)
-
-        // Then
-        verify(eventProcessor, times(1)).track(
-            captor.capture(),
-            timestampCaptor.capture(),
-            typeCaptor.capture(),
-        )
-        val actualData = captor.firstValue
-        Assert.assertNull(actualData.response_body)
-    }
-
-    @Test
     fun `given interceptor is not set, does not track response body for a successful request`() {
-        configProvider.shouldTrackHttpBody = true
         val responseBody = "{ \"key\": \"value\" }"
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
@@ -244,8 +184,7 @@ class OkHttpDataProcessorTest {
 
     // Not verifying the content of the headers as OkHttp adds a number of headers automatically.
     @Test
-    fun `given header tracking is enabled, tracks request headers for a successful request`() {
-        configProvider.enableHttpHeaders = true
+    fun `tracks request headers for a successful request`() {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
         val typeCaptor = argumentCaptor<String>()
@@ -263,52 +202,9 @@ class OkHttpDataProcessorTest {
         Assert.assertTrue(actualData.request_headers?.isNotEmpty() == true)
     }
 
-    @Test
-    fun `given header tracking is disabled, does not track request headers`() {
-        configProvider.enableHttpHeaders = false
-        val captor = argumentCaptor<HttpData>()
-        val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
-
-        // When
-        simulateSuccessfulPostRequest()
-
-        // Then
-        verify(eventProcessor, times(1)).track(
-            captor.capture(),
-            timestampCaptor.capture(),
-            typeCaptor.capture(),
-        )
-        val actualData = captor.firstValue
-        Assert.assertTrue(actualData.request_headers.isNullOrEmpty())
-    }
-
-    @Test
-    fun `given header is part of blocklist, does not track request headers`() {
-        configProvider.enableHttpHeaders = true
-        configProvider.httpHeadersBlocklist = listOf("Content-Type")
-        val captor = argumentCaptor<HttpData>()
-        val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
-
-        // When
-        simulateSuccessfulPostRequest()
-
-        // Then
-        verify(eventProcessor, times(1)).track(
-            captor.capture(),
-            timestampCaptor.capture(),
-            typeCaptor.capture(),
-        )
-        val actualData = captor.firstValue
-        // the request always contains a Content-Type header
-        Assert.assertTrue(actualData.request_headers?.containsIgnoreCase("Content-Type") == false)
-    }
-
     // Not verifying the content of the headers as OkHttp adds a number of headers automatically.
     @Test
-    fun `given header tracking is enabled, tracks response headers for a successful request`() {
-        configProvider.enableHttpHeaders = true
+    fun `tracks response headers for a successful request`() {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
         val typeCaptor = argumentCaptor<String>()
@@ -324,48 +220,6 @@ class OkHttpDataProcessorTest {
         )
         val actualData = captor.firstValue
         Assert.assertTrue(actualData.response_headers?.isNotEmpty() == true)
-    }
-
-    @Test
-    fun `given a header is part of blocklist, does not that track that response header`() {
-        configProvider.enableHttpHeaders = true
-        configProvider.httpHeadersBlocklist = listOf("Content-Type")
-        val captor = argumentCaptor<HttpData>()
-        val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
-
-        // When
-        simulateSuccessfulPostRequest()
-
-        // Then
-        verify(eventProcessor, times(1)).track(
-            captor.capture(),
-            timestampCaptor.capture(),
-            typeCaptor.capture(),
-        )
-        val actualData = captor.firstValue
-        // the response always contains a Content-Type header
-        Assert.assertFalse(actualData.response_headers?.containsIgnoreCase("Content-Type") == true)
-    }
-
-    @Test
-    fun `given header tracking is disabled, does not track response headers`() {
-        configProvider.enableHttpHeaders = false
-        val captor = argumentCaptor<HttpData>()
-        val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
-
-        // When
-        simulateSuccessfulPostRequest()
-
-        // Then
-        verify(eventProcessor, times(1)).track(
-            captor.capture(),
-            timestampCaptor.capture(),
-            typeCaptor.capture(),
-        )
-        val actualData = captor.firstValue
-        Assert.assertTrue(actualData.response_headers.isNullOrEmpty())
     }
 
     @Test
@@ -499,24 +353,6 @@ class OkHttpDataProcessorTest {
         val actualData = captor.firstValue
         Assert.assertNotNull(actualData.start_time)
         Assert.assertNotNull(actualData.end_time)
-    }
-
-    @Test
-    fun `given http url pattern is in blocklist, does not track http event`() {
-        configProvider.httpUrlBlocklist = listOf("localhost")
-        val captor = argumentCaptor<HttpData>()
-        val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
-
-        // When
-        simulateSuccessfulPostRequest(url = "http://localhost:8080/")
-
-        // Then
-        verify(eventProcessor, never()).track(
-            captor.capture(),
-            timestampCaptor.capture(),
-            typeCaptor.capture(),
-        )
     }
 
     /**

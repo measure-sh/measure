@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 internal data class ActivityLifecycleData(
     val type: String,
     val class_name: String,
-    val intent: String? = null,
+    var intent: String? = null,
     val saved_instance_state: Boolean = false,
 )
 

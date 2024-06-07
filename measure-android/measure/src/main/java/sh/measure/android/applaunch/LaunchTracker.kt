@@ -4,7 +4,6 @@ import android.app.Activity
 import android.os.Bundle
 import android.os.SystemClock
 import curtains.onNextDraw
-import sh.measure.android.config.ConfigProvider
 import sh.measure.android.lifecycle.ActivityLifecycleAdapter
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
@@ -26,7 +25,6 @@ internal class LaunchTracker(
     private val logger: Logger,
     private val processInfo: ProcessInfoProvider,
     private val callbacks: LaunchCallbacks,
-    private val configProvider: ConfigProvider,
 ) : ActivityLifecycleAdapter {
 
     private var coldLaunchComplete = false
@@ -118,7 +116,7 @@ internal class LaunchTracker(
                                 on_next_draw_uptime = onNextDrawUptime,
                                 launched_activity = onCreateRecord.activityName,
                                 has_saved_state = onCreateRecord.hasSavedState,
-                                intent_data = getActivityIntentDataIfAllowed(onCreateRecord),
+                                intent_data = onCreateRecord.intentData,
                             ),
                         )
                     }
@@ -130,7 +128,7 @@ internal class LaunchTracker(
                                 on_next_draw_uptime = onNextDrawUptime,
                                 launched_activity = onCreateRecord.activityName,
                                 has_saved_state = onCreateRecord.hasSavedState,
-                                intent_data = getActivityIntentDataIfAllowed(onCreateRecord),
+                                intent_data = onCreateRecord.intentData,
                             ),
                         )
                     }
@@ -142,7 +140,7 @@ internal class LaunchTracker(
                                 on_next_draw_uptime = onNextDrawUptime,
                                 launched_activity = onCreateRecord.activityName,
                                 has_saved_state = onCreateRecord.hasSavedState,
-                                intent_data = getActivityIntentDataIfAllowed(onCreateRecord),
+                                intent_data = onCreateRecord.intentData,
                             ),
                         )
                     }
@@ -181,14 +179,6 @@ internal class LaunchTracker(
             }
             processInfo.isForegroundProcess() -> "Cold"
             else -> "Warm"
-        }
-    }
-
-    private fun getActivityIntentDataIfAllowed(onCreateRecord: OnCreateRecord): String? {
-        return if (configProvider.trackActivityIntentData) {
-            onCreateRecord.intentData
-        } else {
-            null
         }
     }
 }

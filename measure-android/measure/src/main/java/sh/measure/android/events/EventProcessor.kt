@@ -74,6 +74,7 @@ internal class EventProcessorImpl(
     private val idProvider: IdProvider,
     private val sessionManager: SessionManager,
     private val attributeProcessors: List<AttributeProcessor>,
+    private val eventTransformer: EventTransformer,
     private val eventExporter: EventExporter,
     private val screenshotCollector: ScreenshotCollector,
     private val configProvider: ConfigProvider,
@@ -140,19 +141,24 @@ internal class EventProcessorImpl(
                     addScreenshotAsAttachment(event)
                 }
                 applyAttributes(event)
-                eventStore.store(event)
-                eventExporter.export(event)
+                eventTransformer.transform(event)?.let {
+                    eventStore.store(event)
+                    eventExporter.export(event)
+                    logger.log(LogLevel.Debug, "Event processed: $type")
+                } ?: logger.log(LogLevel.Debug, "Event dropped: $type")
             }
 
             else -> {
                 executorService.submit {
                     val event = createEvent(sessionId)
                     applyAttributes(event)
-                    eventStore.store(event)
+                    eventTransformer.transform(event)?.let {
+                        eventStore.store(event)
+                        logger.log(LogLevel.Debug, "Event processed: $type")
+                    } ?: logger.log(LogLevel.Debug, "Event dropped: $type")
                 }
             }
         }
-        logger.log(LogLevel.Debug, "Event processed: $type")
     }
 
     private fun <T> addScreenshotAsAttachment(event: Event<T>) {

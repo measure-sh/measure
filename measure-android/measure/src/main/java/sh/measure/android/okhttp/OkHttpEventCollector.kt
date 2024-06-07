@@ -7,14 +7,12 @@ import okhttp3.Request
 import okhttp3.Response
 import okio.Buffer
 import okio.ByteString
-import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.TimeProvider
-import sh.measure.android.utils.containsIgnoreCase
 import java.io.IOException
 
 internal abstract class OkHttpEventCollector : EventListener() {
@@ -26,7 +24,6 @@ internal class OkHttpEventCollectorImpl(
     private val logger: Logger,
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
-    private val configProvider: ConfigProvider,
 ) : OkHttpEventCollector() {
     private val httpDataBuilders: MutableMap<String, HttpData.Builder> by lazy(
         LazyThreadSafetyMode.NONE,
@@ -37,9 +34,6 @@ internal class OkHttpEventCollectorImpl(
         val key = getIdentityHash(call)
         val request = call.request()
         val url = request.url.toString()
-        if (configProvider.shouldTrackHttpUrl(url)) {
-            return
-        }
         httpDataBuilders[key] =
             HttpData.Builder().url(url).startTime(timeProvider.uptimeInMillis)
                 .method(request.method.lowercase()).startTime(timeProvider.uptimeInMillis)
@@ -50,11 +44,7 @@ internal class OkHttpEventCollectorImpl(
     override fun requestHeadersEnd(call: Call, request: Request) {
         InternalTrace.beginSection("OkHttpEventProcessor.requestHeadersEnd")
         val key = getIdentityHash(call)
-        if (configProvider.enableHttpHeaders) {
-            httpDataBuilders[key]?.requestHeaders(
-                parseAllowedHeaders(request.headers),
-            )
-        }
+        httpDataBuilders[key]?.requestHeaders(headersToMap(request.headers))
         InternalTrace.endSection()
     }
 
@@ -70,12 +60,8 @@ internal class OkHttpEventCollectorImpl(
     override fun responseHeadersEnd(call: Call, response: Response) {
         InternalTrace.beginSection("OkHttpEventProcessor.responseHeadersEnd")
         val key = getIdentityHash(call)
-        if (configProvider.enableHttpHeaders) {
-            httpDataBuilders[key]?.responseHeaders(
-                parseAllowedHeaders(response.headers),
-            )
-        }
-        httpDataBuilders[key]?.statusCode(response.code)
+        httpDataBuilders[key]?.responseHeaders(headersToMap(response.headers))
+            ?.statusCode(response.code)
         InternalTrace.endSection()
     }
 
@@ -112,14 +98,9 @@ internal class OkHttpEventCollectorImpl(
         InternalTrace.beginSection("OkHttpEventProcessor.request")
         val key = getIdentityHash(call)
         val builder = httpDataBuilders[key]
-        if (configProvider.shouldTrackHttpBody(
-                request.url.toString(), getContentTypeHeader(request)
-            )
-        ) {
-            val requestBody = getRequestBodyByteArray(request)
-            val decodedBody = requestBody?.decodeToString(0, requestBody.size, false)
-            builder?.requestBody(decodedBody)
-        }
+        val requestBody = getRequestBodyByteArray(request)
+        val decodedBody = requestBody?.decodeToString(0, requestBody.size, false)
+        builder?.requestBody(decodedBody)
         InternalTrace.endSection()
     }
 
@@ -127,13 +108,8 @@ internal class OkHttpEventCollectorImpl(
         InternalTrace.beginSection("OkHttpEventProcessor.response")
         val key = getIdentityHash(call)
         val builder = httpDataBuilders[key]
-        if (configProvider.shouldTrackHttpBody(
-                request.url.toString(), getContentTypeHeader(response)
-            )
-        ) {
-            val responseBody = getResponseBodyByteString(response)
-            builder?.responseBody(responseBody?.utf8())
-        }
+        val responseBody = getResponseBodyByteString(response)
+        builder?.responseBody(responseBody?.utf8())
         InternalTrace.endSection()
     }
 
@@ -188,17 +164,8 @@ internal class OkHttpEventCollectorImpl(
         return null
     }
 
-    private fun parseAllowedHeaders(headers: Headers) = headers.toMultimap()
-        .filter { (key, _) -> !configProvider.httpHeadersBlocklist.containsIgnoreCase(key) }
+    private fun headersToMap(headers: Headers) = headers.toMultimap()
         .mapValues { it.value.joinToString() }
-
-    private fun getContentTypeHeader(request: Request): String? {
-        return request.header("Content-Type")
-    }
-
-    private fun getContentTypeHeader(response: Response): String? {
-        return response.header("Content-Type")
-    }
 
     private fun getIdentityHash(call: Call): String {
         return Integer.toHexString(System.identityHashCode(call))

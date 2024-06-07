@@ -16,8 +16,10 @@ import sh.measure.android.config.ConfigLoaderImpl
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.ConfigProviderImpl
 import sh.measure.android.config.MeasureConfig
+import sh.measure.android.events.DefaultEventTransformer
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventProcessorImpl
+import sh.measure.android.events.EventTransformer
 import sh.measure.android.exceptions.UnhandledExceptionCollector
 import sh.measure.android.executors.ExecutorServiceRegistry
 import sh.measure.android.executors.ExecutorServiceRegistryImpl
@@ -154,6 +156,9 @@ internal class MeasureInitializerImpl(
         installationIdAttributeProcessor,
         networkStateAttributeProcessor,
     ),
+    private val eventTransformer: EventTransformer = DefaultEventTransformer(
+        configProvider = configProvider,
+    ),
     private val eventExporter: EventExporter = EventExporterImpl(
         logger = logger,
         timeProvider = timeProvider,
@@ -190,6 +195,7 @@ internal class MeasureInitializerImpl(
         attributeProcessors = attributeProcessors,
         eventExporter = eventExporter,
         screenshotCollector = screenshotCollector,
+        eventTransformer = eventTransformer,
         configProvider = configProvider,
     ),
     private val periodicHeartbeat: Heartbeat = HeartbeatImpl(
@@ -219,7 +225,6 @@ internal class MeasureInitializerImpl(
         logger = logger,
         timeProvider = timeProvider,
         eventProcessor = eventProcessor,
-        configProvider = configProvider,
     ),
     override val unhandledExceptionCollector: UnhandledExceptionCollector = UnhandledExceptionCollector(
         logger = logger,
@@ -271,7 +276,6 @@ internal class MeasureInitializerImpl(
         application = application,
         eventProcessor = eventProcessor,
         timeProvider = timeProvider,
-        configProvider = configProvider,
     ),
     override val gestureCollector: GestureCollector = GestureCollector(
         logger = logger,
@@ -284,7 +288,6 @@ internal class MeasureInitializerImpl(
         eventProcessor = eventProcessor,
         timeProvider = timeProvider,
         processInfo = processInfoProvider,
-        configProvider = configProvider,
     ),
     override val networkChangesCollector: NetworkChangesCollector = NetworkChangesCollector(
         logger = logger,

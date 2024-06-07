@@ -200,7 +200,7 @@ want to collect data for certain endpoints or third party domains.
 See [Http URL blocklist](docs/features/feature_network_monitoring.md#httpheadersblocklist) for
 more.
 
-### `enableHttpHeaders`
+### `trackHttpHeaders`
 
 Allows enabling/disabling capturing of HTTP request and response headers. Disabled by default.
 
@@ -214,7 +214,7 @@ collected.
 See [HTTP headers blocklist](docs/features/feature_network_monitoring.md#httpHeadersBlocklist) for
 more.
 
-### `enableHttpBody`
+### `trackHttpBody`
 
 Allows enabling/disabling capturing of HTTP request and response body. Disabled by default.
 

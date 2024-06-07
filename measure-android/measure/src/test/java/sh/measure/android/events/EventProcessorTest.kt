@@ -2,11 +2,14 @@ package sh.measure.android.events
 
 import androidx.concurrent.futures.ResolvableFuture
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.mockito.Mockito.any
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
+import org.mockito.kotlin.any
 import org.mockito.kotlin.verify
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
@@ -19,6 +22,7 @@ import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.lifecycle.ActivityLifecycleData
 import sh.measure.android.screenshot.Screenshot
 import sh.measure.android.screenshot.ScreenshotCollector
 import sh.measure.android.utils.iso8601Timestamp
@@ -31,6 +35,9 @@ internal class EventProcessorTest {
     private val eventExporter = mock<EventExporter>()
     private val screenshotCollector = mock<ScreenshotCollector>()
     private val config = FakeConfigProvider()
+    private val eventTransformer = object : EventTransformer {
+        override fun <T> transform(event: Event<T>): Event<T> = event
+    }
 
     private val eventProcessor = EventProcessorImpl(
         logger = NoopLogger(),
@@ -42,6 +49,7 @@ internal class EventProcessorTest {
         eventExporter = eventExporter,
         screenshotCollector = screenshotCollector,
         configProvider = config,
+        eventTransformer = eventTransformer
     )
 
     @Before
@@ -151,6 +159,7 @@ internal class EventProcessorTest {
             eventExporter = eventExporter,
             screenshotCollector = screenshotCollector,
             configProvider = config,
+            eventTransformer = eventTransformer
         )
 
         // When
@@ -296,5 +305,84 @@ internal class EventProcessorTest {
         assertEquals(1, eventStore.trackedEvents.size)
         val attachments = eventStore.trackedEvents.first().attachments
         assertEquals(0, attachments.size)
+    }
+
+    @Test
+    fun `given transformer drops event, then does not store event`() {
+        // Given
+        val exceptionData = FakeEventFactory.getExceptionData()
+        val timestamp = 9856564654L
+        val type = EventType.EXCEPTION
+
+        val eventTransformer = object : EventTransformer {
+            override fun <T> transform(event: Event<T>): Event<T>? = null
+        }
+        val eventProcessor = EventProcessorImpl(
+            logger = NoopLogger(),
+            executorService = executorService,
+            eventStore = eventStore,
+            idProvider = idProvider,
+            sessionManager = sessionManager,
+            attributeProcessors = emptyList(),
+            eventExporter = eventExporter,
+            screenshotCollector = screenshotCollector,
+            configProvider = config,
+            eventTransformer = eventTransformer
+        )
+
+        // When
+        eventProcessor.track(
+            data = exceptionData,
+            timestamp = timestamp,
+            type = type,
+        )
+        eventProcessor.track(
+            data = "data",
+            timestamp = timestamp,
+            type = EventType.STRING,
+        )
+
+        // Then
+        assertEquals(0, eventStore.trackedEvents.size)
+    }
+
+    @Test
+    fun `given transformer modifies event, then stores modified event`() {
+        // Given
+        val activityLifecycleData = FakeEventFactory.getActivityLifecycleData(intent = "intent-data")
+        val timestamp = 9856564654L
+        val type = EventType.LIFECYCLE_ACTIVITY
+
+        val eventTransformer = object : EventTransformer {
+            override fun <T> transform(event: Event<T>): Event<T> {
+                // drop the intent data from the event
+                (event.data as ActivityLifecycleData).intent = null
+                return event
+            }
+        }
+        val eventProcessor = EventProcessorImpl(
+            logger = NoopLogger(),
+            executorService = executorService,
+            eventStore = eventStore,
+            idProvider = idProvider,
+            sessionManager = sessionManager,
+            attributeProcessors = emptyList(),
+            eventExporter = eventExporter,
+            screenshotCollector = screenshotCollector,
+            configProvider = config,
+            eventTransformer = eventTransformer
+        )
+
+        // When
+        eventProcessor.track(
+            data = activityLifecycleData,
+            timestamp = timestamp,
+            type = type,
+        )
+
+        // Then
+        assertEquals(1, eventStore.trackedEvents.size)
+        // verify intent data is dropped from the event
+        assertNull((eventStore.trackedEvents.first().data as ActivityLifecycleData).intent)
     }
 }

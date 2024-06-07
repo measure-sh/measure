@@ -23,7 +23,6 @@ internal class LifecycleCollector(
     private val application: Application,
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
-    private val configProvider: ConfigProvider,
 ) : ActivityLifecycleAdapter {
     private val fragmentLifecycleCollector by lazy {
         FragmentLifecycleCollector(eventProcessor, timeProvider)
@@ -48,11 +47,7 @@ internal class LifecycleCollector(
                 type = ActivityLifecycleType.CREATED,
                 class_name = activity.javaClass.name,
                 saved_instance_state = savedInstanceState != null,
-                intent = if (configProvider.trackActivityIntentData) {
-                    activity.intent.dataString
-                } else {
-                    null
-                },
+                intent = activity.intent.dataString,
             ),
         )
     }

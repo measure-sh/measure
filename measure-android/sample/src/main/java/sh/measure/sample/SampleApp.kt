@@ -16,8 +16,8 @@ class SampleApp : Application() {
                 } else {
                     ScreenshotMaskLevel.AllTextAndMedia
                 },
-                enableHttpHeaders = true,
-                enableHttpBody = true,
+                trackHttpHeaders = true,
+                trackHttpBody = true,
                 trackActivityIntentData = true,
             )
         )
