@@ -27,8 +27,8 @@ internal class NetworkStateProviderImpl(
 
     fun init() {
         initialNetworkStateProvider.getNetworkType()?.let {
-            val networkGen = initialNetworkStateProvider.getNetworkGeneration(it)
-            val networkProvider = initialNetworkStateProvider.getNetworkProvider(it)
+            val networkGen = initialNetworkStateProvider.getNetworkGeneration(it) ?: NetworkGeneration.UNKNOWN
+            val networkProvider = initialNetworkStateProvider.getNetworkProvider(it) ?: "unknown"
             networkState = NetworkState(it, networkGen, networkProvider)
         }
     }

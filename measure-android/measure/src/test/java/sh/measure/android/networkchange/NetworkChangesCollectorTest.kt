@@ -103,7 +103,7 @@ class NetworkChangesCollectorTest {
         shadowOf(context as Application).grantPermissions(Manifest.permission.READ_PHONE_STATE)
         shadowOf(telephonyManager).setNetworkOperatorName("Test Provider")
         setNetworkTypeInTelephonyManager(networkType = TelephonyManager.NETWORK_TYPE_NR)
-        var previousNetworkType: String? = null
+        var previousNetworkType: String = NetworkType.UNKNOWN
 
         NetworkChangesCollector(
             context = context,
@@ -127,7 +127,7 @@ class NetworkChangesCollectorTest {
             data = NetworkChangeData(
                 previous_network_type = previousNetworkType,
                 network_type = NetworkType.CELLULAR,
-                previous_network_generation = null,
+                previous_network_generation = NetworkGeneration.UNKNOWN,
                 network_generation = NetworkGeneration.FIFTH_GEN,
                 network_provider = "Test Provider",
             ),
@@ -156,10 +156,10 @@ class NetworkChangesCollectorTest {
             type = EventType.NETWORK_CHANGE,
             timestamp = timeProvider.currentTimeSinceEpochInMillis,
             data = NetworkChangeData(
-                previous_network_type = null,
+                previous_network_type = NetworkType.UNKNOWN,
                 network_type = NetworkType.CELLULAR,
-                previous_network_generation = null,
-                network_generation = null,
+                previous_network_generation = NetworkGeneration.UNKNOWN,
+                network_generation = NetworkGeneration.UNKNOWN,
                 network_provider = "Test Provider",
             ),
         )
@@ -193,7 +193,7 @@ class NetworkChangesCollectorTest {
             data = NetworkChangeData(
                 previous_network_type = NetworkType.WIFI,
                 network_type = NetworkType.CELLULAR,
-                previous_network_generation = null,
+                previous_network_generation = NetworkGeneration.UNKNOWN,
                 network_generation = NetworkGeneration.FIFTH_GEN,
                 network_provider = "Test Provider",
             ),
@@ -244,8 +244,8 @@ class NetworkChangesCollectorTest {
         verify(networkStateProvider).setNetworkState(
             NetworkState(
                 networkType = NetworkType.WIFI,
-                networkGeneration = null,
-                networkProvider = null,
+                networkGeneration = NetworkGeneration.UNKNOWN,
+                networkProvider = NetworkProvider.UNKNOWN,
             ),
         )
 
@@ -279,11 +279,11 @@ class NetworkChangesCollectorTest {
             type = EventType.NETWORK_CHANGE,
             timestamp = timeProvider.currentTimeSinceEpochInMillis,
             data = NetworkChangeData(
-                previous_network_type = null,
+                previous_network_type = NetworkGeneration.UNKNOWN,
                 network_type = NetworkType.WIFI,
-                previous_network_generation = null,
-                network_generation = null,
-                network_provider = null,
+                previous_network_generation = NetworkGeneration.UNKNOWN,
+                network_generation = NetworkGeneration.UNKNOWN,
+                network_provider = NetworkProvider.UNKNOWN,
             ),
         )
     }
@@ -428,11 +428,11 @@ class NetworkChangesCollectorTest {
             type = EventType.NETWORK_CHANGE,
             timestamp = timeProvider.currentTimeSinceEpochInMillis,
             data = NetworkChangeData(
-                previous_network_type = null,
+                previous_network_type = NetworkType.UNKNOWN,
                 network_type = NetworkType.VPN,
-                previous_network_generation = null,
-                network_generation = null,
-                network_provider = null,
+                previous_network_generation = NetworkGeneration.UNKNOWN,
+                network_generation = NetworkGeneration.UNKNOWN,
+                network_provider = NetworkProvider.UNKNOWN,
             ),
         )
     }
@@ -460,11 +460,11 @@ class NetworkChangesCollectorTest {
             type = EventType.NETWORK_CHANGE,
             timestamp = timeProvider.currentTimeSinceEpochInMillis,
             data = NetworkChangeData(
-                previous_network_type = null,
+                previous_network_type = NetworkType.UNKNOWN,
                 network_type = NetworkType.NO_NETWORK,
-                previous_network_generation = null,
-                network_generation = null,
-                network_provider = null,
+                previous_network_generation = NetworkGeneration.UNKNOWN,
+                network_generation = NetworkGeneration.UNKNOWN,
+                network_provider = NetworkProvider.UNKNOWN,
             ),
         )
     }
@@ -491,8 +491,8 @@ class NetworkChangesCollectorTest {
         verify(networkStateCache).setNetworkState(
             NetworkState(
                 networkType = NetworkType.NO_NETWORK,
-                networkGeneration = null,
-                networkProvider = null,
+                networkGeneration = NetworkGeneration.UNKNOWN,
+                networkProvider = NetworkProvider.UNKNOWN,
             ),
         )
     }
@@ -523,9 +523,9 @@ class NetworkChangesCollectorTest {
             type = EventType.NETWORK_CHANGE,
             timestamp = timeProvider.currentTimeSinceEpochInMillis,
             data = NetworkChangeData(
-                previous_network_type = null,
+                previous_network_type = NetworkType.UNKNOWN,
                 network_type = NetworkType.CELLULAR,
-                previous_network_generation = null,
+                previous_network_generation = NetworkGeneration.UNKNOWN,
                 network_generation = NetworkGeneration.FIFTH_GEN,
                 network_provider = "Test Provider",
             ),

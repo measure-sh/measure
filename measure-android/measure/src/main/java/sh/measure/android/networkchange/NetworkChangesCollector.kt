@@ -52,8 +52,8 @@ internal class NetworkChangesCollector(
     private val timeProvider: TimeProvider,
     private val networkStateProvider: NetworkStateProvider,
 ) {
-    private var currentNetworkType: String? = null
-    private var currentNetworkGeneration: String? = null
+    private var currentNetworkType: String = NetworkType.UNKNOWN
+    private var currentNetworkGeneration: String = NetworkGeneration.UNKNOWN
     private val telephonyManager: TelephonyManager? by lazy(mode = LazyThreadSafetyMode.NONE) {
         systemServiceProvider.telephonyManager
     }
@@ -108,8 +108,9 @@ internal class NetworkChangesCollector(
             val newNetworkType = getNetworkType(networkCapabilities)
             val previousNetworkType = currentNetworkType
             val previousNetworkGeneration = currentNetworkGeneration
-            val newNetworkGeneration = getNetworkGenerationIfAvailable(newNetworkType)
-            val networkProvider = getNetworkOperatorName(newNetworkType)
+            val newNetworkGeneration =
+                getNetworkGenerationIfAvailable(newNetworkType) ?: NetworkGeneration.UNKNOWN
+            val networkProvider = getNetworkOperatorName(newNetworkType) ?: NetworkProvider.UNKNOWN
             networkStateProvider.setNetworkState(
                 NetworkState(newNetworkType, newNetworkGeneration, networkProvider),
             )
@@ -119,7 +120,7 @@ internal class NetworkChangesCollector(
             // This also means, the first change event will contain non-null previous states
             // for Android O+.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                if (currentNetworkType == null) {
+                if (currentNetworkType == NetworkType.UNKNOWN) {
                     currentNetworkType = newNetworkType
                     currentNetworkGeneration = newNetworkGeneration
                     return
@@ -157,7 +158,7 @@ internal class NetworkChangesCollector(
             val previousNetworkGeneration = currentNetworkGeneration
             val newNetworkType = NetworkType.NO_NETWORK
             networkStateProvider.setNetworkState(
-                NetworkState(newNetworkType, null, null),
+                NetworkState(newNetworkType, NetworkGeneration.UNKNOWN, NetworkProvider.UNKNOWN),
             )
             if (previousNetworkType == newNetworkType) {
                 return
@@ -169,12 +170,12 @@ internal class NetworkChangesCollector(
                     previous_network_type = previousNetworkType,
                     network_type = newNetworkType,
                     previous_network_generation = previousNetworkGeneration,
-                    network_generation = null,
-                    network_provider = null,
+                    network_generation = NetworkGeneration.UNKNOWN,
+                    network_provider = NetworkGeneration.UNKNOWN,
                 ),
             )
             currentNetworkType = newNetworkType
-            currentNetworkGeneration = null
+            currentNetworkGeneration = NetworkGeneration.UNKNOWN
         }
     }
 
