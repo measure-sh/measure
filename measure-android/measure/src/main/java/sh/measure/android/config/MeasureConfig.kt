@@ -11,7 +11,8 @@ internal interface IMeasureConfig {
     val trackScreenshotOnCrash: Boolean
 
     /**
-     * The level of masking to apply to the screenshot. Defaults to [ScreenshotMaskLevel.AllTextAndMedia].
+     * Allows changing the masking level of screenshots to prevent sensitive information from leaking.
+     * Defaults to [ScreenshotMaskLevel.AllTextAndMedia].
      */
     val screenshotMaskLevel: ScreenshotMaskLevel
 
@@ -78,7 +79,7 @@ internal interface IMeasureConfig {
     /**
      * The maximum size of attachments allowed in a single batch. Defaults to 3MB
      */
-    val maxEventsAttachmentSizeInBatchBytes: Int
+    val maxAttachmentSizeInEventsBatch: Int
 
     /**
      * The interval at which to create a batch for export.
@@ -118,7 +119,7 @@ class MeasureConfig(
 ) : IMeasureConfig {
     override val screenshotMaskHexColor: String = "#222222"
     override val screenshotCompressionQuality: Int = 25
-    override val maxEventsAttachmentSizeInBatchBytes: Int = 3
+    override val maxAttachmentSizeInEventsBatch: Int = 3
     override val eventsBatchingIntervalMs: Long = 30_000 // 30 seconds
     override val maxEventsInBatch: Int = 500
     override val httpContentTypeAllowlist: List<String> = listOf("application/json")

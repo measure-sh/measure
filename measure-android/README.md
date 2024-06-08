@@ -175,15 +175,15 @@ The following configs are available to control this feature:
 
 ### `trackScreenshotOnCrash`
 
-Allows enabling/disabling capturing screenshot for crash due to an exception or ANR. It defaults
-to `false`.
+Whether to capture a screenshot of the app when it crashes due to an unhandled exception or ANR.
+Defaults to `true`.
 
 ### `screenshotMaskLevel`
 
-Allows changing the masking level of screenshots to prevent sensitive
+[Allows changing the masking level of screenshots to prevent sensitive
 information from leaking.
 See [Configuring masking level](docs/features/feature_screenshot.md#configuring-masking-level)
-for all the options available.
+for all the options available.]()
 
 It defaults
 to [ScreenshotMaskLevel.AllTextAndMedia](docs/features/feature_screenshot.md#maskalltextandmedia)
@@ -230,29 +230,13 @@ The following configurations are available:
 
 ### `trackLifecycleActivityIntentData`
 
-Allows enabling/disabling of collection of intent data along with `lifecycle_activity.created`
-event, which
-is collected with the Activity lifecycle event `onCreate` is triggered. Disabled by default.
+Allows enabling/disabling of collection of intent data for the following events:
+* `lifecycle_activity.created` event, which is collected with the Activity lifecycle event `onCreate` is triggered.
+* `cold_launch` event, which is collected when the app is launched from a cold start.
+* `warm_launch` event, which is collected when the app is launched from a warm start.
+* `hot_launch` event, which is collected when the app is launched from a hot start.
 
-### `trackColdLaunchIntentData`
-
-Allows enabling/disabling of collection of intent data along with `cold_launch` event, which
-collects
-the intent data for the first activity launched. This is generally useful for debugging deeplinks
-which are typically added to the intent bundle. Disabled by default.
-
-### `trackWarmLaunchIntentData`
-
-Allows enabling/disabling of collection of intent data along with `warm_launch` event, which
-collects
-the intent data for the activity launched. This is generally useful for debugging deeplinks
-which are typically added to the intent bundle. Disabled by default.
-
-### `trackHotLaunchIntentData`
-
-Allows enabling/disabling of collection of intent data along with `hot_launch` event, which collects
-the intent data for the activity launched. This is generally useful for debugging deeplinks
-which are typically added to the intent bundle. Disabled by default
+Disabled by default.
 
 # Internals
 

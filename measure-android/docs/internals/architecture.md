@@ -5,6 +5,7 @@
     * [Periodic batching and export](#periodic-batching-and-export)
     * [Exceptions and ANRs export](#exceptions-and-anrs-export)
 * [Thread management](#thread-management)
+* [Configuration](#configuration)
 
 # Storage
 
@@ -98,5 +99,20 @@ thread management strategy:
 3. Use a single thread to export events to the server. This ensures that there are no
    concurrent network requests as expected by the export algorithm mentioned
    in [Periodic batching and export](#periodic-batching-and-export) section.
-4. For collectors, use the `background executor` for all tasks which are not time-consuming. For tasks
+4. For collectors, use the `background executor` for all tasks which are not time-consuming. For
+   tasks
    which are time-consuming or block on IO, use a different thread.
+
+# Configuration
+
+The SDK is configured using the `MeasureConfig` object. The client can pass in a custom config at
+the time of initialization. These configurations can help in enabling/disabling features, preventing
+sensitive information from being sent or modifying the behavior of the SDK.
+
+## Remote config
+Although not implemented yet, the config is expected to be modified from the dashboard, and the
+changes should be reflected in the SDK. Config received from the server is also expected to be
+persisted and used for subsequent initializations. Once implemented, the config passed in during 
+initialization will be overridden by the config received from the server. During initialization, the
+the persisted config will be used over the config passed in during initialization.
+
