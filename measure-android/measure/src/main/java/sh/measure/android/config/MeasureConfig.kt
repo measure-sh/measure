@@ -96,7 +96,6 @@ internal interface IMeasureConfig {
      */
     val httpContentTypeAllowlist: List<String>
 
-
     /**
      * Default list of HTTP headers to not capture for network request and response.
      */

@@ -76,7 +76,7 @@ class DefaultEventTransformerTest {
 
         val httpEvent = FakeEventFactory.getHttpData(
             requestBody = "request-body",
-            responseBody = "response-body"
+            responseBody = "response-body",
         ).toEvent(type = EventType.HTTP)
 
         assertNull(transformer.transform(httpEvent)!!.data.request_body)
@@ -90,7 +90,7 @@ class DefaultEventTransformerTest {
 
         val httpEvent = FakeEventFactory.getHttpData(
             requestBody = "request-body",
-            responseBody = "response-body"
+            responseBody = "response-body",
         ).toEvent(type = EventType.HTTP)
 
         assertNotNull(transformer.transform(httpEvent)!!.data.request_body)
@@ -104,7 +104,7 @@ class DefaultEventTransformerTest {
 
         val httpEvent = FakeEventFactory.getHttpData(
             requestHeaders = mapOf("key1" to "value1"),
-            responseHeaders = mapOf("key2" to "value2")
+            responseHeaders = mapOf("key2" to "value2"),
         ).toEvent(type = EventType.HTTP)
 
         assertNull(transformer.transform(httpEvent)!!.data.request_headers)
@@ -118,7 +118,7 @@ class DefaultEventTransformerTest {
 
         val httpEvent = FakeEventFactory.getHttpData(
             requestHeaders = mapOf("key1" to "value1"),
-            responseHeaders = mapOf("key2" to "value2")
+            responseHeaders = mapOf("key2" to "value2"),
         ).toEvent(type = EventType.HTTP)
 
         assertNotNull(transformer.transform(httpEvent)!!.data.request_headers)
@@ -133,7 +133,7 @@ class DefaultEventTransformerTest {
 
         val httpEvent = FakeEventFactory.getHttpData(
             requestHeaders = mapOf("key1" to "value1", "key2" to "value2"),
-            responseHeaders = mapOf("key1" to "value1", "key2" to "value2")
+            responseHeaders = mapOf("key1" to "value1", "key2" to "value2"),
         ).toEvent(type = EventType.HTTP)
 
         assertNull(transformer.transform(httpEvent)!!.data.request_headers?.get("key1"))
@@ -148,7 +148,7 @@ class DefaultEventTransformerTest {
 
         val httpEvent = FakeEventFactory.getHttpData(
             requestHeaders = mapOf("key1" to "value1", "key2" to "value2"),
-            responseHeaders = mapOf("key1" to "value1", "key2" to "value2")
+            responseHeaders = mapOf("key1" to "value1", "key2" to "value2"),
         ).toEvent(type = EventType.HTTP)
 
         assertNotNull(transformer.transform(httpEvent)!!.data.request_headers?.get("key2"))
