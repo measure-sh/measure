@@ -10,8 +10,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Ignore
 import org.junit.Test
 import sh.measure.android.TestActivity
-import sh.measure.android.config.ConfigProviderImpl
-import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeEventProcessor
 import sh.measure.android.fakes.NoopConfigLoader

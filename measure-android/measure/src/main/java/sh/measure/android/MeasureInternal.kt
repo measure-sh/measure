@@ -82,7 +82,6 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     }
 
     override fun onAppBackground() {
-        // TODO: verify if needed - anrCollectorV2.unregister()
         cpuUsageCollector.pause()
         memoryUsageCollector.pause()
         periodicEventExporter.onAppBackground()

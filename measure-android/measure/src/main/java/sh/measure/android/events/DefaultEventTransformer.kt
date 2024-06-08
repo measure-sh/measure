@@ -6,7 +6,6 @@ import sh.measure.android.applaunch.WarmLaunchData
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.lifecycle.ActivityLifecycleData
 import sh.measure.android.okhttp.HttpData
-import sh.measure.android.utils.containsIgnoreCase
 
 /**
  * Allows modifying events before they are stored on disk. Applies transformations based on the

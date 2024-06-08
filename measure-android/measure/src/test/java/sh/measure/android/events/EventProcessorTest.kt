@@ -6,10 +6,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import org.mockito.Mockito.any
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
-import org.mockito.kotlin.any
 import org.mockito.kotlin.verify
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
@@ -49,7 +47,7 @@ internal class EventProcessorTest {
         eventExporter = eventExporter,
         screenshotCollector = screenshotCollector,
         configProvider = config,
-        eventTransformer = eventTransformer
+        eventTransformer = eventTransformer,
     )
 
     @Before
@@ -159,7 +157,7 @@ internal class EventProcessorTest {
             eventExporter = eventExporter,
             screenshotCollector = screenshotCollector,
             configProvider = config,
-            eventTransformer = eventTransformer
+            eventTransformer = eventTransformer,
         )
 
         // When
@@ -327,7 +325,7 @@ internal class EventProcessorTest {
             eventExporter = eventExporter,
             screenshotCollector = screenshotCollector,
             configProvider = config,
-            eventTransformer = eventTransformer
+            eventTransformer = eventTransformer,
         )
 
         // When
@@ -370,7 +368,7 @@ internal class EventProcessorTest {
             eventExporter = eventExporter,
             screenshotCollector = screenshotCollector,
             configProvider = config,
-            eventTransformer = eventTransformer
+            eventTransformer = eventTransformer,
         )
 
         // When

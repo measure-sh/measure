@@ -28,7 +28,6 @@ internal class ConfigProviderImpl(
     private val combinedHttpUrlBlocklist = defaultHttpUrlBlocklist + httpUrlBlocklist
     private val combinedHttpHeadersBlocklist = defaultHttpHeadersBlocklist + httpHeadersBlocklist
 
-
     init {
         // Synchronously load the cached config. This allows the SDK to start with a previously
         // fetched config. The trade-off is the SDK will make a synchronous disk read.
@@ -97,7 +96,7 @@ internal class ConfigProviderImpl(
         if (networkConfig != null) {
             networkConfigLock.read {
                 return networkConfig?.selector() ?: cachedConfig?.selector()
-                ?: defaultConfig.selector()
+                    ?: defaultConfig.selector()
             }
         }
         return cachedConfig?.selector() ?: defaultConfig.selector()
