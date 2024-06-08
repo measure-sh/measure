@@ -15,3 +15,7 @@ internal object NetworkGeneration {
     const val FIFTH_GEN = "5g"
     const val UNKNOWN = "unknown"
 }
+
+internal object NetworkProvider {
+    const val UNKNOWN = "unknown"
+}

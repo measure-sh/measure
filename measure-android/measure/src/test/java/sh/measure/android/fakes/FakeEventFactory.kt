@@ -20,6 +20,7 @@ import sh.measure.android.lifecycle.FragmentLifecycleData
 import sh.measure.android.lifecycle.FragmentLifecycleType
 import sh.measure.android.navigation.NavigationData
 import sh.measure.android.networkchange.NetworkChangeData
+import sh.measure.android.networkchange.NetworkGeneration
 import sh.measure.android.okhttp.HttpData
 import sh.measure.android.performance.CpuUsageData
 import sh.measure.android.performance.LowMemoryData
@@ -180,11 +181,11 @@ internal object FakeEventFactory {
     }
 
     fun getNetworkChangeData(
-        previousNetworkType: String? = "cellular",
+        previousNetworkType: String = "cellular",
         networkType: String = "wifi",
-        previousNetworkGeneration: String? = "2g",
-        networkGeneration: String? = null,
-        networkProvider: String? = "t-mobile",
+        previousNetworkGeneration: String = "2g",
+        networkGeneration: String = NetworkGeneration.UNKNOWN,
+        networkProvider: String = "t-mobile",
     ): NetworkChangeData {
         return NetworkChangeData(
             previousNetworkType,
