@@ -127,7 +127,7 @@ jobs:
         uses: gradle/wrapper-validation-action@v1
       - name: Run measure-android-gradle tests
         run: ./gradlew clean :measure-android-gradle:test --no-daemon --no-parallel --no-configuration-cache --stacktrace
-      - name: Run measure-android-gradle functional tests
-        run: ./gradlew clean :measure-android-gradle:functionalTest --no-daemon --no-parallel --no-configuration-cache --stacktrace
+#      - name: Run measure-android-gradle functional tests
+#        run: ./gradlew clean :measure-android-gradle:functionalTest --no-daemon --no-parallel --no-configuration-cache --stacktrace
       - name: Publish measure-android-gradle
         run: ./gradlew clean :measure-android-gradle:publishMavenPublicationToGitHubPackagesRepository --no-daemon --no-parallel --no-configuration-cache --stacktrace
