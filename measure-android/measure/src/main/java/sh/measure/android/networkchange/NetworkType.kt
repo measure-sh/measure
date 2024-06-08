@@ -13,4 +13,9 @@ internal object NetworkGeneration {
     const val THIRD_GEN = "3g"
     const val FOURTH_GEN = "4g"
     const val FIFTH_GEN = "5g"
+    const val UNKNOWN = "unknown"
+}
+
+internal object NetworkProvider {
+    const val UNKNOWN = "unknown"
 }
