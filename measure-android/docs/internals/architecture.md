@@ -109,10 +109,24 @@ The SDK is configured using the `MeasureConfig` object. The client can pass in a
 the time of initialization. These configurations can help in enabling/disabling features, preventing
 sensitive information from being sent or modifying the behavior of the SDK.
 
+Any configuration change made to `MeasureConfig` is a public API change and must also result in
+updating the documentation.
+
+## Applying configs
+
+Configs which modify events, like removing fields or decision to drop events are all centralized in
+the `EventTransformer` which makes it easy to keep these modifications in one place instead of
+scattering them throughout the codebase.
+
+However, some configs modify the behavior of collection itself, like `screenshotMaskColor`which
+changes
+the color of the mask applied to the screenshot. These configs are applied at the time of collection
+itself.
+
 ## Remote config
+
 Although not implemented yet, the config is expected to be modified from the dashboard, and the
 changes should be reflected in the SDK. Config received from the server is also expected to be
-persisted and used for subsequent initializations. Once implemented, the config passed in during 
+persisted and used for subsequent initializations. Once implemented, the config passed in during
 initialization will be overridden by the config received from the server. During initialization, the
 the persisted config will be used over the config passed in during initialization.
-
