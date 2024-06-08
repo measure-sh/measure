@@ -18,26 +18,23 @@ public final class sh/measure/android/Measure {
 public final class sh/measure/android/config/MeasureConfig : sh/measure/android/config/IMeasureConfig {
 	public static final field $stable I
 	public fun <init> ()V
-	public fun <init> (ZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;ZZZZ)V
-	public synthetic fun <init> (ZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;ZZZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public fun getEnableHttpBody ()Z
-	public fun getEnableHttpHeaders ()Z
+	public fun <init> (ZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Z)V
+	public synthetic fun <init> (ZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getDefaultHttpHeadersBlocklist ()Ljava/util/List;
+	public fun getDefaultHttpUrlBlocklist ()Ljava/util/List;
 	public fun getEventsBatchingIntervalMs ()J
 	public fun getHttpContentTypeAllowlist ()Ljava/util/List;
 	public fun getHttpHeadersBlocklist ()Ljava/util/List;
 	public fun getHttpUrlBlocklist ()Ljava/util/List;
 	public fun getMaxEventsAttachmentSizeInBatchBytes ()I
 	public fun getMaxEventsInBatch ()I
-	public fun getRestrictedHttpHeadersBlocklist ()Ljava/util/List;
-	public fun getRestrictedHttpUrlBlocklist ()Ljava/util/List;
 	public fun getScreenshotCompressionQuality ()I
 	public fun getScreenshotMaskHexColor ()Ljava/lang/String;
 	public fun getScreenshotMaskLevel ()Lsh/measure/android/config/ScreenshotMaskLevel;
-	public fun getTrackColdLaunchIntentData ()Z
-	public fun getTrackHotLaunchIntentData ()Z
-	public fun getTrackLifecycleActivityIntentData ()Z
+	public fun getTrackActivityIntentData ()Z
+	public fun getTrackHttpBody ()Z
+	public fun getTrackHttpHeaders ()Z
 	public fun getTrackScreenshotOnCrash ()Z
-	public fun getTrackWarmLaunchIntentData ()Z
 }
 
 public final class sh/measure/android/config/ScreenshotMaskLevel : java/lang/Enum {
