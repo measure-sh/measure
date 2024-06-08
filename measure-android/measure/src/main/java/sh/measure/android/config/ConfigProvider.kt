@@ -71,8 +71,8 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { defaultHttpHeadersBlocklist }
     override val defaultHttpUrlBlocklist: List<String>
         get() = getMergedConfig { defaultHttpUrlBlocklist }
-    override val maxEventsAttachmentSizeInBatchBytes: Int
-        get() = getMergedConfig { maxEventsAttachmentSizeInBatchBytes }
+    override val maxAttachmentSizeInEventsBatch: Int
+        get() = getMergedConfig { maxAttachmentSizeInEventsBatch }
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         if (contentType.isNullOrEmpty()) {

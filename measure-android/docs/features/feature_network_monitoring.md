@@ -21,6 +21,11 @@ This is done using ASM, a bytecode manipulation library, which transforms code a
 hooks. Read more about automatic
 instrumentation [here](../../measure-android-gradle/README.md#automatic-instrumentation).
 
+### Request and Response Body
+Measure supports collecting request and response body, this is currently restricted to APIs which have a
+header `Content-Type: application/json`. This feature is disabled by default and can be enabled
+using [enableHttpBody](#enableHttpBody) config.
+
 ### Data collected
 
 Checkout the data collected by Measure for each HTTP request in the [HTTP Event](../../../docs/api/sdk/README.md#http) section.
@@ -64,7 +69,8 @@ Example:
 
 ```kotlin
 MeasureConfig(
-    enableHttpHeaders = listOf("X-Request-Id")
+    enableHttpHeaders = true,
+    httpHeadersBlocklist = listOf("X-Api-Key")
 )
 ```
 

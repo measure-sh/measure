@@ -111,7 +111,7 @@ class PeriodicEventExporterTest {
     fun `given batch is not available, and events are available, then creates new batch and exports it`() {
         configProvider.eventsBatchingIntervalMs = 0
         exporter.lastBatchCreationUptimeMs = 0
-        configProvider.maxEventsAttachmentSizeInBatchBytes = 1000
+        configProvider.maxAttachmentSizeInEventsBatch = 1000
         val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-id")
         val eventPacket = FakeEventFactory.getEventPacket(eventEntity)
         val attachmentPackets = FakeEventFactory.getAttachmentPackets(eventEntity)
