@@ -87,7 +87,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v3
@@ -102,9 +102,9 @@ jobs:
         # Certain gradle plugin tests depend on the measure-android artifact being published. We run all the tests for
         # measure-android-gradle here to ensure everything works.
       - name: Run measure-android-gradle tests
-        run: ./gradlew clean :measure-gradle-plugin:test --no-daemon --no-parallel --no-configuration-cache --stacktrace
+        run: ./gradlew clean :measure-android-gradle:test --no-daemon --no-parallel --no-configuration-cache --stacktrace
       - name: Run measure-android-gradle functional tests
-        run: ./gradlew clean :measure-gradle-plugin:functionalTest --no-daemon --no-parallel --no-configuration-cache --stacktrace
+        run: ./gradlew clean :measure-android-gradle:functionalTest --no-daemon --no-parallel --no-configuration-cache --stacktrace
 
   publish-android-gradle:
     runs-on: ubuntu-latest
