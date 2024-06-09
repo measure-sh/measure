@@ -70,6 +70,7 @@ func main() {
 		apps.GET(":id/crashGroups/:crashGroupId/plots/instances", measure.GetCrashDetailPlotInstances)
 		apps.GET(":id/crashGroups/:crashGroupId/plots/journey", measure.GetCrashDetailPlotJourney)
 		apps.GET(":id/anrGroups", measure.GetANROverview)
+		apps.GET(":id/anrGroups/plots/instances", measure.GetANROverviewPlotInstances)
 		apps.GET(":id/anrGroups/:anrGroupId/anrs", measure.GetANRDetailANRs)
 		apps.GET(":id/anrGroups/:anrGroupId/plots/instances", measure.GetANRDetailPlotInstances)
 		apps.GET(":id/anrGroups/:anrGroupId/plots/journey", measure.GetANRDetailPlotJourney)
