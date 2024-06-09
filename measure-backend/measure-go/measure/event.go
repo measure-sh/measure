@@ -1275,18 +1275,25 @@ func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filt
 	return
 }
 
-// GetExceptionPlotInstances queries exception instances
-// including crash free sessions aggregated by datetime
-// and filters.
+// GetExceptionPlotInstances queries aggregated exception
+// instances and crash free sessions by datetime and filters.
 func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstances []event.IssueInstance, err error) {
+	base := sqlf.
+		From("default.events").
+		Select("datetime, app_version, type, session_id, attribute.app_version, attribute.app_build, timestamp, exception.handled").
+		Where("app_id = ?", af.AppID).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+	if len(af.Versions) > 0 {
+		base = base.Where("attribute.app_version in ?", af.Versions)
+	}
+
+	if len(af.VersionCodes) > 0 {
+		base = base.Where("attribute.app_build in ?", af.VersionCodes)
+	}
+
 	stmt := sqlf.
-		With("formatDateTime(timestamp, '%Y-%m-%d') as datetime, concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build), ')') as app_version, if(type = 'exception' and exception.handled = false, 1, NULL) as isException, base_exceptions", sqlf.
-			From("default.events").
-			Select("datetime, app_version, type, session_id, attribute.app_version, attribute.app_build, timestamp, exception.handled").
-			Where("app_id = ?", af.AppID).
-			Where("attribute.app_version in ?", af.Versions).
-			Where("attribute.app_build in ?", af.VersionCodes).
-			Where("timestamp >= ? and timestamp <= ?", af.From, af.To)).
+		With("formatDateTime(timestamp, '%Y-%m-%d') as datetime, concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build), ')') as app_version, if(type = 'exception' and exception.handled = false, 1, NULL) as isException, base_exceptions", base).
 		From("base_exceptions").
 		Select("datetime").
 		Select("app_version").
