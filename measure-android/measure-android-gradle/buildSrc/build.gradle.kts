@@ -1,5 +1,5 @@
 plugins {
-    id("org.gradle.kotlin.kotlin-dsl") version "4.1.2"
+    id("org.gradle.kotlin.kotlin-dsl") version "4.4.0"
     id("java-gradle-plugin")
     id("org.jetbrains.kotlin.jvm") version "1.9.21"
 }
