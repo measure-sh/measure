@@ -1297,7 +1297,7 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 		From("base_exceptions").
 		Select("datetime").
 		Select("app_version").
-		Select("count(if(isException, 1, NULL)) as total_exception").
+		Select("count(if(isException, 1, NULL)) as total_exceptions").
 		Select("round((1 - (exception_sessions / total_sessions)) * 100, 2) as crash_free_sessions").
 		Select("count(distinct session_id) as total_sessions").
 		Select("count(distinct if(isException, session_id, NULL)) as exception_sessions").
