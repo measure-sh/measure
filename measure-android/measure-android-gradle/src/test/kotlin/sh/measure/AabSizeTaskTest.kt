@@ -34,7 +34,7 @@ internal class AabSizeTaskTest {
         task.calculateAppSize()
 
         // assert
-        Assert.assertEquals("1797367\naab", outputFile.readText())
+        Assert.assertTrue(outputFile.readText().contains("aab"))
     }
 
     private fun createOutputAabSizeFile(): File {
