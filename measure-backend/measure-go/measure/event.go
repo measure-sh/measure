@@ -1275,6 +1275,51 @@ func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filt
 	return
 }
 
+// GetExceptionPlotInstances queries exception instances
+// including crash free sessions aggregated by datetime
+// and filters.
+func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstances []event.IssueInstance, err error) {
+	stmt := sqlf.
+		With("formatDateTime(timestamp, '%Y-%m-%d') as datetime, concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build), ')') as app_version, if(type = 'exception' and exception.handled = false, 1, NULL) as isException, base_exceptions", sqlf.
+			From("default.events").
+			Select("datetime, app_version, type, session_id, attribute.app_version, attribute.app_build, timestamp, exception.handled").
+			Where("app_id = ?", af.AppID).
+			Where("attribute.app_version in ?", af.Versions).
+			Where("attribute.app_build in ?", af.VersionCodes).
+			Where("timestamp >= ? and timestamp <= ?", af.From, af.To)).
+		From("base_exceptions").
+		Select("datetime").
+		Select("app_version").
+		Select("count(if(isException, 1, NULL)) as total_exception").
+		Select("round((1 - (exception_sessions / total_sessions)) * 100, 2) as crash_free_sessions").
+		Select("count(distinct session_id) as total_sessions").
+		Select("count(distinct if(isException, session_id, NULL)) as exception_sessions").
+		GroupBy("app_version, datetime").
+		OrderBy("app_version, datetime")
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var instance event.IssueInstance
+		var ignore1, ignore2 uint64
+		if err := rows.Scan(&instance.DateTime, &instance.Version, &instance.Instances, &instance.IssueFreeSessions, &ignore1, &ignore2); err != nil {
+			return nil, err
+		}
+		issueInstances = append(issueInstances, instance)
+	}
+
+	if rows.Err() != nil {
+		return
+	}
+
+	return
+}
+
 // GetIssuesPlot queries and prepares aggregated issue instances
 // based on datetime and filters.
 func GetIssuesPlot(ctx context.Context, eventIds []uuid.UUID, af *filter.AppFilter) (issueInstances []event.IssueInstance, err error) {
