@@ -1629,6 +1629,58 @@ func GetANRsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filter.App
 	return
 }
 
+// GetANRPlotInstances queries aggregated ANRs
+// instances and ANR free sessions by datetime and filters.
+func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstances []event.IssueInstance, err error) {
+	base := sqlf.
+		From("default.events").
+		Select("datetime, app_version, type, session_id, attribute.app_version, attribute.app_build, timestamp").
+		Where("app_id = ?", af.AppID).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+	if len(af.Versions) > 0 {
+		base = base.Where("attribute.app_version in ?", af.Versions)
+	}
+
+	if len(af.VersionCodes) > 0 {
+		base = base.Where("attribute.app_build in ?", af.VersionCodes)
+	}
+
+	stmt := sqlf.
+		With("formatDateTime(timestamp, '%Y-%m-%d') as datetime, concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build), ')') as app_version, if(type = 'anr', 1, NULL) as isANR, base_anrs", base).
+		From("base_anrs").
+		Select("datetime").
+		Select("app_version").
+		Select("count(if(isANR, 1, NULL)) as total_anrs").
+		Select("round((1 - (anr_sessions / total_sessions)) * 100, 2) as anr_free_sessions").
+		Select("count(distinct session_id) as total_sessions").
+		Select("count(distinct if(isANR, session_id, NULL)) as anr_sessions").
+		GroupBy("app_version, datetime").
+		OrderBy("app_version, datetime")
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var instance event.IssueInstance
+		var ignore1, ignore2 uint64
+		if err := rows.Scan(&instance.DateTime, &instance.Version, &instance.Instances, &instance.IssueFreeSessions, &ignore1, &ignore2); err != nil {
+			return nil, err
+		}
+		issueInstances = append(issueInstances, instance)
+	}
+
+	if rows.Err() != nil {
+		return
+	}
+
+	return
+}
+
 // GetEventIdsWithFilter gets the event ids matching event ids and optionally
 // applies matching AppFilter.
 func GetEventIdsMatchingFilter(ctx context.Context, eventIds []uuid.UUID, af *filter.AppFilter) ([]uuid.UUID, error) {
