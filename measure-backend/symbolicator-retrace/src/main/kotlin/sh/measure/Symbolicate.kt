@@ -21,7 +21,7 @@ import java.nio.file.Path
 
 fun Route.symbolicate() {
     val env = environment!!
-    var awsEndpoint = env.config.property("s3.aws_endoint_url").getString()
+    val awsEndpoint = env.config.property("s3.aws_endoint_url").getString()
     val s3Region = env.config.property("s3.symbols_s3_bucket_region").getString()
     val s3Bucket = env.config.property("s3.symbols_s3_bucket").getString()
     val symbolsAccessKey = env.config.property("s3.symbols_access_key").getString()
@@ -34,7 +34,7 @@ fun Route.symbolicate() {
         val stringRetrace = createStringRetrace(mappingFile.toPath())
         val retraced = request.data.map { dataUnit ->
             dataUnit.copy(
-                values = stringRetrace.retrace(dataUnit.values, RetraceStackTraceContext.empty()).lines
+                values = stringRetrace.retrace(dataUnit.values, RetraceStackTraceContext.empty()).result
             )
         }
         mappingFile.delete()
@@ -53,7 +53,7 @@ private suspend fun downloadMappingFile(
 private fun configureS3(s3BucketRegion: String, symbolsAccessKey: String, symbolsSecretKey: String, awsEndpoint: String): AmazonS3 {
     val basicAWSCredentials = BasicAWSCredentials(symbolsAccessKey, symbolsSecretKey)
     val credentialsProvider = AWSStaticCredentialsProvider(basicAWSCredentials)
-    var client = AmazonS3ClientBuilder.standard().withCredentials(credentialsProvider)
+    val client = AmazonS3ClientBuilder.standard().withCredentials(credentialsProvider)
 
     if (awsEndpoint.isEmpty()) {
         client.withRegion(s3BucketRegion)
