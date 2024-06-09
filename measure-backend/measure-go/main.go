@@ -65,6 +65,7 @@ func main() {
 		apps.GET(":id/metrics", measure.GetAppMetrics)
 		apps.GET(":id/filters", measure.GetAppFilters)
 		apps.GET(":id/crashGroups", measure.GetCrashOverview)
+		apps.GET(":id/crashGroups/plots/instances", measure.GetCrashOverviewPlotInstances)
 		apps.GET(":id/crashGroups/:crashGroupId/crashes", measure.GetCrashDetailCrashes)
 		apps.GET(":id/crashGroups/:crashGroupId/plots/instances", measure.GetCrashDetailPlotInstances)
 		apps.GET(":id/crashGroups/:crashGroupId/plots/journey", measure.GetCrashDetailPlotJourney)
