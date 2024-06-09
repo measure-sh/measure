@@ -91,7 +91,7 @@ services:
 
   clickhouse:
     container_name: clickhouse
-    image: clickhouse/clickhouse-server:23
+    image: clickhouse/clickhouse-server:24
     ports:
       - "9000:9000/tcp"
       - "8123:8123"
