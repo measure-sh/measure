@@ -1998,6 +1998,120 @@ func GetCrashOverview(c *gin.Context) {
 	})
 }
 
+func GetCrashOverviewPlotInstances(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		return
+	}
+
+	af.Expand()
+
+	if err := af.Validate(); err != nil {
+		msg := "app filters request validation failed"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		return
+	}
+
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	crashInstances, err := GetExceptionPlotInstances(ctx, &af)
+	if err != nil {
+		msg := `failed to query exception instances`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+	type instance struct {
+		ID   string  `json:"id"`
+		Data []gin.H `json:"data"`
+	}
+
+	lut := make(map[string]int)
+	var instances []instance
+
+	for i := range crashInstances {
+		instance := instance{
+			ID: crashInstances[i].Version,
+			Data: []gin.H{{
+				"datetime":            crashInstances[i].DateTime,
+				"instances":           crashInstances[i].Instances,
+				"crash_free_sessions": crashInstances[i].IssueFreeSessions,
+			}},
+		}
+
+		ndx, ok := lut[crashInstances[i].Version]
+
+		if ok {
+			instances[ndx].Data = append(instances[ndx].Data, instance.Data...)
+		} else {
+			lut[crashInstances[i].Version] = i
+			instances = append(instances, instance)
+		}
+	}
+
+	c.JSON(http.StatusOK, instances)
+}
+
 func GetCrashDetailCrashes(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
