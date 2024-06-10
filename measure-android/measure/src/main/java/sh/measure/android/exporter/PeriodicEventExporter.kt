@@ -92,6 +92,8 @@ internal class PeriodicEventExporterImpl(
                 lastBatchCreationUptimeMs = timeProvider.uptimeInMillis
                 eventExporter.export(result.batchId, result.eventIds)
             }
+        } else {
+            logger.log(LogLevel.Debug, "Skipping batch creation as interval hasn't elapsed")
         }
     }
 }
