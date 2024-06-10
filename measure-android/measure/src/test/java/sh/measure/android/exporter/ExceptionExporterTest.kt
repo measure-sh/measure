@@ -1,9 +1,7 @@
 package sh.measure.android.exporter
 
 import androidx.concurrent.futures.ResolvableFuture
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Test
-import org.junit.runner.RunWith
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock

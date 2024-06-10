@@ -42,7 +42,8 @@ internal class EventExporterImpl(
             if (events.isEmpty()) {
                 // shouldn't happen, but just in case it does we'd like to know.
                 logger.log(
-                    LogLevel.Error, "No events found for batch $batchId, invalid export request"
+                    LogLevel.Error,
+                    "No events found for batch $batchId, invalid export request",
                 )
                 return
             }
