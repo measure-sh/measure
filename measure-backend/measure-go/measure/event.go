@@ -1641,7 +1641,13 @@ func GetANRsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filter.App
 func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstances []event.IssueInstance, err error) {
 	base := sqlf.
 		From("default.events").
-		Select("datetime, app_version, type, session_id, attribute.app_version, attribute.app_build, timestamp").
+		Select("formatDateTime(timestamp, '%Y-%m-%d') as datetime").
+		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build), ')') as app_version").
+		Select("type").
+		Select("session_id").
+		Select("attribute.app_version").
+		Select("attribute.app_build").
+		Select("timestamp").
 		Where("app_id = ?", af.AppID).
 		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
@@ -1654,14 +1660,14 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 	}
 
 	stmt := sqlf.
-		With("formatDateTime(timestamp, '%Y-%m-%d') as datetime, concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build), ')') as app_version, if(type = 'anr', 1, NULL) as isANR, base_anrs", base).
+		With("base_anrs", base).
 		From("base_anrs").
 		Select("datetime").
 		Select("app_version").
-		Select("count(if(isANR, 1, NULL)) as total_anrs").
+		Select("count(if(type = 'anr', 1, NULL)) as total_anrs").
 		Select("round((1 - (anr_sessions / total_sessions)) * 100, 2) as anr_free_sessions").
 		Select("count(distinct session_id) as total_sessions").
-		Select("count(distinct if(isANR, session_id, NULL)) as anr_sessions").
+		Select("count(distinct if(type = 'anr', session_id, NULL)) as anr_sessions").
 		GroupBy("app_version, datetime").
 		OrderBy("app_version, datetime")
 
