@@ -55,6 +55,13 @@ export enum CrashOrAnrGroupsApiStatus {
     Error
 }
 
+export enum ExceptionsOverviewPlotApiStatus {
+    Loading,
+    Success,
+    Error,
+    NoData
+}
+
 export enum CrashOrAnrGroupDetailsApiStatus {
     Loading,
     Success,
@@ -365,6 +372,19 @@ export const emptyAnrGroupDetailsResponse = {
     },
     "results": [] as typeof emptyAnrGroupDetails[]
 }
+
+export const emptyExceptionsOverviewPlotResponse = [
+    {
+        "id": "",
+        "data": [
+            {
+                "crash_free_sessions": 0,
+                "datetime": "",
+                "instances": 0
+            }
+        ]
+    }
+]
 
 export const emptyCrashOrAnrGroupDetailsPlotResponse = [
     {
@@ -915,6 +935,48 @@ export const fetchCrashOrAnrGroupDetailsFromServer = async (crashOrAnrType: Cras
     return { status: CrashOrAnrGroupDetailsApiStatus.Success, data: data }
 
 }
+
+export const fetchExceptionsOverviewPlotFromServer = async (appId: string, crashOrAnrType: CrashOrAnrType, startDate: string, endDate: string, appVersions: AppVersion[], router: AppRouterInstance) => {
+    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+        headers: {
+            "Authorization": `Bearer ${authToken}`
+        }
+    };
+
+    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate, UserInputDateType.From)
+    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate, UserInputDateType.To)
+
+    var url = ""
+    if (crashOrAnrType === CrashOrAnrType.Crash) {
+        url = `${origin}/apps/${appId}/crashGroups/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
+    } else {
+        url = `${origin}/apps/${appId}/anrGroups/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
+    }
+
+    // Append versions if present
+    if (appVersions.length > 0) {
+        url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
+        url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
+    }
+
+    const res = await fetch(url, opts);
+
+    if (!res.ok) {
+        logoutIfAuthError(supabase, router, res)
+        return { status: ExceptionsOverviewPlotApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data === null) {
+        return { status: ExceptionsOverviewPlotApiStatus.NoData, data: null }
+    }
+
+    return { status: ExceptionsOverviewPlotApiStatus.Success, data: data }
+}
+
 
 export const fetchCrashOrAnrGroupDetailsPlotFromServer = async (appId: string, crashOrAnrType: CrashOrAnrType, crashOrAnrGroupId: string, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], router: AppRouterInstance) => {
     const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)

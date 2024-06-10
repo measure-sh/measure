@@ -1,12 +1,12 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
-import ExceptionRateChart from "@/app/components/exception_rate_chart";
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
 import { CrashOrAnrGroupsApiStatus, CrashOrAnrType, FiltersApiType, emptyCrashOrAnrGroupsResponse, fetchCrashOrAnrGroupsFromServer } from '@/app/api/api_calls';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import Filters, { defaultSelectedFilters } from './filters';
+import ExceptionsOverviewPlot from './exceptions_overview_plot';
 
 interface CrashOrAnrsOverviewProps {
   crashOrAnrType: CrashOrAnrType,
@@ -109,9 +109,12 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
         && crashOrAnrGroups.results !== null &&
         <div className="flex flex-col items-center">
           <div className="py-4" />
-          <div className="border border-black font-sans text-sm w-full h-[36rem]">
-            <ExceptionRateChart />
-          </div>
+          <ExceptionsOverviewPlot
+            appId={selectedFilters.selectedApp.id}
+            crashOrAnrType={crashOrAnrType}
+            startDate={selectedFilters.selectedStartDate}
+            endDate={selectedFilters.selectedEndDate}
+            appVersions={selectedFilters.selectedVersions} />
           <div className="py-8" />
           <div className="table font-sans border border-black w-full">
             <div className="table-header-group border border-black">
