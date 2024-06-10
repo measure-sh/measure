@@ -40,7 +40,8 @@ class PeriodicEventExporterTest {
         periodicEventExporter.onAppForeground()
 
         verify(heartbeat, atMostOnce()).start(
-            configProvider.eventsBatchingIntervalMs, configProvider.eventsBatchingIntervalMs
+            configProvider.eventsBatchingIntervalMs,
+            configProvider.eventsBatchingIntervalMs,
         )
     }
 
@@ -49,7 +50,8 @@ class PeriodicEventExporterTest {
         periodicEventExporter.onColdLaunch()
 
         verify(heartbeat, atMostOnce()).start(
-            configProvider.eventsBatchingIntervalMs, configProvider.eventsBatchingIntervalMs
+            configProvider.eventsBatchingIntervalMs,
+            configProvider.eventsBatchingIntervalMs,
         )
     }
 
@@ -89,7 +91,6 @@ class PeriodicEventExporterTest {
 
         verify(eventExporter).export(batchId, eventIds)
     }
-
 
     @Test
     fun `given existing batches are not available and last batch was created recently, does not export, when app goes to background`() {

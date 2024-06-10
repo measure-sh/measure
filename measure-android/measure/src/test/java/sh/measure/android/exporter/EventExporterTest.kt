@@ -20,7 +20,6 @@ import sh.measure.android.storage.AttachmentEntity
 import sh.measure.android.storage.DatabaseImpl
 import sh.measure.android.storage.EventEntity
 import sh.measure.android.storage.FileStorageImpl
-import java.util.HashMap
 
 // This test uses robolectric and a real instance of batch creator to ensure that the batch creator
 // and exporter work together correctly with a real database.
@@ -63,7 +62,9 @@ internal class EventExporterTest {
         val eventPacketsCaptor = argumentCaptor<List<EventPacket>>()
         val attachmentPacketsCaptor = argumentCaptor<List<AttachmentPacket>>()
         verify(networkClient).execute(
-            batchIdCaptor.capture(), eventPacketsCaptor.capture(), attachmentPacketsCaptor.capture()
+            batchIdCaptor.capture(),
+            eventPacketsCaptor.capture(),
+            attachmentPacketsCaptor.capture(),
         )
         Assert.assertEquals("batch1", batchIdCaptor.firstValue)
         Assert.assertEquals(2, eventPacketsCaptor.firstValue.size)
@@ -87,7 +88,9 @@ internal class EventExporterTest {
         val eventPacketsCaptor = argumentCaptor<List<EventPacket>>()
         val attachmentPacketsCaptor = argumentCaptor<List<AttachmentPacket>>()
         verify(networkClient).execute(
-            batchIdCaptor.capture(), eventPacketsCaptor.capture(), attachmentPacketsCaptor.capture()
+            batchIdCaptor.capture(),
+            eventPacketsCaptor.capture(),
+            attachmentPacketsCaptor.capture(),
         )
         Assert.assertEquals("batchId", batchIdCaptor.firstValue)
         Assert.assertEquals(2, eventPacketsCaptor.firstValue.size)
@@ -128,7 +131,6 @@ internal class EventExporterTest {
         Assert.assertEquals(0, batches.size)
     }
 
-
     private fun insertEventInDb(
         eventId: String,
         attachmentEntities: List<AttachmentEntity> = emptyList(),
@@ -144,8 +146,8 @@ internal class EventExporterTest {
                 attachmentEntities = attachmentEntities,
                 attachmentsSize = attachmentSize,
                 serializedAttachments = Json.encodeToString(attachmentEntities),
-                serializedAttributes = "attributes"
-            )
+                serializedAttributes = "attributes",
+            ),
         )
     }
 

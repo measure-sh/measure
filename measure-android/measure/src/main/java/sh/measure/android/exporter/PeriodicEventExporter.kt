@@ -28,6 +28,7 @@ internal class PeriodicEventExporterImpl(
 ) : PeriodicEventExporter, HeartbeatListener {
     @VisibleForTesting
     internal val isExportInProgress = AtomicBoolean(false)
+
     @VisibleForTesting
     internal var lastBatchCreationUptimeMs = 0L
 
