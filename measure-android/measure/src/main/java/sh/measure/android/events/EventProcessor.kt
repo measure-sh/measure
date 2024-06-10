@@ -6,7 +6,7 @@ import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.appendAttributes
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.executors.MeasureExecutorService
-import sh.measure.android.exporter.EventExporter
+import sh.measure.android.exporter.ExceptionExporter
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.screenshot.ScreenshotCollector
@@ -75,7 +75,7 @@ internal class EventProcessorImpl(
     private val sessionManager: SessionManager,
     private val attributeProcessors: List<AttributeProcessor>,
     private val eventTransformer: EventTransformer,
-    private val eventExporter: EventExporter,
+    private val exceptionExporter: ExceptionExporter,
     private val screenshotCollector: ScreenshotCollector,
     private val configProvider: ConfigProvider,
 ) : EventProcessor {
@@ -143,7 +143,7 @@ internal class EventProcessorImpl(
                 applyAttributes(event)
                 eventTransformer.transform(event)?.let {
                     eventStore.store(event)
-                    eventExporter.export(event)
+                    exceptionExporter.export()
                     logger.log(LogLevel.Debug, "Event processed: $type")
                 } ?: logger.log(LogLevel.Debug, "Event dropped: $type")
             }
