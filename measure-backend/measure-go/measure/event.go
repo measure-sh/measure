@@ -1280,7 +1280,14 @@ func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filt
 func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstances []event.IssueInstance, err error) {
 	base := sqlf.
 		From("default.events").
-		Select("datetime, app_version, type, session_id, attribute.app_version, attribute.app_build, timestamp, exception.handled").
+		Select("formatDateTime(timestamp, '%Y-%m-%d') as datetime").
+		Select("concat(toString(attribute.app_version), '', '(', toString(attribute.app_build), ')') as app_version").
+		Select("type").
+		Select("session_id").
+		Select("attribute.app_version").
+		Select("attribute.app_build").
+		Select("timestamp").
+		Select("exception.handled").
 		Where("app_id = ?", af.AppID).
 		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
@@ -1293,14 +1300,14 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 	}
 
 	stmt := sqlf.
-		With("formatDateTime(timestamp, '%Y-%m-%d') as datetime, concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build), ')') as app_version, if(type = 'exception' and exception.handled = false, 1, NULL) as isException, base_exceptions", base).
+		With("base_exceptions", base).
 		From("base_exceptions").
 		Select("datetime").
 		Select("app_version").
-		Select("count(if(isException, 1, NULL)) as total_exceptions").
+		Select("count(if(type = 'exception' and exception.handled = false, 1, NULL)) as total_exceptions").
 		Select("round((1 - (exception_sessions / total_sessions)) * 100, 2) as crash_free_sessions").
 		Select("count(distinct session_id) as total_sessions").
-		Select("count(distinct if(isException, session_id, NULL)) as exception_sessions").
+		Select("count(distinct if(type = 'exception' and exception.handled = false, session_id, NULL)) as exception_sessions").
 		GroupBy("app_version, datetime").
 		OrderBy("app_version, datetime")
 
