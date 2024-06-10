@@ -27,6 +27,8 @@ import sh.measure.android.exporter.BatchCreator
 import sh.measure.android.exporter.BatchCreatorImpl
 import sh.measure.android.exporter.EventExporter
 import sh.measure.android.exporter.EventExporterImpl
+import sh.measure.android.exporter.ExceptionExporter
+import sh.measure.android.exporter.ExceptionExporterImpl
 import sh.measure.android.exporter.Heartbeat
 import sh.measure.android.exporter.HeartbeatImpl
 import sh.measure.android.exporter.NetworkClient
@@ -159,15 +161,6 @@ internal class MeasureInitializerImpl(
     private val eventTransformer: EventTransformer = DefaultEventTransformer(
         configProvider = configProvider,
     ),
-    private val eventExporter: EventExporter = EventExporterImpl(
-        logger = logger,
-        timeProvider = timeProvider,
-        database = database,
-        networkClient = networkClient,
-        idProvider = idProvider,
-        executorService = executorServiceRegistry.eventExportExecutor(),
-        fileStorage = fileStorage,
-    ),
     private val eventStore: EventStore = EventStoreImpl(
         logger = logger,
         database = database,
@@ -186,6 +179,24 @@ internal class MeasureInitializerImpl(
         lowMemoryCheck = lowMemoryCheck,
         config = configProvider,
     ),
+    private val batchCreator: BatchCreator = BatchCreatorImpl(
+        logger = logger,
+        timeProvider = timeProvider,
+        database = database,
+        configProvider = configProvider,
+        idProvider = idProvider,
+    ),
+    private val eventExporter: EventExporter = EventExporterImpl(
+        logger = logger,
+        database = database,
+        networkClient = networkClient,
+        fileStorage = fileStorage,
+        batchCreator = batchCreator,
+    ),
+    private val exceptionExporter: ExceptionExporter = ExceptionExporterImpl(
+        executorService = executorServiceRegistry.eventExportExecutor(),
+        eventExporter = eventExporter,
+    ),
     override val eventProcessor: EventProcessor = EventProcessorImpl(
         logger = logger,
         executorService = executorServiceRegistry.eventProcessorExecutor(),
@@ -193,7 +204,7 @@ internal class MeasureInitializerImpl(
         idProvider = idProvider,
         sessionManager = sessionManager,
         attributeProcessors = attributeProcessors,
-        eventExporter = eventExporter,
+        exceptionExporter = exceptionExporter,
         screenshotCollector = screenshotCollector,
         eventTransformer = eventTransformer,
         configProvider = configProvider,
@@ -202,23 +213,13 @@ internal class MeasureInitializerImpl(
         logger,
         executorServiceRegistry.exportHeartbeatExecutor(),
     ),
-    private val batchCreator: BatchCreator = BatchCreatorImpl(
-        logger = logger,
-        timeProvider = timeProvider,
-        database = database,
-        configProvider = configProvider,
-        idProvider = idProvider,
-    ),
     override val periodicEventExporter: PeriodicEventExporter = PeriodicEventExporterImpl(
         logger = logger,
         timeProvider = timeProvider,
-        database = database,
         configProvider = configProvider,
         executorService = executorServiceRegistry.eventExportExecutor(),
         heartbeat = periodicHeartbeat,
-        batchCreator = batchCreator,
-        networkClient = networkClient,
-        fileStorage = fileStorage,
+        eventExporter = eventExporter,
     ),
     private val osSysConfProvider: OsSysConfProvider = OsSysConfProviderImpl(),
     override val okHttpEventCollector: OkHttpEventCollector = OkHttpEventCollectorImpl(

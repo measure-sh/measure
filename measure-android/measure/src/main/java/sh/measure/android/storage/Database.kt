@@ -102,6 +102,7 @@ internal interface Database : Closeable {
      * ascending order of creation time.
      *
      * @param maxBatches The maximum number of batches to return.
+     * @return a map of batch ID to list of event IDs.
      */
     fun getBatches(maxBatches: Int): LinkedHashMap<String, MutableList<String>>
 
