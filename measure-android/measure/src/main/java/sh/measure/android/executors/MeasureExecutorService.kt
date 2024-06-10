@@ -39,6 +39,6 @@ internal class MeasureExecutorServiceImpl @TestOnly constructor(private val exec
         delayMillis: Long,
         delayUnit: TimeUnit,
     ): Future<*> {
-        return executorService.scheduleAtFixedRate(runnable, initialDelay, delayMillis, delayUnit)
+        return executorService.scheduleWithFixedDelay(runnable, initialDelay, delayMillis, delayUnit)
     }
 }
