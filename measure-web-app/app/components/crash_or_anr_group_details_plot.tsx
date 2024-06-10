@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { ResponsiveLine } from '@nivo/line'
 import { AppVersion, CrashOrAnrGroupDetailsPlotApiStatus, CrashOrAnrType, emptyCrashOrAnrGroupDetailsPlotResponse, fetchCrashOrAnrGroupDetailsPlotFromServer } from '../api/api_calls';
 import { useRouter } from 'next/navigation';
+import { formatDateToHumanReadable } from '../utils/time_utils';
 
 interface CrashOrAnrGroupDetailsPlotProps {
   appId: string,
@@ -133,6 +134,14 @@ const CrashOrAnrGroupDetailsPlot: React.FC<CrashOrAnrGroupDetailsPlotProps> = ({
               symbolBorderColor: 'rgba(0, 0, 0, .5)',
             }
           ]}
+          tooltip={({ point }) => {
+            return (
+              <div className='bg-neutral-950 text-white flex flex-col p-2 text-xs'>
+                <p>Date: {formatDateToHumanReadable(point.data.xFormatted.toString())}</p>
+                <p>No of {crashOrAnrType === CrashOrAnrType.Crash ? 'Crashes' : 'ANRs'}: {point.data.y.toString()}</p>
+              </div>
+            )
+          }}
         />}
     </div>
   )
