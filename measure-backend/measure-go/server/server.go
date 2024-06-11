@@ -44,6 +44,7 @@ type ServerConfig struct {
 	AttachmentsSecretAccessKey string
 	AuthJWTSecret              string
 	AWSEndpoint                string
+	AttachmentOrigin           string
 }
 
 func NewConfig() *ServerConfig {
@@ -75,22 +76,27 @@ func NewConfig() *ServerConfig {
 
 	attachmentsBucket := os.Getenv("ATTACHMENTS_S3_BUCKET")
 	if attachmentsBucket == "" {
-		log.Println("ATTACHMENTS_S3_BUCKET env var not set, session attachment uploads won't work")
+		log.Println("ATTACHMENTS_S3_BUCKET env var not set, event attachment uploads won't work")
 	}
 
 	attachmentsBucketRegion := os.Getenv("ATTACHMENTS_S3_BUCKET_REGION")
 	if attachmentsBucketRegion == "" {
-		log.Println("ATTACHMENTS_S3_BUCKET_REGION env var not set, session attachment uploads won't work")
+		log.Println("ATTACHMENTS_S3_BUCKET_REGION env var not set, event attachment uploads won't work")
 	}
 
 	attachmentsAccessKey := os.Getenv("ATTACHMENTS_ACCESS_KEY")
 	if attachmentsAccessKey == "" {
-		log.Println("ATTACHMENTS_ACCESS_KEY env var not set, session attachment uploads won't work")
+		log.Println("ATTACHMENTS_ACCESS_KEY env var not set, event attachment uploads won't work")
 	}
 
 	attachmentsSecretAccessKey := os.Getenv("ATTACHMENTS_SECRET_ACCESS_KEY")
 	if attachmentsSecretAccessKey == "" {
-		log.Println("ATTACHMENTS_SECRET_ACCESS_KEY env var not set, session attachment uploads won't work")
+		log.Println("ATTACHMENTS_SECRET_ACCESS_KEY env var not set, event attachment uploads won't work")
+	}
+
+	attachmentOrigin := os.Getenv("ATTACHMENTS_S3_ORIGIN")
+	if attachmentOrigin == "" {
+		log.Println("ATTACHMENTS_S3_ORIGIN env var not set, event attachment downloads won't work")
 	}
 
 	authJWTSecret := os.Getenv("SUPABASE_AUTH_JWT_SECRET")
@@ -118,6 +124,7 @@ func NewConfig() *ServerConfig {
 		AttachmentsSecretAccessKey: attachmentsSecretAccessKey,
 		AuthJWTSecret:              authJWTSecret,
 		AWSEndpoint:                endpoint,
+		AttachmentOrigin:           attachmentOrigin,
 	}
 }
 
