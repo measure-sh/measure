@@ -100,6 +100,7 @@ type Attribute struct {
 	// - 3g
 	// - 4g
 	// - 5g
+	// - unknown
 	NetworkGeneration string `json:"network_generation"`
 }
 
