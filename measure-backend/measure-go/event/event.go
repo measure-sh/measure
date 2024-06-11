@@ -250,10 +250,10 @@ type HotLaunch struct {
 
 type NetworkChange struct {
 	NetworkType               string `json:"network_type" binding:"required"`
-	PreviousNetworkType       string `json:"previous_network_type"`
-	NetworkGeneration         string `json:"network_generation"`
-	PreviousNetworkGeneration string `json:"previous_network_generation"`
-	NetworkProvider           string `json:"network_provider"`
+	PreviousNetworkType       string `json:"previous_network_type" binding:"required"`
+	NetworkGeneration         string `json:"network_generation" binding:"required"`
+	PreviousNetworkGeneration string `json:"previous_network_generation" binding:"required"`
+	NetworkProvider           string `json:"network_provider" binding:"required"`
 }
 
 type Http struct {
@@ -760,14 +760,26 @@ func (e *EventField) Validate() error {
 		if len(e.NetworkChange.NetworkType) >= maxNetworkChangeNetworkTypeChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `network_change.network_type`, maxNetworkChangeNetworkTypeChars)
 		}
+		if e.NetworkChange.PreviousNetworkType == "" {
+			return fmt.Errorf(`%q must not be empty`, `network_change.previous_network_type`)
+		}
 		if len(e.NetworkChange.PreviousNetworkType) >= maxNetworkChangePreviousNetworkTypeChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `network_change.previous_network_type`, maxNetworkChangePreviousNetworkTypeChars)
+		}
+		if e.NetworkChange.NetworkGeneration == "" {
+			return fmt.Errorf(`%q must not be empty`, `network_change.network_generation`)
 		}
 		if len(e.NetworkChange.NetworkGeneration) >= maxNetworkChangeNetworkGeneration {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `network_change.network_generation`, maxNetworkChangeNetworkGeneration)
 		}
+		if e.NetworkChange.PreviousNetworkGeneration == "" {
+			return fmt.Errorf(`%q must not be empty`, `network_change.previous_network_generation`)
+		}
 		if len(e.NetworkChange.PreviousNetworkGeneration) >= maxNetworkChangePreviousNetworkGeneration {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `network_change.previous_network_generation`, maxNetworkChangePreviousNetworkGeneration)
+		}
+		if e.NetworkChange.NetworkProvider == "" {
+			return fmt.Errorf(`%q must not be empty`, `network_change.network_provider`)
 		}
 		if len(e.NetworkChange.NetworkProvider) >= maxNetworkChangeNetworkProvider {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `network_change.network_provider`, maxNetworkChangeNetworkProvider)
