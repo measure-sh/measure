@@ -181,7 +181,19 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
                 match: '*'
               }
             ]}
-
+            sliceTooltip={({ slice }) => {
+              return (
+                <div className="bg-neutral-950 text-white flex flex-col p-2 text-xs">
+                  {slice.points.map((point) => (
+                    <div className="flex flex-row items-center p-2" key={point.id}>
+                      <div className="w-2 h-2" style={{ backgroundColor: point.serieColor }} />
+                      <div className="px-2" />
+                      <p>{point.serieId}: {point.data.y.toString()} MB</p>
+                    </div>
+                  ))}
+                </div>
+              )
+            }}
           />
         </div>
       }
