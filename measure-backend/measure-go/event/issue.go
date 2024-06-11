@@ -35,6 +35,7 @@ type EventException struct {
 	Attribute     Attribute      `json:"attribute"`
 	Exception     Exception      `json:"-"`
 	ExceptionView ExceptionView  `json:"exception"`
+	Attachments   []Attachment   `json:"attachments"`
 	Threads       []ThreadView   `json:"threads"`
 }
 
