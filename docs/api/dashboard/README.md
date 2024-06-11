@@ -3833,7 +3833,7 @@ These headers must be present in each request.
   ```json
   {
     "meta": {
-      "next": false,
+      "next": true,
       "previous": false
     },
     "results": [
@@ -3872,6 +3872,7 @@ These headers must be present in each request.
           "title": "sh.measure.android.anr.AnrError: Application Not Responding for at least 5s",
           "stacktrace": "sh.measure.android.anr.AnrError: Application Not Responding for at least 5s\n\tat sh.measure.sample.ExceptionDemoActivity.deadLock$lambda$10(ExceptionDemoActivity.kt:66)\n\tat android.os.Handler.handleCallback(Handler.java:942)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)"
         },
+        "attachments": [],
         "threads": [
           {
             "name": "ReferenceQueueDaemon",
@@ -3965,179 +3966,6 @@ These headers must be present in each request.
               "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
               "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)",
               "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)",
-              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
-              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
-              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
-              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
-              "java.lang.Thread.run(Thread.java:1012)"
-            ]
-          }
-        ]
-      },
-      {
-        "id": "da53931e-fe29-4897-8ec7-2911e8985b4d",
-        "session_id": "9e4c578e-bb32-4f07-b721-8fd03730f9d4",
-        "timestamp": "2024-05-24T08:10:15.768Z",
-        "type": "anr",
-        "attribute": {
-          "installation_id": "f8ce8c0b-ae72-44be-ad13-9feff7365aae",
-          "app_version": "1.0",
-          "app_build": "1",
-          "app_unique_id": "sh.measure.sample",
-          "measure_sdk_version": "0.1.0",
-          "platform": "android",
-          "thread_name": "Thread-3",
-          "user_id": "",
-          "device_name": "emu64a",
-          "device_model": "sdk_gphone64_arm64",
-          "device_manufacturer": "Google",
-          "device_type": "phone",
-          "device_is_foldable": true,
-          "device_is_physical": false,
-          "device_density_dpi": 440,
-          "device_width_px": 1080,
-          "device_height_px": 2154,
-          "device_density": 2.75,
-          "device_locale": "en-US",
-          "os_name": "android",
-          "os_version": "33",
-          "network_type": "wifi",
-          "network_provider": "",
-          "network_generation": ""
-        },
-        "anr": {
-          "title": "sh.measure.android.anr.AnrError: Application Not Responding for at least 5s",
-          "stacktrace": "sh.measure.android.anr.AnrError: Application Not Responding for at least 5s\n\tat sh.measure.sample.ExceptionDemoActivity.deadLock$lambda$10(ExceptionDemoActivity.kt:68)\n\tat android.os.Handler.handleCallback(Handler.java:942)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)"
-        },
-        "threads": [
-          {
-            "name": "ConnectivityThread",
-            "frames": [
-              "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
-              "android.os.MessageQueue.next(MessageQueue.java:335)",
-              "android.os.Looper.loopOnce(Looper.java:161)",
-              "android.os.Looper.loop(Looper.java:288)",
-              "android.os.HandlerThread.run(HandlerThread.java:67)"
-            ]
-          },
-          {
-            "name": "Okio Watchdog",
-            "frames": [
-              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
-              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2211)",
-              "okhttp3.internal.platform.BouncyCastlePlatform.configureTlsExtensions(BouncyCastlePlatform.kt:99)",
-              "okio.AsyncTimeout$Watchdog.run(AsyncTimeout.kt:211)"
-            ]
-          },
-          {
-            "name": "msr-cmu",
-            "frames": [
-              "android.os.Debug.getMemoryInfo(Debug.java:-2)",
-              "sh.measure.android.utils.DefaultDebugProvider.populateMemoryInfo(DefaultDebugProvider.java:21)",
-              "sh.measure.android.performance.DefaultMemoryReader.totalPss(MemoryReader.kt:69)",
-              "sh.measure.android.performance.MemoryUsageCollector.trackMemoryUsage(MemoryUsageCollector.kt:55)",
-              "sh.measure.android.performance.MemoryUsageCollector.register$lambda$0(MemoryUsageCollector.kt:30)",
-              "java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:463)",
-              "java.util.concurrent.FutureTask.runAndReset(FutureTask.java:305)",
-              "java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:308)",
-              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1137)",
-              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
-              "java.lang.Thread.run(Thread.java:1012)"
-            ]
-          },
-          {
-            "name": "FinalizerDaemon",
-            "frames": [
-              "java.lang.Object.wait(Object.java:-2)",
-              "java.lang.Object.wait(Object.java:442)",
-              "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:203)",
-              "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:224)",
-              "java.lang.Daemons$FinalizerDaemon.runInternal(Daemons.java:300)",
-              "java.lang.Daemons$Daemon.run(Daemons.java:140)",
-              "java.lang.Thread.run(Thread.java:1012)"
-            ]
-          },
-          {
-            "name": "x2.A TaskRunner",
-            "frames": [
-              "java.lang.Object.wait(Object.java:-2)",
-              "okhttp3.internal.concurrent.TaskRunner.awaitTaskToRun(TaskRunner.kt:223)",
-              "okhttp3.internal.concurrent.TaskRunner$runnable$1.run(TaskRunner.kt:59)",
-              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1137)",
-              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
-              "java.lang.Thread.run(Thread.java:1012)"
-            ]
-          },
-          {
-            "name": "APP: Locker",
-            "frames": [
-              "java.lang.Thread.sleep(Thread.java:-2)",
-              "java.lang.Thread.sleep(Thread.java:450)",
-              "java.lang.Thread.sleep(Thread.java:355)",
-              "sh.measure.sample.ExceptionDemoActivity.sleep(ExceptionDemoActivity.kt:86)",
-              "sh.measure.sample.ExceptionDemoActivity.access$sleep(ExceptionDemoActivity.kt:12)",
-              "sh.measure.sample.ExceptionDemoActivity$LockerThread.run(ExceptionDemoActivity.kt:80)"
-            ]
-          },
-          {
-            "name": "msr-bg",
-            "frames": [
-              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
-              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
-              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
-              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
-              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
-              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
-              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
-              "java.lang.Thread.run(Thread.java:1012)"
-            ]
-          },
-          {
-            "name": "FinalizerWatchdogDaemon",
-            "frames": [
-              "java.lang.Object.wait(Object.java:-2)",
-              "java.lang.Object.wait(Object.java:442)",
-              "java.lang.Object.wait(Object.java:568)",
-              "java.lang.Daemons$FinalizerWatchdogDaemon.sleepUntilNeeded(Daemons.java:385)",
-              "java.lang.Daemons$FinalizerWatchdogDaemon.runInternal(Daemons.java:365)",
-              "java.lang.Daemons$Daemon.run(Daemons.java:140)",
-              "java.lang.Thread.run(Thread.java:1012)"
-            ]
-          },
-          {
-            "name": "msr-ee",
-            "frames": [
-              "android.database.sqlite.SQLiteConnection.nativeExecuteForCursorWindow(SQLiteConnection.java:-2)",
-              "android.database.sqlite.SQLiteConnection.executeForCursorWindow(SQLiteConnection.java:1024)",
-              "android.database.sqlite.SQLiteSession.executeForCursorWindow(SQLiteSession.java:838)",
-              "android.database.sqlite.SQLiteQuery.fillWindow(SQLiteQuery.java:62)",
-              "android.database.sqlite.SQLiteCursor.fillWindow(SQLiteCursor.java:145)",
-              "android.database.sqlite.SQLiteCursor.getCount(SQLiteCursor.java:132)",
-              "android.database.AbstractCursor.moveToPosition(AbstractCursor.java:238)",
-              "android.database.AbstractCursor.moveToNext(AbstractCursor.java:287)",
-              "sh.measure.android.storage.DatabaseImpl.getUnBatchedEventsWithAttachmentSize(Database.kt:225)",
-              "sh.measure.android.storage.Database$DefaultImpls.getUnBatchedEventsWithAttachmentSize$default(Database.kt:32)",
-              "sh.measure.android.exporter.BatchCreatorImpl.create(BatchCreator.kt:36)",
-              "sh.measure.android.exporter.PeriodicEventExporterImpl.processNewBatchIfTimeElapsed(PeriodicEventExporter.kt:103)",
-              "sh.measure.android.exporter.PeriodicEventExporterImpl.processBatches(PeriodicEventExporter.kt:88)",
-              "sh.measure.android.exporter.PeriodicEventExporterImpl.exportEvents$lambda$0(PeriodicEventExporter.kt:78)",
-              "java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:463)",
-              "java.util.concurrent.FutureTask.run(FutureTask.java:264)",
-              "java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:307)",
-              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1137)",
-              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
-              "java.lang.Thread.run(Thread.java:1012)"
-            ]
-          },
-          {
-            "name": "msr-ep",
-            "frames": [
-              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
-              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
-              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
               "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
               "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
               "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
