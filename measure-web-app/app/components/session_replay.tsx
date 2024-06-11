@@ -1,13 +1,13 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState } from 'react'
 import { ResponsiveLine } from '@nivo/line'
-import { emptySessionReplay } from '../api/api_calls';
-import SessionReplayEventAccordion from './session_replay_event_accordion';
-import SessionReplayEventVerticalConnector from './session_replay_event_vertical_connector';
-import { formatChartFormatTimestampToHumanReadable, formatTimestampToChartFormat } from '../utils/time_utils';
-import DropdownSelect, { DropdownSelectType } from './dropdown_select';
-import { DateTime } from 'luxon';
+import { emptySessionReplay } from '../api/api_calls'
+import SessionReplayEventAccordion from './session_replay_event_accordion'
+import SessionReplayEventVerticalConnector from './session_replay_event_vertical_connector'
+import { formatChartFormatTimestampToHumanReadable, formatTimestampToChartFormat } from '../utils/time_utils'
+import DropdownSelect, { DropdownSelectType } from './dropdown_select'
+import { DateTime } from 'luxon'
 
 interface SessionReplayProps {
   sessionReplay: typeof emptySessionReplay
@@ -99,11 +99,11 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
     ))
 
     events.sort((a, b) => {
-      const dateA = DateTime.fromISO(a.timestamp, { zone: 'utc' });
-      const dateB = DateTime.fromISO(b.timestamp, { zone: 'utc' });
+      const dateA = DateTime.fromISO(a.timestamp, { zone: 'utc' })
+      const dateB = DateTime.fromISO(b.timestamp, { zone: 'utc' })
 
-      return dateA.toMillis() - dateB.toMillis();
-    });
+      return dateA.toMillis() - dateB.toMillis()
+    })
 
     let threadsArray = Array.from(threads)
     let eventsTypesArray = Array.from(eventTypes)
@@ -111,8 +111,8 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
     return { events, threads: threadsArray, eventTypes: eventsTypesArray }
   }
 
-  const [selectedThreads, setSelectedThreads] = useState(threads);
-  const [selectedEventTypes, setSelectedEventTypes] = useState(eventTypes);
+  const [selectedThreads, setSelectedThreads] = useState(threads)
+  const [selectedEventTypes, setSelectedEventTypes] = useState(eventTypes)
 
   return (
     <div className="flex flex-col w-screen font-sans text-black">
@@ -296,6 +296,6 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
       </div>
     </div>
   )
-};
+}
 
-export default SessionReplay;
+export default SessionReplay
