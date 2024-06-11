@@ -26,7 +26,7 @@ public final class sh/measure/android/config/MeasureConfig : sh/measure/android/
 	public fun getHttpContentTypeAllowlist ()Ljava/util/List;
 	public fun getHttpHeadersBlocklist ()Ljava/util/List;
 	public fun getHttpUrlBlocklist ()Ljava/util/List;
-	public fun getMaxAttachmentSizeInEventsBatch ()I
+	public fun getMaxAttachmentSizeInEventsBatchInBytes ()I
 	public fun getMaxEventsInBatch ()I
 	public fun getScreenshotCompressionQuality ()I
 	public fun getScreenshotMaskHexColor ()Ljava/lang/String;
