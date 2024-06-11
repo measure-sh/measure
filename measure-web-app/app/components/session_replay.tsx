@@ -6,7 +6,7 @@ import { emptySessionReplay } from '../api/api_calls';
 import SessionReplayEventAccordion from './session_replay_event_accordion';
 import SessionReplayEventVerticalConnector from './session_replay_event_vertical_connector';
 import FadeInOut from './fade_in_out';
-import { formatTimestampToChartFormat } from '../utils/time_utils';
+import { formatChartFormatTimestampToHumanReadable, formatTimestampToChartFormat } from '../utils/time_utils';
 import DropdownSelect, { DropdownSelectType } from './dropdown_select';
 import { DateTime } from 'luxon';
 
@@ -246,13 +246,31 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
             ]}
             enableArea
             enableCrosshair
-            enableSlices="x"
+            pointSize={5}
+            pointBorderWidth={2}
+            pointBorderColor={{
+              from: 'color',
+              modifiers: [
+                [
+                  'darker',
+                  0.3
+                ]
+              ]
+            }}
             fill={[
               {
                 id: 'cpuGradient',
                 match: '*'
               }
             ]}
+            tooltip={({ point }) => {
+              return (
+                <div className='bg-neutral-950 text-white flex flex-col p-2 text-xs'>
+                  <p>Time: {formatChartFormatTimestampToHumanReadable(point.data.xFormatted.toString())}</p>
+                  <p>Cpu Usage: {point.data.y.toString()}%</p>
+                </div>
+              )
+            }}
           />
         </div>
       }
