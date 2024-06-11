@@ -144,7 +144,8 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
             axisRight={null}
             axisBottom={{
               format: '%I:%M:%S %p',
-              legendPosition: 'middle'
+              legendPosition: 'middle',
+              tickRotation: 45
             }}
             axisLeft={{
               tickSize: 1,
@@ -213,7 +214,8 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
             axisRight={null}
             axisBottom={{
               format: '%I:%M:%S %p',
-              legendPosition: 'middle'
+              legendPosition: 'middle',
+              tickRotation: 45
             }}
             axisLeft={{
               tickSize: 1,
