@@ -4331,7 +4331,7 @@ These headers must be present in each request.
         },
         {
           "event_type": "exception",
-          "type": "java.lang.IllegalAccessException",
+          "title": "java.lang.IllegalAccessException: This is a new exception",
           "thread_name": "main",
           "handled": false,
           "stacktrace": "java.lang.IllegalAccessException: This is a new exception\n\tat sh.measure.sample.ExceptionDemoActivity.onCreate$lambda$0(ExceptionDemoActivity.kt:19)\n\tat sh.measure.sample.ExceptionDemoActivity.$r8$lambda$Q_ui1nZ8w7tXFl-UGrB13ccXmnU\n\tat sh.measure.sample.ExceptionDemoActivity$$ExternalSyntheticLambda1.onClick(R8$$SyntheticClass)\n\tat android.view.View.performClick(View.java:7506)\n\tat com.google.android.material.button.MaterialButton.performClick(MaterialButton.java:1218)\n\tat android.view.View.performClickInternal(View.java:7483)\n\tat android.view.View.-$$Nest$mperformClickInternal\n\tat android.view.View$PerformClick.run(View.java:29334)\n\tat android.os.Handler.handleCallback(Handler.java:942)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalAccessException: This is a new exception\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.reflect.InvocationTargetException\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:558)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)",
@@ -4343,7 +4343,7 @@ These headers must be present in each request.
               "name": "screenshot.png",
               "type": "screenshot",
               "key": "797f8309-6185-4f4c-8578-0336c27d91f9.png",
-              "location": "http://localhost:9111/msr-attachments-sandbox/797f8309-6185-4f4c-8578-0336c27d91f9.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minio%2F20240611%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240611T125832Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&X-Amz-Signature=1482ad361fefc1906c0bfb7100b4eefe6112d88e4d7a0003ccdb1aaeb2f3321e"
+              "location": "http://localhost:9111/msr-attachments-sandbox/797f8309-6185-4f4c-8578-0336c27d91f9.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minio%2F20240611%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240611T200801Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&X-Amz-Signature=56ab78ccf1162ef45beddd89fe5b069b94e1f9d51f77e01fed73ade4bc2033c9"
             }
           ]
         }
