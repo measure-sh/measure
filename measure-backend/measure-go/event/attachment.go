@@ -18,13 +18,12 @@ import (
 var attachmentTypes = []string{"screenshot", "android_method_trace"}
 
 type Attachment struct {
-	ID        uuid.UUID `json:"id"`
-	Name      string    `json:"name" binding:"required"`
-	Type      string    `json:"type" binding:"required"`
-	Reader    io.Reader `json:"-"`
-	Extension string    `json:"extension"`
-	Key       string    `json:"key"`
-	Location  string    `json:"location"`
+	ID       uuid.UUID `json:"id"`
+	Name     string    `json:"name" binding:"required"`
+	Type     string    `json:"type" binding:"required"`
+	Reader   io.Reader `json:"-"`
+	Key      string    `json:"key"`
+	Location string    `json:"location"`
 }
 
 // Validate validates the attachment

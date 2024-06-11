@@ -16,6 +16,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -34,6 +35,7 @@ var maxBatchSize = 20 * 1024 * 1024
 type attachment struct {
 	id       uuid.UUID
 	name     string
+	key      string
 	location string
 	header   *multipart.FileHeader
 	uploaded bool
@@ -48,32 +50,36 @@ type eventreq struct {
 	size                   int64
 	symbolicationAttempted int
 	events                 []event.EventField
-	attachments            []attachment
+	attachments            map[uuid.UUID]*attachment
 }
 
 // uploadAttachments prepares and uploads each attachment.
 func (e *eventreq) uploadAttachments() error {
-	for i := range e.attachments {
-		attachment := event.Attachment{
-			ID:   e.attachments[i].id,
-			Name: e.attachments[i].header.Filename,
-			Key:  e.attachments[i].id.String(),
+	for id, attachment := range e.attachments {
+		ext := filepath.Ext(attachment.header.Filename)
+		key := attachment.id.String() + ext
+
+		eventAttachment := event.Attachment{
+			ID:   id,
+			Name: attachment.header.Filename,
+			Key:  key,
 		}
 
-		file, err := e.attachments[i].header.Open()
+		file, err := attachment.header.Open()
 		if err != nil {
 			return err
 		}
 
-		attachment.Reader = file
+		eventAttachment.Reader = file
 
-		output, err := attachment.Upload()
+		output, err := eventAttachment.Upload()
 		if err != nil {
 			return err
 		}
 
-		e.attachments[i].uploaded = true
-		e.attachments[i].location = output.Location
+		attachment.uploaded = true
+		attachment.key = key
+		attachment.location = output.Location
 	}
 
 	return nil
@@ -172,11 +178,11 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 			continue
 		}
 		e.bumpSize(header.Size)
-		e.attachments = append(e.attachments, attachment{
+		e.attachments[blobId] = &attachment{
 			id:     blobId,
 			name:   header.Filename,
 			header: header,
-		})
+		}
 	}
 
 	return nil
@@ -1825,6 +1831,7 @@ func PutEvents(c *gin.Context) {
 	eventReq := eventreq{
 		appId:       appId,
 		symbolicate: make(map[uuid.UUID]int),
+		attachments: make(map[uuid.UUID]*attachment),
 	}
 
 	if err := eventReq.read(c, appId); err != nil {
@@ -1932,6 +1939,27 @@ func PutEvents(c *gin.Context) {
 				"error": msg,
 			})
 			return
+		}
+
+		for i := range eventReq.events {
+			if !eventReq.events[i].HasAttachments() {
+				continue
+			}
+
+			for j := range eventReq.events[i].Attachments {
+				id := eventReq.events[i].Attachments[j].ID
+				attachment, ok := eventReq.attachments[id]
+				if !ok {
+					continue
+				}
+				if !attachment.uploaded {
+					fmt.Printf("attachment %q failed to upload for event %q, skipping\n", attachment.id, id)
+					continue
+				}
+
+				eventReq.events[i].Attachments[j].Location = attachment.location
+				eventReq.events[i].Attachments[j].Key = attachment.key
+			}
 		}
 	}
 
