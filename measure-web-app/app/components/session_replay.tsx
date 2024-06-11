@@ -206,7 +206,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
             yScale={{
               type: 'linear',
               min: 0,
-              max: 'auto'
+              max: 100
             }}
             yFormat=" >-.2f"
             axisTop={null}
@@ -218,6 +218,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
             axisLeft={{
               tickSize: 1,
               tickPadding: 5,
+              tickValues: 5,
               legend: '% CPU Usage',
               legendOffset: -80,
               legendPosition: 'middle'
