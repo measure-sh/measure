@@ -2206,6 +2206,23 @@ func GetCrashDetailCrashes(c *gin.Context) {
 		return
 	}
 
+	// generate pre-sign URLs for
+	// attachments
+	for i := range eventExceptions {
+		if len(eventExceptions[i].Attachments) > 0 {
+			for j := range eventExceptions[i].Attachments {
+				if err := eventExceptions[i].Attachments[j].PreSignURL(); err != nil {
+					msg := `failed to generate URLs for attachment`
+					fmt.Println(msg, err)
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": msg,
+					})
+					return
+				}
+			}
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"results": eventExceptions,
 		"meta": gin.H{
