@@ -237,7 +237,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
                   {
                     color: 'inherit',
                     offset: 100,
-                    opacity: 0
+                    opacity: 80
                   }
                 ],
                 id: 'cpuGradient',
