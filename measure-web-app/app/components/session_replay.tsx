@@ -5,7 +5,6 @@ import { ResponsiveLine } from '@nivo/line'
 import { emptySessionReplay } from '../api/api_calls';
 import SessionReplayEventAccordion from './session_replay_event_accordion';
 import SessionReplayEventVerticalConnector from './session_replay_event_vertical_connector';
-import FadeInOut from './fade_in_out';
 import { formatChartFormatTimestampToHumanReadable, formatTimestampToChartFormat } from '../utils/time_utils';
 import DropdownSelect, { DropdownSelectType } from './dropdown_select';
 import { DateTime } from 'luxon';
@@ -288,14 +287,10 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
           <div key={index} className={"ml-16 w-3/5"}>
             {index > 0 && <div className='py-2' />}
             {index > 0 &&
-              <FadeInOut>
-                <SessionReplayEventVerticalConnector milliseconds={DateTime.fromISO(e.timestamp, { zone: 'utc' }).toMillis() - DateTime.fromISO(events[index - 1].timestamp, { zone: 'utc' }).toMillis()} />
-              </FadeInOut>
+              <SessionReplayEventVerticalConnector milliseconds={DateTime.fromISO(e.timestamp, { zone: 'utc' }).toMillis() - DateTime.fromISO(events[index - 1].timestamp, { zone: 'utc' }).toMillis()} />
             }
             {index > 0 && <div className='py-2' />}
-            <FadeInOut>
-              <SessionReplayEventAccordion eventType={e.eventType} eventDetails={e.details} timestamp={e.timestamp} threadName={e.thread} id={`${e.eventType}-${index}`} active={false} />
-            </FadeInOut>
+            <SessionReplayEventAccordion eventType={e.eventType} eventDetails={e.details} timestamp={e.timestamp} threadName={e.thread} id={`${e.eventType}-${index}`} active={false} />
           </div>
         ))}
       </div>
