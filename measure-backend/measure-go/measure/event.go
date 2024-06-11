@@ -986,6 +986,8 @@ func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filt
 	var countStmt *sqlf.Stmt
 	var exceptions string
 	var threads string
+	var attachments string
+
 	limit := af.ExtendLimit()
 	forward := af.HasPositiveLimit()
 	next = false
@@ -1120,6 +1122,7 @@ func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filt
 		`exception.fingerprint`,
 		`exception.exceptions`,
 		`exception.threads`,
+		`attachments`,
 	}
 
 	stmt := sqlf.From(`default.events`)
@@ -1237,6 +1240,7 @@ func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filt
 			&e.Exception.Fingerprint,
 			&exceptions,
 			&threads,
+			&attachments,
 		}
 
 		if err := rows.Scan(fields...); err != nil {
@@ -1247,6 +1251,9 @@ func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filt
 			return nil, next, previous, err
 		}
 		if err := json.Unmarshal([]byte(threads), &e.Exception.Threads); err != nil {
+			return nil, next, previous, err
+		}
+		if err := json.Unmarshal([]byte(attachments), &e.Attachments); err != nil {
 			return nil, next, previous, err
 		}
 
