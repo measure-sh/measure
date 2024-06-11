@@ -68,6 +68,21 @@ export function formatTimestampToChartFormat(timestamp: string): string {
   return formattedDate
 }
 
+export function formatChartFormatTimestampToHumanReadable(timestamp: string): string {
+  console.log(timestamp)
+  const localDateTime = DateTime.fromFormat(timestamp, 'yyyy-MM-dd hh:mm:ss:SSS a')
+
+  if (!localDateTime.isValid) {
+    throw (localDateTime.invalidReason)
+  }
+
+  const dayOfWeek = localDateTime.weekdayShort;
+  const month = localDateTime.monthShort;
+  const year = localDateTime.year;
+
+  return `${dayOfWeek}, ${localDateTime.toFormat('d')} ${month}, ${year}, ` + localDateTime.toFormat('h:mm:ss:SSS a')
+}
+
 export enum UserInputDateType {
   From,
   To

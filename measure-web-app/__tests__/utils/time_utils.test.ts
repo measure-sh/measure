@@ -1,5 +1,5 @@
 
-import { UserInputDateType, formatDateToHumanReadable, formatMillisToHumanReadable, formatTimeToHumanReadable, formatTimestampToChartFormat, formatUserInputDateToServerFormat, isValidTimestamp } from '@/app/utils/time_utils';
+import { UserInputDateType, formatChartFormatTimestampToHumanReadable, formatDateToHumanReadable, formatMillisToHumanReadable, formatTimeToHumanReadable, formatTimestampToChartFormat, formatUserInputDateToServerFormat, isValidTimestamp } from '@/app/utils/time_utils';
 import { expect, it, describe, beforeEach, afterEach } from '@jest/globals';
 import { Settings, DateTime } from "luxon";
 
@@ -122,6 +122,34 @@ describe('formatTimestampToChartFormat', () => {
     it('should throw on invalid timestamps', () => {
         const timestamp = 'invalid-timestamp';
         expect(() => formatTimestampToChartFormat(timestamp)).toThrow();
+    });
+});
+
+describe('formatChartFormatTimestampToHumanReadable', () => {
+    beforeEach(() => {
+        Settings.now = () => 0;
+        Settings.defaultZone = "Asia/Kolkata"
+    });
+
+    afterEach(() => {
+        Settings.now = () => DateTime.now().valueOf();
+    });
+
+    it('should format a chart format timestamp to human readable', () => {
+        const timestamp = '2024-05-24 01:45:29:957 PM'; // May 24, 2024, 1:45:29:957 PM IST
+        const expected = 'Fri, 24 May, 2024, 1:45:29:957 PM';
+        expect(formatChartFormatTimestampToHumanReadable(timestamp)).toBe(expected);
+    });
+
+    it('should format a timestamp with a different datetime', () => {
+        const timestamp = '2024-06-27 10:11:52:003 AM'; // June 27, 2024, 10:11:52:003 AM IST
+        const expected = 'Thu, 27 Jun, 2024, 10:11:52:003 AM';
+        expect(formatChartFormatTimestampToHumanReadable(timestamp)).toBe(expected);
+    });
+
+    it('should throw on invalid timestamps', () => {
+        const timestamp = 'invalid-timestamp';
+        expect(() => formatChartFormatTimestampToHumanReadable(timestamp)).toThrow();
     });
 });
 
