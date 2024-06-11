@@ -9,7 +9,7 @@ import (
 // for session replay.
 type Exception struct {
 	EventType   string             `json:"event_type"`
-	Type        string             `json:"type"`
+	Title       string             `json:"title"`
 	ThreadName  string             `json:"thread_name"`
 	Handled     bool               `json:"handled"`
 	Stacktrace  string             `json:"stacktrace"`
@@ -60,7 +60,7 @@ func ComputeExceptions(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		exceptions := Exception{
 			event.Type,
-			event.Exception.GetType(),
+			event.Exception.GetTitle(),
 			event.Attribute.ThreadName,
 			event.Exception.Handled,
 			event.Exception.Stacktrace(),
