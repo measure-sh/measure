@@ -166,7 +166,6 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
               min: 0,
               max: 'auto'
             }}
-            yFormat=" >-.2f"
             axisTop={null}
             axisRight={null}
             axisBottom={{
