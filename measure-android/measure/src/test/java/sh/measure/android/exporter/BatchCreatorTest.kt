@@ -28,7 +28,7 @@ class BatchCreatorTest {
     fun `respects max attachment size when creating a batch`() {
         // Given
         config.maxEventsInBatch = 100
-        config.maxAttachmentSizeInEventsBatch = 500
+        config.maxAttachmentSizeInEventsBatchInBytes = 500
         `when`(database.getUnBatchedEventsWithAttachmentSize(any(), eq(true))).thenReturn(
             LinkedHashMap<String, Long>().apply {
                 put("event1", 100)

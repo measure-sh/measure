@@ -78,7 +78,7 @@ internal class BatchCreatorImpl(
         var totalSize = 0L
         return eventToAttachmentSizeMap.asSequence().takeWhile { (_, size) ->
             totalSize += size
-            totalSize <= configProvider.maxAttachmentSizeInEventsBatch
+            totalSize <= configProvider.maxAttachmentSizeInEventsBatchInBytes
         }.map { (key, _) -> key }.toList()
     }
 }
