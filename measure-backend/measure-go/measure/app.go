@@ -2875,6 +2875,23 @@ func GetANRDetailANRs(c *gin.Context) {
 		return
 	}
 
+	// generate pre-sign URLs for
+	// attachments
+	for i := range eventANRs {
+		if len(eventANRs[i].Attachments) > 0 {
+			for j := range eventANRs[i].Attachments {
+				if err := eventANRs[i].Attachments[j].PreSignURL(); err != nil {
+					msg := `failed to generate URLs for attachment`
+					fmt.Println(msg, err)
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": msg,
+					})
+					return
+				}
+			}
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"results": eventANRs,
 		"meta": gin.H{

@@ -1354,6 +1354,8 @@ func GetANRsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filter.App
 	var countStmt *sqlf.Stmt
 	var exceptions string
 	var threads string
+	var attachments string
+
 	limit := af.ExtendLimit()
 	forward := af.HasPositiveLimit()
 	next = false
@@ -1488,6 +1490,7 @@ func GetANRsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filter.App
 		`anr.fingerprint`,
 		`anr.exceptions`,
 		`anr.threads`,
+		`attachments`,
 	}
 
 	stmt := sqlf.From(`default.events`)
@@ -1605,6 +1608,7 @@ func GetANRsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filter.App
 			&e.ANR.Fingerprint,
 			&exceptions,
 			&threads,
+			&attachments,
 		}
 
 		if err := rows.Scan(fields...); err != nil {
@@ -1615,6 +1619,9 @@ func GetANRsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filter.App
 			return nil, next, previous, err
 		}
 		if err := json.Unmarshal([]byte(threads), &e.ANR.Threads); err != nil {
+			return nil, next, previous, err
+		}
+		if err := json.Unmarshal([]byte(attachments), &e.Attachments); err != nil {
 			return nil, next, previous, err
 		}
 
