@@ -34,7 +34,7 @@ func (e Exception) GetTimestamp() time.Time {
 // for session replay.
 type ANR struct {
 	EventType   string             `json:"event_type"`
-	Type        string             `json:"type"`
+	Title       string             `json:"title"`
 	ThreadName  string             `json:"thread_name"`
 	Stacktrace  string             `json:"stacktrace"`
 	Foreground  bool               `json:"foreground"`
@@ -80,7 +80,7 @@ func ComputeANRs(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		anrs := ANR{
 			event.Type,
-			event.ANR.GetType(),
+			event.ANR.GetTitle(),
 			event.Attribute.ThreadName,
 			event.ANR.Stacktrace(),
 			event.ANR.Foreground,
