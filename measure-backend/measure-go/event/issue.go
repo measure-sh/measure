@@ -12,14 +12,15 @@ type ThreadView struct {
 }
 
 type EventANR struct {
-	ID        uuid.UUID      `json:"id"`
-	SessionID uuid.UUID      `json:"session_id"`
-	Timestamp chrono.ISOTime `json:"timestamp"`
-	Type      string         `json:"type"`
-	Attribute Attribute      `json:"attribute"`
-	ANR       ANR            `json:"-"`
-	ANRView   ANRView        `json:"anr"`
-	Threads   []ThreadView   `json:"threads"`
+	ID          uuid.UUID      `json:"id"`
+	SessionID   uuid.UUID      `json:"session_id"`
+	Timestamp   chrono.ISOTime `json:"timestamp"`
+	Type        string         `json:"type"`
+	Attribute   Attribute      `json:"attribute"`
+	ANR         ANR            `json:"-"`
+	ANRView     ANRView        `json:"anr"`
+	Attachments []Attachment   `json:"attachments"`
+	Threads     []ThreadView   `json:"threads"`
 }
 
 type ANRView struct {
