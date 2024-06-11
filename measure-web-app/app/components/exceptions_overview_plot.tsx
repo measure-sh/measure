@@ -101,7 +101,7 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ appId, 
             tickPadding: 10,
             legendOffset: 100,
             format: '%b %d, %Y',
-            tickRotation: 90,
+            tickRotation: 45,
             legendPosition: 'middle'
           }}
           axisLeft={{
