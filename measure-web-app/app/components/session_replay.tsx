@@ -129,7 +129,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
             xFormat='time:%Y-%m-%d %H:%M:%S:%L %p'
             xScale={{
               format: '%Y-%m-%d %I:%M:%S:%L %p',
-              precision: 'millisecond',
+              precision: 'second',
               type: 'time',
               min: 'auto',
               max: 'auto',
@@ -198,7 +198,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
             xFormat='time:%Y-%m-%d %I:%M:%S:%L %p'
             xScale={{
               format: '%Y-%m-%d %I:%M:%S:%L %p',
-              precision: 'millisecond',
+              precision: 'second',
               type: 'time',
               min: 'auto',
               max: 'auto',
