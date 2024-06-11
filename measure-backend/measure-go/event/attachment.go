@@ -3,6 +3,8 @@ package event
 import (
 	"errors"
 	"io"
+	"mime"
+	"path/filepath"
 	"slices"
 
 	"measure-backend/measure-go/server"
@@ -59,6 +61,13 @@ func (a *Attachment) Upload() (output *s3manager.UploadOutput, err error) {
 		awsConfig.Endpoint = aws.String(config.AWSEndpoint)
 	}
 
+	// set mime type from extension
+	ext := filepath.Ext(a.Key)
+	contentType := "application/octet-stream"
+	if ext != "" {
+		contentType = mime.TypeByExtension(ext)
+	}
+
 	awsSession := session.Must(session.NewSession(awsConfig))
 	uploader := s3manager.NewUploader(awsSession)
 	output, err = uploader.Upload(&s3manager.UploadInput{
@@ -68,6 +77,7 @@ func (a *Attachment) Upload() (output *s3manager.UploadOutput, err error) {
 		Metadata: map[string]*string{
 			"original_file_name": aws.String(a.Name),
 		},
+		ContentType: aws.String(contentType),
 	})
 
 	return
