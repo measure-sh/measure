@@ -8,13 +8,14 @@ import (
 // Exception represents exception events suitable
 // for session replay.
 type Exception struct {
-	EventType  string    `json:"event_type"`
-	Type       string    `json:"type"`
-	ThreadName string    `json:"thread_name"`
-	Handled    bool      `json:"handled"`
-	Stacktrace string    `json:"stacktrace"`
-	Foreground bool      `json:"foreground"`
-	Timestamp  time.Time `json:"timestamp"`
+	EventType   string             `json:"event_type"`
+	Type        string             `json:"type"`
+	ThreadName  string             `json:"thread_name"`
+	Handled     bool               `json:"handled"`
+	Stacktrace  string             `json:"stacktrace"`
+	Foreground  bool               `json:"foreground"`
+	Timestamp   time.Time          `json:"timestamp"`
+	Attachments []event.Attachment `json:"attachments"`
 }
 
 // GetThreadName provides the name of the thread
@@ -32,12 +33,13 @@ func (e Exception) GetTimestamp() time.Time {
 // ANR represents anr events suitable
 // for session replay.
 type ANR struct {
-	EventType  string    `json:"event_type"`
-	Type       string    `json:"type"`
-	ThreadName string    `json:"thread_name"`
-	Stacktrace string    `json:"stacktrace"`
-	Foreground bool      `json:"foreground"`
-	Timestamp  time.Time `json:"timestamp"`
+	EventType   string             `json:"event_type"`
+	Type        string             `json:"type"`
+	ThreadName  string             `json:"thread_name"`
+	Stacktrace  string             `json:"stacktrace"`
+	Foreground  bool               `json:"foreground"`
+	Timestamp   time.Time          `json:"timestamp"`
+	Attachments []event.Attachment `json:"attachments"`
 }
 
 // GetThreadName provides the name of the thread
@@ -64,6 +66,7 @@ func ComputeExceptions(events []event.EventField) (result []ThreadGrouper) {
 			event.Exception.Stacktrace(),
 			event.Exception.Foreground,
 			event.Timestamp,
+			event.Attachments,
 		}
 		result = append(result, exceptions)
 	}
@@ -82,6 +85,7 @@ func ComputeANRs(events []event.EventField) (result []ThreadGrouper) {
 			event.ANR.Stacktrace(),
 			event.ANR.Foreground,
 			event.Timestamp,
+			event.Attachments,
 		}
 		result = append(result, anrs)
 	}

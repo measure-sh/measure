@@ -831,6 +831,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`inet.ipv6`,
 		`inet.country_code`,
 		`timestamp`,
+		`attachments`,
 		`attribute.installation_id`,
 		`toString(attribute.app_version)`,
 		`toString(attribute.app_build)`,
@@ -996,6 +997,8 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		var exceptionThreads string
 		var anrExceptions string
 		var anrThreads string
+		var attachments string
+
 		var appExit event.AppExit
 		var logString event.LogString
 		var gestureLongClick event.GestureLongClick
@@ -1028,6 +1031,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&ev.IPv6,
 			&ev.CountryCode,
 			&ev.Timestamp,
+			&attachments,
 
 			// attribute
 			&ev.Attribute.InstallationID,
@@ -1221,6 +1225,9 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			if err := json.Unmarshal([]byte(anrThreads), &anr.Threads); err != nil {
 				return nil, err
 			}
+			if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
+				return nil, err
+			}
 			ev.ANR = &anr
 			session.Events = append(session.Events, ev)
 		case event.TypeException:
@@ -1228,6 +1235,9 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 				return nil, err
 			}
 			if err := json.Unmarshal([]byte(exceptionThreads), &exception.Threads); err != nil {
+				return nil, err
+			}
+			if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
 				return nil, err
 			}
 			ev.Exception = &exception
@@ -3346,6 +3356,24 @@ func GetAppSession(c *gin.Context) {
 			"error": msg,
 		})
 		return
+	}
+
+	// generate pre-sign URLs for
+	// attachments
+	for i := range session.Events {
+		if !session.Events[i].HasAttachments() {
+			continue
+		}
+		for j := range session.Events[i].Attachments {
+			if err := session.Events[i].Attachments[j].PreSignURL(); err != nil {
+				msg := `failed to generate URLs for attachment`
+				fmt.Println(msg, err)
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": msg,
+				})
+				return
+			}
+		}
 	}
 
 	duration := session.Duration().Milliseconds()
