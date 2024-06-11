@@ -69,7 +69,6 @@ export function formatTimestampToChartFormat(timestamp: string): string {
 }
 
 export function formatChartFormatTimestampToHumanReadable(timestamp: string): string {
-  console.log(timestamp)
   const localDateTime = DateTime.fromFormat(timestamp, 'yyyy-MM-dd hh:mm:ss:SSS a')
 
   if (!localDateTime.isValid) {
