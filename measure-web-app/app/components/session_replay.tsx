@@ -188,7 +188,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
       }
       {/* CPU line */}
       {cpuData != null &&
-        <div className="h-56">
+        <div className="h-96">
           <ResponsiveLine
             animate
             data={cpuData}
