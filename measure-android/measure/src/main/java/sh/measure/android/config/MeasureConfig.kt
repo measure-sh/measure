@@ -79,7 +79,7 @@ internal interface IMeasureConfig {
     /**
      * The maximum size of attachments allowed in a single batch. Defaults to 3MB
      */
-    val maxAttachmentSizeInEventsBatch: Int
+    val maxAttachmentSizeInEventsBatchInBytes: Int
 
     /**
      * The interval at which to create a batch for export.
@@ -109,7 +109,7 @@ internal interface IMeasureConfig {
 }
 
 class MeasureConfig(
-    override val trackScreenshotOnCrash: Boolean = true,
+    override val trackScreenshotOnCrash: Boolean = false,
     override val screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.AllTextAndMedia,
     override val trackHttpHeaders: Boolean = false,
     override val trackHttpBody: Boolean = false,
@@ -119,7 +119,7 @@ class MeasureConfig(
 ) : IMeasureConfig {
     override val screenshotMaskHexColor: String = "#222222"
     override val screenshotCompressionQuality: Int = 25
-    override val maxAttachmentSizeInEventsBatch: Int = 3
+    override val maxAttachmentSizeInEventsBatchInBytes: Int = 3_000_000 // 3 MB
     override val eventsBatchingIntervalMs: Long = 30_000 // 30 seconds
     override val maxEventsInBatch: Int = 500
     override val httpContentTypeAllowlist: List<String> = listOf("application/json")
