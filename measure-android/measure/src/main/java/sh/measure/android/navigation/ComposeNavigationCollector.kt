@@ -31,6 +31,8 @@ fun NavHostController.withMeasureNavigationListener(): NavHostController {
 private class MeasureNavigationObserver(
     private val navController: NavController,
 ) : LifecycleEventObserver {
+    var lastDestinationRoute: String? = null
+
     override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
         if (event == Lifecycle.Event.ON_RESUME) {
             navController.addOnDestinationChangedListener(destinationChangedListener)
@@ -45,14 +47,15 @@ private class MeasureNavigationObserver(
 
     private val destinationChangedListener =
         NavController.OnDestinationChangedListener { controller, _, _ ->
-            controller.currentDestination?.route?.let {
+            controller.currentDestination?.route?.let { to ->
                 val timeProvider = Measure.getTimeProvider() ?: return@let
                 val eventProcessor = Measure.getEventProcessor() ?: return@let
                 eventProcessor.track(
                     type = EventType.NAVIGATION,
                     timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                    data = NavigationData(it),
+                    data = NavigationData(source = null, from = lastDestinationRoute, to = to),
                 )
+                lastDestinationRoute = to
             }
         }
 }
