@@ -953,10 +953,14 @@ func (e eventreq) ingest(ctx context.Context) error {
 		// navigation
 		if e.events[i].IsNavigation() {
 			row.
-				Set(`navigation.route`, e.events[i].Navigation.Route)
+				Set(`navigation.to`, e.events[i].Navigation.To).
+				Set(`navigation.from`, e.events[i].Navigation.From).
+				Set(`navigation.source`, e.events[i].Navigation.Source)
 		} else {
 			row.
-				Set(`navigation.route`, nil)
+				Set(`navigation.to`, nil).
+				Set(`navigation.from`, nil).
+				Set(`navigation.source`, nil)
 		}
 
 	}
