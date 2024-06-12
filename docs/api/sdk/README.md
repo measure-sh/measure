@@ -653,10 +653,13 @@ Use the `trim_memory` type for a trim memory event raised by Android.
 | level | string | No       | One of the constants from [ComponentCallbacks2](https://developer.android.com/reference/android/content/ComponentCallbacks2#constants_1) |
 
 
+
 #### **`navigation`**
 
 Use the `navigation` type for navigation events.
 
-| Field | Type   | Optional | Description            |
-| ----- | ------ | -------- | ---------------------- |
-| route | string | No       | The destination route. |
+| Field  | Type   | Optional | Description                                                                                                                                                     |
+|--------|--------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| source | string | Yes      | Adds context on how the event was collected. Null if not set.<br/>Example: `androidx_navigation` if the event was collected from `androidx.navigation` library. |
+| from   | string | Yes      | The source page or screen from where the navigation was triggered, if available, null otherwise.                                                                |
+| to     | string | No       | The destination page or screen where the navigation led to.                                                                                                     |

@@ -44,7 +44,7 @@ class ComposeNavigationCollectorTest {
         assertEquals(1, eventProcessor.getTrackedEventsByType(EventType.NAVIGATION).size)
         assertEquals(
             "home",
-            (eventProcessor.getTrackedEventsByType(EventType.NAVIGATION)[0].data as NavigationData).route,
+            (eventProcessor.getTrackedEventsByType(EventType.NAVIGATION)[0].data as NavigationData).to,
         )
 
         // forward navigation
@@ -52,7 +52,7 @@ class ComposeNavigationCollectorTest {
         assertEquals(2, eventProcessor.getTrackedEventsByType(EventType.NAVIGATION).size)
         assertEquals(
             "checkout",
-            (eventProcessor.getTrackedEventsByType(EventType.NAVIGATION)[1].data as NavigationData).route,
+            (eventProcessor.getTrackedEventsByType(EventType.NAVIGATION)[1].data as NavigationData).to,
         )
 
         // back
@@ -60,7 +60,7 @@ class ComposeNavigationCollectorTest {
         assertEquals(3, eventProcessor.getTrackedEventsByType(EventType.NAVIGATION).size)
         assertEquals(
             "home",
-            (eventProcessor.getTrackedEventsByType(EventType.NAVIGATION)[2].data as NavigationData).route,
+            (eventProcessor.getTrackedEventsByType(EventType.NAVIGATION)[2].data as NavigationData).to,
         )
     }
 }

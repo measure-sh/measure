@@ -33,10 +33,10 @@ Note that, OkHttp allows only one `EventListener`(https://square.github.io/okhtt
 you already set one, it will continue working as is. Measure plugin does not override it, rather delegates all callbacks
 to it.
 
-### Compose Navigation
+### AndroidX Navigation
 
 Automatically tracks screen transition events from
-the [Jetpack Compose Navigation](https://developer.android.com/jetpack/compose/navigation)
+the [AndroidX Navigation](https://developer.android.com/guide/navigation)
 library. This is done by automatically
 adding [NavController.OnDestinationChangedListener](https://developer.android.com/reference/androidx/navigation/NavController.OnDestinationChangedListener)
 to all the `NavHostController's` in your app.
