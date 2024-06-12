@@ -248,6 +248,12 @@ func (af *AppFilter) HasPositiveLimit() bool {
 	return af.Limit > 0
 }
 
+// HasMultiVersions checks if multiple versions
+// were requested.
+func (af *AppFilter) HasMultiVersions() bool {
+	return len(af.Versions) > 1 && len(af.VersionCodes) > 1
+}
+
 // LimitAbs returns the absolute value of limit
 func (af *AppFilter) LimitAbs() int {
 	if !af.HasPositiveLimit() {
