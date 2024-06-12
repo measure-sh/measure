@@ -216,7 +216,11 @@ func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter) (size *me
 
 	ctx = context.Background()
 	if err := server.Server.PgPool.QueryRow(ctx, sizeStmt.String(), args...).Scan(&size.AverageAppSize, &size.SelectedAppSize, &size.Delta); err != nil {
-		return nil, err
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		} else {
+			return nil, err
+		}
 	}
 
 	return
