@@ -5,35 +5,35 @@ import (
 	"time"
 )
 
-// Navigation represents navigation events suitable
+// AndroidxNavigation represents androidx navigation events suitable
 // for session replay.
-type Navigation struct {
+type AndroidxNavigation struct {
 	EventType  string `json:"event_type"`
 	ThreadName string `json:"thread_name"`
-	*event.Navigation
+	*event.AndroidxNavigation
 	Timestamp time.Time `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
 // where navigation took place.
-func (n Navigation) GetThreadName() string {
+func (n AndroidxNavigation) GetThreadName() string {
 	return n.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
-// the navigation event.
-func (n Navigation) GetTimestamp() time.Time {
+// the androidx navigation event.
+func (n AndroidxNavigation) GetTimestamp() time.Time {
 	return n.Timestamp
 }
 
-// ComputeNavigation computes navigation events
+// ComputeAndroidxNavigation computes androidx navigation events
 // for session replay.
-func ComputeNavigation(events []event.EventField) (result []ThreadGrouper) {
+func ComputeAndroidxNavigation(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
-		navs := Navigation{
+		navs := AndroidxNavigation{
 			event.Type,
 			event.Attribute.ThreadName,
-			event.Navigation,
+			event.AndroidxNavigation,
 			event.Timestamp,
 		}
 		result = append(result, navs)

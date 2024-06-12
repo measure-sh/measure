@@ -950,13 +950,13 @@ func (e eventreq) ingest(ctx context.Context) error {
 
 		}
 
-		// navigation
-		if e.events[i].IsNavigation() {
+		// androidx navigation
+		if e.events[i].IsAndroidxNavigation() {
 			row.
-				Set(`navigation.route`, e.events[i].Navigation.Route)
+				Set(`androidx_navigation.route`, e.events[i].AndroidxNavigation.Route)
 		} else {
 			row.
-				Set(`navigation.route`, nil)
+				Set(`androidx_navigation.route`, nil)
 		}
 
 	}

@@ -972,7 +972,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`cpu_usage.stime`,
 		`cpu_usage.cstime`,
 		`cpu_usage.interval_config`,
-		`toString(navigation.route)`,
+		`toString(androidx_navigation.route)`,
 	}
 
 	stmt := sqlf.From("default.events")
@@ -1020,7 +1020,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		var lowMemory event.LowMemory
 		var trimMemory event.TrimMemory
 		var cpuUsage event.CPUUsage
-		var navigation event.Navigation
+		var androidxNavigation event.AndroidxNavigation
 
 		var coldLaunchDuration uint32
 		var warmLaunchDuration uint32
@@ -1213,8 +1213,8 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&cpuUsage.CSTime,
 			&cpuUsage.IntervalConfig,
 
-			// navigation
-			&navigation.Route,
+			// androidx navigation
+			&androidxNavigation.Route,
 		}
 
 		if err := rows.Scan(dest...); err != nil {
@@ -1300,8 +1300,8 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		case event.TypeCPUUsage:
 			ev.CPUUsage = &cpuUsage
 			session.Events = append(session.Events, ev)
-		case event.TypeNavigation:
-			ev.Navigation = &navigation
+		case event.TypeAndroidxNavigation:
+			ev.AndroidxNavigation = &androidxNavigation
 			session.Events = append(session.Events, ev)
 		default:
 			continue
@@ -3391,7 +3391,7 @@ func GetAppSession(c *gin.Context) {
 		event.TypeGestureClick,
 		event.TypeGestureLongClick,
 		event.TypeGestureScroll,
-		event.TypeNavigation,
+		event.TypeAndroidxNavigation,
 		event.TypeString,
 		event.TypeNetworkChange,
 		event.TypeColdLaunch,
@@ -3432,11 +3432,11 @@ func GetAppSession(c *gin.Context) {
 		threads.Organize(event.TypeGestureScroll, threadedGestureScrolls)
 	}
 
-	navEvents := eventMap[event.TypeNavigation]
+	navEvents := eventMap[event.TypeAndroidxNavigation]
 	if len(navEvents) > 0 {
-		navs := replay.ComputeNavigation(navEvents)
+		navs := replay.ComputeAndroidxNavigation(navEvents)
 		threadedNavs := replay.GroupByThreads(navs)
-		threads.Organize(event.TypeNavigation, threadedNavs)
+		threads.Organize(event.TypeAndroidxNavigation, threadedNavs)
 	}
 
 	logEvents := eventMap[event.TypeString]

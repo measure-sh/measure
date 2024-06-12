@@ -75,11 +75,11 @@ the [Fragment Lifecycle Event](../../../docs/api/sdk/README.md#lifecyclefragment
 > The Fragment lifecycle events are only tracked if the androidx.Fragment dependency is added to the app. Measure does
 > not introduce any dependency on androidx.Fragment automatically.
 
-## Compose navigation
+## AndroidX navigation
 
 ### How it works
 
-Measure instruments the [Compose navigation library](https://developer.android.com/jetpack/compose/navigation)
+Measure instruments the [AndroidX navigation library](https://developer.android.com/guide/navigation)
 using [ASM](https://asm.ow2.io/) by automatically tracking all
 navigation events by
 registering [NavController.OnDestinationChangedListener](https://developer.android.com/reference/androidx/navigation/NavController.OnDestinationChangedListener)

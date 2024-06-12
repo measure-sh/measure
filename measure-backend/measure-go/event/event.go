@@ -69,7 +69,7 @@ const TypeMemoryUsage = "memory_usage"
 const TypeLowMemory = "low_memory"
 const TypeTrimMemory = "trim_memory"
 const TypeCPUUsage = "cpu_usage"
-const TypeNavigation = "navigation"
+const TypeAndroidxNavigation = "androidx_navigation"
 
 const NetworkGeneration2G = "2g"
 const NetworkGeneration3G = "3g"
@@ -340,41 +340,41 @@ type CPUUsage struct {
 	IntervalConfig uint32 `json:"interval_config" binding:"required"`
 }
 
-type Navigation struct {
+type AndroidxNavigation struct {
 	Route string `json:"route" binding:"required"`
 }
 
 type EventField struct {
-	ID                uuid.UUID          `json:"id"`
-	IPv4              net.IP             `json:"inet_ipv4"`
-	IPv6              net.IP             `json:"inet_ipv6"`
-	CountryCode       string             `json:"inet_country_code"`
-	AppID             uuid.UUID          `json:"app_id"`
-	SessionID         uuid.UUID          `json:"session_id" binding:"required"`
-	Timestamp         time.Time          `json:"timestamp" binding:"required"`
-	Type              string             `json:"type" binding:"required"`
-	Attribute         Attribute          `json:"attribute" binding:"required"`
-	Attachments       []Attachment       `json:"attachments" binding:"required"`
-	ANR               *ANR               `json:"anr,omitempty"`
-	Exception         *Exception         `json:"exception,omitempty"`
-	AppExit           *AppExit           `json:"app_exit,omitempty"`
-	LogString         *LogString         `json:"string,omitempty"`
-	GestureLongClick  *GestureLongClick  `json:"gesture_long_click,omitempty"`
-	GestureScroll     *GestureScroll     `json:"gesture_scroll,omitempty"`
-	GestureClick      *GestureClick      `json:"gesture_click,omitempty"`
-	LifecycleActivity *LifecycleActivity `json:"lifecycle_activity,omitempty"`
-	LifecycleFragment *LifecycleFragment `json:"lifecycle_fragment,omitempty"`
-	LifecycleApp      *LifecycleApp      `json:"lifecycle_app,omitempty"`
-	ColdLaunch        *ColdLaunch        `json:"cold_launch,omitempty"`
-	WarmLaunch        *WarmLaunch        `json:"warm_launch,omitempty"`
-	HotLaunch         *HotLaunch         `json:"hot_launch,omitempty"`
-	NetworkChange     *NetworkChange     `json:"network_change,omitempty"`
-	Http              *Http              `json:"http,omitempty"`
-	MemoryUsage       *MemoryUsage       `json:"memory_usage,omitempty"`
-	LowMemory         *LowMemory         `json:"low_memory,omitempty"`
-	TrimMemory        *TrimMemory        `json:"trim_memory,omitempty"`
-	CPUUsage          *CPUUsage          `json:"cpu_usage,omitempty"`
-	Navigation        *Navigation        `json:"navigation,omitempty"`
+	ID                 uuid.UUID           `json:"id"`
+	IPv4               net.IP              `json:"inet_ipv4"`
+	IPv6               net.IP              `json:"inet_ipv6"`
+	CountryCode        string              `json:"inet_country_code"`
+	AppID              uuid.UUID           `json:"app_id"`
+	SessionID          uuid.UUID           `json:"session_id" binding:"required"`
+	Timestamp          time.Time           `json:"timestamp" binding:"required"`
+	Type               string              `json:"type" binding:"required"`
+	Attribute          Attribute           `json:"attribute" binding:"required"`
+	Attachments        []Attachment        `json:"attachments" binding:"required"`
+	ANR                *ANR                `json:"anr,omitempty"`
+	Exception          *Exception          `json:"exception,omitempty"`
+	AppExit            *AppExit            `json:"app_exit,omitempty"`
+	LogString          *LogString          `json:"string,omitempty"`
+	GestureLongClick   *GestureLongClick   `json:"gesture_long_click,omitempty"`
+	GestureScroll      *GestureScroll      `json:"gesture_scroll,omitempty"`
+	GestureClick       *GestureClick       `json:"gesture_click,omitempty"`
+	LifecycleActivity  *LifecycleActivity  `json:"lifecycle_activity,omitempty"`
+	LifecycleFragment  *LifecycleFragment  `json:"lifecycle_fragment,omitempty"`
+	LifecycleApp       *LifecycleApp       `json:"lifecycle_app,omitempty"`
+	ColdLaunch         *ColdLaunch         `json:"cold_launch,omitempty"`
+	WarmLaunch         *WarmLaunch         `json:"warm_launch,omitempty"`
+	HotLaunch          *HotLaunch          `json:"hot_launch,omitempty"`
+	NetworkChange      *NetworkChange      `json:"network_change,omitempty"`
+	Http               *Http               `json:"http,omitempty"`
+	MemoryUsage        *MemoryUsage        `json:"memory_usage,omitempty"`
+	LowMemory          *LowMemory          `json:"low_memory,omitempty"`
+	TrimMemory         *TrimMemory         `json:"trim_memory,omitempty"`
+	CPUUsage           *CPUUsage           `json:"cpu_usage,omitempty"`
+	AndroidxNavigation *AndroidxNavigation `json:"androidx_navigation,omitempty"`
 }
 
 // Compute computes the most accurate cold launch timing
@@ -528,10 +528,10 @@ func (e EventField) IsLowMemory() bool {
 	return e.Type == TypeLowMemory
 }
 
-// IsNavigation returns true for navigation
+// IsAndroidxNavigation returns true for androidx navigation
 // event.
-func (e EventField) IsNavigation() bool {
-	return e.Type == TypeNavigation
+func (e EventField) IsAndroidxNavigation() bool {
+	return e.Type == TypeAndroidxNavigation
 }
 
 // NeedsSymbolication returns true if the event needs
@@ -597,7 +597,7 @@ func (e *EventField) Validate() error {
 		TypeLifecycleApp, TypeColdLaunch, TypeWarmLaunch,
 		TypeHotLaunch, TypeNetworkChange, TypeHttp,
 		TypeMemoryUsage, TypeLowMemory, TypeTrimMemory,
-		TypeCPUUsage, TypeNavigation,
+		TypeCPUUsage, TypeAndroidxNavigation,
 	}
 
 	if !slices.Contains(validTypes, e.Type) {
@@ -872,11 +872,11 @@ func (e *EventField) Validate() error {
 		}
 	}
 
-	if e.IsNavigation() {
-		if e.Navigation.Route == "" {
+	if e.IsAndroidxNavigation() {
+		if e.AndroidxNavigation.Route == "" {
 			return fmt.Errorf(`%q must not be empty`, `navigation.route`)
 		}
-		if len(e.Navigation.Route) > maxRouteChars {
+		if len(e.AndroidxNavigation.Route) > maxRouteChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `navigation.route`, maxRouteChars)
 		}
 	}
