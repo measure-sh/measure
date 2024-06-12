@@ -9,7 +9,7 @@ import (
 // for session replay.
 type Exception struct {
 	EventType   string             `json:"event_type"`
-	Type        string             `json:"type"`
+	Title       string             `json:"title"`
 	ThreadName  string             `json:"thread_name"`
 	Handled     bool               `json:"handled"`
 	Stacktrace  string             `json:"stacktrace"`
@@ -34,7 +34,7 @@ func (e Exception) GetTimestamp() time.Time {
 // for session replay.
 type ANR struct {
 	EventType   string             `json:"event_type"`
-	Type        string             `json:"type"`
+	Title       string             `json:"title"`
 	ThreadName  string             `json:"thread_name"`
 	Stacktrace  string             `json:"stacktrace"`
 	Foreground  bool               `json:"foreground"`
@@ -60,7 +60,7 @@ func ComputeExceptions(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		exceptions := Exception{
 			event.Type,
-			event.Exception.GetType(),
+			event.Exception.GetTitle(),
 			event.Attribute.ThreadName,
 			event.Exception.Handled,
 			event.Exception.Stacktrace(),
@@ -80,7 +80,7 @@ func ComputeANRs(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		anrs := ANR{
 			event.Type,
-			event.ANR.GetType(),
+			event.ANR.GetTitle(),
 			event.Attribute.ThreadName,
 			event.ANR.Stacktrace(),
 			event.ANR.Foreground,
