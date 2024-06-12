@@ -1217,6 +1217,8 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 
 			// navigation
 			&navigation.To,
+			&navigation.From,
+			&navigation.Source,
 		}
 
 		if err := rows.Scan(dest...); err != nil {
