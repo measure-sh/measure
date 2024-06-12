@@ -53,8 +53,8 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ appId, startDate, end
       <InfoCircleAppStartTime status={metricsApiStatus} title="App warm launch time" launchType="Warm" noData={metrics.warm_launch.nan} value={metrics.warm_launch.p95} delta={metrics.warm_launch.delta} />
       <InfoCircleAppStartTime status={metricsApiStatus} title="App hot launch time" launchType="Hot" noData={metrics.hot_launch.nan} value={metrics.hot_launch.p95} delta={metrics.warm_launch.delta} />
 
-      {/* show app size metrics only on single app version selection */}
-      {appVersions.length === 1 && <InfoCircleAppSize status={metricsApiStatus} title="App size" noData={metrics.sizes.nan} valueInBytes={metrics.sizes.selected_app_size} deltaInBytes={metrics.sizes.delta} />}
+      {/* show app size metrics only on single app version selection && only when app size is available */}
+      {appVersions.length === 1 && metrics.sizes !== null && <InfoCircleAppSize status={metricsApiStatus} title="App size" noData={metrics.sizes.nan} valueInBytes={metrics.sizes.selected_app_size} deltaInBytes={metrics.sizes.delta} />}
     </div>
   );
 };
