@@ -5,7 +5,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 internal data class NavigationData(
     /**
-     *
+     * Adds context on how the event was collected.
+     * Example: `androidx-navigation` if the event was collected from `androidx.navigation` library.
      */
     val source: String?,
     /**
