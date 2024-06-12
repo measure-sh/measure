@@ -71,6 +71,17 @@ const TypeTrimMemory = "trim_memory"
 const TypeCPUUsage = "cpu_usage"
 const TypeNavigation = "navigation"
 
+const NetworkGeneration2G = "2g"
+const NetworkGeneration3G = "3g"
+const NetworkGeneration4G = "4g"
+const NetworkGeneration5G = "5g"
+const NetworkGenerationUnknown = "unknown"
+
+const NetworkTypeCellular = "cellular"
+const NetworkTypeWifi = "wifi"
+const NetworkTypeVpn = "vpn"
+const NetworkTypeUnknown = "unknown"
+
 const LifecycleActivityTypeCreated = "created"
 const LifecycleActivityTypeResumed = "resumed"
 const LifecycleActivityTypePaused = "paused"
@@ -111,6 +122,25 @@ var ValidLifecycleFragmentTypes = []string{
 var ValidLifecycleAppTypes = []string{
 	LifecycleAppTypeBackground,
 	LifecycleAppTypeForeground,
+}
+
+// ValidNetworkTypes defines allowed
+// `network_change.network_type` values.
+var ValidNetworkTypes = []string{
+	NetworkTypeCellular,
+	NetworkTypeWifi,
+	NetworkTypeVpn,
+	NetworkTypeUnknown,
+}
+
+// ValidNetworkGenerations defines allowed
+// `network_change.network_generation` values.
+var ValidNetworkGenerations = []string{
+	NetworkGeneration2G,
+	NetworkGeneration3G,
+	NetworkGeneration4G,
+	NetworkGeneration5G,
+	NetworkGenerationUnknown,
 }
 
 // makeTitle appends the message to the type
@@ -783,6 +813,18 @@ func (e *EventField) Validate() error {
 		}
 		if len(e.NetworkChange.NetworkProvider) >= maxNetworkChangeNetworkProvider {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `network_change.network_provider`, maxNetworkChangeNetworkProvider)
+		}
+		if !slices.Contains(ValidNetworkTypes, e.NetworkChange.NetworkType) {
+			return fmt.Errorf(`%q contains invalid network type`, `network_change.network_type`)
+		}
+		if !slices.Contains(ValidNetworkGenerations, e.NetworkChange.NetworkGeneration) {
+			return fmt.Errorf(`%q contains invalid network geenration`, `network_change.network_generation`)
+		}
+		if !slices.Contains(ValidNetworkTypes, e.NetworkChange.PreviousNetworkType) {
+			return fmt.Errorf(`%q contains invalid network type`, `network_change.previous_network_type`)
+		}
+		if !slices.Contains(ValidNetworkGenerations, e.NetworkChange.PreviousNetworkGeneration) {
+			return fmt.Errorf(`%q contains invalid network geenration`, `network_change.previous_network_generation`)
 		}
 	}
 

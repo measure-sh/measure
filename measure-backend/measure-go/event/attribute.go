@@ -3,6 +3,7 @@ package event
 import (
 	"fmt"
 	"measure-backend/measure-go/platform"
+	"slices"
 
 	"github.com/google/uuid"
 )
@@ -180,6 +181,11 @@ func (a Attribute) Validate() error {
 	if len(a.NetworkProvider) > maxNetworkProviderChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.network_provider`, maxNetworkProviderChars)
 	}
-
+	if !slices.Contains(ValidNetworkTypes, a.NetworkType) {
+		return fmt.Errorf(`%q contains invalid network type`, `attributes.network_type`)
+	}
+	if !slices.Contains(ValidNetworkGenerations, a.NetworkGeneration) {
+		return fmt.Errorf(`%q contains invalid network geenration`, `attributes.network_generation`)
+	}
 	return nil
 }
