@@ -1721,13 +1721,16 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	sizes, err := app.GetSizeMetrics(ctx, &af)
-	if err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
+	var sizes *metrics.SizeMetric = nil
+	if !af.HasMultiVersions() {
+		sizes, err = app.GetSizeMetrics(ctx, &af)
+		if err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
 	}
 
 	crashFree, err := app.GetCrashFreeMetrics(ctx, &af)
