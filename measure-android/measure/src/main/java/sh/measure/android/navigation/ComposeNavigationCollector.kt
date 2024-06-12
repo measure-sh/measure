@@ -33,6 +33,10 @@ private class MeasureNavigationObserver(
 ) : LifecycleEventObserver {
     var lastDestinationRoute: String? = null
 
+    private companion object {
+        private const val SOURCE_ANDROIDX_NAVIGATION = "androidx-navigation"
+    }
+
     override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
         if (event == Lifecycle.Event.ON_RESUME) {
             navController.addOnDestinationChangedListener(destinationChangedListener)
@@ -53,7 +57,11 @@ private class MeasureNavigationObserver(
                 eventProcessor.track(
                     type = EventType.NAVIGATION,
                     timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                    data = NavigationData(source = null, from = lastDestinationRoute, to = to),
+                    data = NavigationData(
+                        source = SOURCE_ANDROIDX_NAVIGATION,
+                        from = lastDestinationRoute,
+                        to = to,
+                    ),
                 )
                 lastDestinationRoute = to
             }
