@@ -281,37 +281,54 @@ func (af *AppFilter) SetDefaultTimeRange() {
 // network provider and other such event parameters from available events
 // with appropriate filters applied.
 func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) error {
-	if err := af.getAppVersions(ctx, fl); err != nil {
+	versions, versionCodes, err := af.getAppVersions(ctx)
+	if err != nil {
 		return err
 	}
+	fl.Versions = append(fl.Versions, versions...)
+	fl.VersionCodes = append(fl.VersionCodes, versionCodes...)
 
-	if err := af.getCountries(ctx, fl); err != nil {
+	countries, err := af.getCountries(ctx)
+	if err != nil {
 		return err
 	}
+	fl.Countries = append(fl.Countries, countries...)
 
-	if err := af.getNetworkProviders(ctx, fl); err != nil {
+	networkProviders, err := af.getNetworkProviders(ctx)
+	if err != nil {
 		return err
 	}
+	fl.NetworkProviders = append(fl.NetworkProviders, networkProviders...)
 
-	if err := af.getNetworkTypes(ctx, fl); err != nil {
+	networkTypes, err := af.getNetworkTypes(ctx)
+	if err != nil {
 		return err
 	}
+	fl.NetworkTypes = append(fl.NetworkTypes, networkTypes...)
 
-	if err := af.getNetworkGenerations(ctx, fl); err != nil {
+	networkGenerations, err := af.getNetworkGenerations(ctx)
+	if err != nil {
 		return err
 	}
+	fl.NetworkGenerations = append(fl.NetworkGenerations, networkGenerations...)
 
-	if err := af.getDeviceLocales(ctx, fl); err != nil {
+	deviceLocales, err := af.getDeviceLocales(ctx)
+	if err != nil {
 		return err
 	}
+	fl.DeviceLocales = append(fl.DeviceLocales, deviceLocales...)
 
-	if err := af.getDeviceManufacturers(ctx, fl); err != nil {
+	deviceManufacturers, err := af.getDeviceManufacturers(ctx)
+	if err != nil {
 		return err
 	}
+	fl.DeviceManufacturers = append(fl.DeviceManufacturers, deviceManufacturers...)
 
-	if err := af.getDeviceNames(ctx, fl); err != nil {
+	deviceNames, err := af.getDeviceNames(ctx)
+	if err != nil {
 		return err
 	}
+	fl.DeviceNames = append(fl.DeviceNames, deviceNames...)
 
 	return nil
 }
@@ -333,11 +350,11 @@ func (af *AppFilter) hasKeyTimestamp() bool {
 //
 // Additionally, filters for `exception` and `anr` event
 // types.
-func (af *AppFilter) getAppVersions(ctx context.Context, fl *FilterList) error {
+func (af *AppFilter) getAppVersions(ctx context.Context) (versions []string, versionCodes []string, err error) {
 	stmt := sqlf.
 		From("default.events").
 		Select("distinct toString(attribute.app_version), toString(attribute.app_build)").
-		Where("app_id = toUUID(?)").
+		Where("app_id = toUUID(?)", af.AppID).
 		OrderBy("attribute.app_build desc")
 
 	defer stmt.Close()
@@ -355,35 +372,36 @@ func (af *AppFilter) getAppVersions(ctx context.Context, fl *FilterList) error {
 		stmt.Where("type = 'anr'")
 	}
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), af.AppID)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
-		msg := `failed to query app versions`
-		fmt.Println(msg, err)
-		return err
+		return
 	}
 
 	for rows.Next() {
 		var version string
 		var code string
-		if err := rows.Scan(&version, &code); err != nil {
-			return err
+		if err = rows.Scan(&version, &code); err != nil {
+			return
 		}
-		fl.Versions = append(fl.Versions, version)
-		fl.VersionCodes = append(fl.VersionCodes, code)
+		versions = append(versions, version)
+		versionCodes = append(versionCodes, code)
 	}
 
-	return rows.Err()
+	err = rows.Err()
+
+	return
 }
 
 // getCountries finds distinct values of country codes
 // from available events.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getCountries(ctx context.Context, fl *FilterList) error {
+func (af *AppFilter) getCountries(ctx context.Context) (countries []string, err error) {
 	stmt := sqlf.
 		From("default.events").
 		Select("distinct toString(inet.country_code)").
-		Where("app_id = toUUID(?)")
+		Where("app_id = toUUID(?)", af.AppID)
+
 	defer stmt.Close()
 
 	if af.Exception {
@@ -399,33 +417,33 @@ func (af *AppFilter) getCountries(ctx context.Context, fl *FilterList) error {
 		stmt.Where("type = 'anr'")
 	}
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), af.AppID)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
-		msg := `failed to query countries from ip`
-		fmt.Println(msg, err)
-		return err
+		return
 	}
 
 	for rows.Next() {
 		var country string
-		if err := rows.Scan(&country); err != nil {
-			return err
+		if err = rows.Scan(&country); err != nil {
+			return
 		}
-		fl.Countries = append(fl.Countries, country)
+		countries = append(countries, country)
 	}
 
-	return rows.Err()
+	err = rows.Err()
+
+	return
 }
 
 // getNetworkProviders finds distinct values of app network
 // providers from available events.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getNetworkProviders(ctx context.Context, fl *FilterList) error {
+func (af *AppFilter) getNetworkProviders(ctx context.Context) (networkProviders []string, err error) {
 	stmt := sqlf.
 		From("default.events").
 		Select("distinct toString(attribute.network_provider)").
-		Where("app_id = toUUID(?)")
+		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
 
@@ -442,36 +460,33 @@ func (af *AppFilter) getNetworkProviders(ctx context.Context, fl *FilterList) er
 		stmt.Where("type = 'anr'")
 	}
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), af.AppID)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
-		msg := `failed to query app network providers`
-		fmt.Println(msg, err)
-		return err
+		return
 	}
 
 	for rows.Next() {
 		var networkProvider string
-		if err := rows.Scan(&networkProvider); err != nil {
-			return err
+		if err = rows.Scan(&networkProvider); err != nil {
+			return
 		}
-		if networkProvider == "" {
-			continue
-		}
-		fl.NetworkProviders = append(fl.NetworkProviders, networkProvider)
+		networkProviders = append(networkProviders, networkProvider)
 	}
 
-	return rows.Err()
+	err = rows.Err()
+
+	return
 }
 
 // getNetworkTypes finds distinct values of app network
 // types from available events.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getNetworkTypes(ctx context.Context, fl *FilterList) error {
+func (af *AppFilter) getNetworkTypes(ctx context.Context) (networkTypes []string, err error) {
 	stmt := sqlf.
 		From("default.events").
 		Select("distinct toString(attribute.network_type)").
-		Where("app_id = toUUID(?)")
+		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
 
@@ -488,33 +503,33 @@ func (af *AppFilter) getNetworkTypes(ctx context.Context, fl *FilterList) error 
 		stmt.Where("type = 'anr'")
 	}
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), af.AppID)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
-		msg := `failed to query app network types`
-		fmt.Println(msg, err)
-		return err
+		return
 	}
 
 	for rows.Next() {
 		var networkType string
-		if err := rows.Scan(&networkType); err != nil {
-			return err
+		if err = rows.Scan(&networkType); err != nil {
+			return
 		}
-		fl.NetworkTypes = append(fl.NetworkTypes, networkType)
+		networkTypes = append(networkTypes, networkType)
 	}
 
-	return rows.Err()
+	err = rows.Err()
+
+	return
 }
 
 // getNetworkGenerations finds distinct values of app network
 // generations from available events.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getNetworkGenerations(ctx context.Context, fl *FilterList) error {
+func (af *AppFilter) getNetworkGenerations(ctx context.Context) (networkGenerations []string, err error) {
 	stmt := sqlf.
 		From("default.events").
 		Select("distinct toString(attribute.network_generation)").
-		Where("app_id = toUUID(?)")
+		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
 
@@ -531,36 +546,36 @@ func (af *AppFilter) getNetworkGenerations(ctx context.Context, fl *FilterList) 
 		stmt.Where("type = 'anr'")
 	}
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), af.AppID)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
-		msg := `failed to query app network generations`
-		fmt.Println(msg, err)
-		return err
+		return
 	}
 
 	for rows.Next() {
 		var generation string
-		if err := rows.Scan(&generation); err != nil {
-			return err
+		if err = rows.Scan(&generation); err != nil {
+			return
 		}
 		if generation == "" {
 			continue
 		}
-		fl.NetworkGenerations = append(fl.NetworkGenerations, generation)
+		networkGenerations = append(networkGenerations, generation)
 	}
 
-	return rows.Err()
+	err = rows.Err()
+
+	return
 }
 
 // getDeviceLocales finds distinct values of app device
 // locales from available events.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getDeviceLocales(ctx context.Context, fl *FilterList) error {
+func (af *AppFilter) getDeviceLocales(ctx context.Context) (deviceLocales []string, err error) {
 	stmt := sqlf.
 		From("default.events").
 		Select("distinct toString(attribute.device_locale)").
-		Where("app_id = toUUID(?)")
+		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
 
@@ -577,33 +592,33 @@ func (af *AppFilter) getDeviceLocales(ctx context.Context, fl *FilterList) error
 		stmt.Where("type = 'anr'")
 	}
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), af.AppID)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
-		msg := `failed to query app device locales`
-		fmt.Println(msg, err)
-		return err
+		return
 	}
 
 	for rows.Next() {
 		var locale string
-		if err := rows.Scan(&locale); err != nil {
-			return err
+		if err = rows.Scan(&locale); err != nil {
+			return
 		}
-		fl.DeviceLocales = append(fl.DeviceLocales, locale)
+		deviceLocales = append(deviceLocales, locale)
 	}
 
-	return rows.Err()
+	err = rows.Err()
+
+	return
 }
 
 // getDeviceManufacturers finds distinct values of app device
 // manufacturers from available events.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getDeviceManufacturers(ctx context.Context, fl *FilterList) error {
+func (af *AppFilter) getDeviceManufacturers(ctx context.Context) (deviceManufacturers []string, err error) {
 	stmt := sqlf.
 		From("default.events").
 		Select("distinct toString(attribute.device_manufacturer)").
-		Where("app_id = toUUID(?)")
+		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
 
@@ -620,33 +635,33 @@ func (af *AppFilter) getDeviceManufacturers(ctx context.Context, fl *FilterList)
 		stmt.Where("type = 'anr'")
 	}
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), af.AppID)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
-		msg := `failed to query app device manufacturers`
-		fmt.Println(msg, err)
-		return err
+		return
 	}
 
 	for rows.Next() {
 		var manufacturer string
-		if err := rows.Scan(&manufacturer); err != nil {
-			return err
+		if err = rows.Scan(&manufacturer); err != nil {
+			return
 		}
-		fl.DeviceManufacturers = append(fl.DeviceManufacturers, manufacturer)
+		deviceManufacturers = append(deviceManufacturers, manufacturer)
 	}
 
-	return rows.Err()
+	err = rows.Err()
+
+	return
 }
 
 // getDeviceNames finds distinct values of app device
 // names from available events.
 //
 // Additionally, filters `exception` and `anr` event types.
-func (af *AppFilter) getDeviceNames(ctx context.Context, fl *FilterList) error {
+func (af *AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, err error) {
 	stmt := sqlf.
 		From("default.events").
 		Select("distinct toString(attribute.device_name)").
-		Where("app_id = toUUID(?)")
+		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
 
@@ -663,20 +678,20 @@ func (af *AppFilter) getDeviceNames(ctx context.Context, fl *FilterList) error {
 		stmt.Where("type = 'anr'")
 	}
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), af.AppID)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
-		msg := `failed to query app device names`
-		fmt.Println(msg, err)
-		return err
+		return
 	}
 
 	for rows.Next() {
 		var name string
-		if err := rows.Scan(&name); err != nil {
-			return err
+		if err = rows.Scan(&name); err != nil {
+			return
 		}
-		fl.DeviceNames = append(fl.DeviceNames, name)
+		deviceNames = append(deviceNames, name)
 	}
 
-	return rows.Err()
+	err = rows.Err()
+
+	return
 }
