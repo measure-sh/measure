@@ -41,7 +41,7 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [**`memory_usage`**](#memory_usage)
     - [**`low_memory`**](#low_memory)
     - [**`trim_memory`**](#trim_memory)
-    - [**`navigation`**](#navigation)
+    - [**`androidx_navigation`**](#androidx_navigation)
 
 ## Resources
 
@@ -653,9 +653,9 @@ Use the `trim_memory` type for a trim memory event raised by Android.
 | level | string | No       | One of the constants from [ComponentCallbacks2](https://developer.android.com/reference/android/content/ComponentCallbacks2#constants_1) |
 
 
-#### **`navigation`**
+#### **`androidx_navigation`**
 
-Use the `navigation` type for navigation events.
+Use the `androidx_navigation` type for navigation events collected from AndroidX navigation library.
 
 | Field | Type   | Optional | Description            |
 | ----- | ------ | -------- | ---------------------- |
