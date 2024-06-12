@@ -38,7 +38,7 @@ export default function SessionReplayEventAccordion({
       return "bg-emerald-200 hover:bg-emerald-300 active:bg-emerald-400 focus-visible:outline-emerald-300"
     }
 
-    if (eventType === "navigation") {
+    if (eventType === "androidx_navigation") {
       return "bg-fuchsia-200 hover:bg-fuchsia-300 active:bg-fuchsia-400 focus-visible:outline-fuchsia-300"
     }
 
@@ -94,7 +94,7 @@ export default function SessionReplayEventAccordion({
       return 'App Exit: ' + eventDetails.reason
     }
 
-    if (eventType === "navigation") {
+    if (eventType === "androidx_navigation") {
       return 'Navigation: ' + eventDetails.route
     }
 
