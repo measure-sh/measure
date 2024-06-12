@@ -41,26 +41,24 @@ class ComposeNavigationCollectorTest {
         }
 
         // initial state
-        assertEquals(1, eventProcessor.getTrackedEventsByType(EventType.NAVIGATION).size)
-        assertEquals(
-            "home",
-            (eventProcessor.getTrackedEventsByType(EventType.NAVIGATION)[0].data as NavigationData).to,
-        )
+        val navigationEvents = eventProcessor.getTrackedEventsByType(EventType.NAVIGATION)
+        assertEquals(1, navigationEvents.size)
+        assertEquals(null, (navigationEvents[0].data as NavigationData).from)
+        assertEquals("home", (navigationEvents[0].data as NavigationData).to)
+        assertEquals("androidx-navigation", (navigationEvents[0].data as NavigationData).source)
 
         // forward navigation
         composeRule.onNodeWithText("Checkout").performClick()
-        assertEquals(2, eventProcessor.getTrackedEventsByType(EventType.NAVIGATION).size)
-        assertEquals(
-            "checkout",
-            (eventProcessor.getTrackedEventsByType(EventType.NAVIGATION)[1].data as NavigationData).to,
-        )
+        assertEquals(2, navigationEvents.size)
+        assertEquals("home", (navigationEvents[1].data as NavigationData).from)
+        assertEquals("checkout", (navigationEvents[1].data as NavigationData).to)
+        assertEquals("androidx-navigation", (navigationEvents[1].data as NavigationData).source)
 
         // back
         pressBack()
-        assertEquals(3, eventProcessor.getTrackedEventsByType(EventType.NAVIGATION).size)
-        assertEquals(
-            "home",
-            (eventProcessor.getTrackedEventsByType(EventType.NAVIGATION)[2].data as NavigationData).to,
-        )
+        assertEquals(3, navigationEvents.size)
+        assertEquals("checkout", (navigationEvents[2].data as NavigationData).from)
+        assertEquals("home", (navigationEvents[2].data as NavigationData).to)
+        assertEquals("androidx-navigation", (navigationEvents[2].data as NavigationData).source)
     }
 }
