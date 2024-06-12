@@ -10,10 +10,16 @@ import FilterPill from "./filter_pill";
 import { updateDateQueryParams } from "../utils/router_utils";
 import CreateApp from "./create_app";
 
+export enum AppVersionsInitialSelectionType {
+  Latest,
+  All
+}
+
 interface FiltersProps {
   teamId: string,
   appId?: string,
   filtersApiType: FiltersApiType,
+  appVersionsInitialSelectionType: AppVersionsInitialSelectionType,
   showCountries: boolean
   showNetworkProviders: boolean
   showNetworkTypes: boolean
@@ -58,6 +64,7 @@ const Filters: React.FC<FiltersProps> = ({
   teamId,
   appId,
   filtersApiType,
+  appVersionsInitialSelectionType,
   showCountries,
   showNetworkTypes,
   showNetworkProviders,
@@ -168,7 +175,12 @@ const Filters: React.FC<FiltersProps> = ({
 
         let versions = result.data.versions.map((v: { name: string; code: string; }) => new AppVersion(v.name, v.code))
         setVersions(versions)
-        setSelectedVersions(versions)
+
+        if (appVersionsInitialSelectionType === AppVersionsInitialSelectionType.All) {
+          setSelectedVersions(versions)
+        } else {
+          setSelectedVersions(versions.slice(0, 1))
+        }
 
         if (result.data.countries !== null) {
           setCountries(result.data.countries)
