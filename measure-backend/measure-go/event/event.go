@@ -343,9 +343,9 @@ type CPUUsage struct {
 }
 
 type Navigation struct {
-	From   string `json:"from" binding:"required"`
+	From   string `json:"from"`
 	To     string `json:"to" binding:"required"`
-	Source string `json:"source" binding:"required"`
+	Source string `json:"source"`
 }
 
 type EventField struct {
