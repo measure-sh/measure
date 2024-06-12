@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import { formatDateToHumanReadable, formatTimeToHumanReadable } from '../utils/time_utils';
 import CrashOrAnrGroupDetailsPlot from './crash_or_anr_group_details_plot';
-import Filters, { defaultSelectedFilters } from './filters';
+import Filters, { AppVersionsInitialSelectionType, defaultSelectedFilters } from './filters';
 import Journey, { JourneyType } from './journey';
 
 interface CrashOrAnrGroupDetailsProps {
@@ -83,6 +83,7 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
         teamId={teamId}
         appId={appId}
         filtersApiType={crashOrAnrType === CrashOrAnrType.Crash ? FiltersApiType.Crash : FiltersApiType.Anr}
+        appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
         showCountries={true}
         showNetworkTypes={true}
         showNetworkProviders={true}

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from 'next/navigation';
 import { CrashOrAnrGroupsApiStatus, CrashOrAnrType, FiltersApiType, emptyCrashOrAnrGroupsResponse, fetchCrashOrAnrGroupsFromServer } from '@/app/api/api_calls';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
-import Filters, { defaultSelectedFilters } from './filters';
+import Filters, { AppVersionsInitialSelectionType, defaultSelectedFilters } from './filters';
 import ExceptionsOverviewPlot from './exceptions_overview_plot';
 
 interface CrashOrAnrsOverviewProps {
@@ -82,6 +82,7 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
       <Filters
         teamId={teamId}
         filtersApiType={crashOrAnrType === CrashOrAnrType.Crash ? FiltersApiType.Crash : FiltersApiType.Anr}
+        appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
         showCountries={false}
         showNetworkTypes={false}
         showNetworkProviders={false}

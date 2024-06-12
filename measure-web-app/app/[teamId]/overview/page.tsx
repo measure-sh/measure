@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Journey, { JourneyType } from "@/app/components/journey";
 import MetricsOverview from '@/app/components/metrics_overview';
 import { FiltersApiType } from '@/app/api/api_calls';
-import Filters, { defaultSelectedFilters } from '@/app/components/filters';
+import Filters, { AppVersionsInitialSelectionType, defaultSelectedFilters } from '@/app/components/filters';
 
 export default function Overview({ params }: { params: { teamId: string } }) {
   const [selectedFilters, setSelectedFilters] = useState(defaultSelectedFilters);
@@ -18,6 +18,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
       <Filters
         teamId={params.teamId}
         filtersApiType={FiltersApiType.All}
+        appVersionsInitialSelectionType={AppVersionsInitialSelectionType.Latest}
         showCountries={false}
         showNetworkTypes={false}
         showNetworkProviders={false}
