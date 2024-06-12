@@ -31,7 +31,7 @@ create table if not exists default.events
   `attribute.os_name` FixedString(32) comment 'name of the operating system',
   `attribute.os_version` FixedString(32) comment 'version of the operating system',
   `attribute.network_type` LowCardinality(FixedString(16)) comment 'either - wifi, cellular, vpn, unknown, no_network',
-  `attribute.network_generation` LowCardinality(FixedString(8)) comment 'either - 2g, 3g, 4g, 5g',
+  `attribute.network_generation` LowCardinality(FixedString(8)) comment 'either - 2g, 3g, 4g, 5g, unknown',
   `attribute.network_provider` FixedString(64) comment 'name of the network service provider',
   `anr.handled` Bool comment 'anr was handled by the application code',
   `anr.fingerprint` FixedString(16) comment 'fingerprint for anr similarity classification',

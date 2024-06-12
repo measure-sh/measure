@@ -80,6 +80,7 @@ const NetworkGenerationUnknown = "unknown"
 const NetworkTypeCellular = "cellular"
 const NetworkTypeWifi = "wifi"
 const NetworkTypeVpn = "vpn"
+const NetworkTypeNoNetwork = "no_network"
 const NetworkTypeUnknown = "unknown"
 
 const LifecycleActivityTypeCreated = "created"
@@ -130,6 +131,7 @@ var ValidNetworkTypes = []string{
 	NetworkTypeCellular,
 	NetworkTypeWifi,
 	NetworkTypeVpn,
+	NetworkTypeNoNetwork,
 	NetworkTypeUnknown,
 }
 
