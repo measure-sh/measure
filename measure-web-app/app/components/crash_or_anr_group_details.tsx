@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Accordion from "@/app/components/accordion";
-import UserFlowCrashOrAnrGroupDetails from "@/app/components/user_flow_crash_details";
 import Link from "next/link";
 import { CrashOrAnrGroupDetailsApiStatus, CrashOrAnrType, emptyCrashGroupDetailsResponse, emptyAnrGroupDetailsResponse, fetchCrashOrAnrGroupDetailsFromServer, FiltersApiType } from '@/app/api/api_calls';
 import { useRouter } from 'next/navigation';
