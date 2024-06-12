@@ -20,5 +20,5 @@ internal object EventType {
     const val LOW_MEMORY: String = "low_memory"
     const val TRIM_MEMORY: String = "trim_memory"
     const val CPU_USAGE: String = "cpu_usage"
-    const val NAVIGATION: String = "navigation"
+    const val ANDROIDX_NAVIGATION: String = "androidx_navigation"
 }

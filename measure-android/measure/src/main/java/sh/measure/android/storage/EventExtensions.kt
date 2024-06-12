@@ -1,6 +1,5 @@
 package sh.measure.android.storage
 
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import sh.measure.android.appexit.AppExit
@@ -125,7 +124,7 @@ internal fun <T> Event<T>.serializeDataToString(): String {
             Json.encodeToString(CpuUsageData.serializer(), data as CpuUsageData)
         }
 
-        EventType.NAVIGATION -> {
+        EventType.ANDROIDX_NAVIGATION -> {
             Json.encodeToString(NavigationData.serializer(), data as NavigationData)
         }
 

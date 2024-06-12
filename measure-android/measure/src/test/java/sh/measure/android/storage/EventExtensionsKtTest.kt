@@ -86,7 +86,7 @@ class EventExtensionsKtTest {
         val cpuUsageEvent = FakeEventFactory.getCpuUsageData().toEvent(type = EventType.CPU_USAGE)
         assert(cpuUsageEvent.serializeDataToString().isNotEmpty())
 
-        val navigationEvent = FakeEventFactory.getNavigationData().toEvent(type = EventType.NAVIGATION)
+        val navigationEvent = FakeEventFactory.getNavigationData().toEvent(type = EventType.ANDROIDX_NAVIGATION)
         assert(navigationEvent.serializeDataToString().isNotEmpty())
 
         val lowMemoryEvent = FakeEventFactory.getLowMemoryData().toEvent(type = EventType.LOW_MEMORY)

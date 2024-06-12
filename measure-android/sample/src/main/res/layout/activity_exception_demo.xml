@@ -64,7 +64,7 @@
             android:id="@+id/btn_compose_navigation"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/compose_navigation" />
+            android:text="@string/androidx_navigation" />
 
         <Button
             android:id="@+id/btn_view_screenshot"

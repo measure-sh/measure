@@ -41,26 +41,26 @@ class ComposeNavigationCollectorTest {
         }
 
         // initial state
-        assertEquals(1, eventProcessor.getTrackedEventsByType(EventType.NAVIGATION).size)
+        assertEquals(1, eventProcessor.getTrackedEventsByType(EventType.ANDROIDX_NAVIGATION).size)
         assertEquals(
             "home",
-            (eventProcessor.getTrackedEventsByType(EventType.NAVIGATION)[0].data as NavigationData).route,
+            (eventProcessor.getTrackedEventsByType(EventType.ANDROIDX_NAVIGATION)[0].data as NavigationData).route,
         )
 
         // forward navigation
         composeRule.onNodeWithText("Checkout").performClick()
-        assertEquals(2, eventProcessor.getTrackedEventsByType(EventType.NAVIGATION).size)
+        assertEquals(2, eventProcessor.getTrackedEventsByType(EventType.ANDROIDX_NAVIGATION).size)
         assertEquals(
             "checkout",
-            (eventProcessor.getTrackedEventsByType(EventType.NAVIGATION)[1].data as NavigationData).route,
+            (eventProcessor.getTrackedEventsByType(EventType.ANDROIDX_NAVIGATION)[1].data as NavigationData).route,
         )
 
         // back
         pressBack()
-        assertEquals(3, eventProcessor.getTrackedEventsByType(EventType.NAVIGATION).size)
+        assertEquals(3, eventProcessor.getTrackedEventsByType(EventType.ANDROIDX_NAVIGATION).size)
         assertEquals(
             "home",
-            (eventProcessor.getTrackedEventsByType(EventType.NAVIGATION)[2].data as NavigationData).route,
+            (eventProcessor.getTrackedEventsByType(EventType.ANDROIDX_NAVIGATION)[2].data as NavigationData).route,
         )
     }
 }

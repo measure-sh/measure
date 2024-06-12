@@ -8,7 +8,7 @@
     <string name="deadlock">Deadlock</string>
     <string name="okhttp">OkHttp</string>
     <string name="compose">Compose</string>
-    <string name="compose_navigation">Compose Navigation</string>
+    <string name="androidx_navigation">AndroidX Navigation</string>
     <string name="title_activity_compose_navigation">ComposeNavigation</string>
     <string name="title_activity_view_screenshot">ViewScreenshot</string>
     <string name="title_activity_compose_screenshot">ComposeScreenshot</string>

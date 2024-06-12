@@ -49,7 +49,7 @@ private class MeasureNavigationObserver(
                 val timeProvider = Measure.getTimeProvider() ?: return@let
                 val eventProcessor = Measure.getEventProcessor() ?: return@let
                 eventProcessor.track(
-                    type = EventType.NAVIGATION,
+                    type = EventType.ANDROIDX_NAVIGATION,
                     timestamp = timeProvider.currentTimeSinceEpochInMillis,
                     data = NavigationData(it),
                 )
