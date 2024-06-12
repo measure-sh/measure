@@ -96,7 +96,7 @@ export default function SessionReplayEventAccordion({
     }
 
     if (eventType === "navigation") {
-      return 'Navigation: ' + eventDetails.route
+      return 'Navigation: ' + eventDetails.to
     }
 
     if (eventType === "cold_launch") {
