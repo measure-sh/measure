@@ -444,8 +444,8 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 		With("timings",
 			sqlf.From("default.events").
 				Select("type, cold_launch.duration, warm_launch.duration, hot_launch.duration, attribute.app_version, attribute.app_build").
-				Where("app_id = ?", nil).
-				Where("timestamp >= ? and timestamp <= ?", nil, nil).
+				Where("app_id = ?", af.AppID).
+				Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
 				Where("(type = 'cold_launch' or type = 'warm_launch' or type = 'hot_launch')")).
 		With("cold",
 			sqlf.From("timings").
@@ -464,19 +464,19 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 				Select("round(quantile(0.95)(cold_launch.duration), 2) as cold_launch").
 				Where("type = 'cold_launch'").
 				Where("cold_launch.duration > 0").
-				Where("attribute.app_version = ? and attribute.app_build = ?", nil, nil)).
+				Where("attribute.app_version = ? and attribute.app_build = ?", af.Versions[0], af.VersionCodes[0])).
 		With("warm_selected",
 			sqlf.From("timings").
 				Select("round(quantile(0.95)(warm_launch.duration), 2) as warm_launch").
 				Where("type = 'warm_launch'").
 				Where("warm_launch.duration > 0").
-				Where("attribute.app_version = ? and attribute.app_build = ?", nil, nil)).
+				Where("attribute.app_version = ? and attribute.app_build = ?", af.Versions[0], af.VersionCodes[0])).
 		With("hot_selected",
 			sqlf.From("timings").
 				Select("round(quantile(0.95)(hot_launch.duration), 2) as hot_launch").
 				Where("type = 'hot_launch'").
 				Where("hot_launch.duration > 0").
-				Where("attribute.app_version = ? and attribute.app_build = ?", nil, nil)).
+				Where("attribute.app_version = ? and attribute.app_build = ?", af.Versions[0], af.VersionCodes[0])).
 		Select("cold_selected.cold_launch as cold_launch_p95").
 		Select("warm_selected.warm_launch as warm_launch_p95").
 		Select("hot_selected.hot_launch as hot_launch_p95").
@@ -487,11 +487,7 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 
 	defer stmt.Close()
 
-	version := af.Versions[0]
-	code := af.VersionCodes[0]
-	args := []any{a.ID, af.From, af.To, version, code, version, code, version, code}
-
-	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), args...).Scan(&launch.ColdLaunchP95, &launch.WarmLaunchP95, &launch.HotLaunchP95, &launch.ColdDelta, &launch.WarmDelta, &launch.ColdDelta); err != nil {
+	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&launch.ColdLaunchP95, &launch.WarmLaunchP95, &launch.HotLaunchP95, &launch.ColdDelta, &launch.WarmDelta, &launch.ColdDelta); err != nil {
 		return nil, err
 	}
 
