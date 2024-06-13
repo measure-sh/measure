@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 	"measure-backend/measure-go/server"
-	"strings"
+	"measure-backend/measure-go/text"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -126,6 +127,12 @@ type FilterList struct {
 	DeviceNames         []string `json:"device_names"`
 }
 
+// Versions represents a list of combined
+// versions and version codes.
+type Versions struct {
+	Names, Codes []string
+}
+
 // Validate validates each app filtering parameter and sets
 // defaults for unspecified parameters. Returns error if any
 // parameter is invalid or incomplete.
@@ -166,9 +173,16 @@ func (af *AppFilter) Validate() error {
 // ValidateVersions validates presence of valid
 // version name and version code.
 func (af *AppFilter) ValidateVersions() error {
-	if len(af.Versions) < 1 || len(af.VersionCodes) < 1 {
-		return fmt.Errorf(`version and version code is required`)
+	presence := len(af.Versions) > 0 && len(af.VersionCodes) > 0
+	arity := len(af.Versions) == len(af.VersionCodes)
+
+	if !presence {
+		return fmt.Errorf(`%q and %q both are required`, "versions", "version_codes")
 	}
+	if !arity {
+		return fmt.Errorf(`%q and %q both should be of same length`, "versions", "version_codes")
+	}
+
 	return nil
 }
 
@@ -176,57 +190,39 @@ func (af *AppFilter) ValidateVersions() error {
 // of strings
 func (af *AppFilter) Expand() {
 	if len(af.Versions) > 0 {
-		versions := af.Versions[0]
-		versions = strings.TrimSpace(versions)
-		af.Versions = strings.Split(versions, ",")
+		af.Versions = text.SplitTrimEmpty(af.Versions[0], ",")
 	}
 
 	if len(af.VersionCodes) > 0 {
-		codes := af.VersionCodes[0]
-		codes = strings.TrimSpace(codes)
-		af.VersionCodes = strings.Split(codes, ",")
+		af.VersionCodes = text.SplitTrimEmpty(af.VersionCodes[0], ",")
 	}
 
 	if len(af.Countries) > 0 {
-		countries := af.Countries[0]
-		countries = strings.TrimSpace(countries)
-		af.Countries = strings.Split(countries, ",")
+		af.Countries = text.SplitTrimEmpty(af.Countries[0], ",")
 	}
 
 	if len(af.DeviceNames) > 0 {
-		deviceNames := af.DeviceNames[0]
-		deviceNames = strings.TrimSpace(deviceNames)
-		af.DeviceNames = strings.Split(deviceNames, ",")
+		af.DeviceNames = text.SplitTrimEmpty(af.DeviceNames[0], ",")
 	}
 
 	if len(af.DeviceManufacturers) > 0 {
-		deviceManufacturers := af.DeviceManufacturers[0]
-		deviceManufacturers = strings.TrimSpace(deviceManufacturers)
-		af.DeviceManufacturers = strings.Split(deviceManufacturers, ",")
+		af.DeviceManufacturers = text.SplitTrimEmpty(af.DeviceManufacturers[0], ",")
 	}
 
 	if len(af.Locales) > 0 {
-		locales := af.Locales[0]
-		locales = strings.TrimSpace(locales)
-		af.Locales = strings.Split(locales, ",")
+		af.Locales = text.SplitTrimEmpty(af.Locales[0], ",")
 	}
 
 	if len(af.NetworkProviders) > 0 {
-		networkProviders := af.NetworkProviders[0]
-		networkProviders = strings.TrimSpace(networkProviders)
-		af.NetworkProviders = strings.Split(networkProviders, ",")
+		af.NetworkProviders = text.SplitTrimEmpty(af.NetworkProviders[0], ",")
 	}
 
 	if len(af.NetworkTypes) > 0 {
-		networkTypes := af.NetworkTypes[0]
-		networkTypes = strings.TrimSpace(networkTypes)
-		af.NetworkTypes = strings.Split(networkTypes, ",")
+		af.NetworkTypes = text.SplitTrimEmpty(af.NetworkTypes[0], ",")
 	}
 
 	if len(af.NetworkGenerations) > 0 {
-		networkGenerations := af.NetworkGenerations[0]
-		networkGenerations = strings.TrimSpace(networkGenerations)
-		af.NetworkGenerations = strings.Split(networkGenerations, ",")
+		af.NetworkGenerations = text.SplitTrimEmpty(af.NetworkGenerations[0], ",")
 	}
 }
 
@@ -356,7 +352,7 @@ func (af *AppFilter) hasKeyTimestamp() bool {
 //
 // Additionally, filters for `exception` and `anr` event
 // types.
-func (af *AppFilter) getAppVersions(ctx context.Context) (versions []string, versionCodes []string, err error) {
+func (af *AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes []string, err error) {
 	stmt := sqlf.
 		From("default.events").
 		Select("distinct toString(attribute.app_version), toString(attribute.app_build)").
@@ -698,6 +694,33 @@ func (af *AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, 
 	}
 
 	err = rows.Err()
+
+	return
+}
+
+// GetExcludedVersions computes list of app version
+// and version codes that are excluded from app filter.
+func (af *AppFilter) GetExcludedVersions(ctx context.Context) (versions Versions, err error) {
+	allVersions, allCodes, err := af.getAppVersions(ctx)
+	if err != nil {
+		return
+	}
+
+	count := len(allVersions)
+
+	if count != len(allCodes) {
+		err = fmt.Errorf("mismatch in length of versions and version codes detected")
+		return
+	}
+
+	for i := 0; i < count; i++ {
+		if !slices.Contains(af.Versions, allVersions[i]) {
+			versions.Names = append(versions.Names, allVersions[i])
+		}
+		if !slices.Contains(af.VersionCodes, allCodes[i]) {
+			versions.Codes = append(versions.Codes, allCodes[i])
+		}
+	}
 
 	return
 }
