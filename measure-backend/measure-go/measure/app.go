@@ -438,8 +438,32 @@ func (a App) GetAdoptionMetrics(ctx context.Context, af *filter.AppFilter) (adop
 	return
 }
 
-func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch *metrics.LaunchMetric, err error) {
+// GetLaunchMetrics computes cold, warm and hot launch percentiles
+// and deltas while respecting all applicable app filters.
+// If at least 1 version pair exists, then delta is computed
+// between launch metric values of selected versions and
+// launch metric values of unselected versions.
+func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter, versions filter.Versions) (launch *metrics.LaunchMetric, err error) {
 	launch = &metrics.LaunchMetric{}
+
+	coldStmt := sqlf.From("timings").
+		Select("round(quantile(0.95)(cold_launch.duration), 2) as cold_launch").
+		Where("type = 'cold_launch' and cold_launch.duration > 0")
+
+	warmStmt := sqlf.From("timings").
+		Select("round(quantile(0.95)(warm_launch.duration), 2) as warm_launch").
+		Where("type = 'warm_launch' and warm_launch.duration > 0")
+
+	hotStmt := sqlf.From("timings").
+		Select("round(quantile(0.95)(hot_launch.duration), 2) as hot_launch").
+		Where("type = 'hot_launch' and hot_launch.duration > 0")
+
+	if versions.HasVersions() {
+		coldStmt.Where("attribute.app_version in ? and attribute.app_build in ?", versions.Versions(), versions.Codes())
+		warmStmt.Where("attribute.app_version in ? and attribute.app_build in ?", versions.Versions(), versions.Codes())
+		hotStmt.Where("attribute.app_version in ? and attribute.app_build in ?", versions.Versions(), versions.Codes())
+	}
+
 	stmt := sqlf.
 		With("timings",
 			sqlf.From("default.events").
@@ -447,36 +471,27 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 				Where("app_id = ?", af.AppID).
 				Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
 				Where("(type = 'cold_launch' or type = 'warm_launch' or type = 'hot_launch')")).
-		With("cold",
-			sqlf.From("timings").
-				Select("round(quantile(0.95)(cold_launch.duration), 2) as cold_launch").
-				Where("type = 'cold_launch' and cold_launch.duration > 0")).
-		With("warm",
-			sqlf.From("timings").
-				Select("round(quantile(0.95)(warm_launch.duration), 2) as warm_launch").
-				Where("type = 'warm_launch' and warm_launch.duration > 0")).
-		With("hot",
-			sqlf.From("timings").
-				Select("round(quantile(0.95)(hot_launch.duration), 2) as hot_launch").
-				Where("type = 'hot_launch' and hot_launch.duration > 0")).
+		With("cold", coldStmt).
+		With("warm", warmStmt).
+		With("hot", hotStmt).
 		With("cold_selected",
 			sqlf.From("timings").
 				Select("round(quantile(0.95)(cold_launch.duration), 2) as cold_launch").
 				Where("type = 'cold_launch'").
 				Where("cold_launch.duration > 0").
-				Where("attribute.app_version = ? and attribute.app_build = ?", af.Versions[0], af.VersionCodes[0])).
+				Where("attribute.app_version in ? and attribute.app_build in ?", af.Versions, af.VersionCodes)).
 		With("warm_selected",
 			sqlf.From("timings").
 				Select("round(quantile(0.95)(warm_launch.duration), 2) as warm_launch").
 				Where("type = 'warm_launch'").
 				Where("warm_launch.duration > 0").
-				Where("attribute.app_version = ? and attribute.app_build = ?", af.Versions[0], af.VersionCodes[0])).
+				Where("attribute.app_version in ? and attribute.app_build in ?", af.Versions, af.VersionCodes)).
 		With("hot_selected",
 			sqlf.From("timings").
 				Select("round(quantile(0.95)(hot_launch.duration), 2) as hot_launch").
 				Where("type = 'hot_launch'").
 				Where("hot_launch.duration > 0").
-				Where("attribute.app_version = ? and attribute.app_build = ?", af.Versions[0], af.VersionCodes[0])).
+				Where("attribute.app_version in ? and attribute.app_build in ?", af.Versions, af.VersionCodes)).
 		Select("cold_selected.cold_launch as cold_launch_p95").
 		Select("warm_selected.warm_launch as warm_launch_p95").
 		Select("hot_selected.hot_launch as hot_launch_p95").
@@ -1703,7 +1718,16 @@ func GetAppMetrics(c *gin.Context) {
 
 	msg = `failed to fetch app metrics`
 
-	launch, err := app.GetLaunchMetrics(ctx, &af)
+	excludedVersions, err := af.GetExcludedVersions(ctx)
+	if err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	launch, err := app.GetLaunchMetrics(ctx, &af, excludedVersions)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
