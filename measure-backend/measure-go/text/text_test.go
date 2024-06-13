@@ -1,6 +1,9 @@
 package text
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestJoinNonEmptyStrings(t *testing.T) {
 	expected := "foo,bar"
@@ -19,5 +22,25 @@ func TestJoinNonEmptyStrings(t *testing.T) {
 	got = JoinNonEmptyStrings("", "foo", "", " bar ", "baz")
 	if expected != got {
 		t.Errorf("Expected %q, but got %q", expected, got)
+	}
+}
+
+func TestSplitTrimEmpty(t *testing.T) {
+	expected := []string{"foo", "bar", "baz"}
+	got := SplitTrimEmpty("foo,bar,baz", ",")
+	if !reflect.DeepEqual(expected, got) {
+		t.Errorf("Expected %v, but got %v", expected, got)
+	}
+
+	expected = []string{"foo", "bar", "baz"}
+	got = SplitTrimEmpty("  foo  ,  bar  , baz  ", ",")
+	if !reflect.DeepEqual(expected, got) {
+		t.Errorf("Expected %v, but got %v", expected, got)
+	}
+
+	expected = []string{"foo"}
+	got = SplitTrimEmpty("  foo,    ,,,,  ,,    ,,,, , , , ,   ,", ",")
+	if !reflect.DeepEqual(expected, got) {
+		t.Errorf("Expected %v, but got %v", expected, got)
 	}
 }
