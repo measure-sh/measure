@@ -299,6 +299,15 @@ const emptyCrashGroupDetails = {
         "title": "",
         "stacktrace": ""
     },
+    "attachments": [
+        {
+            "id": "",
+            "name": "",
+            "type": "",
+            "key": "",
+            "location": ""
+        }
+    ],
     "threads": [
         {
             "name": "",
@@ -354,6 +363,15 @@ const emptyAnrGroupDetails = {
         "title": "",
         "stacktrace": ""
     },
+    "attachments": [
+        {
+            "id": "",
+            "name": "",
+            "type": "",
+            "key": "",
+            "location": ""
+        }
+    ],
     "threads": [
         {
             "name": "",

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, ReactNode } from 'react'
 import FilterPill from './filter_pill'
 import { formatDateToHumanReadable, formatTimeToHumanReadable } from '../utils/time_utils'
 import { formatToCamelCase } from '../utils/string_utils'
+import Image from 'next/image';
 
 type SessionReplayEventAccordionpProps = {
   eventType: string
@@ -140,6 +141,29 @@ export default function SessionReplayEventAccordion({
     }).join('\n');
   }
 
+  function getAttachmentsFromEventDetails(): ReactNode {
+    if (eventDetails.attachments !== undefined && eventDetails.attachments !== null && eventDetails.attachments.length > 0) {
+      // Return screenshots for exceptions
+      if (eventType === 'exception' || eventType === 'anr') {
+        return (
+          <div className='flex flex-wrap gap-8 p-4 items-center'>
+            {eventDetails.attachments.map((attachment: {
+              key: string, location: string
+            }, index: number) => (
+              <Image
+                key={attachment.key}
+                className='border border-black'
+                src={attachment.location}
+                width={200}
+                height={200}
+                alt={`Screenshot ${index}`}
+              />
+            ))}
+          </div>)
+      }
+    }
+  }
+
   return (
     <div className={`border border-black rounded-md`}>
       <button className={`w-full p-4 outline-none rounded-t-md ${!accordionOpen ? 'rounded-b-md' : ''} font-display ${getColorFromEventType()} `}
@@ -161,7 +185,8 @@ export default function SessionReplayEventAccordion({
         aria-labelledby={`accordion-title-${id}`}
         className={`bg-neutral-950 selection:bg-yellow-200/50 grid text-left text-sm font-sans overflow-hidden transition-all duration-300 ease-in-out ${accordionOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
       >
-        <div className="overflow-hidden">
+        <div className="overflow-hidden flex flex-col">
+          {getAttachmentsFromEventDetails()}
           <p className="whitespace-pre-wrap p-4 text-white">
             {getBodyFromEventDetails(eventDetails)}
           </p>
