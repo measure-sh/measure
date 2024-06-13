@@ -127,10 +127,10 @@ type FilterList struct {
 	DeviceNames         []string `json:"device_names"`
 }
 
-// Versions represents a list of combined
-// versions and version codes.
+// Versions represents a list of
+// (version, code) pairs.
 type Versions struct {
-	Names, Codes []string
+	names, codes []string
 }
 
 // Validate validates each app filtering parameter and sets
@@ -714,13 +714,33 @@ func (af *AppFilter) GetExcludedVersions(ctx context.Context) (versions Versions
 	}
 
 	for i := 0; i < count; i++ {
-		if !slices.Contains(af.Versions, allVersions[i]) {
-			versions.Names = append(versions.Names, allVersions[i])
-		}
-		if !slices.Contains(af.VersionCodes, allCodes[i]) {
-			versions.Codes = append(versions.Codes, allCodes[i])
+		if !slices.Contains(af.Versions, allVersions[i]) && !slices.Contains(af.VersionCodes, allCodes[i]) {
+			versions.Add(allVersions[i], allCodes[i])
 		}
 	}
 
 	return
+}
+
+// Add adds a version name and code pair
+// to versions.
+func (v *Versions) Add(name, code string) {
+	v.names = append(v.names, name)
+	v.codes = append(v.codes, code)
+}
+
+// HasVersions returns true if at least
+// 1 (version, code) pair exists.
+func (v Versions) HasVersions() bool {
+	return len(v.names) > 0
+}
+
+// Versions gets the version names.
+func (v Versions) Versions() []string {
+	return v.names
+}
+
+// Codes gets the version codes.
+func (v Versions) Codes() []string {
+	return v.codes
 }
