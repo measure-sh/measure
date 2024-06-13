@@ -406,31 +406,31 @@ func (a App) GetPerceivedANRFreeMetrics(ctx context.Context, af *filter.AppFilte
 	return
 }
 
+// GetAdoptionMetrics computes adoption by computing sessions
+// for selected versions and sessions of all versions for an app.
 func (a App) GetAdoptionMetrics(ctx context.Context, af *filter.AppFilter) (adoption *metrics.SessionAdoption, err error) {
 	adoption = &metrics.SessionAdoption{}
 	stmt := sqlf.From("default.events").
 		With("all_sessions",
 			sqlf.From("default.events").
 				Select("session_id, attribute.app_version, attribute.app_build").
-				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, nil, nil, nil)).
+				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, af.AppID, af.From, af.To)).
 		With("all_versions",
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as all_app_versions")).
-		With("selected_version",
+		With("selected_versions",
 			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as selected_app_version").
-				Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil)).
-		Select("t1.all_app_versions as all_app_versions", nil).
-		Select("t2.selected_app_version as selected_app_version", nil).
-		Select("round((t2.selected_app_version/t1.all_app_versions) * 100, 2) as adoption").
-		From("all_versions as t1, selected_version as t2")
+				Select("count(distinct session_id) as selected_app_versions").
+				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes)).
+		Select("t1.all_app_versions as all_app_versions").
+		Select("t2.selected_app_versions as selected_app_versions").
+		Select("round((t2.selected_app_versions/t1.all_app_versions) * 100, 2) as adoption").
+		From("all_versions as t1, selected_versions as t2")
 
 	defer stmt.Close()
 
-	args := []any{a.ID, af.From, af.To, af.Versions[0], af.VersionCodes[0]}
-
-	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), args...).Scan(&adoption.AllVersions, &adoption.SelectedVersion, &adoption.Adoption); err != nil {
-		return nil, err
+	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&adoption.AllVersions, &adoption.SelectedVersion, &adoption.Adoption); err != nil {
+		return
 	}
 
 	adoption.SetNaNs()
