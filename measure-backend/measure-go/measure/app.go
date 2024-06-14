@@ -174,20 +174,25 @@ func (a App) GetANRGroups(af *filter.AppFilter) ([]group.ANRGroup, error) {
 	return groups, nil
 }
 
-func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter) (size *metrics.SizeMetric, err error) {
+// GetSizeMetrics computes app size of the selected app version
+// and delta size change between app size of the selected app version
+// and average size of unselected app versions.
+//
+// Computation bails out if there are no events for selected app
+// version.
+func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter, versions filter.Versions) (size *metrics.SizeMetric, err error) {
 	size = &metrics.SizeMetric{}
 	stmt := sqlf.Select("count(id) as count").
 		From("default.events").
-		Where("app_id = ?", nil).
-		Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil).
-		Where("timestamp >= ? and timestamp <= ?", nil, nil)
+		Where("app_id = ?", af.AppID).
+		Where("`attribute.app_version` = ? and `attribute.app_build` = ?", af.Versions[0], af.VersionCodes[0]).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
 	defer stmt.Close()
 
-	args := []any{a.ID, af.Versions[0], af.VersionCodes[0], af.From, af.To}
 	var count uint64
 
-	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), args...).Scan(&count); err != nil {
+	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&count); err != nil {
 		return nil, err
 	}
 
@@ -197,25 +202,41 @@ func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter) (size *me
 		return
 	}
 
+	avgSizeStmt := sqlf.PostgreSQL.
+		From("public.build_sizes").
+		Select("round(avg(build_size), 2) as average_size").
+		Where("app_id = ?", af.AppID)
+
+	if versions.HasVersions() {
+		var names []any
+		var codes []any
+
+		for _, v := range versions.Versions() {
+			names = append(names, v)
+		}
+
+		for _, v := range versions.Codes() {
+			codes = append(codes, v)
+		}
+
+		avgSizeStmt.
+			Where("version_name").In(names...).
+			Where("version_code").In(codes...)
+	}
+
 	sizeStmt := sqlf.PostgreSQL.
-		With("avg_size",
-			sqlf.PostgreSQL.From("public.build_sizes").
-				Select("round(avg(build_size), 2) as average_size").
-				Where("app_id = ?", nil)).
+		With("avg_size", avgSizeStmt).
 		Select("t1.average_size as average_app_size").
 		Select("t2.build_size as selected_app_size").
 		Select("(t2.build_size - t1.average_size) as delta").
 		From("avg_size as t1, public.build_sizes as t2").
-		Where("app_id = ?", nil).
-		Where("version_name = ?", nil).
-		Where("version_code = ?", nil)
+		Where("app_id = ?", af.AppID).
+		Where("version_name = ?", af.Versions[0]).
+		Where("version_code = ?", af.VersionCodes[0])
 
 	defer sizeStmt.Close()
 
-	args = []any{a.ID, a.ID, af.Versions[0], af.VersionCodes[0]}
-
-	ctx = context.Background()
-	if err := server.Server.PgPool.QueryRow(ctx, sizeStmt.String(), args...).Scan(&size.AverageAppSize, &size.SelectedAppSize, &size.Delta); err != nil {
+	if err := server.Server.PgPool.QueryRow(ctx, sizeStmt.String(), sizeStmt.Args()...).Scan(&size.AverageAppSize, &size.SelectedAppSize, &size.Delta); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		} else {
@@ -261,11 +282,6 @@ func (a App) GetCrashFreeMetrics(ctx context.Context, af *filter.AppFilter, vers
 		From("t1, t2, t3, t4")
 
 	defer stmt.Close()
-
-	// version := af.Versions[0]
-	// code := af.VersionCodes[0]
-
-	// args := []any{a.ID, af.From, af.To, version, code, version, code, version, code}
 
 	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&crashFree.CrashFreeSessions, &crashFree.Delta); err != nil {
 		return nil, err
@@ -1756,7 +1772,7 @@ func GetAppMetrics(c *gin.Context) {
 
 	var sizes *metrics.SizeMetric = nil
 	if !af.HasMultiVersions() {
-		sizes, err = app.GetSizeMetrics(ctx, &af)
+		sizes, err = app.GetSizeMetrics(ctx, &af, excludedVersions)
 		if err != nil {
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
