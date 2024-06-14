@@ -56,7 +56,6 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ appId, 
         let newPointIdToInstanceMap = new Map<String, number>()
         newPlot.forEach((item: any) => {
           item.data.forEach((subItem: any) => {
-            console.log(subItem.id + '  : ' + subItem.instances)
             newPointIdToInstanceMap.set(subItem.id, subItem.instances)
           })
         })
