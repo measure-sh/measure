@@ -226,43 +226,48 @@ func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter) (size *me
 	return
 }
 
-func (a App) GetCrashFreeMetrics(ctx context.Context, af *filter.AppFilter) (crashFree *metrics.CrashFreeSession, err error) {
+func (a App) GetCrashFreeMetrics(ctx context.Context, af *filter.AppFilter, versions filter.Versions) (crashFree *metrics.CrashFreeSession, err error) {
 	crashFree = &metrics.CrashFreeSession{}
+	stmtNotExceptions := sqlf.From("all_sessions").
+		Select("count(distinct session_id) as count_not_exception").
+		Where("`type` != 'exception'")
+
+	if versions.HasVersions() {
+		stmtNotExceptions.Where("attribute.app_version in ? and attribute.app_build in ?", versions.Versions(), versions.Codes())
+	}
+
 	stmt := sqlf.
 		With("all_sessions",
 			sqlf.From("default.events").
 				Select("session_id, attribute.app_version, attribute.app_build, type, exception.handled").
-				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, nil, nil, nil)).
+				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, af.AppID, af.From, af.To)).
 		With("t1",
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as total_sessions_selected").
-				Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil)).
+				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes)).
 		With("t2",
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as count_exception_selected").
 				Where("`type` = 'exception' and `exception.handled` = false").
-				Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil)).
-		With("t3",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as count_not_exception").
-				Where("`type` != 'exception'")).
+				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes)).
+		With("t3", stmtNotExceptions).
 		With("t4",
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as count_not_exception_selected").
 				Where("`type` != 'exception'").
-				Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil)).
+				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes)).
 		Select("round((1 - (t2.count_exception_selected / t1.total_sessions_selected)) * 100, 2) as crash_free_sessions").
 		Select("round(((t4.count_not_exception_selected - t3.count_not_exception) / t3.count_not_exception) * 100, 2) as delta").
 		From("t1, t2, t3, t4")
 
 	defer stmt.Close()
 
-	version := af.Versions[0]
-	code := af.VersionCodes[0]
+	// version := af.Versions[0]
+	// code := af.VersionCodes[0]
 
-	args := []any{a.ID, af.From, af.To, version, code, version, code, version, code}
+	// args := []any{a.ID, af.From, af.To, version, code, version, code, version, code}
 
-	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), args...).Scan(&crashFree.CrashFreeSessions, &crashFree.Delta); err != nil {
+	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&crashFree.CrashFreeSessions, &crashFree.Delta); err != nil {
 		return nil, err
 	}
 
@@ -1757,7 +1762,7 @@ func GetAppMetrics(c *gin.Context) {
 		}
 	}
 
-	crashFree, err := app.GetCrashFreeMetrics(ctx, &af)
+	crashFree, err := app.GetCrashFreeMetrics(ctx, &af, excludedVersions)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
