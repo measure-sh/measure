@@ -11,7 +11,7 @@ import org.mockito.Mockito.`when`
 import org.mockito.kotlin.verify
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
-import sh.measure.android.exporter.EventExporter
+import sh.measure.android.exporter.ExceptionExporter
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeEventFactory
 import sh.measure.android.fakes.FakeEventFactory.toEvent
@@ -30,7 +30,7 @@ internal class EventProcessorTest {
     private val idProvider = FakeIdProvider()
     private val sessionManager = FakeSessionManager()
     private val eventStore = FakeEventStore()
-    private val eventExporter = mock<EventExporter>()
+    private val exceptionExporter = mock<ExceptionExporter>()
     private val screenshotCollector = mock<ScreenshotCollector>()
     private val config = FakeConfigProvider()
     private val eventTransformer = object : EventTransformer {
@@ -44,7 +44,7 @@ internal class EventProcessorTest {
         idProvider = idProvider,
         sessionManager = sessionManager,
         attributeProcessors = emptyList(),
-        eventExporter = eventExporter,
+        exceptionExporter = exceptionExporter,
         screenshotCollector = screenshotCollector,
         configProvider = config,
         eventTransformer = eventTransformer,
@@ -154,7 +154,7 @@ internal class EventProcessorTest {
             idProvider = idProvider,
             sessionManager = sessionManager,
             attributeProcessors = listOf(attributeProcessor),
-            eventExporter = eventExporter,
+            exceptionExporter = exceptionExporter,
             screenshotCollector = screenshotCollector,
             configProvider = config,
             eventTransformer = eventTransformer,
@@ -180,7 +180,7 @@ internal class EventProcessorTest {
     }
 
     @Test
-    fun `given an event of type exception, stores and exports the event immediately`() {
+    fun `given an event of type exception, stores and triggers export`() {
         // Given
         val exceptionData = FakeEventFactory.getExceptionData()
         val timestamp = 9856564654L
@@ -195,11 +195,11 @@ internal class EventProcessorTest {
 
         // Then
         assertEquals(1, eventStore.trackedEvents.size)
-        verify(eventExporter).export(eventStore.trackedEvents.first())
+        verify(exceptionExporter).export()
     }
 
     @Test
-    fun `given an event of type ANR, stores and exports the event immediately`() {
+    fun `given an event of type ANR, stores and triggers export`() {
         // Given
         val exceptionData = FakeEventFactory.getExceptionData()
         val timestamp = 9856564654L
@@ -214,7 +214,7 @@ internal class EventProcessorTest {
 
         // Then
         assertEquals(1, eventStore.trackedEvents.size)
-        verify(eventExporter).export(eventStore.trackedEvents.first())
+        verify(exceptionExporter).export()
     }
 
     @Test
@@ -322,7 +322,7 @@ internal class EventProcessorTest {
             idProvider = idProvider,
             sessionManager = sessionManager,
             attributeProcessors = emptyList(),
-            eventExporter = eventExporter,
+            exceptionExporter = exceptionExporter,
             screenshotCollector = screenshotCollector,
             configProvider = config,
             eventTransformer = eventTransformer,
@@ -365,7 +365,7 @@ internal class EventProcessorTest {
             idProvider = idProvider,
             sessionManager = sessionManager,
             attributeProcessors = emptyList(),
-            eventExporter = eventExporter,
+            exceptionExporter = exceptionExporter,
             screenshotCollector = screenshotCollector,
             configProvider = config,
             eventTransformer = eventTransformer,

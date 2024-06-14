@@ -146,7 +146,9 @@ create table if not exists default.events
   `cpu_usage.stime` UInt64 comment 'execution time in kernel mode, in jiffies',
   `cpu_usage.cstime` UInt64 comment 'execution time in user mode with child processes, in jiffies',
   `cpu_usage.interval_config` UInt32 comment 'interval between two consecutive readings, in msec',
-  `navigation.route` FixedString(128) comment 'the destination route',
+  `navigation.to` FixedString(128) comment 'destination page or screen where the navigation led to',
+  `navigation.from` FixedString(128) comment 'source page or screen from where the navigation was triggered',
+  `navigation.source` FixedString(128) comment 'how the event was collected example a library or framework name',
   `attachments` String comment 'attachment metadata'
 )
 engine = MergeTree

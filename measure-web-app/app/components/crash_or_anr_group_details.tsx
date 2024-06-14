@@ -10,6 +10,7 @@ import { formatDateToHumanReadable, formatTimeToHumanReadable } from '../utils/t
 import CrashOrAnrGroupDetailsPlot from './crash_or_anr_group_details_plot';
 import Filters, { AppVersionsInitialSelectionType, defaultSelectedFilters } from './filters';
 import Journey, { JourneyType } from './journey';
+import Image from 'next/image';
 
 interface CrashOrAnrGroupDetailsProps {
   crashOrAnrType: CrashOrAnrType,
@@ -96,7 +97,7 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
       <div className="py-4" />
 
       {selectedFilters.ready &&
-        <div>
+        <div className='w-full'>
           <div className="py-6" />
           <div className="flex flex-col md:flex-row w-full">
             <CrashOrAnrGroupDetailsPlot
@@ -133,7 +134,7 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
                 deviceNames={selectedFilters.selectedDeviceNames} />
             </div>
           </div>
-          <div className="py-8" />
+          <div className="py-4" />
 
           {/* Error state for crash details fetch */}
           {crashOrAnrGroupDetailsApiStatus === CrashOrAnrGroupDetailsApiStatus.Error && <p className="text-lg font-display">Error fetching list of {crashOrAnrType === CrashOrAnrType.Crash ? 'crashes' : 'ANRs'}, please change filters, refresh page or select a different app to try again</p>}
@@ -142,7 +143,7 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
           {crashOrAnrGroupDetailsApiStatus === CrashOrAnrGroupDetailsApiStatus.Success && crashOrAnrGroupDetails.results === null && <p className="text-lg font-display">It seems there are no {crashOrAnrType === CrashOrAnrType.Crash ? 'Crashes' : 'ANRs'} for the current combination of filters. Please change filters to try again</p>}
 
           {(crashOrAnrGroupDetailsApiStatus === CrashOrAnrGroupDetailsApiStatus.Success || crashOrAnrGroupDetailsApiStatus === CrashOrAnrGroupDetailsApiStatus.Loading) && crashOrAnrGroupDetails.results !== null && crashOrAnrGroupDetails.results.length > 0 &&
-            <div>
+            <div className='flex flex-col'>
               <div className="flex flex-col md:flex-row md:items-center w-full">
                 <p className="font-sans text-3xl"> Stack traces</p>
                 <div className="grow" />
@@ -165,8 +166,23 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
               <p className="font-sans"> App version: {crashOrAnrGroupDetails.results[0].attribute.app_version}</p>
               <p className="font-sans"> Network type: {crashOrAnrGroupDetails.results[0].attribute.network_type}</p>
               <div className="py-2" />
-              <Link key={crashOrAnrGroupDetails.results[0].id} href={`/${teamId}/sessions/${appId}/${crashOrAnrGroupDetails.results[0].session_id}`} className="outline-none justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">View Session </Link>
-              <div className="py-4" />
+              {/* show screenshots if they exist */}
+              {crashOrAnrGroupDetails.results[0].attachments !== undefined && crashOrAnrGroupDetails.results[0].attachments !== null && crashOrAnrGroupDetails.results[0].attachments.length > 0 &&
+                <div className='flex flex-wrap gap-8 items-center'>
+                  {crashOrAnrGroupDetails.results[0].attachments.map((attachment, index) => (
+                    <Image
+                      key={attachment.key}
+                      className='border border-black transition ease-in-out duration-300 hover:-translate-y-1 hover:scale-[2.5]'
+                      src={attachment.location}
+                      width={100}
+                      height={100}
+                      alt={`Screenshot ${index}`}
+                    />
+                  ))}
+                </div>}
+              <div className="py-2" />
+              <Link key={crashOrAnrGroupDetails.results[0].id} href={`/${teamId}/sessions/${appId}/${crashOrAnrGroupDetails.results[0].session_id}`} className="outline-none justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">View Session </Link>
+              <div className="py-2" />
               {crashOrAnrType === CrashOrAnrType.Crash &&
                 <Accordion key='crash-thread' title={'Thread: ' + crashOrAnrGroupDetails.results[0].attribute.thread_name} id='crash' active={true}>
                   {(crashOrAnrGroupDetails as typeof emptyCrashGroupDetailsResponse).results[0].exception.stacktrace}

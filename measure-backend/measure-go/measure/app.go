@@ -988,7 +988,9 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`cpu_usage.stime`,
 		`cpu_usage.cstime`,
 		`cpu_usage.interval_config`,
-		`toString(navigation.route)`,
+		`toString(navigation.to)`,
+		`toString(navigation.from)`,
+		`toString(navigation.source)`,
 	}
 
 	stmt := sqlf.From("default.events")
@@ -1230,7 +1232,9 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&cpuUsage.IntervalConfig,
 
 			// navigation
-			&navigation.Route,
+			&navigation.To,
+			&navigation.From,
+			&navigation.Source,
 		}
 
 		if err := rows.Scan(dest...); err != nil {

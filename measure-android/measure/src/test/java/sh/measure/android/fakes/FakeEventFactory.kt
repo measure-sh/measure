@@ -274,8 +274,12 @@ internal object FakeEventFactory {
         return TrimMemoryData(level)
     }
 
-    fun getNavigationData(route: String = "profile"): NavigationData {
-        return NavigationData(route)
+    fun getNavigationData(
+        source: String? = "source",
+        to: String = "profile",
+        from: String = "home",
+    ): NavigationData {
+        return NavigationData(source = source, from = from, to = to)
     }
 
     fun getCpuUsageData(

@@ -47,7 +47,9 @@ const (
 	maxHttpMethodChars                        = 16
 	maxHttpClientChars                        = 32
 	maxTrimMemoryLevelChars                   = 64
-	maxRouteChars                             = 128
+	maxNavigationToChars                      = 128
+	maxNavigationFromChars                    = 128
+	maxNavigationSourceChars                  = 128
 )
 
 const TypeANR = "anr"
@@ -341,7 +343,9 @@ type CPUUsage struct {
 }
 
 type Navigation struct {
-	Route string `json:"route" binding:"required"`
+	From   string `json:"from"`
+	To     string `json:"to" binding:"required"`
+	Source string `json:"source"`
 }
 
 type EventField struct {
@@ -873,11 +877,14 @@ func (e *EventField) Validate() error {
 	}
 
 	if e.IsNavigation() {
-		if e.Navigation.Route == "" {
-			return fmt.Errorf(`%q must not be empty`, `navigation.route`)
+		if len(e.Navigation.To) > maxNavigationToChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `navigation.to`, maxNavigationToChars)
 		}
-		if len(e.Navigation.Route) > maxRouteChars {
-			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `navigation.route`, maxRouteChars)
+		if len(e.Navigation.From) > maxNavigationFromChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `navigation.from`, maxNavigationFromChars)
+		}
+		if len(e.Navigation.Source) > maxNavigationSourceChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `navigation.source`, maxNavigationSourceChars)
 		}
 	}
 

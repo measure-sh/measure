@@ -1,55 +1,85 @@
 package sh.measure.android.exporter
 
-import sh.measure.android.events.Event
-import sh.measure.android.executors.MeasureExecutorService
+import androidx.annotation.VisibleForTesting
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.Database
 import sh.measure.android.storage.FileStorage
-import sh.measure.android.utils.IdProvider
-import sh.measure.android.utils.TimeProvider
+import java.util.concurrent.CopyOnWriteArrayList
 
 /**
- * An interface for exporting an event to the server.
+ * Abstraction to run common functions for exporting of events and synchronizing different
+ * exporters like [PeriodicEventExporter] and [ExceptionExporter].
  */
 internal interface EventExporter {
-    fun <T> export(event: Event<T>)
+    fun createBatch(): BatchCreationResult?
+    fun getExistingBatches(): LinkedHashMap<String, MutableList<String>>
+    fun export(batchId: String, eventIds: List<String>)
 }
 
-/**
- * An implementation of [EventExporter] that exports an event to the server.
- *
- * Internally, this implementation creates a batch with a single event and its attachments and sends
- * it to the server.
- */
 internal class EventExporterImpl(
     private val logger: Logger,
     private val database: Database,
     private val fileStorage: FileStorage,
     private val networkClient: NetworkClient,
-    private val idProvider: IdProvider,
-    private val timeProvider: TimeProvider,
-    private val executorService: MeasureExecutorService,
+    private val batchCreator: BatchCreator,
 ) : EventExporter {
-    override fun <T> export(event: Event<T>) {
-        // Create a batch for the event synchronously to ensure that the event is not duplicated
-        // in another batch by [PeriodicEventExporter].
-        val batchId = idProvider.createId()
-        val batchCreated =
-            database.insertBatch(event.id, batchId, timeProvider.currentTimeSinceEpochInMillis)
-        if (batchCreated) {
-            val eventPacket = database.getEventPacket(event.id)
-            val attachmentPackets = database.getAttachmentPacket(event.id)
-            executorService.submit {
-                val exported =
-                    networkClient.execute(batchId, listOf(eventPacket), attachmentPackets)
-                if (exported) {
-                    database.deleteEvent(event.id)
-                    fileStorage.deleteEventIfExist(event.id, attachmentPackets.map { it.id })
-                }
+    private companion object {
+        const val MAX_EXISTING_BATCHES_TO_EXPORT = 30
+    }
+
+    @VisibleForTesting
+    internal val batchIdsInTransit = CopyOnWriteArrayList<String>()
+
+    override fun export(batchId: String, eventIds: List<String>) {
+        if (batchIdsInTransit.contains(batchId)) {
+            logger.log(LogLevel.Warning, "Batch $batchId is already in transit, skipping export")
+            return
+        }
+        batchIdsInTransit.add(batchId)
+        try {
+            val events = database.getEventPackets(eventIds)
+            if (events.isEmpty()) {
+                // shouldn't happen, but just in case it does we'd like to know.
+                logger.log(
+                    LogLevel.Error,
+                    "No events found for batch $batchId, invalid export request",
+                )
+                return
             }
+            val attachments = database.getAttachmentPackets(eventIds)
+            val isSuccessful = networkClient.execute(batchId, events, attachments)
+            handleBatchProcessingResult(isSuccessful, batchId, events, attachments)
+        } finally {
+            // always remove the batch from the list of batches in transit
+            batchIdsInTransit.remove(batchId)
+        }
+    }
+
+    override fun createBatch(): BatchCreationResult? {
+        return batchCreator.create()
+    }
+
+    override fun getExistingBatches(): LinkedHashMap<String, MutableList<String>> {
+        return database.getBatches(MAX_EXISTING_BATCHES_TO_EXPORT)
+    }
+
+    private fun handleBatchProcessingResult(
+        isSuccessful: Boolean,
+        batchId: String,
+        events: List<EventPacket>,
+        attachments: List<AttachmentPacket>,
+    ) {
+        if (isSuccessful) {
+            val eventIds = events.map { it.eventId }
+            database.deleteEvents(eventIds)
+            fileStorage.deleteEventsIfExist(eventIds, attachments.map { it.id })
+            logger.log(
+                LogLevel.Debug,
+                "Successfully sent batch $batchId",
+            )
         } else {
-            logger.log(LogLevel.Error, "Failed to create a batch for event ${event.id}")
+            logger.log(LogLevel.Error, "Failed to send batch $batchId")
         }
     }
 }
