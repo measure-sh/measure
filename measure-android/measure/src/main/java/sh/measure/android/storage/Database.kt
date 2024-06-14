@@ -5,7 +5,6 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteException
 import android.database.sqlite.SQLiteOpenHelper
-import androidx.annotation.VisibleForTesting
 import sh.measure.android.exporter.AttachmentPacket
 import sh.measure.android.exporter.EventPacket
 import sh.measure.android.logger.LogLevel
@@ -466,21 +465,5 @@ internal class DatabaseImpl(
     override fun close() {
         writableDatabase.close()
         super.close()
-    }
-
-    @VisibleForTesting
-    internal fun getEventsCount(): Int {
-        readableDatabase.rawQuery("SELECT COUNT(*) FROM ${EventTable.TABLE_NAME}", null).use {
-            it.moveToFirst()
-            return it.getInt(0)
-        }
-    }
-
-    @VisibleForTesting
-    internal fun getBatchesCount(): Int {
-        readableDatabase.rawQuery("SELECT COUNT(*) FROM ${EventsBatchTable.TABLE_NAME}", null).use {
-            it.moveToFirst()
-            return it.getInt(0)
-        }
     }
 }
