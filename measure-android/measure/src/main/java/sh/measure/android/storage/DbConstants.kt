@@ -178,7 +178,7 @@ internal object Sql {
         """
     }
 
-    fun getSessionsWhereAppExitIsNotTracked(): String {
+    fun getSessions(): String {
         return """
             SELECT
                 ${SessionsTable.COL_SESSION_ID},

@@ -440,7 +440,7 @@ internal class DatabaseImpl(
     }
 
     override fun getSessions(): List<Pair<String, Int>> {
-        readableDatabase.rawQuery(Sql.getSessionsWhereAppExitIsNotTracked(), null).use {
+        readableDatabase.rawQuery(Sql.getSessions(), null).use {
             val pairs = mutableListOf<Pair<String, Int>>()
             while (it.moveToNext()) {
                 val sessionIdIndex = it.getColumnIndex(SessionsTable.COL_SESSION_ID)
