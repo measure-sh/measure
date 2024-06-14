@@ -660,9 +660,11 @@ export const fetchJourneyFromServer = async (appId: string, journeyType: Journey
     const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate, UserInputDateType.To)
     url = url + `?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
 
-    // Append versions
-    url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
-    url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
+    // Append versions if present
+    if (appVersions.length > 0) {
+        url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
+        url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
+    }
 
     // Append bidirectional value
     url = url + `&bigraph=${bidirectional ? '1' : '0'}`
@@ -728,9 +730,11 @@ export const fetchMetricsFromServer = async (appId: string, startDate: string, e
 
     let url = `${origin}/apps/${appId}/metrics?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
 
-    // Append versions
-    url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
-    url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
+    // Append versions if present
+    if (appVersions.length > 0) {
+        url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
+        url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
+    }
 
     const res = await fetch(url, opts);
 
