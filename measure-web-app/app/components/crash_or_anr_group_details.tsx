@@ -97,7 +97,7 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
       <div className="py-4" />
 
       {selectedFilters.ready &&
-        <div>
+        <div className='w-full'>
           <div className="py-6" />
           <div className="flex flex-col md:flex-row w-full">
             <CrashOrAnrGroupDetailsPlot
