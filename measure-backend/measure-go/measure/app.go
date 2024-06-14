@@ -247,15 +247,12 @@ func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter, versions 
 	return
 }
 
+// GetCrashFreeMetrics computes crash free sessions percentage
+// of selected app versions and ratio of crash free sessions
+// percentage of selected app versions and crash free sessions
+// percentage of unselected app versions.
 func (a App) GetCrashFreeMetrics(ctx context.Context, af *filter.AppFilter, versions filter.Versions) (crashFree *metrics.CrashFreeSession, err error) {
 	crashFree = &metrics.CrashFreeSession{}
-	stmtNotExceptions := sqlf.From("all_sessions").
-		Select("count(distinct session_id) as count_not_exception").
-		Where("`type` != 'exception'")
-
-	if versions.HasVersions() {
-		stmtNotExceptions.Where("attribute.app_version in ? and attribute.app_build in ?", versions.Versions(), versions.Codes())
-	}
 
 	stmt := sqlf.
 		With("all_sessions",
@@ -270,21 +267,51 @@ func (a App) GetCrashFreeMetrics(ctx context.Context, af *filter.AppFilter, vers
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as count_exception_selected").
 				Where("`type` = 'exception' and `exception.handled` = false").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes)).
-		With("t3", stmtNotExceptions).
-		With("t4",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as count_not_exception_selected").
-				Where("`type` != 'exception'").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes)).
-		Select("round((1 - (t2.count_exception_selected / t1.total_sessions_selected)) * 100, 2) as crash_free_sessions").
-		Select("round(((t4.count_not_exception_selected - t3.count_not_exception) / t3.count_not_exception) * 100, 2) as delta").
-		From("t1, t2, t3, t4")
+				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes))
 
 	defer stmt.Close()
 
-	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&crashFree.CrashFreeSessions, &crashFree.Delta); err != nil {
-		return nil, err
+	dest := []any{&crashFree.CrashFreeSessions}
+	var crashFreeUnselected float64
+
+	if !versions.HasVersions() {
+		stmt.
+			Select("round((1 - (t2.count_exception_selected / t1.total_sessions_selected)) * 100, 2) as crash_free_sessions_selected").
+			From("t1, t2")
+	} else {
+		stmt.
+			With("t3",
+				sqlf.From("all_sessions").
+					Select("count(distinct session_id) as total_sessions_unselected").
+					Where("attribute.app_version in ? and attribute.app_build in ?", versions.Versions(), versions.Codes())).
+			With("t4", sqlf.From("all_sessions").
+				Select("count(distinct session_id) as count_exception_unselected").
+				Where("`type` = 'exception' and `exception.handled` = false").
+				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", versions.Versions(), versions.Codes())).
+			Select("round((1 - (t2.count_exception_selected / t1.total_sessions_selected)) * 100, 2) as crash_free_sessions_selected").
+			Select("round((1 - (t4.count_exception_unselected / t3.total_sessions_unselected)) * 100, 2) as crash_free_sessions_unselected").
+			From("t1, t2, t3, t4")
+
+		dest = append(dest, &crashFreeUnselected)
+	}
+
+	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(dest...); err != nil {
+		return
+	}
+
+	if versions.HasVersions() {
+		// avoid division by zero
+		if crashFreeUnselected != 0 {
+			crashFree.Delta = crashFree.CrashFreeSessions / crashFreeUnselected
+		}
+	} else {
+		// because if there are no unselected
+		// app versions, then:
+		// crash free sessions of unselected app versions = crash free sessions of selected app versions
+		// we always get 1 when we find the ratio between the two
+		if crashFree.CrashFreeSessions != 0 {
+			crashFree.Delta = 1
+		}
 	}
 
 	crashFree.SetNaNs()
