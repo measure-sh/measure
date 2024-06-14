@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { ResponsiveLine } from '@nivo/line'
-import { AppVersion, CrashOrAnrType, ExceptionsOverviewPlotApiStatus, emptyExceptionsOverviewPlotResponse, fetchExceptionsOverviewPlotFromServer } from '../api/api_calls';
+import { AppVersion, CrashOrAnrType, ExceptionsOverviewPlotApiStatus, fetchExceptionsOverviewPlotFromServer } from '../api/api_calls';
 import { useRouter } from 'next/navigation';
 import { formatDateToHumanReadable } from '../utils/time_utils';
 
@@ -14,11 +14,21 @@ interface ExceptionsOverviewPlotProps {
   appVersions: AppVersion[]
 }
 
+type ExceptionsOverviewPlot = {
+  id: string
+  data: {
+    id: string
+    x: string
+    y: number
+    instances: number
+  }[]
+}[]
+
 const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ appId, crashOrAnrType, startDate, endDate, appVersions }) => {
   const router = useRouter()
 
   const [exceptionsOverviewPlotApiStatus, setExceptionsOverviewPlotApiStatus] = useState(ExceptionsOverviewPlotApiStatus.Loading);
-  const [plot, setPlot] = useState(emptyExceptionsOverviewPlotResponse);
+  const [plot, setPlot] = useState<ExceptionsOverviewPlot>();
   const [pointIdToInstanceMap, setPointIdToInstanceMap] = useState(new Map<String, number>())
 
   const getExceptionsOverviewPlot = async () => {
@@ -76,7 +86,7 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ appId, 
       {exceptionsOverviewPlotApiStatus === ExceptionsOverviewPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
       {exceptionsOverviewPlotApiStatus === ExceptionsOverviewPlotApiStatus.Success &&
         <ResponsiveLine
-          data={plot}
+          data={plot!}
           curve="monotoneX"
           colors={{ scheme: 'nivo' }}
           margin={{ top: 40, right: 160, bottom: 120, left: 120 }}
