@@ -303,8 +303,8 @@ func (e eventreq) getUnhandledExceptions() (events []event.EventField) {
 	if !e.hasUnhandledExceptions() {
 		return
 	}
-	for i := range e.exceptionIds {
-		events = append(events, e.events[i])
+	for _, v := range e.exceptionIds {
+		events = append(events, e.events[v])
 	}
 	return
 }
@@ -314,8 +314,8 @@ func (e eventreq) getANRs() (events []event.EventField) {
 	if !e.hasANRs() {
 		return
 	}
-	for i := range e.anrIds {
-		events = append(events, e.events[i])
+	for _, v := range e.anrIds {
+		events = append(events, e.events[v])
 	}
 	return
 }
