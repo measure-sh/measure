@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { ResponsiveLine } from '@nivo/line'
-import { AppVersion, CrashOrAnrGroupDetailsPlotApiStatus, CrashOrAnrType, emptyCrashOrAnrGroupDetailsPlotResponse, fetchCrashOrAnrGroupDetailsPlotFromServer } from '../api/api_calls';
+import { AppVersion, CrashOrAnrGroupDetailsPlotApiStatus, CrashOrAnrType, fetchCrashOrAnrGroupDetailsPlotFromServer } from '../api/api_calls';
 import { useRouter } from 'next/navigation';
 import { formatDateToHumanReadable } from '../utils/time_utils';
 
@@ -22,11 +22,19 @@ interface CrashOrAnrGroupDetailsPlotProps {
   deviceNames: string[]
 }
 
+type ExceptionsDetailsPlot = {
+  id: string
+  data: {
+    x: string
+    y: number
+  }[]
+}[]
+
 const CrashOrAnrGroupDetailsPlot: React.FC<CrashOrAnrGroupDetailsPlotProps> = ({ appId, crashOrAnrType, crashOrAnrGroupId, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames }) => {
   const router = useRouter()
 
   const [crashOrAnrGroupDetailsPlotApiStatus, setCrashOrAnrGroupDetailsPlotApiStatus] = useState(CrashOrAnrGroupDetailsPlotApiStatus.Loading);
-  const [plot, setPlot] = useState(emptyCrashOrAnrGroupDetailsPlotResponse);
+  const [plot, setPlot] = useState<ExceptionsDetailsPlot>();
 
   const getCrashOrAnrGroupDetailsPlot = async () => {
     // Don't try to fetch plot if app id is not yet set
@@ -70,7 +78,7 @@ const CrashOrAnrGroupDetailsPlot: React.FC<CrashOrAnrGroupDetailsPlotProps> = ({
       {crashOrAnrGroupDetailsPlotApiStatus === CrashOrAnrGroupDetailsPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
       {crashOrAnrGroupDetailsPlotApiStatus === CrashOrAnrGroupDetailsPlotApiStatus.Success &&
         <ResponsiveLine
-          data={plot}
+          data={plot!}
           curve="monotoneX"
           colors={{ scheme: 'nivo' }}
           margin={{ top: 40, right: 160, bottom: 120, left: 120 }}

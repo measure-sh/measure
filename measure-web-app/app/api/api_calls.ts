@@ -391,31 +391,6 @@ export const emptyAnrGroupDetailsResponse = {
     "results": [] as typeof emptyAnrGroupDetails[]
 }
 
-export const emptyExceptionsOverviewPlotResponse = [
-    {
-        "id": "",
-        "data": [
-            {
-                "crash_free_sessions": 0,
-                "datetime": "",
-                "instances": 0
-            }
-        ]
-    }
-]
-
-export const emptyCrashOrAnrGroupDetailsPlotResponse = [
-    {
-        "id": "",
-        "data": [
-            {
-                "datetime": "",
-                "instances": 0
-            }
-        ]
-    }
-]
-
 export const defaultAuthzAndMembers = {
     "can_invite": [
         "viewer"
