@@ -108,7 +108,7 @@ export const CrashesOrAnrsOverview: React.FC<CrashOrAnrsOverviewProps> = ({ cras
       {selectedFilters.ready
         && (crashOrAnrGroupsApiStatus === CrashOrAnrGroupsApiStatus.Success || crashOrAnrGroupsApiStatus === CrashOrAnrGroupsApiStatus.Loading)
         && crashOrAnrGroups.results !== null &&
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center w-full">
           <div className="py-4" />
           <ExceptionsOverviewPlot
             appId={selectedFilters.selectedApp.id}
