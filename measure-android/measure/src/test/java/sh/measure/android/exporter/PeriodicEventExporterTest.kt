@@ -79,7 +79,7 @@ class PeriodicEventExporterTest {
 
     @Test
     fun `given existing batches are not available and last batch was not created recently, creates new batch and exports it, when app goes to background`() {
-        timeProvider.time = 5000
+        timeProvider.fakeUptimeMs = 5000
         periodicEventExporter.lastBatchCreationUptimeMs = 1000
         configProvider.eventsBatchingIntervalMs = 100
         `when`(eventExporter.getExistingBatches()).thenReturn(LinkedHashMap())
@@ -94,7 +94,7 @@ class PeriodicEventExporterTest {
 
     @Test
     fun `given existing batches are not available and last batch was created recently, does not export, when app goes to background`() {
-        timeProvider.time = 1000
+        timeProvider.fakeCurrentTimeSinceEpochInMillis = 1000
         periodicEventExporter.lastBatchCreationUptimeMs = 1500
         configProvider.eventsBatchingIntervalMs = 5000
         `when`(eventExporter.getExistingBatches()).thenReturn(LinkedHashMap())

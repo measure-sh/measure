@@ -115,23 +115,16 @@ internal interface Database : Closeable {
     fun insertSession(sessionId: String, pid: Int, createdAt: Long): Boolean
 
     /**
-     * Marks a session's app exit tracked property to true.
-     *
-     * @param sessionId the session ID for which the app exit has been tracked.
+     * Returns a map of process IDs to list of session IDs that were created by that process.
      */
-    fun deleteSession(sessionId: String)
-
-    /**
-     * Returns a list of session Id and process ID pairs for whom app exit has not yet been tracked.
-     */
-    fun getSessions(): List<Pair<String, Int>>
+    fun getSessionsForPids(): Map<Int, List<String>>
 
     /**
      * Cleans up old sessions that were created before the given time.
      *
-     * @param createdTime The time before which the sessions should be deleted.
+     * @param clearUpToTimeSinceEpoch The time before which the sessions should be deleted.
      */
-    fun clearOldSessions(createdTime: Long)
+    fun clearOldSessions(clearUpToTimeSinceEpoch: Long)
 }
 
 /**
@@ -430,17 +423,10 @@ internal class DatabaseImpl(
         return result != -1L
     }
 
-    override fun deleteSession(sessionId: String) {
-        writableDatabase.delete(
-            SessionsTable.TABLE_NAME,
-            "${SessionsTable.COL_SESSION_ID} = ?",
-            arrayOf(sessionId),
-        )
-    }
+    override fun getSessionsForPids(): Map<Int, List<String>> {
+        readableDatabase.rawQuery(Sql.getSessionsForPids(), null).use {
+            val pidToSessionsMap = linkedMapOf<Int, MutableList<String>>()
 
-    override fun getSessions(): List<Pair<String, Int>> {
-        readableDatabase.rawQuery(Sql.getSessions(), null).use {
-            val pairs = mutableListOf<Pair<String, Int>>()
             while (it.moveToNext()) {
                 val sessionIdIndex = it.getColumnIndex(SessionsTable.COL_SESSION_ID)
                 val pidIndex = it.getColumnIndex(SessionsTable.COL_PID)
@@ -448,17 +434,22 @@ internal class DatabaseImpl(
                 val sessionId = it.getString(sessionIdIndex)
                 val pid = it.getInt(pidIndex)
 
-                pairs.add(Pair(sessionId, pid))
+                if (pid in pidToSessionsMap) {
+                    pidToSessionsMap[pid]!!.add(sessionId)
+                } else {
+                    pidToSessionsMap[pid] = mutableListOf(sessionId)
+                }
             }
-            return pairs
+
+            return pidToSessionsMap
         }
     }
 
-    override fun clearOldSessions(createdTime: Long) {
+    override fun clearOldSessions(clearUpToTimeSinceEpoch: Long) {
         writableDatabase.delete(
             SessionsTable.TABLE_NAME,
             "${SessionsTable.COL_CREATED_AT} <= ?",
-            arrayOf(createdTime.toString()),
+            arrayOf(clearUpToTimeSinceEpoch.toString()),
         )
     }
 

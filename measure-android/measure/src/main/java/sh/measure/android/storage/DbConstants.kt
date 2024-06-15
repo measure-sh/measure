@@ -178,12 +178,13 @@ internal object Sql {
         """
     }
 
-    fun getSessions(): String {
+    fun getSessionsForPids(): String {
         return """
             SELECT
                 ${SessionsTable.COL_SESSION_ID},
                 ${SessionsTable.COL_PID}
             FROM ${SessionsTable.TABLE_NAME}
+            ORDER BY ${SessionsTable.COL_CREATED_AT} ASC
         """.trimIndent()
     }
 }

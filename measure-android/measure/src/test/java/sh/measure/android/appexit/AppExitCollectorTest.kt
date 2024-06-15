@@ -32,7 +32,7 @@ class AppExitCollectorTest {
 
     @Before
     fun setUp() {
-        `when`(sessionManager.sessionId).thenReturn("fake-session-id")
+        `when`(sessionManager.getSessionId()).thenReturn("fake-session-id")
     }
 
     @Test
@@ -49,7 +49,7 @@ class AppExitCollectorTest {
 
     @Test
     fun `given no sessions available, does not track anything`() {
-        `when`(sessionManager.getSessions()).thenReturn(emptyList())
+        `when`(sessionManager.getSessionsForPids()).thenReturn(emptyMap())
         appExitCollector.onColdLaunch()
 
         val appExit = AppExit(
@@ -71,10 +71,10 @@ class AppExitCollectorTest {
 
     @Test
     fun `given sessions are available, but no corresponding app exits, does not track anything`() {
-        val sessionId = sessionManager.sessionId
+        val sessionId = sessionManager.getSessionId()
         val pid = 7654
         appExitProvider.appExits = mapOf()
-        `when`(sessionManager.getSessions()).thenReturn(listOf(Pair(sessionId, pid)))
+        `when`(sessionManager.getSessionsForPids()).thenReturn(mapOf(pid to listOf(sessionId)))
 
         appExitCollector.onColdLaunch()
 
@@ -97,7 +97,7 @@ class AppExitCollectorTest {
             importance = "IMPORTANCE_VISIBLE",
         )
         appExitProvider.appExits = mapOf(pid to appExit)
-        `when`(sessionManager.getSessions()).thenReturn(listOf(Pair("session-id", 9876)))
+        `when`(sessionManager.getSessionsForPids()).thenReturn(mapOf(9999 to listOf("session-id")))
 
         appExitCollector.onColdLaunch()
 
@@ -111,7 +111,7 @@ class AppExitCollectorTest {
 
     @Test
     fun `given app exits are available and sessions have the corresponding pids, tracks the app exits`() {
-        val sessionId = sessionManager.sessionId
+        val sessionId = sessionManager.getSessionId()
         val pid = 7654
         val appExit = AppExit(
             reason = "REASON_USER_REQUESTED",
@@ -121,7 +121,7 @@ class AppExitCollectorTest {
             importance = "IMPORTANCE_VISIBLE",
         )
         appExitProvider.appExits = mapOf(pid to appExit)
-        `when`(sessionManager.getSessions()).thenReturn(listOf(Pair(sessionId, pid)))
+        `when`(sessionManager.getSessionsForPids()).thenReturn(mapOf(pid to listOf(sessionId)))
 
         appExitCollector.onColdLaunch()
 

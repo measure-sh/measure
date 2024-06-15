@@ -73,7 +73,7 @@ internal class EventProcessorTest {
             type = type,
             timestamp = timestamp.iso8601Timestamp(),
             id = idProvider.id,
-            sessionId = sessionManager.sessionId,
+            sessionId = sessionManager.getSessionId(),
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 
         assertEquals(1, eventStore.trackedEvents.size)
@@ -100,7 +100,7 @@ internal class EventProcessorTest {
             type = type,
             timestamp = timestamp.iso8601Timestamp(),
             id = idProvider.id,
-            sessionId = sessionManager.sessionId,
+            sessionId = sessionManager.getSessionId(),
             attachments = attachments,
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 
@@ -128,7 +128,7 @@ internal class EventProcessorTest {
             type = type,
             timestamp = timestamp.iso8601Timestamp(),
             id = idProvider.id,
-            sessionId = sessionManager.sessionId,
+            sessionId = sessionManager.getSessionId(),
             attributes = attributes,
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 
@@ -171,7 +171,7 @@ internal class EventProcessorTest {
             type = type,
             timestamp = timestamp.iso8601Timestamp(),
             id = idProvider.id,
-            sessionId = sessionManager.sessionId,
+            sessionId = sessionManager.getSessionId(),
             attributes = mutableMapOf("key" to "value"),
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 

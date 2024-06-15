@@ -564,25 +564,20 @@ class DatabaseTest {
         database.insertSession("session-id-2", 987, 700)
 
         database.clearOldSessions(600)
-        assertEquals(1, database.getSessions().size)
+        assertEquals(1, database.getSessionsForPids().size)
     }
 
     @Test
     fun `returns all sessions from sessions table`() {
         database.insertSession("session-id-1", 123, 500)
+        database.insertSession("session-id-1.1", 123, 500)
         database.insertSession("session-id-2", 987, 700)
+        database.insertSession("session-id-2.2", 987, 700)
 
-        val sessions = database.getSessions()
+        val sessions = database.getSessionsForPids()
         assertEquals(2, sessions.size)
-    }
-
-    @Test
-    fun `deletes session with given session ID`() {
-        val sessionId = "session-id-1"
-        database.insertSession(sessionId, 123, 500)
-
-        database.deleteSession(sessionId)
-        assertEquals(0, database.getSessions().size)
+        assertEquals(2, sessions[123]!!.size)
+        assertEquals(2, sessions[987]!!.size)
     }
 
     @Test

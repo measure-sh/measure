@@ -1,9 +1,9 @@
 package sh.measure.android
 
-import android.app.ApplicationExitInfo
-import sh.measure.android.SessionManagerImpl.Companion.MAX_SESSION_PERSISTENCE_TIME
-import sh.measure.android.appexit.AppExitCollector
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.executors.MeasureExecutorService
+import sh.measure.android.logger.LogLevel
+import sh.measure.android.logger.Logger
 import sh.measure.android.storage.Database
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.ProcessInfoProvider
@@ -13,76 +13,109 @@ internal interface SessionManager {
     /**
      * Returns the current session Id.
      */
-    val sessionId: String
+    fun getSessionId(): String
 
     /**
      * Returns a list of all sessions along with the process ID attached to the session.
      *
-     * @return A list of pairs where the first element is the session ID and the second element is
-     * the process ID.
+     * @return A map of process ID to list of session IDs that were created by that process.
      */
-    fun getSessions(): List<Pair<String, Int>>
+    fun getSessionsForPids(): Map<Int, List<String>>
 
     /**
-     * Deletes the session with given sessionId.
-     *
-     * @param sessionId The session ID to delete.
+     * Called when the app is backgrounded.
      */
-    fun deleteSession(sessionId: String)
+    fun onAppBackground()
+
+    /**
+     * Called when the app is foregrounded.
+     */
+    fun onAppForeground()
+
+    /**
+     * Clears old sessions from the database.
+     */
+    fun clearOldSessions()
 }
 
 /**
  * Manages creation of sessions.
  *
- * A session is created once and then kept in memory until the system kills the app.
- *
- * Sessions are also persisted to database and tied to a process ID. This is useful for
- * querying things like [ApplicationExitInfo]. See [AppExitCollector] for more details.
- *
- * Sessions are currently only used for tracking app exits by providing a link between the
- * session and the process ID. Sessions are deleted from database once the app exit for the session
- * has been tracked or if the session is older than [MAX_SESSION_PERSISTENCE_TIME].
+ * A new session is created when [getSessionId] is first called. A session ends when the app comes
+ * back to foreground after being in background for more than [BACKGROUND_DURATION_TO_END_SESSION_MS].
  */
 internal class SessionManagerImpl(
+    private val logger: Logger,
     private val idProvider: IdProvider,
     private val database: Database,
     private val executorService: MeasureExecutorService,
     private val processInfo: ProcessInfoProvider,
     private val timeProvider: TimeProvider,
+    private val configProvider: ConfigProvider,
 ) : SessionManager {
+    private var appBackgroundedUptimeMs = 0L
 
-    internal companion object {
-        // 15 days
-        const val MAX_SESSION_PERSISTENCE_TIME: Long = 1_296_000_000
+    @Volatile
+    internal var currentSessionId: String? = null
+
+    override fun getSessionId(): String {
+        if (currentSessionId == null) {
+            createNewSession()
+        }
+        return currentSessionId!!
     }
 
-    override val sessionId: String by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+    override fun getSessionsForPids(): Map<Int, List<String>> {
+        return database.getSessionsForPids()
+    }
+
+    override fun onAppBackground() {
+        appBackgroundedUptimeMs = timeProvider.uptimeInMillis
+    }
+
+    override fun onAppForeground() {
+        if (appBackgroundedUptimeMs == 0L || currentSessionId == null) {
+            // if the app was never in background or a session was never created, return early.
+            return
+        }
+        endSessionIfNeeded()
+    }
+
+    // Ending a session currently means immediately creating a new session. This can be used to
+    // clear up resources associated with a session in future or take any other action.
+    private fun endSessionIfNeeded() {
+        val durationInBackground = timeProvider.uptimeInMillis - appBackgroundedUptimeMs
+        if (durationInBackground >= configProvider.defaultSessionEndThresholdMs) {
+            logger.log(
+                LogLevel.Debug,
+                "Ending session as app was relaunched after being in background for $durationInBackground ms",
+            )
+            createNewSession()
+        }
+    }
+
+    override fun clearOldSessions() {
+        executorService.submit {
+            val clearUpToTimeSinceEpoch =
+                timeProvider.currentTimeSinceEpochInMillis - configProvider.defaultSessionsTableTtlMs
+            database.clearOldSessions(clearUpToTimeSinceEpoch)
+        }
+    }
+
+    private fun createNewSession() {
         val id = idProvider.createId()
+        currentSessionId = id
         executorService.submit {
             storeSessionId(id)
-            clearOldSessions()
         }
-        return@lazy id
+        logger.log(LogLevel.Debug, "New session created with ID: $currentSessionId")
     }
 
-    override fun getSessions(): List<Pair<String, Int>> {
-        return database.getSessions()
-    }
-
-    override fun deleteSession(sessionId: String) {
-        database.deleteSession(sessionId)
-    }
-
-    private fun clearOldSessions() {
-        database.clearOldSessions(timeProvider.currentTimeSinceEpochInMillis - MAX_SESSION_PERSISTENCE_TIME)
-    }
-
-    private fun storeSessionId(sessionId: String): String {
+    private fun storeSessionId(sessionId: String) {
         database.insertSession(
             sessionId,
             processInfo.getPid(),
             timeProvider.currentTimeSinceEpochInMillis,
         )
-        return sessionId
     }
 }
