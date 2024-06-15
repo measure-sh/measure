@@ -114,7 +114,7 @@ internal class EventProcessorImpl(
 
         fun createEvent(sessionId: String?): Event<T> {
             val id = idProvider.createId()
-            val resolvedSessionId = sessionId ?: sessionManager.sessionId
+            val resolvedSessionId = sessionId ?: sessionManager.getSessionId()
             return Event(
                 id = id,
                 sessionId = resolvedSessionId,
@@ -144,7 +144,7 @@ internal class EventProcessorImpl(
                 eventTransformer.transform(event)?.let {
                     eventStore.store(event)
                     exceptionExporter.export()
-                    logger.log(LogLevel.Debug, "Event processed: $type")
+                    logger.log(LogLevel.Debug, "Event processed: $type, ${event.sessionId}")
                 } ?: logger.log(LogLevel.Debug, "Event dropped: $type")
             }
 
@@ -154,7 +154,7 @@ internal class EventProcessorImpl(
                     applyAttributes(event)
                     eventTransformer.transform(event)?.let {
                         eventStore.store(event)
-                        logger.log(LogLevel.Debug, "Event processed: $type")
+                        logger.log(LogLevel.Debug, "Event processed: $type, ${event.sessionId}")
                     } ?: logger.log(LogLevel.Debug, "Event dropped: $type")
                 }
             }

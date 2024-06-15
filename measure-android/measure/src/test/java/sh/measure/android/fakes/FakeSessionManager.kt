@@ -3,16 +3,25 @@ package sh.measure.android.fakes
 import sh.measure.android.SessionManager
 
 internal class FakeSessionManager : SessionManager {
-    var sessionPids = listOf(Pair("fake-session-id", 1234))
+    var sessionPids = mutableListOf(Pair("fake-session-id", 1234))
 
-    override val sessionId: String
-        get() = "fake-session-id"
-
-    override fun getSessions(): List<Pair<String, Int>> {
-        return sessionPids
+    override fun getSessionId(): String {
+        return "fake-session-id"
     }
 
-    override fun deleteSession(sessionId: String) {
+    override fun getSessionsForPids(): Map<Int, List<String>> {
+        return sessionPids.groupBy({ it.second }, { it.first })
+    }
+
+    override fun onAppBackground() {
+        // No-op
+    }
+
+    override fun onAppForeground() {
+        // No-op
+    }
+
+    override fun clearOldSessions() {
         // No-op
     }
 }

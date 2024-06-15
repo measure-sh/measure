@@ -106,6 +106,13 @@ internal interface IMeasureConfig {
      * Default list of HTTP URLs to not capture for network request and response.
      */
     val defaultHttpUrlBlocklist: List<String>
+
+    // The TTL for data in the sessions table after which it will be cleared. Defaults to
+    // 15 days.
+    val defaultSessionsTableTtlMs: Long
+
+    // The threshold after which a session is considered ended. Defaults to 1 minute.
+    val defaultSessionEndThresholdMs: Long
 }
 
 class MeasureConfig(
@@ -136,4 +143,6 @@ class MeasureConfig(
         "api.measure.sh",
         "10.0.2.2:8080/events",
     )
+    override val defaultSessionsTableTtlMs: Long = 15 * 24 * 60 * 60 * 1000 // 15 days
+    override val defaultSessionEndThresholdMs: Long = 60 * 1000 // 1 minute
 }

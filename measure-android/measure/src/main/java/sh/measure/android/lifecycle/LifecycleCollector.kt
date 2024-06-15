@@ -53,6 +53,10 @@ internal class LifecycleCollector(
 
     override fun onActivityStarted(activity: Activity) {
         if (startedActivities.isEmpty()) {
+            // letting listeners know about app foreground before tracking the event
+            // session manager depends on this sequence to ensure that new session ID (if created)
+            // is reflected in all events collected after the launch.
+            applicationLifecycleStateListener?.onAppForeground()
             eventProcessor.track(
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
                 type = EventType.LIFECYCLE_APP,
@@ -60,7 +64,6 @@ internal class LifecycleCollector(
                     type = AppLifecycleType.FOREGROUND,
                 ),
             )
-            applicationLifecycleStateListener?.onAppForeground()
         }
         val hash = Integer.toHexString(System.identityHashCode(activity))
         startedActivities.add(hash)
@@ -99,6 +102,9 @@ internal class LifecycleCollector(
                     type = AppLifecycleType.BACKGROUND,
                 ),
             )
+            // letting listeners know about app background after tracking the event as
+            // this allows the event to be collected before any clean up is done
+            // due to the app moving to background.
             applicationLifecycleStateListener?.onAppBackground()
         }
     }

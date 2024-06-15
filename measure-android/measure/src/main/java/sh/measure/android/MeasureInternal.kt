@@ -17,6 +17,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     val eventProcessor by lazy { measureInitializer.eventProcessor }
     val timeProvider by lazy { measureInitializer.timeProvider }
     val okHttpEventCollector by lazy { measureInitializer.okHttpEventCollector }
+    private val sessionManager by lazy { measureInitializer.sessionManager }
     private val resumedActivityProvider by lazy { measureInitializer.resumedActivityProvider }
     private val networkClient by lazy { measureInitializer.networkClient }
     private val manifestReader by lazy { measureInitializer.manifestReader }
@@ -66,22 +67,26 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
         resumedActivityProvider.register()
         unhandledExceptionCollector.register()
         anrCollector.register()
+        lifecycleCollector.register()
         cpuUsageCollector.register()
         memoryUsageCollector.register()
         componentCallbacksCollector.register()
-        lifecycleCollector.register()
         gestureCollector.register()
         appLaunchCollector.register()
         networkChangesCollector.register()
     }
 
     override fun onAppForeground() {
+        // session manager must be the first to be notified about app foreground to ensure that
+        // new session ID (if created) is reflected in all events collected after the launch.
+        sessionManager.onAppForeground()
         cpuUsageCollector.resume()
         memoryUsageCollector.resume()
         periodicEventExporter.onAppForeground()
     }
 
     override fun onAppBackground() {
+        sessionManager.onAppBackground()
         cpuUsageCollector.pause()
         memoryUsageCollector.pause()
         periodicEventExporter.onAppBackground()
@@ -91,6 +96,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
         networkChangesCollector.register()
         periodicEventExporter.onColdLaunch()
         appExitCollector.onColdLaunch()
+        sessionManager.clearOldSessions()
     }
 
     fun setUserId(userId: String) {

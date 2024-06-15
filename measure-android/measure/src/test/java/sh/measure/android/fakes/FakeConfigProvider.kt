@@ -23,6 +23,8 @@ internal class FakeConfigProvider : ConfigProvider {
     override var httpContentTypeAllowlist: List<String> = emptyList()
     override var defaultHttpHeadersBlocklist: List<String> = emptyList()
     override var defaultHttpUrlBlocklist: List<String> = emptyList()
+    override var defaultSessionsTableTtlMs: Long = 15 * 24 * 60 * 60 * 1000 // 15 days
+    override var defaultSessionEndThresholdMs: Long = 60 * 1000 // 1 minute
 
     var shouldTrackHttpBody = false
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {

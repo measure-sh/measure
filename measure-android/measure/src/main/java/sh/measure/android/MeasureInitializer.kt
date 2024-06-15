@@ -107,12 +107,14 @@ internal class MeasureInitializerImpl(
     ),
     private val idProvider: IdProvider = UUIDProvider(),
     private val processInfoProvider: ProcessInfoProvider = ProcessInfoProviderImpl(),
-    private val sessionManager: SessionManager = SessionManagerImpl(
+    override val sessionManager: SessionManager = SessionManagerImpl(
+        logger = logger,
         timeProvider = timeProvider,
         database = database,
         idProvider = idProvider,
         processInfo = processInfoProvider,
         executorService = executorServiceRegistry.backgroundExecutor(),
+        configProvider = configProvider,
     ),
     private val procProvider: ProcProvider = ProcProviderImpl(),
     private val debugProvider: DebugProvider = DefaultDebugProvider(),
@@ -309,6 +311,7 @@ internal interface MeasureInitializer {
     val resumedActivityProvider: ResumedActivityProvider
     val eventProcessor: EventProcessor
     val okHttpEventCollector: OkHttpEventCollector
+    val sessionManager: SessionManager
     val unhandledExceptionCollector: UnhandledExceptionCollector
     val anrCollector: AnrCollector
     val appExitCollector: AppExitCollector

@@ -3,15 +3,17 @@ package sh.measure.android.fakes
 import sh.measure.android.utils.TimeProvider
 
 internal class FakeTimeProvider(
-    var time: Long = 0,
+    var fakeCurrentTimeSinceEpochInMillis: Long = 0,
+    var fakeCurrentTimeSinceEpochInNanos: Long = 0,
+    var fakeUptimeMs: Long = 0,
     var fakeElapsedRealtime: Long = 0,
 ) : TimeProvider {
     override val currentTimeSinceEpochInMillis: Long
-        get() = time
+        get() = fakeCurrentTimeSinceEpochInMillis
     override val currentTimeSinceEpochInNanos: Long
-        get() = time
+        get() = fakeCurrentTimeSinceEpochInNanos
     override val uptimeInMillis: Long
-        get() = time
+        get() = fakeUptimeMs
     override val elapsedRealtime: Long
         get() = fakeElapsedRealtime
 }
