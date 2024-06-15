@@ -22,6 +22,8 @@ public final class sh/measure/android/config/MeasureConfig : sh/measure/android/
 	public synthetic fun <init> (ZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun getDefaultHttpHeadersBlocklist ()Ljava/util/List;
 	public fun getDefaultHttpUrlBlocklist ()Ljava/util/List;
+	public fun getDefaultSessionEndThresholdMs ()J
+	public fun getDefaultSessionsTableTtlMs ()J
 	public fun getEventsBatchingIntervalMs ()J
 	public fun getHttpContentTypeAllowlist ()Ljava/util/List;
 	public fun getHttpHeadersBlocklist ()Ljava/util/List;
