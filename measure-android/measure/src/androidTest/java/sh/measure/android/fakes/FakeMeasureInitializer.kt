@@ -2,6 +2,7 @@ package sh.measure.android.fakes
 
 import android.app.Application
 import sh.measure.android.MeasureInitializer
+import sh.measure.android.SessionManager
 import sh.measure.android.anr.AnrCollector
 import sh.measure.android.appexit.AppExitCollector
 import sh.measure.android.applaunch.AppLaunchCollector
@@ -25,7 +26,6 @@ import sh.measure.android.utils.ResumedActivityProvider
 import sh.measure.android.utils.TimeProvider
 
 internal class FakeMeasureInitializer : MeasureInitializer {
-    lateinit var application: Application
     override lateinit var logger: Logger
     override lateinit var timeProvider: TimeProvider
     override lateinit var networkClient: NetworkClient
@@ -34,6 +34,7 @@ internal class FakeMeasureInitializer : MeasureInitializer {
     override lateinit var resumedActivityProvider: ResumedActivityProvider
     override lateinit var eventProcessor: EventProcessor
     override lateinit var okHttpEventCollector: OkHttpEventCollector
+    override lateinit var sessionManager: SessionManager
     override lateinit var unhandledExceptionCollector: UnhandledExceptionCollector
     override lateinit var anrCollector: AnrCollector
     override lateinit var appExitCollector: AppExitCollector
