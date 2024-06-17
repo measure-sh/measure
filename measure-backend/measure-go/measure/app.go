@@ -462,44 +462,71 @@ func (a App) GetPerceivedCrashFreeMetrics(ctx context.Context, af *filter.AppFil
 	return
 }
 
-func (a App) GetPerceivedANRFreeMetrics(ctx context.Context, af *filter.AppFilter) (anrFree *metrics.PerceivedANRFreeSession, err error) {
+// GetPerceivedANRFreeMetrics computes perceived ANR
+// free sessions percentage of selected app versions and
+// ratio of perceived ANR free sessions percentage of
+// selected app versions and perceived ANR free sessions
+// percentage of unselected app versions.
+func (a App) GetPerceivedANRFreeMetrics(ctx context.Context, af *filter.AppFilter, versions filter.Versions) (anrFree *metrics.PerceivedANRFreeSession, err error) {
 	anrFree = &metrics.PerceivedANRFreeSession{}
 	stmt := sqlf.
 		With("all_sessions",
 			sqlf.From("default.events").
 				Select("session_id, attribute.app_version, attribute.app_build, type, anr.foreground").
-				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, nil, nil, nil)).
+				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, af.AppID, af.From, af.To)).
 		With("t1",
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as total_sessions_selected").
-				Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil)).
+				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes)).
 		With("t2",
 			sqlf.From("all_sessions").
 				Select("count(distinct session_id) as count_anr_selected").
-				Where("`type` = 'anr' and `anr.foreground` = true").
-				Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil)).
-		With("t3",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as count_not_anr").
-				Where("`type` != 'anr'")).
-		With("t4",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as count_not_anr_selected").
-				Where("`type` != 'anr'").
-				Where("`attribute.app_version` = ? and `attribute.app_build` = ?", nil, nil)).
-		Select("round((1 - (t2.count_anr_selected / t1.total_sessions_selected)) * 100, 2) as anr_free_sessions").
-		Select("round(((t4.count_not_anr_selected - t3.count_not_anr) / t3.count_not_anr) * 100, 2) as delta").
-		From("t1, t2, t3, t4")
+				Where("`type` = 'anr' and anr.foreground = true").
+				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes))
 
 	defer stmt.Close()
 
-	version := af.Versions[0]
-	code := af.VersionCodes[0]
+	dest := []any{&anrFree.ANRFreeSessions}
+	var anrFreeUnselected float64
 
-	args := []any{a.ID, af.From, af.To, version, code, version, code, version, code}
+	if !versions.HasVersions() {
+		stmt.
+			Select("round((1 - (t2.count_anr_selected / t1.total_sessions_selected)) * 100, 2) as anr_free_sessions_selected").
+			From("t1, t2")
+	} else {
+		stmt.
+			With("t3",
+				sqlf.From("all_sessions").
+					Select("count(distinct session_id) as total_sessions_unselected").
+					Where("attribute.app_version in ? and attribute.app_build in ?", versions.Versions(), versions.Codes())).
+			With("t4", sqlf.From("all_sessions").
+				Select("count(distinct session_id) as count_anr_unselected").
+				Where("`type` = 'anr'").
+				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", versions.Versions(), versions.Codes())).
+			Select("round((1 - (t2.count_anr_selected / t1.total_sessions_selected)) * 100, 2) as anr_free_sessions_selected").
+			Select("round((1 - (t4.count_anr_unselected / t3.total_sessions_unselected)) * 100, 2) as anr_free_sessions_unselected").
+			From("t1, t2, t3, t4")
 
-	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), args...).Scan(&anrFree.ANRFreeSessions, &anrFree.Delta); err != nil {
-		return nil, err
+		dest = append(dest, &anrFreeUnselected)
+	}
+
+	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(dest...); err != nil {
+		return
+	}
+
+	if versions.HasVersions() {
+		// avoid division by zero
+		if anrFreeUnselected != 0 {
+			anrFree.Delta = anrFree.ANRFreeSessions / anrFreeUnselected
+		}
+	} else {
+		// because if there are no unselected
+		// app versions, then:
+		// anr free sessions of unselected app versions = anr free sessions of selected app versions
+		// ratio between the two, will be always 1
+		if anrFree.ANRFreeSessions != 0 {
+			anrFree.Delta = 1
+		}
 	}
 
 	anrFree.SetNaNs()
@@ -1889,7 +1916,7 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	perceivedANRFree, err := app.GetPerceivedANRFreeMetrics(ctx, &af)
+	perceivedANRFree, err := app.GetPerceivedANRFreeMetrics(ctx, &af, excludedVersions)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
