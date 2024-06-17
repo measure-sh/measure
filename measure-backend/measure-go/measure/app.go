@@ -2072,11 +2072,22 @@ func GetCrashOverview(c *gin.Context) {
 
 	af.Expand()
 
+	msg := "crash overview request validation failed"
 	if err := af.Validate(); err != nil {
-		msg := "app filters request validation failed"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
 		return
+	}
+
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
 	}
 
 	if !af.HasTimeRange() {
@@ -2190,9 +2201,9 @@ func GetCrashOverviewPlotInstances(c *gin.Context) {
 	}
 
 	af.Expand()
+	msg := `crash overview request validation failed`
 
 	if err := af.Validate(); err != nil {
-		msg := "app filters request validation failed"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
 		return
@@ -2200,10 +2211,10 @@ func GetCrashOverviewPlotInstances(c *gin.Context) {
 
 	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
 		if err := af.ValidateVersions(); err != nil {
-			msg := `crash overview request validation failed`
 			fmt.Println(msg, err)
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
+				"error":   msg,
+				"details": err.Error(),
 			})
 			return
 		}
