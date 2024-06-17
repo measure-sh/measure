@@ -2198,6 +2198,17 @@ func GetCrashOverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			msg := `crash overview request validation failed`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+	}
+
 	if !af.HasTimeRange() {
 		af.SetDefaultTimeRange()
 	}
