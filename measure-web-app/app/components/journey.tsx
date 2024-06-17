@@ -19,7 +19,7 @@ interface JourneyProps {
   appId: string,
   bidirectional: boolean,
   journeyType: JourneyType,
-  crashOrAnrGroupId: string | null,
+  exceptionsGroupId: string | null,
   startDate: string,
   endDate: string,
   appVersions: AppVersion[]
@@ -246,7 +246,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
   return { nodes, edges };
 };
 
-const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journeyType, crashOrAnrGroupId, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames }) => {
+const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journeyType, exceptionsGroupId, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames }) => {
 
   const [journeyApiStatus, setJourneyApiStatus] = useState(JourneyApiStatus.Loading);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -257,7 +257,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journey
   const getJourney = async (teamId: string, appId: string, bidirectional: boolean, startDate: string, endDate: string, appVersions: AppVersion[]) => {
     setJourneyApiStatus(JourneyApiStatus.Loading)
 
-    const result = await fetchJourneyFromServer(appId, journeyType, crashOrAnrGroupId, bidirectional, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, router)
+    const result = await fetchJourneyFromServer(appId, journeyType, exceptionsGroupId, bidirectional, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, router)
 
     switch (result.status) {
       case JourneyApiStatus.Error:

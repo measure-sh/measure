@@ -37,7 +37,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
             appId={selectedFilters.selectedApp.id}
             bidirectional={false}
             journeyType={JourneyType.Overview}
-            crashOrAnrGroupId={null}
+            exceptionsGroupId={null}
             startDate={selectedFilters.selectedStartDate}
             endDate={selectedFilters.selectedEndDate}
             appVersions={selectedFilters.selectedVersions}

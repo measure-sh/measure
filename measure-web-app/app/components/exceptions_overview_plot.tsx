@@ -2,13 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { ResponsiveLine } from '@nivo/line'
-import { AppVersion, CrashOrAnrType, ExceptionsOverviewPlotApiStatus, fetchExceptionsOverviewPlotFromServer } from '../api/api_calls';
+import { AppVersion, ExceptionsType, ExceptionsOverviewPlotApiStatus, fetchExceptionsOverviewPlotFromServer } from '../api/api_calls';
 import { useRouter } from 'next/navigation';
 import { formatDateToHumanReadable } from '../utils/time_utils';
 
 interface ExceptionsOverviewPlotProps {
   appId: string,
-  crashOrAnrType: CrashOrAnrType,
+  exceptionsType: ExceptionsType,
   startDate: string,
   endDate: string,
   appVersions: AppVersion[]
@@ -24,7 +24,7 @@ type ExceptionsOverviewPlot = {
   }[]
 }[]
 
-const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ appId, crashOrAnrType, startDate, endDate, appVersions }) => {
+const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ appId, exceptionsType, startDate, endDate, appVersions }) => {
   const router = useRouter()
 
   const [exceptionsOverviewPlotApiStatus, setExceptionsOverviewPlotApiStatus] = useState(ExceptionsOverviewPlotApiStatus.Loading);
@@ -39,7 +39,7 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ appId, 
 
     setExceptionsOverviewPlotApiStatus(ExceptionsOverviewPlotApiStatus.Loading)
 
-    const result = await fetchExceptionsOverviewPlotFromServer(appId, crashOrAnrType, startDate, endDate, appVersions, router)
+    const result = await fetchExceptionsOverviewPlotFromServer(appId, exceptionsType, startDate, endDate, appVersions, router)
 
     switch (result.status) {
       case ExceptionsOverviewPlotApiStatus.Error:
@@ -57,7 +57,7 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ appId, 
           data: item.data.map((data: any, index: number) => ({
             id: item.id + '.' + index,
             x: data.datetime,
-            y: crashOrAnrType === CrashOrAnrType.Crash ? data.crash_free_sessions : data.anr_free_sessions,
+            y: exceptionsType === ExceptionsType.Crash ? data.crash_free_sessions : data.anr_free_sessions,
             instances: data.instances
           }))
         }))
@@ -78,7 +78,7 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ appId, 
 
   useEffect(() => {
     getExceptionsOverviewPlot()
-  }, [appId, crashOrAnrType, startDate, endDate, appVersions]);
+  }, [appId, exceptionsType, startDate, endDate, appVersions]);
 
   return (
     <div className="flex border border-black font-sans items-center justify-center w-full h-[36rem]">
@@ -116,7 +116,7 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ appId, 
           axisLeft={{
             tickSize: 1,
             tickPadding: 5,
-            legend: crashOrAnrType === CrashOrAnrType.Crash ? '% Crash free sessions ' : '% ANR free sessions',
+            legend: exceptionsType === ExceptionsType.Crash ? '% Crash free sessions ' : '% ANR free sessions',
             legendOffset: -80,
             legendPosition: 'middle'
           }}
@@ -154,8 +154,8 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ appId, 
             return (
               <div className='bg-neutral-950 text-white flex flex-col p-2 text-xs'>
                 <p>Date: {formatDateToHumanReadable(point.data.xFormatted.toString())}</p>
-                <p>{crashOrAnrType === CrashOrAnrType.Crash ? 'Crash' : 'ANR'} free sessions: {point.data.yFormatted}%</p>
-                <p>No of {crashOrAnrType === CrashOrAnrType.Crash ? 'Crashes' : 'ANRs'}: {pointIdToInstanceMap.get(point.id)}</p>
+                <p>{exceptionsType === ExceptionsType.Crash ? 'Crash' : 'ANR'} free sessions: {point.data.yFormatted}%</p>
+                <p>No of {exceptionsType === ExceptionsType.Crash ? 'Crashes' : 'ANRs'}: {pointIdToInstanceMap.get(point.id)}</p>
               </div>
             )
           }}

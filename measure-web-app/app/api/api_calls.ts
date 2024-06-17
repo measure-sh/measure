@@ -44,12 +44,12 @@ export enum MetricsApiStatus {
     Error
 }
 
-export enum CrashOrAnrType {
+export enum ExceptionsType {
     Crash,
     Anr
 }
 
-export enum CrashOrAnrGroupsApiStatus {
+export enum ExceptionsOverviewApiStatus {
     Loading,
     Success,
     Error
@@ -62,13 +62,13 @@ export enum ExceptionsOverviewPlotApiStatus {
     NoData
 }
 
-export enum CrashOrAnrGroupDetailsApiStatus {
+export enum ExceptionsDetailsApiStatus {
     Loading,
     Success,
     Error
 }
 
-export enum CrashOrAnrGroupDetailsPlotApiStatus {
+export enum ExceptionsDetailsPlotApiStatus {
     Loading,
     Success,
     Error,
@@ -244,7 +244,7 @@ export const emptyMetrics = {
     }
 }
 
-const emptyCrashOrAnrGroup = {
+const emptyExceptionGroup = {
     "id": "",
     "app_id": "",
     "name": "",
@@ -255,12 +255,12 @@ const emptyCrashOrAnrGroup = {
     "updated_at": ""
 }
 
-export const emptyCrashOrAnrGroupsResponse = {
+export const emptyExceptionsOverviewResponse = {
     "meta": {
         "next": false,
         "previous": false
     },
-    "results": [] as typeof emptyCrashOrAnrGroup[]
+    "results": [] as typeof emptyExceptionGroup[]
 }
 
 const emptyCrashGroupDetails = {
@@ -319,7 +319,7 @@ const emptyCrashGroupDetails = {
     "attributes": {}
 }
 
-export const emptyCrashGroupDetailsResponse = {
+export const emptyCrashExceptionsDetailsResponse = {
     "meta": {
         "next": true,
         "previous": false
@@ -383,7 +383,7 @@ const emptyAnrGroupDetails = {
     "attributes": {}
 }
 
-export const emptyAnrGroupDetailsResponse = {
+export const emptyAnrExceptionsDetailsResponse = {
     "meta": {
         "next": true,
         "previous": false
@@ -607,9 +607,9 @@ export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filte
     return { status: FiltersApiStatus.Success, data: data }
 }
 
-export const fetchJourneyFromServer = async (appId: string, journeyType: JourneyType, crashOrAnrGroupId: string | null, bidirectional: boolean, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], router: AppRouterInstance) => {
-    // Must pass in crashOrAnrGroupdId if journey type is crash or anr details
-    if ((journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) && crashOrAnrGroupId === undefined) {
+export const fetchJourneyFromServer = async (appId: string, journeyType: JourneyType, exceptionsGroupdId: string | null, bidirectional: boolean, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], router: AppRouterInstance) => {
+    // Must pass in exceptionsGroupdId if journey type is crash or anr details
+    if ((journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) && exceptionsGroupdId === undefined) {
         return { status: JourneyApiStatus.Error, data: null }
     }
 
@@ -623,9 +623,9 @@ export const fetchJourneyFromServer = async (appId: string, journeyType: Journey
 
     let url = ''
     if (journeyType === JourneyType.CrashDetails) {
-        url = `${origin}/apps/${appId}/crashGroups/${crashOrAnrGroupId}/plots/journey`
+        url = `${origin}/apps/${appId}/crashGroups/${exceptionsGroupdId}/plots/journey`
     } else if (journeyType === JourneyType.AnrDetails) {
-        url = `${origin}/apps/${appId}/anrGroups/${crashOrAnrGroupId}/plots/journey`
+        url = `${origin}/apps/${appId}/anrGroups/${exceptionsGroupdId}/plots/journey`
     } else {
         url = `${origin}/apps/${appId}/journey`
     }
@@ -723,7 +723,7 @@ export const fetchMetricsFromServer = async (appId: string, startDate: string, e
     return { status: MetricsApiStatus.Success, data: data }
 }
 
-export const fetchCrashOrAnrGroupsFromServer = async (crashOrAnrType: CrashOrAnrType, appId: string, startDate: string, endDate: string, appVersions: AppVersion[], keyId: string | null, limit: number, router: AppRouterInstance) => {
+export const fetchExceptionsOverviewFromServer = async (exceptionsType: ExceptionsType, appId: string, startDate: string, endDate: string, appVersions: AppVersion[], keyId: string | null, limit: number, router: AppRouterInstance) => {
     const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
@@ -736,7 +736,7 @@ export const fetchCrashOrAnrGroupsFromServer = async (crashOrAnrType: CrashOrAnr
     const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate, UserInputDateType.To)
 
     var url = ""
-    if (crashOrAnrType === CrashOrAnrType.Crash) {
+    if (exceptionsType === ExceptionsType.Crash) {
         url = `${origin}/apps/${appId}/crashGroups?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&limit=${limit}`
     } else {
         url = `${origin}/apps/${appId}/anrGroups?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&limit=${limit}`
@@ -757,16 +757,16 @@ export const fetchCrashOrAnrGroupsFromServer = async (crashOrAnrType: CrashOrAnr
 
     if (!res.ok) {
         logoutIfAuthError(supabase, router, res)
-        return { status: CrashOrAnrGroupsApiStatus.Error, data: null }
+        return { status: ExceptionsOverviewApiStatus.Error, data: null }
     }
 
     const data = await res.json()
 
-    return { status: CrashOrAnrGroupsApiStatus.Success, data: data }
+    return { status: ExceptionsOverviewApiStatus.Success, data: data }
 
 }
 
-export const fetchCrashOrAnrGroupDetailsFromServer = async (crashOrAnrType: CrashOrAnrType, appId: string, crashOrAnrGroupId: string, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], keyId: string | null, keyTimestamp: string | null, limit: number, router: AppRouterInstance) => {
+export const fetchExceptionsDetailsFromServer = async (exceptionsType: ExceptionsType, appId: string, exceptionsGroupdId: string, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], keyId: string | null, keyTimestamp: string | null, limit: number, router: AppRouterInstance) => {
     const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
@@ -779,10 +779,10 @@ export const fetchCrashOrAnrGroupDetailsFromServer = async (crashOrAnrType: Cras
     const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate, UserInputDateType.To)
 
     var url = ""
-    if (crashOrAnrType === CrashOrAnrType.Crash) {
-        url = `${origin}/apps/${appId}/crashGroups/${crashOrAnrGroupId}/crashes?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&limit=${limit}`
+    if (exceptionsType === ExceptionsType.Crash) {
+        url = `${origin}/apps/${appId}/crashGroups/${exceptionsGroupdId}/crashes?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&limit=${limit}`
     } else {
-        url = `${origin}/apps/${appId}/anrGroups/${crashOrAnrGroupId}/anrs?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&limit=${limit}`
+        url = `${origin}/apps/${appId}/anrGroups/${exceptionsGroupdId}/anrs?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&limit=${limit}`
     }
 
     // Append versions if present
@@ -840,16 +840,16 @@ export const fetchCrashOrAnrGroupDetailsFromServer = async (crashOrAnrType: Cras
 
     if (!res.ok) {
         logoutIfAuthError(supabase, router, res)
-        return { status: CrashOrAnrGroupDetailsApiStatus.Error, data: null }
+        return { status: ExceptionsDetailsApiStatus.Error, data: null }
     }
 
     const data = await res.json()
 
-    return { status: CrashOrAnrGroupDetailsApiStatus.Success, data: data }
+    return { status: ExceptionsDetailsApiStatus.Success, data: data }
 
 }
 
-export const fetchExceptionsOverviewPlotFromServer = async (appId: string, crashOrAnrType: CrashOrAnrType, startDate: string, endDate: string, appVersions: AppVersion[], router: AppRouterInstance) => {
+export const fetchExceptionsOverviewPlotFromServer = async (appId: string, exceptionsType: ExceptionsType, startDate: string, endDate: string, appVersions: AppVersion[], router: AppRouterInstance) => {
     const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
@@ -862,7 +862,7 @@ export const fetchExceptionsOverviewPlotFromServer = async (appId: string, crash
     const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate, UserInputDateType.To)
 
     var url = ""
-    if (crashOrAnrType === CrashOrAnrType.Crash) {
+    if (exceptionsType === ExceptionsType.Crash) {
         url = `${origin}/apps/${appId}/crashGroups/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
     } else {
         url = `${origin}/apps/${appId}/anrGroups/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
@@ -891,7 +891,7 @@ export const fetchExceptionsOverviewPlotFromServer = async (appId: string, crash
 }
 
 
-export const fetchCrashOrAnrGroupDetailsPlotFromServer = async (appId: string, crashOrAnrType: CrashOrAnrType, crashOrAnrGroupId: string, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], router: AppRouterInstance) => {
+export const fetchExceptionsDetailsPlotFromServer = async (appId: string, exceptionsType: ExceptionsType, exceptionsGroupdId: string, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], router: AppRouterInstance) => {
     const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
@@ -904,10 +904,10 @@ export const fetchCrashOrAnrGroupDetailsPlotFromServer = async (appId: string, c
     const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate, UserInputDateType.To)
 
     var url = ""
-    if (crashOrAnrType === CrashOrAnrType.Crash) {
-        url = `${origin}/apps/${appId}/crashGroups/${crashOrAnrGroupId}/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
+    if (exceptionsType === ExceptionsType.Crash) {
+        url = `${origin}/apps/${appId}/crashGroups/${exceptionsGroupdId}/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
     } else {
-        url = `${origin}/apps/${appId}/anrGroups/${crashOrAnrGroupId}/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
+        url = `${origin}/apps/${appId}/anrGroups/${exceptionsGroupdId}/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
     }
 
     // Append versions if present
@@ -955,16 +955,16 @@ export const fetchCrashOrAnrGroupDetailsPlotFromServer = async (appId: string, c
 
     if (!res.ok) {
         logoutIfAuthError(supabase, router, res)
-        return { status: CrashOrAnrGroupDetailsPlotApiStatus.Error, data: null }
+        return { status: ExceptionsDetailsPlotApiStatus.Error, data: null }
     }
 
     const data = await res.json()
 
     if (data === null) {
-        return { status: CrashOrAnrGroupDetailsPlotApiStatus.NoData, data: null }
+        return { status: ExceptionsDetailsPlotApiStatus.NoData, data: null }
     }
 
-    return { status: CrashOrAnrGroupDetailsPlotApiStatus.Success, data: data }
+    return { status: ExceptionsDetailsPlotApiStatus.Success, data: data }
 }
 
 export const fetchAuthzAndMembersFromServer = async (teamId: string, router: AppRouterInstance) => {
