@@ -2184,7 +2184,9 @@ func GetCrashOverviewPlotInstances(c *gin.Context) {
 	if err != nil {
 		msg := `id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -2196,7 +2198,10 @@ func GetCrashOverviewPlotInstances(c *gin.Context) {
 	if err := c.ShouldBindQuery(&af); err != nil {
 		msg := `failed to parse query parameters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
 		return
 	}
 
@@ -2205,7 +2210,10 @@ func GetCrashOverviewPlotInstances(c *gin.Context) {
 
 	if err := af.Validate(); err != nil {
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
 		return
 	}
 
