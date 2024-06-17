@@ -2343,11 +2343,22 @@ func GetCrashDetailCrashes(c *gin.Context) {
 
 	af.Expand()
 
+	msg := "app filters request validation failed"
 	if err := af.Validate(); err != nil {
-		msg := "app filters request validation failed"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
 		return
+	}
+
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
 	}
 
 	app := App{
