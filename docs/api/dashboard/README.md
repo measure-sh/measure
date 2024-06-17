@@ -361,51 +361,51 @@ These headers must be present in each request.
   ```json
   {
     "adoption": {
-      "all_versions": 33,
-      "selected_version": 7,
-      "adoption": 21.21,
+      "all_versions": 53,
+      "selected_version": 23,
+      "adoption": 43.4,
       "nan": false
     },
     "anr_free_sessions": {
       "anr_free_sessions": 100,
-      "delta": -78.79,
+      "delta": 1,
       "nan": false
     },
     "cold_launch": {
-      "delta": 34.8,
-      "nan": false,
-      "p95": 2771.8
+      "delta": 0,
+      "nan": true,
+      "p95": 0
     },
     "crash_free_sessions": {
-      "crash_free_sessions": 71.43,
-      "delta": -78.79,
+      "crash_free_sessions": 0,
+      "delta": 1,
       "nan": false
     },
     "hot_launch": {
       "delta": 0,
-      "nan": false,
-      "p95": 475.9
+      "nan": true,
+      "p95": 0
     },
     "perceived_anr_free_sessions": {
       "perceived_anr_free_sessions": 100,
-      "delta": -78.79,
+      "delta": 1,
       "nan": false
     },
     "perceived_crash_free_sessions": {
-      "perceived_crash_free_sessions": 71.43,
-      "delta": -78.79,
+      "perceived_crash_free_sessions": 0,
+      "delta": 1,
       "nan": false
     },
     "sizes": {
-      "average_app_size": 32359196.33,
-      "selected_app_size": 45196797,
-      "delta": 12837600.67,
+      "average_app_size": 26298701,
+      "selected_app_size": 25887094,
+      "delta": -411607,
       "nan": false
     },
     "warm_launch": {
-      "delta": -129.9,
-      "nan": false,
-      "p95": 554.6
+      "delta": 0,
+      "nan": true,
+      "p95": 0
     }
   }
   ```
