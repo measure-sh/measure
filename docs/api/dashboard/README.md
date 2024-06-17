@@ -324,9 +324,10 @@ Fetch an app's health metrics. Filter time range using `from` &amp; `to` query s
 
 #### Usage Notes
 
-- App's UUID must be passed in the URI
-- All filters must be passed as query strings
-- All filters are optional. If any filter is not present, the server will compute results assuming a default value for that filter.
+- App's UUID must be passed in the URI.
+- All filters must be passed as query strings.
+- Both `version` &amp; `version_codes` should be present if any one of them is present.
+- Number of items in `version` &amp; `version_codes` must be same.
 - `from` &amp; `to` values must be ISO 8601 UTC strings in milliseconds precision. Example: `?from=2023-11-01T18:30:00.000Z&to=2023-11-08T18:30:00.000Z`
 - `from` &amp; `to` will default to a last 7 days time range if not supplied.
 - `versions` can accept multiple version identifiers separated with comma. Only the first version will be used to query at the moment.
@@ -350,6 +351,8 @@ These headers must be present in each request.
 </details>
 
 #### Response Body
+
+- `nan` can be true if some computed values result in a division by zero error.
 
 - Response
 
@@ -541,6 +544,7 @@ Fetch an app's crash overview.
 #### Usage Notes
 
 - App's UUID must be passed in the URI
+- Both `version` &amp; `version_codes` should be present if any one of them is present.
 - Accepted query parameters
   - `from` (_optional_) - Start time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
   - `to` (_optional_) - End time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
@@ -638,13 +642,13 @@ Fetch an app's crash overview instances plot aggregated by date range & version.
 #### Usage Notes
 
 - App's UUID must be passed in the URI
+- Both `version` &amp; `version_codes` should be present if any one of them is present.
 - Accepted query parameters
   - `from` (_optional_) - Start time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
   - `to` (_optional_) - End time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
   - `versions` (_optional_) - List of comma separated version identifier strings to return crash groups that have events matching the version.
   - `version_codes` (_optional_) - List of comma separated version codes to return crash groups that have events matching the version code.
 - Both `from` and `to` **MUST** be present when specifyng date range.
-- Both `version` and `version_codes` **MUST** be present when specifying versions.
 
 #### Authorization & Content Type
 
@@ -729,6 +733,7 @@ Fetch an app's crash detail.
 #### Usage Notes
 
 - App's UUID must be passed in the URI
+- Both `version` and `version_codes` **MUST** be present when specifying versions.
 - Accepted query parameters
   - `from` (_optional_) - ISO8601 timestamp to include crashes after this time.
   - `to` (_optional_) - ISO8601 timestamp to include crashes before this time.
@@ -3367,6 +3372,7 @@ Fetch an app's crash detail instances aggregrated by date range & version.
 #### Usage Notes
 
 - App's UUID must be passed in the URI
+- Both `version` and `version_codes` **MUST** be present when specifying versions.
 - Accepted query parameters
   - `from` (_optional_) - ISO8601 timestamp to include crashes after this time.
   - `to` (_optional_) - ISO8601 timestamp to include crashes before this time.
@@ -3462,11 +3468,12 @@ Fetch an app's crash journey map.
 #### Usage Notes
 
 - App's UUID must be passed in the URI
+- Both `version` and `version_codes` **MUST** be present when specifying versions.
 - Accepted query parameters
   - `from` - ISO8601 timestamp to include crashes after this time.
   - `to` - ISO8601 timestamp to include crashes before this time.
-  - `versions` - List of comma separated version identifier strings to return only matching crashes.
-  - `version_codes` - List of comma separated version codes to return only matching crashes.
+  - `versions` (_optional_) - List of comma separated version identifier strings to return only matching crashes.
+  - `version_codes` (_optional_) - List of comma separated version codes to return only matching crashes.
   - `bigraph` - Choose journey's directionality. `0` computes a unidirectional graph. Default is `1`.
   - `countries` (_optional_) - List of comma separated country identifier strings to return only matching crashes.
   - `device_names` (_optional_) - List of comma separated device name identifier strings to return only matching crashes.
@@ -3602,6 +3609,7 @@ Fetch an app's ANR overview.
 #### Usage Notes
 
 - App's UUID must be passed in the URI
+- Both `version` and `version_codes` **MUST** be present when specifying versions.
 - Accepted query parameters
   - `from` (_optional_) - Start time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
   - `to` (_optional_) - End time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
@@ -3699,13 +3707,13 @@ Fetch an app's ANR overview instances plot aggregated by date range & version.
 #### Usage Notes
 
 - App's UUID must be passed in the URI
+- Both `version` and `version_codes` **MUST** be present when specifying versions.
 - Accepted query parameters
   - `from` (_optional_) - Start time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
   - `to` (_optional_) - End time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
   - `versions` (_optional_) - List of comma separated version identifier strings to return crash groups that have events matching the version.
   - `version_codes` (_optional_) - List of comma separated version codes to return crash groups that have events matching the version code.
 - Both `from` and `to` **MUST** be present when specifyng date range.
-- Both `version` and `version_codes` **MUST** be present when specifying versions.
 
 #### Authorization & Content Type
 
@@ -3790,6 +3798,7 @@ Fetch an app's ANR detail.
 #### Usage Notes
 
 - App's UUID must be passed in the URI
+- Both `version` and `version_codes` **MUST** be present when specifying versions.
 - Accepted query parameters
   - `from` (_optional_) - ISO8601 timestamp to include anrs after this time.
   - `to` (_optional_) - ISO8601 timestamp to include anrs before this time.
@@ -4014,6 +4023,7 @@ Fetch an app's ANR detail instances aggregated by date range & version.
 #### Usage Notes
 
 - App's UUID must be passed in the URI
+- Both `version` and `version_codes` **MUST** be present when specifying versions.
 - Accepted query parameters
   - `from` (_optional_) - ISO8601 timestamp to include crashes after this time.
   - `to` (_optional_) - ISO8601 timestamp to include crashes before this time.
@@ -4100,11 +4110,12 @@ Fetch an app's ANR journey map.
 #### Usage Notes
 
 - App's UUID must be passed in the URI
+- Both `version` and `version_codes` **MUST** be present when specifying versions.
 - Accepted query parameters
   - `from` - ISO8601 timestamp to include crashes after this time.
   - `to` - ISO8601 timestamp to include crashes before this time.
-  - `versions` - List of comma separated version identifier strings to return only matching crashes.
-  - `version_codes` - List of comma separated version codes to return only matching crashes.
+  - `versions` (_optional_) - List of comma separated version identifier strings to return only matching crashes.
+  - `version_codes` (_optional_) - List of comma separated version codes to return only matching crashes.
   - `bigraph` - Choose journey's directionality. `0` computes a unidirectional graph. Default is `1`.
   - `countries` (_optional_) - List of comma separated country identifier strings to return only matching crashes.
   - `device_names` (_optional_) - List of comma separated device name identifier strings to return only matching crashes.

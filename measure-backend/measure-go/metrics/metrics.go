@@ -11,15 +11,6 @@ type SessionAdoption struct {
 	NaN             bool    `json:"nan"`
 }
 
-// SetNaNs sets the NaN bit if adoption
-// value is NaN.
-func (sa *SessionAdoption) SetNaNs() {
-	if math.IsNaN(sa.Adoption) {
-		sa.NaN = true
-		sa.Adoption = 0
-	}
-}
-
 // SizeMetric represents compute result of an app's
 // build sizes.
 type SizeMetric struct {
@@ -27,12 +18,6 @@ type SizeMetric struct {
 	SelectedAppSize uint64  `json:"selected_app_size"`
 	Delta           float64 `json:"delta"`
 	NaN             bool    `json:"nan"`
-}
-
-// SetNaNs sets the NaN bit if size values
-// are NaN.
-func (sm *SizeMetric) SetNaNs() {
-	sm.NaN = true
 }
 
 // CrashFreeSesssion represents compute result of an app's
@@ -43,32 +28,12 @@ type CrashFreeSession struct {
 	NaN               bool    `json:"nan"`
 }
 
-// SetNaNs sets the NaN bit if crash
-// free sessions value(s) are NaN.
-func (cfs *CrashFreeSession) SetNaNs() {
-	if math.IsNaN(cfs.CrashFreeSessions) || math.IsNaN(cfs.Delta) {
-		cfs.NaN = true
-		cfs.CrashFreeSessions = 0
-		cfs.Delta = 0
-	}
-}
-
 // ANRFreeSesssion represents compute result of an app's
 // ANR free sessions.
 type ANRFreeSession struct {
 	ANRFreeSessions float64 `json:"anr_free_sessions"`
 	Delta           float64 `json:"delta"`
 	NaN             bool    `json:"nan"`
-}
-
-// SetNaNs sets the NaN bit if ANR
-// free sessions value(s) are NaN.
-func (afs *ANRFreeSession) SetNaNs() {
-	if math.IsNaN(afs.ANRFreeSessions) || math.IsNaN(afs.Delta) {
-		afs.NaN = true
-		afs.ANRFreeSessions = 0
-		afs.Delta = 0
-	}
 }
 
 // PerceivedCrashFreeSesssion represents compute result of an app's
@@ -79,34 +44,12 @@ type PerceivedCrashFreeSession struct {
 	NaN               bool    `json:"nan"`
 }
 
-// SetNaNs sets the NaN bit if
-// perceived crash free sessions
-// value(s) are NaN.
-func (pcfs *PerceivedCrashFreeSession) SetNaNs() {
-	if math.IsNaN(pcfs.CrashFreeSessions) || math.IsNaN(pcfs.Delta) {
-		pcfs.NaN = true
-		pcfs.CrashFreeSessions = 0
-		pcfs.Delta = 0
-	}
-}
-
 // PerceivedANRFreeSesssion represents compute result of an app's
 // perceived ANR free sessions.
 type PerceivedANRFreeSession struct {
 	ANRFreeSessions float64 `json:"perceived_anr_free_sessions"`
 	Delta           float64 `json:"delta"`
 	NaN             bool    `json:"nan"`
-}
-
-// SetNaNs sets the NaN bit if
-// perceived crash free sessions
-// value(s) are NaN.
-func (pafs *PerceivedANRFreeSession) SetNaNs() {
-	if math.IsNaN(pafs.ANRFreeSessions) || math.IsNaN(pafs.Delta) {
-		pafs.NaN = true
-		pafs.ANRFreeSessions = 0
-		pafs.Delta = 0
-	}
 }
 
 // LaunchMetric represents compute result of an app's cold,
@@ -121,6 +64,63 @@ type LaunchMetric struct {
 	ColdNaN       bool    `json:"cold_nan"`
 	WarmNaN       bool    `json:"warm_nan"`
 	HotNaN        bool    `json:"hot_nan"`
+}
+
+// SetNaNs sets the NaN bit if adoption
+// value is NaN.
+func (sa *SessionAdoption) SetNaNs() {
+	if math.IsNaN(sa.Adoption) {
+		sa.NaN = true
+		sa.Adoption = 0
+	}
+}
+
+// SetNaNs sets the NaN bit if size values
+// are NaN.
+func (sm *SizeMetric) SetNaNs() {
+	sm.NaN = true
+}
+
+// SetNaNs sets the NaN bit if crash
+// free sessions value(s) are NaN.
+func (cfs *CrashFreeSession) SetNaNs() {
+	if math.IsNaN(cfs.CrashFreeSessions) || math.IsNaN(cfs.Delta) {
+		cfs.NaN = true
+		cfs.CrashFreeSessions = 0
+		cfs.Delta = 0
+	}
+}
+
+// SetNaNs sets the NaN bit if ANR
+// free sessions value(s) are NaN.
+func (afs *ANRFreeSession) SetNaNs() {
+	if math.IsNaN(afs.ANRFreeSessions) || math.IsNaN(afs.Delta) {
+		afs.NaN = true
+		afs.ANRFreeSessions = 0
+		afs.Delta = 0
+	}
+}
+
+// SetNaNs sets the NaN bit if
+// perceived crash free sessions
+// value(s) are NaN.
+func (pcfs *PerceivedCrashFreeSession) SetNaNs() {
+	if math.IsNaN(pcfs.CrashFreeSessions) || math.IsNaN(pcfs.Delta) {
+		pcfs.NaN = true
+		pcfs.CrashFreeSessions = 0
+		pcfs.Delta = 0
+	}
+}
+
+// SetNaNs sets the NaN bit if
+// perceived crash free sessions
+// value(s) are NaN.
+func (pafs *PerceivedANRFreeSession) SetNaNs() {
+	if math.IsNaN(pafs.ANRFreeSessions) || math.IsNaN(pafs.Delta) {
+		pafs.NaN = true
+		pafs.ANRFreeSessions = 0
+		pafs.Delta = 0
+	}
 }
 
 // SetNaNs sets the NaN bits if any cold,
