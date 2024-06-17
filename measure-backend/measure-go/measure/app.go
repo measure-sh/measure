@@ -308,7 +308,7 @@ func (a App) GetCrashFreeMetrics(ctx context.Context, af *filter.AppFilter, vers
 		// because if there are no unselected
 		// app versions, then:
 		// crash free sessions of unselected app versions = crash free sessions of selected app versions
-		// we always get 1 when we find the ratio between the two
+		// ratio between the two, will be always 1
 		if crashFree.CrashFreeSessions != 0 {
 			crashFree.Delta = 1
 		}
