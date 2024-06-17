@@ -2,14 +2,14 @@
 
 import React, { useEffect, useState } from 'react';
 import { ResponsiveLine } from '@nivo/line'
-import { AppVersion, CrashOrAnrGroupDetailsPlotApiStatus, CrashOrAnrType, fetchCrashOrAnrGroupDetailsPlotFromServer } from '../api/api_calls';
+import { AppVersion, ExceptionsDetailsPlotApiStatus, ExceptionsType, fetchExceptionsDetailsPlotFromServer } from '../api/api_calls';
 import { useRouter } from 'next/navigation';
 import { formatDateToHumanReadable } from '../utils/time_utils';
 
-interface CrashOrAnrGroupDetailsPlotProps {
+interface ExceptionsDetailsPlotProps {
   appId: string,
-  crashOrAnrType: CrashOrAnrType,
-  crashOrAnrGroupId: string,
+  exceptionsType: ExceptionsType,
+  exceptionsGroupId: string,
   startDate: string,
   endDate: string,
   appVersions: AppVersion[],
@@ -30,31 +30,31 @@ type ExceptionsDetailsPlot = {
   }[]
 }[]
 
-const CrashOrAnrGroupDetailsPlot: React.FC<CrashOrAnrGroupDetailsPlotProps> = ({ appId, crashOrAnrType, crashOrAnrGroupId, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames }) => {
+const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ appId, exceptionsType, exceptionsGroupId, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames }) => {
   const router = useRouter()
 
-  const [crashOrAnrGroupDetailsPlotApiStatus, setCrashOrAnrGroupDetailsPlotApiStatus] = useState(CrashOrAnrGroupDetailsPlotApiStatus.Loading);
+  const [exceptionsDetailsPlotApiStatus, setExceptionsDetailsPlotApiStatus] = useState(ExceptionsDetailsPlotApiStatus.Loading);
   const [plot, setPlot] = useState<ExceptionsDetailsPlot>();
 
-  const getCrashOrAnrGroupDetailsPlot = async () => {
+  const getExceptionsDetailsPlot = async () => {
     // Don't try to fetch plot if app id is not yet set
     if (appId === "") {
       return
     }
 
-    setCrashOrAnrGroupDetailsPlotApiStatus(CrashOrAnrGroupDetailsPlotApiStatus.Loading)
+    setExceptionsDetailsPlotApiStatus(ExceptionsDetailsPlotApiStatus.Loading)
 
-    const result = await fetchCrashOrAnrGroupDetailsPlotFromServer(appId, crashOrAnrType, crashOrAnrGroupId, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, router)
+    const result = await fetchExceptionsDetailsPlotFromServer(appId, exceptionsType, exceptionsGroupId, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, router)
 
     switch (result.status) {
-      case CrashOrAnrGroupDetailsPlotApiStatus.Error:
-        setCrashOrAnrGroupDetailsPlotApiStatus(CrashOrAnrGroupDetailsPlotApiStatus.Error)
+      case ExceptionsDetailsPlotApiStatus.Error:
+        setExceptionsDetailsPlotApiStatus(ExceptionsDetailsPlotApiStatus.Error)
         break
-      case CrashOrAnrGroupDetailsPlotApiStatus.NoData:
-        setCrashOrAnrGroupDetailsPlotApiStatus(CrashOrAnrGroupDetailsPlotApiStatus.NoData)
+      case ExceptionsDetailsPlotApiStatus.NoData:
+        setExceptionsDetailsPlotApiStatus(ExceptionsDetailsPlotApiStatus.NoData)
         break
-      case CrashOrAnrGroupDetailsPlotApiStatus.Success:
-        setCrashOrAnrGroupDetailsPlotApiStatus(CrashOrAnrGroupDetailsPlotApiStatus.Success)
+      case ExceptionsDetailsPlotApiStatus.Success:
+        setExceptionsDetailsPlotApiStatus(ExceptionsDetailsPlotApiStatus.Success)
 
         // map result data to chart format
         setPlot(result.data.map((item: any) => ({
@@ -69,14 +69,14 @@ const CrashOrAnrGroupDetailsPlot: React.FC<CrashOrAnrGroupDetailsPlotProps> = ({
   }
 
   useEffect(() => {
-    getCrashOrAnrGroupDetailsPlot()
-  }, [appId, crashOrAnrType, crashOrAnrGroupId, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames]);
+    getExceptionsDetailsPlot()
+  }, [appId, exceptionsType, exceptionsGroupId, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames]);
 
   return (
     <div className="flex border border-black font-sans items-center justify-center w-full h-[32rem]">
-      {crashOrAnrGroupDetailsPlotApiStatus === CrashOrAnrGroupDetailsPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
-      {crashOrAnrGroupDetailsPlotApiStatus === CrashOrAnrGroupDetailsPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
-      {crashOrAnrGroupDetailsPlotApiStatus === CrashOrAnrGroupDetailsPlotApiStatus.Success &&
+      {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
+      {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
+      {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Success &&
         <ResponsiveLine
           data={plot!}
           curve="monotoneX"
@@ -108,7 +108,7 @@ const CrashOrAnrGroupDetailsPlot: React.FC<CrashOrAnrGroupDetailsPlotProps> = ({
           axisLeft={{
             tickSize: 1,
             tickPadding: 5,
-            legend: crashOrAnrType === CrashOrAnrType.Crash ? 'Crash instances' : 'ANR instances',
+            legend: exceptionsType === ExceptionsType.Crash ? 'Crash instances' : 'ANR instances',
             legendOffset: -80,
             legendPosition: 'middle'
           }}
@@ -146,7 +146,7 @@ const CrashOrAnrGroupDetailsPlot: React.FC<CrashOrAnrGroupDetailsPlotProps> = ({
             return (
               <div className='bg-neutral-950 text-white flex flex-col p-2 text-xs'>
                 <p>Date: {formatDateToHumanReadable(point.data.xFormatted.toString())}</p>
-                <p>No of {crashOrAnrType === CrashOrAnrType.Crash ? 'Crashes' : 'ANRs'}: {point.data.y.toString()}</p>
+                <p>No of {exceptionsType === ExceptionsType.Crash ? 'Crashes' : 'ANRs'}: {point.data.y.toString()}</p>
               </div>
             )
           }}
@@ -156,4 +156,4 @@ const CrashOrAnrGroupDetailsPlot: React.FC<CrashOrAnrGroupDetailsPlotProps> = ({
 
 };
 
-export default CrashOrAnrGroupDetailsPlot;
+export default ExceptionsDetailsPlot;

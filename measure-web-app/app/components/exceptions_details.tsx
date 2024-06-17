@@ -3,48 +3,48 @@
 import React, { useState, useEffect } from 'react';
 import Accordion from "@/app/components/accordion";
 import Link from "next/link";
-import { CrashOrAnrGroupDetailsApiStatus, CrashOrAnrType, emptyCrashGroupDetailsResponse, emptyAnrGroupDetailsResponse, fetchCrashOrAnrGroupDetailsFromServer, FiltersApiType } from '@/app/api/api_calls';
+import { ExceptionsDetailsApiStatus, ExceptionsType, emptyCrashExceptionsDetailsResponse, emptyAnrExceptionsDetailsResponse, fetchExceptionsDetailsFromServer, FiltersApiType } from '@/app/api/api_calls';
 import { useRouter } from 'next/navigation';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import { formatDateToHumanReadable, formatTimeToHumanReadable } from '../utils/time_utils';
-import CrashOrAnrGroupDetailsPlot from './crash_or_anr_group_details_plot';
+import ExceptionspDetailsPlot from './exceptions_details_plot';
 import Filters, { AppVersionsInitialSelectionType, defaultSelectedFilters } from './filters';
 import Journey, { JourneyType } from './journey';
 import Image from 'next/image';
 
-interface CrashOrAnrGroupDetailsProps {
-  crashOrAnrType: CrashOrAnrType,
+interface ExceptionsDetailsProps {
+  exceptionsType: ExceptionsType,
   teamId: string,
   appId: string,
-  crashOrAnrGroupId: string,
-  crashOrAnrGroupName: string,
+  exceptionsGroupId: string,
+  exceptionsGroupName: string,
 }
 
-export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ crashOrAnrType, teamId, appId, crashOrAnrGroupId, crashOrAnrGroupName }) => {
+export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptionsType, teamId, appId, exceptionsGroupId, exceptionsGroupName }) => {
   const router = useRouter()
 
-  const [crashOrAnrGroupDetailsApiStatus, setCrashOrAnrGroupDetailsApiStatus] = useState(CrashOrAnrGroupDetailsApiStatus.Loading);
+  const [exceptionsDetailsApiStatus, setExceptionsDetailsApiStatus] = useState(ExceptionsDetailsApiStatus.Loading);
 
   const [selectedFilters, setSelectedFilters] = useState(defaultSelectedFilters);
 
-  const [crashOrAnrGroupDetails, setCrashOrAnrGroupDetails] = useState(crashOrAnrType === CrashOrAnrType.Crash ? emptyCrashGroupDetailsResponse : emptyAnrGroupDetailsResponse)
+  const [exceptionsDetails, setExceptionsDetails] = useState(exceptionsType === ExceptionsType.Crash ? emptyCrashExceptionsDetailsResponse : emptyAnrExceptionsDetailsResponse)
   const [paginationIndex, setPaginationIndex] = useState(0)
   const [paginationDirection, setPaginationDirection] = useState(PaginationDirection.None)
 
-  const getCrashOrAnrGroupDetails = async () => {
+  const getExceptionsDetails = async () => {
     // Don't try to fetch crashes or ANR group details if app id is not yet set
     if (selectedFilters.selectedApp.id === "") {
       return
     }
 
-    setCrashOrAnrGroupDetailsApiStatus(CrashOrAnrGroupDetailsApiStatus.Loading)
+    setExceptionsDetailsApiStatus(ExceptionsDetailsApiStatus.Loading)
 
     // Set key id if user has paginated
     var keyId = null
     var keyTimestamp = null
-    if (paginationDirection != PaginationDirection.None && crashOrAnrGroupDetails.results !== null && crashOrAnrGroupDetails?.results.length > 0) {
-      keyId = crashOrAnrGroupDetails.results[0].id
-      keyTimestamp = crashOrAnrGroupDetails.results[0].timestamp
+    if (paginationDirection != PaginationDirection.None && exceptionsDetails.results !== null && exceptionsDetails?.results.length > 0) {
+      keyId = exceptionsDetails.results[0].id
+      keyTimestamp = exceptionsDetails.results[0].timestamp
     }
 
     // Invert limit if paginating backward
@@ -53,23 +53,23 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
       limit = - limit
     }
 
-    const result = await fetchCrashOrAnrGroupDetailsFromServer(crashOrAnrType, appId, crashOrAnrGroupId, selectedFilters.selectedStartDate, selectedFilters.selectedEndDate, selectedFilters.selectedVersions, selectedFilters.selectedCountries, selectedFilters.selectedNetworkProviders, selectedFilters.selectedNetworkTypes, selectedFilters.selectedNetworkGenerations, selectedFilters.selectedLocales, selectedFilters.selectedDeviceManufacturers, selectedFilters.selectedDeviceNames, keyId, keyTimestamp, limit, router)
+    const result = await fetchExceptionsDetailsFromServer(exceptionsType, appId, exceptionsGroupId, selectedFilters.selectedStartDate, selectedFilters.selectedEndDate, selectedFilters.selectedVersions, selectedFilters.selectedCountries, selectedFilters.selectedNetworkProviders, selectedFilters.selectedNetworkTypes, selectedFilters.selectedNetworkGenerations, selectedFilters.selectedLocales, selectedFilters.selectedDeviceManufacturers, selectedFilters.selectedDeviceNames, keyId, keyTimestamp, limit, router)
 
     switch (result.status) {
-      case CrashOrAnrGroupDetailsApiStatus.Error:
+      case ExceptionsDetailsApiStatus.Error:
         setPaginationDirection(PaginationDirection.None) // Reset pagination direction to None after API call so that a change in any filters does not cause keyId to be added to the next API call
-        setCrashOrAnrGroupDetailsApiStatus(CrashOrAnrGroupDetailsApiStatus.Error)
+        setExceptionsDetailsApiStatus(ExceptionsDetailsApiStatus.Error)
         break
-      case CrashOrAnrGroupDetailsApiStatus.Success:
+      case ExceptionsDetailsApiStatus.Success:
         setPaginationDirection(PaginationDirection.None) // Reset pagination direction to None after API call so that a change in any filters does not cause keyId to be added to the next API call
-        setCrashOrAnrGroupDetailsApiStatus(CrashOrAnrGroupDetailsApiStatus.Success)
-        setCrashOrAnrGroupDetails(result.data)
+        setExceptionsDetailsApiStatus(ExceptionsDetailsApiStatus.Success)
+        setExceptionsDetails(result.data)
         break
     }
   }
 
   useEffect(() => {
-    getCrashOrAnrGroupDetails()
+    getExceptionsDetails()
   }, [paginationIndex, selectedFilters]);
 
   return (
@@ -77,13 +77,13 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
       <div className="py-4" />
       <p className="font-display font-normal text-4xl max-w-6xl text-center">{selectedFilters.selectedApp.name}</p>
       <div className="py-1" />
-      <p className="font-display font-light text-3xl max-w-6xl text-center">{crashOrAnrGroupName}</p>
+      <p className="font-display font-light text-3xl max-w-6xl text-center">{exceptionsGroupName}</p>
       <div className="py-4" />
 
       <Filters
         teamId={teamId}
         appId={appId}
-        filtersApiType={crashOrAnrType === CrashOrAnrType.Crash ? FiltersApiType.Crash : FiltersApiType.Anr}
+        filtersApiType={exceptionsType === ExceptionsType.Crash ? FiltersApiType.Crash : FiltersApiType.Anr}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
         showCountries={true}
         showNetworkTypes={true}
@@ -100,10 +100,10 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
         <div className='w-full'>
           <div className="py-6" />
           <div className="flex flex-col md:flex-row w-full">
-            <CrashOrAnrGroupDetailsPlot
+            <ExceptionspDetailsPlot
               appId={appId}
-              crashOrAnrType={crashOrAnrType}
-              crashOrAnrGroupId={crashOrAnrGroupId}
+              exceptionsType={exceptionsType}
+              exceptionsGroupId={exceptionsGroupId}
               startDate={selectedFilters.selectedStartDate}
               endDate={selectedFilters.selectedEndDate}
               appVersions={selectedFilters.selectedVersions}
@@ -120,8 +120,8 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
                 teamId={teamId}
                 appId={selectedFilters.selectedApp.id}
                 bidirectional={false}
-                journeyType={crashOrAnrType === CrashOrAnrType.Crash ? JourneyType.CrashDetails : JourneyType.AnrDetails}
-                crashOrAnrGroupId={crashOrAnrGroupId}
+                journeyType={exceptionsType === ExceptionsType.Crash ? JourneyType.CrashDetails : JourneyType.AnrDetails}
+                exceptionsGroupId={exceptionsGroupId}
                 startDate={selectedFilters.selectedStartDate}
                 endDate={selectedFilters.selectedEndDate}
                 appVersions={selectedFilters.selectedVersions}
@@ -137,17 +137,17 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
           <div className="py-4" />
 
           {/* Error state for crash details fetch */}
-          {crashOrAnrGroupDetailsApiStatus === CrashOrAnrGroupDetailsApiStatus.Error && <p className="text-lg font-display">Error fetching list of {crashOrAnrType === CrashOrAnrType.Crash ? 'crashes' : 'ANRs'}, please change filters, refresh page or select a different app to try again</p>}
+          {exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Error && <p className="text-lg font-display">Error fetching list of {exceptionsType === ExceptionsType.Crash ? 'crashes' : 'ANRs'}, please change filters, refresh page or select a different app to try again</p>}
 
           {/* Empty state for crash details fetch */}
-          {crashOrAnrGroupDetailsApiStatus === CrashOrAnrGroupDetailsApiStatus.Success && crashOrAnrGroupDetails.results === null && <p className="text-lg font-display">It seems there are no {crashOrAnrType === CrashOrAnrType.Crash ? 'Crashes' : 'ANRs'} for the current combination of filters. Please change filters to try again</p>}
+          {exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Success && exceptionsDetails.results === null && <p className="text-lg font-display">It seems there are no {exceptionsType === ExceptionsType.Crash ? 'Crashes' : 'ANRs'} for the current combination of filters. Please change filters to try again</p>}
 
-          {(crashOrAnrGroupDetailsApiStatus === CrashOrAnrGroupDetailsApiStatus.Success || crashOrAnrGroupDetailsApiStatus === CrashOrAnrGroupDetailsApiStatus.Loading) && crashOrAnrGroupDetails.results !== null && crashOrAnrGroupDetails.results.length > 0 &&
+          {(exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Success || exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading) && exceptionsDetails.results !== null && exceptionsDetails.results.length > 0 &&
             <div className='flex flex-col'>
               <div className="flex flex-col md:flex-row md:items-center w-full">
                 <p className="font-sans text-3xl"> Stack traces</p>
                 <div className="grow" />
-                <Paginator prevEnabled={crashOrAnrGroupDetails.meta.previous} nextEnabled={crashOrAnrGroupDetails.meta.next} displayText=""
+                <Paginator prevEnabled={exceptionsDetails.meta.previous} nextEnabled={exceptionsDetails.meta.next} displayText=""
                   onNext={() => {
                     setPaginationDirection(PaginationDirection.Forward)
                     setPaginationIndex(paginationIndex + 1)
@@ -160,16 +160,16 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
               <div className="py-2" />
 
               {/* We show ... in loading state for Crash/Anr ID so that user knows some API call is happening */}
-              <p className="font-display text-xl"> Id: {crashOrAnrGroupDetailsApiStatus == CrashOrAnrGroupDetailsApiStatus.Loading ? '...' : crashOrAnrGroupDetails.results[0].id}</p>
-              <p className="font-sans"> Date & time: {formatDateToHumanReadable(crashOrAnrGroupDetails.results[0].timestamp)}, {formatTimeToHumanReadable(crashOrAnrGroupDetails.results[0].timestamp)}</p>
-              <p className="font-sans"> Device: {crashOrAnrGroupDetails.results[0].attribute.device_manufacturer + crashOrAnrGroupDetails.results[0].attribute.device_model}</p>
-              <p className="font-sans"> App version: {crashOrAnrGroupDetails.results[0].attribute.app_version}</p>
-              <p className="font-sans"> Network type: {crashOrAnrGroupDetails.results[0].attribute.network_type}</p>
+              <p className="font-display text-xl"> Id: {exceptionsDetailsApiStatus == ExceptionsDetailsApiStatus.Loading ? '...' : exceptionsDetails.results[0].id}</p>
+              <p className="font-sans"> Date & time: {formatDateToHumanReadable(exceptionsDetails.results[0].timestamp)}, {formatTimeToHumanReadable(exceptionsDetails.results[0].timestamp)}</p>
+              <p className="font-sans"> Device: {exceptionsDetails.results[0].attribute.device_manufacturer + exceptionsDetails.results[0].attribute.device_model}</p>
+              <p className="font-sans"> App version: {exceptionsDetails.results[0].attribute.app_version}</p>
+              <p className="font-sans"> Network type: {exceptionsDetails.results[0].attribute.network_type}</p>
               <div className="py-2" />
               {/* show screenshots if they exist */}
-              {crashOrAnrGroupDetails.results[0].attachments !== undefined && crashOrAnrGroupDetails.results[0].attachments !== null && crashOrAnrGroupDetails.results[0].attachments.length > 0 &&
+              {exceptionsDetails.results[0].attachments !== undefined && exceptionsDetails.results[0].attachments !== null && exceptionsDetails.results[0].attachments.length > 0 &&
                 <div className='flex flex-wrap gap-8 items-center'>
-                  {crashOrAnrGroupDetails.results[0].attachments.map((attachment, index) => (
+                  {exceptionsDetails.results[0].attachments.map((attachment, index) => (
                     <Image
                       key={attachment.key}
                       className='border border-black transition ease-in-out duration-300 hover:-translate-y-1 hover:scale-[2.5]'
@@ -181,20 +181,20 @@ export const CrashOrAnrGroupDetails: React.FC<CrashOrAnrGroupDetailsProps> = ({ 
                   ))}
                 </div>}
               <div className="py-2" />
-              <Link key={crashOrAnrGroupDetails.results[0].id} href={`/${teamId}/sessions/${appId}/${crashOrAnrGroupDetails.results[0].session_id}`} className="outline-none justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">View Session </Link>
+              <Link key={exceptionsDetails.results[0].id} href={`/${teamId}/sessions/${appId}/${exceptionsDetails.results[0].session_id}`} className="outline-none justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">View Session </Link>
               <div className="py-2" />
-              {crashOrAnrType === CrashOrAnrType.Crash &&
-                <Accordion key='crash-thread' title={'Thread: ' + crashOrAnrGroupDetails.results[0].attribute.thread_name} id='crash' active={true}>
-                  {(crashOrAnrGroupDetails as typeof emptyCrashGroupDetailsResponse).results[0].exception.stacktrace}
+              {exceptionsType === ExceptionsType.Crash &&
+                <Accordion key='crash-thread' title={'Thread: ' + exceptionsDetails.results[0].attribute.thread_name} id='crash' active={true}>
+                  {(exceptionsDetails as typeof emptyCrashExceptionsDetailsResponse).results[0].exception.stacktrace}
                 </Accordion>
               }
-              {crashOrAnrType === CrashOrAnrType.Anr &&
-                <Accordion key='anr-thread' title={'Thread: ' + crashOrAnrGroupDetails.results[0].attribute.thread_name} id='anr' active={true}>
-                  {(crashOrAnrGroupDetails as typeof emptyAnrGroupDetailsResponse).results[0].anr.stacktrace}
+              {exceptionsType === ExceptionsType.Anr &&
+                <Accordion key='anr-thread' title={'Thread: ' + exceptionsDetails.results[0].attribute.thread_name} id='anr' active={true}>
+                  {(exceptionsDetails as typeof emptyAnrExceptionsDetailsResponse).results[0].anr.stacktrace}
                 </Accordion>
               }
               <div>
-                {crashOrAnrGroupDetails.results[0].threads.map((e, index) => (
+                {exceptionsDetails.results[0].threads.map((e, index) => (
                   <Accordion key={index} title={'Thread: ' + e.name} id={`${e.name}-${index}`} active={false}>
                     {e.frames.join('\n')}
                   </Accordion>
