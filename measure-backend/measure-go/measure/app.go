@@ -676,9 +676,15 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		Select(`toString(lifecycle_fragment.class_name)`).
 		Select(`toString(lifecycle_fragment.parent_activity)`).
 		Where(`app_id = ?`, a.ID).
-		Where("`attribute.app_version` in ?", af.Versions).
-		Where("`attribute.app_build` in ?", af.VersionCodes).
 		Where("`timestamp` >= ? and `timestamp` <= ?", af.From, af.To)
+
+	if len(af.Versions) > 0 {
+		stmt.Where("`attribute.app_version` in ?", af.Versions)
+	}
+
+	if len(af.VersionCodes) > 0 {
+		stmt.Where("`attribute.app_build` in ?", af.VersionCodes)
+	}
 
 	if opts.All {
 		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or ((type = ? and `exception.handled` = ?) or type = ?))", whereVals...)
@@ -2627,13 +2633,15 @@ func GetCrashDetailPlotJourney(c *gin.Context) {
 		return
 	}
 
-	if err := af.ValidateVersions(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
 	}
 
 	if !af.HasTimeRange() {
