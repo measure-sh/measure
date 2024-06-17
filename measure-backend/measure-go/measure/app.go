@@ -303,6 +303,8 @@ func (a App) GetCrashFreeMetrics(ctx context.Context, af *filter.AppFilter, vers
 		// avoid division by zero
 		if crashFreeUnselected != 0 {
 			crashFree.Delta = crashFree.CrashFreeSessions / crashFreeUnselected
+		} else {
+			crashFree.Delta = 1
 		}
 	} else {
 		// because if there are no unselected
@@ -375,6 +377,8 @@ func (a App) GetPerceivedCrashFreeMetrics(ctx context.Context, af *filter.AppFil
 		// avoid division by zero
 		if crashFreeUnselected != 0 {
 			crashFree.Delta = crashFree.CrashFreeSessions / crashFreeUnselected
+		} else {
+			crashFree.Delta = 1
 		}
 	} else {
 		// because if there are no unselected
@@ -446,6 +450,8 @@ func (a App) GetANRFreeMetrics(ctx context.Context, af *filter.AppFilter, versio
 		// avoid division by zero
 		if anrFreeUnselected != 0 {
 			anrFree.Delta = anrFree.ANRFreeSessions / anrFreeUnselected
+		} else {
+			anrFree.Delta = 1
 		}
 	} else {
 		// because if there are no unselected
@@ -518,6 +524,8 @@ func (a App) GetPerceivedANRFreeMetrics(ctx context.Context, af *filter.AppFilte
 		// avoid division by zero
 		if anrFreeUnselected != 0 {
 			anrFree.Delta = anrFree.ANRFreeSessions / anrFreeUnselected
+		} else {
+			anrFree.Delta = 1
 		}
 	} else {
 		// because if there are no unselected
