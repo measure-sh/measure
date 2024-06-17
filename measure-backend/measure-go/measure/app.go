@@ -2925,7 +2925,9 @@ func GetANROverviewPlotInstances(c *gin.Context) {
 	if err != nil {
 		msg := `id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -2937,17 +2939,34 @@ func GetANROverviewPlotInstances(c *gin.Context) {
 	if err := c.ShouldBindQuery(&af); err != nil {
 		msg := `failed to parse query parameters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
 		return
 	}
 
 	af.Expand()
 
+	msg := "ANR overview request validation failed"
 	if err := af.Validate(); err != nil {
-		msg := "app filters request validation failed"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
 		return
+	}
+
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
 	}
 
 	if !af.HasTimeRange() {
