@@ -207,12 +207,22 @@ func (j *JourneyAndroid) computeIssues() {
 // journey.
 func (j *JourneyAndroid) buildGraph() {
 	j.Graph = graph.New(len(j.nodelut))
+
 	if j.metalut == nil {
 		j.metalut = make(map[string]*set.UUIDSet)
 	}
+
 	lastActivity := -1
 
+	var nodeidxs []int
+
 	for i := range j.Nodes {
+		if j.Nodes[i].IsActivity || j.Nodes[i].IsFragment {
+			nodeidxs = append(nodeidxs, i)
+		}
+	}
+
+	for _, i := range nodeidxs {
 		first := i == 0
 		last := i == len(j.Nodes)-1
 
@@ -542,7 +552,6 @@ func NewJourneyAndroid(events []event.EventField, opts *Options) (journey Journe
 				journey.nodelutinverse[vertex] = node.Name
 			}
 		}
-
 	}
 
 	journey.computeIssues()
