@@ -324,9 +324,10 @@ Fetch an app's health metrics. Filter time range using `from` &amp; `to` query s
 
 #### Usage Notes
 
-- App's UUID must be passed in the URI
-- All filters must be passed as query strings
-- All filters are optional. If any filter is not present, the server will compute results assuming a default value for that filter.
+- App's UUID must be passed in the URI.
+- All filters must be passed as query strings.
+- `version` &amp; `version_codes` both are required.
+- Number of items in `version` &amp; `version_codes` must be same.
 - `from` &amp; `to` values must be ISO 8601 UTC strings in milliseconds precision. Example: `?from=2023-11-01T18:30:00.000Z&to=2023-11-08T18:30:00.000Z`
 - `from` &amp; `to` will default to a last 7 days time range if not supplied.
 - `versions` can accept multiple version identifiers separated with comma. Only the first version will be used to query at the moment.
@@ -350,6 +351,8 @@ These headers must be present in each request.
 </details>
 
 #### Response Body
+
+- `nan` can be true if some computed values result in a division by zero error.
 
 - Response
 
