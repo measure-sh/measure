@@ -362,7 +362,6 @@ func (e eventreq) bucketUnhandledExceptions(ctx context.Context, tx *pgx.Tx) (er
 		}
 
 		if !matchedGroup.EventExists(events[i].ID) {
-			matchedGroup.SetTimestamp(events[i].Timestamp)
 			if err := matchedGroup.AppendEvent(ctx, &events[i], tx); err != nil {
 				return err
 			}
