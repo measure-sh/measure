@@ -20,7 +20,7 @@ import (
 // MatchingHammingDistance is the minimum hamming
 // distance above which two similar exceptions or
 // ANRs are considered unique.
-var MinHammingDistance = 3
+var MinHammingDistance uint8 = 3
 
 type GroupID interface {
 	GetID() uuid.UUID
@@ -35,6 +35,7 @@ type ExceptionGroup struct {
 	EventIDs        []uuid.UUID            `json:"event_ids,omitempty" db:"event_ids"`
 	EventExceptions []event.EventException `json:"exception_events,omitempty"`
 	Percentage      float32                `json:"percentage_contribution"`
+	FirstEventTime  time.Time              `json:"-" db:"first_event_timestamp"`
 	CreatedAt       chrono.ISOTime         `json:"created_at" db:"created_at"`
 	UpdatedAt       chrono.ISOTime         `json:"updated_at" db:"updated_at"`
 }
@@ -89,13 +90,15 @@ func (e ExceptionGroup) AppendEventId(ctx context.Context, id uuid.UUID, tx *pgx
 // exception's fingerprint with any arbitrary fingerprint
 // represented as a 64 bit unsigned integer returning
 // the distance.
-func (e ExceptionGroup) HammingDistance(a uint64) (uint8, error) {
+func (e ExceptionGroup) HammingDistance(a uint64) (distance uint8, err error) {
 	b, err := strconv.ParseUint(e.Fingerprint, 16, 64)
 	if err != nil {
-		return 0, err
+		return
 	}
 
-	return simhash.Compare(a, b), nil
+	distance = simhash.Compare(a, b)
+
+	return
 }
 
 // Insert inserts a new ExceptionGroup into the database.
@@ -111,7 +114,8 @@ func (e *ExceptionGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 		Set("app_id", e.AppID).
 		Set("name", e.Name).
 		Set("fingerprint", e.Fingerprint).
-		Set("event_ids", e.EventIDs)
+		Set("event_ids", e.EventIDs).
+		Set("first_event_timestamp", e.FirstEventTime)
 
 	defer stmt.Close()
 
@@ -222,22 +226,26 @@ func GetANRGroup(ag *ANRGroup) error {
 
 // ClosestExceptionGroup finds the index of the ExceptionGroup closest to
 // an arbitrary fingerprint from a slice of ExceptionGroup.
-func ClosestExceptionGroup(groups []ExceptionGroup, fingerprint uint64) (int, error) {
+func ClosestExceptionGroup(groups []ExceptionGroup, fingerprint uint64) (group *ExceptionGroup, err error) {
 	lowest := -1
-	var min uint8 = uint8(MinHammingDistance)
-	for index, group := range groups {
-		distance, err := group.HammingDistance(fingerprint)
+	min := MinHammingDistance
+	for i := range groups {
+		distance, err := groups[i].HammingDistance(fingerprint)
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 
 		if distance <= min {
 			min = distance
-			lowest = index
+			lowest = i
 		}
 	}
 
-	return lowest, nil
+	if lowest > -1 {
+		group = &groups[lowest]
+	}
+
+	return
 }
 
 // ClosestANRGroup finds the index of the ANRGroup closest to
@@ -412,12 +420,13 @@ func PaginateGroups[T GroupID](groups []T, af *filter.AppFilter) (sliced []T, ne
 }
 
 // NewExceptionGroup constructs a new ExceptionGroup and returns a pointer to it.
-func NewExceptionGroup(appId uuid.UUID, name string, fingerprint string, eventIds []uuid.UUID) *ExceptionGroup {
+func NewExceptionGroup(appId uuid.UUID, name string, fingerprint string, eventIds []uuid.UUID, firstTime time.Time) *ExceptionGroup {
 	return &ExceptionGroup{
-		AppID:       appId,
-		Name:        name,
-		Fingerprint: fingerprint,
-		EventIDs:    eventIds,
+		AppID:          appId,
+		Name:           name,
+		Fingerprint:    fingerprint,
+		EventIDs:       eventIds,
+		FirstEventTime: firstTime,
 	}
 }
 

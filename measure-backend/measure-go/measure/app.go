@@ -90,36 +90,31 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (*group.Except
 	return &group, nil
 }
 
-// GetExceptionGroups returns slice of ExceptionGroup after applying matching
-// AppFilter values
-func (a App) GetExceptionGroups(ctx context.Context, af *filter.AppFilter) ([]group.ExceptionGroup, error) {
+// GetExceptionGroups returns slice of ExceptionGroup. Optionally,
+// filters using AppFilter if present.
+func (a App) GetExceptionGroups(ctx context.Context, af *filter.AppFilter) (groups []group.ExceptionGroup, err error) {
 	stmt := sqlf.PostgreSQL.
-		Select("id, app_id, name, fingerprint, array_length(event_ids, 1) as count, event_ids, created_at, updated_at").
 		From("public.unhandled_exception_groups").
-		OrderBy("count desc").
-		Where("app_id = ?", nil)
+		Select("id").
+		Select("app_id").
+		Select("name").
+		Select("fingerprint").
+		Select("event_ids").
+		Select("array_length(event_ids, 1) as count").
+		Select("first_event_timestamp").
+		Select("created_at").
+		Select("updated_at").
+		Where("app_id = ?", a.ID).
+		OrderBy("count desc")
 
 	defer stmt.Close()
 
-	args := []any{a.ID}
-
-	if af != nil {
-		if af.HasTimeRange() {
-			stmt.Where("created_at >= ? and created_at <= ?", nil, nil)
-			args = append(args, af.From, af.To)
-		}
+	if af != nil && af.HasTimeRange() {
+		stmt.Where("created_at >= ? and created_at <= ?", af.From, af.To)
 	}
 
-	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), args...)
-	if err != nil {
-		return nil, err
-	}
-	groups, err := pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
-	if err != nil {
-		return nil, err
-	}
-
-	return groups, nil
+	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
+	return pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
 }
 
 // GetANRGroup queries a single anr group from the anr
