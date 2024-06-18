@@ -138,35 +138,31 @@ func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (*group.ANRGroup, er
 	return &group, nil
 }
 
-// GetANRGroups returns slice of ANRGroup after applying matching
-// AppFilter values
-func (a App) GetANRGroups(af *filter.AppFilter) ([]group.ANRGroup, error) {
+// GetANRGroups returns slice of ANRGroup. Optioanlly,
+// filters using AppFilter if present.
+func (a App) GetANRGroups(ctx context.Context, af *filter.AppFilter) (groups []group.ANRGroup, err error) {
 	stmt := sqlf.PostgreSQL.
-		Select("id, app_id, name, fingerprint, array_length(event_ids, 1) as count, event_ids, created_at, updated_at").
 		From("public.anr_groups").
-		OrderBy("count desc").
-		Where("app_id = ?", nil)
+		Select("id").
+		Select("app_id").
+		Select("name").
+		Select("fingerprint").
+		Select("event_ids").
+		Select("array_length(event_ids, 1) as count").
+		Select("first_event_timestamp").
+		Select("created_at").
+		Select("updated_at").
+		Where("app_id = ?", a.ID).
+		OrderBy("count desc")
+
 	defer stmt.Close()
 
-	args := []any{a.ID}
-
-	if af != nil {
-		if af.HasTimeRange() {
-			stmt.Where("created_at >= ? and created_at <= ?", nil, nil)
-			args = append(args, af.From, af.To)
-		}
+	if af != nil && af.HasTimeRange() {
+		stmt.Where("first_event_timestamp >= ? and first_event_timestamp <= ?", af.From, af.To)
 	}
 
-	rows, err := server.Server.PgPool.Query(context.Background(), stmt.String(), args...)
-	if err != nil {
-		return nil, err
-	}
-	groups, err := pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ANRGroup])
-	if err != nil {
-		return nil, err
-	}
-
-	return groups, nil
+	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
+	return pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ANRGroup])
 }
 
 // GetSizeMetrics computes app size of the selected app version
@@ -2880,7 +2876,7 @@ func GetANROverview(c *gin.Context) {
 		return
 	}
 
-	groups, err := app.GetANRGroups(&af)
+	groups, err := app.GetANRGroups(ctx, &af)
 	if err != nil {
 		msg := "failed to get app's anr groups"
 		fmt.Println(msg, err)

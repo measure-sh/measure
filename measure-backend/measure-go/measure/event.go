@@ -373,74 +373,53 @@ func (e eventreq) bucketUnhandledExceptions(ctx context.Context, tx *pgx.Tx) (er
 }
 
 // bucketANRs groups ANRs based on similarity.
-func (e eventreq) bucketANRs(ctx context.Context, tx *pgx.Tx) error {
-	anrs := e.getANRs()
-
-	type EventGroup struct {
-		eventId     uuid.UUID
-		anr         event.ANR
-		fingerprint uint64
-	}
-
-	var eventGroups []EventGroup
-
-	for _, event := range anrs {
-		if event.ANR.Fingerprint == "" {
-			msg := fmt.Sprintf("fingerprint for anr event %q is empty, cannot bucket", event.ID)
-			fmt.Println(msg)
-			continue
-		}
-
-		fingerprint, err := strconv.ParseUint(event.ANR.Fingerprint, 16, 64)
-		if err != nil {
-			msg := fmt.Sprintf("failed to parse fingerprint as integer for anr event %q", event.ID)
-			fmt.Println(msg, err)
-			return err
-		}
-
-		eventGroups = append(eventGroups, EventGroup{
-			eventId:     event.ID,
-			anr:         *event.ANR,
-			fingerprint: fingerprint,
-		})
-	}
+func (e eventreq) bucketANRs(ctx context.Context, tx *pgx.Tx) (err error) {
+	events := e.getANRs()
 
 	app := App{
 		ID: &e.appId,
 	}
 
-	for _, eventGroup := range eventGroups {
-		appANRGroups, err := app.GetANRGroups(nil)
+	for i := range events {
+		if events[i].ANR.Fingerprint == "" {
+			msg := fmt.Sprintf("no fingerprint found for event %q, cannot bucket ANR", events[i].ID)
+			fmt.Println(msg)
+			continue
+		}
+
+		anrGroups, err := app.GetANRGroups(ctx, nil)
 		if err != nil {
 			return err
 		}
 
-		if len(appANRGroups) < 1 {
-			// insert new anr group
-			return group.NewANRGroup(e.appId, eventGroup.anr.GetType(), fmt.Sprintf("%x", eventGroup.fingerprint), []uuid.UUID{eventGroup.eventId}).Insert(ctx, tx)
-		}
-
-		index, err := group.ClosestANRGroup(appANRGroups, eventGroup.fingerprint)
+		fingerprint, err := strconv.ParseUint(events[i].ANR.Fingerprint, 16, 64)
 		if err != nil {
 			return err
 		}
-		if index < 0 {
-			// when no group matches exists, create new anr group
-			group.NewANRGroup(e.appId, eventGroup.anr.GetType(), fmt.Sprintf("%x", eventGroup.fingerprint), []uuid.UUID{eventGroup.eventId}).Insert(ctx, tx)
-			continue
-		}
-		matchedGroup := appANRGroups[index]
 
-		if matchedGroup.EventExists(eventGroup.eventId) {
-			continue
-		}
-
-		if err := matchedGroup.AppendEventId(ctx, eventGroup.eventId, tx); err != nil {
+		matchedGroup, err := group.ClosestANRGroup(anrGroups, fingerprint)
+		if err != nil {
 			return err
+		}
+
+		if matchedGroup == nil {
+			anrGroup := group.NewANRGroup(events[i].AppID, events[i].ANR.GetType(), events[i].ANR.Fingerprint, []uuid.UUID{events[i].ID}, events[i].Timestamp)
+
+			if err := anrGroup.Insert(ctx, tx); err != nil {
+				return err
+			}
+
+			matchedGroup = anrGroup
+		}
+
+		if !matchedGroup.EventExists(events[i].ID) {
+			if err := matchedGroup.AppendEvent(ctx, &events[i], tx); err != nil {
+				return err
+			}
 		}
 	}
 
-	return nil
+	return
 }
 
 // needsSymbolication returns true if payload
