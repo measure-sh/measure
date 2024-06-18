@@ -108,14 +108,6 @@ func (e ExceptionGroup) HammingDistance(a uint64) (distance uint8, err error) {
 	return
 }
 
-// SetTimestamp sets t as the first event time
-// if t is older than existing first event time.
-func (e *ExceptionGroup) SetTimestamp(t time.Time) {
-	if e.FirstEventTime.After(t) {
-		e.FirstEventTime = t
-	}
-}
-
 // Insert inserts a new ExceptionGroup into the database.
 func (e *ExceptionGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 	id, err := uuid.NewV7()
