@@ -65,14 +65,20 @@ func (e ExceptionGroup) EventExists(id uuid.UUID) bool {
 	})
 }
 
-// AppendEventId appends a new event id to the ExceptionGroup's
-// events array.
-func (e ExceptionGroup) AppendEventId(ctx context.Context, id uuid.UUID, tx *pgx.Tx) (err error) {
+// AppendEvent appends a new event id to the ExceptionGroup's
+// events array. Additionally, if the event's timestamp is
+// older than the group's timestamp, then update the group's
+// timestamp.
+func (e ExceptionGroup) AppendEvent(ctx context.Context, event *event.EventField, tx *pgx.Tx) (err error) {
 	stmt := sqlf.PostgreSQL.
 		Update("public.unhandled_exception_groups").
-		SetExpr("event_ids", "array_append(event_ids, ?)", id).
+		SetExpr("event_ids", "array_append(event_ids, ?)", event.ID).
 		Set("updated_at", time.Now()).
 		Where("id = ?", e.ID)
+
+	if event.Timestamp.Before(e.FirstEventTime) {
+		stmt.Set("first_event_timestamp", event.Timestamp)
+	}
 
 	defer stmt.Close()
 
@@ -99,6 +105,14 @@ func (e ExceptionGroup) HammingDistance(a uint64) (distance uint8, err error) {
 	distance = simhash.Compare(a, b)
 
 	return
+}
+
+// SetTimestamp sets t as the first event time
+// if t is older than existing first event time.
+func (e *ExceptionGroup) SetTimestamp(t time.Time) {
+	if e.FirstEventTime.After(t) {
+		e.FirstEventTime = t
+	}
 }
 
 // Insert inserts a new ExceptionGroup into the database.
