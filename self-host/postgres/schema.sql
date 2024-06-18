@@ -735,6 +735,7 @@ CREATE TABLE public.unhandled_exception_groups (
     name text NOT NULL,
     fingerprint character varying(16) NOT NULL,
     event_ids uuid[] NOT NULL,
+    first_event_timestamp timestamp with time zone NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -773,6 +774,13 @@ COMMENT ON COLUMN public.unhandled_exception_groups.fingerprint IS 'fingerprint 
 --
 
 COMMENT ON COLUMN public.unhandled_exception_groups.event_ids IS 'list of associated event ids';
+
+
+--
+-- Name: COLUMN unhandled_exception_groups.first_event_timestamp; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.unhandled_exception_groups.first_event_timestamp IS 'utc timestamp of the oldest event in the group';
 
 
 --
