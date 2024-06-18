@@ -1668,7 +1668,10 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 		if err := rows.Scan(&instance.DateTime, &instance.Version, &instance.Instances, &instance.IssueFreeSessions, &ignore1, &ignore2); err != nil {
 			return nil, err
 		}
-		issueInstances = append(issueInstances, instance)
+
+		if *instance.Instances > 0 {
+			issueInstances = append(issueInstances, instance)
+		}
 	}
 
 	if rows.Err() != nil {
