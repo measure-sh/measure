@@ -1687,19 +1687,23 @@ func GetEventIdsMatchingFilter(ctx context.Context, eventIds []uuid.UUID, af *fi
 	stmt := sqlf.
 		From("default.events").
 		Select("id").
-		Where("`id` in (?)")
+		Where("id").In(eventIds)
 
 	defer stmt.Close()
 
 	if len(af.Versions) > 0 {
-		stmt.Where("`attribute.app_version` in (?)")
+		stmt.Where("attribute.app_version").In(af.Versions)
 	}
 
 	if len(af.VersionCodes) > 0 {
-		stmt.Where("`attribute.app_build` in (?)")
+		stmt.Where("attribute.app_build").In(af.VersionCodes)
 	}
 
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), eventIds, af.Versions, af.VersionCodes)
+	if af.HasTimeRange() {
+		stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+	}
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return nil, err
 	}
