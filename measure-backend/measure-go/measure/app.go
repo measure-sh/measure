@@ -110,7 +110,7 @@ func (a App) GetExceptionGroups(ctx context.Context, af *filter.AppFilter) (grou
 	defer stmt.Close()
 
 	if af != nil && af.HasTimeRange() {
-		stmt.Where("created_at >= ? and created_at <= ?", af.From, af.To)
+		stmt.Where("first_event_timestamp >= ? and first_event_timestamp <= ?", af.From, af.To)
 	}
 
 	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
