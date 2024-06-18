@@ -127,7 +127,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
             </div>
             <div className="table-row-group">
               {exceptionsOverview.results.map(({ id, name, count, percentage_contribution }) => (
-                <Link key={id} href={`/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${selectedFilters.selectedApp.id}/${id}/${name}?start_date=${selectedFilters.selectedStartDate}&end_date=${selectedFilters.selectedEndDate}`} className="table-row hover:bg-yellow-200 active:bg-yellow-300">
+                <Link key={id} href={`/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${selectedFilters.selectedApp.id}/${id}/${name}`} className="table-row hover:bg-yellow-200 active:bg-yellow-300">
                   <div className="table-cell border border-black p-2 hover:bg-yellow-200 active:bg-yellow-300">{name}</div>
                   <div className="table-cell border border-black p-2 text-center">{count} instances</div>
                   <div className="table-cell border border-black p-2 text-center">{percentage_contribution}%</div>

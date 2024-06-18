@@ -1,13 +1,12 @@
 "use client"
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { formatDateToHumanReadable, isValidTimestamp } from "../utils/time_utils";
 import { useEffect, useState } from "react";
 import { AppVersion, AppsApiStatus, FiltersApiStatus, FiltersApiType, emptyApp, fetchAppsFromServer, fetchFiltersFromServer } from "../api/api_calls";
 import { DateTime } from "luxon";
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
 import FilterPill from "./filter_pill";
-import { updateDateQueryParams } from "../utils/router_utils";
 import CreateApp from "./create_app";
 
 export enum AppVersionsInitialSelectionType {
@@ -45,6 +44,12 @@ export type SelectedFilters = {
   selectedDeviceNames: string[]
 }
 
+type PersistedFilters = {
+  selectedAppId: string
+  selectedStartDate: string
+  selectedEndDate: string
+}
+
 export const defaultSelectedFilters: SelectedFilters = {
   ready: false,
   selectedApp: emptyApp,
@@ -75,7 +80,9 @@ const Filters: React.FC<FiltersProps> = ({
   onFiltersChanged }) => {
 
   const router = useRouter()
-  const searchParams = useSearchParams()
+
+  const persistedFiltersStorageKey = 'measurePersistedFilters'
+  const persistedFilters: PersistedFilters = sessionStorage.getItem(persistedFiltersStorageKey) === null ? null : JSON.parse(sessionStorage.getItem(persistedFiltersStorageKey)!)
 
   const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading);
   const [filtersApiStatus, setFiltersApiStatus] = useState(FiltersApiStatus.Loading);
@@ -109,19 +116,17 @@ const Filters: React.FC<FiltersProps> = ({
 
   const today = DateTime.now();
   const todayDate = today.toFormat('yyyy-MM-dd');
-  const [endDate, setEndDate] = useState(searchParams.has("end_date") ? searchParams.get("end_date")! : todayDate);
+  const [endDate, setEndDate] = useState(persistedFilters === null ? todayDate : persistedFilters.selectedEndDate);
   const [formattedEndDate, setFormattedEndDate] = useState(formatDateToHumanReadable(endDate));
 
   const sevenDaysAgo = today.minus({ days: 7 });
   var initialStartDate = sevenDaysAgo.toFormat('yyyy-MM-dd');
-  const [startDate, setStartDate] = useState(searchParams.has("start_date") ? searchParams.get("start_date")! : initialStartDate);
+  const [startDate, setStartDate] = useState(persistedFilters === null ? initialStartDate : persistedFilters.selectedStartDate);
   const [formattedStartDate, setFormattedStartDate] = useState(formatDateToHumanReadable(startDate));
 
   useEffect(() => {
     setFormattedStartDate(formatDateToHumanReadable(startDate));
     setFormattedEndDate(formatDateToHumanReadable(endDate));
-
-    updateDateQueryParams(router, searchParams, startDate, endDate)
   }, [startDate, endDate]);
 
   const getApps = async () => {
@@ -140,8 +145,15 @@ const Filters: React.FC<FiltersProps> = ({
       case AppsApiStatus.Success:
         setAppsApiStatus(AppsApiStatus.Success)
         setApps(result.data)
-        // If appId is provided, set selected app to given appId. If not, set it to first app in the result
-        setSelectedApp(appId === undefined ? result.data[0] : result.data.find((e: typeof emptyApp) => e.id === appId))
+        // If appId is provided, set selected app to given appId. If no app Id is provided but we have a saved appId from
+        // saved filters, set selected app to the one from saved filters. If not, set to the first app id.
+        if (appId !== undefined) {
+          setSelectedApp(result.data.find((e: typeof emptyApp) => e.id === appId))
+        } else if (persistedFilters !== null) {
+          setSelectedApp(result.data.find((e: typeof emptyApp) => e.id === persistedFilters.selectedAppId))
+        } else {
+          setSelectedApp(result.data[0])
+        }
         break
     }
   }
@@ -151,11 +163,6 @@ const Filters: React.FC<FiltersProps> = ({
   }, []);
 
   const getFilters = async () => {
-    // Don't try to fetch filters if app id is not yet set
-    if (selectedApp.id === "") {
-      return
-    }
-
     setFiltersApiStatus(FiltersApiStatus.Loading)
 
     const result = await fetchFiltersFromServer(selectedApp, filtersApiType, router)
@@ -222,11 +229,22 @@ const Filters: React.FC<FiltersProps> = ({
   }
 
   useEffect(() => {
+    // Don't try to fetch filters if app id is not yet set
+    if (selectedApp.id === "") {
+      return
+    }
+
     getFilters()
   }, [selectedApp]);
 
   useEffect(() => {
-    const updatedFilters: SelectedFilters = {
+    const updatedPersistedFilters: PersistedFilters = {
+      selectedAppId: selectedApp.id,
+      selectedStartDate: startDate,
+      selectedEndDate: endDate
+    }
+
+    const updatedSelectedFilters: SelectedFilters = {
       ready: appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success,
       selectedApp: selectedApp,
       selectedStartDate: startDate,
@@ -241,7 +259,8 @@ const Filters: React.FC<FiltersProps> = ({
       selectedDeviceNames: selectedDeviceNames
     }
 
-    onFiltersChanged(updatedFilters)
+    onFiltersChanged(updatedSelectedFilters)
+    sessionStorage.setItem(persistedFiltersStorageKey, JSON.stringify(updatedPersistedFilters))
   }, [appsApiStatus, filtersApiStatus, selectedApp, startDate, endDate, selectedVersions, selectedCountries, selectedNetworkProviders, selectedNetworkTypes, selectedNetworkGenerations, selectedLocales, selectedDeviceManufacturers, selectedDeviceNames]);
 
   return (
