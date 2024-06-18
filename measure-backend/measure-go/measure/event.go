@@ -322,75 +322,53 @@ func (e eventreq) getANRs() (events []event.EventField) {
 
 // bucketUnhandledExceptions groups unhandled exceptions
 // based on similarity.
-func (e eventreq) bucketUnhandledExceptions(ctx context.Context, tx *pgx.Tx) error {
-	exceptions := e.getUnhandledExceptions()
-
-	type EventGroup struct {
-		eventId     uuid.UUID
-		exception   event.Exception
-		fingerprint uint64
-	}
-
-	var eventGroups []EventGroup
-
-	for _, event := range exceptions {
-		if event.Exception.Fingerprint == "" {
-			msg := fmt.Sprintf("fingerprint for event %q is empty, cannot bucket", event.ID)
-			fmt.Println(msg)
-			continue
-		}
-
-		fingerprint, err := strconv.ParseUint(event.Exception.Fingerprint, 16, 64)
-		if err != nil {
-			msg := fmt.Sprintf("failed to parse fingerprint as integer for event %q", event.ID)
-			fmt.Println(msg, err)
-			return err
-		}
-
-		eventGroups = append(eventGroups, EventGroup{
-			eventId:     event.ID,
-			exception:   *event.Exception,
-			fingerprint: fingerprint,
-		})
-	}
+func (e eventreq) bucketUnhandledExceptions(ctx context.Context, tx *pgx.Tx) (err error) {
+	events := e.getUnhandledExceptions()
 
 	app := App{
 		ID: &e.appId,
 	}
 
-	for _, eventGroup := range eventGroups {
-		appExceptionGroups, err := app.GetExceptionGroups(ctx, nil)
+	for i := range events {
+		if events[i].Exception.Fingerprint == "" {
+			msg := fmt.Sprintf("no fingerprint found for event %q, cannot bucket exception", events[i].ID)
+			fmt.Println(msg)
+			continue
+		}
+
+		exceptionGroups, err := app.GetExceptionGroups(ctx, nil)
 		if err != nil {
 			return err
 		}
 
-		if len(appExceptionGroups) < 1 {
-			// insert new exception group
-			return group.NewExceptionGroup(e.appId, eventGroup.exception.GetType(), fmt.Sprintf("%x", eventGroup.fingerprint), []uuid.UUID{eventGroup.eventId}).Insert(ctx, tx)
-		}
-
-		index, err := group.ClosestExceptionGroup(appExceptionGroups, eventGroup.fingerprint)
+		fingerprint, err := strconv.ParseUint(events[i].Exception.Fingerprint, 16, 64)
 		if err != nil {
 			return err
 		}
-		if index < 0 {
-			// when no group matches exists, create new exception group
-			group.NewExceptionGroup(e.appId, eventGroup.exception.GetType(), fmt.Sprintf("%x", eventGroup.fingerprint), []uuid.UUID{eventGroup.eventId}).Insert(ctx, tx)
-			continue
-		}
-		matchedGroup := appExceptionGroups[index]
 
-		if matchedGroup.EventExists(eventGroup.eventId) {
-			continue
-		}
-
-		if err := matchedGroup.AppendEventId(ctx, eventGroup.eventId, tx); err != nil {
+		matchedGroup, err := group.ClosestExceptionGroup(exceptionGroups, fingerprint)
+		if err != nil {
 			return err
 		}
 
+		if matchedGroup == nil {
+			exceptionGroup := group.NewExceptionGroup(events[i].AppID, events[i].Exception.GetType(), events[i].Exception.Fingerprint, []uuid.UUID{events[i].ID}, events[i].Timestamp)
+
+			if err := exceptionGroup.Insert(ctx, tx); err != nil {
+				return err
+			}
+
+			matchedGroup = exceptionGroup
+		}
+
+		if !matchedGroup.EventExists(events[i].ID) {
+			if err := matchedGroup.AppendEventId(ctx, events[i].ID, tx); err != nil {
+				return err
+			}
+		}
 	}
 
-	return nil
+	return
 }
 
 // bucketANRs groups ANRs based on similarity.
