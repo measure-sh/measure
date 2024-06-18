@@ -41,16 +41,17 @@ type ExceptionGroup struct {
 }
 
 type ANRGroup struct {
-	ID          uuid.UUID        `json:"id" db:"id"`
-	AppID       uuid.UUID        `json:"app_id" db:"app_id"`
-	Name        string           `json:"name" db:"name"`
-	Fingerprint string           `json:"fingerprint" db:"fingerprint"`
-	Count       int              `json:"count" db:"count"`
-	EventIDs    []uuid.UUID      `json:"event_ids,omitempty" db:"event_ids"`
-	EventANRs   []event.EventANR `json:"anr_events,omitempty"`
-	Percentage  float32          `json:"percentage_contribution"`
-	CreatedAt   chrono.ISOTime   `json:"created_at" db:"created_at"`
-	UpdatedAt   chrono.ISOTime   `json:"updated_at" db:"updated_at"`
+	ID             uuid.UUID        `json:"id" db:"id"`
+	AppID          uuid.UUID        `json:"app_id" db:"app_id"`
+	Name           string           `json:"name" db:"name"`
+	Fingerprint    string           `json:"fingerprint" db:"fingerprint"`
+	Count          int              `json:"count" db:"count"`
+	EventIDs       []uuid.UUID      `json:"event_ids,omitempty" db:"event_ids"`
+	EventANRs      []event.EventANR `json:"anr_events,omitempty"`
+	Percentage     float32          `json:"percentage_contribution"`
+	FirstEventTime time.Time        `json:"-" db:"first_event_timestamp"`
+	CreatedAt      chrono.ISOTime   `json:"created_at" db:"created_at"`
+	UpdatedAt      chrono.ISOTime   `json:"updated_at" db:"updated_at"`
 }
 
 func (e ExceptionGroup) GetID() uuid.UUID {
@@ -155,14 +156,20 @@ func (a ANRGroup) EventExists(id uuid.UUID) bool {
 	})
 }
 
-// AppendEventId appends a new event id to the ANRGroup's
-// events array.
-func (a ANRGroup) AppendEventId(ctx context.Context, id uuid.UUID, tx *pgx.Tx) (err error) {
+// AppendEvent appends a new event id to the ANRGroup's
+// events array. Additionally, if the event's timestamp is
+// older than the group's timestamp, then update the group's
+// timestamp.
+func (e ANRGroup) AppendEvent(ctx context.Context, event *event.EventField, tx *pgx.Tx) (err error) {
 	stmt := sqlf.PostgreSQL.
 		Update("public.anr_groups").
-		SetExpr("event_ids", "array_append(event_ids, ?)", id).
+		SetExpr("event_ids", "array_append(event_ids, ?)", event.ID).
 		Set("updated_at", time.Now()).
-		Where("id = ?", a.ID)
+		Where("id = ?", e.ID)
+
+	if event.Timestamp.Before(e.FirstEventTime) {
+		stmt.Set("first_event_timestamp", event.Timestamp)
+	}
 
 	defer stmt.Close()
 
@@ -180,13 +187,15 @@ func (a ANRGroup) AppendEventId(ctx context.Context, id uuid.UUID, tx *pgx.Tx) (
 // anr's fingerprint with any arbitrary fingerprint
 // represented as a 64 bit unsigned integer returning
 // the distance.
-func (anr ANRGroup) HammingDistance(a uint64) (uint8, error) {
+func (anr ANRGroup) HammingDistance(a uint64) (distance uint8, err error) {
 	b, err := strconv.ParseUint(anr.Fingerprint, 16, 64)
 	if err != nil {
-		return 0, err
+		return
 	}
 
-	return simhash.Compare(a, b), nil
+	distance = simhash.Compare(a, b)
+
+	return
 }
 
 // Insert inserts a new ANRGroup into the database.
@@ -202,7 +211,8 @@ func (a *ANRGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 		Set("app_id", a.AppID).
 		Set("name", a.Name).
 		Set("fingerprint", a.Fingerprint).
-		Set("event_ids", a.EventIDs)
+		Set("event_ids", a.EventIDs).
+		Set("first_event_timestamp", a.FirstEventTime)
 
 	defer stmt.Close()
 
@@ -264,22 +274,26 @@ func ClosestExceptionGroup(groups []ExceptionGroup, fingerprint uint64) (group *
 
 // ClosestANRGroup finds the index of the ANRGroup closest to
 // an arbitrary fingerprint from a slice of ANRGroup.
-func ClosestANRGroup(groups []ANRGroup, fingerprint uint64) (int, error) {
+func ClosestANRGroup(groups []ANRGroup, fingerprint uint64) (group *ANRGroup, err error) {
 	lowest := -1
-	var min uint8 = uint8(MinHammingDistance)
-	for index, group := range groups {
-		distance, err := group.HammingDistance(fingerprint)
+	min := MinHammingDistance
+	for i := range groups {
+		distance, err := groups[i].HammingDistance(fingerprint)
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 
 		if distance <= min {
 			min = distance
-			lowest = index
+			lowest = i
 		}
 	}
 
-	return lowest, nil
+	if lowest > -1 {
+		group = &groups[lowest]
+	}
+
+	return
 }
 
 // ComputeCrashContribution computes percentage of crash contribution from
@@ -445,11 +459,12 @@ func NewExceptionGroup(appId uuid.UUID, name string, fingerprint string, eventId
 }
 
 // NewANRGroup constructs a new ANRGroup and returns a pointer to it.
-func NewANRGroup(appId uuid.UUID, name string, fingerprint string, eventIds []uuid.UUID) *ANRGroup {
+func NewANRGroup(appId uuid.UUID, name string, fingerprint string, eventIds []uuid.UUID, firstTime time.Time) *ANRGroup {
 	return &ANRGroup{
-		AppID:       appId,
-		Name:        name,
-		Fingerprint: fingerprint,
-		EventIDs:    eventIds,
+		AppID:          appId,
+		Name:           name,
+		Fingerprint:    fingerprint,
+		EventIDs:       eventIds,
+		FirstEventTime: firstTime,
 	}
 }
