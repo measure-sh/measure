@@ -916,6 +916,12 @@ func (e Exception) GetMessage() string {
 	return e.Exceptions[len(e.Exceptions)-1].Message
 }
 
+// GetLocation provides the location of
+// the exception.
+func (e Exception) GetLocation() string {
+	return e.Exceptions[len(e.Exceptions)-1].Frames[0].String()
+}
+
 // Stacktrace writes a formatted stacktrace
 // from the exception.
 func (e Exception) Stacktrace() string {
