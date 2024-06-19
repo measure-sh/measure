@@ -43,6 +43,7 @@ type EventException struct {
 type ExceptionView struct {
 	Title      string `json:"title"`
 	Stacktrace string `json:"stacktrace"`
+	Message    string `json:"message"`
 }
 
 // ComputeView computes a consumer friendly
@@ -67,8 +68,9 @@ func (e *EventANR) ComputeView() {
 // version of the exception.
 func (e *EventException) ComputeView() {
 	e.ExceptionView = ExceptionView{
-		Title:      e.Exception.GetTitle(),
+		Title:      e.Exception.GetDisplayTitle(),
 		Stacktrace: e.Exception.Stacktrace(),
+		Message:    e.Exception.GetMessage(),
 	}
 
 	for i := range e.Exception.Threads {

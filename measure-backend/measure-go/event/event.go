@@ -904,6 +904,20 @@ func (e Exception) GetTitle() string {
 	return makeTitle(e.GetType(), e.GetMessage())
 }
 
+// GetDisplayTitle provides a user friendly
+// version of the exception's title.
+func (e Exception) GetDisplayTitle() string {
+	typetype := e.GetType()
+	location := e.GetLocation()
+	title := typetype
+
+	if location != "" {
+		title += "@" + location
+	}
+
+	return title
+}
+
 // GetType provides the type of
 // the exception.
 func (e Exception) GetType() string {
