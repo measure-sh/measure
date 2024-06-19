@@ -933,7 +933,7 @@ func (e Exception) GetMessage() string {
 // GetLocation provides the location of
 // the exception.
 func (e Exception) GetLocation() string {
-	return e.Exceptions[len(e.Exceptions)-1].Frames[0].String()
+	return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileInfo()
 }
 
 // Stacktrace writes a formatted stacktrace
@@ -1032,7 +1032,7 @@ func (a ANR) GetMessage() string {
 // GetLocation provides the location of
 // the ANR.
 func (a ANR) GetLocation() string {
-	return a.Exceptions[len(a.Exceptions)-1].Frames[0].String()
+	return a.Exceptions[len(a.Exceptions)-1].Frames[0].FileInfo()
 }
 
 // Stacktrace writes a formatted stacktrace
