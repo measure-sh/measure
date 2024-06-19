@@ -598,9 +598,9 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter, version
 				Where("app_id = ?", af.AppID).
 				Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
 				Where("(type = 'cold_launch' or type = 'warm_launch' or type = 'hot_launch')")).
-		With("cold", coldStmt).
-		With("warm", warmStmt).
-		With("hot", hotStmt).
+		With("cold_unselected", coldStmt).
+		With("warm_unselected", warmStmt).
+		With("hot_unselected", hotStmt).
 		With("cold_selected",
 			sqlf.From("timings").
 				Select("round(quantile(0.95)(cold_launch.duration), 2) as cold_launch").
@@ -622,10 +622,10 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter, version
 		Select("cold_selected.cold_launch as cold_launch_p95").
 		Select("warm_selected.warm_launch as warm_launch_p95").
 		Select("hot_selected.hot_launch as hot_launch_p95").
-		Select("round(cold_selected.cold_launch - cold.cold_launch, 2) as cold_delta").
-		Select("round(warm_selected.warm_launch - warm.warm_launch, 2) as warm_delta").
-		Select("round(hot_selected.hot_launch - hot.hot_launch, 2) as hot_delta").
-		From("cold, warm, hot, cold_selected, warm_selected, hot_selected")
+		Select("round(cold_selected.cold_launch / cold_unselected.cold_launch, 2) as cold_delta").
+		Select("round(warm_selected.warm_launch / warm_unselected.warm_launch, 2) as warm_delta").
+		Select("round(hot_selected.hot_launch / hot_unselected.hot_launch, 2) as hot_delta").
+		From("cold_selected, warm_selected, hot_selected, cold_unselected, warm_unselected, hot_unselected")
 
 	defer stmt.Close()
 
