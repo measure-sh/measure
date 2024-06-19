@@ -1001,6 +1001,12 @@ func (a ANR) GetMessage() string {
 	return a.Exceptions[len(a.Exceptions)-1].Message
 }
 
+// GetLocation provides the location of
+// the ANR.
+func (a ANR) GetLocation() string {
+	return a.Exceptions[len(a.Exceptions)-1].Frames[0].String()
+}
+
 // Stacktrace writes a formatted stacktrace
 // from the ANR.
 func (a ANR) Stacktrace() string {
