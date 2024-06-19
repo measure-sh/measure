@@ -23,6 +23,12 @@ func TestJoinNonEmptyStrings(t *testing.T) {
 	if expected != got {
 		t.Errorf("Expected %q, but got %q", expected, got)
 	}
+
+	expected = ""
+	got = JoinNonEmptyStrings(":", "", "", "")
+	if expected != got {
+		t.Errorf("Expected %q, but got %q", expected, got)
+	}
 }
 
 func TestSplitTrimEmpty(t *testing.T) {
