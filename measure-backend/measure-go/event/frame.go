@@ -25,20 +25,33 @@ type Frame struct {
 
 type Frames []Frame
 
-// String provides a serialized
-// version of the frame.
-func (f Frame) String() string {
+// CodeInfo provides a serialized
+// version of the frame's code information.
+func (f Frame) CodeInfo() string {
 	className := f.ClassName
 	methodName := f.MethodName
+
+	return text.JoinNonEmptyStrings(".", className, methodName)
+}
+
+// FileInfo provides a serialized
+// version of the frame's file information.
+func (f Frame) FileInfo() string {
 	fileName := f.FileName
-	var lineNum = ""
+	lineNum := ""
 
 	if f.LineNum != 0 {
 		lineNum = strconv.Itoa(f.LineNum)
 	}
 
-	codeInfo := text.JoinNonEmptyStrings(".", className, methodName)
-	fileInfo := text.JoinNonEmptyStrings(":", fileName, lineNum)
+	return text.JoinNonEmptyStrings(":", fileName, lineNum)
+}
+
+// String provides a serialized
+// version of the frame.
+func (f Frame) String() string {
+	codeInfo := f.CodeInfo()
+	fileInfo := f.FileInfo()
 
 	if fileInfo != "" {
 		fileInfo = fmt.Sprintf(`(%s)`, fileInfo)
