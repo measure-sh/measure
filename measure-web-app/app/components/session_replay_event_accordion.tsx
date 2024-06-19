@@ -156,6 +156,7 @@ export default function SessionReplayEventAccordion({
                 src={attachment.location}
                 width={200}
                 height={200}
+                unoptimized={true}
                 alt={`Screenshot ${index}`}
               />
             ))}
