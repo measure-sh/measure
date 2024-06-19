@@ -150,12 +150,18 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ appId, 
               symbolBorderColor: 'rgba(0, 0, 0, .5)',
             }
           ]}
-          tooltip={({ point }) => {
+          enableSlices="x"
+          sliceTooltip={({ slice }) => {
             return (
-              <div className='bg-neutral-950 text-white flex flex-col p-2 text-xs'>
-                <p>Date: {formatDateToHumanReadable(point.data.xFormatted.toString())}</p>
-                <p>{exceptionsType === ExceptionsType.Crash ? 'Crash' : 'ANR'} free sessions: {point.data.yFormatted}%</p>
-                <p>No of {exceptionsType === ExceptionsType.Crash ? 'Crashes' : 'ANRs'}: {pointIdToInstanceMap.get(point.id)}</p>
+              <div className="bg-neutral-950 text-white flex flex-col p-2 text-xs">
+                <p className='p-2'>Date: {formatDateToHumanReadable(slice.points[0].data.xFormatted.toString())}</p>
+                {slice.points.map((point) => (
+                  <div className="flex flex-row items-center p-2" key={point.id}>
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: point.serieColor }} />
+                    <div className="px-2" />
+                    <p>{point.data.yFormatted}% {exceptionsType === ExceptionsType.Crash ? 'Crash' : 'ANR'} free sessions, {pointIdToInstanceMap.get(point.id)} {exceptionsType === ExceptionsType.Crash ? (pointIdToInstanceMap.get(point.id)! > 1 ? 'Crashes' : 'Crash') : (pointIdToInstanceMap.get(point.id)! > 1 ? 'ANRs' : 'ANR')} </p>
+                  </div>
+                ))}
               </div>
             )
           }}
