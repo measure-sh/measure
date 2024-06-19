@@ -1003,6 +1003,20 @@ func (a ANR) GetTitle() string {
 	return makeTitle(a.GetType(), a.GetMessage())
 }
 
+// GetDisplayTitle provides a user friendly
+// version of the ANR's title.
+func (a ANR) GetDisplayTitle() string {
+	typetype := a.GetType()
+	location := a.GetLocation()
+	title := typetype
+
+	if location != "" {
+		title += "@" + location
+	}
+
+	return title
+}
+
 // GetType provides the type of
 // the ANR.
 func (a ANR) GetType() string {
