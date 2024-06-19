@@ -402,7 +402,7 @@ func (e eventreq) bucketANRs(ctx context.Context, tx *pgx.Tx) (err error) {
 		}
 
 		if matchedGroup == nil {
-			anrGroup := group.NewANRGroup(events[i].AppID, events[i].ANR.GetType(), events[i].ANR.Fingerprint, []uuid.UUID{events[i].ID}, events[i].Timestamp)
+			anrGroup := group.NewANRGroup(events[i].AppID, events[i].ANR.GetDisplayTitle(), events[i].ANR.Fingerprint, []uuid.UUID{events[i].ID}, events[i].Timestamp)
 
 			if err := anrGroup.Insert(ctx, tx); err != nil {
 				return err
