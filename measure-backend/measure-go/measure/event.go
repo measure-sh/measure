@@ -352,7 +352,7 @@ func (e eventreq) bucketUnhandledExceptions(ctx context.Context, tx *pgx.Tx) (er
 		}
 
 		if matchedGroup == nil {
-			exceptionGroup := group.NewExceptionGroup(events[i].AppID, events[i].Exception.GetType(), events[i].Exception.Fingerprint, []uuid.UUID{events[i].ID}, events[i].Timestamp)
+			exceptionGroup := group.NewExceptionGroup(events[i].AppID, events[i].Exception.GetDisplayTitle(), events[i].Exception.Fingerprint, []uuid.UUID{events[i].ID}, events[i].Timestamp)
 
 			if err := exceptionGroup.Insert(ctx, tx); err != nil {
 				return err
