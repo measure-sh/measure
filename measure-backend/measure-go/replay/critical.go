@@ -60,7 +60,7 @@ func ComputeExceptions(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		exceptions := Exception{
 			event.Type,
-			event.Exception.GetTitle(),
+			event.Exception.GetDisplayTitle(),
 			event.Attribute.ThreadName,
 			event.Exception.Handled,
 			event.Exception.Stacktrace(),
@@ -80,7 +80,7 @@ func ComputeANRs(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		anrs := ANR{
 			event.Type,
-			event.ANR.GetTitle(),
+			event.ANR.GetDisplayTitle(),
 			event.Attribute.ThreadName,
 			event.ANR.Stacktrace(),
 			event.ANR.Foreground,
