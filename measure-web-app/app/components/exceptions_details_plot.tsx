@@ -142,11 +142,18 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ appId, ex
               symbolBorderColor: 'rgba(0, 0, 0, .5)',
             }
           ]}
-          tooltip={({ point }) => {
+          enableSlices="x"
+          sliceTooltip={({ slice }) => {
             return (
-              <div className='bg-neutral-950 text-white flex flex-col p-2 text-xs'>
-                <p>Date: {formatDateToHumanReadable(point.data.xFormatted.toString())}</p>
-                <p>No of {exceptionsType === ExceptionsType.Crash ? 'Crashes' : 'ANRs'}: {point.data.y.toString()}</p>
+              <div className="bg-neutral-950 text-white flex flex-col p-2 text-xs">
+                <p className='p-2'>Date: {formatDateToHumanReadable(slice.points[0].data.xFormatted.toString())}</p>
+                {slice.points.map((point) => (
+                  <div className="flex flex-row items-center p-2" key={point.id}>
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: point.serieColor }} />
+                    <div className="px-2" />
+                    <p>{point.data.y.toString()} {point.data.y.valueOf() as number > 1 ? 'instances' : 'instance'}</p>
+                  </div>
+                ))}
               </div>
             )
           }}
