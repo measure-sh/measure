@@ -1985,18 +1985,148 @@ These headers must be present in each request.
       "os_version": "33",
       "network_type": "wifi",
       "network_provider": "",
-      "network_generation": ""
+      "network_generation": "unknown"
     },
     "cpu_usage": [
       {
-        "timestamp": "2024-05-03T23:35:24.911Z",
-        "value": 7.666666666666668
+        "timestamp": "2024-05-03T23:34:17.591Z",
+        "value": 6.999999999999999
+      },
+      {
+        "timestamp": "2024-05-03T23:34:20.567Z",
+        "value": 24
+      },
+      {
+        "timestamp": "2024-05-03T23:34:23.567Z",
+        "value": 28.999999999999996
+      },
+      {
+        "timestamp": "2024-05-03T23:34:26.569Z",
+        "value": 30.333333333333336
       }
     ],
-    "duration": 13492,
-    "memory_usage": null,
-    "session_id": "630a954e-a86f-4349-aab8-9e3d068fc5f9",
+    "duration": 22084,
+    "memory_usage": [
+      {
+        "java_max_heap": 196608,
+        "java_total_heap": 196608,
+        "java_free_heap": 183734,
+        "total_pss": 63702,
+        "rss": 171692,
+        "native_total_heap": 21872,
+        "native_free_heap": 1299,
+        "interval_config": 2000,
+        "timestamp": "2024-05-03T23:34:17.607Z"
+      },
+      {
+        "java_max_heap": 196608,
+        "java_total_heap": 49152,
+        "java_free_heap": 25884,
+        "total_pss": 96896,
+        "rss": 187708,
+        "native_total_heap": 24060,
+        "native_free_heap": 1171,
+        "interval_config": 2000,
+        "timestamp": "2024-05-03T23:34:19.566Z"
+      },
+      {
+        "java_max_heap": 196608,
+        "java_total_heap": 49152,
+        "java_free_heap": 25063,
+        "total_pss": 94875,
+        "rss": 185312,
+        "native_total_heap": 24828,
+        "native_free_heap": 1452,
+        "interval_config": 2000,
+        "timestamp": "2024-05-03T23:34:21.565Z"
+      },
+      {
+        "java_max_heap": 196608,
+        "java_total_heap": 49152,
+        "java_free_heap": 24975,
+        "total_pss": 95547,
+        "rss": 185920,
+        "native_total_heap": 24828,
+        "native_free_heap": 1452,
+        "interval_config": 2000,
+        "timestamp": "2024-05-03T23:34:23.571Z"
+      },
+      {
+        "java_max_heap": 196608,
+        "java_total_heap": 49152,
+        "java_free_heap": 24923,
+        "total_pss": 95587,
+        "rss": 185920,
+        "native_total_heap": 24828,
+        "native_free_heap": 1436,
+        "interval_config": 2000,
+        "timestamp": "2024-05-03T23:34:25.568Z"
+      },
+      {
+        "java_max_heap": 196608,
+        "java_total_heap": 24300,
+        "java_free_heap": 0,
+        "total_pss": 99105,
+        "rss": 191340,
+        "native_total_heap": 26620,
+        "native_free_heap": 2879,
+        "interval_config": 2000,
+        "timestamp": "2024-05-03T23:34:27.565Z"
+      }
+    ],
+    "session_id": "58e94ae9-a084-479f-9049-2c5135f6090f",
     "threads": {
+      "OkHttp https://httpbin.org/...": [
+        {
+          "event_type": "http",
+          "thread_name": "OkHttp https://httpbin.org/...",
+          "url": "https://httpbin.org/",
+          "method": "get",
+          "status_code": 200,
+          "start_time": 5128127,
+          "end_time": 5129475,
+          "request_body": "",
+          "response_body": "",
+          "failure_reason": "",
+          "failure_description": "",
+          "request_headers": {
+            "accept-encoding": "gzip",
+            "connection": "Keep-Alive",
+            "host": "httpbin.org",
+            "user-agent": "okhttp/4.12.0"
+          },
+          "response_headers": {
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "*",
+            "content-length": "9593",
+            "content-type": "text/html; charset=utf-8",
+            "date": "Fri, 03 May 2024 23:34:20 GMT",
+            "server": "gunicorn/19.9.0"
+          },
+          "client": "okhttp",
+          "duration": 1348,
+          "timestamp": "2024-05-03T23:34:19.979Z"
+        }
+      ],
+      "Thread-2": [
+        {
+          "event_type": "anr",
+          "title": "sh.measure.android.anr.AnrError@ExceptionDemoActivity.kt:66",
+          "thread_name": "Thread-2",
+          "stacktrace": "sh.measure.android.anr.AnrError: Application Not Responding for at least 5000 ms.\n\tat sh.measure.sample.ExceptionDemoActivity.deadLock$lambda$10(ExceptionDemoActivity.kt:66)\n\tat sh.measure.sample.ExceptionDemoActivity.$r8$lambda$G4MY09CRhRk9ettfD7HPDD_b1n4\n\tat sh.measure.sample.ExceptionDemoActivity$$ExternalSyntheticLambda0.run(R8$$SyntheticClass)\n\tat android.os.Handler.handleCallback(Handler.java:942)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)",
+          "foreground": true,
+          "timestamp": "2024-05-03T23:34:27.578Z",
+          "attachments": [
+            {
+              "id": "63fb0950-faff-4028-bf3d-354559e4e540",
+              "name": "screenshot.png",
+              "type": "screenshot",
+              "key": "63fb0950-faff-4028-bf3d-354559e4e540.png",
+              "location": "http://localhost:9111/msr-attachments-sandbox/63fb0950-faff-4028-bf3d-354559e4e540.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minio%2F20240620%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240620T031834Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&X-Amz-Signature=a882e2e88aa02d945e33bc1ffdefb8610e5a953e796332db5a9c6cae102b401f"
+            }
+          ]
+        }
+      ],
       "main": [
         {
           "event_type": "lifecycle_activity",
@@ -2005,31 +2135,316 @@ These headers must be present in each request.
           "class_name": "sh.measure.sample.ExceptionDemoActivity",
           "intent": "",
           "saved_instance_state": false,
-          "timestamp": "2024-05-03T23:35:24.998Z"
+          "timestamp": "2024-05-03T23:34:17.647Z"
         },
         {
           "event_type": "lifecycle_app",
           "thread_name": "main",
           "type": "foreground",
-          "timestamp": "2024-05-03T23:35:25.112Z"
+          "timestamp": "2024-05-03T23:34:17.74Z"
         },
         {
-          "event_type": "exception",
-          "title": "java.lang.IllegalAccessException: This is a new exception",
+          "event_type": "lifecycle_activity",
           "thread_name": "main",
-          "handled": false,
-          "stacktrace": "java.lang.IllegalAccessException: This is a new exception\n\tat sh.measure.sample.ExceptionDemoActivity.onCreate$lambda$0(ExceptionDemoActivity.kt:19)\n\tat sh.measure.sample.ExceptionDemoActivity.$r8$lambda$Q_ui1nZ8w7tXFl-UGrB13ccXmnU\n\tat sh.measure.sample.ExceptionDemoActivity$$ExternalSyntheticLambda1.onClick(R8$$SyntheticClass)\n\tat android.view.View.performClick(View.java:7506)\n\tat com.google.android.material.button.MaterialButton.performClick(MaterialButton.java:1218)\n\tat android.view.View.performClickInternal(View.java:7483)\n\tat android.view.View.-$$Nest$mperformClickInternal\n\tat android.view.View$PerformClick.run(View.java:29334)\n\tat android.os.Handler.handleCallback(Handler.java:942)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalAccessException: This is a new exception\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.reflect.InvocationTargetException\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:558)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)",
-          "foreground": true,
-          "timestamp": "2024-05-03T23:35:38.403Z",
-          "attachments": [
-            {
-              "id": "797f8309-6185-4f4c-8578-0336c27d91f9",
-              "name": "screenshot.png",
-              "type": "screenshot",
-              "key": "797f8309-6185-4f4c-8578-0336c27d91f9.png",
-              "location": "http://localhost:9111/msr-attachments-sandbox/797f8309-6185-4f4c-8578-0336c27d91f9.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minio%2F20240611%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240611T200801Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&X-Amz-Signature=56ab78ccf1162ef45beddd89fe5b069b94e1f9d51f77e01fed73ade4bc2033c9"
-            }
-          ]
+          "type": "resumed",
+          "class_name": "sh.measure.sample.ExceptionDemoActivity",
+          "intent": "",
+          "saved_instance_state": false,
+          "timestamp": "2024-05-03T23:34:17.744Z"
+        },
+        {
+          "event_type": "cold_launch",
+          "thread_name": "main",
+          "duration": 698,
+          "timestamp": "2024-05-03T23:34:17.825Z"
+        },
+        {
+          "event_type": "gesture_click",
+          "thread_name": "main",
+          "target": "com.google.android.material.button.MaterialButton",
+          "target_id": "btn_okhttp",
+          "width": 262,
+          "height": 132,
+          "x": 546.95435,
+          "y": 1460.94,
+          "timestamp": "2024-05-03T23:34:18.586Z"
+        },
+        {
+          "event_type": "lifecycle_activity",
+          "thread_name": "main",
+          "type": "paused",
+          "class_name": "sh.measure.sample.ExceptionDemoActivity",
+          "intent": "",
+          "saved_instance_state": false,
+          "timestamp": "2024-05-03T23:34:18.603Z"
+        },
+        {
+          "event_type": "lifecycle_activity",
+          "thread_name": "main",
+          "type": "created",
+          "class_name": "sh.measure.sample.OkHttpActivity",
+          "intent": "",
+          "saved_instance_state": false,
+          "timestamp": "2024-05-03T23:34:18.615Z"
+        },
+        {
+          "event_type": "lifecycle_activity",
+          "thread_name": "main",
+          "type": "resumed",
+          "class_name": "sh.measure.sample.OkHttpActivity",
+          "intent": "",
+          "saved_instance_state": false,
+          "timestamp": "2024-05-03T23:34:18.637Z"
+        },
+        {
+          "event_type": "lifecycle_activity",
+          "thread_name": "main",
+          "type": "paused",
+          "class_name": "sh.measure.sample.OkHttpActivity",
+          "intent": "",
+          "saved_instance_state": false,
+          "timestamp": "2024-05-03T23:34:20.04Z"
+        },
+        {
+          "event_type": "lifecycle_activity",
+          "thread_name": "main",
+          "type": "resumed",
+          "class_name": "sh.measure.sample.ExceptionDemoActivity",
+          "intent": "",
+          "saved_instance_state": false,
+          "timestamp": "2024-05-03T23:34:20.048Z"
+        },
+        {
+          "event_type": "lifecycle_activity",
+          "thread_name": "main",
+          "type": "destroyed",
+          "class_name": "sh.measure.sample.OkHttpActivity",
+          "intent": "",
+          "saved_instance_state": false,
+          "timestamp": "2024-05-03T23:34:20.606Z"
+        },
+        {
+          "event_type": "gesture_click",
+          "thread_name": "main",
+          "target": "com.google.android.material.button.MaterialButton",
+          "target_id": "btn_deadlock",
+          "width": 311,
+          "height": 132,
+          "x": 549.9536,
+          "y": 1324.8999,
+          "timestamp": "2024-05-03T23:34:20.98Z"
+        }
+      ],
+      "msr-bg": [
+        {
+          "event_type": "app_exit",
+          "thread_name": "msr-bg",
+          "reason": "ANR",
+          "importance": "FOREGROUND",
+          "trace": "DALVIK THREADS (37):\n\"Signal Catcher\" daemon prio=10 tid=2 Runnable\n  native: #00 pc 000000000053a6e0  /apex/com.android.art/lib64/libart.so (art::DumpNativeStack(std::__1::basic_ostream<char, std::__1::char_traits<char> >&, int, BacktraceMap*, char const*, art::ArtMethod*, void*, bool)+128) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #01 pc 00000000006f0e84  /apex/com.android.art/lib64/libart.so (art::Thread::DumpStack(std::__1::basic_ostream<char, std::__1::char_traits<char> >&, bool, BacktraceMap*, bool) const+236) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #02 pc 00000000006fe710  /apex/com.android.art/lib64/libart.so (art::DumpCheckpoint::Run(art::Thread*)+208) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #03 pc 0000000000364248  /apex/com.android.art/lib64/libart.so (art::ThreadList::RunCheckpoint(art::Closure*, art::Closure*)+440) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #04 pc 00000000006fceb0  /apex/com.android.art/lib64/libart.so (art::ThreadList::Dump(std::__1::basic_ostream<char, std::__1::char_traits<char> >&, bool)+280) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #05 pc 00000000006fc8a4  /apex/com.android.art/lib64/libart.so (art::ThreadList::DumpForSigQuit(std::__1::basic_ostream<char, std::__1::char_traits<char> >&)+292) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #06 pc 00000000006d5974  /apex/com.android.art/lib64/libart.so (art::Runtime::DumpForSigQuit(std::__1::basic_ostream<char, std::__1::char_traits<char> >&)+184) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #07 pc 00000000006e1a20  /apex/com.android.art/lib64/libart.so (art::SignalCatcher::HandleSigQuit()+468) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #08 pc 0000000000574230  /apex/com.android.art/lib64/libart.so (art::SignalCatcher::Run(void*)+264) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #09 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #10 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"main\" prio=5 tid=1 Blocked\n  at sh.measure.sample.ExceptionDemoActivity.deadLock$lambda$10(ExceptionDemoActivity.kt:66)\n  - waiting to lock <0x0b2cc044> (a java.lang.Object) held by thread 38\n  at sh.measure.sample.ExceptionDemoActivity.$r8$lambda$G4MY09CRhRk9ettfD7HPDD_b1n4(unavailable:0)\n  at sh.measure.sample.ExceptionDemoActivity$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)\n  at android.os.Handler.handleCallback(Handler.java:942)\n  at android.os.Handler.dispatchMessage(Handler.java:99)\n  at android.os.Looper.loopOnce(Looper.java:201)\n  at android.os.Looper.loop(Looper.java:288)\n  at android.app.ActivityThread.main(ActivityThread.java:7872)\n  at java.lang.reflect.Method.invoke(Native method)\n  at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n  at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\n\n\"ADB-JDWP Connection Control Thread\" daemon prio=0 tid=4 WaitingInMainDebuggerLoop\n  native: #00 pc 00000000000a34b8  /apex/com.android.runtime/lib64/bionic/libc.so (__ppoll+8) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 000000000005dc1c  /apex/com.android.runtime/lib64/bionic/libc.so (poll+92) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #02 pc 00000000000099e4  /apex/com.android.art/lib64/libadbconnection.so (adbconnection::AdbConnectionState::RunPollLoop(art::Thread*)+724) (BuildId: 3952e992b55a158a16b3d569cf8894e7)\n  native: #03 pc 00000000000080ac  /apex/com.android.art/lib64/libadbconnection.so (adbconnection::CallbackFunction(void*)+1320) (BuildId: 3952e992b55a158a16b3d569cf8894e7)\n  native: #04 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #05 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"perfetto_hprof_listener\" prio=10 tid=5 Native (still starting up)\n  native: #00 pc 00000000000a20f4  /apex/com.android.runtime/lib64/bionic/libc.so (read+4) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 000000000001d840  /apex/com.android.art/lib64/libperfetto_hprof.so (void* std::__1::__thread_proxy<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct> >, ArtPlugin_Initialize::$_34> >(void*)+260) (BuildId: 525cc92a7dc49130157aeb74f6870364)\n  native: #02 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #03 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"Jit thread pool worker thread 0\" daemon prio=5 tid=6 Native\n  native: #00 pc 000000000004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 000000000047cc80  /apex/com.android.art/lib64/libart.so (art::ConditionVariable::WaitHoldingLocks(art::Thread*)+140) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #02 pc 000000000047cb18  /apex/com.android.art/lib64/libart.so (art::ThreadPool::GetTask(art::Thread*)+120) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #03 pc 00000000006199e4  /apex/com.android.art/lib64/libart.so (art::ThreadPoolWorker::Run()+136) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #04 pc 00000000006198c4  /apex/com.android.art/lib64/libart.so (art::ThreadPoolWorker::Callback(void*)+160) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #05 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #06 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"HeapTaskDaemon\" daemon prio=5 tid=7 WaitingForTaskProcessor\n  native: #00 pc 000000000004df60  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+32) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 000000000048771c  /apex/com.android.art/lib64/libart.so (art::ConditionVariable::TimedWait(art::Thread*, long, int)+252) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #02 pc 000000000046cf20  /apex/com.android.art/lib64/libart.so (art::gc::TaskProcessor::GetTask(art::Thread*)+196) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #03 pc 000000000046ce10  /apex/com.android.art/lib64/libart.so (art::gc::TaskProcessor::RunAllTasks(art::Thread*)+32) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  at dalvik.system.VMRuntime.runHeapTasks(Native method)\n  at java.lang.Daemons$HeapTaskDaemon.runInternal(Daemons.java:609)\n  at java.lang.Daemons$Daemon.run(Daemons.java:140)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"ReferenceQueueDaemon\" daemon prio=5 tid=8 Waiting\n  at java.lang.Object.wait(Native method)\n  - waiting on <0x0d3ac52d> (a java.lang.Class<java.lang.ref.ReferenceQueue>)\n  at java.lang.Object.wait(Object.java:442)\n  at java.lang.Object.wait(Object.java:568)\n  at java.lang.Daemons$ReferenceQueueDaemon.runInternal(Daemons.java:232)\n  - locked <0x0d3ac52d> (a java.lang.Class<java.lang.ref.ReferenceQueue>)\n  at java.lang.Daemons$Daemon.run(Daemons.java:140)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"FinalizerDaemon\" daemon prio=5 tid=9 Waiting\n  at java.lang.Object.wait(Native method)\n  - waiting on <0x07e7da62> (a java.lang.Object)\n  at java.lang.Object.wait(Object.java:442)\n  at java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:203)\n  - locked <0x07e7da62> (a java.lang.Object)\n  at java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:224)\n  at java.lang.Daemons$FinalizerDaemon.runInternal(Daemons.java:300)\n  at java.lang.Daemons$Daemon.run(Daemons.java:140)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"FinalizerWatchdogDaemon\" daemon prio=5 tid=10 Waiting\n  at java.lang.Object.wait(Native method)\n  - waiting on <0x0c0e07f3> (a java.lang.Daemons$FinalizerWatchdogDaemon)\n  at java.lang.Object.wait(Object.java:442)\n  at java.lang.Object.wait(Object.java:568)\n  at java.lang.Daemons$FinalizerWatchdogDaemon.sleepUntilNeeded(Daemons.java:385)\n  - locked <0x0c0e07f3> (a java.lang.Daemons$FinalizerWatchdogDaemon)\n  at java.lang.Daemons$FinalizerWatchdogDaemon.runInternal(Daemons.java:365)\n  at java.lang.Daemons$Daemon.run(Daemons.java:140)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"binder:10281_1\" prio=5 tid=11 Native\n  native: #00 pc 00000000000a23d8  /apex/com.android.runtime/lib64/bionic/libc.so (__ioctl+8) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 000000000005b50c  /apex/com.android.runtime/lib64/bionic/libc.so (ioctl+156) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #02 pc 0000000000094690  /system/lib64/libbinder.so (android::IPCThreadState::joinThreadPool(bool)+316) (BuildId: ee18e52b95e38eaab55a9a48518c8c3b)\n  native: #03 pc 0000000000094540  /system/lib64/libbinder.so (android::PoolThread::threadLoop()+24) (BuildId: ee18e52b95e38eaab55a9a48518c8c3b)\n  native: #04 pc 00000000000148e8  /system/lib64/libutils.so (android::Thread::_threadLoop(void*)+528) (BuildId: 5a0d720732600c94ad8354a1188e9f52)\n  native: #05 pc 00000000000c8918  /system/lib64/libandroid_runtime.so (android::AndroidRuntime::javaThreadShell(void*)+140) (BuildId: a31474ac581b716d4588f8c97eb06009)\n  native: #06 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #07 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"binder:10281_2\" prio=5 tid=12 Native\n  native: #00 pc 00000000000a23d8  /apex/com.android.runtime/lib64/bionic/libc.so (__ioctl+8) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 000000000005b50c  /apex/com.android.runtime/lib64/bionic/libc.so (ioctl+156) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #02 pc 0000000000094690  /system/lib64/libbinder.so (android::IPCThreadState::joinThreadPool(bool)+316) (BuildId: ee18e52b95e38eaab55a9a48518c8c3b)\n  native: #03 pc 0000000000094540  /system/lib64/libbinder.so (android::PoolThread::threadLoop()+24) (BuildId: ee18e52b95e38eaab55a9a48518c8c3b)\n  native: #04 pc 00000000000148e8  /system/lib64/libutils.so (android::Thread::_threadLoop(void*)+528) (BuildId: 5a0d720732600c94ad8354a1188e9f52)\n  native: #05 pc 00000000000c8918  /system/lib64/libandroid_runtime.so (android::AndroidRuntime::javaThreadShell(void*)+140) (BuildId: a31474ac581b716d4588f8c97eb06009)\n  native: #06 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #07 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"binder:10281_3\" prio=5 tid=13 Native\n  native: #00 pc 00000000000a23d8  /apex/com.android.runtime/lib64/bionic/libc.so (__ioctl+8) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 000000000005b50c  /apex/com.android.runtime/lib64/bionic/libc.so (ioctl+156) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #02 pc 0000000000094690  /system/lib64/libbinder.so (android::IPCThreadState::joinThreadPool(bool)+316) (BuildId: ee18e52b95e38eaab55a9a48518c8c3b)\n  native: #03 pc 0000000000094540  /system/lib64/libbinder.so (android::PoolThread::threadLoop()+24) (BuildId: ee18e52b95e38eaab55a9a48518c8c3b)\n  native: #04 pc 00000000000148e8  /system/lib64/libutils.so (android::Thread::_threadLoop(void*)+528) (BuildId: 5a0d720732600c94ad8354a1188e9f52)\n  native: #05 pc 00000000000c8918  /system/lib64/libandroid_runtime.so (android::AndroidRuntime::javaThreadShell(void*)+140) (BuildId: a31474ac581b716d4588f8c97eb06009)\n  native: #06 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #07 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"binder:10281_4\" prio=5 tid=14 Native\n  native: #00 pc 00000000000a23d8  /apex/com.android.runtime/lib64/bionic/libc.so (__ioctl+8) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 000000000005b50c  /apex/com.android.runtime/lib64/bionic/libc.so (ioctl+156) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #02 pc 0000000000094690  /system/lib64/libbinder.so (android::IPCThreadState::joinThreadPool(bool)+316) (BuildId: ee18e52b95e38eaab55a9a48518c8c3b)\n  native: #03 pc 0000000000094540  /system/lib64/libbinder.so (android::PoolThread::threadLoop()+24) (BuildId: ee18e52b95e38eaab55a9a48518c8c3b)\n  native: #04 pc 00000000000148e8  /system/lib64/libutils.so (android::Thread::_threadLoop(void*)+528) (BuildId: 5a0d720732600c94ad8354a1188e9f52)\n  native: #05 pc 00000000000c8918  /system/lib64/libandroid_runtime.so (android::AndroidRuntime::javaThreadShell(void*)+140) (BuildId: a31474ac581b716d4588f8c97eb06009)\n  native: #06 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #07 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"Profile Saver\" daemon prio=5 tid=15 Native\n  native: #00 pc 000000000004df60  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+32) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 000000000048771c  /apex/com.android.art/lib64/libart.so (art::ConditionVariable::TimedWait(art::Thread*, long, int)+252) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #02 pc 000000000054380c  /apex/com.android.art/lib64/libart.so (art::ProfileSaver::Run()+524) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #03 pc 0000000000538fc0  /apex/com.android.art/lib64/libart.so (art::ProfileSaver::RunProfileSaverThread(void*)+148) (BuildId: e24a1818231cfb1649cb83a5d2869598)\n  native: #04 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #05 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"msr-cmu\" prio=5 tid=16 TimedWaiting\n  at jdk.internal.misc.Unsafe.park(Native method)\n  - waiting on an unknown object\n  at java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)\n  at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)\n  at java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)\n  at java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)\n  at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)\n  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)\n  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"Thread-2\" prio=5 tid=17 Sleeping\n  at java.lang.Thread.sleep(Native method)\n  - sleeping on <0x01579cb0> (a java.lang.Object)\n  at java.lang.Thread.sleep(Thread.java:450)\n  - locked <0x01579cb0> (a java.lang.Object)\n  at java.lang.Thread.sleep(Thread.java:355)\n  at sh.measure.android.anr.ANRWatchDog.run(ANRWatchDog.kt:70)\n\n\"ConnectivityThread\" prio=5 tid=18 Native\n  native: #00 pc 00000000000a33b8  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+8) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 0000000000010dfc  /system/lib64/libutils.so (android::Looper::pollOnce(int, int*, int*, void**)+176) (BuildId: 5a0d720732600c94ad8354a1188e9f52)\n  native: #02 pc 000000000015a56c  /system/lib64/libandroid_runtime.so (android::android_os_MessageQueue_nativePollOnce(_JNIEnv*, _jobject*, long, int)+44) (BuildId: a31474ac581b716d4588f8c97eb06009)\n  at android.os.MessageQueue.nativePollOnce(Native method)\n  at android.os.MessageQueue.next(MessageQueue.java:335)\n  at android.os.Looper.loopOnce(Looper.java:161)\n  at android.os.Looper.loop(Looper.java:288)\n  at android.os.HandlerThread.run(HandlerThread.java:67)\n\n\"msr-ep\" prio=5 tid=19 Waiting\n  at jdk.internal.misc.Unsafe.park(Native method)\n  - waiting on an unknown object\n  at java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)\n  at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)\n  at java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)\n  at java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)\n  at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)\n  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)\n  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"LeakCanary-Heap-Dump\" prio=5 tid=20 Native\n  native: #00 pc 00000000000a33b8  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+8) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 0000000000010dfc  /system/lib64/libutils.so (android::Looper::pollOnce(int, int*, int*, void**)+176) (BuildId: 5a0d720732600c94ad8354a1188e9f52)\n  native: #02 pc 000000000015a56c  /system/lib64/libandroid_runtime.so (android::android_os_MessageQueue_nativePollOnce(_JNIEnv*, _jobject*, long, int)+44) (BuildId: a31474ac581b716d4588f8c97eb06009)\n  at android.os.MessageQueue.nativePollOnce(Native method)\n  at android.os.MessageQueue.next(MessageQueue.java:335)\n  at android.os.Looper.loopOnce(Looper.java:161)\n  at android.os.Looper.loop(Looper.java:288)\n  at android.os.HandlerThread.run(HandlerThread.java:67)\n\n\"RenderThread\" daemon prio=7 tid=21 Native\n  native: #00 pc 00000000000a33b8  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+8) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 0000000000010dfc  /system/lib64/libutils.so (android::Looper::pollOnce(int, int*, int*, void**)+176) (BuildId: 5a0d720732600c94ad8354a1188e9f52)\n  native: #02 pc 000000000057c4c0  /system/lib64/libhwui.so (android::uirenderer::renderthread::RenderThread::threadLoop()+220) (BuildId: 5e787210ce0f171dbee073e4a14a376c)\n  native: #03 pc 00000000000148e8  /system/lib64/libutils.so (android::Thread::_threadLoop(void*)+528) (BuildId: 5a0d720732600c94ad8354a1188e9f52)\n  native: #04 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #05 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"msr-bg\" prio=5 tid=22 Waiting\n  at jdk.internal.misc.Unsafe.park(Native method)\n  - waiting on an unknown object\n  at java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)\n  at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)\n  at java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)\n  at java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)\n  at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)\n  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)\n  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"msr-eh\" prio=5 tid=23 TimedWaiting\n  at jdk.internal.misc.Unsafe.park(Native method)\n  - waiting on an unknown object\n  at java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)\n  at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:2123)\n  at java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1188)\n  at java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)\n  at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)\n  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)\n  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"msr-ee\" prio=5 tid=24 Waiting\n  at jdk.internal.misc.Unsafe.park(Native method)\n  - waiting on an unknown object\n  at java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)\n  at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)\n  at java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)\n  at java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)\n  at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)\n  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)\n  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"hwuiTask1\" daemon prio=6 tid=25 Native\n  native: #00 pc 000000000004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 0000000000052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex(void volatile*, bool, int, bool, timespec const*)+144) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #02 pc 00000000000b56cc  /apex/com.android.runtime/lib64/bionic/libc.so (pthread_cond_wait+76) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #03 pc 00000000000699e0  /system/lib64/libc++.so (std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&)+20) (BuildId: 6ae0290e5bfb8abb216bde2a4ee48d9e)\n  native: #04 pc 0000000000250af8  /system/lib64/libhwui.so (android::uirenderer::CommonPool::workerLoop()+96) (BuildId: 5e787210ce0f171dbee073e4a14a376c)\n  native: #05 pc 0000000000250d5c  /system/lib64/libhwui.so (android::uirenderer::CommonPool::CommonPool()::$_0::operator()() const (.__uniq.99815402873434996937524029735804459536)+188) (BuildId: 5e787210ce0f171dbee073e4a14a376c)\n  native: #06 pc 0000000000250c9c  /system/lib64/libhwui.so (void* std::__1::__thread_proxy<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct> >, android::uirenderer::CommonPool::CommonPool()::$_0> >(void*) (.__uniq.99815402873434996937524029735804459536)+40) (BuildId: 5e787210ce0f171dbee073e4a14a376c)\n  native: #07 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #08 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"hwuiTask0\" daemon prio=6 tid=26 Native\n  native: #00 pc 000000000004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 0000000000052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex(void volatile*, bool, int, bool, timespec const*)+144) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #02 pc 00000000000b56cc  /apex/com.android.runtime/lib64/bionic/libc.so (pthread_cond_wait+76) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #03 pc 00000000000699e0  /system/lib64/libc++.so (std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&)+20) (BuildId: 6ae0290e5bfb8abb216bde2a4ee48d9e)\n  native: #04 pc 0000000000250af8  /system/lib64/libhwui.so (android::uirenderer::CommonPool::workerLoop()+96) (BuildId: 5e787210ce0f171dbee073e4a14a376c)\n  native: #05 pc 0000000000250d5c  /system/lib64/libhwui.so (android::uirenderer::CommonPool::CommonPool()::$_0::operator()() const (.__uniq.99815402873434996937524029735804459536)+188) (BuildId: 5e787210ce0f171dbee073e4a14a376c)\n  native: #06 pc 0000000000250c9c  /system/lib64/libhwui.so (void* std::__1::__thread_proxy<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct> >, android::uirenderer::CommonPool::CommonPool()::$_0> >(void*) (.__uniq.99815402873434996937524029735804459536)+40) (BuildId: 5e787210ce0f171dbee073e4a14a376c)\n  native: #07 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #08 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  (no managed stack frames)\n\n\"Okio Watchdog\" daemon prio=5 tid=27 TimedWaiting\n  at jdk.internal.misc.Unsafe.park(Native method)\n  - waiting on an unknown object\n  at java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)\n  at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2211)\n  at okio.AsyncTimeout$Companion.awaitTimeout(AsyncTimeout.kt:370)\n  at okio.AsyncTimeout$Watchdog.run(AsyncTimeout.kt:211)\n\n\"OkHttp Dispatcher\" prio=5 tid=28 TimedWaiting\n  at jdk.internal.misc.Unsafe.park(Native method)\n  - waiting on an unknown object\n  at java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)\n  at java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)\n  at java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)\n  at java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)\n  at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)\n  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)\n  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"queued-work-looper\" prio=5 tid=29 Native\n  native: #00 pc 00000000000a33b8  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+8) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 0000000000010dfc  /system/lib64/libutils.so (android::Looper::pollOnce(int, int*, int*, void**)+176) (BuildId: 5a0d720732600c94ad8354a1188e9f52)\n  native: #02 pc 000000000015a56c  /system/lib64/libandroid_runtime.so (android::android_os_MessageQueue_nativePollOnce(_JNIEnv*, _jobject*, long, int)+44) (BuildId: a31474ac581b716d4588f8c97eb06009)\n  at android.os.MessageQueue.nativePollOnce(Native method)\n  at android.os.MessageQueue.next(MessageQueue.java:335)\n  at android.os.Looper.loopOnce(Looper.java:161)\n  at android.os.Looper.loop(Looper.java:288)\n  at android.os.HandlerThread.run(HandlerThread.java:67)\n\n\"OkHttp httpbin.org\" daemon prio=5 tid=30 Native\n  native: #00 pc 00000000000a2f54  /apex/com.android.runtime/lib64/bionic/libc.so (recvfrom+4) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 00000000000298c8  /apex/com.android.art/lib64/libopenjdk.so (NET_Read+80) (BuildId: df8df6b1c275e887f918729a4f22136c)\n  native: #02 pc 000000000002a440  /apex/com.android.art/lib64/libopenjdk.so (SocketInputStream_socketRead0+216) (BuildId: df8df6b1c275e887f918729a4f22136c)\n  at java.net.SocketInputStream.socketRead0(Native method)\n  at java.net.SocketInputStream.socketRead(SocketInputStream.java:118)\n  at java.net.SocketInputStream.read(SocketInputStream.java:173)\n  at java.net.SocketInputStream.read(SocketInputStream.java:143)\n  at com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.readFromSocket(ConscryptEngineSocket.java:945)\n  at com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.processDataFromSocket(ConscryptEngineSocket.java:909)\n  at com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.readUntilDataAvailable(ConscryptEngineSocket.java:824)\n  at com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.read(ConscryptEngineSocket.java:797)\n  - locked <0x042b8729> (a java.lang.Object)\n  at okio.InputStreamSource.read(JvmOkio.kt:93)\n  at okio.AsyncTimeout$source$1.read(AsyncTimeout.kt:153)\n  at okio.RealBufferedSource.request(RealBufferedSource.kt:209)\n  at okio.RealBufferedSource.require(RealBufferedSource.kt:202)\n  at okhttp3.internal.http2.Http2Reader.nextFrame(Http2Reader.kt:89)\n  at okhttp3.internal.http2.Http2Connection$ReaderRunnable.invoke(Http2Connection.kt:618)\n  at okhttp3.internal.http2.Http2Connection$ReaderRunnable.invoke(Http2Connection.kt:609)\n  at okhttp3.internal.concurrent.TaskQueue$execute$1.runOnce(TaskQueue.kt:98)\n  at okhttp3.internal.concurrent.TaskRunner.runTask(TaskRunner.kt:116)\n  at okhttp3.internal.concurrent.TaskRunner.access$runTask(TaskRunner.kt:42)\n  at okhttp3.internal.concurrent.TaskRunner$runnable$1.run(TaskRunner.kt:65)\n  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1137)\n  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"OkHttp TaskRunner\" daemon prio=5 tid=31 TimedWaiting\n  at java.lang.Object.wait(Native method)\n  - waiting on <0x0c6d3aae> (a okhttp3.internal.concurrent.TaskRunner)\n  at okhttp3.internal.concurrent.TaskRunner$RealBackend.coordinatorWait(TaskRunner.kt:294)\n  at okhttp3.internal.concurrent.TaskRunner.awaitTaskToRun(TaskRunner.kt:218)\n  at okhttp3.internal.concurrent.TaskRunner$runnable$1.run(TaskRunner.kt:59)\n  - locked <0x0c6d3aae> (a okhttp3.internal.concurrent.TaskRunner)\n  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1137)\n  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"OkHttp TaskRunner\" daemon prio=5 tid=32 TimedWaiting\n  at jdk.internal.misc.Unsafe.park(Native method)\n  - waiting on an unknown object\n  at java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)\n  at java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)\n  at java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)\n  at java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)\n  at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)\n  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)\n  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"OkHttp TaskRunner\" daemon prio=5 tid=33 TimedWaiting\n  at jdk.internal.misc.Unsafe.park(Native method)\n  - waiting on an unknown object\n  at java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)\n  at java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)\n  at java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)\n  at java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)\n  at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)\n  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)\n  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"OkHttp TaskRunner\" daemon prio=5 tid=34 TimedWaiting\n  at jdk.internal.misc.Unsafe.park(Native method)\n  - waiting on an unknown object\n  at java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)\n  at java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)\n  at java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)\n  at java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)\n  at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)\n  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)\n  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"OkHttp TaskRunner\" daemon prio=5 tid=35 TimedWaiting\n  at jdk.internal.misc.Unsafe.park(Native method)\n  - waiting on an unknown object\n  at java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)\n  at java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)\n  at java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)\n  at java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)\n  at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)\n  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)\n  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"OkHttp TaskRunner\" daemon prio=5 tid=36 TimedWaiting\n  at jdk.internal.misc.Unsafe.park(Native method)\n  - waiting on an unknown object\n  at java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)\n  at java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)\n  at java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)\n  at java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)\n  at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)\n  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)\n  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"OkHttp TaskRunner\" daemon prio=5 tid=37 TimedWaiting\n  at jdk.internal.misc.Unsafe.park(Native method)\n  - waiting on an unknown object\n  at java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)\n  at java.util.concurrent.SynchronousQueue$TransferStack.awaitFulfill(SynchronousQueue.java:463)\n  at java.util.concurrent.SynchronousQueue$TransferStack.transfer(SynchronousQueue.java:361)\n  at java.util.concurrent.SynchronousQueue.poll(SynchronousQueue.java:939)\n  at java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1062)\n  at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)\n  at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)\n  at java.lang.Thread.run(Thread.java:1012)\n\n\"APP: Locker\" prio=5 tid=38 Sleeping\n  at java.lang.Thread.sleep(Native method)\n  - sleeping on <0x02f7304f> (a java.lang.Object)\n  at java.lang.Thread.sleep(Thread.java:450)\n  - locked <0x02f7304f> (a java.lang.Object)\n  at java.lang.Thread.sleep(Thread.java:355)\n  at sh.measure.sample.ExceptionDemoActivity.sleep(ExceptionDemoActivity.kt:86)\n  at sh.measure.sample.ExceptionDemoActivity.access$sleep(ExceptionDemoActivity.kt:12)\n  at sh.measure.sample.ExceptionDemoActivity$LockerThread.run(ExceptionDemoActivity.kt:80)\n  - locked <0x0b2cc044> (a java.lang.Object)\n\n\"binder:10281_2\" prio=5 (not attached)\n  native: #00 pc 000000000004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #01 pc 0000000000052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex(void volatile*, bool, int, bool, timespec const*)+144) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #02 pc 00000000000b56cc  /apex/com.android.runtime/lib64/bionic/libc.so (pthread_cond_wait+76) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #03 pc 00000000000699e0  /system/lib64/libc++.so (std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&)+20) (BuildId: 6ae0290e5bfb8abb216bde2a4ee48d9e)\n  native: #04 pc 00000000000a048c  /system/lib64/libgui.so (android::AsyncWorker::run()+112) (BuildId: 383a37b5342fd0249afb25e7134deb33)\n  native: #05 pc 00000000000a0878  /system/lib64/libgui.so (void* std::__1::__thread_proxy<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct> >, void (android::AsyncWorker::*)(), android::AsyncWorker*> >(void*)+80) (BuildId: 383a37b5342fd0249afb25e7134deb33)\n  native: #06 pc 00000000000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+208) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n  native: #07 pc 00000000000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 01331f74b0bb2cb958bdc15282b8ec7b)\n\n----- end 10281 -----\n",
+          "process_name": "sh.measure.sample",
+          "pid": "10281",
+          "timestamp": "2024-05-03T23:34:39.675Z"
+        }
+      ],
+      "msr-ee": [
+        {
+          "event_type": "http",
+          "thread_name": "msr-ee",
+          "url": "http://10.0.2.2:8080/events",
+          "method": "put",
+          "status_code": 0,
+          "start_time": 5127443,
+          "end_time": 5127508,
+          "request_body": "",
+          "response_body": "",
+          "failure_reason": "java.net.ConnectException",
+          "failure_description": "Failed to connect to /10.0.2.2:8080",
+          "request_headers": {},
+          "response_headers": {},
+          "client": "okhttp",
+          "duration": 65,
+          "timestamp": "2024-05-03T23:34:18.012Z"
+        },
+        {
+          "event_type": "http",
+          "thread_name": "msr-ee",
+          "url": "http://10.0.2.2:8080/events",
+          "method": "put",
+          "status_code": 0,
+          "start_time": 5127520,
+          "end_time": 5127558,
+          "request_body": "",
+          "response_body": "",
+          "failure_reason": "java.net.ConnectException",
+          "failure_description": "Failed to connect to /10.0.2.2:8080",
+          "request_headers": {},
+          "response_headers": {},
+          "client": "okhttp",
+          "duration": 38,
+          "timestamp": "2024-05-03T23:34:18.061Z"
+        },
+        {
+          "event_type": "http",
+          "thread_name": "msr-ee",
+          "url": "http://10.0.2.2:8080/events",
+          "method": "put",
+          "status_code": 0,
+          "start_time": 5127569,
+          "end_time": 5127602,
+          "request_body": "",
+          "response_body": "",
+          "failure_reason": "java.net.ConnectException",
+          "failure_description": "Failed to connect to /10.0.2.2:8080",
+          "request_headers": {},
+          "response_headers": {},
+          "client": "okhttp",
+          "duration": 33,
+          "timestamp": "2024-05-03T23:34:18.106Z"
+        },
+        {
+          "event_type": "http",
+          "thread_name": "msr-ee",
+          "url": "http://10.0.2.2:8080/events",
+          "method": "put",
+          "status_code": 0,
+          "start_time": 5127606,
+          "end_time": 5127639,
+          "request_body": "",
+          "response_body": "",
+          "failure_reason": "java.net.ConnectException",
+          "failure_description": "Failed to connect to /10.0.2.2:8080",
+          "request_headers": {},
+          "response_headers": {},
+          "client": "okhttp",
+          "duration": 33,
+          "timestamp": "2024-05-03T23:34:18.143Z"
+        },
+        {
+          "event_type": "http",
+          "thread_name": "msr-ee",
+          "url": "http://10.0.2.2:8080/events",
+          "method": "put",
+          "status_code": 0,
+          "start_time": 5127644,
+          "end_time": 5127675,
+          "request_body": "",
+          "response_body": "",
+          "failure_reason": "java.net.ConnectException",
+          "failure_description": "Failed to connect to /10.0.2.2:8080",
+          "request_headers": {},
+          "response_headers": {},
+          "client": "okhttp",
+          "duration": 31,
+          "timestamp": "2024-05-03T23:34:18.179Z"
+        },
+        {
+          "event_type": "http",
+          "thread_name": "msr-ee",
+          "url": "http://10.0.2.2:8080/events",
+          "method": "put",
+          "status_code": 0,
+          "start_time": 5137254,
+          "end_time": 5137278,
+          "request_body": "",
+          "response_body": "",
+          "failure_reason": "java.net.ConnectException",
+          "failure_description": "Failed to connect to /10.0.2.2:8080",
+          "request_headers": {},
+          "response_headers": {},
+          "client": "okhttp",
+          "duration": 24,
+          "timestamp": "2024-05-03T23:34:27.782Z"
+        },
+        {
+          "event_type": "http",
+          "thread_name": "msr-ee",
+          "url": "http://10.0.2.2:8080/events",
+          "method": "put",
+          "status_code": 0,
+          "start_time": 5137295,
+          "end_time": 5137321,
+          "request_body": "",
+          "response_body": "",
+          "failure_reason": "java.net.ConnectException",
+          "failure_description": "Failed to connect to /10.0.2.2:8080",
+          "request_headers": {},
+          "response_headers": {},
+          "client": "okhttp",
+          "duration": 26,
+          "timestamp": "2024-05-03T23:34:27.824Z"
+        },
+        {
+          "event_type": "http",
+          "thread_name": "msr-ee",
+          "url": "http://10.0.2.2:8080/events",
+          "method": "put",
+          "status_code": 0,
+          "start_time": 5137326,
+          "end_time": 5137360,
+          "request_body": "",
+          "response_body": "",
+          "failure_reason": "java.net.ConnectException",
+          "failure_description": "Failed to connect to /10.0.2.2:8080",
+          "request_headers": {},
+          "response_headers": {},
+          "client": "okhttp",
+          "duration": 34,
+          "timestamp": "2024-05-03T23:34:27.863Z"
+        },
+        {
+          "event_type": "http",
+          "thread_name": "msr-ee",
+          "url": "http://10.0.2.2:8080/events",
+          "method": "put",
+          "status_code": 0,
+          "start_time": 5137387,
+          "end_time": 5137429,
+          "request_body": "",
+          "response_body": "",
+          "failure_reason": "java.net.ConnectException",
+          "failure_description": "Failed to connect to /10.0.2.2:8080",
+          "request_headers": {},
+          "response_headers": {},
+          "client": "okhttp",
+          "duration": 42,
+          "timestamp": "2024-05-03T23:34:27.932Z"
+        },
+        {
+          "event_type": "http",
+          "thread_name": "msr-ee",
+          "url": "http://10.0.2.2:8080/events",
+          "method": "put",
+          "status_code": 0,
+          "start_time": 5137440,
+          "end_time": 5137463,
+          "request_body": "",
+          "response_body": "",
+          "failure_reason": "java.net.ConnectException",
+          "failure_description": "Failed to connect to /10.0.2.2:8080",
+          "request_headers": {},
+          "response_headers": {},
+          "client": "okhttp",
+          "duration": 23,
+          "timestamp": "2024-05-03T23:34:27.967Z"
+        },
+        {
+          "event_type": "http",
+          "thread_name": "msr-ee",
+          "url": "http://10.0.2.2:8080/events",
+          "method": "put",
+          "status_code": 0,
+          "start_time": 5137475,
+          "end_time": 5137504,
+          "request_body": "",
+          "response_body": "",
+          "failure_reason": "java.net.ConnectException",
+          "failure_description": "Failed to connect to /10.0.2.2:8080",
+          "request_headers": {},
+          "response_headers": {},
+          "client": "okhttp",
+          "duration": 29,
+          "timestamp": "2024-05-03T23:34:28.007Z"
         }
       ]
     }
