@@ -69,25 +69,40 @@ func (a App) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// GetExceptionGroup queries a single exception group from the exception
-// group id and returns a pointer to ExceptionGroup.
-func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (*group.ExceptionGroup, error) {
+// GetExceptionGroup queries a single exception group by its id.
+func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGroup *group.ExceptionGroup, err error) {
 	stmt := sqlf.PostgreSQL.
-		Select("id, app_id, name, fingerprint, array_length(event_ids, 1) as count, event_ids, created_at, updated_at").
-		From("unhandled_exception_groups").
-		Where("id = ?", nil)
+		From("public.unhandled_exception_groups").
+		Select("id").
+		Select("app_id").
+		Select("name").
+		Select("fingerprint").
+		Select("event_ids").
+		Select("array_length(event_ids, 1) as count").
+		Select("first_event_timestamp").
+		Select("created_at").
+		Select("updated_at").
+		Where("app_id = ?", a.ID).
+		Where("id = ?", id)
+
 	defer stmt.Close()
 
-	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), id)
-	if err != nil {
-		return nil, err
-	}
-	group, err := pgx.CollectOneRow(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
-	if err != nil {
-		return nil, err
+	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if rows.Err() != nil {
+		return
 	}
 
-	return &group, nil
+	row, err := pgx.CollectOneRow(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
+	if errors.Is(err, pgx.ErrNoRows) {
+		err = nil
+		return
+	} else if err != nil {
+		return
+	}
+
+	exceptionGroup = &row
+
+	return
 }
 
 // GetExceptionGroups returns slice of ExceptionGroup. Optionally,
@@ -2410,6 +2425,15 @@ func GetCrashDetailCrashes(c *gin.Context) {
 		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId.String())
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if group == nil {
+		msg := fmt.Sprintf("no exception group found with id %q", crashGroupId)
+		fmt.Println(msg, err)
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
