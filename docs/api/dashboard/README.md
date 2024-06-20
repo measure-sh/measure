@@ -1271,24 +1271,24 @@ These headers must be present in each request.
     },
     "results": [
       {
-        "id": "018da687-f827-71d7-a136-0d3674e57943",
-        "app_id": "45b3788e-2226-4f39-9e3c-710016c6c075",
-        "name": "sh.measure.android.anr.AnrError",
-        "fingerprint": "a97a4d1c40613ffb",
-        "count": 2,
-        "percentage_contribution": 50,
-        "created_at": "2024-02-14T07:32:25.255Z",
-        "updated_at": "2024-02-14T07:33:03.679Z"
+        "id": "01903291-c21a-7e2a-923d-90d3793a8fb0",
+        "app_id": "2b7ddad4-40a6-42a7-9e21-a90577e08263",
+        "name": "sh.measure.android.anr.AnrError@ExceptionDemoActivity.kt:62",
+        "fingerprint": "c37ac85cc1d013f9",
+        "count": 3,
+        "percentage_contribution": 75,
+        "created_at": "2024-06-19T22:15:31.608Z",
+        "updated_at": "2024-06-19T22:15:34.659Z"
       },
       {
-        "id": "018da688-209a-739e-a7d2-6116fdc5ca6d",
-        "app_id": "45b3788e-2226-4f39-9e3c-710016c6c075",
-        "name": "c4.c",
-        "fingerprint": "c378c85cc0c113f9",
-        "count": 2,
-        "percentage_contribution": 50,
-        "created_at": "2024-02-14T07:32:35.61Z",
-        "updated_at": "2024-02-14T07:33:03.679Z"
+        "id": "01903291-cc74-793b-ba28-842ffecdb774",
+        "app_id": "2b7ddad4-40a6-42a7-9e21-a90577e08263",
+        "name": "sh.measure.android.anr.AnrError@ExceptionDemoActivity.kt:66",
+        "fingerprint": "8368c85cc1c013f9",
+        "count": 1,
+        "percentage_contribution": 25,
+        "created_at": "2024-06-19T22:15:34.258Z",
+        "updated_at": "2024-06-19T22:15:34.258Z"
       }
     ]
   }
