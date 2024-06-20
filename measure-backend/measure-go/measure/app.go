@@ -132,25 +132,40 @@ func (a App) GetExceptionGroups(ctx context.Context, af *filter.AppFilter) (grou
 	return pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
 }
 
-// GetANRGroup queries a single anr group from the anr
-// group id and returns a pointer to ANRGroup.
-func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (*group.ANRGroup, error) {
+// GetANRGroup queries a single ANR group by its id.
+func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (anrGroup *group.ANRGroup, err error) {
 	stmt := sqlf.PostgreSQL.
-		Select("id, app_id, name, fingerprint, array_length(event_ids, 1) as count, event_ids, created_at, updated_at").
-		From("anr_groups").
-		Where("id = ?", nil)
+		From("public.anr_groups").
+		Select("id").
+		Select("app_id").
+		Select("name").
+		Select("fingerprint").
+		Select("event_ids").
+		Select("array_length(event_ids, 1) as count").
+		Select("first_event_timestamp").
+		Select("created_at").
+		Select("updated_at").
+		Where("app_id = ?", a.ID).
+		Where("id = ?", id)
+
 	defer stmt.Close()
 
-	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), id)
-	if err != nil {
-		return nil, err
-	}
-	group, err := pgx.CollectOneRow(rows, pgx.RowToStructByNameLax[group.ANRGroup])
-	if err != nil {
-		return nil, err
+	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if rows.Err() != nil {
+		return
 	}
 
-	return &group, nil
+	row, err := pgx.CollectOneRow(rows, pgx.RowToStructByNameLax[group.ANRGroup])
+	if errors.Is(err, pgx.ErrNoRows) {
+		err = nil
+		return
+	} else if err != nil {
+		return
+	}
+
+	anrGroup = &row
+
+	return
 }
 
 // GetANRGroups returns slice of ANRGroup. Optioanlly,
@@ -3175,6 +3190,15 @@ func GetANRDetailANRs(c *gin.Context) {
 		msg := fmt.Sprintf("failed to get anr group with id %q", anrGroupId.String())
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if group == nil {
+		msg := fmt.Sprintf("no ANR group found with id %q", anrGroupId)
+		fmt.Println(msg, err)
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
