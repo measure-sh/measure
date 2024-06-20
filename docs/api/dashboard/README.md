@@ -794,170 +794,171 @@ These headers must be present in each request.
 
   <details><summary>Click to expand</summary>
 
-```json
-{
-  "meta": {
-    "next": false,
-    "previous": false
-  },
-  "results": [
-    {
-      "id": "d0cae3d6-c42a-4d0c-a35b-df0b5d1435b2",
-      "session_id": "f1681cff-4da9-4a33-bb1f-ed5d00b21b90",
-      "timestamp": "2024-05-03T23:33:59.724Z",
-      "type": "exception",
-      "attribute": {
-        "installation_id": "ee40eb0e-c579-473d-bc10-557049f51cda",
-        "app_version": "1.0",
-        "app_build": "1",
-        "app_unique_id": "sh.measure.sample",
-        "measure_sdk_version": "0.1.0",
-        "platform": "android",
-        "thread_name": "main",
-        "user_id": "",
-        "device_name": "emu64a",
-        "device_model": "sdk_gphone64_arm64",
-        "device_manufacturer": "Google",
-        "device_type": "phone",
-        "device_is_foldable": true,
-        "device_is_physical": false,
-        "device_density_dpi": 440,
-        "device_width_px": 1080,
-        "device_height_px": 2154,
-        "device_density": 2.75,
-        "device_locale": "en-US",
-        "os_name": "android",
-        "os_version": "33",
-        "network_type": "wifi",
-        "network_provider": "",
-        "network_generation": "unknown"
-      },
-      "exception": {
-        "title": "java.lang.OutOfMemoryError: Failed to allocate a 104857616 byte allocation with 25165824 free bytes and 87MB until OOM, target footprint 134540152, growth limit 201326592",
-        "stacktrace": "java.lang.OutOfMemoryError: Failed to allocate a 104857616 byte allocation with 25165824 free bytes and 87MB until OOM, target footprint 134540152, growth limit 201326592\n\tat sh.measure.sample.ExceptionDemoActivity.onCreate$lambda$2(ExceptionDemoActivity.kt:29)\n\tat sh.measure.sample.ExceptionDemoActivity.$r8$lambda$itIQQMXgA5GFCPpehqNC2ZDufqA\n\tat sh.measure.sample.ExceptionDemoActivity$$ExternalSyntheticLambda3.onClick(D8$$SyntheticClass)\n\tat android.view.View.performClick(View.java:7506)\n\tat com.google.android.material.button.MaterialButton.performClick(MaterialButton.java:1218)\n\tat android.view.View.performClickInternal(View.java:7483)\n\tat android.view.View.-$$Nest$mperformClickInternal\n\tat android.view.View$PerformClick.run(View.java:29334)\n\tat android.os.Handler.handleCallback(Handler.java:942)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)"
-      },
-      "attachments": [
-        {
-          "id": "ccd173ca-a9de-47ec-998f-0dd2f386ee12",
-          "name": "screenshot.png",
-          "type": "screenshot",
-          "key": "ccd173ca-a9de-47ec-998f-0dd2f386ee12.png",
-          "location": "http://localhost:9111/msr-attachments-sandbox/ccd173ca-a9de-47ec-998f-0dd2f386ee12.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minio%2F20240617%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240617T123123Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&X-Amz-Signature=b548e52acea66d86fc6ba044c590107014a5cca3e58f23798eba307aea9febb7"
-        }
-      ],
-      "threads": [
-        {
-          "name": "Thread-2",
-          "frames": [
-            "java.lang.Thread.sleep(Thread.java:-2)",
-            "java.lang.Thread.sleep(Thread.java:450)",
-            "java.lang.Thread.sleep(Thread.java:355)",
-            "sh.measure.android.anr.ANRWatchDog.run(ANRWatchDog.kt:70)"
-          ]
+  ```json
+  {
+    "meta": {
+      "next": false,
+      "previous": false
+    },
+    "results": [
+      {
+        "id": "d0cae3d6-c42a-4d0c-a35b-df0b5d1435b2",
+        "session_id": "f1681cff-4da9-4a33-bb1f-ed5d00b21b90",
+        "timestamp": "2024-05-03T23:33:59.724Z",
+        "type": "exception",
+        "attribute": {
+          "installation_id": "ee40eb0e-c579-473d-bc10-557049f51cda",
+          "app_version": "1.0",
+          "app_build": "1",
+          "app_unique_id": "sh.measure.sample",
+          "measure_sdk_version": "0.1.0",
+          "platform": "android",
+          "thread_name": "main",
+          "user_id": "",
+          "device_name": "emu64a",
+          "device_model": "sdk_gphone64_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "phone",
+          "device_is_foldable": true,
+          "device_is_physical": false,
+          "device_density_dpi": 440,
+          "device_width_px": 1080,
+          "device_height_px": 2154,
+          "device_density": 2.75,
+          "device_locale": "en-US",
+          "os_name": "android",
+          "os_version": "33",
+          "network_type": "wifi",
+          "network_provider": "",
+          "network_generation": "unknown"
         },
-        {
-          "name": "LeakCanary-Heap-Dump",
-          "frames": [
-            "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
-            "android.os.MessageQueue.next(MessageQueue.java:335)",
-            "android.os.Looper.loopOnce(Looper.java:161)",
-            "android.os.Looper.loop(Looper.java:288)",
-            "android.os.HandlerThread.run(HandlerThread.java:67)"
-          ]
+        "exception": {
+          "title": "java.lang.OutOfMemoryError@ExceptionDemoActivity.kt:29",
+          "stacktrace": "java.lang.OutOfMemoryError: Failed to allocate a 104857616 byte allocation with 25165824 free bytes and 87MB until OOM, target footprint 134540152, growth limit 201326592\n\tat sh.measure.sample.ExceptionDemoActivity.onCreate$lambda$2(ExceptionDemoActivity.kt:29)\n\tat sh.measure.sample.ExceptionDemoActivity.$r8$lambda$itIQQMXgA5GFCPpehqNC2ZDufqA\n\tat sh.measure.sample.ExceptionDemoActivity$$ExternalSyntheticLambda3.onClick(D8$$SyntheticClass)\n\tat android.view.View.performClick(View.java:7506)\n\tat com.google.android.material.button.MaterialButton.performClick(MaterialButton.java:1218)\n\tat android.view.View.performClickInternal(View.java:7483)\n\tat android.view.View.-$$Nest$mperformClickInternal\n\tat android.view.View$PerformClick.run(View.java:29334)\n\tat android.os.Handler.handleCallback(Handler.java:942)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)",
+          "message": "Failed to allocate a 104857616 byte allocation with 25165824 free bytes and 87MB until OOM, target footprint 134540152, growth limit 201326592"
         },
-        {
-          "name": "Okio Watchdog",
-          "frames": [
-            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-            "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2211)",
-            "okio.AsyncTimeout$Companion.awaitTimeout(AsyncTimeout.kt:370)",
-            "okio.AsyncTimeout$Watchdog.run(AsyncTimeout.kt:211)"
-          ]
-        },
-        {
-          "name": "FinalizerDaemon",
-          "frames": [
-            "java.lang.Object.wait(Object.java:-2)",
-            "java.lang.Object.wait(Object.java:442)",
-            "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:203)",
-            "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:224)",
-            "java.lang.Daemons$FinalizerDaemon.runInternal(Daemons.java:300)",
-            "java.lang.Daemons$Daemon.run(Daemons.java:140)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "ReferenceQueueDaemon",
-          "frames": [
-            "java.lang.Object.wait(Object.java:-2)",
-            "java.lang.Object.wait(Object.java:442)",
-            "java.lang.Object.wait(Object.java:568)",
-            "java.lang.Daemons$ReferenceQueueDaemon.runInternal(Daemons.java:232)",
-            "java.lang.Daemons$Daemon.run(Daemons.java:140)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "msr-ep",
-          "frames": [
-            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-            "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
-            "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
-            "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
-            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "msr-bg",
-          "frames": [
-            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-            "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
-            "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
-            "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
-            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "FinalizerWatchdogDaemon",
-          "frames": [
-            "java.lang.Thread.sleep(Thread.java:-2)",
-            "java.lang.Thread.sleep(Thread.java:450)",
-            "java.lang.Thread.sleep(Thread.java:355)",
-            "java.lang.Daemons$FinalizerWatchdogDaemon.sleepForNanos(Daemons.java:438)",
-            "java.lang.Daemons$FinalizerWatchdogDaemon.waitForProgress(Daemons.java:480)",
-            "java.lang.Daemons$FinalizerWatchdogDaemon.runInternal(Daemons.java:369)",
-            "java.lang.Daemons$Daemon.run(Daemons.java:140)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        },
-        {
-          "name": "msr-ee",
-          "frames": [
-            "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
-            "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
-            "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
-            "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
-            "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
-            "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
-            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
-            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
-            "java.lang.Thread.run(Thread.java:1012)"
-          ]
-        }
-      ]
-    }
-  ]
-}
-```
+        "attachments": [
+          {
+            "id": "ccd173ca-a9de-47ec-998f-0dd2f386ee12",
+            "name": "screenshot.png",
+            "type": "screenshot",
+            "key": "ccd173ca-a9de-47ec-998f-0dd2f386ee12.png",
+            "location": "http://localhost:9111/msr-attachments-sandbox/ccd173ca-a9de-47ec-998f-0dd2f386ee12.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minio%2F20240620%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240620T031359Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&X-Amz-Signature=9d3e372b98eb55ded8ca88b50edc2975cd77f3b722c357f400cf6d6e9e2d8fbe"
+          }
+        ],
+        "threads": [
+          {
+            "name": "Thread-2",
+            "frames": [
+              "java.lang.Thread.sleep(Thread.java:-2)",
+              "java.lang.Thread.sleep(Thread.java:450)",
+              "java.lang.Thread.sleep(Thread.java:355)",
+              "sh.measure.android.anr.ANRWatchDog.run(ANRWatchDog.kt:70)"
+            ]
+          },
+          {
+            "name": "LeakCanary-Heap-Dump",
+            "frames": [
+              "android.os.MessageQueue.nativePollOnce(MessageQueue.java:-2)",
+              "android.os.MessageQueue.next(MessageQueue.java:335)",
+              "android.os.Looper.loopOnce(Looper.java:161)",
+              "android.os.Looper.loop(Looper.java:288)",
+              "android.os.HandlerThread.run(HandlerThread.java:67)"
+            ]
+          },
+          {
+            "name": "Okio Watchdog",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:234)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2211)",
+              "okio.AsyncTimeout$Companion.awaitTimeout(AsyncTimeout.kt:370)",
+              "okio.AsyncTimeout$Watchdog.run(AsyncTimeout.kt:211)"
+            ]
+          },
+          {
+            "name": "FinalizerDaemon",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "java.lang.Object.wait(Object.java:442)",
+              "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:203)",
+              "java.lang.ref.ReferenceQueue.remove(ReferenceQueue.java:224)",
+              "java.lang.Daemons$FinalizerDaemon.runInternal(Daemons.java:300)",
+              "java.lang.Daemons$Daemon.run(Daemons.java:140)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "ReferenceQueueDaemon",
+            "frames": [
+              "java.lang.Object.wait(Object.java:-2)",
+              "java.lang.Object.wait(Object.java:442)",
+              "java.lang.Object.wait(Object.java:568)",
+              "java.lang.Daemons$ReferenceQueueDaemon.runInternal(Daemons.java:232)",
+              "java.lang.Daemons$Daemon.run(Daemons.java:140)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "msr-ep",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "msr-bg",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "FinalizerWatchdogDaemon",
+            "frames": [
+              "java.lang.Thread.sleep(Thread.java:-2)",
+              "java.lang.Thread.sleep(Thread.java:450)",
+              "java.lang.Thread.sleep(Thread.java:355)",
+              "java.lang.Daemons$FinalizerWatchdogDaemon.sleepForNanos(Daemons.java:438)",
+              "java.lang.Daemons$FinalizerWatchdogDaemon.waitForProgress(Daemons.java:480)",
+              "java.lang.Daemons$FinalizerWatchdogDaemon.runInternal(Daemons.java:369)",
+              "java.lang.Daemons$Daemon.run(Daemons.java:140)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          },
+          {
+            "name": "msr-ee",
+            "frames": [
+              "jdk.internal.misc.Unsafe.park(Unsafe.java:-2)",
+              "java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)",
+              "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2081)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1176)",
+              "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:905)",
+              "java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1063)",
+              "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1123)",
+              "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:637)",
+              "java.lang.Thread.run(Thread.java:1012)"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+  ```
 
   </details>
 
