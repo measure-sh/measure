@@ -579,29 +579,49 @@ These headers must be present in each request.
   ```json
   {
     "meta": {
-      "next": true,
+      "next": false,
       "previous": false
     },
     "results": [
       {
-        "id": "018da688-071c-7207-a1fe-ef529bde9963",
-        "app_id": "45b3788e-2226-4f39-9e3c-710016c6c075",
-        "name": "java.lang.StackOverflowError",
-        "fingerprint": "eb6ac85cc04117f9",
-        "count": 2,
-        "percentage_contribution": 25,
-        "created_at": "2024-02-14T07:32:29.084Z",
-        "updated_at": "2024-02-14T07:32:44.603Z"
+        "id": "01903291-1eb4-7b81-854b-fd9d3bbccb4b",
+        "app_id": "fddf4d6d-1df1-45f8-8bc7-9730f2236cb0",
+        "name": "java.lang.IllegalStateException@RxJava2CallAdapterFactory.java:118",
+        "fingerprint": "c37a8c1cc1c037f9",
+        "count": 41,
+        "percentage_contribution": 77.35849,
+        "created_at": "2024-06-19T22:14:49.77Z",
+        "updated_at": "2024-06-19T22:15:25.636Z"
       },
       {
-        "id": "018da688-13e1-76db-8ad7-632401256db3",
-        "app_id": "45b3788e-2226-4f39-9e3c-710016c6c075",
-        "name": "java.lang.IllegalAccessException",
-        "fingerprint": "c3f8c85cc0c117f9",
+        "id": "01903291-6652-7ecf-9a6d-53ef16b6203a",
+        "app_id": "fddf4d6d-1df1-45f8-8bc7-9730f2236cb0",
+        "name": "java.lang.IllegalStateException@RxJava2CallAdapterFactory.java:118",
+        "fingerprint": "c3ea8c1cc1d033f9",
+        "count": 6,
+        "percentage_contribution": 11.320755,
+        "created_at": "2024-06-19T22:15:08.109Z",
+        "updated_at": "2024-06-19T22:15:23.134Z"
+      },
+      {
+        "id": "01903291-7992-7c4f-b98e-6f8e93417695",
+        "app_id": "fddf4d6d-1df1-45f8-8bc7-9730f2236cb0",
+        "name": "java.lang.IllegalStateException@RxJava2CallAdapterFactory.java:118",
+        "fingerprint": "c3faac1cc1c037bb",
+        "count": 4,
+        "percentage_contribution": 7.5471697,
+        "created_at": "2024-06-19T22:15:13.038Z",
+        "updated_at": "2024-06-19T22:15:21.224Z"
+      },
+      {
+        "id": "01903291-8379-79ee-8a27-678368a0a5b8",
+        "app_id": "fddf4d6d-1df1-45f8-8bc7-9730f2236cb0",
+        "name": "java.lang.IllegalStateException@RxJava2CallAdapterFactory.java:118",
+        "fingerprint": "c37acc1cc0c037bb",
         "count": 2,
-        "percentage_contribution": 25,
-        "created_at": "2024-02-14T07:32:32.353Z",
-        "updated_at": "2024-02-14T07:32:51.035Z"
+        "percentage_contribution": 3.7735848,
+        "created_at": "2024-06-19T22:15:15.573Z",
+        "updated_at": "2024-06-19T22:15:19.957Z"
       }
     ]
   }
