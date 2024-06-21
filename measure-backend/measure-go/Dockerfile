@@ -1,5 +1,5 @@
 #build stage
-FROM golang:alpine AS builder
+FROM public.ecr.aws/docker/library/golang:alpine AS builder
 RUN apk add --no-cache git
 WORKDIR /go/src/app
 COPY go.mod go.sum ./
@@ -11,7 +11,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     go build -o /go/bin/app -v .
 
 #final stage
-FROM alpine:latest
+FROM public.ecr.aws/docker/library/alpine:latest
 RUN apk --no-cache add ca-certificates
 COPY --from=builder /go/bin/app /app
 ENTRYPOINT /app
