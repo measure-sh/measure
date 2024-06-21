@@ -386,7 +386,7 @@ func (e eventreq) bucketANRs(ctx context.Context, tx *pgx.Tx) (err error) {
 			continue
 		}
 
-		anrGroups, err := app.GetANRGroups(ctx, nil)
+		anrGroups, err := app.GetANRGroups(ctx)
 		if err != nil {
 			return err
 		}
