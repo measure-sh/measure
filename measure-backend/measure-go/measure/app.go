@@ -105,9 +105,9 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGrou
 	return
 }
 
-// GetExceptionGroups returns slice of ExceptionGroup. Optionally,
-// filters using AppFilter if present.
-func (a App) GetExceptionGroups(ctx context.Context, af *filter.AppFilter) (groups []group.ExceptionGroup, err error) {
+// GetExceptionGroups returns slice of ExceptionGroup
+// of an app.
+func (a App) GetExceptionGroups(ctx context.Context) (groups []group.ExceptionGroup, err error) {
 	stmt := sqlf.PostgreSQL.
 		From("public.unhandled_exception_groups").
 		Select("id").
@@ -123,10 +123,6 @@ func (a App) GetExceptionGroups(ctx context.Context, af *filter.AppFilter) (grou
 		OrderBy("count desc")
 
 	defer stmt.Close()
-
-	if af != nil && af.HasTimeRange() {
-		stmt.Where("first_event_timestamp >= ? and first_event_timestamp <= ?", af.From, af.To)
-	}
 
 	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
 	return pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
@@ -2168,7 +2164,7 @@ func GetCrashOverview(c *gin.Context) {
 		return
 	}
 
-	groups, err := app.GetExceptionGroups(ctx, &af)
+	groups, err := app.GetExceptionGroups(ctx)
 	if err != nil {
 		msg := "failed to get app's exception groups"
 		fmt.Println(msg, err)
@@ -2315,6 +2311,7 @@ func GetCrashOverviewPlotInstances(c *gin.Context) {
 		})
 		return
 	}
+
 	type instance struct {
 		ID   string  `json:"id"`
 		Data []gin.H `json:"data"`

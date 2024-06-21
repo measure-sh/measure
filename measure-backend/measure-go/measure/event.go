@@ -336,7 +336,7 @@ func (e eventreq) bucketUnhandledExceptions(ctx context.Context, tx *pgx.Tx) (er
 			continue
 		}
 
-		exceptionGroups, err := app.GetExceptionGroups(ctx, nil)
+		exceptionGroups, err := app.GetExceptionGroups(ctx)
 		if err != nil {
 			return err
 		}
