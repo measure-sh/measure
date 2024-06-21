@@ -164,9 +164,8 @@ func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (anrGroup *group.ANR
 	return
 }
 
-// GetANRGroups returns slice of ANRGroup. Optioanlly,
-// filters using AppFilter if present.
-func (a App) GetANRGroups(ctx context.Context, af *filter.AppFilter) (groups []group.ANRGroup, err error) {
+// GetANRGroups returns slice of ANRGroup of an app.
+func (a App) GetANRGroups(ctx context.Context) (groups []group.ANRGroup, err error) {
 	stmt := sqlf.PostgreSQL.
 		From("public.anr_groups").
 		Select("id").
@@ -182,10 +181,6 @@ func (a App) GetANRGroups(ctx context.Context, af *filter.AppFilter) (groups []g
 		OrderBy("count desc")
 
 	defer stmt.Close()
-
-	if af != nil && af.HasTimeRange() {
-		stmt.Where("first_event_timestamp >= ? and first_event_timestamp <= ?", af.From, af.To)
-	}
 
 	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
 	return pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ANRGroup])
@@ -2912,7 +2907,7 @@ func GetANROverview(c *gin.Context) {
 		return
 	}
 
-	groups, err := app.GetANRGroups(ctx, &af)
+	groups, err := app.GetANRGroups(ctx)
 	if err != nil {
 		msg := "failed to get app's anr groups"
 		fmt.Println(msg, err)
