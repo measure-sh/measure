@@ -46,9 +46,20 @@ var configData *config.Config
 var metrics Metrics
 
 func init() {
-	ingestCmd.Flags().StringVarP(&sourceDir, "source", "s", "../session-data", "source diretory to read events from")
-	ingestCmd.Flags().StringVarP(&origin, "origin", "o", "http://localhost:8080", "origin of event ingestion server")
-	ingestCmd.Flags().StringVarP(&configLocation, "config", "c", "../session-data/config.toml", "location to config.toml file")
+	ingestCmd.
+		Flags().
+		StringVarP(&sourceDir, "source", "s", "../session-data", "source directory to read events from")
+
+	ingestCmd.
+		Flags().
+		StringVarP(&origin, "origin", "o", "http://localhost:8080", "origin of event ingestion server")
+
+	ingestCmd.
+		Flags().
+		StringVarP(&configLocation, "config", "c", "../session-data/config.toml", "location to config.toml")
+
+	ingestCmd.Flags().SortFlags = false
+
 	rootCmd.AddCommand(ingestCmd)
 }
 
