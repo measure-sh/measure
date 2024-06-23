@@ -38,6 +38,6 @@ internal class FakeConfigProvider : ConfigProvider {
 
     var headerKeysToBlock = emptyList<String>()
     override fun shouldTrackHttpHeader(key: String): Boolean {
-        return headerKeysToBlock.any { key.contains(it, ignoreCase = true) }
+        return !headerKeysToBlock.any { key.contains(it, ignoreCase = true) }
     }
 }

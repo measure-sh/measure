@@ -62,11 +62,11 @@ internal class DefaultEventTransformer(
                 }
 
                 http.request_headers = http.request_headers?.filterKeys { key ->
-                    !configProvider.shouldTrackHttpHeader(key)
+                    configProvider.shouldTrackHttpHeader(key)
                 }
 
                 http.response_headers = http.response_headers?.filterKeys { key ->
-                    !configProvider.shouldTrackHttpHeader(key)
+                    configProvider.shouldTrackHttpHeader(key)
                 }
             }
         }
