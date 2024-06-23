@@ -24,15 +24,16 @@ internal class AppExitCollector(
                 return@submit
             }
             val pidsToSessionsMap: Map<Int, List<String>> = sessionManager.getSessionsForPids()
-            val appExitsToTrack: List<Pair<String, AppExit>> =
+            val appExitsToTrack: List<Triple<Int, String, AppExit>> =
                 mapAppExitsToSession(pidsToSessionsMap, appExits)
             appExitsToTrack.forEach {
                 eventProcessor.track(
-                    it.second,
+                    it.third,
                     timeProvider.currentTimeSinceEpochInMillis,
                     EventType.APP_EXIT,
-                    sessionId = it.first,
+                    sessionId = it.second,
                 )
+                sessionManager.updateAppExitTracked(pid = it.first)
             }
         }
     }
@@ -40,14 +41,14 @@ internal class AppExitCollector(
     private fun mapAppExitsToSession(
         pidToSessionsMap: Map<Int, List<String>>,
         appExits: Map<Int, AppExit>,
-    ): List<Pair<String, AppExit>> {
-        val result: MutableList<Pair<String, AppExit>> = ArrayList()
+    ): List<Triple<Int, String, AppExit>> {
+        val result: MutableList<Triple<Int, String, AppExit>> = ArrayList()
         for ((pid, sessionIds) in pidToSessionsMap) {
             if (appExits.containsKey(pid)) {
                 val appExit = appExits[pid]
                 // assuming last session for the PID to be the one that maps to app exit.
                 val lastSessionId = sessionIds.last()
-                result.add(Pair(lastSessionId, appExit!!))
+                result.add(Triple(pid, lastSessionId, appExit!!))
             }
         }
 

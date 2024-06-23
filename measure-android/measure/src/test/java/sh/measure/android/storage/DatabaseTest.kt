@@ -193,8 +193,7 @@ class DatabaseTest {
 
         database.insertEvent(event1)
         database.insertEvent(event2)
-        val result =
-            database.insertBatch(listOf(event1.id, event2.id), "batch-id", 1234567890L)
+        val result = database.insertBatch(listOf(event1.id, event2.id), "batch-id", 1234567890L)
         assertEquals(true, result)
 
         queryAllBatchedEvents().use {
@@ -233,12 +232,11 @@ class DatabaseTest {
     @Test
     fun `does not insert batched events and returns false if insertion fails`() {
         // attempt to insert a event with same ID twice, resulting in a failure
-        val result =
-            database.insertBatch(
-                listOf("valid-id", "event-id", "event-id"),
-                "batch-id",
-                987654321L,
-            )
+        val result = database.insertBatch(
+            listOf("valid-id", "event-id", "event-id"),
+            "batch-id",
+            987654321L,
+        )
         queryAllBatchedEvents().use {
             assertEquals(0, it.count)
         }
@@ -564,17 +562,20 @@ class DatabaseTest {
         database.insertSession("session-id-2", 987, 700)
 
         database.clearOldSessions(600)
-        assertEquals(1, database.getSessionsForPids().size)
+        assertEquals(1, database.getSessionsWithUntrackedAppExit().size)
     }
 
     @Test
-    fun `returns all sessions from sessions table`() {
+    fun `returns all sessions with untracked app exits from sessions table`() {
         database.insertSession("session-id-1", 123, 500)
         database.insertSession("session-id-1.1", 123, 500)
         database.insertSession("session-id-2", 987, 700)
         database.insertSession("session-id-2.2", 987, 700)
+        database.insertSession("session-with-tracked-app-exit", 9000, 900)
 
-        val sessions = database.getSessionsForPids()
+        database.updateAppExitTracked(9000)
+        val sessions = database.getSessionsWithUntrackedAppExit()
+
         assertEquals(2, sessions.size)
         assertEquals(2, sessions[123]!!.size)
         assertEquals(2, sessions[987]!!.size)
@@ -600,6 +601,37 @@ class DatabaseTest {
             it.moveToFirst()
             assertEquals(sessionId, it.getString(it.getColumnIndex(SessionsTable.COL_SESSION_ID)))
             assertEquals(pid, it.getInt(it.getColumnIndex(SessionsTable.COL_PID)))
+        }
+    }
+
+    @Test
+    fun `sets app exit as tracked in all sessions for a given pid`() {
+        val sessionId1 = "session-id-1"
+        val sessionId2 = "session-id-2"
+        val sessionId3 = "session-id-3"
+        val pid = 123
+        val untrackedAppExitPid = 9000
+        database.insertSession(sessionId1, pid, 500)
+        database.insertSession(sessionId2, pid, 700)
+        database.insertSession(sessionId3, untrackedAppExitPid, 900)
+
+        database.updateAppExitTracked(pid)
+
+        val db = database.writableDatabase
+        db.query(
+            SessionsTable.TABLE_NAME,
+            null,
+            "${SessionsTable.COL_APP_EXIT_TRACKED} = ?",
+            arrayOf("1"),
+            null,
+            null,
+            null,
+        ).use {
+            assertEquals(2, it.count)
+            it.moveToFirst()
+            assertEquals(sessionId1, it.getString(it.getColumnIndex(SessionsTable.COL_SESSION_ID)))
+            it.moveToNext()
+            assertEquals(sessionId2, it.getString(it.getColumnIndex(SessionsTable.COL_SESSION_ID)))
         }
     }
 

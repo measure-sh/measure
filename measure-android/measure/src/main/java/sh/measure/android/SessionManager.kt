@@ -36,13 +36,20 @@ internal interface SessionManager {
      * Clears old sessions from the database.
      */
     fun clearOldSessions()
+
+    /**
+     * Updates the sessions table to mark the app exit event as tracked.
+     *
+     * @param pid The process ID for which the app exit event was tracked.
+     */
+    fun updateAppExitTracked(pid: Int)
 }
 
 /**
  * Manages creation of sessions.
  *
  * A new session is created when [getSessionId] is first called. A session ends when the app comes
- * back to foreground after being in background for more than [BACKGROUND_DURATION_TO_END_SESSION_MS].
+ * back to foreground after being in background for more than [ConfigProvider.defaultSessionEndThresholdMs].
  */
 internal class SessionManagerImpl(
     private val logger: Logger,
@@ -66,7 +73,7 @@ internal class SessionManagerImpl(
     }
 
     override fun getSessionsForPids(): Map<Int, List<String>> {
-        return database.getSessionsForPids()
+        return database.getSessionsWithUntrackedAppExit()
     }
 
     override fun onAppBackground() {
@@ -99,6 +106,12 @@ internal class SessionManagerImpl(
             val clearUpToTimeSinceEpoch =
                 timeProvider.currentTimeSinceEpochInMillis - configProvider.defaultSessionsTableTtlMs
             database.clearOldSessions(clearUpToTimeSinceEpoch)
+        }
+    }
+
+    override fun updateAppExitTracked(pid: Int) {
+        executorService.submit {
+            database.updateAppExitTracked(pid)
         }
     }
 
