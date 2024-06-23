@@ -41,6 +41,7 @@ internal object SessionsTable {
     const val COL_SESSION_ID = "session_id"
     const val COL_PID = "pid"
     const val COL_CREATED_AT = "created_at"
+    const val COL_APP_EXIT_TRACKED = "app_exit_tracked"
 }
 
 internal object Sql {
@@ -85,7 +86,8 @@ internal object Sql {
         CREATE TABLE ${SessionsTable.TABLE_NAME} (
             ${SessionsTable.COL_SESSION_ID} TEXT PRIMARY KEY,
             ${SessionsTable.COL_PID} INTEGER NOT NULL,
-            ${SessionsTable.COL_CREATED_AT} INTEGER NOT NULL
+            ${SessionsTable.COL_CREATED_AT} INTEGER NOT NULL,
+            ${SessionsTable.COL_APP_EXIT_TRACKED} INTEGER DEFAULT 0
         )
     """
 
@@ -178,13 +180,22 @@ internal object Sql {
         """
     }
 
-    fun getSessionsForPids(): String {
+    fun getSessionsWithUntrackedAppExit(): String {
         return """
             SELECT
                 ${SessionsTable.COL_SESSION_ID},
                 ${SessionsTable.COL_PID}
             FROM ${SessionsTable.TABLE_NAME}
+            WHERE ${SessionsTable.COL_APP_EXIT_TRACKED} = 0
             ORDER BY ${SessionsTable.COL_CREATED_AT} ASC
+        """.trimIndent()
+    }
+
+    fun updateAppExitTracked(pid: Int): String {
+        return """
+            UPDATE ${SessionsTable.TABLE_NAME}
+            SET ${SessionsTable.COL_APP_EXIT_TRACKED} = 1
+            WHERE ${SessionsTable.COL_PID} = $pid
         """.trimIndent()
     }
 }

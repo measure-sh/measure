@@ -132,4 +132,23 @@ class AppExitCollectorTest {
             sessionId = sessionId,
         )
     }
+
+    @Test
+    fun `updates sessions table when app exit is tracked successfully`() {
+        val sessionId = sessionManager.getSessionId()
+        val pid = 7654
+        val appExit = AppExit(
+            reason = "REASON_USER_REQUESTED",
+            pid = pid.toString(),
+            trace = null,
+            process_name = "com.example.app",
+            importance = "IMPORTANCE_VISIBLE",
+        )
+        appExitProvider.appExits = mapOf(pid to appExit)
+        `when`(sessionManager.getSessionsForPids()).thenReturn(mapOf(pid to listOf(sessionId)))
+
+        appExitCollector.onColdLaunch()
+
+        verify(sessionManager).updateAppExitTracked(pid)
+    }
 }

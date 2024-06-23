@@ -115,9 +115,11 @@ internal interface Database : Closeable {
     fun insertSession(sessionId: String, pid: Int, createdAt: Long): Boolean
 
     /**
-     * Returns a map of process IDs to list of session IDs that were created by that process.
+     * Returns a map of process IDs to list of session IDs that were created by that process
+     * where the app exit event has not been tracked. The session Ids are order by creation time
+     * in ascending order.
      */
-    fun getSessionsForPids(): Map<Int, List<String>>
+    fun getSessionsWithUntrackedAppExit(): Map<Int, List<String>>
 
     /**
      * Cleans up old sessions that were created before the given time.
@@ -125,6 +127,11 @@ internal interface Database : Closeable {
      * @param clearUpToTimeSinceEpoch The time before which the sessions should be deleted.
      */
     fun clearOldSessions(clearUpToTimeSinceEpoch: Long)
+
+    /**
+     * Updates the sessions table to mark the app exit event as tracked.
+     */
+    fun updateAppExitTracked(pid: Int)
 }
 
 /**
@@ -423,8 +430,8 @@ internal class DatabaseImpl(
         return result != -1L
     }
 
-    override fun getSessionsForPids(): Map<Int, List<String>> {
-        readableDatabase.rawQuery(Sql.getSessionsForPids(), null).use {
+    override fun getSessionsWithUntrackedAppExit(): Map<Int, List<String>> {
+        readableDatabase.rawQuery(Sql.getSessionsWithUntrackedAppExit(), null).use {
             val pidToSessionsMap = linkedMapOf<Int, MutableList<String>>()
 
             while (it.moveToNext()) {
@@ -451,6 +458,10 @@ internal class DatabaseImpl(
             "${SessionsTable.COL_CREATED_AT} <= ?",
             arrayOf(clearUpToTimeSinceEpoch.toString()),
         )
+    }
+
+    override fun updateAppExitTracked(pid: Int) {
+        writableDatabase.execSQL(Sql.updateAppExitTracked(pid))
     }
 
     override fun close() {

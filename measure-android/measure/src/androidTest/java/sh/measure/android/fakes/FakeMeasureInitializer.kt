@@ -1,6 +1,5 @@
 package sh.measure.android.fakes
 
-import android.app.Application
 import sh.measure.android.MeasureInitializer
 import sh.measure.android.SessionManager
 import sh.measure.android.anr.AnrCollector
