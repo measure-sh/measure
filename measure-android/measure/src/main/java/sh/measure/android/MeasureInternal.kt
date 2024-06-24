@@ -17,6 +17,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     val eventProcessor by lazy { measureInitializer.eventProcessor }
     val timeProvider by lazy { measureInitializer.timeProvider }
     val okHttpEventCollector by lazy { measureInitializer.okHttpEventCollector }
+    private val userTriggeredEventCollector by lazy { measureInitializer.userTriggeredEventCollector }
     private val sessionManager by lazy { measureInitializer.sessionManager }
     private val resumedActivityProvider by lazy { measureInitializer.resumedActivityProvider }
     private val networkClient by lazy { measureInitializer.networkClient }
@@ -101,5 +102,13 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
 
     fun setUserId(userId: String) {
         userAttributeProcessor.setUserId(userId)
+    }
+
+    fun trackNavigation(to: String, from: String?) {
+        userTriggeredEventCollector.trackNavigation(to, from)
+    }
+
+    fun trackHandledException(throwable: Throwable) {
+        userTriggeredEventCollector.trackHandledException(throwable)
     }
 }

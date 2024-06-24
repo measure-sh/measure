@@ -65,6 +65,11 @@ internal interface EventProcessor {
         attributes: MutableMap<String, Any?> = mutableMapOf(),
         attachments: MutableList<Attachment> = mutableListOf(),
     )
+
+    /**
+     * Tracks a user defined event with the given data, timestamp and type.
+     */
+    fun <T> trackUserDefined(data: T, timestamp: Long, type: String)
 }
 
 internal class EventProcessorImpl(
@@ -102,6 +107,18 @@ internal class EventProcessorImpl(
         track(data, timestamp, type, attributes, attachments, null)
     }
 
+    override fun <T> trackUserDefined(data: T, timestamp: Long, type: String) {
+        track(
+            data,
+            timestamp,
+            type,
+            mutableMapOf(),
+            mutableListOf(),
+            sessionId = null,
+            userDefined = true
+        )
+    }
+
     private fun <T> track(
         data: T,
         timestamp: Long,
@@ -109,6 +126,7 @@ internal class EventProcessorImpl(
         attributes: MutableMap<String, Any?>,
         attachments: MutableList<Attachment>,
         sessionId: String?,
+        userDefined: Boolean = false,
     ) {
         val threadName = Thread.currentThread().name
 
@@ -123,6 +141,7 @@ internal class EventProcessorImpl(
                 data = data,
                 attachments = attachments,
                 attributes = attributes,
+                userTriggered = userDefined,
             )
         }
 
@@ -135,6 +154,7 @@ internal class EventProcessorImpl(
             // Exceptions and ANRs need to be processed synchronously to ensure that they are not
             // lost as the system is about to crash. They are also attempted to be exported
             // immediately to report them as soon as possible.
+            // TODO: handled exceptions don't need to be processed synchronously
             EventType.ANR, EventType.EXCEPTION -> {
                 val event = createEvent(sessionId)
                 if (configProvider.trackScreenshotOnCrash) {

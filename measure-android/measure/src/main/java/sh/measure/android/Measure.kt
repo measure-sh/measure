@@ -27,17 +27,25 @@ object Measure {
         }
     }
 
-    @VisibleForTesting
-    internal fun initForInstrumentationTest(initializer: MeasureInitializer) {
-        if (isInitialized.compareAndSet(false, true)) {
-            measure = MeasureInternal(initializer)
-            // Do not call measure.init() here as the test will set the required dependencies.
-        }
-    }
-
+    @JvmStatic
     fun setUserId(userId: String) {
         if (isInitialized.get()) {
             measure.setUserId(userId)
+        }
+    }
+
+    @JvmStatic
+    @JvmOverloads
+    fun trackNavigation(to: String, from: String? = null) {
+        if (isInitialized.get()) {
+            measure.trackNavigation(to, from)
+        }
+    }
+
+    @JvmStatic
+    fun trackHandledException(throwable: Throwable) {
+        if (isInitialized.get()) {
+            measure.trackHandledException(throwable)
         }
     }
 
@@ -60,5 +68,13 @@ object Measure {
             return measure.okHttpEventCollector
         }
         return null
+    }
+
+    @VisibleForTesting
+    internal fun initForInstrumentationTest(initializer: MeasureInitializer) {
+        if (isInitialized.compareAndSet(false, true)) {
+            measure = MeasureInternal(initializer)
+            // Do not call measure.init() here as the test will set the required dependencies.
+        }
     }
 }
