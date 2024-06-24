@@ -21,5 +21,7 @@ class SampleApp : Application() {
                 trackActivityIntentData = true,
             )
         )
+        Measure.setUserId("sample-user-sd")
+        Measure.trackNavigation("sample-to", "sample-from")
     }
 }

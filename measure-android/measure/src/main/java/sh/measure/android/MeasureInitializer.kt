@@ -20,6 +20,8 @@ import sh.measure.android.events.DefaultEventTransformer
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventProcessorImpl
 import sh.measure.android.events.EventTransformer
+import sh.measure.android.events.UserTriggeredEventCollector
+import sh.measure.android.events.UserTriggeredEventCollectorImpl
 import sh.measure.android.exceptions.UnhandledExceptionCollector
 import sh.measure.android.executors.ExecutorServiceRegistry
 import sh.measure.android.executors.ExecutorServiceRegistryImpl
@@ -211,6 +213,11 @@ internal class MeasureInitializerImpl(
         eventTransformer = eventTransformer,
         configProvider = configProvider,
     ),
+    override val userTriggeredEventCollector: UserTriggeredEventCollector = UserTriggeredEventCollectorImpl(
+        eventProcessor = eventProcessor,
+        timeProvider = timeProvider,
+        processInfoProvider = processInfoProvider,
+    ),
     private val periodicHeartbeat: Heartbeat = HeartbeatImpl(
         logger,
         executorServiceRegistry.defaultExecutor(),
@@ -310,6 +317,7 @@ internal interface MeasureInitializer {
     val manifestReader: ManifestReader
     val resumedActivityProvider: ResumedActivityProvider
     val eventProcessor: EventProcessor
+    val userTriggeredEventCollector: UserTriggeredEventCollector
     val okHttpEventCollector: OkHttpEventCollector
     val sessionManager: SessionManager
     val unhandledExceptionCollector: UnhandledExceptionCollector

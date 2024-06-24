@@ -65,6 +65,7 @@ internal object FakeEventFactory {
         sessionId: String = "session-id",
         attachments: MutableList<Attachment> = mutableListOf(),
         attributes: MutableMap<String, Any?> = mutableMapOf(),
+        userTriggered: Boolean = false,
     ): Event<T> {
         return Event(
             id = id,
@@ -74,6 +75,7 @@ internal object FakeEventFactory {
             sessionId = sessionId,
             attachments = attachments,
             attributes = attributes,
+            userTriggered = userTriggered,
         )
     }
 

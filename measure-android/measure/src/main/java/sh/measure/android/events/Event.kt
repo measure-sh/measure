@@ -41,6 +41,11 @@ internal data class Event<T>(
      * Additional key value pairs that can be added to the event.
      */
     val attributes: MutableMap<String, Any?>,
+
+    /**
+     * A flag to indicate if the event is triggered by the user or the SDK.
+     */
+    val userTriggered: Boolean,
 ) {
     /**
      * Adds an attribute to the event.
