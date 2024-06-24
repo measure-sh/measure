@@ -112,7 +112,7 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ appId, ex
             legendOffset: -80,
             legendPosition: 'middle'
           }}
-          pointSize={10}
+          pointSize={3}
           pointBorderWidth={2}
           pointBorderColor={{
             from: 'color',
