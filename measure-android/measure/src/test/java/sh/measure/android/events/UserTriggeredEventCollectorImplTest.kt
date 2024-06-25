@@ -25,7 +25,7 @@ class UserTriggeredEventCollectorImplTest {
         val from = "from"
         val to = "to"
         userTriggeredEventCollector.trackNavigation(to, from)
-        verify(eventProcessor).trackUserDefined(
+        verify(eventProcessor).trackUserTriggered(
             data = NavigationData(
                 source = null,
                 from = from,
@@ -40,7 +40,7 @@ class UserTriggeredEventCollectorImplTest {
         val data = FakeEventFactory.getExceptionData(handled = true, exception = exception)
 
         userTriggeredEventCollector.trackHandledException(exception)
-        verify(eventProcessor).trackUserDefined(
+        verify(eventProcessor).trackUserTriggered(
             data = data,
             type = EventType.EXCEPTION,
             timestamp = timeProvider.currentTimeSinceEpochInMillis

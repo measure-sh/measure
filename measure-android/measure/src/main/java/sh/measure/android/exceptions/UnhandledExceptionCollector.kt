@@ -34,7 +34,7 @@ internal class UnhandledExceptionCollector(
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
         logger.log(LogLevel.Debug, "Unhandled exception received")
         try {
-            eventProcessor.track(
+            eventProcessor.trackCrash(
                 timestamp = timeProvider.currentTimeSinceEpochInMillis,
                 type = EventType.EXCEPTION,
                 data = ExceptionFactory.createMeasureException(

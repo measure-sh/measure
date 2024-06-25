@@ -187,7 +187,7 @@ internal class EventProcessorTest {
         val type = EventType.EXCEPTION
 
         // When
-        eventProcessor.track(
+        eventProcessor.trackCrash(
             data = exceptionData,
             timestamp = timestamp,
             type = type,
@@ -206,7 +206,7 @@ internal class EventProcessorTest {
         val type = EventType.ANR
 
         // When
-        eventProcessor.track(
+        eventProcessor.trackCrash(
             data = exceptionData,
             timestamp = timestamp,
             type = type,
@@ -228,7 +228,7 @@ internal class EventProcessorTest {
         `when`(screenshotCollector.takeScreenshot()).thenReturn(screenshot)
 
         // When
-        eventProcessor.track(
+        eventProcessor.trackCrash(
             data = exceptionData,
             timestamp = timestamp,
             type = type,
@@ -347,7 +347,8 @@ internal class EventProcessorTest {
     @Test
     fun `given transformer modifies event, then stores modified event`() {
         // Given
-        val activityLifecycleData = FakeEventFactory.getActivityLifecycleData(intent = "intent-data")
+        val activityLifecycleData =
+            FakeEventFactory.getActivityLifecycleData(intent = "intent-data")
         val timestamp = 9856564654L
         val type = EventType.LIFECYCLE_ACTIVITY
 
@@ -382,5 +383,28 @@ internal class EventProcessorTest {
         assertEquals(1, eventStore.trackedEvents.size)
         // verify intent data is dropped from the event
         assertNull((eventStore.trackedEvents.first().data as ActivityLifecycleData).intent)
+    }
+
+    @Test
+    fun `given a user triggered event, then stores the event`() {
+        val data = FakeEventFactory.getNavigationData()
+        val timestamp = 1710746412L
+        val eventType = EventType.NAVIGATION
+        val expectedEvent = data.toEvent(
+            type = eventType,
+            timestamp = timestamp.iso8601Timestamp(),
+            id = idProvider.id,
+            sessionId = sessionManager.getSessionId(),
+            userTriggered = true,
+        ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
+
+        eventProcessor.trackUserTriggered(
+            data = data,
+            timestamp = timestamp,
+            type = eventType,
+        )
+
+        assertEquals(1, eventStore.trackedEvents.size)
+        assertEquals(expectedEvent, eventStore.trackedEvents.first())
     }
 }

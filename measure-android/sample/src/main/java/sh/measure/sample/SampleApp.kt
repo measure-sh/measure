@@ -23,5 +23,6 @@ class SampleApp : Application() {
         )
         Measure.setUserId("sample-user-sd")
         Measure.trackNavigation("sample-to", "sample-from")
+        Measure.trackHandledException(RuntimeException("sample-handled-exception"))
     }
 }

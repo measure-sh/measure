@@ -16,7 +16,7 @@ internal class UserTriggeredEventCollectorImpl(
     private val processInfoProvider: ProcessInfoProvider,
 ) : UserTriggeredEventCollector {
     override fun trackNavigation(to: String, from: String?) {
-        eventProcessor.trackUserDefined(
+        eventProcessor.trackUserTriggered(
             data = NavigationData(
                 to = to, from = from, source = null
             ), timestamp = timeProvider.currentTimeSinceEpochInMillis, type = EventType.NAVIGATION
@@ -26,7 +26,7 @@ internal class UserTriggeredEventCollectorImpl(
     override fun trackHandledException(throwable: Throwable) {
         // this is a safe assumption that we're on the same thread as the exception was captured on
         val thread = Thread.currentThread()
-        eventProcessor.trackUserDefined(
+        eventProcessor.trackUserTriggered(
             data = ExceptionFactory.createMeasureException(
                 throwable = throwable,
                 handled = true,
