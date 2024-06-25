@@ -63,10 +63,12 @@ internal class UnhandledExceptionCollectorTest {
         collector.uncaughtException(thread, exception)
 
         // Then
-        verify(eventProcessor).track(
+        verify(eventProcessor).trackCrash(
             timestamp = timeProvider.currentTimeSinceEpochInMillis,
             type = EventType.EXCEPTION,
             data = expectedException,
+            attributes = mutableMapOf(),
+            attachments = mutableListOf(),
         )
     }
 

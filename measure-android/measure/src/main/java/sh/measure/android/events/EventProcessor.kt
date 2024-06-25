@@ -5,6 +5,7 @@ import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.appendAttributes
 import sh.measure.android.config.ConfigProvider
+import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.exporter.ExceptionExporter
 import sh.measure.android.logger.LogLevel
@@ -69,7 +70,20 @@ internal interface EventProcessor {
     /**
      * Tracks a user defined event with the given data, timestamp and type.
      */
-    fun <T> trackUserDefined(data: T, timestamp: Long, type: String)
+    fun <T> trackUserTriggered(data: T, timestamp: Long, type: String)
+
+    /**
+     * Tracks a crash event with the given exception data, timestamp, type, attributes and attachments.
+     * This method is used to track ANRs and unhandled exceptions. Such events are processed
+     * synchronously and are attempted to be exported immediately.
+     */
+    fun trackCrash(
+        data: ExceptionData,
+        timestamp: Long,
+        type: String,
+        attributes: MutableMap<String, Any?> = mutableMapOf(),
+        attachments: MutableList<Attachment> = mutableListOf(),
+    )
 }
 
 internal class EventProcessorImpl(
@@ -107,7 +121,7 @@ internal class EventProcessorImpl(
         track(data, timestamp, type, attributes, attachments, null)
     }
 
-    override fun <T> trackUserDefined(data: T, timestamp: Long, type: String) {
+    override fun <T> trackUserTriggered(data: T, timestamp: Long, type: String) {
         track(
             data,
             timestamp,
@@ -115,8 +129,35 @@ internal class EventProcessorImpl(
             mutableMapOf(),
             mutableListOf(),
             sessionId = null,
-            userDefined = true
+            userTriggered = true
         )
+    }
+
+    override fun trackCrash(
+        data: ExceptionData,
+        timestamp: Long,
+        type: String,
+        attributes: MutableMap<String, Any?>,
+        attachments: MutableList<Attachment>,
+    ) {
+        val threadName = Thread.currentThread().name
+        val event = createEvent(
+            data = data,
+            timestamp = timestamp,
+            type = type,
+            attachments = attachments,
+            attributes = attributes,
+            userTriggered = false,
+        )
+        if (configProvider.trackScreenshotOnCrash) {
+            addScreenshotAsAttachment(event)
+        }
+        applyAttributes(event, threadName)
+        eventTransformer.transform(event)?.let {
+            eventStore.store(event)
+            exceptionExporter.export()
+            logger.log(LogLevel.Debug, "Event processed: $type, ${event.sessionId}")
+        } ?: logger.log(LogLevel.Debug, "Event dropped: $type")
     }
 
     private fun <T> track(
@@ -126,59 +167,54 @@ internal class EventProcessorImpl(
         attributes: MutableMap<String, Any?>,
         attachments: MutableList<Attachment>,
         sessionId: String?,
-        userDefined: Boolean = false,
+        userTriggered: Boolean = false,
     ) {
         val threadName = Thread.currentThread().name
 
-        fun createEvent(sessionId: String?): Event<T> {
-            val id = idProvider.createId()
-            val resolvedSessionId = sessionId ?: sessionManager.getSessionId()
-            return Event(
-                id = id,
-                sessionId = resolvedSessionId,
-                timestamp = timestamp.iso8601Timestamp(),
-                type = type,
+        defaultExecutor.submit {
+            val event = createEvent(
                 data = data,
+                timestamp = timestamp,
+                type = type,
                 attachments = attachments,
                 attributes = attributes,
-                userTriggered = userDefined,
+                userTriggered = userTriggered,
+                sessionId = sessionId
             )
+            applyAttributes(event, threadName)
+            eventTransformer.transform(event)?.let {
+                eventStore.store(event)
+                logger.log(LogLevel.Debug, "Event processed: $type, ${event.sessionId}")
+            } ?: logger.log(LogLevel.Debug, "Event dropped: $type")
         }
+    }
 
-        fun applyAttributes(event: Event<T>) {
-            event.appendAttribute(Attribute.THREAD_NAME, threadName)
-            event.appendAttributes(attributeProcessors)
-        }
+    private fun <T> createEvent(
+        timestamp: Long,
+        type: String,
+        data: T,
+        attachments: MutableList<Attachment>,
+        attributes: MutableMap<String, Any?>,
+        userTriggered: Boolean,
+        sessionId: String? = null,
+    ): Event<T> {
+        val id = idProvider.createId()
+        val resolvedSessionId = sessionId ?: sessionManager.getSessionId()
+        return Event(
+            id = id,
+            sessionId = resolvedSessionId,
+            timestamp = timestamp.iso8601Timestamp(),
+            type = type,
+            data = data,
+            attachments = attachments,
+            attributes = attributes,
+            userTriggered = userTriggered,
+        )
+    }
 
-        when (type) {
-            // Exceptions and ANRs need to be processed synchronously to ensure that they are not
-            // lost as the system is about to crash. They are also attempted to be exported
-            // immediately to report them as soon as possible.
-            // TODO: handled exceptions don't need to be processed synchronously
-            EventType.ANR, EventType.EXCEPTION -> {
-                val event = createEvent(sessionId)
-                if (configProvider.trackScreenshotOnCrash) {
-                    addScreenshotAsAttachment(event)
-                }
-                applyAttributes(event)
-                eventTransformer.transform(event)?.let {
-                    eventStore.store(event)
-                    exceptionExporter.export()
-                    logger.log(LogLevel.Debug, "Event processed: $type, ${event.sessionId}")
-                } ?: logger.log(LogLevel.Debug, "Event dropped: $type")
-            }
-
-            else -> {
-                defaultExecutor.submit {
-                    val event = createEvent(sessionId)
-                    applyAttributes(event)
-                    eventTransformer.transform(event)?.let {
-                        eventStore.store(event)
-                        logger.log(LogLevel.Debug, "Event processed: $type, ${event.sessionId}")
-                    } ?: logger.log(LogLevel.Debug, "Event dropped: $type")
-                }
-            }
-        }
+    private fun <T> applyAttributes(event: Event<T>, threadName: String) {
+        event.appendAttribute(Attribute.THREAD_NAME, threadName)
+        event.appendAttributes(attributeProcessors)
     }
 
     private fun <T> addScreenshotAsAttachment(event: Event<T>) {

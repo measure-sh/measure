@@ -8,9 +8,11 @@ import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import sh.measure.android.NativeBridge
+import sh.measure.android.events.Attachment
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
+import sh.measure.android.fakes.FakeEventFactory
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.NoopLogger
 
@@ -50,13 +52,17 @@ class AnrCollectorTest {
         val typeCaptor = argumentCaptor<String>()
         val timestampCaptor = argumentCaptor<Long>()
         val dataCaptor = argumentCaptor<ExceptionData>()
+        val attributesCaptor = argumentCaptor<MutableMap<String, Any?>>()
+        val attachmentsCaptor = argumentCaptor<MutableList<Attachment>>()
 
         // the arguments must be in the same order as the method signature, otherwise
         // argumentCaptor will not capture the correct value and verify will fail.
-        verify(eventProcessor).track(
+        verify(eventProcessor).trackCrash(
             data = dataCaptor.capture(),
             timestamp = timestampCaptor.capture(),
             type = typeCaptor.capture(),
+            attributes = attributesCaptor.capture(),
+            attachments = attachmentsCaptor.capture()
         )
 
         assertEquals(EventType.ANR, typeCaptor.firstValue)

@@ -32,7 +32,7 @@ internal class AnrCollector(
             timestamp,
             "Application Not Responding for at least 5s",
         )
-        eventProcessor.track(
+        eventProcessor.trackCrash(
             timestamp = anrError.timestamp,
             type = EventType.ANR,
             data = toMeasureException(anrError),

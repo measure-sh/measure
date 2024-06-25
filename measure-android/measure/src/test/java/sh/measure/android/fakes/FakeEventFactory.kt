@@ -1,5 +1,6 @@
 package sh.measure.android.fakes
 
+import sh.measure.android.anr.AnrError
 import sh.measure.android.applaunch.ColdLaunchData
 import sh.measure.android.applaunch.HotLaunchData
 import sh.measure.android.applaunch.WarmLaunchData
