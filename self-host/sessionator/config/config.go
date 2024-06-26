@@ -11,7 +11,33 @@ type App struct {
 }
 
 type Config struct {
-	Apps map[string]App `toml:"apps"`
+	Apps    map[string]App    `toml:"apps"`
+	Storage map[string]string `toml:"storage"`
+}
+
+// ValidateStorage validates all storage settings.
+func (c *Config) ValidateStorage() (err error) {
+	keys := []string{
+		"postgres_dsn",
+		"clickhouse_dsn",
+		"attachments_s3_bucket",
+		"attachments_s3_bucket_region",
+		"attachments_access_key",
+		"attachments_secret_access_key",
+		"symbols_s3_bucket",
+		"symbols_s3_bucket_region",
+		"symbols_access_key",
+		"symbols_secret_access_key",
+	}
+
+	for i := range keys {
+		if c.Storage[keys[i]] == "" {
+			err = fmt.Errorf("config error: value for %q is empty", keys[i])
+			break
+		}
+	}
+
+	return
 }
 
 // Init validates and returns the config

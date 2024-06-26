@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -41,6 +42,10 @@ var configLocation string
 // `config.toml` file.
 var configData *config.Config
 
+// clean is used to decide if existing events and
+// attachments will be cleared.
+var clean bool
+
 // metrics is used to store progress of ingestion
 // operations.
 var metrics Metrics
@@ -57,6 +62,10 @@ func init() {
 	ingestCmd.
 		Flags().
 		StringVarP(&configLocation, "config", "c", "../session-data/config.toml", "location to config.toml")
+
+	ingestCmd.
+		Flags().
+		BoolVarP(&clean, "clean", "x", false, "clear all events and attachments before ingestion")
 
 	ingestCmd.Flags().SortFlags = false
 
@@ -383,6 +392,16 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 			fmt.Printf("event files count: %d\n", len(app.EventFiles))
 			fmt.Printf("blob files count: %d\n", len(app.BlobFiles))
 			fmt.Printf("mapping file: %s\n\n", mapping)
+		}
+
+		if clean {
+			if err := configData.ValidateStorage(); err != nil {
+				log.Fatal(err)
+			}
+			ctx := context.Background()
+			if err := rmEvents(ctx, configData); err != nil {
+				log.Fatal(err)
+			}
 		}
 
 		IngestSerial(apps, origin)
