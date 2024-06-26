@@ -1000,6 +1000,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`inet.ipv6`,
 		`inet.country_code`,
 		`timestamp`,
+		`user_triggered`,
 		`attachments`,
 		`attribute.installation_id`,
 		`toString(attribute.app_version)`,
@@ -1202,6 +1203,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&ev.IPv6,
 			&ev.CountryCode,
 			&ev.Timestamp,
+			&ev.UserTriggered,
 			&attachments,
 
 			// attribute
