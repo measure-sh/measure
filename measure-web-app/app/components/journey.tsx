@@ -38,6 +38,12 @@ export enum JourneyType {
   AnrDetails
 }
 
+enum NodeHighlightState {
+  Default,
+  Highlighted,
+  Faded
+}
+
 type Node = {
   id: string
   type: string | undefined
@@ -58,7 +64,7 @@ type Node = {
       anrs: { id: string, title: string; count: number }[]
     },
     nodeIssueContribution: number
-    isUpstream: boolean
+    nodeHightlightState: NodeHighlightState
   }
 }
 
@@ -125,7 +131,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journey
       ...currentNode,
       data: {
         ...currentNode.data,
-        isUpstream: upstreamNodes.includes(currentNode.id)
+        nodeHightlightState: upstreamNodes.includes(currentNode.id) ? NodeHighlightState.Highlighted : node.id === currentNode.id ? NodeHighlightState.Default : NodeHighlightState.Faded
       }
     })))
 
@@ -144,7 +150,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journey
       ...node,
       data: {
         ...node.data,
-        isUpstream: false
+        nodeHightlightState: NodeHighlightState.Default
       }
     })))
 
@@ -171,7 +177,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journey
     }
 
     return (
-      <div className={`group border-black rounded-md transition ease-in-out duration-300 hover:-translate-y-1 hover:scale-110 ${data.isUpstream ? 'scale-110' : ''}`}>
+      <div className={`group border-black rounded-md transition ease-in-out duration-300 hover:-translate-y-1 hover:scale-110 ${data.nodeHightlightState === NodeHighlightState.Highlighted ? 'scale-110' : data.nodeHightlightState === NodeHighlightState.Faded ? 'opacity-25' : ''}`}>
 
         <Handle type="target" id="a" position={Position.Top} isConnectable={isConnectable} />
         <Handle type="source" id="b" position={Position.Bottom} isConnectable={isConnectable} />
