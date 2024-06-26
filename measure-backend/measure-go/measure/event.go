@@ -519,6 +519,7 @@ func (e eventreq) ingest(ctx context.Context) error {
 			Set(`inet.ipv6`, e.events[i].IPv6).
 			Set(`inet.country_code`, e.events[i].CountryCode).
 			Set(`timestamp`, e.events[i].Timestamp.Format(chrono.NanoTimeFormat)).
+			Set(`user_triggered`, e.events[i].UserTriggered).
 
 			// attribute
 			Set(`attribute.installation_id`, e.events[i].Attribute.InstallationID).

@@ -357,6 +357,7 @@ type EventField struct {
 	SessionID         uuid.UUID          `json:"session_id" binding:"required"`
 	Timestamp         time.Time          `json:"timestamp" binding:"required"`
 	Type              string             `json:"type" binding:"required"`
+	UserTriggered     bool               `json:"user_triggered" binding:"required"`
 	Attribute         Attribute          `json:"attribute" binding:"required"`
 	Attachments       []Attachment       `json:"attachments" binding:"required"`
 	ANR               *ANR               `json:"anr,omitempty"`
