@@ -29,8 +29,9 @@ func (nc NetworkChange) GetTimestamp() time.Time {
 // Http represents http events
 // suitable for session replay.
 type Http struct {
-	EventType  string `json:"event_type"`
-	ThreadName string `json:"thread_name"`
+	EventType     string `json:"event_type"`
+	ThreadName    string `json:"thread_name"`
+	UserTriggered bool   `json:"user_triggered"`
 	*event.Http
 	Duration  time.Duration `json:"duration"`
 	Timestamp time.Time     `json:"timestamp"`
@@ -73,6 +74,7 @@ func ComputeHttp(events []event.EventField) (result []ThreadGrouper) {
 		http := Http{
 			event.Type,
 			event.Attribute.ThreadName,
+			event.UserTriggered,
 			event.Http,
 			time.Duration(endTime - startTime),
 			event.Timestamp,

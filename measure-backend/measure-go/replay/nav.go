@@ -8,8 +8,9 @@ import (
 // Navigation represents navigation events suitable
 // for session replay.
 type Navigation struct {
-	EventType  string `json:"event_type"`
-	ThreadName string `json:"thread_name"`
+	EventType     string `json:"event_type"`
+	ThreadName    string `json:"thread_name"`
+	UserTriggered bool   `json:"user_triggered"`
 	*event.Navigation
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -33,6 +34,7 @@ func ComputeNavigation(events []event.EventField) (result []ThreadGrouper) {
 		navs := Navigation{
 			event.Type,
 			event.Attribute.ThreadName,
+			event.UserTriggered,
 			event.Navigation,
 			event.Timestamp,
 		}
