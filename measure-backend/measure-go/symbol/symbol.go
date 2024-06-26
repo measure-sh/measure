@@ -21,9 +21,6 @@ import (
 // type of mapping symbolication.
 const TypeProguard = "proguard"
 
-// cache caches fetched mapping keys.
-var cache keyCache
-
 // Symboler describes the interface for symbolication.
 type Symboler interface {
 	Batch(events []event.EventField) (batches []SymbolBatch)
@@ -61,11 +58,6 @@ type SymbolBatch struct {
 	Errs []error
 }
 
-// keyCache caches fetched mapping keys.
-type keyCache struct {
-	cache map[string]string
-}
-
 // Symbolicator offers symbolication of a batch
 // of events.
 type Symbolicator struct {
@@ -77,10 +69,6 @@ type Symbolicator struct {
 type Options struct {
 	// Origin is the origin of the symbolicator service.
 	Origin string
-
-	// KeyCacheSize determines the number of keys the
-	// underlying key cache will store.
-	KeyCacheSize int
 
 	// Store is the connection to the backing store
 	// to fetch mapping keys.
@@ -103,9 +91,6 @@ func NewSymbolicator(opts *Options) (symbolicator *Symbolicator, err error) {
 	}
 	if opts.Table == "" {
 		opts.Table = `public.build_mappings`
-	}
-	if opts.KeyCacheSize == 0 {
-		opts.KeyCacheSize = 500
 	}
 	symbolicator = &Symbolicator{
 		opts: opts,
@@ -153,16 +138,8 @@ func (s Symbolicator) Batch(events []event.EventField) (batches []SymbolBatch) {
 	return
 }
 
-// GetKey fetches the mapping key from cache if exists, otherwise
-// fetches from the backing store.
+// GetKey fetches the mapping key from the backing store.
 func (s Symbolicator) GetKey(ctx context.Context, batch SymbolBatch) (key string, err error) {
-	mappingKey := batch.mappingKeyID.String()
-	key, exists := cache.Get(mappingKey)
-
-	if exists {
-		return
-	}
-
 	store := s.opts.Store
 	table := s.opts.Table
 
@@ -182,8 +159,6 @@ func (s Symbolicator) GetKey(ctx context.Context, batch SymbolBatch) (key string
 		}
 		return "", err
 	}
-
-	cache.Set(mappingKey, key)
 
 	return
 }
@@ -572,24 +547,4 @@ func (m MappingKeyID) String() string {
 	b.WriteString(m.mappingType)
 
 	return b.String()
-}
-
-// Get gets the matching value against the key
-// from the cache if it exists.
-func (kc keyCache) Get(key string) (val string, exists bool) {
-	val, exists = kc.cache[key]
-	if exists {
-		return
-	}
-
-	return
-}
-
-// Set sets the value in the cache against
-// the key.
-func (kc *keyCache) Set(key, val string) {
-	if kc.cache == nil {
-		kc.cache = map[string]string{}
-	}
-	kc.cache[key] = val
 }
