@@ -175,8 +175,8 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journey
         <Handle type="target" id="a" position={Position.Top} isConnectable={isConnectable} />
         <Handle type="source" id="b" position={Position.Bottom} isConnectable={isConnectable} />
 
-        <div className={`w-full flex flex-row p-4`} style={nodeHeaderBgColour}>
-          <p className="font-sans text-white w-fit">{data.label}</p>
+        <div className='w-full p-4' style={nodeHeaderBgColour}>
+          <p className="font-sans text-white w-full text-center">{data.label}</p>
         </div>
 
         <div className='h-0 rounded-b-md opacity-0 bg-neutral-950 group-hover:pl-2 group-hover:pr-2 group-hover:opacity-100 group-hover:h-full transition ease-in-out duration-300'>
