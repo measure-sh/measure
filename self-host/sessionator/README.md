@@ -8,7 +8,7 @@ To ingest sessions from a local directory,
 
 1. Navigate to the local directory
 2. Copy example config - `cp config.toml.example config.toml`
-3. Edit `config.toml` to list your apps and their api keys
+3. Edit `config.toml` to list your apps and their api keys and configure other settings.
 4. Navigate to `./self-host/sessionator` and run.
 
 ```sh
@@ -27,6 +27,12 @@ To see usage of a subcommand.
 
 ```sh
 go run . ingest --help
+```
+
+For a clean ingest, run.
+
+```sh
+go run . ingest --clean
 ```
 
 5. Make sure the name of the directories under `self-host/session-data` matches the app names in the `self-host/session-data/config.toml` file.
@@ -61,6 +67,7 @@ go run . ingest --clean
 For `--clean` to work, you would need to configure the following settings in your `session-data/config.toml` file.
 
 ```toml
+[storage]
 postgres_dsn = "postgresql://postgres:postgres@127.0.0.1:5432/postgres"
 clickhouse_dsn = "clickhouse://default:@127.0.0.1:9000/default"
 
