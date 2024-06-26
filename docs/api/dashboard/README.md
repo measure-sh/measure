@@ -2080,6 +2080,7 @@ These headers must be present in each request.
         {
           "event_type": "http",
           "thread_name": "OkHttp https://httpbin.org/...",
+          "user_triggered": false,
           "url": "https://httpbin.org/",
           "method": "get",
           "status_code": 200,
@@ -2122,7 +2123,7 @@ These headers must be present in each request.
               "name": "screenshot.png",
               "type": "screenshot",
               "key": "63fb0950-faff-4028-bf3d-354559e4e540.png",
-              "location": "http://localhost:9111/msr-attachments-sandbox/63fb0950-faff-4028-bf3d-354559e4e540.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minio%2F20240620%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240620T031834Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&X-Amz-Signature=a882e2e88aa02d945e33bc1ffdefb8610e5a953e796332db5a9c6cae102b401f"
+              "location": "http://localhost:9111/msr-attachments-sandbox/63fb0950-faff-4028-bf3d-354559e4e540.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minio%2F20240626%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240626T194224Z&X-Amz-Expires=172800&X-Amz-SignedHeaders=host&X-Amz-Signature=bd6825a4a47dd4df3742492239d05bbee8881f59a27a314f7e7bf7ea5dc139e9"
             }
           ]
         }
@@ -2251,6 +2252,7 @@ These headers must be present in each request.
         {
           "event_type": "http",
           "thread_name": "msr-ee",
+          "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
           "method": "put",
           "status_code": 0,
@@ -2269,6 +2271,7 @@ These headers must be present in each request.
         {
           "event_type": "http",
           "thread_name": "msr-ee",
+          "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
           "method": "put",
           "status_code": 0,
@@ -2287,6 +2290,7 @@ These headers must be present in each request.
         {
           "event_type": "http",
           "thread_name": "msr-ee",
+          "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
           "method": "put",
           "status_code": 0,
@@ -2305,6 +2309,7 @@ These headers must be present in each request.
         {
           "event_type": "http",
           "thread_name": "msr-ee",
+          "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
           "method": "put",
           "status_code": 0,
@@ -2323,6 +2328,7 @@ These headers must be present in each request.
         {
           "event_type": "http",
           "thread_name": "msr-ee",
+          "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
           "method": "put",
           "status_code": 0,
@@ -2341,6 +2347,7 @@ These headers must be present in each request.
         {
           "event_type": "http",
           "thread_name": "msr-ee",
+          "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
           "method": "put",
           "status_code": 0,
@@ -2359,6 +2366,7 @@ These headers must be present in each request.
         {
           "event_type": "http",
           "thread_name": "msr-ee",
+          "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
           "method": "put",
           "status_code": 0,
@@ -2377,6 +2385,7 @@ These headers must be present in each request.
         {
           "event_type": "http",
           "thread_name": "msr-ee",
+          "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
           "method": "put",
           "status_code": 0,
@@ -2395,6 +2404,7 @@ These headers must be present in each request.
         {
           "event_type": "http",
           "thread_name": "msr-ee",
+          "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
           "method": "put",
           "status_code": 0,
@@ -2413,6 +2423,7 @@ These headers must be present in each request.
         {
           "event_type": "http",
           "thread_name": "msr-ee",
+          "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
           "method": "put",
           "status_code": 0,
@@ -2431,6 +2442,7 @@ These headers must be present in each request.
         {
           "event_type": "http",
           "thread_name": "msr-ee",
+          "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
           "method": "put",
           "status_code": 0,
