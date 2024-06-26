@@ -79,7 +79,7 @@ const edgeColorDefault = '#b1b1b7'
 const edgeColorHightlight = '#059669'
 const edgeStrokeWidthDefault = 2
 const edgeStrokeWidthHighlight = 4
-const nodeColorPositive = '#4ade80'
+const nodeColorPositive = '#10b981'
 const nodeColorNegative = '#f87171'
 
 const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journeyType, exceptionsGroupId, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames }) => {
