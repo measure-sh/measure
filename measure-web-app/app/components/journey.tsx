@@ -107,15 +107,15 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journey
     const upstreamEdges = new Set<string>()
     const visited = new Set<string>()
 
-    const traverse = (currentId: string) => {
-      if (visited.has(currentId)) {
+    const traverse = (currentNodeId: string) => {
+      if (visited.has(currentNodeId)) {
         return
       }
 
-      visited.add(currentId)
+      visited.add(currentNodeId)
 
       edges.forEach(edge => {
-        if (edge.target === currentId) {
+        if (edge.target === currentNodeId) {
           upstreamNodes.add(edge.source)
           upstreamEdges.add(edge.id)
           traverse(edge.source)
