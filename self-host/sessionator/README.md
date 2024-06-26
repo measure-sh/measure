@@ -52,20 +52,29 @@ self-host/
 
 ### Repeat ingestion of sessions
 
-During development, you will often want to clear the sessions data and re-ingest sessions again and again. Here's a step-by-step guide and few things to keep in mind.
+During development, you will often want to clear the sessions data and re-ingest sessions again and again. Using `--clean` on ingest will remove all data for the apps added in `session-data/config.toml` and re-ingest.
 
-1. Truncate Clickhouse tables. Execute SQL queries on the Clickhouse instance.
-
-```sql
-truncate table events;
+```sh
+go run . ingest --clean
 ```
 
-2. Truncate Postgres tables. Execute SQL queries on the Postgres instance.
+For `--clean` to work, you would need to configure the following settings in your `session-data/config.toml` file.
 
-```sql
+```toml
+postgres_dsn = "postgresql://postgres:postgres@127.0.0.1:5432/postgres"
+clickhouse_dsn = "clickhouse://default:@127.0.0.1:9000/default"
 
--- truncate anr/exception groups, build info, sessions
-truncate table public.unhandled_exception_groups, public.anr_groups, public.build_mappings, public.build_sizes, public.sessions cascade;
+aws_endpoint_url = "http://127.0.0.1:9111"
+
+attachments_s3_bucket = "msr-attachments-sandbox"
+attachments_s3_bucket_region = "us-east-1"
+attachments_access_key = "minio"
+attachments_secret_access_key = "minio123"
+
+symbols_s3_bucket = "msr-symbols-sandbox"
+symbols_s3_bucket_region = "us-east-1"
+symbols_access_key = "minio"
+symbols_secret_access_key = "minio123"
 ```
 
 3. Local uploading of files
