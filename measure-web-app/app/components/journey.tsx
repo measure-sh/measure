@@ -76,6 +76,7 @@ type Edge = {
 }
 
 const edgeColorDefault = '#b1b1b7'
+const edgeColorHightlight = '#059669'
 const edgeStrokeWidthDefault = 2
 const edgeStrokeWidthHighlight = 4
 const nodeColorPositive = '#4ade80'
@@ -132,7 +133,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journey
       ...edge,
       style: {
         ...edge.style,
-        stroke: upstreamEdges.includes(edge.id) ? nodeColorPositive : edgeColorDefault,
+        stroke: upstreamEdges.includes(edge.id) ? edgeColorHightlight : edgeColorDefault,
         strokeWidth: upstreamEdges.includes(edge.id) ? edgeStrokeWidthHighlight : edgeStrokeWidthDefault,
       }
     })))
