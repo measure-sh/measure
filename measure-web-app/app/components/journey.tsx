@@ -179,7 +179,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journey
           <p className="font-sans text-white w-full text-center">{data.label}</p>
         </div>
 
-        <div className='h-0 rounded-b-md opacity-0 bg-neutral-950 group-hover:pl-2 group-hover:pr-2 group-hover:opacity-100 group-hover:h-full transition ease-in-out duration-300'>
+        <div className='h-0 rounded-b-md opacity-0 invisible bg-neutral-950 group-hover:pl-2 group-hover:pr-2 group-hover:opacity-100 group-hover:visible group-hover:h-full transition ease-in-out duration-300'>
           {data.issues.crashes?.length > 0 && (
             <div>
               <p className="font-sans text-white pt-2">Crashes:</p>
