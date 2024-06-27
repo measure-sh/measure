@@ -36,13 +36,14 @@ internal class NetworkClientImpl(
 
     override fun init(baseUrl: String, apiKey: String) {
         this.baseUrl = baseUrl
-        okHttpClient = OkHttpClient.Builder().connectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-            .callTimeout(CALL_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-            .addInterceptor(SecretTokenHeaderInterceptor(apiKey)).addInterceptor(
-                HttpLoggingInterceptor().apply {
-                    level = HttpLoggingInterceptor.Level.BODY
-                },
-            ).build()
+        okHttpClient =
+            OkHttpClient.Builder().connectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                .callTimeout(CALL_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                .addInterceptor(SecretTokenHeaderInterceptor(apiKey)).addInterceptor(
+                    HttpLoggingInterceptor().apply {
+                        level = HttpLoggingInterceptor.Level.BODY
+                    },
+                ).build()
     }
 
     override fun execute(
@@ -72,7 +73,10 @@ internal class NetworkClientImpl(
         requestBodyBuilder: MultipartBody.Builder,
     ) {
         eventPackets.forEach { eventPacket ->
-            requestBodyBuilder.addFormDataPart(eventFormDataName, eventPacket.asFormDataPart(fileStorage))
+            requestBodyBuilder.addFormDataPart(
+                eventFormDataName,
+                eventPacket.asFormDataPart(fileStorage)
+            )
         }
     }
 
@@ -132,5 +136,5 @@ internal fun EventPacket.asFormDataPart(fileStorage: FileStorage): String {
     } else {
         throw IllegalStateException("EventPacket must have either serializedData or serializedDataFilePath")
     }
-    return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":$data,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes}"
+    return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":\"$userTriggered\",\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":$data,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes,\"user_defined_attributes\":$serializedUserDefinedAttributes}"
 }

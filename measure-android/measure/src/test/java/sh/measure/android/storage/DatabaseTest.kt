@@ -64,11 +64,13 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
+            userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = listOf(attachmentEntity),
             serializedAttributes = null,
             serializedAttachments = null,
             attachmentsSize = 0,
+            serializedUserDefAttributes = null
         )
 
         val result = database.insertEvent(event)
@@ -93,11 +95,13 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
+            userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
             serializedAttributes = null,
             serializedAttachments = null,
             attachmentsSize = 500,
+            serializedUserDefAttributes = null
         )
 
         val result = database.insertEvent(event)
@@ -116,11 +120,13 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
+            userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
             serializedAttributes = null,
             serializedAttachments = null,
             attachmentsSize = 500,
+            serializedUserDefAttributes = null
         )
 
         database.insertEvent(event)
@@ -139,6 +145,7 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
+            userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = listOf(
                 AttachmentEntity(
@@ -158,6 +165,7 @@ class DatabaseTest {
             serializedAttributes = null,
             serializedAttachments = null,
             attachmentsSize = 500,
+            serializedUserDefAttributes = null,
         )
 
         val result = database.insertEvent(event)
@@ -174,10 +182,12 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
+            userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
             serializedAttributes = null,
             attachmentsSize = 500,
+            serializedUserDefAttributes = null,
         )
 
         val event2 = EventEntity(
@@ -185,10 +195,12 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
+            userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
             serializedAttributes = null,
             attachmentsSize = 200,
+            serializedUserDefAttributes = null,
         )
 
         database.insertEvent(event1)
@@ -212,10 +224,12 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
+            userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
             serializedAttributes = null,
             attachmentsSize = 500,
+            serializedUserDefAttributes = null,
         )
 
         database.insertEvent(event)
@@ -261,10 +275,12 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
+            userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
             serializedAttributes = null,
             attachmentsSize = 500,
+            serializedUserDefAttributes = null,
         )
 
         val event2 = EventEntity(
@@ -272,10 +288,12 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
+            userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
             serializedAttributes = null,
             attachmentsSize = 200,
+            serializedUserDefAttributes = null,
         )
 
         val batchedEvent = EventEntity(
@@ -283,10 +301,12 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
+            userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
             serializedAttributes = null,
             attachmentsSize = 200,
+            serializedUserDefAttributes = null,
         )
 
         database.insertEvent(event1)
@@ -306,11 +326,13 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
+            userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = null,
             serializedAttributes = "attributes",
             serializedAttachments = "attachments",
             attachmentsSize = 0,
+            serializedUserDefAttributes = null,
         )
 
         val event2 = EventEntity(
@@ -318,11 +340,13 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "123",
+            userTriggered = false,
             serializedData = "data",
             attachmentEntities = null,
             serializedAttributes = "attributes",
             serializedAttachments = "attachments",
             attachmentsSize = 0,
+            serializedUserDefAttributes = null,
         )
 
         database.insertEvent(event1)
@@ -341,11 +365,13 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
+            userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = null,
             serializedAttributes = "attributes",
             serializedAttachments = null,
             attachmentsSize = 0,
+            serializedUserDefAttributes = null,
         )
 
         val event2 = EventEntity(
@@ -353,11 +379,13 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "123",
+            userTriggered = false,
             serializedData = "data",
             attachmentEntities = null,
             serializedAttributes = "attributes",
             serializedAttachments = null,
             attachmentsSize = 0,
+            serializedUserDefAttributes = null,
         )
 
         database.insertEvent(event1)
@@ -388,11 +416,13 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
+            userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = listOf(attachment1),
             serializedAttributes = "attributes",
             serializedAttachments = null,
             attachmentsSize = 100,
+            serializedUserDefAttributes = null,
         )
 
         val event2 = EventEntity(
@@ -400,11 +430,13 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "123",
+            userTriggered = false,
             serializedData = "data",
             attachmentEntities = listOf(attachment2),
             serializedAttributes = "attributes",
             serializedAttachments = null,
             attachmentsSize = 200,
+            serializedUserDefAttributes = null,
         )
 
         database.insertEvent(event1)
@@ -423,11 +455,13 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
+            userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = null,
             serializedAttributes = "attributes",
             serializedAttachments = null,
             attachmentsSize = 100,
+            serializedUserDefAttributes = null,
         )
 
         val event2 = EventEntity(
@@ -435,11 +469,13 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "123",
+            userTriggered = false,
             serializedData = "data",
             attachmentEntities = null,
             serializedAttributes = "attributes",
             serializedAttachments = null,
             attachmentsSize = 200,
+            serializedUserDefAttributes = null,
         )
         database.insertEvent(event1)
         database.insertEvent(event2)
@@ -456,10 +492,12 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
+            userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = null,
             serializedAttributes = "attributes",
             serializedAttachments = null,
+            serializedUserDefAttributes = null,
             attachmentsSize = 100,
         )
 
@@ -483,11 +521,13 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
+            userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = listOf(attachment),
             serializedAttributes = "attributes",
             serializedAttachments = null,
             attachmentsSize = 100,
+            serializedUserDefAttributes = null,
         )
 
         database.insertEvent(event)
@@ -504,11 +544,13 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
+            userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = null,
             serializedAttributes = "attributes",
             serializedAttachments = null,
             attachmentsSize = 100,
+            serializedUserDefAttributes = null,
         )
 
         val event2 = EventEntity(
@@ -516,11 +558,13 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "123",
+            userTriggered = false,
             serializedData = "data",
             attachmentEntities = null,
             serializedAttributes = "attributes",
             serializedAttachments = null,
             attachmentsSize = 200,
+            serializedUserDefAttributes = null,
         )
 
         database.insertEvent(event1)
@@ -541,11 +585,13 @@ class DatabaseTest {
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
             sessionId = "987",
+            userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = null,
             serializedAttributes = "attributes",
             serializedAttachments = null,
             attachmentsSize = 100,
+            serializedUserDefAttributes = null,
         )
 
         database.insertEvent(event)

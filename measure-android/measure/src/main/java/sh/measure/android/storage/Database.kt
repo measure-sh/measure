@@ -171,12 +171,14 @@ internal class DatabaseImpl(
                 put(EventTable.COL_TYPE, event.type)
                 put(EventTable.COL_TIMESTAMP, event.timestamp)
                 put(EventTable.COL_SESSION_ID, event.sessionId)
+                put(EventTable.COL_USER_TRIGGERED, event.userTriggered)
                 if (event.filePath != null) {
                     put(EventTable.COL_DATA_FILE_PATH, event.filePath)
                 } else if (event.serializedData != null) {
                     put(EventTable.COL_DATA_SERIALIZED, event.serializedData)
                 }
                 put(EventTable.COL_ATTRIBUTES, event.serializedAttributes)
+                put(EventTable.COL_USER_DEFINED_ATTRIBUTES, event.serializedUserDefAttributes)
                 put(EventTable.COL_ATTACHMENT_SIZE, event.attachmentsSize)
                 put(EventTable.COL_ATTACHMENTS, event.serializedAttachments)
             }
@@ -281,20 +283,24 @@ internal class DatabaseImpl(
                 val eventIdIndex = it.getColumnIndex(EventTable.COL_ID)
                 val sessionIdIndex = it.getColumnIndex(EventTable.COL_SESSION_ID)
                 val timestampIndex = it.getColumnIndex(EventTable.COL_TIMESTAMP)
+                val userTriggeredIndex = it.getColumnIndex(EventTable.COL_USER_TRIGGERED)
                 val typeIndex = it.getColumnIndex(EventTable.COL_TYPE)
                 val serializedDataIndex = it.getColumnIndex(EventTable.COL_DATA_SERIALIZED)
                 val serializedDataFilePathIndex = it.getColumnIndex(EventTable.COL_DATA_FILE_PATH)
                 val attachmentsIndex = it.getColumnIndex(EventTable.COL_ATTACHMENTS)
                 val serializedAttributesIndex = it.getColumnIndex(EventTable.COL_ATTRIBUTES)
+                val serializedUserDefinedAttributesIndex = it.getColumnIndex(EventTable.COL_USER_DEFINED_ATTRIBUTES)
 
                 val eventId = it.getString(eventIdIndex)
                 val sessionId = it.getString(sessionIdIndex)
                 val timestamp = it.getString(timestampIndex)
+                val userTriggered = it.getInt(userTriggeredIndex) == 1
                 val type = it.getString(typeIndex)
                 val serializedData = it.getString(serializedDataIndex)
                 val serializedDataFilePath = it.getString(serializedDataFilePathIndex)
                 val attachments = it.getString(attachmentsIndex)
                 val serializedAttributes = it.getString(serializedAttributesIndex)
+                val serializedUserDefinedAttributes = it.getString(serializedUserDefinedAttributesIndex)
 
                 eventPackets.add(
                     EventPacket(
@@ -302,10 +308,12 @@ internal class DatabaseImpl(
                         sessionId,
                         timestamp,
                         type,
+                        userTriggered,
                         serializedData,
                         serializedDataFilePath,
                         attachments,
                         serializedAttributes,
+                        serializedUserDefinedAttributes
                     ),
                 )
             }
@@ -319,28 +327,34 @@ internal class DatabaseImpl(
             val sessionIdIndex = it.getColumnIndex(EventTable.COL_SESSION_ID)
             val timestampIndex = it.getColumnIndex(EventTable.COL_TIMESTAMP)
             val typeIndex = it.getColumnIndex(EventTable.COL_TYPE)
+            val userTriggeredIndex = it.getColumnIndex(EventTable.COL_USER_TRIGGERED)
             val serializedDataIndex = it.getColumnIndex(EventTable.COL_DATA_SERIALIZED)
             val serializedDataFilePathIndex = it.getColumnIndex(EventTable.COL_DATA_FILE_PATH)
             val attachmentsIndex = it.getColumnIndex(EventTable.COL_ATTACHMENTS)
             val serializedAttributesIndex = it.getColumnIndex(EventTable.COL_ATTRIBUTES)
+            val serializedUserDefinedAttributesIndex = it.getColumnIndex(EventTable.COL_USER_DEFINED_ATTRIBUTES)
 
             val sessionId = it.getString(sessionIdIndex)
             val timestamp = it.getString(timestampIndex)
             val type = it.getString(typeIndex)
+            val userTriggered: Boolean = it.getInt(userTriggeredIndex) == 1
             val serializedData = it.getString(serializedDataIndex)
             val serializedDataFilePath = it.getString(serializedDataFilePathIndex)
             val attachments = it.getString(attachmentsIndex)
             val serializedAttributes = it.getString(serializedAttributesIndex)
+            val serializedUserDefinedAttributes = it.getString(serializedUserDefinedAttributesIndex)
 
             return EventPacket(
-                eventId,
-                sessionId,
-                timestamp,
-                type,
-                serializedData,
-                serializedDataFilePath,
-                attachments,
-                serializedAttributes,
+                eventId = eventId,
+                sessionId = sessionId,
+                timestamp = timestamp,
+                type = type,
+                userTriggered = userTriggered,
+                serializedData = serializedData,
+                serializedDataFilePath = serializedDataFilePath,
+                serializedAttachments = attachments,
+                serializedAttributes = serializedAttributes,
+                serializedUserDefinedAttributes = serializedUserDefinedAttributes
             )
         }
     }

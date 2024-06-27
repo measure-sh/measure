@@ -141,12 +141,14 @@ internal class EventExporterTest {
                 id = eventId,
                 timestamp = "23456789",
                 type = "type",
+                userTriggered = false,
                 serializedData = "data",
                 sessionId = "sessionId",
                 attachmentEntities = attachmentEntities,
                 attachmentsSize = attachmentSize,
                 serializedAttachments = Json.encodeToString(attachmentEntities),
                 serializedAttributes = "attributes",
+                serializedUserDefAttributes = null,
             ),
         )
     }

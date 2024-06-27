@@ -34,6 +34,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     private val appExitCollector by lazy { measureInitializer.appExitCollector }
     private val periodicEventExporter by lazy { measureInitializer.periodicEventExporter }
     private val userAttributeProcessor by lazy { measureInitializer.userAttributeProcessor }
+    private val userDefinedAttribute by lazy { measureInitializer.userDefinedAttribute }
 
     fun init() {
         logger.log(LogLevel.Debug, "Starting Measure SDK")
@@ -104,11 +105,48 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
         userAttributeProcessor.setUserId(userId)
     }
 
+    fun clearUserId() {
+        userAttributeProcessor.clearUserId()
+    }
+
     fun trackNavigation(to: String, from: String?) {
         userTriggeredEventCollector.trackNavigation(to, from)
     }
 
     fun trackHandledException(throwable: Throwable) {
         userTriggeredEventCollector.trackHandledException(throwable)
+    }
+
+    fun putAttribute(key: String, value: Number) {
+        userDefinedAttribute.put(key, value)
+    }
+
+    fun putAttribute(key: String, value: String) {
+        userDefinedAttribute.put(key, value)
+    }
+
+    fun putAttribute(key: String, value: Boolean) {
+        userDefinedAttribute.put(key, value)
+    }
+
+    fun removeAttribute(key: String) {
+        userDefinedAttribute.remove(key)
+    }
+
+    fun clearAttributes() {
+        userDefinedAttribute.clear()
+    }
+
+    fun getAttribute(key: String): Any? {
+        return userDefinedAttribute.get(key)
+    }
+
+    fun getAttributes(): Map<String, Any?> {
+        return userDefinedAttribute.getAll()
+    }
+
+    fun clear() {
+        userAttributeProcessor.clearUserId()
+        userDefinedAttribute.clear()
     }
 }

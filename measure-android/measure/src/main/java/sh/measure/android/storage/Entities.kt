@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import sh.measure.android.events.AttachmentType
 import sh.measure.android.events.EventType
+
 /**
  * Maps an event to [EventTable] in the database.
  */
@@ -25,6 +26,10 @@ internal data class EventEntity(
      */
     val sessionId: String,
     /**
+     * Whether the event was triggered by the user.
+     */
+    val userTriggered: Boolean,
+    /**
      * Total size of all attachments in bytes.
      */
     val attachmentsSize: Long,
@@ -45,6 +50,10 @@ internal data class EventEntity(
      * The serialized attachments of the event. Can be null if there are no attachments.
      */
     val serializedAttachments: String? = null,
+    /**
+     * The serialized user defined attributes of the event.
+     */
+    val serializedUserDefAttributes: String?,
     /**
      * List of attachments associated with the event. Can be null if there are no attachments.
      */

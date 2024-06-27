@@ -77,6 +77,12 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { defaultSessionEndThresholdMs }
     override val maxAttachmentSizeInEventsBatchInBytes: Int
         get() = getMergedConfig { maxAttachmentSizeInEventsBatchInBytes }
+    override val defaultMaxUserDefinedAttributeKeyLength: Int
+        get() = getMergedConfig { defaultMaxUserDefinedAttributeKeyLength }
+    override val defaultMaxUserDefinedAttributeValueLength: Int
+        get() = getMergedConfig { defaultMaxUserDefinedAttributeValueLength }
+    override val defaultUserDefinedAttributeKeyWithSpaces: Boolean
+        get() = getMergedConfig { defaultUserDefinedAttributeKeyWithSpaces }
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         if (contentType.isNullOrEmpty()) {

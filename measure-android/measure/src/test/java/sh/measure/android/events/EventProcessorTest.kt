@@ -11,6 +11,7 @@ import org.mockito.Mockito.`when`
 import org.mockito.kotlin.verify
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
+import sh.measure.android.attributes.UserDefinedAttributeImpl
 import sh.measure.android.exporter.ExceptionExporter
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeEventFactory
@@ -25,7 +26,9 @@ import sh.measure.android.screenshot.Screenshot
 import sh.measure.android.screenshot.ScreenshotCollector
 import sh.measure.android.utils.iso8601Timestamp
 
+
 internal class EventProcessorTest {
+    private val logger = NoopLogger()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val idProvider = FakeIdProvider()
     private val sessionManager = FakeSessionManager()
@@ -36,6 +39,7 @@ internal class EventProcessorTest {
     private val eventTransformer = object : EventTransformer {
         override fun <T> transform(event: Event<T>): Event<T> = event
     }
+    private val userDefinedAttribute = UserDefinedAttributeImpl(logger, config)
 
     private val eventProcessor = EventProcessorImpl(
         logger = NoopLogger(),
@@ -48,6 +52,7 @@ internal class EventProcessorTest {
         screenshotCollector = screenshotCollector,
         configProvider = config,
         eventTransformer = eventTransformer,
+        userDefinedAttribute = userDefinedAttribute,
     )
 
     @Before
@@ -158,6 +163,7 @@ internal class EventProcessorTest {
             screenshotCollector = screenshotCollector,
             configProvider = config,
             eventTransformer = eventTransformer,
+            userDefinedAttribute = userDefinedAttribute,
         )
 
         // When
@@ -326,6 +332,7 @@ internal class EventProcessorTest {
             screenshotCollector = screenshotCollector,
             configProvider = config,
             eventTransformer = eventTransformer,
+            userDefinedAttribute = userDefinedAttribute,
         )
 
         // When
@@ -370,6 +377,7 @@ internal class EventProcessorTest {
             screenshotCollector = screenshotCollector,
             configProvider = config,
             eventTransformer = eventTransformer,
+            userDefinedAttribute = userDefinedAttribute
         )
 
         // When
@@ -405,6 +413,29 @@ internal class EventProcessorTest {
         )
 
         assertEquals(1, eventStore.trackedEvents.size)
+        assertEquals(expectedEvent, eventStore.trackedEvents.first())
+    }
+
+    @Test
+    fun `given user defined attributes available, adds them to event`() {
+        userDefinedAttribute.put("key", "value")
+        val data = FakeEventFactory.getNavigationData()
+        val timestamp = 1710746412L
+        val eventType = EventType.NAVIGATION
+        val expectedEvent = data.toEvent(
+            type = eventType,
+            timestamp = timestamp.iso8601Timestamp(),
+            id = idProvider.id,
+            sessionId = sessionManager.getSessionId(),
+            userDefinedAttributes = mapOf("key" to "value"),
+        ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
+
+        eventProcessor.track(
+            data = data,
+            timestamp = timestamp,
+            type = eventType,
+        )
+
         assertEquals(expectedEvent, eventStore.trackedEvents.first())
     }
 }
