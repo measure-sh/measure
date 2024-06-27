@@ -40,6 +40,20 @@ internal fun <T> Event<T>.serializeAttributes(): String? {
 }
 
 /**
+ *
+ */
+internal fun <T> Event<T>.serializeUserDefinedAttributes(): String? {
+    if (userDefinedAttributes.isEmpty()) {
+        return null
+    }
+    val result = Json.encodeToString(
+        JsonElement.serializer(),
+        userDefinedAttributes.toJsonElement(),
+    )
+    return result
+}
+
+/**
  * Serializes the event data to a JSON string.
  */
 internal fun <T> Event<T>.serializeDataToString(): String {

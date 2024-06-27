@@ -31,6 +31,7 @@ internal class EventStoreImpl(
 
     override fun <T> store(event: Event<T>) {
         val serializedAttributes = event.serializeAttributes()
+        val serializedUserDefAttributes = event.serializeUserDefinedAttributes()
         val attachmentEntities = createAttachmentEntities(event)
         val serializedAttachments = serializeAttachmentEntities(attachmentEntities)
         val attachmentsSize = calculateAttachmentsSize(attachmentEntities)
@@ -67,6 +68,8 @@ internal class EventStoreImpl(
                 serializedAttachments = serializedAttachments,
                 filePath = filePath,
                 serializedData = null,
+                serializedUserDefAttributes = serializedUserDefAttributes,
+                userTriggered = event.userTriggered,
             )
 
             else -> EventEntity(
@@ -80,6 +83,8 @@ internal class EventStoreImpl(
                 serializedAttachments = serializedAttachments,
                 serializedData = serializedData,
                 filePath = null,
+                serializedUserDefAttributes = serializedUserDefAttributes,
+                userTriggered = event.userTriggered,
             )
         }
         val success = database.insertEvent(eventEntity)

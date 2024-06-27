@@ -15,4 +15,8 @@ internal class UserAttributeProcessor : AttributeProcessor {
     fun setUserId(userId: String) {
         this.userId = userId
     }
+
+    fun clearUserId() {
+        userId = null
+    }
 }

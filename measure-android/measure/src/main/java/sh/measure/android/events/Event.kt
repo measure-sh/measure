@@ -46,6 +46,12 @@ internal data class Event<T>(
      * A flag to indicate if the event is triggered by the user or the SDK.
      */
     val userTriggered: Boolean,
+
+    /**
+     * Attributes set by the user in the event. The type of values in the map is set to Any here,
+     * however, the allowed values can only be String, Int, Long, Double, Float or Boolean.
+     */
+    val userDefinedAttributes: Map<String, Any?>,
 ) {
     /**
      * Adds an attribute to the event.
@@ -59,5 +65,9 @@ internal data class Event<T>(
 
     fun addAttachment(attachment: Attachment) {
         attachments.add(attachment)
+    }
+
+    fun setUserDefinedAttributes() {
+
     }
 }

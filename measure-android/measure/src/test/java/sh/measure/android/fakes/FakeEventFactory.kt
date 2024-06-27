@@ -1,6 +1,5 @@
 package sh.measure.android.fakes
 
-import sh.measure.android.anr.AnrError
 import sh.measure.android.applaunch.ColdLaunchData
 import sh.measure.android.applaunch.HotLaunchData
 import sh.measure.android.applaunch.WarmLaunchData
@@ -67,6 +66,7 @@ internal object FakeEventFactory {
         attachments: MutableList<Attachment> = mutableListOf(),
         attributes: MutableMap<String, Any?> = mutableMapOf(),
         userTriggered: Boolean = false,
+        userDefinedAttributes: Map<String, Any?> = emptyMap(),
     ): Event<T> {
         return Event(
             id = id,
@@ -77,6 +77,7 @@ internal object FakeEventFactory {
             attachments = attachments,
             attributes = attributes,
             userTriggered = userTriggered,
+            userDefinedAttributes = userDefinedAttributes
         )
     }
 
@@ -313,6 +314,7 @@ internal object FakeEventFactory {
         eventId: String = "event-id",
         type: String = "string",
         sessionId: String = "session-id",
+        userTriggered: Boolean = false,
         timestamp: String = "2024-03-18T12:50:12.62600000Z",
         attachmentSize: Long = 100,
         serializedData: String? = "serialized-data",
@@ -322,18 +324,21 @@ internal object FakeEventFactory {
         attachmentEntities: List<AttachmentEntity> = listOf(
             AttachmentEntity(id = "attachment-id", type = "type", path = "path", name = "name"),
         ),
+        serializedUserDefAttributes: String? = null,
     ): EventEntity {
         return EventEntity(
             id = eventId,
             type = type,
             timestamp = timestamp,
             sessionId = sessionId,
+            userTriggered = userTriggered,
             attachmentsSize = attachmentSize,
             serializedData = serializedData,
             serializedAttributes = serializedAttributes,
             serializedAttachments = serializedAttachments,
             attachmentEntities = attachmentEntities,
             filePath = filePath,
+            serializedUserDefAttributes = null,
         )
     }
 
@@ -343,10 +348,12 @@ internal object FakeEventFactory {
             type = eventEntity.type,
             timestamp = eventEntity.timestamp,
             sessionId = eventEntity.sessionId,
+            userTriggered = eventEntity.userTriggered,
             serializedData = eventEntity.serializedData,
             serializedAttributes = eventEntity.serializedAttributes ?: "",
             serializedAttachments = eventEntity.serializedAttachments,
             serializedDataFilePath = eventEntity.filePath,
+            serializedUserDefinedAttributes = eventEntity.serializedUserDefAttributes,
         )
     }
 

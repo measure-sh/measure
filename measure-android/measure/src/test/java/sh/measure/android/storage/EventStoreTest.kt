@@ -1,8 +1,10 @@
 package sh.measure.android.storage
 
+import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
@@ -239,6 +241,39 @@ internal class EventStoreTest {
         val eventEntity = argumentCaptor.firstValue
         assertNotNull(eventEntity.serializedAttributes)
         assertEquals("{\"key\":\"value\"}", eventEntity.serializedAttributes)
+    }
+
+    @Test
+    fun `serializes user defined attributes and stores them to db`() {
+        val event = FakeEventFactory.getClickData().toEvent(
+            type = EventType.CLICK,
+            id = idProvider.id,
+            userDefinedAttributes = mutableMapOf("key" to "value"),
+        )
+
+        eventStore.store(event)
+
+        val argumentCaptor = argumentCaptor<EventEntity>()
+        verify(database).insertEvent(argumentCaptor.capture())
+        val eventEntity = argumentCaptor.firstValue
+        assertNotNull(eventEntity.serializedUserDefAttributes)
+        assertEquals("{\"key\":\"value\"}", eventEntity.serializedUserDefAttributes)
+    }
+
+    @Test
+    fun `stores user triggered event to db`() {
+        val event = FakeEventFactory.getClickData().toEvent(
+            type = EventType.CLICK,
+            id = idProvider.id,
+            userTriggered = true,
+        )
+
+        eventStore.store(event)
+
+        val argumentCaptor = argumentCaptor<EventEntity>()
+        verify(database).insertEvent(argumentCaptor.capture())
+        val eventEntity = argumentCaptor.firstValue
+        assertTrue(eventEntity.userTriggered)
     }
 
     @Test

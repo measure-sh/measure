@@ -11,9 +11,11 @@ internal object EventTable {
     const val COL_TYPE = "type"
     const val COL_TIMESTAMP = "timestamp"
     const val COL_SESSION_ID = "session_id"
+    const val COL_USER_TRIGGERED = "user_triggered"
     const val COL_DATA_FILE_PATH = "file_path"
     const val COL_DATA_SERIALIZED = "serialized_data"
     const val COL_ATTRIBUTES = "attributes"
+    const val COL_USER_DEFINED_ATTRIBUTES = "user_defined_attributes"
     const val COL_ATTACHMENTS = "attachments"
     const val COL_ATTACHMENT_SIZE = "attachments_size"
 }
@@ -51,9 +53,11 @@ internal object Sql {
             ${EventTable.COL_TYPE} TEXT NOT NULL,
             ${EventTable.COL_TIMESTAMP} TEXT NOT NULL,
             ${EventTable.COL_SESSION_ID} TEXT NOT NULL,
+            ${EventTable.COL_USER_TRIGGERED} INTEGER NOT NULL DEFAULT 0,
             ${EventTable.COL_DATA_FILE_PATH} TEXT DEFAULT NULL,
             ${EventTable.COL_DATA_SERIALIZED} TEXT DEFAULT NULL,
             ${EventTable.COL_ATTRIBUTES} TEXT DEFAULT NULL,
+            ${EventTable.COL_USER_DEFINED_ATTRIBUTES} TEXT DEFAULT NULL,
             ${EventTable.COL_ATTACHMENT_SIZE} INTEGER NOT NULL,
             ${EventTable.COL_ATTACHMENTS} TEXT DEFAULT NULL
         )
@@ -127,10 +131,12 @@ internal object Sql {
                 ${EventTable.COL_SESSION_ID},
                 ${EventTable.COL_TIMESTAMP},
                 ${EventTable.COL_TYPE},
+                ${EventTable.COL_USER_TRIGGERED},
                 ${EventTable.COL_DATA_SERIALIZED},
                 ${EventTable.COL_DATA_FILE_PATH},
                 ${EventTable.COL_ATTACHMENTS},
-                ${EventTable.COL_ATTRIBUTES}
+                ${EventTable.COL_ATTRIBUTES},
+                ${EventTable.COL_USER_DEFINED_ATTRIBUTES}
             FROM ${EventTable.TABLE_NAME}
             WHERE ${EventTable.COL_ID} IN (${eventIds.joinToString(", ") { "\'$it\'" }})
         """.trimIndent()
@@ -143,10 +149,12 @@ internal object Sql {
                 ${EventTable.COL_SESSION_ID},
                 ${EventTable.COL_TIMESTAMP},
                 ${EventTable.COL_TYPE},
+                ${EventTable.COL_USER_TRIGGERED},
                 ${EventTable.COL_DATA_SERIALIZED},
                 ${EventTable.COL_DATA_FILE_PATH},
                 ${EventTable.COL_ATTACHMENTS},
-                ${EventTable.COL_ATTRIBUTES}
+                ${EventTable.COL_ATTRIBUTES},
+                ${EventTable.COL_USER_DEFINED_ATTRIBUTES}
             FROM ${EventTable.TABLE_NAME}
             WHERE ${EventTable.COL_ID} = '$eventId'
         """.trimIndent()

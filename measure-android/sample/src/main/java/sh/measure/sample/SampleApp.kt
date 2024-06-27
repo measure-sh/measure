@@ -19,10 +19,16 @@ class SampleApp : Application() {
                 trackHttpHeaders = true,
                 trackHttpBody = true,
                 trackActivityIntentData = true,
+                httpUrlBlocklist = listOf("http://localhost:8080"),
             )
         )
         Measure.setUserId("sample-user-sd")
+        Measure.clearUserId()
         Measure.trackNavigation("sample-to", "sample-from")
         Measure.trackHandledException(RuntimeException("sample-handled-exception"))
+        Measure.putAttribute("sample-key-1", 123)
+        Measure.putAttribute("sample-key-2", 123.45)
+        Measure.putAttribute("sample-key-3", "sample-value")
+        Measure.putAttribute("sample-key-4", true)
     }
 }

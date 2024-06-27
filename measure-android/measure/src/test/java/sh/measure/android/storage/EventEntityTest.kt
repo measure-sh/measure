@@ -13,9 +13,11 @@ class EventEntityTest {
                 type = "test",
                 timestamp = "2024-03-18T12:50:12.62600000Z",
                 sessionId = "987",
+                userTriggered = false,
                 attachmentEntities = emptyList(),
                 serializedAttributes = null,
                 attachmentsSize = 0,
+                serializedUserDefAttributes = null,
             )
         }
     }
@@ -28,11 +30,13 @@ class EventEntityTest {
                 type = "test",
                 timestamp = "2024-03-18T12:50:12.62600000Z",
                 sessionId = "987",
+                userTriggered = false,
                 filePath = "test-file-path",
                 serializedData = "test-data",
                 attachmentEntities = emptyList(),
                 serializedAttributes = null,
                 attachmentsSize = 0,
+                serializedUserDefAttributes = null,
             )
         }
     }

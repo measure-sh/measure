@@ -25,6 +25,9 @@ internal class FakeConfigProvider : ConfigProvider {
     override var defaultHttpUrlBlocklist: List<String> = emptyList()
     override var defaultSessionsTableTtlMs: Long = 15 * 24 * 60 * 60 * 1000 // 15 days
     override var defaultSessionEndThresholdMs: Long = 60 * 1000 // 1 minute
+    override var defaultMaxUserDefinedAttributeKeyLength: Int = 64
+    override var defaultMaxUserDefinedAttributeValueLength: Int = 256
+    override var defaultUserDefinedAttributeKeyWithSpaces: Boolean = false
 
     var shouldTrackHttpBody = false
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {

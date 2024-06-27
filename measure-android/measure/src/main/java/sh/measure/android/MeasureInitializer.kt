@@ -12,6 +12,8 @@ import sh.measure.android.attributes.DeviceAttributeProcessor
 import sh.measure.android.attributes.InstallationIdAttributeProcessor
 import sh.measure.android.attributes.NetworkStateAttributeProcessor
 import sh.measure.android.attributes.UserAttributeProcessor
+import sh.measure.android.attributes.UserDefinedAttribute
+import sh.measure.android.attributes.UserDefinedAttributeImpl
 import sh.measure.android.config.ConfigLoaderImpl
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.ConfigProviderImpl
@@ -139,6 +141,10 @@ internal class MeasureInitializerImpl(
     private val networkStateProvider: NetworkStateProvider = NetworkStateProviderImpl(
         initialNetworkStateProvider = initialNetworkStateProvider,
     ),
+    override val userDefinedAttribute: UserDefinedAttribute = UserDefinedAttributeImpl(
+        logger,
+        configProvider,
+    ),
     override val userAttributeProcessor: UserAttributeProcessor = UserAttributeProcessor(),
     private val deviceAttributeProcessor: DeviceAttributeProcessor = DeviceAttributeProcessor(
         logger,
@@ -212,6 +218,7 @@ internal class MeasureInitializerImpl(
         screenshotCollector = screenshotCollector,
         eventTransformer = eventTransformer,
         configProvider = configProvider,
+        userDefinedAttribute = userDefinedAttribute
     ),
     override val userTriggeredEventCollector: UserTriggeredEventCollector = UserTriggeredEventCollectorImpl(
         eventProcessor = eventProcessor,
@@ -332,5 +339,6 @@ internal interface MeasureInitializer {
     val networkChangesCollector: NetworkChangesCollector
     val periodicEventExporter: PeriodicEventExporter
     val userAttributeProcessor: UserAttributeProcessor
+    val userDefinedAttribute: UserDefinedAttribute
     val screenshotCollector: ScreenshotCollector
 }

@@ -113,6 +113,21 @@ internal interface IMeasureConfig {
 
     // The threshold after which a session is considered ended. Defaults to 1 minute.
     val defaultSessionEndThresholdMs: Long
+
+    /**
+     * The maximum length of user defined attribute key. Defaults to 64 chars.
+     */
+    val defaultMaxUserDefinedAttributeKeyLength: Int
+
+    /**
+     * The maximum length of a user defined attribute value. Defaults to 256 chars.
+     */
+    val defaultMaxUserDefinedAttributeValueLength: Int
+
+    /**
+     * Whether user defined attribute keys can have spaces or not. Defaults to `false`.
+     */
+    val defaultUserDefinedAttributeKeyWithSpaces: Boolean
 }
 
 class MeasureConfig(
@@ -145,4 +160,7 @@ class MeasureConfig(
     )
     override val defaultSessionsTableTtlMs: Long = 15 * 24 * 60 * 60 * 1000 // 15 days
     override val defaultSessionEndThresholdMs: Long = 60 * 1000 // 1 minute
+    override val defaultMaxUserDefinedAttributeKeyLength: Int = 64 // 64 chars
+    override val defaultMaxUserDefinedAttributeValueLength: Int = 256 // 256 chars
+    override val defaultUserDefinedAttributeKeyWithSpaces: Boolean = false
 }
