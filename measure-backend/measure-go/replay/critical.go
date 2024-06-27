@@ -8,14 +8,15 @@ import (
 // Exception represents exception events suitable
 // for session replay.
 type Exception struct {
-	EventType   string             `json:"event_type"`
-	Title       string             `json:"title"`
-	ThreadName  string             `json:"thread_name"`
-	Handled     bool               `json:"handled"`
-	Stacktrace  string             `json:"stacktrace"`
-	Foreground  bool               `json:"foreground"`
-	Timestamp   time.Time          `json:"timestamp"`
-	Attachments []event.Attachment `json:"attachments"`
+	EventType     string             `json:"event_type"`
+	UserTriggered bool               `json:"user_triggered"`
+	Title         string             `json:"title"`
+	ThreadName    string             `json:"thread_name"`
+	Handled       bool               `json:"handled"`
+	Stacktrace    string             `json:"stacktrace"`
+	Foreground    bool               `json:"foreground"`
+	Timestamp     time.Time          `json:"timestamp"`
+	Attachments   []event.Attachment `json:"attachments"`
 }
 
 // GetThreadName provides the name of the thread
@@ -60,6 +61,7 @@ func ComputeExceptions(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		exceptions := Exception{
 			event.Type,
+			event.UserTriggered,
 			event.Exception.GetDisplayTitle(),
 			event.Attribute.ThreadName,
 			event.Exception.Handled,
