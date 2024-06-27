@@ -137,14 +137,6 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
         userDefinedAttribute.clear()
     }
 
-    fun getAttribute(key: String): Any? {
-        return userDefinedAttribute.get(key)
-    }
-
-    fun getAttributes(): Map<String, Any?> {
-        return userDefinedAttribute.getAll()
-    }
-
     fun clear() {
         userAttributeProcessor.clearUserId()
         userDefinedAttribute.clear()
