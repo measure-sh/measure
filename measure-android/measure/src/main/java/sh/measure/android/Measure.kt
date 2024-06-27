@@ -48,15 +48,15 @@ object Measure {
     }
 
     /**
-     * Sets the user ID for the current user. This user ID will be sent with all the events.
+     * Sets the user ID for the current user.
      *
-     * Avoid the use of PII (Personally Identifiable Information) in the user ID like
-     * email, phone number or any other sensitive information. Instead, use a hashed or anonymized
-     * user ID to protect user privacy.
+     * User Id is persisted across app launches and is used to identify the user across sessions.
      *
-     * Use [clearUserId] to clear the user ID, typically when the user logs out. Note that
-     * user ID is not persisted across app launches. Set the user ID each time when
-     * the app starts.
+     * It is recommended to avoid the use of PII (Personally Identifiable Information) in the
+     * user ID like email, phone number or any other sensitive information. Instead, use a hashed
+     * or anonymized user ID to protect user privacy.
+     *
+     * Use [clearUserId] to clear the user ID, typically when the user logs out.
      */
     @JvmStatic
     fun setUserId(userId: String) {
@@ -184,8 +184,6 @@ object Measure {
      * recommended to use consistent naming conventions and namespacing them with relevant context.
      *
      * Setting an attribute with different values overrides the previous value.
-     *
-     * TODO: consider persisting attributes and clearing them when [clear] is called.
      */
     fun putAttribute(key: String, value: Boolean) {
         measure.putAttribute(key, value)
@@ -204,25 +202,6 @@ object Measure {
      */
     fun clearAttributes() {
         measure.clearAttributes()
-    }
-
-    /**
-     * Returns all the attributes set by [putAttribute].
-     *
-     * @param key The key of the attribute.
-     * @return The value of the attribute, or null if the attribute does not exist.
-     */
-    fun getAttribute(key: String): Any? {
-        return measure.getAttribute(key)
-    }
-
-    /**
-     * Returns all the attributes set by [putAttribute], if any.
-     *
-     * @return A map of all the attributes set by [putAttribute]. Empty map if no attributes are set.
-     */
-    fun getAttributes(): Map<String, Any?> {
-        return measure.getAttributes()
     }
 
     /**
