@@ -9,18 +9,15 @@ export async function GET(request: Request) {
   const code = searchParams.get("code")
   const errRedirectUrl = `${origin}/auth/login?error=Could not sign in with GitHub`
   if (!code) {
-    console.log(`github signin failed, code was not received`)
     return NextResponse.redirect(errRedirectUrl)
   }
   const supabase = createRouteClient()
   const { error } = await supabase.auth.exchangeCodeForSession(code)
   if (error) {
-    console.log(`github signin route handler failed with error`, error)
     return NextResponse.redirect(errRedirectUrl)
   }
   const { data: { session }, error: sessionErr } = await supabase.auth.getSession()
   if (sessionErr) {
-    console.log(`github signin failed with error`, sessionErr)
     return NextResponse.redirect(errRedirectUrl)
   }
   const accessToken = session?.access_token
@@ -45,7 +42,6 @@ export async function GET(request: Request) {
 
   const teams = await res.json()
   if (!teams?.length) {
-    console.log(`no teams found for user: ${session?.user?.id}`)
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 
@@ -58,7 +54,6 @@ export async function GET(request: Request) {
   const ownTeam = teams.find((team: Team) => team.role === "owner")
 
   if (!ownTeam) {
-    console.log(`user ${session?.user?.id} does not own any team`)
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 

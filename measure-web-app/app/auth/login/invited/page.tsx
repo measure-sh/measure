@@ -20,8 +20,6 @@ export default function Invited() {
     const { data, error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
 
     if (error) {
-      const msg = `failed to retrieve user session`
-      console.log(msg, error)
       router.push(errRedirectUrl)
       return
     }
@@ -33,7 +31,6 @@ export default function Invited() {
     }
 
     const invitedToTeamId = data.user!.user_metadata.invited_to_team_id
-    console.log("invited to team id: " + invitedToTeamId)
     router.push(`/${invitedToTeamId}/overview`)
   }
 
