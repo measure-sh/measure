@@ -13,14 +13,12 @@ export const createRouteClient = () => {
         try {
           cookieStore.set({ name, value, ...options })
         } catch (error) {
-          console.log("failed to set cookie in route client:", error)
         }
       },
       remove(name: string, options: CookieOptions) {
         try {
           cookieStore.set({ name, value: '', ...options })
         } catch (error) {
-          console.log("failed to remove cookie in route client:", error)
         }
       }
     }

@@ -10,7 +10,6 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get('code')
 
   if (!code) {
-    console.log("email signin redirection failed, no code found")
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 
@@ -18,7 +17,6 @@ export async function GET(request: Request) {
   const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
   if (error) {
-    console.log("email signin code exchange failed with error", error)
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 
@@ -38,13 +36,11 @@ export async function GET(request: Request) {
   })
 
   if (!res.ok) {
-    console.log(`GET /teams failed during email signin redirection returned ${res.status} response`)
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 
   const teams = await res.json()
   if (!teams.length) {
-    console.log(`no teams found for user: ${data.user?.id}`)
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 
@@ -57,7 +53,6 @@ export async function GET(request: Request) {
   const ownTeam = teams.find((team: Team) => team.role === "owner")
 
   if (!ownTeam) {
-    console.log(`user ${data.user?.id} does not own any team`)
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 

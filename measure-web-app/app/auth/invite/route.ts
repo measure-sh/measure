@@ -26,7 +26,6 @@ export async function POST(request: Request) {
 
   if (sessionErr) {
     const msg = `failed to retrieve user session`
-    console.log(msg, sessionErr)
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 
@@ -61,13 +60,11 @@ export async function POST(request: Request) {
   })
 
   if (error instanceof AuthApiError) {
-    console.log(error)
     return NextResponse.json({ error: error.message }, { status: 400 })
   }
 
   if (error) {
     const msg = `failed to invite ${email}`
-    console.log(msg, error)
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 

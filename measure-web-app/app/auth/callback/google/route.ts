@@ -10,7 +10,6 @@ export async function POST(request: Request) {
   const nonce = requestUrl.searchParams.get('nonce')
 
   if (!nonce) {
-    console.log(`google oauth nonce not found`)
     return NextResponse.redirect(errRedirectUrl, { status: 301 })
   }
 
@@ -24,7 +23,6 @@ export async function POST(request: Request) {
   })
 
   if (error) {
-    console.log(error, { nonce })
     return NextResponse.redirect(errRedirectUrl, {
       // a 301 status is required to redirect from a POST to a GET route
       status: 301
@@ -47,13 +45,11 @@ export async function POST(request: Request) {
   })
 
   if (!res.ok) {
-    console.log(`GET /teams failed during google oauth redirection returned ${res.status} response`)
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 
   const teams = await res.json()
   if (!teams.length) {
-    console.log(`no teams found for user: ${data.user?.id}`)
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 
@@ -66,7 +62,6 @@ export async function POST(request: Request) {
   const ownTeam = teams.find((team: Team) => team.role === "owner")
 
   if (!ownTeam) {
-    console.log(`user ${data.user?.id} does not own any team`)
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 

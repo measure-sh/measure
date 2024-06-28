@@ -24,13 +24,11 @@ export async function POST(request: Request) {
   })
 
   if (error && error instanceof AuthApiError && error.status === 429) {
-    console.log("too many signup/sign attempts", error)
     const errRedirectUrl = createErrRedirectUrl(requestUrl.origin, "Too many attempts, please try again in a minute")
     return NextResponse.redirect(errRedirectUrl, { status: 301 })
   }
 
   if (error) {
-    console.log("email magic link signin failed with error", error)
     return NextResponse.redirect(errRedirectUrl, { status: 301 })
   }
 
