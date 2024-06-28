@@ -132,6 +132,36 @@ internal interface Database : Closeable {
      * Updates the sessions table to mark the app exit event as tracked.
      */
     fun updateAppExitTracked(pid: Int)
+
+    /**
+     * Inserts a user defined attribute into the database.
+     */
+    fun insertUserDefinedAttribute(key: String, value: Number)
+
+    /**
+     * Inserts a user defined attribute into the database.
+     */
+    fun insertUserDefinedAttribute(key: String, value: String)
+
+    /**
+     * Inserts a user defined attribute into the database.
+     */
+    fun insertUserDefinedAttribute(key: String, value: Boolean)
+
+    /**
+     * Returns all the user defined attributes stored in the database.
+     */
+    fun getUserDefinedAttributes(): Map<String, Any?>
+
+    /**
+     * Removes a user defined attribute from the database.
+     */
+    fun removeUserDefinedAttribute(key: String)
+
+    /**
+     * Clears all the user defined attributes stored in the database.
+     */
+    fun clearUserDefinedAttributes()
 }
 
 /**
@@ -148,6 +178,7 @@ internal class DatabaseImpl(
             db.execSQL(Sql.CREATE_ATTACHMENTS_TABLE)
             db.execSQL(Sql.CREATE_EVENTS_BATCH_TABLE)
             db.execSQL(Sql.CREATE_SESSIONS_TABLE)
+            db.execSQL(Sql.CREATE_USER_DEFINED_ATTRIBUTES_TABLE)
         } catch (e: SQLiteException) {
             logger.log(LogLevel.Error, "Failed to create database", e)
         }
@@ -289,7 +320,8 @@ internal class DatabaseImpl(
                 val serializedDataFilePathIndex = it.getColumnIndex(EventTable.COL_DATA_FILE_PATH)
                 val attachmentsIndex = it.getColumnIndex(EventTable.COL_ATTACHMENTS)
                 val serializedAttributesIndex = it.getColumnIndex(EventTable.COL_ATTRIBUTES)
-                val serializedUserDefinedAttributesIndex = it.getColumnIndex(EventTable.COL_USER_DEFINED_ATTRIBUTES)
+                val serializedUserDefinedAttributesIndex =
+                    it.getColumnIndex(EventTable.COL_USER_DEFINED_ATTRIBUTES)
 
                 val eventId = it.getString(eventIdIndex)
                 val sessionId = it.getString(sessionIdIndex)
@@ -300,7 +332,8 @@ internal class DatabaseImpl(
                 val serializedDataFilePath = it.getString(serializedDataFilePathIndex)
                 val attachments = it.getString(attachmentsIndex)
                 val serializedAttributes = it.getString(serializedAttributesIndex)
-                val serializedUserDefinedAttributes = it.getString(serializedUserDefinedAttributesIndex)
+                val serializedUserDefinedAttributes =
+                    it.getString(serializedUserDefinedAttributesIndex)
 
                 eventPackets.add(
                     EventPacket(
@@ -332,7 +365,8 @@ internal class DatabaseImpl(
             val serializedDataFilePathIndex = it.getColumnIndex(EventTable.COL_DATA_FILE_PATH)
             val attachmentsIndex = it.getColumnIndex(EventTable.COL_ATTACHMENTS)
             val serializedAttributesIndex = it.getColumnIndex(EventTable.COL_ATTRIBUTES)
-            val serializedUserDefinedAttributesIndex = it.getColumnIndex(EventTable.COL_USER_DEFINED_ATTRIBUTES)
+            val serializedUserDefinedAttributesIndex =
+                it.getColumnIndex(EventTable.COL_USER_DEFINED_ATTRIBUTES)
 
             val sessionId = it.getString(sessionIdIndex)
             val timestamp = it.getString(timestampIndex)
@@ -476,6 +510,123 @@ internal class DatabaseImpl(
 
     override fun updateAppExitTracked(pid: Int) {
         writableDatabase.execSQL(Sql.updateAppExitTracked(pid))
+    }
+
+    override fun insertUserDefinedAttribute(key: String, value: Number) {
+        val contentValues = ContentValues()
+        contentValues.put(UserDefinedAttributesTable.COL_KEY, key)
+        when (value) {
+            is Int -> {
+                contentValues.put(UserDefinedAttributesTable.COL_VALUE, value)
+                contentValues.put(UserDefinedAttributesTable.COL_TYPE, "integer")
+            }
+
+            is Long -> {
+                contentValues.put(UserDefinedAttributesTable.COL_VALUE, value)
+                contentValues.put(UserDefinedAttributesTable.COL_TYPE, "long")
+            }
+
+            is Float -> {
+                contentValues.put(UserDefinedAttributesTable.COL_VALUE, value)
+                contentValues.put(UserDefinedAttributesTable.COL_TYPE, "float")
+            }
+
+            is Double -> {
+                contentValues.put(UserDefinedAttributesTable.COL_VALUE, value)
+                contentValues.put(UserDefinedAttributesTable.COL_TYPE, "double")
+            }
+
+            else -> {
+                logger.log(
+                    LogLevel.Error, "Unsupported type for user defined attribute: $value"
+                )
+                return
+            }
+        }
+        try {
+            writableDatabase.insertWithOnConflict(
+                UserDefinedAttributesTable.TABLE_NAME,
+                null,
+                contentValues,
+                SQLiteDatabase.CONFLICT_REPLACE
+            )
+        } catch (e: SQLiteException) {
+            logger.log(LogLevel.Error, "Failed to insert user defined attribute", e)
+        }
+    }
+
+    override fun insertUserDefinedAttribute(key: String, value: String) {
+        val contentValues = ContentValues()
+        contentValues.put(UserDefinedAttributesTable.COL_KEY, key)
+        contentValues.put(UserDefinedAttributesTable.COL_VALUE, value)
+        contentValues.put(UserDefinedAttributesTable.COL_TYPE, "string")
+        try {
+            writableDatabase.insertWithOnConflict(
+                UserDefinedAttributesTable.TABLE_NAME,
+                null,
+                contentValues,
+                SQLiteDatabase.CONFLICT_REPLACE
+            )
+        } catch (e: SQLiteException) {
+            logger.log(LogLevel.Error, "Failed to insert user defined attribute", e)
+        }
+    }
+
+    override fun insertUserDefinedAttribute(key: String, value: Boolean) {
+        val contentValues = ContentValues()
+        contentValues.put(UserDefinedAttributesTable.COL_KEY, key)
+        val intValue = if (value) 1 else 0
+        contentValues.put(UserDefinedAttributesTable.COL_VALUE, intValue)
+        contentValues.put(UserDefinedAttributesTable.COL_TYPE, "boolean")
+        try {
+            writableDatabase.insertWithOnConflict(
+                UserDefinedAttributesTable.TABLE_NAME,
+                null,
+                contentValues,
+                SQLiteDatabase.CONFLICT_REPLACE
+            )
+        } catch (e: SQLiteException) {
+            logger.log(LogLevel.Error, "Failed to insert user defined attribute", e)
+        }
+    }
+
+    override fun getUserDefinedAttributes(): Map<String, Any?> {
+        val attributes = mutableMapOf<String, Any?>()
+        readableDatabase.rawQuery(Sql.getUserDefinedAttributes(), null).use {
+            while (it.moveToNext()) {
+                val keyIndex = it.getColumnIndex(UserDefinedAttributesTable.COL_KEY)
+                val valueIndex = it.getColumnIndex(UserDefinedAttributesTable.COL_VALUE)
+                val typeIndex = it.getColumnIndex(UserDefinedAttributesTable.COL_TYPE)
+                val key = it.getString(keyIndex)
+                val type = it.getString(typeIndex)
+                val value = when (type) {
+                    "integer" -> it.getInt(valueIndex)
+                    "long" -> it.getLong(valueIndex)
+                    "float" -> it.getFloat(valueIndex)
+                    "double" -> it.getDouble(valueIndex)
+                    "string" -> it.getString(valueIndex)
+                    "boolean" -> it.getInt(valueIndex) == 1
+                    else -> {
+                        logger.log(LogLevel.Error, "Unsupported type for user defined attribute")
+                        null
+                    }
+                }
+                attributes[key] = value
+            }
+        }
+        return attributes
+    }
+
+    override fun removeUserDefinedAttribute(key: String) {
+        writableDatabase.delete(
+            UserDefinedAttributesTable.TABLE_NAME,
+            "${UserDefinedAttributesTable.COL_KEY} = ?",
+            arrayOf(key)
+        )
+    }
+
+    override fun clearUserDefinedAttributes() {
+        writableDatabase.delete(UserDefinedAttributesTable.TABLE_NAME, null, null)
     }
 
     override fun close() {

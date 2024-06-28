@@ -144,7 +144,8 @@ internal class MeasureInitializerImpl(
     override val userDefinedAttribute: UserDefinedAttribute = UserDefinedAttributeImpl(
         logger,
         configProvider,
-        executorServiceRegistry.backgroundExecutor(),
+        database,
+        executorServiceRegistry.ioExecutor(),
     ),
     override val userAttributeProcessor: UserAttributeProcessor = UserAttributeProcessor(),
     private val deviceAttributeProcessor: DeviceAttributeProcessor = DeviceAttributeProcessor(
