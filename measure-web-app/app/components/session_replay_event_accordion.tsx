@@ -31,6 +31,10 @@ export default function SessionReplayEventAccordion({
   }, [])
 
   function getColorFromEventType() {
+    if ((eventType === "exception" || eventType === "anr") && eventDetails.user_triggered === true) {
+      return "bg-orange-200 hover:bg-orange-300 active:bg-orange-400 focus-visible:outline-orange-300"
+    }
+
     if (eventType === "exception" || eventType === "anr") {
       return "bg-red-200 hover:bg-red-300 active:bg-red-400 focus-visible:outline-red-300"
     }
@@ -44,7 +48,7 @@ export default function SessionReplayEventAccordion({
     }
 
     if (eventType === "http") {
-      return "bg-orange-200 hover:bg-orange-300 active:bg-orange-400 focus-visible:outline-orange-300"
+      return "bg-cyan-200 hover:bg-cyan-300 active:bg-cyan-400 focus-visible:outline-cyan-300"
     }
 
     return "bg-indigo-200 hover:bg-indigo-300 active:bg-indigo-400 focus-visible:outline-indigo-300"
