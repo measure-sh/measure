@@ -17,10 +17,10 @@ internal interface ExceptionExporter {
  */
 internal class ExceptionExporterImpl(
     private val eventExporter: EventExporter,
-    private val executorService: MeasureExecutorService,
+    private val exportExecutor: MeasureExecutorService,
 ) : ExceptionExporter {
     override fun export() {
-        executorService.submit {
+        exportExecutor.submit {
             eventExporter.createBatch()?.let {
                 eventExporter.export(it.batchId, it.eventIds)
             }

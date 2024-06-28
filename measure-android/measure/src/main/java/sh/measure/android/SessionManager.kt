@@ -55,14 +55,13 @@ internal class SessionManagerImpl(
     private val logger: Logger,
     private val idProvider: IdProvider,
     private val database: Database,
-    private val executorService: MeasureExecutorService,
+    private val ioExecutor: MeasureExecutorService,
     private val processInfo: ProcessInfoProvider,
     private val timeProvider: TimeProvider,
     private val configProvider: ConfigProvider,
 ) : SessionManager {
     private var appBackgroundedUptimeMs = 0L
 
-    @Volatile
     internal var currentSessionId: String? = null
 
     override fun getSessionId(): String {
@@ -102,7 +101,7 @@ internal class SessionManagerImpl(
     }
 
     override fun clearOldSessions() {
-        executorService.submit {
+        ioExecutor.submit {
             val clearUpToTimeSinceEpoch =
                 timeProvider.currentTimeSinceEpochInMillis - configProvider.defaultSessionsTableTtlMs
             database.clearOldSessions(clearUpToTimeSinceEpoch)
@@ -110,15 +109,13 @@ internal class SessionManagerImpl(
     }
 
     override fun updateAppExitTracked(pid: Int) {
-        executorService.submit {
-            database.updateAppExitTracked(pid)
-        }
+        database.updateAppExitTracked(pid)
     }
 
     private fun createNewSession() {
         val id = idProvider.createId()
         currentSessionId = id
-        executorService.submit {
+        ioExecutor.submit {
             storeSessionId(id)
         }
         logger.log(LogLevel.Debug, "New session created with ID: $currentSessionId")

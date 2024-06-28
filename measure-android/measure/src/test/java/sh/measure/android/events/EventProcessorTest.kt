@@ -39,7 +39,7 @@ internal class EventProcessorTest {
 
     private val eventProcessor = EventProcessorImpl(
         logger = NoopLogger(),
-        executorService = executorService,
+        defaultExecutor = executorService,
         eventStore = eventStore,
         idProvider = idProvider,
         sessionManager = sessionManager,
@@ -149,7 +149,7 @@ internal class EventProcessorTest {
         }
         val eventProcessor = EventProcessorImpl(
             logger = NoopLogger(),
-            executorService = executorService,
+            defaultExecutor = executorService,
             eventStore = eventStore,
             idProvider = idProvider,
             sessionManager = sessionManager,
@@ -317,7 +317,7 @@ internal class EventProcessorTest {
         }
         val eventProcessor = EventProcessorImpl(
             logger = NoopLogger(),
-            executorService = executorService,
+            defaultExecutor = executorService,
             eventStore = eventStore,
             idProvider = idProvider,
             sessionManager = sessionManager,
@@ -360,7 +360,7 @@ internal class EventProcessorTest {
         }
         val eventProcessor = EventProcessorImpl(
             logger = NoopLogger(),
-            executorService = executorService,
+            defaultExecutor = executorService,
             eventStore = eventStore,
             idProvider = idProvider,
             sessionManager = sessionManager,

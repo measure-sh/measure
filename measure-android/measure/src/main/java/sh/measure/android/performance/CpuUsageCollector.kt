@@ -23,7 +23,7 @@ internal class CpuUsageCollector(
     private val eventProcessor: EventProcessor,
     private val processInfo: ProcessInfoProvider,
     private val timeProvider: TimeProvider,
-    private val executorService: MeasureExecutorService,
+    private val defaultExecutor: MeasureExecutorService,
     private val procProvider: ProcProvider = ProcProviderImpl(),
     private val osSysConfProvider: OsSysConfProvider = OsSysConfProviderImpl(),
 ) {
@@ -35,7 +35,7 @@ internal class CpuUsageCollector(
     fun register() {
         if (!processInfo.isForegroundProcess()) return
         if (future != null) return
-        future = executorService.scheduleAtFixedRate(
+        future = defaultExecutor.scheduleAtFixedRate(
             {
                 trackCpuUsage()
             },

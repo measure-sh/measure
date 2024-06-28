@@ -15,7 +15,7 @@ internal const val BYTES_TO_KB_FACTOR = 1024
 internal class MemoryUsageCollector(
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
-    private val executorService: MeasureExecutorService,
+    private val defaultExecutor: MeasureExecutorService,
     private val memoryReader: MemoryReader,
     private val processInfo: ProcessInfoProvider,
 ) {
@@ -25,7 +25,7 @@ internal class MemoryUsageCollector(
     fun register() {
         if (!processInfo.isForegroundProcess()) return
         if (future != null) return
-        future = executorService.scheduleAtFixedRate(
+        future = defaultExecutor.scheduleAtFixedRate(
             {
                 trackMemoryUsage()
             },

@@ -69,7 +69,7 @@ internal interface EventProcessor {
 
 internal class EventProcessorImpl(
     private val logger: Logger,
-    private val executorService: MeasureExecutorService,
+    private val defaultExecutor: MeasureExecutorService,
     private val eventStore: EventStore,
     private val idProvider: IdProvider,
     private val sessionManager: SessionManager,
@@ -149,7 +149,7 @@ internal class EventProcessorImpl(
             }
 
             else -> {
-                executorService.submit {
+                defaultExecutor.submit {
                     val event = createEvent(sessionId)
                     applyAttributes(event)
                     eventTransformer.transform(event)?.let {

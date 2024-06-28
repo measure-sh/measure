@@ -8,7 +8,7 @@ import sh.measure.android.utils.TimeProvider
 
 internal class AppExitCollector(
     private val appExitProvider: AppExitProvider,
-    private val measureExecutorService: MeasureExecutorService,
+    private val ioExecutor: MeasureExecutorService,
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
     private val sessionManager: SessionManager,
@@ -18,14 +18,13 @@ internal class AppExitCollector(
     }
 
     private fun trackAppExit() {
-        measureExecutorService.submit {
+        ioExecutor.submit {
             val appExits = appExitProvider.get()
             if (appExits.isNullOrEmpty()) {
-                return@submit
+                return@submit emptyList<Triple<Int, String, AppExit>>()
             }
             val pidsToSessionsMap: Map<Int, List<String>> = sessionManager.getSessionsForPids()
-            val appExitsToTrack: List<Triple<Int, String, AppExit>> =
-                mapAppExitsToSession(pidsToSessionsMap, appExits)
+            val appExitsToTrack = mapAppExitsToSession(pidsToSessionsMap, appExits)
             appExitsToTrack.forEach {
                 eventProcessor.track(
                     it.third,
