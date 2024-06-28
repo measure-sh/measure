@@ -11,7 +11,6 @@ import org.mockito.Mockito.`when`
 import org.mockito.kotlin.verify
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
-import sh.measure.android.attributes.UserDefinedAttributeImpl
 import sh.measure.android.exporter.ExceptionExporter
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeEventFactory
@@ -19,6 +18,7 @@ import sh.measure.android.fakes.FakeEventFactory.toEvent
 import sh.measure.android.fakes.FakeEventStore
 import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakeSessionManager
+import sh.measure.android.fakes.FakeUserDefinedAttribute
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.lifecycle.ActivityLifecycleData
@@ -28,18 +28,17 @@ import sh.measure.android.utils.iso8601Timestamp
 
 
 internal class EventProcessorTest {
-    private val logger = NoopLogger()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val idProvider = FakeIdProvider()
     private val sessionManager = FakeSessionManager()
     private val eventStore = FakeEventStore()
     private val exceptionExporter = mock<ExceptionExporter>()
     private val screenshotCollector = mock<ScreenshotCollector>()
-    private val config = FakeConfigProvider()
+    private val configProvider = FakeConfigProvider()
     private val eventTransformer = object : EventTransformer {
         override fun <T> transform(event: Event<T>): Event<T> = event
     }
-    private val userDefinedAttribute = UserDefinedAttributeImpl(logger, config)
+    private val userDefinedAttribute = FakeUserDefinedAttribute()
 
     private val eventProcessor = EventProcessorImpl(
         logger = NoopLogger(),
@@ -50,14 +49,14 @@ internal class EventProcessorTest {
         attributeProcessors = emptyList(),
         exceptionExporter = exceptionExporter,
         screenshotCollector = screenshotCollector,
-        configProvider = config,
+        configProvider = configProvider,
         eventTransformer = eventTransformer,
         userDefinedAttribute = userDefinedAttribute,
     )
 
     @Before
     fun setUp() {
-        config.trackScreenshotOnCrash = false
+        configProvider.trackScreenshotOnCrash = false
     }
 
     @Test
@@ -161,7 +160,7 @@ internal class EventProcessorTest {
             attributeProcessors = listOf(attributeProcessor),
             exceptionExporter = exceptionExporter,
             screenshotCollector = screenshotCollector,
-            configProvider = config,
+            configProvider = configProvider,
             eventTransformer = eventTransformer,
             userDefinedAttribute = userDefinedAttribute,
         )
@@ -229,7 +228,7 @@ internal class EventProcessorTest {
         val exceptionData = FakeEventFactory.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.EXCEPTION
-        config.trackScreenshotOnCrash = true
+        configProvider.trackScreenshotOnCrash = true
         val screenshot = Screenshot(data = byteArrayOf(1, 2, 3, 4), extension = "png")
         `when`(screenshotCollector.takeScreenshot()).thenReturn(screenshot)
 
@@ -254,7 +253,7 @@ internal class EventProcessorTest {
         val exceptionData = FakeEventFactory.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.EXCEPTION
-        config.trackScreenshotOnCrash = false
+        configProvider.trackScreenshotOnCrash = false
 
         // When
         eventProcessor.track(
@@ -275,7 +274,7 @@ internal class EventProcessorTest {
         val exceptionData = FakeEventFactory.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.ANR
-        config.trackScreenshotOnCrash = true
+        configProvider.trackScreenshotOnCrash = true
 
         // When
         eventProcessor.track(
@@ -296,7 +295,7 @@ internal class EventProcessorTest {
         val exceptionData = FakeEventFactory.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.ANR
-        config.trackScreenshotOnCrash = false
+        configProvider.trackScreenshotOnCrash = false
 
         // When
         eventProcessor.track(
@@ -330,7 +329,7 @@ internal class EventProcessorTest {
             attributeProcessors = emptyList(),
             exceptionExporter = exceptionExporter,
             screenshotCollector = screenshotCollector,
-            configProvider = config,
+            configProvider = configProvider,
             eventTransformer = eventTransformer,
             userDefinedAttribute = userDefinedAttribute,
         )
@@ -375,7 +374,7 @@ internal class EventProcessorTest {
             attributeProcessors = emptyList(),
             exceptionExporter = exceptionExporter,
             screenshotCollector = screenshotCollector,
-            configProvider = config,
+            configProvider = configProvider,
             eventTransformer = eventTransformer,
             userDefinedAttribute = userDefinedAttribute
         )
@@ -418,7 +417,7 @@ internal class EventProcessorTest {
 
     @Test
     fun `given user defined attributes available, adds them to event`() {
-        userDefinedAttribute.put("key", "value")
+        userDefinedAttribute.put("key", "value", false)
         val data = FakeEventFactory.getNavigationData()
         val timestamp = 1710746412L
         val eventType = EventType.NAVIGATION

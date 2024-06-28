@@ -46,6 +46,13 @@ internal object SessionsTable {
     const val COL_APP_EXIT_TRACKED = "app_exit_tracked"
 }
 
+internal object UserDefinedAttributesTable {
+    const val TABLE_NAME = "user_defined_attributes"
+    const val COL_KEY = "key"
+    const val COL_VALUE = "value"
+    const val COL_TYPE = "type"
+}
+
 internal object Sql {
     const val CREATE_EVENTS_TABLE = """
         CREATE TABLE ${EventTable.TABLE_NAME} (
@@ -92,6 +99,14 @@ internal object Sql {
             ${SessionsTable.COL_PID} INTEGER NOT NULL,
             ${SessionsTable.COL_CREATED_AT} INTEGER NOT NULL,
             ${SessionsTable.COL_APP_EXIT_TRACKED} INTEGER DEFAULT 0
+        )
+    """
+
+    const val CREATE_USER_DEFINED_ATTRIBUTES_TABLE = """
+        CREATE TABLE ${UserDefinedAttributesTable.TABLE_NAME} (
+            ${UserDefinedAttributesTable.COL_KEY} TEXT PRIMARY KEY,
+            ${UserDefinedAttributesTable.COL_VALUE} TEXT,
+            ${UserDefinedAttributesTable.COL_TYPE} TEXT NOT NULL
         )
     """
 
@@ -204,6 +219,16 @@ internal object Sql {
             UPDATE ${SessionsTable.TABLE_NAME}
             SET ${SessionsTable.COL_APP_EXIT_TRACKED} = 1
             WHERE ${SessionsTable.COL_PID} = $pid
+        """.trimIndent()
+    }
+
+    fun getUserDefinedAttributes(): String {
+        return """
+            SELECT 
+                ${UserDefinedAttributesTable.COL_KEY}, 
+                ${UserDefinedAttributesTable.COL_VALUE}, 
+                ${UserDefinedAttributesTable.COL_TYPE}
+            FROM ${UserDefinedAttributesTable.TABLE_NAME}
         """.trimIndent()
     }
 }

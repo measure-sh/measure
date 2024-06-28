@@ -3,7 +3,6 @@ package sh.measure.android
 import android.app.Application
 import android.content.Context
 import androidx.annotation.VisibleForTesting
-import sh.measure.android.Measure.clear
 import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.okhttp.OkHttpEventCollector
@@ -147,8 +146,10 @@ object Measure {
      *
      * Setting an attribute with different values overrides the previous value.
      */
-    fun putAttribute(key: String, value: Number) {
-        measure.putAttribute(key, value)
+    fun putAttribute(key: String, value: Number, store: Boolean) {
+        if (isInitialized.get()) {
+            measure.putAttribute(key, value, store)
+        }
     }
 
     /**
@@ -166,8 +167,10 @@ object Measure {
      *
      * Setting an attribute with different values overrides the previous value.
      */
-    fun putAttribute(key: String, value: String) {
-        measure.putAttribute(key, value)
+    fun putAttribute(key: String, value: String, store: Boolean) {
+        if (isInitialized.get()) {
+            measure.putAttribute(key, value, store)
+        }
     }
 
     /**
@@ -185,8 +188,10 @@ object Measure {
      *
      * Setting an attribute with different values overrides the previous value.
      */
-    fun putAttribute(key: String, value: Boolean) {
-        measure.putAttribute(key, value)
+    fun putAttribute(key: String, value: Boolean, store: Boolean) {
+        if (isInitialized.get()) {
+            measure.putAttribute(key, value, store)
+        }
     }
 
     /**
@@ -194,14 +199,18 @@ object Measure {
      * key is not set.
      */
     fun removeAttribute(key: String) {
-        measure.removeAttribute(key)
+        if (isInitialized.get()) {
+            measure.removeAttribute(key)
+        }
     }
 
     /**
      * Clears the attributes set by [putAttribute], if any. No-op if no attributes are set.
      */
     fun clearAttributes() {
-        measure.clearAttributes()
+        if (isInitialized.get()) {
+            measure.clearAttributes()
+        }
     }
 
     /**
@@ -213,7 +222,9 @@ object Measure {
      * still be sent to the server without any change.
      */
     fun clear() {
-        measure.clear()
+        if (isInitialized.get()) {
+            measure.clear()
+        }
     }
 
     internal fun getEventProcessor(): EventProcessor? {
