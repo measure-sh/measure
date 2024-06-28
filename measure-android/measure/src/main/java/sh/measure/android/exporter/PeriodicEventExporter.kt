@@ -21,7 +21,7 @@ internal interface PeriodicEventExporter {
 internal class PeriodicEventExporterImpl(
     private val logger: Logger,
     private val configProvider: ConfigProvider,
-    private val executorService: MeasureExecutorService,
+    private val exportExecutor: MeasureExecutorService,
     private val timeProvider: TimeProvider,
     private val heartbeat: Heartbeat,
     private val eventExporter: EventExporter,
@@ -62,7 +62,7 @@ internal class PeriodicEventExporterImpl(
             return
         }
 
-        executorService.submit {
+        exportExecutor.submit {
             try {
                 processBatches()
             } finally {

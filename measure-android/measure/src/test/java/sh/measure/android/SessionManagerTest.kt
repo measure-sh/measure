@@ -27,7 +27,7 @@ class SessionManagerTest {
         database = database,
         idProvider = idProvider,
         processInfo = processInfo,
-        executorService = executorService,
+        ioExecutor = executorService,
         timeProvider = timeProvider,
         configProvider = configProvider,
     )
