@@ -16,9 +16,10 @@ class UserTriggeredEventCollectorImplTest {
     private val processInfoProvider: ProcessInfoProvider = FakeProcessInfoProvider()
 
     private val userTriggeredEventCollector = UserTriggeredEventCollectorImpl(
-        eventProcessor, timeProvider, processInfoProvider
+        eventProcessor,
+        timeProvider,
+        processInfoProvider,
     )
-
 
     @Test
     fun `tracks navigation event`() {
@@ -30,7 +31,9 @@ class UserTriggeredEventCollectorImplTest {
                 source = null,
                 from = from,
                 to = to,
-            ), type = EventType.NAVIGATION, timestamp = timeProvider.currentTimeSinceEpochInMillis
+            ),
+            type = EventType.NAVIGATION,
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
         )
     }
 
@@ -43,7 +46,7 @@ class UserTriggeredEventCollectorImplTest {
         verify(eventProcessor).trackUserTriggered(
             data = data,
             type = EventType.EXCEPTION,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
         )
     }
 }

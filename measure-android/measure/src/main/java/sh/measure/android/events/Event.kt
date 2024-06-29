@@ -68,6 +68,5 @@ internal data class Event<T>(
     }
 
     fun setUserDefinedAttributes() {
-
     }
 }

@@ -2,7 +2,7 @@ package sh.measure.android.fakes
 
 import sh.measure.android.attributes.UserDefinedAttribute
 
-class FakeUserDefinedAttribute: UserDefinedAttribute {
+class FakeUserDefinedAttribute : UserDefinedAttribute {
     private var attributes = mutableMapOf<String, Any?>()
     override fun put(key: String, value: Number, store: Boolean) {
         attributes[key] = value

@@ -346,7 +346,7 @@ internal class DatabaseImpl(
                         serializedDataFilePath,
                         attachments,
                         serializedAttributes,
-                        serializedUserDefinedAttributes
+                        serializedUserDefinedAttributes,
                     ),
                 )
             }
@@ -388,7 +388,7 @@ internal class DatabaseImpl(
                 serializedDataFilePath = serializedDataFilePath,
                 serializedAttachments = attachments,
                 serializedAttributes = serializedAttributes,
-                serializedUserDefinedAttributes = serializedUserDefinedAttributes
+                serializedUserDefinedAttributes = serializedUserDefinedAttributes,
             )
         }
     }
@@ -538,7 +538,8 @@ internal class DatabaseImpl(
 
             else -> {
                 logger.log(
-                    LogLevel.Error, "Unsupported type for user defined attribute: $value"
+                    LogLevel.Error,
+                    "Unsupported type for user defined attribute: $value",
                 )
                 return
             }
@@ -548,7 +549,7 @@ internal class DatabaseImpl(
                 UserDefinedAttributesTable.TABLE_NAME,
                 null,
                 contentValues,
-                SQLiteDatabase.CONFLICT_REPLACE
+                SQLiteDatabase.CONFLICT_REPLACE,
             )
         } catch (e: SQLiteException) {
             logger.log(LogLevel.Error, "Failed to insert user defined attribute", e)
@@ -565,7 +566,7 @@ internal class DatabaseImpl(
                 UserDefinedAttributesTable.TABLE_NAME,
                 null,
                 contentValues,
-                SQLiteDatabase.CONFLICT_REPLACE
+                SQLiteDatabase.CONFLICT_REPLACE,
             )
         } catch (e: SQLiteException) {
             logger.log(LogLevel.Error, "Failed to insert user defined attribute", e)
@@ -583,7 +584,7 @@ internal class DatabaseImpl(
                 UserDefinedAttributesTable.TABLE_NAME,
                 null,
                 contentValues,
-                SQLiteDatabase.CONFLICT_REPLACE
+                SQLiteDatabase.CONFLICT_REPLACE,
             )
         } catch (e: SQLiteException) {
             logger.log(LogLevel.Error, "Failed to insert user defined attribute", e)
@@ -621,7 +622,7 @@ internal class DatabaseImpl(
         writableDatabase.delete(
             UserDefinedAttributesTable.TABLE_NAME,
             "${UserDefinedAttributesTable.COL_KEY} = ?",
-            arrayOf(key)
+            arrayOf(key),
         )
     }
 

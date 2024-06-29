@@ -131,7 +131,7 @@ internal class EventProcessorImpl(
             mutableMapOf(),
             mutableListOf(),
             sessionId = null,
-            userTriggered = true
+            userTriggered = true,
         )
     }
 
@@ -181,7 +181,7 @@ internal class EventProcessorImpl(
                 attachments = attachments,
                 attributes = attributes,
                 userTriggered = userTriggered,
-                sessionId = sessionId
+                sessionId = sessionId,
             )
             applyAttributes(event, threadName)
             eventTransformer.transform(event)?.let {

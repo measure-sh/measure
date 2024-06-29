@@ -79,7 +79,7 @@ internal class UserDefinedAttributeImpl(
         } catch (npe: NullPointerException) {
             logger.log(
                 LogLevel.Warning,
-                "Unable to remove attribute: $key, as it does not exist"
+                "Unable to remove attribute: $key, as it does not exist",
             )
         }
     }
@@ -99,19 +99,19 @@ internal class UserDefinedAttributeImpl(
         if (key.length > configProvider.defaultMaxUserDefinedAttributeKeyLength) {
             logger.log(
                 LogLevel.Warning,
-                "Attribute key: $key length is longer than the maximum allowed length of ${configProvider.defaultMaxUserDefinedAttributeKeyLength}. This attribute will be dropped."
+                "Attribute key: $key length is longer than the maximum allowed length of ${configProvider.defaultMaxUserDefinedAttributeKeyLength}. This attribute will be dropped.",
             )
             return false
         } else if (!key.isLowerCase()) {
             logger.log(
                 LogLevel.Warning,
-                "Attribute key: $key must contain lower case characters only. This attribute will be dropped."
+                "Attribute key: $key must contain lower case characters only. This attribute will be dropped.",
             )
             return false
         } else if (key.contains(" ")) {
             logger.log(
                 LogLevel.Warning,
-                "Attribute key: $key must not contain spaces. This attribute will be dropped."
+                "Attribute key: $key must not contain spaces. This attribute will be dropped.",
             )
             return false
         }
@@ -123,7 +123,7 @@ internal class UserDefinedAttributeImpl(
             if (value.length > configProvider.defaultMaxUserDefinedAttributeValueLength) {
                 logger.log(
                     LogLevel.Warning,
-                    "Attribute value: $value length is longer than the maximum allowed length of ${configProvider.defaultMaxUserDefinedAttributeValueLength}. This attribute will be dropped."
+                    "Attribute value: $value length is longer than the maximum allowed length of ${configProvider.defaultMaxUserDefinedAttributeValueLength}. This attribute will be dropped.",
                 )
                 return false
             }

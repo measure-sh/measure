@@ -18,8 +18,12 @@ internal class UserTriggeredEventCollectorImpl(
     override fun trackNavigation(to: String, from: String?) {
         eventProcessor.trackUserTriggered(
             data = NavigationData(
-                to = to, from = from, source = null
-            ), timestamp = timeProvider.currentTimeSinceEpochInMillis, type = EventType.NAVIGATION
+                to = to,
+                from = from,
+                source = null,
+            ),
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            type = EventType.NAVIGATION,
         )
     }
 
@@ -31,8 +35,10 @@ internal class UserTriggeredEventCollectorImpl(
                 throwable = throwable,
                 handled = true,
                 thread = thread,
-                foreground = processInfoProvider.isForegroundProcess()
-            ), timestamp = timeProvider.currentTimeSinceEpochInMillis, type = EventType.EXCEPTION
+                foreground = processInfoProvider.isForegroundProcess(),
+            ),
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            type = EventType.EXCEPTION,
         )
     }
 }

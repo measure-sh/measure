@@ -12,7 +12,6 @@ import sh.measure.android.events.Attachment
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
-import sh.measure.android.fakes.FakeEventFactory
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.NoopLogger
 
@@ -62,7 +61,7 @@ class AnrCollectorTest {
             timestamp = timestampCaptor.capture(),
             type = typeCaptor.capture(),
             attributes = attributesCaptor.capture(),
-            attachments = attachmentsCaptor.capture()
+            attachments = attachmentsCaptor.capture(),
         )
 
         assertEquals(EventType.ANR, typeCaptor.firstValue)
