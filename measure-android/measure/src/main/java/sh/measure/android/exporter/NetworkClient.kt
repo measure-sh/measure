@@ -136,5 +136,5 @@ internal fun EventPacket.asFormDataPart(fileStorage: FileStorage): String {
     } else {
         throw IllegalStateException("EventPacket must have either serializedData or serializedDataFilePath")
     }
-    return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":\"$userTriggered\",\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":$data,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes,\"user_defined_attributes\":$serializedUserDefinedAttributes}"
+    return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":\"$userTriggered\",\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":$data,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes}"
 }
