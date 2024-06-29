@@ -70,7 +70,7 @@ class DatabaseTest {
             serializedAttributes = null,
             serializedAttachments = null,
             attachmentsSize = 0,
-            serializedUserDefAttributes = null
+            serializedUserDefAttributes = null,
         )
 
         val result = database.insertEvent(event)
@@ -101,7 +101,7 @@ class DatabaseTest {
             serializedAttributes = null,
             serializedAttachments = null,
             attachmentsSize = 500,
-            serializedUserDefAttributes = null
+            serializedUserDefAttributes = null,
         )
 
         val result = database.insertEvent(event)
@@ -126,7 +126,7 @@ class DatabaseTest {
             serializedAttributes = null,
             serializedAttachments = null,
             attachmentsSize = 500,
-            serializedUserDefAttributes = null
+            serializedUserDefAttributes = null,
         )
 
         database.insertEvent(event)

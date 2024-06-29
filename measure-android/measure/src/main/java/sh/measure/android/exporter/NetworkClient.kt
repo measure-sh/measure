@@ -75,7 +75,7 @@ internal class NetworkClientImpl(
         eventPackets.forEach { eventPacket ->
             requestBodyBuilder.addFormDataPart(
                 eventFormDataName,
-                eventPacket.asFormDataPart(fileStorage)
+                eventPacket.asFormDataPart(fileStorage),
             )
         }
     }

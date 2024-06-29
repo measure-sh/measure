@@ -26,7 +26,6 @@ import sh.measure.android.screenshot.Screenshot
 import sh.measure.android.screenshot.ScreenshotCollector
 import sh.measure.android.utils.iso8601Timestamp
 
-
 internal class EventProcessorTest {
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val idProvider = FakeIdProvider()
@@ -376,7 +375,7 @@ internal class EventProcessorTest {
             screenshotCollector = screenshotCollector,
             configProvider = configProvider,
             eventTransformer = eventTransformer,
-            userDefinedAttribute = userDefinedAttribute
+            userDefinedAttribute = userDefinedAttribute,
         )
 
         // When

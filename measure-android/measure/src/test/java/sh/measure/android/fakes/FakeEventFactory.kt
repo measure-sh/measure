@@ -77,7 +77,7 @@ internal object FakeEventFactory {
             attachments = attachments,
             attributes = attributes,
             userTriggered = userTriggered,
-            userDefinedAttributes = userDefinedAttributes
+            userDefinedAttributes = userDefinedAttributes,
         )
     }
 

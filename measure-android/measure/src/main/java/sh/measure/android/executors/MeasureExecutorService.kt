@@ -4,11 +4,9 @@ import org.jetbrains.annotations.TestOnly
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
-import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ThreadFactory
-import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
 internal interface MeasureExecutorService {
@@ -51,7 +49,10 @@ internal class MeasureExecutorServiceImpl @TestOnly constructor(private val exec
         delayUnit: TimeUnit,
     ): Future<*> {
         return executorService.scheduleWithFixedDelay(
-            runnable, initialDelay, delayMillis, delayUnit
+            runnable,
+            initialDelay,
+            delayMillis,
+            delayUnit,
         )
     }
 
