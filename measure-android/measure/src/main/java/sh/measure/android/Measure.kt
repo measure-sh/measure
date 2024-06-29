@@ -151,7 +151,7 @@ object Measure {
      * @param value The value for the attribute, can be an Integer, Long, Float or Double.
      * @param store If true, the attribute will be stored on disk and persisted across app launches.
      */
-    fun putAttribute(key: String, value: Number, store: Boolean) {
+    private fun putAttribute(key: String, value: Number, store: Boolean) {
         if (isInitialized.get()) {
             measure.putAttribute(key, value, store)
         }
@@ -176,7 +176,7 @@ object Measure {
      * @param value The value for the attribute.
      * @param store If true, the attribute will be stored on disk and persisted across app launches.
      */
-    fun putAttribute(key: String, value: String, store: Boolean) {
+    private fun putAttribute(key: String, value: String, store: Boolean) {
         if (isInitialized.get()) {
             measure.putAttribute(key, value, store)
         }
@@ -201,7 +201,7 @@ object Measure {
      * @param value The value for the attribute.
      * @param store If true, the attribute will be stored on disk and persisted across app launches.
      */
-    fun putAttribute(key: String, value: Boolean, store: Boolean) {
+    private fun putAttribute(key: String, value: Boolean, store: Boolean) {
         if (isInitialized.get()) {
             measure.putAttribute(key, value, store)
         }
@@ -213,7 +213,7 @@ object Measure {
      *
      * @param key The key for the attribute to remove.
      */
-    fun removeAttribute(key: String) {
+    private fun removeAttribute(key: String) {
         if (isInitialized.get()) {
             measure.removeAttribute(key)
         }
@@ -223,7 +223,7 @@ object Measure {
      * Clears the attributes set by [putAttribute], if any. No-op if no attributes are set. If the
      * attributes were stored on disk, they will be removed from disk storage.
      */
-    fun clearAttributes() {
+    private fun clearAttributes() {
         if (isInitialized.get()) {
             measure.clearAttributes()
         }
@@ -237,7 +237,7 @@ object Measure {
      * Note that this will not clear the events already collected by the SDK, such events will
      * still be sent to the server without any change.
      */
-    fun clear() {
+    private fun clear() {
         if (isInitialized.get()) {
             measure.clear()
         }

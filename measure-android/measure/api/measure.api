@@ -9,10 +9,15 @@ public final class sh/measure/android/BuildConfig {
 public final class sh/measure/android/Measure {
 	public static final field $stable I
 	public static final field INSTANCE Lsh/measure/android/Measure;
+	public static final fun clearUserId ()V
 	public static final fun init (Landroid/content/Context;)V
 	public static final fun init (Landroid/content/Context;Lsh/measure/android/config/MeasureConfig;)V
 	public static synthetic fun init$default (Landroid/content/Context;Lsh/measure/android/config/MeasureConfig;ILjava/lang/Object;)V
-	public final fun setUserId (Ljava/lang/String;)V
+	public static final fun setUserId (Ljava/lang/String;)V
+	public static final fun trackHandledException (Ljava/lang/Throwable;)V
+	public static final fun trackNavigation (Ljava/lang/String;)V
+	public static final fun trackNavigation (Ljava/lang/String;Ljava/lang/String;)V
+	public static synthetic fun trackNavigation$default (Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)V
 }
 
 public final class sh/measure/android/config/MeasureConfig : sh/measure/android/config/IMeasureConfig {
@@ -22,8 +27,11 @@ public final class sh/measure/android/config/MeasureConfig : sh/measure/android/
 	public synthetic fun <init> (ZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun getDefaultHttpHeadersBlocklist ()Ljava/util/List;
 	public fun getDefaultHttpUrlBlocklist ()Ljava/util/List;
+	public fun getDefaultMaxUserDefinedAttributeKeyLength ()I
+	public fun getDefaultMaxUserDefinedAttributeValueLength ()I
 	public fun getDefaultSessionEndThresholdMs ()J
 	public fun getDefaultSessionsTableTtlMs ()J
+	public fun getDefaultUserDefinedAttributeKeyWithSpaces ()Z
 	public fun getEventsBatchingIntervalMs ()J
 	public fun getHttpContentTypeAllowlist ()Ljava/util/List;
 	public fun getHttpHeadersBlocklist ()Ljava/util/List;
