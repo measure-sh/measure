@@ -88,7 +88,7 @@ class NetworkClientTest {
         val formDataPart = eventPacket.asFormDataPart(fileStorage)
 
         val expectedData =
-            "{\"id\":\"${eventEntity.id}\",\"session_id\":\"${eventEntity.sessionId}\",\"user_triggered\":\"${eventEntity.userTriggered}\",\"timestamp\":\"${eventEntity.timestamp}\",\"type\":\"${eventEntity.type}\",\"${eventEntity.type}\":serialized-data,\"attachments\":${eventEntity.serializedAttachments},\"attribute\":${eventEntity.serializedAttributes},\"user_defined_attributes\":${eventEntity.serializedUserDefAttributes}}"
+            "{\"id\":\"${eventEntity.id}\",\"session_id\":\"${eventEntity.sessionId}\",\"user_triggered\":\"${eventEntity.userTriggered}\",\"timestamp\":\"${eventEntity.timestamp}\",\"type\":\"${eventEntity.type}\",\"${eventEntity.type}\":serialized-data,\"attachments\":${eventEntity.serializedAttachments},\"attribute\":${eventEntity.serializedAttributes}}"
         assertEquals(expectedData, formDataPart)
     }
 
@@ -100,7 +100,7 @@ class NetworkClientTest {
         val formDataPart = eventPacket.asFormDataPart(fileStorage)
 
         val expectedData =
-            "{\"id\":\"${eventEntity.id}\",\"session_id\":\"${eventEntity.sessionId}\",\"user_triggered\":\"${eventEntity.userTriggered}\",\"timestamp\":\"${eventEntity.timestamp}\",\"type\":\"${eventEntity.type}\",\"${eventEntity.type}\":serialized-data,\"attachments\":${eventEntity.serializedAttachments},\"attribute\":${eventEntity.serializedAttributes},\"user_defined_attributes\":${eventEntity.serializedUserDefAttributes}}"
+            "{\"id\":\"${eventEntity.id}\",\"session_id\":\"${eventEntity.sessionId}\",\"user_triggered\":\"${eventEntity.userTriggered}\",\"timestamp\":\"${eventEntity.timestamp}\",\"type\":\"${eventEntity.type}\",\"${eventEntity.type}\":serialized-data,\"attachments\":${eventEntity.serializedAttachments},\"attribute\":${eventEntity.serializedAttributes}}"
         assertEquals(expectedData, formDataPart)
     }
 
