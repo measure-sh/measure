@@ -89,19 +89,20 @@ can be notified of issues as soon as possible.
 
 # Thread management
 
-Measure maintains a pool of threads to handle background tasks using executors. Broadly the SDK
-follows the following
-thread management strategy:
+The SDK uses `ExecutorServiceRegistry` as a single source of truth to provide executors for various
+tasks. This makes it easy to manage the lifecycle of executors and also to provide a single point to
+tune the number of threads used for various tasks.
 
-1. Use single threaded executors unless there is a need for parallel execution, which is rare.
-2. Use a single thread to apply attributes and store the events in database/file storage. This
-   ensures that there are no concurrent writes to the database.
-3. Use a single thread to export events to the server. This ensures that there are no
-   concurrent network requests as expected by the export algorithm mentioned
-   in [Periodic batching and export](#periodic-batching-and-export) section.
-4. For collectors, use the `background executor` for all tasks which are not time-consuming. For
-   tasks
-   which are time-consuming or block on IO, use a different thread.
+The following executors are used:
+1. IO Executor: Used for all long running operations like writing to the database, reading from the database,
+   writing to the file system, etc.
+2. Export Executor: Used for exporting events to the server over the network.
+3. Default Executor: Used for short running tasks that need to be run in background like processing 
+events, etc.
+
+All executors are configured to be single-threaded and internally use a scheduled executor service 
+with unbounded queue, which can be tuned in the future.
+
 
 # Configuration
 
