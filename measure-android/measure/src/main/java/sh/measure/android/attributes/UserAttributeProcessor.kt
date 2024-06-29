@@ -1,25 +1,41 @@
 package sh.measure.android.attributes
 
+import sh.measure.android.attributes.Attribute.USER_ID_KEY
+import sh.measure.android.executors.MeasureExecutorService
+import sh.measure.android.storage.PrefsStorage
+import java.util.concurrent.atomic.AtomicBoolean
+
 /**
  * Maintains the state for the user ID attribute. The user ID is set by the SDK user and can change
  * during the session. This class returns the latest user ID set by the user.
  */
-internal class UserAttributeProcessor : AttributeProcessor {
-    private val key = "user_id"
+internal class UserAttributeProcessor(
+    private val prefsStorage: PrefsStorage,
+    private val ioExecutor: MeasureExecutorService,
+) : AttributeProcessor {
+    private val loadedFromDisk = AtomicBoolean(false)
     private var userId: String? = null
 
     override fun appendAttributes(attributes: MutableMap<String, Any?>) {
-        // if null, load user ID from disk if available, then return
-        // blocks on I/O.
-        attributes[key] = userId
+        if (!loadedFromDisk.getAndSet(true)) {
+            userId = prefsStorage.getUserId()
+        }
+        attributes[USER_ID_KEY] = userId
     }
 
     fun setUserId(userId: String) {
         this.userId = userId
-        // TODO: persist user ID to disk async
+        ioExecutor.submit {
+            prefsStorage.setUserId(userId)
+        }
     }
+
+    fun getUserId(): String? = userId
 
     fun clearUserId() {
         userId = null
+        ioExecutor.submit {
+            prefsStorage.setUserId(null)
+        }
     }
 }

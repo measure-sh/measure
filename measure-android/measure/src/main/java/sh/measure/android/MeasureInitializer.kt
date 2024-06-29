@@ -147,7 +147,10 @@ internal class MeasureInitializerImpl(
         database,
         executorServiceRegistry.ioExecutor(),
     ),
-    override val userAttributeProcessor: UserAttributeProcessor = UserAttributeProcessor(),
+    override val userAttributeProcessor: UserAttributeProcessor = UserAttributeProcessor(
+        prefsStorage,
+        executorServiceRegistry.ioExecutor(),
+    ),
     private val deviceAttributeProcessor: DeviceAttributeProcessor = DeviceAttributeProcessor(
         logger,
         context = application,
