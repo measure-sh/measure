@@ -218,6 +218,7 @@ more.
 
 Allows enabling/disabling capturing of HTTP request and response body. Disabled by default.
 
+
 ## Intent data options
 
 Android [Intent](https://developer.android.com/reference/android/content/Intent#standard-extra-data)
@@ -231,12 +232,51 @@ The following configurations are available:
 ### `trackLifecycleActivityIntentData`
 
 Allows enabling/disabling of collection of intent data for the following events:
-* `lifecycle_activity.created` event, which is collected with the Activity lifecycle event `onCreate` is triggered.
+
+* `lifecycle_activity.created` event, which is collected with the Activity lifecycle
+  event `onCreate` is triggered.
 * `cold_launch` event, which is collected when the app is launched from a cold start.
 * `warm_launch` event, which is collected when the app is launched from a warm start.
 * `hot_launch` event, which is collected when the app is launched from a hot start.
 
 Disabled by default.
+
+# Custom Events
+
+The following events can be triggered manually to get more context while debugging issues.
+
+## Handled Exceptions
+
+To track exceptions which were caught and handled by the app, use the `trackHandledException`
+method.
+
+```kotlin
+try {
+    methodThatThrows()
+} catch (e: Exception) {
+    Measure.trackHandledException(e)
+}
+```
+
+## Navigation
+
+Measure automatically tracks `navigation` events
+for [androidx.navigation](https://developer.android.com/jetpack/androidx/releases/navigation)
+library. It also
+tracks [lifecycle_activity](docs/features/feature_navigation_and_lifecycle.md#activity-lifecycle)
+events
+and [lifecycle_fragment](docs/features/feature_navigation_and_lifecycle.md#fragment-lifecycle)
+events.
+
+However, `navigation` events can also be triggered manually using the following method to keep
+a track of the user flow.
+
+```kotlin
+Measure.trackNavigationEvent(
+    from = "home",
+    to = "settings"
+)
+```
 
 # Internals
 
