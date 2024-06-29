@@ -26,9 +26,11 @@ class SampleApp : Application() {
         Measure.clearUserId()
         Measure.trackNavigation("sample-to", "sample-from")
         Measure.trackHandledException(RuntimeException("sample-handled-exception"))
+        /*
         Measure.putAttribute("sample-key-1", 123)
         Measure.putAttribute("sample-key-2", 123.45)
         Measure.putAttribute("sample-key-3", "sample-value")
         Measure.putAttribute("sample-key-4", true)
+        */
     }
 }
