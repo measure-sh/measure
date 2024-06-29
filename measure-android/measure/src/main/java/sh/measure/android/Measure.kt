@@ -123,6 +123,7 @@ object Measure {
      *    Measure.trackHandledException(e)
      *  }
      * ```
+     * @param throwable The exception that was caught and handled.
      */
     @JvmStatic
     fun trackHandledException(throwable: Throwable) {
@@ -145,6 +146,10 @@ object Measure {
      * recommended to use consistent naming conventions and namespacing them with relevant context.
      *
      * Setting an attribute with different values overrides the previous value.
+     *
+     * @param key The key for the attribute.
+     * @param value The value for the attribute, can be an Integer, Long, Float or Double.
+     * @param store If true, the attribute will be stored on disk and persisted across app launches.
      */
     fun putAttribute(key: String, value: Number, store: Boolean) {
         if (isInitialized.get()) {
@@ -166,6 +171,10 @@ object Measure {
      * recommended to use consistent naming conventions and namespacing them with relevant context.
      *
      * Setting an attribute with different values overrides the previous value.
+     *
+     * @param key The key for the attribute.
+     * @param value The value for the attribute.
+     * @param store If true, the attribute will be stored on disk and persisted across app launches.
      */
     fun putAttribute(key: String, value: String, store: Boolean) {
         if (isInitialized.get()) {
@@ -187,6 +196,10 @@ object Measure {
      * recommended to use consistent naming conventions and namespacing them with relevant context.
      *
      * Setting an attribute with different values overrides the previous value.
+     *
+     * @param key The key for the attribute.
+     * @param value The value for the attribute.
+     * @param store If true, the attribute will be stored on disk and persisted across app launches.
      */
     fun putAttribute(key: String, value: Boolean, store: Boolean) {
         if (isInitialized.get()) {
@@ -196,7 +209,9 @@ object Measure {
 
     /**
      * Removes an attribute with the given key, if previously set by [putAttribute]. No-op if the
-     * key is not set.
+     * key is not set. If the attribute was stored on disk, it will be removed from disk storage.
+     *
+     * @param key The key for the attribute to remove.
      */
     fun removeAttribute(key: String) {
         if (isInitialized.get()) {
@@ -205,7 +220,8 @@ object Measure {
     }
 
     /**
-     * Clears the attributes set by [putAttribute], if any. No-op if no attributes are set.
+     * Clears the attributes set by [putAttribute], if any. No-op if no attributes are set. If the
+     * attributes were stored on disk, they will be removed from disk storage.
      */
     fun clearAttributes() {
         if (isInitialized.get()) {

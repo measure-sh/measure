@@ -20,4 +20,5 @@ internal object Attribute {
     const val NETWORK_GENERATION_KEY = "network_generation"
     const val NETWORK_PROVIDER_NAME_KEY = "network_provider_name"
     const val INSTALLATION_ID_KEY = "installation_id"
+    const val USER_ID_KEY = "user_id"
 }
