@@ -27,7 +27,6 @@
     "autoprefixer": "10.4.15",
     "eslint": "8.48.0",
     "eslint-config-next": "^14.1.0",
-    "lottie-react": "^2.4.0",
     "luxon": "^3.4.4",
     "next": "^14.1.0",
     "postcss": "8.4.29",
