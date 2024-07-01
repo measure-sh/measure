@@ -26,11 +26,6 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
 
 
   const getExceptionsOverview = async () => {
-    // Don't try to fetch crashes or ANRs if app id is not yet set
-    if (selectedFilters.selectedApp.id === "") {
-      return
-    }
-
     setExceptionsOverviewApiStatus(ExceptionsOverviewApiStatus.Loading)
 
     // Set key id if user has paginated. Last index of current list if forward navigation, first index if backward
@@ -65,11 +60,21 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
   }
 
   useEffect(() => {
+    if (!selectedFilters.ready) {
+      return
+    }
+
     getExceptionsOverview()
   }, [paginationRange, selectedFilters]);
 
-  // Reset pagination range if any filters change
+  // Reset pagination range if not in default if any filters change
   useEffect(() => {
+    // If we reset pagination range even if values haven't change, we will trigger
+    // and unnecessary getExceptionsOverview effect
+    if (paginationRange.start === 1 && paginationRange.end === paginationOffset) {
+      return
+    }
+
     setPaginationRange({ start: 1, end: paginationOffset })
   }, [selectedFilters]);
 
