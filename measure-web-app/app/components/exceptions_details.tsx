@@ -32,11 +32,6 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
   const [paginationDirection, setPaginationDirection] = useState(PaginationDirection.None)
 
   const getExceptionsDetails = async () => {
-    // Don't try to fetch crashes or ANR group details if app id is not yet set
-    if (selectedFilters.selectedApp.id === "") {
-      return
-    }
-
     setExceptionsDetailsApiStatus(ExceptionsDetailsApiStatus.Loading)
 
     // Set key id if user has paginated
@@ -69,6 +64,10 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
   }
 
   useEffect(() => {
+    if (!selectedFilters.ready) {
+      return
+    }
+
     getExceptionsDetails()
   }, [paginationIndex, selectedFilters]);
 
