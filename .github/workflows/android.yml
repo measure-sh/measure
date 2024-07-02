@@ -103,9 +103,9 @@ jobs:
       - name: Publish measure-android
         run: ./gradlew clean :measure:publish --no-daemon --no-parallel --no-configuration-cache --stacktrace
         env:
-          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_USERNAME }}
-          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_PASSWORD }}
-          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_ARTIFACT_SIGNING_KEY }}
+          mavenCentralUsername: ${{ secrets.MAVEN_USERNAME }}
+          mavenCentralPassword: ${{ secrets.MAVEN_PASSWORD }}
+          signingInMemoryKey: ${{ secrets.MAVEN_ARTIFACT_SIGNING_KEY }}
 
   publish-android-gradle:
     runs-on: ubuntu-latest
@@ -134,6 +134,6 @@ jobs:
       - name: Publish measure-android-gradle
         run: ./gradlew clean :measure-android-gradle:publishMavenPublicationToGitHubPackagesRepository --no-daemon --no-parallel --no-configuration-cache --stacktrace
         env:
-          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_USERNAME }}
-          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_PASSWORD }}
-          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_ARTIFACT_SIGNING_KEY }}
+          mavenCentralUsername: ${{ secrets.MAVEN_USERNAME }}
+          mavenCentralPassword: ${{ secrets.MAVEN_PASSWORD }}
+          signingInMemoryKey: ${{ secrets.MAVEN_ARTIFACT_SIGNING_KEY }}
