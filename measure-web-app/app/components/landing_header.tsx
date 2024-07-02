@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation'
 import { useScrollDirection } from '../utils/scroll_utils';
+import Link from 'next/link';
+import Image from 'next/image'
 
 export default function LandingHeader() {
   const scrollDir = useScrollDirection();
@@ -14,7 +16,15 @@ export default function LandingHeader() {
       <div className="w-full flex flex-col md:flex-row space-between items-center py-4 px-4">
         <button className="outline-none border border-black rounded-full hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display font-display transition-colors duration-100 py-1 px-2.5" onClick={() => router.push('/')}>m</button>
         <div className="py-2 md:py-0 md:flex md:grow" />
-        <button className="outline-none hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => router.push('/#email-waitlist')}>Get early access!</button>
+        <Link href="https://github.com/measure-sh/measure" className='outline-none flex flex-row place-items-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4'>
+          <Image
+            src='/images/github_logo.svg'
+            width={24}
+            height={24}
+            alt={'Github logo'} />
+          <div className='px-1' />
+          <p className='mt-1'>Get Started</p>
+        </Link>
       </div>
       <div className="w-full border-[0.1px] border-stone-900" />
     </header>
