@@ -4,7 +4,7 @@ bundletool = "1.15.6"
 android-tools = "31.4.1"
 junit-platform-launcher = "1.10.2"
 kotlin = "1.9.21"
-measure-android = "0.2.0"
+measure-android = "0.3.0"
 androidx-activity-compose = "1.7.2"
 androidx-appcompat = "1.6.1"
 androidx-constraintlayout = "2.1.4"
@@ -42,6 +42,7 @@ diffplug-spotless = "6.24.0"
 compose-plugin = "1.5.11"
 gradle-plugin-publish = "1.2.0"
 autonomousapps-testkit = "0.8"
+mavenPublish = "0.29.0"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity-compose" }
@@ -109,3 +110,5 @@ diffplug-spotless = { id = "com.diffplug.spotless", version.ref = "diffplug-spot
 compose = { id = "org.jetbrains.compose", version.ref = "compose-plugin" }
 gradle-plugin-publish = { id = "com.gradle.plugin-publish", version.ref = "gradle-plugin-publish" }
 autonomousapps-testkit = { id = "com.autonomousapps.testkit", version.ref = "autonomousapps-testkit" }
+mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
+

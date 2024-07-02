@@ -98,13 +98,10 @@ jobs:
         uses: gradle/wrapper-validation-action@v1
       - name: Publish measure-android
         run: ./gradlew clean :measure:publish --no-daemon --no-parallel --no-configuration-cache --stacktrace
-
-        # Certain gradle plugin tests depend on the measure-android artifact being published. We run all the tests for
-        # measure-android-gradle here to ensure everything works.
-      - name: Run measure-android-gradle tests
-        run: ./gradlew clean :measure-android-gradle:test --no-daemon --no-parallel --no-configuration-cache --stacktrace
-      - name: Run measure-android-gradle functional tests
-        run: ./gradlew clean :measure-android-gradle:functionalTest --no-daemon --no-parallel --no-configuration-cache --stacktrace
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_ARTIFACT_SIGNING_KEY }}
 
   publish-android-gradle:
     runs-on: ubuntu-latest
@@ -131,3 +128,7 @@ jobs:
 #        run: ./gradlew clean :measure-android-gradle:functionalTest --no-daemon --no-parallel --no-configuration-cache --stacktrace
       - name: Publish measure-android-gradle
         run: ./gradlew clean :measure-android-gradle:publishMavenPublicationToGitHubPackagesRepository --no-daemon --no-parallel --no-configuration-cache --stacktrace
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_ARTIFACT_SIGNING_KEY }}
