@@ -14,9 +14,9 @@ export default function LandingHeader() {
 
   useEffect(() => {
     if (typeof window !== undefined && (window.location.hostname === 'measure.sh' || window.location.hostname === 'www.measure.sh')) {
-      setSelfHosted(true)
-    } else {
       setSelfHosted(false)
+    } else {
+      setSelfHosted(true)
     }
   }, [])
 
