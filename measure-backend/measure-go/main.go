@@ -84,6 +84,7 @@ func main() {
 		teams.POST("", measure.CreateTeam)
 		teams.GET("", measure.GetTeams)
 		teams.GET(":id/apps", measure.GetTeamApps)
+		teams.GET(":id/usage", measure.GetUsage)
 		teams.GET(":id/apps/:appId", measure.GetTeamApp)
 		teams.POST(":id/apps", measure.CreateApp)
 		teams.POST(":id/invite", measure.InviteMembers)
