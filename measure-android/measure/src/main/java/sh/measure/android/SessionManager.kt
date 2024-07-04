@@ -49,7 +49,7 @@ internal interface SessionManager {
  * Manages creation of sessions.
  *
  * A new session is created when [getSessionId] is first called. A session ends when the app comes
- * back to foreground after being in background for more than [ConfigProvider.defaultSessionEndThresholdMs].
+ * back to foreground after being in background for more than [ConfigProvider.sessionEndThresholdMs].
  */
 internal class SessionManagerImpl(
     private val logger: Logger,
@@ -91,7 +91,7 @@ internal class SessionManagerImpl(
     // clear up resources associated with a session in future or take any other action.
     private fun endSessionIfNeeded() {
         val durationInBackground = timeProvider.uptimeInMillis - appBackgroundedUptimeMs
-        if (durationInBackground >= configProvider.defaultSessionEndThresholdMs) {
+        if (durationInBackground >= configProvider.sessionEndThresholdMs) {
             logger.log(
                 LogLevel.Debug,
                 "Ending session as app was relaunched after being in background for $durationInBackground ms",
@@ -103,7 +103,7 @@ internal class SessionManagerImpl(
     override fun clearOldSessions() {
         ioExecutor.submit {
             val clearUpToTimeSinceEpoch =
-                timeProvider.currentTimeSinceEpochInMillis - configProvider.defaultSessionsTableTtlMs
+                timeProvider.currentTimeSinceEpochInMillis - configProvider.sessionsTableTtlMs
             database.clearOldSessions(clearUpToTimeSinceEpoch)
         }
     }

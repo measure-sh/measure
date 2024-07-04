@@ -22,12 +22,11 @@ internal class FakeConfigProvider : ConfigProvider {
     override var maxEventsInBatch: Int = 100
     override var httpContentTypeAllowlist: List<String> = emptyList()
     override var defaultHttpHeadersBlocklist: List<String> = emptyList()
-    override var defaultHttpUrlBlocklist: List<String> = emptyList()
-    override var defaultSessionsTableTtlMs: Long = 15 * 24 * 60 * 60 * 1000 // 15 days
-    override var defaultSessionEndThresholdMs: Long = 60 * 1000 // 1 minute
-    override var defaultMaxUserDefinedAttributeKeyLength: Int = 64
-    override var defaultMaxUserDefinedAttributeValueLength: Int = 256
-    override var defaultUserDefinedAttributeKeyWithSpaces: Boolean = false
+    override var sessionsTableTtlMs: Long = 15 * 24 * 60 * 60 * 1000 // 15 days
+    override var sessionEndThresholdMs: Long = 60 * 1000 // 1 minute
+    override var maxUserDefinedAttributeKeyLength: Int = 64
+    override var maxUserDefinedAttributeValueLength: Int = 256
+    override var userDefinedAttributeKeyWithSpaces: Boolean = false
 
     var shouldTrackHttpBody = false
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
@@ -42,5 +41,9 @@ internal class FakeConfigProvider : ConfigProvider {
     var headerKeysToBlock = emptyList<String>()
     override fun shouldTrackHttpHeader(key: String): Boolean {
         return !headerKeysToBlock.any { key.contains(it, ignoreCase = true) }
+    }
+
+    override fun setMeasureUrl(url: String) {
+        // no-op
     }
 }

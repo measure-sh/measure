@@ -25,21 +25,8 @@ public final class sh/measure/android/config/MeasureConfig : sh/measure/android/
 	public fun <init> ()V
 	public fun <init> (ZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Z)V
 	public synthetic fun <init> (ZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public fun getDefaultHttpHeadersBlocklist ()Ljava/util/List;
-	public fun getDefaultHttpUrlBlocklist ()Ljava/util/List;
-	public fun getDefaultMaxUserDefinedAttributeKeyLength ()I
-	public fun getDefaultMaxUserDefinedAttributeValueLength ()I
-	public fun getDefaultSessionEndThresholdMs ()J
-	public fun getDefaultSessionsTableTtlMs ()J
-	public fun getDefaultUserDefinedAttributeKeyWithSpaces ()Z
-	public fun getEventsBatchingIntervalMs ()J
-	public fun getHttpContentTypeAllowlist ()Ljava/util/List;
 	public fun getHttpHeadersBlocklist ()Ljava/util/List;
 	public fun getHttpUrlBlocklist ()Ljava/util/List;
-	public fun getMaxAttachmentSizeInEventsBatchInBytes ()I
-	public fun getMaxEventsInBatch ()I
-	public fun getScreenshotCompressionQuality ()I
-	public fun getScreenshotMaskHexColor ()Ljava/lang/String;
 	public fun getScreenshotMaskLevel ()Lsh/measure/android/config/ScreenshotMaskLevel;
 	public fun getTrackActivityIntentData ()Z
 	public fun getTrackHttpBody ()Z
