@@ -63,7 +63,7 @@ export default function Home() {
           <div className="flex flex-col md:w-3/6 items-center md:items-start">
             <p className="text-4xl font-regular text-black font-display text-center md:text-left">Session timeline</p>
             <div className="py-2" />
-            <p className="text-lg text-center md:text-left leading-relaxed font-sans text-black">Get to the root cause easily with full session timelines. Debug with automatic tracking for clicks, navigations, http calls and more.</p>
+            <p className="text-lg text-center md:text-left leading-relaxed font-sans text-black">Debug issues easily with full session timelines. Get the full context with automatic tracking for clicks, navigations, http calls and more.</p>
           </div>
           <div className="py-4 md:py-0 md:w-1/6" />
           <div className='border border-pink-400 rounded-3xl p-4 w-fit w-96 h-96 md:w-3/6 bg-pink-200'>
@@ -106,7 +106,7 @@ export default function Home() {
           </div>
         </div>
         <div className="py-16" />
-        <p className="font-display font-regular text-black text-6xl max-w-4xl text-center">Set up your first app</p>
+        <p className="font-display font-regular text-black text-6xl max-w-4xl text-center">Get to the root cause</p>
         <div className="py-2" />
         <p className="font-sans text-black text-xl leading-relaxed max-w-4xl text-center">Check out our detailed guides on Github to get up and running with Measure!</p>
         <div className="py-2" />
