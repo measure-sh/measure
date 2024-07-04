@@ -1,6 +1,8 @@
 @file:Suppress("UnstableApiUsage")
 
 import com.diffplug.gradle.spotless.SpotlessExtension
+import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
+import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
     alias(libs.plugins.android.library)
@@ -8,31 +10,48 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlinx.binary.compatibility.validator)
     alias(libs.plugins.diffplug.spotless)
-    id("maven-publish")
+    alias(libs.plugins.mavenPublish)
 }
 
-val measureSdkVersion = properties["MEASURE_VERSION_NAME"] as String
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            groupId = properties["GROUP"] as String
-            artifactId = properties["MEASURE_ARTIFACT_ID"] as String
-            version = measureSdkVersion
+private val measureSdkVersion = properties["MEASURE_VERSION_NAME"] as String
+private val groupId = properties["GROUP"] as String
+private val artifactId = properties["MEASURE_ARTIFACT_ID"] as String
 
-            afterEvaluate {
-                from(components["release"])
+mavenPublishing {
+    coordinates(groupId, artifactId, measureSdkVersion)
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = false)
+    signAllPublications()
+
+    configure(
+        AndroidSingleVariantLibrary(
+            variant = "release",
+            sourcesJar = true,
+            publishJavadocJar = true,
+        ),
+    )
+
+    pom {
+        name.set("Measure Android SDK")
+        description.set("Measure Android SDK")
+        inceptionYear.set("2024")
+        url.set("https://github.com/measure-sh/measure")
+        licenses {
+            license {
+                name.set("The Apache License, Version 2.0")
+                url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                distribution.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
             }
         }
-    }
-
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/measure-sh/measure")
-            credentials {
-                username = System.getenv("GITHUB_ACTOR")
-                password = System.getenv("GITHUB_TOKEN")
+        developers {
+            developer {
+                id.set("measure")
+                name.set("measure.sh")
             }
+        }
+        scm {
+            url.set("https://github.com/measure-sh/measure")
+            connection.set("scm:git:git://github.com/measure-sh/measure.git")
+            developerConnection.set("scm:git:ssh://git@github.com/measure-sh/measure.git")
         }
     }
 }
