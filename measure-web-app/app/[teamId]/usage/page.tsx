@@ -5,15 +5,16 @@ import { useRouter } from 'next/navigation';
 import CreateApp from '@/app/components/create_app';
 import { FetchUsageApiStatus, emptyUsage, fetchUsageFromServer } from '@/app/api/api_calls';
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select';
+import { ResponsivePie } from '@nivo/pie';
 
 export default function Overview({ params }: { params: { teamId: string } }) {
   const router = useRouter()
 
   type AppMonthlyUsage = {
-    app_id: string;
-    app_name: string;
-    event_count: number;
-    session_count: number;
+    id: string;
+    label: string;
+    value: number;
+    events: number;
   }
 
   const [fetchUsageApiStatus, setFetchUsageApiStatus] = useState(FetchUsageApiStatus.Loading);
@@ -40,11 +41,10 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     usage.forEach(app => {
       app.monthly_app_usage.forEach(u => {
         if (u.month_year === month) {
-          selectedMonthUsages.push({ app_id: app.app_id, app_name: app.app_name, event_count: u.event_count, session_count: u.session_count });
+          selectedMonthUsages.push({ id: app.app_id, label: app.app_name, value: u.session_count, events: u.event_count });
         }
       });
     });
-
     return selectedMonthUsages
   }
 
@@ -80,6 +80,29 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     setSelectedMonthUsage(parseUsageForMonth(usage, selectedMonth!))
   }, [selectedMonth]);
 
+  // @ts-ignore
+  const CenteredMetric = ({ centerX, centerY }) => {
+    let totalSessions = 0
+    let totalEvents = 0
+    selectedMonthUsage!.forEach(appMonthlyUsage => {
+      totalSessions += appMonthlyUsage.value
+      totalEvents += appMonthlyUsage.events
+    })
+
+    return (
+      <text
+        x={centerX}
+        y={centerY}
+        textAnchor="middle"
+        dominantBaseline="central"
+        className='font-display font-semibold'
+      >
+        <tspan className='text-2xl' x={centerX} dy="-0.7em">{totalSessions} Sessions</tspan>
+        <tspan className='text-lg' x={centerX} dy="1.4em">{totalEvents} Events</tspan>
+      </text>
+    )
+  }
+
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
@@ -102,19 +125,35 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         <div className="flex flex-col items-start">
           <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={months!} initialSelected={selectedMonth!} onChangeSelected={(item) => setSelectedMonth(item as string)} />
           <div className="py-4" />
-          {selectedMonthUsage!.map(({ app_id, app_name, event_count, session_count }) => (
-            <div key={app_id + '-usage'} className="font-sans">
-              <div className="flex flex-col">
-                <p className="text-xl font-semibold">{app_name}</p>
-                <div className="py-1" />
-                <p>Sessions: {session_count}</p>
-                <div className="py-1" />
-                <p>Events: {event_count}</p>
-                <div className="py-2" />
-              </div>
-              <div className="py-4" />
-            </div>
-          ))}
+          <div className='w-[56rem] h-[36rem] border border-black'>
+            <ResponsivePie
+              data={selectedMonthUsage!}
+              animate
+              margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
+              innerRadius={0.7}
+              enableArcLabels={false}
+              arcLinkLabel={d => `${d.label}`}
+              padAngle={0.7}
+              cornerRadius={3}
+              activeOuterRadiusOffset={8}
+              colors={{ scheme: 'nivo' }}
+              arcLinkLabelsSkipAngle={10}
+              arcLinkLabelsThickness={2}
+              arcLinkLabelsColor={{ from: 'color' }}
+              tooltip={({ datum: { id, label, value, color } }) => {
+                return (
+                  <div className="bg-neutral-950 text-white flex flex-col py-2 px-4 font-display">
+                    <p className='text-sm font-semibold' style={{ color: color }}>{label}</p>
+                    <div className='py-0.5' />
+                    <p className='text-xs'>Sessions: {value}</p>
+                    <p className='text-xs'>Events: {selectedMonthUsage?.find((i) => i.id === id)!.events}</p>
+                  </div>
+                )
+              }}
+              legends={[]}
+              layers={['arcs', 'arcLabels', 'arcLinkLabels', 'legends', CenteredMetric]}
+            />
+          </div>
         </div>}
     </div>
   )
