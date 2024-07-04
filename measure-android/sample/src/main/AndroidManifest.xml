@@ -59,6 +59,10 @@
         <meta-data
             android:name="sh.measure.android.API_KEY"
             android:value="${MEASURE_API_KEY}" />
+
+        <meta-data
+            android:name="sh.measure.android.API_URL"
+            android:value="${MEASURE_API_URL}" />
     </application>
 
 </manifest>
