@@ -42,7 +42,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
             if (it.url == null) {
                 logger.log(
                     LogLevel.Error,
-                    "measure_url is missing in the manifest, skipping initialization",
+                    "sh.measure.android.API_URL is missing in the manifest, skipping initialization",
                 )
                 return
             }
@@ -50,7 +50,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
             if (it.apiKey == null) {
                 logger.log(
                     LogLevel.Error,
-                    "apiKey is missing in the manifest, skipping initialization",
+                    "sh.measure.android.API_KEY is missing in the manifest, skipping initialization",
                 )
                 return
             }

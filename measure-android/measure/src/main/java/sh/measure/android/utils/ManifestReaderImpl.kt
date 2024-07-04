@@ -14,7 +14,7 @@ internal interface ManifestReader {
 
 internal class ManifestReaderImpl(private val context: Context, private val logger: Logger) :
     ManifestReader {
-    private val measureUrlKey = "measure_url"
+    private val measureUrlKey = "sh.measure.android.API_URL"
     private val measureApiKey = "sh.measure.android.API_KEY"
 
     override fun load(): ManifestMetadata? {

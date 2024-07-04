@@ -22,6 +22,8 @@ android {
         defaultConfig {
             manifestPlaceholders["MEASURE_API_KEY"] =
                 properties["measure_api_key"]?.toString() ?: ""
+            manifestPlaceholders["MEASURE_API_URL"] =
+                properties["measure_api_url"]?.toString() ?: ""
         }
         release {
             isMinifyEnabled = true

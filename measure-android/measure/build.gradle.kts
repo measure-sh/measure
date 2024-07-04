@@ -68,7 +68,6 @@ android {
 
     buildTypes {
         defaultConfig {
-            manifestPlaceholders["measure_url"] = properties["measure_url"]?.toString() ?: ""
             buildConfigField("String", "MEASURE_SDK_VERSION", "\"$measureSdkVersion\"")
         }
         release {
