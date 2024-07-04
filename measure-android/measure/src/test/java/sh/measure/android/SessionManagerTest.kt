@@ -63,7 +63,7 @@ class SessionManagerTest {
         sessionManager.currentSessionId = initialSessionId
 
         idProvider.id = updatedSessionId
-        simulateAppRelaunch(configProvider.defaultSessionEndThresholdMs)
+        simulateAppRelaunch(configProvider.sessionEndThresholdMs)
 
         val sessionId = sessionManager.getSessionId()
         assertEquals(updatedSessionId, sessionId)
@@ -78,10 +78,10 @@ class SessionManagerTest {
 
     @Test
     fun `delegates to database to delete old sessions by calculating the time to clear up to`() {
-        val currentTime = configProvider.defaultSessionsTableTtlMs + 1000
+        val currentTime = configProvider.sessionsTableTtlMs + 1000
         timeProvider.fakeCurrentTimeSinceEpochInMillis = currentTime
         sessionManager.clearOldSessions()
-        verify(database).clearOldSessions(currentTime - configProvider.defaultSessionsTableTtlMs)
+        verify(database).clearOldSessions(currentTime - configProvider.sessionsTableTtlMs)
     }
 
     private fun simulateAppRelaunch(durationMs: Long) {

@@ -5,27 +5,31 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
 
-internal interface ConfigProvider : IMeasureConfig {
+internal interface ConfigProvider : IMeasureConfig, InternalConfig {
     fun loadNetworkConfig()
     fun shouldTrackHttpBody(url: String, contentType: String?): Boolean
     fun shouldTrackHttpUrl(url: String): Boolean
     fun shouldTrackHttpHeader(key: String): Boolean
+
+    /**
+     * Sets the measure URL so that it can added to the httpUrlBlocklist. Required as it can be any
+     * URL when the SDK is running in self-hosted mode.
+     */
+    fun setMeasureUrl(url: String)
 }
 
 internal class ConfigProviderImpl(
-    private val defaultConfig: MeasureConfig,
+    private val defaultConfig: Config,
     private val configLoader: ConfigLoader,
 ) : ConfigProvider {
-    private var cachedConfig: MeasureConfig? = null
+    private var cachedConfig: Config? = null
 
     @VisibleForTesting
-    internal var networkConfig: MeasureConfig? = null
+    internal var networkConfig: Config? = null
     private val networkConfigLock = ReentrantReadWriteLock()
 
-    /**
-     * The combined url blocklist of [defaultHttpUrlBlocklist] and [httpUrlBlocklist].
-     */
-    private val combinedHttpUrlBlocklist = defaultHttpUrlBlocklist + httpUrlBlocklist
+    // The combined url blocklist of [defaultHttpUrlBlocklist] and [httpUrlBlocklist].
+    private val combinedHttpUrlBlocklist: MutableList<String?> = httpUrlBlocklist.toMutableList()
     private val combinedHttpHeadersBlocklist = defaultHttpHeadersBlocklist + httpHeadersBlocklist
 
     init {
@@ -44,7 +48,6 @@ internal class ConfigProviderImpl(
 
     override val trackScreenshotOnCrash: Boolean
         get() = getMergedConfig { trackScreenshotOnCrash }
-
     override val screenshotMaskLevel: ScreenshotMaskLevel
         get() = getMergedConfig { screenshotMaskLevel }
     override val screenshotMaskHexColor: String
@@ -69,40 +72,44 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { httpContentTypeAllowlist }
     override val defaultHttpHeadersBlocklist: List<String>
         get() = getMergedConfig { defaultHttpHeadersBlocklist }
-    override val defaultHttpUrlBlocklist: List<String>
-        get() = getMergedConfig { defaultHttpUrlBlocklist }
-    override val defaultSessionsTableTtlMs: Long
-        get() = getMergedConfig { defaultSessionsTableTtlMs }
-    override val defaultSessionEndThresholdMs: Long
-        get() = getMergedConfig { defaultSessionEndThresholdMs }
+    override val sessionsTableTtlMs: Long
+        get() = getMergedConfig { sessionsTableTtlMs }
+    override val sessionEndThresholdMs: Long
+        get() = getMergedConfig { sessionEndThresholdMs }
     override val maxAttachmentSizeInEventsBatchInBytes: Int
         get() = getMergedConfig { maxAttachmentSizeInEventsBatchInBytes }
-    override val defaultMaxUserDefinedAttributeKeyLength: Int
-        get() = getMergedConfig { defaultMaxUserDefinedAttributeKeyLength }
-    override val defaultMaxUserDefinedAttributeValueLength: Int
-        get() = getMergedConfig { defaultMaxUserDefinedAttributeValueLength }
-    override val defaultUserDefinedAttributeKeyWithSpaces: Boolean
-        get() = getMergedConfig { defaultUserDefinedAttributeKeyWithSpaces }
+    override val maxUserDefinedAttributeKeyLength: Int
+        get() = getMergedConfig { maxUserDefinedAttributeKeyLength }
+    override val maxUserDefinedAttributeValueLength: Int
+        get() = getMergedConfig { maxUserDefinedAttributeValueLength }
+    override val userDefinedAttributeKeyWithSpaces: Boolean
+        get() = getMergedConfig { userDefinedAttributeKeyWithSpaces }
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         if (contentType.isNullOrEmpty()) {
             return false
         }
-        if ((defaultHttpUrlBlocklist + httpUrlBlocklist).any { url.contains(it) }) {
+        if (combinedHttpUrlBlocklist.any { value -> value?.let { url.contains(it, ignoreCase = true) } == true }) {
             return false
         }
-        return httpContentTypeAllowlist.any { contentType.startsWith(it) }
+        return httpContentTypeAllowlist.any { contentType.startsWith(it, ignoreCase = true) }
     }
 
     override fun shouldTrackHttpUrl(url: String): Boolean {
-        return !combinedHttpUrlBlocklist.any { url.contains(it, ignoreCase = true) }
+        return !combinedHttpUrlBlocklist.any { value ->
+            value?.let { url.contains(it, ignoreCase = true) } ?: false
+        }
     }
 
     override fun shouldTrackHttpHeader(key: String): Boolean {
         return !combinedHttpHeadersBlocklist.any { key.contains(it, ignoreCase = true) }
     }
 
-    private fun <T> getMergedConfig(selector: MeasureConfig.() -> T): T {
+    override fun setMeasureUrl(url: String) {
+        combinedHttpUrlBlocklist.add(url)
+    }
+
+    private fun <T> getMergedConfig(selector: Config.() -> T): T {
         if (networkConfig != null) {
             networkConfigLock.read {
                 return networkConfig?.selector() ?: cachedConfig?.selector()

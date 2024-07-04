@@ -40,7 +40,7 @@ object Measure {
     fun init(context: Context, measureConfig: MeasureConfig = MeasureConfig()) {
         if (isInitialized.compareAndSet(false, true)) {
             val application = context.applicationContext as Application
-            val initializer = MeasureInitializerImpl(application, defaultConfig = measureConfig)
+            val initializer = MeasureInitializerImpl(application, inputConfig = measureConfig)
             measure = MeasureInternal(initializer)
             measure.init()
         }

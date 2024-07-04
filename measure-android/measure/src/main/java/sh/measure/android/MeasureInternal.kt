@@ -35,6 +35,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     private val periodicEventExporter by lazy { measureInitializer.periodicEventExporter }
     private val userAttributeProcessor by lazy { measureInitializer.userAttributeProcessor }
     private val userDefinedAttribute by lazy { measureInitializer.userDefinedAttribute }
+    private val configProvider by lazy { measureInitializer.configProvider }
 
     fun init() {
         logger.log(LogLevel.Debug, "Starting Measure SDK")
@@ -54,6 +55,9 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
                 )
                 return
             }
+            // This is not very elegant, but can't find a better way to do this given the way the
+            // SDK is initialized.
+            configProvider.setMeasureUrl(it.url)
             networkClient.init(baseUrl = it.url, apiKey = it.apiKey)
         }
         registerCollectors()

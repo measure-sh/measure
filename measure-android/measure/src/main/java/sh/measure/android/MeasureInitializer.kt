@@ -14,6 +14,7 @@ import sh.measure.android.attributes.NetworkStateAttributeProcessor
 import sh.measure.android.attributes.UserAttributeProcessor
 import sh.measure.android.attributes.UserDefinedAttribute
 import sh.measure.android.attributes.UserDefinedAttributeImpl
+import sh.measure.android.config.Config
 import sh.measure.android.config.ConfigLoaderImpl
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.ConfigProviderImpl
@@ -91,7 +92,7 @@ import sh.measure.android.utils.UUIDProvider
 
 internal class MeasureInitializerImpl(
     private val application: Application,
-    private val defaultConfig: MeasureConfig,
+    inputConfig: MeasureConfig,
     override val logger: Logger = AndroidLogger(),
     override val timeProvider: TimeProvider = AndroidTimeProvider(),
     private val executorServiceRegistry: ExecutorServiceRegistry = ExecutorServiceRegistryImpl(),
@@ -106,7 +107,15 @@ internal class MeasureInitializerImpl(
         fileStorage = fileStorage,
     ),
     override val configProvider: ConfigProvider = ConfigProviderImpl(
-        defaultConfig = defaultConfig,
+        defaultConfig = Config(
+            trackScreenshotOnCrash = inputConfig.trackScreenshotOnCrash,
+            screenshotMaskLevel = inputConfig.screenshotMaskLevel,
+            trackHttpHeaders = inputConfig.trackHttpHeaders,
+            trackHttpBody = inputConfig.trackHttpBody,
+            httpHeadersBlocklist = inputConfig.httpHeadersBlocklist,
+            httpUrlBlocklist = inputConfig.httpUrlBlocklist,
+            trackActivityIntentData = inputConfig.trackActivityIntentData,
+        ),
         configLoader = ConfigLoaderImpl(),
     ),
     private val idProvider: IdProvider = UUIDProvider(),
