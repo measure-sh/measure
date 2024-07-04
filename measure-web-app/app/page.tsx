@@ -72,21 +72,11 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <div className="py-12" />
-        <div className="flex flex-col md:flex-row md:w-full items-center">
-          <div className="flex flex-col md:w-3/6 items-center md:items-start">
-            <p className="text-4xl font-regular text-black font-display text-center md:text-left">Open source and Self-hosted</p>
-            <div className="py-2" />
-            <p className="text-lg text-center md:text-left leading-relaxed font-sans text-black">Open source and fully self-hosted so your data never leaves your severs. Built by mobile devs who have shipped apps to hundreds of millions of users since the early days of iOS and Android.</p>
-          </div>
-          <div className="py-4 md:py-0 md:w-1/6" />
-          <Image className='w-96 md:w-3/6 aspect-square p-8 md:p-24'
-            src='/images/osi_logo.svg'
-            width={96}
-            height={96}
-            alt={'Open Source Initiative logo'} />
-        </div>
         <div className="py-12 md:py-24" />
+        <p className="font-display font-regular text-black text-6xl max-w-4xl text-center">Open Source and Self hosted</p>
+        <div className="py-4" />
+        <p className="text-lg text-center leading-relaxed font-sans text-black">Your data never leaves your severs. Open Source with a welcoming community led by experienced mobile devs who've shipped apps to hundreds of millions of users since the early days of iOS and Android.</p>
+        <div className="py-16" />
         <p className="font-display font-regular text-black text-6xl max-w-4xl text-center">Measure on every platform</p>
         <div className="py-4 md:py-8" />
         <div className="flex flex-col md:flex-row items-center">
@@ -115,7 +105,7 @@ export default function Home() {
             <p className="text-xs text-center">In progress</p>
           </div>
         </div>
-        <div className="py-12 md:py-24" />
+        <div className="py-16" />
         <p className="font-display font-regular text-black text-6xl max-w-4xl text-center">Set up your first app</p>
         <div className="py-2" />
         <p className="font-sans text-black text-xl leading-relaxed max-w-4xl text-center">Check out our detailed guides on Github to get up and running with Measure!</p>
