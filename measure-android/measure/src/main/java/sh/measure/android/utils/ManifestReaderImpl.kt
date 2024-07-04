@@ -41,7 +41,6 @@ internal class ManifestReaderImpl(private val context: Context, private val logg
                 PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA.toLong()),
             ).metaData
         } else {
-            @Suppress("DEPRECATION")
             context.packageManager.getApplicationInfo(
                 context.packageName,
                 PackageManager.GET_META_DATA,
