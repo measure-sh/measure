@@ -75,7 +75,7 @@ export default function Home() {
         <div className="py-12 md:py-24" />
         <p className="font-display font-regular text-black text-6xl max-w-4xl text-center">Open Source and Self hosted</p>
         <div className="py-4" />
-        <p className="text-lg text-center leading-relaxed font-sans text-black">Your data never leaves your severs. Open Source with a welcoming community led by experienced mobile devs who've shipped apps to hundreds of millions of users since the early days of iOS and Android.</p>
+        <p className="text-lg text-center leading-relaxed font-sans text-black">Your data never leaves your severs. Open Source with a welcoming community led by experienced mobile devs who&apos;ve shipped apps to hundreds of millions of users since the early days of iOS and Android.</p>
         <div className="py-16" />
         <p className="font-display font-regular text-black text-6xl max-w-4xl text-center">Measure on every platform</p>
         <div className="py-4 md:py-8" />
