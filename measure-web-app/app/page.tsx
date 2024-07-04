@@ -51,7 +51,7 @@ export default function Home() {
           <div className="flex flex-col md:w-3/6 items-center md:items-start">
             <p className="text-4xl font-regular text-black font-display text-center md:text-left">Session timeline</p>
             <div className="py-2" />
-            <p className="text-lg text-center md:text-left leading-relaxed font-sans text-black">Debug easily with full session timelines. Reproduce issues easily with automatic tracking for clicks, navigations, http calls and more.</p>
+            <p className="text-lg text-center md:text-left leading-relaxed font-sans text-black">Get to the root cause easily with full session timelines. Debug with automatic tracking for clicks, navigations, http calls and more.</p>
           </div>
           <div className="py-4 md:py-0 md:w-1/6" />
           <video src="/videos/session.webm" autoPlay loop muted playsInline className="aspect-square w-96 md:w-3/6" />
