@@ -20,7 +20,6 @@ private val artifactId = properties["MEASURE_ARTIFACT_ID"] as String
 mavenPublishing {
     coordinates(groupId, artifactId, measureSdkVersion)
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = false)
-    signAllPublications()
 
     configure(
         AndroidSingleVariantLibrary(
