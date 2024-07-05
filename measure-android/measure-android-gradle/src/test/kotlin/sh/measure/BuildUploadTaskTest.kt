@@ -2,7 +2,6 @@ package sh.measure
 
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
-import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.internal.project.ProjectInternal
 import org.gradle.api.services.BuildServiceRegistry
@@ -11,7 +10,6 @@ import org.gradle.internal.impldep.org.junit.rules.TemporaryFolder
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -32,8 +30,9 @@ class BuildUploadTaskTest {
         mockWebServer = MockWebServer().apply { start() }
         project = ProjectBuilder.builder().withProjectDir(temporaryFolder.root).build()
         task = project.tasks.create("task", BuildUploadTask::class.java)
+        val url = mockWebServer.url("/builds").toString()
         val manifestDataFile = temporaryFolder.newFile("manifestData.json").apply {
-            writeText(manifestData)
+            writeText(manifestData(url))
         }
         val mappingFile = temporaryFolder.newFile("mapping.txt").apply {
             writeText("mapping file")
@@ -53,7 +52,6 @@ class BuildUploadTaskTest {
         task.manifestDataProperty.set(manifestDataFile)
         task.mappingFileProperty.set(mappingFile)
         task.appSizeFileProperty.set(appSizeFile)
-        task.mappingEndpointProperty.set(mockWebServer.url("/upload").toString())
     }
 
     @After
@@ -69,7 +67,7 @@ class BuildUploadTaskTest {
         assertEquals("PUT", recordedRequest.method)
         val requestBody = recordedRequest.body.readUtf8()
 
-        println(requestBody)
+        // println(requestBody)
 
         assertTrue(requestBody.contains("name=\"app_unique_id\""))
         assertTrue(requestBody.contains("sh.measure.sample"))
@@ -90,7 +88,9 @@ class BuildUploadTaskTest {
         aab
     """.trimIndent()
 
-    private val manifestData = """
-            {"apiKey":"api-key","versionCode":"7575527","appUniqueId":"sh.measure.sample","versionName":"1.23.12"}
+    private fun manifestData(url: String): String {
+        return """
+            {"apiKey":"api-key","apiUrl":"$url","versionCode":"7575527","appUniqueId":"sh.measure.sample","versionName":"1.23.12"}
         """.trimIndent()
+    }
 }

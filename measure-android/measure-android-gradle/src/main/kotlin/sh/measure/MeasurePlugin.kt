@@ -21,8 +21,6 @@ class MeasurePlugin : Plugin<Project> {
     companion object {
         const val GROUP_NAME = "measure"
         const val SHARED_SERVICE_HTTP_CLIENT = "measure-http-client"
-        const val DEFAULT_ENDPOINT = "http://localhost:8080"
-        const val ROUTE_BUILDS = "/builds"
         const val DEFAULT_TIMEOUT_MS = 60_000L
         const val DEFAULT_RETRIES = 3
     }
@@ -102,7 +100,6 @@ class MeasurePlugin : Plugin<Project> {
             it.manifestDataProperty.set(manifestDataFileProvider(project, variant))
             it.mappingFileProperty.set(variant.artifacts.get(SingleArtifact.OBFUSCATION_MAPPING_FILE))
             it.appSizeFileProperty.set(appSizeFileProvider(project, variant))
-            it.mappingEndpointProperty.set(DEFAULT_ENDPOINT + ROUTE_BUILDS)
             it.retriesProperty.set(DEFAULT_RETRIES)
             it.usesService(httpClientProvider)
             it.httpClientProvider.set(httpClientProvider)
