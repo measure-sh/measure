@@ -30,8 +30,6 @@ private val pluginVersion = properties["MEASURE_PLUGIN_VERSION_NAME"] as String
 mavenPublishing {
     coordinates(groupId, artifactId, pluginVersion)
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = false)
-    signAllPublications()
-
     configure(
         GradlePublishPlugin()
     )
