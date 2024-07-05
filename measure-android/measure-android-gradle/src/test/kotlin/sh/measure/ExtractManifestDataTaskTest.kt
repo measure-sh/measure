@@ -33,7 +33,7 @@ internal class ExtractManifestDataTaskTest {
         configureTask()
         task.extractManifestData()
         val validManifestOutput = """
-                {"apiKey":"api-key","versionCode":"100","appUniqueId":"sh.measure.sample","versionName":"1.0.0"}
+                {"apiKey":"api-key","apiUrl":"api-url","versionCode":"100","appUniqueId":"sh.measure.sample","versionName":"1.0.0"}
             """.trimIndent()
         Assert.assertEquals(validManifestOutput, outputFile.readText())
     }
@@ -41,6 +41,15 @@ internal class ExtractManifestDataTaskTest {
     @Test
     fun `ExtractManifestDataTask throws when API key is missing in manifest`() {
         manifestFile.writeText(manifestWithoutApiKey)
+        configureTask()
+        Assert.assertThrows(GradleException::class.java) {
+            task.extractManifestData()
+        }
+    }
+
+    @Test
+    fun `ExtractManifestDataTask throws when API url is missing in manifest`() {
+        manifestFile.writeText(manifestWithoutApiUrl)
         configureTask()
         Assert.assertThrows(GradleException::class.java) {
             task.extractManifestData()
@@ -65,6 +74,10 @@ internal class ExtractManifestDataTaskTest {
                     <meta-data
                         android:name="sh.measure.android.API_KEY"
                         android:value="api-key" />
+                        
+                    <meta-data
+                        android:name="sh.measure.android.API_URL"
+                        android:value="api-url" />
                 </application>
             </manifest>
         """.trimIndent()
@@ -75,7 +88,25 @@ internal class ExtractManifestDataTaskTest {
                 package="sh.measure.sample"
                 android:versionCode="100"
                 android:versionName="1.0.0">
-                <application></application>
+                <application>
+                      <meta-data
+                        android:name="sh.measure.android.API_URL"
+                        android:value="api-url" />
+                </application>
+            </manifest>
+        """.trimIndent()
+
+    private val manifestWithoutApiUrl = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+                package="sh.measure.sample"
+                android:versionCode="100"
+                android:versionName="1.0.0">
+                <application>
+                      <meta-data
+                        android:name="sh.measure.android.API_KEY"
+                        android:value="api-key" />
+                </application>
             </manifest>
         """.trimIndent()
 }
