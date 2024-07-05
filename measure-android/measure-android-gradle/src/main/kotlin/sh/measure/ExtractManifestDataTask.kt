@@ -18,6 +18,7 @@ private const val KEY_VERSION_CODE = "android:versionCode"
 private const val KEY_VERSION_NAME = "android:versionName"
 private const val KEY_PACKAGE = "package"
 private const val KEY_API_KEY = "sh.measure.android.API_KEY"
+private const val KEY_API_URL = "sh.measure.android.API_URL"
 private const val TAG_MANIFEST = "manifest"
 private const val TAG_META_DATA = "meta-data"
 private const val ATTR_ANDROID_NAME = "android:name"
@@ -52,12 +53,14 @@ abstract class ExtractManifestDataTask : DefaultTask() {
         val packageName =
             extractPackageName(doc) ?: throw GradleException("$KEY_PACKAGE not found in manifest")
         val apiKey = extractApiKey(doc) ?: throw GradleException("$KEY_API_KEY not set in manifest")
+        val apiUrl = extractApiUrl(doc) ?: throw GradleException("$KEY_API_URL not set in manifest")
         @Suppress("OPT_IN_USAGE") Json.encodeToStream(
             ManifestData(
                 versionCode = versionCode,
                 versionName = versionName,
                 appUniqueId = packageName,
-                apiKey = apiKey
+                apiKey = apiKey,
+                apiUrl = apiUrl
             ), outputFile.outputStream()
         )
     }
@@ -76,6 +79,14 @@ abstract class ExtractManifestDataTask : DefaultTask() {
         return (0 until metaDataNodes.length).asSequence().map { metaDataNodes.item(it) }
             .filter { it.nodeType == Node.ELEMENT_NODE }.map { it as Element }
             .firstOrNull { it.getAttribute(ATTR_ANDROID_NAME) == KEY_API_KEY }
+            ?.getAttribute(ATTR_ANDROID_VALUE)
+    }
+
+    private fun extractApiUrl(doc: Document): String? {
+        val metaDataNodes = doc.getElementsByTagName(TAG_META_DATA)
+        return (0 until metaDataNodes.length).asSequence().map { metaDataNodes.item(it) }
+            .filter { it.nodeType == Node.ELEMENT_NODE }.map { it as Element }
+            .firstOrNull { it.getAttribute(ATTR_ANDROID_NAME) == KEY_API_URL }
             ?.getAttribute(ATTR_ANDROID_VALUE)
     }
 }

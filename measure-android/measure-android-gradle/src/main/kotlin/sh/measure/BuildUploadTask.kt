@@ -26,6 +26,7 @@ private const val BUILD_TYPE = "build_type"
 private const val MAPPING_TYPE = "mapping_type"
 private const val TYPE_PROGUARD = "proguard"
 private const val MAPPING_FILE = "mapping_file"
+private const val BUILDS_PATH = "builds"
 
 private const val ERROR_MSG_401 =
     "Failed to upload mapping file to Measure, please check the api-key in manifest"
@@ -42,9 +43,6 @@ abstract class BuildUploadTask : DefaultTask() {
 
     @get:Internal
     abstract val httpClientProvider: Property<MeasureHttpClient>
-
-    @get:Input
-    abstract val mappingEndpointProperty: Property<String>
 
     @get:Optional
     @get:InputFile
@@ -82,8 +80,8 @@ abstract class BuildUploadTask : DefaultTask() {
             addFormDataPart(BUILD_SIZE, appSize)
             addFormDataPart(BUILD_TYPE, buildType)
         }.build()
-
-        val request: Request = Request.Builder().url(mappingEndpointProperty.get())
+        val url = "${manifestData.apiUrl}/${BUILDS_PATH}"
+        val request: Request = Request.Builder().url(url)
             .header(HEADER_AUTHORIZATION, "Bearer ${manifestData.apiKey}").put(requestBody).build()
         try {
             val response = client.newCall(request).execute()
