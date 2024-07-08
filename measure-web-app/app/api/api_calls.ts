@@ -142,6 +142,19 @@ export enum UpdateAlertPrefsApiStatus {
     Error
 }
 
+export enum FetchAppSettingsApiStatus {
+    Loading,
+    Success,
+    Error
+}
+
+export enum UpdateAppSettingsApiStatus {
+    Init,
+    Loading,
+    Success,
+    Error
+}
+
 export enum FetchUsageApiStatus {
     Loading,
     Success,
@@ -518,6 +531,10 @@ export const emptyAlertPrefs = {
     launch_time_spike: {
         email: true
     }
+}
+
+export const emptyAppSettings = {
+    retention_period: 30
 }
 
 export const emptyUsage = [
@@ -1197,6 +1214,49 @@ export const updateAlertPrefsFromServer = async (appdId: string, alertPrefs: typ
     }
 
     return { status: UpdateAlertPrefsApiStatus.Success }
+}
+
+export const fetchAppSettingsFromServer = async (appId: string, router: AppRouterInstance) => {
+    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+        headers: {
+            "Authorization": `Bearer ${authToken}`
+        }
+    };
+
+    const res = await fetch(`${origin}/apps/${appId}/settings`, opts);
+
+    if (!res.ok) {
+        logoutIfAuthError(supabase, router, res)
+        return { status: FetchAppSettingsApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: FetchAppSettingsApiStatus.Success, data: data }
+}
+
+export const updateAppSettingsFromServer = async (appdId: string, appSettings: typeof emptyAppSettings, router: AppRouterInstance) => {
+    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+        method: 'PATCH',
+        headers: {
+            "Authorization": `Bearer ${authToken}`
+        },
+        body: JSON.stringify(appSettings)
+    };
+
+    const res = await fetch(`${origin}/apps/${appdId}/settings`, opts);
+    const data = await res.json()
+
+    if (!res.ok) {
+        logoutIfAuthError(supabase, router, res)
+        return { status: UpdateAppSettingsApiStatus.Error, error: data.error }
+    }
+
+    return { status: UpdateAppSettingsApiStatus.Success }
 }
 
 export const fetchUsageFromServer = async (teamId: string, router: AppRouterInstance) => {
