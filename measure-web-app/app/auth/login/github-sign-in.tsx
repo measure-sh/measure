@@ -1,18 +1,25 @@
 "use client";
 
-import { supabase } from "@/utils/supabase/browser";
+import { createMeasureClient } from "@/utils/measure-client";
 
 async function doGitHubLogin() {
-  const url = new URL(window.location.href)
-  const { error } = await supabase.auth.signInWithOAuth({
+  const { origin } = new URL(window.location.href);
+  const client = createMeasureClient(process.env.NEXT_PUBLIC_API_BASE_URL)
+  const { url, error } = await client.oAuthSignin({
     provider: 'github',
+    clientId: process?.env?.NEXT_PUBLIC_MEASURE_GITHUB_OAUTH_CLIENT_ID,
     options: {
-      redirectTo: `${url.origin}/auth/callback/github`,
+      redirectTo: `${origin}/auth/callback/github`
     }
-  })
+  });
 
   if (error) {
     console.error(`failed to login using GitHub`, error)
+    return
+  }
+
+  if (url) {
+    window.location.assign(url);
   }
 }
 

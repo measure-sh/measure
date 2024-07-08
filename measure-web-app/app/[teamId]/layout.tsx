@@ -7,7 +7,8 @@ import { useRouter } from 'next/navigation';
 import TeamSwitcher, { TeamsSwitcherStatus } from "../components/team_switcher";
 import { TeamsApiStatus, emptyTeam, fetchTeamsFromServer } from "../api/api_calls";
 import { logout } from "../utils/auth_utils";
-import { supabase } from "@/utils/supabase/browser";
+import auth from "@/utils/auth";
+
 
 export default function DashboardLayout({
   children,
@@ -66,11 +67,15 @@ export default function DashboardLayout({
   }
 
   useEffect(() => {
+    auth.init();
+  }, [auth]);
+
+  useEffect(() => {
     getTeams()
   }, []);
 
   const logoutUser = async () => {
-    await logout(supabase, router)
+    await logout(auth, router)
   }
 
   const onTeamChanged = (item: string) => {

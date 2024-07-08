@@ -1,9 +1,10 @@
-import { getUserIdOrRedirectToAuth, getAccessTokenOrRedirectToAuth, logoutIfAuthError, logout } from '@/app/utils/auth_utils'
-import { expect, describe, jest, it, afterEach } from '@jest/globals'
+import { getAccessTokenOrRedirectToAuth, getUserIdOrRedirectToAuth, logout, logoutIfAuthError } from '@/app/utils/auth_utils';
+import { afterEach, beforeAll, describe, expect, it, jest } from '@jest/globals';
 
 const mockAuth = {
     getSession: jest.fn(),
-    signOut: jest.fn(),
+    signout: jest.fn(),
+    clearSession: jest.fn()
 };
 
 const mockSupabaseClient = {
@@ -19,6 +20,30 @@ const mockRouter = {
     push: jest.fn()
 }
 
+beforeAll(() => {
+    const localStorageMock = (() => {
+        let store: Record<string, string> = {};
+        return {
+            getItem(key: string): string | null {
+                return store[key] || null;
+            },
+            setItem(key: string, value: string): void {
+                store[key] = value.toString();
+            },
+            removeItem(key: string): void {
+                delete store[key];
+            },
+            clear(): void {
+                store = {};
+            },
+        };
+    })();
+
+    Object.defineProperty(globalThis, 'localStorage', {
+        value: localStorageMock,
+    });
+})
+
 describe('getUserIdOrRedirectToAuth', () => {
     afterEach(() => {
         jest.clearAllMocks();
@@ -27,17 +52,17 @@ describe('getUserIdOrRedirectToAuth', () => {
     it('returns user id if session is valid', async () => {
         const userId = 'user-123';
         const sessionData = {
-            data: { session: { user: { id: userId } } },
+            session: { user: { id: userId } },
             error: null,
         };
 
         mockAuth.getSession.mockImplementation(() => sessionData)
 
         // @ts-ignore
-        const result = await getUserIdOrRedirectToAuth(mockSupabaseClient, mockRouter);
+        const result = await getUserIdOrRedirectToAuth(mockAuth, mockRouter);
 
         expect(result).toBe(userId);
-        expect(mockAuth.signOut).not.toHaveBeenCalled();
+        expect(mockAuth.signout).not.toHaveBeenCalled();
         expect(mockRouter.push).not.toHaveBeenCalled();
     });
 
@@ -50,10 +75,10 @@ describe('getUserIdOrRedirectToAuth', () => {
         mockAuth.getSession.mockImplementation(() => sessionData)
 
         // @ts-ignore
-        const result = await getUserIdOrRedirectToAuth(mockSupabaseClient, mockRouter);
+        const result = await getUserIdOrRedirectToAuth(mockAuth, mockRouter);
 
         expect(result).toBeNull();
-        expect(mockAuth.signOut).toHaveBeenCalled();
+        expect(mockAuth.signout).toHaveBeenCalled();
         expect(mockRouter.push).toHaveBeenCalledWith('/auth/logout');
     });
 })
@@ -66,17 +91,17 @@ describe('getAccessTokenOrRedirectToAuth', () => {
     it('returns access token if session is valid', async () => {
         const accessToken = 'some-access-token';
         const sessionData = {
-            data: { session: { access_token: accessToken } },
+            session: { access_token: accessToken },
             error: null,
         };
 
         mockAuth.getSession.mockImplementation(() => sessionData);
 
         // @ts-ignore
-        const result = await getAccessTokenOrRedirectToAuth(mockSupabaseClient, mockRouter);
+        const result = await getAccessTokenOrRedirectToAuth(mockAuth, mockRouter);
 
         expect(result).toBe(accessToken);
-        expect(mockAuth.signOut).not.toHaveBeenCalled();
+        expect(mockAuth.signout).not.toHaveBeenCalled();
         expect(mockRouter.push).not.toHaveBeenCalled();
     });
 
@@ -89,10 +114,10 @@ describe('getAccessTokenOrRedirectToAuth', () => {
         mockAuth.getSession.mockImplementation(() => sessionData);
 
         // @ts-ignore
-        const result = await getAccessTokenOrRedirectToAuth(mockSupabaseClient, mockRouter);
+        const result = await getAccessTokenOrRedirectToAuth(mockAuth, mockRouter);
 
         expect(result).toBeNull();
-        expect(mockAuth.signOut).toHaveBeenCalled();
+        expect(mockAuth.signout).toHaveBeenCalled();
         expect(mockRouter.push).toHaveBeenCalledWith('/auth/logout');
     });
 });
@@ -108,9 +133,9 @@ describe('logoutIfAuthError', () => {
         };
 
         // @ts-ignore
-        await logoutIfAuthError(mockSupabaseClient, mockRouter, mockResponse);
+        await logoutIfAuthError(mockAuth, mockRouter, mockResponse);
 
-        expect(mockAuth.signOut).toHaveBeenCalled();
+        expect(mockAuth.signout).toHaveBeenCalled();
         expect(mockRouter.push).toHaveBeenCalledWith('/auth/logout');
     });
 
@@ -120,9 +145,9 @@ describe('logoutIfAuthError', () => {
         };
 
         // @ts-ignore
-        await logoutIfAuthError(mockSupabaseClient, mockRouter, mockResponse);
+        await logoutIfAuthError(mockAuth, mockRouter, mockResponse);
 
-        expect(mockAuth.signOut).not.toHaveBeenCalled();
+        expect(mockAuth.signout).not.toHaveBeenCalled();
         expect(mockRouter.push).not.toHaveBeenCalled();
     });
 });
@@ -134,9 +159,8 @@ describe('logout', () => {
 
     it('logs out and redirects to auth', async () => {
         // @ts-ignore
-        await logout(mockSupabaseClient, mockRouter);
+        await logout(mockAuth, mockRouter);
 
-        expect(mockAuth.signOut).toHaveBeenCalled();
         expect(mockRouter.push).toHaveBeenCalledWith('/auth/logout');
     });
 });

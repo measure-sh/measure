@@ -8,7 +8,7 @@ import { TeamsApiStatus, fetchTeamsFromServer, emptyTeam, AuthzAndMembersApiStat
 import AlertDialogModal from "@/app/components/alert_dialog_modal";
 import { formatToCamelCase } from "@/app/utils/string_utils";
 import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select";
-import { supabase } from "@/utils/supabase/browser";
+import auth from "@/utils/auth";
 
 export default function Team({ params }: { params: { teamId: string } }) {
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading);
@@ -73,7 +73,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
   }, []);
 
   const getCurrentUserId = async () => {
-    const id = await getUserIdOrRedirectToAuth(supabase, router)
+    const id = await getUserIdOrRedirectToAuth(auth, router)
     if (id !== null) {
       setCurrentUserId(id)
     }
