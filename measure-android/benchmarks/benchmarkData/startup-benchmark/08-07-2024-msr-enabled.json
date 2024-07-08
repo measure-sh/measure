@@ -1,0 +1,74 @@
+{
+    "context": {
+        "build": {
+            "brand": "google",
+            "device": "sunfish",
+            "fingerprint": "google/sunfish/sunfish:13/TQ3A.230805.001.S1/10786265:user/release-keys",
+            "model": "Pixel 4a",
+            "version": {
+                "sdk": 33
+            }
+        },
+        "cpuCoreCount": 8,
+        "cpuLocked": true,
+        "cpuMaxFreqHz": 2208000000,
+        "memTotalBytes": 5865099264,
+        "sustainedPerformanceModeEnabled": false
+    },
+    "benchmarks": [
+        {
+            "name": "startupBenchmark",
+            "params": {},
+            "className": "sh.measure.benchmark.StartupBenchmark",
+            "totalRunTimeNs": 94293409342,
+            "metrics": {
+                "timeToInitialDisplayMs": {
+                    "minimum": 392.324466,
+                    "maximum": 436.883585,
+                    "median": 408.72228,
+                    "runs": [
+                        417.505198,
+                        396.589779,
+                        412.430041,
+                        399.014988,
+                        414.216135,
+                        402.564467,
+                        414.944468,
+                        422.175302,
+                        413.630562,
+                        404.885353,
+                        392.324466,
+                        433.754522,
+                        408.72228,
+                        414.618635,
+                        406.156707,
+                        399.105769,
+                        395.479987,
+                        400.726498,
+                        417.753687,
+                        422.497906,
+                        396.763112,
+                        407.604156,
+                        393.486602,
+                        412.638739,
+                        401.765248,
+                        414.433011,
+                        413.754729,
+                        401.354519,
+                        407.096395,
+                        436.883585,
+                        408.996707,
+                        428.623584,
+                        406.903166,
+                        422.206917,
+                        406.362123
+                    ]
+                }
+            },
+            "sampledMetrics": {},
+            "warmupIterations": 0,
+            "repeatIterations": 35,
+            "thermalThrottleSleepSeconds": 0
+        }
+    ]
+}

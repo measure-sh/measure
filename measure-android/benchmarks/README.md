@@ -1,5 +1,15 @@
 # Benchmarks
 
+* [Running the benchmarks](#running-the-benchmarks)
+* [Benchmarks](#benchmarks)
+    * [Startup Benchmark](#startup-benchmark)
+    * [Target Finder Benchmark](#target-finder-benchmark)
+* [Benchmark Comparison](#benchmark-comparison)
+    * [Steps](#steps)
+    * [Interpretation](#interpretation)
+* [Benchmark Data Verification](#benchmark-data-verification)
+* [Results](#results)
+
 This directory contains benchmarks for `measure`. There are two projects in this directory:
 
 * `app` - an app with two flavors: `measureDisabled` and `measureEnabled`.
@@ -123,7 +133,7 @@ has degraded.
 > to 8.67% or
 > between 23.67ms to 34.70ms.
 
-# Data Verification
+# Benchmark Data Verification
 
 The script runs the following checks to verify the data before comparing the benchmarks to ensure
 the comparison is reliable.
@@ -157,3 +167,8 @@ reported as a _warning_.
 The script runs the Levene's Test to check if the variance of the two datasets is not significantly
 different. If the variance is significantly different, it can lead to unreliable results. This is
 reported as a _warning_.
+
+# Results
+
+The raw results of the benchmarks can be found in the [benchmarkData](benchmarkData)
+folder. These results are collected manually using a Pixel 4a device running Android 13 (API 33).

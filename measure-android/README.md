@@ -280,6 +280,26 @@ Measure.trackNavigationEvent(
 )
 ```
 
+# Benchmarks
+
+Measure SDK has a set of benchmarks to measure the performance impact of the SDK on the app.
+These benchmarks are collected using macro-benchmark on a Pixel 4a device running Android 13 (API 33).
+Each benchmark is run 35 times. See the [benchmarks](benchmarks/README.md) for
+more details, and the raw results are available in the 
+[benchmarks/benchmarkData](benchmarks/benchmarkData) folder.
+
+> [!IMPORTANT]
+> Benchmark results are specific to the device and the app. It is recommended to run the benchmarks
+> for your app to get results specific to your app. These numbers are published to provide
+> a reference point and are used internally to detect any performance regressions.
+
+For v0.2.0, the following benchmarks are available.
+
+* Adds 22ms-33ms to the app startup time for a simple app.
+* Takes 0.30ms to find the target view for every click/scroll gesture in a deep view hierarchy.
+* Takes 0.45ms to find the target composable for every click/scroll gesture in a deep composable
+  hierarchy.
+
 # Internals
 
 * [Architecture](docs/internals/architecture)
