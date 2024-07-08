@@ -13,6 +13,7 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.screenshot.ScreenshotCollector
 import sh.measure.android.storage.EventStore
+import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.iso8601Timestamp
 
@@ -171,24 +172,37 @@ internal class EventProcessorImpl(
         sessionId: String?,
         userTriggered: Boolean = false,
     ) {
-        val threadName = Thread.currentThread().name
+        InternalTrace.trace(
+            label = { "msr-track-event" },
+            block = {
+                val threadName = Thread.currentThread().name
+                defaultExecutor.submit {
+                    val event = createEvent(
+                        data = data,
+                        timestamp = timestamp,
+                        type = type,
+                        attachments = attachments,
+                        attributes = attributes,
+                        userTriggered = userTriggered,
+                        sessionId = sessionId,
+                    )
+                    applyAttributes(event, threadName)
+                    val transformedEvent = InternalTrace.trace(
+                        label = { "msr-transform-event" },
+                        block = { eventTransformer.transform(event) },
+                    )
 
-        defaultExecutor.submit {
-            val event = createEvent(
-                data = data,
-                timestamp = timestamp,
-                type = type,
-                attachments = attachments,
-                attributes = attributes,
-                userTriggered = userTriggered,
-                sessionId = sessionId,
-            )
-            applyAttributes(event, threadName)
-            eventTransformer.transform(event)?.let {
-                eventStore.store(event)
-                logger.log(LogLevel.Debug, "Event processed: $type, ${event.sessionId}")
-            } ?: logger.log(LogLevel.Debug, "Event dropped: $type")
-        }
+                    if (transformedEvent != null) {
+                        InternalTrace.trace(label = { "msr-store-event" }, block = {
+                            eventStore.store(event)
+                            logger.log(LogLevel.Debug, "Event processed: $type, ${event.sessionId}")
+                        })
+                    } else {
+                        logger.log(LogLevel.Debug, "Event dropped: $type")
+                    }
+                }
+            },
+        )
     }
 
     private fun <T> createEvent(
@@ -216,20 +230,24 @@ internal class EventProcessorImpl(
     }
 
     private fun <T> applyAttributes(event: Event<T>, threadName: String) {
-        event.appendAttribute(Attribute.THREAD_NAME, threadName)
-        event.appendAttributes(attributeProcessors)
+        InternalTrace.trace(label = { "msr-apply-attributes" }, block = {
+            event.appendAttribute(Attribute.THREAD_NAME, threadName)
+            event.appendAttributes(attributeProcessors)
+        })
     }
 
     private fun <T> addScreenshotAsAttachment(event: Event<T>) {
-        val screenshot = screenshotCollector.takeScreenshot()
-        if (screenshot != null) {
-            event.addAttachment(
-                Attachment(
-                    name = "screenshot.${screenshot.extension}",
-                    type = AttachmentType.SCREENSHOT,
-                    bytes = screenshot.data,
-                ),
-            )
-        }
+        InternalTrace.trace(label = { "msr-take-screenshot" }, block = {
+            val screenshot = screenshotCollector.takeScreenshot()
+            if (screenshot != null) {
+                event.addAttachment(
+                    Attachment(
+                        name = "screenshot.${screenshot.extension}",
+                        type = AttachmentType.SCREENSHOT,
+                        bytes = screenshot.data,
+                    ),
+                )
+            }
+        })
     }
 }
