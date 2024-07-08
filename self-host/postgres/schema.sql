@@ -388,6 +388,118 @@ COMMENT ON COLUMN public.apps.updated_at IS 'utc timestamp at the time of app re
 
 
 --
+-- Name: auth_sessions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.auth_sessions (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    oauth_provider text,
+    user_metadata jsonb,
+    at_expiry_at timestamp with time zone NOT NULL,
+    rt_expiry_at timestamp with time zone NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: COLUMN auth_sessions.id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.auth_sessions.id IS 'unique id of auth session';
+
+
+--
+-- Name: COLUMN auth_sessions.user_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.auth_sessions.user_id IS 'user id of the session holder';
+
+
+--
+-- Name: COLUMN auth_sessions.oauth_provider; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.auth_sessions.oauth_provider IS 'name of the oauth provider';
+
+
+--
+-- Name: COLUMN auth_sessions.user_metadata; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.auth_sessions.user_metadata IS 'arbitrary metadata associated with the user';
+
+
+--
+-- Name: COLUMN auth_sessions.at_expiry_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.auth_sessions.at_expiry_at IS 'expiry time of access token';
+
+
+--
+-- Name: COLUMN auth_sessions.rt_expiry_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.auth_sessions.rt_expiry_at IS 'expiry time of refresh token';
+
+
+--
+-- Name: COLUMN auth_sessions.created_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.auth_sessions.created_at IS 'utc timestamp at the time of record creation';
+
+
+--
+-- Name: auth_states; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.auth_states (
+    id uuid NOT NULL,
+    state text NOT NULL,
+    oauth_provider text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: COLUMN auth_states.id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.auth_states.id IS 'unique id of auth state';
+
+
+--
+-- Name: COLUMN auth_states.state; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.auth_states.state IS 'oauth state nonce';
+
+
+--
+-- Name: COLUMN auth_states.oauth_provider; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.auth_states.oauth_provider IS 'name of the social oauth provider';
+
+
+--
+-- Name: COLUMN auth_states.created_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.auth_states.created_at IS 'utc timestamp at the time of record creation';
+
+
+--
+-- Name: COLUMN auth_states.updated_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.auth_states.updated_at IS 'utc timestamp at the time of record updation';
+
+
+--
 -- Name: build_mappings; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -927,6 +1039,22 @@ ALTER TABLE ONLY public.apps
 
 
 --
+-- Name: auth_sessions auth_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auth_sessions
+    ADD CONSTRAINT auth_sessions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: auth_states auth_states_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auth_states
+    ADD CONSTRAINT auth_states_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: build_mappings build_mappings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1046,6 +1174,14 @@ ALTER TABLE ONLY public.apps
 
 
 --
+-- Name: auth_sessions auth_sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auth_sessions
+    ADD CONSTRAINT auth_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: build_mappings build_mappings_app_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1124,4 +1260,6 @@ INSERT INTO dbmate.schema_migrations (version) VALUES
     ('20231228044339'),
     ('20240311054505'),
     ('20240404122712'),
-    ('20240502060117');
+    ('20240502060117'),
+    ('20240703152041'),
+    ('20240704051355');
