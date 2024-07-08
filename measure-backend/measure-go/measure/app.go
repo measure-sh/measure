@@ -3946,3 +3946,80 @@ func UpdateAlertPrefs(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"ok": "done"})
 }
+
+func GetAppSettings(c *gin.Context) {
+	appId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `app id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	appSettings, err := getAppSettings(appId)
+	if err != nil {
+		msg := `unable to fetch app settings`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, appSettings)
+}
+
+func UpdateAppSettings(c *gin.Context) {
+	userId := c.GetString("userId")
+	appId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `app id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	app := App{
+		ID: &appId,
+	}
+
+	team, err := app.getTeam(c)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	ok, err := PerformAuthz(userId, team.ID.String(), *ScopeAppAll)
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`you don't have permissions to modify app settings in team [%s]`, team.ID.String())
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	appSettings := newAppSettings(appId)
+
+	var payload AppSettingsPayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		msg := `failed to parse alert preferences json payload`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	appSettings.RetentionPeriod = payload.RetentionPeriod
+
+	appSettings.update()
+
+	c.JSON(http.StatusOK, gin.H{"ok": "done"})
+}

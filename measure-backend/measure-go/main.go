@@ -77,6 +77,8 @@ func main() {
 		apps.GET(":id/sessions/:sessionId", measure.GetAppSession)
 		apps.GET(":id/alertPrefs", measure.GetAlertPrefs)
 		apps.PATCH(":id/alertPrefs", measure.UpdateAlertPrefs)
+		apps.GET(":id/settings", measure.GetAppSettings)
+		apps.PATCH(":id/settings", measure.UpdateAppSettings)
 	}
 
 	teams := r.Group("/teams")
