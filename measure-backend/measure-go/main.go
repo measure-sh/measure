@@ -39,7 +39,7 @@ func main() {
 	cors := cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000", "https://www.measure.sh"},
 		AllowMethods:     []string{"GET", "OPTIONS", "PATCH", "DELETE", "PUT"},
-		AllowHeaders:     []string{"Authorization"},
+		AllowHeaders:     []string{"Authorization", "Content-Type"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	})
@@ -47,6 +47,15 @@ func main() {
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "pong"})
 	})
+
+	// Auth routes
+	r.Use(cors)
+	auth := r.Group("/auth")
+	{
+		auth.POST("github", measure.SigninGitHub)
+		auth.POST("refresh", measure.ValidateRefreshToken(), measure.RefreshToken)
+		auth.DELETE("signout", measure.ValidateRefreshToken(), measure.Signout)
+	}
 
 	// SDK routes
 	r.PUT("/events", measure.ValidateAPIKey(), measure.PutEvents)
