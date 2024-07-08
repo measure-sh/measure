@@ -383,6 +383,15 @@ func GetTeams(c *gin.Context) {
 		return
 	}
 
+	if len(teams) < 1 {
+		msg := `no teams found`
+		fmt.Println(msg)
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, teams)
 }
 
