@@ -1,5 +1,12 @@
 # Measure - Android SDK
 
+* [Getting Started](#getting-started)
+* [Features](#features)
+* [Configure the SDK](#configure-the-sdk)
+* [Custom Events](#custom-events)
+* [Benchmarks](#benchmarks)
+* [Internals](#internals)
+
 # Minimum Requirements
 
 | Name                  | Version       |
@@ -295,7 +302,7 @@ more details, and the raw results are available in the
 
 For v0.2.0, the following benchmarks are available.
 
-* Adds 22ms-33ms to the app startup time for a simple app.
+* Adds 22.772ms-33.512ms to the app startup time (Time to Initial Display) for a simple app.
 * Takes 0.30ms to find the target view for every click/scroll gesture in a deep view hierarchy.
 * Takes 0.45ms to find the target composable for every click/scroll gesture in a deep composable
   hierarchy.
