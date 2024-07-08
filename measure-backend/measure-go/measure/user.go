@@ -266,3 +266,27 @@ func GetUsersByInvitees(invitees []Invitee) ([]Invitee, []Invitee, error) {
 
 	return oldUsers, newUsers, nil
 }
+
+// FindUserByEmail find a user from their email.
+func FindUserByEmail(ctx context.Context, email string) (*User, error) {
+	stmt := sqlf.PostgreSQL.
+		From("public.users").
+		Select("id").
+		Select("name").
+		Select("email").
+		Where("email = ?", email)
+
+	defer stmt.Close()
+
+	var user User
+
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&user.ID, &user.Name, &user.Email); err != nil {
+		return nil, err
+	}
+
+	if user.ID == nil {
+		return nil, nil
+	}
+
+	return &user, nil
+}
