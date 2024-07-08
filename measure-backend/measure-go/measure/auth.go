@@ -1,32 +1,46 @@
 package measure
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	authsession "measure-backend/measure-go/authsessions"
 	"measure-backend/measure-go/server"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
+// extractToken extracts the bearer token
+// from authorization header.
+func extractToken(c *gin.Context) (token string) {
+	authHeader := c.GetHeader(("Authorization"))
+	splitToken := strings.Split(authHeader, "Bearer ")
+
+	if len(splitToken) != 2 {
+		// Authorization header is not in the correct format
+		c.AbortWithStatus((http.StatusUnauthorized))
+		return
+	}
+
+	token = strings.TrimSpace(splitToken[1])
+
+	if token == "" {
+		c.AbortWithStatus((http.StatusUnauthorized))
+		return
+	}
+
+	return
+}
+
+// ValidateAPIKey validates the Measure API key.
 func ValidateAPIKey() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader(("Authorization"))
-		splitToken := strings.Split(authHeader, "Bearer ")
-		if len(splitToken) != 2 {
-			// Authorization header is not in the correct format
-			c.AbortWithStatus((http.StatusUnauthorized))
-			return
-		}
-
-		key := strings.TrimSpace(splitToken[1])
-
-		if key == "" {
-			c.AbortWithStatus((http.StatusUnauthorized))
-			return
-		}
+		key := extractToken(c)
 
 		appId, err := DecodeAPIKey(key)
 		if err != nil {
@@ -48,22 +62,10 @@ func ValidateAPIKey() gin.HandlerFunc {
 	}
 }
 
+// ValidateAccessToken validates Measure access tokens.
 func ValidateAccessToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader(("Authorization"))
-		splitToken := strings.Split(authHeader, "Bearer ")
-		if len(splitToken) != 2 {
-			// Authorization header is not in the correct format
-			c.AbortWithStatus((http.StatusUnauthorized))
-			return
-		}
-
-		token := strings.TrimSpace(splitToken[1])
-
-		if token == "" {
-			c.AbortWithStatus((http.StatusUnauthorized))
-			return
-		}
+		token := extractToken(c)
 
 		accessToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -71,19 +73,23 @@ func ValidateAccessToken() gin.HandlerFunc {
 				return nil, err
 			}
 
-			return []byte(server.Server.Config.AuthJWTSecret), nil
+			return server.Server.Config.AccessTokenSecret, nil
 		})
 
 		if err != nil {
 			if errors.Is(err, jwt.ErrTokenExpired) {
 				msg := "access token has expired"
 				fmt.Println(msg, err)
-				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": msg})
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+					"error": msg,
+				})
 				return
 			}
 
-			fmt.Println("generic access token error", err)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or malformed access token"})
+			fmt.Println("unknown token error", err)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "invalid or malformed access token",
+			})
 			return
 		}
 
@@ -93,10 +99,323 @@ func ValidateAccessToken() gin.HandlerFunc {
 		} else {
 			msg := "failed to read claims from access token"
 			fmt.Println(msg, err)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": msg})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": msg,
+			})
 			return
 		}
 
 		c.Next()
 	}
+}
+
+// ValidateRefreshToken validates the Measure refresh token.
+func ValidateRefreshToken() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := extractToken(c)
+
+		refreshToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				err := fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+				return nil, err
+			}
+
+			return server.Server.Config.RefreshTokenSecret, nil
+		})
+
+		if err != nil {
+			if errors.Is(err, jwt.ErrTokenExpired) {
+				msg := "refresh token has expired"
+				fmt.Println(msg, err)
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+					"error": msg,
+				})
+				return
+			}
+
+			fmt.Println("unknown token error:", err)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "invalid or malformed refresh token",
+			})
+			return
+		}
+
+		if claims, ok := refreshToken.Claims.(jwt.MapClaims); ok {
+			jti := claims["jti"]
+			c.Set("jti", jti.(string))
+		} else {
+			msg := "failed to read claims from refresh token"
+			fmt.Println(msg, err)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": msg,
+			})
+			return
+		}
+
+		c.Next()
+	}
+}
+
+// SigninGitHub handles OAuth flow via GitHub.
+func SigninGitHub(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	type AuthCode struct {
+		Type  string `json:"type" binding:"required"`
+		State string `json:"state" binding:"required"`
+		Code  string `json:"code"`
+	}
+
+	authCode := AuthCode{}
+
+	msg := "failed to parse github auth payload"
+	if err := c.ShouldBindJSON(&authCode); err != nil {
+		fmt.Println(msg, err.Error())
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	if authCode.State == "" {
+		fmt.Println(msg)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	switch authCode.Type {
+	case "init":
+		// process init
+		authState := authsession.AuthState{
+			OAuthProvider: "github",
+			State:         authCode.State,
+		}
+
+		if err := authState.Save(ctx); err != nil {
+			msg := "failed to authenticate via github oauth"
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"ok": "github oauth init ack",
+		})
+		return
+	case "code":
+		// process code
+		if authCode.Code == "" {
+			fmt.Println(msg)
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"error": msg,
+			})
+			return
+		}
+
+		msg := `failed to authenticate via github`
+
+		authState, err := authsession.GetOAuthState(ctx, authCode.State, "github")
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+
+		if authState.State != authCode.State {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": msg,
+			})
+			return
+		}
+
+		githubToken, err := authsession.ExchangeCodeForToken(authCode.Code)
+		if err != nil {
+			fmt.Println(msg, err)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+
+		if err := authsession.RemoveOAuthState(ctx, authState.State, "github"); err != nil {
+			fmt.Printf("failed to remove github oauth state: %q\n", authState.State)
+		}
+
+		ghUser, err := authsession.GetGitHubUser(githubToken.AccessToken)
+		if err != nil {
+			fmt.Println(msg, err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+
+		userMeta, err := json.Marshal(ghUser)
+		if err != nil {
+			return
+		}
+
+		msrUser, err := FindUserByEmail(ctx, ghUser.Email)
+		if err != nil {
+			fmt.Println(msg, err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+
+		if msrUser == nil {
+			// new user
+			return
+		}
+
+		// FIXME: Change User struct's ID field to UUID
+		// so that these kinds of convertion is not needed.
+		userId := uuid.MustParse(*msrUser.ID)
+
+		authSess, err := authsession.NewAuthSession(userId, "github", userMeta)
+		if err != nil {
+			return
+		}
+
+		if err = authSess.Save(ctx, nil); err != nil {
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"access_token":  authSess.AccessToken,
+			"refresh_token": authSess.RefreshToken,
+			"expiry_at":     authSess.AccessTokenExpiryAt,
+			"state":         authCode.State,
+		})
+
+		// deliberately ignore the error, because
+		// expired sessions may get cleared eventually
+		authsession.Cleanup(ctx)
+
+		return
+	default:
+		fmt.Println(msg)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+}
+
+// RefreshToken refreshes a previous session from
+// its refresh token.
+func RefreshToken(c *gin.Context) {
+	ctx := c.Request.Context()
+	id := c.GetString("jti")
+
+	jti, err := uuid.Parse(id)
+	if err != nil {
+		msg := "failed to parse refresh token"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	oldSession, err := authsession.GetAuthSession(ctx, jti)
+	if errors.Is(err, pgx.ErrNoRows) {
+		msg := "could not verify authenticity of the refresh token"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	msg := `failed to refresh session`
+
+	tx, err := server.Server.PgPool.Begin(ctx)
+	if err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	defer tx.Rollback(ctx)
+
+	newSession, err := authsession.NewAuthSession(oldSession.UserID, oldSession.OAuthProvider, oldSession.UserMeta)
+	if err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	if err = authsession.RemoveSession(ctx, jti, &tx); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	if err = newSession.Save(ctx, &tx); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"access_token":  newSession.AccessToken,
+		"refresh_token": newSession.RefreshToken,
+		"expiry_at":     newSession.AccessTokenExpiryAt,
+	})
+}
+
+// Signout removes the active session associated to
+// the refresh token.
+func Signout(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	id := c.GetString("jti")
+
+	jti, err := uuid.Parse(id)
+	if err != nil {
+		msg := "failed to parse refresh token"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	if err := authsession.RemoveSession(ctx, jti, nil); err != nil {
+		msg := "failed to signout"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
