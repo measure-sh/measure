@@ -42,9 +42,12 @@ type ServerConfig struct {
 	AttachmentsBucketRegion    string
 	AttachmentsAccessKey       string
 	AttachmentsSecretAccessKey string
-	AuthJWTSecret              string
 	AWSEndpoint                string
 	AttachmentOrigin           string
+	OAuthGitHubKey             string
+	OAuthGitHubSecret          string
+	AccessTokenSecret          []byte
+	RefreshTokenSecret         []byte
 }
 
 func NewConfig() *ServerConfig {
@@ -99,9 +102,24 @@ func NewConfig() *ServerConfig {
 		log.Println("ATTACHMENTS_S3_ORIGIN env var not set, event attachment downloads won't work")
 	}
 
-	authJWTSecret := os.Getenv("SUPABASE_AUTH_JWT_SECRET")
-	if authJWTSecret == "" {
-		log.Println("SUPABASE_AUTH_JWT_SECRET env var not set, dashboard authn won't work")
+	oauthGitHubKey := os.Getenv("OAUTH_GITHUB_KEY")
+	if oauthGitHubKey == "" {
+		log.Println("OAUTH_GITHUB_KEY env var is not set, dashboard authn won't work")
+	}
+
+	oauthGitHubSecret := os.Getenv("OAUTH_GITHUB_SECRET")
+	if oauthGitHubSecret == "" {
+		log.Println("OAUTH_GITHUB_SECRET env var is not set, dashboard authn won't work")
+	}
+
+	atSecret := os.Getenv("SESSION_ACCESS_SECRET")
+	if atSecret == "" {
+		log.Println("SESSION_ACCESS_SECRET env var is not set, dashboard authn won't work")
+	}
+
+	rtSecret := os.Getenv("SESSION_REFRESH_SECRET")
+	if rtSecret == "" {
+		log.Println("SESSION_REFRESH_SECRET env var is not set, dashboard authn won't work")
 	}
 
 	endpoint := os.Getenv("AWS_ENDPOINT_URL")
@@ -122,9 +140,12 @@ func NewConfig() *ServerConfig {
 		AttachmentsBucketRegion:    attachmentsBucketRegion,
 		AttachmentsAccessKey:       attachmentsAccessKey,
 		AttachmentsSecretAccessKey: attachmentsSecretAccessKey,
-		AuthJWTSecret:              authJWTSecret,
 		AWSEndpoint:                endpoint,
 		AttachmentOrigin:           attachmentOrigin,
+		OAuthGitHubKey:             oauthGitHubKey,
+		OAuthGitHubSecret:          oauthGitHubSecret,
+		AccessTokenSecret:          []byte(atSecret),
+		RefreshTokenSecret:         []byte(rtSecret),
 	}
 }
 
