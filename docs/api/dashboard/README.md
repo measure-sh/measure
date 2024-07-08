@@ -174,8 +174,8 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
 - [**GET `/apps/:id/anrGroups/:id/plots/instances`**](#get-appsidanrgroupsidplotsinstances) - Fetch an app's ANR detail instances aggregated by date range & version.
 - [**GET `/apps/:id/anrGroups/:id/plots/journey`**](#get-appsidanrgroupsidplotsjourney) - Fetch an app's ANR journey map.
 - [**GET `/apps/:id/sessions/:id`**](#get-appsidsessionsid) - Fetch an app's session replay.
-- [**GET `/apps/:id/alertPrefs`**](#get-appsidalertprefs) - Fetch an app's alert preferences.
-- [**PATCH `/apps/:id/alertPrefs`**](#patch-appsidalertprefs) - Update an app's alert preferences.
+- [**GET `/apps/:id/alertPrefs`**](#get-appsidalertprefs) - Fetch an app's alert preferences for current user.
+- [**PATCH `/apps/:id/alertPrefs`**](#patch-appsidalertprefs) - Update an app's alert preferences for current user.
 - [**GET `/apps/:id/settings`**](#get-appsidsettings) - Fetch an app's settings.
 - [**PATCH `/apps/:id/settings`**](#patch-appsidsettings) - Update an app's settings.
 
@@ -2506,7 +2506,7 @@ List of HTTP status codes for success and failures.
 
 ### GET `/apps/:id/alertPrefs`
 
-Fetch an app's alert preferences.
+Fetch an app's alert preferences for current user.
 
 #### Usage Notes
 
@@ -2582,7 +2582,7 @@ List of HTTP status codes for success and failures.
 
 ### PATCH `/apps/:id/alertPrefs`
 
-Update an app's alert preferences.
+Update an app's alert preferences for current user.
 
 #### Usage Notes
 
