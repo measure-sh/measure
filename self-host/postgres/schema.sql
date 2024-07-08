@@ -299,6 +299,46 @@ COMMENT ON COLUMN public.api_keys.created_at IS 'utc timestamp at the time of ap
 
 
 --
+-- Name: app_settings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.app_settings (
+    app_id uuid NOT NULL,
+    retention_period integer DEFAULT 30 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: COLUMN app_settings.app_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.app_settings.app_id IS 'linked app id';
+
+
+--
+-- Name: COLUMN app_settings.retention_period; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.app_settings.retention_period IS 'data retention period in days';
+
+
+--
+-- Name: COLUMN app_settings.created_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.app_settings.created_at IS 'utc timestamp at the time of record creation';
+
+
+--
+-- Name: COLUMN app_settings.updated_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.app_settings.updated_at IS 'utc timestamp at the time of record update';
+
+
+--
 -- Name: apps; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -919,6 +959,14 @@ ALTER TABLE ONLY public.api_keys
 
 
 --
+-- Name: app_settings app_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_settings
+    ADD CONSTRAINT app_settings_pkey PRIMARY KEY (app_id);
+
+
+--
 -- Name: apps apps_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1038,6 +1086,14 @@ ALTER TABLE ONLY public.api_keys
 
 
 --
+-- Name: app_settings app_settings_app_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_settings
+    ADD CONSTRAINT app_settings_app_id_fkey FOREIGN KEY (app_id) REFERENCES public.apps(id) ON DELETE CASCADE;
+
+
+--
 -- Name: apps apps_team_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1124,4 +1180,5 @@ INSERT INTO dbmate.schema_migrations (version) VALUES
     ('20231228044339'),
     ('20240311054505'),
     ('20240404122712'),
-    ('20240502060117');
+    ('20240502060117'),
+    ('20240708104127');

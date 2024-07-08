@@ -165,6 +165,8 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
 - [**GET `/apps/:id/sessions/:id`**](#get-appsidsessionsid) - Fetch an app's session replay.
 - [**GET `/apps/:id/alertPrefs`**](#get-appsidalertprefs) - Fetch an app's alert preferences.
 - [**PATCH `/apps/:id/alertPrefs`**](#patch-appsidalertprefs) - Update an app's alert preferences.
+- [**GET `/apps/:id/settings`**](#get-appsidsettings) - Fetch an app's settings.
+- [**PATCH `/apps/:id/settings`**](#patch-appsidsettings) - Update an app's settings.
 
 ### GET `/apps/:id/journey`
 
@@ -2592,6 +2594,144 @@ Update an app's alert preferences.
         "slack": false
       }
     }
+  ```
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  {
+    "ok" : "done"
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/settings`
+
+Fetch an app's settings.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  {
+      "retention_period": 30
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### PATCH `/apps/:id/settings`
+
+Update an app's settings.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+
+#### Request body
+
+  ```json
+  {
+      "retention_period": 365
+  }
   ```
 
 #### Authorization & Content Type
