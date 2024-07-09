@@ -186,6 +186,13 @@ export default function Apps({ params }: { params: { teamId: string } }) {
       <div className="py-4" />
       <p className="font-display font-regular text-4xl max-w-6xl text-center">Apps</p>
       <div className="py-4" />
+      <div className="flex flex-row items-center">
+        <p className="font-sans text-xl">Base URL</p>
+        <div className="px-2" />
+        <input type="text" readOnly={true} value={process.env.NEXT_PUBLIC_API_BASE_URL} className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-sans placeholder:text-neutral-400" />
+        <button className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => navigator.clipboard.writeText(process.env.NEXT_PUBLIC_API_BASE_URL!)}>Copy</button>
+      </div>
+      <div className="py-6" />
       {/* Error states for apps fetch */}
       {appsApiStatus === AppsApiStatus.Error && <p className="text-lg font-display">Error fetching apps, please check if Team ID is valid or refresh page to try again</p>}
       {appsApiStatus === AppsApiStatus.NoApps && <p className="text-lg font-display">Looks like you don&apos;t have any apps yet. Get started by creating your first app!</p>}
