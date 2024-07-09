@@ -248,7 +248,6 @@ const signout = async () => {
 
 export const init = () => {
   if (globalThis.window) {
-    console.log("setting session from url");
     storeSessionFromURL(window.location.href);
   }
 }
