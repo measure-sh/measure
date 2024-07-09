@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import TeamSwitcher, { TeamsSwitcherStatus } from "../components/team_switcher";
 import { TeamsApiStatus, emptyTeam, fetchTeamsFromServer } from "../api/api_calls";
 import { logout } from "../utils/auth_utils";
-import auth from "@/utils/auth";
+import { auth } from "@/utils/auth";
 
 
 export default function DashboardLayout({

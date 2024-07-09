@@ -8,7 +8,7 @@ import { TeamsApiStatus, fetchTeamsFromServer, emptyTeam, AuthzAndMembersApiStat
 import AlertDialogModal from "@/app/components/alert_dialog_modal";
 import { formatToCamelCase } from "@/app/utils/string_utils";
 import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select";
-import auth from "@/utils/auth";
+import { auth } from "@/utils/auth";
 
 export default function Team({ params }: { params: { teamId: string } }) {
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading);

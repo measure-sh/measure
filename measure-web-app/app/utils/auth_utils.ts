@@ -15,20 +15,6 @@ export async function getUserIdOrRedirectToAuth(auth: Auth, router: AppRouterIns
   return session!.user.id;
 }
 
-// Utility function to try and access current access token. If session retrieval
-// fails for any reason, logout will be called and the user will be redirected to auth
-export async function getAccessTokenOrRedirectToAuth(auth: Auth, router: AppRouterInstance) {
-  const { session, error } = auth.getSession()
-
-  if (error) {
-    await auth.signout();
-    router.push('/auth/logout');
-    return null;
-  }
-
-  return session!.access_token;
-}
-
 // Utility function to check if API reponse has an authentication error.
 // If it does, logout will be called and the user will be redirected to auth
 export async function logoutIfAuthError(auth: Auth, router: AppRouterInstance, res: Response) {
