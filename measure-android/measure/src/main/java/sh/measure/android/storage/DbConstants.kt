@@ -151,7 +151,9 @@ internal object Sql {
                 ${EventTable.COL_DATA_FILE_PATH},
                 ${EventTable.COL_ATTACHMENTS},
                 ${EventTable.COL_ATTRIBUTES},
-                ${EventTable.COL_USER_DEFINED_ATTRIBUTES}
+                ${EventTable.COL_USER_DEFINED_ATTRIBUTES},
+                ${EventTable.COL_ATTACHMENT_SIZE},
+                ${EventTable.COL_ATTACHMENTS}
             FROM ${EventTable.TABLE_NAME}
             WHERE ${EventTable.COL_ID} IN (${eventIds.joinToString(", ") { "\'$it\'" }})
         """.trimIndent()
@@ -229,6 +231,24 @@ internal object Sql {
                 ${UserDefinedAttributesTable.COL_VALUE}, 
                 ${UserDefinedAttributesTable.COL_TYPE}
             FROM ${UserDefinedAttributesTable.TABLE_NAME}
+        """.trimIndent()
+    }
+
+    fun getEvents(): String {
+        return """
+            SELECT 
+                ${EventTable.COL_ID},
+                ${EventTable.COL_SESSION_ID},
+                ${EventTable.COL_TIMESTAMP},
+                ${EventTable.COL_TYPE},
+                ${EventTable.COL_USER_TRIGGERED},
+                ${EventTable.COL_DATA_SERIALIZED},
+                ${EventTable.COL_DATA_FILE_PATH},
+                ${EventTable.COL_ATTACHMENTS},
+                ${EventTable.COL_ATTACHMENT_SIZE},
+                ${EventTable.COL_ATTRIBUTES},
+                ${EventTable.COL_USER_DEFINED_ATTRIBUTES}
+            FROM ${EventTable.TABLE_NAME}
         """.trimIndent()
     }
 }

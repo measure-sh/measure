@@ -162,6 +162,11 @@ internal interface Database : Closeable {
      * Clears all the user defined attributes stored in the database.
      */
     fun clearUserDefinedAttributes()
+
+    /**
+     * Returns the event entity for the given event IDs.
+     */
+    fun getEvents(eventIds: List<String>): List<EventEntity>
 }
 
 /**
@@ -628,6 +633,80 @@ internal class DatabaseImpl(
 
     override fun clearUserDefinedAttributes() {
         writableDatabase.delete(UserDefinedAttributesTable.TABLE_NAME, null, null)
+    }
+
+    override fun getEvents(eventIds: List<String>): List<EventEntity> {
+        val attachmentEntities = mutableListOf<AttachmentEntity>()
+        readableDatabase.rawQuery(Sql.getAttachmentsForEventIds(eventIds), null).use {
+            while (it.moveToNext()) {
+                val attachmentIdIndex = it.getColumnIndex(AttachmentTable.COL_ID)
+                val typeIndex = it.getColumnIndex(AttachmentTable.COL_TYPE)
+                val filePathIndex = it.getColumnIndex(AttachmentTable.COL_FILE_PATH)
+                val nameIndex = it.getColumnIndex(AttachmentTable.COL_NAME)
+
+                val attachmentId = it.getString(attachmentIdIndex)
+                val type = it.getString(typeIndex)
+                val filePath = it.getString(filePathIndex)
+                val name = it.getString(nameIndex)
+
+                attachmentEntities.add(
+                    AttachmentEntity(
+                        id = attachmentId,
+                        type = type,
+                        path = filePath,
+                        name = name,
+                    ),
+                )
+            }
+        }
+        val eventEntities = mutableListOf<EventEntity>()
+        readableDatabase.rawQuery(Sql.getEventsForIds(eventIds), null).use {
+            while (it.moveToNext()) {
+                val eventIdIndex = it.getColumnIndex(EventTable.COL_ID)
+                val sessionIdIndex = it.getColumnIndex(EventTable.COL_SESSION_ID)
+                val timestampIndex = it.getColumnIndex(EventTable.COL_TIMESTAMP)
+                val userTriggeredIndex = it.getColumnIndex(EventTable.COL_USER_TRIGGERED)
+                val typeIndex = it.getColumnIndex(EventTable.COL_TYPE)
+                val serializedDataIndex = it.getColumnIndex(EventTable.COL_DATA_SERIALIZED)
+                val serializedDataFilePathIndex = it.getColumnIndex(EventTable.COL_DATA_FILE_PATH)
+                val attachmentsIndex = it.getColumnIndex(EventTable.COL_ATTACHMENTS)
+                val serializedAttributesIndex = it.getColumnIndex(EventTable.COL_ATTRIBUTES)
+                val serializedUserDefinedAttributesIndex =
+                    it.getColumnIndex(EventTable.COL_USER_DEFINED_ATTRIBUTES)
+                val attachmentsSizeIndex = it.getColumnIndex(EventTable.COL_ATTACHMENT_SIZE)
+
+                val eventId = it.getString(eventIdIndex)
+                val sessionId = it.getString(sessionIdIndex)
+                val timestamp = it.getString(timestampIndex)
+                val userTriggered = it.getInt(userTriggeredIndex) == 1
+                val type = it.getString(typeIndex)
+                val serializedData = it.getString(serializedDataIndex)
+                val serializedDataFilePath = it.getString(serializedDataFilePathIndex)
+                val attachments = it.getString(attachmentsIndex)
+                val serializedAttributes = it.getString(serializedAttributesIndex)
+                val serializedUserDefinedAttributes =
+                    it.getString(serializedUserDefinedAttributesIndex)
+                val attachmentsSize = it.getLong(attachmentsSizeIndex)
+
+                eventEntities.add(
+                    EventEntity(
+                        id = eventId,
+                        sessionId = sessionId,
+                        timestamp = timestamp,
+                        userTriggered = userTriggered,
+                        type = type,
+                        serializedData = serializedData,
+                        filePath = serializedDataFilePath,
+                        serializedAttributes = serializedAttributes,
+                        serializedAttachments = attachments,
+                        attachmentEntities = attachmentEntities,
+                        attachmentsSize = attachmentsSize,
+                        serializedUserDefAttributes = serializedUserDefinedAttributes,
+                    ),
+                )
+            }
+        }
+        return eventEntities
     }
 
     override fun close() {

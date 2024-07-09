@@ -18,7 +18,7 @@ internal interface NetworkClient {
         batchId: String,
         eventPackets: List<EventPacket>,
         attachmentPackets: List<AttachmentPacket>,
-    ): Boolean
+    ): HttpResponse<Nothing?>
 }
 
 private const val CONNECTION_TIMEOUT_MS = 30_000L
@@ -31,6 +31,7 @@ internal class NetworkClientImpl(
     private val logger: Logger,
     private val fileStorage: FileStorage,
 ) : NetworkClient {
+    private val eventFormDataName = "event"
     private var okHttpClient: OkHttpClient? = null
     private var baseUrl: String? = null
 
@@ -50,7 +51,7 @@ internal class NetworkClientImpl(
         batchId: String,
         eventPackets: List<EventPacket>,
         attachmentPackets: List<AttachmentPacket>,
-    ): Boolean {
+    ): HttpResponse<Nothing?> {
         val requestBody = buildRequestBody(eventPackets, attachmentPackets)
         val request: Request = buildRequest(requestBody, batchId)
         return executeRequest(request)
@@ -100,25 +101,45 @@ internal class NetworkClientImpl(
             .header("msr-req-id", batchId).build()
     }
 
-    private fun executeRequest(request: Request): Boolean {
+    private fun executeRequest(request: Request): HttpResponse<Nothing?> {
         requireNotNull(okHttpClient) { "NetworkClient must be initialized before executing requests" }
         return try {
             okHttpClient!!.newCall(request).execute().use {
-                if (it.code in 200..299) {
-                    logger.log(LogLevel.Debug, "Request successful")
-                    true
-                } else {
-                    logger.log(LogLevel.Error, "Request failed with code: ${it.code}")
-                    false
+                when (it.code) {
+                    in 200..299 -> {
+                        logger.log(LogLevel.Debug, "Request successful")
+                        HttpResponse.Success()
+                    }
+
+                    429 -> {
+                        logger.log(
+                            LogLevel.Debug,
+                            "Request rate limited, will retry later",
+                        )
+                        HttpResponse.Error.RateLimitError()
+                    }
+
+                    in 400..499 -> {
+                        logger.log(LogLevel.Error, "Unable to process request: ${it.code}")
+                        HttpResponse.Error.ClientError()
+                    }
+
+                    in 500..599 -> {
+                        logger.log(LogLevel.Error, "Request failed with code: ${it.code}")
+                        HttpResponse.Error.ServerError()
+                    }
+
+                    else -> {
+                        logger.log(LogLevel.Error, "Request failed with unknown code: ${it.code}")
+                        HttpResponse.Error.UnknownError()
+                    }
                 }
             }
         } catch (e: IOException) {
             logger.log(LogLevel.Error, "Failed to send request", e)
-            false
+            HttpResponse.Error.UnknownError(e)
         }
     }
-
-    private val eventFormDataName = "event"
 
     private fun getAttachmentFormDataName(attachmentPacket: AttachmentPacket): String =
         "$ATTACHMENT_NAME_PREFIX${attachmentPacket.id}"
@@ -127,14 +148,4 @@ internal class NetworkClientImpl(
         return fileStorage.getFile(filePath)?.asRequestBody()
             ?: throw IllegalStateException("No file found at path: $filePath")
     }
-}
-
-internal fun EventPacket.asFormDataPart(fileStorage: FileStorage): String {
-    val data = serializedData ?: if (serializedDataFilePath != null) {
-        fileStorage.getFile(serializedDataFilePath)?.readText()
-            ?: throw IllegalStateException("No file found at path: $serializedDataFilePath")
-    } else {
-        throw IllegalStateException("EventPacket must have either serializedData or serializedDataFilePath")
-    }
-    return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":$data,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes}"
 }

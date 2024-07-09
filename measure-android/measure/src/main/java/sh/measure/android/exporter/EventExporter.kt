@@ -48,8 +48,8 @@ internal class EventExporterImpl(
                 return
             }
             val attachments = database.getAttachmentPackets(eventIds)
-            val isSuccessful = networkClient.execute(batchId, events, attachments)
-            handleBatchProcessingResult(isSuccessful, batchId, events, attachments)
+            val response = networkClient.execute(batchId, events, attachments)
+            handleBatchProcessingResult(response, batchId, events, attachments)
         } finally {
             // always remove the batch from the list of batches in transit
             batchIdsInTransit.remove(batchId)
@@ -65,21 +65,40 @@ internal class EventExporterImpl(
     }
 
     private fun handleBatchProcessingResult(
-        isSuccessful: Boolean,
+        response: HttpResponse<Nothing?>,
         batchId: String,
         events: List<EventPacket>,
         attachments: List<AttachmentPacket>,
     ) {
-        if (isSuccessful) {
-            val eventIds = events.map { it.eventId }
-            database.deleteEvents(eventIds)
-            fileStorage.deleteEventsIfExist(eventIds, attachments.map { it.id })
-            logger.log(
-                LogLevel.Debug,
-                "Successfully sent batch $batchId",
-            )
-        } else {
-            logger.log(LogLevel.Error, "Failed to send batch $batchId")
+        when (response) {
+            is HttpResponse.Success -> {
+                deleteEvents(events, attachments)
+                logger.log(
+                    LogLevel.Debug,
+                    "Successfully sent batch $batchId",
+                )
+            }
+
+            is HttpResponse.Error.ClientError -> {
+                deleteEvents(events, attachments)
+                logger.log(
+                    LogLevel.Error,
+                    "Client error while sending batch $batchId, dropping the batch",
+                )
+            }
+
+            else -> {
+                logger.log(LogLevel.Error, "Failed to send batch $batchId")
+            }
         }
+    }
+
+    private fun deleteEvents(
+        events: List<EventPacket>,
+        attachments: List<AttachmentPacket>,
+    ) {
+        val eventIds = events.map { it.eventId }
+        database.deleteEvents(eventIds)
+        fileStorage.deleteEventsIfExist(eventIds, attachments.map { it.id })
     }
 }
