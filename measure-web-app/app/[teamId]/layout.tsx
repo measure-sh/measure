@@ -9,7 +9,6 @@ import { TeamsApiStatus, emptyTeam, fetchTeamsFromServer } from "../api/api_call
 import { logout } from "../utils/auth_utils";
 import { auth } from "@/utils/auth";
 
-
 export default function DashboardLayout({
   children,
 }: {
