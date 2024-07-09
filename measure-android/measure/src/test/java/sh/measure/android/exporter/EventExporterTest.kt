@@ -8,6 +8,7 @@ import org.junit.Assert
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.never
@@ -30,7 +31,8 @@ internal class EventExporterTest {
     private val context =
         InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
     private val database = DatabaseImpl(context, logger)
-    private val fileStorage = FileStorageImpl(context.filesDir.path, logger)
+    private val rootDir = context.filesDir.path
+    private val fileStorage = FileStorageImpl(rootDir, logger)
     private val timeProvider = FakeTimeProvider()
     private val configProvider = FakeConfigProvider()
     private val networkClient = mock<NetworkClient>()
@@ -129,6 +131,65 @@ internal class EventExporterTest {
     fun `returns empty map if no batches exist in database`() {
         val batches = eventExporter.getExistingBatches()
         Assert.assertEquals(0, batches.size)
+    }
+
+    @Test
+    fun `deletes the batch, events and attachments on successful export`() {
+        `when`(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success())
+        val attachment1 = AttachmentEntity("attachment1", "type", "name", "path")
+        val attachmentPath = getPathForAttachment(attachment1)
+        insertEventInDb("event1", attachmentEntities = listOf(attachment1), attachmentSize = 100)
+        insertEventInDb("event2")
+        insertBatchInDb("batch1", listOf("event1", "event2"))
+        insertAttachmentToStorage(attachment1)
+
+        val eventIds = listOf("event1", "event2")
+        // ensure batch, events, attachments are in storage
+        val eventsBeforeExport = database.getEvents(eventIds)
+        Assert.assertEquals(2, eventsBeforeExport.size)
+        Assert.assertEquals(1, eventsBeforeExport[0].attachmentEntities?.size)
+        Assert.assertNotNull(fileStorage.getFile(attachmentPath))
+        Assert.assertEquals(1, database.getBatches(1).size)
+
+        eventExporter.export("batch1", listOf("event1", "event2"))
+
+        // ensure batch, events, attachments are deleted from storage
+        Assert.assertEquals(0, database.getEvents(eventIds).size)
+        Assert.assertNull(fileStorage.getFile(attachmentPath))
+        Assert.assertEquals(0, database.getBatches(1).size)
+    }
+
+    @Test
+    fun `deletes the batch, events and attachments on client error`() {
+        `when`(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Error.ClientError())
+        val attachment1 = AttachmentEntity("attachment1", "type", "name", "path")
+        val attachmentPath = getPathForAttachment(attachment1)
+        insertEventInDb("event1", attachmentEntities = listOf(attachment1), attachmentSize = 100)
+        insertEventInDb("event2")
+        insertBatchInDb("batch1", listOf("event1", "event2"))
+        insertAttachmentToStorage(attachment1)
+
+        val eventIds = listOf("event1", "event2")
+        // ensure batch, events, attachments are in storage
+        val eventsBeforeExport = database.getEvents(eventIds)
+        Assert.assertEquals(2, eventsBeforeExport.size)
+        Assert.assertEquals(1, eventsBeforeExport[0].attachmentEntities?.size)
+        Assert.assertNotNull(fileStorage.getFile(attachmentPath))
+        Assert.assertEquals(1, database.getBatches(1).size)
+
+        eventExporter.export("batch1", listOf("event1", "event2"))
+
+        // ensure batch, events, attachments are deleted from storage
+        Assert.assertEquals(0, database.getEvents(eventIds).size)
+        Assert.assertNull(fileStorage.getFile(attachmentPath))
+        Assert.assertEquals(0, database.getBatches(1).size)
+    }
+
+    private fun getPathForAttachment(attachment1: AttachmentEntity) =
+        "$rootDir/measure/${attachment1.id}"
+
+    private fun insertAttachmentToStorage(attachment1: AttachmentEntity) {
+        fileStorage.writeAttachment(attachment1.id, "content".toByteArray())
     }
 
     private fun insertEventInDb(

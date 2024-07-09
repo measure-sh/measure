@@ -4,7 +4,6 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.Mockito.mock
@@ -33,7 +32,7 @@ class NetworkClientTest {
     }
 
     @Test
-    fun `creates a request, sends it to events endpoint and returns true if success`() {
+    fun `creates a request, sends it to events endpoint and returns success`() {
         // Given
         val batchId = "batchId"
         val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-")
@@ -51,13 +50,34 @@ class NetworkClientTest {
         val recordedRequest = mockWebServer.takeRequest()
 
         // Assert
-        assertTrue(result)
+        assertTrue(result is HttpResponse.Success)
         assertEquals("PUT", recordedRequest.method)
+    }
+
+    @Test
+    fun `creates a request with request ID header`() {
+        // Given
+        val batchId = "batchId"
+        val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-")
+        val eventPacket = FakeEventFactory.getEventPacket(eventEntity)
+        val attachmentPackets = FakeEventFactory.getAttachmentPackets(eventEntity)
+        attachmentPackets.forEach {
+            `when`(fileStorage.getFile(it.filePath)).thenReturn(fakeFile)
+        }
+
+        mockWebServer.enqueue(MockResponse().setResponseCode(202))
+        mockWebServer.start(port = 8080)
+
+        // When
+        networkClient.execute(batchId, listOf(eventPacket), attachmentPackets)
+        val recordedRequest = mockWebServer.takeRequest()
+
+        // Assert
         assertTrue(recordedRequest.headers.contains(Pair("msr-req-id", batchId)))
     }
 
     @Test
-    fun `creates a request, sends it to events endpoint and returns false if request fails`() {
+    fun `creates a request, sends it to events endpoint and returns error if request fails due to server error`() {
         // Given
         val batchId = "batchId"
         val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-")
@@ -72,12 +92,51 @@ class NetworkClientTest {
 
         // When
         val result = networkClient.execute(batchId, listOf(eventPacket), attachmentPackets)
-        val recordedRequest = mockWebServer.takeRequest()
 
         // Assert
-        assertFalse(result)
-        assertEquals("PUT", recordedRequest.method)
-        assertTrue(recordedRequest.headers.contains(Pair("msr-req-id", batchId)))
+        assertTrue(result is HttpResponse.Error.ServerError)
+    }
+
+    @Test
+    fun `creates a request, sends it to events endpoint and returns error if request fails due to client error`() {
+        // Given
+        val batchId = "batchId"
+        val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-")
+        val eventPacket = FakeEventFactory.getEventPacket(eventEntity)
+        val attachmentPackets = FakeEventFactory.getAttachmentPackets(eventEntity)
+        attachmentPackets.forEach {
+            `when`(fileStorage.getFile(it.filePath)).thenReturn(fakeFile)
+        }
+
+        mockWebServer.enqueue(MockResponse().setResponseCode(404))
+        mockWebServer.start(port = 8080)
+
+        // When
+        val result = networkClient.execute(batchId, listOf(eventPacket), attachmentPackets)
+
+        // Assert
+        assertTrue(result is HttpResponse.Error.ClientError)
+    }
+
+    @Test
+    fun `creates a request, sends it to events endpoint and returns error if request fails due to rate limit error`() {
+        // Given
+        val batchId = "batchId"
+        val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-")
+        val eventPacket = FakeEventFactory.getEventPacket(eventEntity)
+        val attachmentPackets = FakeEventFactory.getAttachmentPackets(eventEntity)
+        attachmentPackets.forEach {
+            `when`(fileStorage.getFile(it.filePath)).thenReturn(fakeFile)
+        }
+
+        mockWebServer.enqueue(MockResponse().setResponseCode(429))
+        mockWebServer.start(port = 8080)
+
+        // When
+        val result = networkClient.execute(batchId, listOf(eventPacket), attachmentPackets)
+
+        // Assert
+        assertTrue(result is HttpResponse.Error.RateLimitError)
     }
 
     @Test
