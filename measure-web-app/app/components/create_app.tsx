@@ -67,7 +67,7 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, existingAppName = null, e
             <div className="py-2" />
             <input id="app-name" type="string" placeholder="Enter app name" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-sans placeholder:text-neutral-400" onChange={(event) => setAppName(event.target.value)} />
             <div className="py-2" />
-            <button type="submit" disabled={createAppApiStatus === CreateAppApiStatus.Loading || appName.length === 0} className={`w-fit outline-none hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4 ${(createAppApiStatus === CreateAppApiStatus.Loading) ? 'pointer-events-none' : 'pointer-events-auto'}`}>Create App</button>
+            <button type="submit" disabled={createAppApiStatus === CreateAppApiStatus.Loading || appName.length === 0} className={`w-fit outline-none hover:enabled:bg-yellow-200 focus-visible:enabled:bg-yellow-200 active:enabled:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4 ${(createAppApiStatus === CreateAppApiStatus.Loading) ? 'pointer-events-none' : 'pointer-events-auto'}`}>Create App</button>
             <div className="py-2" />
           </form>
           {createAppApiStatus === CreateAppApiStatus.Loading && <p className="font-display">Creating app...</p>}
