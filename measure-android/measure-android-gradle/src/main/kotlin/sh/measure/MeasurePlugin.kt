@@ -105,6 +105,12 @@ class MeasurePlugin : Plugin<Project> {
             it.httpClientProvider.set(httpClientProvider)
         }.dependsOn(extractManifestDataProvider).apply {
             configure {
+                it.onlyIf {
+                    // only run the task if the manifest data file exists, otherwise we assume
+                    // that manifest data extraction failed and we should run the upload task.
+                    val manifestData = manifestDataFileProvider(project, variant).get().asFile
+                    manifestData.exists()
+                }
                 // using dependsOn would not work as apkSizeProvider and aabSizeProvider will both
                 // end up running and overwriting each other's output.
                 it.mustRunAfter(apkSizeProvider, aabSizeProvider)
