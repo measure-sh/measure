@@ -41,7 +41,7 @@ kolinx-binary-compatibility-validator = "0.13.2"
 diffplug-spotless = "6.24.0"
 compose-plugin = "1.5.11"
 gradle-plugin-publish = "1.2.0"
-autonomousapps-testkit = "0.8"
+autonomousapps-testkit = "0.10"
 mavenPublish = "0.29.0"
 
 [libraries]
