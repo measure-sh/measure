@@ -526,7 +526,9 @@ func InviteMembers(c *gin.Context) {
 	if err != nil {
 		msg := `team id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	var invitees []Invitee
@@ -534,18 +536,24 @@ func InviteMembers(c *gin.Context) {
 	if err := c.ShouldBindJSON(&invitees); err != nil {
 		msg := "failed to parse invite payload"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	if len(invitees) < 1 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "need at least 1 invitee"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "need at least 1 invitee",
+		})
 		return
 	}
 
 	if len(invitees) > maxInvitees {
 		msg := fmt.Sprintf("cannot invite more than %d invitee(s)", maxInvitees)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -556,17 +564,23 @@ func InviteMembers(c *gin.Context) {
 		if err.Error() == "received 'unknown' role" {
 			msg := `couldn't find team, perhaps team id is invalid`
 			fmt.Println(msg)
-			c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": msg,
+			})
 			return
 		}
 		msg := `couldn't perform authorization checks`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if !ok {
 		msg := fmt.Sprintf(`you don't have permissions to invite in team [%s]`, teamId)
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	user := &User{
@@ -576,14 +590,18 @@ func InviteMembers(c *gin.Context) {
 	if err != nil {
 		msg := `couldn't perform authorization checks`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	if userRole == unknown {
 		msg := `couldn't find team, perhaps team id is invalid`
 		fmt.Println(msg)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -595,7 +613,9 @@ func InviteMembers(c *gin.Context) {
 
 	if maxInviteeRole > userRole {
 		msg := fmt.Sprintf(`you don't have permissions to invite in team [%s]`, teamId)
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -607,41 +627,63 @@ func InviteMembers(c *gin.Context) {
 	if err != nil {
 		msg := `failed to invite`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	if idx > -1 {
 		email := invitees[idx].Email
 		msg := fmt.Sprintf("invitee '%s' is already a member of this team", email)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusConflict, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
-	existingUsers, newInvitees, err := GetUsersByInvitees(invitees)
+	// ignoring new invitees for now
+	existingUsers, _, err := GetUsersByInvitees(invitees)
 	if err != nil {
 		msg := `failed to invite`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
-	if len(existingUsers) > 0 {
-		if err := team.addMembers(existingUsers); err != nil {
-			msg := `failed to invite existing users`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-			return
+	if len(existingUsers) < 1 {
+		inviteeEmails := []string{}
+		for i := range invitees {
+			inviteeEmails = append(inviteeEmails, invitees[i].Email)
 		}
+		emails := strings.Join(inviteeEmails, ", ")
+		msg := fmt.Sprintf("no matching users found for %s", emails)
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": msg,
+		})
+		return
 	}
 
-	var newEmails []string
-
-	for _, invitee := range newInvitees {
-		newEmails = append(newEmails, invitee.Email)
+	if err := team.addMembers(existingUsers); err != nil {
+		msg := `failed to invite existing users`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"ok": "invitee(s) authorized", "emails": newEmails})
+	invitedEmails := []string{}
+	for i := range existingUsers {
+		invitedEmails = append(invitedEmails, existingUsers[i].Email)
+	}
+	emails := strings.Join(invitedEmails, ", ")
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok": fmt.Sprintf("invited %s", emails),
+	})
 }
 
 func RenameTeam(c *gin.Context) {
