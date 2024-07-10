@@ -272,7 +272,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
           {/* Loading message for invite member */}
           {inviteMemberApiStatus === InviteMemberApiStatus.Loading && <p className="text-sm font-display">Inviting member...</p>}
           {/* Success message for invite member */}
-          {inviteMemberApiStatus === InviteMemberApiStatus.Success && <p className="text-sm font-display">Invite link sent!</p>}
+          {inviteMemberApiStatus === InviteMemberApiStatus.Success && <p className="text-sm font-display">Invited to team!</p>}
           {/* Error message for invite member */}
           {inviteMemberApiStatus === InviteMemberApiStatus.Error && <p className="text-sm font-display">{inviteMemberErrorMsg}</p>}
 
