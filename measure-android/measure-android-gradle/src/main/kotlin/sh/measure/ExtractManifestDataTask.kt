@@ -52,8 +52,23 @@ abstract class ExtractManifestDataTask : DefaultTask() {
             ?: throw GradleException("$KEY_VERSION_NAME name not found in manifest")
         val packageName =
             extractPackageName(doc) ?: throw GradleException("$KEY_PACKAGE not found in manifest")
-        val apiKey = extractApiKey(doc) ?: throw GradleException("$KEY_API_KEY not set in manifest")
-        val apiUrl = extractApiUrl(doc) ?: throw GradleException("$KEY_API_URL not set in manifest")
+        val apiKey = extractApiKey(doc)
+        val apiUrl = extractApiUrl(doc)
+
+        if (apiKey == null) {
+            logger.error(
+                "[ERROR]: $KEY_API_KEY missing in manifest, Measure SDK will not be initialized."
+            )
+            return
+        }
+
+        if (apiUrl == null) {
+            logger.error(
+                "[ERROR]: $KEY_API_URL missing in manifest, Measure SDK will not be initialized."
+            )
+            return
+        }
+
         @Suppress("OPT_IN_USAGE") Json.encodeToStream(
             ManifestData(
                 versionCode = versionCode,
