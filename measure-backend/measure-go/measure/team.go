@@ -295,9 +295,6 @@ func (t *Team) create(ctx context.Context, u *User, tx *pgx.Tx) (err error) {
 	defer stmtMembership.Close()
 
 	_, err = (*tx).Exec(ctx, stmtMembership.String(), stmtMembership.Args()...)
-	if err != nil {
-		return
-	}
 
 	return
 }
