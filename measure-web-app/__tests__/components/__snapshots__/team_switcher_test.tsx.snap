@@ -9,7 +9,7 @@ exports[`TeamSwitcher renders correctly in collapsed state 1`] = `
         class="z-50 relative w-40 self-center inline-block text-left"
       >
         <button
-          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300"
+          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
           type="button"
         >
           <div
@@ -35,7 +35,7 @@ exports[`TeamSwitcher renders correctly in collapsed state 1`] = `
       class="z-50 relative w-40 self-center inline-block text-left"
     >
       <button
-        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300"
+        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
         type="button"
       >
         <div
@@ -118,7 +118,7 @@ exports[`TeamSwitcher renders correctly in error state 1`] = `
         class="z-50 relative w-40 self-center inline-block text-left"
       >
         <button
-          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300"
+          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
           disabled=""
           type="button"
         >
@@ -136,7 +136,7 @@ exports[`TeamSwitcher renders correctly in error state 1`] = `
       class="z-50 relative w-40 self-center inline-block text-left"
     >
       <button
-        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300"
+        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
         disabled=""
         type="button"
       >
@@ -211,7 +211,7 @@ exports[`TeamSwitcher renders correctly in loading state 1`] = `
         class="z-50 relative w-40 self-center inline-block text-left"
       >
         <button
-          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300"
+          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
           disabled=""
           type="button"
         >
@@ -229,7 +229,7 @@ exports[`TeamSwitcher renders correctly in loading state 1`] = `
       class="z-50 relative w-40 self-center inline-block text-left"
     >
       <button
-        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300"
+        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
         disabled=""
         type="button"
       >
@@ -304,7 +304,7 @@ exports[`TeamSwitcher renders correctly in opened state 1`] = `
         class="z-50 relative w-40 self-center inline-block text-left"
       >
         <button
-          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300"
+          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
           type="button"
         >
           <div
@@ -330,7 +330,7 @@ exports[`TeamSwitcher renders correctly in opened state 1`] = `
       class="z-50 relative w-40 self-center inline-block text-left"
     >
       <button
-        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300"
+        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
         type="button"
       >
         <div
@@ -413,7 +413,7 @@ exports[`TeamSwitcher renders correctly in opened state 2`] = `
         class="z-50 relative w-40 self-center inline-block text-left"
       >
         <button
-          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300"
+          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
           type="button"
         >
           <div
@@ -467,7 +467,7 @@ exports[`TeamSwitcher renders correctly in opened state 2`] = `
       class="z-50 relative w-40 self-center inline-block text-left"
     >
       <button
-        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300"
+        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
         type="button"
       >
         <div
@@ -578,7 +578,7 @@ exports[`TeamSwitcher renders correctly on new team selection 1`] = `
         class="z-50 relative w-40 self-center inline-block text-left"
       >
         <button
-          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300"
+          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
           type="button"
         >
           <div
@@ -604,7 +604,7 @@ exports[`TeamSwitcher renders correctly on new team selection 1`] = `
       class="z-50 relative w-40 self-center inline-block text-left"
     >
       <button
-        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300"
+        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
         type="button"
       >
         <div
@@ -687,7 +687,7 @@ exports[`TeamSwitcher renders correctly on new team selection 2`] = `
         class="z-50 relative w-40 self-center inline-block text-left"
       >
         <button
-          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300"
+          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
           type="button"
         >
           <div
@@ -713,7 +713,7 @@ exports[`TeamSwitcher renders correctly on new team selection 2`] = `
       class="z-50 relative w-40 self-center inline-block text-left"
     >
       <button
-        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300"
+        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
         type="button"
       >
         <div
@@ -796,7 +796,7 @@ exports[`TeamSwitcher renders correctly on passing in initial item index 1`] = `
         class="z-50 relative w-40 self-center inline-block text-left"
       >
         <button
-          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300"
+          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
           type="button"
         >
           <div
@@ -822,7 +822,7 @@ exports[`TeamSwitcher renders correctly on passing in initial item index 1`] = `
       class="z-50 relative w-40 self-center inline-block text-left"
     >
       <button
-        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300"
+        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
         type="button"
       >
         <div
