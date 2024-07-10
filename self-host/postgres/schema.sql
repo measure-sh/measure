@@ -30,53 +30,6 @@ CREATE SCHEMA public;
 COMMENT ON SCHEMA public IS 'standard public schema';
 
 
---
--- Name: create_team(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.create_team() RETURNS trigger
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public'
-    AS $$
-declare
-  team_id uuid;
-  team_name text;
-  user_name text;
-  inviter_team_id uuid;
-  invitee_role text;
-  time_now timestamptz;
-begin
-  -- noop if account has not been confirmed
-  if new.confirmed_at is null and old.confirmed_at is null then
-    return new;
-  end if;
-
-  -- prepare new user's team name
-  user_name = new.name;
-  if user_name is not null then
-    team_name = substring(user_name from 1 for position(' ' in user_name) - 1);
-  else
-    team_name = substring(new.email from 1 for position('@' in new.email) - 1);
-  end if;
-
-  -- get invite details
-  inviter_team_id = new.invited_to_team_id;
-  invitee_role = new.invited_as_role;
-
-  -- update tables
-  time_now = now();
-  if new.confirmed_at is not null and old.confirmed_at is null then
-    insert into public.teams (name, updated_at) values (team_name || '''s team', time_now) returning id into team_id;
-    insert into public.team_membership (team_id, user_id, role, role_updated_at) values (team_id, new.id, 'owner', time_now);
-    if inviter_team_id is not null and invitee_role is not null then
-      insert into public.team_membership (team_id, user_id, role, role_updated_at) values (inviter_team_id::uuid, new.id, invitee_role, time_now);
-    end if;
-  end if;
-  return new;
-end;
-$$;
-
-
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -1127,13 +1080,6 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: users create_team_for_user; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER create_team_for_user AFTER INSERT ON public.users FOR EACH ROW EXECUTE FUNCTION public.create_team();
-
-
---
 -- Name: alert_prefs alert_prefs_app_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1253,8 +1199,6 @@ INSERT INTO dbmate.schema_migrations (version) VALUES
     ('20231117011737'),
     ('20231117012011'),
     ('20231117012219'),
-    ('20231117012557'),
-    ('20231117012726'),
     ('20231122211412'),
     ('20231228033348'),
     ('20231228044339'),
