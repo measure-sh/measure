@@ -207,6 +207,40 @@ func (u *User) getRole(teamId string) (rank, error) {
 	return roleMap[role], nil
 }
 
+// save saves a user to database.
+func (u *User) save(ctx context.Context, tx *pgx.Tx) (err error) {
+	stmt := sqlf.PostgreSQL.
+		InsertInto("public.users").
+		Set("id", u.ID).
+		Set("name", u.Name).
+		Set("email", u.Email).
+		Set("confirmed_at", u.ConfirmedAt).
+		Set("last_sign_in_at", u.LastSignInAt).
+		Set("created_at", u.CreatedAt).
+		Set("updated_at", u.UpdatedAt)
+
+	defer stmt.Close()
+
+	if tx != nil {
+		_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
+		return
+	}
+
+	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+
+	return
+}
+
+// firstName returns the first name of the
+// user.
+func (u *User) firstName() (firstName string) {
+	parts := strings.Fields(*u.Name)
+	if len(parts) > 0 {
+		firstName = parts[0]
+	}
+	return
+}
+
 // GetUsersByInvitees provides existing & new invitees by matching
 // each user's and invitee's email.
 //
@@ -267,7 +301,7 @@ func GetUsersByInvitees(invitees []Invitee) ([]Invitee, []Invitee, error) {
 	return oldUsers, newUsers, nil
 }
 
-// FindUserByEmail find a user from their email.
+// FindUserByEmail finds a user from their email.
 func FindUserByEmail(ctx context.Context, email string) (*User, error) {
 	stmt := sqlf.PostgreSQL.
 		From("public.users").
@@ -281,12 +315,30 @@ func FindUserByEmail(ctx context.Context, email string) (*User, error) {
 	var user User
 
 	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&user.ID, &user.Name, &user.Email); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+
 		return nil, err
 	}
 
-	if user.ID == nil {
-		return nil, nil
+	return &user, nil
+}
+
+// NewUser creates a new user from name
+// and email pair.
+func NewUser(name, email string) (user *User) {
+	id := uuid.New().String()
+	now := time.Now()
+	user = &User{
+		ID:           &id,
+		Name:         &name,
+		Email:        &email,
+		ConfirmedAt:  &now,
+		LastSignInAt: &now,
+		CreatedAt:    &now,
+		UpdatedAt:    &now,
 	}
 
-	return &user, nil
+	return
 }

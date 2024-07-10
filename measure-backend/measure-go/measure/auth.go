@@ -274,8 +274,48 @@ func SigninGitHub(c *gin.Context) {
 		}
 
 		if msrUser == nil {
-			// new user
-			return
+			msrUser = NewUser(ghUser.Name, ghUser.Email)
+			if err := msrUser.save(ctx, nil); err != nil {
+				fmt.Println(msg, err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"error": msg,
+				})
+				return
+			}
+
+			userName := msrUser.firstName()
+			teamName := fmt.Sprintf("%s's team", userName)
+
+			team := &Team{
+				Name: &teamName,
+			}
+
+			tx, err := server.Server.PgPool.Begin(ctx)
+			if err != nil {
+				fmt.Println(msg, err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"error": msg,
+				})
+				return
+			}
+
+			defer tx.Rollback(ctx)
+
+			if err := team.create(ctx, msrUser, &tx); err != nil {
+				fmt.Println(msg, err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"error": msg,
+				})
+				return
+			}
+
+			if err := tx.Commit(ctx); err != nil {
+				fmt.Println(msg, err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"error": msg,
+				})
+				return
+			}
 		}
 
 		// FIXME: Change User struct's ID field to UUID

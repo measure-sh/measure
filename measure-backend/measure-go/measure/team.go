@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/leporo/sqlf"
 )
@@ -262,57 +263,47 @@ func (t *Team) changeRole(memberId *uuid.UUID, role rank) error {
 	return nil
 }
 
-func (t *Team) create(u *User) error {
-	ctx := context.Background()
-	tx, err := server.Server.PgPool.Begin(ctx)
-
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback(ctx)
-
-	stmtTeam := sqlf.PostgreSQL.
-		InsertInto("public.teams").
-		Set("id", nil).
-		Set("name", nil).
-		Set("created_at", nil).
-		Set("updated_at", nil)
-
-	defer stmtTeam.Close()
-
+// create inserts a new team into database and establishes
+// user's membership with the team.
+func (t *Team) create(ctx context.Context, u *User, tx *pgx.Tx) (err error) {
 	id := uuid.New()
 	t.ID = &id
 	now := time.Now()
 
-	_, err = tx.Exec(ctx, stmtTeam.String(), t.ID, t.Name, now, now)
+	stmtTeam := sqlf.PostgreSQL.
+		InsertInto("public.teams").
+		Set("id", t.ID).
+		Set("name", t.Name).
+		Set("created_at", now).
+		Set("updated_at", now)
+
+	defer stmtTeam.Close()
+
+	_, err = (*tx).Exec(ctx, stmtTeam.String(), stmtTeam.Args()...)
 	if err != nil {
-		return err
+		return
 	}
 
 	stmtMembership := sqlf.PostgreSQL.
 		InsertInto("public.team_membership").
-		Set("team_id", nil).
-		Set("user_id", nil).
-		Set("role", nil).
-		Set("role_updated_at", nil).
-		Set("created_at", nil)
+		Set("team_id", t.ID).
+		Set("user_id", u.ID).
+		Set("role", roleMap["owner"]).
+		Set("role_updated_at", now).
+		Set("created_at", now)
 
 	defer stmtMembership.Close()
 
-	_, err = tx.Exec(ctx, stmtMembership.String(), t.ID, u.ID, roleMap["owner"].String(), now, now)
+	_, err = (*tx).Exec(ctx, stmtMembership.String(), stmtMembership.Args()...)
 	if err != nil {
-		return err
+		return
 	}
 
-	if err = tx.Commit(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	return
 }
 
 func CreateTeam(c *gin.Context) {
+	ctx := c.Request.Context()
 	userId := c.GetString("userId")
 	u := &User{
 		ID: &userId,
@@ -364,7 +355,36 @@ func CreateTeam(c *gin.Context) {
 		return
 	}
 
-	newTeam.create(u)
+	msg := "failed to create team"
+	tx, err := server.Server.PgPool.Begin(ctx)
+	if err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	defer tx.Rollback(ctx)
+
+	if err := newTeam.create(ctx, u, &tx); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	c.JSON(http.StatusCreated, newTeam)
 }
