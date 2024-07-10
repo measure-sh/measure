@@ -35,10 +35,6 @@ internal class ApkSizeTaskTest {
         Assert.assertEquals("11108716\napk", outputFile.readText())
     }
 
-    private fun createOutputAabSizeFile(): File {
-        return temporaryFolder.newFile("aabSize.txt")
-    }
-
     private fun createOutputApkSizeFile(): File {
         return temporaryFolder.newFile("apkSize.txt")
     }

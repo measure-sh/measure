@@ -1,6 +1,5 @@
 package sh.measure
 
-import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.internal.impldep.org.junit.Rule
 import org.gradle.internal.impldep.org.junit.rules.TemporaryFolder
@@ -39,21 +38,19 @@ internal class ExtractManifestDataTaskTest {
     }
 
     @Test
-    fun `ExtractManifestDataTask throws when API key is missing in manifest`() {
+    fun `ExtractManifestDataTask does not output the file when API key is missing in manifest`() {
         manifestFile.writeText(manifestWithoutApiKey)
         configureTask()
-        Assert.assertThrows(GradleException::class.java) {
-            task.extractManifestData()
-        }
+        task.extractManifestData()
+        Assert.assertTrue(outputFile.readText().isEmpty())
     }
 
     @Test
-    fun `ExtractManifestDataTask throws when API url is missing in manifest`() {
+    fun `ExtractManifestDataTask does not output the file when API URL is missing in manifest`() {
         manifestFile.writeText(manifestWithoutApiUrl)
         configureTask()
-        Assert.assertThrows(GradleException::class.java) {
-            task.extractManifestData()
-        }
+        task.extractManifestData()
+        Assert.assertTrue(outputFile.readText().isEmpty())
     }
 
     private fun configureTask() {

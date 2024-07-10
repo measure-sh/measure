@@ -23,12 +23,14 @@ gradlePlugin {
     }
 }
 
-private val groupId = properties["MEASURE_PLUGIN_GROUP_ID"] as String
 private val artifactId = properties["MEASURE_PLUGIN_ARTIFACT_ID"] as String
-private val pluginVersion = properties["MEASURE_PLUGIN_VERSION_NAME"] as String
+// The group and version are used by autonomousapps-testkit plugin. Changing the variable names
+// will lead to functional tests breaking.
+group = properties["MEASURE_PLUGIN_GROUP_ID"] as String
+version = properties["MEASURE_PLUGIN_VERSION_NAME"] as String
 
 mavenPublishing {
-    coordinates(groupId, artifactId, pluginVersion)
+    coordinates(group as String, artifactId, version as String)
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = false)
     configure(
         GradlePublishPlugin()
