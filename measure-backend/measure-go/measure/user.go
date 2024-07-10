@@ -241,6 +241,21 @@ func (u *User) firstName() (firstName string) {
 	return
 }
 
+// touchLastSignInAt updates the last sign in at
+// value for the user.
+func (u *User) touchLastSignInAt(ctx context.Context) (err error) {
+	stmt := sqlf.PostgreSQL.
+		Update("public.users").
+		Set("last_sign_in_at", time.Now()).
+		Where("id = ?", u.ID)
+
+	defer stmt.Close()
+
+	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+
+	return
+}
+
 // GetUsersByInvitees provides existing & new invitees by matching
 // each user's and invitee's email.
 //

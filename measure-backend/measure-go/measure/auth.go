@@ -316,6 +316,15 @@ func SigninGitHub(c *gin.Context) {
 				})
 				return
 			}
+		} else {
+			// update user's last sign in at value
+			if err := msrUser.touchLastSignInAt(ctx); err != nil {
+				fmt.Println(msg, err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"error": msg,
+				})
+				return
+			}
 		}
 
 		// FIXME: Change User struct's ID field to UUID
