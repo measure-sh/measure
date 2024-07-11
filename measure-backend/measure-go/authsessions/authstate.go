@@ -43,6 +43,13 @@ type GitHubUser struct {
 	Location string `json:"location"`
 }
 
+// GoogleUser represents the Google user.
+type GoogleUser struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
 // Save saves the authentication state.
 func (as AuthState) Save(ctx context.Context) (err error) {
 	stmt := sqlf.PostgreSQL.
