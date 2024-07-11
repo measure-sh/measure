@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	authsession "measure-backend/measure-go/authsessions"
+	"measure-backend/measure-go/authsession"
 	"measure-backend/measure-go/cipher"
 	"measure-backend/measure-go/server"
 	"net/http"
