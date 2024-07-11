@@ -306,7 +306,7 @@ func CreateTeam(c *gin.Context) {
 		ID: &userId,
 	}
 
-	ownTeam, err := u.getOwnTeam()
+	ownTeam, err := u.getOwnTeam(ctx)
 	if err != nil {
 		msg := "failed to lookup user's team"
 		fmt.Println(msg, err)
