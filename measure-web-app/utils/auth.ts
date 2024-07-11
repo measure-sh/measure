@@ -160,7 +160,7 @@ const getRandomValues = (len: number) => {
  * @param token access or refresh token string
  * @returns object
  */
-const decodeJWT = (token: string) => {
+export const decodeJWT = (token: string) => {
   const [encodedHeader, encodedPayload] = token.split('.');
   const header = JSON.parse(atob(encodedHeader));
   const payload = JSON.parse(atob(encodedPayload));
