@@ -1,7 +1,6 @@
 package cipher
 
 import (
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -9,16 +8,21 @@ import (
 	"io"
 )
 
-func InviteCode() (string, error) {
-	bytes := make([]byte, 64)
-	_, err := rand.Read(bytes)
-	if err != nil {
-		return "", err
+// ComputeSHA2Hash computes SHA256 hash of input
+// bytes and returns the full hash encoded as
+// string.
+func ComputeSHA2Hash(bytes []byte) (*string, error) {
+	hash := sha256.New()
+	if _, err := hash.Write(bytes); err != nil {
+		return nil, err
 	}
-
-	return hex.EncodeToString(bytes), nil
+	checksum := hex.EncodeToString(hash.Sum(nil))
+	return &checksum, nil
 }
 
+// ComputeChecksum computes SHA256 hash of input
+// bytes and returns the first 8 characters of the
+// hash.
 func ComputeChecksum(bytes []byte) (*string, error) {
 	hash := sha256.New()
 	if _, err := hash.Write(bytes); err != nil {
@@ -28,6 +32,7 @@ func ComputeChecksum(bytes []byte) (*string, error) {
 	return &checksum, nil
 }
 
+// ChecksumFnv1 computes Fnv1 hash.
 func ChecksumFnv1(r io.Reader) (string, error) {
 	h := fnv.New64()
 
