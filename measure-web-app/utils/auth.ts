@@ -310,7 +310,7 @@ export const init = () => {
  * 
  * @param path Optional next path to encode in the state
  */
-export const encodeOAuthState = (path: string = "") => {
+export const encodeOAuthState = (path: URL | string = "") => {
   const state = {
     random: getRandomValues(32),
     path

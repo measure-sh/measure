@@ -9,7 +9,8 @@ async function doGitHubLogin() {
     provider: 'github',
     clientId: process?.env?.NEXT_PUBLIC_MEASURE_GITHUB_OAUTH_CLIENT_ID,
     options: {
-      redirectTo: `${origin}/auth/callback/github`
+      redirectTo: `${origin}/auth/callback/github`,
+      next: ''
     }
   });
 

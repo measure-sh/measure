@@ -5,6 +5,7 @@ type OAuthOptions = {
   clientId: string | undefined,
   options: {
     redirectTo: URL | string
+    next: URL | string
   }
 }
 
@@ -40,7 +41,7 @@ class MeasureClient {
       throw new Error("`clientId` is required");
     }
 
-    const state = encodeOAuthState();
+    const state = encodeOAuthState(options.options.next);
 
     const path = '/auth/github';
     const body = JSON.stringify({ type: "init", state });
