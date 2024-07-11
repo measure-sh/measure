@@ -1,3 +1,4 @@
+import { decodeJWT } from '@/utils/auth';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic'
@@ -41,36 +42,9 @@ export async function POST(request: Request) {
   }
 
   const session = await res.json();
+  const { payload } = decodeJWT(session.access_token);
 
-  const teamsRes = await fetch(`${apiOrigin}/teams`, {
-    headers: {
-      'Authorization': `Bearer ${session.access_token}`
-    }
-  });
-
-  if (teamsRes.status !== 200) {
-    return NextResponse.redirect(errRedirectUrl, { status: 302 });
-  }
-
-  const teams = await teamsRes.json();
-
-  if (!teams?.length) {
-    return NextResponse.redirect(errRedirectUrl, { status: 302 });
-  }
-
-  type Team = {
-    id: string,
-    name: string,
-    role: string,
-  }
-
-  const ownTeam = teams.find((team: Team) => team.role === "owner");
-
-  if (!ownTeam) {
-    return NextResponse.redirect(errRedirectUrl, { status: 302 });
-  }
-
-  const redirectURL = new URL(`${origin}/${ownTeam.id}/overview`);
+  const redirectURL = new URL(`${origin}/${payload["team"]}/overview`);
   redirectURL.hash = `access_token=${session.access_token}&refresh_token=${session.refresh_token}&state=${session.state}`;
 
   return NextResponse.redirect(redirectURL, { status: 302 });
