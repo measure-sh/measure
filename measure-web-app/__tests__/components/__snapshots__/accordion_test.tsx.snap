@@ -49,11 +49,11 @@ exports[`Accordion renders correctly in collapsed state 1`] = `
           <div
             class="overflow-hidden"
           >
-            <p
-              class="whitespace-pre-wrap border border-black p-2"
+            <div
+              class="whitespace-pre-wrap border border-black px-4 py-2 rounded-md bg-neutral-950 text-white selection:bg-yellow-200/50"
             >
               SOME BODY TEXT
-            </p>
+            </div>
           </div>
         </div>
       </div>
@@ -104,11 +104,11 @@ exports[`Accordion renders correctly in collapsed state 1`] = `
         <div
           class="overflow-hidden"
         >
-          <p
-            class="whitespace-pre-wrap border border-black p-2"
+          <div
+            class="whitespace-pre-wrap border border-black px-4 py-2 rounded-md bg-neutral-950 text-white selection:bg-yellow-200/50"
           >
             SOME BODY TEXT
-          </p>
+          </div>
         </div>
       </div>
     </div>
@@ -216,11 +216,11 @@ exports[`Accordion renders correctly in opened state 1`] = `
           <div
             class="overflow-hidden"
           >
-            <p
-              class="whitespace-pre-wrap border border-black p-2"
+            <div
+              class="whitespace-pre-wrap border border-black px-4 py-2 rounded-md bg-neutral-950 text-white selection:bg-yellow-200/50"
             >
               SOME BODY TEXT
-            </p>
+            </div>
           </div>
         </div>
       </div>
@@ -271,11 +271,11 @@ exports[`Accordion renders correctly in opened state 1`] = `
         <div
           class="overflow-hidden"
         >
-          <p
-            class="whitespace-pre-wrap border border-black p-2"
+          <div
+            class="whitespace-pre-wrap border border-black px-4 py-2 rounded-md bg-neutral-950 text-white selection:bg-yellow-200/50"
           >
             SOME BODY TEXT
-          </p>
+          </div>
         </div>
       </div>
     </div>
@@ -383,11 +383,11 @@ exports[`Accordion renders correctly once it's openened and closed again 1`] = `
           <div
             class="overflow-hidden"
           >
-            <p
-              class="whitespace-pre-wrap border border-black p-2"
+            <div
+              class="whitespace-pre-wrap border border-black px-4 py-2 rounded-md bg-neutral-950 text-white selection:bg-yellow-200/50"
             >
               SOME BODY TEXT
-            </p>
+            </div>
           </div>
         </div>
       </div>
@@ -438,11 +438,11 @@ exports[`Accordion renders correctly once it's openened and closed again 1`] = `
         <div
           class="overflow-hidden"
         >
-          <p
-            class="whitespace-pre-wrap border border-black p-2"
+          <div
+            class="whitespace-pre-wrap border border-black px-4 py-2 rounded-md bg-neutral-950 text-white selection:bg-yellow-200/50"
           >
             SOME BODY TEXT
-          </p>
+          </div>
         </div>
       </div>
     </div>
@@ -550,11 +550,11 @@ exports[`Accordion renders correctly once it's openened and closed again 2`] = `
           <div
             class="overflow-hidden"
           >
-            <p
-              class="whitespace-pre-wrap border border-black p-2"
+            <div
+              class="whitespace-pre-wrap border border-black px-4 py-2 rounded-md bg-neutral-950 text-white selection:bg-yellow-200/50"
             >
               SOME BODY TEXT
-            </p>
+            </div>
           </div>
         </div>
       </div>
@@ -605,11 +605,11 @@ exports[`Accordion renders correctly once it's openened and closed again 2`] = `
         <div
           class="overflow-hidden"
         >
-          <p
-            class="whitespace-pre-wrap border border-black p-2"
+          <div
+            class="whitespace-pre-wrap border border-black px-4 py-2 rounded-md bg-neutral-950 text-white selection:bg-yellow-200/50"
           >
             SOME BODY TEXT
-          </p>
+          </div>
         </div>
       </div>
     </div>
