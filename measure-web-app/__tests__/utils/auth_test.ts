@@ -61,14 +61,13 @@ describe('encodeOAuthState', () => {
 describe('init', () => {
   it('initializes auth', () => {
     expect(window.location.href).toBe("http://localhost/");
-    window.history.pushState({}, '', 'http://localhost#access_token=foo&refresh_token=bar&expiry_at=baz');
+    window.history.pushState({}, '', 'http://localhost#access_token=foo&refresh_token=bar');
 
     init()
 
     const session = JSON.parse(localStorage.getItem('msr-session')!);
     expect(session!.access_token).toBe("foo");
     expect(session!.refresh_token).toBe("bar");
-    expect(session!.expiry_at).toBe("baz");
 
     expect(window.location.href).toBe("http://localhost/");
   })

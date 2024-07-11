@@ -9,7 +9,6 @@ export interface Auth {
 type MSRSession = {
   access_token: string,
   refresh_token: string,
-  expiry_at: string,
 }
 
 type MSRSessionFull = MSRSession & {
@@ -104,7 +103,7 @@ const storeSessionFromURL = (currURL: string) => {
   const url = new URL(currURL);
   let hash = url.hash;
 
-  if (!hash.includes("access_token") && !hash.includes("refresh_token") && !hash.includes("expiry_at")) {
+  if (!hash.includes("access_token") && !hash.includes("refresh_token")) {
     return
   }
 
@@ -113,10 +112,9 @@ const storeSessionFromURL = (currURL: string) => {
   const params = new URLSearchParams(hash);
   const access_token = params.get('access_token');
   const refresh_token = params.get('refresh_token');
-  const expiry_at = params.get('expiry_at');
   const state = params.get('state');
 
-  if (!access_token || !refresh_token || !expiry_at) {
+  if (!access_token || !refresh_token) {
     return
   }
 
@@ -127,7 +125,7 @@ const storeSessionFromURL = (currURL: string) => {
     }
   }
 
-  storeSession({ access_token, refresh_token, expiry_at });
+  storeSession({ access_token, refresh_token });
   url.hash = '';
   history.replaceState(null, '', url);
 }

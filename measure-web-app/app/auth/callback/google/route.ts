@@ -71,7 +71,7 @@ export async function POST(request: Request) {
   }
 
   const redirectURL = new URL(`${origin}/${ownTeam.id}/overview`);
-  redirectURL.hash = `access_token=${session.access_token}&refresh_token=${session.refresh_token}&expiry_at=${session.expiry_at}&state=${session.state}`;
+  redirectURL.hash = `access_token=${session.access_token}&refresh_token=${session.refresh_token}&state=${session.state}`;
 
   return NextResponse.redirect(redirectURL, { status: 302 });
 }
