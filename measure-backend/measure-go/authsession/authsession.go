@@ -30,12 +30,13 @@ type AuthSession struct {
 }
 
 // createAccessToken creates a new access token.
-func createAccessToken(userId uuid.UUID, secret []byte, expiry time.Time) (token string, err error) {
+func createAccessToken(userId, teamId uuid.UUID, secret []byte, expiry time.Time) (token string, err error) {
 	claims := jwt.MapClaims{
-		"iat": time.Now().Unix(),
-		"sub": userId.String(),
-		"exp": expiry.Unix(),
-		"iss": "measure",
+		"iat":  time.Now().Unix(),
+		"sub":  userId.String(),
+		"exp":  expiry.Unix(),
+		"iss":  "measure",
+		"team": teamId.String(),
 	}
 
 	tokenCursor := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -64,7 +65,7 @@ func createRefreshToken(secret []byte, jti uuid.UUID, expiry time.Time) (token s
 }
 
 // NewAuthSession creates a new authentication session object.
-func NewAuthSession(userId uuid.UUID, provider string, meta json.RawMessage) (authSession AuthSession, err error) {
+func NewAuthSession(userId, teamId uuid.UUID, provider string, meta json.RawMessage) (authSession AuthSession, err error) {
 	authSession.ID = uuid.New()
 	authSession.UserID = userId
 	authSession.OAuthProvider = provider
@@ -79,7 +80,7 @@ func NewAuthSession(userId uuid.UUID, provider string, meta json.RawMessage) (au
 	now := time.Now()
 	atSecret := server.Server.Config.AccessTokenSecret
 	atExpiryAt := now.Add(accessTokenExpiryDuration)
-	accessToken, err := createAccessToken(userId, atSecret, atExpiryAt)
+	accessToken, err := createAccessToken(userId, teamId, atSecret, atExpiryAt)
 	if err != nil {
 		return
 	}

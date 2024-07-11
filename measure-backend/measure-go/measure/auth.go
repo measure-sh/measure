@@ -333,7 +333,17 @@ func SigninGitHub(c *gin.Context) {
 		// so that these kinds of convertion is not needed.
 		userId := uuid.MustParse(*msrUser.ID)
 
-		authSess, err := authsession.NewAuthSession(userId, "github", userMeta)
+		team, err := msrUser.getOwnTeam(ctx)
+		if err != nil {
+			msg := "failed to lookup user's team"
+			fmt.Println(msg, err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+
+		authSess, err := authsession.NewAuthSession(userId, *team.ID, "github", userMeta)
 		if err != nil {
 			return
 		}
@@ -507,7 +517,17 @@ func SigninGoogle(c *gin.Context) {
 	// so that these kinds of convertion is not needed.
 	userId := uuid.MustParse(*msrUser.ID)
 
-	authSess, err := authsession.NewAuthSession(userId, "google", userMeta)
+	team, err := msrUser.getOwnTeam(ctx)
+	if err != nil {
+		msg := "failed to lookup user's team"
+		fmt.Println(msg, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	authSess, err := authsession.NewAuthSession(userId, *team.ID, "google", userMeta)
 	if err != nil {
 		return
 	}
@@ -566,7 +586,20 @@ func RefreshToken(c *gin.Context) {
 
 	defer tx.Rollback(ctx)
 
-	newSession, err := authsession.NewAuthSession(oldSession.UserID, oldSession.OAuthProvider, oldSession.UserMeta)
+	userId := oldSession.UserID.String()
+
+	user := User{ID: &userId}
+	team, err := user.getOwnTeam(ctx)
+	if err != nil {
+		msg := "failed to lookup user's team"
+		fmt.Println(msg, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	newSession, err := authsession.NewAuthSession(oldSession.UserID, *team.ID, oldSession.OAuthProvider, oldSession.UserMeta)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
