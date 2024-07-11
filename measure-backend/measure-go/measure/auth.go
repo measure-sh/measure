@@ -345,7 +345,6 @@ func SigninGitHub(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"access_token":  authSess.AccessToken,
 			"refresh_token": authSess.RefreshToken,
-			"expiry_at":     authSess.AccessTokenExpiryAt,
 			"state":         authCode.State,
 		})
 
@@ -603,7 +602,6 @@ func RefreshToken(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"access_token":  newSession.AccessToken,
 		"refresh_token": newSession.RefreshToken,
-		"expiry_at":     newSession.AccessTokenExpiryAt,
 	})
 }
 
