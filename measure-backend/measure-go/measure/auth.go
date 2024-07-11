@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	authsession "measure-backend/measure-go/authsessions"
+	"measure-backend/measure-go/cipher"
 	"measure-backend/measure-go/server"
 	"net/http"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"google.golang.org/api/idtoken"
 )
 
 // extractToken extracts the bearer token
@@ -359,6 +361,171 @@ func SigninGitHub(c *gin.Context) {
 		})
 		return
 	}
+}
+
+// SigninGoogle handles OAuth flow via Google.
+func SigninGoogle(c *gin.Context) {
+	ctx := c.Request.Context()
+	type authstate struct {
+		Credential string `json:"credential"`
+		State      string `json:"state"`
+		Nonce      string `json:"nonce"`
+	}
+
+	var authState authstate
+	msg := "failed to sign in via google"
+	if err := c.ShouldBindJSON(&authState); err != nil {
+		fmt.Println(msg, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	if authState.Nonce == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": "missing nonce parameter",
+		})
+		return
+	}
+
+	if authState.State == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": "missing state parameter",
+		})
+		return
+	}
+
+	payload, err := idtoken.Validate(ctx, authState.Credential, server.Server.Config.OAuthGoogleKey)
+	if err != nil {
+		msg := "failed to validate google credentials"
+		fmt.Println(msg, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	checksum, err := cipher.ComputeSHA2Hash([]byte(authState.Nonce))
+	if err != nil {
+		fmt.Println(msg, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if payload.Claims["nonce"] != *checksum {
+		msg := "failed to validate nonce"
+		fmt.Println(msg)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	googUser := authsession.GoogleUser{
+		ID:    payload.Subject,
+		Name:  payload.Claims["name"].(string),
+		Email: payload.Claims["email"].(string),
+	}
+
+	userMeta, err := json.Marshal(googUser)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	msrUser, err := FindUserByEmail(ctx, googUser.Email)
+	if err != nil {
+		fmt.Println(msg, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if msrUser == nil {
+		msrUser = NewUser(googUser.Name, googUser.Email)
+		if err := msrUser.save(ctx, nil); err != nil {
+			fmt.Println(msg, err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+
+		userName := msrUser.firstName()
+		teamName := fmt.Sprintf("%s's team", userName)
+
+		team := &Team{
+			Name: &teamName,
+		}
+
+		tx, err := server.Server.PgPool.Begin(ctx)
+		if err != nil {
+			fmt.Println(msg, err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+
+		defer tx.Rollback(ctx)
+
+		if err := team.create(ctx, msrUser, &tx); err != nil {
+			fmt.Println(msg, err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+
+		if err := tx.Commit(ctx); err != nil {
+			fmt.Println(msg, err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+	} else {
+		// update user's last sign in at value
+		if err := msrUser.touchLastSignInAt(ctx); err != nil {
+			fmt.Println(msg, err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+	}
+
+	// FIXME: Change User struct's ID field to UUID
+	// so that these kinds of convertion is not needed.
+	userId := uuid.MustParse(*msrUser.ID)
+
+	authSess, err := authsession.NewAuthSession(userId, "google", userMeta)
+	if err != nil {
+		return
+	}
+
+	if err = authSess.Save(ctx, nil); err != nil {
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"access_token":  authSess.AccessToken,
+		"refresh_token": authSess.RefreshToken,
+		"state":         authState.State,
+	})
+
+	// deliberately ignore the error, because
+	// expired sessions may get cleared eventually
+	authsession.Cleanup(ctx)
 }
 
 // RefreshToken refreshes a previous session from

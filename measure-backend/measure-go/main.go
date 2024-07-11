@@ -53,6 +53,7 @@ func main() {
 	auth := r.Group("/auth")
 	{
 		auth.POST("github", measure.SigninGitHub)
+		auth.POST("google", measure.SigninGoogle)
 		auth.POST("refresh", measure.ValidateRefreshToken(), measure.RefreshToken)
 		auth.DELETE("signout", measure.ValidateRefreshToken(), measure.Signout)
 	}
