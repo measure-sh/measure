@@ -1,56 +1,61 @@
-import { createRouteClient } from '@/utils/supabase/route'
-import { NextResponse } from 'next/server'
-import { syncSupabaseUserToMeasureServerFromServer } from '@/utils/supabase/sync_user_server'
+import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic'
 
+const apiOrigin = process?.env?.NEXT_PUBLIC_API_BASE_URL
+if (!apiOrigin) {
+  throw new Error(`env var "NEXT_PUBLIC_API_BASE_URL" is unset`)
+}
+
 export async function POST(request: Request) {
-  const requestUrl = new URL(request.url)
-  const errRedirectUrl = `${requestUrl.origin}/auth/login?error=Could not sign in with Google`
-  const nonce = requestUrl.searchParams.get('nonce')
+  const { searchParams, origin } = new URL(request.url)
+  const errRedirectUrl = `${origin}/auth/login?error=Could not sign in with Google`
+  const nonce = searchParams.get('nonce')
+  const state = searchParams.get('state')
 
   if (!nonce) {
     return NextResponse.redirect(errRedirectUrl, { status: 301 })
   }
 
+  if (!state) {
+    return NextResponse.redirect(errRedirectUrl, { status: 301 })
+  }
+
   const formdata = await request.formData()
   const credential = formdata.get('credential')
-  const supabase = createRouteClient()
-  const { data, error } = await supabase.auth.signInWithIdToken({
-    provider: "google",
-    token: String(credential),
-    nonce: nonce
-  })
 
-  if (error) {
-    return NextResponse.redirect(errRedirectUrl, {
-      // a 301 status is required to redirect from a POST to a GET route
-      status: 301
-    })
-  }
-
-  const accessToken = data.session.access_token
-
-  const userCreationRes = await syncSupabaseUserToMeasureServerFromServer()
-  if (!userCreationRes.ok) {
-    return NextResponse.redirect(errRedirectUrl, { status: 302 })
-  }
-
-  const origin = process?.env?.NEXT_PUBLIC_API_BASE_URL
-
-  const res = await fetch(`${origin}/teams`, {
+  const res = await fetch(`${apiOrigin}/auth/google`, {
+    method: 'POST',
     headers: {
-      "Authorization": `Bearer ${accessToken}`
-    }
-  })
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      credential: String(credential),
+      state,
+      nonce
+    })
+  });
 
   if (!res.ok) {
-    return NextResponse.redirect(errRedirectUrl, { status: 302 })
+    return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }
 
-  const teams = await res.json()
-  if (!teams.length) {
-    return NextResponse.redirect(errRedirectUrl, { status: 302 })
+  const session = await res.json();
+
+  const teamsRes = await fetch(`${apiOrigin}/teams`, {
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`
+    }
+  });
+
+  if (teamsRes.status !== 200) {
+    return NextResponse.redirect(errRedirectUrl, { status: 302 });
+  }
+
+  const teams = await teamsRes.json();
+
+  if (!teams?.length) {
+    return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }
 
   type Team = {
@@ -59,11 +64,14 @@ export async function POST(request: Request) {
     role: string,
   }
 
-  const ownTeam = teams.find((team: Team) => team.role === "owner")
+  const ownTeam = teams.find((team: Team) => team.role === "owner");
 
   if (!ownTeam) {
-    return NextResponse.redirect(errRedirectUrl, { status: 302 })
+    return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }
 
-  return NextResponse.redirect(`${requestUrl.origin}/${ownTeam.id}/overview`, { status: 302 })
+  const redirectURL = new URL(`${origin}/${ownTeam.id}/overview`);
+  redirectURL.hash = `access_token=${session.access_token}&refresh_token=${session.refresh_token}&expiry_at=${session.expiry_at}&state=${session.state}`;
+
+  return NextResponse.redirect(redirectURL, { status: 302 });
 }

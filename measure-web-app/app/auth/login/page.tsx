@@ -2,6 +2,7 @@ import crypto from "node:crypto"
 import Messages from "../sign-up/messages"
 import GoogleSignIn from "./google-sign-in"
 import GitHubSignIn from "./github-sign-in"
+import { encodeOAuthState } from "@/utils/auth"
 
 async function genNonce() {
   const nonce = crypto.randomBytes(16).toString("base64")
@@ -26,6 +27,8 @@ export default async function Login({ searchParams }: { searchParams: { [key: st
   }
   const origin = process?.env?.NEXT_PUBLIC_SITE_URL
 
+  const state = encodeOAuthState("")
+
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       {/* a fixed max-width is best as the google sign-in button has a width constraint */}
@@ -37,7 +40,7 @@ export default async function Login({ searchParams }: { searchParams: { [key: st
               data-context="signin"
               data-ux_mode="popup"
               data-nonce={hashedNonce}
-              data-login_uri={`${origin}/auth/callback/google?nonce=${encodeURIComponent(nonce)}`}
+              data-login_uri={`${origin}/auth/callback/google?nonce=${encodeURIComponent(nonce)}&state=${encodeURIComponent(state)}`}
               data-auto_select="true"
               data-itp_support="true">
             </div>
@@ -49,6 +52,7 @@ export default async function Login({ searchParams }: { searchParams: { [key: st
               data-text="signin_with"
               data-size="large"
               data-logo_alignment="center"
+              data-state={state}
               data-width="400">
             </div>
           </>
