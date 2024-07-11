@@ -46,6 +46,7 @@ type ServerConfig struct {
 	AttachmentOrigin           string
 	OAuthGitHubKey             string
 	OAuthGitHubSecret          string
+	OAuthGoogleKey             string
 	AccessTokenSecret          []byte
 	RefreshTokenSecret         []byte
 }
@@ -112,6 +113,11 @@ func NewConfig() *ServerConfig {
 		log.Println("OAUTH_GITHUB_SECRET env var is not set, dashboard authn won't work")
 	}
 
+	oauthGoogleKey := os.Getenv("OAUTH_GOOGLE_KEY")
+	if oauthGoogleKey == "" {
+		log.Println("OAUTH_GOOGLE_KEY env var is not set, dashboard authn won't work")
+	}
+
 	atSecret := os.Getenv("SESSION_ACCESS_SECRET")
 	if atSecret == "" {
 		log.Println("SESSION_ACCESS_SECRET env var is not set, dashboard authn won't work")
@@ -144,6 +150,7 @@ func NewConfig() *ServerConfig {
 		AttachmentOrigin:           attachmentOrigin,
 		OAuthGitHubKey:             oauthGitHubKey,
 		OAuthGitHubSecret:          oauthGitHubSecret,
+		OAuthGoogleKey:             oauthGoogleKey,
 		AccessTokenSecret:          []byte(atSecret),
 		RefreshTokenSecret:         []byte(rtSecret),
 	}
