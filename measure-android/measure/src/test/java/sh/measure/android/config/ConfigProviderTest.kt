@@ -10,7 +10,7 @@ import org.mockito.kotlin.argumentCaptor
 
 class ConfigProviderTest {
     private val configLoader = mock<ConfigLoader>()
-    private val defaultConfig = MeasureConfig()
+    private val defaultConfig = Config()
     private val configProvider = ConfigProviderImpl(
         defaultConfig = defaultConfig,
         configLoader = configLoader,
@@ -23,8 +23,8 @@ class ConfigProviderTest {
 
     @Test
     fun `loads network config and keeps a copy of the loaded config`() {
-        val networkConfig = MeasureConfig()
-        val onSuccess = argumentCaptor<(MeasureConfig) -> Unit>()
+        val networkConfig = Config()
+        val onSuccess = argumentCaptor<(Config) -> Unit>()
         `when`(configLoader.getNetworkConfig(onSuccess.capture())).thenAnswer { }
 
         configProvider.loadNetworkConfig()
@@ -35,13 +35,13 @@ class ConfigProviderTest {
 
     @Test
     fun `gives precedence to network config when a config is fetched`() {
-        `when`(configLoader.getCachedConfig()).thenReturn(MeasureConfig(trackScreenshotOnCrash = false))
+        `when`(configLoader.getCachedConfig()).thenReturn(Config(trackScreenshotOnCrash = false))
         val configProvider = ConfigProviderImpl(
-            defaultConfig = MeasureConfig(trackScreenshotOnCrash = false),
+            defaultConfig = Config(trackScreenshotOnCrash = false),
             configLoader = configLoader,
         )
 
-        val networkConfig = MeasureConfig(trackScreenshotOnCrash = true)
+        val networkConfig = Config(trackScreenshotOnCrash = true)
         configProvider.networkConfig = networkConfig
 
         assertEquals(true, configProvider.trackScreenshotOnCrash)
@@ -49,9 +49,9 @@ class ConfigProviderTest {
 
     @Test
     fun `given network config is not available gives precedence to cached config`() {
-        `when`(configLoader.getCachedConfig()).thenReturn(MeasureConfig(trackScreenshotOnCrash = true))
+        `when`(configLoader.getCachedConfig()).thenReturn(Config(trackScreenshotOnCrash = true))
         val configProvider = ConfigProviderImpl(
-            defaultConfig = MeasureConfig(trackScreenshotOnCrash = false),
+            defaultConfig = Config(trackScreenshotOnCrash = false),
             configLoader = configLoader,
         )
         configProvider.networkConfig = null
@@ -63,7 +63,7 @@ class ConfigProviderTest {
     fun `given network config and cached config are unavailable, returns default config value`() {
         `when`(configLoader.getCachedConfig()).thenReturn(null)
         val configProvider = ConfigProviderImpl(
-            defaultConfig = MeasureConfig(trackScreenshotOnCrash = true),
+            defaultConfig = Config(trackScreenshotOnCrash = true),
             configLoader = configLoader,
         )
         configProvider.networkConfig = null
@@ -76,7 +76,7 @@ class ConfigProviderTest {
         val url = "example.com"
         val contentType = "application/json"
         val configProvider = ConfigProviderImpl(
-            defaultConfig = MeasureConfig(httpUrlBlocklist = listOf("allowed.com")),
+            defaultConfig = Config(httpUrlBlocklist = listOf("allowed.com")),
             configLoader = configLoader,
         )
         Assert.assertTrue(configProvider.shouldTrackHttpBody(url, contentType))
@@ -87,7 +87,7 @@ class ConfigProviderTest {
         val url = "example.com"
         val contentType = "application/json"
         val configProvider = ConfigProviderImpl(
-            defaultConfig = MeasureConfig(httpUrlBlocklist = listOf("example.com")),
+            defaultConfig = Config(httpUrlBlocklist = listOf("example.com")),
             configLoader = configLoader,
         )
         Assert.assertFalse(configProvider.shouldTrackHttpBody(url, contentType))
@@ -105,16 +105,28 @@ class ConfigProviderTest {
         val url = "example.com/sessions"
         val contentType = "text/plain"
         val configProvider = ConfigProviderImpl(
-            defaultConfig = MeasureConfig(httpUrlBlocklist = listOf("example.com")),
+            defaultConfig = Config(httpUrlBlocklist = listOf("example.com")),
             configLoader = configLoader,
         )
         Assert.assertFalse(configProvider.shouldTrackHttpBody(url, contentType))
     }
 
     @Test
+    fun `shouldTrackHttpBody returns false for configured measure URL`() {
+        val url = "https://measure.com/"
+        val contentType = "application/json"
+        val configProvider = ConfigProviderImpl(
+            defaultConfig = Config(),
+            configLoader = configLoader,
+        )
+        configProvider.setMeasureUrl("measure.com")
+        Assert.assertFalse(configProvider.shouldTrackHttpBody(url, contentType))
+    }
+
+    @Test
     fun `shouldTrackHttpHeader returns true for a allowed header`() {
         val configProvider = ConfigProviderImpl(
-            defaultConfig = MeasureConfig(httpHeadersBlocklist = listOf("key1")),
+            defaultConfig = Config(httpHeadersBlocklist = listOf("key1")),
             configLoader = configLoader,
         )
         Assert.assertTrue(configProvider.shouldTrackHttpHeader("key2"))
@@ -123,7 +135,7 @@ class ConfigProviderTest {
     @Test
     fun `shouldTrackHttpHeader returns false for a blocked header`() {
         val configProvider = ConfigProviderImpl(
-            defaultConfig = MeasureConfig(httpHeadersBlocklist = listOf("key1")),
+            defaultConfig = Config(httpHeadersBlocklist = listOf("key1")),
             configLoader = configLoader,
         )
         Assert.assertFalse(configProvider.shouldTrackHttpHeader("key1"))

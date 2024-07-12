@@ -6,6 +6,7 @@ import androidx.annotation.VisibleForTesting
 import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.okhttp.OkHttpEventCollector
+import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -39,10 +40,15 @@ object Measure {
     @JvmOverloads
     fun init(context: Context, measureConfig: MeasureConfig = MeasureConfig()) {
         if (isInitialized.compareAndSet(false, true)) {
-            val application = context.applicationContext as Application
-            val initializer = MeasureInitializerImpl(application, defaultConfig = measureConfig)
-            measure = MeasureInternal(initializer)
-            measure.init()
+            InternalTrace.trace(
+                label = { "msr-init" },
+                block = {
+                    val application = context.applicationContext as Application
+                    val initializer = MeasureInitializerImpl(application, inputConfig = measureConfig)
+                    measure = MeasureInternal(initializer)
+                    measure.init()
+                },
+            )
         }
     }
 

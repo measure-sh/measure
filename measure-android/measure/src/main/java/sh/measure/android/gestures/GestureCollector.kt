@@ -21,22 +21,18 @@ internal class GestureCollector(
             init()
             registerInterceptor(object : WindowTouchInterceptor {
                 override fun intercept(motionEvent: MotionEvent, window: Window) {
-                    InternalTrace.beginSection("GestureCollector.intercept")
                     trackGesture(motionEvent, window)
-                    InternalTrace.endSection()
                 }
             })
         }
     }
 
     private fun trackGesture(motionEvent: MotionEvent, window: Window) {
-        InternalTrace.beginSection("GestureCollector.trackGesture")
         val gesture = GestureDetector.detect(window.context, motionEvent, timeProvider)
         if (gesture == null || motionEvent.action != MotionEvent.ACTION_UP) {
             return
         }
 
-        InternalTrace.beginSection("GestureCollector.getTarget")
         // Find the potential view on which the gesture ended on.
         val target = getTarget(gesture, window, motionEvent)
         if (target == null) {
@@ -51,9 +47,7 @@ internal class GestureCollector(
                 "Target found for gesture ${gesture.javaClass.simpleName}: ${target.className}:${target.id}",
             )
         }
-        InternalTrace.endSection()
 
-        InternalTrace.beginSection("GestureCollector.serializeEvent")
         when (gesture) {
             is DetectedGesture.Click -> eventProcessor.track(
                 timestamp = gesture.timestamp,
@@ -73,8 +67,6 @@ internal class GestureCollector(
                 data = ScrollData.fromDetectedGesture(gesture, target),
             )
         }
-        InternalTrace.endSection()
-        InternalTrace.endSection()
     }
 
     private fun getTarget(
@@ -84,16 +76,27 @@ internal class GestureCollector(
     ): Target? {
         return when (gesture) {
             is DetectedGesture.Scroll -> {
-                GestureTargetFinder.findScrollable(
-                    window.decorView as ViewGroup,
-                    motionEvent,
+                InternalTrace.trace(
+                    label = { "msr-scroll-getTarget" },
+                    block = {
+                        GestureTargetFinder.findScrollable(
+                            window.decorView as ViewGroup,
+                            motionEvent,
+                        )
+                    },
                 )
             }
 
             else -> {
-                GestureTargetFinder.findClickable(
-                    window.decorView as ViewGroup,
-                    motionEvent,
+                InternalTrace.trace(
+                    // Note that this label is also used in [ViewTargetFinderBenchmark].
+                    label = { "msr-click-getTarget" },
+                    block = {
+                        GestureTargetFinder.findClickable(
+                            window.decorView as ViewGroup,
+                            motionEvent,
+                        )
+                    },
                 )
             }
         }

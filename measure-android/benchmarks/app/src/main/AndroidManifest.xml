@@ -27,10 +27,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <meta-data
-            android:name="sh.measure.android.API_KEY"
-            android:value="YOUR_API_KEY" />
     </application>
 
 </manifest>

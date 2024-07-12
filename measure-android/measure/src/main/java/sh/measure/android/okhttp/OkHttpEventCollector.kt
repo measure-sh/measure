@@ -11,7 +11,6 @@ import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.TimeProvider
 import java.io.IOException
 
@@ -30,7 +29,6 @@ internal class OkHttpEventCollectorImpl(
     ) { mutableMapOf() }
 
     override fun callStart(call: Call) {
-        InternalTrace.beginSection("OkHttpEventProcessor.callStart")
         val key = getIdentityHash(call)
         val request = call.request()
         val url = request.url.toString()
@@ -38,79 +36,62 @@ internal class OkHttpEventCollectorImpl(
             HttpData.Builder().url(url).startTime(timeProvider.uptimeInMillis)
                 .method(request.method.lowercase()).startTime(timeProvider.uptimeInMillis)
                 .client(HttpClientName.OK_HTTP)
-        InternalTrace.endSection()
     }
 
     override fun requestHeadersEnd(call: Call, request: Request) {
-        InternalTrace.beginSection("OkHttpEventProcessor.requestHeadersEnd")
         val key = getIdentityHash(call)
         httpDataBuilders[key]?.requestHeaders(headersToMap(request.headers))
-        InternalTrace.endSection()
     }
 
     override fun requestFailed(call: Call, ioe: IOException) {
-        InternalTrace.beginSection("OkHttpEventProcessor.requestFailed")
         val key = getIdentityHash(call)
         val builder = httpDataBuilders[key]
         builder?.failureReason(ioe.javaClass.name)?.failureDescription(ioe.message)
             ?.endTime(timeProvider.uptimeInMillis)
-        InternalTrace.endSection()
     }
 
     override fun responseHeadersEnd(call: Call, response: Response) {
-        InternalTrace.beginSection("OkHttpEventProcessor.responseHeadersEnd")
         val key = getIdentityHash(call)
         httpDataBuilders[key]?.responseHeaders(headersToMap(response.headers))
             ?.statusCode(response.code)
-        InternalTrace.endSection()
     }
 
     override fun responseFailed(call: Call, ioe: IOException) {
-        InternalTrace.beginSection("OkHttpEventProcessor.responseFailed")
         val key = getIdentityHash(call)
         val builder = httpDataBuilders[key]
         builder?.failureReason(ioe.javaClass.name)?.failureDescription(ioe.message)
             ?.endTime(timeProvider.uptimeInMillis)
         trackEvent(call, builder)
-        InternalTrace.endSection()
     }
 
     override fun callEnd(call: Call) {
-        InternalTrace.beginSection("OkHttpEventProcessor.callEnd")
         val key = getIdentityHash(call)
         val builder = httpDataBuilders[key]
         builder?.endTime(timeProvider.uptimeInMillis)
         trackEvent(call, builder)
-        InternalTrace.endSection()
     }
 
     override fun callFailed(call: Call, ioe: IOException) {
-        InternalTrace.beginSection("OkHttpEventProcessor.callFailed")
         val key = getIdentityHash(call)
         val builder = httpDataBuilders[key]
         builder?.failureReason(ioe.javaClass.name)?.failureDescription(ioe.message)
             ?.endTime(timeProvider.uptimeInMillis)
         trackEvent(call, builder)
-        InternalTrace.endSection()
     }
 
     override fun request(call: Call, request: Request) {
-        InternalTrace.beginSection("OkHttpEventProcessor.request")
         val key = getIdentityHash(call)
         val builder = httpDataBuilders[key]
         val requestBody = getRequestBodyByteArray(request)
         val decodedBody = requestBody?.decodeToString(0, requestBody.size, false)
         builder?.requestBody(decodedBody)
-        InternalTrace.endSection()
     }
 
     override fun response(call: Call, request: Request, response: Response) {
-        InternalTrace.beginSection("OkHttpEventProcessor.response")
         val key = getIdentityHash(call)
         val builder = httpDataBuilders[key]
         val responseBody = getResponseBodyByteString(response)
         builder?.responseBody(responseBody?.utf8())
-        InternalTrace.endSection()
     }
 
     private fun trackEvent(call: Call, builder: HttpData.Builder?) {
@@ -118,7 +99,6 @@ internal class OkHttpEventCollectorImpl(
         if (!httpDataBuilders.containsKey(key)) {
             return
         }
-        InternalTrace.beginSection("OkHttpEventProcessor.trackEvent")
         builder?.let {
             val httpEvent = it.build()
             eventProcessor.track(
@@ -128,7 +108,6 @@ internal class OkHttpEventCollectorImpl(
             )
         }
         httpDataBuilders.remove(key)
-        InternalTrace.endSection()
     }
 
     /**

@@ -82,6 +82,8 @@ func main() {
 		apps.GET(":id/sessions/:sessionId", measure.GetAppSession)
 		apps.GET(":id/alertPrefs", measure.GetAlertPrefs)
 		apps.PATCH(":id/alertPrefs", measure.UpdateAlertPrefs)
+		apps.GET(":id/settings", measure.GetAppSettings)
+		apps.PATCH(":id/settings", measure.UpdateAppSettings)
 	}
 
 	teams := r.Group("/teams")
@@ -89,6 +91,7 @@ func main() {
 		teams.POST("", measure.CreateTeam)
 		teams.GET("", measure.GetTeams)
 		teams.GET(":id/apps", measure.GetTeamApps)
+		teams.GET(":id/usage", measure.GetUsage)
 		teams.GET(":id/apps/:appId", measure.GetTeamApp)
 		teams.POST(":id/apps", measure.CreateApp)
 		teams.POST(":id/invite", measure.InviteMembers)

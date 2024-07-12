@@ -1,78 +1,28 @@
-# Prepare the release
+# Release Checklist
 
-* Update the VERSION_NAME in `measure-android/gradle.properties` to release a new version of measure-android.
-* Update the VERSION_NAME in `measure-android-gradle/gradle.properties` to release a new version of
-  measure-android-gradle.
-* Update the README.md with the new versions.
+## Measure SDK
 
-**Make sure all the changes are committed and pushed to the `main` branch.**
+1. Make sure you're on the latest commit on the main branch.
+2. Change `MEASURE_VERSION_NAME` in `gradle.properties` to a non-SNAPSHOT version.
+3. Update README.md with new release version.
+4. Update CHANGELOG.md for the new release.
+5. Commit the changes: "chore(android): prepare release x.y.z"
+6. Create a tag with the version number: `git tag -a measure-android-x.y.z -m "measure-android-x.y.z"`
+7. Change `MEASURE_VERSION_NAME` to next version snapshot.
+8. Commit the changes: "chore(android): prepare next development version"
+9. Push the tag and two commits to main branch.
+10. Create a release on Github with the tag and release notes from CHANGELOG.md.
 
-# Release Measure Android SDK
-
-* [Create a new release on Github](https://github.com/measure-sh/measure/releases/new).
-* Select the `main` branch.
-* Enter the release title in the format `measure-android-<major>.<minor>.<patch>`.
-* Use the same tag as the title.
-* Enter the release description.
-* Click the publish release button.
-
-# Release Measure Android Gradle Plugin
-
-* [Create a new release on Github](https://github.com/measure-sh/measure/releases/new).
-* Select the `main` branch.
-* Enter the release title in the format `measure-android-gradle-<major>.<minor>.<patch>`.
-* Use the same tag as the title.
-* Enter the release description.
-* Click the publish release button.
-
-Once the release is created, the Github Action will automatically publish the new version to Github packages.
-
-# Verify
-
-To verify the release, follow the steps below.
-
-1. [Create a PAT (classic)](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic)
-   if you haven't already.
-2. Add the following maven blocks to your `settings.gradle.kts` file.
-
-```kotlin
-pluginManagement {
-    repositories {
-        maven {
-            url = uri("https://maven.pkg.github.com/measure-sh/measure")
-            credentials {
-                username = extra.properties["gpr.user"] as String
-                password = extra.properties["gpr.key"] as String
-            }
-        }
-    }
-}
-
-dependencyResolutionManagement {
-    repositories {
-        maven {
-            url = uri("https://maven.pkg.github.com/measure-sh/measure")
-            credentials {
-                username = extra.properties["gpr.user"] as String
-                password = extra.properties["gpr.key"] as String
-            }
-        }
-    }
-}
-```
-
-3. To add the Measure Android SDK dependency, add the following to your `build.gradle.kts` file.
-
-```kotlin
-dependencies {
-    implementation("sh.measure:measure-android:<<latest-version>>")
-}
-```
-
-4. To add the Measure Android Gradle Plugin dependency, add the following to your `build.gradle.kts` file.
-
-```kotlin
-plugins {
-    id("sh.measure.android.gradle") version "<<latest-version>>"
-}
-```
+## Measure Gradle Plugin
+1. Make sure you're on the latest commit on the main branch.
+2. Run `./gradlew :measure-android-gradle:check` to make sure everything is working. This also runs 
+the `functionalTest` task which is only run locally as of now.
+3. Change `MEASURE_PLUGIN_VERSION_NAME` in `measure-android-gradle/gradle.properties` to a non-SNAPSHOT version.
+4. Update README.md with new release version.
+5. Update CHANGELOG.md for the new release.
+6. Commit the changes: "chore(android): prepare release x.y.z"
+7. Create a tag with the version number: `git tag -a measure-android-gradle-x.y.z -m "measure-android-gradle-x.y.z"`
+8. Change `MEASURE_PLUGIN_VERSION_NAME` to next version snapshot.
+9. Commit the changes: "chore(android): prepare next development version"
+10. Push the tag and two commits to main branch.
+11. Create a release on Github with the tag and release notes from CHANGELOG.md.

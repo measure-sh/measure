@@ -1,0 +1,74 @@
+{
+  "context": {
+    "build": {
+      "brand": "google",
+      "device": "sunfish",
+      "fingerprint": "google/sunfish/sunfish:13/TQ3A.230805.001.S1/10786265:user/release-keys",
+      "model": "Pixel 4a",
+      "version": {
+        "sdk": 33
+      }
+    },
+    "cpuCoreCount": 8,
+    "cpuLocked": true,
+    "cpuMaxFreqHz": 2208000000,
+    "memTotalBytes": 5865099264,
+    "sustainedPerformanceModeEnabled": false
+  },
+  "benchmarks": [
+    {
+      "name": "startupBenchmark",
+      "params": {},
+      "className": "sh.measure.benchmark.StartupBenchmark",
+      "totalRunTimeNs": 143361782458,
+      "metrics": {
+        "timeToInitialDisplayMs": {
+          "minimum": 382.753007,
+          "maximum": 429.162283,
+          "median": 405.054884,
+          "runs": [
+            415.179364,
+            399.308737,
+            388.402747,
+            421.687385,
+            417.100302,
+            387.275038,
+            387.45957,
+            392.254102,
+            409.672801,
+            382.753007,
+            407.276082,
+            397.560613,
+            410.521291,
+            395.170561,
+            405.054884,
+            414.333999,
+            419.969781,
+            393.182644,
+            393.635561,
+            416.805875,
+            386.068528,
+            412.773843,
+            390.090455,
+            419.348323,
+            387.592903,
+            414.767072,
+            429.162283,
+            409.94353,
+            412.280145,
+            393.527643,
+            395.81655,
+            408.132541,
+            391.26983,
+            399.082331,
+            415.244677
+          ]
+        }
+      },
+      "sampledMetrics": {},
+      "warmupIterations": 0,
+      "repeatIterations": 35,
+      "thermalThrottleSleepSeconds": 0
+    }
+  ]
+}

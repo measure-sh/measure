@@ -35,6 +35,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     private val periodicEventExporter by lazy { measureInitializer.periodicEventExporter }
     private val userAttributeProcessor by lazy { measureInitializer.userAttributeProcessor }
     private val userDefinedAttribute by lazy { measureInitializer.userDefinedAttribute }
+    private val configProvider by lazy { measureInitializer.configProvider }
 
     fun init() {
         logger.log(LogLevel.Debug, "Starting Measure SDK")
@@ -42,7 +43,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
             if (it.url == null) {
                 logger.log(
                     LogLevel.Error,
-                    "measure_url is missing in the manifest, skipping initialization",
+                    "sh.measure.android.API_URL is missing in the manifest, skipping initialization",
                 )
                 return
             }
@@ -50,10 +51,13 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
             if (it.apiKey == null) {
                 logger.log(
                     LogLevel.Error,
-                    "apiKey is missing in the manifest, skipping initialization",
+                    "sh.measure.android.API_KEY is missing in the manifest, skipping initialization",
                 )
                 return
             }
+            // This is not very elegant, but can't find a better way to do this given the way the
+            // SDK is initialized.
+            configProvider.setMeasureUrl(it.url)
             networkClient.init(baseUrl = it.url, apiKey = it.apiKey)
         }
         registerCollectors()

@@ -35,6 +35,10 @@ export default function DashboardLayout({
       hrefSuffix: 'apps',
       title: 'Apps',
     },
+    {
+      hrefSuffix: 'usage',
+      title: 'Usage',
+    },
     // {
     //   hrefSuffix: 'alerts',
     //   title: 'Alerts',

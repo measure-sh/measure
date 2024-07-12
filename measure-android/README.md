@@ -1,37 +1,33 @@
-# Introduction
+# Measure - Android SDK
 
-We know first hand that building great mobile applications is hard. Understanding how they are
-performing in production
-is even harder. We are building a tool we wish existed when we were building and
-monitoring mobile apps. We
-are excited to share our progress with you, and we hope you will join us on this journey.
+* [Getting Started](#getting-started)
+* [Features](#features)
+* [Configure the SDK](#configure-the-sdk)
+* [Custom Events](#custom-events)
+* [Benchmarks](#benchmarks)
+* [Internals](#internals)
 
-Measure Android SDK automatically instruments your app to capture errors, logs and metrics that
-help you answer questions about your app in production.
+# Minimum Requirements
 
-### Minimum Requirements
-
-| Name                  | Minimum Version |
-|-----------------------|-----------------|
-| Android Gradle Plugin | 7.4             |
-| Min SDK               | 21 (Lollipop)   |
-| Target SDK            | 31              |
+| Name                  | Version       |
+|-----------------------|---------------|
+| Android Gradle Plugin | 7.4           |
+| Min SDK               | 21 (Lollipop) |
+| Target SDK            | 31            |
 
 # Getting Started
 
-### 1. Create a Measure account
+Once you have access to the dashboard, create a new app and follow the steps below:
 
-If you haven't already, [create a Measure account](https://measure.sh/auth/login) and follow the
-instructions on the website to create your first app and grab the API key.
+### 1. Add the API Key & API URL
 
-### 2. Add the API Key
-
-Copy the API Key and add it to `AndroidManifest.xml` file.
+Copy the API Key and API URL from the dashboard and add it to `AndroidManifest.xml` file.
 
 ```xml
 
 <application>
     <meta-data android:name="sh.measure.android.API_KEY" android:value="YOUR_API_KEY" />
+    <meta-data android:name="sh.measure.android.API_URL" android:value="API_URL" />
 </application>
 ```
 
@@ -40,7 +36,7 @@ Copy the API Key and add it to `AndroidManifest.xml` file.
 
 You can also
 use [manifestPlaceholders](https://developer.android.com/build/manage-manifests#inject_build_variables_into_the_manifest)
-to configure measure API key for different build types.
+to configure different values for different build types or flavors.
 
 In the `build.gradle.kts` file:
 
@@ -49,9 +45,11 @@ android {
     buildTypes {
         debug {
             manifestPlaceholders["measureApiKey"] = "YOUR_API_KEY"
+            manifestPlaceholders["measureUrlKey"] = "API_URL"
         }
         release {
             manifestPlaceholders["measureApiKey"] = "YOUR_API_KEY"
+            manifestPlaceholders["measureUrlKey"] = "API_URL"
         }
     }
 }
@@ -64,9 +62,11 @@ android {
     buildTypes {
         debug {
             manifestPlaceholders = ["measureApiKey": "YOUR_API_KEY"]
+            manifestPlaceholders = ["measureUrlKey": "API_URL"]
         }
         release {
             manifestPlaceholders = ["measureApiKey": "YOUR_API_KEY"]
+            manifestPlaceholders = ["measureUrlKey": "API_URL"]
         }
     }
 }
@@ -78,12 +78,13 @@ Then add the following in the `AndroidManifest.xml` file:
 
 <application>
     <meta-data android:name="sh.measure.android.API_KEY" android:value="${measureApiKey}" />
+    <meta-data android:name="sh.measure.android.API_URL" android:value="${measureUrlKey}" />
 </application>
 ```
 
 </details>
 
-### 3. Add the Measure gradle plugin
+### 2. Add the Measure gradle plugin
 
 Add the following plugin to your project.
 
@@ -103,7 +104,7 @@ plugins {
 
 [Read](measure-android-gradle/README.md) more about Measure gradle plugin.
 
-### 4. Add Measure SDK to your project
+### 3. Add Measure SDK to your project
 
 Add the following to your app's `build.gradle.kts`file.
 
@@ -119,7 +120,7 @@ or, add the following to your app's `build.gradle`file.
 implementation 'sh.measure:measure-android:0.2.0'
 ```
 
-### 5. Initialize the SDK
+### 4. Initialize the SDK
 
 Add the following to your app's Application class. Ideally, done as soon as `Application.onCreate` is
 called to allow tracking events as early as possible.
@@ -140,10 +141,18 @@ Measure.init(
 
 See all the [configuration options](#configure-the-sdk) available below.
 
-### 6. Verify
+### 5. Verify
 
-Launch the app on any device or emulator. Kill and reopen. You should see a session in the
-Measure dashboard.
+The SDK automatically collects data when a crash occurs. You can verify if the SDK is working by triggering a crash
+after the SDK is initialized:
+
+```kotlin
+throw RuntimeException("This is a test crash")
+```
+Reopen the app and launch the dashboard, you should see the crash report in the dashboard.
+
+> [!CAUTION]
+> Make sure to remove the test crash code before releasing the app to production.
 
 🎉 Congratulations, you have successfully integrated Measure into your app!
 
@@ -277,6 +286,26 @@ Measure.trackNavigationEvent(
     to = "settings"
 )
 ```
+
+# Benchmarks
+
+Measure SDK has a set of benchmarks to measure the performance impact of the SDK on the app.
+These benchmarks are collected using macro-benchmark on a Pixel 4a device running Android 13 (API 33).
+Each benchmark is run 35 times. See the [benchmarks](benchmarks/README.md) for
+more details, and the raw results are available in the 
+[benchmarks/benchmarkData](benchmarks/benchmarkData) folder.
+
+> [!IMPORTANT]
+> Benchmark results are specific to the device and the app. It is recommended to run the benchmarks
+> for your app to get results specific to your app. These numbers are published to provide
+> a reference point and are used internally to detect any performance regressions.
+
+For v0.2.0, the following benchmarks are available.
+
+* Adds 22.772ms-33.512ms to the app startup time (Time to Initial Display) for a simple app.
+* Takes 0.30ms to find the target view for every click/scroll gesture in a deep view hierarchy.
+* Takes 0.45ms to find the target composable for every click/scroll gesture in a deep composable
+  hierarchy.
 
 # Internals
 

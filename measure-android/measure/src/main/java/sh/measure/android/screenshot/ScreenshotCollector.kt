@@ -18,7 +18,6 @@ import sh.measure.android.config.ConfigProvider
 import sh.measure.android.isMainThread
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.LowMemoryCheck
 import sh.measure.android.utils.ResumedActivityProvider
 import java.io.ByteArrayOutputStream
@@ -103,9 +102,7 @@ internal class ScreenshotCollectorImpl(
             return null
         }
 
-        InternalTrace.beginSection("find-rects-to-mask")
         val rectsToMask = ScreenshotMask(config).findRectsToMask(view)
-        InternalTrace.endSection()
         val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             captureBitmapUsingPixelCopy(window, bitmap)?.apply {

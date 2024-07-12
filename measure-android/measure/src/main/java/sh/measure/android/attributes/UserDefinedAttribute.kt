@@ -96,10 +96,10 @@ internal class UserDefinedAttributeImpl(
     }
 
     private fun validateKey(key: String): Boolean {
-        if (key.length > configProvider.defaultMaxUserDefinedAttributeKeyLength) {
+        if (key.length > configProvider.maxUserDefinedAttributeKeyLength) {
             logger.log(
                 LogLevel.Warning,
-                "Attribute key: $key length is longer than the maximum allowed length of ${configProvider.defaultMaxUserDefinedAttributeKeyLength}. This attribute will be dropped.",
+                "Attribute key: $key length is longer than the maximum allowed length of ${configProvider.maxUserDefinedAttributeKeyLength}. This attribute will be dropped.",
             )
             return false
         } else if (!key.isLowerCase()) {
@@ -120,10 +120,10 @@ internal class UserDefinedAttributeImpl(
 
     private fun validateValue(value: Any?): Boolean {
         if (value is String) {
-            if (value.length > configProvider.defaultMaxUserDefinedAttributeValueLength) {
+            if (value.length > configProvider.maxUserDefinedAttributeValueLength) {
                 logger.log(
                     LogLevel.Warning,
-                    "Attribute value: $value length is longer than the maximum allowed length of ${configProvider.defaultMaxUserDefinedAttributeValueLength}. This attribute will be dropped.",
+                    "Attribute value: $value length is longer than the maximum allowed length of ${configProvider.maxUserDefinedAttributeValueLength}. This attribute will be dropped.",
                 )
                 return false
             }

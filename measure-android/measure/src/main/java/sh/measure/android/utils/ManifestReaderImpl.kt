@@ -14,7 +14,7 @@ internal interface ManifestReader {
 
 internal class ManifestReaderImpl(private val context: Context, private val logger: Logger) :
     ManifestReader {
-    private val measureUrlKey = "measure_url"
+    private val measureUrlKey = "sh.measure.android.API_URL"
     private val measureApiKey = "sh.measure.android.API_KEY"
 
     override fun load(): ManifestMetadata? {
@@ -41,7 +41,6 @@ internal class ManifestReaderImpl(private val context: Context, private val logg
                 PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA.toLong()),
             ).metaData
         } else {
-            @Suppress("DEPRECATION")
             context.packageManager.getApplicationInfo(
                 context.packageName,
                 PackageManager.GET_META_DATA,

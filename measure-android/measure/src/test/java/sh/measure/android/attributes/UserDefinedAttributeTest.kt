@@ -78,7 +78,7 @@ class UserDefinedAttributeTest {
 
     @Test
     fun `discards attribute if key length is more than configured maximum length`() {
-        configProvider.defaultMaxUserDefinedAttributeKeyLength = 3
+        configProvider.maxUserDefinedAttributeKeyLength = 3
         userDefinedAttribute.put("key", "value1", false)
         userDefinedAttribute.put("longer-length-key", "value2", false)
 
@@ -87,7 +87,7 @@ class UserDefinedAttributeTest {
 
     @Test
     fun `discards attribute if value length is more than configured maximum length`() {
-        configProvider.defaultMaxUserDefinedAttributeValueLength = 5
+        configProvider.maxUserDefinedAttributeValueLength = 5
         userDefinedAttribute.put("key1", "value", false)
         userDefinedAttribute.put("key2", "longer-length-value", false)
 
@@ -96,7 +96,7 @@ class UserDefinedAttributeTest {
 
     @Test
     fun `discards attribute if key contains spaces`() {
-        configProvider.defaultUserDefinedAttributeKeyWithSpaces = false
+        configProvider.userDefinedAttributeKeyWithSpaces = false
         userDefinedAttribute.put("key1", "value1", false)
         userDefinedAttribute.put("key with spaces", "value2", false)
 

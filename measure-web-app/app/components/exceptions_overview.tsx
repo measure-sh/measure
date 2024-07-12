@@ -122,20 +122,20 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
             endDate={selectedFilters.selectedEndDate}
             appVersions={selectedFilters.selectedVersions} />
           <div className="py-8" />
-          <div className="table font-sans border border-black w-full">
-            <div className="table-header-group border border-black">
-              <div className="table-row">
-                <div className="table-cell border border-black p-2 font-display">{exceptionsType === ExceptionsType.Crash ? 'Crash' : 'ANR'} Name</div>
-                <div className="table-cell border border-black p-2 font-display text-center">Instances</div>
-                <div className="table-cell border border-black p-2 font-display text-center">Percentage contribution</div>
+          <div className="table border border-black rounded-md w-full">
+            <div className="table-header-group bg-neutral-950">
+              <div className="table-row text-white font-display">
+                <div className="table-cell p-4 py-4">{exceptionsType === ExceptionsType.Crash ? 'Crash' : 'ANR'} Name</div>
+                <div className="table-cell p-4 py-4">Instances</div>
+                <div className="table-cell p-4 py-4">Percentage contribution</div>
               </div>
             </div>
-            <div className="table-row-group">
+            <div className="table-row-group font-sans">
               {exceptionsOverview.results.map(({ id, name, count, percentage_contribution }) => (
-                <Link key={id} href={`/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${selectedFilters.selectedApp.id}/${id}/${name}`} className="table-row hover:bg-yellow-200 active:bg-yellow-300">
-                  <div className="table-cell border border-black p-2 hover:bg-yellow-200 active:bg-yellow-300">{name}</div>
-                  <div className="table-cell border border-black p-2 text-center">{count} instances</div>
-                  <div className="table-cell border border-black p-2 text-center">{percentage_contribution}%</div>
+                <Link key={id} href={`/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${selectedFilters.selectedApp.id}/${id}/${name}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
+                  <div className="table-cell p-4">{name}</div>
+                  <div className="table-cell p-4 text-center">{count}</div>
+                  <div className="table-cell p-4 text-center">{percentage_contribution}%</div>
                 </Link>
               ))}
             </div>

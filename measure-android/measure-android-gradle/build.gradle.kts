@@ -1,3 +1,6 @@
+import com.vanniktech.maven.publish.GradlePublishPlugin
+import com.vanniktech.maven.publish.SonatypeHost
+
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.gradle.plugin.publish)
@@ -6,11 +9,8 @@ plugins {
     alias(libs.plugins.diffplug.spotless)
     id("sh.measure.plugin.aar2jar")
     id("java-gradle-plugin")
-    id("maven-publish")
+    alias(libs.plugins.mavenPublish)
 }
-
-group = properties["GROUP"] as String
-version = properties["MEASURE_PLUGIN_VERSION_NAME"] as String
 
 gradlePlugin {
     plugins {
@@ -23,39 +23,45 @@ gradlePlugin {
     }
 }
 
-kotlin {
-    jvmToolchain(17)
-}
+private val groupId = properties["MEASURE_PLUGIN_GROUP_ID"] as String
+private val artifactId = properties["MEASURE_PLUGIN_ARTIFACT_ID"] as String
+private val pluginVersion = properties["MEASURE_PLUGIN_VERSION_NAME"] as String
 
-java {
-    withSourcesJar()
-    withJavadocJar()
-}
+mavenPublishing {
+    coordinates(groupId, artifactId, pluginVersion)
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = false)
+    configure(
+        GradlePublishPlugin()
+    )
 
-val measureGradlePluginVersion = properties["MEASURE_PLUGIN_VERSION_NAME"] as String
-
-
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            groupId = properties["GROUP"] as String
-            artifactId = properties["MEASURE_PLUGIN_ARTIFACT_ID"] as String
-            version = measureGradlePluginVersion
-
-            from(components["java"])
-        }
-    }
-
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/measure-sh/measure")
-            credentials {
-                username = System.getenv("GITHUB_ACTOR")
-                password = System.getenv("GITHUB_TOKEN")
+    pom {
+        name.set("Measure Android Gradle Plugin")
+        description.set("Measure Android Gradle Plugin")
+        inceptionYear.set("2024")
+        url.set("https://github.com/measure-sh/measure")
+        licenses {
+            license {
+                name.set("The Apache License, Version 2.0")
+                url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                distribution.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
             }
         }
+        developers {
+            developer {
+                id.set("measure")
+                name.set("measure.sh")
+            }
+        }
+        scm {
+            url.set("https://github.com/measure-sh/measure")
+            connection.set("scm:git:git://github.com/measure-sh/measure.git")
+            developerConnection.set("scm:git:ssh://git@github.com/measure-sh/measure.git")
+        }
     }
+}
+
+kotlin {
+    jvmToolchain(17)
 }
 
 dependencies {

@@ -22,7 +22,7 @@ class ViewTargetFinderBenchmark {
         benchmarkRule.measureRepeated(packageName = "sh.measure.test.benchmark",
             metrics = listOf(
                 TraceSectionMetric(
-                    sectionName = "GestureCollector.getTarget",
+                    sectionName = "msr-click-getTarget",
                     mode = TraceSectionMetric.Mode.Sum,
                 )
             ),
