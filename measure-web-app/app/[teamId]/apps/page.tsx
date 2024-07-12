@@ -6,8 +6,7 @@ import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_se
 import { getUserIdOrRedirectToAuth } from "@/app/utils/auth_utils";
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
-import { supabase } from "@/utils/supabase/browser";
-
+import { auth } from "@/utils/auth";
 
 export default function Apps({ params }: { params: { teamId: string } }) {
   const router = useRouter()
@@ -69,7 +68,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
       case AuthzAndMembersApiStatus.Error:
         break
       case AuthzAndMembersApiStatus.Success:
-        const currentUserId = await getUserIdOrRedirectToAuth(supabase, router)!
+        const currentUserId = await getUserIdOrRedirectToAuth(auth, router)!
         const currentUserRole = result.data.members.find((member: any) => member.id === currentUserId)!.role
         if (currentUserRole === 'owner' || currentUserRole === 'admin') {
           setCurrentUserCanChangeAppSettings(true)

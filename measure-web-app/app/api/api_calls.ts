@@ -1119,18 +1119,11 @@ export const updateAlertPrefsFromServer = async (appdId: string, alertPrefs: typ
 }
 
 export const fetchAppSettingsFromServer = async (appId: string, router: AppRouterInstance) => {
-    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
-    const opts = {
-        headers: {
-            "Authorization": `Bearer ${authToken}`
-        }
-    };
-
-    const res = await fetch(`${origin}/apps/${appId}/settings`, opts);
+    const res = await fetchAuth(`${origin}/apps/${appId}/settings`);
 
     if (!res.ok) {
-        logoutIfAuthError(supabase, router, res)
+        logoutIfAuthError(auth, router, res)
         return { status: FetchAppSettingsApiStatus.Error, data: null }
     }
 
@@ -1140,21 +1133,17 @@ export const fetchAppSettingsFromServer = async (appId: string, router: AppRoute
 }
 
 export const updateAppSettingsFromServer = async (appdId: string, appSettings: typeof emptyAppSettings, router: AppRouterInstance) => {
-    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const opts = {
         method: 'PATCH',
-        headers: {
-            "Authorization": `Bearer ${authToken}`
-        },
         body: JSON.stringify(appSettings)
     };
 
-    const res = await fetch(`${origin}/apps/${appdId}/settings`, opts);
+    const res = await fetchAuth(`${origin}/apps/${appdId}/settings`, opts);
     const data = await res.json()
 
     if (!res.ok) {
-        logoutIfAuthError(supabase, router, res)
+        logoutIfAuthError(auth, router, res)
         return { status: UpdateAppSettingsApiStatus.Error, error: data.error }
     }
 
@@ -1162,22 +1151,15 @@ export const updateAppSettingsFromServer = async (appdId: string, appSettings: t
 }
 
 export const fetchUsageFromServer = async (teamId: string, router: AppRouterInstance) => {
-    const authToken = await getAccessTokenOrRedirectToAuth(supabase, router)
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
-    const opts = {
-        headers: {
-            "Authorization": `Bearer ${authToken}`
-        }
-    };
-
-    const res = await fetch(`${origin}/teams/${teamId}/usage`, opts);
+    const res = await fetchAuth(`${origin}/teams/${teamId}/usage`);
 
     if (!res.ok && res.status == 404) {
         return { status: FetchUsageApiStatus.NoApps, data: null }
     }
 
     if (!res.ok) {
-        logoutIfAuthError(supabase, router, res)
+        logoutIfAuthError(auth, router, res)
         return { status: FetchUsageApiStatus.Error, data: null }
     }
 
