@@ -5,11 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"measure-backend/measure-go/server"
-	"net/http"
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
@@ -57,78 +55,6 @@ func timeOrNil(t *time.Time) string {
 		return "<nil>"
 	}
 	return t.Format(time.RFC3339)
-}
-
-func CreateUser(c *gin.Context) {
-	var user User
-
-	if err := c.ShouldBindJSON(&user); err != nil {
-		msg := "failed to parse user payload"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
-	}
-
-	selectStmt := sqlf.PostgreSQL.
-		Select("id").
-		From("public.users").
-		Where("id = ?", user.ID)
-	defer selectStmt.Close()
-
-	var userIdFromDb string
-	err := server.Server.PgPool.QueryRow(context.Background(), selectStmt.String(), selectStmt.Args()...).Scan(&userIdFromDb)
-
-	// If there is no user for given userID, we create one
-	if err != nil && err == pgx.ErrNoRows {
-		insertStmt := sqlf.PostgreSQL.
-			InsertInto("public.users").
-			Set("id", user.ID).
-			Set("name", user.Name).
-			Set("email", user.Email).
-			Set("invited_by_user_id", user.InvitedByUserId).
-			Set("invited_to_team_id", user.InvitedToTeamId).
-			Set("invited_as_role", user.InvitedAsRole).
-			Set("confirmed_at", user.ConfirmedAt).
-			Set("last_sign_in_at", user.LastSignInAt).
-			Set("created_at", user.CreatedAt).
-			Set("updated_at", user.UpdatedAt)
-		defer insertStmt.Close()
-
-		if _, err := server.Server.PgPool.Exec(context.Background(), insertStmt.String(), insertStmt.Args()...); err != nil {
-			msg := "failed to create user in database"
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-			return
-		}
-
-		c.JSON(http.StatusCreated, user)
-		return
-	}
-
-	// If user exists for given userID, we updated the record
-	updateStmt := sqlf.PostgreSQL.
-		Update("public.users").
-		Set("name", user.Name).
-		Set("email", user.Email).
-		Set("invited_by_user_id", user.InvitedByUserId).
-		Set("invited_to_team_id", user.InvitedToTeamId).
-		Set("invited_as_role", user.InvitedAsRole).
-		Set("confirmed_at", user.ConfirmedAt).
-		Set("last_sign_in_at", user.LastSignInAt).
-		Set("created_at", user.CreatedAt).
-		Set("updated_at", user.UpdatedAt).
-		Where("id = ?", user.ID)
-	defer updateStmt.Close()
-
-	ctx := context.Background()
-	if _, err := server.Server.PgPool.Exec(ctx, updateStmt.String(), updateStmt.Args()...); err != nil {
-		msg := "failed to update user in database"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
-	}
-
-	c.JSON(http.StatusCreated, user)
 }
 
 func (u *User) getTeams() ([]map[string]string, error) {

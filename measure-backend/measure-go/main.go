@@ -64,11 +64,6 @@ func main() {
 
 	// Dashboard routes
 	r.Use(cors).Use(measure.ValidateAccessToken())
-	users := r.Group("/users")
-	{
-		users.PUT("", measure.CreateUser)
-	}
-
 	apps := r.Group("/apps")
 	{
 		apps.GET(":id/journey", measure.GetAppJourney)
