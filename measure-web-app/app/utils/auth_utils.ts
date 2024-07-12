@@ -28,5 +28,5 @@ export async function logoutIfAuthError(auth: Auth, router: AppRouterInstance, r
 // Utility function to log out current logged in user
 export async function logout(auth: Auth, router: AppRouterInstance) {
   await auth.signout();
-  router.push("/auth/logout");
+  router.push("/auth/login");
 }
