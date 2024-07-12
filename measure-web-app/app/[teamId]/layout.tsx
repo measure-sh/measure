@@ -41,6 +41,10 @@ export default function DashboardLayout({
     // },
   ];
 
+  useEffect(() => {
+    auth.init();
+  }, []);
+
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading);
   const [teams, setTeams] = useState([emptyTeam]);
   const [selectedTeam, setSelectedTeam] = useState(teams[0].id)
@@ -65,9 +69,6 @@ export default function DashboardLayout({
     }
   }
 
-  useEffect(() => {
-    auth.init();
-  }, [auth]);
 
   useEffect(() => {
     getTeams()

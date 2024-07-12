@@ -1,85 +1,59 @@
-import crypto from "node:crypto"
-import Messages from "../sign-up/messages"
+'use client';
+
+import Link from "next/link";
+import { auth } from "@/utils/auth";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import Messages from "./messages"
 import GoogleSignIn from "./google-sign-in"
 import GitHubSignIn from "./github-sign-in"
-import { encodeOAuthState } from "@/utils/auth"
+import { getSession, decodeJWT } from "@/utils/auth";
+import Script from "next/script"
+import { logout } from "@/app/utils/auth_utils";
 
-async function genNonce() {
-  const nonce = crypto.randomBytes(16).toString("base64")
-  const encoder = new TextEncoder()
-  const encodedNonce = encoder.encode(nonce)
-  const hash = await crypto.subtle.digest("SHA-256", encodedNonce)
-  const bytes = new Uint8Array(hash)
-  const hashedNonce = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join("")
-  return { nonce, hashedNonce }
-}
-
-export default async function Login({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
+export default function Login({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
   const error = searchParams["error"]
   const message = searchParams["message"]
+  const [loading, setLoading] = useState(true)
+  const [home, setHome] = useState("")
+  const loggedIn = home === "" && loading === false ? false : true
+  const router = useRouter()
   const initial = !Boolean(error || message)
-  let nonce = ""
-  let hashedNonce = ""
-  if (initial) {
-    const result = await genNonce()
-    nonce = result.nonce
-    hashedNonce = result.hashedNonce
-  }
-  const origin = process?.env?.NEXT_PUBLIC_SITE_URL
 
-  const state = encodeOAuthState("")
+  const logoutUser = async () => {
+    setHome("")
+    await logout(auth, router)
+  }
+
+  useEffect(() => {
+    setLoading(false)
+    const { session } = getSession()
+    if (!session) {
+      return
+    }
+
+    const { payload } = decodeJWT(session.access_token)
+    const url = `/${payload["team"]}/overview`
+    setHome(url)
+  }, [])
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8">
       {/* a fixed max-width is best as the google sign-in button has a width constraint */}
       <div className="w-full space-y-6" style={{ width: "400px" }}>
-        {initial && (
+        {home && <Link href={home} className="block text-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4 w-full">Go to dashboard</Link>}
+        {home && <button className="block text-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4 w-full" onClick={() => logoutUser()}>Logout</button>}
+        {!loggedIn && initial && (
           <>
-            <div id="g_id_onload"
-              data-client_id={process.env.NEXT_PUBLIC_MEASURE_GOOGLE_OAUTH_CLIENT_ID}
-              data-context="signin"
-              data-ux_mode="popup"
-              data-nonce={hashedNonce}
-              data-login_uri={`${origin}/auth/callback/google?nonce=${encodeURIComponent(nonce)}&state=${encodeURIComponent(state)}`}
-              data-auto_select="true"
-              data-itp_support="true">
-            </div>
-
-            <div className="g_id_signin"
-              data-type="standard"
-              data-shape="rectangular"
-              data-theme="outline"
-              data-text="signin_with"
-              data-size="large"
-              data-logo_alignment="center"
-              data-state={state}
-              data-width="400">
-            </div>
-          </>
-        )}
-        {initial && <GitHubSignIn />}
-        {initial && (
-          <>
+            <Script src="https://accounts.google.com/gsi/client" />
             <GoogleSignIn />
-            <p className="text-center text-lg font-display before:line-through before:content-['\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0'] after:line-through after:content-['\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0\00a0']">
-              <span className="ms-4 me-4">or continue with</span>
-            </p>
-            <form className="mt-8 space-y-6" action="/auth/sign-up" method="post">
-              <div className="rounded-md shadow-sm -space-y-px">
-                <label htmlFor="auth-email" className="font-display my-1 block">Email</label>
-                <input id="auth-email" type="email" placeholder="you@example.com" required className="w-full border border-black rounded-md outline-none focus-visible:outline-yellow-300 text-black py-2 px-4 font-sans placeholder:text-neutral-400" name="email" />
-              </div>
-              <div>
-                <button type="submit" formAction="/auth/sign-up" className="outline-none hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display text-black border border-black rounded-md transition-colors duration-100 py-2 px-4 w-full">Sign In or Sign Up</button>
-              </div>
-            </form>
-            <div className="flex items-center ">
-              <p className="text-black font-display font-regular text-center w-full text-sm">You&apos;ll receive a Magic link in your inbox.</p>
-            </div>
           </>
         )}
-        <Messages />
       </div>
+      <div className="my-6 place-content-end" style={{ width: "400px" }}>
+        {!loggedIn && initial && <GitHubSignIn />}
+      </div>
+      <Messages />
     </div>
   )
 }

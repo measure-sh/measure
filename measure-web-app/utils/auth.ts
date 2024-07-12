@@ -295,6 +295,10 @@ const refreshSession = async (): Promise<MSRSession> => {
 export const init = () => {
   if (globalThis.window) {
     storeSessionFromURL(window.location.href);
+    const session = loadSession(sessionKey)
+    if (!session && 'location' in window) {
+      window.location.assign("/auth/login")
+    }
   }
 }
 
@@ -326,6 +330,10 @@ export const fetchAuth = new Proxy(fetch.bind(globalThis), {
   async apply(target, thisArg, argArray) {
     let session = loadSession(sessionKey);
     if (!session) {
+      clearSession()
+      if (window && 'location' in window) {
+        window.location.assign("/auth/login");
+      }
       throw new Error("couldn't retrieve session");
     }
     if (needsRefresh(session.access_token)) {

@@ -8,7 +8,7 @@ export async function getUserIdOrRedirectToAuth(auth: Auth, router: AppRouterIns
 
   if (error) {
     await auth.signout();
-    router.push('/auth/logout');
+    router.push('/auth/login');
     return null
   }
 
