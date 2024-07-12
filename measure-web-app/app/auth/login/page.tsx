@@ -1,15 +1,13 @@
 'use client';
 
 import Link from "next/link";
-import { auth } from "@/utils/auth";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Messages from "./messages"
 import GoogleSignIn from "./google-sign-in"
 import GitHubSignIn from "./github-sign-in"
-import { getSession, decodeJWT } from "@/utils/auth";
+import { auth, logout, getSession, decodeJWT } from "@/app/utils/auth/auth"
 import Script from "next/script"
-import { logout } from "@/app/utils/auth_utils";
 
 export default function Login({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
   const error = searchParams["error"]

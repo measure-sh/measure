@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { encodeOAuthState } from "@/utils/auth"
+import { encodeOAuthState } from "@/app/utils/auth/auth"
 
 const origin = process?.env?.NEXT_PUBLIC_SITE_URL
 const googleClientID = process?.env?.NEXT_PUBLIC_MEASURE_GOOGLE_OAUTH_CLIENT_ID
