@@ -51,7 +51,7 @@ describe('getUserIdOrRedirectToAuth', () => {
 
         expect(result).toBeNull();
         expect(mockAuth.signout).toHaveBeenCalled();
-        expect(mockRouter.push).toHaveBeenCalledWith('/auth/logout');
+        expect(mockRouter.push).toHaveBeenCalledWith('/auth/login');
     });
 })
 
@@ -94,6 +94,6 @@ describe('logout', () => {
         // @ts-ignore
         await logout(mockAuth, mockRouter);
 
-        expect(mockRouter.push).toHaveBeenCalledWith('/auth/logout');
+        expect(mockRouter.push).toHaveBeenCalledWith('/auth/login');
     });
 });
