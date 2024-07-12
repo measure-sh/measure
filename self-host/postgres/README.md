@@ -36,7 +36,7 @@ Though, generally not recommended, if you want to delete old migration files or 
   truncate table if exists dbmate.schema_migrations;
   ```
 
-  Using `psql` from supabase's postgres docker container. Make sure, docker compose is up. [More info](../README.md).
+  Using `psql` from postgres docker container. Make sure, docker compose is up. [More info](../README.md).
 
   ```sh
   # syntax
@@ -45,8 +45,8 @@ Though, generally not recommended, if you want to delete old migration files or 
     -c "truncate table if exists dbmate.schema_migrations;"
 
   # example
-  docker exec -it supabase_db_supabase \
-    psql postgresql://postgres:postgres@supabase_db_supabase/postgres \
+  docker exec -it postgres \
+    psql postgresql://postgres:postgres@postgres:5432/postgres \
     -c 'truncate table if exists dbmate.schema_migrations;'
   ```
 

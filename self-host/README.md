@@ -5,29 +5,12 @@ Measure is designed from the ground up for easy self-hosting. Follow along to kn
 ## Prerequisites
 
 - [Docker v24+](https://www.docker.com/)
-- [Supabase v1.112.0+](https://supabase.com/)
 - [dbmate v2.8.0+](https://github.com/amacneil/dbmate)
 - [node &amp; npm](https://nodejs.org/en)
 
 ### Installing Docker
 
 If you don't already have docker running, follow the official instructions on [docker.com](https://docs.docker.com/get-docker/) to install and run docker.
-
-### Installing Supabase
-
-> How Measure uses Supabase
->
-> We use Supabase for auth. To try out measure on a local machine you don't need a Supabase account.
-
-If you don't have [supabase/cli](https://github.com/supabase/cli) installed, follow the instructions on the [README](https://github.com/supabase/cli/blob/main/README.md) page to install it first.
-
-If you are on `macOS`, you can install supabase-cli using homebrew.
-
-```sh
-brew install supabase/tap/supabase
-```
-
-> Make sure to keep the supabase cli updated by running `brew upgrade` periodically
 
 ### Installing dbmate
 
@@ -60,36 +43,7 @@ If you don't have node installed, we recommend [fnm](https://github.com/Schniz/f
 git clone git@github.com:measure-sh/measure.git
 ```
 
-## 2. Navigate to `./self-host`
-
-```sh
-cd self-host
-```
-
-## 3. Copy the supabase environment file
-
-```sh
-cp .env.example .env
-```
-
-## 4. Modify the variables in `.env`
-
-Configure the following variables:
-
-- `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID`
-- `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET`
-- `SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID`
-- `SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_SECRET`
-
-## 5. Start supabase
-
-```sh
-supabase start
-```
-
-It might take a few seconds for all the supabase containers to start and get healthy.
-
-## 6. Setup &amp; start web services
+## 2. Setup &amp; start web services
 
 Navigate to `measure-backend/symbolicator-retrace`
 
@@ -193,7 +147,6 @@ To shutdown the containers, run.
 
 ```sh
 docker compose down
-supabase stop
 ```
 
 Any events or logs will be persisted the next time you run `docker compose up` again.
@@ -210,8 +163,8 @@ To see Clickhouse server logs, run.
 
 ```sh
 # trace logs
-docker exec -it measure-clickhouse-1 tail -f /var/log/clickhouse-server/clickhouse-server.log
+docker compose exec -it clickhouse tail -f /var/log/clickhouse-server/clickhouse-server.log
 
 # error logs
-docker exec -it measure-clickhouse-1 tail -f /var/log/clickhouse-server/clickhouse-server.err.log
+docker compose exec -it clickhouse tail -f /var/log/clickhouse-server/clickhouse-server.err.log
 ```
