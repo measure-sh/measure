@@ -43,7 +43,29 @@ If you don't have node installed, we recommend [fnm](https://github.com/Schniz/f
 git clone git@github.com:measure-sh/measure.git
 ```
 
-## 2. Setup &amp; start web services
+## 2. Run postgres migrations
+
+Navigate to `./self-host/postgres`
+
+Copy the `.env.example` file to `.env` and modify the dbmate variables and run migrations.
+
+```sh
+cp .env.example .env
+dbmate migrate # run after updating `.env`
+```
+
+## 3. Run clickhouse migrations
+
+Navigate to `./self-host/clickhouse`
+
+Copy the `.env.example` file to `.env` and modify the dbmate variables and run migrations.
+
+```sh
+cp .env.example .env
+dbmate migrate # run after updating `.env`
+```
+
+## 4. Setup &amp; start web services
 
 Navigate to `measure-backend/symbolicator-retrace`
 
@@ -99,29 +121,7 @@ symbolicator-retrace  | 2023-11-17 10:26:37.791 [main] INFO  Application - Appli
 symbolicator-retrace  | 2023-11-17 10:26:37.842 [DefaultDispatcher-worker-1] INFO  Application - Responding at http://0.0.0.0:8181
 ```
 
-## 7. Run postgres migrations
-
-Navigate to `./self-host/postgres`
-
-Copy the `.env.example` file to `.env` and modify the dbmate variables and run migrations.
-
-```sh
-cp .env.example .env
-dbmate migrate # run after updating `.env`
-```
-
-## 8. Run clickhouse migrations
-
-Navigate to `./self-host/clickhouse`
-
-Copy the `.env.example` file to `.env` and modify the dbmate variables and run migrations.
-
-```sh
-cp .env.example .env
-dbmate migrate # run after updating `.env`
-```
-
-## 9. Start the web app
+## 5. Start the web app
 
 Navigate to `./measure-web-app` directory.
 
@@ -137,7 +137,7 @@ Start the web app.
 npm run dev
 ```
 
-## 10. Open dashboard
+## 6. Open dashboard
 
 Navigate to [http://localhost:3000/auth/login](http://localhost:3000/auth/login) to open Measure dashboard login page.
 
