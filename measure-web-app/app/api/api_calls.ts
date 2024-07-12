@@ -1,7 +1,6 @@
-import { auth, fetchAuth } from "@/utils/auth"
+import { auth, fetchAuth, logoutIfAuthError } from "@/app/utils/auth/auth";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
 import { JourneyType } from "../components/journey"
-import { logoutIfAuthError } from "../utils/auth_utils"
 import { UserInputDateType, formatUserInputDateToServerFormat } from "../utils/time_utils"
 
 export enum TeamsApiStatus {

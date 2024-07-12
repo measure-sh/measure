@@ -1,4 +1,4 @@
-import { decodeJWT } from '@/utils/auth';
+import { decodeJWT } from '@/app/utils/auth/auth';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic'

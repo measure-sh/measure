@@ -3,10 +3,9 @@
 import { AppsApiStatus, AuthzAndMembersApiStatus, emptyApp, emptyAppSettings, FetchAppSettingsApiStatus, fetchAppSettingsFromServer, fetchAppsFromServer, fetchAuthzAndMembersFromServer, UpdateAppSettingsApiStatus, updateAppSettingsFromServer } from "@/app/api/api_calls";
 import CreateApp from "@/app/components/create_app";
 import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select";
-import { getUserIdOrRedirectToAuth } from "@/app/utils/auth_utils";
+import { auth, getUserIdOrRedirectToAuth } from "@/app/utils/auth/auth";
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
-import { auth } from "@/utils/auth";
 
 export default function Apps({ params }: { params: { teamId: string } }) {
   const router = useRouter()

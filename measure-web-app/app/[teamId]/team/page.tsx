@@ -1,6 +1,6 @@
 "use client"
 
-import { getUserIdOrRedirectToAuth } from "@/app/utils/auth_utils";
+import { auth, getUserIdOrRedirectToAuth } from "@/app/utils/auth/auth";
 import { FormEventHandler, useEffect, useState } from "react";
 import { useRouter } from 'next/navigation';
 import DangerConfirmationModal from "@/app/components/danger_confirmation_modal";
@@ -8,7 +8,6 @@ import { TeamsApiStatus, fetchTeamsFromServer, emptyTeam, AuthzAndMembersApiStat
 import AlertDialogModal from "@/app/components/alert_dialog_modal";
 import { formatToCamelCase } from "@/app/utils/string_utils";
 import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select";
-import { auth } from "@/utils/auth";
 
 export default function Team({ params }: { params: { teamId: string } }) {
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading);

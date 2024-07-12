@@ -1,4 +1,4 @@
-import { getUserIdOrRedirectToAuth, logout, logoutIfAuthError } from '@/app/utils/auth_utils';
+import { getUserIdOrRedirectToAuth, logout, logoutIfAuthError } from '@/app/utils/auth/auth';
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
 
 const mockAuth = {

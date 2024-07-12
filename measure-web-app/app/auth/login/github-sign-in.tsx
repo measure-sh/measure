@@ -1,6 +1,6 @@
 "use client";
 
-import { createMeasureClient } from "@/utils/measure-client";
+import { createMeasureClient } from "@/app/utils/auth/measure-client";
 
 async function doGitHubLogin() {
   const { origin } = new URL(window.location.href);
