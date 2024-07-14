@@ -47,11 +47,28 @@ class MeasurePluginTest {
     fun `assert tasks are created when bundle task is triggered`(
         agpVersion: SemVer, gradleVersion: GradleVersion
     ) {
-        val project = MeasurePluginFixture(agpVersion, minifyEnabled = false).gradleProject
+        val project = MeasurePluginFixture(agpVersion, minifyEnabled = true).gradleProject
         val result = build(gradleVersion, project.rootDir, ":app:bundleRelease")
         assertThat(result).task(":app:extractReleaseManifestData").isNotNull()
         assertThat(result).task(":app:calculateAabSizeRelease").isNotNull()
         assertThat(result).task(":app:uploadReleaseBuildToMeasure").isNotNull()
+    }
+
+    @ParameterizedTest
+    @MethodSource("versions")
+    fun `assert tasks not created when measure is disabled using MeasurePluginExtension`(
+        agpVersion: SemVer, gradleVersion: GradleVersion
+    ) {
+        val project = MeasurePluginFixture(agpVersion, minifyEnabled = true, enabled = false).gradleProject
+        val assembleResult = build(gradleVersion, project.rootDir, ":app:assembleRelease")
+        assertThat(assembleResult).doesNotHaveTask(":app:extractReleaseManifestData")
+        assertThat(assembleResult).doesNotHaveTask(":app:calculateApkSizeRelease")
+        assertThat(assembleResult).doesNotHaveTask(":app:uploadReleaseBuildToMeasure")
+
+        val bundleResult = build(gradleVersion, project.rootDir, ":app:bundleRelease")
+        assertThat(bundleResult).doesNotHaveTask(":app:extractReleaseManifestData")
+        assertThat(bundleResult).doesNotHaveTask(":app:calculateApkSizeRelease")
+        assertThat(bundleResult).doesNotHaveTask(":app:uploadReleaseBuildToMeasure")
     }
 
     @ParameterizedTest
@@ -102,7 +119,7 @@ class MeasurePluginTest {
     @MethodSource("versions")
     fun `assert plugin does not break configuration cache`(
         agpVersion: SemVer, gradleVersion: GradleVersion
-    ) {
+    )  {
         server.enqueue(MockResponse().setResponseCode(200))
         server.enqueue(MockResponse().setResponseCode(200))
         server.start(8080)

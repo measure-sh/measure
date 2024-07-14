@@ -22,6 +22,7 @@ class MeasurePluginFixture(
     private val setMeasureApiKey: Boolean = true,
     private val setMeasureApiUrl: Boolean = true,
     private val measureApiUrl: String = "https://measure.sh",
+    private val enabled: Boolean = true,
 ) : AbstractGradleProject() {
 
     val gradleProject: GradleProject = build()
@@ -91,6 +92,16 @@ class MeasurePluginFixture(
                     Variant(buildType = "release", minifyEnabled = minifyEnabled)
                 )
                 withAndroidManifest(setMeasureApiKey, setMeasureApiUrl)
+
+                withGroovy(
+                    """
+                        measure {
+                            variantFilter {
+                               enabled = $enabled
+                            }
+                        }
+                    """.trimIndent()
+                )
             }
         }
     }

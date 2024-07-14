@@ -104,6 +104,45 @@ plugins {
 
 [Read](measure-android-gradle/README.md) more about Measure gradle plugin.
 
+<details>
+  <summary>Configure variants</summary>
+
+By default, the plugin is applied to all variants. To disable plugin for specific variants, 
+use the `measure` block in your build file.
+
+> [!IMPORTANT]
+> Setting `enabled` to `false` will disable the plugin for that variant. This prevents the
+> plugin to collect `mapping.txt` file and other build information about the app. Features like
+> tracking app size, de-obfuscating stack traces, etc. will not work.
+
+For example to disable the plugin for `debug` variants, add the following to your 
+`build.gradle.kts` file:
+
+```kotlin
+measure {
+  variantFilter {
+    if (name.contains("debug")) {
+      enabled = false
+    }
+  }
+}
+```
+
+or in the `build.gradle` file:
+
+```groovy
+measure {
+  variantFilter {
+    if (name.contains("debug")) {
+      enabled = false
+    }
+  }
+}
+```
+
+</details>
+
+
 ### 3. Add Measure SDK to your project
 
 Add the following to your app's `build.gradle.kts`file.
