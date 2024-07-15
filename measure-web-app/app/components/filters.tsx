@@ -146,11 +146,17 @@ const Filters: React.FC<FiltersProps> = ({
         setAppsApiStatus(AppsApiStatus.Success)
         setApps(result.data)
         // If appId is provided, set selected app to given appId. If no app Id is provided but we have a saved appId from
-        // saved filters, set selected app to the one from saved filters. If not, set to the first app id.
+        // saved filters and we can find the corresponding app in the results, set selected app to the one from saved filters.
+        // If not, set to the first app id.
         if (appId !== undefined) {
           setSelectedApp(result.data.find((e: typeof emptyApp) => e.id === appId))
         } else if (persistedFilters !== null) {
-          setSelectedApp(result.data.find((e: typeof emptyApp) => e.id === persistedFilters.selectedAppId))
+          const appMatchingPersisted = result.data.find((e: typeof emptyApp) => e.id === persistedFilters.selectedAppId)
+          if (appMatchingPersisted !== undefined) {
+            setSelectedApp(appMatchingPersisted)
+          } else {
+            setSelectedApp(result.data[0])
+          }
         } else {
           setSelectedApp(result.data[0])
         }
@@ -229,7 +235,7 @@ const Filters: React.FC<FiltersProps> = ({
   }
 
   useEffect(() => {
-    // Don't try to fetch filters if app id is not yet set
+    // Don't try to fetch filters if selected app is not yet set
     if (selectedApp.id === "") {
       return
     }
@@ -238,6 +244,11 @@ const Filters: React.FC<FiltersProps> = ({
   }, [selectedApp]);
 
   useEffect(() => {
+    // Don't persist filters or fire change listener if selected app is not yet set
+    if (selectedApp.id === "") {
+      return
+    }
+
     const updatedPersistedFilters: PersistedFilters = {
       selectedAppId: selectedApp.id,
       selectedStartDate: startDate,
