@@ -3,9 +3,9 @@ import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
-const apiOrigin = process?.env?.NEXT_PUBLIC_API_BASE_URL
+const apiOrigin = process?.env?.API_BASE_URL
 if (!apiOrigin) {
-  throw new Error(`env var "NEXT_PUBLIC_API_BASE_URL" is unset`)
+  throw new Error(`env var "API_BASE_URL" is unset`)
 }
 
 export async function GET(request: Request) {
