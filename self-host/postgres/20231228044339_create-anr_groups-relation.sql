@@ -3,7 +3,7 @@ create table if not exists public.anr_groups (
     id uuid primary key not null,
     app_id uuid references public.apps(id) on delete cascade,
     name text not null,
-    fingerprint varchar(16) not null,
+    fingerprint varchar(32) not null,
     event_ids uuid[] not null,
     first_event_timestamp timestamptz not null,
     created_at timestamptz not null default now(),
