@@ -1,4 +1,11 @@
 services:
+  web:
+    build:
+      dockerfile: ../measure-web-app/dockerfile.prod
+    environment:
+      - NODE_ENV=production
+    volumes: !reset null
+
   api:
     environment:
       - GIN_MODE=release

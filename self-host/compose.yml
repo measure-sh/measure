@@ -11,6 +11,23 @@
 
 name: measure
 services:
+  web:
+    container_name: web
+    build:
+      context: ../measure-web-app
+    ports:
+      - "3000:3000"
+    env_file:
+      - ../measure-web-app/.env.local
+    environment:
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+    volumes:
+      - ../measure-web-app:/app
+      - ../measure-web-app/public:/app/public
+    depends_on:
+      - api
+
   api:
     container_name: api
     build:
@@ -24,10 +41,10 @@ services:
         - path: ../measure-backend/measure-go
           action: rebuild
     depends_on:
+      - postgres
       - clickhouse
       - minio
       - symbolicator-retrace
-      - postgres
 
   symbolicator-retrace:
     container_name: symbolicator-retrace
@@ -46,6 +63,33 @@ services:
     depends_on:
       - minio
 
+  minio:
+    container_name: minio
+    image: quay.io/minio/minio
+    ports:
+      - "9111:9000"
+      - "9222:9001"
+    environment:
+      - MINIO_ROOT_USER=minio
+      - MINIO_ROOT_PASSWORD=minio123
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+
+  mc:
+    container_name: mcmb
+    image: minio/mc
+    profiles:
+      - init
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set msr-minio http://minio:9000 minio minio123;
+      mc mb --ignore-existing msr-minio/msr-symbols-sandbox msr-minio/msr-attachments-sandbox;
+      exit 0;
+      "
+
   postgres:
     container_name: postgres
     image: postgres:16.3-alpine
@@ -62,32 +106,6 @@ services:
       interval: 1s
       timeout: 5s
       retries: 10
-
-  minio:
-    container_name: minio
-    image: quay.io/minio/minio
-    ports:
-      - "9111:9000"
-      - "9222:9001"
-    environment:
-      - MINIO_ROOT_USER=minio
-      - MINIO_ROOT_PASSWORD=minio123
-    command: server /data --console-address ":9001"
-    volumes:
-      - minio-data:/data
-  mc:
-    container_name: mcmb
-    image: minio/mc
-    profiles:
-      - init
-    depends_on:
-      - minio
-    entrypoint: >
-      /bin/sh -c "
-      mc alias set msr-minio http://minio:9000 minio minio123;
-      mc mb --ignore-existing msr-minio/msr-symbols-sandbox msr-minio/msr-attachments-sandbox;
-      exit 0;
-      "
 
   clickhouse:
     container_name: clickhouse
