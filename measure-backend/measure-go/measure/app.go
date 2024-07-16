@@ -105,6 +105,41 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGrou
 	return
 }
 
+// GetExceptionGroupByFingerprint queries a single exception group by its fingerprint.
+func (a App) GetExceptionGroupByFingerprint(ctx context.Context, fingerprint string) (exceptionGroup *group.ExceptionGroup, err error) {
+	stmt := sqlf.PostgreSQL.
+		From("public.unhandled_exception_groups").
+		Select("id").
+		Select("app_id").
+		Select("name").
+		Select("fingerprint").
+		Select("event_ids").
+		Select("array_length(event_ids, 1) as count").
+		Select("first_event_timestamp").
+		Select("created_at").
+		Select("updated_at").
+		Where("app_id = ?", a.ID).
+		Where("fingerprint = ?", fingerprint)
+
+	defer stmt.Close()
+
+	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if rows.Err() != nil {
+		return
+	}
+
+	row, err := pgx.CollectOneRow(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	exceptionGroup = &row
+
+	return
+}
+
 // GetExceptionGroups returns slice of ExceptionGroup
 // of an app.
 func (a App) GetExceptionGroups(ctx context.Context) (groups []group.ExceptionGroup, err error) {
@@ -157,6 +192,41 @@ func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (anrGroup *group.ANR
 		return
 	} else if err != nil {
 		return
+	}
+
+	anrGroup = &row
+
+	return
+}
+
+// GetANRGroupByFingerprint queries a single ANR group by its fingerprint.
+func (a App) GetANRGroupByFingerprint(ctx context.Context, fingerprint string) (anrGroup *group.ANRGroup, err error) {
+	stmt := sqlf.PostgreSQL.
+		From("public.anr_groups").
+		Select("id").
+		Select("app_id").
+		Select("name").
+		Select("fingerprint").
+		Select("event_ids").
+		Select("array_length(event_ids, 1) as count").
+		Select("first_event_timestamp").
+		Select("created_at").
+		Select("updated_at").
+		Where("app_id = ?", a.ID).
+		Where("fingerprint = ?", fingerprint)
+
+	defer stmt.Close()
+
+	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if rows.Err() != nil {
+		return
+	}
+
+	row, err := pgx.CollectOneRow(rows, pgx.RowToStructByNameLax[group.ANRGroup])
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
 	}
 
 	anrGroup = &row

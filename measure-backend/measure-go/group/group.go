@@ -8,19 +8,12 @@ import (
 	"measure-backend/measure-go/server"
 	"slices"
 	"sort"
-	"strconv"
 	"time"
 
-	"github.com/go-dedup/simhash"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
 )
-
-// MatchingHammingDistance is the minimum hamming
-// distance above which two similar exceptions or
-// ANRs are considered unique.
-var MinHammingDistance uint8 = 3
 
 type GroupID interface {
 	GetID() uuid.UUID
@@ -93,21 +86,6 @@ func (e ExceptionGroup) AppendEvent(ctx context.Context, event *event.EventField
 	return
 }
 
-// HammingDistance calculates the hamming distance between the
-// exception's fingerprint with any arbitrary fingerprint
-// represented as a 64 bit unsigned integer returning
-// the distance.
-func (e ExceptionGroup) HammingDistance(a uint64) (distance uint8, err error) {
-	b, err := strconv.ParseUint(e.Fingerprint, 16, 64)
-	if err != nil {
-		return
-	}
-
-	distance = simhash.Compare(a, b)
-
-	return
-}
-
 // Insert inserts a new ExceptionGroup into the database.
 func (e *ExceptionGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 	id, err := uuid.NewV7()
@@ -175,21 +153,6 @@ func (e ANRGroup) AppendEvent(ctx context.Context, event *event.EventField, tx *
 	return
 }
 
-// HammingDistance calculates the hamming distance between the
-// anr's fingerprint with any arbitrary fingerprint
-// represented as a 64 bit unsigned integer returning
-// the distance.
-func (anr ANRGroup) HammingDistance(a uint64) (distance uint8, err error) {
-	b, err := strconv.ParseUint(anr.Fingerprint, 16, 64)
-	if err != nil {
-		return
-	}
-
-	distance = simhash.Compare(a, b)
-
-	return
-}
-
 // Insert inserts a new ANRGroup into the database.
 func (a *ANRGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 	id, err := uuid.NewV7()
@@ -214,76 +177,6 @@ func (a *ANRGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 	}
 
 	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-
-	return
-}
-
-// GetExceptionGroup gets the ExceptionGroup by matching
-// ExceptionGroup id and app id.
-func GetExceptionGroup(eg *ExceptionGroup) error {
-	stmt := sqlf.PostgreSQL.Select("name, fingerprint, event_ids, created_at, updated_at").
-		From("public.unhandled_exception_groups").
-		Where("id = ? and app_id = ?", nil, nil)
-	defer stmt.Close()
-
-	return server.Server.PgPool.QueryRow(context.Background(), stmt.String(), eg.ID, eg.AppID).Scan(&eg.Name, &eg.Fingerprint, &eg.EventIDs, &eg.CreatedAt, &eg.UpdatedAt)
-}
-
-// GetANRGroup gets the ANRGroup by matching
-// ANRGroup id and app id.
-func GetANRGroup(ag *ANRGroup) error {
-	stmt := sqlf.PostgreSQL.Select("name, fingerprint, event_ids, created_at, updated_at").
-		From("public.anr_groups").
-		Where("id = ? and app_id = ?", nil, nil)
-	defer stmt.Close()
-
-	return server.Server.PgPool.QueryRow(context.Background(), stmt.String(), ag.ID, ag.AppID).Scan(&ag.Name, &ag.Fingerprint, &ag.EventIDs, &ag.CreatedAt, &ag.UpdatedAt)
-}
-
-// ClosestExceptionGroup finds the index of the ExceptionGroup closest to
-// an arbitrary fingerprint from a slice of ExceptionGroup.
-func ClosestExceptionGroup(groups []ExceptionGroup, fingerprint uint64) (group *ExceptionGroup, err error) {
-	lowest := -1
-	min := MinHammingDistance
-	for i := range groups {
-		distance, err := groups[i].HammingDistance(fingerprint)
-		if err != nil {
-			return nil, err
-		}
-
-		if distance <= min {
-			min = distance
-			lowest = i
-		}
-	}
-
-	if lowest > -1 {
-		group = &groups[lowest]
-	}
-
-	return
-}
-
-// ClosestANRGroup finds the index of the ANRGroup closest to
-// an arbitrary fingerprint from a slice of ANRGroup.
-func ClosestANRGroup(groups []ANRGroup, fingerprint uint64) (group *ANRGroup, err error) {
-	lowest := -1
-	min := MinHammingDistance
-	for i := range groups {
-		distance, err := groups[i].HammingDistance(fingerprint)
-		if err != nil {
-			return nil, err
-		}
-
-		if distance <= min {
-			min = distance
-			lowest = i
-		}
-	}
-
-	if lowest > -1 {
-		group = &groups[lowest]
-	}
 
 	return
 }

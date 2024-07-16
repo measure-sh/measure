@@ -1,14 +1,14 @@
 package event
 
 import (
-	"encoding/json"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"slices"
 	"strings"
 	"time"
 
-	"github.com/go-dedup/simhash"
 	"github.com/google/uuid"
 )
 
@@ -934,7 +934,8 @@ func (e Exception) GetMessage() string {
 // GetLocation provides the location of
 // the exception.
 func (e Exception) GetLocation() string {
-	return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileInfo()
+	fileName := e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
+	return fileName
 }
 
 // Stacktrace writes a formatted stacktrace
@@ -980,15 +981,37 @@ func (e Exception) Stacktrace() string {
 // ComputeExceptionFingerprint computes a fingerprint
 // from the exception data.
 func (e *Exception) ComputeExceptionFingerprint() (err error) {
-	marshalledException, err := json.Marshal(e)
-	if err != nil {
-		return
+	if len(e.Exceptions) == 0 {
+		return fmt.Errorf("error computing exception fingerprint: no exceptions found")
 	}
 
-	sh := simhash.NewSimhash()
-	e.Fingerprint = fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet(marshalledException)))
+	// Get the innermost exception
+	innermostException := e.Exceptions[len(e.Exceptions)-1]
 
-	return
+	// Get the exception type
+	exceptionType := innermostException.Type
+
+	// Initialize fingerprint data with the exception type
+	fingerprintData := exceptionType
+
+	// Get the method name and file name from the first frame of the innermost exception
+	if len(innermostException.Frames) > 0 {
+		methodName := innermostException.Frames[0].MethodName
+		fileName := innermostException.Frames[0].FileName
+
+		// Include any non-empty information
+		if methodName != "" {
+			fingerprintData += ":" + methodName
+		}
+		if fileName != "" {
+			fingerprintData += ":" + fileName
+		}
+	}
+
+	// Compute the fingerprint
+	e.Fingerprint = computeFingerprint(fingerprintData)
+
+	return nil
 }
 
 // IsNested returns true in case of
@@ -1033,7 +1056,8 @@ func (a ANR) GetMessage() string {
 // GetLocation provides the location of
 // the ANR.
 func (a ANR) GetLocation() string {
-	return a.Exceptions[len(a.Exceptions)-1].Frames[0].FileInfo()
+	fileName := a.Exceptions[len(a.Exceptions)-1].Frames[0].FileName
+	return fileName
 }
 
 // Stacktrace writes a formatted stacktrace
@@ -1078,14 +1102,41 @@ func (a ANR) Stacktrace() string {
 
 // ComputeANRFingerprint computes a fingerprint
 // from the ANR data.
-func (e *ANR) ComputeANRFingerprint() (err error) {
-	marshalledANR, err := json.Marshal(e)
-	if err != nil {
-		return
+func (a *ANR) ComputeANRFingerprint() (err error) {
+	if len(a.Exceptions) == 0 {
+		return fmt.Errorf("error computing ANR fingerprint: no exceptions found")
 	}
 
-	sh := simhash.NewSimhash()
-	e.Fingerprint = fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet(marshalledANR)))
+	// Get the innermost exception
+	innermostException := a.Exceptions[len(a.Exceptions)-1]
 
-	return
+	// Get the exception type
+	exceptionType := innermostException.Type
+
+	// Initialize fingerprint data with the exception type
+	fingerprintData := exceptionType
+
+	// Get the method name and file name from the first frame of the innermost exception
+	if len(innermostException.Frames) > 0 {
+		methodName := innermostException.Frames[0].MethodName
+		fileName := innermostException.Frames[0].FileName
+
+		// Include any non-empty information
+		if methodName != "" {
+			fingerprintData += ":" + methodName
+		}
+		if fileName != "" {
+			fingerprintData += ":" + fileName
+		}
+	}
+
+	// Compute the fingerprint
+	a.Fingerprint = computeFingerprint(fingerprintData)
+
+	return nil
+}
+
+func computeFingerprint(data string) string {
+	hash := md5.Sum([]byte(data))
+	return hex.EncodeToString(hash[:])
 }

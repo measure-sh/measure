@@ -45,12 +45,6 @@ github.com/gin-contrib/sse v0.1.0 h1:Y/yl/+YNO8GZSjAhjMsSuLt29uWRFHdHYUb5lYOV9qE
 github.com/gin-contrib/sse v0.1.0/go.mod h1:RHrZQHXnP2xjPF+u1gW/2HnVO7nvIa9PG3Gm+fLHvGI=
 github.com/gin-gonic/gin v1.9.1 h1:4idEAncQnU5cB7BeOkPtxjfCSye0AAm1R0RVIqJ+Jmg=
 github.com/gin-gonic/gin v1.9.1/go.mod h1:hPrL7YrpYKXt5YId3A/Tnip5kqbEAP+KLuI3SUcPTeU=
-github.com/go-dedup/megophone v0.0.0-20170830025436-f01be21026f5 h1:4U+x+EB1P66zwYgTjxWXSOT8vF+651Ksr1lojiCZnT8=
-github.com/go-dedup/megophone v0.0.0-20170830025436-f01be21026f5/go.mod h1:poR/Cp00iqtqu9ltFwl6C00sKC0HY13u/Gh05ZBmP54=
-github.com/go-dedup/simhash v0.0.0-20170904020510-9ecaca7b509c h1:mucYYQn+sMGNSxidhleonzAdwL203RxhjJGnxQU4NWU=
-github.com/go-dedup/simhash v0.0.0-20170904020510-9ecaca7b509c/go.mod h1:gO3u2bjRAgUaLdQd2XK+3oooxrheOAx1BzS7WmPzw1s=
-github.com/go-dedup/text v0.0.0-20170907015346-8bb1b95e3cb7 h1:11wFcswN+37U+ByjxdKzsRY5KzNqqq5Uk5ztxnLOc7w=
-github.com/go-dedup/text v0.0.0-20170907015346-8bb1b95e3cb7/go.mod h1:wSsK4VOECOSfSYTzkBFw+iGY7wj59e7X96ABtNj9aCQ=
 github.com/go-faster/city v1.0.1 h1:4WAxSZ3V2Ws4QRDrscLEDcibJY8uf41H6AhXDrNDcGw=
 github.com/go-faster/city v1.0.1/go.mod h1:jKcUJId49qdW3L1qKHH/3wPeUstCVpVSXTM6vO3VcTw=
 github.com/go-faster/errors v0.7.1 h1:MkJTnDoEdi9pDabt1dpWf7AA8/BaSYZqibYyhZ20AYg=
