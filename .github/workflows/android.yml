@@ -9,8 +9,8 @@ on:
       - 'main'
     paths:
       - 'measure-android/**'
-  release:
-    types: [ published ]
+    tags:
+      - 'android-*'
 
 env:
   JAVA_VERSION: 17
