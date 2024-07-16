@@ -3,22 +3,29 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic'
 
+const origin = process?.env?.NEXT_PUBLIC_SITE_URL
+if (!origin) {
+  throw new Error(`env var "NEXT_PUBLIC_SITE_URL" is unset`)
+}
+
 const apiOrigin = process?.env?.API_BASE_URL
 if (!apiOrigin) {
   throw new Error(`env var "API_BASE_URL" is unset`)
 }
 
 export async function POST(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
   const errRedirectUrl = `${origin}/auth/login?error=Could not sign in with Google`
   const nonce = searchParams.get('nonce')
   const state = searchParams.get('state')
 
   if (!nonce) {
+    console.log("google login failure: no nonce")
     return NextResponse.redirect(errRedirectUrl, { status: 301 })
   }
 
   if (!state) {
+    console.log("google login failure: no state")
     return NextResponse.redirect(errRedirectUrl, { status: 301 })
   }
 
@@ -38,6 +45,7 @@ export async function POST(request: Request) {
   });
 
   if (!res.ok) {
+    console.log(`google login failure: post /auth/google returned ${res.status}`)
     return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }
 

@@ -3,21 +3,28 @@ import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
+const origin = process?.env?.NEXT_PUBLIC_SITE_URL
+if (!origin) {
+  throw new Error(`env var "NEXT_PUBLIC_SITE_URL" is unset`)
+}
+
 const apiOrigin = process?.env?.API_BASE_URL
 if (!apiOrigin) {
   throw new Error(`env var "API_BASE_URL" is unset`)
 }
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
   const code = searchParams.get("code")
   const state = searchParams.get("state")
   const errRedirectUrl = `${origin}/auth/login?error=Could not sign in with GitHub`
   if (!code) {
+    console.log("github login failure: no nonce")
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 
   if (!state) {
+    console.log("github login failure: no state")
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 
@@ -34,6 +41,7 @@ export async function GET(request: Request) {
   });
 
   if (!res.ok) {
+    console.log(`github login failure: post /auth/github returned ${res.status}`)
     return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }
 
