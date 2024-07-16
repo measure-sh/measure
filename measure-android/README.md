@@ -90,7 +90,7 @@ Add the following plugin to your project.
 
 ```kotlin
 plugins {
-    id("sh.measure.android.gradle") version "0.2.0"
+    id("sh.measure.android.gradle") version "0.3.0"
 }
 ```
 
@@ -98,7 +98,7 @@ or, use the following if you're using `build.gradle`.
 
 ```groovy
 plugins {
-    id 'sh.measure.android.gradle' version '0.2.0'
+    id 'sh.measure.android.gradle' version '0.3.0'
 }
 ```
 
@@ -150,13 +150,13 @@ Add the following to your app's `build.gradle.kts`file.
 [//]: # (TODO: Replace with the actual version on maven central)
 
 ```kotlin
-implementation("sh.measure:measure-android:0.2.0")
+implementation("sh.measure:measure-android:0.3.0")
 ```
 
 or, add the following to your app's `build.gradle`file.
 
 ```groovy
-implementation 'sh.measure:measure-android:0.2.0'
+implementation 'sh.measure:measure-android:0.3.0'
 ```
 
 ### 4. Initialize the SDK
