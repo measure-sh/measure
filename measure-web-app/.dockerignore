@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log
+Dockerfile
+.dockerignore
+.next
+.swc
+coverage
+.env.local.example
+README.md
+__tests__
+.DS_Store
