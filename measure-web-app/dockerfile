@@ -1,0 +1,11 @@
+FROM node:lts-alpine AS base
+
+FROM base AS builder
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+FROM base
+WORKDIR /app
+COPY --from=builder /app/node_modules ./node_modules
+CMD ["npm", "run", "dev"]
