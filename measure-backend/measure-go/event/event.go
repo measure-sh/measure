@@ -905,20 +905,6 @@ func (e Exception) GetTitle() string {
 	return makeTitle(e.GetType(), e.GetMessage())
 }
 
-// GetDisplayTitle provides a user friendly
-// version of the exception's title.
-func (e Exception) GetDisplayTitle() string {
-	typetype := e.GetType()
-	location := e.GetLocation()
-	title := typetype
-
-	if location != "" {
-		title += "@" + location
-	}
-
-	return title
-}
-
 // GetType provides the type of
 // the exception.
 func (e Exception) GetType() string {
@@ -931,11 +917,22 @@ func (e Exception) GetMessage() string {
 	return e.Exceptions[len(e.Exceptions)-1].Message
 }
 
-// GetLocation provides the location of
+// GetFileName provides the location of
 // the exception.
-func (e Exception) GetLocation() string {
-	fileName := e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
-	return fileName
+func (e Exception) GetFileName() string {
+	return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
+}
+
+// GetLineNumber provides the location of
+// the exception.
+func (e Exception) GetLineNumber() int {
+	return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
+}
+
+// GetMethodName provides the method name of
+// the Exception.
+func (e Exception) GetMethodName() string {
+	return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
 }
 
 // Stacktrace writes a formatted stacktrace
@@ -1027,20 +1024,6 @@ func (a ANR) GetTitle() string {
 	return makeTitle(a.GetType(), a.GetMessage())
 }
 
-// GetDisplayTitle provides a user friendly
-// version of the ANR's title.
-func (a ANR) GetDisplayTitle() string {
-	typetype := a.GetType()
-	location := a.GetLocation()
-	title := typetype
-
-	if location != "" {
-		title += "@" + location
-	}
-
-	return title
-}
-
 // GetType provides the type of
 // the ANR.
 func (a ANR) GetType() string {
@@ -1053,11 +1036,22 @@ func (a ANR) GetMessage() string {
 	return a.Exceptions[len(a.Exceptions)-1].Message
 }
 
-// GetLocation provides the location of
+// GetFileName provides the location of
 // the ANR.
-func (a ANR) GetLocation() string {
-	fileName := a.Exceptions[len(a.Exceptions)-1].Frames[0].FileName
-	return fileName
+func (a ANR) GetFileName() string {
+	return a.Exceptions[len(a.Exceptions)-1].Frames[0].FileName
+}
+
+// GetLineNumber provides the location of
+// the ANR.
+func (a ANR) GetLineNumber() int {
+	return a.Exceptions[len(a.Exceptions)-1].Frames[0].LineNum
+}
+
+// GetMethodName provides the method name of
+// the ANR.
+func (a ANR) GetMethodName() string {
+	return a.Exceptions[len(a.Exceptions)-1].Frames[0].MethodName
 }
 
 // Stacktrace writes a formatted stacktrace

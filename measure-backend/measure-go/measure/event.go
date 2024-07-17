@@ -341,7 +341,7 @@ func (e eventreq) bucketUnhandledExceptions(ctx context.Context, tx *pgx.Tx) (er
 		}
 
 		if matchedGroup == nil {
-			exceptionGroup := group.NewExceptionGroup(events[i].AppID, events[i].Exception.GetDisplayTitle(), events[i].Exception.Fingerprint, []uuid.UUID{events[i].ID}, events[i].Timestamp)
+			exceptionGroup := group.NewExceptionGroup(events[i].AppID, events[i].Exception.GetType(), events[i].Exception.GetMessage(), events[i].Exception.GetMethodName(), events[i].Exception.GetFileName(), events[i].Exception.GetLineNumber(), events[i].Exception.Fingerprint, []uuid.UUID{events[i].ID}, events[i].Timestamp)
 			if err := exceptionGroup.Insert(ctx, tx); err != nil {
 				return err
 			}
@@ -379,7 +379,7 @@ func (e eventreq) bucketANRs(ctx context.Context, tx *pgx.Tx) (err error) {
 		}
 
 		if matchedGroup == nil {
-			anrGroup := group.NewANRGroup(events[i].AppID, events[i].ANR.GetDisplayTitle(), events[i].ANR.Fingerprint, []uuid.UUID{events[i].ID}, events[i].Timestamp)
+			anrGroup := group.NewANRGroup(events[i].AppID, events[i].ANR.GetType(), events[i].ANR.GetMessage(), events[i].ANR.GetMethodName(), events[i].ANR.GetFileName(), events[i].ANR.GetLineNumber(), events[i].ANR.Fingerprint, []uuid.UUID{events[i].ID}, events[i].Timestamp)
 			if err := anrGroup.Insert(ctx, tx); err != nil {
 				return err
 			}

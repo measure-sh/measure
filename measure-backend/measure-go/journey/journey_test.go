@@ -722,8 +722,12 @@ func TestExceptionGroupAccessors(t *testing.T) {
 	})
 
 	groupOne := group.ExceptionGroup{
-		ID:   uuid.MustParse("b863efbe-585e-4e14-856d-fe6a3f31b64e"),
-		Name: "some bla bla exception one",
+		ID:         uuid.MustParse("b863efbe-585e-4e14-856d-fe6a3f31b64e"),
+		Type:       "some type",
+		Msg:        "some message",
+		MethodName: "some method name",
+		FileName:   "some file name",
+		LineNumber: 0,
 		EventIDs: []uuid.UUID{
 			uuid.MustParse("bd10e744-da4b-4685-bd83-fe29e4ac6ed9"),
 			uuid.MustParse("5e56a02f-30cf-4259-a542-d48dc15fd000"),
@@ -760,8 +764,12 @@ func TestANRGroupAccessors(t *testing.T) {
 	})
 
 	groupOne := group.ANRGroup{
-		ID:   uuid.MustParse("b863efbe-585e-4e14-856d-fe6a3f31b64e"),
-		Name: "some bla bla anr one",
+		ID:         uuid.MustParse("b863efbe-585e-4e14-856d-fe6a3f31b64e"),
+		Type:       "some type",
+		Msg:        "some message",
+		MethodName: "some method name",
+		FileName:   "some file name",
+		LineNumber: 0,
 		EventIDs: []uuid.UUID{
 			uuid.MustParse("bd10e744-da4b-4685-bd83-fe29e4ac6ed9"),
 			uuid.MustParse("5e56a02f-30cf-4259-a542-d48dc15fd000"),
