@@ -935,6 +935,12 @@ func (e Exception) GetMethodName() string {
 	return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
 }
 
+// GetDisplayTitle provides a user friendly display
+// name for the exception.
+func (e Exception) GetDisplayTitle() string {
+	return e.GetType() + "@" + e.GetFileName()
+}
+
 // Stacktrace writes a formatted stacktrace
 // from the exception.
 func (e Exception) Stacktrace() string {
@@ -1052,6 +1058,12 @@ func (a ANR) GetLineNumber() int {
 // the ANR.
 func (a ANR) GetMethodName() string {
 	return a.Exceptions[len(a.Exceptions)-1].Frames[0].MethodName
+}
+
+// GetDisplayTitle provides a user friendly display
+// name for the ANR.
+func (a ANR) GetDisplayTitle() string {
+	return a.GetType() + "@" + a.GetFileName()
 }
 
 // Stacktrace writes a formatted stacktrace

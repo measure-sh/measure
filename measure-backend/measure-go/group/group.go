@@ -59,6 +59,12 @@ func (e ExceptionGroup) GetID() uuid.UUID {
 	return e.ID
 }
 
+// GetDisplayTitle provides a user friendly display
+// name for the Exception Group.
+func (e ExceptionGroup) GetDisplayTitle() string {
+	return e.Type + "@" + e.FileName
+}
+
 // EventExists checks if the given event id exists in
 // the ExceptionGroup's events array.
 func (e ExceptionGroup) EventExists(id uuid.UUID) bool {
@@ -128,6 +134,12 @@ func (e *ExceptionGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 
 func (a ANRGroup) GetID() uuid.UUID {
 	return a.ID
+}
+
+// GetDisplayTitle provides a user friendly display
+// name for the ANR Group.
+func (a ANRGroup) GetDisplayTitle() string {
+	return a.Type + "@" + a.FileName
 }
 
 // EventExists checks if the given event id exists in

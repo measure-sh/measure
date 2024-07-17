@@ -1836,7 +1836,7 @@ func GetAppJourney(c *gin.Context) {
 		for i := range exceptionGroups {
 			issue := Issue{
 				ID:    exceptionGroups[i].ID,
-				Title: exceptionGroups[i].Type + "@" + exceptionGroups[i].FileName,
+				Title: exceptionGroups[i].GetDisplayTitle(),
 				Count: journeyAndroid.GetNodeExceptionCount(v, exceptionGroups[i].ID),
 			}
 			crashes = append(crashes, issue)
@@ -1852,7 +1852,7 @@ func GetAppJourney(c *gin.Context) {
 		for i := range anrGroups {
 			issue := Issue{
 				ID:    anrGroups[i].ID,
-				Title: anrGroups[i].Type + "@" + anrGroups[i].FileName,
+				Title: anrGroups[i].GetDisplayTitle(),
 				Count: journeyAndroid.GetNodeANRCount(v, anrGroups[i].ID),
 			}
 			anrs = append(anrs, issue)
@@ -2888,7 +2888,7 @@ func GetCrashDetailPlotJourney(c *gin.Context) {
 		for i := range exceptionGroups {
 			issue := Issue{
 				ID:    exceptionGroups[i].ID,
-				Title: exceptionGroups[i].Type + "@" + exceptionGroups[i].FileName,
+				Title: exceptionGroups[i].GetDisplayTitle(),
 				Count: journeyAndroid.GetNodeExceptionCount(v, exceptionGroups[i].ID),
 			}
 			if issue.Count > 0 {
@@ -3637,7 +3637,7 @@ func GetANRDetailPlotJourney(c *gin.Context) {
 		for i := range anrGroups {
 			issue := Issue{
 				ID:    anrGroups[i].ID,
-				Title: anrGroups[i].Type + "@" + anrGroups[i].FileName,
+				Title: anrGroups[i].GetDisplayTitle(),
 				Count: journeyAndroid.GetNodeANRCount(v, anrGroups[i].ID),
 			}
 			if issue.Count > 0 {
