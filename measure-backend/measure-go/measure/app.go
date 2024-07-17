@@ -75,7 +75,11 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGrou
 		From("public.unhandled_exception_groups").
 		Select("id").
 		Select("app_id").
-		Select("name").
+		Select(`type`).
+		Select(`msg`).
+		Select(`method_name`).
+		Select(`file_name`).
+		Select(`line_number`).
 		Select("fingerprint").
 		Select("event_ids").
 		Select("array_length(event_ids, 1) as count").
@@ -111,7 +115,11 @@ func (a App) GetExceptionGroupByFingerprint(ctx context.Context, fingerprint str
 		From("public.unhandled_exception_groups").
 		Select("id").
 		Select("app_id").
-		Select("name").
+		Select(`type`).
+		Select(`msg`).
+		Select(`method_name`).
+		Select(`file_name`).
+		Select(`line_number`).
 		Select("fingerprint").
 		Select("event_ids").
 		Select("array_length(event_ids, 1) as count").
@@ -147,7 +155,11 @@ func (a App) GetExceptionGroups(ctx context.Context) (groups []group.ExceptionGr
 		From("public.unhandled_exception_groups").
 		Select("id").
 		Select("app_id").
-		Select("name").
+		Select(`type`).
+		Select(`msg`).
+		Select(`method_name`).
+		Select(`file_name`).
+		Select(`line_number`).
 		Select("fingerprint").
 		Select("event_ids").
 		Select("array_length(event_ids, 1) as count").
@@ -169,7 +181,11 @@ func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (anrGroup *group.ANR
 		From("public.anr_groups").
 		Select("id").
 		Select("app_id").
-		Select("name").
+		Select(`type`).
+		Select(`msg`).
+		Select(`method_name`).
+		Select(`file_name`).
+		Select(`line_number`).
 		Select("fingerprint").
 		Select("event_ids").
 		Select("array_length(event_ids, 1) as count").
@@ -205,7 +221,11 @@ func (a App) GetANRGroupByFingerprint(ctx context.Context, fingerprint string) (
 		From("public.anr_groups").
 		Select("id").
 		Select("app_id").
-		Select("name").
+		Select(`type`).
+		Select(`msg`).
+		Select(`method_name`).
+		Select(`file_name`).
+		Select(`line_number`).
 		Select("fingerprint").
 		Select("event_ids").
 		Select("array_length(event_ids, 1) as count").
@@ -240,7 +260,11 @@ func (a App) GetANRGroups(ctx context.Context) (groups []group.ANRGroup, err err
 		From("public.anr_groups").
 		Select("id").
 		Select("app_id").
-		Select("name").
+		Select(`type`).
+		Select(`msg`).
+		Select(`method_name`).
+		Select(`file_name`).
+		Select(`line_number`).
 		Select("fingerprint").
 		Select("event_ids").
 		Select("array_length(event_ids, 1) as count").
@@ -1812,7 +1836,7 @@ func GetAppJourney(c *gin.Context) {
 		for i := range exceptionGroups {
 			issue := Issue{
 				ID:    exceptionGroups[i].ID,
-				Title: exceptionGroups[i].Name,
+				Title: exceptionGroups[i].Type + "@" + exceptionGroups[i].FileName,
 				Count: journeyAndroid.GetNodeExceptionCount(v, exceptionGroups[i].ID),
 			}
 			crashes = append(crashes, issue)
@@ -1828,7 +1852,7 @@ func GetAppJourney(c *gin.Context) {
 		for i := range anrGroups {
 			issue := Issue{
 				ID:    anrGroups[i].ID,
-				Title: anrGroups[i].Name,
+				Title: anrGroups[i].Type + "@" + anrGroups[i].FileName,
 				Count: journeyAndroid.GetNodeANRCount(v, anrGroups[i].ID),
 			}
 			anrs = append(anrs, issue)
@@ -2864,7 +2888,7 @@ func GetCrashDetailPlotJourney(c *gin.Context) {
 		for i := range exceptionGroups {
 			issue := Issue{
 				ID:    exceptionGroups[i].ID,
-				Title: exceptionGroups[i].Name,
+				Title: exceptionGroups[i].Type + "@" + exceptionGroups[i].FileName,
 				Count: journeyAndroid.GetNodeExceptionCount(v, exceptionGroups[i].ID),
 			}
 			if issue.Count > 0 {
@@ -3613,7 +3637,7 @@ func GetANRDetailPlotJourney(c *gin.Context) {
 		for i := range anrGroups {
 			issue := Issue{
 				ID:    anrGroups[i].ID,
-				Title: anrGroups[i].Name,
+				Title: anrGroups[i].Type + "@" + anrGroups[i].FileName,
 				Count: journeyAndroid.GetNodeANRCount(v, anrGroups[i].ID),
 			}
 			if issue.Count > 0 {

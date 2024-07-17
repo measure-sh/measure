@@ -14,21 +14,33 @@ var groups = []ExceptionGroup{
 			id, _ := uuid.Parse("018da688-071c-7207-a1fe-ef529bde9963")
 			return id
 		}(),
-		Name: "foo0",
+		Type:       "type0",
+		Msg:        "Msg0",
+		MethodName: "MethodName0",
+		FileName:   "FileName0",
+		LineNumber: 0,
 	},
 	{
 		ID: func() uuid.UUID {
 			id, _ := uuid.Parse("018da688-13e1-76db-8ad7-632401256db3")
 			return id
 		}(),
-		Name: "foo1",
+		Type:       "type1",
+		Msg:        "Msg1",
+		MethodName: "MethodName1",
+		FileName:   "FileName1",
+		LineNumber: 1,
 	},
 	{
 		ID: func() uuid.UUID {
 			id, _ := uuid.Parse("018da688-50e5-7479-9225-8b6756adbe39")
 			return id
 		}(),
-		Name: "foo2",
+		Type:       "type2",
+		Msg:        "Msg2",
+		MethodName: "MethodName2",
+		FileName:   "FileName2",
+		LineNumber: 2,
 	},
 }
 
