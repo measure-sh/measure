@@ -3,7 +3,7 @@ create table if not exists public.unhandled_exception_groups (
     id uuid primary key not null,
     app_id uuid references public.apps(id) on delete cascade,
     type text not null,
-    msg text not null,
+    message text not null,
     method_name text not null,
     file_name text not null,
     line_number int not null,
@@ -17,7 +17,7 @@ create table if not exists public.unhandled_exception_groups (
 comment on column public.unhandled_exception_groups.id is 'sortable unique id (uuidv7) for each unhandled exception group';
 comment on column public.unhandled_exception_groups.app_id is 'linked app id';
 comment on column public.unhandled_exception_groups.type is 'type of the exception';
-comment on column public.unhandled_exception_groups.msg is 'message of the exception';
+comment on column public.unhandled_exception_groups.message is 'message of the exception';
 comment on column public.unhandled_exception_groups.method_name is 'method name where the exception occured';
 comment on column public.unhandled_exception_groups.file_name is 'file name where the exception occured';
 comment on column public.unhandled_exception_groups.line_number is 'line number where the exception occured';

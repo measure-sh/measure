@@ -23,7 +23,7 @@ type ExceptionGroup struct {
 	ID              uuid.UUID              `json:"id" db:"id"`
 	AppID           uuid.UUID              `json:"app_id" db:"app_id"`
 	Type            string                 `json:"type" db:"type"`
-	Msg             string                 `json:"msg" db:"msg"`
+	Message         string                 `json:"message" db:"message"`
 	MethodName      string                 `json:"method_name" db:"method_name"`
 	FileName        string                 `json:"file_name" db:"file_name"`
 	LineNumber      int                    `json:"line_number" db:"line_number"`
@@ -41,7 +41,7 @@ type ANRGroup struct {
 	ID             uuid.UUID        `json:"id" db:"id"`
 	AppID          uuid.UUID        `json:"app_id" db:"app_id"`
 	Type           string           `json:"type" db:"type"`
-	Msg            string           `json:"msg" db:"msg"`
+	Message        string           `json:"message" db:"message"`
 	MethodName     string           `json:"method_name" db:"method_name"`
 	FileName       string           `json:"file_name" db:"file_name"`
 	LineNumber     int              `json:"line_number" db:"line_number"`
@@ -112,7 +112,7 @@ func (e *ExceptionGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 		Set("id", id).
 		Set("app_id", e.AppID).
 		Set("type", e.Type).
-		Set("msg", e.Msg).
+		Set("message", e.Message).
 		Set("method_name", e.MethodName).
 		Set("file_name", e.FileName).
 		Set("line_number", e.LineNumber).
@@ -189,7 +189,7 @@ func (a *ANRGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 		Set("id", id).
 		Set("app_id", a.AppID).
 		Set("type", a.Type).
-		Set("msg", a.Msg).
+		Set("message", a.Message).
 		Set("method_name", a.MethodName).
 		Set("file_name", a.FileName).
 		Set("line_number", a.LineNumber).
@@ -266,7 +266,7 @@ func GetExceptionGroupsFromExceptionIds(ctx context.Context, eventIds []uuid.UUI
 		From(`public.unhandled_exception_groups`).
 		Select(`id`).
 		Select(`type`).
-		Select(`msg`).
+		Select(`message`).
 		Select(`method_name`).
 		Select(`file_name`).
 		Select(`line_number`).
@@ -291,7 +291,7 @@ func GetANRGroupsFromANRIds(ctx context.Context, eventIds []uuid.UUID) (anrGroup
 		From(`public.anr_groups`).
 		Select(`id`).
 		Select(`type`).
-		Select(`msg`).
+		Select(`message`).
 		Select(`method_name`).
 		Select(`file_name`).
 		Select(`line_number`).
@@ -369,11 +369,11 @@ func PaginateGroups[T GroupID](groups []T, af *filter.AppFilter) (sliced []T, ne
 }
 
 // NewExceptionGroup constructs a new ExceptionGroup and returns a pointer to it.
-func NewExceptionGroup(appId uuid.UUID, exceptionType, msg, methodName, fileName string, lineNumber int, fingerprint string, eventIds []uuid.UUID, firstTime time.Time) *ExceptionGroup {
+func NewExceptionGroup(appId uuid.UUID, exceptionType, message, methodName, fileName string, lineNumber int, fingerprint string, eventIds []uuid.UUID, firstTime time.Time) *ExceptionGroup {
 	return &ExceptionGroup{
 		AppID:          appId,
 		Type:           exceptionType,
-		Msg:            msg,
+		Message:        message,
 		MethodName:     methodName,
 		FileName:       fileName,
 		LineNumber:     lineNumber,
@@ -384,11 +384,11 @@ func NewExceptionGroup(appId uuid.UUID, exceptionType, msg, methodName, fileName
 }
 
 // NewANRGroup constructs a new ANRGroup and returns a pointer to it.
-func NewANRGroup(appId uuid.UUID, anrType, msg, methodName, fileName string, lineNumber int, fingerprint string, eventIds []uuid.UUID, firstTime time.Time) *ANRGroup {
+func NewANRGroup(appId uuid.UUID, anrType, message, methodName, fileName string, lineNumber int, fingerprint string, eventIds []uuid.UUID, firstTime time.Time) *ANRGroup {
 	return &ANRGroup{
 		AppID:          appId,
 		Type:           anrType,
-		Msg:            msg,
+		Message:        message,
 		MethodName:     methodName,
 		FileName:       fileName,
 		LineNumber:     lineNumber,

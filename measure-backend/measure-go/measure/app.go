@@ -76,7 +76,7 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGrou
 		Select("id").
 		Select("app_id").
 		Select(`type`).
-		Select(`msg`).
+		Select(`message`).
 		Select(`method_name`).
 		Select(`file_name`).
 		Select(`line_number`).
@@ -116,7 +116,7 @@ func (a App) GetExceptionGroupByFingerprint(ctx context.Context, fingerprint str
 		Select("id").
 		Select("app_id").
 		Select(`type`).
-		Select(`msg`).
+		Select(`message`).
 		Select(`method_name`).
 		Select(`file_name`).
 		Select(`line_number`).
@@ -156,7 +156,7 @@ func (a App) GetExceptionGroups(ctx context.Context) (groups []group.ExceptionGr
 		Select("id").
 		Select("app_id").
 		Select(`type`).
-		Select(`msg`).
+		Select(`message`).
 		Select(`method_name`).
 		Select(`file_name`).
 		Select(`line_number`).
@@ -182,7 +182,7 @@ func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (anrGroup *group.ANR
 		Select("id").
 		Select("app_id").
 		Select(`type`).
-		Select(`msg`).
+		Select(`message`).
 		Select(`method_name`).
 		Select(`file_name`).
 		Select(`line_number`).
@@ -222,7 +222,7 @@ func (a App) GetANRGroupByFingerprint(ctx context.Context, fingerprint string) (
 		Select("id").
 		Select("app_id").
 		Select(`type`).
-		Select(`msg`).
+		Select(`message`).
 		Select(`method_name`).
 		Select(`file_name`).
 		Select(`line_number`).
@@ -261,7 +261,7 @@ func (a App) GetANRGroups(ctx context.Context) (groups []group.ANRGroup, err err
 		Select("id").
 		Select("app_id").
 		Select(`type`).
-		Select(`msg`).
+		Select(`message`).
 		Select(`method_name`).
 		Select(`file_name`).
 		Select(`line_number`).

@@ -267,7 +267,7 @@ const emptyExceptionGroup = {
     "id": "",
     "app_id": "",
     "type": "",
-    "msg": "",
+    "message": "",
     "method_name": "",
     "file_name": "",
     "line_number": 0,
@@ -505,7 +505,7 @@ export const emptySessionReplay = {
             {
                 "event_type": "exception",
                 "type": "",
-                "msg": "",
+                "message": "",
                 "method_name": "",
                 "file_name": "",
                 "line_number": 0,

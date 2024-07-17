@@ -115,7 +115,7 @@ CREATE TABLE public.anr_groups (
     id uuid NOT NULL,
     app_id uuid,
     type text NOT NULL,
-    msg text NOT NULL,
+    message text NOT NULL,
     method_name text NOT NULL,
     file_name text NOT NULL,
     line_number integer NOT NULL,
@@ -149,10 +149,10 @@ COMMENT ON COLUMN public.anr_groups.type IS 'type of the anr';
 
 
 --
--- Name: COLUMN anr_groups.msg; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN anr_groups.message; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.anr_groups.msg IS 'message of the anr';
+COMMENT ON COLUMN public.anr_groups.message IS 'message of the anr';
 
 
 --
@@ -878,7 +878,7 @@ CREATE TABLE public.unhandled_exception_groups (
     id uuid NOT NULL,
     app_id uuid,
     type text NOT NULL,
-    msg text NOT NULL,
+    message text NOT NULL,
     method_name text NOT NULL,
     file_name text NOT NULL,
     line_number integer NOT NULL,
@@ -912,10 +912,10 @@ COMMENT ON COLUMN public.unhandled_exception_groups.type IS 'type of the excepti
 
 
 --
--- Name: COLUMN unhandled_exception_groups.msg; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN unhandled_exception_groups.message; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.unhandled_exception_groups.msg IS 'message of the exception';
+COMMENT ON COLUMN public.unhandled_exception_groups.message IS 'message of the exception';
 
 
 --

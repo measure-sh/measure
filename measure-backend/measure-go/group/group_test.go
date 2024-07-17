@@ -15,7 +15,7 @@ var groups = []ExceptionGroup{
 			return id
 		}(),
 		Type:       "type0",
-		Msg:        "Msg0",
+		Message:    "Message0",
 		MethodName: "MethodName0",
 		FileName:   "FileName0",
 		LineNumber: 0,
@@ -26,7 +26,7 @@ var groups = []ExceptionGroup{
 			return id
 		}(),
 		Type:       "type1",
-		Msg:        "Msg1",
+		Message:    "Message1",
 		MethodName: "MethodName1",
 		FileName:   "FileName1",
 		LineNumber: 1,
@@ -37,7 +37,7 @@ var groups = []ExceptionGroup{
 			return id
 		}(),
 		Type:       "type2",
-		Msg:        "Msg2",
+		Message:    "Message2",
 		MethodName: "MethodName2",
 		FileName:   "FileName2",
 		LineNumber: 2,
