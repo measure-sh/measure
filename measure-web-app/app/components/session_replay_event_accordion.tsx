@@ -56,7 +56,7 @@ export default function SessionReplayEventAccordion({
 
   function getTitleFromEventType() {
     if (eventType === "exception" || eventType === "anr") {
-      return eventDetails.title
+      return eventDetails.type + ": " + eventDetails.msg
     }
 
     if (eventType === "string") {
