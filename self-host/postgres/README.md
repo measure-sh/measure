@@ -13,16 +13,16 @@ Schema migrations for postgres instances are managed using [dbmate](https://gith
 - Migrations **MUST** contain both `up` &amp; `down` migrations
 - **NEVER** edit the generated `schema.sql` file manually
 - Follow this naming convention for naming migration files
-  - Syntax: `<sql-command>-<entity-name>-<entity-type>`
+  - Syntax: `<sql-command>_<entity-name>_<entity-type>`
   - `<sql-command>` should be `create` or `alter` etc sql commands
   - `<entity-name>` should be name of the relation or role or function or trigger etc
-  - `<entity-type>` should be name of the sql entity type, like `relation`(or `table`), `function`, `role`, `index`, `trigger`
+  - `<entity-type>` should be name of the sql entity type, like `table`, `function`, `role`, `index`, `trigger`
   - Examples:
-    - `dbmate new create-sessions-relation`
-    - `dbmate new create-sessions_attachments-relation`
-    - `dbmate new create-create_team-function`
-    - `dbmate new create-create_team_for_user-trigger`
-    - `dbmate new alter-teams-relation` - add a new column
+    - `dbmate new create_sessions_table`
+    - `dbmate new create_sessions_attachments_table`
+    - `dbmate new create_create_team_function`
+    - `dbmate new create_create_team_for_user_trigger`
+    - `dbmate new alter_teams_relation` - add a new column
 - When authoring migrations, always prefix the schema name in your objects
 
 ## Deleting old migrations
