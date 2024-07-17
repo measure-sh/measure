@@ -51,7 +51,7 @@ type ExceptionView struct {
 // version of the ANR.
 func (e *EventANR) ComputeView() {
 	e.ANRView = ANRView{
-		Title:      e.ANR.GetType() + "@" + e.ANR.GetFileName(),
+		Title:      e.ANR.GetDisplayTitle(),
 		Stacktrace: e.ANR.Stacktrace(),
 		Message:    e.ANR.GetMessage(),
 	}
@@ -70,7 +70,7 @@ func (e *EventANR) ComputeView() {
 // version of the exception.
 func (e *EventException) ComputeView() {
 	e.ExceptionView = ExceptionView{
-		Title:      e.Exception.GetType() + "@" + e.Exception.GetFileName(),
+		Title:      e.Exception.GetDisplayTitle(),
 		Stacktrace: e.Exception.Stacktrace(),
 		Message:    e.Exception.GetMessage(),
 	}
