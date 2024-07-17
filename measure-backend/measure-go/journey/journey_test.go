@@ -724,7 +724,7 @@ func TestExceptionGroupAccessors(t *testing.T) {
 	groupOne := group.ExceptionGroup{
 		ID:         uuid.MustParse("b863efbe-585e-4e14-856d-fe6a3f31b64e"),
 		Type:       "some type",
-		Msg:        "some message",
+		Message:    "some message",
 		MethodName: "some method name",
 		FileName:   "some file name",
 		LineNumber: 0,
@@ -766,7 +766,7 @@ func TestANRGroupAccessors(t *testing.T) {
 	groupOne := group.ANRGroup{
 		ID:         uuid.MustParse("b863efbe-585e-4e14-856d-fe6a3f31b64e"),
 		Type:       "some type",
-		Msg:        "some message",
+		Message:    "some message",
 		MethodName: "some method name",
 		FileName:   "some file name",
 		LineNumber: 0,

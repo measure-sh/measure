@@ -131,10 +131,10 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
               </div>
             </div>
             <div className="table-row-group font-sans">
-              {exceptionsOverview.results.map(({ id, type, msg, method_name, file_name, line_number, count, percentage_contribution }) => (
+              {exceptionsOverview.results.map(({ id, type, message, method_name, file_name, line_number, count, percentage_contribution }) => (
                 <Link key={id} href={`/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${selectedFilters.selectedApp.id}/${id}/${type + "@" + file_name}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
                   <div className="table-cell p-4 max-w-2xl">
-                    <p className='truncate'>{type + ":" + msg}</p>
+                    <p className='truncate'>{type + ":" + message}</p>
                     <div className='py-1' />
                     <p className='text-xs'><span className='text-gray-500'>{file_name}</span>, <span className='text-gray-500'>{method_name}()</span></p>
                   </div>

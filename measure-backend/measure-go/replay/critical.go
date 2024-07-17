@@ -10,11 +10,11 @@ import (
 type Exception struct {
 	EventType     string             `json:"event_type"`
 	UserTriggered bool               `json:"user_triggered"`
-	Type          string             `json:"type" db:"type"`
-	Msg           string             `json:"msg" db:"msg"`
-	MethodName    string             `json:"method_name" db:"method_name"`
-	FileName      string             `json:"file_name" db:"file_name"`
-	LineNumber    int                `json:"line_number" db:"line_number"`
+	Type          string             `json:"type"`
+	Message       string             `json:"message"`
+	MethodName    string             `json:"method_name"`
+	FileName      string             `json:"file_name"`
+	LineNumber    int                `json:"line_number"`
 	ThreadName    string             `json:"thread_name"`
 	Handled       bool               `json:"handled"`
 	Stacktrace    string             `json:"stacktrace"`
@@ -39,11 +39,11 @@ func (e Exception) GetTimestamp() time.Time {
 // for session replay.
 type ANR struct {
 	EventType   string             `json:"event_type"`
-	Type        string             `json:"type" db:"type"`
-	Msg         string             `json:"msg" db:"msg"`
-	MethodName  string             `json:"method_name" db:"method_name"`
-	FileName    string             `json:"file_name" db:"file_name"`
-	LineNumber  int                `json:"line_number" db:"line_number"`
+	Type        string             `json:"type"`
+	Message     string             `json:"message"`
+	MethodName  string             `json:"method_name"`
+	FileName    string             `json:"file_name"`
+	LineNumber  int                `json:"line_number"`
 	ThreadName  string             `json:"thread_name"`
 	Stacktrace  string             `json:"stacktrace"`
 	Foreground  bool               `json:"foreground"`
