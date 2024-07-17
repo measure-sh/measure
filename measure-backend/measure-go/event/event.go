@@ -917,13 +917,13 @@ func (e Exception) GetMessage() string {
 	return e.Exceptions[len(e.Exceptions)-1].Message
 }
 
-// GetFileName provides the location of
+// GetFileName provides the file name of
 // the exception.
 func (e Exception) GetFileName() string {
 	return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
 }
 
-// GetLineNumber provides the location of
+// GetLineNumber provides the line number of
 // the exception.
 func (e Exception) GetLineNumber() int {
 	return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
@@ -1036,13 +1036,13 @@ func (a ANR) GetMessage() string {
 	return a.Exceptions[len(a.Exceptions)-1].Message
 }
 
-// GetFileName provides the location of
+// GetFileName provides the file name of
 // the ANR.
 func (a ANR) GetFileName() string {
 	return a.Exceptions[len(a.Exceptions)-1].Frames[0].FileName
 }
 
-// GetLineNumber provides the location of
+// GetLineNumber provides the line number of
 // the ANR.
 func (a ANR) GetLineNumber() int {
 	return a.Exceptions[len(a.Exceptions)-1].Frames[0].LineNum
