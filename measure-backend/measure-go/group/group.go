@@ -369,7 +369,7 @@ func PaginateGroups[T GroupID](groups []T, af *filter.AppFilter) (sliced []T, ne
 }
 
 // NewExceptionGroup constructs a new ExceptionGroup and returns a pointer to it.
-func NewExceptionGroup(appId uuid.UUID, exceptionType string, msg string, methodName string, fileName string, lineNumber int, fingerprint string, eventIds []uuid.UUID, firstTime time.Time) *ExceptionGroup {
+func NewExceptionGroup(appId uuid.UUID, exceptionType, msg, methodName, fileName string, lineNumber int, fingerprint string, eventIds []uuid.UUID, firstTime time.Time) *ExceptionGroup {
 	return &ExceptionGroup{
 		AppID:          appId,
 		Type:           exceptionType,
@@ -384,7 +384,7 @@ func NewExceptionGroup(appId uuid.UUID, exceptionType string, msg string, method
 }
 
 // NewANRGroup constructs a new ANRGroup and returns a pointer to it.
-func NewANRGroup(appId uuid.UUID, anrType string, msg string, methodName string, fileName string, lineNumber int, fingerprint string, eventIds []uuid.UUID, firstTime time.Time) *ANRGroup {
+func NewANRGroup(appId uuid.UUID, anrType, msg, methodName, fileName string, lineNumber int, fingerprint string, eventIds []uuid.UUID, firstTime time.Time) *ANRGroup {
 	return &ANRGroup{
 		AppID:          appId,
 		Type:           anrType,
