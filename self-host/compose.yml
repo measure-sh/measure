@@ -90,6 +90,32 @@ services:
       exit 0;
       "
 
+  dbmate:
+    container_name: dbmate
+    image: ghcr.io/amacneil/dbmate
+    profiles:
+      - migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+      clickhouse:
+        condition: service_started
+        restart: true
+    volumes:
+      - ./clickhouse:/clickhouse
+      - ./postgres:/postgres
+    entrypoint: >
+      /bin/sh -c "
+      cd /postgres;
+      dbmate status;
+      dbmate migrate;
+      cd /clickhouse;
+      dbmate status;
+      dbmate migrate;
+      exit 0;
+      "
+
   postgres:
     container_name: postgres
     image: postgres:16.3-alpine
