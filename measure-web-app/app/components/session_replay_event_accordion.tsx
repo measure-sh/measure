@@ -75,10 +75,6 @@ export default function SessionReplayEventAccordion({
       return 'Click: ' + eventDetails.target
     }
 
-    if (eventType === "gesture_click") {
-      return 'Click: ' + eventDetails.target
-    }
-
     if (eventType === "http") {
       return 'HTTP: ' + eventDetails.method.toUpperCase() + ' ' + eventDetails.status_code + ' ' + eventDetails.url
     }
