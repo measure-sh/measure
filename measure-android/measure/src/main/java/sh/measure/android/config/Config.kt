@@ -1,6 +1,7 @@
 package sh.measure.android.config
 
 internal data class Config(
+    override val enableLogging: Boolean = DefaultConfig.ENABLE_LOGGING,
     override val trackScreenshotOnCrash: Boolean = DefaultConfig.TRACK_SCREENSHOT_ON_CRASH,
     override val screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.SCREENSHOT_MASK_LEVEL,
     override val trackHttpHeaders: Boolean = DefaultConfig.TRACK_HTTP_HEADERS,

@@ -10,6 +10,7 @@ class SampleApp : Application() {
         super.onCreate()
         Measure.init(
             this, MeasureConfig(
+                enableLogging = true,
                 trackScreenshotOnCrash = true,
                 screenshotMaskLevel = if (BuildConfig.DEBUG) {
                     ScreenshotMaskLevel.SensitiveFieldsOnly

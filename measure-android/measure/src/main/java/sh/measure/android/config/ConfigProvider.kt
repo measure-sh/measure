@@ -46,6 +46,8 @@ internal class ConfigProviderImpl(
         }
     }
 
+    override val enableLogging: Boolean
+        get() = getMergedConfig { enableLogging }
     override val trackScreenshotOnCrash: Boolean
         get() = getMergedConfig { trackScreenshotOnCrash }
     override val screenshotMaskLevel: ScreenshotMaskLevel

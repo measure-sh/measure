@@ -8,6 +8,7 @@ internal class FakeConfigProvider : ConfigProvider {
         // no-op
     }
 
+    override val enableLogging: Boolean = false
     override var trackScreenshotOnCrash: Boolean = false
     override var screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.SensitiveFieldsOnly
     override var screenshotMaskHexColor: String = "#222222"

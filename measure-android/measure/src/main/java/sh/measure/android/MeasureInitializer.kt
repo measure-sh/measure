@@ -93,19 +93,6 @@ import sh.measure.android.utils.UUIDProvider
 internal class MeasureInitializerImpl(
     private val application: Application,
     inputConfig: MeasureConfig,
-    override val logger: Logger = AndroidLogger(),
-    override val timeProvider: TimeProvider = AndroidTimeProvider(),
-    private val executorServiceRegistry: ExecutorServiceRegistry = ExecutorServiceRegistryImpl(),
-    private val fileStorage: FileStorage = FileStorageImpl(
-        rootDir = application.filesDir.path,
-        logger = logger,
-    ),
-    private val database: Database = DatabaseImpl(context = application, logger = logger),
-    override val manifestReader: ManifestReaderImpl = ManifestReaderImpl(application, logger),
-    override val networkClient: NetworkClient = NetworkClientImpl(
-        logger = logger,
-        fileStorage = fileStorage,
-    ),
     override val configProvider: ConfigProvider = ConfigProviderImpl(
         defaultConfig = Config(
             trackScreenshotOnCrash = inputConfig.trackScreenshotOnCrash,
@@ -117,6 +104,19 @@ internal class MeasureInitializerImpl(
             trackActivityIntentData = inputConfig.trackActivityIntentData,
         ),
         configLoader = ConfigLoaderImpl(),
+    ),
+    override val logger: Logger = AndroidLogger(configProvider.enableLogging),
+    override val timeProvider: TimeProvider = AndroidTimeProvider(),
+    private val executorServiceRegistry: ExecutorServiceRegistry = ExecutorServiceRegistryImpl(),
+    private val fileStorage: FileStorage = FileStorageImpl(
+        rootDir = application.filesDir.path,
+        logger = logger,
+    ),
+    private val database: Database = DatabaseImpl(context = application, logger = logger),
+    override val manifestReader: ManifestReaderImpl = ManifestReaderImpl(application, logger),
+    override val networkClient: NetworkClient = NetworkClientImpl(
+        logger = logger,
+        fileStorage = fileStorage,
     ),
     private val idProvider: IdProvider = UUIDProvider(),
     private val processInfoProvider: ProcessInfoProvider = ProcessInfoProviderImpl(),
