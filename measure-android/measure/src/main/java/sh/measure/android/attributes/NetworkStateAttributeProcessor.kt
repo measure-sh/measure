@@ -14,14 +14,14 @@ internal class NetworkStateAttributeProcessor(
 ) : AttributeProcessor {
     private var networkType: String = NetworkType.UNKNOWN
     private var networkGeneration: String = NetworkGeneration.UNKNOWN
-    private var networkProviderName: String = NetworkProvider.UNKNOWN
+    private var networkProvider: String = NetworkProvider.UNKNOWN
 
     override fun appendAttributes(attributes: MutableMap<String, Any?>) {
         computeAttributes()
         attributes.apply {
             put(Attribute.NETWORK_TYPE_KEY, networkType)
             put(Attribute.NETWORK_GENERATION_KEY, networkGeneration)
-            put(Attribute.NETWORK_PROVIDER_NAME_KEY, networkProviderName)
+            put(Attribute.NETWORK_PROVIDER_KEY, networkProvider)
         }
     }
 
@@ -29,6 +29,6 @@ internal class NetworkStateAttributeProcessor(
         val networkState = networkStateProvider.getNetworkState()
         networkType = networkState?.networkType ?: NetworkType.UNKNOWN
         networkGeneration = networkState?.networkGeneration ?: NetworkGeneration.UNKNOWN
-        networkProviderName = networkState?.networkProvider ?: NetworkProvider.UNKNOWN
+        networkProvider = networkState?.networkProvider ?: NetworkProvider.UNKNOWN
     }
 }
