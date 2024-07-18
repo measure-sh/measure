@@ -4,6 +4,7 @@ package sh.measure.android.config
  * Configuration for the Measure SDK. See [MeasureConfig] for details.
  */
 internal interface IMeasureConfig {
+    val enableLogging: Boolean
     val trackScreenshotOnCrash: Boolean
     val screenshotMaskLevel: ScreenshotMaskLevel
     val trackHttpHeaders: Boolean
@@ -18,6 +19,10 @@ internal interface IMeasureConfig {
  * initialization.
  */
 class MeasureConfig(
+    /**
+     * Enable or disable internal SDK logs. Defaults to `false`.
+     */
+    override val enableLogging: Boolean = DefaultConfig.ENABLE_LOGGING,
     /**
      * Whether to capture a screenshot of the app when it crashes due to an unhandled exception or
      * ANR. Defaults to `true`.
