@@ -278,7 +278,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
               return (
                 <div className='bg-neutral-950 text-white flex flex-col p-2 text-xs'>
                   <p>Time: {formatChartFormatTimestampToHumanReadable(point.data.xFormatted.toString())}</p>
-                  <p>Cpu Usage: {point.data.y.toString()}%</p>
+                  <p>Cpu Usage: {point.data.yFormatted.toString()}%</p>
                 </div>
               )
             }}
