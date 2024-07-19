@@ -17,9 +17,12 @@ services:
       context: ../measure-web-app
     ports:
       - "3000:3000"
-    env_file:
-      - ../measure-web-app/.env.local
     environment:
+      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
+      - NEXT_PUBLIC_MEASURE_GOOGLE_OAUTH_CLIENT_ID=${OAUTH_GOOGLE_KEY}
+      - NEXT_PUBLIC_MEASURE_GITHUB_OAUTH_CLIENT_ID=${OAUTH_GITHUB_KEY}
+      - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+      - API_BASE_URL=${API_BASE_URL}
       - NODE_ENV=development
       - NEXT_TELEMETRY_DISABLED=1
     volumes:
@@ -34,8 +37,26 @@ services:
       context: ../measure-backend/measure-go
     ports:
       - "8080:8080"
-    env_file:
-      - ../measure-backend/measure-go/.env
+    environment:
+      - POSTGRES_DSN=${POSTGRES_DSN}
+      - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
+      - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
+      - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
+      - SYMBOLS_ACCESS_KEY=${SYMBOLS_ACCESS_KEY}
+      - SYMBOLS_SECRET_ACCESS_KEY=${SYMBOLS_SECRET_ACCESS_KEY}
+      - SYMBOLICATOR_ORIGIN=${SYMBOLICATOR_ORIGIN}
+      - ATTACHMENTS_S3_ORIGIN=${ATTACHMENTS_S3_ORIGIN}
+      - ATTACHMENTS_S3_BUCKET=${ATTACHMENTS_S3_BUCKET}
+      - ATTACHMENTS_S3_BUCKET_REGION=${ATTACHMENTS_S3_BUCKET_REGION}
+      - ATTACHMENTS_ACCESS_KEY=${ATTACHMENTS_ACCESS_KEY}
+      - ATTACHMENTS_SECRET_ACCESS_KEY=${ATTACHMENTS_SECRET_ACCESS_KEY}
+      - OAUTH_GOOGLE_KEY=${OAUTH_GOOGLE_KEY}
+      - OAUTH_GITHUB_KEY=${OAUTH_GITHUB_KEY}
+      - OAUTH_GITHUB_SECRET=${OAUTH_GITHUB_SECRET}
+      - SESSION_ACCESS_SECRET=${SESSION_ACCESS_SECRET}
+      - SESSION_REFRESH_SECRET=${SESSION_REFRESH_SECRET}
+      - IPINFO_TOKEN=${IPINFO_TOKEN}
     develop:
       watch:
         - path: ../measure-backend/measure-go
@@ -52,8 +73,13 @@ services:
       context: ../measure-backend/symbolicator-retrace
     ports:
       - "8181:8181"
-    env_file:
-      - ../measure-backend/symbolicator-retrace/.env
+    environment:
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
+      - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
+      - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
+      - SYMBOLS_ACCESS_KEY=${SYMBOLS_ACCESS_KEY}
+      - SYMBOLS_SECRET_ACCESS_KEY=${SYMBOLS_SECRET_ACCESS_KEY}
+      - DEVELOPMENT_MODE=true
     volumes:
       - symbolicator-volume:/data
     develop:
@@ -70,8 +96,8 @@ services:
       - "9111:9000"
       - "9222:9001"
     environment:
-      - MINIO_ROOT_USER=minio
-      - MINIO_ROOT_PASSWORD=minio123
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
     command: server /data --console-address ":9001"
     volumes:
       - minio-data:/data
@@ -85,8 +111,8 @@ services:
       - minio
     entrypoint: >
       /bin/sh -c "
-      mc alias set msr-minio http://minio:9000 minio minio123;
-      mc mb --ignore-existing msr-minio/msr-symbols-sandbox msr-minio/msr-attachments-sandbox;
+      mc alias set msr-minio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+      mc mb --ignore-existing msr-minio/${SYMBOLS_S3_BUCKET} msr-minio/${ATTACHMENTS_S3_BUCKET};
       exit 0;
       "
 
@@ -95,6 +121,13 @@ services:
     image: ghcr.io/amacneil/dbmate
     profiles:
       - migrate
+    environment:
+      - POSTGRES_DSN=${POSTGRES_MIGRATION_URL}
+      - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
+      - DBMATE_MIGRATIONS_DIR=.
+      - DBMATE_SCHEMA_FILE=./schema.sql
+      - DBMATE_WAIT=true
+      - DBMATE_NO_DUMP_SCHEMA=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -103,26 +136,19 @@ services:
         condition: service_started
         restart: true
     volumes:
-      - ./clickhouse:/clickhouse
-      - ./postgres:/postgres
-    entrypoint: >
-      /bin/sh -c "
-      cd /postgres;
-      dbmate status;
-      dbmate migrate;
-      cd /clickhouse;
-      dbmate status;
-      dbmate migrate;
-      exit 0;
-      "
+      - ./clickhouse:/opt/clickhouse
+      - ./postgres:/opt/postgres
+      - ./dbmate.sh:/opt/entrypoint.sh
+    entrypoint: /opt/entrypoint.sh
 
   postgres:
     container_name: postgres
     image: postgres:16.3-alpine
     restart: always
     command: ["postgres", "-c", "log_statement=all"]
-    env_file:
-      - ../measure-backend/measure-go/.env
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:

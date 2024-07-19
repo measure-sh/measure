@@ -10,6 +10,10 @@ services:
     environment:
       - GIN_MODE=release
 
+  symbolicator-retrace:
+    environment:
+      - DEVELOPMENT_MODE=false
+
   clickhouse:
     ports: !reset # see: https://docs.docker.com/compose/compose-file/13-merge/#reset-value
       - "9000:9000/tcp"
