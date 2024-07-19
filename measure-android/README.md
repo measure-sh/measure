@@ -94,11 +94,25 @@ plugins {
 }
 ```
 
-or, use the following if you're using `build.gradle`.
+or, use the following if you're using `buildscript` and `build.gradle`. Set the following in project
+level `build.gradle` file:
+
+```groovy
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+  dependencies {
+    classpath 'sh.measure:measure-android-gradle-plugin:0.3.0'
+  }
+}
+```
+
+and set the plugin in the app's `build.gradle` file:
 
 ```groovy
 plugins {
-    id 'sh.measure.android.gradle' version '0.3.0'
+  id 'sh.measure.android.gradle' version '0.3.0'
 }
 ```
 
