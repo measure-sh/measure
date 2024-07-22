@@ -2,7 +2,8 @@
 FROM public.ecr.aws/docker/library/golang:alpine AS builder
 RUN apk add --no-cache git
 WORKDIR /go/src/app
-COPY go.mod go.sum ./
+# COPY go.mod go.sum ./
+COPY ["go.mod", "go.sum", "./"]
 RUN go get -d -v ./...
 COPY . .
 # RUN go build -o /go/bin/app -v ./...
