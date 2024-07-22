@@ -1,6 +1,5 @@
 #build stage
 FROM public.ecr.aws/docker/library/golang:alpine AS builder
-ARG IMAGE_REF
 RUN apk add --no-cache git
 WORKDIR /go/src/app
 COPY go.mod go.sum ./
@@ -13,10 +12,10 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 #final stage
 FROM public.ecr.aws/docker/library/alpine:latest
-LABEL Name="measure-go"
-LABEL org.opencontainers.image.source="https://github.com/measure-sh/measure/tree/$IMAGE_REF/measure-backend/measure-go"
-LABEL org.opencontainers.image.description="Measure API Server"
-LABEL org.opencontainers.image.licenses="Apache-2.0"
+# LABEL Name="measure-go"
+# LABEL org.opencontainers.image.source="https://github.com/measure-sh/measure/tree/$IMAGE_REF/measure-backend/measure-go"
+# LABEL org.opencontainers.image.description="Measure API Server"
+# LABEL org.opencontainers.image.licenses="Apache-2.0"
 RUN apk --no-cache add ca-certificates
 COPY --from=builder /go/bin/app /app
 ENTRYPOINT /app
