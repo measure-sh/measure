@@ -16,4 +16,8 @@ RUN apk --no-cache add ca-certificates
 COPY --from=builder /go/bin/app /app
 ENTRYPOINT /app
 LABEL Name=measure-go Version=0.0.1
+LABEL org.opencontainers.image.source=https://github.com/measure-sh/measure
+LABEL org.opencontainers.image.description="Measure API Server"
+LABEL org.opencontainers.image.licenses=Apache-2.0
+
 EXPOSE 8080

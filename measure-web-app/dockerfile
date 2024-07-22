@@ -8,4 +8,7 @@ RUN npm ci
 FROM base
 WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
+LABEL org.opencontainers.image.source=https://github.com/measure-sh/measure
+LABEL org.opencontainers.image.description="Measure Web App"
+LABEL org.opencontainers.image.licenses=Apache-2.0
 CMD ["npm", "run", "dev"]

@@ -7,4 +7,7 @@ FROM public.ecr.aws/docker/library/eclipse-temurin:17
 EXPOSE 8181:8181
 RUN mkdir /app
 COPY --from=build /home/gradle/src/build/libs/*.jar /app/app.jar
+LABEL org.opencontainers.image.source=https://github.com/measure-sh/measure
+LABEL org.opencontainers.image.description="Measure Symbolicator Retrace"
+LABEL org.opencontainers.image.licenses=Apache-2.0
 ENTRYPOINT ["java","-jar","/app/app.jar"]
