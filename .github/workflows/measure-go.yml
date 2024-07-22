@@ -102,6 +102,7 @@ jobs:
         id: push
         uses: docker/build-push-action@v6
         with:
+          context: measure-backend/measure-go
           file: measure-backend/measure-go/dockerfile
           push: true
           tags: meausre-sh/measure-go:${{ github.ref_name }}

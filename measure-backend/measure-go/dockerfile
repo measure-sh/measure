@@ -2,7 +2,7 @@
 FROM public.ecr.aws/docker/library/golang:alpine AS builder
 RUN apk add --no-cache git
 WORKDIR /go/src/app
-COPY go.mod go.sum ./
+COPY ["go.mod", "go.sum", "./"]
 RUN go get -d -v ./...
 COPY . .
 # RUN go build -o /go/bin/app -v ./...
@@ -18,5 +18,5 @@ FROM public.ecr.aws/docker/library/alpine:latest
 # LABEL org.opencontainers.image.licenses="Apache-2.0"
 RUN apk --no-cache add ca-certificates
 COPY --from=builder /go/bin/app /app
-ENTRYPOINT /app
+ENTRYPOINT ["/app"]
 EXPOSE 8080
