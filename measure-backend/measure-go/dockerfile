@@ -1,9 +1,9 @@
 #build stage
 FROM public.ecr.aws/docker/library/golang:alpine AS builder
 LABEL Name=measure-go Version=0.0.1
-LABEL org.opencontainers.image.source=https://github.com/measure-sh/measure/tree/$IMAGE_REF/measure-backend/measure-go
-LABEL org.opencontainers.image.description="Measure API Server"
-LABEL org.opencontainers.image.licenses=Apache-2.0
+LABEL org.opencontainers.image.source https://github.com/measure-sh/measure/tree/$IMAGE_REF/measure-backend/measure-go
+LABEL org.opencontainers.image.description "Measure API Server"
+LABEL org.opencontainers.image.licenses Apache-2.0
 ARG IMAGE_REF
 RUN apk add --no-cache git
 WORKDIR /go/src/app

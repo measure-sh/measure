@@ -101,7 +101,7 @@ jobs:
           context: measure-backend/measure-go
           push: true
           build-args: |
-            IMAGE_REF=${{ github.ref }}
+            IMAGE_REF=${{ github.ref_name }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
