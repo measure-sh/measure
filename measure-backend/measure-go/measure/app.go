@@ -721,6 +721,7 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter, version
 				Select("round(quantile(0.95)(cold_launch.duration), 2) as cold_launch").
 				Where("type = 'cold_launch'").
 				Where("cold_launch.duration > 0").
+				Where("cold_launch.duration <= 30000"). //ignore cold launch durations greater than 30 seconds. See https://github.com/measure-sh/measure/issues/933
 				Where("attribute.app_version in ? and attribute.app_build in ?", af.Versions, af.VersionCodes)).
 		With("warm_selected",
 			sqlf.From("timings").
