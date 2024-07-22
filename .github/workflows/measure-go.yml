@@ -2,14 +2,18 @@ name: API Server
 on:
   push:
     paths:
-      - measure-backend/measure-go/**.go
-      - measure-backend/measure-go/**.mod
-      - measure-backend/measure-go/**.sum
+      - measure-backend/measure-go/**/*.go
+      - measure-backend/measure-go/**/*.mod
+      - measure-backend/measure-go/**/*.sum
   pull_request:
     paths:
-      - measure-backend/measure-go/**.go
-      - measure-backend/measure-go/**.mod
-      - measure-backend/measure-go/**.sum
+      - measure-backend/measure-go/**/*.go
+      - measure-backend/measure-go/**/*.mod
+      - measure-backend/measure-go/**/*.sum
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: measure-sh/measure-go
 
 jobs:
   build:
@@ -61,6 +65,49 @@ jobs:
         run: go get .
       - name: Test with ${{ matrix.go-version }}
         run: go test ./...
+  
+  push:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    #if: github.ref_type == 'tag'
+    needs: [build, test]
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: measure-backend/measure-go
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
 
   deploy:
     name: Deploy API server
