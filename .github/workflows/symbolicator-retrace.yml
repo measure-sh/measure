@@ -17,6 +17,9 @@ env:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: measure-backend/symbolicator-retrace
 
     steps:
     - name: Checkout code
