@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"measure-backend/measure-go/measure"
@@ -11,6 +13,15 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"google.golang.org/grpc/credentials"
+
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 func main() {
@@ -30,12 +41,17 @@ func main() {
 		config.CH.DSN = chDSN
 	}
 
+	otelServiceName := os.Getenv("OTEL_SERVICE_NAME")
+
 	server.Init(config)
+	cleanup := initTracer(otelServiceName)
 
 	defer server.Server.PgPool.Close()
 	defer server.Server.ChPool.Close()
+	defer cleanup(context.Background())
 
 	r := gin.Default()
+	r.Use(otelgin.Middleware(otelServiceName))
 	cors := cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000", "https://www.measure.sh"},
 		AllowMethods:     []string{"GET", "OPTIONS", "PATCH", "DELETE", "PUT"},
@@ -103,4 +119,48 @@ func main() {
 	}
 
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080
+}
+
+func initTracer(otelServiceName string) func(context.Context) error {
+	otelCollectorURL := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	otelInsecureMode := os.Getenv("OTEL_INSECURE_MODE")
+
+	var secureOption otlptracegrpc.Option
+
+	if strings.ToLower(otelInsecureMode) == "false" || otelInsecureMode == "0" || strings.ToLower(otelInsecureMode) == "f" {
+		secureOption = otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, ""))
+	} else {
+		secureOption = otlptracegrpc.WithInsecure()
+	}
+
+	exporter, err := otlptrace.New(
+		context.Background(),
+		otlptracegrpc.NewClient(
+			secureOption,
+			otlptracegrpc.WithEndpoint(otelCollectorURL),
+		),
+	)
+
+	if err != nil {
+		log.Fatalf("Failed to create exporter: %v", err)
+	}
+	resources, err := resource.New(
+		context.Background(),
+		resource.WithAttributes(
+			attribute.String("service.name", otelServiceName),
+			attribute.String("library.language", "go"),
+		),
+	)
+	if err != nil {
+		log.Fatalf("Could not set resources: %v", err)
+	}
+
+	otel.SetTracerProvider(
+		sdktrace.NewTracerProvider(
+			sdktrace.WithSampler(sdktrace.AlwaysSample()),
+			sdktrace.WithBatcher(exporter),
+			sdktrace.WithResource(resources),
+		),
+	)
+	return exporter.Shutdown
 }

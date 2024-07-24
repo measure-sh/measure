@@ -22,6 +22,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
+	"go.opentelemetry.io/otel"
 )
 
 type BuildMapping struct {
@@ -269,7 +270,7 @@ func PutBuild(c *gin.Context) {
 		c.JSON(code, gin.H{"error": err.Error()})
 	}
 
-	ctx := context.Background()
+	ctx := c.Request.Context()
 	tx, err := server.Server.PgPool.Begin(ctx)
 	if err != nil {
 		msg := `failed to begin db transaction`
@@ -313,14 +314,19 @@ func PutBuild(c *gin.Context) {
 	}
 
 	if shouldUpload {
+		// start span to trace mapping file upload
+		mappingFileUploadTracer := otel.Tracer("mapping-file-upload-tracer")
+		_, mappingFileUploadSpan := mappingFileUploadTracer.Start(ctx, "mapping-file-upload")
 		result, err := bm.upload()
 		if err != nil {
 			fmt.Printf("failed to upload mapping file, key: %s with error, %v\n", bm.Key, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, bm.File.Filename),
 			})
+			mappingFileUploadSpan.End()
 			return
 		}
+		mappingFileUploadSpan.End()
 
 		bm.Location = result.Location
 	}
