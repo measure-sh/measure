@@ -1,0 +1,102 @@
+name: Symbolicator Retrace
+
+on:
+  push:
+    paths:
+      - .github/workflows/symbolicator-retrace.yml
+      - measure-backend/symbolicator-retrace/**
+  pull_request:
+    paths:
+      - .github/workflows/symbolicator-retrace.yml
+      - measure-backend/symbolicator-retrace/**
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: measure-sh/symbolicator-retrace
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'adopt'
+        java-version: '21'
+    
+    - name: Cache gradle dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.gradle/caches
+        key: ${{ runner.os }}-gradle-${{hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+    
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Build with Gradle
+      run: ./gradlew build
+
+    - name: Run tests with Gradle
+      run: ./gradlew test
+    
+    - name: Archive test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: build/test-results/test
+
+  push:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    #if: github.ref_type == 'tag'
+    needs: [build-and-test]
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: measure-backend/symbolicator-retrace
+          file: measure-backend/symbolicator-retrace/dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/measure-sh/measure/tree/${{ github.ref_name }}/measure-backend/symbolicator-retrace/dockerfile
+            org.opencontainers.image.description="Measure Symbolicator Retrace"
+            org.opencontainers.image.licenses="Apache-2.0"
+
+      # Disable artifact attestation till repo is public
+      # as this is a paid feature in GitHub.
+      # - name: Generate artifact attestation
+      #   uses: actions/attest-build-provenance@v1
+      #   with:
+      #     subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      #     subject-digest: ${{ steps.push.outputs.digest }}
+      #     push-to-registry: true
