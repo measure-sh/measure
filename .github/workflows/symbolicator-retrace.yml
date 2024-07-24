@@ -2,6 +2,8 @@ name: Symbolicator Retrace
 
 on:
   push:
+    branches:
+      - 'main'
     paths:
       - .github/workflows/symbolicator-retrace.yml
       - measure-backend/symbolicator-retrace/**
