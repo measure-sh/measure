@@ -25,6 +25,7 @@ import (
 	"github.com/ipinfo/go/v2/ipinfo"
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
+	"go.opentelemetry.io/otel"
 )
 
 // maxBatchSize is the maximum allowed payload
@@ -1861,6 +1862,10 @@ func PutEvents(c *gin.Context) {
 
 		batches := symbolicator.Batch(events)
 
+		// start span to trace symbolication
+		symbolicationTracer := otel.Tracer("symbolication-tracer")
+		_, symbolicationSpan := symbolicationTracer.Start(ctx, "symbolicate-events")
+
 		for i := range batches {
 			if err := symbolicator.Symbolicate(ctx, batches[i]); err != nil {
 				msg := `failed to symbolicate batch`
@@ -1869,6 +1874,7 @@ func PutEvents(c *gin.Context) {
 					"error":   msg,
 					"details": err.Error(),
 				})
+				symbolicationSpan.End()
 				return
 			}
 
@@ -1892,16 +1898,23 @@ func PutEvents(c *gin.Context) {
 			}
 		}
 
+		symbolicationSpan.End()
+
 		eventReq.bumpSymbolication()
 	}
 
 	if eventReq.hasAttachments() {
+		// start span to trace attachment uploads
+		uploadAttachmentsTracer := otel.Tracer("upload-attachments-tracer")
+		_, uploadAttachmentSpan := uploadAttachmentsTracer.Start(ctx, "upload-attachments")
+
 		if err := eventReq.uploadAttachments(); err != nil {
 			msg := `failed to upload attachments`
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": msg,
 			})
+			uploadAttachmentSpan.End()
 			return
 		}
 
@@ -1925,6 +1938,8 @@ func PutEvents(c *gin.Context) {
 				eventReq.events[i].Attachments[j].Key = attachment.key
 			}
 		}
+
+		uploadAttachmentSpan.End()
 	}
 
 	tx, err := server.Server.PgPool.Begin(ctx)
@@ -1948,14 +1963,23 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
+	// start span to trace bucketing unhandled exceptions
+	bucketUnhandledExceptionsTracer := otel.Tracer("bucket-unhandled-exceptions-tracer")
+	_, bucketUnhandledExceptionsSpan := bucketUnhandledExceptionsTracer.Start(ctx, "bucket-unhandled-exceptions")
+
 	if err := eventReq.bucketUnhandledExceptions(ctx, &tx); err != nil {
 		msg := `failed to bucket unhandled exceptions`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
 		})
+		bucketUnhandledExceptionsSpan.End()
 		return
 	}
+
+	// start span to trace bucketing ANRs
+	bucketAnrsTracer := otel.Tracer("bucket-anrs-tracer")
+	_, bucketAnrsSpan := bucketAnrsTracer.Start(ctx, "bucket-anrs-exceptions")
 
 	if err := eventReq.bucketANRs(ctx, &tx); err != nil {
 		msg := `failed to bucket anrs`
@@ -1963,6 +1987,7 @@ func PutEvents(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
 		})
+		bucketAnrsSpan.End()
 		return
 	}
 
@@ -1997,8 +2022,12 @@ func PutEvents(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
 		})
+		bucketUnhandledExceptionsSpan.End()
+		bucketAnrsSpan.End()
 		return
 	}
+	bucketUnhandledExceptionsSpan.End()
+	bucketAnrsSpan.End()
 
 	c.JSON(http.StatusAccepted, gin.H{"ok": "accepted"})
 }
