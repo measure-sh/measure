@@ -13,6 +13,11 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: measure-sh/symbolicator-retrace
+  AWS_ENDPOINT_URL: http://minio:9000
+  SYMBOLS_S3_BUCKET: msr-symbols-sandbox
+  SYMBOLS_S3_BUCKET_REGION: us-east-1
+  SYMBOLS_ACCESS_KEY: minio
+  SYMBOLS_SECRET_ACCESS_KEY: minio123
 
 jobs:
   build-and-test:
