@@ -18,9 +18,11 @@ env:
   SYMBOLS_S3_BUCKET_REGION: us-east-1
   SYMBOLS_ACCESS_KEY: minio
   SYMBOLS_SECRET_ACCESS_KEY: minio123
+  DEVELOPMENT_MODE: false
 
 jobs:
   build-and-test:
+    name: Build and Test
     runs-on: ubuntu-latest
     defaults:
       run:
