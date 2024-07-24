@@ -60,6 +60,24 @@ internal class CpuUsageCollector(
         val clockSpeedHz = osSysConfProvider.get(OsConstants._SC_CLK_TCK)
         if (clockSpeedHz <= 0L || numCores <= 0L) return
         val uptime = timeProvider.elapsedRealtime
+        val percentageCpuUsage = if (prevCpuUsageData == null) {
+            0.0
+        } else {
+            calculatePercentageUsage(
+                utime = utime,
+                stime = stime,
+                cutime = cutime,
+                cstime = cstime,
+                uptime = uptime,
+                previousCstime = prevCpuUsageData!!.cstime,
+                previousCutime = prevCpuUsageData!!.cutime,
+                previousStime = prevCpuUsageData!!.stime,
+                previousUtime = prevCpuUsageData!!.utime,
+                previousUptime = prevCpuUsageData!!.uptime,
+                numCores = numCores,
+                clockSpeedHz = clockSpeedHz,
+            )
+        }
         val cpuUsageData = CpuUsageData(
             num_cores = numCores,
             clock_speed = clockSpeedHz,
@@ -70,8 +88,10 @@ internal class CpuUsageCollector(
             cstime = cstime,
             start_time = startTime,
             interval_config = CPU_TRACKING_INTERVAL_MS,
+            percentage_usage = percentageCpuUsage,
         )
-        if (prevCpuUsageData?.utime == cpuUsageData.utime && prevCpuUsageData?.stime == cpuUsageData.stime) {
+        if (prevCpuUsageData?.percentage_usage == cpuUsageData.percentage_usage) {
+            // do not track the event if the usage is the same as the previous one.
             return
         }
         eventProcessor.track(

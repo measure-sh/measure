@@ -296,6 +296,7 @@ internal object FakeEventFactory {
         cstime: Long = 1234L,
         stime: Long = 9876L,
         intervalConfig: Long = 1000,
+        percentageUsage: Double = 0.0,
     ): CpuUsageData {
         return CpuUsageData(
             numCores,
@@ -307,6 +308,7 @@ internal object FakeEventFactory {
             cstime,
             stime,
             intervalConfig,
+            percentageUsage,
         )
     }
 
