@@ -76,8 +76,8 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: |
             org.opencontainers.image.source=https://github.com/measure-sh/measure/tree/${{ github.ref_name }}/measure-web-app/dockerfile
-            org.opencontainers.image.description="Measure Webapp"
-            org.opencontainers.image.licenses="Apache-2.0"
+            org.opencontainers.image.description=Measure Webapp
+            org.opencontainers.image.licenses=Apache-2.0
 
       # Disable artifact attestation till repo is public
       # as this is a paid feature in GitHub.
