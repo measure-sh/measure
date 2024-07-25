@@ -313,7 +313,7 @@ type MemoryUsage struct {
 	RSS             uint64 `json:"rss"`
 	NativeTotalHeap uint64 `json:"native_total_heap" binding:"required"`
 	NativeFreeHeap  uint64 `json:"native_free_heap" binding:"required"`
-	Interval        uint32 `json:"config" binding:"required"`
+	Interval        uint32 `json:"interval" binding:"required"`
 }
 
 type LowMemory struct {
