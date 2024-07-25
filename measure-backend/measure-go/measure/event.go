@@ -817,7 +817,7 @@ func (e eventreq) ingest(ctx context.Context) error {
 				Set(`memory_usage.rss`, e.events[i].MemoryUsage.RSS).
 				Set(`memory_usage.native_total_heap`, e.events[i].MemoryUsage.NativeTotalHeap).
 				Set(`memory_usage.native_free_heap`, e.events[i].MemoryUsage.NativeFreeHeap).
-				Set(`memory_usage.interval_config`, e.events[i].MemoryUsage.IntervalConfig)
+				Set(`memory_usage.interval`, e.events[i].MemoryUsage.Interval)
 		} else {
 			row.
 				Set(`memory_usage.java_max_heap`, nil).
@@ -827,7 +827,7 @@ func (e eventreq) ingest(ctx context.Context) error {
 				Set(`memory_usage.rss`, nil).
 				Set(`memory_usage.native_total_heap`, nil).
 				Set(`memory_usage.native_free_heap`, nil).
-				Set(`memory_usage.interval_config`, nil)
+				Set(`memory_usage.interval`, nil)
 		}
 
 		// low memory
@@ -870,7 +870,8 @@ func (e eventreq) ingest(ctx context.Context) error {
 				Set(`cpu_usage.cutime`, e.events[i].CPUUsage.CUTime).
 				Set(`cpu_usage.stime`, e.events[i].CPUUsage.STime).
 				Set(`cpu_usage.cstime`, e.events[i].CPUUsage.CSTime).
-				Set(`cpu_usage.interval_config`, e.events[i].CPUUsage.IntervalConfig)
+				Set(`cpu_usage.interval`, e.events[i].CPUUsage.Interval).
+				Set(`cpu_usage.percentage_usage`, e.events[i].CPUUsage.PercentageUsage)
 		} else {
 			row.
 				Set(`cpu_usage.num_cores`, nil).
@@ -880,7 +881,8 @@ func (e eventreq) ingest(ctx context.Context) error {
 				Set(`cpu_usage.cutime`, nil).
 				Set(`cpu_usage.stime`, nil).
 				Set(`cpu_usage.cstime`, nil).
-				Set(`cpu_usage.interval_config`, nil)
+				Set(`cpu_usage.interval`, nil).
+				Set(`cpu_usage.percentage_usage`, nil)
 
 		}
 

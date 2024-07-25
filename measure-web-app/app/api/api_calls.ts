@@ -480,7 +480,7 @@ export const emptySessionReplay = {
             "rss": 0,
             "native_total_heap": 0,
             "native_free_heap": 0,
-            "interval_config": 0,
+            "interval": 0,
             "timestamp": ""
         }
     ],
