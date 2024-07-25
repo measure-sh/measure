@@ -9,10 +9,12 @@ services:
   api:
     environment:
       - GIN_MODE=release
+    develop: !reset null
 
   symbolicator-retrace:
     environment:
       - DEVELOPMENT_MODE=false
+    develop: !reset null
 
   clickhouse:
     ports: !reset # see: https://docs.docker.com/compose/compose-file/13-merge/#reset-value
