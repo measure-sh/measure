@@ -7,12 +7,10 @@
 # - Order first-party services at the top followed by
 #   third-party services. Databases and other external
 #   services should appear after measure services.
-# - Define a name for each container using `container_name`
 
 name: measure
 services:
   web:
-    container_name: web
     build:
       context: ../measure-web-app
     ports:
@@ -32,7 +30,6 @@ services:
       - api
 
   api:
-    container_name: api
     build:
       context: ../measure-backend/measure-go
     ports:
@@ -67,7 +64,6 @@ services:
       - symbolicator-retrace
 
   symbolicator-retrace:
-    container_name: symbolicator-retrace
     build:
       context: ../measure-backend/symbolicator-retrace
     ports:
@@ -89,7 +85,6 @@ services:
       - minio
 
   minio:
-    container_name: minio
     image: quay.io/minio/minio
     ports:
       - "9111:9000"
@@ -102,7 +97,6 @@ services:
       - minio-data:/data
 
   mc:
-    container_name: mcmb
     image: minio/mc
     profiles:
       - init
@@ -116,7 +110,6 @@ services:
       "
 
   dbmate:
-    container_name: dbmate
     image: ghcr.io/amacneil/dbmate
     profiles:
       - migrate
@@ -141,7 +134,6 @@ services:
     entrypoint: /opt/entrypoint.sh
 
   postgres:
-    container_name: postgres
     image: postgres:16.3-alpine
     restart: always
     command: ["postgres", "-c", "log_statement=all"]
@@ -159,7 +151,6 @@ services:
       retries: 10
 
   clickhouse:
-    container_name: clickhouse
     image: clickhouse/clickhouse-server:24
     ports:
       - "9000:9000/tcp"
