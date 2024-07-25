@@ -313,7 +313,7 @@ type MemoryUsage struct {
 	RSS             uint64 `json:"rss"`
 	NativeTotalHeap uint64 `json:"native_total_heap" binding:"required"`
 	NativeFreeHeap  uint64 `json:"native_free_heap" binding:"required"`
-	IntervalConfig  uint32 `json:"interval_config" binding:"required"`
+	Interval        uint32 `json:"config" binding:"required"`
 }
 
 type LowMemory struct {
@@ -331,15 +331,16 @@ type TrimMemory struct {
 }
 
 type CPUUsage struct {
-	NumCores       uint8  `json:"num_cores" binding:"required"`
-	ClockSpeed     uint32 `json:"clock_speed" binding:"required"`
-	StartTime      uint64 `json:"start_time" binding:"required"`
-	Uptime         uint64 `json:"uptime" binding:"required"`
-	UTime          uint64 `json:"utime" binding:"required"`
-	CUTime         uint64 `json:"cutime" binding:"required"`
-	STime          uint64 `json:"stime" binding:"required"`
-	CSTime         uint64 `json:"cstime" binding:"required"`
-	IntervalConfig uint32 `json:"interval_config" binding:"required"`
+	NumCores        uint8   `json:"num_cores" binding:"required"`
+	ClockSpeed      uint32  `json:"clock_speed" binding:"required"`
+	StartTime       uint64  `json:"start_time" binding:"required"`
+	Uptime          uint64  `json:"uptime" binding:"required"`
+	UTime           uint64  `json:"utime" binding:"required"`
+	CUTime          uint64  `json:"cutime" binding:"required"`
+	STime           uint64  `json:"stime" binding:"required"`
+	CSTime          uint64  `json:"cstime" binding:"required"`
+	Interval        uint32  `json:"interval" binding:"required"`
+	PercentageUsage float64 `json:"percentage_usage" binding:"required"`
 }
 
 type Navigation struct {
@@ -851,8 +852,8 @@ func (e *EventField) Validate() error {
 	}
 
 	if e.IsMemoryUsage() {
-		if e.MemoryUsage.IntervalConfig <= 0 {
-			return fmt.Errorf(`%q must be greater than 0`, `memory_usage.interval_config`)
+		if e.MemoryUsage.Interval <= 0 {
+			return fmt.Errorf(`%q must be greater than 0`, `memory_usage.interval`)
 		}
 	}
 
@@ -872,8 +873,11 @@ func (e *EventField) Validate() error {
 		if e.CPUUsage.ClockSpeed <= 0 {
 			return fmt.Errorf(`%q must be greater than 0`, `cpu_usage.clock_speed`)
 		}
-		if e.CPUUsage.IntervalConfig <= 0 {
-			return fmt.Errorf(`%q must be greater than 0`, `cpu_usage.interval_config`)
+		if e.CPUUsage.Interval <= 0 {
+			return fmt.Errorf(`%q must be greater than 0`, `cpu_usage.interval`)
+		}
+		if e.CPUUsage.PercentageUsage <= 0 {
+			return fmt.Errorf(`%q must be greater than 0`, `cpu_usage.percentage_usage`)
 		}
 	}
 

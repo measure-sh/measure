@@ -1215,7 +1215,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`memory_usage.rss`,
 		`memory_usage.native_total_heap`,
 		`memory_usage.native_free_heap`,
-		`memory_usage.interval_config`,
+		`memory_usage.interval`,
 		`low_memory.java_max_heap`,
 		`low_memory.java_total_heap`,
 		`low_memory.java_free_heap`,
@@ -1232,7 +1232,8 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`cpu_usage.cutime`,
 		`cpu_usage.stime`,
 		`cpu_usage.cstime`,
-		`cpu_usage.interval_config`,
+		`cpu_usage.interval`,
+		`cpu_usage.percentage_usage`,
 		`toString(navigation.to)`,
 		`toString(navigation.from)`,
 		`toString(navigation.source)`,
@@ -1452,7 +1453,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&memoryUsage.RSS,
 			&memoryUsage.NativeTotalHeap,
 			&memoryUsage.NativeFreeHeap,
-			&memoryUsage.IntervalConfig,
+			&memoryUsage.Interval,
 
 			// low memory
 			&lowMemory.JavaMaxHeap,
@@ -1475,7 +1476,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&cpuUsage.CUTime,
 			&cpuUsage.STime,
 			&cpuUsage.CSTime,
-			&cpuUsage.IntervalConfig,
+			&cpuUsage.Interval,
 
 			// navigation
 			&navigation.To,
