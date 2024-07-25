@@ -34,7 +34,13 @@ func main() {
 	server.Init(config)
 
 	defer server.Server.PgPool.Close()
-	defer server.Server.ChPool.Close()
+
+	// close clickhouse connection pool at shutdown
+	defer func() {
+		if err := server.Server.ChPool.Close(); err != nil {
+			log.Fatalf("Unable to close clickhouse connection: %v", err)
+		}
+	}()
 
 	// close geo ip database at shutdown
 	defer func() {
