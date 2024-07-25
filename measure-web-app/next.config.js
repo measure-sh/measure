@@ -1,5 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    async rewrites() {
+        return [
+            {
+                source: '/api/clarity/:path*',
+                destination: 'https://www.clarity.ms/tag/:path*',
+            },
+        ];
+    },
     images: {
         remotePatterns: [
             {
