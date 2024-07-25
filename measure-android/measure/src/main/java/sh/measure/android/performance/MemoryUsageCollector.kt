@@ -51,11 +51,7 @@ internal class MemoryUsageCollector(
     }
 
     private fun trackMemoryUsage() {
-        val interval = if (previousMemoryUsageReadTimeMs != 0L) {
-            timeProvider.elapsedRealtime - previousMemoryUsageReadTimeMs
-        } else {
-            0
-        }
+        val interval = getInterval()
         previousMemoryUsageReadTimeMs = timeProvider.elapsedRealtime
 
         val data = MemoryUsageData(
@@ -74,5 +70,14 @@ internal class MemoryUsageCollector(
             data = data,
         )
         previousMemoryUsage = data
+    }
+
+    private fun getInterval(): Long {
+        val currentTime = timeProvider.elapsedRealtime
+        return if (previousMemoryUsageReadTimeMs != 0L) {
+            (currentTime - previousMemoryUsageReadTimeMs).coerceAtLeast(0)
+        } else {
+            0
+        }
     }
 }
