@@ -80,7 +80,7 @@ internal class CpuUsageCollectorTest {
                 cutime = 300,
                 cstime = 400,
                 start_time = 5835385,
-                interval_config = CPU_TRACKING_INTERVAL_MS,
+                interval_config = 0,
                 percentage_usage = 0.0,
             ),
         )
@@ -184,6 +184,45 @@ internal class CpuUsageCollectorTest {
         processInfo.foregroundProcess = false
         cpuUsageCollector.register()
         assertNull(cpuUsageCollector.future)
+    }
+
+    @Test
+    fun `CpuUsageCollector calculates interval config dynamically`() {
+        cpuUsageCollector.prevCpuUsageData = CpuUsageData(
+            num_cores = 1,
+            clock_speed = 100,
+            uptime = 1000,
+            utime = 100,
+            stime = 200,
+            cutime = 300,
+            cstime = 400,
+            start_time = 58185,
+            interval_config = 0,
+            percentage_usage = 0.0,
+        )
+        timeProvider.fakeElapsedRealtime = 15_000
+        cpuUsageCollector.register()
+        verify(eventProcessor).track(
+            type = EventType.CPU_USAGE,
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            data = CpuUsageData(
+                num_cores = 1,
+                clock_speed = 100,
+                uptime = 15_000,
+                utime = 400,
+                stime = 500,
+                cutime = 600,
+                cstime = 700,
+                start_time = 58385,
+                interval_config = 14_000,
+                // calculate manually using the formula:
+                // ((utime + stime + cutime + cstime)
+                //   - (previousUtime + previousStime + previousCutime + previousCstime))
+                // divided by
+                // (((uptime - previousUptime) / previousUptime) * numCores * clockSpeedHz)
+                percentage_usage = 85.71428571428571,
+            ),
+        )
     }
 
     private fun createDummyProcStatFile(

@@ -22,6 +22,12 @@ internal class MemoryUsageCollector(
     @VisibleForTesting
     var future: Future<*>? = null
 
+    @VisibleForTesting
+    internal var previousMemoryUsage: MemoryUsageData? = null
+
+    @VisibleForTesting
+    internal var previousMemoryUsageReadTimeMs = 0L
+
     fun register() {
         if (!processInfo.isForegroundProcess()) return
         if (future != null) return
@@ -45,19 +51,28 @@ internal class MemoryUsageCollector(
     }
 
     private fun trackMemoryUsage() {
+        val interval = if (previousMemoryUsageReadTimeMs != 0L) {
+            timeProvider.elapsedRealtime - previousMemoryUsageReadTimeMs
+        } else {
+            0
+        }
+        previousMemoryUsageReadTimeMs = timeProvider.elapsedRealtime
+
+        val data = MemoryUsageData(
+            java_max_heap = memoryReader.maxHeapSize(),
+            java_total_heap = memoryReader.totalHeapSize(),
+            java_free_heap = memoryReader.freeHeapSize(),
+            total_pss = memoryReader.totalPss(),
+            rss = memoryReader.rss(),
+            native_total_heap = memoryReader.nativeTotalHeapSize(),
+            native_free_heap = memoryReader.nativeFreeHeapSize(),
+            interval_config = interval,
+        )
         eventProcessor.track(
             timestamp = timeProvider.currentTimeSinceEpochInMillis,
             type = EventType.MEMORY_USAGE,
-            data = MemoryUsageData(
-                java_max_heap = memoryReader.maxHeapSize(),
-                java_total_heap = memoryReader.totalHeapSize(),
-                java_free_heap = memoryReader.freeHeapSize(),
-                total_pss = memoryReader.totalPss(),
-                rss = memoryReader.rss(),
-                native_total_heap = memoryReader.nativeTotalHeapSize(),
-                native_free_heap = memoryReader.nativeFreeHeapSize(),
-                interval_config = MEMORY_TRACKING_INTERVAL_MS,
-            ),
+            data = data,
         )
+        previousMemoryUsage = data
     }
 }

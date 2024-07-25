@@ -13,11 +13,10 @@ import sh.measure.android.fakes.FakeMemoryReader
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.ImmediateExecutorService
-import sh.measure.android.utils.TimeProvider
 
 internal class MemoryUsageCollectorTest {
     private lateinit var memoryUsageCollector: MemoryUsageCollector
-    private lateinit var timeProvider: TimeProvider
+    private lateinit var timeProvider: FakeTimeProvider
     private val eventProcessor = mock<EventProcessor>()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val memoryReader = FakeMemoryReader()
@@ -50,7 +49,7 @@ internal class MemoryUsageCollectorTest {
                 rss = memoryReader.rss(),
                 native_total_heap = memoryReader.nativeTotalHeapSize(),
                 native_free_heap = memoryReader.nativeFreeHeapSize(),
-                interval_config = MEMORY_TRACKING_INTERVAL_MS,
+                interval_config = 0,
             ),
         )
     }
@@ -70,5 +69,37 @@ internal class MemoryUsageCollectorTest {
         processInfo.foregroundProcess = false
         memoryUsageCollector.register()
         assertNull(memoryUsageCollector.future)
+    }
+
+    @Test
+    fun `interval_config between two events`() {
+        memoryUsageCollector.previousMemoryUsageReadTimeMs = 1000
+        memoryUsageCollector.previousMemoryUsage = MemoryUsageData(
+            java_max_heap = 0,
+            java_total_heap = 0,
+            java_free_heap = 0,
+            total_pss = 0,
+            rss = 0,
+            native_total_heap = 0,
+            native_free_heap = 0,
+            interval_config = 10_000,
+        )
+        timeProvider.fakeElapsedRealtime = 15_000
+        memoryUsageCollector.register()
+
+        verify(eventProcessor).track(
+            type = EventType.MEMORY_USAGE,
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            data = MemoryUsageData(
+                java_max_heap = memoryReader.maxHeapSize(),
+                java_total_heap = memoryReader.totalHeapSize(),
+                java_free_heap = memoryReader.freeHeapSize(),
+                total_pss = memoryReader.totalPss(),
+                rss = memoryReader.rss(),
+                native_total_heap = memoryReader.nativeTotalHeapSize(),
+                native_free_heap = memoryReader.nativeFreeHeapSize(),
+                interval_config = 14_000,
+            ),
+        )
     }
 }
