@@ -66,7 +66,7 @@ internal class MemoryUsageCollector(
             rss = memoryReader.rss(),
             native_total_heap = memoryReader.nativeTotalHeapSize(),
             native_free_heap = memoryReader.nativeFreeHeapSize(),
-            interval_config = interval,
+            interval = interval,
         )
         eventProcessor.track(
             timestamp = timeProvider.currentTimeSinceEpochInMillis,

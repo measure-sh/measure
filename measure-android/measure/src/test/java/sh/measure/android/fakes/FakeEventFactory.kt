@@ -238,7 +238,7 @@ internal object FakeEventFactory {
         rss: Long? = 500,
         nativeTotalHeap: Long = 600,
         nativeFreeHeap: Long = 700,
-        intervalConfig: Long = 800,
+        interval: Long = 800,
     ): MemoryUsageData {
         return MemoryUsageData(
             javaMaxHeap,
@@ -248,7 +248,7 @@ internal object FakeEventFactory {
             rss,
             nativeTotalHeap,
             nativeFreeHeap,
-            intervalConfig,
+            interval,
         )
     }
 
@@ -295,7 +295,7 @@ internal object FakeEventFactory {
         cutime: Long = 9876L,
         cstime: Long = 1234L,
         stime: Long = 9876L,
-        intervalConfig: Long = 1000,
+        interval: Long = 1000,
         percentageUsage: Double = 0.0,
     ): CpuUsageData {
         return CpuUsageData(
@@ -307,7 +307,7 @@ internal object FakeEventFactory {
             cutime,
             cstime,
             stime,
-            intervalConfig,
+            interval,
             percentageUsage,
         )
     }

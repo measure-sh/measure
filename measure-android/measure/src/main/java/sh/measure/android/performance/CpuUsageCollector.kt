@@ -73,7 +73,7 @@ internal class CpuUsageCollector(
             cutime = cutime,
             cstime = cstime,
             start_time = startTime,
-            interval_config = interval,
+            interval = interval,
             percentage_usage = percentageCpuUsage,
         )
         if (prevCpuUsageData?.percentage_usage == cpuUsageData.percentage_usage) {

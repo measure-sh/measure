@@ -49,7 +49,7 @@ internal class MemoryUsageCollectorTest {
                 rss = memoryReader.rss(),
                 native_total_heap = memoryReader.nativeTotalHeapSize(),
                 native_free_heap = memoryReader.nativeFreeHeapSize(),
-                interval_config = 0,
+                interval = 0,
             ),
         )
     }
@@ -72,7 +72,7 @@ internal class MemoryUsageCollectorTest {
     }
 
     @Test
-    fun `interval_config between two events`() {
+    fun `calculates interval between two events dynamically`() {
         memoryUsageCollector.previousMemoryUsageReadTimeMs = 1000
         memoryUsageCollector.previousMemoryUsage = MemoryUsageData(
             java_max_heap = 0,
@@ -82,7 +82,7 @@ internal class MemoryUsageCollectorTest {
             rss = 0,
             native_total_heap = 0,
             native_free_heap = 0,
-            interval_config = 10_000,
+            interval = 10_000,
         )
         timeProvider.fakeElapsedRealtime = 15_000
         memoryUsageCollector.register()
@@ -98,7 +98,7 @@ internal class MemoryUsageCollectorTest {
                 rss = memoryReader.rss(),
                 native_total_heap = memoryReader.nativeTotalHeapSize(),
                 native_free_heap = memoryReader.nativeFreeHeapSize(),
-                interval_config = 14_000,
+                interval = 14_000,
             ),
         )
     }
