@@ -2028,7 +2028,7 @@ These headers must be present in each request.
         "rss": 171692,
         "native_total_heap": 21872,
         "native_free_heap": 1299,
-        "interval_config": 2000,
+        "interval": 2000,
         "timestamp": "2024-05-03T23:34:17.607Z"
       },
       {
@@ -2039,7 +2039,7 @@ These headers must be present in each request.
         "rss": 187708,
         "native_total_heap": 24060,
         "native_free_heap": 1171,
-        "interval_config": 2000,
+        "interval": 2000,
         "timestamp": "2024-05-03T23:34:19.566Z"
       },
       {
@@ -2050,7 +2050,7 @@ These headers must be present in each request.
         "rss": 185312,
         "native_total_heap": 24828,
         "native_free_heap": 1452,
-        "interval_config": 2000,
+        "interval": 2000,
         "timestamp": "2024-05-03T23:34:21.565Z"
       },
       {
@@ -2061,7 +2061,7 @@ These headers must be present in each request.
         "rss": 185920,
         "native_total_heap": 24828,
         "native_free_heap": 1452,
-        "interval_config": 2000,
+        "interval": 2000,
         "timestamp": "2024-05-03T23:34:23.571Z"
       },
       {
@@ -2072,7 +2072,7 @@ These headers must be present in each request.
         "rss": 185920,
         "native_total_heap": 24828,
         "native_free_heap": 1436,
-        "interval_config": 2000,
+        "interval": 2000,
         "timestamp": "2024-05-03T23:34:25.568Z"
       },
       {
@@ -2083,7 +2083,7 @@ These headers must be present in each request.
         "rss": 191340,
         "native_total_heap": 26620,
         "native_free_heap": 2879,
-        "interval_config": 2000,
+        "interval": 2000,
         "timestamp": "2024-05-03T23:34:27.565Z"
       }
     ],

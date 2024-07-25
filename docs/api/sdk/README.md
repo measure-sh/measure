@@ -613,7 +613,8 @@ Use the `cpu_usage` type for CPU usage of a Linux based OS.
 | `stime`           | number | No       | Time spent executing code in kernel mode, in Jiffies.               |
 | `cutime`          | number | No       | Time spent executing code in user mode with children, in Jiffies.   |
 | `cstime`          | number | No       | Time spent executing code in kernel mode with children, in Jiffies. |
-| `interval_config` | number | No       | The interval between two collections, in ms.                        |
+| `interval`        | number | No       | The interval between two collections, in ms.                        |
+| `percentage_usage`| number | No       | The percentage CPU usage in the interval.                           |
 | `start_time`      | number | No       | The process start time, in Jiffies.                                 |
 
 #### **`memory_usage`**
@@ -629,7 +630,7 @@ Use the `memory_usage` type for memory usage of JVM applications.
 | rss               | number | Yes      | Resident set size of the Java process - the amount of physical memory currently used by the Java application. Measured in kB. |
 | native_total_heap | number | No       | Total size of the native heap (memory outside of Java's control) available for memory allocation. Measured in kB.             |
 | native_free_heap  | number | No       | Amount of free memory available in the native heap. Measured in kB.                                                           |
-| interval_config   | number | No       | The interval between two consecutive readings. Measured in ms.                                                                |
+| interval          | number | No       | The interval between two consecutive readings. Measured in ms.                                                                |
 
 #### **`low_memory`**
 
@@ -644,7 +645,6 @@ Use the `low_memory` type for a low memory event from the system.
 | rss               | number | Yes      | Resident set size of the Java process - the amount of physical memory currently used by the Java application. Measured in kB. |
 | native_total_heap | number | No       | Total size of the native heap (memory outside of Java's control) available for memory allocation. Measured in kB.             |
 | native_free_heap  | number | No       | Amount of free memory available in the native heap. Measured in kB.                                                           |
-| interval_config   | number | No       | The interval between two consecutive readings. Measured in ms.                                                                |
 
 #### **`trim_memory`**
 
