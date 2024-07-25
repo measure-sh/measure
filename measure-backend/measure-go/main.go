@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"measure-backend/measure-go/inet"
 	"measure-backend/measure-go/measure"
 	"measure-backend/measure-go/server"
 
@@ -34,6 +35,13 @@ func main() {
 
 	defer server.Server.PgPool.Close()
 	defer server.Server.ChPool.Close()
+
+	// close geo ip database at shutdown
+	defer func() {
+		if err := inet.Close(); err != nil {
+			log.Fatalf("Unable to close geo ip db: %v", err)
+		}
+	}()
 
 	r := gin.Default()
 	cors := cors.New(cors.Config{

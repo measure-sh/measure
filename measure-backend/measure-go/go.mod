@@ -13,6 +13,7 @@ require (
 	github.com/ipinfo/go/v2 v2.10.0
 	github.com/jackc/pgx/v5 v5.5.3
 	github.com/leporo/sqlf v1.4.0
+	github.com/oschwald/maxminddb-golang v1.13.1
 	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869
 	google.golang.org/api v0.188.0
 )

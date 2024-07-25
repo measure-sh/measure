@@ -172,7 +172,9 @@ func Init(config *ServerConfig) {
 		log.Fatalf("Unable to create CH connection pool: %v", err)
 	}
 
-	inet.Init()
+	if err := inet.Init(); err != nil {
+		log.Fatalf("Unable to initialize geo ip lookup system: %v", err)
+	}
 
 	Server = &server{
 		PgPool: pgPool,

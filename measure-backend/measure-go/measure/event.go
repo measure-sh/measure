@@ -192,7 +192,7 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 // and infuses the country code and IP info to each event.
 func (e *eventreq) infuseInet(rawIP string) error {
 	ip := net.ParseIP(rawIP)
-	country, err := inet.LookupCountry(rawIP)
+	country, err := inet.CountryCode(ip)
 	if err != nil {
 		return err
 	}
@@ -213,8 +213,8 @@ func (e *eventreq) infuseInet(rawIP string) error {
 
 		if bogon {
 			e.events[i].CountryCode = "bogon"
-		} else if *country != "" {
-			e.events[i].CountryCode = *country
+		} else if country != "" {
+			e.events[i].CountryCode = country
 		} else {
 			e.events[i].CountryCode = "not available"
 		}
