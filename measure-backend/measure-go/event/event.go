@@ -867,9 +867,6 @@ func (e *EventField) Validate() error {
 		if e.CPUUsage.ClockSpeed <= 0 {
 			return fmt.Errorf(`%q must be greater than 0`, `cpu_usage.clock_speed`)
 		}
-		if e.CPUUsage.PercentageUsage <= 0 {
-			return fmt.Errorf(`%q must be greater than 0`, `cpu_usage.percentage_usage`)
-		}
 	}
 
 	if e.IsNavigation() {
