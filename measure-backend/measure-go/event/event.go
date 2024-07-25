@@ -851,12 +851,6 @@ func (e *EventField) Validate() error {
 		}
 	}
 
-	if e.IsMemoryUsage() {
-		if e.MemoryUsage.Interval <= 0 {
-			return fmt.Errorf(`%q must be greater than 0`, `memory_usage.interval`)
-		}
-	}
-
 	if e.IsTrimMemory() {
 		if e.TrimMemory.Level == "" {
 			return fmt.Errorf(`%q must not be empty`, `trim_memory.level`)
@@ -872,9 +866,6 @@ func (e *EventField) Validate() error {
 		}
 		if e.CPUUsage.ClockSpeed <= 0 {
 			return fmt.Errorf(`%q must be greater than 0`, `cpu_usage.clock_speed`)
-		}
-		if e.CPUUsage.Interval <= 0 {
-			return fmt.Errorf(`%q must be greater than 0`, `cpu_usage.interval`)
 		}
 		if e.CPUUsage.PercentageUsage <= 0 {
 			return fmt.Errorf(`%q must be greater than 0`, `cpu_usage.percentage_usage`)
