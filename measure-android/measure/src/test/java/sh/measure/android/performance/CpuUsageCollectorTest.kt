@@ -80,7 +80,7 @@ internal class CpuUsageCollectorTest {
                 cutime = 300,
                 cstime = 400,
                 start_time = 5835385,
-                interval_config = 0,
+                interval = 0,
                 percentage_usage = 0.0,
             ),
         )
@@ -187,7 +187,7 @@ internal class CpuUsageCollectorTest {
     }
 
     @Test
-    fun `CpuUsageCollector calculates interval config dynamically`() {
+    fun `CpuUsageCollector calculates interval dynamically`() {
         cpuUsageCollector.prevCpuUsageData = CpuUsageData(
             num_cores = 1,
             clock_speed = 100,
@@ -197,7 +197,7 @@ internal class CpuUsageCollectorTest {
             cutime = 300,
             cstime = 400,
             start_time = 58185,
-            interval_config = 0,
+            interval = 0,
             percentage_usage = 0.0,
         )
         timeProvider.fakeElapsedRealtime = 15_000
@@ -214,7 +214,7 @@ internal class CpuUsageCollectorTest {
                 cutime = 600,
                 cstime = 700,
                 start_time = 58385,
-                interval_config = 14_000,
+                interval = 14_000,
                 // calculate manually using the formula:
                 // ((utime + stime + cutime + cstime)
                 //   - (previousUtime + previousStime + previousCutime + previousCstime))

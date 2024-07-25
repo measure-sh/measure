@@ -11,7 +11,7 @@ internal data class MemoryUsageData(
     val rss: Long?,
     val native_total_heap: Long,
     val native_free_heap: Long,
-    val interval_config: Long,
+    val interval: Long,
 )
 
 @Serializable
