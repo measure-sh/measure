@@ -56,7 +56,6 @@ services:
       - OAUTH_GITHUB_SECRET=${OAUTH_GITHUB_SECRET}
       - SESSION_ACCESS_SECRET=${SESSION_ACCESS_SECRET}
       - SESSION_REFRESH_SECRET=${SESSION_REFRESH_SECRET}
-      - IPINFO_TOKEN=${IPINFO_TOKEN}
     develop:
       watch:
         - path: ../measure-backend/measure-go
