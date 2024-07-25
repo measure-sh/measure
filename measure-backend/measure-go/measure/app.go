@@ -1477,6 +1477,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&cpuUsage.STime,
 			&cpuUsage.CSTime,
 			&cpuUsage.Interval,
+			&cpuUsage.PercentageUsage,
 
 			// navigation
 			&navigation.To,
