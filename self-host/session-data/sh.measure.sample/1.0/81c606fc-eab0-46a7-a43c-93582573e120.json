@@ -91,6 +91,7 @@
         "timestamp": "2024-06-13T13:38:02.61700000Z",
         "type": "cpu_usage",
         "cpu_usage": {
+            "percentage_usage": 10.1,
             "num_cores": 1,
             "clock_speed": 100,
             "start_time": 80843,
@@ -846,6 +847,7 @@
         "timestamp": "2024-06-13T13:37:59.61000000Z",
         "type": "cpu_usage",
         "cpu_usage": {
+            "percentage_usage": 10.1,
             "num_cores": 1,
             "clock_speed": 100,
             "start_time": 80843,
@@ -890,6 +892,7 @@
         "timestamp": "2024-06-13T13:37:53.60000000Z",
         "type": "cpu_usage",
         "cpu_usage": {
+            "percentage_usage": 10.1,
             "num_cores": 1,
             "clock_speed": 100,
             "start_time": 80843,
@@ -934,6 +937,7 @@
         "timestamp": "2024-06-13T13:37:56.60400000Z",
         "type": "cpu_usage",
         "cpu_usage": {
+            "percentage_usage": 10.1,
             "num_cores": 1,
             "clock_speed": 100,
             "start_time": 80843,
@@ -1107,6 +1111,7 @@
         "timestamp": "2024-06-13T13:38:05.62300000Z",
         "type": "cpu_usage",
         "cpu_usage": {
+            "percentage_usage": 10.1,
             "num_cores": 1,
             "clock_speed": 100,
             "start_time": 80843,
