@@ -2,8 +2,10 @@
 
 import Image from 'next/image'
 import LandingHeader from './components/landing_header'
-import PhoneECG from './components/phone_ecg'
 import Link from 'next/link'
+import Lottie from "lottie-react";
+import landingHeroAnim from "./animations/landing_hero.json";
+
 
 export default function Home() {
   return (
@@ -15,8 +17,8 @@ export default function Home() {
         <div className="py-2" />
         <p className="text-lg leading-relaxed font-sans text-black max-w-4xl text-center">open source app monitoring for mobile teams</p>
         <div className="py-8" />
-        <PhoneECG />
-        <div className="py-12 md:py-24" />
+        <Lottie animationData={landingHeroAnim} />
+        <div className="py-4 md:py-8" />
         <div className="flex flex-col md:w-full items-center">
           <div className="flex flex-col items-center max-w-4xl">
             <p className="text-6xl font-regular text-black font-display text-center">User Journeys</p>
