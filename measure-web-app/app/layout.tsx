@@ -47,7 +47,7 @@ export default function RootLayout({
       />
       <html lang="en">
         <body className={`${display.variable} ${body.variable}`}>{children}</body>
-        <Script strategy="afterInteractive">
+        <Script id='clarity-script' strategy="afterInteractive">
           {`(function(c,l,a,r,i,t,y){
             c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments) };
             t=l.createElement(r);t.async=1;t.src="/api/clarity/"+i;
