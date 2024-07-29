@@ -12,7 +12,7 @@ internal interface IMeasureConfig {
     val httpHeadersBlocklist: List<String>
     val httpUrlBlocklist: List<String>
     val trackActivityIntentData: Boolean
-    val nonCrashedSessionSamplingRate: Float
+    val sessionSamplingRate: Float
 }
 
 /**
@@ -94,10 +94,10 @@ class MeasureConfig(
      *
      * Setting a value outside the range will throw an [IllegalArgumentException].
      */
-    override val nonCrashedSessionSamplingRate: Float = DefaultConfig.SESSION_SAMPLING_RATE,
+    override val sessionSamplingRate: Float = DefaultConfig.SESSION_SAMPLING_RATE,
 ) : IMeasureConfig {
     init {
-        require(nonCrashedSessionSamplingRate in 0.0..1.0) {
+        require(sessionSamplingRate in 0.0..1.0) {
             "Session sampling rate must be between 0.0 and 1.0"
         }
     }
