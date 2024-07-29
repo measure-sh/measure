@@ -141,17 +141,21 @@ internal class SessionManagerImpl(
         val id = idProvider.createId()
         currentSessionId = id
         ioExecutor.submit {
-            storeSession(id)
+            val needsReporting = shouldMarkSessionForExport()
+            storeSession(id, needsReporting)
+            logger.log(
+                LogLevel.Debug,
+                "New session created with ID: $currentSessionId with needsReporting=$needsReporting"
+            )
         }
-        logger.log(LogLevel.Debug, "New session created with ID: $currentSessionId")
     }
 
-    private fun storeSession(sessionId: String) {
+    private fun storeSession(sessionId: String, needsReporting: Boolean) {
         database.insertSession(
             sessionId,
             processInfo.getPid(),
             timeProvider.currentTimeSinceEpochInMillis,
-            needsReporting = shouldMarkSessionForExport(),
+            needsReporting = needsReporting,
         )
     }
 
