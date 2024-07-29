@@ -21,18 +21,18 @@ class ExceptionExporterTest {
     fun `given a batch is created, exports it`() {
         val batchId = "batch-id"
         val eventIds = listOf("event1", "event2")
-        `when`(eventExporter.createBatch()).thenReturn(BatchCreationResult(batchId, eventIds))
+        `when`(eventExporter.createBatch("session-id")).thenReturn(BatchCreationResult(batchId, eventIds))
 
-        exceptionExporter.export()
+        exceptionExporter.export("session-id")
 
         verify(eventExporter).export(batchId, eventIds)
     }
 
     @Test
     fun `given batch is not created, does not trigger export`() {
-        `when`(eventExporter.createBatch()).thenReturn(null)
+        `when`(eventExporter.createBatch("session-id")).thenReturn(null)
 
-        exceptionExporter.export()
+        exceptionExporter.export("session-id")
 
         verify(eventExporter, never()).export(any(), any())
     }

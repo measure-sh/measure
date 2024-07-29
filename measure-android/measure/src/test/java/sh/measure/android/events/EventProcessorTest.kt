@@ -199,7 +199,7 @@ internal class EventProcessorTest {
 
         // Then
         assertEquals(1, eventStore.trackedEvents.size)
-        verify(exceptionExporter).export()
+        verify(exceptionExporter).export(sessionManager.getSessionId())
     }
 
     @Test
@@ -218,7 +218,7 @@ internal class EventProcessorTest {
 
         // Then
         assertEquals(1, eventStore.trackedEvents.size)
-        verify(exceptionExporter).export()
+        verify(exceptionExporter).export(sessionManager.getSessionId())
     }
 
     @Test

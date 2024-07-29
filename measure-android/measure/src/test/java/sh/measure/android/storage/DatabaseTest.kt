@@ -320,6 +320,55 @@ class DatabaseTest {
     }
 
     @Test
+    fun `returns event IDs to batch for a given session ID`() {
+        val event1 = EventEntity(
+            id = "event-id-1",
+            type = "test",
+            timestamp = "2024-03-18T12:50:12.62600000Z",
+            sessionId = "session-id-1",
+            userTriggered = false,
+            filePath = "test-file-path",
+            attachmentEntities = emptyList(),
+            serializedAttributes = null,
+            attachmentsSize = 500,
+            serializedUserDefAttributes = null,
+        )
+
+        val event2 = EventEntity(
+            id = "event-id-2",
+            type = "test",
+            timestamp = "2024-03-18T12:50:12.62600000Z",
+            sessionId = "session-id-1",
+            userTriggered = false,
+            filePath = "test-file-path",
+            attachmentEntities = emptyList(),
+            serializedAttributes = null,
+            attachmentsSize = 200,
+            serializedUserDefAttributes = null,
+        )
+
+        val event3 = EventEntity(
+            id = "event-id-3",
+            type = "test",
+            timestamp = "2024-03-18T12:50:12.62600000Z",
+            sessionId = "session-id-2",
+            userTriggered = false,
+            filePath = "test-file-path",
+            attachmentEntities = emptyList(),
+            serializedAttributes = null,
+            attachmentsSize = 200,
+            serializedUserDefAttributes = null,
+        )
+
+        database.insertEvent(event1)
+        database.insertEvent(event2)
+        database.insertEvent(event3)
+
+        val eventsToBatch = database.getUnBatchedEventsWithAttachmentSize(2, sessionId = "session-id-1")
+        assertEquals(2, eventsToBatch.size)
+    }
+
+    @Test
     fun `returns event packets for given event IDs`() {
         val event1 = EventEntity(
             id = "event-id-1",

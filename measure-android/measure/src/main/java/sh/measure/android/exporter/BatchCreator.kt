@@ -16,7 +16,7 @@ internal interface BatchCreator {
      *
      * @return [BatchCreationResult] if a batch was created, otherwise null.
      */
-    fun create(): BatchCreationResult?
+    fun create(sessionId: String? = null): BatchCreationResult?
 }
 
 /**
@@ -42,10 +42,13 @@ internal class BatchCreatorImpl(
 ) : BatchCreator {
     private val batchCreationLock = Any()
 
-    override fun create(): BatchCreationResult? {
+    override fun create(sessionId: String?): BatchCreationResult? {
         synchronized(batchCreationLock) {
             val eventToAttachmentSizeMap =
-                database.getUnBatchedEventsWithAttachmentSize(configProvider.maxEventsInBatch)
+                database.getUnBatchedEventsWithAttachmentSize(
+                    configProvider.maxEventsInBatch,
+                    sessionId = sessionId
+                )
             if (eventToAttachmentSizeMap.isEmpty()) {
                 logger.log(LogLevel.Debug, "No events to batch")
                 return null
@@ -53,7 +56,10 @@ internal class BatchCreatorImpl(
 
             val eventIds = filterEventsForMaxAttachmentSize(eventToAttachmentSizeMap)
             if (eventIds.isEmpty()) {
-                logger.log(LogLevel.Debug, "No events to batch after filtering for max attachment size")
+                logger.log(
+                    LogLevel.Debug,
+                    "No events to batch after filtering for max attachment size"
+                )
                 return null
             }
 
