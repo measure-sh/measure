@@ -7,6 +7,8 @@ import sh.measure.android.logger.Logger
 import sh.measure.android.storage.Database
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.ProcessInfoProvider
+import sh.measure.android.utils.Randomizer
+import sh.measure.android.utils.RandomizerImpl
 import sh.measure.android.utils.TimeProvider
 
 internal interface SessionManager {
@@ -66,6 +68,7 @@ internal class SessionManagerImpl(
     private val processInfo: ProcessInfoProvider,
     private val timeProvider: TimeProvider,
     private val configProvider: ConfigProvider,
+    private val randomizer: Randomizer = RandomizerImpl(),
 ) : SessionManager {
     private var appBackgroundedUptimeMs = 0L
 
@@ -137,6 +140,14 @@ internal class SessionManagerImpl(
             sessionId,
             processInfo.getPid(),
             timeProvider.currentTimeSinceEpochInMillis,
+            needsReporting = shouldMarkSessionForExport(),
         )
+    }
+
+    private fun shouldMarkSessionForExport(): Boolean {
+        if (configProvider.sessionSamplingRate == 0.0f) {
+            return false
+        }
+        return randomizer.random() < configProvider.sessionSamplingRate
     }
 }

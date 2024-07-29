@@ -12,6 +12,7 @@ internal interface IMeasureConfig {
     val httpHeadersBlocklist: List<String>
     val httpUrlBlocklist: List<String>
     val trackActivityIntentData: Boolean
+    val sessionSamplingRate: Float
 }
 
 /**
@@ -82,4 +83,16 @@ class MeasureConfig(
      * Whether to capture intent data used to launch an Activity. Defaults to `false`.
      */
     override val trackActivityIntentData: Boolean = DefaultConfig.TRACK_ACTIVITY_INTENT_DATA,
-) : IMeasureConfig
+
+    /**
+     * The sampling rate for session creation. The value should be between 0.0 and 1.0. Defaults to
+     * 1.0, meaning all sessions are captured.
+     */
+    override val sessionSamplingRate: Float = DefaultConfig.SESSION_SAMPLING_RATE,
+) : IMeasureConfig {
+    init {
+        require(sessionSamplingRate in 0.0..1.0) {
+            "Session sampling rate must be between 0.0 and 1.0"
+        }
+    }
+}

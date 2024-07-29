@@ -14,6 +14,7 @@ internal interface BatchCreator {
     /**
      * Attempts to create a new batch of events to export.
      *
+     * @param sessionId The session ID to filter events by if provided.
      * @return [BatchCreationResult] if a batch was created, otherwise null.
      */
     fun create(sessionId: String? = null): BatchCreationResult?

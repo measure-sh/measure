@@ -119,13 +119,20 @@ internal object Sql {
      *
      * @param eventCount The number of events to fetch.
      * @param ascending Whether to fetch the oldest events first or the newest.
-     * @param sessionId The session ID for which the events should be returned, if not null.
+     * @param sessionId The session ID for which the events should be returned, if not null. If null,
+     * the sessions which need to be reported are considered.
      */
     fun getEventsBatchQuery(eventCount: Int, ascending: Boolean, sessionId: String?): String {
         val sessionCondition = if (sessionId != null) {
             "AND ${EventTable.COL_SESSION_ID} = '$sessionId'"
         } else {
-            ""
+            """
+            AND ${EventTable.COL_SESSION_ID} = (
+                SELECT ${SessionsTable.COL_SESSION_ID} 
+                FROM ${SessionsTable.TABLE_NAME} 
+                WHERE ${SessionsTable.COL_NEEDS_REPORTING} = 1 
+            )
+            """.trimIndent()
         }
         return """
             SELECT ${EventTable.COL_ID}, ${EventTable.COL_ATTACHMENT_SIZE} 

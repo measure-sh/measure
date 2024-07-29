@@ -313,18 +313,70 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
+        database.insertSession("987", 123, 500, true)
         database.insertEvent(event1)
         database.insertEvent(event2)
         database.insertEvent(batchedEvent)
         val result = database.insertBatch(listOf(batchedEvent.id), "batch-id", 987654321L)
         assertEquals(true, result)
 
-        val eventsToBatch = database.getUnBatchedEventsWithAttachmentSize(2)
+        val eventsToBatch = database.getUnBatchedEventsWithAttachmentSize(100)
         assertEquals(2, eventsToBatch.size)
     }
 
     @Test
-    fun `returns event IDs to batch for a given session ID`() {
+    fun `returns event IDs to batch, but discards events from session that does not need reporting`() {
+        val event1 = EventEntity(
+            id = "event-id-1",
+            type = "test",
+            timestamp = "2024-03-18T12:50:12.62600000Z",
+            sessionId = "session-id-1",
+            userTriggered = false,
+            filePath = "test-file-path",
+            attachmentEntities = emptyList(),
+            serializedAttributes = null,
+            attachmentsSize = 500,
+            serializedUserDefAttributes = null,
+        )
+
+        val event2 = EventEntity(
+            id = "event-id-2",
+            type = "test",
+            timestamp = "2024-03-18T12:50:12.62600000Z",
+            sessionId = "session-id-1",
+            userTriggered = false,
+            filePath = "test-file-path",
+            attachmentEntities = emptyList(),
+            serializedAttributes = null,
+            attachmentsSize = 200,
+            serializedUserDefAttributes = null,
+        )
+
+        val event3 = EventEntity(
+            id = "event-id-3",
+            type = "test",
+            timestamp = "2024-03-18T12:50:12.62600000Z",
+            sessionId = "session-id-2",
+            userTriggered = false,
+            filePath = "test-file-path",
+            attachmentEntities = emptyList(),
+            serializedAttributes = null,
+            attachmentsSize = 200,
+            serializedUserDefAttributes = null,
+        )
+
+        database.insertSession("session-id-1", 123, 500, true)
+        database.insertSession("session-id-2", 123, 500, false)
+        database.insertEvent(event1)
+        database.insertEvent(event2)
+        database.insertEvent(event3)
+
+        val eventsToBatch = database.getUnBatchedEventsWithAttachmentSize(100)
+        assertEquals(2, eventsToBatch.size)
+    }
+
+    @Test
+    fun `given a session ID, returns event IDs to batch`() {
         val event1 = EventEntity(
             id = "event-id-1",
             type = "test",
@@ -368,7 +420,7 @@ class DatabaseTest {
         database.insertEvent(event2)
         database.insertEvent(event3)
 
-        val eventsToBatch = database.getUnBatchedEventsWithAttachmentSize(2, sessionId = "session-id-1")
+        val eventsToBatch = database.getUnBatchedEventsWithAttachmentSize(100, sessionId = "session-id-1")
         assertEquals(2, eventsToBatch.size)
     }
 
@@ -657,8 +709,8 @@ class DatabaseTest {
 
     @Test
     fun `clears old sessions from sessions table`() {
-        database.insertSession("session-id-1", 123, 500)
-        database.insertSession("session-id-2", 987, 700)
+        database.insertSession("session-id-1", 123, 500, false)
+        database.insertSession("session-id-2", 987, 700, false)
 
         database.clearOldSessions(600)
         assertEquals(1, database.getSessionsWithUntrackedAppExit().size)
@@ -666,11 +718,11 @@ class DatabaseTest {
 
     @Test
     fun `returns all sessions with untracked app exits from sessions table`() {
-        database.insertSession("session-id-1", 123, 500)
-        database.insertSession("session-id-1.1", 123, 500)
-        database.insertSession("session-id-2", 987, 700)
-        database.insertSession("session-id-2.2", 987, 700)
-        database.insertSession("session-with-tracked-app-exit", 9000, 900)
+        database.insertSession("session-id-1", 123, 500, false)
+        database.insertSession("session-id-1.1", 123, 500, false)
+        database.insertSession("session-id-2", 987, 700, false)
+        database.insertSession("session-id-2.2", 987, 700, false)
+        database.insertSession("session-with-tracked-app-exit", 9000, 900, false)
 
         database.updateAppExitTracked(9000)
         val sessions = database.getSessionsWithUntrackedAppExit()
@@ -684,7 +736,7 @@ class DatabaseTest {
     fun `inserts a new session successfully`() {
         val sessionId = "session-id"
         val pid = 123
-        database.insertSession(sessionId, pid, 500)
+        database.insertSession(sessionId, pid, 500, true)
 
         val db = database.writableDatabase
         db.query(
@@ -700,6 +752,7 @@ class DatabaseTest {
             it.moveToFirst()
             assertEquals(sessionId, it.getString(it.getColumnIndex(SessionsTable.COL_SESSION_ID)))
             assertEquals(pid, it.getInt(it.getColumnIndex(SessionsTable.COL_PID)))
+            assertEquals(true, it.getInt(it.getColumnIndex(SessionsTable.COL_NEEDS_REPORTING)) == 1)
         }
     }
 
@@ -710,9 +763,9 @@ class DatabaseTest {
         val sessionId3 = "session-id-3"
         val pid = 123
         val untrackedAppExitPid = 9000
-        database.insertSession(sessionId1, pid, 500)
-        database.insertSession(sessionId2, pid, 700)
-        database.insertSession(sessionId3, untrackedAppExitPid, 900)
+        database.insertSession(sessionId1, pid, 500, false)
+        database.insertSession(sessionId2, pid, 700, false)
+        database.insertSession(sessionId3, untrackedAppExitPid, 900, false)
 
         database.updateAppExitTracked(pid)
 
@@ -731,6 +784,31 @@ class DatabaseTest {
             assertEquals(sessionId1, it.getString(it.getColumnIndex(SessionsTable.COL_SESSION_ID)))
             it.moveToNext()
             assertEquals(sessionId2, it.getString(it.getColumnIndex(SessionsTable.COL_SESSION_ID)))
+        }
+    }
+
+    @Test
+    fun `marks a session as crashed and sets needs reporting`() {
+        val sessionId = "session-id"
+        val pid = 123
+        database.insertSession(sessionId, pid, 500, false)
+
+        database.markSessionCrashed(sessionId)
+
+        val db = database.readableDatabase
+        db.query(
+            SessionsTable.TABLE_NAME,
+            null,
+            "${SessionsTable.COL_SESSION_ID} = ?",
+            arrayOf(sessionId),
+            null,
+            null,
+            null,
+        ).use {
+            assertEquals(1, it.count)
+            it.moveToFirst()
+            assertEquals(1, it.getInt(it.getColumnIndex(SessionsTable.COL_CRASHED)))
+            assertEquals(1, it.getInt(it.getColumnIndex(SessionsTable.COL_NEEDS_REPORTING)))
         }
     }
 
