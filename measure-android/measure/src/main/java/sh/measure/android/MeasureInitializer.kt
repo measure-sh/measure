@@ -102,7 +102,7 @@ internal class MeasureInitializerImpl(
             httpHeadersBlocklist = inputConfig.httpHeadersBlocklist,
             httpUrlBlocklist = inputConfig.httpUrlBlocklist,
             trackActivityIntentData = inputConfig.trackActivityIntentData,
-            nonCrashedSessionSamplingRate = inputConfig.nonCrashedSessionSamplingRate,
+            sessionSamplingRate = inputConfig.sessionSamplingRate,
         ),
         configLoader = ConfigLoaderImpl(),
     ),

@@ -156,12 +156,12 @@ internal class SessionManagerImpl(
     }
 
     private fun shouldMarkSessionForExport(): Boolean {
-        if (configProvider.nonCrashedSessionSamplingRate == 0.0f) {
+        if (configProvider.sessionSamplingRate == 0.0f) {
             return false
         }
-        if (configProvider.nonCrashedSessionSamplingRate == 1.0f) {
+        if (configProvider.sessionSamplingRate == 1.0f) {
             return true
         }
-        return randomizer.random() < configProvider.nonCrashedSessionSamplingRate
+        return randomizer.random() < configProvider.sessionSamplingRate
     }
 }

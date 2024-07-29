@@ -289,13 +289,16 @@ Allows enabling/disabling of collection of intent data for the following events:
 
 Disabled by default.
 
-### `nonCrashedSessionSamplingRate`
+### `sessionSamplingRate`
 
-Allows setting a sampling rate for non-crashed sessions. This is useful to reduce the number of
-sessions exported to the server. By default, all non-crashed sessions are always exported.
+Allows setting a sampling rate for non-crashed sessions. Defaults to 1.0, meaning all non-crashed 
+sessions are exported by default.
 
-The sampling rate is a value between 0 and 1. For example, a value of `0.5` will export only 50%
+The sampling rate is a value between 0 and 1. For example, a value of `0.1` will export only 10%
 of the non-crashed sessions, a value of `0` will disable exporting of non-crashed sessions.
+
+Note that crashed sessions are always exported. And certain events like `cold_launch`, `warm_launch`,
+`hot_launch` are always exported regardless of the sampling rate.
 
 # Custom Events
 

@@ -68,8 +68,8 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { httpUrlBlocklist }
     override val trackActivityIntentData: Boolean
         get() = getMergedConfig { trackActivityIntentData }
-    override val nonCrashedSessionSamplingRate: Float
-        get() = getMergedConfig { nonCrashedSessionSamplingRate }
+    override val sessionSamplingRate: Float
+        get() = getMergedConfig { sessionSamplingRate }
     override val eventsBatchingIntervalMs: Long
         get() = getMergedConfig { eventsBatchingIntervalMs }
     override val maxEventsInBatch: Int

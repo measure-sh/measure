@@ -21,7 +21,7 @@ class SampleApp : Application() {
                 trackHttpBody = true,
                 trackActivityIntentData = true,
                 httpUrlBlocklist = listOf("http://localhost:8080"),
-                nonCrashedSessionSamplingRate = 0.5f
+                sessionSamplingRate = 0.5f,
             )
         )
         Measure.setUserId("sample-user-sd")
