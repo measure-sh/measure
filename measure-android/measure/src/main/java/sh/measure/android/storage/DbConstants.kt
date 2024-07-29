@@ -115,14 +115,21 @@ internal object Sql {
      *
      * @param eventCount The number of events to fetch.
      * @param ascending Whether to fetch the oldest events first or the newest.
+     * @param sessionId The session ID for which the events should be returned, if not null.
      */
-    fun getEventsBatchQuery(eventCount: Int, ascending: Boolean): String {
+    fun getEventsBatchQuery(eventCount: Int, ascending: Boolean, sessionId: String?): String {
+        val sessionCondition = if (sessionId != null) {
+            "AND ${EventTable.COL_SESSION_ID} = '$sessionId'"
+        } else {
+            ""
+        }
         return """
             SELECT ${EventTable.COL_ID}, ${EventTable.COL_ATTACHMENT_SIZE} 
             FROM ${EventTable.TABLE_NAME}
             WHERE ${EventTable.COL_ID} NOT IN (
                 SELECT ${EventsBatchTable.COL_EVENT_ID} FROM ${EventsBatchTable.TABLE_NAME}
             )
+            $sessionCondition
             ORDER BY datetime(${EventTable.COL_TIMESTAMP}) ${if (ascending) "ASC" else "DESC"}
             LIMIT $eventCount
         """

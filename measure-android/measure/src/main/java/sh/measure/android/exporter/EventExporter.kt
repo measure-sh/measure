@@ -12,7 +12,7 @@ import java.util.concurrent.CopyOnWriteArrayList
  * exporters like [PeriodicEventExporter] and [ExceptionExporter].
  */
 internal interface EventExporter {
-    fun createBatch(): BatchCreationResult?
+    fun createBatch(sessionId: String? = null): BatchCreationResult?
     fun getExistingBatches(): LinkedHashMap<String, MutableList<String>>
     fun export(batchId: String, eventIds: List<String>)
 }
@@ -56,8 +56,8 @@ internal class EventExporterImpl(
         }
     }
 
-    override fun createBatch(): BatchCreationResult? {
-        return batchCreator.create()
+    override fun createBatch(sessionId: String?): BatchCreationResult? {
+        return batchCreator.create(sessionId)
     }
 
     override fun getExistingBatches(): LinkedHashMap<String, MutableList<String>> {

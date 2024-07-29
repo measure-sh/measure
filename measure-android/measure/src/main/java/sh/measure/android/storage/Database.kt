@@ -27,11 +27,13 @@ internal interface Database : Closeable {
      * @param eventCount The number of events to return.
      * @param ascending If `true`, the events are returned in ascending order of timestamp. Else,
      * in descending order.
+     * @param sessionId The session ID for which the events should be returned, if any.
      * @return a map of event Id to the size of attachments in the event in bytes.
      */
     fun getUnBatchedEventsWithAttachmentSize(
         eventCount: Int,
         ascending: Boolean = true,
+        sessionId: String? = null,
     ): LinkedHashMap<String, Long>
 
     /**
@@ -255,8 +257,9 @@ internal class DatabaseImpl(
     override fun getUnBatchedEventsWithAttachmentSize(
         eventCount: Int,
         ascending: Boolean,
+        sessionId: String?,
     ): LinkedHashMap<String, Long> {
-        val query = Sql.getEventsBatchQuery(eventCount, ascending)
+        val query = Sql.getEventsBatchQuery(eventCount, ascending, sessionId)
         val cursor = readableDatabase.rawQuery(query, null)
         val eventIdAttachmentSizeMap = LinkedHashMap<String, Long>()
 

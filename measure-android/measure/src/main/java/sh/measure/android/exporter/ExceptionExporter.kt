@@ -6,7 +6,7 @@ import sh.measure.android.executors.MeasureExecutorService
  * An interface which allows exporting events to server when an exception occurs.
  */
 internal interface ExceptionExporter {
-    fun export()
+    fun export(sessionId: String)
 }
 
 /**
@@ -19,9 +19,9 @@ internal class ExceptionExporterImpl(
     private val eventExporter: EventExporter,
     private val exportExecutor: MeasureExecutorService,
 ) : ExceptionExporter {
-    override fun export() {
+    override fun export(sessionId: String) {
         exportExecutor.submit {
-            eventExporter.createBatch()?.let {
+            eventExporter.createBatch(sessionId)?.let {
                 eventExporter.export(it.batchId, it.eventIds)
             }
         }

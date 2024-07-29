@@ -29,7 +29,7 @@ class BatchCreatorTest {
         // Given
         config.maxEventsInBatch = 100
         config.maxAttachmentSizeInEventsBatchInBytes = 500
-        `when`(database.getUnBatchedEventsWithAttachmentSize(any(), eq(true))).thenReturn(
+        `when`(database.getUnBatchedEventsWithAttachmentSize(any(), eq(true), eq(null))).thenReturn(
             LinkedHashMap<String, Long>().apply {
                 put("event1", 100)
                 put("event2", 200)
@@ -48,7 +48,7 @@ class BatchCreatorTest {
     @Test
     fun `returns null if no events to batch`() {
         // Given
-        `when`(database.getUnBatchedEventsWithAttachmentSize(any(), eq(true))).thenReturn(
+        `when`(database.getUnBatchedEventsWithAttachmentSize(any(), eq(true), eq(null))).thenReturn(
             LinkedHashMap(),
         )
 
