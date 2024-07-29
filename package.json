@@ -8,5 +8,8 @@
   },
   "scripts": {
     "prepare": "husky install"
+  },
+  "dependencies": {
+    "lottie-react": "^2.4.0"
   }
 }
