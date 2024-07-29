@@ -209,7 +209,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                 <div className="py-1" />
                 <p>Created at: {created_at}</p>
               </div>
-              <div key={id + 'app-settings-key'} className="flex flex-row items-center">
+              {/* <div key={id + 'app-settings-key'} className="flex flex-row items-center">
                 <p>Data retention period</p>
                 <div className="px-2" />
                 {fetchAppSettingsApiStatusMap!.get(id) === FetchAppSettingsApiStatus.Loading && <p>: Loading...</p>}
@@ -218,7 +218,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                 {fetchAppSettingsApiStatusMap!.get(id) === FetchAppSettingsApiStatus.Success && <button className="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" disabled={!currentUserCanChangeAppSettings || updateAppSettingsApiStatusMap!.get(id) === UpdateAppSettingsApiStatus.Loading || appSettingsMap!.get(id)!.retention_period === updateAppSettingsMap!.get(id)!.retention_period} onClick={() => saveAppSettings(id)}>Save</button>}
                 <div className="py-1" />
                 {updateAppSettingsApiStatusMap!.get(id) !== UpdateAppSettingsApiStatus.Init && <p className="text-sm font-sans">{updateAppSettingsMsgMap!.get(id)}</p>}
-              </div>
+              </div> */}
               <div key={id + 'app-api-key'} className="flex flex-row items-center">
                 <p>API key</p>
                 <div className="px-2" />
