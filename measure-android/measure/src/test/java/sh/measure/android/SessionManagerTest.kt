@@ -38,7 +38,7 @@ class SessionManagerTest {
     @Before
     fun setup() {
         // forces "needs reporting" to be set to false
-        configProvider.sessionSamplingRate = 0.0f
+        configProvider.nonCrashedSessionSamplingRate = 0.0f
         randomizer.randomDouble = 0.0
     }
 
@@ -97,8 +97,15 @@ class SessionManagerTest {
     @Test
     fun `delegates to database to mark a session as crashed`() {
         val sessionId = "session-id"
-        sessionManager.markSessionCrashed(sessionId)
-        verify(database).markSessionCrashed(sessionId)
+        sessionManager.markCrashedSession(sessionId)
+        verify(database).markCrashedSession(sessionId)
+    }
+
+    @Test
+    fun `delegates to database to mark a sessions as crashed`() {
+        val sessionIds = listOf("session-id-1", "session-id-2")
+        sessionManager.markCrashedSessions(sessionIds)
+        verify(database).markCrashedSessions(sessionIds)
     }
 
     private fun simulateAppRelaunch(durationMs: Long) {

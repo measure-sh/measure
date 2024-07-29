@@ -12,7 +12,7 @@ internal interface IMeasureConfig {
     val httpHeadersBlocklist: List<String>
     val httpUrlBlocklist: List<String>
     val trackActivityIntentData: Boolean
-    val sessionSamplingRate: Float
+    val nonCrashedSessionSamplingRate: Float
 }
 
 /**
@@ -85,13 +85,18 @@ class MeasureConfig(
     override val trackActivityIntentData: Boolean = DefaultConfig.TRACK_ACTIVITY_INTENT_DATA,
 
     /**
-     * The sampling rate for session creation. The value should be between 0.0 and 1.0. Defaults to
-     * 1.0, meaning all sessions are captured.
+     * Allows setting a sampling rate for non-crashed sessions. This is useful to reduce the number of
+     * sessions exported to the server. By default, all non-crashed sessions are always exported.
+     *
+     * The sampling rate is a value between 0 and 1. For example, a value of `0.5` will export only 50%
+     * of the non-crashed sessions, a value of `0` will disable exporting of non-crashed sessions.
+     *
+     * Setting a value outside the range will throw an [IllegalArgumentException].
      */
-    override val sessionSamplingRate: Float = DefaultConfig.SESSION_SAMPLING_RATE,
+    override val nonCrashedSessionSamplingRate: Float = DefaultConfig.SESSION_SAMPLING_RATE,
 ) : IMeasureConfig {
     init {
-        require(sessionSamplingRate in 0.0..1.0) {
+        require(nonCrashedSessionSamplingRate in 0.0..1.0) {
             "Session sampling rate must be between 0.0 and 1.0"
         }
     }

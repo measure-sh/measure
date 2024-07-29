@@ -51,7 +51,14 @@ internal interface SessionManager {
      *
      * @param sessionId The session ID that crashed.
      */
-    fun markSessionCrashed(sessionId: String)
+    fun markCrashedSession(sessionId: String)
+
+    /**
+     * Marks multiple sessions as crashed.
+     *
+     * @param sessionId The session ID that crashed.
+     */
+    fun markCrashedSessions(sessionIds: List<String>)
 }
 
 /**
@@ -122,8 +129,12 @@ internal class SessionManagerImpl(
         database.updateAppExitTracked(pid)
     }
 
-    override fun markSessionCrashed(sessionId: String) {
-        database.markSessionCrashed(sessionId)
+    override fun markCrashedSession(sessionId: String) {
+        database.markCrashedSession(sessionId)
+    }
+
+    override fun markCrashedSessions(sessionIds: List<String>) {
+        database.markCrashedSessions(sessionIds)
     }
 
     private fun createNewSession() {
@@ -145,9 +156,12 @@ internal class SessionManagerImpl(
     }
 
     private fun shouldMarkSessionForExport(): Boolean {
-        if (configProvider.sessionSamplingRate == 0.0f) {
+        if (configProvider.nonCrashedSessionSamplingRate == 0.0f) {
             return false
         }
-        return randomizer.random() < configProvider.sessionSamplingRate
+        if (configProvider.nonCrashedSessionSamplingRate == 1.0f) {
+            return true
+        }
+        return randomizer.random() < configProvider.nonCrashedSessionSamplingRate
     }
 }

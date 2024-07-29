@@ -260,6 +260,14 @@ internal object Sql {
         """.trimIndent()
     }
 
+    fun markSessionsCrashed(sessionIds: List<String>): String {
+        return """
+            UPDATE ${SessionsTable.TABLE_NAME}
+            SET ${SessionsTable.COL_CRASHED} = 1, ${SessionsTable.COL_NEEDS_REPORTING} = 1
+            WHERE ${SessionsTable.COL_SESSION_ID} IN (${sessionIds.joinToString(", ") { "\'$it\'" }})
+        """.trimIndent()
+    }
+
     fun getEvents(): String {
         return """
             SELECT 

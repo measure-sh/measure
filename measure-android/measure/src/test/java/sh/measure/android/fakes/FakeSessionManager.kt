@@ -5,6 +5,7 @@ import sh.measure.android.SessionManager
 internal class FakeSessionManager : SessionManager {
     var sessionPids = mutableListOf(Pair("fake-session-id", 1234))
     var crashedSession = ""
+    var crashedSessions = mutableListOf<String>()
 
     override fun getSessionId(): String {
         return "fake-session-id"
@@ -30,7 +31,11 @@ internal class FakeSessionManager : SessionManager {
         // No-op
     }
 
-    override fun markSessionCrashed(sessionId: String) {
+    override fun markCrashedSession(sessionId: String) {
         crashedSession = sessionId
+    }
+
+    override fun markCrashedSessions(sessionIds: List<String>) {
+        crashedSessions = sessionIds.toMutableList()
     }
 }

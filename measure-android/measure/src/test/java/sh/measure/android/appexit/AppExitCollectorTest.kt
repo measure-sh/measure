@@ -149,4 +149,66 @@ class AppExitCollectorTest {
 
         verify(sessionManager).updateAppExitTracked(pid)
     }
+
+    @Test
+    fun `marks sessions as crashed when app exit is a crash`() {
+        val pid1 = 7654
+        val pid2 = 1234
+        val pid3 = 5678
+        val pid4 = 9876
+        val crashedAppExit = AppExit(
+            reasonId = 4,
+            reason = "REASON_CRASH",
+            pid = pid1.toString(),
+            trace = null,
+            process_name = "com.example.app",
+            importance = "IMPORTANCE_VISIBLE",
+        )
+        val anrAppExit = AppExit(
+            reasonId = 6,
+            reason = "REASON_ANR",
+            pid = pid2.toString(),
+            trace = null,
+            process_name = "com.example.app",
+            importance = "IMPORTANCE_VISIBLE",
+        )
+        val nativeCrashAppExit = AppExit(
+            reasonId = 5,
+            reason = "REASON_NATIVE_CRASH",
+            pid = pid3.toString(),
+            trace = null,
+            process_name = "com.example.app",
+            importance = "IMPORTANCE_VISIBLE",
+        )
+        val nonCrashAppExit = AppExit(
+            reasonId = 1,
+            reason = "REASON_EXIT_SELF",
+            pid = pid4.toString(),
+            trace = null,
+            process_name = "com.example.app",
+            importance = "IMPORTANCE_VISIBLE",
+        )
+        appExitProvider.appExits = mapOf(
+            pid1 to crashedAppExit,
+            pid2 to anrAppExit,
+            pid3 to nativeCrashAppExit,
+            pid4 to nonCrashAppExit
+        )
+        `when`(sessionManager.getSessionsForPids()).thenReturn(
+            mapOf(
+                pid1 to listOf("session-id1"),
+                pid2 to listOf("session-id2"),
+                pid3 to listOf("session-id3"),
+                pid4 to listOf("session-id4")
+            )
+        )
+
+        appExitCollector.onColdLaunch()
+
+        verify(sessionManager).markCrashedSessions(
+            listOf(
+                "session-id1", "session-id2", "session-id3"
+            )
+        )
+    }
 }
