@@ -27,7 +27,9 @@ internal interface Database : Closeable {
      * @param eventCount The number of events to return.
      * @param ascending If `true`, the events are returned in ascending order of timestamp. Else,
      * in descending order.
-     * @param sessionId The session ID for which the events should be returned, if any.
+     * @param sessionId The session ID for which the events should be returned, if any. If `null`,
+     * events for the oldest session are returned.
+     *
      * @return a map of event Id to the size of attachments in the event in bytes.
      */
     fun getUnBatchedEventsWithAttachmentSize(
@@ -113,8 +115,9 @@ internal interface Database : Closeable {
      * @param sessionId the session id.
      * @param pid the process id.
      * @param createdAt the creation time of the session.
+     * @param needsReporting whether the session needs to be exported.
      */
-    fun insertSession(sessionId: String, pid: Int, createdAt: Long): Boolean
+    fun insertSession(sessionId: String, pid: Int, createdAt: Long, needsReporting: Boolean): Boolean
 
     /**
      * Returns a map of process IDs to list of session IDs that were created by that process
@@ -479,11 +482,12 @@ internal class DatabaseImpl(
         }
     }
 
-    override fun insertSession(sessionId: String, pid: Int, createdAt: Long): Boolean {
+    override fun insertSession(sessionId: String, pid: Int, createdAt: Long, needsReporting: Boolean): Boolean {
         val values = ContentValues().apply {
             put(SessionsTable.COL_SESSION_ID, sessionId)
             put(SessionsTable.COL_PID, pid)
             put(SessionsTable.COL_CREATED_AT, createdAt)
+            put(SessionsTable.COL_NEEDS_REPORTING, needsReporting)
         }
 
         val result = writableDatabase.insert(SessionsTable.TABLE_NAME, null, values)

@@ -18,6 +18,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override var httpHeadersBlocklist: List<String> = emptyList()
     override var httpUrlBlocklist: List<String> = emptyList()
     override var trackActivityIntentData: Boolean = false
+    override var sessionSamplingRate: Float = 1.0f
     override var maxAttachmentSizeInEventsBatchInBytes: Int = 3
     override var eventsBatchingIntervalMs: Long = 10_000
     override var maxEventsInBatch: Int = 100

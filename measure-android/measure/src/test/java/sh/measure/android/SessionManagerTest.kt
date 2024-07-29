@@ -2,12 +2,14 @@ package sh.measure.android
 
 import androidx.concurrent.futures.ResolvableFuture
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakeProcessInfoProvider
+import sh.measure.android.fakes.FakeRandomizer
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
@@ -21,6 +23,7 @@ class SessionManagerTest {
     private val processInfo = FakeProcessInfoProvider()
     private val timeProvider = FakeTimeProvider()
     private val configProvider = FakeConfigProvider()
+    private val randomizer = FakeRandomizer()
 
     private val sessionManager = SessionManagerImpl(
         logger = logger,
@@ -32,6 +35,13 @@ class SessionManagerTest {
         configProvider = configProvider,
     )
 
+    @Before
+    fun setup() {
+        // forces "needs reporting" to be set to false
+        configProvider.sessionSamplingRate = 0.0f
+        randomizer.randomDouble = 0.0
+    }
+
     @Test
     fun `given session ID does not exist, creates a new session ID and persists it to db`() {
         val expectedSessionId = "session-id"
@@ -40,7 +50,7 @@ class SessionManagerTest {
 
         val sessionId = sessionManager.getSessionId()
         assertEquals(expectedSessionId, sessionId)
-        verify(database).insertSession(expectedSessionId, processInfo.getPid(), timeProvider.fakeCurrentTimeSinceEpochInMillis)
+        verify(database).insertSession(expectedSessionId, processInfo.getPid(), timeProvider.fakeCurrentTimeSinceEpochInMillis, false)
     }
 
     @Test
@@ -67,7 +77,7 @@ class SessionManagerTest {
 
         val sessionId = sessionManager.getSessionId()
         assertEquals(updatedSessionId, sessionId)
-        verify(database).insertSession(updatedSessionId, processInfo.getPid(), timeProvider.fakeCurrentTimeSinceEpochInMillis)
+        verify(database).insertSession(updatedSessionId, processInfo.getPid(), timeProvider.fakeCurrentTimeSinceEpochInMillis, false)
     }
 
     @Test
@@ -82,6 +92,13 @@ class SessionManagerTest {
         timeProvider.fakeCurrentTimeSinceEpochInMillis = currentTime
         sessionManager.clearOldSessions()
         verify(database).clearOldSessions(currentTime - configProvider.sessionsTableTtlMs)
+    }
+
+    @Test
+    fun `delegates to database to mark a session as crashed`() {
+        val sessionId = "session-id"
+        sessionManager.markSessionCrashed(sessionId)
+        verify(database).markSessionCrashed(sessionId)
     }
 
     private fun simulateAppRelaunch(durationMs: Long) {
