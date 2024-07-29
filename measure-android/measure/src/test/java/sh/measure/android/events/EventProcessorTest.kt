@@ -184,7 +184,7 @@ internal class EventProcessorTest {
     }
 
     @Test
-    fun `given an event of type exception, stores and triggers export`() {
+    fun `given an event of type exception, stores it, marks current session as crashed, and triggers export`() {
         // Given
         val exceptionData = FakeEventFactory.getExceptionData()
         val timestamp = 9856564654L
@@ -198,12 +198,13 @@ internal class EventProcessorTest {
         )
 
         // Then
+        assertEquals(sessionManager.getSessionId(), sessionManager.crashedSession)
         assertEquals(1, eventStore.trackedEvents.size)
         verify(exceptionExporter).export(sessionManager.getSessionId())
     }
 
     @Test
-    fun `given an event of type ANR, stores and triggers export`() {
+    fun `given an event of type ANR,  stores it, marks current session as crashed, and triggers export`() {
         // Given
         val exceptionData = FakeEventFactory.getExceptionData()
         val timestamp = 9856564654L
@@ -217,6 +218,7 @@ internal class EventProcessorTest {
         )
 
         // Then
+        assertEquals(sessionManager.getSessionId(), sessionManager.crashedSession)
         assertEquals(1, eventStore.trackedEvents.size)
         verify(exceptionExporter).export(sessionManager.getSessionId())
     }
