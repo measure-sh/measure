@@ -95,6 +95,7 @@ internal class MeasureInitializerImpl(
     inputConfig: MeasureConfig,
     override val configProvider: ConfigProvider = ConfigProviderImpl(
         defaultConfig = Config(
+            enableLogging = inputConfig.enableLogging,
             trackScreenshotOnCrash = inputConfig.trackScreenshotOnCrash,
             screenshotMaskLevel = inputConfig.screenshotMaskLevel,
             trackHttpHeaders = inputConfig.trackHttpHeaders,
