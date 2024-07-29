@@ -4,6 +4,7 @@ import sh.measure.android.SessionManager
 
 internal class FakeSessionManager : SessionManager {
     var sessionPids = mutableListOf(Pair("fake-session-id", 1234))
+    var crashedSession = ""
 
     override fun getSessionId(): String {
         return "fake-session-id"
@@ -27,5 +28,9 @@ internal class FakeSessionManager : SessionManager {
 
     override fun updateAppExitTracked(pid: Int) {
         // No-op
+    }
+
+    override fun markSessionCrashed(sessionId: String) {
+        crashedSession = sessionId
     }
 }

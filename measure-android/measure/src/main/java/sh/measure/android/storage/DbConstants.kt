@@ -44,6 +44,8 @@ internal object SessionsTable {
     const val COL_PID = "pid"
     const val COL_CREATED_AT = "created_at"
     const val COL_APP_EXIT_TRACKED = "app_exit_tracked"
+    const val COL_NEEDS_REPORTING = "needs_reporting"
+    const val COL_CRASHED = "crashed"
 }
 
 internal object UserDefinedAttributesTable {
@@ -98,7 +100,9 @@ internal object Sql {
             ${SessionsTable.COL_SESSION_ID} TEXT PRIMARY KEY,
             ${SessionsTable.COL_PID} INTEGER NOT NULL,
             ${SessionsTable.COL_CREATED_AT} INTEGER NOT NULL,
-            ${SessionsTable.COL_APP_EXIT_TRACKED} INTEGER DEFAULT 0
+            ${SessionsTable.COL_APP_EXIT_TRACKED} INTEGER DEFAULT 0,
+            ${SessionsTable.COL_NEEDS_REPORTING} INTEGER DEFAULT 0,
+            ${SessionsTable.COL_CRASHED} INTEGER DEFAULT 0
         )
     """
 
@@ -238,6 +242,14 @@ internal object Sql {
                 ${UserDefinedAttributesTable.COL_VALUE}, 
                 ${UserDefinedAttributesTable.COL_TYPE}
             FROM ${UserDefinedAttributesTable.TABLE_NAME}
+        """.trimIndent()
+    }
+
+    fun markSessionCrashed(sessionId: String): String {
+        return """
+            UPDATE ${SessionsTable.TABLE_NAME}
+            SET ${SessionsTable.COL_CRASHED} = 1, ${SessionsTable.COL_NEEDS_REPORTING} = 1
+            WHERE ${SessionsTable.COL_SESSION_ID} = '$sessionId'
         """.trimIndent()
     }
 

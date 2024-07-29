@@ -169,6 +169,13 @@ internal interface Database : Closeable {
      * Returns the event entity for the given event IDs.
      */
     fun getEvents(eventIds: List<String>): List<EventEntity>
+
+    /**
+     * Marks a session as crashed in the sessions table.
+     *
+     * @param sessionId The session ID that crashed.
+     */
+    fun markSessionCrashed(sessionId: String)
 }
 
 /**
@@ -710,6 +717,10 @@ internal class DatabaseImpl(
             }
         }
         return eventEntities
+    }
+
+    override fun markSessionCrashed(sessionId: String) {
+        writableDatabase.execSQL(Sql.markSessionCrashed(sessionId))
     }
 
     override fun close() {

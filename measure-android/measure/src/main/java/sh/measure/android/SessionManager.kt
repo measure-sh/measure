@@ -43,6 +43,13 @@ internal interface SessionManager {
      * @param pid The process ID for which the app exit event was tracked.
      */
     fun updateAppExitTracked(pid: Int)
+
+    /**
+     * Marks the session as crashed.
+     *
+     * @param sessionId The session ID that crashed.
+     */
+    fun markSessionCrashed(sessionId: String)
 }
 
 /**
@@ -112,16 +119,20 @@ internal class SessionManagerImpl(
         database.updateAppExitTracked(pid)
     }
 
+    override fun markSessionCrashed(sessionId: String) {
+        database.markSessionCrashed(sessionId)
+    }
+
     private fun createNewSession() {
         val id = idProvider.createId()
         currentSessionId = id
         ioExecutor.submit {
-            storeSessionId(id)
+            storeSession(id)
         }
         logger.log(LogLevel.Debug, "New session created with ID: $currentSessionId")
     }
 
-    private fun storeSessionId(sessionId: String) {
+    private fun storeSession(sessionId: String) {
         database.insertSession(
             sessionId,
             processInfo.getPid(),
