@@ -3,10 +3,10 @@ package sh.measure.android.exporter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
-import org.mockito.Mockito.eq
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakeTimeProvider
@@ -29,7 +29,14 @@ class BatchCreatorTest {
         // Given
         config.maxEventsInBatch = 100
         config.maxAttachmentSizeInEventsBatchInBytes = 500
-        `when`(database.getUnBatchedEventsWithAttachmentSize(any(), eq(true), eq(null))).thenReturn(
+        `when`(
+            database.getUnBatchedEventsWithAttachmentSize(
+                any(),
+                eq(true),
+                eq(null),
+                eq(config.eventTypeExportAllowList),
+            )
+        ).thenReturn(
             LinkedHashMap<String, Long>().apply {
                 put("event1", 100)
                 put("event2", 200)
@@ -48,7 +55,14 @@ class BatchCreatorTest {
     @Test
     fun `returns null if no events to batch`() {
         // Given
-        `when`(database.getUnBatchedEventsWithAttachmentSize(any(), eq(true), eq(null))).thenReturn(
+        `when`(
+            database.getUnBatchedEventsWithAttachmentSize(
+                eventCount = any(),
+                ascending = eq(true),
+                sessionId = eq(null),
+                eventTypeExportAllowList = eq(config.eventTypeExportAllowList),
+            )
+        ).thenReturn(
             LinkedHashMap(),
         )
 

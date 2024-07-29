@@ -1,5 +1,7 @@
 package sh.measure.android.config
 
+import sh.measure.android.events.EventType
+
 internal interface InternalConfig {
     /**
      * The maximum size of attachments allowed in a single batch. Defaults to 3MB
@@ -63,4 +65,10 @@ internal interface InternalConfig {
      * and smallest size while 100 is highest quality and largest size.
      */
     val screenshotCompressionQuality: Int
+
+    /**
+     * All [EventType]'s that are always exported, regardless of other filters like session
+     * sampling rate and whether the session crashed or not.
+     */
+    val eventTypeExportAllowList: List<String>
 }

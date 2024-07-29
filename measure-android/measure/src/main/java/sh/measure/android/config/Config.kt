@@ -10,6 +10,7 @@ internal data class Config(
     override val httpUrlBlocklist: List<String> = DefaultConfig.HTTP_URL_BLOCKLIST,
     override val trackActivityIntentData: Boolean = DefaultConfig.TRACK_ACTIVITY_INTENT_DATA,
     override val nonCrashedSessionSamplingRate: Float = DefaultConfig.SESSION_SAMPLING_RATE,
+    override val eventTypeExportAllowList: List<String> = DefaultConfig.EVENT_TYPE_EXPORT_ALLOW_LIST,
 ) : InternalConfig, IMeasureConfig {
     override val screenshotMaskHexColor: String = "#222222"
     override val screenshotCompressionQuality: Int = 25

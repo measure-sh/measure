@@ -10,6 +10,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
+import sh.measure.android.events.EventType
 import sh.measure.android.exporter.AttachmentPacket
 import sh.measure.android.exporter.EventPacket
 import sh.measure.android.fakes.NoopLogger
@@ -49,7 +50,9 @@ class DatabaseTest {
             it.moveToNext()
             assertEquals(SessionsTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
             it.moveToNext()
-            assertEquals(UserDefinedAttributesTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
+            assertEquals(
+                UserDefinedAttributesTable.TABLE_NAME, it.getString(it.getColumnIndex("name"))
+            )
         }
     }
 
@@ -420,9 +423,84 @@ class DatabaseTest {
         database.insertEvent(event2)
         database.insertEvent(event3)
 
-        val eventsToBatch = database.getUnBatchedEventsWithAttachmentSize(100, sessionId = "session-id-1")
+        val eventsToBatch =
+            database.getUnBatchedEventsWithAttachmentSize(100, sessionId = "session-id-1")
         assertEquals(2, eventsToBatch.size)
     }
+
+    @Test
+    fun `returns all allowed events for export for all sessions, even if session is not marked for export`() {
+        val hotLaunchEvent = EventEntity(
+            id = "event-id-1",
+            type = EventType.HOT_LAUNCH,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
+            sessionId = "session-id-1",
+            userTriggered = false,
+            filePath = "test-file-path",
+            attachmentEntities = emptyList(),
+            serializedAttributes = null,
+            attachmentsSize = 500,
+            serializedUserDefAttributes = null,
+        )
+
+        val coldLaunchEvent = EventEntity(
+            id = "event-id-2",
+            type = EventType.COLD_LAUNCH,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
+            sessionId = "session-id-1",
+            userTriggered = false,
+            filePath = "test-file-path",
+            attachmentEntities = emptyList(),
+            serializedAttributes = null,
+            attachmentsSize = 200,
+            serializedUserDefAttributes = null,
+        )
+
+        val warmLaunchEvent = EventEntity(
+            id = "event-id-3",
+            type = EventType.WARM_LAUNCH,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
+            sessionId = "session-id-2",
+            userTriggered = false,
+            filePath = "test-file-path",
+            attachmentEntities = emptyList(),
+            serializedAttributes = null,
+            attachmentsSize = 200,
+            serializedUserDefAttributes = null,
+        )
+
+        val nonLaunchEvent = EventEntity(
+            id = "event-id-3",
+            type = EventType.CLICK,
+            timestamp = "2024-03-18T12:50:12.62600000Z",
+            sessionId = "session-id-1",
+            userTriggered = false,
+            filePath = "test-file-path",
+            attachmentEntities = emptyList(),
+            serializedAttributes = null,
+            attachmentsSize = 200,
+            serializedUserDefAttributes = null,
+        )
+
+        database.insertSession("session-id-1", 123, 500, false)
+        database.insertSession("session-id-2", 123, 500, false)
+        database.insertEvent(hotLaunchEvent)
+        database.insertEvent(coldLaunchEvent)
+        database.insertEvent(warmLaunchEvent)
+        database.insertEvent(nonLaunchEvent)
+
+        val eventsToBatch = database.getUnBatchedEventsWithAttachmentSize(
+            100,
+            // allow all launch event types
+            eventTypeExportAllowList = listOf(
+                EventType.COLD_LAUNCH,
+                EventType.HOT_LAUNCH,
+                EventType.WARM_LAUNCH,
+            ),
+        )
+        assertEquals(3, eventsToBatch.size)
+    }
+
 
     @Test
     fun `returns event packets for given event IDs`() {
