@@ -48,7 +48,8 @@ internal class BatchCreatorImpl(
             val eventToAttachmentSizeMap =
                 database.getUnBatchedEventsWithAttachmentSize(
                     configProvider.maxEventsInBatch,
-                    sessionId = sessionId
+                    sessionId = sessionId,
+                    eventTypeExportAllowList = configProvider.eventTypeExportAllowList,
                 )
             if (eventToAttachmentSizeMap.isEmpty()) {
                 logger.log(LogLevel.Debug, "No events to batch")

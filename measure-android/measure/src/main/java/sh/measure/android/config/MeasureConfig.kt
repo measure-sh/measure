@@ -85,8 +85,9 @@ class MeasureConfig(
     override val trackActivityIntentData: Boolean = DefaultConfig.TRACK_ACTIVITY_INTENT_DATA,
 
     /**
-     * Allows setting a sampling rate for non-crashed sessions. This is useful to reduce the number of
-     * sessions exported to the server. By default, all non-crashed sessions are always exported.
+     * Allows setting a sampling rate for non-crashed sessions. By default, all non-crashed
+     * sessions are always exported. Non-crashed sessions are ones which did not end due to an
+     * unhandled exception or ANR.
      *
      * The sampling rate is a value between 0 and 1. For example, a value of `0.5` will export only 50%
      * of the non-crashed sessions, a value of `0` will disable exporting of non-crashed sessions.

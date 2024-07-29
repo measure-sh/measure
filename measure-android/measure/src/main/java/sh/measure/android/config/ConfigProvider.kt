@@ -56,6 +56,8 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { screenshotMaskHexColor }
     override val screenshotCompressionQuality: Int
         get() = getMergedConfig { screenshotCompressionQuality }
+    override val eventTypeExportAllowList: List<String>
+        get() = getMergedConfig { eventTypeExportAllowList }
     override val trackHttpHeaders: Boolean
         get() = getMergedConfig { trackHttpHeaders }
     override val trackHttpBody: Boolean

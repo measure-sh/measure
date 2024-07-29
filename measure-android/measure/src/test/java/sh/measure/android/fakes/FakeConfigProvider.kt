@@ -13,6 +13,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override var screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.SensitiveFieldsOnly
     override var screenshotMaskHexColor: String = "#222222"
     override var screenshotCompressionQuality: Int = 25
+    override val eventTypeExportAllowList: List<String> = emptyList()
     override var trackHttpHeaders: Boolean = false
     override var trackHttpBody: Boolean = false
     override var httpHeadersBlocklist: List<String> = emptyList()

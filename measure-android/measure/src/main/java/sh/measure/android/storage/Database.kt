@@ -27,8 +27,9 @@ internal interface Database : Closeable {
      * @param eventCount The number of events to return.
      * @param ascending If `true`, the events are returned in ascending order of timestamp. Else,
      * in descending order.
-     * @param sessionId The session ID for which the events should be returned, if any. If `null`,
-     * events for the oldest session are returned.
+     * @param sessionId The session ID for which the events should be returned, if any.
+     * @param eventTypeExportAllowList The list of event types that should be included in the result
+     * regardless of session ID or whether the session is marked as "needs reporting" or not.
      *
      * @return a map of event Id to the size of attachments in the event in bytes.
      */
@@ -36,6 +37,7 @@ internal interface Database : Closeable {
         eventCount: Int,
         ascending: Boolean = true,
         sessionId: String? = null,
+        eventTypeExportAllowList: List<String> = emptyList(),
     ): LinkedHashMap<String, Long>
 
     /**
@@ -274,8 +276,9 @@ internal class DatabaseImpl(
         eventCount: Int,
         ascending: Boolean,
         sessionId: String?,
+        eventTypeExportAllowList: List<String>,
     ): LinkedHashMap<String, Long> {
-        val query = Sql.getEventsBatchQuery(eventCount, ascending, sessionId)
+        val query = Sql.getEventsBatchQuery(eventCount, ascending, sessionId, eventTypeExportAllowList)
         val cursor = readableDatabase.rawQuery(query, null)
         val eventIdAttachmentSizeMap = LinkedHashMap<String, Long>()
 
