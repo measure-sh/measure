@@ -9,7 +9,7 @@ internal data class Config(
     override val httpHeadersBlocklist: List<String> = DefaultConfig.HTTP_HEADERS_BLOCKLIST,
     override val httpUrlBlocklist: List<String> = DefaultConfig.HTTP_URL_BLOCKLIST,
     override val trackActivityIntentData: Boolean = DefaultConfig.TRACK_ACTIVITY_INTENT_DATA,
-    override val sessionSamplingRate: Float = DefaultConfig.SESSION_SAMPLING_RATE,
+    override val nonCrashedSessionSamplingRate: Float = DefaultConfig.SESSION_SAMPLING_RATE,
 ) : InternalConfig, IMeasureConfig {
     override val screenshotMaskHexColor: String = "#222222"
     override val screenshotCompressionQuality: Int = 25

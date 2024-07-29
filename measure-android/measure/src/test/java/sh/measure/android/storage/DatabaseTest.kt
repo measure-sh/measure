@@ -793,7 +793,7 @@ class DatabaseTest {
         val pid = 123
         database.insertSession(sessionId, pid, 500, false)
 
-        database.markSessionCrashed(sessionId)
+        database.markCrashedSession(sessionId)
 
         val db = database.readableDatabase
         db.query(
@@ -811,6 +811,37 @@ class DatabaseTest {
             assertEquals(1, it.getInt(it.getColumnIndex(SessionsTable.COL_NEEDS_REPORTING)))
         }
     }
+
+    @Test
+    fun `marks multiple sessions as crashed and sets needs reporting`() {
+        val sessionId1 = "session-id-1"
+        database.insertSession(sessionId1, 100, 500, false)
+        val sessionId2 = "session-id-2"
+        database.insertSession(sessionId2, 101, 600, false)
+
+        database.markCrashedSessions(listOf(sessionId1, sessionId2))
+
+        val db = database.readableDatabase
+        // query all session ids from db
+        db.query(
+            SessionsTable.TABLE_NAME,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+        ).use {
+            assertEquals(2, it.count)
+            it.moveToFirst()
+            assertEquals(1, it.getInt(it.getColumnIndex(SessionsTable.COL_CRASHED)))
+            assertEquals(1, it.getInt(it.getColumnIndex(SessionsTable.COL_NEEDS_REPORTING)))
+            it.moveToNext()
+            assertEquals(1, it.getInt(it.getColumnIndex(SessionsTable.COL_CRASHED)))
+            assertEquals(1, it.getInt(it.getColumnIndex(SessionsTable.COL_NEEDS_REPORTING)))
+        }
+    }
+
 
     private fun assertAttachmentPacket(
         attachment: AttachmentEntity,

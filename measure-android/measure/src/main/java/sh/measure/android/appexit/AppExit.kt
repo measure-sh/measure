@@ -2,6 +2,8 @@ package sh.measure.android.appexit
 
 import android.app.ActivityManager
 import android.app.ApplicationExitInfo
+import android.os.Build
+import androidx.annotation.RequiresApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
@@ -12,6 +14,11 @@ import kotlinx.serialization.Transient
 internal data class AppExit(
     /**
      * @see [ApplicationExitInfo.getReason]
+     */
+    @Transient
+    val reasonId: Int = 0,
+    /**
+     * [reasonId] mapped to a human readable string.
      */
     val reason: String,
 
@@ -40,4 +47,9 @@ internal data class AppExit(
      * @see [ApplicationExitInfo.getPid]
      */
     val pid: String,
-)
+) {
+    @RequiresApi(Build.VERSION_CODES.R)
+    fun isCrash(): Boolean {
+        return reasonId == ApplicationExitInfo.REASON_CRASH || reasonId == ApplicationExitInfo.REASON_CRASH_NATIVE || reasonId == ApplicationExitInfo.REASON_ANR
+    }
+}

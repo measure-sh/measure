@@ -159,7 +159,7 @@ internal class EventProcessorImpl(
         eventTransformer.transform(event)?.let {
             eventStore.store(event)
             exceptionExporter.export(event.sessionId)
-            sessionManager.markSessionCrashed(event.sessionId)
+            sessionManager.markCrashedSession(event.sessionId)
             logger.log(LogLevel.Debug, "Event processed: $type, ${event.sessionId}")
         } ?: logger.log(LogLevel.Debug, "Event dropped: $type")
     }

@@ -178,7 +178,13 @@ internal interface Database : Closeable {
      *
      * @param sessionId The session ID that crashed.
      */
-    fun markSessionCrashed(sessionId: String)
+    fun markCrashedSession(sessionId: String)
+
+    /**
+     * Marks multiple sessions as crashed in the sessions table.
+     * @param sessionIds The list of session IDs that crashed.
+     */
+    fun markCrashedSessions(sessionIds: List<String>)
 }
 
 /**
@@ -723,8 +729,12 @@ internal class DatabaseImpl(
         return eventEntities
     }
 
-    override fun markSessionCrashed(sessionId: String) {
+    override fun markCrashedSession(sessionId: String) {
         writableDatabase.execSQL(Sql.markSessionCrashed(sessionId))
+    }
+
+    override fun markCrashedSessions(sessionIds: List<String>) {
+        writableDatabase.execSQL(Sql.markSessionsCrashed(sessionIds))
     }
 
     override fun close() {

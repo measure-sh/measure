@@ -277,7 +277,7 @@ checking what data was passed as part of the bundle, it might also contain sensi
 
 The following configurations are available:
 
-### `trackLifecycleActivityIntentData`
+### `trackActivityIntentData`
 
 Allows enabling/disabling of collection of intent data for the following events:
 
@@ -288,6 +288,14 @@ Allows enabling/disabling of collection of intent data for the following events:
 * `hot_launch` event, which is collected when the app is launched from a hot start.
 
 Disabled by default.
+
+### `nonCrashedSessionSamplingRate`
+
+Allows setting a sampling rate for non-crashed sessions. This is useful to reduce the number of
+sessions exported to the server. By default, all non-crashed sessions are always exported.
+
+The sampling rate is a value between 0 and 1. For example, a value of `0.5` will export only 50%
+of the non-crashed sessions, a value of `0` will disable exporting of non-crashed sessions.
 
 # Custom Events
 

@@ -1,5 +1,6 @@
 package sh.measure.android.appexit
 
+import android.annotation.SuppressLint
 import sh.measure.android.SessionManager
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
@@ -23,18 +24,25 @@ internal class AppExitCollector(
             }
             val pidsToSessionsMap: Map<Int, List<String>> = sessionManager.getSessionsForPids()
             val appExitsToTrack = mapAppExitsToSession(pidsToSessionsMap, appExits)
+            markSessionsAsCrashedByAppExitReason(appExitsToTrack)
             appExitsToTrack.forEach {
                 eventProcessor.track(
-                    it.third,
+                    data = it.third,
                     // For app exit, the time at which the app exited is more relevant
                     // than the current time.
-                    it.third.app_exit_time_ms,
-                    EventType.APP_EXIT,
+                    timestamp = it.third.app_exit_time_ms,
+                    type = EventType.APP_EXIT,
                     sessionId = it.second,
                 )
                 sessionManager.updateAppExitTracked(pid = it.first)
             }
         }
+    }
+
+    @SuppressLint("NewApi")
+    private fun markSessionsAsCrashedByAppExitReason(appExitsToTrack: List<Triple<Int, String, AppExit>>) {
+        val crashedSessionIds = appExitsToTrack.filter { it.third.isCrash() }.map { it.second }
+        sessionManager.markCrashedSessions(crashedSessionIds)
     }
 
     private fun mapAppExitsToSession(
