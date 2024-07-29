@@ -294,22 +294,4 @@ internal object Sql {
             WHERE ${SessionsTable.COL_SESSION_ID} IN (${sessionIds.joinToString(", ") { "\'$it\'" }})
         """.trimIndent()
     }
-
-    fun getEvents(): String {
-        return """
-            SELECT 
-                ${EventTable.COL_ID},
-                ${EventTable.COL_SESSION_ID},
-                ${EventTable.COL_TIMESTAMP},
-                ${EventTable.COL_TYPE},
-                ${EventTable.COL_USER_TRIGGERED},
-                ${EventTable.COL_DATA_SERIALIZED},
-                ${EventTable.COL_DATA_FILE_PATH},
-                ${EventTable.COL_ATTACHMENTS},
-                ${EventTable.COL_ATTACHMENT_SIZE},
-                ${EventTable.COL_ATTRIBUTES},
-                ${EventTable.COL_USER_DEFINED_ATTRIBUTES}
-            FROM ${EventTable.TABLE_NAME}
-        """.trimIndent()
-    }
 }
