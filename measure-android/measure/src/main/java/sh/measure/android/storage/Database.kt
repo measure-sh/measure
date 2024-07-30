@@ -119,7 +119,12 @@ internal interface Database : Closeable {
      * @param createdAt the creation time of the session.
      * @param needsReporting whether the session needs to be exported.
      */
-    fun insertSession(sessionId: String, pid: Int, createdAt: Long, needsReporting: Boolean): Boolean
+    fun insertSession(
+        sessionId: String,
+        pid: Int,
+        createdAt: Long,
+        needsReporting: Boolean,
+    ): Boolean
 
     /**
      * Returns a map of process IDs to list of session IDs that were created by that process
@@ -131,9 +136,10 @@ internal interface Database : Closeable {
     /**
      * Cleans up old sessions that were created before the given time.
      *
-     * @param clearUpToTimeSinceEpoch The time before which the sessions should be deleted.
+     * @param sessionExpirationTime The time before which the sessions should be deleted.
+     * @param unsampledSessionExpirationTime The time before which unsampled sessions should be deleted.
      */
-    fun clearOldSessions(clearUpToTimeSinceEpoch: Long)
+    fun clearOldSessions(sessionExpirationTime: Long, unsampledSessionExpirationTime: Long)
 
     /**
      * Updates the sessions table to mark the app exit event as tracked.
@@ -278,7 +284,8 @@ internal class DatabaseImpl(
         sessionId: String?,
         eventTypeExportAllowList: List<String>,
     ): LinkedHashMap<String, Long> {
-        val query = Sql.getEventsBatchQuery(eventCount, ascending, sessionId, eventTypeExportAllowList)
+        val query =
+            Sql.getEventsBatchQuery(eventCount, ascending, sessionId, eventTypeExportAllowList)
         val cursor = readableDatabase.rawQuery(query, null)
         val eventIdAttachmentSizeMap = LinkedHashMap<String, Long>()
 
@@ -491,7 +498,12 @@ internal class DatabaseImpl(
         }
     }
 
-    override fun insertSession(sessionId: String, pid: Int, createdAt: Long, needsReporting: Boolean): Boolean {
+    override fun insertSession(
+        sessionId: String,
+        pid: Int,
+        createdAt: Long,
+        needsReporting: Boolean,
+    ): Boolean {
         val values = ContentValues().apply {
             put(SessionsTable.COL_SESSION_ID, sessionId)
             put(SessionsTable.COL_PID, pid)
@@ -528,11 +540,14 @@ internal class DatabaseImpl(
         }
     }
 
-    override fun clearOldSessions(clearUpToTimeSinceEpoch: Long) {
+    override fun clearOldSessions(
+        sessionExpirationTime: Long,
+        unsampledSessionExpirationTime: Long,
+    ) {
         writableDatabase.delete(
             SessionsTable.TABLE_NAME,
-            "${SessionsTable.COL_CREATED_AT} <= ?",
-            arrayOf(clearUpToTimeSinceEpoch.toString()),
+            "${SessionsTable.COL_CREATED_AT} < ? OR (${SessionsTable.COL_CREATED_AT} < ? AND ${SessionsTable.COL_NEEDS_REPORTING} = 0)",
+            arrayOf(sessionExpirationTime.toString(), unsampledSessionExpirationTime.toString()),
         )
     }
 

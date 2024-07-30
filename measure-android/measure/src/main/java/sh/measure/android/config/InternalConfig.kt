@@ -29,10 +29,15 @@ internal interface InternalConfig {
      */
     val defaultHttpHeadersBlocklist: List<String>
 
-    /* The TTL for data in the sessions table after which it will be cleared. Defaults to
-     * 15 days.
+    /**
+     * The TTL sessions after which the data will be cleared. Defaults to 15 days.
      */
-    val sessionsTableTtlMs: Long
+    val sessionsTtlMs: Long
+
+    /**
+     * The TTL of unsampled sessions. Defaults to 3 days.
+     */
+    val unsampledSessionTtlMs: Long
 
     /**
      * The threshold after which a session is considered ended. Defaults to 1 minute.

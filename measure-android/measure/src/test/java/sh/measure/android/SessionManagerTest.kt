@@ -50,7 +50,12 @@ class SessionManagerTest {
 
         val sessionId = sessionManager.getSessionId()
         assertEquals(expectedSessionId, sessionId)
-        verify(database).insertSession(expectedSessionId, processInfo.getPid(), timeProvider.fakeCurrentTimeSinceEpochInMillis, false)
+        verify(database).insertSession(
+            expectedSessionId,
+            processInfo.getPid(),
+            timeProvider.fakeCurrentTimeSinceEpochInMillis,
+            false
+        )
     }
 
     @Test
@@ -77,7 +82,12 @@ class SessionManagerTest {
 
         val sessionId = sessionManager.getSessionId()
         assertEquals(updatedSessionId, sessionId)
-        verify(database).insertSession(updatedSessionId, processInfo.getPid(), timeProvider.fakeCurrentTimeSinceEpochInMillis, false)
+        verify(database).insertSession(
+            updatedSessionId,
+            processInfo.getPid(),
+            timeProvider.fakeCurrentTimeSinceEpochInMillis,
+            false
+        )
     }
 
     @Test
@@ -88,10 +98,13 @@ class SessionManagerTest {
 
     @Test
     fun `delegates to database to delete old sessions by calculating the time to clear up to`() {
-        val currentTime = configProvider.sessionsTableTtlMs + 1000
+        val currentTime = configProvider.sessionsTtlMs + 1000
         timeProvider.fakeCurrentTimeSinceEpochInMillis = currentTime
         sessionManager.clearOldSessions()
-        verify(database).clearOldSessions(currentTime - configProvider.sessionsTableTtlMs)
+        verify(database).clearOldSessions(
+            currentTime - configProvider.sessionsTtlMs,
+            currentTime - configProvider.unsampledSessionTtlMs
+        )
     }
 
     @Test

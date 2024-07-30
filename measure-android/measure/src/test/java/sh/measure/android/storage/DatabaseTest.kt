@@ -786,13 +786,51 @@ class DatabaseTest {
     }
 
     @Test
-    fun `clears old sessions from sessions table`() {
-        database.insertSession("session-id-1", 123, 500, false)
-        database.insertSession("session-id-2", 987, 700, false)
+    fun `clears sessions from sessions table which were created before session expiration time`() {
+        database.insertSession("session-id-1", 123, 500, true)
+        database.insertSession("session-id-2", 332, 550, false)
+        database.insertSession("session-id-3", 987, 700, true)
 
-        database.clearOldSessions(600)
-        assertEquals(1, database.getSessionsWithUntrackedAppExit().size)
+        database.clearOldSessions(600, 1000)
+
+        val db = database.writableDatabase
+        db.query(
+            SessionsTable.TABLE_NAME,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+        ).use {
+            assertEquals(1, it.count)
+        }
     }
+
+    @Test
+    fun `clears sessions from sessions table which have exceeded unsampledSessionExpirationTime and do not need reporting`() {
+        database.insertSession("session-id-1", 101, 5000, false)
+        database.insertSession("session-id-2", 201, 5000, false)
+        database.insertSession("session-id-3", 301, 5000, true)
+        database.insertSession("session-id-4", 301, 10000, true)
+
+        database.clearOldSessions(1000, 6000)
+
+        // get all sessions query
+        val db = database.writableDatabase
+        db.query(
+            SessionsTable.TABLE_NAME,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+        ).use {
+            assertEquals(2, it.count)
+        }
+    }
+
 
     @Test
     fun `returns all sessions with untracked app exits from sessions table`() {
