@@ -42,13 +42,13 @@ class DatabaseTest {
             it.moveToFirst()
             // first table is android_metadata, skip it.
             it.moveToNext()
+            assertEquals(SessionsTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
+            it.moveToNext()
             assertEquals(EventTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
             it.moveToNext()
             assertEquals(AttachmentTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
             it.moveToNext()
             assertEquals(EventsBatchTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
-            it.moveToNext()
-            assertEquals(SessionsTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
             it.moveToNext()
             assertEquals(
                 UserDefinedAttributesTable.TABLE_NAME,
@@ -71,7 +71,7 @@ class DatabaseTest {
             id = "event-id",
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "987",
+            sessionId = "session-id-1",
             userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = listOf(attachmentEntity),
@@ -81,6 +81,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
+        database.insertSession("session-id-1", 123, 500, true)
         val result = database.insertEvent(event)
 
         assertTrue(result)
@@ -102,7 +103,7 @@ class DatabaseTest {
             id = "event-id",
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "987",
+            sessionId = "session-id-1",
             userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
@@ -112,6 +113,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
+        database.insertSession("session-id-1", 123, 500, true)
         val result = database.insertEvent(event)
 
         assertTrue(result)
@@ -127,7 +129,7 @@ class DatabaseTest {
             id = "event-id",
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "987",
+            sessionId = "session-id-1",
             userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
@@ -137,6 +139,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
+        database.insertSession("session-id-1", 123, 500, true)
         database.insertEvent(event)
         // attempt to insert a event with same ID twice, resulting in a failure
         val result = database.insertEvent(event)
@@ -189,7 +192,7 @@ class DatabaseTest {
             id = "event-id-1",
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "987",
+            sessionId = "session-id-1",
             userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
@@ -202,7 +205,7 @@ class DatabaseTest {
             id = "event-id-2",
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "987",
+            sessionId = "session-id-1",
             userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
@@ -211,6 +214,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
+        database.insertSession("session-id-1", 123, 500, true)
         database.insertEvent(event1)
         database.insertEvent(event2)
         val result = database.insertBatch(listOf(event1.id, event2.id), "batch-id", 1234567890L)
@@ -231,7 +235,7 @@ class DatabaseTest {
             id = "event-id",
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "987",
+            sessionId = "session-id-1",
             userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = emptyList(),
@@ -240,6 +244,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
+        database.insertSession("session-id-1", 123, 500, true)
         database.insertEvent(event)
         val result = database.insertBatch(event.id, "batch-id", 1234567890L)
         assertEquals(true, result)
@@ -420,6 +425,8 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
+        database.insertSession("session-id-1", 123, 500, true)
+        database.insertSession("session-id-2", 123, 500, true)
         database.insertEvent(event1)
         database.insertEvent(event2)
         database.insertEvent(event3)
@@ -508,7 +515,7 @@ class DatabaseTest {
             id = "event-id-1",
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "987",
+            sessionId = "session-id-1",
             userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = null,
@@ -522,7 +529,7 @@ class DatabaseTest {
             id = "event-id-2",
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "123",
+            sessionId = "session-id-1",
             userTriggered = false,
             serializedData = "data",
             attachmentEntities = null,
@@ -532,6 +539,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
+        database.insertSession("session-id-1", 123, 500, true)
         database.insertEvent(event1)
         database.insertEvent(event2)
 
@@ -547,7 +555,7 @@ class DatabaseTest {
             id = "event-id-1",
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "987",
+            sessionId = "session-id-1",
             userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = null,
@@ -561,7 +569,7 @@ class DatabaseTest {
             id = "event-id-2",
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "123",
+            sessionId = "session-id-1",
             userTriggered = false,
             serializedData = "data",
             attachmentEntities = null,
@@ -571,6 +579,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
+        database.insertSession("session-id-1", 123, 500, true)
         database.insertEvent(event1)
         database.insertEvent(event2)
 
@@ -598,7 +607,7 @@ class DatabaseTest {
             id = "event-id-1",
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "987",
+            sessionId = "session-id-1",
             userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = listOf(attachment1),
@@ -612,7 +621,7 @@ class DatabaseTest {
             id = "event-id-2",
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "123",
+            sessionId = "session-id-1",
             userTriggered = false,
             serializedData = "data",
             attachmentEntities = listOf(attachment2),
@@ -622,6 +631,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
+        database.insertSession("session-id-1", 123, 500, true)
         database.insertEvent(event1)
         database.insertEvent(event2)
 
@@ -637,7 +647,7 @@ class DatabaseTest {
             id = "event-id-1",
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "987",
+            sessionId = "session-id-1",
             userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = null,
@@ -651,7 +661,7 @@ class DatabaseTest {
             id = "event-id-2",
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "123",
+            sessionId = "session-id-1",
             userTriggered = false,
             serializedData = "data",
             attachmentEntities = null,
@@ -660,6 +670,8 @@ class DatabaseTest {
             attachmentsSize = 200,
             serializedUserDefAttributes = null,
         )
+
+        database.insertSession("session-id-1", 123, 500, true)
         database.insertEvent(event1)
         database.insertEvent(event2)
         database.insertBatch(listOf(event1.id, event2.id), "batch-id-1", 1234567890L)
@@ -674,7 +686,7 @@ class DatabaseTest {
             id = "event-id",
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "987",
+            sessionId = "session-id-1",
             userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = null,
@@ -684,6 +696,7 @@ class DatabaseTest {
             attachmentsSize = 100,
         )
 
+        database.insertSession("session-id-1", 123, 500, true)
         database.insertEvent(event)
 
         val eventPacket = database.getEventPacket(event.id)
@@ -703,7 +716,7 @@ class DatabaseTest {
             id = "event-id",
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "987",
+            sessionId = "session-id-1",
             userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = listOf(attachment),
@@ -713,6 +726,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
+        database.insertSession("session-id-1", 123, 500, true)
         database.insertEvent(event)
 
         val attachmentPackets = database.getAttachmentPacket(event.id)
@@ -726,7 +740,7 @@ class DatabaseTest {
             id = "event-id-1",
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "987",
+            sessionId = "session-id-1",
             userTriggered = false,
             filePath = "test-file-path",
             attachmentEntities = null,
@@ -740,7 +754,7 @@ class DatabaseTest {
             id = "event-id-2",
             type = "test",
             timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "123",
+            sessionId = "session-id-1",
             userTriggered = false,
             serializedData = "data",
             attachmentEntities = null,
@@ -750,6 +764,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
+        database.insertSession("session-id-1", 123, 500, true)
         database.insertEvent(event1)
         database.insertEvent(event2)
 
