@@ -54,7 +54,7 @@ class SessionManagerTest {
             expectedSessionId,
             processInfo.getPid(),
             timeProvider.fakeCurrentTimeSinceEpochInMillis,
-            false
+            false,
         )
     }
 
@@ -86,7 +86,7 @@ class SessionManagerTest {
             updatedSessionId,
             processInfo.getPid(),
             timeProvider.fakeCurrentTimeSinceEpochInMillis,
-            false
+            false,
         )
     }
 
@@ -103,7 +103,7 @@ class SessionManagerTest {
         sessionManager.clearOldSessions()
         verify(database).clearOldSessions(
             currentTime - configProvider.sessionsTtlMs,
-            currentTime - configProvider.unsampledSessionTtlMs
+            currentTime - configProvider.unsampledSessionTtlMs,
         )
     }
 

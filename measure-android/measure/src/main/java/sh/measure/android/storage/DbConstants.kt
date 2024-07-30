@@ -127,7 +127,7 @@ internal object Sql {
         eventCount: Int,
         ascending: Boolean,
         sessionId: String?,
-        eventTypeAllowList: List<String>
+        eventTypeAllowList: List<String>,
     ): String {
         val sessionCondition = if (sessionId != null) {
             "AND ${EventTable.COL_SESSION_ID} = '$sessionId'"
@@ -138,7 +138,7 @@ internal object Sql {
                 FROM ${SessionsTable.TABLE_NAME} 
                 WHERE ${SessionsTable.COL_NEEDS_REPORTING} = 1 
             )
-        """.trimIndent()
+            """.trimIndent()
         }
 
         val eventTypesAllowListCondition = if (eventTypeAllowList.isNotEmpty()) {
@@ -171,7 +171,7 @@ internal object Sql {
             datetime(${EventTable.COL_TIMESTAMP}) ${if (ascending) "ASC" else "DESC"}
         LIMIT 
             $eventCount
-    """.trimIndent()
+        """.trimIndent()
     }
     fun getBatches(maxCount: Int): String {
         return """
