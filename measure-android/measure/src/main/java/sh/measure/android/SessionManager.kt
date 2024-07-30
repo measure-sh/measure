@@ -22,7 +22,7 @@ internal interface SessionManager {
      *
      * @return A map of process ID to list of session IDs that were created by that process.
      */
-    fun getSessionsForPids(): Map<Int, List<String>>
+    fun getSessionsWithUntrackedAppExit(): Map<Int, List<String>>
 
     /**
      * Called when the app is backgrounded.
@@ -88,7 +88,7 @@ internal class SessionManagerImpl(
         return currentSessionId!!
     }
 
-    override fun getSessionsForPids(): Map<Int, List<String>> {
+    override fun getSessionsWithUntrackedAppExit(): Map<Int, List<String>> {
         return database.getSessionsWithUntrackedAppExit()
     }
 

@@ -22,7 +22,7 @@ internal class AppExitCollector(
             if (appExits.isNullOrEmpty()) {
                 return@submit emptyList<Triple<Int, String, AppExit>>()
             }
-            val pidsToSessionsMap: Map<Int, List<String>> = sessionManager.getSessionsForPids()
+            val pidsToSessionsMap: Map<Int, List<String>> = sessionManager.getSessionsWithUntrackedAppExit()
             val appExitsToTrack = mapAppExitsToSession(pidsToSessionsMap, appExits)
             markSessionsAsCrashedByAppExitReason(appExitsToTrack)
             appExitsToTrack.forEach {

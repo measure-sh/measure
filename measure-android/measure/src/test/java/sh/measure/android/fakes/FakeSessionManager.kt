@@ -11,7 +11,7 @@ internal class FakeSessionManager : SessionManager {
         return "fake-session-id"
     }
 
-    override fun getSessionsForPids(): Map<Int, List<String>> {
+    override fun getSessionsWithUntrackedAppExit(): Map<Int, List<String>> {
         return sessionPids.groupBy({ it.second }, { it.first })
     }
 

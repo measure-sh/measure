@@ -92,7 +92,7 @@ class SessionManagerTest {
 
     @Test
     fun `delegates to database to get sessions for pids where app exit has not been tracked`() {
-        sessionManager.getSessionsForPids()
+        sessionManager.getSessionsWithUntrackedAppExit()
         verify(database).getSessionsWithUntrackedAppExit()
     }
 
