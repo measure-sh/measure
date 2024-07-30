@@ -35,7 +35,7 @@ class BatchCreatorTest {
                 eq(true),
                 eq(null),
                 eq(config.eventTypeExportAllowList),
-            )
+            ),
         ).thenReturn(
             LinkedHashMap<String, Long>().apply {
                 put("event1", 100)
@@ -61,7 +61,7 @@ class BatchCreatorTest {
                 ascending = eq(true),
                 sessionId = eq(null),
                 eventTypeExportAllowList = eq(config.eventTypeExportAllowList),
-            )
+            ),
         ).thenReturn(
             LinkedHashMap(),
         )

@@ -192,23 +192,25 @@ class AppExitCollectorTest {
             pid1 to crashedAppExit,
             pid2 to anrAppExit,
             pid3 to nativeCrashAppExit,
-            pid4 to nonCrashAppExit
+            pid4 to nonCrashAppExit,
         )
         `when`(sessionManager.getSessionsWithUntrackedAppExit()).thenReturn(
             mapOf(
                 pid1 to listOf("session-id1"),
                 pid2 to listOf("session-id2"),
                 pid3 to listOf("session-id3"),
-                pid4 to listOf("session-id4")
-            )
+                pid4 to listOf("session-id4"),
+            ),
         )
 
         appExitCollector.onColdLaunch()
 
         verify(sessionManager).markCrashedSessions(
             listOf(
-                "session-id1", "session-id2", "session-id3"
-            )
+                "session-id1",
+                "session-id2",
+                "session-id3",
+            ),
         )
     }
 }

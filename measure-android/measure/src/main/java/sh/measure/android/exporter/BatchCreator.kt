@@ -60,7 +60,7 @@ internal class BatchCreatorImpl(
             if (eventIds.isEmpty()) {
                 logger.log(
                     LogLevel.Debug,
-                    "No events to batch after filtering for max attachment size"
+                    "No events to batch after filtering for max attachment size",
                 )
                 return null
             }

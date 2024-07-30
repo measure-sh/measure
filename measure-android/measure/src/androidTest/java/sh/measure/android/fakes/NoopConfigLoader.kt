@@ -9,6 +9,5 @@ internal class NoopConfigLoader : ConfigLoader {
     }
 
     override fun getNetworkConfig(onSuccess: (Config) -> Unit) {
-
     }
 }

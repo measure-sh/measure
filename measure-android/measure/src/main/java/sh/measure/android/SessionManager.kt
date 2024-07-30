@@ -146,7 +146,7 @@ internal class SessionManagerImpl(
             storeSession(id, needsReporting)
             logger.log(
                 LogLevel.Debug,
-                "New session created with ID: $currentSessionId with needsReporting=$needsReporting"
+                "New session created with ID: $currentSessionId with needsReporting=$needsReporting",
             )
         }
     }

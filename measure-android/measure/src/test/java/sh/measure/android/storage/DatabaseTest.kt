@@ -51,7 +51,8 @@ class DatabaseTest {
             assertEquals(SessionsTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
             it.moveToNext()
             assertEquals(
-                UserDefinedAttributesTable.TABLE_NAME, it.getString(it.getColumnIndex("name"))
+                UserDefinedAttributesTable.TABLE_NAME,
+                it.getString(it.getColumnIndex("name")),
             )
         }
     }
@@ -501,7 +502,6 @@ class DatabaseTest {
         assertEquals(3, eventsToBatch.size)
     }
 
-
     @Test
     fun `returns event packets for given event IDs`() {
         val event1 = EventEntity(
@@ -831,7 +831,6 @@ class DatabaseTest {
         }
     }
 
-
     @Test
     fun `returns all sessions with untracked app exits from sessions table`() {
         database.insertSession("session-id-1", 123, 500, false)
@@ -957,7 +956,6 @@ class DatabaseTest {
             assertEquals(1, it.getInt(it.getColumnIndex(SessionsTable.COL_NEEDS_REPORTING)))
         }
     }
-
 
     private fun assertAttachmentPacket(
         attachment: AttachmentEntity,
