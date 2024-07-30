@@ -275,7 +275,6 @@ internal class MeasureInitializerImpl(
         systemServiceProvider = systemServiceProvider,
     ),
     override val appExitCollector: AppExitCollector = AppExitCollector(
-        timeProvider = timeProvider,
         appExitProvider = appExitProvider,
         ioExecutor = executorServiceRegistry.ioExecutor(),
         eventProcessor = eventProcessor,

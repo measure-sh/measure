@@ -4,13 +4,11 @@ import sh.measure.android.SessionManager
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.executors.MeasureExecutorService
-import sh.measure.android.utils.TimeProvider
 
 internal class AppExitCollector(
     private val appExitProvider: AppExitProvider,
     private val ioExecutor: MeasureExecutorService,
     private val eventProcessor: EventProcessor,
-    private val timeProvider: TimeProvider,
     private val sessionManager: SessionManager,
 ) {
     fun onColdLaunch() {
@@ -28,7 +26,9 @@ internal class AppExitCollector(
             appExitsToTrack.forEach {
                 eventProcessor.track(
                     it.third,
-                    timeProvider.currentTimeSinceEpochInMillis,
+                    // For app exit, the time at which the app exited is more relevant
+                    // than the current time.
+                    it.third.app_exit_time_ms,
                     EventType.APP_EXIT,
                     sessionId = it.second,
                 )
