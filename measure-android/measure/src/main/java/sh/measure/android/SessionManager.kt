@@ -119,9 +119,10 @@ internal class SessionManagerImpl(
 
     override fun clearOldSessions() {
         ioExecutor.submit {
-            val clearUpToTimeSinceEpoch =
-                timeProvider.currentTimeSinceEpochInMillis - configProvider.sessionsTableTtlMs
-            database.clearOldSessions(clearUpToTimeSinceEpoch)
+            val currentTime = timeProvider.currentTimeSinceEpochInMillis
+            val sessionExpirationTime = currentTime - configProvider.sessionsTtlMs
+            val unsampledSessionExpirationTime = currentTime - configProvider.unsampledSessionTtlMs
+            database.clearOldSessions(sessionExpirationTime, unsampledSessionExpirationTime)
         }
     }
 
