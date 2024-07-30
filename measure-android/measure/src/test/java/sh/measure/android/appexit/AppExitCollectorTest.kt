@@ -46,7 +46,7 @@ class AppExitCollectorTest {
 
     @Test
     fun `given no sessions available, does not track anything`() {
-        `when`(sessionManager.getSessionsForPids()).thenReturn(emptyMap())
+        `when`(sessionManager.getSessionsWithUntrackedAppExit()).thenReturn(emptyMap())
         appExitCollector.onColdLaunch()
 
         val appExit = AppExit(
@@ -71,7 +71,7 @@ class AppExitCollectorTest {
         val sessionId = sessionManager.getSessionId()
         val pid = 7654
         appExitProvider.appExits = mapOf()
-        `when`(sessionManager.getSessionsForPids()).thenReturn(mapOf(pid to listOf(sessionId)))
+        `when`(sessionManager.getSessionsWithUntrackedAppExit()).thenReturn(mapOf(pid to listOf(sessionId)))
 
         appExitCollector.onColdLaunch()
 
@@ -94,7 +94,7 @@ class AppExitCollectorTest {
             importance = "IMPORTANCE_VISIBLE",
         )
         appExitProvider.appExits = mapOf(pid to appExit)
-        `when`(sessionManager.getSessionsForPids()).thenReturn(mapOf(9999 to listOf("session-id")))
+        `when`(sessionManager.getSessionsWithUntrackedAppExit()).thenReturn(mapOf(9999 to listOf("session-id")))
 
         appExitCollector.onColdLaunch()
 
@@ -119,7 +119,7 @@ class AppExitCollectorTest {
             app_exit_time_ms = 1234567890,
         )
         appExitProvider.appExits = mapOf(pid to appExit)
-        `when`(sessionManager.getSessionsForPids()).thenReturn(mapOf(pid to listOf(sessionId)))
+        `when`(sessionManager.getSessionsWithUntrackedAppExit()).thenReturn(mapOf(pid to listOf(sessionId)))
 
         appExitCollector.onColdLaunch()
 
@@ -143,7 +143,7 @@ class AppExitCollectorTest {
             importance = "IMPORTANCE_VISIBLE",
         )
         appExitProvider.appExits = mapOf(pid to appExit)
-        `when`(sessionManager.getSessionsForPids()).thenReturn(mapOf(pid to listOf(sessionId)))
+        `when`(sessionManager.getSessionsWithUntrackedAppExit()).thenReturn(mapOf(pid to listOf(sessionId)))
 
         appExitCollector.onColdLaunch()
 
@@ -194,7 +194,7 @@ class AppExitCollectorTest {
             pid3 to nativeCrashAppExit,
             pid4 to nonCrashAppExit
         )
-        `when`(sessionManager.getSessionsForPids()).thenReturn(
+        `when`(sessionManager.getSessionsWithUntrackedAppExit()).thenReturn(
             mapOf(
                 pid1 to listOf("session-id1"),
                 pid2 to listOf("session-id2"),
