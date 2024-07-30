@@ -81,8 +81,14 @@ internal class PeriodicEventExporterImpl(
     }
 
     private fun processExistingBatches(batches: LinkedHashMap<String, MutableList<String>>) {
-        batches.forEach { batch ->
-            eventExporter.export(batchId = batch.key, eventIds = batch.value)
+        for (batch in batches) {
+            val response = eventExporter.export(batchId = batch.key, eventIds = batch.value)
+            if (response is HttpResponse.Error.RateLimitError || response is HttpResponse.Error.ServerError) {
+                // stop processing the rest of the batches if one of them fails
+                // this is to avoid the case where we keep trying even if the server is
+                // down or we have been rate limited. We can always try again in the next heartbeat.
+                break
+            }
         }
     }
 

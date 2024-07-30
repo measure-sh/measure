@@ -14,7 +14,13 @@ import java.util.concurrent.CopyOnWriteArrayList
 internal interface EventExporter {
     fun createBatch(sessionId: String? = null): BatchCreationResult?
     fun getExistingBatches(): LinkedHashMap<String, MutableList<String>>
-    fun export(batchId: String, eventIds: List<String>)
+
+    /**
+     * Exports the events with the given [eventIds] in the batch with the given [batchId].
+     *
+     * @return the response of the export operation.
+     */
+    fun export(batchId: String, eventIds: List<String>): HttpResponse<Nothing?>?
 }
 
 internal class EventExporterImpl(
@@ -25,16 +31,16 @@ internal class EventExporterImpl(
     private val batchCreator: BatchCreator,
 ) : EventExporter {
     private companion object {
-        const val MAX_EXISTING_BATCHES_TO_EXPORT = 30
+        const val MAX_EXISTING_BATCHES_TO_EXPORT = 5
     }
 
     @VisibleForTesting
     internal val batchIdsInTransit = CopyOnWriteArrayList<String>()
 
-    override fun export(batchId: String, eventIds: List<String>) {
+    override fun export(batchId: String, eventIds: List<String>): HttpResponse<Nothing?>? {
         if (batchIdsInTransit.contains(batchId)) {
             logger.log(LogLevel.Warning, "Batch $batchId is already in transit, skipping export")
-            return
+            return null
         }
         batchIdsInTransit.add(batchId)
         try {
@@ -45,11 +51,12 @@ internal class EventExporterImpl(
                     LogLevel.Error,
                     "No events found for batch $batchId, invalid export request",
                 )
-                return
+                return null
             }
             val attachments = database.getAttachmentPackets(eventIds)
             val response = networkClient.execute(batchId, events, attachments)
             handleBatchProcessingResult(response, batchId, events, attachments)
+            return response
         } finally {
             // always remove the batch from the list of batches in transit
             batchIdsInTransit.remove(batchId)
