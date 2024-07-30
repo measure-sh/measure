@@ -12,21 +12,18 @@ import sh.measure.android.SessionManager
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeAppExitProvider
-import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.ImmediateExecutorService
 
 class AppExitCollectorTest {
     private val appExitProvider = FakeAppExitProvider()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val eventProcessor = mock<EventProcessor>()
-    private val timeProvider = FakeTimeProvider()
     private val sessionManager = mock<SessionManager>()
 
     private val appExitCollector = AppExitCollector(
         appExitProvider,
         executorService,
         eventProcessor,
-        timeProvider,
         sessionManager,
     )
 
@@ -119,6 +116,7 @@ class AppExitCollectorTest {
             trace = null,
             process_name = "com.example.app",
             importance = "IMPORTANCE_VISIBLE",
+            app_exit_time_ms = 1234567890,
         )
         appExitProvider.appExits = mapOf(pid to appExit)
         `when`(sessionManager.getSessionsForPids()).thenReturn(mapOf(pid to listOf(sessionId)))
@@ -127,7 +125,7 @@ class AppExitCollectorTest {
 
         verify(eventProcessor).track(
             data = appExit,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = appExit.app_exit_time_ms,
             type = EventType.APP_EXIT,
             sessionId = sessionId,
         )
