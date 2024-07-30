@@ -68,7 +68,8 @@ internal object Sql {
             ${EventTable.COL_ATTRIBUTES} TEXT DEFAULT NULL,
             ${EventTable.COL_USER_DEFINED_ATTRIBUTES} TEXT DEFAULT NULL,
             ${EventTable.COL_ATTACHMENT_SIZE} INTEGER NOT NULL,
-            ${EventTable.COL_ATTACHMENTS} TEXT DEFAULT NULL
+            ${EventTable.COL_ATTACHMENTS} TEXT DEFAULT NULL,
+            FOREIGN KEY (${EventTable.COL_SESSION_ID}) REFERENCES ${SessionsTable.TABLE_NAME}(${SessionsTable.COL_SESSION_ID}) ON DELETE CASCADE
         )
     """
 

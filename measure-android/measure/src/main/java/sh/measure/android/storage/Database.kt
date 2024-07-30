@@ -205,10 +205,10 @@ internal class DatabaseImpl(
     Database {
     override fun onCreate(db: SQLiteDatabase) {
         try {
+            db.execSQL(Sql.CREATE_SESSIONS_TABLE)
             db.execSQL(Sql.CREATE_EVENTS_TABLE)
             db.execSQL(Sql.CREATE_ATTACHMENTS_TABLE)
             db.execSQL(Sql.CREATE_EVENTS_BATCH_TABLE)
-            db.execSQL(Sql.CREATE_SESSIONS_TABLE)
             db.execSQL(Sql.CREATE_USER_DEFINED_ATTRIBUTES_TABLE)
         } catch (e: SQLiteException) {
             logger.log(LogLevel.Error, "Failed to create database", e)

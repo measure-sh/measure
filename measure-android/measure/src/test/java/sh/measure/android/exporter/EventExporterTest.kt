@@ -197,6 +197,8 @@ internal class EventExporterTest {
         attachmentEntities: List<AttachmentEntity> = emptyList(),
         attachmentSize: Long = 0,
     ) {
+        val sessionId = "sessionId"
+        database.insertSession(sessionId, 12345, 12345, needsReporting = false)
         database.insertEvent(
             EventEntity(
                 id = eventId,
@@ -204,7 +206,7 @@ internal class EventExporterTest {
                 type = "type",
                 userTriggered = false,
                 serializedData = "data",
-                sessionId = "sessionId",
+                sessionId = sessionId,
                 attachmentEntities = attachmentEntities,
                 attachmentsSize = attachmentSize,
                 serializedAttachments = Json.encodeToString(attachmentEntities),
