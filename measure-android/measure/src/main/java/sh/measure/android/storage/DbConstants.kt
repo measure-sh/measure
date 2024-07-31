@@ -130,7 +130,6 @@ internal object Sql {
         sessionId: String?,
         eventTypeAllowList: List<String>,
     ): String {
-
         if (sessionId != null) {
             /**
              * ```sql
