@@ -27,8 +27,6 @@ internal data class Config(
         "WWW-Authenticate",
         "X-Api-Key",
     )
-    override val sessionsTtlMs: Long = 15 * 24 * 60 * 60 * 1000 // 15 days
-    override val unsampledSessionTtlMs: Long = 3 * 24 * 60 * 60 * 1000 // 3 days
     override val sessionEndThresholdMs: Long = 60 * 1000 // 1 minute
     override val maxUserDefinedAttributeKeyLength: Int = 64 // 64 chars
     override val maxUserDefinedAttributeValueLength: Int = 256 // 256 chars
@@ -38,4 +36,5 @@ internal data class Config(
         EventType.HOT_LAUNCH,
         EventType.WARM_LAUNCH,
     )
+    override val maxEventsInDatabase: Int = 50_000
 }

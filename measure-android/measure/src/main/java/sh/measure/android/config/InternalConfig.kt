@@ -30,16 +30,6 @@ internal interface InternalConfig {
     val defaultHttpHeadersBlocklist: List<String>
 
     /**
-     * The TTL sessions after which the data will be cleared. Defaults to 15 days.
-     */
-    val sessionsTtlMs: Long
-
-    /**
-     * The TTL of unsampled sessions. Defaults to 3 days.
-     */
-    val unsampledSessionTtlMs: Long
-
-    /**
      * The threshold after which a session is considered ended. Defaults to 1 minute.
      */
     val sessionEndThresholdMs: Long
@@ -76,4 +66,11 @@ internal interface InternalConfig {
      * sampling rate and whether the session crashed or not.
      */
     val eventTypeExportAllowList: List<String>
+
+    /**
+     * The maximum number of events allowed in the database.
+     * If the number of events exceeds this limit, the oldest session is deleted everytime
+     * cleanup is triggered until the total number of events is below this limit.
+     */
+    val maxEventsInDatabase: Int
 }

@@ -58,6 +58,8 @@ import sh.measure.android.performance.MemoryReader
 import sh.measure.android.performance.MemoryUsageCollector
 import sh.measure.android.screenshot.ScreenshotCollector
 import sh.measure.android.screenshot.ScreenshotCollectorImpl
+import sh.measure.android.storage.DataCleanupService
+import sh.measure.android.storage.DataCleanupServiceImpl
 import sh.measure.android.storage.Database
 import sh.measure.android.storage.DatabaseImpl
 import sh.measure.android.storage.EventStore
@@ -329,6 +331,14 @@ internal class MeasureInitializerImpl(
         timeProvider = timeProvider,
         networkStateProvider = networkStateProvider,
     ),
+    override val dataCleanupService: DataCleanupService = DataCleanupServiceImpl(
+        logger = logger,
+        fileStorage = fileStorage,
+        database = database,
+        ioExecutor = executorServiceRegistry.ioExecutor(),
+        sessionManager = sessionManager,
+        configProvider = configProvider,
+    ),
 ) : MeasureInitializer
 
 internal interface MeasureInitializer {
@@ -356,4 +366,5 @@ internal interface MeasureInitializer {
     val userAttributeProcessor: UserAttributeProcessor
     val userDefinedAttribute: UserDefinedAttribute
     val screenshotCollector: ScreenshotCollector
+    val dataCleanupService: DataCleanupService
 }

@@ -58,6 +58,8 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { screenshotCompressionQuality }
     override val eventTypeExportAllowList: List<String>
         get() = getMergedConfig { eventTypeExportAllowList }
+    override val maxEventsInDatabase: Int
+        get() = getMergedConfig { maxEventsInDatabase }
     override val trackHttpHeaders: Boolean
         get() = getMergedConfig { trackHttpHeaders }
     override val trackHttpBody: Boolean
@@ -78,10 +80,6 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { httpContentTypeAllowlist }
     override val defaultHttpHeadersBlocklist: List<String>
         get() = getMergedConfig { defaultHttpHeadersBlocklist }
-    override val sessionsTtlMs: Long
-        get() = getMergedConfig { sessionsTtlMs }
-    override val unsampledSessionTtlMs: Long
-        get() = getMergedConfig { unsampledSessionTtlMs }
     override val sessionEndThresholdMs: Long
         get() = getMergedConfig { sessionEndThresholdMs }
     override val maxAttachmentSizeInEventsBatchInBytes: Int

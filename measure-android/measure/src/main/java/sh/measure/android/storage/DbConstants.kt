@@ -130,58 +130,73 @@ internal object Sql {
         sessionId: String?,
         eventTypeAllowList: List<String>,
     ): String {
-        val sessionCondition = if (sessionId != null) {
-            "AND ${EventTable.COL_SESSION_ID} = '$sessionId'"
+
+        if (sessionId != null) {
+            /**
+             * ```sql
+             * SELECT e.*
+             * FROM events e
+             * LEFT JOIN events_batch eb ON e.id = eb.event_id
+             * WHERE eb.event_id IS NULL
+             * AND e.session_id = '$sessionId'
+             * ORDER BY e.timestamp ASC
+             * LIMIT 100
+             * ```
+             */
+            return """
+                SELECT e.${EventTable.COL_ID}, e.${EventTable.COL_ATTACHMENT_SIZE} 
+                FROM ${EventTable.TABLE_NAME} e
+                LEFT JOIN ${EventsBatchTable.TABLE_NAME} eb ON e.${EventTable.COL_ID} = eb.${EventsBatchTable.COL_EVENT_ID}
+                WHERE eb.${EventsBatchTable.COL_EVENT_ID} IS NULL
+                AND e.${EventTable.COL_SESSION_ID} = '$sessionId'
+                ORDER BY e.${EventTable.COL_TIMESTAMP} ${if (ascending) "ASC" else "DESC"}
+                LIMIT $eventCount
+            """.trimIndent()
         } else {
-            """
-            AND ${EventTable.COL_SESSION_ID} = (
-                SELECT ${SessionsTable.COL_SESSION_ID} 
-                FROM ${SessionsTable.TABLE_NAME} 
-                WHERE ${SessionsTable.COL_NEEDS_REPORTING} = 1 
-            )
+            /**
+             * ```sql
+             * SELECT e.*
+             * FROM events e
+             * LEFT JOIN events_batch eb ON e.id = eb.event_id
+             * JOIN sessions s ON e.session_id = s.session_id
+             * WHERE eb.event_id IS NULL
+             * AND (
+             *     e.type = 'cold_launch'
+             *     OR (s.needs_reporting = 1)
+             * )
+             * LIMIT 100
+             * ```
+             */
+            return """
+                SELECT e.${EventTable.COL_ID}, e.${EventTable.COL_ATTACHMENT_SIZE} 
+                FROM ${EventTable.TABLE_NAME} e
+                LEFT JOIN ${EventsBatchTable.TABLE_NAME} eb ON e.${EventTable.COL_ID} = eb.${EventsBatchTable.COL_EVENT_ID}
+                JOIN ${SessionsTable.TABLE_NAME} s ON e.${EventTable.COL_SESSION_ID} = s.${SessionsTable.COL_SESSION_ID}
+                WHERE eb.${EventsBatchTable.COL_EVENT_ID} IS NULL
+                AND (
+                    e.${EventTable.COL_TYPE} IN (${eventTypeAllowList.joinToString(", ") { "'$it'" }})
+                    OR (s.${SessionsTable.COL_NEEDS_REPORTING} = 1)
+                )
+                ORDER BY e.${EventTable.COL_TIMESTAMP} ${if (ascending) "ASC" else "DESC"}
+                LIMIT $eventCount
             """.trimIndent()
         }
-
-        val eventTypesAllowListCondition = if (eventTypeAllowList.isNotEmpty()) {
-            eventTypeAllowList.joinToString(" OR ") {
-                "${EventTable.COL_TYPE} = '$it'"
-            }
-        } else {
-            null
-        }
-
-        return """
-        SELECT 
-            ${EventTable.COL_ID}, 
-            ${EventTable.COL_ATTACHMENT_SIZE} 
-        FROM 
-            ${EventTable.TABLE_NAME}
-        WHERE 
-            (
-                ${EventTable.COL_ID} NOT IN (
-                    SELECT ${EventsBatchTable.COL_EVENT_ID} 
-                    FROM ${EventsBatchTable.TABLE_NAME}
-                )
-                $sessionCondition
-            )
-            OR 
-            (
-                $eventTypesAllowListCondition
-            )
-        ORDER BY 
-            datetime(${EventTable.COL_TIMESTAMP}) ${if (ascending) "ASC" else "DESC"}
-        LIMIT 
-            $eventCount
-        """.trimIndent()
     }
+
     fun getBatches(maxCount: Int): String {
         return """
+            WITH limited_batches AS (
+                SELECT DISTINCT ${EventsBatchTable.COL_BATCH_ID}
+                FROM ${EventsBatchTable.TABLE_NAME}
+                ORDER BY ${EventsBatchTable.COL_CREATED_AT} ASC
+                LIMIT $maxCount
+            )
             SELECT 
                 ${EventsBatchTable.COL_EVENT_ID},
                 ${EventsBatchTable.COL_BATCH_ID}
             FROM ${EventsBatchTable.TABLE_NAME}
+            WHERE ${EventsBatchTable.COL_BATCH_ID} IN (SELECT ${EventsBatchTable.COL_BATCH_ID} FROM limited_batches)
             ORDER BY ${EventsBatchTable.COL_CREATED_AT} ASC
-            LIMIT $maxCount
         """.trimIndent()
     }
 
@@ -293,6 +308,61 @@ internal object Sql {
             UPDATE ${SessionsTable.TABLE_NAME}
             SET ${SessionsTable.COL_CRASHED} = 1, ${SessionsTable.COL_NEEDS_REPORTING} = 1
             WHERE ${SessionsTable.COL_SESSION_ID} IN (${sessionIds.joinToString(", ") { "\'$it\'" }})
+        """.trimIndent()
+    }
+
+    fun getEventsForSessions(sessions: List<String>): String? {
+        if (sessions.isEmpty()) {
+            return null
+        }
+        return """
+            SELECT ${EventTable.COL_ID}
+            FROM ${EventTable.TABLE_NAME}
+            WHERE ${EventTable.COL_SESSION_ID} IN (${sessions.joinToString(", ") { "\'$it\'" }})
+        """.trimIndent()
+    }
+
+    fun getAttachmentsForEvents(events: List<String>): String {
+        return """
+            SELECT ${AttachmentTable.COL_ID}
+            FROM ${AttachmentTable.TABLE_NAME}
+            WHERE ${AttachmentTable.COL_EVENT_ID} IN (${events.joinToString(", ") { "\'$it\'" }})
+        """.trimIndent()
+    }
+
+    fun getSessions(needReporting: Boolean, filterSessions: List<String>, maxCount: Int): String {
+        val reportingCondition =
+            "${SessionsTable.COL_NEEDS_REPORTING} = ${if (needReporting) 1 else 0}"
+
+        val filterCondition = if (filterSessions.isNotEmpty()) {
+            val filteredSessionIds = filterSessions.joinToString(", ") { "'$it'" }
+            "AND ${SessionsTable.COL_SESSION_ID} NOT IN ($filteredSessionIds)"
+        } else {
+            ""
+        }
+
+        return """
+            SELECT ${SessionsTable.COL_SESSION_ID}
+            FROM ${SessionsTable.TABLE_NAME}
+            WHERE $reportingCondition
+            $filterCondition
+            LIMIT $maxCount
+        """.trimIndent()
+    }
+
+    fun getOldestSession(): String {
+        return """
+            SELECT ${SessionsTable.COL_SESSION_ID}
+            FROM ${SessionsTable.TABLE_NAME}
+            ORDER BY ${SessionsTable.COL_CREATED_AT} ASC
+            LIMIT 1
+        """.trimIndent()
+    }
+
+    fun getEventsCount(): String {
+        return """
+            SELECT COUNT(${EventTable.COL_ID}) AS count
+            FROM ${EventTable.TABLE_NAME}
         """.trimIndent()
     }
 }

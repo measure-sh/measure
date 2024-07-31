@@ -97,17 +97,6 @@ class SessionManagerTest {
     }
 
     @Test
-    fun `delegates to database to delete old sessions by calculating the time to clear up to`() {
-        val currentTime = configProvider.sessionsTtlMs + 1000
-        timeProvider.fakeCurrentTimeSinceEpochInMillis = currentTime
-        sessionManager.clearOldSessions()
-        verify(database).clearOldSessions(
-            currentTime - configProvider.sessionsTtlMs,
-            currentTime - configProvider.unsampledSessionTtlMs,
-        )
-    }
-
-    @Test
     fun `delegates to database to mark a session as crashed`() {
         val sessionId = "session-id"
         sessionManager.markCrashedSession(sessionId)
