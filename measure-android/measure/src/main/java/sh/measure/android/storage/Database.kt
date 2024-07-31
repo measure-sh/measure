@@ -88,19 +88,11 @@ internal interface Database : Closeable {
     fun getBatches(maxBatches: Int): LinkedHashMap<String, MutableList<String>>
 
     /**
-     * Inserts a session ID and process ID into the database.
+     * Inserts a session entity into the database.
      *
-     * @param sessionId the session id.
-     * @param pid the process id.
-     * @param createdAt the creation time of the session.
-     * @param needsReporting whether the session needs to be exported.
+     * @param session the session entity to insert.
      */
-    fun insertSession(
-        sessionId: String,
-        pid: Int,
-        createdAt: Long,
-        needsReporting: Boolean,
-    ): Boolean
+    fun insertSession(session: SessionEntity): Boolean
 
     /**
      * Deletes the sessions with the given IDs.
@@ -190,7 +182,11 @@ internal interface Database : Closeable {
      * returns the session IDs that don't need to be reported.
      * @param filterSessionIds The list of session IDs to filter.
      */
-    fun getSessionIds(needReporting: Boolean, filterSessionIds: List<String>, maxCount: Int): List<String>
+    fun getSessionIds(
+        needReporting: Boolean,
+        filterSessionIds: List<String>,
+        maxCount: Int,
+    ): List<String>
 
     /**
      * Returns the session ID for the oldest session in the database.
@@ -451,17 +447,13 @@ internal class DatabaseImpl(
         }
     }
 
-    override fun insertSession(
-        sessionId: String,
-        pid: Int,
-        createdAt: Long,
-        needsReporting: Boolean,
-    ): Boolean {
+    override fun insertSession(session: SessionEntity): Boolean {
         val values = ContentValues().apply {
-            put(SessionsTable.COL_SESSION_ID, sessionId)
-            put(SessionsTable.COL_PID, pid)
-            put(SessionsTable.COL_CREATED_AT, createdAt)
-            put(SessionsTable.COL_NEEDS_REPORTING, needsReporting)
+            put(SessionsTable.COL_SESSION_ID, session.sessionId)
+            put(SessionsTable.COL_PID, session.pid)
+            put(SessionsTable.COL_CREATED_AT, session.createdAt)
+            put(SessionsTable.COL_NEEDS_REPORTING, session.needsReporting)
+            put(SessionsTable.COL_CRASHED, session.crashed)
         }
 
         val result = writableDatabase.insert(SessionsTable.TABLE_NAME, null, values)
@@ -733,13 +725,14 @@ internal class DatabaseImpl(
         maxCount: Int,
     ): List<String> {
         val sessionIds = mutableListOf<String>()
-        readableDatabase.rawQuery(Sql.getSessions(needReporting, filterSessionIds, maxCount), null).use {
-            while (it.moveToNext()) {
-                val sessionIdIndex = it.getColumnIndex(SessionsTable.COL_SESSION_ID)
-                val sessionId = it.getString(sessionIdIndex)
-                sessionIds.add(sessionId)
+        readableDatabase.rawQuery(Sql.getSessions(needReporting, filterSessionIds, maxCount), null)
+            .use {
+                while (it.moveToNext()) {
+                    val sessionIdIndex = it.getColumnIndex(SessionsTable.COL_SESSION_ID)
+                    val sessionId = it.getString(sessionIdIndex)
+                    sessionIds.add(sessionId)
+                }
             }
-        }
         return sessionIds
     }
 

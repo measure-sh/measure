@@ -21,6 +21,7 @@ import sh.measure.android.storage.AttachmentEntity
 import sh.measure.android.storage.DatabaseImpl
 import sh.measure.android.storage.EventEntity
 import sh.measure.android.storage.FileStorageImpl
+import sh.measure.android.storage.SessionEntity
 
 // This test uses robolectric and a real instance of batch creator to ensure that the batch creator
 // and exporter work together correctly with a real database.
@@ -161,7 +162,13 @@ internal class EventExporterTest {
 
     @Test
     fun `deletes the batch, events and attachments on client error`() {
-        `when`(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Error.ClientError())
+        `when`(
+            networkClient.execute(
+                any(),
+                any(),
+                any()
+            )
+        ).thenReturn(HttpResponse.Error.ClientError())
         val attachment1 = AttachmentEntity("attachment1", "type", "name", "path")
         val attachmentPath = getPathForAttachment(attachment1)
         insertEventInDb("event1", attachmentEntities = listOf(attachment1), attachmentSize = 100)
@@ -198,7 +205,7 @@ internal class EventExporterTest {
         attachmentSize: Long = 0,
     ) {
         val sessionId = "sessionId"
-        database.insertSession(sessionId, 12345, 12345, needsReporting = false)
+        database.insertSession(SessionEntity(sessionId, 12345, 12345, needsReporting = false))
         database.insertEvent(
             EventEntity(
                 id = eventId,

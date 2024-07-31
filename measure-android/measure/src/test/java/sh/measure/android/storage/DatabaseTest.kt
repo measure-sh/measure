@@ -82,7 +82,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
-        database.insertSession("session-id-1", 123, 500, true)
+        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
         val result = database.insertEvent(event)
 
         assertTrue(result)
@@ -114,7 +114,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
-        database.insertSession("session-id-1", 123, 500, true)
+        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
         val result = database.insertEvent(event)
 
         assertTrue(result)
@@ -140,7 +140,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
-        database.insertSession("session-id-1", 123, 500, true)
+        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
         database.insertEvent(event)
         // attempt to insert a event with same ID twice, resulting in a failure
         val result = database.insertEvent(event)
@@ -215,7 +215,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
-        database.insertSession("session-id-1", 123, 500, true)
+        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
         database.insertEvent(event1)
         database.insertEvent(event2)
         val result = database.insertBatch(listOf(event1.id, event2.id), "batch-id", 1234567890L)
@@ -285,7 +285,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
-        database.insertSession("987", 123, 500, true)
+        database.insertSession(SessionEntity("987", 123, 500, true))
         database.insertEvent(event1)
         database.insertEvent(event2)
         database.insertEvent(batchedEvent)
@@ -337,8 +337,8 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
-        database.insertSession("session-id-1", 123, 500, true)
-        database.insertSession("session-id-2", 123, 500, false)
+        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
+        database.insertSession(SessionEntity("session-id-2", 123, 500, false))
         database.insertEvent(event1)
         database.insertEvent(event2)
         database.insertEvent(event3)
@@ -388,8 +388,8 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
-        database.insertSession("session-id-1", 123, 500, true)
-        database.insertSession("session-id-2", 123, 500, true)
+        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
+        database.insertSession(SessionEntity("session-id-2", 123, 500, true))
         database.insertEvent(event1)
         database.insertEvent(event2)
         database.insertEvent(event3)
@@ -453,8 +453,8 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
-        database.insertSession("session-id-1", 123, 500, false)
-        database.insertSession("session-id-2", 123, 500, false)
+        database.insertSession(SessionEntity("session-id-1", 123, 500, false))
+        database.insertSession(SessionEntity("session-id-2", 123, 500, false))
         database.insertEvent(hotLaunchEvent)
         database.insertEvent(coldLaunchEvent)
         database.insertEvent(warmLaunchEvent)
@@ -502,7 +502,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
-        database.insertSession("session-id-1", 123, 500, true)
+        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
         database.insertEvent(event1)
         database.insertEvent(event2)
 
@@ -542,7 +542,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
-        database.insertSession("session-id-1", 123, 500, true)
+        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
         database.insertEvent(event1)
         database.insertEvent(event2)
 
@@ -594,7 +594,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
-        database.insertSession("session-id-1", 123, 500, true)
+        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
         database.insertEvent(event1)
         database.insertEvent(event2)
 
@@ -634,7 +634,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
-        database.insertSession("session-id-1", 123, 500, true)
+        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
         database.insertEvent(event1)
         database.insertEvent(event2)
         database.insertBatch(listOf(event1.id, event2.id), "batch-id-1", 1234567890L)
@@ -666,7 +666,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
-        database.insertSession("session-id-1", 123, 500, true)
+        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
         database.insertEvent(event)
 
         val attachmentPackets = database.getAttachmentPacket(event.id)
@@ -704,7 +704,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
-        database.insertSession("session-id-1", 123, 500, true)
+        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
         database.insertEvent(event1)
         database.insertEvent(event2)
 
@@ -718,11 +718,11 @@ class DatabaseTest {
 
     @Test
     fun `returns all sessions with untracked app exits from sessions table`() {
-        database.insertSession("session-id-1", 123, 500, false)
-        database.insertSession("session-id-1.1", 123, 500, false)
-        database.insertSession("session-id-2", 987, 700, false)
-        database.insertSession("session-id-2.2", 987, 700, false)
-        database.insertSession("session-with-tracked-app-exit", 9000, 900, false)
+        database.insertSession(SessionEntity("session-id-1", 123, 500, false))
+        database.insertSession(SessionEntity("session-id-1.1", 123, 500, false))
+        database.insertSession(SessionEntity("session-id-2", 987, 700, false))
+        database.insertSession(SessionEntity("session-id-2.2", 987, 700, false))
+        database.insertSession(SessionEntity("session-with-tracked-app-exit", 9000, 900, false))
 
         database.updateAppExitTracked(9000)
         val sessions = database.getSessionsWithUntrackedAppExit()
@@ -734,9 +734,9 @@ class DatabaseTest {
 
     @Test
     fun `getOldestSession returns oldest session`() {
-        database.insertSession("session-id-1", 123, 500, false)
-        database.insertSession("session-id-2", 123, 700, false)
-        database.insertSession("session-id-3", 123, 900, false)
+        database.insertSession(SessionEntity("session-id-1", 123, 500, false))
+        database.insertSession(SessionEntity("session-id-2", 123, 700, false))
+        database.insertSession(SessionEntity("session-id-3", 123, 900, false))
 
         val sessionId = database.getOldestSession()
         assertEquals("session-id-1", sessionId)
@@ -752,7 +752,7 @@ class DatabaseTest {
     fun `inserts a new session successfully`() {
         val sessionId = "session-id"
         val pid = 123
-        database.insertSession(sessionId, pid, 500, true)
+        database.insertSession(SessionEntity(sessionId, pid, 500, true))
 
         val db = database.writableDatabase
         db.query(
@@ -779,9 +779,9 @@ class DatabaseTest {
         val sessionId3 = "session-id-3"
         val pid = 123
         val untrackedAppExitPid = 9000
-        database.insertSession(sessionId1, pid, 500, false)
-        database.insertSession(sessionId2, pid, 700, false)
-        database.insertSession(sessionId3, untrackedAppExitPid, 900, false)
+        database.insertSession(SessionEntity(sessionId1, pid, 500, false))
+        database.insertSession(SessionEntity(sessionId2, pid, 700, false))
+        database.insertSession(SessionEntity(sessionId3, untrackedAppExitPid, 900, false))
 
         database.updateAppExitTracked(pid)
 
@@ -807,7 +807,7 @@ class DatabaseTest {
     fun `marks a session as crashed and sets needs reporting`() {
         val sessionId = "session-id"
         val pid = 123
-        database.insertSession(sessionId, pid, 500, false)
+        database.insertSession(SessionEntity(sessionId, pid, 500, false))
 
         database.markCrashedSession(sessionId)
 
@@ -831,9 +831,9 @@ class DatabaseTest {
     @Test
     fun `marks multiple sessions as crashed and sets needs reporting`() {
         val sessionId1 = "session-id-1"
-        database.insertSession(sessionId1, 100, 500, false)
+        database.insertSession(SessionEntity(sessionId1, 100, 500, false))
         val sessionId2 = "session-id-2"
-        database.insertSession(sessionId2, 101, 600, false)
+        database.insertSession(SessionEntity(sessionId2, 101, 600, false))
 
         database.markCrashedSessions(listOf(sessionId1, sessionId2))
 
@@ -860,8 +860,8 @@ class DatabaseTest {
 
     @Test
     fun `returns session Ids that need reporting`() {
-        database.insertSession("session-id-1", 123, 500, true)
-        database.insertSession("session-id-2", 123, 500, false)
+        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
+        database.insertSession(SessionEntity("session-id-2", 123, 500, false))
         val sessions = database.getSessionIds(
             needReporting = true,
             filterSessionIds = emptyList(),
@@ -872,8 +872,8 @@ class DatabaseTest {
 
     @Test
     fun `returns session Ids that need reporting, but filters given session IDs`() {
-        database.insertSession("session-id-1", 123, 500, true)
-        database.insertSession("session-id-2", 123, 500, true)
+        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
+        database.insertSession(SessionEntity("session-id-2", 123, 500, true))
         val sessions = database.getSessionIds(
             needReporting = true,
             filterSessionIds = listOf("session-id-2"),
@@ -884,8 +884,8 @@ class DatabaseTest {
 
     @Test
     fun `returns session Ids that need reporting, and respects max count`() {
-        database.insertSession("session-id-1", 123, 500, true)
-        database.insertSession("session-id-2", 123, 500, true)
+        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
+        database.insertSession(SessionEntity("session-id-2", 123, 500, true))
         val sessions = database.getSessionIds(
             needReporting = true,
             filterSessionIds = emptyList(),
@@ -898,8 +898,8 @@ class DatabaseTest {
     fun `deletes sessions with given session IDs`() {
         val sessionId1 = "session-id-1"
         val sessionId2 = "session-id-2"
-        database.insertSession(sessionId1, 123, 500, true)
-        database.insertSession(sessionId2, 123, 500, true)
+        database.insertSession(SessionEntity(sessionId1, 123, 500, true))
+        database.insertSession(SessionEntity(sessionId2, 123, 500, true))
 
         database.deleteSessions(listOf(sessionId1, sessionId2))
 
@@ -920,7 +920,7 @@ class DatabaseTest {
     @Test
     fun `deleting a session also deletes events for the session`() {
         val sessionId1 = "session-id-1"
-        database.insertSession(sessionId1, 123, 500, true)
+        database.insertSession(SessionEntity(sessionId1, 123, 500, true))
         val event1 = EventEntity(
             id = "event-id-1",
             type = "test",
@@ -980,7 +980,7 @@ class DatabaseTest {
             attachmentsSize = 0,
             serializedUserDefAttributes = null,
         )
-        database.insertSession("session-id-1", 123, 500, true)
+        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
         database.insertEvent(event)
 
         val events = database.getEventsForSessions(listOf("session-id-1"))
@@ -1016,7 +1016,7 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
-        database.insertSession("session-id-1", 123, 500, true)
+        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
         database.insertEvent(event)
 
         val attachments = database.getAttachmentsForEvents(listOf("event-id"))
@@ -1053,8 +1053,8 @@ class DatabaseTest {
             serializedUserDefAttributes = null,
         )
 
-        database.insertSession("session-id-1", 123, 500, true)
-        database.insertSession("session-id-2", 123, 500, true)
+        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
+        database.insertSession(SessionEntity("session-id-2", 123, 500, true))
         database.insertEvent(event1)
         database.insertEvent(event2)
 

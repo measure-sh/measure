@@ -5,6 +5,7 @@ import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.Database
+import sh.measure.android.storage.SessionEntity
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.Randomizer
@@ -51,7 +52,7 @@ internal interface SessionManager {
     /**
      * Marks multiple sessions as crashed.
      *
-     * @param sessionId The session ID that crashed.
+     * @param sessionIds The session IDs that crashed.
      */
     fun markCrashedSessions(sessionIds: List<String>)
 }
@@ -139,10 +140,12 @@ internal class SessionManagerImpl(
 
     private fun storeSession(sessionId: String, needsReporting: Boolean) {
         database.insertSession(
-            sessionId,
-            processInfo.getPid(),
-            timeProvider.currentTimeSinceEpochInMillis,
-            needsReporting = needsReporting,
+            SessionEntity(
+                sessionId,
+                processInfo.getPid(),
+                timeProvider.currentTimeSinceEpochInMillis,
+                needsReporting = needsReporting,
+            )
         )
     }
 
