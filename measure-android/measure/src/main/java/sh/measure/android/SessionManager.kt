@@ -35,11 +35,6 @@ internal interface SessionManager {
     fun onAppForeground()
 
     /**
-     * Clears old sessions from the database.
-     */
-    fun clearOldSessions()
-
-    /**
      * Updates the sessions table to mark the app exit event as tracked.
      *
      * @param pid The process ID for which the app exit event was tracked.
@@ -114,15 +109,6 @@ internal class SessionManagerImpl(
                 "Ending session as app was relaunched after being in background for $durationInBackground ms",
             )
             createNewSession()
-        }
-    }
-
-    override fun clearOldSessions() {
-        ioExecutor.submit {
-            val currentTime = timeProvider.currentTimeSinceEpochInMillis
-            val sessionExpirationTime = currentTime - configProvider.sessionsTtlMs
-            val unsampledSessionExpirationTime = currentTime - configProvider.unsampledSessionTtlMs
-            database.clearOldSessions(sessionExpirationTime, unsampledSessionExpirationTime)
         }
     }
 

@@ -23,10 +23,6 @@ internal class FakeSessionManager : SessionManager {
         // No-op
     }
 
-    override fun clearOldSessions() {
-        // No-op
-    }
-
     override fun updateAppExitTracked(pid: Int) {
         // No-op
     }

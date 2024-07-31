@@ -127,19 +127,19 @@ internal interface Database : Closeable {
     ): Boolean
 
     /**
+     * Deletes the sessions with the given IDs.
+     *
+     * @param sessionIds The list of session IDs to delete.
+     * @return `true` if the sessions were successfully deleted, `false` otherwise.
+     */
+    fun deleteSessions(sessionIds: List<String>): Boolean
+
+    /**
      * Returns a map of process IDs to list of session IDs that were created by that process
      * where the app exit event has not been tracked. The session Ids are order by creation time
      * in ascending order.
      */
     fun getSessionsWithUntrackedAppExit(): Map<Int, List<String>>
-
-    /**
-     * Cleans up old sessions that were created before the given time.
-     *
-     * @param sessionExpirationTime The time before which the sessions should be deleted.
-     * @param unsampledSessionExpirationTime The time before which unsampled sessions should be deleted.
-     */
-    fun clearOldSessions(sessionExpirationTime: Long, unsampledSessionExpirationTime: Long)
 
     /**
      * Updates the sessions table to mark the app exit event as tracked.
@@ -182,6 +182,19 @@ internal interface Database : Closeable {
     fun getEvents(eventIds: List<String>): List<EventEntity>
 
     /**
+     * Returns the event Ids for all the events that are part of the given sessions.
+     *
+     * @param sessions The list of session IDs to get events for.
+     * @return a list of event IDs.
+     */
+    fun getEventsForSessions(sessions: List<String>): List<String>
+
+    /**
+     * Returns the attachment Ids for all given event Ids.
+     */
+    fun getAttachmentsForEvents(events: List<String>): List<String>
+
+    /**
      * Marks a session as crashed in the sessions table.
      *
      * @param sessionId The session ID that crashed.
@@ -193,6 +206,25 @@ internal interface Database : Closeable {
      * @param sessionIds The list of session IDs that crashed.
      */
     fun markCrashedSessions(sessionIds: List<String>)
+
+    /**
+     * Returns the session IDs based on the needReporting flag.
+     *
+     * @param needReporting If `true`, returns the session IDs that need to be reported. Else,
+     * returns the session IDs that don't need to be reported.
+     * @param filterSessionIds The list of session IDs to filter.
+     */
+    fun getSessionIds(needReporting: Boolean, filterSessionIds: List<String>, maxCount: Int): List<String>
+
+    /**
+     * Returns the session ID for the oldest session in the database.
+     */
+    fun getOldestSession(): String?
+
+    /**
+     * Returns the number of events in the database.
+     */
+    fun getEventsCount(): Int
 }
 
 /**
@@ -203,6 +235,7 @@ internal class DatabaseImpl(
     private val logger: Logger,
 ) : SQLiteOpenHelper(context, DbConstants.DATABASE_NAME, null, DbConstants.DATABASE_VERSION),
     Database {
+
     override fun onCreate(db: SQLiteDatabase) {
         try {
             db.execSQL(Sql.CREATE_SESSIONS_TABLE)
@@ -518,6 +551,24 @@ internal class DatabaseImpl(
         return result != -1L
     }
 
+    override fun deleteSessions(sessionIds: List<String>): Boolean {
+        if (sessionIds.isEmpty()) {
+            return false
+        }
+
+        val placeholders = sessionIds.joinToString { "?" }
+        val whereClause = "${SessionsTable.COL_SESSION_ID} IN ($placeholders)"
+        val result = writableDatabase.delete(
+            SessionsTable.TABLE_NAME,
+            whereClause,
+            sessionIds.toTypedArray(),
+        )
+        if (result == 0) {
+            logger.log(LogLevel.Error, "Failed to delete sessions")
+        }
+        return result != 0
+    }
+
     override fun getSessionsWithUntrackedAppExit(): Map<Int, List<String>> {
         readableDatabase.rawQuery(Sql.getSessionsWithUntrackedAppExit(), null).use {
             val pidToSessionsMap = linkedMapOf<Int, MutableList<String>>()
@@ -538,17 +589,6 @@ internal class DatabaseImpl(
 
             return pidToSessionsMap
         }
-    }
-
-    override fun clearOldSessions(
-        sessionExpirationTime: Long,
-        unsampledSessionExpirationTime: Long,
-    ) {
-        writableDatabase.delete(
-            SessionsTable.TABLE_NAME,
-            "${SessionsTable.COL_CREATED_AT} < ? OR (${SessionsTable.COL_CREATED_AT} < ? AND ${SessionsTable.COL_NEEDS_REPORTING} = 0)",
-            arrayOf(sessionExpirationTime.toString(), unsampledSessionExpirationTime.toString()),
-        )
     }
 
     override fun updateAppExitTracked(pid: Int) {
@@ -747,12 +787,75 @@ internal class DatabaseImpl(
         return eventEntities
     }
 
+    override fun getEventsForSessions(sessions: List<String>): List<String> {
+        val eventIds = mutableListOf<String>()
+        readableDatabase.rawQuery(Sql.getEventsForSessions(sessions), null).use {
+            while (it.moveToNext()) {
+                val eventIdIndex = it.getColumnIndex(EventTable.COL_ID)
+                val eventId = it.getString(eventIdIndex)
+                eventIds.add(eventId)
+            }
+        }
+        return eventIds
+    }
+
     override fun markCrashedSession(sessionId: String) {
         writableDatabase.execSQL(Sql.markSessionCrashed(sessionId))
     }
 
     override fun markCrashedSessions(sessionIds: List<String>) {
         writableDatabase.execSQL(Sql.markSessionsCrashed(sessionIds))
+    }
+
+    override fun getSessionIds(
+        needReporting: Boolean,
+        filterSessionIds: List<String>,
+        maxCount: Int,
+    ): List<String> {
+        val sessionIds = mutableListOf<String>()
+        readableDatabase.rawQuery(Sql.getSessions(needReporting, filterSessionIds, maxCount), null).use {
+            while (it.moveToNext()) {
+                val sessionIdIndex = it.getColumnIndex(SessionsTable.COL_SESSION_ID)
+                val sessionId = it.getString(sessionIdIndex)
+                sessionIds.add(sessionId)
+            }
+        }
+        return sessionIds
+    }
+
+    override fun getOldestSession(): String? {
+        val sessionId: String
+        readableDatabase.rawQuery(Sql.getOldestSession(), null).use {
+            if (it.count == 0) {
+                return null
+            }
+            it.moveToFirst()
+            val sessionIdIndex = it.getColumnIndex(SessionsTable.COL_SESSION_ID)
+            sessionId = it.getString(sessionIdIndex)
+        }
+        return sessionId
+    }
+
+    override fun getEventsCount(): Int {
+        val count: Int
+        readableDatabase.rawQuery(Sql.getEventsCount(), null).use {
+            it.moveToFirst()
+            val countIndex = it.getColumnIndex("count")
+            count = it.getInt(countIndex)
+        }
+        return count
+    }
+
+    override fun getAttachmentsForEvents(events: List<String>): List<String> {
+        val attachmentIds = mutableListOf<String>()
+        readableDatabase.rawQuery(Sql.getAttachmentsForEvents(events), null).use {
+            while (it.moveToNext()) {
+                val attachmentIdIndex = it.getColumnIndex(AttachmentTable.COL_ID)
+                val attachmentId = it.getString(attachmentIdIndex)
+                attachmentIds.add(attachmentId)
+            }
+        }
+        return attachmentIds
     }
 
     override fun close() {

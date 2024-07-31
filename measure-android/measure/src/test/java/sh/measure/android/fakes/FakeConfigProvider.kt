@@ -14,6 +14,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override var screenshotMaskHexColor: String = "#222222"
     override var screenshotCompressionQuality: Int = 25
     override val eventTypeExportAllowList: List<String> = emptyList()
+    override val maxEventsInDatabase: Int = 50_000
     override var trackHttpHeaders: Boolean = false
     override var trackHttpBody: Boolean = false
     override var httpHeadersBlocklist: List<String> = emptyList()
@@ -25,8 +26,6 @@ internal class FakeConfigProvider : ConfigProvider {
     override var maxEventsInBatch: Int = 100
     override var httpContentTypeAllowlist: List<String> = emptyList()
     override var defaultHttpHeadersBlocklist: List<String> = emptyList()
-    override var sessionsTtlMs: Long = 15 * 24 * 60 * 60 * 1000 // 15 days
-    override val unsampledSessionTtlMs: Long = 3 * 24 * 60 * 60 * 1000 // 3 days
     override var sessionEndThresholdMs: Long = 60 * 1000 // 1 minute
     override var maxUserDefinedAttributeKeyLength: Int = 64
     override var maxUserDefinedAttributeValueLength: Int = 256
