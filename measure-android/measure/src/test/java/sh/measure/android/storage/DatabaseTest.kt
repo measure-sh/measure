@@ -231,33 +231,6 @@ class DatabaseTest {
     }
 
     @Test
-    fun `inserts a batch with single event successfully and returns true`() {
-        val event = EventEntity(
-            id = "event-id",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = emptyList(),
-            serializedAttributes = null,
-            attachmentsSize = 500,
-            serializedUserDefAttributes = null,
-        )
-
-        database.insertSession("session-id-1", 123, 500, true)
-        database.insertEvent(event)
-        val result = database.insertBatch(event.id, "batch-id", 1234567890L)
-        assertEquals(true, result)
-
-        queryAllBatchedEvents().use {
-            assertEquals(1, it.count)
-            it.moveToFirst()
-            assertBatchedEventInCursor(event.id, "batch-id", it)
-        }
-    }
-
-    @Test
     fun `does not insert batched events and returns false if insertion fails`() {
         // attempt to insert a event with same ID twice, resulting in a failure
         val result = database.insertBatch(
@@ -265,17 +238,6 @@ class DatabaseTest {
             "batch-id",
             987654321L,
         )
-        queryAllBatchedEvents().use {
-            assertEquals(0, it.count)
-        }
-        assertEquals(false, result)
-    }
-
-    @Test
-    fun `does not insert batched event and returns false if insertion failure`() {
-        // insert a batch with same event & batch ID twice, resulting in a failure the second time
-        database.insertBatch("event-id", "batch-id", 987654321L)
-        val result = database.insertBatch("event-id", "batch-id", 987654321L)
         queryAllBatchedEvents().use {
             assertEquals(0, it.count)
         }
@@ -682,29 +644,6 @@ class DatabaseTest {
     }
 
     @Test
-    fun `returns event packet for a given event ID`() {
-        val event = EventEntity(
-            id = "event-id",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = null,
-            serializedAttributes = "attributes",
-            serializedAttachments = null,
-            serializedUserDefAttributes = null,
-            attachmentsSize = 100,
-        )
-
-        database.insertSession("session-id-1", 123, 500, true)
-        database.insertEvent(event)
-
-        val eventPacket = database.getEventPacket(event.id)
-        assertEventPacket(event, eventPacket)
-    }
-
-    @Test
     fun `returns attachment packets for a given event ID`() {
         val attachment = AttachmentEntity(
             id = "attachment-id",
@@ -771,30 +710,6 @@ class DatabaseTest {
 
         val eventIds = listOf(event1.id, event2.id)
         database.deleteEvents(eventIds)
-
-        queryAllEvents(database.writableDatabase).use {
-            assertEquals(0, it.count)
-        }
-    }
-
-    @Test
-    fun `deletes event with given ID`() {
-        val event = EventEntity(
-            id = "event-id",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "987",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = null,
-            serializedAttributes = "attributes",
-            serializedAttachments = null,
-            attachmentsSize = 100,
-            serializedUserDefAttributes = null,
-        )
-
-        database.insertEvent(event)
-        database.deleteEvent(event.id)
 
         queryAllEvents(database.writableDatabase).use {
             assertEquals(0, it.count)

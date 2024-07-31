@@ -51,28 +51,11 @@ internal interface Database : Closeable {
     fun insertBatch(eventIds: List<String>, batchId: String, createdAt: Long): Boolean
 
     /**
-     * Inserts a batch with a single event Id.
-     *
-     * @param eventId The event ID to insert.
-     * @param batchId The batch ID to assign to the event.
-     * @param createdAt The creation time of the batch.
-     * @return `true` if the event was successfully inserted, `false` otherwise.
-     */
-    fun insertBatch(eventId: String, batchId: String, createdAt: Long): Boolean
-
-    /**
      * Returns a list of event packets for the given event IDs.
      *
      * @param eventIds The list of event IDs to get event packets for.
      */
     fun getEventPackets(eventIds: List<String>): List<EventPacket>
-
-    /**
-     * Returns a event packet for the given event ID.
-     *
-     * @param eventId The event ID to get event packet for.
-     */
-    fun getEventPacket(eventId: String): EventPacket
 
     /**
      * Returns a list of attachment packets for the given event IDs.
@@ -94,13 +77,6 @@ internal interface Database : Closeable {
      * @param eventIds The list of event IDs to delete.
      */
     fun deleteEvents(eventIds: List<String>)
-
-    /**
-     * Deletes the event with the given ID, along with related metadata.
-     *
-     * @param eventId The event ID to delete.
-     */
-    fun deleteEvent(eventId: String)
 
     /**
      * Returns a map of batch IDs to event IDs that have not been synced with the server in
@@ -361,19 +337,6 @@ internal class DatabaseImpl(
         }
     }
 
-    override fun insertBatch(eventId: String, batchId: String, createdAt: Long): Boolean {
-        val values = ContentValues().apply {
-            put(EventsBatchTable.COL_EVENT_ID, eventId)
-            put(EventsBatchTable.COL_BATCH_ID, batchId)
-            put(EventsBatchTable.COL_CREATED_AT, createdAt)
-        }
-        val result = writableDatabase.insert(EventsBatchTable.TABLE_NAME, null, values)
-        if (result == -1L) {
-            logger.log(LogLevel.Error, "Failed to insert batched event = $eventId")
-        }
-        return result != -1L
-    }
-
     override fun getEventPackets(eventIds: List<String>): List<EventPacket> {
         readableDatabase.rawQuery(Sql.getEventsForIds(eventIds), null).use {
             val eventPackets = mutableListOf<EventPacket>()
@@ -418,45 +381,6 @@ internal class DatabaseImpl(
                 )
             }
             return eventPackets
-        }
-    }
-
-    override fun getEventPacket(eventId: String): EventPacket {
-        readableDatabase.rawQuery(Sql.getEventForId(eventId), null).use {
-            it.moveToFirst()
-            val sessionIdIndex = it.getColumnIndex(EventTable.COL_SESSION_ID)
-            val timestampIndex = it.getColumnIndex(EventTable.COL_TIMESTAMP)
-            val typeIndex = it.getColumnIndex(EventTable.COL_TYPE)
-            val userTriggeredIndex = it.getColumnIndex(EventTable.COL_USER_TRIGGERED)
-            val serializedDataIndex = it.getColumnIndex(EventTable.COL_DATA_SERIALIZED)
-            val serializedDataFilePathIndex = it.getColumnIndex(EventTable.COL_DATA_FILE_PATH)
-            val attachmentsIndex = it.getColumnIndex(EventTable.COL_ATTACHMENTS)
-            val serializedAttributesIndex = it.getColumnIndex(EventTable.COL_ATTRIBUTES)
-            val serializedUserDefinedAttributesIndex =
-                it.getColumnIndex(EventTable.COL_USER_DEFINED_ATTRIBUTES)
-
-            val sessionId = it.getString(sessionIdIndex)
-            val timestamp = it.getString(timestampIndex)
-            val type = it.getString(typeIndex)
-            val userTriggered: Boolean = it.getInt(userTriggeredIndex) == 1
-            val serializedData = it.getString(serializedDataIndex)
-            val serializedDataFilePath = it.getString(serializedDataFilePathIndex)
-            val attachments = it.getString(attachmentsIndex)
-            val serializedAttributes = it.getString(serializedAttributesIndex)
-            val serializedUserDefinedAttributes = it.getString(serializedUserDefinedAttributesIndex)
-
-            return EventPacket(
-                eventId = eventId,
-                sessionId = sessionId,
-                timestamp = timestamp,
-                type = type,
-                userTriggered = userTriggered,
-                serializedData = serializedData,
-                serializedDataFilePath = serializedDataFilePath,
-                serializedAttachments = attachments,
-                serializedAttributes = serializedAttributes,
-                serializedUserDefinedAttributes = serializedUserDefinedAttributes,
-            )
         }
     }
 
@@ -507,10 +431,6 @@ internal class DatabaseImpl(
         if (result == 0) {
             logger.log(LogLevel.Error, "Failed to delete events")
         }
-    }
-
-    override fun deleteEvent(eventId: String) {
-        deleteEvents(listOf(eventId))
     }
 
     override fun getBatches(maxBatches: Int): LinkedHashMap<String, MutableList<String>> {
