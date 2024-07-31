@@ -14,6 +14,7 @@ import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.storage.Database
+import sh.measure.android.storage.SessionEntity
 
 class SessionManagerTest {
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
@@ -51,10 +52,12 @@ class SessionManagerTest {
         val sessionId = sessionManager.getSessionId()
         assertEquals(expectedSessionId, sessionId)
         verify(database).insertSession(
-            expectedSessionId,
-            processInfo.getPid(),
-            timeProvider.fakeCurrentTimeSinceEpochInMillis,
-            false,
+            SessionEntity(
+                expectedSessionId,
+                processInfo.getPid(),
+                timeProvider.fakeCurrentTimeSinceEpochInMillis,
+                false,
+            )
         )
     }
 
@@ -83,10 +86,12 @@ class SessionManagerTest {
         val sessionId = sessionManager.getSessionId()
         assertEquals(updatedSessionId, sessionId)
         verify(database).insertSession(
-            updatedSessionId,
-            processInfo.getPid(),
-            timeProvider.fakeCurrentTimeSinceEpochInMillis,
-            false,
+            SessionEntity(
+                updatedSessionId,
+                processInfo.getPid(),
+                timeProvider.fakeCurrentTimeSinceEpochInMillis,
+                false,
+            )
         )
     }
 

@@ -93,3 +93,11 @@ internal data class AttachmentEntity(
     @Transient
     val path: String = "",
 )
+
+internal data class SessionEntity(
+    val sessionId: String,
+    val pid: Int,
+    val createdAt: Long,
+    val needsReporting: Boolean = false,
+    val crashed: Boolean = false,
+)
