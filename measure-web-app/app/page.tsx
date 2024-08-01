@@ -3,9 +3,10 @@
 import Image from 'next/image'
 import LandingHeader from './components/landing_header'
 import Link from 'next/link'
-import Lottie from "lottie-react";
-import landingHeroAnim from "./animations/landing_hero.json";
+import landingHeroAnim from "./animations/landing_hero.json"
+import dynamic from 'next/dynamic'
 
+const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
 
 export default function Home() {
   return (
