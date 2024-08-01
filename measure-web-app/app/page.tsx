@@ -11,7 +11,7 @@ export default function Home() {
   return (
     <main className="flex flex-col items-center justify-between selection:bg-yellow-200/75">
       <LandingHeader />
-      <div className="flex flex-col items-center md:w-4/5 2xl:w-3/5 px-16">
+      <div className="flex flex-col items-center md:w-4/5 px-16">
         <div className="py-16" />
         <p className="font-display font-regular text-black text-8xl max-w-6xl text-center">measure</p>
         <div className="py-2" />
@@ -26,9 +26,9 @@ export default function Home() {
             <p className="text-lg text-center leading-relaxed font-sans text-black">Understand how users move through your app. Easily visualise screens most affected by issues.</p>
           </div>
           <div className="py-8" />
-          <div className='border border-emerald-400 rounded-3xl p-4 w-96 h-96 md:w-[56rem] md:h-[40rem] bg-emerald-200'>
+          <div className='border border-emerald-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-emerald-200'>
             <div className='flex bg-white rounded-3xl h-full border border-emerald-400 items-center justify-center'>
-              <video src="/videos/journey.webm" autoPlay loop muted playsInline className="w-80 md:w-full h-72 md:h-full rounded-3xl" />
+              <video src="/videos/journey.webm" autoPlay loop muted playsInline className="rounded-3xl" />
             </div>
           </div>
         </div>
@@ -40,9 +40,9 @@ export default function Home() {
             <p className="text-lg text-center leading-relaxed font-sans text-black">Monitor important metrics to stay on top of app health. Quickly see deltas to make sure you&apos;re moving in the right direction.</p>
           </div>
           <div className="py-8" />
-          <div className='border border-emerald-400 rounded-3xl p-4 w-96 h-96 md:w-[56rem] md:h-[40rem] bg-violet-200'>
+          <div className='border border-emerald-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-violet-200'>
             <div className='flex bg-white rounded-3xl h-full border border-violet-400 items-center justify-center p-4'>
-              <video src="/videos/app_health.webm" autoPlay loop muted playsInline className="w-80 md:w-full h-72 md:h-full rounded-3xl" />
+              <video src="/videos/app_health.webm" autoPlay loop muted playsInline className="rounded-3xl" />
             </div>
           </div>
         </div>
@@ -54,9 +54,9 @@ export default function Home() {
             <p className="text-lg text-center leading-relaxed font-sans text-black">Automatically track Crashes and App hangs. Dive deeper with screenshots, filters and detailed stacktraces.</p>
           </div>
           <div className="py-8" />
-          <div className='border border-emerald-400 rounded-3xl p-4 w-96 h-96 md:w-[56rem] md:h-[40rem] bg-cyan-200'>
+          <div className='border border-emerald-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-cyan-200'>
             <div className='flex bg-white rounded-3xl h-full border border-cyan-400 items-center justify-center p-4'>
-              <video src="/videos/exceptions.webm" autoPlay loop muted playsInline className="w-80 md:w-full h-72 md:h-full rounded-3xl" />
+              <video src="/videos/exceptions.webm" autoPlay loop muted playsInline className="rounded-3xl" />
             </div>
           </div>
         </div>
@@ -68,9 +68,9 @@ export default function Home() {
             <p className="text-lg text-center leading-relaxed font-sans text-black">Debug issues easily with full session timelines. Get the full context with automatic tracking for clicks, navigations, http calls and more.</p>
           </div>
           <div className="py-8" />
-          <div className='border border-emerald-400 rounded-3xl p-4 w-96 h-96 md:w-[56rem] md:h-[40rem] bg-pink-200'>
+          <div className='border border-emerald-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-pink-200'>
             <div className='flex bg-white rounded-3xl h-full border border-pink-400 items-center justify-center p-4'>
-              <video src="/videos/session.webm" autoPlay loop muted playsInline className="w-80 md:w-full h-72 md:h-full rounded-3xl" />
+              <video src="/videos/session.webm" autoPlay loop muted playsInline className="rounded-3xl" />
             </div>
           </div>
         </div>
