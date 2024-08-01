@@ -15,7 +15,7 @@
 # - OpenSUSE Tumbleweed
 # ------------------------------------------------------------------------------
 
-# more robustness
+# For increased robustness.
 #
 # -e          ensures the script stops on any command failure
 # -u          prevents the use of undefined variables, helps
@@ -35,6 +35,10 @@ MINIMUM_DOCKER_COMPOSE_VERSION="2.27.3"
 # ------------------------------------------------------------------------------
 DEBUG=${DEBUG:-0}
 UNINSTALL_DOCKER=${UNINSTALL_DOCKER:-0}
+
+# ------------------------------------------------------------------------------
+# Sister file paths.
+# ------------------------------------------------------------------------------
 ENV_FILE=.env
 
 # logging and debugging
@@ -67,6 +71,9 @@ error() {
   exit 1
 }
 
+# ------------------------------------------------------------------------------
+# detect_os attempts to detect environment's operating system.
+# ------------------------------------------------------------------------------
 detect_os() {
   case "$(uname)" in
     Linux*)
@@ -84,10 +91,16 @@ detect_os() {
   esac
 }
 
+# ------------------------------------------------------------------------------
+# detect_arch attempts to detect environment's architecture.
+# ------------------------------------------------------------------------------
 detect_arch() {
   DETECTED_ARCH="$(uname -m)"
 }
 
+# ------------------------------------------------------------------------------
+# detect_distro attempts to detect the linux distribution.
+# ------------------------------------------------------------------------------
 detect_distro() {
   if [ -f /etc/os-release ]; then
     . /etc/os-release
@@ -118,6 +131,9 @@ detect_distro() {
   fi
 }
 
+# ------------------------------------------------------------------------------
+# detect_docker probes if docker's prerequisites are met.
+# ------------------------------------------------------------------------------
 detect_docker() {
   if ! has_command docker; then
     warn "Docker: not found"
@@ -147,6 +163,10 @@ detect_docker() {
   fi
 }
 
+# ------------------------------------------------------------------------------
+# install_docker attempts to install docker engine and compose
+# considering the appropriate environment.
+# ------------------------------------------------------------------------------
 install_docker() {
   if is_macOS; then
     error "We don't support installing Docker on macOS. Install \"Docker Desktop for mac\" and run ./install.sh again."
@@ -186,6 +206,9 @@ install_docker() {
   fi
 }
 
+# ------------------------------------------------------------------------------
+# start_docker starts docker engine.
+# ------------------------------------------------------------------------------
 start_docker() {
   if is_ubuntu; then
     if [ -d /run/systemd/system ]; then
@@ -196,6 +219,9 @@ start_docker() {
   fi
 }
 
+# ------------------------------------------------------------------------------
+# uninstall_docker uninstalls docker components.
+# ------------------------------------------------------------------------------
 uninstall_docker() {
   if is_macOS; then
     error "We don't support uninstalling Docker on macOS"
@@ -232,8 +258,20 @@ uninstall_docker() {
   fi
 }
 
+# ------------------------------------------------------------------------------
+# start_docker_compose starts services using docker compose.
+# ------------------------------------------------------------------------------
 start_docker_compose() {
-  docker compose \
+  local dockercmd="docker"
+
+  if [[ $DEBUG -eq 1 ]]; then
+    dockercmd="docker -D"
+    debug "Docker is in debug mode"
+  fi
+
+  info "Starting Measure docker containers"
+
+  $dockercmd compose \
     --progress plain \
     --profile init \
     --profile migrate \
@@ -272,14 +310,9 @@ is_debian() {
   [[ $DISTRO_NAME == "Debian"* ]]
 }
 
-dotenv_exists() {
-  if [ -e ".env" ]; then
-    return 0
-  else
-    return 1
-  fi
-}
-
+# ------------------------------------------------------------------------------
+# set_package_manager chooses a suitable package manager.
+# ------------------------------------------------------------------------------
 set_package_manager() {
   if is_macOS; then
     PKGMAN="brew"
@@ -337,14 +370,23 @@ init() {
   info "Package manager: $PKGMAN"
 }
 
+# ------------------------------------------------------------------------------
+# ensure_config ensures configuration is sound and usable.
+# ------------------------------------------------------------------------------
 ensure_config() {
   if ! [[ -e "$ENV_FILE" ]]; then
     set +u
+    info "Configuration file missing, starting wizard"
     source ./config.sh
     set -u
+  else
+    info "Configuration file found, skipping wizard"
   fi
 }
 
+# ------------------------------------------------------------------------------
+# ensure_docker ensures docker components are usable.
+# ------------------------------------------------------------------------------
 ensure_docker() {
   if ! detect_docker; then
     if [ $UNINSTALL_DOCKER -eq 1 ]; then
@@ -357,6 +399,6 @@ ensure_docker() {
 # kickstart installation
 init
 ensure_docker
-ensure_config
 start_docker
+ensure_config
 start_docker_compose
