@@ -13,6 +13,7 @@ import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeAppExitProvider
 import sh.measure.android.fakes.ImmediateExecutorService
+import sh.measure.android.fakes.NoopLogger
 
 class AppExitCollectorTest {
     private val appExitProvider = FakeAppExitProvider()
@@ -21,6 +22,7 @@ class AppExitCollectorTest {
     private val sessionManager = mock<SessionManager>()
 
     private val appExitCollector = AppExitCollector(
+        NoopLogger(),
         appExitProvider,
         executorService,
         eventProcessor,

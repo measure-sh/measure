@@ -5,8 +5,12 @@ import sh.measure.android.SessionManager
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.executors.MeasureExecutorService
+import sh.measure.android.logger.LogLevel
+import sh.measure.android.logger.Logger
+import java.util.concurrent.RejectedExecutionException
 
 internal class AppExitCollector(
+    private val logger: Logger,
     private val appExitProvider: AppExitProvider,
     private val ioExecutor: MeasureExecutorService,
     private val eventProcessor: EventProcessor,
@@ -17,25 +21,29 @@ internal class AppExitCollector(
     }
 
     private fun trackAppExit() {
-        ioExecutor.submit {
-            val appExits = appExitProvider.get()
-            if (appExits.isNullOrEmpty()) {
-                return@submit emptyList<Triple<Int, String, AppExit>>()
+        try {
+            ioExecutor.submit {
+                val appExits = appExitProvider.get()
+                if (appExits.isNullOrEmpty()) {
+                    return@submit emptyList<Triple<Int, String, AppExit>>()
+                }
+                val pidsToSessionsMap: Map<Int, List<String>> = sessionManager.getSessionsWithUntrackedAppExit()
+                val appExitsToTrack = mapAppExitsToSession(pidsToSessionsMap, appExits)
+                markSessionsAsCrashedByAppExitReason(appExitsToTrack)
+                appExitsToTrack.forEach {
+                    eventProcessor.track(
+                        data = it.third,
+                        // For app exit, the time at which the app exited is more relevant
+                        // than the current time.
+                        timestamp = it.third.app_exit_time_ms,
+                        type = EventType.APP_EXIT,
+                        sessionId = it.second,
+                    )
+                    sessionManager.updateAppExitTracked(pid = it.first)
+                }
             }
-            val pidsToSessionsMap: Map<Int, List<String>> = sessionManager.getSessionsWithUntrackedAppExit()
-            val appExitsToTrack = mapAppExitsToSession(pidsToSessionsMap, appExits)
-            markSessionsAsCrashedByAppExitReason(appExitsToTrack)
-            appExitsToTrack.forEach {
-                eventProcessor.track(
-                    data = it.third,
-                    // For app exit, the time at which the app exited is more relevant
-                    // than the current time.
-                    timestamp = it.third.app_exit_time_ms,
-                    type = EventType.APP_EXIT,
-                    sessionId = it.second,
-                )
-                sessionManager.updateAppExitTracked(pid = it.first)
-            }
+        } catch (e: RejectedExecutionException) {
+            logger.log(LogLevel.Error, "Failed to submit app exit tracking task to executor", e)
         }
     }
 

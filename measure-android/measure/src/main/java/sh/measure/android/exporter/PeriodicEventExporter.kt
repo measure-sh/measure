@@ -6,6 +6,7 @@ import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.TimeProvider
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal interface PeriodicEventExporter {
@@ -62,12 +63,17 @@ internal class PeriodicEventExporterImpl(
             return
         }
 
-        exportExecutor.submit {
-            try {
-                processBatches()
-            } finally {
-                isExportInProgress.set(false)
+        try {
+            exportExecutor.submit {
+                try {
+                    processBatches()
+                } finally {
+                    isExportInProgress.set(false)
+                }
             }
+        } catch (e: RejectedExecutionException) {
+            logger.log(LogLevel.Error, "Failed to submit export task to executor", e)
+            isExportInProgress.set(false)
         }
     }
 

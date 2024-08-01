@@ -16,6 +16,7 @@ import sh.measure.android.storage.EventStore
 import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.iso8601Timestamp
+import java.util.concurrent.RejectedExecutionException
 
 /**
  * An interface for processing events. It is responsible for tracking events, processing them
@@ -177,30 +178,37 @@ internal class EventProcessorImpl(
             label = { "msr-track-event" },
             block = {
                 val threadName = Thread.currentThread().name
-                defaultExecutor.submit {
-                    val event = createEvent(
-                        data = data,
-                        timestamp = timestamp,
-                        type = type,
-                        attachments = attachments,
-                        attributes = attributes,
-                        userTriggered = userTriggered,
-                        sessionId = sessionId,
-                    )
-                    applyAttributes(event, threadName)
-                    val transformedEvent = InternalTrace.trace(
-                        label = { "msr-transform-event" },
-                        block = { eventTransformer.transform(event) },
-                    )
+                try {
+                    defaultExecutor.submit {
+                        val event = createEvent(
+                            data = data,
+                            timestamp = timestamp,
+                            type = type,
+                            attachments = attachments,
+                            attributes = attributes,
+                            userTriggered = userTriggered,
+                            sessionId = sessionId,
+                        )
+                        applyAttributes(event, threadName)
+                        val transformedEvent = InternalTrace.trace(
+                            label = { "msr-transform-event" },
+                            block = { eventTransformer.transform(event) },
+                        )
 
-                    if (transformedEvent != null) {
-                        InternalTrace.trace(label = { "msr-store-event" }, block = {
-                            eventStore.store(event)
-                            logger.log(LogLevel.Debug, "Event processed: $type, ${event.sessionId}")
-                        })
-                    } else {
-                        logger.log(LogLevel.Debug, "Event dropped: $type")
+                        if (transformedEvent != null) {
+                            InternalTrace.trace(label = { "msr-store-event" }, block = {
+                                eventStore.store(event)
+                                logger.log(
+                                    LogLevel.Debug,
+                                    "Event processed: $type, ${event.sessionId}",
+                                )
+                            })
+                        } else {
+                            logger.log(LogLevel.Debug, "Event dropped: $type")
+                        }
                     }
+                } catch (e: RejectedExecutionException) {
+                    logger.log(LogLevel.Error, "Failed to submit event processing task to executor", e)
                 }
             },
         )

@@ -39,8 +39,8 @@ internal class HeartbeatImpl(
         if (future != null) {
             return
         }
-        try {
-            future = scheduler.scheduleAtFixedRate(
+        future = try {
+            scheduler.scheduleAtFixedRate(
                 {
                     listeners.forEach(HeartbeatListener::pulse)
                 },
@@ -50,6 +50,7 @@ internal class HeartbeatImpl(
             )
         } catch (e: RejectedExecutionException) {
             logger.log(LogLevel.Error, "Failed to start ExportHeartbeat", e)
+            return
         }
     }
 

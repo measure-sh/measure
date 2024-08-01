@@ -14,6 +14,7 @@ import sh.measure.android.utils.ProcProviderImpl
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.Future
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 
 internal const val CPU_TRACKING_INTERVAL_MS = 3000L
@@ -36,14 +37,19 @@ internal class CpuUsageCollector(
     fun register() {
         if (!processInfo.isForegroundProcess()) return
         if (future != null) return
-        future = defaultExecutor.scheduleAtFixedRate(
-            {
-                trackCpuUsage()
-            },
-            0,
-            CPU_TRACKING_INTERVAL_MS,
-            TimeUnit.MILLISECONDS,
-        )
+        future = try {
+            defaultExecutor.scheduleAtFixedRate(
+                {
+                    trackCpuUsage()
+                },
+                0,
+                CPU_TRACKING_INTERVAL_MS,
+                TimeUnit.MILLISECONDS,
+            )
+        } catch (e: RejectedExecutionException) {
+            logger.log(LogLevel.Error, "Failed to start CpuUsageCollector", e)
+            null
+        }
     }
 
     fun resume() {

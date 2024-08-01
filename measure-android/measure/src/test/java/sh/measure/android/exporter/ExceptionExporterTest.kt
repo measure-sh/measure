@@ -8,11 +8,13 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import sh.measure.android.fakes.ImmediateExecutorService
+import sh.measure.android.fakes.NoopLogger
 
 class ExceptionExporterTest {
     private val eventExporter = mock<EventExporter>()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val exceptionExporter = ExceptionExporterImpl(
+        NoopLogger(),
         eventExporter,
         executorService,
     )
