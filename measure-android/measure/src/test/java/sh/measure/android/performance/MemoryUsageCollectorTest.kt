@@ -13,6 +13,7 @@ import sh.measure.android.fakes.FakeMemoryReader
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.ImmediateExecutorService
+import sh.measure.android.fakes.NoopLogger
 
 internal class MemoryUsageCollectorTest {
     private lateinit var memoryUsageCollector: MemoryUsageCollector
@@ -27,6 +28,7 @@ internal class MemoryUsageCollectorTest {
         val currentElapsedRealtime: Long = 20_000 // 20s
         timeProvider = FakeTimeProvider(fakeElapsedRealtime = currentElapsedRealtime)
         memoryUsageCollector = MemoryUsageCollector(
+            NoopLogger(),
             eventProcessor,
             timeProvider,
             executorService,

@@ -161,6 +161,7 @@ internal class MeasureInitializerImpl(
         executorServiceRegistry.ioExecutor(),
     ),
     override val userAttributeProcessor: UserAttributeProcessor = UserAttributeProcessor(
+        logger,
         prefsStorage,
         executorServiceRegistry.ioExecutor(),
     ),
@@ -222,6 +223,7 @@ internal class MeasureInitializerImpl(
         batchCreator = batchCreator,
     ),
     private val exceptionExporter: ExceptionExporter = ExceptionExporterImpl(
+        logger = logger,
         exportExecutor = executorServiceRegistry.eventExportExecutor(),
         eventExporter = eventExporter,
     ),
@@ -279,6 +281,7 @@ internal class MeasureInitializerImpl(
         systemServiceProvider = systemServiceProvider,
     ),
     override val appExitCollector: AppExitCollector = AppExitCollector(
+        logger = logger,
         appExitProvider = appExitProvider,
         ioExecutor = executorServiceRegistry.ioExecutor(),
         eventProcessor = eventProcessor,
@@ -294,6 +297,7 @@ internal class MeasureInitializerImpl(
         defaultExecutor = executorServiceRegistry.defaultExecutor(),
     ),
     override val memoryUsageCollector: MemoryUsageCollector = MemoryUsageCollector(
+        logger = logger,
         eventProcessor = eventProcessor,
         timeProvider = timeProvider,
         defaultExecutor = executorServiceRegistry.defaultExecutor(),

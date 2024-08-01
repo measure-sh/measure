@@ -4,15 +4,19 @@ import androidx.annotation.VisibleForTesting
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.executors.MeasureExecutorService
+import sh.measure.android.logger.LogLevel
+import sh.measure.android.logger.Logger
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.Future
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 
 internal const val MEMORY_TRACKING_INTERVAL_MS = 2000L
 internal const val BYTES_TO_KB_FACTOR = 1024
 
 internal class MemoryUsageCollector(
+    private val logger: Logger,
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
     private val defaultExecutor: MeasureExecutorService,
@@ -31,14 +35,19 @@ internal class MemoryUsageCollector(
     fun register() {
         if (!processInfo.isForegroundProcess()) return
         if (future != null) return
-        future = defaultExecutor.scheduleAtFixedRate(
-            {
-                trackMemoryUsage()
-            },
-            0,
-            MEMORY_TRACKING_INTERVAL_MS,
-            TimeUnit.MILLISECONDS,
-        )
+        future = try {
+            defaultExecutor.scheduleAtFixedRate(
+                {
+                    trackMemoryUsage()
+                },
+                0,
+                MEMORY_TRACKING_INTERVAL_MS,
+                TimeUnit.MILLISECONDS,
+            )
+        } catch (e: RejectedExecutionException) {
+            logger.log(LogLevel.Error, "Failed to start MemoryUsageCollector", e)
+            null
+        }
     }
 
     fun resume() {

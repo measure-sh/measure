@@ -5,6 +5,7 @@ import sh.measure.android.config.ConfigProvider
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import java.util.concurrent.RejectedExecutionException
 
 internal interface DataCleanupService {
     fun clearStaleData()
@@ -38,9 +39,13 @@ internal class DataCleanupServiceImpl(
     }
 
     override fun clearStaleData() {
-        ioExecutor.submit {
-            deleteSessionsNotMarkedForReporting()
-            trimEvents()
+        try {
+            ioExecutor.submit {
+                deleteSessionsNotMarkedForReporting()
+                trimEvents()
+            }
+        } catch (e: RejectedExecutionException) {
+            logger.log(LogLevel.Error, "Failed to submit data cleanup task to executor", e)
         }
     }
 

@@ -7,6 +7,7 @@ import sh.measure.android.logger.Logger
 import sh.measure.android.storage.Database
 import sh.measure.android.utils.isLowerCase
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal interface UserDefinedAttribute {
@@ -44,8 +45,12 @@ internal class UserDefinedAttributeImpl(
         if (validate(key, value)) {
             attributes[key] = value
             if (store) {
-                ioExecutor.submit {
-                    database.insertUserDefinedAttribute(key, value)
+                try {
+                    ioExecutor.submit {
+                        database.insertUserDefinedAttribute(key, value)
+                    }
+                } catch (e: RejectedExecutionException) {
+                    logger.log(LogLevel.Error, "Failed to submit insert user defined attribute task to executor", e)
                 }
             }
         }
@@ -55,8 +60,12 @@ internal class UserDefinedAttributeImpl(
         if (validate(key, value)) {
             attributes[key] = value
             if (store) {
-                ioExecutor.submit {
-                    database.insertUserDefinedAttribute(key, value)
+                try {
+                    ioExecutor.submit {
+                        database.insertUserDefinedAttribute(key, value)
+                    }
+                } catch (e: RejectedExecutionException) {
+                    logger.log(LogLevel.Error, "Failed to submit insert user defined attribute task to executor", e)
                 }
             }
         }
@@ -81,13 +90,19 @@ internal class UserDefinedAttributeImpl(
                 LogLevel.Warning,
                 "Unable to remove attribute: $key, as it does not exist",
             )
+        } catch (e: RejectedExecutionException) {
+            logger.log(LogLevel.Error, "Failed to submit remove user defined attribute task to executor", e)
         }
     }
 
     override fun clear() {
         attributes.clear()
-        ioExecutor.submit {
-            database.clearUserDefinedAttributes()
+        try {
+            ioExecutor.submit {
+                database.clearUserDefinedAttributes()
+            }
+        } catch (e: RejectedExecutionException) {
+            logger.log(LogLevel.Error, "Failed to submit clear user defined attributes task to executor", e)
         }
     }
 
