@@ -87,8 +87,8 @@ services:
   minio:
     image: quay.io/minio/minio
     ports:
-      - "9111:9000"
-      - "9222:9001"
+      - "9119:9000"
+      - "9229:9001"
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
@@ -125,7 +125,7 @@ services:
         condition: service_healthy
         restart: true
       clickhouse:
-        condition: service_started
+        condition: service_healthy
         restart: true
     volumes:
       - ./clickhouse:/opt/clickhouse
@@ -156,7 +156,7 @@ services:
       - "9000:9000/tcp"
       - "8123:8123"
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "0.0.0.0:8123/ping"]
+      test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1' || exit 1"]
       interval: 3s
       timeout: 10s
       retries: 5
