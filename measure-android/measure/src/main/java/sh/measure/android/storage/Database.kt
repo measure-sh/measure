@@ -41,14 +41,12 @@ internal interface Database : Closeable {
     ): LinkedHashMap<String, Long>
 
     /**
-     * Inserts a batch of event IDs along with their assigned batch ID.
+     * Inserts a batch.
      *
-     * @param eventIds The list of event IDs to insert.
-     * @param batchId The batch ID to assign to the events.
-     * @param createdAt The creation time of the batch.
-     * @return `true` if the events were successfully inserted, `false` otherwise.
+     * @param batchEntity The batch entity to insert.
+     * @return `true` if the batch was successfully inserted, `false` otherwise.
      */
-    fun insertBatch(eventIds: List<String>, batchId: String, createdAt: Long): Boolean
+    fun insertBatch(batchEntity: BatchEntity): Boolean
 
     /**
      * Returns a list of event packets for the given event IDs.
@@ -63,13 +61,6 @@ internal interface Database : Closeable {
      * @param eventIds The list of event IDs to fetch attachments for.
      */
     fun getAttachmentPackets(eventIds: List<String>): List<AttachmentPacket>
-
-    /**
-     * Returns a list of attachment packets for the given event IDs.
-     *
-     * @param eventId The event ID to fetch attachments for.
-     */
-    fun getAttachmentPacket(eventId: String): List<AttachmentPacket>
 
     /**
      * Deletes the events with the given IDs, along with related metadata.
@@ -307,18 +298,14 @@ internal class DatabaseImpl(
         return eventIdAttachmentSizeMap
     }
 
-    override fun insertBatch(
-        eventIds: List<String>,
-        batchId: String,
-        createdAt: Long,
-    ): Boolean {
+    override fun insertBatch(batchEntity: BatchEntity): Boolean {
         writableDatabase.beginTransaction()
         try {
-            eventIds.forEach { eventId ->
+            batchEntity.eventIds.forEach { eventId ->
                 val values = ContentValues().apply {
                     put(EventsBatchTable.COL_EVENT_ID, eventId)
-                    put(EventsBatchTable.COL_BATCH_ID, batchId)
-                    put(EventsBatchTable.COL_CREATED_AT, createdAt)
+                    put(EventsBatchTable.COL_BATCH_ID, batchEntity.batchId)
+                    put(EventsBatchTable.COL_CREATED_AT, batchEntity.createdAt)
                 }
                 val result = writableDatabase.insert(EventsBatchTable.TABLE_NAME, null, values)
                 if (result == -1L) {
@@ -382,22 +369,6 @@ internal class DatabaseImpl(
 
     override fun getAttachmentPackets(eventIds: List<String>): List<AttachmentPacket> {
         readableDatabase.rawQuery(Sql.getAttachmentsForEventIds(eventIds), null).use {
-            val attachmentPackets = mutableListOf<AttachmentPacket>()
-            while (it.moveToNext()) {
-                val idIndex = it.getColumnIndex(AttachmentTable.COL_ID)
-                val filePathIndex = it.getColumnIndex(AttachmentTable.COL_FILE_PATH)
-
-                val id = it.getString(idIndex)
-                val filePath = it.getString(filePathIndex)
-
-                attachmentPackets.add(AttachmentPacket(id, filePath))
-            }
-            return attachmentPackets
-        }
-    }
-
-    override fun getAttachmentPacket(eventId: String): List<AttachmentPacket> {
-        readableDatabase.rawQuery(Sql.getAttachmentsForEventId(eventId), null).use {
             val attachmentPackets = mutableListOf<AttachmentPacket>()
             while (it.moveToNext()) {
                 val idIndex = it.getColumnIndex(AttachmentTable.COL_ID)

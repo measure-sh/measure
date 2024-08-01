@@ -4,8 +4,8 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
 import sh.measure.android.fakes.FakeConfigProvider
-import sh.measure.android.fakes.FakeEventFactory
-import sh.measure.android.fakes.FakeEventFactory.toEvent
+import sh.measure.android.fakes.TestData
+import sh.measure.android.fakes.TestData.toEvent
 
 class DefaultEventTransformerTest {
     private val configProvider = FakeConfigProvider()
@@ -16,22 +16,22 @@ class DefaultEventTransformerTest {
         configProvider.trackActivityIntentData = false
 
         // lifecycle_activity event
-        val lifecycleActivity = FakeEventFactory.getActivityLifecycleData(intent = "intent-data")
+        val lifecycleActivity = TestData.getActivityLifecycleData(intent = "intent-data")
             .toEvent(type = EventType.LIFECYCLE_ACTIVITY)
         assertNull(transformer.transform(lifecycleActivity)!!.data.intent)
 
         // cold_launch event
-        val coldLaunch = FakeEventFactory.getColdLaunchData(intentData = "intent-data")
+        val coldLaunch = TestData.getColdLaunchData(intentData = "intent-data")
             .toEvent(type = EventType.COLD_LAUNCH)
         assertNull(transformer.transform(coldLaunch)!!.data.intent_data)
 
         // hot_launch event
-        val hotLaunch = FakeEventFactory.getHotLaunchData(intentData = "intent-data")
+        val hotLaunch = TestData.getHotLaunchData(intentData = "intent-data")
             .toEvent(type = EventType.HOT_LAUNCH)
         assertNull(transformer.transform(hotLaunch)!!.data.intent_data)
 
         // warm_launch event
-        val warmLaunch = FakeEventFactory.getWarmLaunchData(intentData = "intent-data")
+        val warmLaunch = TestData.getWarmLaunchData(intentData = "intent-data")
             .toEvent(type = EventType.WARM_LAUNCH)
         assertNull(transformer.transform(warmLaunch)!!.data.intent_data)
     }
@@ -41,22 +41,22 @@ class DefaultEventTransformerTest {
         configProvider.trackActivityIntentData = true
 
         // lifecycle_activity event
-        val lifecycleActivity = FakeEventFactory.getActivityLifecycleData(intent = "intent-data")
+        val lifecycleActivity = TestData.getActivityLifecycleData(intent = "intent-data")
             .toEvent(type = EventType.LIFECYCLE_ACTIVITY)
         assertNotNull(transformer.transform(lifecycleActivity)!!.data.intent)
 
         // cold_launch event
-        val coldLaunch = FakeEventFactory.getColdLaunchData(intentData = "intent-data")
+        val coldLaunch = TestData.getColdLaunchData(intentData = "intent-data")
             .toEvent(type = EventType.COLD_LAUNCH)
         assertNotNull(transformer.transform(coldLaunch)!!.data.intent_data)
 
         // hot_launch event
-        val hotLaunch = FakeEventFactory.getHotLaunchData(intentData = "intent-data")
+        val hotLaunch = TestData.getHotLaunchData(intentData = "intent-data")
             .toEvent(type = EventType.HOT_LAUNCH)
         assertNotNull(transformer.transform(hotLaunch)!!.data.intent_data)
 
         // warm_launch event
-        val warmLaunch = FakeEventFactory.getWarmLaunchData(intentData = "intent-data")
+        val warmLaunch = TestData.getWarmLaunchData(intentData = "intent-data")
             .toEvent(type = EventType.WARM_LAUNCH)
         assertNotNull(transformer.transform(warmLaunch)!!.data.intent_data)
     }
@@ -65,7 +65,7 @@ class DefaultEventTransformerTest {
     fun `drops http event if shouldTrackHttpUrl=false`() {
         configProvider.shouldTrackHttpUrl = false
 
-        val httpEvent = FakeEventFactory.getHttpData().toEvent(type = EventType.HTTP)
+        val httpEvent = TestData.getHttpData().toEvent(type = EventType.HTTP)
         assertNull(transformer.transform(httpEvent))
     }
 
@@ -74,7 +74,7 @@ class DefaultEventTransformerTest {
         configProvider.shouldTrackHttpUrl = true
         configProvider.shouldTrackHttpBody = false
 
-        val httpEvent = FakeEventFactory.getHttpData(
+        val httpEvent = TestData.getHttpData(
             requestBody = "request-body",
             responseBody = "response-body",
         ).toEvent(type = EventType.HTTP)
@@ -88,7 +88,7 @@ class DefaultEventTransformerTest {
         configProvider.shouldTrackHttpUrl = true
         configProvider.shouldTrackHttpBody = true
 
-        val httpEvent = FakeEventFactory.getHttpData(
+        val httpEvent = TestData.getHttpData(
             requestBody = "request-body",
             responseBody = "response-body",
         ).toEvent(type = EventType.HTTP)
@@ -102,7 +102,7 @@ class DefaultEventTransformerTest {
         configProvider.shouldTrackHttpUrl = true
         configProvider.trackHttpHeaders = false
 
-        val httpEvent = FakeEventFactory.getHttpData(
+        val httpEvent = TestData.getHttpData(
             requestHeaders = mapOf("key1" to "value1"),
             responseHeaders = mapOf("key2" to "value2"),
         ).toEvent(type = EventType.HTTP)
@@ -116,7 +116,7 @@ class DefaultEventTransformerTest {
         configProvider.shouldTrackHttpUrl = true
         configProvider.trackHttpHeaders = true
 
-        val httpEvent = FakeEventFactory.getHttpData(
+        val httpEvent = TestData.getHttpData(
             requestHeaders = mapOf("key1" to "value1"),
             responseHeaders = mapOf("key2" to "value2"),
         ).toEvent(type = EventType.HTTP)
@@ -131,7 +131,7 @@ class DefaultEventTransformerTest {
         configProvider.trackHttpHeaders = true
         configProvider.headerKeysToBlock = listOf("key1")
 
-        val httpEvent = FakeEventFactory.getHttpData(
+        val httpEvent = TestData.getHttpData(
             requestHeaders = mapOf("key1" to "value1", "key2" to "value2"),
             responseHeaders = mapOf("key1" to "value1", "key2" to "value2"),
         ).toEvent(type = EventType.HTTP)
@@ -146,7 +146,7 @@ class DefaultEventTransformerTest {
         configProvider.trackHttpHeaders = true
         configProvider.headerKeysToBlock = listOf("key1")
 
-        val httpEvent = FakeEventFactory.getHttpData(
+        val httpEvent = TestData.getHttpData(
             requestHeaders = mapOf("key1" to "value1", "key2" to "value2"),
             responseHeaders = mapOf("key1" to "value1", "key2" to "value2"),
         ).toEvent(type = EventType.HTTP)

@@ -101,3 +101,9 @@ internal data class SessionEntity(
     val needsReporting: Boolean = false,
     val crashed: Boolean = false,
 )
+
+internal data class BatchEntity(
+    val batchId: String,
+    val eventIds: List<String>,
+    val createdAt: Long,
+)

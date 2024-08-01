@@ -8,8 +8,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
-import sh.measure.android.fakes.FakeEventFactory
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.fakes.TestData
 import sh.measure.android.storage.FileStorage
 import java.io.File
 
@@ -35,9 +35,9 @@ class NetworkClientTest {
     fun `creates a request, sends it to events endpoint and returns success`() {
         // Given
         val batchId = "batchId"
-        val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-")
-        val eventPacket = FakeEventFactory.getEventPacket(eventEntity)
-        val attachmentPackets = FakeEventFactory.getAttachmentPackets(eventEntity)
+        val eventEntity = TestData.fakeEventEntity(eventId = "event-")
+        val eventPacket = TestData.getEventPacket(eventEntity)
+        val attachmentPackets = TestData.getAttachmentPackets(eventEntity)
         attachmentPackets.forEach {
             `when`(fileStorage.getFile(it.filePath)).thenReturn(fakeFile)
         }
@@ -58,9 +58,9 @@ class NetworkClientTest {
     fun `creates a request with request ID header`() {
         // Given
         val batchId = "batchId"
-        val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-")
-        val eventPacket = FakeEventFactory.getEventPacket(eventEntity)
-        val attachmentPackets = FakeEventFactory.getAttachmentPackets(eventEntity)
+        val eventEntity = TestData.fakeEventEntity(eventId = "event-")
+        val eventPacket = TestData.getEventPacket(eventEntity)
+        val attachmentPackets = TestData.getAttachmentPackets(eventEntity)
         attachmentPackets.forEach {
             `when`(fileStorage.getFile(it.filePath)).thenReturn(fakeFile)
         }
@@ -80,9 +80,9 @@ class NetworkClientTest {
     fun `creates a request, sends it to events endpoint and returns error if request fails due to server error`() {
         // Given
         val batchId = "batchId"
-        val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-")
-        val eventPacket = FakeEventFactory.getEventPacket(eventEntity)
-        val attachmentPackets = FakeEventFactory.getAttachmentPackets(eventEntity)
+        val eventEntity = TestData.fakeEventEntity(eventId = "event-")
+        val eventPacket = TestData.getEventPacket(eventEntity)
+        val attachmentPackets = TestData.getAttachmentPackets(eventEntity)
         attachmentPackets.forEach {
             `when`(fileStorage.getFile(it.filePath)).thenReturn(fakeFile)
         }
@@ -101,9 +101,9 @@ class NetworkClientTest {
     fun `creates a request, sends it to events endpoint and returns error if request fails due to client error`() {
         // Given
         val batchId = "batchId"
-        val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-")
-        val eventPacket = FakeEventFactory.getEventPacket(eventEntity)
-        val attachmentPackets = FakeEventFactory.getAttachmentPackets(eventEntity)
+        val eventEntity = TestData.fakeEventEntity(eventId = "event-")
+        val eventPacket = TestData.getEventPacket(eventEntity)
+        val attachmentPackets = TestData.getAttachmentPackets(eventEntity)
         attachmentPackets.forEach {
             `when`(fileStorage.getFile(it.filePath)).thenReturn(fakeFile)
         }
@@ -122,9 +122,9 @@ class NetworkClientTest {
     fun `creates a request, sends it to events endpoint and returns error if request fails due to rate limit error`() {
         // Given
         val batchId = "batchId"
-        val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-")
-        val eventPacket = FakeEventFactory.getEventPacket(eventEntity)
-        val attachmentPackets = FakeEventFactory.getAttachmentPackets(eventEntity)
+        val eventEntity = TestData.fakeEventEntity(eventId = "event-")
+        val eventPacket = TestData.getEventPacket(eventEntity)
+        val attachmentPackets = TestData.getAttachmentPackets(eventEntity)
         attachmentPackets.forEach {
             `when`(fileStorage.getFile(it.filePath)).thenReturn(fakeFile)
         }
@@ -141,8 +141,8 @@ class NetworkClientTest {
 
     @Test
     fun `given event data is in serialized data, request form data for event is valid`() {
-        val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-id")
-        val eventPacket = FakeEventFactory.getEventPacket(eventEntity)
+        val eventEntity = TestData.fakeEventEntity(eventId = "event-id")
+        val eventPacket = TestData.getEventPacket(eventEntity)
 
         val formDataPart = eventPacket.asFormDataPart(fileStorage)
 
@@ -153,8 +153,8 @@ class NetworkClientTest {
 
     @Test
     fun `given event data is in file, request form data for event is valid`() {
-        val eventEntity = FakeEventFactory.fakeEventEntity(eventId = "event-id")
-        val eventPacket = FakeEventFactory.getEventPacket(eventEntity)
+        val eventEntity = TestData.fakeEventEntity(eventId = "event-id")
+        val eventPacket = TestData.getEventPacket(eventEntity)
 
         val formDataPart = eventPacket.asFormDataPart(fileStorage)
 

@@ -6,15 +6,16 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import sh.measure.android.events.EventType
-import sh.measure.android.exporter.AttachmentPacket
 import sh.measure.android.exporter.EventPacket
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.fakes.TestData
 
 /**
  * A robolectric integration test for the database implementation. This test creates a real
@@ -59,64 +60,43 @@ class DatabaseTest {
     }
 
     @Test
-    fun `inserts event with attachments successfully`() {
-        val db = database.writableDatabase
-
-        val attachmentEntity = AttachmentEntity(
-            id = "attachment-id",
-            type = "test",
-            name = "a.txt",
-            path = "test-path",
-        )
-        val event = EventEntity(
-            id = "event-id",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
+    fun `insertEvent returns true when event with attachments is successfully inserted`() {
+        // given
+        val attachmentEntity = TestData.getAttachmentEntity()
+        val eventWithAttachment = TestData.getEventEntity(
             sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
             attachmentEntities = listOf(attachmentEntity),
-            serializedAttributes = null,
-            serializedAttachments = null,
-            attachmentsSize = 0,
-            serializedUserDefAttributes = null,
         )
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
 
-        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
-        val result = database.insertEvent(event)
+        // when
+        val result = database.insertEvent(eventWithAttachment)
 
+        // then
         assertTrue(result)
+        val db = database.readableDatabase
         queryAllEvents(db).use {
             it.moveToFirst()
-            assertEventInCursor(event, it)
+            assertEventInCursor(eventWithAttachment, it)
         }
-        queryAttachmentsForEvent(db, event.id).use {
+        queryAttachmentsForEvent(db, eventWithAttachment.id).use {
             it.moveToFirst()
-            assertAttachmentInCursor(attachmentEntity, event, it)
+            assertAttachmentInCursor(attachmentEntity, eventWithAttachment, it)
         }
     }
 
     @Test
-    fun `inserts event without attachments successfully`() {
+    fun `insertEvent returns true when event without attachment is successfully inserted`() {
+        // given
+        val event =
+            TestData.getEventEntity(sessionId = "session-id-1", attachmentEntities = emptyList())
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
+
+        // when
+        val result = database.insertEvent(event)
+
+        // then
         val db = database.writableDatabase
-
-        val event = EventEntity(
-            id = "event-id",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = emptyList(),
-            serializedAttributes = null,
-            serializedAttachments = null,
-            attachmentsSize = 500,
-            serializedUserDefAttributes = null,
-        )
-
-        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
-        val result = database.insertEvent(event)
-
         assertTrue(result)
         queryAllEvents(db).use {
             it.moveToFirst()
@@ -125,25 +105,17 @@ class DatabaseTest {
     }
 
     @Test
-    fun `returns false when event insertion fails`() {
-        val event = EventEntity(
-            id = "event-id",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = emptyList(),
-            serializedAttributes = null,
-            serializedAttachments = null,
-            attachmentsSize = 500,
-            serializedUserDefAttributes = null,
-        )
+    fun `insertEvent returns false when event insertion fails`() {
+        // given
+        val event = TestData.getEventEntity(sessionId = "session-id-1")
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
 
-        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
+        // when
         database.insertEvent(event)
         // attempt to insert a event with same ID twice, resulting in a failure
         val result = database.insertEvent(event)
+
+        // then
         assertEquals(false, result)
         queryAllEvents(database.writableDatabase).use {
             assertEquals(1, it.count)
@@ -151,36 +123,22 @@ class DatabaseTest {
     }
 
     @Test
-    fun `returns false when event insertion fails due to attachment insertion failure`() {
-        val event = EventEntity(
-            id = "event-id",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "987",
-            userTriggered = false,
-            filePath = "test-file-path",
+    fun `insertEvent returns false when event insertion fails due to attachment insertion failure`() {
+        // given
+        val event = TestData.getEventEntity(
+            sessionId = "session-id-1",
             attachmentEntities = listOf(
-                AttachmentEntity(
-                    id = "attachment-id",
-                    type = "test",
-                    name = "a.txt",
-                    path = "test-path",
-                ),
-                // insert a attachment with same ID twice, resulting in a failure
-                AttachmentEntity(
-                    id = "attachment-id",
-                    type = "test",
-                    name = "a.txt",
-                    path = "test-path",
-                ),
+                TestData.getAttachmentEntity(id = "attachment-id-1"),
+                // attempt inserting attachment with same ID twice, resulting in a failure.
+                TestData.getAttachmentEntity(id = "attachment-id-1"),
             ),
-            serializedAttributes = null,
-            serializedAttachments = null,
-            attachmentsSize = 500,
-            serializedUserDefAttributes = null,
         )
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
 
+        // when
         val result = database.insertEvent(event)
+
+        // then
         assertEquals(false, result)
         queryAllEvents(database.writableDatabase).use {
             assertEquals(0, it.count)
@@ -188,40 +146,38 @@ class DatabaseTest {
     }
 
     @Test
-    fun `inserts batched events successfully and returns true`() {
-        val event1 = EventEntity(
-            id = "event-id-1",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = emptyList(),
-            serializedAttributes = null,
-            attachmentsSize = 500,
-            serializedUserDefAttributes = null,
-        )
+    fun `insertEvent returns false when event is inserted for a session that does not exist`() {
+        // given
+        val event = TestData.getEventEntity(sessionId = "session-id-1")
+        database.insertSession(TestData.getSessionEntity(id = "session-id-2"))
 
-        val event2 = EventEntity(
-            id = "event-id-2",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = emptyList(),
-            serializedAttributes = null,
-            attachmentsSize = 200,
-            serializedUserDefAttributes = null,
-        )
+        // when
+        val result = database.insertEvent(event)
 
-        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
+        // then
+        assertFalse(result)
+        queryAllEvents(database.writableDatabase).use {
+            assertEquals(0, it.count)
+        }
+    }
+
+    @Test
+    fun `insertBatch returns true when event batch is successfully inserted`() {
+        // given
+        val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
+        val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-1")
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
         database.insertEvent(event1)
         database.insertEvent(event2)
-        val result = database.insertBatch(listOf(event1.id, event2.id), "batch-id", 1234567890L)
-        assertEquals(true, result)
 
-        queryAllBatchedEvents().use {
+        // when
+        val result = database.insertBatch(
+            BatchEntity("batch-id", listOf(event1.id, event2.id), 1234567890L)
+        )
+
+        // then
+        assertEquals(true, result)
+        queryAllEventBatches().use {
             assertEquals(2, it.count)
             it.moveToFirst()
             assertBatchedEventInCursor(event1.id, "batch-id", it)
@@ -231,165 +187,104 @@ class DatabaseTest {
     }
 
     @Test
-    fun `does not insert batched events and returns false if insertion fails`() {
+    fun `insertBatch returns false when event batch insertion fails`() {
         // attempt to insert a event with same ID twice, resulting in a failure
         val result = database.insertBatch(
-            listOf("valid-id", "event-id", "event-id"),
-            "batch-id",
-            987654321L,
+            BatchEntity(
+                "batch-id",
+                listOf("valid-id", "event-id", "event-id"),
+                987654321L,
+            )
         )
-        queryAllBatchedEvents().use {
+        queryAllEventBatches().use {
             assertEquals(0, it.count)
         }
         assertEquals(false, result)
     }
 
     @Test
-    fun `returns event IDs to batch, but discards already batched events`() {
-        val event1 = EventEntity(
-            id = "event-id-1",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "987",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = emptyList(),
-            serializedAttributes = null,
-            attachmentsSize = 500,
-            serializedUserDefAttributes = null,
-        )
+    fun `insertBatch returns false when insertion fails due to event ID not present in events table`() {
+        // given
+        val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
+        val eventNotInEventsTable =
+            TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-1")
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
+        database.insertEvent(event1)
 
-        val event2 = EventEntity(
-            id = "event-id-2",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "987",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = emptyList(),
-            serializedAttributes = null,
-            attachmentsSize = 200,
-            serializedUserDefAttributes = null,
+        // when
+        val result = database.insertBatch(
+            BatchEntity("batch-id", listOf(event1.id, eventNotInEventsTable.id), 1234567890L)
         )
+        assertEquals(false, result)
+        queryAllEventBatches().use {
+            assertEquals(0, it.count)
+        }
+    }
 
-        val batchedEvent = EventEntity(
-            id = "event-id-3",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "987",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = emptyList(),
-            serializedAttributes = null,
-            attachmentsSize = 200,
-            serializedUserDefAttributes = null,
-        )
-
-        database.insertSession(SessionEntity("987", 123, 500, true))
+    @Test
+    fun `getUnBatchedEventsWithAttachmentSize returns events, but discards already batched events`() {
+        // given
+        val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
+        val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-1")
+        val batchedEvent =
+            TestData.getEventEntity(eventId = "event-id-3", sessionId = "session-id-1")
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
         database.insertEvent(event1)
         database.insertEvent(event2)
         database.insertEvent(batchedEvent)
-        val result = database.insertBatch(listOf(batchedEvent.id), "batch-id", 987654321L)
-        assertEquals(true, result)
+        database.insertBatch(
+            TestData.getEventBatchEntity(batchId = "batch-id", eventIds = listOf(batchedEvent.id))
+        )
 
+        // when
         val eventsToBatch = database.getUnBatchedEventsWithAttachmentSize(100)
+
+        // then
         assertEquals(2, eventsToBatch.size)
     }
 
     @Test
-    fun `returns event IDs to batch, but discards events from session that does not need reporting`() {
-        val event1 = EventEntity(
-            id = "event-id-1",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = emptyList(),
-            serializedAttributes = null,
-            attachmentsSize = 500,
-            serializedUserDefAttributes = null,
+    fun `getUnBatchedEventsWithAttachmentSize returns events, but discards events from sessions that do not need reporting`() {
+        val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
+        val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-2")
+        val event3 = TestData.getEventEntity(eventId = "event-id-3", sessionId = "session-id-2")
+        database.insertSession(
+            TestData.getSessionEntity(
+                id = "session-id-1",
+                needsReporting = true
+            )
         )
-
-        val event2 = EventEntity(
-            id = "event-id-2",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = emptyList(),
-            serializedAttributes = null,
-            attachmentsSize = 200,
-            serializedUserDefAttributes = null,
+        database.insertSession(
+            TestData.getSessionEntity(
+                id = "session-id-2",
+                needsReporting = false
+            )
         )
-
-        val event3 = EventEntity(
-            id = "event-id-3",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-2",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = emptyList(),
-            serializedAttributes = null,
-            attachmentsSize = 200,
-            serializedUserDefAttributes = null,
-        )
-
-        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
-        database.insertSession(SessionEntity("session-id-2", 123, 500, false))
         database.insertEvent(event1)
         database.insertEvent(event2)
         database.insertEvent(event3)
 
         val eventsToBatch = database.getUnBatchedEventsWithAttachmentSize(100)
-        assertEquals(2, eventsToBatch.size)
+        assertEquals(1, eventsToBatch.size)
     }
 
     @Test
-    fun `given a session ID, returns event IDs to batch`() {
-        val event1 = EventEntity(
-            id = "event-id-1",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = emptyList(),
-            serializedAttributes = null,
-            attachmentsSize = 500,
-            serializedUserDefAttributes = null,
+    fun `getUnBatchedEventsWithAttachmentSize given a session ID, returns all events from the given sessions, even if session doe not need reporting`() {
+        val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
+        val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-1")
+        val event3 = TestData.getEventEntity(eventId = "event-id-3", sessionId = "session-id-2")
+        database.insertSession(
+            TestData.getSessionEntity(
+                id = "session-id-1",
+                needsReporting = true
+            )
         )
-
-        val event2 = EventEntity(
-            id = "event-id-2",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = emptyList(),
-            serializedAttributes = null,
-            attachmentsSize = 200,
-            serializedUserDefAttributes = null,
+        database.insertSession(
+            TestData.getSessionEntity(
+                id = "session-id-2",
+                needsReporting = false
+            )
         )
-
-        val event3 = EventEntity(
-            id = "event-id-3",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-2",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = emptyList(),
-            serializedAttributes = null,
-            attachmentsSize = 200,
-            serializedUserDefAttributes = null,
-        )
-
-        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
-        database.insertSession(SessionEntity("session-id-2", 123, 500, true))
         database.insertEvent(event1)
         database.insertEvent(event2)
         database.insertEvent(event3)
@@ -400,66 +295,46 @@ class DatabaseTest {
     }
 
     @Test
-    fun `returns all allowed events for export for all sessions, even if session is not marked for export`() {
-        val hotLaunchEvent = EventEntity(
-            id = "event-id-1",
+    fun `getUnBatchedEventsWithAttachmentSize given allowed event types, returns all events of given event types, even if session does not need reporting`() {
+        // given
+        val hotLaunchEvent = TestData.getEventEntity(
+            eventId = "event-id-1",
+            sessionId = "session-id-1",
             type = EventType.HOT_LAUNCH,
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = emptyList(),
-            serializedAttributes = null,
-            attachmentsSize = 500,
-            serializedUserDefAttributes = null,
         )
-
-        val coldLaunchEvent = EventEntity(
-            id = "event-id-2",
+        val coldLaunchEvent = TestData.getEventEntity(
+            eventId = "event-id-2",
+            sessionId = "session-id-1",
             type = EventType.COLD_LAUNCH,
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = emptyList(),
-            serializedAttributes = null,
-            attachmentsSize = 200,
-            serializedUserDefAttributes = null,
         )
-
-        val warmLaunchEvent = EventEntity(
-            id = "event-id-3",
-            type = EventType.WARM_LAUNCH,
-            timestamp = "2024-03-18T12:50:12.62600000Z",
+        val warmLaunchEvent = TestData.getEventEntity(
+            eventId = "event-id-3",
             sessionId = "session-id-2",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = emptyList(),
-            serializedAttributes = null,
-            attachmentsSize = 200,
-            serializedUserDefAttributes = null,
+            type = EventType.WARM_LAUNCH,
         )
-
-        val nonLaunchEvent = EventEntity(
-            id = "event-id-3",
-            type = EventType.CLICK,
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = emptyList(),
-            serializedAttributes = null,
-            attachmentsSize = 200,
-            serializedUserDefAttributes = null,
+        val nonLaunchEvent = TestData.getEventEntity(
+            eventId = "event-id-4",
+            sessionId = "session-id-2",
+            type = EventType.STRING,
         )
-
-        database.insertSession(SessionEntity("session-id-1", 123, 500, false))
-        database.insertSession(SessionEntity("session-id-2", 123, 500, false))
+        database.insertSession(
+            TestData.getSessionEntity(
+                id = "session-id-1",
+                needsReporting = false
+            )
+        )
+        database.insertSession(
+            TestData.getSessionEntity(
+                id = "session-id-2",
+                needsReporting = false
+            )
+        )
         database.insertEvent(hotLaunchEvent)
         database.insertEvent(coldLaunchEvent)
         database.insertEvent(warmLaunchEvent)
         database.insertEvent(nonLaunchEvent)
 
+        // when
         val eventsToBatch = database.getUnBatchedEventsWithAttachmentSize(
             100,
             // allow all launch event types
@@ -469,291 +344,246 @@ class DatabaseTest {
                 EventType.WARM_LAUNCH,
             ),
         )
+
+        // then
         assertEquals(3, eventsToBatch.size)
     }
 
     @Test
-    fun `returns event packets for given event IDs`() {
-        val event1 = EventEntity(
-            id = "event-id-1",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = null,
-            serializedAttributes = "attributes",
-            serializedAttachments = "attachments",
-            attachmentsSize = 0,
-            serializedUserDefAttributes = null,
+    fun `getUnBatchedEventsWithAttachmentSize given sessions which need reporting, respects the maximum number of events to return`() {
+        // given
+        val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
+        val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-1")
+        val event3 = TestData.getEventEntity(eventId = "event-id-3", sessionId = "session-id-2")
+        val event4 = TestData.getEventEntity(eventId = "event-id-4", sessionId = "session-id-2")
+        val event5 = TestData.getEventEntity(eventId = "event-id-5", sessionId = "session-id-2")
+        database.insertSession(
+            TestData.getSessionEntity(
+                id = "session-id-1",
+                needsReporting = true
+            )
         )
-
-        val event2 = EventEntity(
-            id = "event-id-2",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            serializedData = "data",
-            attachmentEntities = null,
-            serializedAttributes = "attributes",
-            serializedAttachments = "attachments",
-            attachmentsSize = 0,
-            serializedUserDefAttributes = null,
+        database.insertSession(
+            TestData.getSessionEntity(
+                id = "session-id-2",
+                needsReporting = true
+            )
         )
+        database.insertEvent(event1)
+        database.insertEvent(event2)
+        database.insertEvent(event3)
+        database.insertEvent(event4)
+        database.insertEvent(event5)
 
-        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
+        // when
+        val eventsToBatch = database.getUnBatchedEventsWithAttachmentSize(3)
+
+        // then
+        assertEquals(3, eventsToBatch.size)
+    }
+
+    @Test
+    fun `getEventPackets returns event packets for given event IDs`() {
+        // given
+        val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
+        val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-1")
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
         database.insertEvent(event1)
         database.insertEvent(event2)
 
+        // when
         val eventPackets = database.getEventPackets(listOf(event1.id, event2.id))
+
+        // then
         assertEquals(2, eventPackets.size)
         assertEventPacket(event1, eventPackets[0])
         assertEventPacket(event2, eventPackets[1])
     }
 
     @Test
-    fun `returns empty attachment packets if no events contain attachments`() {
-        val event1 = EventEntity(
-            id = "event-id-1",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = null,
-            serializedAttributes = "attributes",
-            serializedAttachments = null,
-            attachmentsSize = 0,
-            serializedUserDefAttributes = null,
-        )
+    fun `getEventPackets returns empty list when no events are found`() {
+        // when
+        val eventPackets = database.getEventPackets(listOf("event-id-1", "event-id-2"))
 
-        val event2 = EventEntity(
-            id = "event-id-2",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            serializedData = "data",
-            attachmentEntities = null,
-            serializedAttributes = "attributes",
-            serializedAttachments = null,
-            attachmentsSize = 0,
-            serializedUserDefAttributes = null,
-        )
+        // then
+        assertEquals(0, eventPackets.size)
+    }
 
-        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
+    @Test
+    fun `getAttachmentPackets returns empty list if events do not contain attachments`() {
+        // given
+        val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
+        val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-1")
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
         database.insertEvent(event1)
         database.insertEvent(event2)
 
+        // when
         val attachmentPackets = database.getAttachmentPackets(listOf(event1.id, event2.id))
+
+        // then
         assertEquals(0, attachmentPackets.size)
     }
 
     @Test
-    fun `returns attachment packets when events contain attachments`() {
-        val attachment1 = AttachmentEntity(
-            id = "attachment-id-1",
-            type = "test",
-            name = "a.txt",
-            path = "test-path",
-        )
-
-        val attachment2 = AttachmentEntity(
-            id = "attachment-id-2",
-            type = "test",
-            name = "b.txt",
-            path = "test-path",
-        )
-
-        val event1 = EventEntity(
-            id = "event-id-1",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
+    fun `getAttachmentPackets returns attachment packets when events contain attachments`() {
+        // given
+        val eventWithAttachment = TestData.getEventEntity(
+            eventId = "event-id-1",
             sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = listOf(attachment1),
-            serializedAttributes = "attributes",
-            serializedAttachments = null,
-            attachmentsSize = 100,
-            serializedUserDefAttributes = null,
+            attachmentEntities = listOf(TestData.getAttachmentEntity(id = "attachment-id-1")),
         )
-
-        val event2 = EventEntity(
-            id = "event-id-2",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
+        val eventWithMultipleAttachments = TestData.getEventEntity(
+            eventId = "event-id-2",
             sessionId = "session-id-1",
-            userTriggered = false,
-            serializedData = "data",
-            attachmentEntities = listOf(attachment2),
-            serializedAttributes = "attributes",
-            serializedAttachments = null,
-            attachmentsSize = 200,
-            serializedUserDefAttributes = null,
+            attachmentEntities = listOf(
+                TestData.getAttachmentEntity(id = "attachment-id-2"),
+                TestData.getAttachmentEntity(id = "attachment-id-3"),
+            ),
+        )
+        val eventWithDifferentSession = TestData.getEventEntity(
+            eventId = "event-id-3",
+            sessionId = "session-id-2",
+            attachmentEntities = listOf(TestData.getAttachmentEntity(id = "attachment-id-4")),
+        )
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
+        database.insertEvent(eventWithAttachment)
+        database.insertEvent(eventWithMultipleAttachments)
+
+        // when
+        val attachmentPackets = database.getAttachmentPackets(
+            listOf(
+                eventWithAttachment.id,
+                eventWithMultipleAttachments.id,
+                eventWithDifferentSession.id,
+            )
         )
 
-        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
-        database.insertEvent(event1)
-        database.insertEvent(event2)
-
-        val attachmentPackets = database.getAttachmentPackets(listOf(event1.id, event2.id))
-        assertEquals(2, attachmentPackets.size)
-        assertAttachmentPacket(attachment1, attachmentPackets[0])
-        assertAttachmentPacket(attachment2, attachmentPackets[1])
+        // then
+        assertEquals(4, attachmentPackets.size)
+        assertEquals("attachment-id-1", attachmentPackets[0].id)
+        assertEquals("attachment-id-2", attachmentPackets[1].id)
+        assertEquals("attachment-id-3", attachmentPackets[2].id)
+        assertEquals("attachment-id-4", attachmentPackets[2].id)
     }
 
     @Test
     fun `returns all batches and it's event IDs`() {
-        val event1 = EventEntity(
-            id = "event-id-1",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = null,
-            serializedAttributes = "attributes",
-            serializedAttachments = null,
-            attachmentsSize = 100,
-            serializedUserDefAttributes = null,
-        )
-
-        val event2 = EventEntity(
-            id = "event-id-2",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            serializedData = "data",
-            attachmentEntities = null,
-            serializedAttributes = "attributes",
-            serializedAttachments = null,
-            attachmentsSize = 200,
-            serializedUserDefAttributes = null,
-        )
-
+        // given
+        val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
+        val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-1")
         database.insertSession(SessionEntity("session-id-1", 123, 500, true))
         database.insertEvent(event1)
         database.insertEvent(event2)
-        database.insertBatch(listOf(event1.id, event2.id), "batch-id-1", 1234567890L)
 
+        // when
+        database.insertBatch(BatchEntity("batch-id-1", listOf(event1.id, event2.id), 1234567890L))
+
+        // then
         assertEquals(1, database.getBatches(2).size)
         assertEquals(2, database.getBatches(2)["batch-id-1"]!!.size)
     }
 
     @Test
-    fun `returns attachment packets for a given event ID`() {
-        val attachment = AttachmentEntity(
-            id = "attachment-id",
-            type = "test",
-            name = "a.txt",
-            path = "test-path",
-        )
-
-        val event = EventEntity(
-            id = "event-id",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = listOf(attachment),
-            serializedAttributes = "attributes",
-            serializedAttachments = null,
-            attachmentsSize = 100,
-            serializedUserDefAttributes = null,
-        )
-
-        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
-        database.insertEvent(event)
-
-        val attachmentPackets = database.getAttachmentPacket(event.id)
-        assertEquals(1, attachmentPackets.size)
-        assertAttachmentPacket(attachment, attachmentPackets[0])
-    }
-
-    @Test
-    fun `deletes events with given event IDs`() {
-        val event1 = EventEntity(
-            id = "event-id-1",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = null,
-            serializedAttributes = "attributes",
-            serializedAttachments = null,
-            attachmentsSize = 100,
-            serializedUserDefAttributes = null,
-        )
-
-        val event2 = EventEntity(
-            id = "event-id-2",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            serializedData = "data",
-            attachmentEntities = null,
-            serializedAttributes = "attributes",
-            serializedAttachments = null,
-            attachmentsSize = 200,
-            serializedUserDefAttributes = null,
-        )
-
-        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
+    fun `deleteEvents deletes events with given event IDs, ignores event IDs that don't exist`() {
+        // given
+        val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
+        val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-1")
+        val eventWithDifferentSession = TestData.getEventEntity(eventId = "event-id-3", sessionId = "session-id-2")
+        val eventNotInDb = TestData.getEventEntity(eventId = "event-id-4", sessionId = "session-id-1")
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
+        database.insertSession(TestData.getSessionEntity(id = "session-id-2"))
         database.insertEvent(event1)
         database.insertEvent(event2)
+        database.insertEvent(eventWithDifferentSession)
+        val eventIds = listOf(event1.id, event2.id, eventWithDifferentSession.id, eventNotInDb.id)
 
-        val eventIds = listOf(event1.id, event2.id)
+        // when
         database.deleteEvents(eventIds)
 
+        // then
         queryAllEvents(database.writableDatabase).use {
             assertEquals(0, it.count)
         }
     }
 
     @Test
-    fun `returns all sessions with untracked app exits from sessions table`() {
-        database.insertSession(SessionEntity("session-id-1", 123, 500, false))
-        database.insertSession(SessionEntity("session-id-1.1", 123, 500, false))
-        database.insertSession(SessionEntity("session-id-2", 987, 700, false))
-        database.insertSession(SessionEntity("session-id-2.2", 987, 700, false))
-        database.insertSession(SessionEntity("session-with-tracked-app-exit", 9000, 900, false))
+    fun `getSessionsWithUntrackedAppExit returns all sessions with untracked app exits from sessions table`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1", pid = 1))
+        database.insertSession(TestData.getSessionEntity(id = "session-id-2", pid = 2))
+        database.insertSession(TestData.getSessionEntity(id = "session-id-3", pid = 3))
+        database.updateAppExitTracked(1)
+        database.updateAppExitTracked(2)
 
-        database.updateAppExitTracked(9000)
+        // when
         val sessions = database.getSessionsWithUntrackedAppExit()
 
-        assertEquals(2, sessions.size)
-        assertEquals(2, sessions[123]!!.size)
-        assertEquals(2, sessions[987]!!.size)
+        // then
+        assertEquals(1, sessions.size)
+    }
+
+    @Test
+    fun `getSessionsWithUntrackedAppExit returns empty map if no sessions exist in db`() {
+        // when
+        val sessions = database.getSessionsWithUntrackedAppExit()
+
+        // then
+        assertEquals(0, sessions.size)
+    }
+
+    @Test
+    fun `getSessionsWithUntrackedAppExit returns empty map if no sessions with untracked app exit exist in db`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1", pid = 1))
+        database.updateAppExitTracked(1)
+
+        // when
+        val sessions = database.getSessionsWithUntrackedAppExit()
+
+        // then
+        assertEquals(0, sessions.size)
     }
 
     @Test
     fun `getOldestSession returns oldest session`() {
-        database.insertSession(SessionEntity("session-id-1", 123, 500, false))
-        database.insertSession(SessionEntity("session-id-2", 123, 700, false))
-        database.insertSession(SessionEntity("session-id-3", 123, 900, false))
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1", createdAt = 500))
+        database.insertSession(TestData.getSessionEntity(id = "session-id-2", createdAt = 700))
+        database.insertSession(TestData.getSessionEntity(id = "session-id-3", createdAt = 900))
 
         val sessionId = database.getOldestSession()
         assertEquals("session-id-1", sessionId)
     }
 
     @Test
-    fun `getOldestSession returns null when no session exists`() {
+    fun `getOldestSession returns null if no sessions exist in db`() {
+        // when
         val sessionId = database.getOldestSession()
+
+        // then
+        assertNull(sessionId)
+    }
+
+
+    @Test
+    fun `getOldestSession returns null when no session exists`() {
+        // when
+        val sessionId = database.getOldestSession()
+
+        // then
         assertNull(sessionId)
     }
 
     @Test
-    fun `inserts a new session successfully`() {
+    fun `insertSession inserts a new session successfully`() {
+        // given
         val sessionId = "session-id"
         val pid = 123
-        database.insertSession(SessionEntity(sessionId, pid, 500, true))
 
+        // when
+        database.insertSession(TestData.getSessionEntity(sessionId, pid, 500, false))
+
+        // then
         val db = database.writableDatabase
         db.query(
             SessionsTable.TABLE_NAME,
@@ -773,50 +603,47 @@ class DatabaseTest {
     }
 
     @Test
-    fun `sets app exit as tracked in all sessions for a given pid`() {
-        val sessionId1 = "session-id-1"
-        val sessionId2 = "session-id-2"
-        val sessionId3 = "session-id-3"
-        val pid = 123
-        val untrackedAppExitPid = 9000
-        database.insertSession(SessionEntity(sessionId1, pid, 500, false))
-        database.insertSession(SessionEntity(sessionId2, pid, 700, false))
-        database.insertSession(SessionEntity(sessionId3, untrackedAppExitPid, 900, false))
+    fun `updateAppExitTracked updates session with app exit as tracked`() {
+        // given
+        database.insertSession(TestData.getSessionEntity("session-id-1", pid = 1))
+        database.insertSession(TestData.getSessionEntity("session-id-2", pid = 2))
 
-        database.updateAppExitTracked(pid)
+        // when
+        database.updateAppExitTracked(pid = 1)
 
-        val db = database.writableDatabase
+        // then
+        val db = database.readableDatabase
         db.query(
             SessionsTable.TABLE_NAME,
             null,
-            "${SessionsTable.COL_APP_EXIT_TRACKED} = ?",
+            "${SessionsTable.COL_PID} = ?",
             arrayOf("1"),
             null,
             null,
             null,
         ).use {
-            assertEquals(2, it.count)
+            assertEquals(1, it.count)
             it.moveToFirst()
-            assertEquals(sessionId1, it.getString(it.getColumnIndex(SessionsTable.COL_SESSION_ID)))
-            it.moveToNext()
-            assertEquals(sessionId2, it.getString(it.getColumnIndex(SessionsTable.COL_SESSION_ID)))
+            assertEquals("session-id-1", it.getString(it.getColumnIndex(SessionsTable.COL_SESSION_ID)))
         }
     }
 
     @Test
-    fun `marks a session as crashed and sets needs reporting`() {
-        val sessionId = "session-id"
-        val pid = 123
-        database.insertSession(SessionEntity(sessionId, pid, 500, false))
+    fun `markCrashedSession sets crashed and needs reporting to 1`() {
+        // given
+        database.insertSession(TestData.getSessionEntity("session-id-1"))
+        database.insertSession(TestData.getSessionEntity("session-id-2"))
 
-        database.markCrashedSession(sessionId)
+        // when
+        database.markCrashedSession("session-id-1")
 
+        // then
         val db = database.readableDatabase
         db.query(
             SessionsTable.TABLE_NAME,
             null,
             "${SessionsTable.COL_SESSION_ID} = ?",
-            arrayOf(sessionId),
+            arrayOf("session-id-1"),
             null,
             null,
             null,
@@ -825,20 +652,24 @@ class DatabaseTest {
             it.moveToFirst()
             assertEquals(1, it.getInt(it.getColumnIndex(SessionsTable.COL_CRASHED)))
             assertEquals(1, it.getInt(it.getColumnIndex(SessionsTable.COL_NEEDS_REPORTING)))
+            it.moveToNext()
+            assertEquals(0, it.getInt(it.getColumnIndex(SessionsTable.COL_CRASHED)))
+            assertEquals(0, it.getInt(it.getColumnIndex(SessionsTable.COL_NEEDS_REPORTING)))
         }
     }
 
     @Test
-    fun `marks multiple sessions as crashed and sets needs reporting`() {
-        val sessionId1 = "session-id-1"
-        database.insertSession(SessionEntity(sessionId1, 100, 500, false))
-        val sessionId2 = "session-id-2"
-        database.insertSession(SessionEntity(sessionId2, 101, 600, false))
+    fun `markCrashedSessions marks multiple sessions as crashed and sets needs reporting`() {
+        // given
+        database.insertSession(TestData.getSessionEntity("session-id-1"))
+        database.insertSession(TestData.getSessionEntity("session-id-2"))
+        database.insertSession(TestData.getSessionEntity("session-id-3"))
 
-        database.markCrashedSessions(listOf(sessionId1, sessionId2))
+        // when
+        database.markCrashedSessions(listOf("session-id-1", "session-id-2"))
 
+        // then
         val db = database.readableDatabase
-        // query all session ids from db
         db.query(
             SessionsTable.TABLE_NAME,
             null,
@@ -848,61 +679,81 @@ class DatabaseTest {
             null,
             null,
         ).use {
-            assertEquals(2, it.count)
             it.moveToFirst()
             assertEquals(1, it.getInt(it.getColumnIndex(SessionsTable.COL_CRASHED)))
             assertEquals(1, it.getInt(it.getColumnIndex(SessionsTable.COL_NEEDS_REPORTING)))
             it.moveToNext()
             assertEquals(1, it.getInt(it.getColumnIndex(SessionsTable.COL_CRASHED)))
             assertEquals(1, it.getInt(it.getColumnIndex(SessionsTable.COL_NEEDS_REPORTING)))
+            it.moveToNext()
+            assertEquals(0, it.getInt(it.getColumnIndex(SessionsTable.COL_CRASHED)))
+            assertEquals(0, it.getInt(it.getColumnIndex(SessionsTable.COL_NEEDS_REPORTING)))
         }
     }
 
     @Test
-    fun `returns session Ids that need reporting`() {
-        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
-        database.insertSession(SessionEntity("session-id-2", 123, 500, false))
+    fun `getSessionIds returns session Ids that need reporting`() {
+        // given
+        database.insertSession(TestData.getSessionEntity("session-id-1", needsReporting = true))
+        database.insertSession(TestData.getSessionEntity("session-id-2", needsReporting = false))
+
+        // when
         val sessions = database.getSessionIds(
             needReporting = true,
             filterSessionIds = emptyList(),
             maxCount = 5,
         )
+
+        // then
         assertEquals(1, sessions.size)
     }
 
     @Test
-    fun `returns session Ids that need reporting, but filters given session IDs`() {
-        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
-        database.insertSession(SessionEntity("session-id-2", 123, 500, true))
+    fun `getSessionIds returns session Ids that need reporting, but filters given session IDs`() {
+        // given
+        database.insertSession(TestData.getSessionEntity("session-id-1", needsReporting = true))
+        database.insertSession(TestData.getSessionEntity("session-id-2", needsReporting = true))
+        database.insertSession(TestData.getSessionEntity("session-id-3", needsReporting = true))
+
+        // when
         val sessions = database.getSessionIds(
             needReporting = true,
-            filterSessionIds = listOf("session-id-2"),
+            filterSessionIds = listOf("session-id-2", "session-id-3"),
             maxCount = 5,
         )
+
+        // then
         assertEquals(1, sessions.size)
     }
 
     @Test
-    fun `returns session Ids that need reporting, and respects max count`() {
-        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
-        database.insertSession(SessionEntity("session-id-2", 123, 500, true))
+    fun `getSessionIds returns session Ids that need reporting, and respects max count`() {
+        // given
+        database.insertSession(TestData.getSessionEntity("session-id-1", needsReporting = true))
+        database.insertSession(TestData.getSessionEntity("session-id-2", needsReporting = true))
+
+        // when
         val sessions = database.getSessionIds(
             needReporting = true,
             filterSessionIds = emptyList(),
             maxCount = 1,
         )
+
+        // then
         assertEquals(1, sessions.size)
     }
 
     @Test
-    fun `deletes sessions with given session IDs`() {
-        val sessionId1 = "session-id-1"
-        val sessionId2 = "session-id-2"
-        database.insertSession(SessionEntity(sessionId1, 123, 500, true))
-        database.insertSession(SessionEntity(sessionId2, 123, 500, true))
+    fun `deleteSessions deletes sessions with given session IDs`() {
+        // given
+        database.insertSession(TestData.getSessionEntity("session-id-1"))
+        database.insertSession(TestData.getSessionEntity("session-id-2"))
+        database.insertSession(TestData.getSessionEntity("session-id-3"))
 
-        database.deleteSessions(listOf(sessionId1, sessionId2))
+        // when
+        database.deleteSessions(listOf("session-id-1", "session-id-2"))
 
+        // then
         val db = database.writableDatabase
         db.query(
             SessionsTable.TABLE_NAME,
@@ -913,46 +764,25 @@ class DatabaseTest {
             null,
             null,
         ).use {
-            assertEquals(0, it.count)
+            assertEquals(1, it.count)
         }
     }
 
     @Test
-    fun `deleting a session also deletes events for the session`() {
-        val sessionId1 = "session-id-1"
-        database.insertSession(SessionEntity(sessionId1, 123, 500, true))
-        val event1 = EventEntity(
-            id = "event-id-1",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = sessionId1,
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = null,
-            serializedAttributes = "attributes",
-            serializedAttachments = null,
-            attachmentsSize = 100,
-            serializedUserDefAttributes = null,
-        )
-        val eventInsertionSuccess = database.insertEvent(event1)
-        assertEquals(true, eventInsertionSuccess)
+    fun `deleteSessions also deletes events for the session`() {
+        // given
+        database.insertSession(TestData.getSessionEntity("session-id-1"))
+        database.insertSession(TestData.getSessionEntity("session-id-2"))
+        val eventToDelete = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
+        val eventToNotDelete = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-2")
+        database.insertEvent(eventToDelete)
+        database.insertEvent(eventToNotDelete)
 
-        database.deleteSessions(listOf(sessionId1))
+        // when
+        database.deleteSessions(listOf("session-id-1"))
 
-        val db = database.writableDatabase
-        db.query(
-            SessionsTable.TABLE_NAME,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-        ).use {
-            assertEquals(0, it.count)
-        }
-
-        db.query(
+        // then
+        database.readableDatabase.query(
             EventTable.TABLE_NAME,
             null,
             null,
@@ -961,119 +791,98 @@ class DatabaseTest {
             null,
             null,
         ).use {
-            assertEquals(0, it.count)
+            assertEquals(1, it.count)
+            it.moveToFirst()
+            assertEquals("event-id-2", it.getString(it.getColumnIndex(EventTable.COL_ID)))
         }
     }
 
     @Test
-    fun `returns all event Ids for given session Ids`() {
-        val event = EventEntity(
-            id = "event-id",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
+    fun `getEventsForSessions returns all event Ids for given session Ids`() {
+        // given
+        val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
+        val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-2")
+        val event3 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-3")
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
+        database.insertSession(TestData.getSessionEntity(id = "session-id-2"))
+        database.insertSession(TestData.getSessionEntity(id = "session-id-3"))
+        database.insertEvent(event1)
+        database.insertEvent(event2)
+        database.insertEvent(event3)
+
+        // when
+        val events = database.getEventsForSessions(listOf("session-id-1", "session-id-2"))
+
+        // then
+        assertEquals(2, events.size)
+    }
+
+    @Test
+    fun `getAttachmentsForEvents returns all attachment Ids for given event Ids, ignores events which do not have attachments`() {
+        // given
+        val event1 = TestData.getEventEntity(
+            eventId = "event-id-1",
+            sessionId = "session-id",
+            attachmentEntities = listOf(
+                TestData.getAttachmentEntity(id = "attachment-id-1"),
+                TestData.getAttachmentEntity(id = "attachment-id-2"),
+            ),
+        )
+        val event2 = TestData.getEventEntity(
+            eventId = "event-id-2",
+            sessionId = "session-id",
+            attachmentEntities = listOf(
+                TestData.getAttachmentEntity(id = "attachment-id-3"),
+                TestData.getAttachmentEntity(id = "attachment-id-4"),
+            ),
+        )
+        val eventWithoutAttachment = TestData.getEventEntity(
+            eventId = "event-id-3",
+            sessionId = "session-id",
             attachmentEntities = emptyList(),
-            serializedAttributes = null,
-            serializedAttachments = null,
-            attachmentsSize = 0,
-            serializedUserDefAttributes = null,
         )
-        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
-        database.insertEvent(event)
+        val event4 = TestData.getEventEntity(
+            eventId = "event-id-4",
+            sessionId = "session-id",
+            attachmentEntities = listOf(
+                TestData.getAttachmentEntity(id = "attachment-id-5"),
+                TestData.getAttachmentEntity(id = "attachment-id-6"),
+            ),
+        )
+        database.insertSession(TestData.getSessionEntity(id = "session-id"))
+        database.insertEvent(event1)
+        database.insertEvent(event2)
+        database.insertEvent(eventWithoutAttachment)
+        database.insertEvent(event4)
 
-        val events = database.getEventsForSessions(listOf("session-id-1"))
-        assertEquals(1, events.size)
+        // when
+        val attachments = database.getAttachmentsForEvents(listOf("event-id-1", "event-id-2", "event-id-3"))
+
+        // then
+        assertEquals(4, attachments.size)
     }
 
     @Test
-    fun `returns all attachment Ids for given event Ids`() {
-        val attachment1 = AttachmentEntity(
-            id = "attachment-id-1",
-            type = "test",
-            name = "a.txt",
-            path = "test-path",
-        )
-        val attachment2 = AttachmentEntity(
-            id = "attachment-id-2",
-            type = "test",
-            name = "a.txt",
-            path = "test-path",
-        )
-
-        val event = EventEntity(
-            id = "event-id",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = listOf(attachment1, attachment2),
-            serializedAttributes = null,
-            serializedAttachments = null,
-            attachmentsSize = 0,
-            serializedUserDefAttributes = null,
-        )
-
-        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
-        database.insertEvent(event)
-
-        val attachments = database.getAttachmentsForEvents(listOf("event-id"))
-        assertEquals(2, attachments.size)
-    }
-
-    @Test
-    fun `given events exist in db, returns count of all events in events table`() {
-        val event1 = EventEntity(
-            id = "event-id-1",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-1",
-            userTriggered = false,
-            filePath = "test-file-path",
-            attachmentEntities = null,
-            serializedAttributes = "attributes",
-            serializedAttachments = null,
-            attachmentsSize = 100,
-            serializedUserDefAttributes = null,
-        )
-
-        val event2 = EventEntity(
-            id = "event-id-2",
-            type = "test",
-            timestamp = "2024-03-18T12:50:12.62600000Z",
-            sessionId = "session-id-2",
-            userTriggered = false,
-            serializedData = "data",
-            attachmentEntities = null,
-            serializedAttributes = "attributes",
-            serializedAttachments = null,
-            attachmentsSize = 200,
-            serializedUserDefAttributes = null,
-        )
-
-        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
-        database.insertSession(SessionEntity("session-id-2", 123, 500, true))
+    fun `getEventsCount returns count of all events in events table`() {
+        // given
+        val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
+        val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-2")
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
+        database.insertSession(TestData.getSessionEntity(id = "session-id-2"))
         database.insertEvent(event1)
         database.insertEvent(event2)
 
+        // when
         val count = database.getEventsCount()
+
+        // then
         assertEquals(2, count)
     }
 
     @Test
-    fun `given no events exist in db, returns 0`() {
+    fun `getEventsCount returns 0 if no events in events table`() {
         val count = database.getEventsCount()
         assertEquals(0, count)
-    }
-
-    private fun assertAttachmentPacket(
-        attachment: AttachmentEntity,
-        attachmentPacket: AttachmentPacket,
-    ) {
-        assertEquals(attachment.id, attachmentPacket.id)
-        assertEquals(attachment.path, attachmentPacket.filePath)
     }
 
     private fun queryAllEvents(db: SQLiteDatabase): Cursor {
@@ -1088,7 +897,7 @@ class DatabaseTest {
         )
     }
 
-    private fun queryAllBatchedEvents(): Cursor {
+    private fun queryAllEventBatches(): Cursor {
         val db = database.writableDatabase
         return db.query(
             EventsBatchTable.TABLE_NAME,

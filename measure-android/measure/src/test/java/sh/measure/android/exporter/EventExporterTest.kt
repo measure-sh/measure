@@ -18,6 +18,7 @@ import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.storage.AttachmentEntity
+import sh.measure.android.storage.BatchEntity
 import sh.measure.android.storage.DatabaseImpl
 import sh.measure.android.storage.EventEntity
 import sh.measure.android.storage.FileStorageImpl
@@ -164,9 +165,7 @@ internal class EventExporterTest {
     fun `deletes the batch, events and attachments on client error`() {
         `when`(
             networkClient.execute(
-                any(),
-                any(),
-                any()
+                any(), any(), any()
             )
         ).thenReturn(HttpResponse.Error.ClientError())
         val attachment1 = AttachmentEntity("attachment1", "type", "name", "path")
@@ -224,6 +223,12 @@ internal class EventExporterTest {
     }
 
     private fun insertBatchInDb(batchId: String, eventIds: List<String>) {
-        database.insertBatch(eventIds, batchId, 12345L)
+        database.insertBatch(
+            BatchEntity(
+                batchId = batchId,
+                eventIds = eventIds,
+                createdAt = 12345,
+            )
+        )
     }
 }

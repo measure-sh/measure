@@ -5,14 +5,14 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Test
 import sh.measure.android.events.EventType
-import sh.measure.android.fakes.FakeEventFactory
-import sh.measure.android.fakes.FakeEventFactory.toEvent
+import sh.measure.android.fakes.TestData
+import sh.measure.android.fakes.TestData.toEvent
 
 class EventExtensionsKtTest {
 
     @Test
     fun `returns null if attributes are empty`() {
-        val event = FakeEventFactory.getClickData()
+        val event = TestData.getClickData()
             .toEvent(attributes = mutableMapOf(), type = EventType.CLICK)
 
         assertNull(event.serializeAttributes())
@@ -20,7 +20,7 @@ class EventExtensionsKtTest {
 
     @Test
     fun `returns serialized attributes if attributes are not empty`() {
-        val event = FakeEventFactory.getClickData()
+        val event = TestData.getClickData()
             .toEvent(
                 attributes = mutableMapOf(
                     "key1" to "value1",
@@ -38,64 +38,64 @@ class EventExtensionsKtTest {
 
     @Test
     fun `serialization succeeds for known event types`() {
-        val exceptionEvent = FakeEventFactory.getExceptionData().toEvent(type = EventType.EXCEPTION)
+        val exceptionEvent = TestData.getExceptionData().toEvent(type = EventType.EXCEPTION)
         assert(exceptionEvent.serializeDataToString().isNotEmpty())
 
-        val anrEvent = FakeEventFactory.getExceptionData().toEvent(type = EventType.ANR)
+        val anrEvent = TestData.getExceptionData().toEvent(type = EventType.ANR)
         assert(anrEvent.serializeDataToString().isNotEmpty())
 
-        val clickEvent = FakeEventFactory.getClickData().toEvent(type = EventType.CLICK)
+        val clickEvent = TestData.getClickData().toEvent(type = EventType.CLICK)
         assert(clickEvent.serializeDataToString().isNotEmpty())
 
-        val longClickEvent = FakeEventFactory.getLongClickData().toEvent(type = EventType.LONG_CLICK)
+        val longClickEvent = TestData.getLongClickData().toEvent(type = EventType.LONG_CLICK)
         assert(longClickEvent.serializeDataToString().isNotEmpty())
 
-        val scrollEvent = FakeEventFactory.getScrollData().toEvent(type = EventType.SCROLL)
+        val scrollEvent = TestData.getScrollData().toEvent(type = EventType.SCROLL)
         assert(scrollEvent.serializeDataToString().isNotEmpty())
 
-        val lifecycleActivityEvent = FakeEventFactory.getActivityLifecycleData().toEvent(type = EventType.LIFECYCLE_ACTIVITY)
+        val lifecycleActivityEvent = TestData.getActivityLifecycleData().toEvent(type = EventType.LIFECYCLE_ACTIVITY)
         assert(lifecycleActivityEvent.serializeDataToString().isNotEmpty())
 
-        val lifecycleFragmentEvent = FakeEventFactory.getFragmentLifecycleData().toEvent(type = EventType.LIFECYCLE_FRAGMENT)
+        val lifecycleFragmentEvent = TestData.getFragmentLifecycleData().toEvent(type = EventType.LIFECYCLE_FRAGMENT)
         assert(lifecycleFragmentEvent.serializeDataToString().isNotEmpty())
 
-        val applicationLifecycleEvent = FakeEventFactory.getApplicationLifecycleData().toEvent(type = EventType.LIFECYCLE_APP)
+        val applicationLifecycleEvent = TestData.getApplicationLifecycleData().toEvent(type = EventType.LIFECYCLE_APP)
         assert(applicationLifecycleEvent.serializeDataToString().isNotEmpty())
 
-        val networkChangeEvent = FakeEventFactory.getNetworkChangeData().toEvent(type = EventType.NETWORK_CHANGE)
+        val networkChangeEvent = TestData.getNetworkChangeData().toEvent(type = EventType.NETWORK_CHANGE)
         assert(networkChangeEvent.serializeDataToString().isNotEmpty())
 
-        val httpEvent = FakeEventFactory.getHttpData().toEvent(type = EventType.HTTP)
+        val httpEvent = TestData.getHttpData().toEvent(type = EventType.HTTP)
         assert(httpEvent.serializeDataToString().isNotEmpty())
 
-        val coldLaunchEvent = FakeEventFactory.getColdLaunchData().toEvent(type = EventType.COLD_LAUNCH)
+        val coldLaunchEvent = TestData.getColdLaunchData().toEvent(type = EventType.COLD_LAUNCH)
         assert(coldLaunchEvent.serializeDataToString().isNotEmpty())
 
-        val warmLaunchEvent = FakeEventFactory.getWarmLaunchData().toEvent(type = EventType.WARM_LAUNCH)
+        val warmLaunchEvent = TestData.getWarmLaunchData().toEvent(type = EventType.WARM_LAUNCH)
         assert(warmLaunchEvent.serializeDataToString().isNotEmpty())
 
-        val hotLaunchEvent = FakeEventFactory.getHotLaunchData().toEvent(type = EventType.HOT_LAUNCH)
+        val hotLaunchEvent = TestData.getHotLaunchData().toEvent(type = EventType.HOT_LAUNCH)
         assert(hotLaunchEvent.serializeDataToString().isNotEmpty())
 
-        val memoryUsageEvent = FakeEventFactory.getMemoryUsageData().toEvent(type = EventType.MEMORY_USAGE)
+        val memoryUsageEvent = TestData.getMemoryUsageData().toEvent(type = EventType.MEMORY_USAGE)
         assert(memoryUsageEvent.serializeDataToString().isNotEmpty())
 
-        val trimMemoryEvent = FakeEventFactory.getTrimMemoryData().toEvent(type = EventType.TRIM_MEMORY)
+        val trimMemoryEvent = TestData.getTrimMemoryData().toEvent(type = EventType.TRIM_MEMORY)
         assert(trimMemoryEvent.serializeDataToString().isNotEmpty())
 
-        val cpuUsageEvent = FakeEventFactory.getCpuUsageData().toEvent(type = EventType.CPU_USAGE)
+        val cpuUsageEvent = TestData.getCpuUsageData().toEvent(type = EventType.CPU_USAGE)
         assert(cpuUsageEvent.serializeDataToString().isNotEmpty())
 
-        val navigationEvent = FakeEventFactory.getNavigationData().toEvent(type = EventType.NAVIGATION)
+        val navigationEvent = TestData.getNavigationData().toEvent(type = EventType.NAVIGATION)
         assert(navigationEvent.serializeDataToString().isNotEmpty())
 
-        val lowMemoryEvent = FakeEventFactory.getLowMemoryData().toEvent(type = EventType.LOW_MEMORY)
+        val lowMemoryEvent = TestData.getLowMemoryData().toEvent(type = EventType.LOW_MEMORY)
         assert(lowMemoryEvent.serializeDataToString().isNotEmpty())
     }
 
     @Test
     fun `serialization fails with exception for unknown event type`() {
-        val event = FakeEventFactory.getExceptionData().toEvent(type = "invalid-type")
+        val event = TestData.getExceptionData().toEvent(type = "invalid-type")
 
         assertThrows(IllegalArgumentException::class.java) {
             event.serializeDataToString()
@@ -104,7 +104,7 @@ class EventExtensionsKtTest {
 
     @Test
     fun `serialization fails with exception for event type mismatch`() {
-        val event = FakeEventFactory.getExceptionData().toEvent(type = EventType.CLICK)
+        val event = TestData.getExceptionData().toEvent(type = EventType.CLICK)
 
         assertThrows(ClassCastException::class.java) {
             event.serializeDataToString()

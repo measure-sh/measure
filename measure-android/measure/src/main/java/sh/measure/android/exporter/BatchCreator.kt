@@ -3,6 +3,7 @@ package sh.measure.android.exporter
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.storage.BatchEntity
 import sh.measure.android.storage.Database
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.TimeProvider
@@ -67,9 +68,11 @@ internal class BatchCreatorImpl(
 
             val batchId = idProvider.createId()
             val batchInsertionResult = database.insertBatch(
-                eventIds,
-                batchId,
-                timeProvider.currentTimeSinceEpochInMillis,
+                BatchEntity(
+                    batchId = batchId,
+                    eventIds = eventIds,
+                    createdAt = timeProvider.currentTimeSinceEpochInMillis,
+                )
             )
             if (!batchInsertionResult) {
                 logger.log(LogLevel.Error, "Failed to insert batched event IDs")
