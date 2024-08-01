@@ -57,7 +57,7 @@ class SessionManagerTest {
                 processInfo.getPid(),
                 timeProvider.fakeCurrentTimeSinceEpochInMillis,
                 false,
-            )
+            ),
         )
     }
 
@@ -91,7 +91,7 @@ class SessionManagerTest {
                 processInfo.getPid(),
                 timeProvider.fakeCurrentTimeSinceEpochInMillis,
                 false,
-            )
+            ),
         )
     }
 

@@ -145,7 +145,7 @@ internal class SessionManagerImpl(
                 processInfo.getPid(),
                 timeProvider.currentTimeSinceEpochInMillis,
                 needsReporting = needsReporting,
-            )
+            ),
         )
     }
 

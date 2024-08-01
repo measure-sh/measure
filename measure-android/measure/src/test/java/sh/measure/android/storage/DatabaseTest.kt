@@ -172,7 +172,7 @@ class DatabaseTest {
 
         // when
         val result = database.insertBatch(
-            BatchEntity("batch-id", listOf(event1.id, event2.id), 1234567890L)
+            BatchEntity("batch-id", listOf(event1.id, event2.id), 1234567890L),
         )
 
         // then
@@ -194,7 +194,7 @@ class DatabaseTest {
                 "batch-id",
                 listOf("valid-id", "event-id", "event-id"),
                 987654321L,
-            )
+            ),
         )
         queryAllEventBatches().use {
             assertEquals(0, it.count)
@@ -213,7 +213,7 @@ class DatabaseTest {
 
         // when
         val result = database.insertBatch(
-            BatchEntity("batch-id", listOf(event1.id, eventNotInEventsTable.id), 1234567890L)
+            BatchEntity("batch-id", listOf(event1.id, eventNotInEventsTable.id), 1234567890L),
         )
         assertEquals(false, result)
         queryAllEventBatches().use {
@@ -233,7 +233,7 @@ class DatabaseTest {
         database.insertEvent(event2)
         database.insertEvent(batchedEvent)
         database.insertBatch(
-            TestData.getEventBatchEntity(batchId = "batch-id", eventIds = listOf(batchedEvent.id))
+            TestData.getEventBatchEntity(batchId = "batch-id", eventIds = listOf(batchedEvent.id)),
         )
 
         // when
@@ -251,14 +251,14 @@ class DatabaseTest {
         database.insertSession(
             TestData.getSessionEntity(
                 id = "session-id-1",
-                needsReporting = true
-            )
+                needsReporting = true,
+            ),
         )
         database.insertSession(
             TestData.getSessionEntity(
                 id = "session-id-2",
-                needsReporting = false
-            )
+                needsReporting = false,
+            ),
         )
         database.insertEvent(event1)
         database.insertEvent(event2)
@@ -276,14 +276,14 @@ class DatabaseTest {
         database.insertSession(
             TestData.getSessionEntity(
                 id = "session-id-1",
-                needsReporting = true
-            )
+                needsReporting = true,
+            ),
         )
         database.insertSession(
             TestData.getSessionEntity(
                 id = "session-id-2",
-                needsReporting = false
-            )
+                needsReporting = false,
+            ),
         )
         database.insertEvent(event1)
         database.insertEvent(event2)
@@ -320,14 +320,14 @@ class DatabaseTest {
         database.insertSession(
             TestData.getSessionEntity(
                 id = "session-id-1",
-                needsReporting = false
-            )
+                needsReporting = false,
+            ),
         )
         database.insertSession(
             TestData.getSessionEntity(
                 id = "session-id-2",
-                needsReporting = false
-            )
+                needsReporting = false,
+            ),
         )
         database.insertEvent(hotLaunchEvent)
         database.insertEvent(coldLaunchEvent)
@@ -360,14 +360,14 @@ class DatabaseTest {
         database.insertSession(
             TestData.getSessionEntity(
                 id = "session-id-1",
-                needsReporting = true
-            )
+                needsReporting = true,
+            ),
         )
         database.insertSession(
             TestData.getSessionEntity(
                 id = "session-id-2",
-                needsReporting = true
-            )
+                needsReporting = true,
+            ),
         )
         database.insertEvent(event1)
         database.insertEvent(event2)
@@ -456,7 +456,7 @@ class DatabaseTest {
                 eventWithAttachment.id,
                 eventWithMultipleAttachments.id,
                 eventWithDifferentSession.id,
-            )
+            ),
         )
 
         // then
@@ -563,7 +563,6 @@ class DatabaseTest {
         // then
         assertNull(sessionId)
     }
-
 
     @Test
     fun `getOldestSession returns null when no session exists`() {
