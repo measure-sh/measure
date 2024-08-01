@@ -72,6 +72,37 @@ error() {
 }
 
 # ------------------------------------------------------------------------------
+# has_command checks availability of commands.
+# ------------------------------------------------------------------------------
+has_command() {
+  if command -v "$1" &> /dev/null; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+is_macOS() {
+  [[ $DETECTED_OS == "macOS" ]]
+}
+
+is_linux() {
+  [[ $DETECTED_OS == "Linux" ]]
+}
+
+is_windows() {
+  [[ $DETECTED_OS == "Windows" ]]
+}
+
+is_ubuntu() {
+  [[ $DISTRO_NAME == "Ubuntu" ]]
+}
+
+is_debian() {
+  [[ $DISTRO_NAME == "Debian"* ]]
+}
+
+# ------------------------------------------------------------------------------
 # detect_os attempts to detect environment's operating system.
 # ------------------------------------------------------------------------------
 detect_os() {
@@ -282,34 +313,6 @@ start_docker_compose() {
     --detach
 }
 
-has_command() {
-  if command -v "$1" &> /dev/null; then
-    return 0
-  else
-    return 1
-  fi
-}
-
-is_macOS() {
-  [[ $DETECTED_OS == "macOS" ]]
-}
-
-is_linux() {
-  [[ $DETECTED_OS == "Linux" ]]
-}
-
-is_windows() {
-  [[ $DETECTED_OS == "Windows" ]]
-}
-
-is_ubuntu() {
-  [[ $DISTRO_NAME == "Ubuntu" ]]
-}
-
-is_debian() {
-  [[ $DISTRO_NAME == "Debian"* ]]
-}
-
 # ------------------------------------------------------------------------------
 # set_package_manager chooses a suitable package manager.
 # ------------------------------------------------------------------------------
@@ -328,6 +331,32 @@ set_package_manager() {
     fi
   fi
 
+}
+
+# ------------------------------------------------------------------------------
+# ensure_config ensures configuration is sound and usable.
+# ------------------------------------------------------------------------------
+ensure_config() {
+  if ! [[ -e "$ENV_FILE" ]]; then
+    set +u
+    info "Configuration file missing, starting wizard"
+    source ./config.sh
+    set -u
+  else
+    info "Configuration file found, skipping wizard"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# ensure_docker ensures docker components are usable.
+# ------------------------------------------------------------------------------
+ensure_docker() {
+  if ! detect_docker; then
+    if [ $UNINSTALL_DOCKER -eq 1 ]; then
+      uninstall_docker
+    fi
+    install_docker
+  fi
 }
 
 # ------------------------------------------------------------------------------
@@ -368,32 +397,6 @@ init() {
   fi
 
   info "Package manager: $PKGMAN"
-}
-
-# ------------------------------------------------------------------------------
-# ensure_config ensures configuration is sound and usable.
-# ------------------------------------------------------------------------------
-ensure_config() {
-  if ! [[ -e "$ENV_FILE" ]]; then
-    set +u
-    info "Configuration file missing, starting wizard"
-    source ./config.sh
-    set -u
-  else
-    info "Configuration file found, skipping wizard"
-  fi
-}
-
-# ------------------------------------------------------------------------------
-# ensure_docker ensures docker components are usable.
-# ------------------------------------------------------------------------------
-ensure_docker() {
-  if ! detect_docker; then
-    if [ $UNINSTALL_DOCKER -eq 1 ]; then
-      uninstall_docker
-    fi
-    install_docker
-  fi
 }
 
 # kickstart installation
