@@ -251,20 +251,6 @@ internal object Sql {
         """
     }
 
-    fun getAttachmentsForEventId(eventId: String): String {
-        return """
-            SELECT 
-                ${AttachmentTable.COL_ID}, 
-                ${AttachmentTable.COL_EVENT_ID},
-                ${AttachmentTable.COL_TIMESTAMP},
-                ${AttachmentTable.COL_TYPE},
-                ${AttachmentTable.COL_FILE_PATH},
-                ${AttachmentTable.COL_NAME}
-            FROM ${AttachmentTable.TABLE_NAME}
-            WHERE ${AttachmentTable.COL_EVENT_ID} = '$eventId'
-        """
-    }
-
     fun getSessionsWithUntrackedAppExit(): String {
         return """
             SELECT
