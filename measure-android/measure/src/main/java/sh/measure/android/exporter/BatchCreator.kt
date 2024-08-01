@@ -72,7 +72,7 @@ internal class BatchCreatorImpl(
                     batchId = batchId,
                     eventIds = eventIds,
                     createdAt = timeProvider.currentTimeSinceEpochInMillis,
-                )
+                ),
             )
             if (!batchInsertionResult) {
                 logger.log(LogLevel.Error, "Failed to insert batched event IDs")
