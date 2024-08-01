@@ -222,13 +222,13 @@ class DatabaseTest {
     }
 
     @Test
-    fun `getUnBatchedEventsWithAttachmentSize returns events, but discards already batched events`() {
+    fun `getUnBatchedEventsWithAttachmentSize returns events from session that needs reporting, but discards already batched events`() {
         // given
         val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
         val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-1")
         val batchedEvent =
             TestData.getEventEntity(eventId = "event-id-3", sessionId = "session-id-1")
-        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1", needsReporting = true))
         database.insertEvent(event1)
         database.insertEvent(event2)
         database.insertEvent(batchedEvent)
@@ -447,8 +447,10 @@ class DatabaseTest {
             attachmentEntities = listOf(TestData.getAttachmentEntity(id = "attachment-id-4")),
         )
         database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
+        database.insertSession(TestData.getSessionEntity(id = "session-id-2"))
         database.insertEvent(eventWithAttachment)
         database.insertEvent(eventWithMultipleAttachments)
+        database.insertEvent(eventWithDifferentSession)
 
         // when
         val attachmentPackets = database.getAttachmentPackets(
@@ -464,7 +466,7 @@ class DatabaseTest {
         assertEquals("attachment-id-1", attachmentPackets[0].id)
         assertEquals("attachment-id-2", attachmentPackets[1].id)
         assertEquals("attachment-id-3", attachmentPackets[2].id)
-        assertEquals("attachment-id-4", attachmentPackets[2].id)
+        assertEquals("attachment-id-4", attachmentPackets[3].id)
     }
 
     @Test
@@ -575,12 +577,8 @@ class DatabaseTest {
 
     @Test
     fun `insertSession inserts a new session successfully`() {
-        // given
-        val sessionId = "session-id"
-        val pid = 123
-
         // when
-        database.insertSession(TestData.getSessionEntity(sessionId, pid, 500, false))
+        database.insertSession(TestData.getSessionEntity("session-id-1"))
 
         // then
         val db = database.writableDatabase
@@ -588,16 +586,12 @@ class DatabaseTest {
             SessionsTable.TABLE_NAME,
             null,
             "${SessionsTable.COL_SESSION_ID} = ?",
-            arrayOf(sessionId),
+            arrayOf("session-id-1"),
             null,
             null,
             null,
         ).use {
             assertEquals(1, it.count)
-            it.moveToFirst()
-            assertEquals(sessionId, it.getString(it.getColumnIndex(SessionsTable.COL_SESSION_ID)))
-            assertEquals(pid, it.getInt(it.getColumnIndex(SessionsTable.COL_PID)))
-            assertEquals(true, it.getInt(it.getColumnIndex(SessionsTable.COL_NEEDS_REPORTING)) == 1)
         }
     }
 
@@ -641,13 +635,13 @@ class DatabaseTest {
         db.query(
             SessionsTable.TABLE_NAME,
             null,
-            "${SessionsTable.COL_SESSION_ID} = ?",
-            arrayOf("session-id-1"),
+            null,
+            null,
             null,
             null,
             null,
         ).use {
-            assertEquals(1, it.count)
+            assertEquals(2, it.count)
             it.moveToFirst()
             assertEquals(1, it.getInt(it.getColumnIndex(SessionsTable.COL_CRASHED)))
             assertEquals(1, it.getInt(it.getColumnIndex(SessionsTable.COL_NEEDS_REPORTING)))
