@@ -3,8 +3,8 @@ package sh.measure.android.attributes
 import org.junit.Assert
 import org.junit.Test
 import sh.measure.android.events.EventType
-import sh.measure.android.fakes.FakeEventFactory
-import sh.measure.android.fakes.FakeEventFactory.toEvent
+import sh.measure.android.fakes.TestData
+import sh.measure.android.fakes.TestData.toEvent
 
 class ComputeOnceAttributeProcessorTest {
 
@@ -19,7 +19,7 @@ class ComputeOnceAttributeProcessorTest {
                 return mapOf("key" to "value")
             }
         }
-        val event = FakeEventFactory.getExceptionData().toEvent(type = EventType.EXCEPTION)
+        val event = TestData.getExceptionData().toEvent(type = EventType.EXCEPTION)
 
         // When
         processor.appendAttributes(event.attributes)

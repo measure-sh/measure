@@ -3,9 +3,9 @@ package sh.measure.android.events
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.verify
-import sh.measure.android.fakes.FakeEventFactory
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.FakeTimeProvider
+import sh.measure.android.fakes.TestData
 import sh.measure.android.navigation.NavigationData
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TimeProvider
@@ -40,7 +40,7 @@ class UserTriggeredEventCollectorImplTest {
     @Test
     fun `tracks handled exception event`() {
         val exception = Exception()
-        val data = FakeEventFactory.getExceptionData(handled = true, exception = exception)
+        val data = TestData.getExceptionData(handled = true, exception = exception)
 
         userTriggeredEventCollector.trackHandledException(exception)
         verify(eventProcessor).trackUserTriggered(

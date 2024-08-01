@@ -7,9 +7,9 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import sh.measure.android.events.EventType
-import sh.measure.android.fakes.FakeEventFactory
-import sh.measure.android.fakes.FakeEventFactory.toEvent
 import sh.measure.android.fakes.FakeIdProvider
+import sh.measure.android.fakes.TestData
+import sh.measure.android.fakes.TestData.toEvent
 import sh.measure.android.storage.PrefsStorage
 
 class InstallationIdAttributeProcessorTest {
@@ -25,7 +25,7 @@ class InstallationIdAttributeProcessorTest {
         val installationIdKey = "installation_id"
         val installationId = idProvider.createId()
         `when`(prefsStorage.getInstallationId()).thenReturn(null)
-        val event = FakeEventFactory.getExceptionData().toEvent(type = EventType.EXCEPTION)
+        val event = TestData.getExceptionData().toEvent(type = EventType.EXCEPTION)
 
         // When
         event.appendAttributes(listOf(installationIdAttributeProcessor))
@@ -40,7 +40,7 @@ class InstallationIdAttributeProcessorTest {
         val installationIdKey = "installation_id"
         val installationId = idProvider.createId()
         `when`(prefsStorage.getInstallationId()).thenReturn(installationId)
-        val event = FakeEventFactory.getExceptionData().toEvent(type = EventType.EXCEPTION)
+        val event = TestData.getExceptionData().toEvent(type = EventType.EXCEPTION)
 
         // When
         event.appendAttributes(listOf(installationIdAttributeProcessor))

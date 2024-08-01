@@ -27,9 +27,11 @@ import sh.measure.android.performance.LowMemoryData
 import sh.measure.android.performance.MemoryUsageData
 import sh.measure.android.performance.TrimMemoryData
 import sh.measure.android.storage.AttachmentEntity
+import sh.measure.android.storage.BatchEntity
 import sh.measure.android.storage.EventEntity
+import sh.measure.android.storage.SessionEntity
 
-internal object FakeEventFactory {
+internal object TestData {
 
     fun getExceptionData(
         exception: Exception = IllegalArgumentException("Test exception"),
@@ -379,6 +381,76 @@ internal object FakeEventFactory {
             name = name,
             path = path,
             bytes = bytes,
+        )
+    }
+
+    fun getAttachmentEntity(
+        id: String = "attachment-id",
+        type: String = "type",
+        name: String = "name",
+    ): AttachmentEntity {
+        return AttachmentEntity(
+            id = id,
+            type = type,
+            name = name,
+        )
+    }
+
+    fun getEventEntity(
+        eventId: String = "event-id",
+        type: String = "string",
+        sessionId: String = "session-id",
+        userTriggered: Boolean = false,
+        timestamp: String = "2024-03-18T12:50:12.62600000Z",
+        attachmentSize: Long = 0,
+        serializedData: String? = "serialized-data",
+        serializedAttributes: String = "serialized-attributes",
+        serializedAttachments: String = "serialized-attachments",
+        filePath: String? = null,
+        attachmentEntities: List<AttachmentEntity> = emptyList(),
+        serializedUserDefAttributes: String? = null,
+    ): EventEntity {
+        return EventEntity(
+            id = eventId,
+            type = type,
+            timestamp = timestamp,
+            sessionId = sessionId,
+            userTriggered = userTriggered,
+            attachmentsSize = attachmentSize,
+            serializedData = serializedData,
+            serializedAttributes = serializedAttributes,
+            serializedAttachments = serializedAttachments,
+            attachmentEntities = attachmentEntities,
+            filePath = filePath,
+            serializedUserDefAttributes = serializedUserDefAttributes,
+        )
+    }
+
+    fun getSessionEntity(
+        id: String = "session-id",
+        pid: Int = 100,
+        createdAt: Long = 987654321L,
+        needsReporting: Boolean = false,
+        crashed: Boolean = false,
+    ): SessionEntity {
+        return SessionEntity(
+            sessionId = id,
+            pid = pid,
+            createdAt = createdAt,
+            needsReporting = needsReporting,
+            crashed = crashed,
+        )
+    }
+
+    fun getEventBatchEntity(
+        batchId: String = "batch-id",
+        eventIds: List<String> = emptyList(),
+        createdAt: Long = 987654321L,
+    ): BatchEntity {
+        return BatchEntity(
+            batchId = batchId,
+            eventIds = eventIds,
+            createdAt = createdAt,
         )
     }
 }
