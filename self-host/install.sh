@@ -386,6 +386,10 @@ init() {
   # choose a package manager
   set_package_manager
 
+  if ! has_command "openssl"; then
+    error "openssl is not installed, please install openssl and try again."
+  fi
+
   # fail if a package manager was not found
   if [ -z "${PKGMAN+x}" ]; then
     error "Couldn't determine a suitable package manager for your environment"

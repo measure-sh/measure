@@ -18,7 +18,7 @@ USE_EXTERNAL_BUCKETS=${USE_EXTERNAL_BUCKETS:-0}
 # password of desired length
 generate_password() {
   local length="$1"
-  echo $(dd if=/dev/urandom bs=1 count="$length" 2>/dev/null | base64)
+  echo $(openssl rand -base64 "$length" | tr -dc 'A-Za-z0-9')
 }
 
 # Validates namespace value
