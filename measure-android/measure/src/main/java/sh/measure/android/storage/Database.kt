@@ -206,6 +206,11 @@ internal class DatabaseImpl(
             db.execSQL(Sql.CREATE_ATTACHMENTS_TABLE)
             db.execSQL(Sql.CREATE_EVENTS_BATCH_TABLE)
             db.execSQL(Sql.CREATE_USER_DEFINED_ATTRIBUTES_TABLE)
+            db.execSQL(Sql.CREATE_EVENTS_TIMESTAMP_INDEX)
+            db.execSQL(Sql.CREATE_EVENTS_SESSION_ID_INDEX)
+            db.execSQL(Sql.CREATE_EVENTS_BATCH_EVENT_ID_INDEX)
+            db.execSQL(Sql.CREATE_SESSIONS_CREATED_AT_INDEX)
+            db.execSQL(Sql.CREATE_SESSIONS_NEEDS_REPORTING_INDEX)
         } catch (e: SQLiteException) {
             logger.log(LogLevel.Error, "Failed to create database", e)
         }
