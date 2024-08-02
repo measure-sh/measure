@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 
+
+# ------------------------------------------------------------------------------
+# Configuration
+# ------------------------------------------------------------------------------
 # Path to environment file
 ENV_FILE=.env
+
+# Prompt for database passwords
+PROMPT_DB_PASSWORDS=${PROMPT_DB_PASSWORDS:-0}
 
 # Generates cryptographically strong
 # password of desired length
@@ -206,7 +213,7 @@ EOF
 # Writes environment file for production
 write_prod_env() {
   cat <<EOF > "$ENV_FILE"
-POSTGRES_USER=postgres
+POSTGRES_USER=$POSTGRES_USER
 POSTGRES_PASSWORD=$POSTGRES_PASSWORD
 POSTGRES_MIGRATION_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/postgres?search_path=dbmate,public&sslmode=disable
 POSTGRES_DSN=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/postgres
@@ -302,14 +309,27 @@ if [[ "$SETUP_ENV" == "development" ]]; then
   OAUTH_GITHUB_SECRET=$(prompt_password_manual "Enter GitHub oauth app secret: ")
   write_dev_env
 elif [[ "$SETUP_ENV" == "production" ]]; then
-  # prompt for db passwords
-  echo -e "\nSet Postgres user's password"
-  POSTGRES_PASSWORD=$(prompt_password 24 "Enter password for Postgres user: ")
-  echo "Postgres password is set to [$POSTGRES_PASSWORD]"
+  POSTGRES_USER="postgres"
 
-  echo -e "\nSet Clickhouse user's password"
-  CLICKHOUSE_PASSWORD=$(prompt_password 24 "Enter password for Clickhouse user: ")
-  echo "Clickhouse password is set to [$CLICKHOUSE_PASSWORD]"
+  if [[ $PROMPT_DB_PASSWORDS -eq 1 ]]; then
+    # Prompt for database passwords
+    echo -e "\nSet Postgres user's password"
+    POSTGRES_PASSWORD=$(prompt_password 24 "Enter password for Postgres user: ")
+    echo "Postgres password is set to [$POSTGRES_PASSWORD]"
+
+    echo -e "\nSet ClickHouse user's password"
+    CLICKHOUSE_PASSWORD=$(prompt_password 24 "Enter password for ClickHouse user: ")
+    echo "ClickHouse password is set to [$CLICKHOUSE_PASSWORD]"
+  else
+    # Generate secure database passwords
+    echo -e "\nGenerating a secure Postgres user password"
+    POSTGRES_PASSWORD=$(generate_password 24)
+    echo "Postgres password is set to [$POSTGRES_PASSWORD]"
+
+    echo -e "\nGenerating a secure ClickHouse user password"
+    CLICKHOUSE_PASSWORD=$(generate_password 24)
+    echo "ClickHouse password is set to [$CLICKHOUSE_PASSWORD]"
+  fi
 
   echo -e "\nSet S3 bucket for symbols"
   SYMBOLS_S3_BUCKET=$(prompt_value_manual "Enter symbols S3 bucket name: ")
