@@ -315,20 +315,16 @@ elif [[ "$SETUP_ENV" == "production" ]]; then
     # Prompt for database passwords
     echo -e "\nSet Postgres user's password"
     POSTGRES_PASSWORD=$(prompt_password 24 "Enter password for Postgres user: ")
-    echo "Postgres password is set to [$POSTGRES_PASSWORD]"
 
     echo -e "\nSet ClickHouse user's password"
     CLICKHOUSE_PASSWORD=$(prompt_password 24 "Enter password for ClickHouse user: ")
-    echo "ClickHouse password is set to [$CLICKHOUSE_PASSWORD]"
   else
     # Generate secure database passwords
     echo -e "\nGenerating a secure Postgres user password"
     POSTGRES_PASSWORD=$(generate_password 24)
-    echo "Postgres password is set to [$POSTGRES_PASSWORD]"
 
     echo -e "\nGenerating a secure ClickHouse user password"
     CLICKHOUSE_PASSWORD=$(generate_password 24)
-    echo "ClickHouse password is set to [$CLICKHOUSE_PASSWORD]"
   fi
 
   echo -e "\nSet S3 bucket for symbols"
