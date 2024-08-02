@@ -37,14 +37,16 @@ internal class NetworkClientImpl(
 
     override fun init(baseUrl: String, apiKey: String) {
         this.baseUrl = baseUrl
-        okHttpClient =
-            OkHttpClient.Builder().connectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-                .callTimeout(CALL_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-                .addInterceptor(SecretTokenHeaderInterceptor(apiKey)).addInterceptor(
-                    HttpLoggingInterceptor().apply {
-                        level = HttpLoggingInterceptor.Level.BODY
-                    },
-                ).build()
+        val builder = OkHttpClient.Builder().connectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            .callTimeout(CALL_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            .addInterceptor(SecretTokenHeaderInterceptor(apiKey))
+        if (logger.enabled) {
+            builder.addInterceptor(
+                HttpLoggingInterceptor()
+                    .apply { level = HttpLoggingInterceptor.Level.BODY },
+            )
+        }
+        okHttpClient = builder.build()
     }
 
     override fun execute(
