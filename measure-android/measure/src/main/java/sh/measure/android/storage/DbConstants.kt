@@ -73,6 +73,14 @@ internal object Sql {
         )
     """
 
+    const val CREATE_EVENTS_TIMESTAMP_INDEX = """
+        CREATE INDEX IF NOT EXISTS events_timestamp_index ON ${EventTable.TABLE_NAME} (${EventTable.COL_TIMESTAMP})
+    """
+
+    const val CREATE_EVENTS_SESSION_ID_INDEX = """
+        CREATE INDEX IF NOT EXISTS events_session_id_index ON ${EventTable.TABLE_NAME} (${EventTable.COL_SESSION_ID})
+    """
+
     const val CREATE_ATTACHMENTS_TABLE = """
         CREATE TABLE ${AttachmentTable.TABLE_NAME} (
             ${AttachmentTable.COL_ID} TEXT PRIMARY KEY,
@@ -96,6 +104,10 @@ internal object Sql {
         )
     """
 
+    const val CREATE_EVENTS_BATCH_EVENT_ID_INDEX = """
+        CREATE INDEX IF NOT EXISTS events_batch_event_id_index ON ${EventsBatchTable.TABLE_NAME} (${EventsBatchTable.COL_EVENT_ID})
+    """
+
     const val CREATE_SESSIONS_TABLE = """
         CREATE TABLE ${SessionsTable.TABLE_NAME} (
             ${SessionsTable.COL_SESSION_ID} TEXT PRIMARY KEY,
@@ -105,6 +117,14 @@ internal object Sql {
             ${SessionsTable.COL_NEEDS_REPORTING} INTEGER DEFAULT 0,
             ${SessionsTable.COL_CRASHED} INTEGER DEFAULT 0
         )
+    """
+
+    const val CREATE_SESSIONS_CREATED_AT_INDEX = """
+        CREATE INDEX IF NOT EXISTS INDEX sessions_created_at_index ON ${SessionsTable.TABLE_NAME} (${SessionsTable.COL_CREATED_AT})
+    """
+
+    const val CREATE_SESSIONS_NEEDS_REPORTING_INDEX = """
+        CREATE INDEX IF NOT EXISTS sessions_needs_reporting_index ON ${SessionsTable.TABLE_NAME} (${SessionsTable.COL_NEEDS_REPORTING})
     """
 
     const val CREATE_USER_DEFINED_ATTRIBUTES_TABLE = """
@@ -216,24 +236,6 @@ internal object Sql {
                 ${EventTable.COL_ATTACHMENTS}
             FROM ${EventTable.TABLE_NAME}
             WHERE ${EventTable.COL_ID} IN (${eventIds.joinToString(", ") { "\'$it\'" }})
-        """.trimIndent()
-    }
-
-    fun getEventForId(eventId: String): String {
-        return """
-            SELECT 
-                ${EventTable.COL_ID},
-                ${EventTable.COL_SESSION_ID},
-                ${EventTable.COL_TIMESTAMP},
-                ${EventTable.COL_TYPE},
-                ${EventTable.COL_USER_TRIGGERED},
-                ${EventTable.COL_DATA_SERIALIZED},
-                ${EventTable.COL_DATA_FILE_PATH},
-                ${EventTable.COL_ATTACHMENTS},
-                ${EventTable.COL_ATTRIBUTES},
-                ${EventTable.COL_USER_DEFINED_ATTRIBUTES}
-            FROM ${EventTable.TABLE_NAME}
-            WHERE ${EventTable.COL_ID} = '$eventId'
         """.trimIndent()
     }
 
