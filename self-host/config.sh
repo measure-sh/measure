@@ -9,6 +9,9 @@ ENV_FILE=.env
 
 # Prompt for database passwords
 PROMPT_DB_PASSWORDS=${PROMPT_DB_PASSWORDS:-0}
+
+# Trigger prompt for configuring storage
+# bucket settings.
 USE_EXTERNAL_BUCKETS=${USE_EXTERNAL_BUCKETS:-0}
 
 # Generates cryptographically strong
