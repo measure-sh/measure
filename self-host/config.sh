@@ -9,6 +9,7 @@ ENV_FILE=.env
 
 # Prompt for database passwords
 PROMPT_DB_PASSWORDS=${PROMPT_DB_PASSWORDS:-0}
+USE_EXTERNAL_BUCKETS=${USE_EXTERNAL_BUCKETS:-0}
 
 # Generates cryptographically strong
 # password of desired length
@@ -222,7 +223,10 @@ CLICKHOUSE_USER=default
 CLICKHOUSE_PASSWORD=$CLICKHOUSE_PASSWORD
 CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_USER}:\${CLICKHOUSE_PASSWORD}@clickhouse:9000/default
 
-AWS_ENDPOINT_URL=
+MINIO_ROOT_USER=$MINIO_ROOT_USER
+MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD
+
+AWS_ENDPOINT_URL=http://minio:9000
 
 SYMBOLS_S3_BUCKET=$SYMBOLS_S3_BUCKET
 SYMBOLS_S3_BUCKET_REGION=$SYMBOLS_S3_BUCKET_REGION
@@ -310,6 +314,8 @@ if [[ "$SETUP_ENV" == "development" ]]; then
   write_dev_env
 elif [[ "$SETUP_ENV" == "production" ]]; then
   POSTGRES_USER="postgres"
+  MINIO_ROOT_USER="minio"
+  MINIO_ROOT_PASSWORD=$(generate_password 24)
 
   if [[ $PROMPT_DB_PASSWORDS -eq 1 ]]; then
     # Prompt for database passwords
@@ -327,18 +333,34 @@ elif [[ "$SETUP_ENV" == "production" ]]; then
     CLICKHOUSE_PASSWORD=$(generate_password 24)
   fi
 
-  echo -e "\nSet S3 bucket for symbols"
-  SYMBOLS_S3_BUCKET=$(prompt_value_manual "Enter symbols S3 bucket name: ")
-  SYMBOLS_S3_BUCKET_REGION=$(prompt_value_manual "Enter symbols S3 bucket region: ")
-  SYMBOLS_ACCESS_KEY=$(prompt_value_manual "Enter symbols S3 bucket access key: ")
-  SYMBOLS_SECRET_ACCESS_KEY=$(prompt_password_manual "Enter symbols S3 bucket secret access key: ")
+  if [[ $USE_EXTERNAL_BUCKETS -eq 1 ]]; then
+    echo -e "\nSet storage bucket for symbols"
+    SYMBOLS_S3_BUCKET=$(prompt_value_manual "Enter symbols S3 bucket name: ")
+    SYMBOLS_S3_BUCKET_REGION=$(prompt_value_manual "Enter symbols S3 bucket region: ")
+    SYMBOLS_ACCESS_KEY=$(prompt_value_manual "Enter symbols S3 bucket access key: ")
+    SYMBOLS_SECRET_ACCESS_KEY=$(prompt_password_manual "Enter symbols S3 bucket secret access key: ")
 
-  echo -e "\nSet S3 bucket for attachments"
-  ATTACHMENTS_S3_ORIGIN=$(prompt_value_manual "Enter attachments S3 bucket origin: ")
-  ATTACHMENTS_S3_BUCKET=$(prompt_value_manual "Enter attachments S3 bucket name: ")
-  ATTACHMENTS_S3_BUCKET_REGION=$(prompt_value_manual "Enter attachments S3 bucket region: ")
-  ATTACHMENTS_ACCESS_KEY=$(prompt_value_manual "Enter attachments S3 bucket access key: ")
-  ATTACHMENTS_SECRET_ACCESS_KEY=$(prompt_value_manual "Enter attachments S3 bucket secret access key: ")
+    echo -e "\nSet storage bucket for attachments"
+    ATTACHMENTS_S3_ORIGIN=$(prompt_value_manual "Enter attachments S3 bucket origin: ")
+    ATTACHMENTS_S3_BUCKET=$(prompt_value_manual "Enter attachments S3 bucket name: ")
+    ATTACHMENTS_S3_BUCKET_REGION=$(prompt_value_manual "Enter attachments S3 bucket region: ")
+    ATTACHMENTS_ACCESS_KEY=$(prompt_value_manual "Enter attachments S3 bucket access key: ")
+    ATTACHMENTS_SECRET_ACCESS_KEY=$(prompt_value_manual "Enter attachments S3 bucket secret access key: ")
+  else
+    echo -e "\nSet storage bucket for symbols"
+    SYMBOLS_S3_BUCKET="msr-$NAMESPACE-symbols"
+    SYMBOLS_S3_BUCKET_REGION="us-east-1"
+    SYMBOLS_ACCESS_KEY=$MINIO_ROOT_USER
+    SYMBOLS_SECRET_ACCESS_KEY=$MINIO_ROOT_PASSWORD
+
+    echo -e "\nSet storage bucket for attachments"
+    echo -e "Example: https://measure-attachments.yourcompany.com"
+    ATTACHMENTS_S3_ORIGIN=$(prompt_value_manual "Enter attachments S3 bucket origin: ")
+    ATTACHMENTS_S3_BUCKET="msr-$NAMESPACE-attachments"
+    ATTACHMENTS_S3_BUCKET_REGION="us-east-1"
+    ATTACHMENTS_ACCESS_KEY=$MINIO_ROOT_USER
+    ATTACHMENTS_SECRET_ACCESS_KEY=$MINIO_ROOT_PASSWORD
+  fi
 
   echo -e "\nSet Measure webapp dashboard URL"
   echo -e "Example: https://measure.yourcompany.com"
