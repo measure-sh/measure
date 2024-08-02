@@ -120,7 +120,7 @@ internal object Sql {
     """
 
     const val CREATE_SESSIONS_CREATED_AT_INDEX = """
-        CREATE INDEX IF NOT EXISTS INDEX sessions_created_at_index ON ${SessionsTable.TABLE_NAME} (${SessionsTable.COL_CREATED_AT})
+        CREATE INDEX IF NOT EXISTS sessions_created_at_index ON ${SessionsTable.TABLE_NAME} (${SessionsTable.COL_CREATED_AT})
     """
 
     const val CREATE_SESSIONS_NEEDS_REPORTING_INDEX = """
