@@ -7,7 +7,7 @@
   <img alt="GitHub closed issues" src="https://img.shields.io/github/issues-closed/measure-sh/measure"/>
 </p>
 
-## Measure is an open source platform for mobile app monitoring
+## Measure is an open source tool to monitor mobile apps
 
 - Capture Crashes and ANRs automatically
 - Monitor app health metrics such as launch times, crash rates and app sizes 
