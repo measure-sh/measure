@@ -16,7 +16,7 @@ export default function Home() {
         <div className="py-16" />
         <p className="font-display font-regular text-black text-8xl max-w-6xl text-center">measure</p>
         <div className="py-2" />
-        <p className="text-lg leading-relaxed font-sans text-black max-w-4xl text-center">open source app monitoring for mobile teams</p>
+        <p className="text-lg leading-relaxed font-sans text-black max-w-4xl text-center">open source tool for monitoring for mobile apps</p>
         <div className="py-8" />
         <Lottie animationData={landingHeroAnim} />
         <div className="py-4 md:py-8" />
