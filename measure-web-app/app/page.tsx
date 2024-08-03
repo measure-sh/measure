@@ -50,9 +50,9 @@ export default function Home() {
         <div className="py-12 md:py-16" />
         <div className="flex flex-col md:w-full items-center">
           <div className="flex flex-col items-center max-w-4xl">
-            <p className="text-6xl font-regular text-black font-display text-center">Crashes and App Hangs</p>
+            <p className="text-6xl font-regular text-black font-display text-center">Crashes and ANRs</p>
             <div className="py-2" />
-            <p className="text-lg text-center leading-relaxed font-sans text-black">Automatically track Crashes and App hangs. Dive deeper with screenshots, filters and detailed stacktraces.</p>
+            <p className="text-lg text-center leading-relaxed font-sans text-black">Automatically track Crashes and ANRs. Dive deeper with screenshots, filters and detailed stacktraces.</p>
           </div>
           <div className="py-8" />
           <div className='border border-cyan-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-cyan-200'>
