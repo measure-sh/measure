@@ -64,7 +64,7 @@ export default function Home() {
         <div className="py-12 md:py-16" />
         <div className="flex flex-col md:w-full items-center">
           <div className="flex flex-col items-center max-w-4xl">
-            <p className="text-6xl font-regular text-black font-display text-center">Session timeline</p>
+            <p className="text-6xl font-regular text-black font-display text-center">Session Timelines</p>
             <div className="py-2" />
             <p className="text-lg text-center leading-relaxed font-sans text-black">Debug issues easily with full session timelines. Get the full context with automatic tracking for clicks, navigations, http calls and more.</p>
           </div>
