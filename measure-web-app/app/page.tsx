@@ -66,7 +66,7 @@ export default function Home() {
           <div className="flex flex-col items-center max-w-4xl">
             <p className="text-6xl font-regular text-black font-display text-center">Session Timelines</p>
             <div className="py-2" />
-            <p className="text-lg text-center leading-relaxed font-sans text-black">Debug issues easily with full session timelines. Get the full context with automatic tracking for clicks, navigations, http calls and more.</p>
+            <p className="text-lg text-center leading-relaxed font-sans text-black">Debug issues easily with full session timelines. Get the complete context with automatic tracking for clicks, navigations, http calls and more.</p>
           </div>
           <div className="py-8" />
           <div className='border border-pink-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-pink-200'>
