@@ -4,8 +4,24 @@
 # ------------------------------------------------------------------------------
 # Configuration
 # ------------------------------------------------------------------------------
-# Path to environment file
+# Path to universal environment file
 ENV_FILE=.env
+
+# Path to web environment file
+ENV_WEB_FILE=../measure-web-app/.env.local
+
+# Measure insignia
+ENV_HEADER=$(cat <<'EOF'
+#                                                            ( )    
+#   ___ ___     __     _ _   ___  _   _  _ __   __       ___ | |__  
+# /' _ ` _ `\ /'__`\ /'_` )/',__)( ) ( )( '__)/'__`\   /',__)|  _ `\
+# | ( ) ( ) |(  ___/( (_| |\__, \| (_) || |  (  ___/ _ \__, \| | | |
+# (_) (_) (_)`\____)`\__,_)(____/`\___/'(_)  `\____)(_)(____/(_) (_)
+EOF
+)
+
+# Generation timestamp
+ENV_TIMESTAMP=$(date)
 
 # Prompt for database passwords
 PROMPT_DB_PASSWORDS=${PROMPT_DB_PASSWORDS:-0}
@@ -137,17 +153,16 @@ create_ns() {
 
 # Writes environment file for development
 write_dev_env() {
-  cat <<'EOF' > "$ENV_FILE"
-#                                                            ( )    
-#   ___ ___     __     _ _   ___  _   _  _ __   __       ___ | |__  
-# /' _ ` _ `\ /'__`\ /'_` )/',__)( ) ( )( '__)/'__`\   /',__)|  _ `\
-# | ( ) ( ) |(  ___/( (_| |\__, \| (_) || |  (  ___/ _ \__, \| | | |
-# (_) (_) (_)`\____)`\__,_)(____/`\___/'(_)  `\____)(_)(____/(_) (_)
+  cat <<EOF > "$ENV_FILE"
+$ENV_HEADER
+
+# 🚨 Attention 🚨
+#
+# This configuration file was generated via an automated script.
+# Generated at $ENV_TIMESTAMP
 
 # Unified Measure Configuration
-#
-# Contains environment variables that are shared
-# across various Measure components.
+# Contains environment variables shared across Measure components.
 
 #############
 # Databases #
@@ -155,16 +170,19 @@ write_dev_env() {
 
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
-POSTGRES_MIGRATION_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/postgres?search_path=dbmate,public&sslmode=disable
-POSTGRES_DSN=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/postgres
+POSTGRES_MIGRATION_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/postgres?search_path=dbmate,public&sslmode=disable
+POSTGRES_DSN=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/postgres
 
 CLICKHOUSE_USER=default
 CLICKHOUSE_PASSWORD=
-CLICKHOUSE_DSN=clickhouse://${CLICKHOUSE_USER}:${CLICKHOUSE_PASSWORD}@clickhouse:9000/default
+CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_USER}:\${CLICKHOUSE_PASSWORD}@clickhouse:9000/default
 
 ##################
 # Object Storage #
 ##################
+
+MINIO_ROOT_USER=minio
+MINIO_ROOT_PASSWORD=minio123
 
 AWS_ENDPOINT_URL=http://minio:9000
 
@@ -191,16 +209,6 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 API_BASE_URL=http://api:8080
 
-######################
-# Dependent Services #
-######################
-
-MINIO_ROOT_USER=minio
-MINIO_ROOT_PASSWORD=minio123
-
-EOF
-
-  cat <<EOF >> "$ENV_FILE"
 ########
 # Auth #
 ########
@@ -214,9 +222,54 @@ SESSION_REFRESH_SECRET=super-secret-for-jwt-token-with-at-least-32-characters
 EOF
 }
 
+write_web_dev_env() {
+  cat <<EOF > "$ENV_WEB_FILE"
+$ENV_HEADER
+
+# 🚨 Attention 🚨
+#
+# This configuration file was generated via an automated script.
+# Generated at $ENV_TIMESTAMP
+
+# Measure Web App Configuration
+# Contains environment variables for measure web app
+
+########
+# Next #
+########
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+########
+# Auth #
+########
+NEXT_PUBLIC_MEASURE_GOOGLE_OAUTH_CLIENT_ID=$OAUTH_GOOGLE_KEY
+NEXT_PUBLIC_MEASURE_GITHUB_OAUTH_CLIENT_ID=$OAUTH_GITHUB_KEY
+
+###############
+# MEASURE API #
+###############
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+API_BASE_URL=http://api:8080
+
+EOF
+}
+
 # Writes environment file for production
 write_prod_env() {
   cat <<EOF > "$ENV_FILE"
+$ENV_HEADER
+
+# 🚨 Attention 🚨
+#
+# This configuration file was generated via an automated script.
+# Generated at $ENV_TIMESTAMP
+
+# Unified Measure Configuration
+# Contains environment variables shared across Measure components.
+
+#############
+# Databases #
+#############
 POSTGRES_USER=$POSTGRES_USER
 POSTGRES_PASSWORD=$POSTGRES_PASSWORD
 POSTGRES_MIGRATION_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/postgres?search_path=dbmate,public&sslmode=disable
@@ -225,6 +278,10 @@ POSTGRES_DSN=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/
 CLICKHOUSE_USER=default
 CLICKHOUSE_PASSWORD=$CLICKHOUSE_PASSWORD
 CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_USER}:\${CLICKHOUSE_PASSWORD}@clickhouse:9000/default
+
+##################
+# Object Storage #
+##################
 
 MINIO_ROOT_USER=$MINIO_ROOT_USER
 MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD
@@ -242,16 +299,56 @@ ATTACHMENTS_S3_BUCKET_REGION=$ATTACHMENTS_S3_BUCKET_REGION
 ATTACHMENTS_ACCESS_KEY=$ATTACHMENTS_ACCESS_KEY
 ATTACHMENTS_SECRET_ACCESS_KEY=$ATTACHMENTS_SECRET_ACCESS_KEY
 
+####################
+# Measure Services #
+####################
+
 SYMBOLICATOR_ORIGIN=http://symbolicator-retrace:8181
 NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 API_BASE_URL=http://api:8080
+
+########
+# Auth #
+########
 
 OAUTH_GOOGLE_KEY=$OAUTH_GOOGLE_KEY
 OAUTH_GITHUB_KEY=$OAUTH_GITHUB_KEY
 OAUTH_GITHUB_SECRET=$OAUTH_GITHUB_SECRET
 SESSION_ACCESS_SECRET=$SESSION_ACCESS_SECRET
 SESSION_REFRESH_SECRET=$SESSION_REFRESH_SECRET
+
+EOF
+}
+
+write_web_prod_env() {
+  cat <<EOF > "$ENV_WEB_FILE"
+$ENV_HEADER
+
+# 🚨 Attention 🚨
+#
+# This configuration file was generated via an automated script.
+# Generated at $ENV_TIMESTAMP
+
+# Measure Web App Configuration
+# Contains environment variables for measure web app
+
+########
+# Next #
+########
+NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+
+########
+# Auth #
+########
+NEXT_PUBLIC_MEASURE_GOOGLE_OAUTH_CLIENT_ID=$OAUTH_GOOGLE_KEY
+NEXT_PUBLIC_MEASURE_GITHUB_OAUTH_CLIENT_ID=$OAUTH_GITHUB_KEY
+
+###############
+# MEASURE API #
+###############
+NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+API_BASE_URL=http://api:8080
 
 EOF
 }
@@ -315,24 +412,26 @@ if [[ "$SETUP_ENV" == "development" ]]; then
   OAUTH_GITHUB_KEY=$(prompt_value_manual "Enter GitHub oauth app key: ")
   OAUTH_GITHUB_SECRET=$(prompt_password_manual "Enter GitHub oauth app secret: ")
   write_dev_env
+  write_web_dev_env
 elif [[ "$SETUP_ENV" == "production" ]]; then
   POSTGRES_USER="postgres"
   MINIO_ROOT_USER="minio"
   MINIO_ROOT_PASSWORD=$(generate_password 24)
+  echo -e "Generated secure password for minio root user"
 
   if [[ $PROMPT_DB_PASSWORDS -eq 1 ]]; then
     # Prompt for database passwords
-    echo -e "\nSet Postgres user's password"
+    echo -e "Set Postgres user's password"
     POSTGRES_PASSWORD=$(prompt_password 24 "Enter password for Postgres user: ")
 
-    echo -e "\nSet ClickHouse user's password"
+    echo -e "Set ClickHouse user's password"
     CLICKHOUSE_PASSWORD=$(prompt_password 24 "Enter password for ClickHouse user: ")
   else
     # Generate secure database passwords
-    echo -e "\nGenerating a secure Postgres user password"
+    echo -e "Generated secure password for Postgres user"
     POSTGRES_PASSWORD=$(generate_password 24)
 
-    echo -e "\nGenerating a secure ClickHouse user password"
+    echo -e "Generated secure password for ClickHouse user"
     CLICKHOUSE_PASSWORD=$(generate_password 24)
   fi
 
@@ -385,6 +484,8 @@ elif [[ "$SETUP_ENV" == "production" ]]; then
   SESSION_REFRESH_SECRET=$(generate_password 44)
 
   write_prod_env
+  write_web_prod_env
 fi
 
 echo -e "\nWrote config to $ENV_FILE"
+echo -e "Wrote config to $ENV_WEB_FILE"

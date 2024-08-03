@@ -16,11 +16,6 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
-      - NEXT_PUBLIC_MEASURE_GOOGLE_OAUTH_CLIENT_ID=${OAUTH_GOOGLE_KEY}
-      - NEXT_PUBLIC_MEASURE_GITHUB_OAUTH_CLIENT_ID=${OAUTH_GITHUB_KEY}
-      - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
-      - API_BASE_URL=${API_BASE_URL}
       - NODE_ENV=development
       - NEXT_TELEMETRY_DISABLED=1
     volumes:
@@ -58,10 +53,14 @@ services:
         - path: ../measure-backend/measure-go
           action: rebuild
     depends_on:
-      - postgres
-      - clickhouse
-      - minio
-      - symbolicator-retrace
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      symbolicator-retrace:
+        condition: service_started
 
   symbolicator-retrace:
     build:
@@ -152,6 +151,9 @@ services:
 
   clickhouse:
     image: clickhouse/clickhouse-server:24
+    environment:
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
     ports:
       - "9000:9000/tcp"
       - "8123:8123"
