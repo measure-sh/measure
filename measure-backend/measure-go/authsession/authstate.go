@@ -106,7 +106,7 @@ func ExchangeCodeForToken(code string) (githubToken GitHubToken, err error) {
 	data.Set("client_id", server.Server.Config.OAuthGitHubKey)
 	data.Set("client_secret", server.Server.Config.OAuthGitHubSecret)
 	data.Set("code", code)
-	data.Set("redirect_uri", "http://localhost:3000/auth/callback/github")
+	data.Set("redirect_uri", fmt.Sprintf("%s/auth/callback/github", server.Server.Config.SiteOrigin))
 
 	payload := strings.NewReader(data.Encode())
 
