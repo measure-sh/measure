@@ -16,6 +16,7 @@ services:
     ports:
       - "3000:3000"
     environment:
+      - API_BASE_URL=${API_BASE_URL}
       - NODE_ENV=development
       - NEXT_TELEMETRY_DISABLED=1
     volumes:
