@@ -137,7 +137,7 @@ internal class EventExporterTest {
 
     @Test
     fun `deletes the batch, events and attachments on successful export`() {
-        `when`(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success())
+        `when`(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success)
         val attachment1 = AttachmentEntity("attachment1", "type", "name", "path")
         val attachmentPath = getPathForAttachment(attachment1)
         insertEventInDb("event1", attachmentEntities = listOf(attachment1), attachmentSize = 100)
@@ -169,7 +169,7 @@ internal class EventExporterTest {
                 any(),
                 any(),
             ),
-        ).thenReturn(HttpResponse.Error.ClientError())
+        ).thenReturn(HttpResponse.Error.ClientError(400))
         val attachment1 = AttachmentEntity("attachment1", "type", "name", "path")
         val attachmentPath = getPathForAttachment(attachment1)
         insertEventInDb("event1", attachmentEntities = listOf(attachment1), attachmentSize = 100)

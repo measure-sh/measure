@@ -1,169 +1,153 @@
 package sh.measure.android.exporter
 
-import okhttp3.mockwebserver.MockResponse
-import okhttp3.mockwebserver.MockWebServer
-import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
 import org.junit.Test
+import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
+import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.verify
 import sh.measure.android.fakes.NoopLogger
-import sh.measure.android.fakes.TestData
 import sh.measure.android.storage.FileStorage
-import java.io.File
 
 class NetworkClientTest {
-    private val mockWebServer = MockWebServer()
     private val fileStorage = mock<FileStorage>()
+    private val httpClient = mock<HttpUrlConnectionClient>()
+    private val multipartDataFactory = mock<MultipartDataFactory>()
     private val networkClient: NetworkClient = NetworkClientImpl(
         logger = NoopLogger(),
         fileStorage = fileStorage,
+        httpClient = httpClient,
+        multipartDataFactory = multipartDataFactory,
     ).apply {
         init(apiKey = "secret", baseUrl = "http://localhost:8080")
     }
-    private val fakeFile =
-        File.createTempFile("file", "txt").apply { writeText(getFakeFileContent()) }
 
-    @After
-    fun tearDown() {
-        mockWebServer.shutdown()
-        fakeFile.deleteOnExit()
+    @Test
+    fun `execute sends request with correct URL and headers`() {
+        val eventPackets = listOf<EventPacket>()
+        val attachmentPackets = listOf<AttachmentPacket>()
+        val multipartData = listOf<MultipartData>()
+
+        `when`(multipartDataFactory.createFromEventPacket(any())).thenReturn(null)
+        `when`(multipartDataFactory.createFromAttachmentPacket(any())).thenReturn(null)
+        `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenReturn(
+            HttpResponse.Success,
+        )
+
+        networkClient.execute("batch123", eventPackets, attachmentPackets)
+
+        verify(httpClient).sendMultipartRequest(
+            eq("http://localhost:8080/events"),
+            eq("PUT"),
+            eq(
+                mapOf("msr-req-id" to "batch123", "Authorization" to "Bearer secret"),
+            ),
+            eq(multipartData),
+        )
     }
 
     @Test
-    fun `creates a request, sends it to events endpoint and returns success`() {
-        // Given
-        val batchId = "batchId"
-        val eventEntity = TestData.fakeEventEntity(eventId = "event-")
-        val eventPacket = TestData.getEventPacket(eventEntity)
-        val attachmentPackets = TestData.getAttachmentPackets(eventEntity)
-        attachmentPackets.forEach {
-            `when`(fileStorage.getFile(it.filePath)).thenReturn(fakeFile)
-        }
+    fun `execute prepares multipart data correctly`() {
+        val eventPacket = mock<EventPacket>()
+        val attachmentPacket = mock<AttachmentPacket>()
+        val eventMultipartData = mock<MultipartData>()
+        val attachmentMultipartData = mock<MultipartData>()
 
-        mockWebServer.enqueue(MockResponse().setResponseCode(202))
-        mockWebServer.start(port = 8080)
+        `when`(multipartDataFactory.createFromEventPacket(eventPacket)).thenReturn(
+            eventMultipartData,
+        )
+        `when`(multipartDataFactory.createFromAttachmentPacket(attachmentPacket)).thenReturn(
+            attachmentMultipartData,
+        )
+        `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenReturn(
+            HttpResponse.Success,
+        )
 
-        // When
-        val result = networkClient.execute(batchId, listOf(eventPacket), attachmentPackets)
-        val recordedRequest = mockWebServer.takeRequest()
+        networkClient.execute("batch123", listOf(eventPacket), listOf(attachmentPacket))
 
-        // Assert
-        assertTrue(result is HttpResponse.Success)
-        assertEquals("PUT", recordedRequest.method)
+        verify(httpClient).sendMultipartRequest(
+            any(),
+            any(),
+            any(),
+            eq(listOf(eventMultipartData, attachmentMultipartData)),
+        )
     }
 
     @Test
-    fun `creates a request with request ID header`() {
-        // Given
-        val batchId = "batchId"
-        val eventEntity = TestData.fakeEventEntity(eventId = "event-")
-        val eventPacket = TestData.getEventPacket(eventEntity)
-        val attachmentPackets = TestData.getAttachmentPackets(eventEntity)
-        attachmentPackets.forEach {
-            `when`(fileStorage.getFile(it.filePath)).thenReturn(fakeFile)
-        }
+    fun `execute handles successful response`() {
+        val successResponse = HttpResponse.Success
+        `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenReturn(
+            successResponse,
+        )
 
-        mockWebServer.enqueue(MockResponse().setResponseCode(202))
-        mockWebServer.start(port = 8080)
+        val result = networkClient.execute("batch123", emptyList(), emptyList())
 
-        // When
-        networkClient.execute(batchId, listOf(eventPacket), attachmentPackets)
-        val recordedRequest = mockWebServer.takeRequest()
-
-        // Assert
-        assertTrue(recordedRequest.headers.contains(Pair("msr-req-id", batchId)))
+        assertEquals(successResponse, result)
     }
 
     @Test
-    fun `creates a request, sends it to events endpoint and returns error if request fails due to server error`() {
-        // Given
-        val batchId = "batchId"
-        val eventEntity = TestData.fakeEventEntity(eventId = "event-")
-        val eventPacket = TestData.getEventPacket(eventEntity)
-        val attachmentPackets = TestData.getAttachmentPackets(eventEntity)
-        attachmentPackets.forEach {
-            `when`(fileStorage.getFile(it.filePath)).thenReturn(fakeFile)
-        }
+    fun `execute handles rate limit error`() {
+        val rateLimitResponse = HttpResponse.Error.RateLimitError
+        `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenReturn(
+            rateLimitResponse,
+        )
 
-        mockWebServer.enqueue(MockResponse().setResponseCode(500))
-        mockWebServer.start(port = 8080)
+        val result = networkClient.execute("batch123", emptyList(), emptyList())
 
-        // When
-        val result = networkClient.execute(batchId, listOf(eventPacket), attachmentPackets)
-
-        // Assert
-        assertTrue(result is HttpResponse.Error.ServerError)
+        assertEquals(rateLimitResponse, result)
     }
 
     @Test
-    fun `creates a request, sends it to events endpoint and returns error if request fails due to client error`() {
-        // Given
-        val batchId = "batchId"
-        val eventEntity = TestData.fakeEventEntity(eventId = "event-")
-        val eventPacket = TestData.getEventPacket(eventEntity)
-        val attachmentPackets = TestData.getAttachmentPackets(eventEntity)
-        attachmentPackets.forEach {
-            `when`(fileStorage.getFile(it.filePath)).thenReturn(fakeFile)
-        }
+    fun `execute handles client error`() {
+        val clientErrorResponse = HttpResponse.Error.ClientError(400)
+        `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenReturn(
+            clientErrorResponse,
+        )
 
-        mockWebServer.enqueue(MockResponse().setResponseCode(404))
-        mockWebServer.start(port = 8080)
+        val result = networkClient.execute("batch123", emptyList(), emptyList())
 
-        // When
-        val result = networkClient.execute(batchId, listOf(eventPacket), attachmentPackets)
-
-        // Assert
-        assertTrue(result is HttpResponse.Error.ClientError)
+        assertEquals(clientErrorResponse, result)
     }
 
     @Test
-    fun `creates a request, sends it to events endpoint and returns error if request fails due to rate limit error`() {
-        // Given
-        val batchId = "batchId"
-        val eventEntity = TestData.fakeEventEntity(eventId = "event-")
-        val eventPacket = TestData.getEventPacket(eventEntity)
-        val attachmentPackets = TestData.getAttachmentPackets(eventEntity)
-        attachmentPackets.forEach {
-            `when`(fileStorage.getFile(it.filePath)).thenReturn(fakeFile)
-        }
+    fun `execute handles server error`() {
+        val serverErrorResponse = HttpResponse.Error.ServerError(500)
+        `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenReturn(
+            serverErrorResponse,
+        )
 
-        mockWebServer.enqueue(MockResponse().setResponseCode(429))
-        mockWebServer.start(port = 8080)
+        val result = networkClient.execute("batch123", emptyList(), emptyList())
 
-        // When
-        val result = networkClient.execute(batchId, listOf(eventPacket), attachmentPackets)
-
-        // Assert
-        assertTrue(result is HttpResponse.Error.RateLimitError)
+        assertEquals(serverErrorResponse, result)
     }
 
     @Test
-    fun `given event data is in serialized data, request form data for event is valid`() {
-        val eventEntity = TestData.fakeEventEntity(eventId = "event-id")
-        val eventPacket = TestData.getEventPacket(eventEntity)
+    fun `execute handles unknown error`() {
+        val exception = RuntimeException("Unknown error")
+        `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenThrow(
+            exception,
+        )
 
-        val formDataPart = eventPacket.asFormDataPart(fileStorage)
+        val result = networkClient.execute("batch123", emptyList(), emptyList())
 
-        val expectedData =
-            "{\"id\":\"${eventEntity.id}\",\"session_id\":\"${eventEntity.sessionId}\",\"user_triggered\":${eventEntity.userTriggered},\"timestamp\":\"${eventEntity.timestamp}\",\"type\":\"${eventEntity.type}\",\"${eventEntity.type}\":serialized-data,\"attachments\":${eventEntity.serializedAttachments},\"attribute\":${eventEntity.serializedAttributes}}"
-        assertEquals(expectedData, formDataPart)
+        assert(result is HttpResponse.Error.UnknownError)
+        assertEquals(exception, (result as HttpResponse.Error.UnknownError).exception)
     }
 
     @Test
-    fun `given event data is in file, request form data for event is valid`() {
-        val eventEntity = TestData.fakeEventEntity(eventId = "event-id")
-        val eventPacket = TestData.getEventPacket(eventEntity)
+    fun `execute throws exception when network client is not initialized`() {
+        val uninitializedNetworkClient = NetworkClientImpl(
+            logger = NoopLogger(),
+            fileStorage = fileStorage,
+            httpClient = httpClient,
+            multipartDataFactory = multipartDataFactory,
+        )
 
-        val formDataPart = eventPacket.asFormDataPart(fileStorage)
-
-        val expectedData =
-            "{\"id\":\"${eventEntity.id}\",\"session_id\":\"${eventEntity.sessionId}\",\"user_triggered\":${eventEntity.userTriggered},\"timestamp\":\"${eventEntity.timestamp}\",\"type\":\"${eventEntity.type}\",\"${eventEntity.type}\":serialized-data,\"attachments\":${eventEntity.serializedAttachments},\"attribute\":${eventEntity.serializedAttributes}}"
-        assertEquals(expectedData, formDataPart)
-    }
-
-    private fun getFakeFileContent(): String {
-        return "lorem ipsum dolor sit amet"
+        assertThrows(
+            IllegalArgumentException::class.java,
+        ) { uninitializedNetworkClient.execute("batch123", emptyList(), emptyList()) }
     }
 }
