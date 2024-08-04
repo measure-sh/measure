@@ -156,7 +156,7 @@ func doGitHub(path, token string) (body []byte, err error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf(`failed to retrieve github oauth primary email`)
+		err = fmt.Errorf(`failed to retrieve github oauth primary email, status code: %d`, resp.StatusCode)
 		return
 	}
 
