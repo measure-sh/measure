@@ -51,7 +51,7 @@ func main() {
 
 	r := gin.Default()
 	cors := cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "https://www.measure.sh"},
+		AllowOrigins:     []string{config.SiteOrigin},
 		AllowMethods:     []string{"GET", "OPTIONS", "PATCH", "DELETE", "PUT"},
 		AllowHeaders:     []string{"Authorization", "Content-Type"},
 		AllowCredentials: true,

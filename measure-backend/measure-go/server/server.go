@@ -44,6 +44,7 @@ type ServerConfig struct {
 	AttachmentsSecretAccessKey string
 	AWSEndpoint                string
 	AttachmentOrigin           string
+	SiteOrigin                 string
 	OAuthGitHubKey             string
 	OAuthGitHubSecret          string
 	OAuthGoogleKey             string
@@ -103,6 +104,11 @@ func NewConfig() *ServerConfig {
 		log.Println("ATTACHMENTS_S3_ORIGIN env var not set, event attachment downloads won't work")
 	}
 
+	siteOrigin := os.Getenv("SITE_ORIGIN")
+	if siteOrigin == "" {
+		log.Fatal("SITE_ORIGIN env var not set. Need for Cross Origin Resource Sharing (CORS) to work.")
+	}
+
 	oauthGitHubKey := os.Getenv("OAUTH_GITHUB_KEY")
 	if oauthGitHubKey == "" {
 		log.Println("OAUTH_GITHUB_KEY env var is not set, dashboard authn won't work")
@@ -148,6 +154,7 @@ func NewConfig() *ServerConfig {
 		AttachmentsSecretAccessKey: attachmentsSecretAccessKey,
 		AWSEndpoint:                endpoint,
 		AttachmentOrigin:           attachmentOrigin,
+		SiteOrigin:                 siteOrigin,
 		OAuthGitHubKey:             oauthGitHubKey,
 		OAuthGitHubSecret:          oauthGitHubSecret,
 		OAuthGoogleKey:             oauthGoogleKey,
