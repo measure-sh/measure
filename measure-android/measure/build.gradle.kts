@@ -151,13 +151,12 @@ dependencies {
     compileOnly(libs.androidx.compose.runtime.android)
     compileOnly(libs.androidx.compose.ui)
     compileOnly(libs.androidx.navigation.compose)
+    compileOnly(libs.squareup.okhttp)
 
     implementation(libs.kotlinx.serialization.json)
 
     implementation(libs.androidx.annotation)
     implementation(libs.squareup.okio)
-    implementation(libs.squareup.okhttp)
-    implementation(libs.squareup.okhttp.logging)
     implementation(libs.squareup.curtains)
 
     testImplementation(libs.mockito.kotlin)

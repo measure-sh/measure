@@ -453,4 +453,11 @@ internal object TestData {
             createdAt = createdAt,
         )
     }
+
+    fun getAttachmentPacket(
+        id: String = "attachment-id",
+        filePath: String = "/path/to/attachment.png",
+    ): AttachmentPacket {
+        return AttachmentPacket(id = id, filePath = filePath)
+    }
 }
