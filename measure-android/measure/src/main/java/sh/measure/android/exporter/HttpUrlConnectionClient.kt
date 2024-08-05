@@ -1,9 +1,13 @@
 package sh.measure.android.exporter
 
+import okio.BufferedSink
+import okio.Source
+import okio.buffer
+import okio.sink
+import okio.source
+import sh.measure.android.logger.Logger
 import java.io.IOException
 import java.io.InputStream
-import java.io.OutputStream
-import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.MalformedURLException
 import java.net.URL
@@ -26,7 +30,7 @@ internal interface HttpClient {
  * configures the `HttpUrlConnection` to `setChunkedStreamingMode` to avoid buffering the request
  * body in memory.
  */
-internal class HttpUrlConnectionClient : HttpClient {
+internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient {
     private val connectionTimeoutMs = 30_000
     private val readTimeoutMs = 10_000
     private val boundary = "--boundary-7MA4YWxkTrZu0gW"
@@ -54,7 +58,8 @@ internal class HttpUrlConnectionClient : HttpClient {
         var connection: HttpURLConnection? = null
         try {
             connection = createConnection(url, method, headers)
-            streamMultipartData(connection.outputStream, multipartData)
+            val outputStream = getOutputStream(connection)
+            streamMultipartData(outputStream, multipartData)
             if (isRedirect(connection.responseCode)) {
                 val location = connection.getHeaderField("Location")
                     ?: throw IOException("Redirect location is missing")
@@ -113,54 +118,58 @@ internal class HttpUrlConnectionClient : HttpClient {
     }
 
     private fun streamMultipartData(
-        outputStream: OutputStream,
+        outputStream: BufferedSink,
         multipartData: List<MultipartData>,
     ) {
-        val writer = OutputStreamWriter(outputStream)
-
         multipartData.forEach { data ->
-            writeMultipartPart(writer, data)
+            when (data) {
+                is MultipartData.FormField -> writeFormField(outputStream, data)
+                is MultipartData.FileData -> writeFileData(outputStream, data)
+            }
         }
 
-        writeClosingBoundary(writer)
+        writeClosingBoundary(outputStream)
     }
 
-    private fun writeMultipartPart(writer: OutputStreamWriter, data: MultipartData) {
-        val (headers, content) = when (data) {
-            is MultipartData.FormField -> getFormFieldPart(data)
-            is MultipartData.FileData -> getFileDataPart(data)
-        }
-
-        writeBoundary(writer)
-        writeHeaders(writer, headers, content.length)
-        writeContent(writer, content)
-    }
-
-    private fun writeBoundary(writer: OutputStreamWriter) {
-        writer.write("--$boundary\r\n")
+    private fun writeBoundary(sink: BufferedSink) {
+        sink.writeUtf8("--$boundary\r\n")
     }
 
     private fun writeHeaders(
-        writer: OutputStreamWriter,
+        sink: BufferedSink,
         headers: Map<String, String>,
-        contentLength: Int,
     ) {
         headers.forEach { (key, value) ->
-            writer.write("$key: $value\r\n")
+            sink.writeUtf8("$key: $value\r\n")
         }
-        writer.write("Content-Length: $contentLength\r\n")
-        writer.write("\r\n")
+        sink.writeUtf8("\r\n")
     }
 
-    private fun writeContent(writer: OutputStreamWriter, content: String) {
-        writer.write(content)
-        writer.write("\r\n")
-        writer.flush()
+    private fun writeContent(sink: BufferedSink, content: String) {
+        sink.writeUtf8(content)
+        sink.writeUtf8("\r\n")
+        sink.flush()
     }
 
-    private fun writeClosingBoundary(writer: OutputStreamWriter) {
-        writer.write("--$boundary--\r\n")
-        writer.flush()
+    private fun writeClosingBoundary(sink: BufferedSink) {
+        sink.writeUtf8("--$boundary--\r\n")
+        sink.flush()
+    }
+
+    private fun writeFormField(sink: BufferedSink, data: MultipartData.FormField) {
+        val (headers, content) = getFormFieldPart(data)
+        writeBoundary(sink)
+        writeHeaders(sink, headers)
+        writeContent(sink, content)
+    }
+
+    private fun writeFileData(sink: BufferedSink, data: MultipartData.FileData) {
+        val (headers, source) = getFileDataPart(data)
+        writeBoundary(sink)
+        writeHeaders(sink, headers)
+        sink.writeAll(source)
+        sink.writeUtf8("\r\n")
+        sink.flush()
     }
 
     private fun getFormFieldPart(data: MultipartData.FormField): Pair<Map<String, String>, String> {
@@ -170,23 +179,29 @@ internal class HttpUrlConnectionClient : HttpClient {
         return headers to data.value
     }
 
-    private fun getFileDataPart(data: MultipartData.FileData): Pair<Map<String, String>, String> {
+    private fun getFileDataPart(data: MultipartData.FileData): Pair<Map<String, String>, Source> {
         val headers = mapOf(
             "Content-Disposition" to "form-data; name=\"${data.name}\"; filename=\"${data.filename}\"",
-            "Content-Type" to data.contentType,
         )
-        val content = data.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
-        return headers to content
+        return headers to data.inputStream.source()
     }
 
-    private fun processResponse(connection: HttpURLConnection): HttpResponse {
-        return when (val responseCode = connection.responseCode) {
-            in 200..299 -> HttpResponse.Success
-            429 -> HttpResponse.Error.RateLimitError
-            in 400..499 -> HttpResponse.Error.ClientError(responseCode)
-            in 500..599 -> HttpResponse.Error.ServerError(responseCode)
-            else -> HttpResponse.Error.UnknownError()
+    private fun getOutputStream(connection: HttpURLConnection): BufferedSink {
+        return if (logger.enabled) {
+            LoggingOutputStream(connection.outputStream, logger).sink().buffer()
+        } else {
+            connection.outputStream.sink().buffer()
         }
+    }
+}
+
+private fun processResponse(connection: HttpURLConnection): HttpResponse {
+    return when (val responseCode = connection.responseCode) {
+        in 200..299 -> HttpResponse.Success
+        429 -> HttpResponse.Error.RateLimitError
+        in 400..499 -> HttpResponse.Error.ClientError(responseCode)
+        in 500..599 -> HttpResponse.Error.ServerError(responseCode)
+        else -> HttpResponse.Error.UnknownError()
     }
 }
 
@@ -195,7 +210,6 @@ internal sealed class MultipartData {
     data class FileData(
         val name: String,
         val filename: String,
-        val contentType: String,
         val inputStream: InputStream,
     ) : MultipartData()
 }

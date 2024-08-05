@@ -43,19 +43,19 @@ internal class MultipartDataFactoryImpl(
     override fun createFromEventPacket(eventPacket: EventPacket): MultipartData? {
         return when {
             eventPacket.serializedData != null -> {
-                MultipartData.FormField(
-                    name = EVENT_FORM_NAME,
-                    value = eventPacket.asFormDataPart(),
-                )
+                eventPacket.getFromSerializedData()?.let {
+                    MultipartData.FormField(
+                        name = EVENT_FORM_NAME,
+                        value = it,
+                    )
+                }
             }
 
             eventPacket.serializedDataFilePath != null -> {
-                getFileInputStream(eventPacket.serializedDataFilePath)?.let { inputStream ->
-                    MultipartData.FileData(
+                eventPacket.getFromFileData()?.let {
+                    MultipartData.FormField(
                         name = EVENT_FORM_NAME,
-                        filename = eventPacket.eventId,
-                        contentType = "application/json",
-                        inputStream = inputStream,
+                        value = it,
                     )
                 }
             }
@@ -77,7 +77,6 @@ internal class MultipartDataFactoryImpl(
             MultipartData.FileData(
                 name = name,
                 filename = name,
-                contentType = "application/octet-stream",
                 inputStream = fileInputStream,
             )
         } else {
@@ -95,4 +94,22 @@ internal class MultipartDataFactoryImpl(
 
     private fun getAttachmentFormDataName(attachmentPacket: AttachmentPacket): String =
         "$ATTACHMENT_NAME_PREFIX${attachmentPacket.id}"
+
+    private fun EventPacket.getFromSerializedData(): String? {
+        if (serializedData.isNullOrEmpty()) {
+            return null
+        }
+        return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":$serializedData,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes}"
+    }
+
+    private fun EventPacket.getFromFileData(): String? {
+        if (serializedDataFilePath.isNullOrEmpty()) {
+            return null
+        }
+        val data = fileStorage.getFile(serializedDataFilePath)?.readText()
+        if (data.isNullOrEmpty()) {
+            return null
+        }
+        return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":$data,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes}"
+    }
 }

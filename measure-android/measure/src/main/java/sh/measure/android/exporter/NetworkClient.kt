@@ -18,7 +18,7 @@ private const val PATH_EVENTS = "/events"
 internal class NetworkClientImpl(
     private val logger: Logger,
     private val fileStorage: FileStorage,
-    private val httpClient: HttpClient = HttpUrlConnectionClient(),
+    private val httpClient: HttpClient = HttpUrlConnectionClient(logger),
     private val multipartDataFactory: MultipartDataFactory = MultipartDataFactoryImpl(
         logger,
         fileStorage,

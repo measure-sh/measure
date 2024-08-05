@@ -7,12 +7,13 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import sh.measure.android.fakes.NoopLogger
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 
 class HttpUrlConnectionClientTest {
     private val mockWebServer: MockWebServer = MockWebServer()
-    private val client: HttpUrlConnectionClient = HttpUrlConnectionClient()
+    private val client: HttpUrlConnectionClient = HttpUrlConnectionClient(NoopLogger())
 
     @Before
     fun setup() {
@@ -110,13 +111,12 @@ class HttpUrlConnectionClientTest {
             mockWebServer.url("/").toString(),
             "POST",
             emptyMap(),
-            listOf(MultipartData.FileData("file", "test.txt", "text/plain", inputStream)),
+            listOf(MultipartData.FileData("file", "test.txt", inputStream)),
         )
 
         val request = mockWebServer.takeRequest()
         val body = request.body.readUtf8()
         assertTrue(body.contains("Content-Disposition: form-data; name=\"file\"; filename=\"test.txt\""))
-        assertTrue(body.contains("Content-Type: text/plain"))
         assertTrue(body.contains("file content"))
         assertEquals(HttpResponse.Success, result)
     }
@@ -133,7 +133,7 @@ class HttpUrlConnectionClientTest {
             listOf(
                 MultipartData.FormField("key1", "value1"),
                 MultipartData.FormField("key2", "value2"),
-                MultipartData.FileData("file", "test.txt", "text/plain", inputStream),
+                MultipartData.FileData("file", "test.txt", inputStream),
             ),
         )
 
@@ -144,7 +144,6 @@ class HttpUrlConnectionClientTest {
         assertTrue(body.contains("Content-Disposition: form-data; name=\"key2\""))
         assertTrue(body.contains("value2"))
         assertTrue(body.contains("Content-Disposition: form-data; name=\"file\"; filename=\"test.txt\""))
-        assertTrue(body.contains("Content-Type: text/plain"))
         assertTrue(body.contains("file content"))
         assertEquals(HttpResponse.Success, result)
     }
@@ -219,7 +218,7 @@ class HttpUrlConnectionClientTest {
             emptyMap(),
             listOf(
                 MultipartData.FormField("key1", "value1"),
-                MultipartData.FileData("file", "test.txt", "text/plain", inputStream),
+                MultipartData.FileData("file", "test.txt", inputStream),
             ),
         )
 
@@ -246,7 +245,6 @@ class HttpUrlConnectionClientTest {
         assertTrue(parts[1].contains("value1"))
 
         assertTrue(parts[2].contains("Content-Disposition: form-data; name=\"file\"; filename=\"test.txt\""))
-        assertTrue(parts[2].contains("Content-Type: text/plain"))
         assertTrue(parts[2].contains("file content"))
     }
 }

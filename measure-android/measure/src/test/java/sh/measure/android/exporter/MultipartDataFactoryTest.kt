@@ -24,18 +24,30 @@ class MultipartDataFactoryTest {
 
     @Test
     fun `createFromEventPacket with serializedData returns FormField`() {
+        fun EventPacket.expectedSerializedValue(): String {
+            return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":$serializedData,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes}"
+        }
+
+        // Given
         val eventEntity =
             TestData.getEventEntity(eventId = "event-id", serializedData = "serialized-data")
         val eventPacket = TestData.getEventPacket(eventEntity)
+
+        // When
         val result = multipartDataFactory.createFromEventPacket(eventPacket)
 
+        // Then
         assert(result is MultipartData.FormField)
-        assertEquals(EVENT_FORM_NAME, (result as MultipartData.FormField).name)
-        assertEquals(eventPacket.asFormDataPart(), result.value)
+        val formField = result as MultipartData.FormField
+        assertEquals(EVENT_FORM_NAME, formField.name)
+        assertEquals(eventPacket.expectedSerializedValue(), formField.value)
     }
 
     @Test
-    fun `createFromEventPacket with filePath returns FileData`() {
+    fun `createFromEventPacket with filePath returns FormField`() {
+        fun EventPacket.expectedSerializedValue(): String {
+            return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":${getFakeFileContent()},\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes}"
+        }
         val eventEntity = TestData.getEventEntity(
             eventId = "event-id",
             filePath = "/path/to/file.json",
@@ -45,13 +57,12 @@ class MultipartDataFactoryTest {
 
         `when`(fileStorage.getFile("/path/to/file.json")).thenReturn(fakeFile)
 
-        val result = multipartDataFactory.createFromEventPacket(eventPacket)
+        val result: MultipartData? = multipartDataFactory.createFromEventPacket(eventPacket)
 
-        assert(result is MultipartData.FileData)
-        assertEquals(EVENT_FORM_NAME, (result as MultipartData.FileData).name)
-        assertEquals("event-id", result.filename)
-        assertEquals("application/json", result.contentType)
-        assertEquals(getFakeFileContent(), result.inputStream.readAsString())
+        assert(result is MultipartData.FormField)
+        val formField = result as MultipartData.FormField
+        assertEquals(EVENT_FORM_NAME, formField.name)
+        assertEquals(eventPacket.expectedSerializedValue(), formField.value)
     }
 
     @Test
@@ -86,7 +97,6 @@ class MultipartDataFactoryTest {
             (result as MultipartData.FileData).name,
         )
         assertEquals("${ATTACHMENT_NAME_PREFIX}attachment-id", result.filename)
-        assertEquals("application/octet-stream", result.contentType)
         assertEquals(getFakeFileContent(), result.inputStream.readAsString())
     }
 
