@@ -20,7 +20,7 @@ internal interface EventExporter {
      *
      * @return the response of the export operation.
      */
-    fun export(batchId: String, eventIds: List<String>): HttpResponse<Nothing?>?
+    fun export(batchId: String, eventIds: List<String>): HttpResponse?
 }
 
 internal class EventExporterImpl(
@@ -37,7 +37,7 @@ internal class EventExporterImpl(
     @VisibleForTesting
     internal val batchIdsInTransit = CopyOnWriteArrayList<String>()
 
-    override fun export(batchId: String, eventIds: List<String>): HttpResponse<Nothing?>? {
+    override fun export(batchId: String, eventIds: List<String>): HttpResponse? {
         if (batchIdsInTransit.contains(batchId)) {
             logger.log(LogLevel.Warning, "Batch $batchId is already in transit, skipping export")
             return null
@@ -72,7 +72,7 @@ internal class EventExporterImpl(
     }
 
     private fun handleBatchProcessingResult(
-        response: HttpResponse<Nothing?>,
+        response: HttpResponse,
         batchId: String,
         events: List<EventPacket>,
         attachments: List<AttachmentPacket>,

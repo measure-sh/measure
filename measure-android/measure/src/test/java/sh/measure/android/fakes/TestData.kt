@@ -314,38 +314,6 @@ internal object TestData {
         )
     }
 
-    fun fakeEventEntity(
-        eventId: String = "event-id",
-        type: String = "string",
-        sessionId: String = "session-id",
-        userTriggered: Boolean = false,
-        timestamp: String = "2024-03-18T12:50:12.62600000Z",
-        attachmentSize: Long = 100,
-        serializedData: String? = "serialized-data",
-        serializedAttributes: String = "serialized-attributes",
-        serializedAttachments: String = "serialized-attachments",
-        filePath: String? = null,
-        attachmentEntities: List<AttachmentEntity> = listOf(
-            AttachmentEntity(id = "attachment-id", type = "type", path = "path", name = "name"),
-        ),
-        serializedUserDefAttributes: String? = null,
-    ): EventEntity {
-        return EventEntity(
-            id = eventId,
-            type = type,
-            timestamp = timestamp,
-            sessionId = sessionId,
-            userTriggered = userTriggered,
-            attachmentsSize = attachmentSize,
-            serializedData = serializedData,
-            serializedAttributes = serializedAttributes,
-            serializedAttachments = serializedAttachments,
-            attachmentEntities = attachmentEntities,
-            filePath = filePath,
-            serializedUserDefAttributes = null,
-        )
-    }
-
     fun getEventPacket(eventEntity: EventEntity): EventPacket {
         return EventPacket(
             eventId = eventEntity.id,
@@ -452,5 +420,12 @@ internal object TestData {
             eventIds = eventIds,
             createdAt = createdAt,
         )
+    }
+
+    fun getAttachmentPacket(
+        id: String = "attachment-id",
+        filePath: String = "/path/to/attachment.png",
+    ): AttachmentPacket {
+        return AttachmentPacket(id = id, filePath = filePath)
     }
 }
