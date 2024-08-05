@@ -8,7 +8,6 @@ import java.net.HttpURLConnection
 import java.net.MalformedURLException
 import java.net.URL
 
-
 internal interface HttpClient {
     fun sendMultipartRequest(
         url: String,
@@ -66,7 +65,7 @@ internal class HttpUrlConnectionClient : HttpClient {
                     method = method,
                     headers = headers,
                     multipartData = multipartData,
-                    redirectCount = redirectCount + 1
+                    redirectCount = redirectCount + 1,
                 )
             }
             return processResponse(connection)
