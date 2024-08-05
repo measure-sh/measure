@@ -29,7 +29,7 @@
 
 ## Quick start
 
-Measure is available as a self hosted platform that comes with a simple one line install script. Check out our [Self hosting](./self-host/README.md) and [Android SDK](./measure-android/README.md) guides.
+Measure is available as a self hosted platform that comes with a simple one line install script. Check out our [Self hosting](./docs/hosting/README.md) and [Android SDK](./measure-android/README.md) guides.
 
 ## Features
 
