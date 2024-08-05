@@ -151,19 +151,23 @@ class HttpUrlConnectionClientTest {
 
     @Test
     fun `test redirection (307 response) with POST request`() {
-        mockWebServer.enqueue(MockResponse()
-            .setResponseCode(307)
-            .addHeader("Location", "/redirected"))
-        mockWebServer.enqueue(MockResponse()
-            .setResponseCode(200)
-            .setBody("Redirected successfully"))
+        mockWebServer.enqueue(
+            MockResponse()
+                .setResponseCode(307)
+                .addHeader("Location", "/redirected"),
+        )
+        mockWebServer.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setBody("Redirected successfully"),
+        )
 
         // When
         val result = client.sendMultipartRequest(
             mockWebServer.url("/").toString(),
             "POST",
             emptyMap(),
-            listOf(MultipartData.FormField("key", "value"))
+            listOf(MultipartData.FormField("key", "value")),
         )
 
         // Then
@@ -185,16 +189,18 @@ class HttpUrlConnectionClientTest {
 
     @Test
     fun `test no redirection (302 response) for POST request`() {
-        mockWebServer.enqueue(MockResponse()
-            .setResponseCode(302)
-            .addHeader("Location", "/redirected"))
+        mockWebServer.enqueue(
+            MockResponse()
+                .setResponseCode(302)
+                .addHeader("Location", "/redirected"),
+        )
 
         // When
         val result = client.sendMultipartRequest(
             mockWebServer.url("/").toString(),
             "POST",
             emptyMap(),
-            listOf(MultipartData.FormField("key", "value"))
+            listOf(MultipartData.FormField("key", "value")),
         )
 
         // Then
