@@ -82,9 +82,14 @@ Currently, we support Android with iOS, Flutter, React Native and Unity SDKs pla
 
 Our mission is to build the best tool for monitoring mobile apps. 
 
-In a world of GDPR, HIPAA, CCPA and many other compliance acronyms, we strongly believe there is a need for tools that give you control over your data. Measure is an alternative to sending your app data to third parties with no control over how your data is collected, where it is stored, how long it is stored for and how much it costs over time.
+Building and maintaining mobile apps in production is hard and developers need to use a variety of different tools to collect issues, measure performance and analyse user behavior without having any control over where, how and for how long their data is stored. 
 
-We operate in public as much as possible and we aim to be community focused and driven by feedback from real developers building in the trenches. We would love for you to contribute to Measure by opening issues, sending PRs and recommending us to your friends! 
+We aim to build a tool that unifies and simplifies monitoring capablitlies for mobile teams while providing full control over 
+the collection and storage of data.
+
+We operate in public as much as possible and we aim to be community focused and driven by feedback from real developers building in the trenches.
+
+We would love for you to contribute to Measure by opening issues, sending PRs and recommending us to your friends! 
 
 ## Roadmap
 
