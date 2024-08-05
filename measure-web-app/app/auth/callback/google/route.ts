@@ -4,14 +4,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic'
 
 const origin = process?.env?.NEXT_PUBLIC_SITE_URL
-if (!origin) {
-  throw new Error(`env var "NEXT_PUBLIC_SITE_URL" is unset`)
-}
-
 const apiOrigin = process?.env?.API_BASE_URL
-if (!apiOrigin) {
-  throw new Error(`env var "API_BASE_URL" is unset`)
-}
 
 export async function POST(request: Request) {
   const { searchParams } = new URL(request.url)
