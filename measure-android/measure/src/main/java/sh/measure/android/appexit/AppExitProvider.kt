@@ -5,6 +5,7 @@ import android.app.ApplicationExitInfo
 import android.os.Build
 import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.annotation.RequiresApi
+import androidx.annotation.VisibleForTesting
 import okio.Buffer
 import okio.BufferedSource
 import okio.buffer
@@ -48,7 +49,8 @@ internal class AppExitProviderImpl(
         )
     }
 
-    private fun getTraceString(traceInputStream: InputStream?): String? {
+    @VisibleForTesting
+    internal fun getTraceString(traceInputStream: InputStream?): String? {
         if (traceInputStream == null) {
             return null
         }
