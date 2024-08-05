@@ -9,7 +9,18 @@
 
 ## Local environment setup
 
+### Prerequisites
+
+- Docker >= v26.1.3
+- Docker Compose >= 2.27.3
+- Node LTS
+
 After cloning the repostiory, run the following commands for the best contribution experience. All core maintainers **MUST** follow these steps.
+
+> [!Note]
+>
+> You would need [node](https://nodejs.org/) to run the above commands. We recommend you always stick to the `lts` version of node.
+> If you need to setup node, we recommend you use [fnm (Fast Node Manager)](https://github.com/Schniz/fnm) to manage node version(s). Follow [fnm's installation instructions](https://github.com/Schniz/fnm?tab=readme-ov-file#installation).
 
 In the repo root, run
 
@@ -20,11 +31,58 @@ npm prepare
 
 The above commands would install the required dependencies and setup git hooks as intended. This is a one-time setup, unless you do a fresh clone again.
 
-> ⚠ NOTE
->
-> You would need [node](https://nodejs.org/) to run the above commands. We recommend you always stick to the `lts` version of node.
-> If you need to setup node, we recommend you use [fnm (Fast Node Manager)](https://github.com/Schniz/fnm) to manage node version(s). Follow [fnm's installation instructions](https://github.com/Schniz/fnm?tab=readme-ov-file#installation).
+### Setup initial configuration
 
+Change to `self-host` directory.
+
+```sh
+cd self-host
+```
+
+Next, run `./config.sh`
+
+```sh
+./config.sh
+```
+
+This will start the configuration wizard and prepre all the environment variable files - `.env` tuned for local development.
+
+### Develop with docker compose
+
+Once configuration is complete, run the following docker compose command to start all services.
+
+```sh
+docker compose --profile init --profile migrate up
+```
+
+Alternatively, you could also run the above in separate steps.
+
+```sh
+docker compose build
+docker compose --profile init --profile migrate up
+```
+
+For automatic file watching using docker compose, run:
+
+```sh
+docker compose watch
+# or
+docker compose up --watch
+```
+
+## Troubleshooting
+
+In case of any issues related to incoherent state, reset your environment by running.
+
+```sh
+docker compose down --volumes
+```
+
+And rerun.
+
+```sh
+docker compose --profile init --profile migrate up
+```
 
 ## Writing commit messages
 
