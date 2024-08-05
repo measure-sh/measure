@@ -50,6 +50,7 @@ type ServerConfig struct {
 	OAuthGoogleKey             string
 	AccessTokenSecret          []byte
 	RefreshTokenSecret         []byte
+	OtelServiceName            string
 }
 
 func NewConfig() *ServerConfig {
@@ -134,14 +135,29 @@ func NewConfig() *ServerConfig {
 		log.Println("SESSION_REFRESH_SECRET env var is not set, dashboard authn won't work")
 	}
 
+	postgresDSN := os.Getenv("POSTGRES_DSN")
+	if postgresDSN == "" {
+		log.Fatal("POSTGRES_DSN env var is not set, cannot start server")
+	}
+
+	clickhouseDSN := os.Getenv("CLICKHOUSE_DSN")
+	if clickhouseDSN == "" {
+		log.Fatal("CLICKHOUSE_DSN env var is not set, cannot start server")
+	}
+
+	otelServiceName := os.Getenv("OTEL_SERVICE_NAME")
+	if otelServiceName == "" {
+		log.Println("OTEL_SERVICE_NAME env var is not set, o11y will not work")
+	}
+
 	endpoint := os.Getenv("AWS_ENDPOINT_URL")
 
 	return &ServerConfig{
 		PG: PostgresConfig{
-			DSN: "postgresql://postgres:postgres@localhost:5432/default",
+			DSN: postgresDSN,
 		},
 		CH: ClickhouseConfig{
-			DSN: "clickhouse://default:@127.0.0.1:9000/default",
+			DSN: clickhouseDSN,
 		},
 		MappingFileMaxSize:         mappingFileMaxSize,
 		SymbolsBucket:              symbolsBucket,
@@ -160,6 +176,7 @@ func NewConfig() *ServerConfig {
 		OAuthGoogleKey:             oauthGoogleKey,
 		AccessTokenSecret:          []byte(atSecret),
 		RefreshTokenSecret:         []byte(rtSecret),
+		OtelServiceName:            otelServiceName,
 	}
 }
 

@@ -2,7 +2,10 @@ package sh.measure.android.attributes
 
 import sh.measure.android.attributes.Attribute.USER_ID_KEY
 import sh.measure.android.executors.MeasureExecutorService
+import sh.measure.android.logger.LogLevel
+import sh.measure.android.logger.Logger
 import sh.measure.android.storage.PrefsStorage
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -10,6 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * during the session. This class returns the latest user ID set by the user.
  */
 internal class UserAttributeProcessor(
+    private val logger: Logger,
     private val prefsStorage: PrefsStorage,
     private val ioExecutor: MeasureExecutorService,
 ) : AttributeProcessor {
@@ -34,8 +38,12 @@ internal class UserAttributeProcessor(
 
     fun clearUserId() {
         userId = null
-        ioExecutor.submit {
-            prefsStorage.setUserId(null)
+        try {
+            ioExecutor.submit {
+                prefsStorage.setUserId(null)
+            }
+        } catch (e: RejectedExecutionException) {
+            logger.log(LogLevel.Error, "Failed to submit clear user id task to executor", e)
         }
     }
 }

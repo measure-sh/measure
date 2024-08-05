@@ -19,7 +19,10 @@ import sh.measure.Plugins
 class MeasurePluginFixture(
     private val agpVersion: SemVer,
     private val minifyEnabled: Boolean = true,
-    private val setMeasureApiKey: Boolean = true
+    private val setMeasureApiKey: Boolean = true,
+    private val setMeasureApiUrl: Boolean = true,
+    private val measureApiUrl: String = "https://measure.sh",
+    private val enabled: Boolean = true,
 ) : AbstractGradleProject() {
 
     val gradleProject: GradleProject = build()
@@ -88,12 +91,25 @@ class MeasurePluginFixture(
                 withVariant(
                     Variant(buildType = "release", minifyEnabled = minifyEnabled)
                 )
-                withAndroidManifest(setMeasureApiKey)
+                withAndroidManifest(setMeasureApiKey, setMeasureApiUrl)
+
+                withGroovy(
+                    """
+                        measure {
+                            variantFilter {
+                               enabled = $enabled
+                            }
+                        }
+                    """.trimIndent()
+                )
             }
         }
     }
 
-    private fun AndroidSubproject.Builder.withAndroidManifest(setApiKey: Boolean) {
+    private fun AndroidSubproject.Builder.withAndroidManifest(
+        setApiKey: Boolean,
+        setApiUrl: Boolean
+    ) {
         val apiKeyMetaData = if (setApiKey) {
             """
             <meta-data 
@@ -103,11 +119,21 @@ class MeasurePluginFixture(
         } else {
             ""
         }
+        val apiUrlMetaData = if (setApiUrl) {
+            """
+            <meta-data 
+                android:name="sh.measure.android.API_URL" 
+                android:value="$measureApiUrl"/>
+            """.trimIndent()
+        } else {
+            ""
+        }
         manifest = AndroidManifest(
             """<?xml version="1.0" encoding="utf-8"?>
             <manifest xmlns:android="http://schemas.android.com/apk/res/android">
                 <application>
                     $apiKeyMetaData
+                    $apiUrlMetaData
                 </application>
             </manifest>
             """.trimIndent()

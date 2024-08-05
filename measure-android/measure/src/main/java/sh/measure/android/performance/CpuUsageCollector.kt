@@ -14,6 +14,7 @@ import sh.measure.android.utils.ProcProviderImpl
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.Future
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 
 internal const val CPU_TRACKING_INTERVAL_MS = 3000L
@@ -27,7 +28,8 @@ internal class CpuUsageCollector(
     private val procProvider: ProcProvider = ProcProviderImpl(),
     private val osSysConfProvider: OsSysConfProvider = OsSysConfProviderImpl(),
 ) {
-    private var prevCpuUsageData: CpuUsageData? = null
+    @VisibleForTesting
+    var prevCpuUsageData: CpuUsageData? = null
 
     @VisibleForTesting
     var future: Future<*>? = null
@@ -35,14 +37,19 @@ internal class CpuUsageCollector(
     fun register() {
         if (!processInfo.isForegroundProcess()) return
         if (future != null) return
-        future = defaultExecutor.scheduleAtFixedRate(
-            {
-                trackCpuUsage()
-            },
-            0,
-            CPU_TRACKING_INTERVAL_MS,
-            TimeUnit.MILLISECONDS,
-        )
+        future = try {
+            defaultExecutor.scheduleAtFixedRate(
+                {
+                    trackCpuUsage()
+                },
+                0,
+                CPU_TRACKING_INTERVAL_MS,
+                TimeUnit.MILLISECONDS,
+            )
+        } catch (e: RejectedExecutionException) {
+            logger.log(LogLevel.Error, "Failed to start CpuUsageCollector", e)
+            null
+        }
     }
 
     fun resume() {
@@ -60,6 +67,9 @@ internal class CpuUsageCollector(
         val clockSpeedHz = osSysConfProvider.get(OsConstants._SC_CLK_TCK)
         if (clockSpeedHz <= 0L || numCores <= 0L) return
         val uptime = timeProvider.elapsedRealtime
+        val percentageCpuUsage =
+            getPercentageCpuUsage(utime, stime, cutime, cstime, uptime, numCores, clockSpeedHz)
+        val interval = getInterval(uptime)
         val cpuUsageData = CpuUsageData(
             num_cores = numCores,
             clock_speed = clockSpeedHz,
@@ -69,9 +79,11 @@ internal class CpuUsageCollector(
             cutime = cutime,
             cstime = cstime,
             start_time = startTime,
-            interval_config = CPU_TRACKING_INTERVAL_MS,
+            interval = interval,
+            percentage_usage = percentageCpuUsage,
         )
-        if (prevCpuUsageData?.utime == cpuUsageData.utime && prevCpuUsageData?.stime == cpuUsageData.stime) {
+        if (prevCpuUsageData?.percentage_usage == cpuUsageData.percentage_usage) {
+            // do not track the event if the usage is the same as the previous one.
             return
         }
         eventProcessor.track(
@@ -80,6 +92,38 @@ internal class CpuUsageCollector(
             data = cpuUsageData,
         )
         prevCpuUsageData = cpuUsageData
+    }
+
+    private fun getInterval(uptime: Long): Long {
+        return prevCpuUsageData?.let {
+            (uptime - it.uptime).coerceAtLeast(0)
+        } ?: 0
+    }
+    private fun getPercentageCpuUsage(
+        utime: Long,
+        stime: Long,
+        cutime: Long,
+        cstime: Long,
+        uptime: Long,
+        numCores: Int,
+        clockSpeedHz: Long,
+    ) = if (prevCpuUsageData == null) {
+        0.0
+    } else {
+        calculatePercentageUsage(
+            utime = utime,
+            stime = stime,
+            cutime = cutime,
+            cstime = cstime,
+            uptime = uptime,
+            previousCstime = prevCpuUsageData!!.cstime,
+            previousCutime = prevCpuUsageData!!.cutime,
+            previousStime = prevCpuUsageData!!.stime,
+            previousUtime = prevCpuUsageData!!.utime,
+            previousUptime = prevCpuUsageData!!.uptime,
+            numCores = numCores,
+            clockSpeedHz = clockSpeedHz,
+        )
     }
 
     private fun readStatFile(): Array<Long>? {

@@ -18,7 +18,6 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -26,6 +25,7 @@ import (
 	"github.com/ipinfo/go/v2/ipinfo"
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
+	"go.opentelemetry.io/otel"
 )
 
 // maxBatchSize is the maximum allowed payload
@@ -336,28 +336,16 @@ func (e eventreq) bucketUnhandledExceptions(ctx context.Context, tx *pgx.Tx) (er
 			continue
 		}
 
-		exceptionGroups, err := app.GetExceptionGroups(ctx)
-		if err != nil {
-			return err
-		}
-
-		fingerprint, err := strconv.ParseUint(events[i].Exception.Fingerprint, 16, 64)
-		if err != nil {
-			return err
-		}
-
-		matchedGroup, err := group.ClosestExceptionGroup(exceptionGroups, fingerprint)
+		matchedGroup, err := app.GetExceptionGroupByFingerprint(ctx, events[i].Exception.Fingerprint)
 		if err != nil {
 			return err
 		}
 
 		if matchedGroup == nil {
-			exceptionGroup := group.NewExceptionGroup(events[i].AppID, events[i].Exception.GetDisplayTitle(), events[i].Exception.Fingerprint, []uuid.UUID{events[i].ID}, events[i].Timestamp)
-
+			exceptionGroup := group.NewExceptionGroup(events[i].AppID, events[i].Exception.GetType(), events[i].Exception.GetMessage(), events[i].Exception.GetMethodName(), events[i].Exception.GetFileName(), events[i].Exception.GetLineNumber(), events[i].Exception.Fingerprint, []uuid.UUID{events[i].ID}, events[i].Timestamp)
 			if err := exceptionGroup.Insert(ctx, tx); err != nil {
 				return err
 			}
-
 			matchedGroup = exceptionGroup
 		}
 
@@ -386,24 +374,13 @@ func (e eventreq) bucketANRs(ctx context.Context, tx *pgx.Tx) (err error) {
 			continue
 		}
 
-		anrGroups, err := app.GetANRGroups(ctx)
-		if err != nil {
-			return err
-		}
-
-		fingerprint, err := strconv.ParseUint(events[i].ANR.Fingerprint, 16, 64)
-		if err != nil {
-			return err
-		}
-
-		matchedGroup, err := group.ClosestANRGroup(anrGroups, fingerprint)
+		matchedGroup, err := app.GetANRGroupByFingerprint(ctx, events[i].ANR.Fingerprint)
 		if err != nil {
 			return err
 		}
 
 		if matchedGroup == nil {
-			anrGroup := group.NewANRGroup(events[i].AppID, events[i].ANR.GetDisplayTitle(), events[i].ANR.Fingerprint, []uuid.UUID{events[i].ID}, events[i].Timestamp)
-
+			anrGroup := group.NewANRGroup(events[i].AppID, events[i].ANR.GetType(), events[i].ANR.GetMessage(), events[i].ANR.GetMethodName(), events[i].ANR.GetFileName(), events[i].ANR.GetLineNumber(), events[i].ANR.Fingerprint, []uuid.UUID{events[i].ID}, events[i].Timestamp)
 			if err := anrGroup.Insert(ctx, tx); err != nil {
 				return err
 			}
@@ -841,7 +818,7 @@ func (e eventreq) ingest(ctx context.Context) error {
 				Set(`memory_usage.rss`, e.events[i].MemoryUsage.RSS).
 				Set(`memory_usage.native_total_heap`, e.events[i].MemoryUsage.NativeTotalHeap).
 				Set(`memory_usage.native_free_heap`, e.events[i].MemoryUsage.NativeFreeHeap).
-				Set(`memory_usage.interval_config`, e.events[i].MemoryUsage.IntervalConfig)
+				Set(`memory_usage.interval`, e.events[i].MemoryUsage.Interval)
 		} else {
 			row.
 				Set(`memory_usage.java_max_heap`, nil).
@@ -851,7 +828,7 @@ func (e eventreq) ingest(ctx context.Context) error {
 				Set(`memory_usage.rss`, nil).
 				Set(`memory_usage.native_total_heap`, nil).
 				Set(`memory_usage.native_free_heap`, nil).
-				Set(`memory_usage.interval_config`, nil)
+				Set(`memory_usage.interval`, nil)
 		}
 
 		// low memory
@@ -894,7 +871,8 @@ func (e eventreq) ingest(ctx context.Context) error {
 				Set(`cpu_usage.cutime`, e.events[i].CPUUsage.CUTime).
 				Set(`cpu_usage.stime`, e.events[i].CPUUsage.STime).
 				Set(`cpu_usage.cstime`, e.events[i].CPUUsage.CSTime).
-				Set(`cpu_usage.interval_config`, e.events[i].CPUUsage.IntervalConfig)
+				Set(`cpu_usage.interval`, e.events[i].CPUUsage.Interval).
+				Set(`cpu_usage.percentage_usage`, e.events[i].CPUUsage.PercentageUsage)
 		} else {
 			row.
 				Set(`cpu_usage.num_cores`, nil).
@@ -904,7 +882,8 @@ func (e eventreq) ingest(ctx context.Context) error {
 				Set(`cpu_usage.cutime`, nil).
 				Set(`cpu_usage.stime`, nil).
 				Set(`cpu_usage.cstime`, nil).
-				Set(`cpu_usage.interval_config`, nil)
+				Set(`cpu_usage.interval`, nil).
+				Set(`cpu_usage.percentage_usage`, nil)
 
 		}
 
@@ -1883,6 +1862,10 @@ func PutEvents(c *gin.Context) {
 
 		batches := symbolicator.Batch(events)
 
+		// start span to trace symbolication
+		symbolicationTracer := otel.Tracer("symbolication-tracer")
+		_, symbolicationSpan := symbolicationTracer.Start(ctx, "symbolicate-events")
+
 		for i := range batches {
 			if err := symbolicator.Symbolicate(ctx, batches[i]); err != nil {
 				msg := `failed to symbolicate batch`
@@ -1891,6 +1874,7 @@ func PutEvents(c *gin.Context) {
 					"error":   msg,
 					"details": err.Error(),
 				})
+				symbolicationSpan.End()
 				return
 			}
 
@@ -1914,16 +1898,23 @@ func PutEvents(c *gin.Context) {
 			}
 		}
 
+		symbolicationSpan.End()
+
 		eventReq.bumpSymbolication()
 	}
 
 	if eventReq.hasAttachments() {
+		// start span to trace attachment uploads
+		uploadAttachmentsTracer := otel.Tracer("upload-attachments-tracer")
+		_, uploadAttachmentSpan := uploadAttachmentsTracer.Start(ctx, "upload-attachments")
+
 		if err := eventReq.uploadAttachments(); err != nil {
 			msg := `failed to upload attachments`
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": msg,
 			})
+			uploadAttachmentSpan.End()
 			return
 		}
 
@@ -1947,6 +1938,8 @@ func PutEvents(c *gin.Context) {
 				eventReq.events[i].Attachments[j].Key = attachment.key
 			}
 		}
+
+		uploadAttachmentSpan.End()
 	}
 
 	tx, err := server.Server.PgPool.Begin(ctx)
@@ -1970,14 +1963,23 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
+	// start span to trace bucketing unhandled exceptions
+	bucketUnhandledExceptionsTracer := otel.Tracer("bucket-unhandled-exceptions-tracer")
+	_, bucketUnhandledExceptionsSpan := bucketUnhandledExceptionsTracer.Start(ctx, "bucket-unhandled-exceptions")
+
 	if err := eventReq.bucketUnhandledExceptions(ctx, &tx); err != nil {
 		msg := `failed to bucket unhandled exceptions`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
 		})
+		bucketUnhandledExceptionsSpan.End()
 		return
 	}
+
+	// start span to trace bucketing ANRs
+	bucketAnrsTracer := otel.Tracer("bucket-anrs-tracer")
+	_, bucketAnrsSpan := bucketAnrsTracer.Start(ctx, "bucket-anrs-exceptions")
 
 	if err := eventReq.bucketANRs(ctx, &tx); err != nil {
 		msg := `failed to bucket anrs`
@@ -1985,6 +1987,7 @@ func PutEvents(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
 		})
+		bucketAnrsSpan.End()
 		return
 	}
 
@@ -2019,8 +2022,12 @@ func PutEvents(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
 		})
+		bucketUnhandledExceptionsSpan.End()
+		bucketAnrsSpan.End()
 		return
 	}
+	bucketUnhandledExceptionsSpan.End()
+	bucketAnrsSpan.End()
 
 	c.JSON(http.StatusAccepted, gin.H{"ok": "accepted"})
 }

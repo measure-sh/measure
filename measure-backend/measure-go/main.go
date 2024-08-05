@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"measure-backend/measure-go/inet"
@@ -12,26 +14,22 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"google.golang.org/grpc/credentials"
+
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 func main() {
 	config := server.NewConfig()
 
-	pgDSN := os.Getenv("POSTGRES_DSN")
-	if pgDSN == "" {
-		log.Printf(`"POSTGRES_DSN" missing, will proceed with default "%s"`, config.PG.DSN)
-	} else {
-		config.PG.DSN = pgDSN
-	}
-
-	chDSN := os.Getenv("CLICKHOUSE_DSN")
-	if chDSN == "" {
-		log.Printf(`"CLICKHOUSE_DSN" missing, will proceed with default "%s"`, config.CH.DSN)
-	} else {
-		config.CH.DSN = chDSN
-	}
-
 	server.Init(config)
+	cleanup := initTracer(config.OtelServiceName)
 
 	defer server.Server.PgPool.Close()
 
@@ -49,7 +47,15 @@ func main() {
 		}
 	}()
 
+	// close otel tracer
+	defer func() {
+		if err := cleanup(context.Background()); err != nil {
+			log.Fatalf("Unable to close otel tracer: %v", err)
+		}
+	}()
+
 	r := gin.Default()
+	r.Use(otelgin.Middleware(config.OtelServiceName))
 	cors := cors.New(cors.Config{
 		AllowOrigins:     []string{config.SiteOrigin},
 		AllowMethods:     []string{"GET", "OPTIONS", "PATCH", "DELETE", "PUT"},
@@ -117,4 +123,48 @@ func main() {
 	}
 
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080
+}
+
+func initTracer(otelServiceName string) func(context.Context) error {
+	otelCollectorURL := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	otelInsecureMode := os.Getenv("OTEL_INSECURE_MODE")
+
+	var secureOption otlptracegrpc.Option
+
+	if strings.ToLower(otelInsecureMode) == "false" || otelInsecureMode == "0" || strings.ToLower(otelInsecureMode) == "f" {
+		secureOption = otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, ""))
+	} else {
+		secureOption = otlptracegrpc.WithInsecure()
+	}
+
+	exporter, err := otlptrace.New(
+		context.Background(),
+		otlptracegrpc.NewClient(
+			secureOption,
+			otlptracegrpc.WithEndpoint(otelCollectorURL),
+		),
+	)
+
+	if err != nil {
+		log.Fatalf("Failed to create exporter: %v", err)
+	}
+	resources, err := resource.New(
+		context.Background(),
+		resource.WithAttributes(
+			attribute.String("service.name", otelServiceName),
+			attribute.String("library.language", "go"),
+		),
+	)
+	if err != nil {
+		log.Fatalf("Could not set resources: %v", err)
+	}
+
+	otel.SetTracerProvider(
+		sdktrace.NewTracerProvider(
+			sdktrace.WithSampler(sdktrace.AlwaysSample()),
+			sdktrace.WithBatcher(exporter),
+			sdktrace.WithResource(resources),
+		),
+	)
+	return exporter.Shutdown
 }

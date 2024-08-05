@@ -10,7 +10,11 @@ import (
 type Exception struct {
 	EventType     string             `json:"event_type"`
 	UserTriggered bool               `json:"user_triggered"`
-	Title         string             `json:"title"`
+	Type          string             `json:"type"`
+	Message       string             `json:"message"`
+	MethodName    string             `json:"method_name"`
+	FileName      string             `json:"file_name"`
+	LineNumber    int                `json:"line_number"`
 	ThreadName    string             `json:"thread_name"`
 	Handled       bool               `json:"handled"`
 	Stacktrace    string             `json:"stacktrace"`
@@ -35,7 +39,11 @@ func (e Exception) GetTimestamp() time.Time {
 // for session replay.
 type ANR struct {
 	EventType   string             `json:"event_type"`
-	Title       string             `json:"title"`
+	Type        string             `json:"type"`
+	Message     string             `json:"message"`
+	MethodName  string             `json:"method_name"`
+	FileName    string             `json:"file_name"`
+	LineNumber  int                `json:"line_number"`
 	ThreadName  string             `json:"thread_name"`
 	Stacktrace  string             `json:"stacktrace"`
 	Foreground  bool               `json:"foreground"`
@@ -62,7 +70,11 @@ func ComputeExceptions(events []event.EventField) (result []ThreadGrouper) {
 		exceptions := Exception{
 			event.Type,
 			event.UserTriggered,
-			event.Exception.GetDisplayTitle(),
+			event.Exception.GetType(),
+			event.Exception.GetMessage(),
+			event.Exception.GetMethodName(),
+			event.Exception.GetFileName(),
+			event.Exception.GetLineNumber(),
 			event.Attribute.ThreadName,
 			event.Exception.Handled,
 			event.Exception.Stacktrace(),
@@ -82,7 +94,11 @@ func ComputeANRs(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		anrs := ANR{
 			event.Type,
-			event.ANR.GetDisplayTitle(),
+			event.ANR.GetType(),
+			event.ANR.GetMessage(),
+			event.ANR.GetMethodName(),
+			event.ANR.GetFileName(),
+			event.ANR.GetLineNumber(),
 			event.Attribute.ThreadName,
 			event.ANR.Stacktrace(),
 			event.ANR.Foreground,

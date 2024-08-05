@@ -131,9 +131,13 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
               </div>
             </div>
             <div className="table-row-group font-sans">
-              {exceptionsOverview.results.map(({ id, name, count, percentage_contribution }) => (
-                <Link key={id} href={`/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${selectedFilters.selectedApp.id}/${id}/${name}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
-                  <div className="table-cell p-4">{name}</div>
+              {exceptionsOverview.results.map(({ id, type, message, method_name, file_name, line_number, count, percentage_contribution }) => (
+                <Link key={id} href={`/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${selectedFilters.selectedApp.id}/${id}/${type + "@" + file_name}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
+                  <div className="table-cell p-4 max-w-2xl">
+                    <p className='truncate'>{file_name + ": " + method_name + "()"}</p>
+                    <div className='py-1' />
+                    <p className='text-xs truncate text-gray-500'>{type + ":" + message}</p>
+                  </div>
                   <div className="table-cell p-4 text-center">{count}</div>
                   <div className="table-cell p-4 text-center">{percentage_contribution}%</div>
                 </Link>

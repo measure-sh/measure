@@ -22,6 +22,7 @@ import sh.measure.android.performance.ComponentCallbacksCollector
 import sh.measure.android.performance.CpuUsageCollector
 import sh.measure.android.performance.MemoryUsageCollector
 import sh.measure.android.screenshot.ScreenshotCollector
+import sh.measure.android.storage.DataCleanupService
 import sh.measure.android.utils.ManifestReader
 import sh.measure.android.utils.ResumedActivityProvider
 import sh.measure.android.utils.TimeProvider
@@ -51,4 +52,5 @@ internal class FakeMeasureInitializer : MeasureInitializer {
     override lateinit var userAttributeProcessor: UserAttributeProcessor
     override lateinit var userDefinedAttribute: UserDefinedAttribute
     override lateinit var screenshotCollector: ScreenshotCollector
+    override lateinit var dataCleanupService: DataCleanupService
 }

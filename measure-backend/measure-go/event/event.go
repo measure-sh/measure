@@ -1,14 +1,14 @@
 package event
 
 import (
-	"encoding/json"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"slices"
 	"strings"
 	"time"
 
-	"github.com/go-dedup/simhash"
 	"github.com/google/uuid"
 )
 
@@ -313,7 +313,7 @@ type MemoryUsage struct {
 	RSS             uint64 `json:"rss"`
 	NativeTotalHeap uint64 `json:"native_total_heap" binding:"required"`
 	NativeFreeHeap  uint64 `json:"native_free_heap" binding:"required"`
-	IntervalConfig  uint32 `json:"interval_config" binding:"required"`
+	Interval        uint32 `json:"interval" binding:"required"`
 }
 
 type LowMemory struct {
@@ -331,15 +331,16 @@ type TrimMemory struct {
 }
 
 type CPUUsage struct {
-	NumCores       uint8  `json:"num_cores" binding:"required"`
-	ClockSpeed     uint32 `json:"clock_speed" binding:"required"`
-	StartTime      uint64 `json:"start_time" binding:"required"`
-	Uptime         uint64 `json:"uptime" binding:"required"`
-	UTime          uint64 `json:"utime" binding:"required"`
-	CUTime         uint64 `json:"cutime" binding:"required"`
-	STime          uint64 `json:"stime" binding:"required"`
-	CSTime         uint64 `json:"cstime" binding:"required"`
-	IntervalConfig uint32 `json:"interval_config" binding:"required"`
+	NumCores        uint8   `json:"num_cores" binding:"required"`
+	ClockSpeed      uint32  `json:"clock_speed" binding:"required"`
+	StartTime       uint64  `json:"start_time" binding:"required"`
+	Uptime          uint64  `json:"uptime" binding:"required"`
+	UTime           uint64  `json:"utime" binding:"required"`
+	CUTime          uint64  `json:"cutime" binding:"required"`
+	STime           uint64  `json:"stime" binding:"required"`
+	CSTime          uint64  `json:"cstime" binding:"required"`
+	Interval        uint32  `json:"interval" binding:"required"`
+	PercentageUsage float64 `json:"percentage_usage" binding:"required"`
 }
 
 type Navigation struct {
@@ -850,12 +851,6 @@ func (e *EventField) Validate() error {
 		}
 	}
 
-	if e.IsMemoryUsage() {
-		if e.MemoryUsage.IntervalConfig <= 0 {
-			return fmt.Errorf(`%q must be greater than 0`, `memory_usage.interval_config`)
-		}
-	}
-
 	if e.IsTrimMemory() {
 		if e.TrimMemory.Level == "" {
 			return fmt.Errorf(`%q must not be empty`, `trim_memory.level`)
@@ -871,9 +866,6 @@ func (e *EventField) Validate() error {
 		}
 		if e.CPUUsage.ClockSpeed <= 0 {
 			return fmt.Errorf(`%q must be greater than 0`, `cpu_usage.clock_speed`)
-		}
-		if e.CPUUsage.IntervalConfig <= 0 {
-			return fmt.Errorf(`%q must be greater than 0`, `cpu_usage.interval_config`)
 		}
 	}
 
@@ -905,20 +897,6 @@ func (e Exception) GetTitle() string {
 	return makeTitle(e.GetType(), e.GetMessage())
 }
 
-// GetDisplayTitle provides a user friendly
-// version of the exception's title.
-func (e Exception) GetDisplayTitle() string {
-	typetype := e.GetType()
-	location := e.GetLocation()
-	title := typetype
-
-	if location != "" {
-		title += "@" + location
-	}
-
-	return title
-}
-
 // GetType provides the type of
 // the exception.
 func (e Exception) GetType() string {
@@ -931,10 +909,28 @@ func (e Exception) GetMessage() string {
 	return e.Exceptions[len(e.Exceptions)-1].Message
 }
 
-// GetLocation provides the location of
+// GetFileName provides the file name of
 // the exception.
-func (e Exception) GetLocation() string {
-	return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileInfo()
+func (e Exception) GetFileName() string {
+	return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
+}
+
+// GetLineNumber provides the line number of
+// the exception.
+func (e Exception) GetLineNumber() int {
+	return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
+}
+
+// GetMethodName provides the method name of
+// the Exception.
+func (e Exception) GetMethodName() string {
+	return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
+}
+
+// GetDisplayTitle provides a user friendly display
+// name for the exception.
+func (e Exception) GetDisplayTitle() string {
+	return e.GetType() + "@" + e.GetFileName()
 }
 
 // Stacktrace writes a formatted stacktrace
@@ -980,15 +976,37 @@ func (e Exception) Stacktrace() string {
 // ComputeExceptionFingerprint computes a fingerprint
 // from the exception data.
 func (e *Exception) ComputeExceptionFingerprint() (err error) {
-	marshalledException, err := json.Marshal(e)
-	if err != nil {
-		return
+	if len(e.Exceptions) == 0 {
+		return fmt.Errorf("error computing exception fingerprint: no exceptions found")
 	}
 
-	sh := simhash.NewSimhash()
-	e.Fingerprint = fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet(marshalledException)))
+	// Get the innermost exception
+	innermostException := e.Exceptions[len(e.Exceptions)-1]
 
-	return
+	// Get the exception type
+	exceptionType := innermostException.Type
+
+	// Initialize fingerprint data with the exception type
+	fingerprintData := exceptionType
+
+	// Get the method name and file name from the first frame of the innermost exception
+	if len(innermostException.Frames) > 0 {
+		methodName := innermostException.Frames[0].MethodName
+		fileName := innermostException.Frames[0].FileName
+
+		// Include any non-empty information
+		if methodName != "" {
+			fingerprintData += ":" + methodName
+		}
+		if fileName != "" {
+			fingerprintData += ":" + fileName
+		}
+	}
+
+	// Compute the fingerprint
+	e.Fingerprint = computeFingerprint(fingerprintData)
+
+	return nil
 }
 
 // IsNested returns true in case of
@@ -1004,20 +1022,6 @@ func (a ANR) GetTitle() string {
 	return makeTitle(a.GetType(), a.GetMessage())
 }
 
-// GetDisplayTitle provides a user friendly
-// version of the ANR's title.
-func (a ANR) GetDisplayTitle() string {
-	typetype := a.GetType()
-	location := a.GetLocation()
-	title := typetype
-
-	if location != "" {
-		title += "@" + location
-	}
-
-	return title
-}
-
 // GetType provides the type of
 // the ANR.
 func (a ANR) GetType() string {
@@ -1030,10 +1034,28 @@ func (a ANR) GetMessage() string {
 	return a.Exceptions[len(a.Exceptions)-1].Message
 }
 
-// GetLocation provides the location of
+// GetFileName provides the file name of
 // the ANR.
-func (a ANR) GetLocation() string {
-	return a.Exceptions[len(a.Exceptions)-1].Frames[0].FileInfo()
+func (a ANR) GetFileName() string {
+	return a.Exceptions[len(a.Exceptions)-1].Frames[0].FileName
+}
+
+// GetLineNumber provides the line number of
+// the ANR.
+func (a ANR) GetLineNumber() int {
+	return a.Exceptions[len(a.Exceptions)-1].Frames[0].LineNum
+}
+
+// GetMethodName provides the method name of
+// the ANR.
+func (a ANR) GetMethodName() string {
+	return a.Exceptions[len(a.Exceptions)-1].Frames[0].MethodName
+}
+
+// GetDisplayTitle provides a user friendly display
+// name for the ANR.
+func (a ANR) GetDisplayTitle() string {
+	return a.GetType() + "@" + a.GetFileName()
 }
 
 // Stacktrace writes a formatted stacktrace
@@ -1078,14 +1100,41 @@ func (a ANR) Stacktrace() string {
 
 // ComputeANRFingerprint computes a fingerprint
 // from the ANR data.
-func (e *ANR) ComputeANRFingerprint() (err error) {
-	marshalledANR, err := json.Marshal(e)
-	if err != nil {
-		return
+func (a *ANR) ComputeANRFingerprint() (err error) {
+	if len(a.Exceptions) == 0 {
+		return fmt.Errorf("error computing ANR fingerprint: no exceptions found")
 	}
 
-	sh := simhash.NewSimhash()
-	e.Fingerprint = fmt.Sprintf("%x", sh.GetSimhash(sh.NewWordFeatureSet(marshalledANR)))
+	// Get the innermost exception
+	innermostException := a.Exceptions[len(a.Exceptions)-1]
 
-	return
+	// Get the exception type
+	exceptionType := innermostException.Type
+
+	// Initialize fingerprint data with the exception type
+	fingerprintData := exceptionType
+
+	// Get the method name and file name from the first frame of the innermost exception
+	if len(innermostException.Frames) > 0 {
+		methodName := innermostException.Frames[0].MethodName
+		fileName := innermostException.Frames[0].FileName
+
+		// Include any non-empty information
+		if methodName != "" {
+			fingerprintData += ":" + methodName
+		}
+		if fileName != "" {
+			fingerprintData += ":" + fileName
+		}
+	}
+
+	// Compute the fingerprint
+	a.Fingerprint = computeFingerprint(fingerprintData)
+
+	return nil
+}
+
+func computeFingerprint(data string) string {
+	hash := md5.Sum([]byte(data))
+	return hex.EncodeToString(hash[:])
 }

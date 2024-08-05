@@ -266,7 +266,11 @@ export const emptyMetrics = {
 const emptyExceptionGroup = {
     "id": "",
     "app_id": "",
-    "name": "",
+    "type": "",
+    "message": "",
+    "method_name": "",
+    "file_name": "",
+    "line_number": 0,
     "fingerprint": "",
     "count": 0,
     "percentage_contribution": 0,
@@ -476,7 +480,7 @@ export const emptySessionReplay = {
             "rss": 0,
             "native_total_heap": 0,
             "native_free_heap": 0,
-            "interval_config": 0,
+            "interval": 0,
             "timestamp": ""
         }
     ],
@@ -500,7 +504,11 @@ export const emptySessionReplay = {
             },
             {
                 "event_type": "exception",
-                "title": "",
+                "type": "",
+                "message": "",
+                "method_name": "",
+                "file_name": "",
+                "line_number": 0,
                 "thread_name": "",
                 "handled": false,
                 "stacktrace": "",

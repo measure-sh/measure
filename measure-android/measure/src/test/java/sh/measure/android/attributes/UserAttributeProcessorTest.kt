@@ -8,14 +8,16 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import sh.measure.android.attributes.Attribute.USER_ID_KEY
 import sh.measure.android.fakes.ImmediateExecutorService
+import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.storage.PrefsStorageImpl
 
 // this test uses a real instance of shared preferences, hence uses Robolectric
 @RunWith(AndroidJUnit4::class)
 class UserAttributeProcessorTest {
+    private val logger = NoopLogger()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val prefsStorage = PrefsStorageImpl(InstrumentationRegistry.getInstrumentation().context)
-    private val userAttributeProcessor = UserAttributeProcessor(prefsStorage, executorService)
+    private val userAttributeProcessor = UserAttributeProcessor(logger, prefsStorage, executorService)
 
     @Test
     fun `sets user id in memory and updates shared prefs`() {

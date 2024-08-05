@@ -12,7 +12,7 @@
             "rss": 164572,
             "native_total_heap": 22524,
             "native_free_heap": 1259,
-            "interval_config": 2000
+            "interval": 2000
         },
         "attachments": null,
         "attribute": {
@@ -55,7 +55,7 @@
             "rss": 163192,
             "native_total_heap": 22524,
             "native_free_heap": 1234,
-            "interval_config": 2000
+            "interval": 2000
         },
         "attachments": null,
         "attribute": {
@@ -91,6 +91,7 @@
         "timestamp": "2024-06-13T13:38:02.61700000Z",
         "type": "cpu_usage",
         "cpu_usage": {
+            "percentage_usage": 10.1,
             "num_cores": 1,
             "clock_speed": 100,
             "start_time": 80843,
@@ -99,7 +100,7 @@
             "cutime": 0,
             "cstime": 0,
             "stime": 53,
-            "interval_config": 3000
+            "interval": 3000
         },
         "attachments": null,
         "attribute": {
@@ -142,7 +143,7 @@
             "rss": 163568,
             "native_total_heap": 22780,
             "native_free_heap": 1194,
-            "interval_config": 2000
+            "interval": 2000
         },
         "attachments": null,
         "attribute": {
@@ -846,6 +847,7 @@
         "timestamp": "2024-06-13T13:37:59.61000000Z",
         "type": "cpu_usage",
         "cpu_usage": {
+            "percentage_usage": 10.1,
             "num_cores": 1,
             "clock_speed": 100,
             "start_time": 80843,
@@ -854,7 +856,7 @@
             "cutime": 0,
             "cstime": 0,
             "stime": 52,
-            "interval_config": 3000
+            "interval": 3000
         },
         "attachments": null,
         "attribute": {
@@ -890,6 +892,7 @@
         "timestamp": "2024-06-13T13:37:53.60000000Z",
         "type": "cpu_usage",
         "cpu_usage": {
+            "percentage_usage": 10.1,
             "num_cores": 1,
             "clock_speed": 100,
             "start_time": 80843,
@@ -898,7 +901,7 @@
             "cutime": 0,
             "cstime": 0,
             "stime": 43,
-            "interval_config": 3000
+            "interval": 3000
         },
         "attachments": null,
         "attribute": {
@@ -934,6 +937,7 @@
         "timestamp": "2024-06-13T13:37:56.60400000Z",
         "type": "cpu_usage",
         "cpu_usage": {
+            "percentage_usage": 10.1,
             "num_cores": 1,
             "clock_speed": 100,
             "start_time": 80843,
@@ -942,7 +946,7 @@
             "cutime": 0,
             "cstime": 0,
             "stime": 48,
-            "interval_config": 3000
+            "interval": 3000
         },
         "attachments": null,
         "attribute": {
@@ -985,7 +989,7 @@
             "rss": 164572,
             "native_total_heap": 22524,
             "native_free_heap": 1296,
-            "interval_config": 2000
+            "interval": 2000
         },
         "attachments": null,
         "attribute": {
@@ -1028,7 +1032,7 @@
             "rss": 163468,
             "native_total_heap": 22524,
             "native_free_heap": 1185,
-            "interval_config": 2000
+            "interval": 2000
         },
         "attachments": null,
         "attribute": {
@@ -1071,7 +1075,7 @@
             "rss": 163460,
             "native_total_heap": 22524,
             "native_free_heap": 1210,
-            "interval_config": 2000
+            "interval": 2000
         },
         "attachments": null,
         "attribute": {
@@ -1107,6 +1111,7 @@
         "timestamp": "2024-06-13T13:38:05.62300000Z",
         "type": "cpu_usage",
         "cpu_usage": {
+            "percentage_usage": 10.1,
             "num_cores": 1,
             "clock_speed": 100,
             "start_time": 80843,
@@ -1115,7 +1120,7 @@
             "cutime": 0,
             "cstime": 0,
             "stime": 55,
-            "interval_config": 3000
+            "interval": 3000
         },
         "attachments": null,
         "attribute": {
@@ -1158,7 +1163,7 @@
             "rss": 163200,
             "native_total_heap": 22524,
             "native_free_heap": 1213,
-            "interval_config": 2000
+            "interval": 2000
         },
         "attachments": null,
         "attribute": {

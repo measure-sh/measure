@@ -13,14 +13,14 @@ import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.exporter.ExceptionExporter
 import sh.measure.android.fakes.FakeConfigProvider
-import sh.measure.android.fakes.FakeEventFactory
-import sh.measure.android.fakes.FakeEventFactory.toEvent
 import sh.measure.android.fakes.FakeEventStore
 import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.FakeUserDefinedAttribute
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.fakes.TestData
+import sh.measure.android.fakes.TestData.toEvent
 import sh.measure.android.lifecycle.ActivityLifecycleData
 import sh.measure.android.screenshot.Screenshot
 import sh.measure.android.screenshot.ScreenshotCollector
@@ -61,7 +61,7 @@ internal class EventProcessorTest {
     @Test
     fun `given an event, adds session id, event id and thread name as attribute, then stores event`() {
         // Given
-        val exceptionData = FakeEventFactory.getExceptionData()
+        val exceptionData = TestData.getExceptionData()
         val timestamp = 1710746412L
         val type = EventType.EXCEPTION
 
@@ -86,10 +86,10 @@ internal class EventProcessorTest {
     @Test
     fun `given event with attachments, adds session id, event id and thread name as attribute, then stores event`() {
         // Given
-        val exceptionData = FakeEventFactory.getExceptionData()
+        val exceptionData = TestData.getExceptionData()
         val timestamp = 1710746412L
         val type = EventType.EXCEPTION
-        val attachments = mutableListOf(FakeEventFactory.getAttachment())
+        val attachments = mutableListOf(TestData.getAttachment())
 
         // When
         eventProcessor.track(
@@ -114,7 +114,7 @@ internal class EventProcessorTest {
     @Test
     fun `given event with attributes, adds session id, event id and thread name as attribute, then stores event`() {
         // Given
-        val exceptionData = FakeEventFactory.getExceptionData()
+        val exceptionData = TestData.getExceptionData()
         val timestamp = 1710746412L
         val type = EventType.EXCEPTION
         val attributes: MutableMap<String, Any?> = mutableMapOf("key" to "value")
@@ -142,7 +142,7 @@ internal class EventProcessorTest {
     @Test
     fun `given attribute processors are provided, applies them to the event`() {
         // Given
-        val exceptionData = FakeEventFactory.getExceptionData()
+        val exceptionData = TestData.getExceptionData()
         val timestamp = 1710746412L
         val type = EventType.EXCEPTION
         val attributeProcessor = object : AttributeProcessor {
@@ -184,9 +184,9 @@ internal class EventProcessorTest {
     }
 
     @Test
-    fun `given an event of type exception, stores and triggers export`() {
+    fun `given an event of type exception, stores it, marks current session as crashed, and triggers export`() {
         // Given
-        val exceptionData = FakeEventFactory.getExceptionData()
+        val exceptionData = TestData.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.EXCEPTION
 
@@ -198,14 +198,15 @@ internal class EventProcessorTest {
         )
 
         // Then
+        assertEquals(sessionManager.getSessionId(), sessionManager.crashedSession)
         assertEquals(1, eventStore.trackedEvents.size)
-        verify(exceptionExporter).export()
+        verify(exceptionExporter).export(sessionManager.getSessionId())
     }
 
     @Test
-    fun `given an event of type ANR, stores and triggers export`() {
+    fun `given an event of type ANR,  stores it, marks current session as crashed, and triggers export`() {
         // Given
-        val exceptionData = FakeEventFactory.getExceptionData()
+        val exceptionData = TestData.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.ANR
 
@@ -217,14 +218,15 @@ internal class EventProcessorTest {
         )
 
         // Then
+        assertEquals(sessionManager.getSessionId(), sessionManager.crashedSession)
         assertEquals(1, eventStore.trackedEvents.size)
-        verify(exceptionExporter).export()
+        verify(exceptionExporter).export(sessionManager.getSessionId())
     }
 
     @Test
     fun `given an event of type exception and config to capture screenshot, adds screenshot as attachment`() {
         // Given
-        val exceptionData = FakeEventFactory.getExceptionData()
+        val exceptionData = TestData.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.EXCEPTION
         configProvider.trackScreenshotOnCrash = true
@@ -249,7 +251,7 @@ internal class EventProcessorTest {
     @Test
     fun `given an event of type exception and config to not capture screenshot, does not add screenshot as attachment`() {
         // Given
-        val exceptionData = FakeEventFactory.getExceptionData()
+        val exceptionData = TestData.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.EXCEPTION
         configProvider.trackScreenshotOnCrash = false
@@ -270,7 +272,7 @@ internal class EventProcessorTest {
     @Test
     fun `given an event of type ANR and config to capture screenshot, does not add screenshot as attachment`() {
         // Given
-        val exceptionData = FakeEventFactory.getExceptionData()
+        val exceptionData = TestData.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.ANR
         configProvider.trackScreenshotOnCrash = true
@@ -291,7 +293,7 @@ internal class EventProcessorTest {
     @Test
     fun `given an event of type ANR and config to not capture screenshot, does not add screenshot as attachment`() {
         // Given
-        val exceptionData = FakeEventFactory.getExceptionData()
+        val exceptionData = TestData.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.ANR
         configProvider.trackScreenshotOnCrash = false
@@ -312,7 +314,7 @@ internal class EventProcessorTest {
     @Test
     fun `given transformer drops event, then does not store event`() {
         // Given
-        val exceptionData = FakeEventFactory.getExceptionData()
+        val exceptionData = TestData.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.EXCEPTION
 
@@ -353,7 +355,7 @@ internal class EventProcessorTest {
     fun `given transformer modifies event, then stores modified event`() {
         // Given
         val activityLifecycleData =
-            FakeEventFactory.getActivityLifecycleData(intent = "intent-data")
+            TestData.getActivityLifecycleData(intent = "intent-data")
         val timestamp = 9856564654L
         val type = EventType.LIFECYCLE_ACTIVITY
 
@@ -393,7 +395,7 @@ internal class EventProcessorTest {
 
     @Test
     fun `given a user triggered event, then stores the event`() {
-        val data = FakeEventFactory.getNavigationData()
+        val data = TestData.getNavigationData()
         val timestamp = 1710746412L
         val eventType = EventType.NAVIGATION
         val expectedEvent = data.toEvent(
@@ -417,7 +419,7 @@ internal class EventProcessorTest {
     @Test
     fun `given user defined attributes available, adds them to event`() {
         userDefinedAttribute.put("key", "value", false)
-        val data = FakeEventFactory.getNavigationData()
+        val data = TestData.getNavigationData()
         val timestamp = 1710746412L
         val eventType = EventType.NAVIGATION
         val expectedEvent = data.toEvent(

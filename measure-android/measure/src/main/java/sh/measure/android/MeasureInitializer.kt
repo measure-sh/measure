@@ -58,6 +58,8 @@ import sh.measure.android.performance.MemoryReader
 import sh.measure.android.performance.MemoryUsageCollector
 import sh.measure.android.screenshot.ScreenshotCollector
 import sh.measure.android.screenshot.ScreenshotCollectorImpl
+import sh.measure.android.storage.DataCleanupService
+import sh.measure.android.storage.DataCleanupServiceImpl
 import sh.measure.android.storage.Database
 import sh.measure.android.storage.DatabaseImpl
 import sh.measure.android.storage.EventStore
@@ -93,7 +95,21 @@ import sh.measure.android.utils.UUIDProvider
 internal class MeasureInitializerImpl(
     private val application: Application,
     inputConfig: MeasureConfig,
-    override val logger: Logger = AndroidLogger(),
+    override val configProvider: ConfigProvider = ConfigProviderImpl(
+        defaultConfig = Config(
+            enableLogging = inputConfig.enableLogging,
+            trackScreenshotOnCrash = inputConfig.trackScreenshotOnCrash,
+            screenshotMaskLevel = inputConfig.screenshotMaskLevel,
+            trackHttpHeaders = inputConfig.trackHttpHeaders,
+            trackHttpBody = inputConfig.trackHttpBody,
+            httpHeadersBlocklist = inputConfig.httpHeadersBlocklist,
+            httpUrlBlocklist = inputConfig.httpUrlBlocklist,
+            trackActivityIntentData = inputConfig.trackActivityIntentData,
+            sessionSamplingRate = inputConfig.sessionSamplingRate,
+        ),
+        configLoader = ConfigLoaderImpl(),
+    ),
+    override val logger: Logger = AndroidLogger(configProvider.enableLogging),
     override val timeProvider: TimeProvider = AndroidTimeProvider(),
     private val executorServiceRegistry: ExecutorServiceRegistry = ExecutorServiceRegistryImpl(),
     private val fileStorage: FileStorage = FileStorageImpl(
@@ -105,18 +121,6 @@ internal class MeasureInitializerImpl(
     override val networkClient: NetworkClient = NetworkClientImpl(
         logger = logger,
         fileStorage = fileStorage,
-    ),
-    override val configProvider: ConfigProvider = ConfigProviderImpl(
-        defaultConfig = Config(
-            trackScreenshotOnCrash = inputConfig.trackScreenshotOnCrash,
-            screenshotMaskLevel = inputConfig.screenshotMaskLevel,
-            trackHttpHeaders = inputConfig.trackHttpHeaders,
-            trackHttpBody = inputConfig.trackHttpBody,
-            httpHeadersBlocklist = inputConfig.httpHeadersBlocklist,
-            httpUrlBlocklist = inputConfig.httpUrlBlocklist,
-            trackActivityIntentData = inputConfig.trackActivityIntentData,
-        ),
-        configLoader = ConfigLoaderImpl(),
     ),
     private val idProvider: IdProvider = UUIDProvider(),
     private val processInfoProvider: ProcessInfoProvider = ProcessInfoProviderImpl(),
@@ -157,6 +161,7 @@ internal class MeasureInitializerImpl(
         executorServiceRegistry.ioExecutor(),
     ),
     override val userAttributeProcessor: UserAttributeProcessor = UserAttributeProcessor(
+        logger,
         prefsStorage,
         executorServiceRegistry.ioExecutor(),
     ),
@@ -218,6 +223,7 @@ internal class MeasureInitializerImpl(
         batchCreator = batchCreator,
     ),
     private val exceptionExporter: ExceptionExporter = ExceptionExporterImpl(
+        logger = logger,
         exportExecutor = executorServiceRegistry.eventExportExecutor(),
         eventExporter = eventExporter,
     ),
@@ -275,7 +281,7 @@ internal class MeasureInitializerImpl(
         systemServiceProvider = systemServiceProvider,
     ),
     override val appExitCollector: AppExitCollector = AppExitCollector(
-        timeProvider = timeProvider,
+        logger = logger,
         appExitProvider = appExitProvider,
         ioExecutor = executorServiceRegistry.ioExecutor(),
         eventProcessor = eventProcessor,
@@ -291,6 +297,7 @@ internal class MeasureInitializerImpl(
         defaultExecutor = executorServiceRegistry.defaultExecutor(),
     ),
     override val memoryUsageCollector: MemoryUsageCollector = MemoryUsageCollector(
+        logger = logger,
         eventProcessor = eventProcessor,
         timeProvider = timeProvider,
         defaultExecutor = executorServiceRegistry.defaultExecutor(),
@@ -328,6 +335,14 @@ internal class MeasureInitializerImpl(
         timeProvider = timeProvider,
         networkStateProvider = networkStateProvider,
     ),
+    override val dataCleanupService: DataCleanupService = DataCleanupServiceImpl(
+        logger = logger,
+        fileStorage = fileStorage,
+        database = database,
+        ioExecutor = executorServiceRegistry.ioExecutor(),
+        sessionManager = sessionManager,
+        configProvider = configProvider,
+    ),
 ) : MeasureInitializer
 
 internal interface MeasureInitializer {
@@ -355,4 +370,5 @@ internal interface MeasureInitializer {
     val userAttributeProcessor: UserAttributeProcessor
     val userDefinedAttribute: UserDefinedAttribute
     val screenshotCollector: ScreenshotCollector
+    val dataCleanupService: DataCleanupService
 }

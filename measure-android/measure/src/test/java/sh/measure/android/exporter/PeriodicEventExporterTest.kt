@@ -78,6 +78,38 @@ class PeriodicEventExporterTest {
     }
 
     @Test
+    fun `stops exporting existing batches if one of them fails to export due to server error`() {
+        val batch1 = "batch1" to mutableListOf("event1, event2")
+        val batch2 = "batch2" to mutableListOf("event1, event2")
+        val batches = LinkedHashMap<String, MutableList<String>>()
+        batches[batch1.first] = batch1.second
+        batches[batch2.first] = batch2.second
+        `when`(eventExporter.getExistingBatches()).thenReturn(batches)
+        `when`(eventExporter.export(batch1.first, batch1.second)).thenReturn(HttpResponse.Error.ServerError())
+
+        periodicEventExporter.onAppBackground()
+
+        verify(eventExporter).export(batch1.first, batch1.second)
+        verify(eventExporter, never()).export(batch2.first, batch2.second)
+    }
+
+    @Test
+    fun `stops exporting existing batches if one of them fails to export due to rate limit error`() {
+        val batch1 = "batch1" to mutableListOf("event1, event2")
+        val batch2 = "batch2" to mutableListOf("event1, event2")
+        val batches = LinkedHashMap<String, MutableList<String>>()
+        batches[batch1.first] = batch1.second
+        batches[batch2.first] = batch2.second
+        `when`(eventExporter.getExistingBatches()).thenReturn(batches)
+        `when`(eventExporter.export(batch1.first, batch1.second)).thenReturn(HttpResponse.Error.RateLimitError())
+
+        periodicEventExporter.onAppBackground()
+
+        verify(eventExporter).export(batch1.first, batch1.second)
+        verify(eventExporter, never()).export(batch2.first, batch2.second)
+    }
+
+    @Test
     fun `given existing batches are not available and last batch was not created recently, creates new batch and exports it, when app goes to background`() {
         timeProvider.fakeUptimeMs = 5000
         periodicEventExporter.lastBatchCreationUptimeMs = 1000

@@ -1,6 +1,8 @@
+import { HighlightInit } from '@highlight-run/next/client'
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import { Josefin_Sans, Space_Mono } from 'next/font/google'
+import Script from 'next/script'
 
 const display = Josefin_Sans({
   subsets: ['latin'], display: 'swap', weight: ['100', '200', '300', '400', '500', '600', '700'],
@@ -29,8 +31,31 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={`${display.variable} ${body.variable}`}>{children}</body>
-    </html>
+    <>
+      <HighlightInit
+        projectId={process.env.NEXT_PUBLIC_HIGHLIGHT_PROJECT_ID}
+        serviceName={process.env.NEXT_PUBLIC_FRONTEND_SERVICE_NAME}
+        backendUrl={process.env.NEXT_PUBLIC_HIGHLIGHT_BACKEND_URL}
+        disableSessionRecording
+        excludedHostnames={['localhost']}
+        tracingOrigins
+        networkRecording={{
+          enabled: true,
+          recordHeadersAndBody: true,
+          urlBlocklist: [],
+        }}
+      />
+      <html lang="en">
+        <body className={`${display.variable} ${body.variable}`}>{children}</body>
+        <Script id='clarity-script' strategy="afterInteractive">
+          {`(function(c,l,a,r,i,t,y){
+            c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments) };
+            t=l.createElement(r);t.async=1;t.src="/api/clarity/"+i;
+            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+            })(window, document, "clarity", "script", "${process.env.NEXT_PUBLIC_CLARITY_KEY}");
+          `}
+        </Script>
+      </html>
+    </>
   )
 }

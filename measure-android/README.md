@@ -90,7 +90,7 @@ Add the following plugin to your project.
 
 ```kotlin
 plugins {
-    id("sh.measure.android.gradle") version "0.2.0"
+    id("sh.measure.android.gradle") version "0.3.0"
 }
 ```
 
@@ -98,11 +98,50 @@ or, use the following if you're using `build.gradle`.
 
 ```groovy
 plugins {
-    id 'sh.measure.android.gradle' version '0.2.0'
+    id 'sh.measure.android.gradle' version '0.3.0'
 }
 ```
 
 [Read](measure-android-gradle/README.md) more about Measure gradle plugin.
+
+<details>
+  <summary>Configure variants</summary>
+
+By default, the plugin is applied to all variants. To disable plugin for specific variants, 
+use the `measure` block in your build file.
+
+> [!IMPORTANT]
+> Setting `enabled` to `false` will disable the plugin for that variant. This prevents the
+> plugin to collect `mapping.txt` file and other build information about the app. Features like
+> tracking app size, de-obfuscating stack traces, etc. will not work.
+
+For example to disable the plugin for `debug` variants, add the following to your 
+`build.gradle.kts` file:
+
+```kotlin
+measure {
+  variantFilter {
+    if (name.contains("debug")) {
+      enabled = false
+    }
+  }
+}
+```
+
+or in the `build.gradle` file:
+
+```groovy
+measure {
+  variantFilter {
+    if (name.contains("debug")) {
+      enabled = false
+    }
+  }
+}
+```
+
+</details>
+
 
 ### 3. Add Measure SDK to your project
 
@@ -111,13 +150,13 @@ Add the following to your app's `build.gradle.kts`file.
 [//]: # (TODO: Replace with the actual version on maven central)
 
 ```kotlin
-implementation("sh.measure:measure-android:0.2.0")
+implementation("sh.measure:measure-android:0.3.0")
 ```
 
 or, add the following to your app's `build.gradle`file.
 
 ```groovy
-implementation 'sh.measure:measure-android:0.2.0'
+implementation 'sh.measure:measure-android:0.3.0'
 ```
 
 ### 4. Initialize the SDK
@@ -238,7 +277,7 @@ checking what data was passed as part of the bundle, it might also contain sensi
 
 The following configurations are available:
 
-### `trackLifecycleActivityIntentData`
+### `trackActivityIntentData`
 
 Allows enabling/disabling of collection of intent data for the following events:
 
@@ -249,6 +288,17 @@ Allows enabling/disabling of collection of intent data for the following events:
 * `hot_launch` event, which is collected when the app is launched from a hot start.
 
 Disabled by default.
+
+### `sessionSamplingRate`
+
+Allows setting a sampling rate for non-crashed sessions. Defaults to 1.0, meaning all non-crashed 
+sessions are exported by default.
+
+The sampling rate is a value between 0 and 1. For example, a value of `0.1` will export only 10%
+of the non-crashed sessions, a value of `0` will disable exporting of non-crashed sessions.
+
+Note that crashed sessions are always exported. And certain events like `cold_launch`, `warm_launch`,
+`hot_launch` are always exported regardless of the sampling rate.
 
 # Custom Events
 

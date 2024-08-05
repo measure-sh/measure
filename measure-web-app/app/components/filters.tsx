@@ -46,6 +46,7 @@ export type SelectedFilters = {
 
 type PersistedFilters = {
   selectedAppId: string
+  selectedDateRange: string
   selectedStartDate: string
   selectedEndDate: string
 }
@@ -63,6 +64,16 @@ export const defaultSelectedFilters: SelectedFilters = {
   selectedLocales: [],
   selectedDeviceManufacturers: [],
   selectedDeviceNames: []
+}
+
+enum DateRange {
+  Last24Hours = 'Last 24 Hours',
+  LastWeek = 'Last Week',
+  Last15Days = 'Last 15 Days',
+  LastMonth = 'Last Month',
+  Last3Months = 'Last 3 Months',
+  LastYear = 'Last Year',
+  Custom = 'Custom Range'
 }
 
 const Filters: React.FC<FiltersProps> = ({
@@ -114,20 +125,49 @@ const Filters: React.FC<FiltersProps> = ({
   const [deviceNames, setDeviceNames] = useState([] as string[]);
   const [selectedDeviceNames, setSelectedDeviceNames] = useState([] as string[]);
 
-  const today = DateTime.now();
-  const todayDate = today.toFormat('yyyy-MM-dd');
-  const [endDate, setEndDate] = useState(persistedFilters === null ? todayDate : persistedFilters.selectedEndDate);
-  const [formattedEndDate, setFormattedEndDate] = useState(formatDateToHumanReadable(endDate));
+  const [dateRange, setDateRange] = useState(persistedFilters === null ? DateRange.LastWeek : persistedFilters.selectedDateRange)
 
-  const sevenDaysAgo = today.minus({ days: 7 });
-  var initialStartDate = sevenDaysAgo.toFormat('yyyy-MM-dd');
-  const [startDate, setStartDate] = useState(persistedFilters === null ? initialStartDate : persistedFilters.selectedStartDate);
+  const [startDate, setStartDate] = useState(persistedFilters === null ? DateTime.now().minus({ days: 7 }).toFormat('yyyy-MM-dd') : persistedFilters.selectedStartDate);
   const [formattedStartDate, setFormattedStartDate] = useState(formatDateToHumanReadable(startDate));
+
+  const [endDate, setEndDate] = useState(persistedFilters === null ? DateTime.now().toFormat('yyyy-MM-dd') : persistedFilters.selectedEndDate);
+  const [formattedEndDate, setFormattedEndDate] = useState(formatDateToHumanReadable(endDate));
 
   useEffect(() => {
     setFormattedStartDate(formatDateToHumanReadable(startDate));
     setFormattedEndDate(formatDateToHumanReadable(endDate));
   }, [startDate, endDate]);
+
+  useEffect(() => {
+    let today = DateTime.now()
+    let daysAgoDate
+
+    switch (dateRange) {
+      case DateRange.Last24Hours:
+        daysAgoDate = today.minus({ days: 1 })
+        break
+      case DateRange.LastWeek:
+        daysAgoDate = today.minus({ days: 7 })
+        break
+      case DateRange.Last15Days:
+        daysAgoDate = today.minus({ days: 15 })
+        break
+      case DateRange.LastMonth:
+        daysAgoDate = today.minus({ months: 1 })
+        break
+      case DateRange.Last3Months:
+        daysAgoDate = today.minus({ months: 3 })
+        break
+      case DateRange.LastYear:
+        daysAgoDate = today.minus({ years: 1 })
+        break
+      case DateRange.Custom:
+        return
+    }
+
+    setStartDate(daysAgoDate!.toFormat('yyyy-MM-dd'))
+    setEndDate(today.toFormat('yyyy-MM-dd'))
+  }, [dateRange]);
 
   const getApps = async () => {
 
@@ -146,11 +186,17 @@ const Filters: React.FC<FiltersProps> = ({
         setAppsApiStatus(AppsApiStatus.Success)
         setApps(result.data)
         // If appId is provided, set selected app to given appId. If no app Id is provided but we have a saved appId from
-        // saved filters, set selected app to the one from saved filters. If not, set to the first app id.
+        // saved filters and we can find the corresponding app in the results, set selected app to the one from saved filters.
+        // If not, set to the first app id.
         if (appId !== undefined) {
           setSelectedApp(result.data.find((e: typeof emptyApp) => e.id === appId))
         } else if (persistedFilters !== null) {
-          setSelectedApp(result.data.find((e: typeof emptyApp) => e.id === persistedFilters.selectedAppId))
+          const appMatchingPersisted = result.data.find((e: typeof emptyApp) => e.id === persistedFilters.selectedAppId)
+          if (appMatchingPersisted !== undefined) {
+            setSelectedApp(appMatchingPersisted)
+          } else {
+            setSelectedApp(result.data[0])
+          }
         } else {
           setSelectedApp(result.data[0])
         }
@@ -229,7 +275,7 @@ const Filters: React.FC<FiltersProps> = ({
   }
 
   useEffect(() => {
-    // Don't try to fetch filters if app id is not yet set
+    // Don't try to fetch filters if selected app is not yet set
     if (selectedApp.id === "") {
       return
     }
@@ -238,8 +284,14 @@ const Filters: React.FC<FiltersProps> = ({
   }, [selectedApp]);
 
   useEffect(() => {
+    // Don't persist filters or fire change listener if selected app is not yet set
+    if (selectedApp.id === "") {
+      return
+    }
+
     const updatedPersistedFilters: PersistedFilters = {
       selectedAppId: selectedApp.id,
+      selectedDateRange: dateRange,
       selectedStartDate: startDate,
       selectedEndDate: endDate
     }
@@ -297,17 +349,19 @@ const Filters: React.FC<FiltersProps> = ({
             {/* only show app selector if appId is not provided */}
             {appId === undefined ? <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={apps.map((e) => e.name)} initialSelected={selectedApp.name} onChangeSelected={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} /> : null}
             <div className="flex flex-row items-center">
-              <input type="date" defaultValue={startDate} max={endDate} className="font-display border border-black rounded-md p-2" onChange={(e) => {
+              <DropdownSelect title="Date Range" type={DropdownSelectType.SingleString} items={Object.values(DateRange)} initialSelected={dateRange} onChangeSelected={(item) => setDateRange(item as string)} />
+              {dateRange === DateRange.Custom && <p className="font-display px-2">:</p>}
+              {dateRange === DateRange.Custom && <input type="date" defaultValue={startDate} max={endDate} className="font-display border border-black rounded-md p-2" onChange={(e) => {
                 if (isValidTimestamp(e.target.value)) {
                   setStartDate(e.target.value)
                 }
-              }} />
-              <p className="font-display px-2">to</p>
-              <input type="date" defaultValue={endDate} min={startDate} max={todayDate} className="font-display border border-black rounded-md p-2" onChange={(e) => {
+              }} />}
+              {dateRange === DateRange.Custom && <p className="font-display px-2">to</p>}
+              {dateRange === DateRange.Custom && <input type="date" defaultValue={endDate} min={startDate} max={DateTime.now().toFormat('yyyy-MM-dd')} className="font-display border border-black rounded-md p-2" onChange={(e) => {
                 if (isValidTimestamp(e.target.value)) {
                   setEndDate(e.target.value)
                 }
-              }} />
+              }} />}
             </div>
             <DropdownSelect title="App versions" type={DropdownSelectType.MultiAppVersion} items={versions} initialSelected={selectedVersions} onChangeSelected={(items) => setSelectedVersions(items as AppVersion[])} />
             {showCountries && countries.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Country" items={countries} initialSelected={countries} onChangeSelected={(items) => setSelectedCountries(items as string[])} />}

@@ -9,8 +9,8 @@ on:
       - 'main'
     paths:
       - 'measure-android/**'
-  release:
-    types: [ published ]
+    tags:
+      - 'android-*'
 
 env:
   JAVA_VERSION: 17
@@ -82,7 +82,7 @@ jobs:
   publish-android:
     runs-on: ubuntu-latest
     needs: [ checks ]
-    if: github.event_name == 'release' && startsWith(github.ref, 'refs/tags/measure-android-') && !startsWith(github.ref, 'refs/tags/measure-android-gradle-')
+    if: startsWith(github.ref, 'refs/tags/android-') && !startsWith(github.ref, 'refs/tags/android-gradle-plugin-')
     defaults:
       run:
         working-directory: measure-android
@@ -109,7 +109,7 @@ jobs:
   publish-android-gradle:
     runs-on: ubuntu-latest
     needs: [ checks ]
-    if: github.event_name == 'release' && startsWith(github.ref, 'refs/tags/measure-android-') && !startsWith(github.ref, 'refs/tags/measure-android-gradle-')
+    if: startsWith(github.ref, 'refs/tags/android-gradle-plugin')
     defaults:
       run:
         working-directory: measure-android

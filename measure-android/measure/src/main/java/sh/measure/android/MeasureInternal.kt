@@ -36,6 +36,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     private val userAttributeProcessor by lazy { measureInitializer.userAttributeProcessor }
     private val userDefinedAttribute by lazy { measureInitializer.userDefinedAttribute }
     private val configProvider by lazy { measureInitializer.configProvider }
+    private val dataCleanupService by lazy { measureInitializer.dataCleanupService }
 
     fun init() {
         logger.log(LogLevel.Debug, "Starting Measure SDK")
@@ -96,13 +97,13 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
         cpuUsageCollector.pause()
         memoryUsageCollector.pause()
         periodicEventExporter.onAppBackground()
+        dataCleanupService.clearStaleData()
     }
 
     override fun onColdLaunch() {
         networkChangesCollector.register()
         periodicEventExporter.onColdLaunch()
         appExitCollector.onColdLaunch()
-        sessionManager.clearOldSessions()
     }
 
     fun setUserId(userId: String) {

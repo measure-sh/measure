@@ -2,16 +2,19 @@ package sh.measure.android
 
 import androidx.concurrent.futures.ResolvableFuture
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakeProcessInfoProvider
+import sh.measure.android.fakes.FakeRandomizer
 import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.storage.Database
+import sh.measure.android.storage.SessionEntity
 
 class SessionManagerTest {
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
@@ -21,6 +24,7 @@ class SessionManagerTest {
     private val processInfo = FakeProcessInfoProvider()
     private val timeProvider = FakeTimeProvider()
     private val configProvider = FakeConfigProvider()
+    private val randomizer = FakeRandomizer()
 
     private val sessionManager = SessionManagerImpl(
         logger = logger,
@@ -32,6 +36,13 @@ class SessionManagerTest {
         configProvider = configProvider,
     )
 
+    @Before
+    fun setup() {
+        // forces "needs reporting" to be set to false
+        configProvider.sessionSamplingRate = 0.0f
+        randomizer.randomDouble = 0.0
+    }
+
     @Test
     fun `given session ID does not exist, creates a new session ID and persists it to db`() {
         val expectedSessionId = "session-id"
@@ -40,7 +51,14 @@ class SessionManagerTest {
 
         val sessionId = sessionManager.getSessionId()
         assertEquals(expectedSessionId, sessionId)
-        verify(database).insertSession(expectedSessionId, processInfo.getPid(), timeProvider.fakeCurrentTimeSinceEpochInMillis)
+        verify(database).insertSession(
+            SessionEntity(
+                expectedSessionId,
+                processInfo.getPid(),
+                timeProvider.fakeCurrentTimeSinceEpochInMillis,
+                false,
+            ),
+        )
     }
 
     @Test
@@ -67,21 +85,34 @@ class SessionManagerTest {
 
         val sessionId = sessionManager.getSessionId()
         assertEquals(updatedSessionId, sessionId)
-        verify(database).insertSession(updatedSessionId, processInfo.getPid(), timeProvider.fakeCurrentTimeSinceEpochInMillis)
+        verify(database).insertSession(
+            SessionEntity(
+                updatedSessionId,
+                processInfo.getPid(),
+                timeProvider.fakeCurrentTimeSinceEpochInMillis,
+                false,
+            ),
+        )
     }
 
     @Test
     fun `delegates to database to get sessions for pids where app exit has not been tracked`() {
-        sessionManager.getSessionsForPids()
+        sessionManager.getSessionsWithUntrackedAppExit()
         verify(database).getSessionsWithUntrackedAppExit()
     }
 
     @Test
-    fun `delegates to database to delete old sessions by calculating the time to clear up to`() {
-        val currentTime = configProvider.sessionsTableTtlMs + 1000
-        timeProvider.fakeCurrentTimeSinceEpochInMillis = currentTime
-        sessionManager.clearOldSessions()
-        verify(database).clearOldSessions(currentTime - configProvider.sessionsTableTtlMs)
+    fun `delegates to database to mark a session as crashed`() {
+        val sessionId = "session-id"
+        sessionManager.markCrashedSession(sessionId)
+        verify(database).markCrashedSession(sessionId)
+    }
+
+    @Test
+    fun `delegates to database to mark a sessions as crashed`() {
+        val sessionIds = listOf("session-id-1", "session-id-2")
+        sessionManager.markCrashedSessions(sessionIds)
+        verify(database).markCrashedSessions(sessionIds)
     }
 
     private fun simulateAppRelaunch(durationMs: Long) {

@@ -8,19 +8,12 @@ import (
 	"measure-backend/measure-go/server"
 	"slices"
 	"sort"
-	"strconv"
 	"time"
 
-	"github.com/go-dedup/simhash"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
 )
-
-// MatchingHammingDistance is the minimum hamming
-// distance above which two similar exceptions or
-// ANRs are considered unique.
-var MinHammingDistance uint8 = 3
 
 type GroupID interface {
 	GetID() uuid.UUID
@@ -29,7 +22,11 @@ type GroupID interface {
 type ExceptionGroup struct {
 	ID              uuid.UUID              `json:"id" db:"id"`
 	AppID           uuid.UUID              `json:"app_id" db:"app_id"`
-	Name            string                 `json:"name" db:"name"`
+	Type            string                 `json:"type" db:"type"`
+	Message         string                 `json:"message" db:"message"`
+	MethodName      string                 `json:"method_name" db:"method_name"`
+	FileName        string                 `json:"file_name" db:"file_name"`
+	LineNumber      int                    `json:"line_number" db:"line_number"`
 	Fingerprint     string                 `json:"fingerprint" db:"fingerprint"`
 	Count           int                    `json:"count" db:"count"`
 	EventIDs        []uuid.UUID            `json:"event_ids,omitempty" db:"event_ids"`
@@ -43,7 +40,11 @@ type ExceptionGroup struct {
 type ANRGroup struct {
 	ID             uuid.UUID        `json:"id" db:"id"`
 	AppID          uuid.UUID        `json:"app_id" db:"app_id"`
-	Name           string           `json:"name" db:"name"`
+	Type           string           `json:"type" db:"type"`
+	Message        string           `json:"message" db:"message"`
+	MethodName     string           `json:"method_name" db:"method_name"`
+	FileName       string           `json:"file_name" db:"file_name"`
+	LineNumber     int              `json:"line_number" db:"line_number"`
 	Fingerprint    string           `json:"fingerprint" db:"fingerprint"`
 	Count          int              `json:"count" db:"count"`
 	EventIDs       []uuid.UUID      `json:"event_ids,omitempty" db:"event_ids"`
@@ -56,6 +57,12 @@ type ANRGroup struct {
 
 func (e ExceptionGroup) GetID() uuid.UUID {
 	return e.ID
+}
+
+// GetDisplayTitle provides a user friendly display
+// name for the Exception Group.
+func (e ExceptionGroup) GetDisplayTitle() string {
+	return e.Type + "@" + e.FileName
 }
 
 // EventExists checks if the given event id exists in
@@ -93,21 +100,6 @@ func (e ExceptionGroup) AppendEvent(ctx context.Context, event *event.EventField
 	return
 }
 
-// HammingDistance calculates the hamming distance between the
-// exception's fingerprint with any arbitrary fingerprint
-// represented as a 64 bit unsigned integer returning
-// the distance.
-func (e ExceptionGroup) HammingDistance(a uint64) (distance uint8, err error) {
-	b, err := strconv.ParseUint(e.Fingerprint, 16, 64)
-	if err != nil {
-		return
-	}
-
-	distance = simhash.Compare(a, b)
-
-	return
-}
-
 // Insert inserts a new ExceptionGroup into the database.
 func (e *ExceptionGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 	id, err := uuid.NewV7()
@@ -119,7 +111,11 @@ func (e *ExceptionGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 		InsertInto("public.unhandled_exception_groups").
 		Set("id", id).
 		Set("app_id", e.AppID).
-		Set("name", e.Name).
+		Set("type", e.Type).
+		Set("message", e.Message).
+		Set("method_name", e.MethodName).
+		Set("file_name", e.FileName).
+		Set("line_number", e.LineNumber).
 		Set("fingerprint", e.Fingerprint).
 		Set("event_ids", e.EventIDs).
 		Set("first_event_timestamp", e.FirstEventTime)
@@ -138,6 +134,12 @@ func (e *ExceptionGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 
 func (a ANRGroup) GetID() uuid.UUID {
 	return a.ID
+}
+
+// GetDisplayTitle provides a user friendly display
+// name for the ANR Group.
+func (a ANRGroup) GetDisplayTitle() string {
+	return a.Type + "@" + a.FileName
 }
 
 // EventExists checks if the given event id exists in
@@ -175,21 +177,6 @@ func (e ANRGroup) AppendEvent(ctx context.Context, event *event.EventField, tx *
 	return
 }
 
-// HammingDistance calculates the hamming distance between the
-// anr's fingerprint with any arbitrary fingerprint
-// represented as a 64 bit unsigned integer returning
-// the distance.
-func (anr ANRGroup) HammingDistance(a uint64) (distance uint8, err error) {
-	b, err := strconv.ParseUint(anr.Fingerprint, 16, 64)
-	if err != nil {
-		return
-	}
-
-	distance = simhash.Compare(a, b)
-
-	return
-}
-
 // Insert inserts a new ANRGroup into the database.
 func (a *ANRGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 	id, err := uuid.NewV7()
@@ -201,7 +188,11 @@ func (a *ANRGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 		InsertInto("public.anr_groups").
 		Set("id", id).
 		Set("app_id", a.AppID).
-		Set("name", a.Name).
+		Set("type", a.Type).
+		Set("message", a.Message).
+		Set("method_name", a.MethodName).
+		Set("file_name", a.FileName).
+		Set("line_number", a.LineNumber).
 		Set("fingerprint", a.Fingerprint).
 		Set("event_ids", a.EventIDs).
 		Set("first_event_timestamp", a.FirstEventTime)
@@ -214,76 +205,6 @@ func (a *ANRGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 	}
 
 	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-
-	return
-}
-
-// GetExceptionGroup gets the ExceptionGroup by matching
-// ExceptionGroup id and app id.
-func GetExceptionGroup(eg *ExceptionGroup) error {
-	stmt := sqlf.PostgreSQL.Select("name, fingerprint, event_ids, created_at, updated_at").
-		From("public.unhandled_exception_groups").
-		Where("id = ? and app_id = ?", nil, nil)
-	defer stmt.Close()
-
-	return server.Server.PgPool.QueryRow(context.Background(), stmt.String(), eg.ID, eg.AppID).Scan(&eg.Name, &eg.Fingerprint, &eg.EventIDs, &eg.CreatedAt, &eg.UpdatedAt)
-}
-
-// GetANRGroup gets the ANRGroup by matching
-// ANRGroup id and app id.
-func GetANRGroup(ag *ANRGroup) error {
-	stmt := sqlf.PostgreSQL.Select("name, fingerprint, event_ids, created_at, updated_at").
-		From("public.anr_groups").
-		Where("id = ? and app_id = ?", nil, nil)
-	defer stmt.Close()
-
-	return server.Server.PgPool.QueryRow(context.Background(), stmt.String(), ag.ID, ag.AppID).Scan(&ag.Name, &ag.Fingerprint, &ag.EventIDs, &ag.CreatedAt, &ag.UpdatedAt)
-}
-
-// ClosestExceptionGroup finds the index of the ExceptionGroup closest to
-// an arbitrary fingerprint from a slice of ExceptionGroup.
-func ClosestExceptionGroup(groups []ExceptionGroup, fingerprint uint64) (group *ExceptionGroup, err error) {
-	lowest := -1
-	min := MinHammingDistance
-	for i := range groups {
-		distance, err := groups[i].HammingDistance(fingerprint)
-		if err != nil {
-			return nil, err
-		}
-
-		if distance <= min {
-			min = distance
-			lowest = i
-		}
-	}
-
-	if lowest > -1 {
-		group = &groups[lowest]
-	}
-
-	return
-}
-
-// ClosestANRGroup finds the index of the ANRGroup closest to
-// an arbitrary fingerprint from a slice of ANRGroup.
-func ClosestANRGroup(groups []ANRGroup, fingerprint uint64) (group *ANRGroup, err error) {
-	lowest := -1
-	min := MinHammingDistance
-	for i := range groups {
-		distance, err := groups[i].HammingDistance(fingerprint)
-		if err != nil {
-			return nil, err
-		}
-
-		if distance <= min {
-			min = distance
-			lowest = i
-		}
-	}
-
-	if lowest > -1 {
-		group = &groups[lowest]
-	}
 
 	return
 }
@@ -344,7 +265,11 @@ func GetExceptionGroupsFromExceptionIds(ctx context.Context, eventIds []uuid.UUI
 	stmt := sqlf.PostgreSQL.
 		From(`public.unhandled_exception_groups`).
 		Select(`id`).
-		Select(`name`).
+		Select(`type`).
+		Select(`message`).
+		Select(`method_name`).
+		Select(`file_name`).
+		Select(`line_number`).
 		Select(`event_ids`).
 		// `&&` matches rows by list of uuids
 		Where(`event_ids && ?`, eventIds)
@@ -365,7 +290,11 @@ func GetANRGroupsFromANRIds(ctx context.Context, eventIds []uuid.UUID) (anrGroup
 	stmt := sqlf.PostgreSQL.
 		From(`public.anr_groups`).
 		Select(`id`).
-		Select(`name`).
+		Select(`type`).
+		Select(`message`).
+		Select(`method_name`).
+		Select(`file_name`).
+		Select(`line_number`).
 		Select(`event_ids`).
 		// `&&` matches rows by list of uuids
 		Where(`event_ids && ?`, eventIds)
@@ -440,10 +369,14 @@ func PaginateGroups[T GroupID](groups []T, af *filter.AppFilter) (sliced []T, ne
 }
 
 // NewExceptionGroup constructs a new ExceptionGroup and returns a pointer to it.
-func NewExceptionGroup(appId uuid.UUID, name string, fingerprint string, eventIds []uuid.UUID, firstTime time.Time) *ExceptionGroup {
+func NewExceptionGroup(appId uuid.UUID, exceptionType, message, methodName, fileName string, lineNumber int, fingerprint string, eventIds []uuid.UUID, firstTime time.Time) *ExceptionGroup {
 	return &ExceptionGroup{
 		AppID:          appId,
-		Name:           name,
+		Type:           exceptionType,
+		Message:        message,
+		MethodName:     methodName,
+		FileName:       fileName,
+		LineNumber:     lineNumber,
 		Fingerprint:    fingerprint,
 		EventIDs:       eventIds,
 		FirstEventTime: firstTime,
@@ -451,10 +384,14 @@ func NewExceptionGroup(appId uuid.UUID, name string, fingerprint string, eventId
 }
 
 // NewANRGroup constructs a new ANRGroup and returns a pointer to it.
-func NewANRGroup(appId uuid.UUID, name string, fingerprint string, eventIds []uuid.UUID, firstTime time.Time) *ANRGroup {
+func NewANRGroup(appId uuid.UUID, anrType, message, methodName, fileName string, lineNumber int, fingerprint string, eventIds []uuid.UUID, firstTime time.Time) *ANRGroup {
 	return &ANRGroup{
 		AppID:          appId,
-		Name:           name,
+		Type:           anrType,
+		Message:        message,
+		MethodName:     methodName,
+		FileName:       fileName,
+		LineNumber:     lineNumber,
 		Fingerprint:    fingerprint,
 		EventIDs:       eventIds,
 		FirstEventTime: firstTime,

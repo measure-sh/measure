@@ -46,6 +46,8 @@ internal class ConfigProviderImpl(
         }
     }
 
+    override val enableLogging: Boolean
+        get() = getMergedConfig { enableLogging }
     override val trackScreenshotOnCrash: Boolean
         get() = getMergedConfig { trackScreenshotOnCrash }
     override val screenshotMaskLevel: ScreenshotMaskLevel
@@ -54,6 +56,10 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { screenshotMaskHexColor }
     override val screenshotCompressionQuality: Int
         get() = getMergedConfig { screenshotCompressionQuality }
+    override val eventTypeExportAllowList: List<String>
+        get() = getMergedConfig { eventTypeExportAllowList }
+    override val maxEventsInDatabase: Int
+        get() = getMergedConfig { maxEventsInDatabase }
     override val trackHttpHeaders: Boolean
         get() = getMergedConfig { trackHttpHeaders }
     override val trackHttpBody: Boolean
@@ -64,6 +70,8 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { httpUrlBlocklist }
     override val trackActivityIntentData: Boolean
         get() = getMergedConfig { trackActivityIntentData }
+    override val sessionSamplingRate: Float
+        get() = getMergedConfig { sessionSamplingRate }
     override val eventsBatchingIntervalMs: Long
         get() = getMergedConfig { eventsBatchingIntervalMs }
     override val maxEventsInBatch: Int
@@ -72,8 +80,6 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { httpContentTypeAllowlist }
     override val defaultHttpHeadersBlocklist: List<String>
         get() = getMergedConfig { defaultHttpHeadersBlocklist }
-    override val sessionsTableTtlMs: Long
-        get() = getMergedConfig { sessionsTableTtlMs }
     override val sessionEndThresholdMs: Long
         get() = getMergedConfig { sessionEndThresholdMs }
     override val maxAttachmentSizeInEventsBatchInBytes: Int

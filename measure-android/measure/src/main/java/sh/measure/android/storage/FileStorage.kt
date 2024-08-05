@@ -43,6 +43,18 @@ internal interface FileStorage {
      * @param attachmentIds The list of attachment ids to delete.
      */
     fun deleteEventIfExist(eventId: String, attachmentIds: List<String>)
+
+    /**
+     * Returns all files in the measure directory.
+     *
+     * @param limit The maximum number of files to return.
+     */
+    fun getAllFiles(limit: Int = 100): List<File>
+
+    /**
+     * Deletes a list of files.
+     */
+    fun deleteFiles(files: List<File>)
 }
 
 private const val MEASURE_DIR = "measure"
@@ -78,6 +90,17 @@ internal class FileStorageImpl(
 
     override fun deleteEventIfExist(eventId: String, attachmentIds: List<String>) {
         deleteEventsIfExist(listOf(eventId), attachmentIds)
+    }
+
+    override fun getAllFiles(limit: Int): List<File> {
+        val dir = File("$rootDir/$MEASURE_DIR")
+        return dir.listFiles()?.take(limit) ?: emptyList()
+    }
+
+    override fun deleteFiles(files: List<File>) {
+        files.forEach { file ->
+            deleteFileIfExists(file)
+        }
     }
 
     override fun deleteEventsIfExist(eventIds: List<String>, attachmentIds: List<String>) {

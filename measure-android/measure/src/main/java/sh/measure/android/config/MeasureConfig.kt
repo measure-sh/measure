@@ -4,6 +4,7 @@ package sh.measure.android.config
  * Configuration for the Measure SDK. See [MeasureConfig] for details.
  */
 internal interface IMeasureConfig {
+    val enableLogging: Boolean
     val trackScreenshotOnCrash: Boolean
     val screenshotMaskLevel: ScreenshotMaskLevel
     val trackHttpHeaders: Boolean
@@ -11,6 +12,7 @@ internal interface IMeasureConfig {
     val httpHeadersBlocklist: List<String>
     val httpUrlBlocklist: List<String>
     val trackActivityIntentData: Boolean
+    val sessionSamplingRate: Float
 }
 
 /**
@@ -18,6 +20,10 @@ internal interface IMeasureConfig {
  * initialization.
  */
 class MeasureConfig(
+    /**
+     * Enable or disable internal SDK logs. Defaults to `false`.
+     */
+    override val enableLogging: Boolean = DefaultConfig.ENABLE_LOGGING,
     /**
      * Whether to capture a screenshot of the app when it crashes due to an unhandled exception or
      * ANR. Defaults to `true`.
@@ -77,4 +83,22 @@ class MeasureConfig(
      * Whether to capture intent data used to launch an Activity. Defaults to `false`.
      */
     override val trackActivityIntentData: Boolean = DefaultConfig.TRACK_ACTIVITY_INTENT_DATA,
-) : IMeasureConfig
+
+    /**
+     * Allows setting a sampling rate for non-crashed sessions. By default, all non-crashed
+     * sessions are always exported. Non-crashed sessions are ones which did not end due to an
+     * unhandled exception or ANR.
+     *
+     * The sampling rate is a value between 0 and 1. For example, a value of `0.5` will export only 50%
+     * of the non-crashed sessions, a value of `0` will disable exporting of non-crashed sessions.
+     *
+     * Setting a value outside the range will throw an [IllegalArgumentException].
+     */
+    override val sessionSamplingRate: Float = DefaultConfig.SESSION_SAMPLING_RATE,
+) : IMeasureConfig {
+    init {
+        require(sessionSamplingRate in 0.0..1.0) {
+            "Session sampling rate must be between 0.0 and 1.0"
+        }
+    }
+}

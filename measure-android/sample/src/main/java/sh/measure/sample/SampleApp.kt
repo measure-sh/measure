@@ -10,6 +10,7 @@ class SampleApp : Application() {
         super.onCreate()
         Measure.init(
             this, MeasureConfig(
+                enableLogging = true,
                 trackScreenshotOnCrash = true,
                 screenshotMaskLevel = if (BuildConfig.DEBUG) {
                     ScreenshotMaskLevel.SensitiveFieldsOnly
@@ -20,6 +21,7 @@ class SampleApp : Application() {
                 trackHttpBody = true,
                 trackActivityIntentData = true,
                 httpUrlBlocklist = listOf("http://localhost:8080"),
+                sessionSamplingRate = 0.5f,
             )
         )
         Measure.setUserId("sample-user-sd")

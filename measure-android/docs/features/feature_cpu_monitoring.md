@@ -24,9 +24,15 @@ we are interested only in the following:
 4. cstime - Amount of time that this process's waited-for children have been scheduled in kernel mode, measured in clock
    ticks.
 
-The total time spent by the application in a given interval is calculated using:
+The average %CPU usage by the application in a given interval is calculated using:
 
-$\frac{{utime + stime + cutime + cstime}}{{clock\ speed \times interval \times number\ of\ cores}}$
+$\frac{{(utime - prev.utime) + (stime - prev.stime) + (cutime - prev.cutime) + (cstime - prev.cstime)}}{{clock\ speed \times interval \times number\ of\ cores}}$
+
+Where:
+* `prev.utime`, `prev.stime`, `prev.cutime`, `prev.cstime` are values from the previous event collected.
+* `interval` is the time between two consecutive `cpu_usage` events.
+
+Note that the first event will have the CPU usage as 0 as there is no previous event to compare with.
 
 ## Data collected
 

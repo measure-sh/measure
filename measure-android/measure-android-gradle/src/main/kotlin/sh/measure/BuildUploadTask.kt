@@ -29,11 +29,11 @@ private const val MAPPING_FILE = "mapping_file"
 private const val BUILDS_PATH = "builds"
 
 private const val ERROR_MSG_401 =
-    "Failed to upload mapping file to Measure, please check the api-key in manifest"
+    "[ERROR]: Failed to upload mapping file to Measure, please check the api-key in manifest. Stack traces will not be symbolicated."
 private const val ERROR_MSG_413 =
-    "Failed to upload mapping file to Measure, mapping file size exceeded the maximum allowed limit"
+    "[ERROR]: Failed to upload mapping file to Measure, mapping file size exceeded the maximum allowed limit.  Stack traces will not be symbolicated."
 private const val ERROR_MSG_500 =
-    "Failed to upload mapping file to Measure, the server encountered an error"
+    "[ERROR]: Failed to upload mapping file to Measure, the server encountered an error, try again later. Stack traces will not be symbolicated."
 
 abstract class BuildUploadTask : DefaultTask() {
     init {
@@ -89,7 +89,7 @@ abstract class BuildUploadTask : DefaultTask() {
                 logError(response)
             }
         } catch (e: IOException) {
-            logger.error("Failed to upload mapping file to Measure, ${e.message}")
+            logger.error("[ERROR]: Failed to upload mapping file to Measure, ${e.message}")
             return
         }
     }
@@ -99,7 +99,7 @@ abstract class BuildUploadTask : DefaultTask() {
             401 -> logger.error(ERROR_MSG_401)
             413 -> logger.error(ERROR_MSG_413)
             500 -> logger.error(ERROR_MSG_500)
-            else -> logger.error("Failed to upload mapping file to Measure with response code: ${response.code}.")
+            else -> logger.error("[ERROR]: Failed to upload mapping file to Measure with response code: ${response.code}. Stack traces will not be symbolicated.")
         }
     }
 

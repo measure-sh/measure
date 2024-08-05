@@ -56,7 +56,7 @@ export default function SessionReplayEventAccordion({
 
   function getTitleFromEventType() {
     if (eventType === "exception" || eventType === "anr") {
-      return eventDetails.title
+      return eventDetails.type + ": " + eventDetails.message
     }
 
     if (eventType === "string") {
@@ -69,10 +69,6 @@ export default function SessionReplayEventAccordion({
 
     if (eventType === "gesture_scroll") {
       return 'Scroll: ' + eventDetails.target
-    }
-
-    if (eventType === "gesture_click") {
-      return 'Click: ' + eventDetails.target
     }
 
     if (eventType === "gesture_click") {
@@ -176,7 +172,7 @@ export default function SessionReplayEventAccordion({
       >
         <div className="flex flex-col md:flex-row items-center"
           id={`accordion-title-${id}`}>
-          <p className='text-left'>{getTitleFromEventType()}</p>
+          <p className='text-left md:truncate md:max-w-lg'>{getTitleFromEventType()}</p>
           <div className="p-2" />
           <div className="flex grow" />
           <FilterPill title={threadName} />

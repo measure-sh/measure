@@ -41,7 +41,8 @@ export default function GoogleSignIn() {
         data-ux_mode="popup"
         data-nonce={hashedNonce}
         data-login_uri={`${origin}/auth/callback/google?nonce=${encodeURIComponent(nonce)}&state=${encodeURIComponent(state)}`}
-        data-auto_select="true"
+        data-auto_select="false"
+        data-auto_prompt="false"
         data-itp_support="true">
       </div>
 

@@ -39,5 +39,9 @@ internal data class CpuUsageData(
     /**
      * The interval between two collections.
      */
-    val interval_config: Long,
+    val interval: Long,
+    /**
+     * Average %CPU usage in the interval set by [interval].
+     */
+    val percentage_usage: Double,
 )

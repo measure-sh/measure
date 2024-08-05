@@ -27,32 +27,26 @@ internal interface Database : Closeable {
      * @param eventCount The number of events to return.
      * @param ascending If `true`, the events are returned in ascending order of timestamp. Else,
      * in descending order.
+     * @param sessionId The session ID for which the events should be returned, if any.
+     * @param eventTypeExportAllowList The list of event types that should be included in the result
+     * regardless of session ID or whether the session is marked as "needs reporting" or not.
+     *
      * @return a map of event Id to the size of attachments in the event in bytes.
      */
     fun getUnBatchedEventsWithAttachmentSize(
         eventCount: Int,
         ascending: Boolean = true,
+        sessionId: String? = null,
+        eventTypeExportAllowList: List<String> = emptyList(),
     ): LinkedHashMap<String, Long>
 
     /**
-     * Inserts a batch of event IDs along with their assigned batch ID.
+     * Inserts a batch.
      *
-     * @param eventIds The list of event IDs to insert.
-     * @param batchId The batch ID to assign to the events.
-     * @param createdAt The creation time of the batch.
-     * @return `true` if the events were successfully inserted, `false` otherwise.
+     * @param batchEntity The batch entity to insert.
+     * @return `true` if the batch was successfully inserted, `false` otherwise.
      */
-    fun insertBatch(eventIds: List<String>, batchId: String, createdAt: Long): Boolean
-
-    /**
-     * Inserts a batch with a single event Id.
-     *
-     * @param eventId The event ID to insert.
-     * @param batchId The batch ID to assign to the event.
-     * @param createdAt The creation time of the batch.
-     * @return `true` if the event was successfully inserted, `false` otherwise.
-     */
-    fun insertBatch(eventId: String, batchId: String, createdAt: Long): Boolean
+    fun insertBatch(batchEntity: BatchEntity): Boolean
 
     /**
      * Returns a list of event packets for the given event IDs.
@@ -62,13 +56,6 @@ internal interface Database : Closeable {
     fun getEventPackets(eventIds: List<String>): List<EventPacket>
 
     /**
-     * Returns a event packet for the given event ID.
-     *
-     * @param eventId The event ID to get event packet for.
-     */
-    fun getEventPacket(eventId: String): EventPacket
-
-    /**
      * Returns a list of attachment packets for the given event IDs.
      *
      * @param eventIds The list of event IDs to fetch attachments for.
@@ -76,25 +63,11 @@ internal interface Database : Closeable {
     fun getAttachmentPackets(eventIds: List<String>): List<AttachmentPacket>
 
     /**
-     * Returns a list of attachment packets for the given event IDs.
-     *
-     * @param eventId The event ID to fetch attachments for.
-     */
-    fun getAttachmentPacket(eventId: String): List<AttachmentPacket>
-
-    /**
      * Deletes the events with the given IDs, along with related metadata.
      *
      * @param eventIds The list of event IDs to delete.
      */
     fun deleteEvents(eventIds: List<String>)
-
-    /**
-     * Deletes the event with the given ID, along with related metadata.
-     *
-     * @param eventId The event ID to delete.
-     */
-    fun deleteEvent(eventId: String)
 
     /**
      * Returns a map of batch IDs to event IDs that have not been synced with the server in
@@ -106,13 +79,19 @@ internal interface Database : Closeable {
     fun getBatches(maxBatches: Int): LinkedHashMap<String, MutableList<String>>
 
     /**
-     * Inserts a session ID and process ID into the database.
+     * Inserts a session entity into the database.
      *
-     * @param sessionId the session id.
-     * @param pid the process id.
-     * @param createdAt the creation time of the session.
+     * @param session the session entity to insert.
      */
-    fun insertSession(sessionId: String, pid: Int, createdAt: Long): Boolean
+    fun insertSession(session: SessionEntity): Boolean
+
+    /**
+     * Deletes the sessions with the given IDs.
+     *
+     * @param sessionIds The list of session IDs to delete.
+     * @return `true` if the sessions were successfully deleted, `false` otherwise.
+     */
+    fun deleteSessions(sessionIds: List<String>): Boolean
 
     /**
      * Returns a map of process IDs to list of session IDs that were created by that process
@@ -120,13 +99,6 @@ internal interface Database : Closeable {
      * in ascending order.
      */
     fun getSessionsWithUntrackedAppExit(): Map<Int, List<String>>
-
-    /**
-     * Cleans up old sessions that were created before the given time.
-     *
-     * @param clearUpToTimeSinceEpoch The time before which the sessions should be deleted.
-     */
-    fun clearOldSessions(clearUpToTimeSinceEpoch: Long)
 
     /**
      * Updates the sessions table to mark the app exit event as tracked.
@@ -167,6 +139,55 @@ internal interface Database : Closeable {
      * Returns the event entity for the given event IDs.
      */
     fun getEvents(eventIds: List<String>): List<EventEntity>
+
+    /**
+     * Returns the event Ids for all the events that are part of the given sessions.
+     *
+     * @param sessions The list of session IDs to get events for.
+     * @return a list of event IDs.
+     */
+    fun getEventsForSessions(sessions: List<String>): List<String>
+
+    /**
+     * Returns the attachment Ids for all given event Ids.
+     */
+    fun getAttachmentsForEvents(events: List<String>): List<String>
+
+    /**
+     * Marks a session as crashed in the sessions table.
+     *
+     * @param sessionId The session ID that crashed.
+     */
+    fun markCrashedSession(sessionId: String)
+
+    /**
+     * Marks multiple sessions as crashed in the sessions table.
+     * @param sessionIds The list of session IDs that crashed.
+     */
+    fun markCrashedSessions(sessionIds: List<String>)
+
+    /**
+     * Returns the session IDs based on the needReporting flag.
+     *
+     * @param needReporting If `true`, returns the session IDs that need to be reported. Else,
+     * returns the session IDs that don't need to be reported.
+     * @param filterSessionIds The list of session IDs to filter.
+     */
+    fun getSessionIds(
+        needReporting: Boolean,
+        filterSessionIds: List<String>,
+        maxCount: Int,
+    ): List<String>
+
+    /**
+     * Returns the session ID for the oldest session in the database.
+     */
+    fun getOldestSession(): String?
+
+    /**
+     * Returns the number of events in the database.
+     */
+    fun getEventsCount(): Int
 }
 
 /**
@@ -177,13 +198,19 @@ internal class DatabaseImpl(
     private val logger: Logger,
 ) : SQLiteOpenHelper(context, DbConstants.DATABASE_NAME, null, DbConstants.DATABASE_VERSION),
     Database {
+
     override fun onCreate(db: SQLiteDatabase) {
         try {
+            db.execSQL(Sql.CREATE_SESSIONS_TABLE)
             db.execSQL(Sql.CREATE_EVENTS_TABLE)
             db.execSQL(Sql.CREATE_ATTACHMENTS_TABLE)
             db.execSQL(Sql.CREATE_EVENTS_BATCH_TABLE)
-            db.execSQL(Sql.CREATE_SESSIONS_TABLE)
             db.execSQL(Sql.CREATE_USER_DEFINED_ATTRIBUTES_TABLE)
+            db.execSQL(Sql.CREATE_EVENTS_TIMESTAMP_INDEX)
+            db.execSQL(Sql.CREATE_EVENTS_SESSION_ID_INDEX)
+            db.execSQL(Sql.CREATE_EVENTS_BATCH_EVENT_ID_INDEX)
+            db.execSQL(Sql.CREATE_SESSIONS_CREATED_AT_INDEX)
+            db.execSQL(Sql.CREATE_SESSIONS_NEEDS_REPORTING_INDEX)
         } catch (e: SQLiteException) {
             logger.log(LogLevel.Error, "Failed to create database", e)
         }
@@ -255,8 +282,11 @@ internal class DatabaseImpl(
     override fun getUnBatchedEventsWithAttachmentSize(
         eventCount: Int,
         ascending: Boolean,
+        sessionId: String?,
+        eventTypeExportAllowList: List<String>,
     ): LinkedHashMap<String, Long> {
-        val query = Sql.getEventsBatchQuery(eventCount, ascending)
+        val query =
+            Sql.getEventsBatchQuery(eventCount, ascending, sessionId, eventTypeExportAllowList)
         val cursor = readableDatabase.rawQuery(query, null)
         val eventIdAttachmentSizeMap = LinkedHashMap<String, Long>()
 
@@ -273,18 +303,14 @@ internal class DatabaseImpl(
         return eventIdAttachmentSizeMap
     }
 
-    override fun insertBatch(
-        eventIds: List<String>,
-        batchId: String,
-        createdAt: Long,
-    ): Boolean {
+    override fun insertBatch(batchEntity: BatchEntity): Boolean {
         writableDatabase.beginTransaction()
         try {
-            eventIds.forEach { eventId ->
+            batchEntity.eventIds.forEach { eventId ->
                 val values = ContentValues().apply {
                     put(EventsBatchTable.COL_EVENT_ID, eventId)
-                    put(EventsBatchTable.COL_BATCH_ID, batchId)
-                    put(EventsBatchTable.COL_CREATED_AT, createdAt)
+                    put(EventsBatchTable.COL_BATCH_ID, batchEntity.batchId)
+                    put(EventsBatchTable.COL_CREATED_AT, batchEntity.createdAt)
                 }
                 val result = writableDatabase.insert(EventsBatchTable.TABLE_NAME, null, values)
                 if (result == -1L) {
@@ -297,19 +323,6 @@ internal class DatabaseImpl(
         } finally {
             writableDatabase.endTransaction()
         }
-    }
-
-    override fun insertBatch(eventId: String, batchId: String, createdAt: Long): Boolean {
-        val values = ContentValues().apply {
-            put(EventsBatchTable.COL_EVENT_ID, eventId)
-            put(EventsBatchTable.COL_BATCH_ID, batchId)
-            put(EventsBatchTable.COL_CREATED_AT, createdAt)
-        }
-        val result = writableDatabase.insert(EventsBatchTable.TABLE_NAME, null, values)
-        if (result == -1L) {
-            logger.log(LogLevel.Error, "Failed to insert batched event = $eventId")
-        }
-        return result != -1L
     }
 
     override fun getEventPackets(eventIds: List<String>): List<EventPacket> {
@@ -359,63 +372,8 @@ internal class DatabaseImpl(
         }
     }
 
-    override fun getEventPacket(eventId: String): EventPacket {
-        readableDatabase.rawQuery(Sql.getEventForId(eventId), null).use {
-            it.moveToFirst()
-            val sessionIdIndex = it.getColumnIndex(EventTable.COL_SESSION_ID)
-            val timestampIndex = it.getColumnIndex(EventTable.COL_TIMESTAMP)
-            val typeIndex = it.getColumnIndex(EventTable.COL_TYPE)
-            val userTriggeredIndex = it.getColumnIndex(EventTable.COL_USER_TRIGGERED)
-            val serializedDataIndex = it.getColumnIndex(EventTable.COL_DATA_SERIALIZED)
-            val serializedDataFilePathIndex = it.getColumnIndex(EventTable.COL_DATA_FILE_PATH)
-            val attachmentsIndex = it.getColumnIndex(EventTable.COL_ATTACHMENTS)
-            val serializedAttributesIndex = it.getColumnIndex(EventTable.COL_ATTRIBUTES)
-            val serializedUserDefinedAttributesIndex =
-                it.getColumnIndex(EventTable.COL_USER_DEFINED_ATTRIBUTES)
-
-            val sessionId = it.getString(sessionIdIndex)
-            val timestamp = it.getString(timestampIndex)
-            val type = it.getString(typeIndex)
-            val userTriggered: Boolean = it.getInt(userTriggeredIndex) == 1
-            val serializedData = it.getString(serializedDataIndex)
-            val serializedDataFilePath = it.getString(serializedDataFilePathIndex)
-            val attachments = it.getString(attachmentsIndex)
-            val serializedAttributes = it.getString(serializedAttributesIndex)
-            val serializedUserDefinedAttributes = it.getString(serializedUserDefinedAttributesIndex)
-
-            return EventPacket(
-                eventId = eventId,
-                sessionId = sessionId,
-                timestamp = timestamp,
-                type = type,
-                userTriggered = userTriggered,
-                serializedData = serializedData,
-                serializedDataFilePath = serializedDataFilePath,
-                serializedAttachments = attachments,
-                serializedAttributes = serializedAttributes,
-                serializedUserDefinedAttributes = serializedUserDefinedAttributes,
-            )
-        }
-    }
-
     override fun getAttachmentPackets(eventIds: List<String>): List<AttachmentPacket> {
         readableDatabase.rawQuery(Sql.getAttachmentsForEventIds(eventIds), null).use {
-            val attachmentPackets = mutableListOf<AttachmentPacket>()
-            while (it.moveToNext()) {
-                val idIndex = it.getColumnIndex(AttachmentTable.COL_ID)
-                val filePathIndex = it.getColumnIndex(AttachmentTable.COL_FILE_PATH)
-
-                val id = it.getString(idIndex)
-                val filePath = it.getString(filePathIndex)
-
-                attachmentPackets.add(AttachmentPacket(id, filePath))
-            }
-            return attachmentPackets
-        }
-    }
-
-    override fun getAttachmentPacket(eventId: String): List<AttachmentPacket> {
-        readableDatabase.rawQuery(Sql.getAttachmentsForEventId(eventId), null).use {
             val attachmentPackets = mutableListOf<AttachmentPacket>()
             while (it.moveToNext()) {
                 val idIndex = it.getColumnIndex(AttachmentTable.COL_ID)
@@ -447,10 +405,6 @@ internal class DatabaseImpl(
         }
     }
 
-    override fun deleteEvent(eventId: String) {
-        deleteEvents(listOf(eventId))
-    }
-
     override fun getBatches(maxBatches: Int): LinkedHashMap<String, MutableList<String>> {
         readableDatabase.rawQuery(Sql.getBatches(maxBatches), null).use {
             val batchIdToEventIds = LinkedHashMap<String, MutableList<String>>()
@@ -469,11 +423,13 @@ internal class DatabaseImpl(
         }
     }
 
-    override fun insertSession(sessionId: String, pid: Int, createdAt: Long): Boolean {
+    override fun insertSession(session: SessionEntity): Boolean {
         val values = ContentValues().apply {
-            put(SessionsTable.COL_SESSION_ID, sessionId)
-            put(SessionsTable.COL_PID, pid)
-            put(SessionsTable.COL_CREATED_AT, createdAt)
+            put(SessionsTable.COL_SESSION_ID, session.sessionId)
+            put(SessionsTable.COL_PID, session.pid)
+            put(SessionsTable.COL_CREATED_AT, session.createdAt)
+            put(SessionsTable.COL_NEEDS_REPORTING, session.needsReporting)
+            put(SessionsTable.COL_CRASHED, session.crashed)
         }
 
         val result = writableDatabase.insert(SessionsTable.TABLE_NAME, null, values)
@@ -481,6 +437,24 @@ internal class DatabaseImpl(
             logger.log(LogLevel.Error, "Failed to insert pid and session id")
         }
         return result != -1L
+    }
+
+    override fun deleteSessions(sessionIds: List<String>): Boolean {
+        if (sessionIds.isEmpty()) {
+            return false
+        }
+
+        val placeholders = sessionIds.joinToString { "?" }
+        val whereClause = "${SessionsTable.COL_SESSION_ID} IN ($placeholders)"
+        val result = writableDatabase.delete(
+            SessionsTable.TABLE_NAME,
+            whereClause,
+            sessionIds.toTypedArray(),
+        )
+        if (result == 0) {
+            logger.log(LogLevel.Error, "Failed to delete sessions")
+        }
+        return result != 0
     }
 
     override fun getSessionsWithUntrackedAppExit(): Map<Int, List<String>> {
@@ -503,14 +477,6 @@ internal class DatabaseImpl(
 
             return pidToSessionsMap
         }
-    }
-
-    override fun clearOldSessions(clearUpToTimeSinceEpoch: Long) {
-        writableDatabase.delete(
-            SessionsTable.TABLE_NAME,
-            "${SessionsTable.COL_CREATED_AT} <= ?",
-            arrayOf(clearUpToTimeSinceEpoch.toString()),
-        )
     }
 
     override fun updateAppExitTracked(pid: Int) {
@@ -707,6 +673,78 @@ internal class DatabaseImpl(
             }
         }
         return eventEntities
+    }
+
+    override fun getEventsForSessions(sessions: List<String>): List<String> {
+        val eventIds = mutableListOf<String>()
+        readableDatabase.rawQuery(Sql.getEventsForSessions(sessions), null).use {
+            while (it.moveToNext()) {
+                val eventIdIndex = it.getColumnIndex(EventTable.COL_ID)
+                val eventId = it.getString(eventIdIndex)
+                eventIds.add(eventId)
+            }
+        }
+        return eventIds
+    }
+
+    override fun markCrashedSession(sessionId: String) {
+        writableDatabase.execSQL(Sql.markSessionCrashed(sessionId))
+    }
+
+    override fun markCrashedSessions(sessionIds: List<String>) {
+        writableDatabase.execSQL(Sql.markSessionsCrashed(sessionIds))
+    }
+
+    override fun getSessionIds(
+        needReporting: Boolean,
+        filterSessionIds: List<String>,
+        maxCount: Int,
+    ): List<String> {
+        val sessionIds = mutableListOf<String>()
+        readableDatabase.rawQuery(Sql.getSessions(needReporting, filterSessionIds, maxCount), null)
+            .use {
+                while (it.moveToNext()) {
+                    val sessionIdIndex = it.getColumnIndex(SessionsTable.COL_SESSION_ID)
+                    val sessionId = it.getString(sessionIdIndex)
+                    sessionIds.add(sessionId)
+                }
+            }
+        return sessionIds
+    }
+
+    override fun getOldestSession(): String? {
+        val sessionId: String
+        readableDatabase.rawQuery(Sql.getOldestSession(), null).use {
+            if (it.count == 0) {
+                return null
+            }
+            it.moveToFirst()
+            val sessionIdIndex = it.getColumnIndex(SessionsTable.COL_SESSION_ID)
+            sessionId = it.getString(sessionIdIndex)
+        }
+        return sessionId
+    }
+
+    override fun getEventsCount(): Int {
+        val count: Int
+        readableDatabase.rawQuery(Sql.getEventsCount(), null).use {
+            it.moveToFirst()
+            val countIndex = it.getColumnIndex("count")
+            count = it.getInt(countIndex)
+        }
+        return count
+    }
+
+    override fun getAttachmentsForEvents(events: List<String>): List<String> {
+        val attachmentIds = mutableListOf<String>()
+        readableDatabase.rawQuery(Sql.getAttachmentsForEvents(events), null).use {
+            while (it.moveToNext()) {
+                val attachmentIdIndex = it.getColumnIndex(AttachmentTable.COL_ID)
+                val attachmentId = it.getString(attachmentIdIndex)
+                attachmentIds.add(attachmentId)
+            }
+        }
+        return attachmentIds
     }
 
     override fun close() {

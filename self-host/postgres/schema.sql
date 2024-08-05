@@ -114,8 +114,12 @@ COMMENT ON COLUMN public.alert_prefs.updated_at IS 'utc timestamp at the time of
 CREATE TABLE public.anr_groups (
     id uuid NOT NULL,
     app_id uuid,
-    name text NOT NULL,
-    fingerprint character varying(16) NOT NULL,
+    type text NOT NULL,
+    message text NOT NULL,
+    method_name text NOT NULL,
+    file_name text NOT NULL,
+    line_number integer NOT NULL,
+    fingerprint character varying(32) NOT NULL,
     event_ids uuid[] NOT NULL,
     first_event_timestamp timestamp with time zone NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -138,10 +142,38 @@ COMMENT ON COLUMN public.anr_groups.app_id IS 'linked app id';
 
 
 --
--- Name: COLUMN anr_groups.name; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN anr_groups.type; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.anr_groups.name IS 'name of the anr for easy identification';
+COMMENT ON COLUMN public.anr_groups.type IS 'type of the anr';
+
+
+--
+-- Name: COLUMN anr_groups.message; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.anr_groups.message IS 'message of the anr';
+
+
+--
+-- Name: COLUMN anr_groups.method_name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.anr_groups.method_name IS 'method name where the anr occured';
+
+
+--
+-- Name: COLUMN anr_groups.file_name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.anr_groups.file_name IS 'file name where the anr occured';
+
+
+--
+-- Name: COLUMN anr_groups.line_number; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.anr_groups.line_number IS 'line number where the anr occured';
 
 
 --
@@ -845,8 +877,12 @@ COMMENT ON COLUMN public.teams.updated_at IS 'utc timestmap at the time of team 
 CREATE TABLE public.unhandled_exception_groups (
     id uuid NOT NULL,
     app_id uuid,
-    name text NOT NULL,
-    fingerprint character varying(16) NOT NULL,
+    type text NOT NULL,
+    message text NOT NULL,
+    method_name text NOT NULL,
+    file_name text NOT NULL,
+    line_number integer NOT NULL,
+    fingerprint character varying(32) NOT NULL,
     event_ids uuid[] NOT NULL,
     first_event_timestamp timestamp with time zone NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -869,10 +905,38 @@ COMMENT ON COLUMN public.unhandled_exception_groups.app_id IS 'linked app id';
 
 
 --
--- Name: COLUMN unhandled_exception_groups.name; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN unhandled_exception_groups.type; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.unhandled_exception_groups.name IS 'name of the exception for easy identification';
+COMMENT ON COLUMN public.unhandled_exception_groups.type IS 'type of the exception';
+
+
+--
+-- Name: COLUMN unhandled_exception_groups.message; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.unhandled_exception_groups.message IS 'message of the exception';
+
+
+--
+-- Name: COLUMN unhandled_exception_groups.method_name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.unhandled_exception_groups.method_name IS 'method name where the exception occured';
+
+
+--
+-- Name: COLUMN unhandled_exception_groups.file_name; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.unhandled_exception_groups.file_name IS 'file name where the exception occured';
+
+
+--
+-- Name: COLUMN unhandled_exception_groups.line_number; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.unhandled_exception_groups.line_number IS 'line number where the exception occured';
 
 
 --

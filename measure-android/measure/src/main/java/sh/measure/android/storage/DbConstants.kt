@@ -44,6 +44,8 @@ internal object SessionsTable {
     const val COL_PID = "pid"
     const val COL_CREATED_AT = "created_at"
     const val COL_APP_EXIT_TRACKED = "app_exit_tracked"
+    const val COL_NEEDS_REPORTING = "needs_reporting"
+    const val COL_CRASHED = "crashed"
 }
 
 internal object UserDefinedAttributesTable {
@@ -66,8 +68,17 @@ internal object Sql {
             ${EventTable.COL_ATTRIBUTES} TEXT DEFAULT NULL,
             ${EventTable.COL_USER_DEFINED_ATTRIBUTES} TEXT DEFAULT NULL,
             ${EventTable.COL_ATTACHMENT_SIZE} INTEGER NOT NULL,
-            ${EventTable.COL_ATTACHMENTS} TEXT DEFAULT NULL
+            ${EventTable.COL_ATTACHMENTS} TEXT DEFAULT NULL,
+            FOREIGN KEY (${EventTable.COL_SESSION_ID}) REFERENCES ${SessionsTable.TABLE_NAME}(${SessionsTable.COL_SESSION_ID}) ON DELETE CASCADE
         )
+    """
+
+    const val CREATE_EVENTS_TIMESTAMP_INDEX = """
+        CREATE INDEX IF NOT EXISTS events_timestamp_index ON ${EventTable.TABLE_NAME} (${EventTable.COL_TIMESTAMP})
+    """
+
+    const val CREATE_EVENTS_SESSION_ID_INDEX = """
+        CREATE INDEX IF NOT EXISTS events_session_id_index ON ${EventTable.TABLE_NAME} (${EventTable.COL_SESSION_ID})
     """
 
     const val CREATE_ATTACHMENTS_TABLE = """
@@ -93,13 +104,27 @@ internal object Sql {
         )
     """
 
+    const val CREATE_EVENTS_BATCH_EVENT_ID_INDEX = """
+        CREATE INDEX IF NOT EXISTS events_batch_event_id_index ON ${EventsBatchTable.TABLE_NAME} (${EventsBatchTable.COL_EVENT_ID})
+    """
+
     const val CREATE_SESSIONS_TABLE = """
         CREATE TABLE ${SessionsTable.TABLE_NAME} (
             ${SessionsTable.COL_SESSION_ID} TEXT PRIMARY KEY,
             ${SessionsTable.COL_PID} INTEGER NOT NULL,
             ${SessionsTable.COL_CREATED_AT} INTEGER NOT NULL,
-            ${SessionsTable.COL_APP_EXIT_TRACKED} INTEGER DEFAULT 0
+            ${SessionsTable.COL_APP_EXIT_TRACKED} INTEGER DEFAULT 0,
+            ${SessionsTable.COL_NEEDS_REPORTING} INTEGER DEFAULT 0,
+            ${SessionsTable.COL_CRASHED} INTEGER DEFAULT 0
         )
+    """
+
+    const val CREATE_SESSIONS_CREATED_AT_INDEX = """
+        CREATE INDEX IF NOT EXISTS INDEX sessions_created_at_index ON ${SessionsTable.TABLE_NAME} (${SessionsTable.COL_CREATED_AT})
+    """
+
+    const val CREATE_SESSIONS_NEEDS_REPORTING_INDEX = """
+        CREATE INDEX IF NOT EXISTS sessions_needs_reporting_index ON ${SessionsTable.TABLE_NAME} (${SessionsTable.COL_NEEDS_REPORTING})
     """
 
     const val CREATE_USER_DEFINED_ATTRIBUTES_TABLE = """
@@ -115,27 +140,82 @@ internal object Sql {
      *
      * @param eventCount The number of events to fetch.
      * @param ascending Whether to fetch the oldest events first or the newest.
+     * @param sessionId The session ID for which the events should be returned, if not null. If null,
+     * the sessions which need to be reported are considered.
+     * @param eventTypeAllowList The list of event types to allow in the batch.
      */
-    fun getEventsBatchQuery(eventCount: Int, ascending: Boolean): String {
-        return """
-            SELECT ${EventTable.COL_ID}, ${EventTable.COL_ATTACHMENT_SIZE} 
-            FROM ${EventTable.TABLE_NAME}
-            WHERE ${EventTable.COL_ID} NOT IN (
-                SELECT ${EventsBatchTable.COL_EVENT_ID} FROM ${EventsBatchTable.TABLE_NAME}
-            )
-            ORDER BY datetime(${EventTable.COL_TIMESTAMP}) ${if (ascending) "ASC" else "DESC"}
-            LIMIT $eventCount
-        """
+    fun getEventsBatchQuery(
+        eventCount: Int,
+        ascending: Boolean,
+        sessionId: String?,
+        eventTypeAllowList: List<String>,
+    ): String {
+        if (sessionId != null) {
+            /**
+             * ```sql
+             * SELECT e.*
+             * FROM events e
+             * LEFT JOIN events_batch eb ON e.id = eb.event_id
+             * WHERE eb.event_id IS NULL
+             * AND e.session_id = '$sessionId'
+             * ORDER BY e.timestamp ASC
+             * LIMIT 100
+             * ```
+             */
+            return """
+                SELECT e.${EventTable.COL_ID}, e.${EventTable.COL_ATTACHMENT_SIZE} 
+                FROM ${EventTable.TABLE_NAME} e
+                LEFT JOIN ${EventsBatchTable.TABLE_NAME} eb ON e.${EventTable.COL_ID} = eb.${EventsBatchTable.COL_EVENT_ID}
+                WHERE eb.${EventsBatchTable.COL_EVENT_ID} IS NULL
+                AND e.${EventTable.COL_SESSION_ID} = '$sessionId'
+                ORDER BY e.${EventTable.COL_TIMESTAMP} ${if (ascending) "ASC" else "DESC"}
+                LIMIT $eventCount
+            """.trimIndent()
+        } else {
+            /**
+             * ```sql
+             * SELECT e.*
+             * FROM events e
+             * LEFT JOIN events_batch eb ON e.id = eb.event_id
+             * JOIN sessions s ON e.session_id = s.session_id
+             * WHERE eb.event_id IS NULL
+             * AND (
+             *     e.type = 'cold_launch'
+             *     OR (s.needs_reporting = 1)
+             * )
+             * LIMIT 100
+             * ```
+             */
+            return """
+                SELECT e.${EventTable.COL_ID}, e.${EventTable.COL_ATTACHMENT_SIZE} 
+                FROM ${EventTable.TABLE_NAME} e
+                LEFT JOIN ${EventsBatchTable.TABLE_NAME} eb ON e.${EventTable.COL_ID} = eb.${EventsBatchTable.COL_EVENT_ID}
+                JOIN ${SessionsTable.TABLE_NAME} s ON e.${EventTable.COL_SESSION_ID} = s.${SessionsTable.COL_SESSION_ID}
+                WHERE eb.${EventsBatchTable.COL_EVENT_ID} IS NULL
+                AND (
+                    e.${EventTable.COL_TYPE} IN (${eventTypeAllowList.joinToString(", ") { "'$it'" }})
+                    OR (s.${SessionsTable.COL_NEEDS_REPORTING} = 1)
+                )
+                ORDER BY e.${EventTable.COL_TIMESTAMP} ${if (ascending) "ASC" else "DESC"}
+                LIMIT $eventCount
+            """.trimIndent()
+        }
     }
 
     fun getBatches(maxCount: Int): String {
         return """
+            WITH limited_batches AS (
+                SELECT DISTINCT ${EventsBatchTable.COL_BATCH_ID}
+                FROM ${EventsBatchTable.TABLE_NAME}
+                ORDER BY ${EventsBatchTable.COL_CREATED_AT} ASC
+                LIMIT $maxCount
+            )
             SELECT 
                 ${EventsBatchTable.COL_EVENT_ID},
                 ${EventsBatchTable.COL_BATCH_ID}
             FROM ${EventsBatchTable.TABLE_NAME}
+            WHERE ${EventsBatchTable.COL_BATCH_ID} IN (SELECT ${EventsBatchTable.COL_BATCH_ID} FROM limited_batches)
             ORDER BY ${EventsBatchTable.COL_CREATED_AT} ASC
-            LIMIT $maxCount
         """.trimIndent()
     }
 
@@ -159,24 +239,6 @@ internal object Sql {
         """.trimIndent()
     }
 
-    fun getEventForId(eventId: String): String {
-        return """
-            SELECT 
-                ${EventTable.COL_ID},
-                ${EventTable.COL_SESSION_ID},
-                ${EventTable.COL_TIMESTAMP},
-                ${EventTable.COL_TYPE},
-                ${EventTable.COL_USER_TRIGGERED},
-                ${EventTable.COL_DATA_SERIALIZED},
-                ${EventTable.COL_DATA_FILE_PATH},
-                ${EventTable.COL_ATTACHMENTS},
-                ${EventTable.COL_ATTRIBUTES},
-                ${EventTable.COL_USER_DEFINED_ATTRIBUTES}
-            FROM ${EventTable.TABLE_NAME}
-            WHERE ${EventTable.COL_ID} = '$eventId'
-        """.trimIndent()
-    }
-
     fun getAttachmentsForEventIds(eventIds: List<String>): String {
         return """
             SELECT 
@@ -188,20 +250,6 @@ internal object Sql {
                 ${AttachmentTable.COL_NAME}
             FROM ${AttachmentTable.TABLE_NAME}
             WHERE ${AttachmentTable.COL_EVENT_ID} IN (${eventIds.joinToString(", ") { "\'$it\'" }})
-        """
-    }
-
-    fun getAttachmentsForEventId(eventId: String): String {
-        return """
-            SELECT 
-                ${AttachmentTable.COL_ID}, 
-                ${AttachmentTable.COL_EVENT_ID},
-                ${AttachmentTable.COL_TIMESTAMP},
-                ${AttachmentTable.COL_TYPE},
-                ${AttachmentTable.COL_FILE_PATH},
-                ${AttachmentTable.COL_NAME}
-            FROM ${AttachmentTable.TABLE_NAME}
-            WHERE ${AttachmentTable.COL_EVENT_ID} = '$eventId'
         """
     }
 
@@ -234,20 +282,73 @@ internal object Sql {
         """.trimIndent()
     }
 
-    fun getEvents(): String {
+    fun markSessionCrashed(sessionId: String): String {
         return """
-            SELECT 
-                ${EventTable.COL_ID},
-                ${EventTable.COL_SESSION_ID},
-                ${EventTable.COL_TIMESTAMP},
-                ${EventTable.COL_TYPE},
-                ${EventTable.COL_USER_TRIGGERED},
-                ${EventTable.COL_DATA_SERIALIZED},
-                ${EventTable.COL_DATA_FILE_PATH},
-                ${EventTable.COL_ATTACHMENTS},
-                ${EventTable.COL_ATTACHMENT_SIZE},
-                ${EventTable.COL_ATTRIBUTES},
-                ${EventTable.COL_USER_DEFINED_ATTRIBUTES}
+            UPDATE ${SessionsTable.TABLE_NAME}
+            SET ${SessionsTable.COL_CRASHED} = 1, ${SessionsTable.COL_NEEDS_REPORTING} = 1
+            WHERE ${SessionsTable.COL_SESSION_ID} = '$sessionId'
+        """.trimIndent()
+    }
+
+    fun markSessionsCrashed(sessionIds: List<String>): String {
+        return """
+            UPDATE ${SessionsTable.TABLE_NAME}
+            SET ${SessionsTable.COL_CRASHED} = 1, ${SessionsTable.COL_NEEDS_REPORTING} = 1
+            WHERE ${SessionsTable.COL_SESSION_ID} IN (${sessionIds.joinToString(", ") { "\'$it\'" }})
+        """.trimIndent()
+    }
+
+    fun getEventsForSessions(sessions: List<String>): String? {
+        if (sessions.isEmpty()) {
+            return null
+        }
+        return """
+            SELECT ${EventTable.COL_ID}
+            FROM ${EventTable.TABLE_NAME}
+            WHERE ${EventTable.COL_SESSION_ID} IN (${sessions.joinToString(", ") { "\'$it\'" }})
+        """.trimIndent()
+    }
+
+    fun getAttachmentsForEvents(events: List<String>): String {
+        return """
+            SELECT ${AttachmentTable.COL_ID}
+            FROM ${AttachmentTable.TABLE_NAME}
+            WHERE ${AttachmentTable.COL_EVENT_ID} IN (${events.joinToString(", ") { "\'$it\'" }})
+        """.trimIndent()
+    }
+
+    fun getSessions(needReporting: Boolean, filterSessions: List<String>, maxCount: Int): String {
+        val reportingCondition =
+            "${SessionsTable.COL_NEEDS_REPORTING} = ${if (needReporting) 1 else 0}"
+
+        val filterCondition = if (filterSessions.isNotEmpty()) {
+            val filteredSessionIds = filterSessions.joinToString(", ") { "'$it'" }
+            "AND ${SessionsTable.COL_SESSION_ID} NOT IN ($filteredSessionIds)"
+        } else {
+            ""
+        }
+
+        return """
+            SELECT ${SessionsTable.COL_SESSION_ID}
+            FROM ${SessionsTable.TABLE_NAME}
+            WHERE $reportingCondition
+            $filterCondition
+            LIMIT $maxCount
+        """.trimIndent()
+    }
+
+    fun getOldestSession(): String {
+        return """
+            SELECT ${SessionsTable.COL_SESSION_ID}
+            FROM ${SessionsTable.TABLE_NAME}
+            ORDER BY ${SessionsTable.COL_CREATED_AT} ASC
+            LIMIT 1
+        """.trimIndent()
+    }
+
+    fun getEventsCount(): String {
+        return """
+            SELECT COUNT(${EventTable.COL_ID}) AS count
             FROM ${EventTable.TABLE_NAME}
         """.trimIndent()
     }

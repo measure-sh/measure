@@ -3,6 +3,7 @@ package sh.measure.android.exporter
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.storage.BatchEntity
 import sh.measure.android.storage.Database
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.TimeProvider
@@ -14,9 +15,10 @@ internal interface BatchCreator {
     /**
      * Attempts to create a new batch of events to export.
      *
+     * @param sessionId The session ID to filter events by if provided.
      * @return [BatchCreationResult] if a batch was created, otherwise null.
      */
-    fun create(): BatchCreationResult?
+    fun create(sessionId: String? = null): BatchCreationResult?
 }
 
 /**
@@ -42,10 +44,14 @@ internal class BatchCreatorImpl(
 ) : BatchCreator {
     private val batchCreationLock = Any()
 
-    override fun create(): BatchCreationResult? {
+    override fun create(sessionId: String?): BatchCreationResult? {
         synchronized(batchCreationLock) {
             val eventToAttachmentSizeMap =
-                database.getUnBatchedEventsWithAttachmentSize(configProvider.maxEventsInBatch)
+                database.getUnBatchedEventsWithAttachmentSize(
+                    configProvider.maxEventsInBatch,
+                    sessionId = sessionId,
+                    eventTypeExportAllowList = configProvider.eventTypeExportAllowList,
+                )
             if (eventToAttachmentSizeMap.isEmpty()) {
                 logger.log(LogLevel.Debug, "No events to batch")
                 return null
@@ -53,15 +59,20 @@ internal class BatchCreatorImpl(
 
             val eventIds = filterEventsForMaxAttachmentSize(eventToAttachmentSizeMap)
             if (eventIds.isEmpty()) {
-                logger.log(LogLevel.Debug, "No events to batch after filtering for max attachment size")
+                logger.log(
+                    LogLevel.Debug,
+                    "No events to batch after filtering for max attachment size",
+                )
                 return null
             }
 
             val batchId = idProvider.createId()
             val batchInsertionResult = database.insertBatch(
-                eventIds,
-                batchId,
-                timeProvider.currentTimeSinceEpochInMillis,
+                BatchEntity(
+                    batchId = batchId,
+                    eventIds = eventIds,
+                    createdAt = timeProvider.currentTimeSinceEpochInMillis,
+                ),
             )
             if (!batchInsertionResult) {
                 logger.log(LogLevel.Error, "Failed to insert batched event IDs")

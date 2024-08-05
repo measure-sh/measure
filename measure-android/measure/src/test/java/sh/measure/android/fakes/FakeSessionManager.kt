@@ -4,12 +4,14 @@ import sh.measure.android.SessionManager
 
 internal class FakeSessionManager : SessionManager {
     var sessionPids = mutableListOf(Pair("fake-session-id", 1234))
+    var crashedSession = ""
+    var crashedSessions = mutableListOf<String>()
 
     override fun getSessionId(): String {
         return "fake-session-id"
     }
 
-    override fun getSessionsForPids(): Map<Int, List<String>> {
+    override fun getSessionsWithUntrackedAppExit(): Map<Int, List<String>> {
         return sessionPids.groupBy({ it.second }, { it.first })
     }
 
@@ -21,11 +23,15 @@ internal class FakeSessionManager : SessionManager {
         // No-op
     }
 
-    override fun clearOldSessions() {
+    override fun updateAppExitTracked(pid: Int) {
         // No-op
     }
 
-    override fun updateAppExitTracked(pid: Int) {
-        // No-op
+    override fun markCrashedSession(sessionId: String) {
+        crashedSession = sessionId
+    }
+
+    override fun markCrashedSessions(sessionIds: List<String>) {
+        crashedSessions = sessionIds.toMutableList()
     }
 }

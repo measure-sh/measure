@@ -37,6 +37,7 @@ class MeasurePlugin : Plugin<Project> {
             return
         }
 
+        val measure = project.extensions.create("measure", MeasurePluginExtension::class.java)
         val androidComponents = project.extensions.getByType(AndroidComponentsExtension::class.java)
         val sdkDirectory = androidComponents.sdkComponents.sdkDirectory
         val httpClientProvider = project.gradle.sharedServices.registerIfAbsent(
@@ -44,10 +45,16 @@ class MeasurePlugin : Plugin<Project> {
         ) { spec ->
             spec.parameters.timeout.set(Duration.ofMillis(DEFAULT_TIMEOUT_MS))
         }
+
         androidComponents.onVariants { variant ->
             injectOkHttpListener(variant)
             injectComposeNavigationListener(variant)
-            registerBuildUploadTask(variant, project, httpClientProvider, sdkDirectory)
+
+            val variantFilter = VariantFilterImpl(variant.name)
+            measure.filter.execute(variantFilter)
+            if (variantFilter.enabled) {
+                registerBuildTasks(variant, project, httpClientProvider, sdkDirectory)
+            }
         }
     }
 
@@ -65,11 +72,11 @@ class MeasurePlugin : Plugin<Project> {
         variant.instrumentation.setAsmFramesComputationMode(FramesComputationMode.COMPUTE_FRAMES_FOR_INSTRUMENTED_METHODS)
     }
 
-    private fun registerBuildUploadTask(
+    private fun registerBuildTasks(
         variant: Variant,
         project: Project,
         httpClientProvider: Provider<MeasureHttpClient>,
-        sdkDirectory: Provider<Directory>
+        sdkDirectory: Provider<Directory>,
     ) {
         val extractManifestDataProvider = project.tasks.register(
             extractManifestDataTaskName(variant), ExtractManifestDataTask::class.java
@@ -105,6 +112,12 @@ class MeasurePlugin : Plugin<Project> {
             it.httpClientProvider.set(httpClientProvider)
         }.dependsOn(extractManifestDataProvider).apply {
             configure {
+                it.onlyIf {
+                    // only run the task if the manifest data file exists, otherwise we assume
+                    // that manifest data extraction failed and we should run the upload task.
+                    val manifestData = manifestDataFileProvider(project, variant).get().asFile
+                    manifestData.exists()
+                }
                 // using dependsOn would not work as apkSizeProvider and aabSizeProvider will both
                 // end up running and overwriting each other's output.
                 it.mustRunAfter(apkSizeProvider, aabSizeProvider)
@@ -140,7 +153,7 @@ class MeasurePlugin : Plugin<Project> {
         "calculateAabSize${variant.name.capitalize()}"
 
     private fun manifestDataFileProvider(
-        project: Project, variant: Variant
+        project: Project, variant: Variant,
     ): Provider<RegularFile> {
         return project.layout.buildDirectory.file("intermediates/measure/${variant.name}/manifestData.json")
     }

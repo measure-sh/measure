@@ -75,7 +75,11 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGrou
 		From("public.unhandled_exception_groups").
 		Select("id").
 		Select("app_id").
-		Select("name").
+		Select(`type`).
+		Select(`message`).
+		Select(`method_name`).
+		Select(`file_name`).
+		Select(`line_number`).
 		Select("fingerprint").
 		Select("event_ids").
 		Select("array_length(event_ids, 1) as count").
@@ -105,6 +109,45 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGrou
 	return
 }
 
+// GetExceptionGroupByFingerprint queries a single exception group by its fingerprint.
+func (a App) GetExceptionGroupByFingerprint(ctx context.Context, fingerprint string) (exceptionGroup *group.ExceptionGroup, err error) {
+	stmt := sqlf.PostgreSQL.
+		From("public.unhandled_exception_groups").
+		Select("id").
+		Select("app_id").
+		Select(`type`).
+		Select(`message`).
+		Select(`method_name`).
+		Select(`file_name`).
+		Select(`line_number`).
+		Select("fingerprint").
+		Select("event_ids").
+		Select("array_length(event_ids, 1) as count").
+		Select("first_event_timestamp").
+		Select("created_at").
+		Select("updated_at").
+		Where("app_id = ?", a.ID).
+		Where("fingerprint = ?", fingerprint)
+
+	defer stmt.Close()
+
+	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if rows.Err() != nil {
+		return
+	}
+
+	row, err := pgx.CollectOneRow(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	exceptionGroup = &row
+
+	return
+}
+
 // GetExceptionGroups returns slice of ExceptionGroup
 // of an app.
 func (a App) GetExceptionGroups(ctx context.Context) (groups []group.ExceptionGroup, err error) {
@@ -112,7 +155,11 @@ func (a App) GetExceptionGroups(ctx context.Context) (groups []group.ExceptionGr
 		From("public.unhandled_exception_groups").
 		Select("id").
 		Select("app_id").
-		Select("name").
+		Select(`type`).
+		Select(`message`).
+		Select(`method_name`).
+		Select(`file_name`).
+		Select(`line_number`).
 		Select("fingerprint").
 		Select("event_ids").
 		Select("array_length(event_ids, 1) as count").
@@ -134,7 +181,11 @@ func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (anrGroup *group.ANR
 		From("public.anr_groups").
 		Select("id").
 		Select("app_id").
-		Select("name").
+		Select(`type`).
+		Select(`message`).
+		Select(`method_name`).
+		Select(`file_name`).
+		Select(`line_number`).
 		Select("fingerprint").
 		Select("event_ids").
 		Select("array_length(event_ids, 1) as count").
@@ -164,13 +215,56 @@ func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (anrGroup *group.ANR
 	return
 }
 
+// GetANRGroupByFingerprint queries a single ANR group by its fingerprint.
+func (a App) GetANRGroupByFingerprint(ctx context.Context, fingerprint string) (anrGroup *group.ANRGroup, err error) {
+	stmt := sqlf.PostgreSQL.
+		From("public.anr_groups").
+		Select("id").
+		Select("app_id").
+		Select(`type`).
+		Select(`message`).
+		Select(`method_name`).
+		Select(`file_name`).
+		Select(`line_number`).
+		Select("fingerprint").
+		Select("event_ids").
+		Select("array_length(event_ids, 1) as count").
+		Select("first_event_timestamp").
+		Select("created_at").
+		Select("updated_at").
+		Where("app_id = ?", a.ID).
+		Where("fingerprint = ?", fingerprint)
+
+	defer stmt.Close()
+
+	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if rows.Err() != nil {
+		return
+	}
+
+	row, err := pgx.CollectOneRow(rows, pgx.RowToStructByNameLax[group.ANRGroup])
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	anrGroup = &row
+
+	return
+}
+
 // GetANRGroups returns slice of ANRGroup of an app.
 func (a App) GetANRGroups(ctx context.Context) (groups []group.ANRGroup, err error) {
 	stmt := sqlf.PostgreSQL.
 		From("public.anr_groups").
 		Select("id").
 		Select("app_id").
-		Select("name").
+		Select(`type`).
+		Select(`message`).
+		Select(`method_name`).
+		Select(`file_name`).
+		Select(`line_number`).
 		Select("fingerprint").
 		Select("event_ids").
 		Select("array_length(event_ids, 1) as count").
@@ -627,6 +721,7 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter, version
 				Select("round(quantile(0.95)(cold_launch.duration), 2) as cold_launch").
 				Where("type = 'cold_launch'").
 				Where("cold_launch.duration > 0").
+				Where("cold_launch.duration <= 30000"). //ignore cold launch durations greater than 30 seconds. See https://github.com/measure-sh/measure/issues/933
 				Where("attribute.app_version in ? and attribute.app_build in ?", af.Versions, af.VersionCodes)).
 		With("warm_selected",
 			sqlf.From("timings").
@@ -1120,7 +1215,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`memory_usage.rss`,
 		`memory_usage.native_total_heap`,
 		`memory_usage.native_free_heap`,
-		`memory_usage.interval_config`,
+		`memory_usage.interval`,
 		`low_memory.java_max_heap`,
 		`low_memory.java_total_heap`,
 		`low_memory.java_free_heap`,
@@ -1137,7 +1232,8 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`cpu_usage.cutime`,
 		`cpu_usage.stime`,
 		`cpu_usage.cstime`,
-		`cpu_usage.interval_config`,
+		`cpu_usage.interval`,
+		`cpu_usage.percentage_usage`,
 		`toString(navigation.to)`,
 		`toString(navigation.from)`,
 		`toString(navigation.source)`,
@@ -1357,7 +1453,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&memoryUsage.RSS,
 			&memoryUsage.NativeTotalHeap,
 			&memoryUsage.NativeFreeHeap,
-			&memoryUsage.IntervalConfig,
+			&memoryUsage.Interval,
 
 			// low memory
 			&lowMemory.JavaMaxHeap,
@@ -1380,7 +1476,8 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&cpuUsage.CUTime,
 			&cpuUsage.STime,
 			&cpuUsage.CSTime,
-			&cpuUsage.IntervalConfig,
+			&cpuUsage.Interval,
+			&cpuUsage.PercentageUsage,
 
 			// navigation
 			&navigation.To,
@@ -1742,7 +1839,7 @@ func GetAppJourney(c *gin.Context) {
 		for i := range exceptionGroups {
 			issue := Issue{
 				ID:    exceptionGroups[i].ID,
-				Title: exceptionGroups[i].Name,
+				Title: exceptionGroups[i].GetDisplayTitle(),
 				Count: journeyAndroid.GetNodeExceptionCount(v, exceptionGroups[i].ID),
 			}
 			crashes = append(crashes, issue)
@@ -1758,7 +1855,7 @@ func GetAppJourney(c *gin.Context) {
 		for i := range anrGroups {
 			issue := Issue{
 				ID:    anrGroups[i].ID,
-				Title: anrGroups[i].Name,
+				Title: anrGroups[i].GetDisplayTitle(),
 				Count: journeyAndroid.GetNodeANRCount(v, anrGroups[i].ID),
 			}
 			anrs = append(anrs, issue)
@@ -2794,7 +2891,7 @@ func GetCrashDetailPlotJourney(c *gin.Context) {
 		for i := range exceptionGroups {
 			issue := Issue{
 				ID:    exceptionGroups[i].ID,
-				Title: exceptionGroups[i].Name,
+				Title: exceptionGroups[i].GetDisplayTitle(),
 				Count: journeyAndroid.GetNodeExceptionCount(v, exceptionGroups[i].ID),
 			}
 			if issue.Count > 0 {
@@ -3543,7 +3640,7 @@ func GetANRDetailPlotJourney(c *gin.Context) {
 		for i := range anrGroups {
 			issue := Issue{
 				ID:    anrGroups[i].ID,
-				Title: anrGroups[i].Name,
+				Title: anrGroups[i].GetDisplayTitle(),
 				Count: journeyAndroid.GetNodeANRCount(v, anrGroups[i].ID),
 			}
 			if issue.Count > 0 {

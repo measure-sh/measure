@@ -18,6 +18,10 @@ export default function SessionReplayEventVerticalConnector({
       height = 10
     }
 
+    if (height > 500) {
+      height = 500
+    }
+
     return height
   }
 

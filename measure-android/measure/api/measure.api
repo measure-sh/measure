@@ -23,11 +23,13 @@ public final class sh/measure/android/Measure {
 public final class sh/measure/android/config/MeasureConfig : sh/measure/android/config/IMeasureConfig {
 	public static final field $stable I
 	public fun <init> ()V
-	public fun <init> (ZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Z)V
-	public synthetic fun <init> (ZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;ZF)V
+	public synthetic fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;ZFILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getEnableLogging ()Z
 	public fun getHttpHeadersBlocklist ()Ljava/util/List;
 	public fun getHttpUrlBlocklist ()Ljava/util/List;
 	public fun getScreenshotMaskLevel ()Lsh/measure/android/config/ScreenshotMaskLevel;
+	public fun getSessionSamplingRate ()F
 	public fun getTrackActivityIntentData ()Z
 	public fun getTrackHttpBody ()Z
 	public fun getTrackHttpHeaders ()Z

@@ -3,6 +3,7 @@ package sh.measure.android.appexit
 import android.app.ActivityManager
 import android.app.ApplicationExitInfo
 import android.os.Build
+import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.annotation.RequiresApi
 import okio.Buffer
 import okio.BufferedSource
@@ -22,8 +23,9 @@ internal class AppExitProviderImpl(
     private val systemServiceProvider: SystemServiceProvider,
 ) : AppExitProvider {
 
+    @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.R)
     override fun get(): Map<Int, AppExit>? {
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return null
         }
         return systemServiceProvider.activityManager?.runCatching {
@@ -41,6 +43,7 @@ internal class AppExitProviderImpl(
             importance = getImportanceName(importance),
             trace = getTraceString(traceInputStream),
             process_name = processName,
+            app_exit_time_ms = timestamp,
             pid = pid.toString(),
         )
     }

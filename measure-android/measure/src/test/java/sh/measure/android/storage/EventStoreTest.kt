@@ -11,10 +11,10 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.verify
 import sh.measure.android.events.EventType
-import sh.measure.android.fakes.FakeEventFactory
-import sh.measure.android.fakes.FakeEventFactory.toEvent
 import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.fakes.TestData
+import sh.measure.android.fakes.TestData.toEvent
 import java.io.File
 
 internal class EventStoreTest {
@@ -32,7 +32,7 @@ internal class EventStoreTest {
 
     @Test
     fun `stores exception event data in file storage and stores the path in database`() {
-        val exceptionData = FakeEventFactory.getExceptionData()
+        val exceptionData = TestData.getExceptionData()
         val event = exceptionData.toEvent(type = EventType.EXCEPTION)
         val argumentCaptor = argumentCaptor<EventEntity>()
         eventStore.store(event)
@@ -48,7 +48,7 @@ internal class EventStoreTest {
 
     @Test
     fun `stores ANR event data in file storage and stores the path in database`() {
-        val exceptionData = FakeEventFactory.getExceptionData()
+        val exceptionData = TestData.getExceptionData()
         val event = exceptionData.toEvent(type = EventType.ANR)
         val argumentCaptor = argumentCaptor<EventEntity>()
         eventStore.store(event)
@@ -65,7 +65,7 @@ internal class EventStoreTest {
     @Test
     fun `given http event contains request body, stores it in file storage and stores the path in database`() {
         val httpData =
-            FakeEventFactory.getHttpData(requestBody = "request-body", responseBody = null)
+            TestData.getHttpData(requestBody = "request-body", responseBody = null)
         val event = httpData.toEvent(type = EventType.HTTP)
         val argumentCaptor = argumentCaptor<EventEntity>()
         eventStore.store(event)
@@ -82,7 +82,7 @@ internal class EventStoreTest {
     @Test
     fun `given http event contains response body, stores it in file storage and stores the path in database`() {
         val httpData =
-            FakeEventFactory.getHttpData(requestBody = null, responseBody = "response-body")
+            TestData.getHttpData(requestBody = null, responseBody = "response-body")
         val event = httpData.toEvent(type = EventType.HTTP)
         val argumentCaptor = argumentCaptor<EventEntity>()
         eventStore.store(event)
@@ -98,7 +98,7 @@ internal class EventStoreTest {
 
     @Test
     fun `given http event does not contain request or response body, stores it directly in database`() {
-        val httpData = FakeEventFactory.getHttpData(requestBody = null, responseBody = null)
+        val httpData = TestData.getHttpData(requestBody = null, responseBody = null)
         val event = httpData.toEvent(type = EventType.HTTP)
         val argumentCaptor = argumentCaptor<EventEntity>()
         eventStore.store(event)
@@ -111,11 +111,11 @@ internal class EventStoreTest {
 
     @Test
     fun `given attachment contains byte array, writes attachment file and inserts event to db`() {
-        val attachment = FakeEventFactory.getAttachment(
+        val attachment = TestData.getAttachment(
             bytes = getAttachmentContent().toByteArray(),
             path = null,
         )
-        val event = FakeEventFactory.getClickData()
+        val event = TestData.getClickData()
             .toEvent(type = EventType.CLICK, attachments = mutableListOf(attachment), id = idProvider.id)
         `when`(fileStorage.writeAttachment(event.id, attachment.bytes!!)).thenReturn("fake-path")
 
@@ -131,11 +131,11 @@ internal class EventStoreTest {
 
     @Test
     fun `given attachment contains path, inserts event to db`() {
-        val attachment = FakeEventFactory.getAttachment(
+        val attachment = TestData.getAttachment(
             bytes = null,
             path = "fake-path",
         )
-        val event = FakeEventFactory.getClickData()
+        val event = TestData.getClickData()
             .toEvent(type = EventType.CLICK, attachments = mutableListOf(attachment), id = idProvider.id)
 
         eventStore.store(event)
@@ -149,13 +149,13 @@ internal class EventStoreTest {
 
     @Test
     fun `serializes attachment with path`() {
-        val attachment = FakeEventFactory.getAttachment(
+        val attachment = TestData.getAttachment(
             bytes = null,
             path = "fake-path",
             name = "name",
             type = "type",
         )
-        val event = FakeEventFactory.getClickData()
+        val event = TestData.getClickData()
             .toEvent(type = EventType.CLICK, attachments = mutableListOf(attachment), id = idProvider.id)
 
         eventStore.store(event)
@@ -172,14 +172,14 @@ internal class EventStoreTest {
 
     @Test
     fun `serializes attachment with bytes`() {
-        val attachment = FakeEventFactory.getAttachment(
+        val attachment = TestData.getAttachment(
             bytes = byteArrayOf(1, 2, 3),
             path = null,
             name = "name",
             type = "type",
         )
         `when`(fileStorage.writeAttachment(idProvider.id, attachment.bytes!!)).thenReturn("fake-path")
-        val event = FakeEventFactory.getClickData()
+        val event = TestData.getClickData()
             .toEvent(type = EventType.CLICK, attachments = mutableListOf(attachment), id = idProvider.id)
 
         eventStore.store(event)
@@ -196,7 +196,7 @@ internal class EventStoreTest {
 
     @Test
     fun `given no attachments, serialized attachments are set to null`() {
-        val event = FakeEventFactory.getClickData()
+        val event = TestData.getClickData()
             .toEvent(type = EventType.CLICK, attachments = mutableListOf(), id = idProvider.id)
 
         eventStore.store(event)
@@ -210,8 +210,8 @@ internal class EventStoreTest {
     @Test
     fun `given attachments are present, calculates total size and stores it to db`() {
         val attachmentContent = getAttachmentContent()
-        val attachment = FakeEventFactory.getAttachment(bytes = null, path = "fake-path")
-        val event = FakeEventFactory.getClickData()
+        val attachment = TestData.getAttachment(bytes = null, path = "fake-path")
+        val event = TestData.getClickData()
             .toEvent(type = EventType.CLICK, attachments = mutableListOf(attachment), id = idProvider.id)
         val file =
             File.createTempFile("fake-attachment", "txt").apply { writeText(attachmentContent) }
@@ -227,7 +227,7 @@ internal class EventStoreTest {
 
     @Test
     fun `serializes attributes and stores them to db`() {
-        val event = FakeEventFactory.getClickData().toEvent(
+        val event = TestData.getClickData().toEvent(
             type = EventType.CLICK,
             id = idProvider.id,
             attributes = mutableMapOf("key" to "value"),
@@ -244,7 +244,7 @@ internal class EventStoreTest {
 
     @Test
     fun `serializes user defined attributes and stores them to db`() {
-        val event = FakeEventFactory.getClickData().toEvent(
+        val event = TestData.getClickData().toEvent(
             type = EventType.CLICK,
             id = idProvider.id,
             userDefinedAttributes = mutableMapOf("key" to "value"),
@@ -261,7 +261,7 @@ internal class EventStoreTest {
 
     @Test
     fun `stores user triggered event to db`() {
-        val event = FakeEventFactory.getClickData().toEvent(
+        val event = TestData.getClickData().toEvent(
             type = EventType.CLICK,
             id = idProvider.id,
             userTriggered = true,
@@ -277,12 +277,12 @@ internal class EventStoreTest {
 
     @Test
     fun `given event insertion in db fails, deletes event and attachment data from file storage`() {
-        val exceptionData = FakeEventFactory.getExceptionData()
+        val exceptionData = TestData.getExceptionData()
         val event = exceptionData.toEvent(
             type = EventType.EXCEPTION,
             attachments = mutableListOf(
-                FakeEventFactory.getAttachment(bytes = null, path = "fake-path"),
-                FakeEventFactory.getAttachment(bytes = null, path = "fake-path"),
+                TestData.getAttachment(bytes = null, path = "fake-path"),
+                TestData.getAttachment(bytes = null, path = "fake-path"),
             ),
         )
         `when`(database.insertEvent(any())).thenReturn(false)

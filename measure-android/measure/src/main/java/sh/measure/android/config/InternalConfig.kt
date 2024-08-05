@@ -1,5 +1,7 @@
 package sh.measure.android.config
 
+import sh.measure.android.events.EventType
+
 internal interface InternalConfig {
     /**
      * The maximum size of attachments allowed in a single batch. Defaults to 3MB
@@ -26,11 +28,6 @@ internal interface InternalConfig {
      * Default list of HTTP headers to not capture for network request and response.
      */
     val defaultHttpHeadersBlocklist: List<String>
-
-    /* The TTL for data in the sessions table after which it will be cleared. Defaults to
-     * 15 days.
-     */
-    val sessionsTableTtlMs: Long
 
     /**
      * The threshold after which a session is considered ended. Defaults to 1 minute.
@@ -63,4 +60,17 @@ internal interface InternalConfig {
      * and smallest size while 100 is highest quality and largest size.
      */
     val screenshotCompressionQuality: Int
+
+    /**
+     * All [EventType]'s that are always exported, regardless of other filters like session
+     * sampling rate and whether the session crashed or not.
+     */
+    val eventTypeExportAllowList: List<String>
+
+    /**
+     * The maximum number of events allowed in the database.
+     * If the number of events exceeds this limit, the oldest session is deleted everytime
+     * cleanup is triggered until the total number of events is below this limit.
+     */
+    val maxEventsInDatabase: Int
 }
