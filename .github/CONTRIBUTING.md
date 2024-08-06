@@ -177,3 +177,8 @@ All commits landing in any branch are first linted in your local environment and
   this is a really really really long line that is
   exceeding the allowed limit of max characters per line
   ```
+
+## Documentation
+- Public facing docs should be in [docs](../docs/README.md) folder - API requests & responses, self host guide, sdk guides and so on
+- Main folder of subproject should link to main guide. ex: [frontend README](../measure-web-app/README.md) has link to self hosting and local dev guide
+- Non public facing docs can stay in sub folder. ex: [backend benchmarking README](../measure-backend/benchmarking/README.md) which describes its purpose
