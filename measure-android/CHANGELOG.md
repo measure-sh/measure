@@ -27,6 +27,10 @@ Initial release to maven.
 
 # measure-android-gradle
 
+## 0.4.0
+#### Fixes
+* Fix for plugin breaking the configuration cache by @abhaysood in https://github.com/measure-sh/measure/pull/986
+
 ## 0.3.0
 
 Initial release to maven.
