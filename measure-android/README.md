@@ -150,13 +150,13 @@ Add the following to your app's `build.gradle.kts`file.
 [//]: # (TODO: Replace with the actual version on maven central)
 
 ```kotlin
-implementation("sh.measure:measure-android:0.3.0")
+implementation("sh.measure:measure-android:0.4.0")
 ```
 
 or, add the following to your app's `build.gradle`file.
 
 ```groovy
-implementation 'sh.measure:measure-android:0.3.0'
+implementation 'sh.measure:measure-android:0.4.0'
 ```
 
 ### 4. Initialize the SDK

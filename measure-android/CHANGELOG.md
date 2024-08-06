@@ -1,5 +1,18 @@
 # measure-android
 
+## 0.4.0
+#### Features
+* Add ability to turn on logs for the SDK, logs are disabled by default by @abhaysood in https://github.com/measure-sh/measure/pull/925
+* Add ability to configure sampling rate for non-crashed sessions by @abhaysood in https://github.com/measure-sh/measure/pull/955
+
+#### Fixes
+* Fix network provider attribute key name by @abhaysood in https://github.com/measure-sh/measure/pull/929
+* Fix calculation of CPU & memory usage by @abhaysood in https://github.com/measure-sh/measure/pull/946
+* Use process death time instead of current time for AppExit timestamp by @abhaysood in https://github.com/measure-sh/measure/pull/954
+* Guard executor submit blocks with try-catch blocks by @abhaysood in https://github.com/measure-sh/measure/pull/961
+* Add indexes to database by @abhaysood in https://github.com/measure-sh/measure/pull/966
+* Make OkHttp a compile time dependency for the SDK by @abhaysood in https://github.com/measure-sh/measure/pull/980
+
 ## 0.3.0
 
 Initial release to maven.
