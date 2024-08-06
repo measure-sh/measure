@@ -1,4 +1,4 @@
-# Architecture
+# Internal Documentation
 
 * [Storage](#storage)
 * [Batching & export](#batching--export)
@@ -29,7 +29,7 @@ the `Event Processor`. This can be improved in future by adding a queue which ba
 
 Measure exports events to the server in batches. All events for sessions that contain a crash are
 exported. All non-crashed sessions are exported by default, a sampling rate can be applied to
-non-crashed sessions to reduce the number of sessions exported. See [README](../../README.md) for 
+non-crashed sessions to reduce the number of sessions exported. See [README](../README.md) for 
 more details about configuring sampling rate.
 
 * [Periodic batching and export](#periodic-batching-and-export)

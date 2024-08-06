@@ -26,7 +26,7 @@ the _first_ Activity on the stack receives an `onStart` event, effectively meani
 ### Data collected
 
 Checkout all the data collected for application lifecycle in
-the [App Lifecycle Event](../../../docs/api/sdk/README.md#lifecycleapp) section.
+the [App Lifecycle Event](../../api/sdk/README.md#lifecycleapp) section.
 section.
 
 ## Activity lifecycle
@@ -47,7 +47,7 @@ and tracks the lifecycle events of each Activity.
 ### Data collected
 
 Checkout all the data collected for Activity lifecycle in
-the [Activity Lifecycle Event](../../../docs/api/sdk/README.md#lifecycleactivity) section.
+the [Activity Lifecycle Event](../../api/sdk/README.md#lifecycleactivity) section.
 
 ## Fragment lifecycle
 
@@ -68,7 +68,7 @@ project.
 ## Data collected
 
 Checkout all the data collected for Fragment lifecycle in
-the [Fragment Lifecycle Event](../../../docs/api/sdk/README.md#lifecyclefragment) section.
+the [Fragment Lifecycle Event](../../api/sdk/README.md#lifecyclefragment) section.
 
 > [!NOTE]  
 > Measure supports androidx.Fragment lifecycle events only, the legacy android.app.Fragment is not supported.
@@ -84,12 +84,12 @@ using [ASM](https://asm.ow2.io/) by automatically tracking all
 navigation events by
 registering [NavController.OnDestinationChangedListener](https://developer.android.com/reference/androidx/navigation/NavController.OnDestinationChangedListener)
 This is done using the Measure gradle plugin, read more details about
-it [here](../../measure-android-gradle/README.md#androidx-navigation).
+it [here](../../../android/measure-android-gradle/README.md#androidx-navigation).
 
 ### Data collected
 
 Checkout all the data collected for navigation in
-the [Navigation Event](../../../docs/api/sdk/README.md#navigation) section.
+the [Navigation Event](../../api/sdk/README.md#navigation) section.
 
 > [!NOTE]  
 > Compose navigation events are only tracked if the project uses Compose and the Compose navigation library. Measure

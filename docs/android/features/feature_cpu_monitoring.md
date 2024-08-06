@@ -36,4 +36,4 @@ Note that the first event will have the CPU usage as 0 as there is no previous e
 
 ## Data collected
 
-Checkout the data collected by Measure in [CPU Usage Event](../../../docs/api/sdk/README.md#cpuusage) section.
+Checkout the data collected by Measure in [CPU Usage Event](../../api/sdk/README.md#cpuusage) section.

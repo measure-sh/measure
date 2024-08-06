@@ -1,8 +1,7 @@
 # Feature - App Launch
 
 Measure tracks the cold, warm and hot app launch along with the time taken for each. No additional code is required to
-enable this feature. A [method trace for cold launch](#cold-launch-method-trace) is also captured to help debug
-bottlenecks.
+enable this feature.
 
 ## How it works
 
@@ -72,8 +71,8 @@ certain resources being released, the system might need to recreate those resour
 ## Data collected
 
 Checkout the data collected by Measure
-for [Cold Launch](../../../docs/api/sdk/README.md#coldlaunch), [Warm Launch](../../../docs/api/sdk/README.md#warmlaunch)
-and [Hot Launch](../../../docs/api/sdk/README.md#hotlaunch) sections respectively.
+for [Cold Launch](../../api/sdk/README.md#coldlaunch), [Warm Launch](../../api/sdk/README.md#warmlaunch)
+and [Hot Launch](../../api/sdk/README.md#hotlaunch) sections respectively.
 
 ### Further reading
 

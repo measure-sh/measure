@@ -61,5 +61,5 @@ Info for a process has been cleared out before we had a chance to send it to Mea
 
 ## Data collected
 
-Checkout all the data collected for App Exit in the [App Exit Event](../../../docs/api/sdk/README.md#appexit)
+Checkout all the data collected for App Exit in the [App Exit Event](../../api/sdk/README.md#appexit)
 section.
