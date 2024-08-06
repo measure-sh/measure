@@ -9,9 +9,10 @@
 5. Commit the changes: "chore(android): prepare sdk release x.y.z"
 6. Create a tag with the version number: `git tag -a android-vx.y.z -m "android-vx.y.z"`
 7. Change `MEASURE_VERSION_NAME` to next version snapshot.
-8. Commit the changes: "chore(android): prepare next development version of SDK"
-9. Push the tag and two commits to main branch.
-10. Create a release on Github with the tag and release notes from CHANGELOG.md.
+8. Update `measure-android` version in `libs.versions.toml` to latest snapshot version.
+9. Commit the changes: "chore(android): prepare next development version of SDK"
+10. Push the tag and two commits to main branch.
+11. Create a release on Github with the tag and release notes from CHANGELOG.md.
 
 ## Measure Gradle Plugin
 1. Make sure you're on the latest commit on the main branch.
