@@ -27,6 +27,7 @@ Measure is designed from the ground up for easy self-hosting. Follow along to ru
   - Debian 12 (Bookworm)
 - At least 4 vCPUs
 - At least 16 GB RAM
+- At least 100 GB of boot disk volume
 - Port `80` and `443` opened in firewall settings
 
 ### 1. SSH into your VM
@@ -152,7 +153,7 @@ measure-assets.yourcompany.com {
 EOF
 ```
 
->![Note]
+> [!Note]
 > 
 > In the above Caddyfile, we have used the example domains from above, but make sure you replace with your actual domain names.
 
