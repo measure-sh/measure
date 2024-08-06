@@ -1,6 +1,6 @@
-## Measure Dev CLI
+## Sessionator
 
-Use Measure Dev CLI to manage development operations like ingesting test sessions and so on.
+This tool is used to ingest test sessions for local development.
 
 ### Ingesting Sessions
 
