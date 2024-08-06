@@ -29,7 +29,7 @@
 
 ## Quick start
 
-Measure is available as a self hosted platform that comes with a simple one line install script. Check out our [Self hosting](./docs/hosting/README.md) and [Android SDK](./measure-android/README.md) guides.
+Measure is available as a self hosted platform that comes with a simple one line install script. Check out our [Self hosting](./docs/hosting/README.md) and [Android SDK](./android/README.md) guides.
 
 ## Features
 
@@ -68,7 +68,7 @@ Debug issues easily with full session timelines. Get the complete context with a
 ## Docs
 
 1. [**Self Hosting Guide**](./self-host/README.md) - Get started with hosting Measure
-2. [**Android SDK Guide**](./measure-android/README.md) - Integrate our Android SDK and start measuring in no time
+2. [**Android SDK Guide**](./android/README.md) - Integrate our Android SDK and start measuring in no time
 3. [**REST API Docs**](./docs/api/README.md) - REST APIs used by the frontend app and SDKs
 4. [**Versioning Guide**](./docs/versioning/README.md) - Understand how versions are tagged
 5. [**Contribution Guide**](./.github/CONTRIBUTING.md) - PRs, commit guidelines, issues and more
