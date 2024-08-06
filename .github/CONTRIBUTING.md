@@ -47,15 +47,19 @@ Next, run `./config.sh`
 
 This will start the configuration wizard and prepre all the environment variable files - `.env` tuned for local development.
 
-### Develop with docker compose
+### Start services
 
-Once configuration is complete, run the following docker compose command to start all services.
+Once configuration is complete, run the following docker compose command to start all services. For starting for the first time, provide `--profile init` and `--profile migrate` as this will trigger creation of minio buckets and perform database migrations.
 
 ```sh
 docker compose --profile init --profile migrate up
 ```
 
-Alternatively, you could also run the above in separate steps.
+> [!Note] Compose Profiles
+> 
+> Both `init` and `migrate` profiles are idempotent in nature. You can use them everytime, though for subsequent runs you may choose to skip them.
+
+Alternatively, you could build and up the containers in separate steps, like this.
 
 ```sh
 docker compose build
@@ -70,9 +74,18 @@ docker compose watch
 docker compose up --watch
 ```
 
+### Shutdown services
+
+To stop all services and to remove all containers, run.
+
+```sh
+docker compose --profile init --profile migrate stop
+docker compose --profile init --profile migrate down
+```
+
 ## Troubleshooting
 
-In case of any issues related to incoherent state, reset your environment by running.
+In case of any issues related to incoherent state, reset your environment by running. Keep in mind that this will remove all Measure volumes and all the data contained in those volumes.
 
 ```sh
 docker compose down --volumes
