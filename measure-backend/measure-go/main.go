@@ -64,8 +64,9 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	})
 
+	// health check
 	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "pong"})
+		c.String(http.StatusOK, "pong")
 	})
 
 	// Auth routes

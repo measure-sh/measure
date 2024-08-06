@@ -64,7 +64,7 @@ services:
         - path: ../measure-backend/measure-go
           action: rebuild
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/ping"]
+      test: ["CMD", "wget", "-q", "http://localhost:8080/ping"]
       interval: 5s
       timeout: 10s
       retries: 5
