@@ -2,6 +2,19 @@
 
 Measure is designed from the ground up for easy self-hosting. Follow along to run Measure on your own infrastructure.
 
+- [Self Hosting Guide](#self-hosting-guide)
+  - [Objectives](#objectives)
+  - [Prerequisites](#prerequisites)
+  - [System Requirements](#system-requirements)
+  - [Deploy on a Linux virtual machine](#deploy-on-a-linux-virtual-machine)
+    - [1. SSH into your VM](#1-ssh-into-your-vm)
+    - [2. Clone the measure repo](#2-clone-the-measure-repo)
+    - [3. Run the `install.sh` script](#3-run-the-installsh-script)
+    - [4. Configure and start your self hosted measure instance](#4-configure-and-start-your-self-hosted-measure-instance)
+    - [5. Setup a reverse proxy server](#5-setup-a-reverse-proxy-server)
+    - [6. Setup DNS A records](#6-setup-dns-a-records)
+    - [7. Access your Measure dashboard](#7-access-your-measure-dashboard)
+
 ## Objectives
 
 - Self host measure on a single VM instance
@@ -29,6 +42,10 @@ Measure is designed from the ground up for easy self-hosting. Follow along to ru
 - At least 16 GB RAM
 - At least 100 GB of boot disk volume
 - Port `80` and `443` opened in firewall settings
+
+## Deploy on a Linux virtual machine
+
+Follow these step-by-step instructions to deploy Measure on a single Linux VM instance.
 
 ### 1. SSH into your VM
 
