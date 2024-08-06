@@ -22,4 +22,4 @@ permission is sufficient, and it does not require a runtime permission.
 
 ## Data collected
 
-Checkout the data collected by Measure for each network change in the [Network Event](../../../docs/api/sdk/README.md#networkchange) section.
+Checkout the data collected by Measure for each network change in the [Network Event](../../api/sdk/README.md#networkchange) section.

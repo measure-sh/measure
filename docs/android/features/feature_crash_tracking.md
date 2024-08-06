@@ -14,12 +14,12 @@ together. This helps in identifying the most common exceptions in an app.
 
 In case the stack trace is obfuscated using ProGuard or R8, Measure automatically
 de-obfuscates it and shows the original class and method names. Read more details about the
-symbolication process [here](../features/symbolication.md).
+symbolication process [here](symbolication.md).
 
 ## Data collected
 
 Checkout the data collected by Measure for each crash in
-the [Exception Event](../../../docs/api/sdk/README.md#exception) section.
+the [Exception Event](../../api/sdk/README.md#exception) section.
 
 > [!NOTE]  
 > Measure only supports crash tracking for Java/Kotlin code. Support for native crashes will be added soon, 

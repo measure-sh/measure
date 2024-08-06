@@ -17,7 +17,7 @@ Read more about the [implementation details](#implementation-details).
 
 ## Data collected
 
-Checkout the data collected by Measure for each ANR in the [ANR Event](../../../docs/api/sdk/README.md#anr) section.
+Checkout the data collected by Measure for each ANR in the [ANR Event](../../api/sdk/README.md#anr) section.
 
 ---
 # Implementation details

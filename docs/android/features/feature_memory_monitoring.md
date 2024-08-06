@@ -30,7 +30,7 @@ A worker thread reads the following properties every 2 seconds and reports them 
 ### Data collected
 
 Checkout all the data collected for memory usage in
-the [Memory Usage Event](../../../docs/api/sdk/README.md#memoryusage) section.
+the [Memory Usage Event](../../api/sdk/README.md#memoryusage) section.
 
 ## Trim memory
 
@@ -43,7 +43,7 @@ availability.
 
 ### Data collected
 
-Checkout all the data collected for trim memory in the [Trim Memory Event](../../../docs/api/sdk/README.md#trimmemory)
+Checkout all the data collected for trim memory in the [Trim Memory Event](../../api/sdk/README.md#trimmemory)
 section.
 
 ## Low memory
@@ -60,7 +60,7 @@ your app might be consistently running into low memory situations to optimize.
 
 ### Data collected
 
-Checkout all the data collected for low memory in the [Low Memory Event](../../../docs/api/sdk/README.md#lowmemory)
+Checkout all the data collected for low memory in the [Low Memory Event](../../api/sdk/README.md#lowmemory)
 section.
 
 
