@@ -19,11 +19,17 @@ services:
       - API_BASE_URL=${API_BASE_URL}
       - NODE_ENV=development
       - NEXT_TELEMETRY_DISABLED=1
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
     volumes:
       - ../measure-web-app:/app
       - ../measure-web-app/public:/app/public
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
   api:
     build:
@@ -57,15 +63,26 @@ services:
       watch:
         - path: ../measure-backend/measure-go
           action: rebuild
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
     depends_on:
       postgres:
         condition: service_healthy
       clickhouse:
         condition: service_healthy
       minio:
-        condition: service_started
+        condition: service_healthy
       symbolicator-retrace:
-        condition: service_started
+        condition: service_healthy
+      dbmate:
+        condition: service_completed_successfully
+        required: false
+      mc:
+        condition: service_completed_successfully
+        required: false
 
   symbolicator-retrace:
     build:
@@ -81,12 +98,18 @@ services:
       - DEVELOPMENT_MODE=true
     volumes:
       - symbolicator-volume:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:8181/ping || exit 1"]
+      interval: 3s
+      timeout: 10s
+      retries: 5
     develop:
       watch:
         - path: ../measure-backend/symbolicator-retrace
           action: rebuild
     depends_on:
-      - minio
+      minio:
+        condition: service_healthy
 
   minio:
     image: quay.io/minio/minio
@@ -97,6 +120,11 @@ services:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
     command: server /data --console-address ":9001"
+    healthcheck:
+      test: timeout 5s bash -c ':> /dev/tcp/127.0.0.1/9000' || exit 1
+      interval: 3s
+      timeout: 10s
+      retries: 5
     volumes:
       - minio-data:/data
 
@@ -105,7 +133,8 @@ services:
     profiles:
       - init
     depends_on:
-      - minio
+      minio:
+        condition: service_healthy
     entrypoint: >
       /bin/sh -c "
       mc alias set msr-minio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
