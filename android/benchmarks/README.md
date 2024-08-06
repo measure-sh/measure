@@ -78,14 +78,14 @@ Follow the steps below to compare the benchmark results:
 To compare [Startup Benchmark](#startup-benchmark):
 
 ```bash
-cd measure-android/benchmarks/scripts
+cd android/benchmarks/scripts
 python main.py compare-startup path-to-before-benchmarkData.json path-to-after-benchmarkData.json
 ```
 
 To compare [Target Finder Benchmark](#target-finder-benchmark):
 
 ```bash
-cd measure-android/benchmarks/scripts
+cd android/benchmarks/scripts
 python main.py compare_target_finder path-to-before-benchmarkData.json path-to-after-benchmarkData.json
 ```
 
