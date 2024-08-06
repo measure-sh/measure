@@ -67,7 +67,7 @@ Debug issues easily with full session timelines. Get the complete context with a
 
 ## Docs
 
-1. [**Self Hosting Guide**](./self-host/README.md) - Get started with hosting Measure
+1. [**Self Hosting Guide**](./docs/hosting/README.md) - Get started with hosting Measure
 2. [**Android SDK Guide**](./android/README.md) - Integrate our Android SDK and start measuring in no time
 3. [**REST API Docs**](./docs/api/README.md) - REST APIs used by the frontend app and SDKs
 4. [**Versioning Guide**](./docs/versioning/README.md) - Understand how versions are tagged
