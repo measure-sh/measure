@@ -3,12 +3,14 @@ name: Android CI
 on:
   pull_request:
     paths:
-      - 'measure/android/**'
+      - 'android/**'
+      - '!docs/**'
   push:
     branches:
       - 'main'
     paths:
-      - 'measure/android/**'
+      - 'android/**'
+      - '!docs/**'
     tags:
       - 'android-*'
 
