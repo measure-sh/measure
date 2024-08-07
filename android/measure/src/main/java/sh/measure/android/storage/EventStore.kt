@@ -132,6 +132,11 @@ internal class EventStoreImpl(
     }
 
     private fun handleEventInsertionFailure(event: EventEntity) {
+        // TODO(android): handle event insertion failure for exception/ANR events
+        // Event insertions typically fail due to cases we can't do much about.
+        // However, given the way the SDK is setup, if the application crashes even before
+        // the session can be inserted into the database, we'll miss out on capturing
+        // the exception. This case needs to be handled.
         logger.log(LogLevel.Error, "Failed to insert event into database, deleting related files")
         fileStorage.deleteEventIfExist(
             event.id,
