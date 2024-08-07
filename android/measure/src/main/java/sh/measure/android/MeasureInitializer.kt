@@ -229,7 +229,7 @@ internal class MeasureInitializerImpl(
     ),
     override val eventProcessor: EventProcessor = EventProcessorImpl(
         logger = logger,
-        defaultExecutor = executorServiceRegistry.defaultExecutor(),
+        ioExecutor = executorServiceRegistry.ioExecutor(),
         eventStore = eventStore,
         idProvider = idProvider,
         sessionManager = sessionManager,
