@@ -1,5 +1,6 @@
 package sh.measure.android.fakes
 
+import sh.measure.android.appexit.AppExit
 import sh.measure.android.applaunch.ColdLaunchData
 import sh.measure.android.applaunch.HotLaunchData
 import sh.measure.android.applaunch.WarmLaunchData
@@ -427,5 +428,25 @@ internal object TestData {
         filePath: String = "/path/to/attachment.png",
     ): AttachmentPacket {
         return AttachmentPacket(id = id, filePath = filePath)
+    }
+
+    fun getAppExit(
+        reasonId: Int = 1,
+        reason: String = "reason",
+        importance: String = "importance",
+        trace: String? = "trace",
+        processName: String = "process-name",
+        appExitTimeMs: Long = 987654321L,
+        pid: String = "123",
+    ): AppExit {
+        return AppExit(
+            reasonId = reasonId,
+            reason = reason,
+            importance = importance,
+            trace = trace,
+            process_name = processName,
+            app_exit_time_ms = appExitTimeMs,
+            pid = pid,
+        )
     }
 }

@@ -2,6 +2,7 @@ package sh.measure.android.storage
 
 import android.content.ContentValues
 import android.content.Context
+import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteException
 import android.database.sqlite.SQLiteOpenHelper
@@ -274,6 +275,17 @@ internal class DatabaseImpl(
             }
             writableDatabase.setTransactionSuccessful()
             return true
+        } catch (e: SQLiteConstraintException) {
+            // We expect this to happen if for any reason the session could not be inserted to
+            // the database before an event was triggered.
+            // This can happen for exceptions/ANRs are they are written to the db on main thread,
+            // while session insertion happens in background.
+            logger.log(
+                LogLevel.Error,
+                "Failed to insert event ${event.type} for session ${event.sessionId}",
+                e,
+            )
+            return false
         } finally {
             writableDatabase.endTransaction()
         }
