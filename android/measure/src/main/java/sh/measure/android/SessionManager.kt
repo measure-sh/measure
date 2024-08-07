@@ -11,8 +11,15 @@ import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.Randomizer
 import sh.measure.android.utils.RandomizerImpl
 import sh.measure.android.utils.TimeProvider
+import java.util.concurrent.RejectedExecutionException
 
 internal interface SessionManager {
+
+    /**
+     * Creates a new session, to be used only when the SDK is initialized.
+     */
+    fun init()
+
     /**
      * Returns the current session Id.
      */
@@ -74,14 +81,18 @@ internal class SessionManagerImpl(
     private val randomizer: Randomizer = RandomizerImpl(),
 ) : SessionManager {
     private var appBackgroundedUptimeMs = 0L
-
     internal var currentSessionId: String? = null
 
+    override fun init() {
+        createNewSession()
+    }
+
     override fun getSessionId(): String {
-        if (currentSessionId == null) {
-            createNewSession()
+        val sessionId = currentSessionId
+        requireNotNull(sessionId) {
+            "Session ID is null. Ensure that init() is called before calling getSessionId()"
         }
-        return currentSessionId!!
+        return sessionId
     }
 
     override fun getSessionsWithUntrackedAppExit(): Map<Int, List<String>> {
@@ -97,20 +108,22 @@ internal class SessionManagerImpl(
             // if the app was never in background or a session was never created, return early.
             return
         }
-        endSessionIfNeeded()
+        if (shouldEndSession()) {
+            createNewSession()
+        }
     }
 
-    // Ending a session currently means immediately creating a new session. This can be used to
-    // clear up resources associated with a session in future or take any other action.
-    private fun endSessionIfNeeded() {
+    private fun shouldEndSession(): Boolean {
         val durationInBackground = timeProvider.uptimeInMillis - appBackgroundedUptimeMs
         if (durationInBackground >= configProvider.sessionEndThresholdMs) {
             logger.log(
                 LogLevel.Debug,
                 "Ending session as app was relaunched after being in background for $durationInBackground ms",
             )
-            createNewSession()
+            return true
         }
+
+        return false
     }
 
     override fun updateAppExitTracked(pid: Int) {
@@ -128,18 +141,34 @@ internal class SessionManagerImpl(
     private fun createNewSession() {
         val id = idProvider.createId()
         currentSessionId = id
-        ioExecutor.submit {
-            val needsReporting = shouldMarkSessionForExport()
-            storeSession(id, needsReporting)
+        try {
+            ioExecutor.submit {
+                val needsReporting = shouldMarkSessionForExport()
+                val success = storeSession(id, needsReporting)
+                if (success) {
+                    logger.log(
+                        LogLevel.Debug,
+                        "New session created with ID: $currentSessionId with needsReporting=$needsReporting",
+                    )
+                } else {
+                    logger.log(
+                        LogLevel.Error,
+                        "Unable to store session with ID: $currentSessionId",
+                    )
+                }
+            }
+        } catch (e: RejectedExecutionException) {
             logger.log(
-                LogLevel.Debug,
-                "New session created with ID: $currentSessionId with needsReporting=$needsReporting",
+                LogLevel.Error,
+                "Unable to store session with ID: $currentSessionId, all events will be discarded",
+                e
             )
         }
     }
 
-    private fun storeSession(sessionId: String, needsReporting: Boolean) {
-        database.insertSession(
+
+    private fun storeSession(sessionId: String, needsReporting: Boolean): Boolean {
+        return database.insertSession(
             SessionEntity(
                 sessionId,
                 processInfo.getPid(),

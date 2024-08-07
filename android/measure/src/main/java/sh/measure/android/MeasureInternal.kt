@@ -61,6 +61,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
             configProvider.setMeasureUrl(it.url)
             networkClient.init(baseUrl = it.url, apiKey = it.apiKey)
         }
+        sessionManager.init()
         registerCollectors()
         registerCallbacks()
     }
