@@ -7,4 +7,4 @@ Welcome to Measure's documentation. You'll find all the relevant information for
 2. [**Android**](./android/README.md) - Integrate Measure SDK in your Android app
 3. [**API Documentation**](./api/README.md) - APIs that various Measure SDKs use
 4. [**Versioning Guide**](./versioning/README.md) - Understand how versions are tagged
-5. [**Contribution Guide**](./contributing/CONTRIBUTING.md) - Contribute to Measure
+5. [**Contribution Guide**](./CONTRIBUTING.md) - Contribute to Measure
