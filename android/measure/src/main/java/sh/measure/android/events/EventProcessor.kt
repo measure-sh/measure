@@ -91,7 +91,7 @@ internal interface EventProcessor {
 
 internal class EventProcessorImpl(
     private val logger: Logger,
-    private val defaultExecutor: MeasureExecutorService,
+    private val ioExecutor: MeasureExecutorService,
     private val eventStore: EventStore,
     private val idProvider: IdProvider,
     private val sessionManager: SessionManager,
@@ -179,7 +179,7 @@ internal class EventProcessorImpl(
             block = {
                 val threadName = Thread.currentThread().name
                 try {
-                    defaultExecutor.submit {
+                    ioExecutor.submit {
                         val event = createEvent(
                             data = data,
                             timestamp = timestamp,
