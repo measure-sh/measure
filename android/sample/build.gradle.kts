@@ -4,16 +4,24 @@ plugins {
     id("sh.measure.android.gradle")
 }
 
+measure {
+    variantFilter {
+        if (name.contains("debug")) {
+            enabled = false
+        }
+    }
+}
+
 android {
     namespace = "sh.measure.sample"
     compileSdk = 34
-
+    val measureSdkVersion = libs.versions.measure.android.get()
     defaultConfig {
         applicationId = "sh.measure.sample"
         minSdk = 21
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = computeVersionCode(measureSdkVersion)
+        versionName = measureSdkVersion
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -24,6 +32,12 @@ android {
                 properties["measure_api_key"]?.toString() ?: ""
             manifestPlaceholders["MEASURE_API_URL"] =
                 properties["measure_api_url"]?.toString() ?: ""
+        }
+        debug {
+            versionNameSuffix = ".debug"
+            isMinifyEnabled = false
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("debug")
         }
         release {
             isMinifyEnabled = true
@@ -79,4 +93,16 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+/**
+ * Computes version code based on the measure SDK version.
+ * Examples:
+ * 1.2.3 -> 10203
+ * 0.4.0-SNAPSHOT -> 400
+ */
+fun computeVersionCode(measureSdkVersion: String): Int {
+    val versionWithoutSuffix = measureSdkVersion.split("-")[0]
+    val version = versionWithoutSuffix.split(".").map { it.toInt() }
+    return version[0] * 10000 + version[1] * 100 + version[2]
 }
