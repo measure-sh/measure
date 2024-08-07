@@ -6,6 +6,9 @@ internal class FakeSessionManager : SessionManager {
     var sessionPids = mutableListOf(Pair("fake-session-id", 1234))
     var crashedSession = ""
     var crashedSessions = mutableListOf<String>()
+    override fun init() {
+        // No-op
+    }
 
     override fun getSessionId(): String {
         return "fake-session-id"

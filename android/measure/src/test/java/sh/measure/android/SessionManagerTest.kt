@@ -2,6 +2,8 @@ package sh.measure.android
 
 import androidx.concurrent.futures.ResolvableFuture
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
@@ -44,21 +46,35 @@ class SessionManagerTest {
     }
 
     @Test
-    fun `given session ID does not exist, creates a new session ID and persists it to db`() {
-        val expectedSessionId = "session-id"
-        idProvider.id = expectedSessionId
-        sessionManager.currentSessionId = null
+    fun `init creates a new session and updates cached value, writes the session to db`() {
+        // given
+        val sessionId = "session-id"
+        idProvider.id = sessionId
 
-        val sessionId = sessionManager.getSessionId()
-        assertEquals(expectedSessionId, sessionId)
+        // when
+        sessionManager.init()
+
+        // then
+        assertNotNull(sessionManager.currentSessionId)
         verify(database).insertSession(
             SessionEntity(
-                expectedSessionId,
+                sessionId,
                 processInfo.getPid(),
                 timeProvider.fakeCurrentTimeSinceEpochInMillis,
                 false,
             ),
         )
+    }
+
+    @Test
+    fun `getSessionId throws exception if session ID does not exist`() {
+        val expectedSessionId = "session-id"
+        idProvider.id = expectedSessionId
+        sessionManager.currentSessionId = null
+
+        assertThrows(IllegalArgumentException::class.java) {
+            sessionManager.getSessionId()
+        }
     }
 
     @Test
