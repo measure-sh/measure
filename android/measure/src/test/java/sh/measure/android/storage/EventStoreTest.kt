@@ -9,6 +9,7 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeIdProvider
@@ -32,74 +33,128 @@ internal class EventStoreTest {
 
     @Test
     fun `stores exception event data in file storage and stores the path in database`() {
+        // given
         val exceptionData = TestData.getExceptionData()
         val event = exceptionData.toEvent(type = EventType.EXCEPTION)
         val argumentCaptor = argumentCaptor<EventEntity>()
+        `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
+
+        // when
         eventStore.store(event)
 
-        val path: String? = verify(fileStorage).writeEventData(
+        // then
+        verify(fileStorage).writeEventData(
             event.id,
             event.serializeDataToString(),
         )
         verify(database).insertEvent(argumentCaptor.capture())
         val eventEntity = argumentCaptor.firstValue
-        assertEquals(path, eventEntity.filePath)
+        assertEquals("fake-file-path", eventEntity.filePath)
     }
 
     @Test
     fun `stores ANR event data in file storage and stores the path in database`() {
+        // given
         val exceptionData = TestData.getExceptionData()
         val event = exceptionData.toEvent(type = EventType.ANR)
         val argumentCaptor = argumentCaptor<EventEntity>()
+        `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
+
+        // when
         eventStore.store(event)
 
-        val path: String? = verify(fileStorage).writeEventData(
+        // then
+        verify(fileStorage).writeEventData(
             event.id,
             event.serializeDataToString(),
         )
         verify(database).insertEvent(argumentCaptor.capture())
         val eventEntity = argumentCaptor.firstValue
-        assertEquals(path, eventEntity.filePath)
+        assertEquals("fake-file-path", eventEntity.filePath)
     }
 
     @Test
     fun `given http event contains request body, stores it in file storage and stores the path in database`() {
+        // given
         val httpData =
             TestData.getHttpData(requestBody = "request-body", responseBody = null)
         val event = httpData.toEvent(type = EventType.HTTP)
         val argumentCaptor = argumentCaptor<EventEntity>()
+        `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
+
+        // when
         eventStore.store(event)
 
-        val path: String? = verify(fileStorage).writeEventData(
+        // then
+        verify(fileStorage).writeEventData(
             event.id,
             event.serializeDataToString(),
         )
         verify(database).insertEvent(argumentCaptor.capture())
         val eventEntity = argumentCaptor.firstValue
-        assertEquals(path, eventEntity.filePath)
+        assertEquals("fake-file-path", eventEntity.filePath)
     }
 
     @Test
     fun `given http event contains response body, stores it in file storage and stores the path in database`() {
+        // given
         val httpData =
             TestData.getHttpData(requestBody = null, responseBody = "response-body")
         val event = httpData.toEvent(type = EventType.HTTP)
         val argumentCaptor = argumentCaptor<EventEntity>()
+        `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
+
+        // when
         eventStore.store(event)
 
-        val path: String? = verify(fileStorage).writeEventData(
+        // then
+        verify(fileStorage).writeEventData(
             event.id,
             event.serializeDataToString(),
         )
         verify(database).insertEvent(argumentCaptor.capture())
         val eventEntity = argumentCaptor.firstValue
-        assertEquals(path, eventEntity.filePath)
+        assertEquals("fake-file-path", eventEntity.filePath)
     }
 
     @Test
     fun `given http event does not contain request or response body, stores it directly in database`() {
         val httpData = TestData.getHttpData(requestBody = null, responseBody = null)
         val event = httpData.toEvent(type = EventType.HTTP)
+        val argumentCaptor = argumentCaptor<EventEntity>()
+        eventStore.store(event)
+
+        verify(database).insertEvent(argumentCaptor.capture())
+        val eventEntity = argumentCaptor.firstValue
+        assertNull(eventEntity.filePath)
+        assertNotNull(eventEntity.serializedData)
+    }
+
+    @Test
+    fun `given app_exit event contains a trace, stores the path in database`() {
+        // given
+        val appExit = TestData.getAppExit(trace = "trace")
+        val event = appExit.toEvent(type = EventType.APP_EXIT)
+        val argumentCaptor = argumentCaptor<EventEntity>()
+        `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
+
+        // when
+        eventStore.store(event)
+
+        // then
+        verify(fileStorage).writeEventData(
+            event.id,
+            event.serializeDataToString(),
+        )
+        verify(database).insertEvent(argumentCaptor.capture())
+        val eventEntity = argumentCaptor.firstValue
+        assertEquals("fake-file-path", eventEntity.filePath)
+    }
+
+    @Test
+    fun `given app_exit event does not contain a trace, stores the serialized data in database`() {
+        val appExit = TestData.getAppExit(trace = null)
+        val event = appExit.toEvent(type = EventType.APP_EXIT)
         val argumentCaptor = argumentCaptor<EventEntity>()
         eventStore.store(event)
 
@@ -277,6 +332,7 @@ internal class EventStoreTest {
 
     @Test
     fun `given event insertion in db fails, deletes event and attachment data from file storage`() {
+        // given
         val exceptionData = TestData.getExceptionData()
         val event = exceptionData.toEvent(
             type = EventType.EXCEPTION,
@@ -285,8 +341,10 @@ internal class EventStoreTest {
                 TestData.getAttachment(bytes = null, path = "fake-path"),
             ),
         )
+        `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
         `when`(database.insertEvent(any())).thenReturn(false)
 
+        // when
         eventStore.store(event)
 
         // verify that the event and its attachments are deleted from file storage
@@ -295,6 +353,26 @@ internal class EventStoreTest {
             eventId = event.id,
             attachmentIds = listOf(idProvider.id, idProvider.id),
         )
+    }
+
+    @Test
+    fun `given event data that needs to be stored in file, fails to store, then does not insert event in db`() {
+        // given
+        val exceptionData = TestData.getExceptionData()
+        val event = exceptionData.toEvent(
+            type = EventType.EXCEPTION,
+            attachments = mutableListOf(
+                TestData.getAttachment(bytes = null, path = "fake-path"),
+                TestData.getAttachment(bytes = null, path = "fake-path"),
+            ),
+        )
+        `when`(fileStorage.writeEventData(any(), any())).thenReturn(null)
+
+        // when
+        eventStore.store(event)
+
+        // verify that the event is not inserted in the database
+        verify(database, never()).insertEvent(any())
     }
 
     private fun getAttachmentContent(): String {

@@ -161,11 +161,10 @@ internal class SessionManagerImpl(
             logger.log(
                 LogLevel.Error,
                 "Unable to store session with ID: $currentSessionId, all events will be discarded",
-                e
+                e,
             )
         }
     }
-
 
     private fun storeSession(sessionId: String, needsReporting: Boolean): Boolean {
         return database.insertSession(

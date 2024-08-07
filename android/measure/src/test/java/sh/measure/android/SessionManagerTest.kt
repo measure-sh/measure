@@ -46,7 +46,7 @@ class SessionManagerTest {
     }
 
     @Test
-    fun `init creates a new session and updates cached value, writes the session to db`() {
+    fun `init creates a new session and updates cached value and writes the session to db`() {
         // given
         val sessionId = "session-id"
         idProvider.id = sessionId

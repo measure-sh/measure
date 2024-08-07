@@ -1,7 +1,9 @@
 package sh.measure.android.storage
 
+import android.database.sqlite.SQLiteException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import sh.measure.android.appexit.AppExit
 import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
@@ -32,32 +34,64 @@ internal class EventStoreImpl(
     override fun <T> store(event: Event<T>) {
         val serializedAttributes = event.serializeAttributes()
         val serializedUserDefAttributes = event.serializeUserDefinedAttributes()
-        val attachmentEntities = createAttachmentEntities(event)
+        val attachmentEntities = event.createAttachmentEntities()
         val serializedAttachments = serializeAttachmentEntities(attachmentEntities)
         val attachmentsSize = calculateAttachmentsSize(attachmentEntities)
         val serializedData = event.serializeDataToString()
-
-        // the serialized data for certain events with large data sizes are stored in the file
-        // storage to avoid hitting the cursor size limit of 1MB when reading them from db.
-        // See: https://developer.android.com/reference/android/os/TransactionTooLargeException
-        val filePath = when (event.type) {
-            EventType.EXCEPTION, EventType.ANR, EventType.APP_EXIT -> {
-                fileStorage.writeEventData(event.id, serializedData)
-            }
-
-            EventType.HTTP -> {
-                if (httpDataContainsBody(event)) {
-                    fileStorage.writeEventData(event.id, serializedData)
-                } else {
-                    null
-                }
-            }
-
-            else -> null
+        val storeEventDataInFile = event.shouldStoreEventDataInFile()
+        val filePath = if (storeEventDataInFile) {
+            // return from the function if writing to the file failed
+            // this is to ensure that the event without data is never stored in the database
+            fileStorage.writeEventData(event.id, serializedData) ?: return
+        } else {
+            null
         }
 
-        val eventEntity = when {
-            filePath != null -> EventEntity(
+        val eventEntity = createEventEntity(
+            event,
+            serializedAttributes,
+            serializedUserDefAttributes,
+            attachmentEntities,
+            serializedAttachments,
+            attachmentsSize,
+            filePath,
+            serializedData,
+        )
+        val successfulInsert = insertEventToDatabase(eventEntity)
+        if (!successfulInsert) {
+            handleEventInsertionFailure(eventEntity)
+        }
+    }
+
+    private fun <T> Event<T>.shouldStoreEventDataInFile(): Boolean {
+        return when (type) {
+            EventType.EXCEPTION, EventType.ANR -> true
+            EventType.HTTP -> {
+                val httpEvent = data as? HttpData ?: return false
+                return httpEvent.request_body != null || httpEvent.response_body != null
+            }
+
+            EventType.APP_EXIT -> {
+                val appExit = data as? AppExit ?: return false
+                return appExit.trace != null
+            }
+
+            else -> false
+        }
+    }
+
+    private fun <T> createEventEntity(
+        event: Event<T>,
+        serializedAttributes: String?,
+        serializedUserDefAttributes: String?,
+        attachmentEntities: List<AttachmentEntity>?,
+        serializedAttachments: String?,
+        attachmentsSize: Long,
+        filePath: String?,
+        serializedData: String,
+    ): EventEntity {
+        if (filePath != null) {
+            return EventEntity(
                 id = event.id,
                 sessionId = event.sessionId,
                 timestamp = event.timestamp,
@@ -71,8 +105,8 @@ internal class EventStoreImpl(
                 serializedUserDefAttributes = serializedUserDefAttributes,
                 userTriggered = event.userTriggered,
             )
-
-            else -> EventEntity(
+        } else {
+            return EventEntity(
                 id = event.id,
                 sessionId = event.sessionId,
                 timestamp = event.timestamp,
@@ -81,20 +115,28 @@ internal class EventStoreImpl(
                 serializedAttributes = serializedAttributes,
                 attachmentsSize = attachmentsSize,
                 serializedAttachments = serializedAttachments,
-                serializedData = serializedData,
                 filePath = null,
+                serializedData = serializedData,
                 serializedUserDefAttributes = serializedUserDefAttributes,
                 userTriggered = event.userTriggered,
             )
         }
-        val success = database.insertEvent(eventEntity)
-        if (!success) {
-            fileStorage.deleteEventIfExist(
-                eventEntity.id,
-                eventEntity.attachmentEntities?.map { it.id } ?: emptyList(),
-            )
-            logger.log(LogLevel.Error, "Failed to insert event into database, deleting related files")
+    }
+
+    private fun insertEventToDatabase(eventEntity: EventEntity): Boolean {
+        return try {
+            database.insertEvent(eventEntity)
+        } catch (e: SQLiteException) {
+            false
         }
+    }
+
+    private fun handleEventInsertionFailure(event: EventEntity) {
+        logger.log(LogLevel.Error, "Failed to insert event into database, deleting related files")
+        fileStorage.deleteEventIfExist(
+            event.id,
+            event.attachmentEntities?.map { it.id } ?: emptyList(),
+        )
     }
 
     private fun serializeAttachmentEntities(attachmentEntities: List<AttachmentEntity>?): String? {
@@ -104,11 +146,6 @@ internal class EventStoreImpl(
         return Json.encodeToString(attachmentEntities)
     }
 
-    private fun <T> httpDataContainsBody(event: Event<T>): Boolean {
-        val httpEvent = event.data as? HttpData ?: return false
-        return httpEvent.request_body != null || httpEvent.response_body != null
-    }
-
     /**
      * Creates a list of [AttachmentEntity] from the attachments of the event.
      *
@@ -116,11 +153,11 @@ internal class EventStoreImpl(
      * If the attachment has bytes, it writes the bytes to the file storage and returns the [AttachmentEntity]
      * with the path where the bytes were written to.
      */
-    private fun <T> createAttachmentEntities(event: Event<T>): List<AttachmentEntity>? {
-        if (event.attachments.isEmpty()) {
+    private fun <T> Event<T>.createAttachmentEntities(): List<AttachmentEntity>? {
+        if (attachments.isEmpty()) {
             return null
         }
-        val attachmentEntities = event.attachments.mapNotNull { attachment ->
+        val attachmentEntities = attachments.mapNotNull { attachment ->
             val id = idProvider.createId()
             when {
                 attachment.path != null -> {
