@@ -34,7 +34,7 @@ class NetworkClientTest {
         `when`(multipartDataFactory.createFromEventPacket(any())).thenReturn(null)
         `when`(multipartDataFactory.createFromAttachmentPacket(any())).thenReturn(null)
         `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenReturn(
-            HttpResponse.Success,
+            HttpResponse.Success(),
         )
 
         networkClient.execute("batch123", eventPackets, attachmentPackets)
@@ -63,7 +63,7 @@ class NetworkClientTest {
             attachmentMultipartData,
         )
         `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenReturn(
-            HttpResponse.Success,
+            HttpResponse.Success(),
         )
 
         networkClient.execute("batch123", listOf(eventPacket), listOf(attachmentPacket))
@@ -78,7 +78,7 @@ class NetworkClientTest {
 
     @Test
     fun `execute handles successful response`() {
-        val successResponse = HttpResponse.Success
+        val successResponse = HttpResponse.Success()
         `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenReturn(
             successResponse,
         )
@@ -90,7 +90,7 @@ class NetworkClientTest {
 
     @Test
     fun `execute handles rate limit error`() {
-        val rateLimitResponse = HttpResponse.Error.RateLimitError
+        val rateLimitResponse = HttpResponse.Error.RateLimitError()
         `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenReturn(
             rateLimitResponse,
         )

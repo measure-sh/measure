@@ -27,8 +27,10 @@ class HttpUrlConnectionClientTest {
 
     @Test
     fun `test successful multipart request`() {
+        // given
         mockWebServer.enqueue(MockResponse().setResponseCode(200))
 
+        // when
         val result = client.sendMultipartRequest(
             mockWebServer.url("/").toString(),
             "POST",
@@ -36,6 +38,7 @@ class HttpUrlConnectionClientTest {
             listOf(MultipartData.FormField("key", "value")),
         )
 
+        // then
         val request = mockWebServer.takeRequest()
         assertEquals("POST", request.method)
         assertTrue(request.headers["Content-Type"]?.startsWith("multipart/form-data; boundary=") == true)
@@ -43,7 +46,24 @@ class HttpUrlConnectionClientTest {
         val body = request.body.readUtf8()
         assertTrue(body.contains("Content-Disposition: form-data; name=\"key\""))
         assertTrue(body.contains("value"))
-        assertEquals(HttpResponse.Success, result)
+        assertTrue(result is HttpResponse.Success)
+    }
+
+    @Test
+    fun `test successful response with body`() {
+        // given
+        mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody("expected-body"))
+
+        // when
+        val result = client.sendMultipartRequest(
+            mockWebServer.url("/").toString(),
+            "POST",
+            emptyMap(),
+            emptyList(),
+        )
+
+        // then
+        assertEquals(HttpResponse.Success(body = "expected-body"), result)
     }
 
     @Test
@@ -57,7 +77,21 @@ class HttpUrlConnectionClientTest {
             emptyList(),
         )
 
-        assertEquals(HttpResponse.Error.RateLimitError, result)
+        assertEquals(HttpResponse.Error.RateLimitError(), result)
+    }
+
+    @Test
+    fun `test rate limit error with body`() {
+        mockWebServer.enqueue(MockResponse().setResponseCode(429).setBody("error-body"))
+
+        val result = client.sendMultipartRequest(
+            mockWebServer.url("/").toString(),
+            "POST",
+            emptyMap(),
+            emptyList(),
+        )
+
+        assertEquals(HttpResponse.Error.RateLimitError("error-body"), result)
     }
 
     @Test
@@ -75,6 +109,20 @@ class HttpUrlConnectionClientTest {
     }
 
     @Test
+    fun `test client error with body`() {
+        mockWebServer.enqueue(MockResponse().setResponseCode(400).setBody("error-body"))
+
+        val result = client.sendMultipartRequest(
+            mockWebServer.url("/").toString(),
+            "POST",
+            emptyMap(),
+            emptyList(),
+        )
+
+        assertEquals(HttpResponse.Error.ClientError(400, "error-body"), result)
+    }
+
+    @Test
     fun `test server error`() {
         mockWebServer.enqueue(MockResponse().setResponseCode(500))
 
@@ -86,6 +134,20 @@ class HttpUrlConnectionClientTest {
         )
 
         assertEquals(HttpResponse.Error.ServerError(500), result)
+    }
+
+    @Test
+    fun `test server error with body`() {
+        mockWebServer.enqueue(MockResponse().setResponseCode(500).setBody("error-body"))
+
+        val result = client.sendMultipartRequest(
+            mockWebServer.url("/").toString(),
+            "POST",
+            emptyMap(),
+            emptyList(),
+        )
+
+        assertEquals(HttpResponse.Error.ServerError(500, "error-body"), result)
     }
 
     @Test
@@ -104,9 +166,11 @@ class HttpUrlConnectionClientTest {
 
     @Test
     fun `test file upload`() {
+        // given
         mockWebServer.enqueue(MockResponse().setResponseCode(200))
-
         val inputStream: InputStream = ByteArrayInputStream("file content".toByteArray())
+
+        // when
         val result = client.sendMultipartRequest(
             mockWebServer.url("/").toString(),
             "POST",
@@ -114,11 +178,12 @@ class HttpUrlConnectionClientTest {
             listOf(MultipartData.FileData("file", "test.txt", inputStream)),
         )
 
+        // then
         val request = mockWebServer.takeRequest()
         val body = request.body.readUtf8()
         assertTrue(body.contains("Content-Disposition: form-data; name=\"file\"; filename=\"test.txt\""))
         assertTrue(body.contains("file content"))
-        assertEquals(HttpResponse.Success, result)
+        assertTrue(result is HttpResponse.Success)
     }
 
     @Test
@@ -145,7 +210,7 @@ class HttpUrlConnectionClientTest {
         assertTrue(body.contains("value2"))
         assertTrue(body.contains("Content-Disposition: form-data; name=\"file\"; filename=\"test.txt\""))
         assertTrue(body.contains("file content"))
-        assertEquals(HttpResponse.Success, result)
+        assertTrue(result is HttpResponse.Success)
     }
 
     @Test
@@ -170,7 +235,7 @@ class HttpUrlConnectionClientTest {
         )
 
         // Then
-        assertEquals(HttpResponse.Success, result)
+        assertTrue(result is HttpResponse.Success)
         assertEquals(2, mockWebServer.requestCount)
 
         val originalRequest = mockWebServer.takeRequest()

@@ -101,7 +101,7 @@ class PeriodicEventExporterTest {
         batches[batch1.first] = batch1.second
         batches[batch2.first] = batch2.second
         `when`(eventExporter.getExistingBatches()).thenReturn(batches)
-        `when`(eventExporter.export(batch1.first, batch1.second)).thenReturn(HttpResponse.Error.RateLimitError)
+        `when`(eventExporter.export(batch1.first, batch1.second)).thenReturn(HttpResponse.Error.RateLimitError())
 
         periodicEventExporter.onAppBackground()
 
