@@ -5,6 +5,7 @@ import okio.Source
 import okio.buffer
 import okio.sink
 import okio.source
+import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import java.io.IOException
 import java.io.InputStream
@@ -75,6 +76,7 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
             }
             return processResponse(connection)
         } catch (e: IOException) {
+            logger.log(LogLevel.Error, "Failed to send request", e)
             return HttpResponse.Error.UnknownError(e)
         } finally {
             connection?.disconnect()
@@ -193,15 +195,35 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
             connection.outputStream.sink().buffer()
         }
     }
-}
 
-private fun processResponse(connection: HttpURLConnection): HttpResponse {
-    return when (val responseCode = connection.responseCode) {
-        in 200..299 -> HttpResponse.Success
-        429 -> HttpResponse.Error.RateLimitError
-        in 400..499 -> HttpResponse.Error.ClientError(responseCode)
-        in 500..599 -> HttpResponse.Error.ServerError(responseCode)
-        else -> HttpResponse.Error.UnknownError()
+    private fun getResponseBody(connection: HttpURLConnection): String? {
+        return try {
+            when (connection.responseCode) {
+                in 200..299 -> {
+                    connection.inputStream.source().buffer().readString(Charsets.UTF_8)
+                }
+
+                else -> {
+                    connection.errorStream?.source()?.buffer()?.readString(Charsets.UTF_8)
+                }
+            }
+        } catch (e: IOException) {
+            logger.log(LogLevel.Error, "Error reading response: ${e.message}")
+            null
+        }
+    }
+
+    private fun processResponse(connection: HttpURLConnection): HttpResponse {
+        val body = getResponseBody(connection)?.also {
+            logger.log(LogLevel.Info, "Response: $it")
+        }
+        return when (val responseCode = connection.responseCode) {
+            in 200..299 -> HttpResponse.Success(body = body)
+            429 -> HttpResponse.Error.RateLimitError(body = body)
+            in 400..499 -> HttpResponse.Error.ClientError(responseCode, body)
+            in 500..599 -> HttpResponse.Error.ServerError(responseCode, body)
+            else -> HttpResponse.Error.UnknownError()
+        }
     }
 }
 
