@@ -76,7 +76,7 @@ abstract class BuildUploadTask : DefaultTask() {
             mappingFile?.let {
                 addFormDataPart(MAPPING_FILE, it.name, it.asRequestBody())
                 addFormDataPart(MAPPING_TYPE, TYPE_PROGUARD)
-            }
+            } ?: logger.warn("[WARNING]: mapping file not found, symbolication will not work")
             addFormDataPart(BUILD_SIZE, appSize)
             addFormDataPart(BUILD_TYPE, buildType)
         }.build()
