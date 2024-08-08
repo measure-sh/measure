@@ -118,7 +118,7 @@ static bool init_signal_catcher_tid() {
     return true;
 }
 
-static void notifyAnrDetected(long timeMs) {
+static void notifyAnrDetected(long long timeMs) {
     if (!is_anr_handler_enabled) {
         MSR_LOGD("ANR handler not enabled, discarding detected ANR");
         return;
@@ -155,20 +155,20 @@ static void notifyAnrDetected(long timeMs) {
             break;
     }
 
-    MSR_LOGD("ANR detected at %ld, notifying via JNI", timeMs);
+    MSR_LOGD("ANR detected at %lld, notifying via JNI", timeMs);
     (*env)->CallVoidMethod(env, gBridgeObj, notifyAnrDetectedMethod, timeMs);
     if (check_and_clear_exc(env)) {
         MSR_LOGE("Failed to call notifyAnrDetected");
     }
 }
 
-static long get_current_time_ms() {
+static long long get_current_time_ms() {
     struct timespec ts;
     if (clock_gettime(CLOCK_REALTIME, &ts) == -1) {
         MSR_LOGE("Failed to get current time");
         return -1;
     }
-    return ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+    return (long long)ts.tv_sec * 1000LL;
 }
 
 static void block_sigquit() {
@@ -195,7 +195,7 @@ static void *watchdog_start_routine(__unused void *_) {
             MSR_LOGE("Failed to wait on semaphore, ANR detection won't work");
             break;
         }
-        long time = get_current_time_ms();
+        long long time = get_current_time_ms();
         notifyAnrDetected(time);
         syscall(SYS_tgkill, process_id, signal_catcher_tid, SIGQUIT);
         unblock_sigquit();
