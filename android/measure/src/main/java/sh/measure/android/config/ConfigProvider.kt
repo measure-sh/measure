@@ -94,6 +94,10 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { userDefinedAttributeKeyWithSpaces }
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
+        if (!trackHttpBody) {
+            return false
+        }
+
         if (contentType.isNullOrEmpty()) {
             return false
         }
@@ -119,6 +123,9 @@ internal class ConfigProviderImpl(
     }
 
     override fun shouldTrackHttpHeader(key: String): Boolean {
+        if (!trackHttpHeaders) {
+            return false
+        }
         return !combinedHttpHeadersBlocklist.any { key.contains(it, ignoreCase = true) }
     }
 
