@@ -72,10 +72,22 @@ class ConfigProviderTest {
     }
 
     @Test
+    fun `shouldTrackHttpBody returns false if trackHttpBody is set to false`() {
+        val configProvider = ConfigProviderImpl(
+            defaultConfig = Config(
+                trackHttpBody = false,
+                httpUrlAllowlist = listOf("example.com"),
+            ),
+            configLoader = configLoader,
+        )
+        Assert.assertFalse(configProvider.shouldTrackHttpBody("example.com", "application/json"))
+    }
+
+    @Test
     fun `shouldTrackHttpBody returns true for a URL not blocked and allowed content type`() {
         val contentType = "application/json"
         val configProvider = ConfigProviderImpl(
-            defaultConfig = Config(httpUrlBlocklist = listOf("allowed.com")),
+            defaultConfig = Config(trackHttpBody = true, httpUrlBlocklist = listOf("allowed.com")),
             configLoader = configLoader,
         )
         Assert.assertTrue(configProvider.shouldTrackHttpBody("example.com", contentType))
@@ -85,7 +97,7 @@ class ConfigProviderTest {
     fun `shouldTrackHttpBody returns true for a allowed URL and content type`() {
         val contentType = "application/json"
         val configProvider = ConfigProviderImpl(
-            defaultConfig = Config(httpUrlAllowlist = listOf("allowed.com")),
+            defaultConfig = Config(trackHttpBody = true, httpUrlAllowlist = listOf("allowed.com")),
             configLoader = configLoader,
         )
         Assert.assertTrue(configProvider.shouldTrackHttpBody("allowed.com", contentType))
@@ -143,9 +155,18 @@ class ConfigProviderTest {
     }
 
     @Test
+    fun `shouldTrackHttpHeader returns false if trackHttpHeaders is set to false`() {
+        val configProvider = ConfigProviderImpl(
+            defaultConfig = Config(trackHttpHeaders = false),
+            configLoader = configLoader,
+        )
+        Assert.assertFalse(configProvider.shouldTrackHttpHeader("key1"))
+    }
+
+    @Test
     fun `shouldTrackHttpHeader returns true for a allowed header`() {
         val configProvider = ConfigProviderImpl(
-            defaultConfig = Config(httpHeadersBlocklist = listOf("key1")),
+            defaultConfig = Config(trackHttpHeaders = true, httpHeadersBlocklist = listOf("key1")),
             configLoader = configLoader,
         )
         Assert.assertTrue(configProvider.shouldTrackHttpHeader("key2"))
@@ -182,7 +203,10 @@ class ConfigProviderTest {
     @Test
     fun `shouldTrackHttpUrl given urlAllowlist is empty, urlBlocklist is not empty, returns true if url is not part of blocklist`() {
         val configProvider = ConfigProviderImpl(
-            defaultConfig = Config(httpUrlBlocklist = listOf("blocked.com"), httpUrlAllowlist = emptyList()),
+            defaultConfig = Config(
+                httpUrlBlocklist = listOf("blocked.com"),
+                httpUrlAllowlist = emptyList(),
+            ),
             configLoader = configLoader,
         )
         Assert.assertTrue(configProvider.shouldTrackHttpUrl("https://allowed.com/"))
@@ -192,7 +216,10 @@ class ConfigProviderTest {
     @Test
     fun `shouldTrackHttpUrl given both urlAllowlist and urlBlocklist are not empty, considers only the allowlist`() {
         val configProvider = ConfigProviderImpl(
-            defaultConfig = Config(httpUrlAllowlist = listOf("allowed.com", "unblocked.com"), httpUrlBlocklist = listOf("unblocked.com")),
+            defaultConfig = Config(
+                httpUrlAllowlist = listOf("allowed.com", "unblocked.com"),
+                httpUrlBlocklist = listOf("unblocked.com"),
+            ),
             configLoader = configLoader,
         )
         Assert.assertTrue(configProvider.shouldTrackHttpUrl("https://allowed.com/"))
