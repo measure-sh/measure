@@ -11,6 +11,7 @@ internal interface IMeasureConfig {
     val trackHttpBody: Boolean
     val httpHeadersBlocklist: List<String>
     val httpUrlBlocklist: List<String>
+    val httpUrlAllowlist: List<String>
     val trackActivityIntentData: Boolean
     val sessionSamplingRate: Float
 }
@@ -60,10 +61,12 @@ class MeasureConfig(
 
     /**
      * Allows disabling collection of `http` events for certain URLs. This is useful to setup if you do not
-     * want to collect data for certain endpoints or third party domains.
+     * want to collect data for certain endpoints.
      *
      * The check is made using [String.contains] to see if the URL contains any of the strings in
      * the list.
+     *
+     * Note that this config is ignored if [httpUrlAllowlist] is set.
      *
      * Example:
      *
@@ -78,6 +81,26 @@ class MeasureConfig(
      * ```
      */
     override val httpUrlBlocklist: List<String> = DefaultConfig.HTTP_URL_BLOCKLIST,
+
+    /**
+     * Allows enabling collection of `http` events for only certain URLs. This is useful to setup if you do not
+     * want to collect data for all endpoints except for a few.
+     *
+     * The check is made using [String.contains] to see if the URL contains any of the strings in
+     * the list.
+     *
+     * Example:
+     *
+     * ```kotlin
+     * MeasureConfig(
+     *    httpUrlAllowlist = listOf(
+     *      "example.com", // enables a domain
+     *      "api.example.com", // enable a subdomain
+     *      "example.com/order" // enable a particular path
+     *    )
+     * )
+     */
+    override val httpUrlAllowlist: List<String> = DefaultConfig.HTTP_URL_ALLOWLIST,
 
     /**
      * Whether to capture intent data used to launch an Activity. Defaults to `false`.

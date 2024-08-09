@@ -27,6 +27,7 @@ Measure.init(
 * [**trackScreenshotOnCrash**](#trackScreenshotOnCrash)
 * [**screenshotMaskLevel**](#screenshotMaskLevel)
 * [**httpUrlBlocklist**](#httpUrlBlocklist)
+* [**httpUrlAllowlist**](#httpUrlAllowlist)
 * [**trackHttpHeaders**](#trackHttpHeaders)
 * [**httpHeadersBlocklist**](#httpHeadersBlocklist)
 * [**trackHttpBody**](#trackHttpBody)
@@ -131,6 +132,20 @@ Allows enabling/disabling capturing of HTTP request and response body. Disabled 
 
 Allows disabling collection of `http` events for certain URLs. This is useful to setup if you do not
 want to collect data for certain endpoints or third party domains. By default, no URLs are blocked.
+
+Note that this list is used only if `httpUrlAllowlist` is empty.
+
+The check is made using [String.contains] to see if the URL contains any of the strings in
+the list.
+
+## `httpUrlAllowlist`
+
+Allows enabling collection of `http` events only for certain URLs. This is useful to setup if you want
+to collect data only for certain endpoints or third party domains. If this list is empty, `httpUrlBlocklist` is
+considered. By default, this list is empty.
+
+The check is made using [String.contains] to see if the URL contains any of the strings in
+the list.
 
 ## `trackActivityIntentData`
 

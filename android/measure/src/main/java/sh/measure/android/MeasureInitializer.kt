@@ -104,6 +104,7 @@ internal class MeasureInitializerImpl(
             trackHttpBody = inputConfig.trackHttpBody,
             httpHeadersBlocklist = inputConfig.httpHeadersBlocklist,
             httpUrlBlocklist = inputConfig.httpUrlBlocklist,
+            httpUrlAllowlist = inputConfig.httpUrlAllowlist,
             trackActivityIntentData = inputConfig.trackActivityIntentData,
             sessionSamplingRate = inputConfig.sessionSamplingRate,
         ),
