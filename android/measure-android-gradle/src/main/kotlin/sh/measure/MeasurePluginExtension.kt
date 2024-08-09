@@ -7,7 +7,8 @@ import javax.inject.Inject
 /**
  * Configuration options (Gradle plugin extensions) for the MeasurePlugin.
  *
- * To use this, add a `measure` block to your build.gradle.kts file. Example:
+ * Measure plugin is enabled by default for all variants, to disable all features
+ * of the plugin for a specific variant, for example all debug variants:
  *
  * ```kotlin
  * measure {
