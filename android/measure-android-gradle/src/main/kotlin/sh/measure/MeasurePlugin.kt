@@ -47,14 +47,15 @@ class MeasurePlugin : Plugin<Project> {
         }
 
         androidComponents.onVariants { variant ->
-            injectOkHttpListener(variant)
-            injectComposeNavigationListener(variant)
-
             val variantFilter = VariantFilterImpl(variant.name)
             measure.filter.execute(variantFilter)
-            if (variantFilter.enabled) {
-                registerBuildTasks(variant, project, httpClientProvider, sdkDirectory)
+            if (!variantFilter.enabled) {
+                project.logger.info("Measure gradle plugin is disabled for ${variant.name}")
+                return@onVariants
             }
+            injectOkHttpListener(variant)
+            injectComposeNavigationListener(variant)
+            registerBuildTasks(variant, project, httpClientProvider, sdkDirectory)
         }
     }
 

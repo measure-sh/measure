@@ -3,16 +3,15 @@
 Measure Android Gradle Plugin is used to complement the features of Measure Android SDK. To integrate Measure in your
 project, please follow the instructions in the [README](README.md#getting-started).
 
+* [Features](#features)
+  * [Automatic Instrumentation](#automatic-instrumentation)
+    * [OkHttp](#okhttp)
+    * [AndroidX Navigation](#androidx-navigation)
+  * [Mapping Files Upload](#mapping-files-upload)
+  * [App Size](#app-size)
+* [Configuration](#configuration)
+
 # Features
-
-Measure Android Gradle Plugin makes integrating Measure into any Android app easy. It provides the
-following features:
-
-* **[Automatic Instrumentation](#automatic-instrumentation)**
-  * **[OkHttp](#okhttp)**
-  * **[AndroidX Navigation](#androidx-navigation)**
-* **[Upload Mapping Files](#upload-mapping-files)**
-* **[App Size](#app-size)**
 
 ## Automatic Instrumentation
 
@@ -43,7 +42,7 @@ library. This is done by automatically
 adding [NavController.OnDestinationChangedListener](https://developer.android.com/reference/androidx/navigation/NavController.OnDestinationChangedListener)
 to all the `NavHostController's` in your app.
 
-## Upload Mapping Files
+## Mapping Files Upload
 
 > [!TIP]
 > Make sure `sh.measure.android.API_KEY` is set in the manifest file of your app for this feature to work. Without this
@@ -78,17 +77,18 @@ command. The AAB size captured represents the maximum size of the APK that can b
 
 Read more about AAB format [here](https://developer.android.com/guide/app-bundle).
 
-> [!TIP]   
-> Mapping files and app size are uploaded when the `assemble<variant>` or `bundle<variant>>` task completes
-> successfully. This can be disabled for certain variants in the plugin configuration. For example, the following 
-> disables the upload for `debug` variants:
-> 
-> ```gradle
->   measure {
->     variantFilter {
->       if (name.contains("debug")) {
->         enabled = false
->       }
->     }
->   } 
-> ```
+# Configuration
+
+Measure Android Gradle Plugin can be configured in the `build.gradle` file of your app module. The plugin is applied
+to all variants of your app by default. To disable the plugin for a specific variant, you can use the `measure` block.
+For example, to disable the plugin for debug variants, you can use the following configuration:
+
+```groovy
+measure {
+    variantFilter {
+        if (name.contains("debug")) {
+            enabled = false
+        }
+    }
+}
+```
