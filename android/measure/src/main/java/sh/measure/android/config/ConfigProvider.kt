@@ -68,6 +68,8 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { httpHeadersBlocklist }
     override val httpUrlBlocklist: List<String>
         get() = getMergedConfig { httpUrlBlocklist }
+    override val httpUrlAllowlist: List<String>
+        get() = getMergedConfig { httpUrlAllowlist }
     override val trackActivityIntentData: Boolean
         get() = getMergedConfig { trackActivityIntentData }
     override val sessionSamplingRate: Float
@@ -95,13 +97,22 @@ internal class ConfigProviderImpl(
         if (contentType.isNullOrEmpty()) {
             return false
         }
-        if (combinedHttpUrlBlocklist.any { value -> value?.let { url.contains(it, ignoreCase = true) } == true }) {
+
+        // make sure no body is tracked if the URL is not tracked
+        if (!shouldTrackHttpUrl(url)) {
             return false
         }
+
         return httpContentTypeAllowlist.any { contentType.startsWith(it, ignoreCase = true) }
     }
 
     override fun shouldTrackHttpUrl(url: String): Boolean {
+        // If the allowlist is not empty, then only allow the URLs that are in the allowlist.
+        if (httpUrlAllowlist.isNotEmpty()) {
+            return httpUrlAllowlist.any { url.contains(it, ignoreCase = true) }
+        }
+
+        // If the allowlist is empty, then block the URLs that are in the blocklist.
         return !combinedHttpUrlBlocklist.any { value ->
             value?.let { url.contains(it, ignoreCase = true) } ?: false
         }

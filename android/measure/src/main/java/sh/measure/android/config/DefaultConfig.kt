@@ -8,6 +8,7 @@ internal object DefaultConfig {
     const val TRACK_HTTP_BODY: Boolean = false
     val HTTP_HEADERS_BLOCKLIST: List<String> = emptyList()
     val HTTP_URL_BLOCKLIST: List<String> = emptyList()
+    val HTTP_URL_ALLOWLIST: List<String> = emptyList()
     const val TRACK_ACTIVITY_INTENT_DATA: Boolean = false
     const val SESSION_SAMPLING_RATE: Float = 1.0f
 }

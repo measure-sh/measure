@@ -72,18 +72,27 @@ class ConfigProviderTest {
     }
 
     @Test
-    fun `shouldTrackHttpBody returns true for a allowed URL and content type`() {
-        val url = "example.com"
+    fun `shouldTrackHttpBody returns true for a URL not blocked and allowed content type`() {
         val contentType = "application/json"
         val configProvider = ConfigProviderImpl(
             defaultConfig = Config(httpUrlBlocklist = listOf("allowed.com")),
             configLoader = configLoader,
         )
-        Assert.assertTrue(configProvider.shouldTrackHttpBody(url, contentType))
+        Assert.assertTrue(configProvider.shouldTrackHttpBody("example.com", contentType))
     }
 
     @Test
-    fun `shouldTrackHttpBody returns false for a disallowed URL`() {
+    fun `shouldTrackHttpBody returns true for a allowed URL and content type`() {
+        val contentType = "application/json"
+        val configProvider = ConfigProviderImpl(
+            defaultConfig = Config(httpUrlAllowlist = listOf("allowed.com")),
+            configLoader = configLoader,
+        )
+        Assert.assertTrue(configProvider.shouldTrackHttpBody("allowed.com", contentType))
+    }
+
+    @Test
+    fun `shouldTrackHttpBody returns false for a blocked URL`() {
         val url = "example.com"
         val contentType = "application/json"
         val configProvider = ConfigProviderImpl(
@@ -91,6 +100,16 @@ class ConfigProviderTest {
             configLoader = configLoader,
         )
         Assert.assertFalse(configProvider.shouldTrackHttpBody(url, contentType))
+    }
+
+    @Test
+    fun `shouldTrackHttpBody returns false URL not part of allowList`() {
+        val contentType = "application/json"
+        val configProvider = ConfigProviderImpl(
+            defaultConfig = Config(httpUrlAllowlist = listOf("allowed.com")),
+            configLoader = configLoader,
+        )
+        Assert.assertFalse(configProvider.shouldTrackHttpBody("notinallowlist.com", contentType))
     }
 
     @Test
@@ -139,5 +158,44 @@ class ConfigProviderTest {
             configLoader = configLoader,
         )
         Assert.assertFalse(configProvider.shouldTrackHttpHeader("key1"))
+    }
+
+    @Test
+    fun `shouldTrackHttpUrl given urlAllowlist and urlBlocklist are empty, returns true for any url`() {
+        val configProvider = ConfigProviderImpl(
+            defaultConfig = Config(httpUrlAllowlist = emptyList(), httpUrlBlocklist = emptyList()),
+            configLoader = configLoader,
+        )
+        Assert.assertTrue(configProvider.shouldTrackHttpUrl("https://allowed.com/"))
+    }
+
+    @Test
+    fun `shouldTrackHttpUrl given urlAllowlist is not empty, returns true if url is part of allowlist`() {
+        val configProvider = ConfigProviderImpl(
+            defaultConfig = Config(httpUrlAllowlist = listOf("allowed.com")),
+            configLoader = configLoader,
+        )
+        Assert.assertTrue(configProvider.shouldTrackHttpUrl("https://allowed.com/"))
+        Assert.assertFalse(configProvider.shouldTrackHttpUrl("https://blocked.com/"))
+    }
+
+    @Test
+    fun `shouldTrackHttpUrl given urlAllowlist is empty, urlBlocklist is not empty, returns true if url is not part of blocklist`() {
+        val configProvider = ConfigProviderImpl(
+            defaultConfig = Config(httpUrlBlocklist = listOf("blocked.com"), httpUrlAllowlist = emptyList()),
+            configLoader = configLoader,
+        )
+        Assert.assertTrue(configProvider.shouldTrackHttpUrl("https://allowed.com/"))
+        Assert.assertFalse(configProvider.shouldTrackHttpUrl("https://blocked.com/"))
+    }
+
+    @Test
+    fun `shouldTrackHttpUrl given both urlAllowlist and urlBlocklist are not empty, considers only the allowlist`() {
+        val configProvider = ConfigProviderImpl(
+            defaultConfig = Config(httpUrlAllowlist = listOf("allowed.com", "unblocked.com"), httpUrlBlocklist = listOf("unblocked.com")),
+            configLoader = configLoader,
+        )
+        Assert.assertTrue(configProvider.shouldTrackHttpUrl("https://allowed.com/"))
+        Assert.assertTrue(configProvider.shouldTrackHttpUrl("https://unblocked.com/"))
     }
 }
