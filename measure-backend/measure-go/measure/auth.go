@@ -391,19 +391,34 @@ func SigninGoogle(c *gin.Context) {
 		return
 	}
 
-	if authState.Nonce == "" {
+	if authState.Credential == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": "missing credentials",
+		})
+		return
+	}
+
+	if authState.Nonce == "" && authState.State != "" {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"error": "missing nonce parameter",
 		})
 		return
 	}
 
-	if authState.State == "" {
+	if authState.State == "" && authState.Nonce != "" {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"error": "missing state parameter",
 		})
 		return
 	}
+
+	// Google API JavaScript client has an open issue where
+	// it does not send nonce or state in its authorization
+	// callback
+	// See: https://github.com/google/google-api-javascript-client/issues/843
+	//
+	// If nonce and state, both are  empty, we consider it
+	// valid and proceed for now.
 
 	payload, err := idtoken.Validate(ctx, authState.Credential, server.Server.Config.OAuthGoogleKey)
 	if err != nil {
@@ -426,13 +441,16 @@ func SigninGoogle(c *gin.Context) {
 		return
 	}
 
-	if payload.Claims["nonce"] != *checksum {
-		msg := "failed to validate nonce"
-		fmt.Println(msg)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
+	// Validate nonce if present
+	if authState.Nonce != "" {
+		if payload.Claims["nonce"] != *checksum {
+			msg := "failed to validate nonce"
+			fmt.Println(msg)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
 	}
 
 	googUser := authsession.GoogleUser{

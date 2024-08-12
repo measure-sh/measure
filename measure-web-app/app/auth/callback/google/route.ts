@@ -12,18 +12,36 @@ export async function POST(request: Request) {
   const nonce = searchParams.get('nonce')
   const state = searchParams.get('state')
 
-  if (!nonce) {
-    console.log("google login failure: no nonce")
-    return NextResponse.redirect(errRedirectUrl, { status: 301 })
-  }
-
-  if (!state) {
-    console.log("google login failure: no state")
-    return NextResponse.redirect(errRedirectUrl, { status: 301 })
-  }
-
   const formdata = await request.formData()
   const credential = formdata.get('credential')
+
+  if (!credential) {
+    console.log("google login failure: no credential")
+    return NextResponse.redirect(errRedirectUrl, { status: 302 })
+  }
+
+  if (state && !nonce) {
+    console.log("google login failure: no nonce")
+    return NextResponse.redirect(errRedirectUrl, { status: 302 })
+  }
+
+  if (nonce && !state) {
+    console.log("google login failure: no state")
+    return NextResponse.redirect(errRedirectUrl, { status: 302 })
+  }
+
+  // Google API JavaScript client has an open issue where
+  // it does not send nonce or state in its authorization
+  // callback
+  // See: https://github.com/google/google-api-javascript-client/issues/843
+  //
+  // If nonce and state, both are  empty, we consider it
+  // valid and proceed for now, while keeping an eye out
+  // on the user agent.
+  if (!nonce && !state) {
+    const headers = Object.fromEntries(request.headers)
+    console.log(`google login warning: nonce and state both are missing, request possibly originated from Safari, check UA: ${headers["user-agent"]}`)
+  }
 
   const res = await fetch(`${apiOrigin}/auth/google`, {
     method: 'POST',
