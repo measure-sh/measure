@@ -66,8 +66,15 @@ func rmEvents(ctx context.Context, c *config.Config) (err error) {
 	}
 
 	apps := []string{}
-	for app := range c.Apps {
-		apps = append(apps, app)
+	for appKey, appValue := range c.Apps {
+		apps = append(apps, appKey)
+
+		// if optional `name` exist for an
+		// app, consider it too for resolving
+		// app ids.
+		if appValue.Name != "" {
+			apps = append(apps, appValue.Name)
+		}
 	}
 
 	if err = j.resolveAppIds(ctx, conn, apps); err != nil {
@@ -103,7 +110,7 @@ func rmEvents(ctx context.Context, c *config.Config) (err error) {
 func (j *janitor) resolveAppIds(ctx context.Context, conn *pgx.Conn, apps []string) (err error) {
 	placeholders, args := parameterize(apps)
 
-	selectAppIds := fmt.Sprintf("select id from public.apps where unique_identifier in (%s);", placeholders)
+	selectAppIds := fmt.Sprintf("select id from public.apps where unique_identifier in (%s) or app_name in (%s);", placeholders, placeholders)
 
 	rows, err := conn.Query(ctx, selectAppIds, args...)
 	if err != nil {

@@ -400,7 +400,7 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 			}
 			ctx := context.Background()
 			if err := rmEvents(ctx, configData); err != nil {
-				log.Fatal(err)
+				log.Fatal("failed to cleanup old data", err)
 			}
 		}
 
