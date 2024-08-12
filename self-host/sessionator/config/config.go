@@ -7,6 +7,7 @@ import (
 )
 
 type App struct {
+	Name   string `toml:"name"`
 	ApiKey string `toml:"api-key"`
 }
 
