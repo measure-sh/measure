@@ -1,12 +1,30 @@
 # Measure Docker Compose
 #
 # Guidelines
+#
 # Follow these guidelines for a consistently maintained
 # compose file and a pleasurable maintainer experience.
 #
 # - Order first-party services at the top followed by
 #   third-party services. Databases and other external
 #   services should appear after measure services.
+# - All environment variables MUST be passed using the
+#   `environment` directive of each service. That's the
+#   ONLY source of truth.
+#
+# Tips
+#
+# - For setting default values for any environment variable
+#   Specify the default value after the hyphen (-). To set
+#   empty default value do not specify anything after the
+#   hyphen. See example below.
+#
+#   ```yaml
+#   environment:
+#     - MY_VAR=${MY_VAR:-default_value}
+#     - EMPTY_MY_VAR=${EMPTY_MY_VAR:-}
+#   ```
+
 
 name: measure
 services:
@@ -46,12 +64,13 @@ services:
       - SYMBOLS_ACCESS_KEY=${SYMBOLS_ACCESS_KEY}
       - SYMBOLS_SECRET_ACCESS_KEY=${SYMBOLS_SECRET_ACCESS_KEY}
       - SYMBOLICATOR_ORIGIN=${SYMBOLICATOR_ORIGIN}
-      - ATTACHMENTS_S3_ORIGIN=${ATTACHMENTS_S3_ORIGIN}
+      - ATTACHMENTS_S3_ORIGIN=${ATTACHMENTS_S3_ORIGIN:-}
       - ATTACHMENTS_S3_BUCKET=${ATTACHMENTS_S3_BUCKET}
       - ATTACHMENTS_S3_BUCKET_REGION=${ATTACHMENTS_S3_BUCKET_REGION}
       - ATTACHMENTS_ACCESS_KEY=${ATTACHMENTS_ACCESS_KEY}
       - ATTACHMENTS_SECRET_ACCESS_KEY=${ATTACHMENTS_SECRET_ACCESS_KEY}
       - SITE_ORIGIN=${NEXT_PUBLIC_SITE_URL}
+      - API_ORIGIN=${NEXT_PUBLIC_API_BASE_URL}
       - OAUTH_GOOGLE_KEY=${OAUTH_GOOGLE_KEY}
       - OAUTH_GITHUB_KEY=${OAUTH_GITHUB_KEY}
       - OAUTH_GITHUB_SECRET=${OAUTH_GITHUB_SECRET}

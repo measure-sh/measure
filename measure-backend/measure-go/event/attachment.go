@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"mime"
+	"net/url"
 	"path/filepath"
 	"slices"
 	"time"
@@ -94,12 +95,24 @@ func (a *Attachment) PreSignURL() (err error) {
 		Credentials: credentials.NewStaticCredentials(config.AttachmentsAccessKey, config.AttachmentsSecretAccessKey, ""),
 	}
 
+	shouldProxy := true
+
+	if config.AttachmentOrigin != "" {
+		shouldProxy = false
+	}
+
 	// if a custom endpoint was set, then most likely,
-	// we are in local development mode and should force
-	// path style instead of S3 virual path styles.
+	// external object store is not native S3 like,
+	// hence should force path style instead of S3 virtual
+	// path styles.
 	if config.AWSEndpoint != "" {
 		awsConfig.S3ForcePathStyle = aws.Bool(true)
-		awsConfig.Endpoint = aws.String(config.AttachmentOrigin)
+
+		if shouldProxy {
+			awsConfig.Endpoint = aws.String(config.AWSEndpoint)
+		} else {
+			awsConfig.Endpoint = aws.String(config.AttachmentOrigin)
+		}
 	}
 
 	awsSession := session.Must(session.NewSession(awsConfig))
@@ -113,6 +126,37 @@ func (a *Attachment) PreSignURL() (err error) {
 	urlStr, err := req.Presign(48 * time.Hour)
 	if err != nil {
 		return err
+	}
+
+	if shouldProxy {
+		endpoint, err := url.JoinPath(config.APIOrigin, "attachments")
+		if err != nil {
+			return err
+		}
+
+		proxyUrl, err := url.Parse(endpoint)
+		if err != nil {
+			return err
+		}
+
+		parsed, err := url.Parse(urlStr)
+		if err != nil {
+			return err
+		}
+
+		// clear the scheme and host of
+		// presigned URL, because we take interest
+		// in capturing the presigned URL's path
+		// and query string only.
+		parsed.Scheme = ""
+		parsed.Host = ""
+
+		query := proxyUrl.Query()
+
+		query.Set("payload", parsed.String())
+		proxyUrl.RawQuery = query.Encode()
+
+		urlStr = proxyUrl.String()
 	}
 
 	a.Location = urlStr
