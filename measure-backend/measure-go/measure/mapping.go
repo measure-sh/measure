@@ -184,7 +184,7 @@ func (bm *BuildMapping) upload() (*s3manager.UploadOutput, error) {
 
 	// if a custom endpoint was set, then most likely,
 	// we are in local development mode and should force
-	// path style instead of S3 virual path styles.
+	// path style instead of S3 virtual path styles.
 	if config.AWSEndpoint != "" {
 		awsConfig.S3ForcePathStyle = aws.Bool(true)
 		awsConfig.Endpoint = aws.String(config.AWSEndpoint)
