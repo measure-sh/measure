@@ -71,7 +71,7 @@ For `--clean` to work, you would need to configure the following settings in you
 postgres_dsn = "postgresql://postgres:postgres@127.0.0.1:5432/postgres"
 clickhouse_dsn = "clickhouse://default:@127.0.0.1:9000/default"
 
-aws_endpoint_url = "http://127.0.0.1:9111"
+aws_endpoint_url = "http://127.0.0.1:9119"
 
 attachments_s3_bucket = "msr-attachments-sandbox"
 attachments_s3_bucket_region = "us-east-1"
