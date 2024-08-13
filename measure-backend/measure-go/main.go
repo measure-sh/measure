@@ -69,8 +69,18 @@ func main() {
 		c.String(http.StatusOK, "pong")
 	})
 
-	// Auth routes
+	// SDK routes
+	r.PUT("/events", measure.ValidateAPIKey(), measure.PutEvents)
+	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuild)
+
+	// Dashboard routes
+	// Any route below this point will use CORS
 	r.Use(cors)
+
+	// Proxy route
+	r.GET("/attachments", measure.ProxyAttachment)
+
+	// Auth routes
 	auth := r.Group("/auth")
 	{
 		auth.POST("github", measure.SigninGitHub)
@@ -79,13 +89,7 @@ func main() {
 		auth.DELETE("signout", measure.ValidateRefreshToken(), measure.Signout)
 	}
 
-	// SDK routes
-	r.PUT("/events", measure.ValidateAPIKey(), measure.PutEvents)
-	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuild)
-
-	// Dashboard routes
-	r.Use(cors).Use(measure.ValidateAccessToken())
-	apps := r.Group("/apps")
+	apps := r.Group("/apps", measure.ValidateAccessToken())
 	{
 		apps.GET(":id/journey", measure.GetAppJourney)
 		apps.GET(":id/metrics", measure.GetAppMetrics)
@@ -107,7 +111,7 @@ func main() {
 		apps.PATCH(":id/settings", measure.UpdateAppSettings)
 	}
 
-	teams := r.Group("/teams")
+	teams := r.Group("/teams", measure.ValidateAccessToken())
 	{
 		teams.POST("", measure.CreateTeam)
 		teams.GET("", measure.GetTeams)

@@ -2551,8 +2551,7 @@ func GetCrashDetailCrashes(c *gin.Context) {
 		return
 	}
 
-	// generate pre-sign URLs for
-	// attachments
+	// set appropriate attachment URLs
 	for i := range eventExceptions {
 		if len(eventExceptions[i].Attachments) > 0 {
 			for j := range eventExceptions[i].Attachments {
@@ -3301,8 +3300,7 @@ func GetANRDetailANRs(c *gin.Context) {
 		return
 	}
 
-	// generate pre-sign URLs for
-	// attachments
+	// set appropriate attachment URLs
 	for i := range eventANRs {
 		if len(eventANRs[i].Attachments) > 0 {
 			for j := range eventANRs[i].Attachments {
