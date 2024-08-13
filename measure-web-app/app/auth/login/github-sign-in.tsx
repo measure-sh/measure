@@ -7,7 +7,7 @@ async function doGitHubLogin() {
   const client = createMeasureClient(process.env.NEXT_PUBLIC_API_BASE_URL)
   const { url, error } = await client.oAuthSignin({
     provider: 'github',
-    clientId: process?.env?.NEXT_PUBLIC_MEASURE_GITHUB_OAUTH_CLIENT_ID,
+    clientId: process?.env?.NEXT_PUBLIC_OAUTH_GITHUB_KEY,
     options: {
       redirectTo: `${origin}/auth/callback/github`,
       next: ''

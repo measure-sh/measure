@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { encodeOAuthState } from "@/app/utils/auth/auth"
 
 const origin = process?.env?.NEXT_PUBLIC_SITE_URL
-const googleClientID = process?.env?.NEXT_PUBLIC_MEASURE_GOOGLE_OAUTH_CLIENT_ID
+const googleClientID = process?.env?.NEXT_PUBLIC_OAUTH_GOOGLE_KEY
 
 async function genNonce() {
   const buff = new Uint8Array(16)
