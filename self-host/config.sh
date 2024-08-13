@@ -193,7 +193,7 @@ SYMBOLS_ACCESS_KEY=minio
 SYMBOLS_SECRET_ACCESS_KEY=minio123
 
 # Session attachments won't work without these
-ATTACHMENTS_S3_ORIGIN=http://localhost:9119
+ATTACHMENTS_S3_ORIGIN=
 ATTACHMENTS_S3_BUCKET=msr-attachments-sandbox
 ATTACHMENTS_S3_BUCKET_REGION=us-east-1
 ATTACHMENTS_ACCESS_KEY=minio
@@ -488,7 +488,7 @@ elif [[ "$SETUP_ENV" == "production" ]]; then
 
     echo -e "\nSet storage bucket for attachments"
     echo -e "Example: https://measure-attachments.yourcompany.com"
-    ATTACHMENTS_S3_ORIGIN=$(prompt_value_manual "Enter attachments S3 bucket origin: ")
+    ATTACHMENTS_S3_ORIGIN=""
     ATTACHMENTS_S3_BUCKET="msr-$NAMESPACE-attachments"
     ATTACHMENTS_S3_BUCKET_REGION="us-east-1"
     ATTACHMENTS_ACCESS_KEY=$MINIO_ROOT_USER
