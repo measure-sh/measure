@@ -1,6 +1,7 @@
 # Measure Android SDK
 
 * [Minimum requirements](#minimum-requirements)
+* [Quick reference](#quick-reference)
 * [Getting started](#getting-started)
 * [Custom events](#custom-events)
   * [Handled exceptions](#handled-exceptions)
@@ -15,6 +16,13 @@
 | Android Gradle Plugin | 7.4           |
 | Min SDK               | 21 (Lollipop) |
 | Target SDK            | 31            |
+
+# Quick reference
+
+A quick reference to the entire public API for Measure Android SDK.
+
+<img src="https://github.com/user-attachments/assets/ff835b3b-2953-4920-b5fa-060761862cac" width="60%" alt="Cheatsheet">
+
 
 # Getting started
 
