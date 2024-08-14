@@ -412,14 +412,6 @@ func SigninGoogle(c *gin.Context) {
 		return
 	}
 
-	// Google API JavaScript client has an open issue where
-	// it does not send nonce or state in its authorization
-	// callback
-	// See: https://github.com/google/google-api-javascript-client/issues/843
-	//
-	// If nonce and state, both are  empty, we consider it
-	// valid and proceed for now.
-
 	payload, err := idtoken.Validate(ctx, authState.Credential, server.Server.Config.OAuthGoogleKey)
 	if err != nil {
 		msg := "failed to validate google credentials"
@@ -431,18 +423,26 @@ func SigninGoogle(c *gin.Context) {
 		return
 	}
 
-	checksum, err := cipher.ComputeSHA2Hash([]byte(authState.Nonce))
-	if err != nil {
-		fmt.Println(msg, err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
 	// Validate nonce if present
+	//
+	// Google API JavaScript client has an open issue where
+	// it does not send nonce or state in its authorization
+	// callback
+	// See: https://github.com/google/google-api-javascript-client/issues/843
+	//
+	// If nonce and state, both are  empty, we consider it
+	// valid and proceed for now.
 	if authState.Nonce != "" {
+		checksum, err := cipher.ComputeSHA2Hash([]byte(authState.Nonce))
+		if err != nil {
+			fmt.Println(msg, err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+
 		if payload.Claims["nonce"] != *checksum {
 			msg := "failed to validate nonce"
 			fmt.Println(msg)
