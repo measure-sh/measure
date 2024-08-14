@@ -62,6 +62,7 @@ android {
     defaultConfig {
         minSdk = 21
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunnerArguments["clearPackageData"] = "true"
         consumerProguardFiles("consumer-rules.pro")
     }
 
@@ -88,6 +89,7 @@ android {
         unitTests {
             isIncludeAndroidResources = true
             isReturnDefaultValues = true
+            execution = "ANDROIDX_TEST_ORCHESTRATOR"
         }
     }
     buildFeatures {
@@ -138,7 +140,10 @@ fun configureSpotlessKotlin(spotlessExtension: SpotlessExtension) {
     spotlessExtension.kotlin {
         ktlint().apply {
             editorConfigOverride(
-                mapOf("max_line_length" to 2147483647),
+                mapOf(
+                    "max_line_length" to 2147483647,
+                    "ktlint_function_naming_ignore_when_annotated_with" to "Composable",
+                ),
             )
         }
         target("src/**/*.kt")
@@ -183,4 +188,8 @@ dependencies {
     androidTestImplementation(libs.androidx.activity.compose)
     androidTestImplementation(libs.androidx.navigation.compose)
     androidTestImplementation(libs.androidx.rules)
+    androidTestImplementation(libs.androidx.uiautomator)
+    androidTestImplementation(libs.squareup.okhttp.mockwebserver)
+    androidTestUtil(libs.androidx.orchestrator)
+    androidTestImplementation(libs.androidx.benchmark.junit4)
 }
