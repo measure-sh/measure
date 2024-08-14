@@ -340,7 +340,7 @@ ensure_config() {
   if ! [[ -e "$ENV_FILE" ]]; then
     set +u
     info "Configuration file missing, starting wizard"
-    source ./config.sh
+    source ./config.sh "production"
     set -u
   else
     info "Configuration file found, skipping wizard"

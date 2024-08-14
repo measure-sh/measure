@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 # ------------------------------------------------------------------------------
 # Configuration
 # ------------------------------------------------------------------------------
@@ -223,7 +222,7 @@ SESSION_REFRESH_SECRET=super-secret-for-jwt-token-with-at-least-32-characters
 # OTEL #
 ########
 
-OTEL_SERVICE_NAME=measure-api
+OTEL_SERVICE_NAME=$NAMESPACE
 OTEL_INSECURE_MODE=true
 OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317
 
@@ -262,9 +261,8 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 #  Telemetry  #
 ###############
 NEXT_PUBLIC_CLARITY_KEY=ncxulaloll
-NEXT_PUBLIC_HIGHLIGHT_PROJECT_ID=1jdkoe52
-NEXT_PUBLIC_FRONTEND_SERVICE_NAME=measure-frontend
-NEXT_PUBLIC_HIGHLIGHT_BACKEND_URL=http://localhost:8082/public
+NEXT_PUBLIC_HIGHLIGHT_PROJECT_ID=4g8nqy9g
+NEXT_PUBLIC_FRONTEND_SERVICE_NAME=$NAMESPACE
 
 EOF
 }
@@ -340,7 +338,7 @@ SESSION_REFRESH_SECRET=$SESSION_REFRESH_SECRET
 
 OTEL_SERVICE_NAME=$NAMESPACE
 OTEL_INSECURE_MODE=true
-OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317
+OTEL_EXPORTER_OTLP_ENDPOINT=signoz.measure.sh:4317
 
 EOF
 }
@@ -377,9 +375,8 @@ NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 #  Telemetry  #
 ###############
 NEXT_PUBLIC_CLARITY_KEY=ndammtknyn
-NEXT_PUBLIC_HIGHLIGHT_PROJECT_ID=1jdkoe52
-NEXT_PUBLIC_FRONTEND_SERVICE_NAME=measure-frontend
-NEXT_PUBLIC_HIGHLIGHT_BACKEND_URL=http://localhost:8082/public
+NEXT_PUBLIC_HIGHLIGHT_PROJECT_ID=4g8nqy9g
+NEXT_PUBLIC_FRONTEND_SERVICE_NAME=$NAMESPACE
 
 EOF
 }
@@ -397,17 +394,11 @@ settings according to your chosen environment.
 
 END
 
-cat <<END
-Choose environment
-  0 - production
-  1 - development
+# Set the environment by accessing the
+# first argument.
+ENVIRONMENT="$1"
 
-END
-
-echo -n "Choose [0/1]: "
-read -r ANS_ENV
-
-if [[ $ANS_ENV == "0" ]]; then
+if [[ "$ENVIRONMENT" == "production" ]]; then
   SETUP_ENV=production
 else
   SETUP_ENV=development
@@ -415,7 +406,15 @@ fi
 
 echo -e "\nEnvironment is set to [$SETUP_ENV]"
 
-cat <<END
+if [[ "$SETUP_ENV" == "development" ]]; then
+  NAMESPACE=$(create_ns "measure-dev")
+  OAUTH_GOOGLE_KEY="715065389756-0nejegfra6erco3u172vjgibot2a6p4v.apps.googleusercontent.com"
+  OAUTH_GITHUB_KEY=$(prompt_value_manual "Enter GitHub OAuth app key: ")
+  OAUTH_GITHUB_SECRET=$(prompt_password_manual "Enter GitHub OAuth app secret: ")
+  write_dev_env
+  write_web_dev_env
+elif [[ "$SETUP_ENV" == "production" ]]; then
+  cat <<END
 
 Enter a name for your company or team.
 
@@ -425,30 +424,23 @@ Measure will use this as a namespace to identify
 this installation instance.
 END
 
-while true; do
-  echo -e "\nOnly lowercase alphabets and hyphens, no spaces"
-  read -p "Enter a name: " ANS_NAME
+  while true; do
+    echo -e "\nOnly lowercase alphabets and hyphens, no spaces"
+    read -p "Enter a name: " ANS_NAME
 
-  if validate_name "$ANS_NAME"; then
-    NAMESPACE=$(create_ns "$ANS_NAME")
-    echo -e "\nNamespace is set to [$NAMESPACE]"
-    break
-  else
-    echo -e "\nInvalid input. Please try again."
-  fi
-done
+    if validate_name "$ANS_NAME"; then
+      NAMESPACE=$(create_ns "$ANS_NAME")
+      echo -e "\nNamespace is set to [$NAMESPACE]"
+      break
+    else
+      echo -e "\nInvalid input. Please try again."
+    fi
+  done
 
-if [[ "$SETUP_ENV" == "development" ]]; then
-  OAUTH_GOOGLE_KEY=$(prompt_value_manual "Enter Google oauth app key: ")
-  OAUTH_GITHUB_KEY=$(prompt_value_manual "Enter GitHub oauth app key: ")
-  OAUTH_GITHUB_SECRET=$(prompt_password_manual "Enter GitHub oauth app secret: ")
-  write_dev_env
-  write_web_dev_env
-elif [[ "$SETUP_ENV" == "production" ]]; then
   POSTGRES_USER="postgres"
   MINIO_ROOT_USER="minio"
   MINIO_ROOT_PASSWORD=$(generate_password 24)
-  echo -e "Generated secure password for minio root user"
+  echo -e "Generated secure password for Minio root user"
 
   if [[ $PROMPT_DB_PASSWORDS -eq 1 ]]; then
     # Prompt for database passwords
@@ -474,20 +466,20 @@ elif [[ "$SETUP_ENV" == "production" ]]; then
     SYMBOLS_SECRET_ACCESS_KEY=$(prompt_password_manual "Enter symbols S3 bucket secret access key: ")
 
     echo -e "\nSet storage bucket for attachments"
+    echo -e "Example: https://measure-attachments.yourcompany.com"
     ATTACHMENTS_S3_ORIGIN=$(prompt_value_manual "Enter attachments S3 bucket origin: ")
     ATTACHMENTS_S3_BUCKET=$(prompt_value_manual "Enter attachments S3 bucket name: ")
     ATTACHMENTS_S3_BUCKET_REGION=$(prompt_value_manual "Enter attachments S3 bucket region: ")
     ATTACHMENTS_ACCESS_KEY=$(prompt_value_manual "Enter attachments S3 bucket access key: ")
     ATTACHMENTS_SECRET_ACCESS_KEY=$(prompt_value_manual "Enter attachments S3 bucket secret access key: ")
   else
-    echo -e "\nSet storage bucket for symbols"
+    echo -e "Setting storage bucket for symbols"
     SYMBOLS_S3_BUCKET="msr-$NAMESPACE-symbols"
     SYMBOLS_S3_BUCKET_REGION="us-east-1"
     SYMBOLS_ACCESS_KEY=$MINIO_ROOT_USER
     SYMBOLS_SECRET_ACCESS_KEY=$MINIO_ROOT_PASSWORD
 
-    echo -e "\nSet storage bucket for attachments"
-    echo -e "Example: https://measure-attachments.yourcompany.com"
+    echo -e "Setting storage bucket for attachments"
     ATTACHMENTS_S3_ORIGIN=""
     ATTACHMENTS_S3_BUCKET="msr-$NAMESPACE-attachments"
     ATTACHMENTS_S3_BUCKET_REGION="us-east-1"
@@ -500,7 +492,7 @@ elif [[ "$SETUP_ENV" == "production" ]]; then
   NEXT_PUBLIC_SITE_URL=$(prompt_value_manual "Enter URL to access Measure dashboard: ")
 
   echo -e "\nSet Measure service URL"
-  echo -e "Example: https://measureapi.yourcompany.com"
+  echo -e "Example: https://measure-api.yourcompany.com"
   NEXT_PUBLIC_API_BASE_URL=$(prompt_value_manual "Enter URL to Measure API service: ")
 
   echo -e "\nSet Google OAuth"
