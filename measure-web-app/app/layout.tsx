@@ -35,7 +35,6 @@ export default function RootLayout({
       <HighlightInit
         projectId={process.env.NEXT_PUBLIC_HIGHLIGHT_PROJECT_ID}
         serviceName={process.env.NEXT_PUBLIC_FRONTEND_SERVICE_NAME}
-        backendUrl={process.env.NEXT_PUBLIC_HIGHLIGHT_BACKEND_URL}
         disableSessionRecording
         excludedHostnames={['localhost']}
         tracingOrigins
