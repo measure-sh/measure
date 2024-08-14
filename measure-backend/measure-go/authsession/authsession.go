@@ -7,6 +7,7 @@ import (
 	"measure-backend/measure-go/server"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -80,6 +81,12 @@ func NewAuthSession(userId, teamId uuid.UUID, provider string, meta json.RawMess
 	now := time.Now()
 	atSecret := server.Server.Config.AccessTokenSecret
 	atExpiryAt := now.Add(accessTokenExpiryDuration)
+
+	// use extended expiry when in debug mode
+	if gin.IsDebugging() {
+		atExpiryAt = now.Add(24 * time.Hour)
+	}
+
 	accessToken, err := createAccessToken(userId, teamId, atSecret, atExpiryAt)
 	if err != nil {
 		return
