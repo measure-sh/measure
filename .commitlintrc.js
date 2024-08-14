@@ -10,7 +10,7 @@ export default {
      * - feat(backend): attachments is now available
      * 
      */
-    "scope-enum": [2, "always", ["android", "backend", "webapp"]],
+    "scope-enum": [2, "always", ["android", "ios", "backend", "webapp"]],
     /**
      * reduce header max length violation to a warning
      */
