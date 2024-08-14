@@ -3,8 +3,12 @@ package sh.measure.android
 import android.app.Application
 import android.content.Context
 import androidx.annotation.VisibleForTesting
+import org.jetbrains.annotations.TestOnly
 import sh.measure.android.config.MeasureConfig
+import sh.measure.android.events.Attachment
 import sh.measure.android.events.EventProcessor
+import sh.measure.android.events.EventType
+import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.okhttp.OkHttpEventCollector
 import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.TimeProvider
@@ -274,7 +278,40 @@ object Measure {
     internal fun initForInstrumentationTest(initializer: MeasureInitializer) {
         if (isInitialized.compareAndSet(false, true)) {
             measure = MeasureInternal(initializer)
-            // Do not call measure.init() here as the test will set the required dependencies.
+            measure.init()
         }
+    }
+
+    @TestOnly
+    internal fun simulateAppCrash(
+        data: ExceptionData,
+        timestamp: Long,
+        type: String,
+        attributes: MutableMap<String, Any?>,
+        attachments: MutableList<Attachment>,
+    ) {
+        measure.eventProcessor.trackCrash(
+            data = data,
+            timestamp = timestamp,
+            type = type,
+            attributes = attributes,
+            attachments = attachments,
+        )
+    }
+
+    @TestOnly
+    internal fun simulateAnr(
+        data: ExceptionData,
+        timestamp: Long,
+        attributes: MutableMap<String, Any?>,
+        attachments: MutableList<Attachment>,
+    ) {
+        measure.eventProcessor.trackCrash(
+            type = EventType.ANR,
+            data = data,
+            timestamp = timestamp,
+            attributes = attributes,
+            attachments = attachments,
+        )
     }
 }

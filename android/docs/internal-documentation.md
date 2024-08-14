@@ -6,6 +6,7 @@
     * [Exceptions and ANRs export](#exceptions-and-anrs-export)
 * [Thread management](#thread-management)
 * [Configuration](#configuration)
+* [Testing](#testing)
 
 # Storage
 
@@ -118,6 +119,9 @@ sensitive information from being sent or modifying the behavior of the SDK.
 Any configuration change made to `MeasureConfig` is a public API change and must also result in
 updating the documentation.
 
+See [README](../../docs/android/configuration-options.md) for more details about the 
+available configurations.
+
 ## Applying configs
 
 Configs which modify events, like removing fields or decision to drop events are all centralized in
@@ -129,10 +133,32 @@ changes
 the color of the mask applied to the screenshot. These configs are applied at the time of collection
 itself.
 
-## Remote config
+# Testing
 
-Although not implemented yet, the config is expected to be modified from the dashboard, and the
-changes should be reflected in the SDK. Config received from the server is also expected to be
-persisted and used for subsequent initializations. Once implemented, the config passed in during
-initialization will be overridden by the config received from the server. During initialization, the
-the persisted config will be used over the config passed in during initialization.
+The SDK is tested using both unit tests and integration tests. Certain unit tests which require 
+Android framework classes are run using Robolectric. The integration tests are run using Espresso
+and UI Automator.
+
+To run unit tests, use the following command:
+```shell
+./gradlew :measure:test
+```
+
+To run integration tests (requires a device), use the following command:
+```shell
+./gradlew :measure:connectedAndroidTest
+```
+
+The _Measure gradle plugin_ also contains both unit tests and functional tests. The functional tests
+are run using the [testkit by autonomous apps](https://github.com/autonomousapps/dependency-analysis-gradle-plugin/tree/main/testkit) 
+and use JUnit5 for testing as it provides an easy way to run parameterized tests.
+
+TO run the unit tests, use the following command:
+```shell
+./gradlew :measure-gradle-plugin:test
+```
+
+To run the functional tests, use the following command:
+```shell
+./gradlew :measure-gradle-plugin:functionalTest
+```
