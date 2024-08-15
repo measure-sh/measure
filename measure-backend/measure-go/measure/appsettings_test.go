@@ -23,8 +23,8 @@ func TestNewAppSettings(t *testing.T) {
 	if pref.AppId != appId {
 		t.Errorf("appId mismatch: expected %v, got %v", appId, pref.AppId)
 	}
-	if pref.RetentionPeriod != 30 {
-		t.Errorf("RetentionPeriod mismatch: expected %v, got %v", 30, pref.RetentionPeriod)
+	if pref.RetentionPeriod != 90 {
+		t.Errorf("RetentionPeriod mismatch: expected %v, got %v", 90, pref.RetentionPeriod)
 	}
 	if pref.CreatedAt.Sub(now) > time.Second {
 		t.Errorf("createdAt should be around current time")

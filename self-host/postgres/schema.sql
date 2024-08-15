@@ -289,7 +289,7 @@ COMMENT ON COLUMN public.api_keys.created_at IS 'utc timestamp at the time of ap
 
 CREATE TABLE public.app_settings (
     app_id uuid NOT NULL,
-    retention_period integer DEFAULT 30 NOT NULL,
+    retention_period integer DEFAULT 90 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
