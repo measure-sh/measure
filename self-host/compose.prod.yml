@@ -11,7 +11,7 @@ services:
       - GIN_MODE=release
     develop: !reset null
 
-  symbolicator-retrace:
+  symbolicator-android:
     environment:
       - DEVELOPMENT_MODE=false
     develop: !reset null

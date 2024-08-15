@@ -202,7 +202,7 @@ ATTACHMENTS_SECRET_ACCESS_KEY=minio123
 # Measure Services #
 ####################
 
-SYMBOLICATOR_ORIGIN=http://symbolicator-retrace:8181
+SYMBOLICATOR_ORIGIN=http://symbolicator-android:8181
 
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
@@ -316,7 +316,7 @@ ATTACHMENTS_SECRET_ACCESS_KEY=$ATTACHMENTS_SECRET_ACCESS_KEY
 # Measure Services #
 ####################
 
-SYMBOLICATOR_ORIGIN=http://symbolicator-retrace:8181
+SYMBOLICATOR_ORIGIN=http://symbolicator-android:8181
 
 NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL

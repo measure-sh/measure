@@ -92,7 +92,7 @@ Make sure the `self-host/docker-compose.yml` file has the correct environment va
 
 Make sure `backend/api/.env` file has the `AWS_ENDPOINT_URL` environment variable pointing to the minio host url. Also, the bucket name, region and access key/secret must be configured correctly.
 
-For symbolication to work, make sure `backend/symbolicator-retrace/.env` file has the `AWS_ENDPONT_URL` variable pointing to the minio host. Also, the bucket name, region and access key/secret must be configured correctly.
+For symbolication to work, make sure `backend/symbolicator-android/.env` file has the `AWS_ENDPONT_URL` variable pointing to the minio host. Also, the bucket name, region and access key/secret must be configured correctly.
 
 ### Recording sessions or mappings
 

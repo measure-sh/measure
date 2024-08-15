@@ -95,7 +95,7 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-      symbolicator-retrace:
+      symbolicator-android:
         condition: service_healthy
       dbmate:
         condition: service_completed_successfully
@@ -104,9 +104,9 @@ services:
         condition: service_completed_successfully
         required: false
 
-  symbolicator-retrace:
+  symbolicator-android:
     build:
-      context: ../backend/symbolicator-retrace
+      context: ../backend/symbolicator-android
     ports:
       - "8181:8181"
     environment:
@@ -125,7 +125,7 @@ services:
       retries: 5
     develop:
       watch:
-        - path: ../backend/symbolicator-retrace
+        - path: ../backend/symbolicator-android
           action: rebuild
     depends_on:
       minio:

@@ -17,7 +17,7 @@ application {
 
 ktor {
     fatJar {
-        archiveFileName.set("symbolicator-retrace.jar")
+        archiveFileName.set("symbolicator-android.jar")
     }
 }
 

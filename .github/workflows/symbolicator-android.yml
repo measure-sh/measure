@@ -1,20 +1,20 @@
-name: Symbolicator Retrace
+name: Symbolicator Android
 
 on:
   push:
     branches:
       - 'main'
     paths:
-      - .github/workflows/symbolicator-retrace.yml
-      - backend/symbolicator-retrace/**
+      - .github/workflows/symbolicator-android.yml
+      - backend/symbolicator-android/**
   pull_request:
     paths:
-      - .github/workflows/symbolicator-retrace.yml
-      - backend/symbolicator-retrace/**
+      - .github/workflows/symbolicator-android.yml
+      - backend/symbolicator-android/**
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: measure-sh/symbolicator-retrace
+  IMAGE_NAME: measure-sh/symbolicator-android
   AWS_ENDPOINT_URL: http://minio:9000
   SYMBOLS_S3_BUCKET: msr-symbols-sandbox
   SYMBOLS_S3_BUCKET_REGION: us-east-1
@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: backend/symbolicator-retrace
+        working-directory: backend/symbolicator-android
 
     steps:
     - name: Checkout code
@@ -92,13 +92,13 @@ jobs:
         id: push
         uses: docker/build-push-action@v6
         with:
-          context: backend/symbolicator-retrace
-          file: backend/symbolicator-retrace/dockerfile
+          context: backend/symbolicator-android
+          file: backend/symbolicator-android/dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: |
-            org.opencontainers.image.source=https://github.com/measure-sh/measure/tree/${{ github.ref_name }}/backend/symbolicator-retrace/dockerfile
-            org.opencontainers.image.description=Measure Symbolicator Retrace
+            org.opencontainers.image.source=https://github.com/measure-sh/measure/tree/${{ github.ref_name }}/backend/symbolicator-android/dockerfile
+            org.opencontainers.image.description=Measure Symbolicator for Android
             org.opencontainers.image.licenses=Apache-2.0
 
       # Disable artifact attestation till repo is public
