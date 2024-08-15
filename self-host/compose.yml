@@ -52,7 +52,7 @@ services:
 
   api:
     build:
-      context: ../measure-backend/measure-go
+      context: ../backend/api
     ports:
       - "8080:8080"
     environment:
@@ -81,7 +81,7 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
     develop:
       watch:
-        - path: ../measure-backend/measure-go
+        - path: ../backend/api
           action: rebuild
     healthcheck:
       test: ["CMD", "wget", "-q", "http://localhost:8080/ping"]
@@ -106,7 +106,7 @@ services:
 
   symbolicator-retrace:
     build:
-      context: ../measure-backend/symbolicator-retrace
+      context: ../backend/symbolicator-retrace
     ports:
       - "8181:8181"
     environment:
@@ -125,7 +125,7 @@ services:
       retries: 5
     develop:
       watch:
-        - path: ../measure-backend/symbolicator-retrace
+        - path: ../backend/symbolicator-retrace
           action: rebuild
     depends_on:
       minio:

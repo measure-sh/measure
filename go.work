@@ -1,6 +1,6 @@
 go 1.22
 
 use (
-	./measure-backend/measure-go
+	./backend/api
 	./self-host/sessionator
 )

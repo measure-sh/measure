@@ -90,9 +90,9 @@ When sessionator is running, the mapping and attachments files can be either con
 
 Make sure the `self-host/docker-compose.yml` file has the correct environment variables configured for minio to work.
 
-Make sure `measure-backend/measure-go/.env` file has the `AWS_ENDPOINT_URL` environment variable pointing to the minio host url. Also, the bucket name, region and access key/secret must be configured correctly.
+Make sure `backend/api/.env` file has the `AWS_ENDPOINT_URL` environment variable pointing to the minio host url. Also, the bucket name, region and access key/secret must be configured correctly.
 
-For symbolication to work, make sure `measure-backend/symbolicator-retrace/.env` file has the `AWS_ENDPONT_URL` variable pointing to the minio host. Also, the bucket name, region and access key/secret must be configured correctly.
+For symbolication to work, make sure `backend/symbolicator-retrace/.env` file has the `AWS_ENDPONT_URL` variable pointing to the minio host. Also, the bucket name, region and access key/secret must be configured correctly.
 
 ### Recording sessions or mappings
 

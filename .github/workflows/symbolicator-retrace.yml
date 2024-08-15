@@ -6,11 +6,11 @@ on:
       - 'main'
     paths:
       - .github/workflows/symbolicator-retrace.yml
-      - measure-backend/symbolicator-retrace/**
+      - backend/symbolicator-retrace/**
   pull_request:
     paths:
       - .github/workflows/symbolicator-retrace.yml
-      - measure-backend/symbolicator-retrace/**
+      - backend/symbolicator-retrace/**
 
 env:
   REGISTRY: ghcr.io
@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: measure-backend/symbolicator-retrace
+        working-directory: backend/symbolicator-retrace
 
     steps:
     - name: Checkout code
@@ -92,12 +92,12 @@ jobs:
         id: push
         uses: docker/build-push-action@v6
         with:
-          context: measure-backend/symbolicator-retrace
-          file: measure-backend/symbolicator-retrace/dockerfile
+          context: backend/symbolicator-retrace
+          file: backend/symbolicator-retrace/dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: |
-            org.opencontainers.image.source=https://github.com/measure-sh/measure/tree/${{ github.ref_name }}/measure-backend/symbolicator-retrace/dockerfile
+            org.opencontainers.image.source=https://github.com/measure-sh/measure/tree/${{ github.ref_name }}/backend/symbolicator-retrace/dockerfile
             org.opencontainers.image.description=Measure Symbolicator Retrace
             org.opencontainers.image.licenses=Apache-2.0
 

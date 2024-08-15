@@ -1,10 +1,10 @@
 package app
 
 import (
+	"backend/api/event"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"measure-backend/measure-go/event"
 	"os"
 	"sessionator/config"
 
