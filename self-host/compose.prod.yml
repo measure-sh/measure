@@ -1,7 +1,7 @@
 services:
-  web:
+  dashboard:
     build:
-      dockerfile: ../measure-web-app/dockerfile.prod
+      dockerfile: ../frontend/dockerfile.prod
     environment:
       - NODE_ENV=production
     volumes: !reset null

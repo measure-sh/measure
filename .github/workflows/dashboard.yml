@@ -1,28 +1,28 @@
-name: Webapp CI
+name: Dashboard CI
 
 on:
   pull_request:
     paths:
-      - .github/workflows/webapp.yml
-      - 'measure-web-app/**'
+      - .github/workflows/dashboard.yml
+      - 'frontend/**'
   push:
     branches:
       - 'main'
     paths:
-      - .github/workflows/webapp.yml
-      - 'measure-web-app/**'
+      - .github/workflows/dashboard.yml
+      - 'frontend/**'
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: measure-sh/webapp
+  IMAGE_NAME: measure-sh/dashboard
 
 jobs:
   unit-test:
-    name: Run web app unit tests
+    name: Run dashboard app unit tests
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: measure-web-app
+        working-directory: frontend
     timeout-minutes: 10
     steps:
       - name: Checkout repository
@@ -70,13 +70,13 @@ jobs:
         id: push
         uses: docker/build-push-action@v6
         with:
-          context: measure-web-app
-          file: measure-web-app/dockerfile
+          context: frontend
+          file: frontend/dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: |
-            org.opencontainers.image.source=https://github.com/measure-sh/measure/tree/${{ github.ref_name }}/measure-web-app/dockerfile
-            org.opencontainers.image.description=Measure Webapp
+            org.opencontainers.image.source=https://github.com/measure-sh/measure/tree/${{ github.ref_name }}/frontend/dockerfile
+            org.opencontainers.image.description=Measure Dashboard App
             org.opencontainers.image.licenses=Apache-2.0
 
       # Disable artifact attestation till repo is public

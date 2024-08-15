@@ -110,8 +110,9 @@ All commits landing in any branch are first linted in your local environment and
   - **ci:** for commits that modifies CI configuration
   - **chore:** for commits that modifies settings, configurations and everything else
 - Scoping your commits is optional, but encouraged. Allowed scopes are:
+  - **ios** for commits related to iOS SDK
   - **android** for commits related to Android SDK
-  - **webapp** for commits related to dashboard web app
+  - **frontend** for commits related to dashboard web app
   - **backend** for commits related to backend infrastructure
 - Try not to exceed **72** characters for commit header message
 - Try not to exceed **100** characters for each line in body. Break each line with newlines to remain under 100 characters.
@@ -180,5 +181,5 @@ All commits landing in any branch are first linted in your local environment and
 
 ## Documentation
 - Public facing docs should be in [docs](../README.md) folder - API requests & responses, self host guide, sdk guides and so on
-- Main folder of subproject should link to main guide. ex: [frontend README](../../measure-web-app/README.md) has link to self hosting and local dev guide
+- Main folder of subproject should link to main guide. ex: [frontend README](../../frontend/README.md) has link to self hosting and local dev guide
 - Non public facing docs can stay in sub folder. ex: [backend benchmarking README](../../backend/benchmarking/README.md) which describes its purpose

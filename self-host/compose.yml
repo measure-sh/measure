@@ -28,9 +28,9 @@
 
 name: measure
 services:
-  web:
+  dashboard:
     build:
-      context: ../measure-web-app
+      context: ../frontend
     ports:
       - "3000:3000"
     environment:
@@ -43,8 +43,8 @@ services:
       timeout: 10s
       retries: 5
     volumes:
-      - ../measure-web-app:/app
-      - ../measure-web-app/public:/app/public
+      - ../frontend:/app
+      - ../frontend/public:/app/public
     depends_on:
       api:
         condition: service_healthy
