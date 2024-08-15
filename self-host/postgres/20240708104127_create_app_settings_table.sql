@@ -1,7 +1,7 @@
 -- migrate:up
 create table if not exists public.app_settings (
     app_id uuid primary key not null references public.apps(id) on delete cascade,
-    retention_period int not null default 30,
+    retention_period int not null default 90,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
