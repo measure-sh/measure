@@ -30,7 +30,7 @@ name: measure
 services:
   dashboard:
     build:
-      context: ../frontend
+      context: ../frontend/dashboard
     ports:
       - "3000:3000"
     environment:
@@ -43,8 +43,8 @@ services:
       timeout: 10s
       retries: 5
     volumes:
-      - ../frontend:/app
-      - ../frontend/public:/app/public
+      - ../frontend/dashboard:/app
+      - ../frontend/dashboard/public:/app/public
     depends_on:
       api:
         condition: service_healthy

@@ -4,13 +4,13 @@ on:
   pull_request:
     paths:
       - .github/workflows/dashboard.yml
-      - 'frontend/**'
+      - 'frontend/dashboard/**'
   push:
     branches:
       - 'main'
     paths:
       - .github/workflows/dashboard.yml
-      - 'frontend/**'
+      - 'frontend/dashboard/**'
 
 env:
   REGISTRY: ghcr.io
@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: frontend
+        working-directory: frontend/dashboard
     timeout-minutes: 10
     steps:
       - name: Checkout repository
@@ -70,12 +70,12 @@ jobs:
         id: push
         uses: docker/build-push-action@v6
         with:
-          context: frontend
-          file: frontend/dockerfile
+          context: frontend/dashboard
+          file: frontend/dashboard/dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: |
-            org.opencontainers.image.source=https://github.com/measure-sh/measure/tree/${{ github.ref_name }}/frontend/dockerfile
+            org.opencontainers.image.source=https://github.com/measure-sh/measure/tree/${{ github.ref_name }}/frontend/dashboard/dockerfile
             org.opencontainers.image.description=Measure Dashboard App
             org.opencontainers.image.licenses=Apache-2.0
 
