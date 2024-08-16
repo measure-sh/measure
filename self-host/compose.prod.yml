@@ -11,6 +11,11 @@ services:
       - GIN_MODE=release
     develop: !reset null
 
+  cleanup:
+    environment:
+      - GIN_MODE=release
+    develop: !reset null
+
   symbolicator-android:
     environment:
       - DEVELOPMENT_MODE=false

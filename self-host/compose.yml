@@ -106,7 +106,7 @@ services:
   
   cleanup:
     build:
-      context: ../measure-backend/cleanup
+      context: ../backend/cleanup
     ports:
       - "8081:8081"
     environment:
@@ -124,7 +124,7 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
     develop:
       watch:
-        - path: ../measure-backend/cleanup
+        - path: ../backend/cleanup
           action: rebuild
     healthcheck:
       test: ["CMD", "wget", "-q", "http://localhost:8081/ping"]
