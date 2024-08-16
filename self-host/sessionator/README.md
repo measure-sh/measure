@@ -66,7 +66,17 @@ go run . ingest --clean
 
 For `--clean` to work, you would need to configure the following settings in your `session-data/config.toml` file.
 
+When ingesting events for newly created apps along with `--clean` flag, please mention the app name in the `name` field per app. The value of the `name` field must match exactly the name given when creating apps in Measure dashboard.
+
 ```toml
+[apps.sample-app]
+name = "your-app-name-1"
+api-key = "msrsh_xxxxxx_xxxx"
+
+[apps.wikipedia]
+name = "your-app-name-2"
+api-key = "msrsh_xxxxxx_xxxx"
+
 [storage]
 postgres_dsn = "postgresql://postgres:postgres@127.0.0.1:5432/postgres"
 clickhouse_dsn = "clickhouse://default:@127.0.0.1:9000/default"
