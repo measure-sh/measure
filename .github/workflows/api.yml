@@ -23,7 +23,7 @@ env:
 
 jobs:
   build:
-    name: Build API server
+    name: Build
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -48,7 +48,7 @@ jobs:
         run: go build -v ./...
 
   test:
-    name: Test API server
+    name: Test
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -73,7 +73,7 @@ jobs:
         run: go test ./...
   
   push:
-    name: Build Docker image
+    name: Build and push image
     runs-on: ubuntu-latest
     #if: github.ref_type == 'tag'
     needs: [build, test]
@@ -99,7 +99,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      - name: Build and push Docker image
+      - name: Build and push OCI image
         id: push
         uses: docker/build-push-action@v6
         with:
@@ -122,7 +122,7 @@ jobs:
       #     push-to-registry: true
 
   deploy:
-    name: Deploy API server
+    name: Deploy to fly.io
     if: github.ref == 'refs/heads/main'
     needs: [build, test]
     runs-on: ubuntu-latest

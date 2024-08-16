@@ -18,7 +18,7 @@ env:
 
 jobs:
   unit-test:
-    name: Run dashboard app unit tests
+    name: Run dashboard unit tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -40,7 +40,7 @@ jobs:
         run: npm test
 
   push:
-    name: Build Docker image
+    name: Build and push image
     runs-on: ubuntu-latest
     #if: github.ref_type == 'tag'
     needs: [unit-test]
@@ -66,7 +66,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      - name: Build and push Docker image
+      - name: Build and push OCI image
         id: push
         uses: docker/build-push-action@v6
         with:
