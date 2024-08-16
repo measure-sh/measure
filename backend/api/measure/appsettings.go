@@ -37,7 +37,7 @@ func (pref *AppSettings) MarshalJSON() ([]byte, error) {
 func newAppSettings(appId uuid.UUID) *AppSettings {
 	return &AppSettings{
 		AppId:           appId,
-		RetentionPeriod: 30,
+		RetentionPeriod: 90,
 		CreatedAt:       time.Now(),
 		UpdatedAt:       time.Now(),
 	}

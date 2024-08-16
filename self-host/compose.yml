@@ -103,6 +103,47 @@ services:
       mc:
         condition: service_completed_successfully
         required: false
+  
+  cleanup:
+    build:
+      context: ../measure-backend/cleanup
+    ports:
+      - "8081:8081"
+    environment:
+      - POSTGRES_DSN=${POSTGRES_DSN}
+      - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
+      - ATTACHMENTS_S3_ORIGIN=${ATTACHMENTS_S3_ORIGIN}
+      - ATTACHMENTS_S3_BUCKET=${ATTACHMENTS_S3_BUCKET}
+      - ATTACHMENTS_S3_BUCKET_REGION=${ATTACHMENTS_S3_BUCKET_REGION}
+      - ATTACHMENTS_ACCESS_KEY=${ATTACHMENTS_ACCESS_KEY}
+      - ATTACHMENTS_SECRET_ACCESS_KEY=${ATTACHMENTS_SECRET_ACCESS_KEY}
+      - SITE_ORIGIN=${NEXT_PUBLIC_SITE_URL}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
+      - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
+    develop:
+      watch:
+        - path: ../measure-backend/cleanup
+          action: rebuild
+    healthcheck:
+      test: ["CMD", "wget", "-q", "http://localhost:8081/ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      dbmate:
+        condition: service_completed_successfully
+        required: false
+      mc:
+        condition: service_completed_successfully
+        required: false
 
   symbolicator-android:
     build:
