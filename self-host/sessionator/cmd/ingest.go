@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"backend/api/event"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -8,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"measure-backend/measure-go/event"
 	"mime/multipart"
 	"net/http"
 	"os"

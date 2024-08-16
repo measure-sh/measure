@@ -1,7 +1,7 @@
 go 1.22
 
 use (
-	./measure-backend/cleanup
-	./measure-backend/measure-go
+	./backend/api
+	./backend/cleanup
 	./self-host/sessionator
 )

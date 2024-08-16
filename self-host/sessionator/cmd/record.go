@@ -1,12 +1,12 @@
 package cmd
 
 import (
+	"backend/api/event"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
-	"measure-backend/measure-go/event"
 	"net/http"
 	"os"
 	"path/filepath"

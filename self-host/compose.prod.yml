@@ -1,7 +1,7 @@
 services:
-  web:
+  dashboard:
     build:
-      dockerfile: ../measure-web-app/dockerfile.prod
+      dockerfile: ../frontend/dashboard/dockerfile.prod
     environment:
       - NODE_ENV=production
     volumes: !reset null
@@ -11,7 +11,12 @@ services:
       - GIN_MODE=release
     develop: !reset null
 
-  symbolicator-retrace:
+  cleanup:
+    environment:
+      - GIN_MODE=release
+    develop: !reset null
+
+  symbolicator-android:
     environment:
       - DEVELOPMENT_MODE=false
     develop: !reset null

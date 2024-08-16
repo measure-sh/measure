@@ -28,9 +28,9 @@
 
 name: measure
 services:
-  web:
+  dashboard:
     build:
-      context: ../measure-web-app
+      context: ../frontend/dashboard
     ports:
       - "3000:3000"
     environment:
@@ -43,8 +43,8 @@ services:
       timeout: 10s
       retries: 5
     volumes:
-      - ../measure-web-app:/app
-      - ../measure-web-app/public:/app/public
+      - ../frontend/dashboard:/app
+      - ../frontend/dashboard/public:/app/public
     depends_on:
       api:
         condition: service_healthy
@@ -52,7 +52,7 @@ services:
 
   api:
     build:
-      context: ../measure-backend/measure-go
+      context: ../backend/api
     ports:
       - "8080:8080"
     environment:
@@ -81,10 +81,10 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
     develop:
       watch:
-        - path: ../measure-backend/measure-go
+        - path: ../backend/api
           action: rebuild
     healthcheck:
-      test: ["CMD", "wget", "-q", "http://localhost:8080/ping"]
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/ping"]
       interval: 5s
       timeout: 10s
       retries: 5
@@ -95,7 +95,7 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-      symbolicator-retrace:
+      symbolicator-android:
         condition: service_healthy
       dbmate:
         condition: service_completed_successfully
@@ -106,7 +106,7 @@ services:
   
   cleanup:
     build:
-      context: ../measure-backend/cleanup
+      context: ../backend/cleanup
     ports:
       - "8081:8081"
     environment:
@@ -118,16 +118,15 @@ services:
       - ATTACHMENTS_S3_BUCKET_REGION=${ATTACHMENTS_S3_BUCKET_REGION}
       - ATTACHMENTS_ACCESS_KEY=${ATTACHMENTS_ACCESS_KEY}
       - ATTACHMENTS_SECRET_ACCESS_KEY=${ATTACHMENTS_SECRET_ACCESS_KEY}
-      - SITE_ORIGIN=${NEXT_PUBLIC_SITE_URL}
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
       - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
     develop:
       watch:
-        - path: ../measure-backend/cleanup
+        - path: ../backend/cleanup
           action: rebuild
     healthcheck:
-      test: ["CMD", "wget", "-q", "http://localhost:8081/ping"]
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8081/ping"]
       interval: 5s
       timeout: 10s
       retries: 5
@@ -145,9 +144,9 @@ services:
         condition: service_completed_successfully
         required: false
 
-  symbolicator-retrace:
+  symbolicator-android:
     build:
-      context: ../measure-backend/symbolicator-retrace
+      context: ../backend/symbolicator-android
     ports:
       - "8181:8181"
     environment:
@@ -166,7 +165,7 @@ services:
       retries: 5
     develop:
       watch:
-        - path: ../measure-backend/symbolicator-retrace
+        - path: ../backend/symbolicator-android
           action: rebuild
     depends_on:
       minio:

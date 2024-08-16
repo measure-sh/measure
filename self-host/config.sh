@@ -6,8 +6,8 @@
 # Path to universal environment file
 ENV_FILE=.env
 
-# Path to web environment file
-ENV_WEB_FILE=../measure-web-app/.env.local
+# Path to dashboard environment file
+ENV_WEB_FILE=../frontend/.env.local
 
 # Measure insignia
 ENV_HEADER=$(cat <<'EOF'
@@ -202,7 +202,7 @@ ATTACHMENTS_SECRET_ACCESS_KEY=minio123
 # Measure Services #
 ####################
 
-SYMBOLICATOR_ORIGIN=http://symbolicator-retrace:8181
+SYMBOLICATOR_ORIGIN=http://symbolicator-android:8181
 
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
@@ -238,8 +238,8 @@ $ENV_HEADER
 # This configuration file was generated via an automated script.
 # Generated at $ENV_TIMESTAMP
 
-# Measure Web App Configuration
-# Contains environment variables for measure web app
+# Measure Dashboard App Configuration
+# Contains environment variables for measure dashboard app
 
 ########
 # Next #
@@ -316,7 +316,7 @@ ATTACHMENTS_SECRET_ACCESS_KEY=$ATTACHMENTS_SECRET_ACCESS_KEY
 # Measure Services #
 ####################
 
-SYMBOLICATOR_ORIGIN=http://symbolicator-retrace:8181
+SYMBOLICATOR_ORIGIN=http://symbolicator-android:8181
 
 NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
@@ -352,8 +352,8 @@ $ENV_HEADER
 # This configuration file was generated via an automated script.
 # Generated at $ENV_TIMESTAMP
 
-# Measure Web App Configuration
-# Contains environment variables for measure web app
+# Measure Dashboard App Configuration
+# Contains environment variables for measure dashboard app
 
 ########
 # Next #
@@ -487,7 +487,7 @@ END
     ATTACHMENTS_SECRET_ACCESS_KEY=$MINIO_ROOT_PASSWORD
   fi
 
-  echo -e "\nSet Measure webapp dashboard URL"
+  echo -e "\nSet Measure dashboard URL"
   echo -e "Example: https://measure.yourcompany.com"
   NEXT_PUBLIC_SITE_URL=$(prompt_value_manual "Enter URL to access Measure dashboard: ")
 

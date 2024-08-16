@@ -103,7 +103,7 @@ Next, it'll ask for a namespace for your company or team. This typically will be
 
 _TODO: Insert image here_
 
-For the next prompt, you'll be asked to enter the URL to access Measure's web app dashboard. Typically, this might look like a subdomain on your primary domain, for example, if your domain is `yourcompany.com`, enter `https://measure.yourcompany.com`.
+For the next prompt, you'll be asked to enter the URL to access Measure's web dashboard. Typically, this might look like a subdomain on your primary domain, for example, if your domain is `yourcompany.com`, enter `https://measure.yourcompany.com`.
 
 Next, you'll be asked to enter the URL to access Measure's REST API endpoint. Typically, this might look like, `https://measure-api.yourcompany.com`.
 
@@ -113,7 +113,7 @@ Later in this guide, you'll be setting DNS A records for the above subdomains yo
 
 _TODO: Insert image here_
 
-For the next few prompts, you'll need to obtain a Google & GitHub OAuth Application's credentials. This is required to setup authentication in Measure Webapp.
+For the next few prompts, you'll need to obtain a Google & GitHub OAuth Application's credentials. This is required to setup authentication in Measure dashboard.
 
 - [Create a Google OAuth App](./google-oauth.md)
 - [Create a GitHub OAuth App](./github-oauth.md)
