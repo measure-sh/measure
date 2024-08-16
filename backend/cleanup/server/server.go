@@ -38,7 +38,6 @@ type ServerConfig struct {
 	AttachmentsSecretAccessKey string
 	AWSEndpoint                string
 	AttachmentOrigin           string
-	SiteOrigin                 string
 	OtelServiceName            string
 }
 
@@ -67,11 +66,6 @@ func NewConfig() *ServerConfig {
 	attachmentOrigin := os.Getenv("ATTACHMENTS_S3_ORIGIN")
 	if attachmentOrigin == "" {
 		log.Println("ATTACHMENTS_S3_ORIGIN env var not set, event attachment downloads won't work")
-	}
-
-	siteOrigin := os.Getenv("SITE_ORIGIN")
-	if siteOrigin == "" {
-		log.Fatal("SITE_ORIGIN env var not set. Need for Cross Origin Resource Sharing (CORS) to work.")
 	}
 
 	postgresDSN := os.Getenv("POSTGRES_DSN")
@@ -104,7 +98,6 @@ func NewConfig() *ServerConfig {
 		AttachmentsSecretAccessKey: attachmentsSecretAccessKey,
 		AWSEndpoint:                endpoint,
 		AttachmentOrigin:           attachmentOrigin,
-		SiteOrigin:                 siteOrigin,
 		OtelServiceName:            otelServiceName,
 	}
 }
