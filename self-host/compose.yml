@@ -84,7 +84,7 @@ services:
         - path: ../backend/api
           action: rebuild
     healthcheck:
-      test: ["CMD", "wget", "-q", "http://localhost:8080/ping"]
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/ping"]
       interval: 5s
       timeout: 10s
       retries: 5
@@ -127,7 +127,7 @@ services:
         - path: ../backend/cleanup
           action: rebuild
     healthcheck:
-      test: ["CMD", "wget", "-q", "http://localhost:8081/ping"]
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8081/ping"]
       interval: 5s
       timeout: 10s
       retries: 5
