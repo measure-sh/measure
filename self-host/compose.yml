@@ -25,7 +25,6 @@
 #     - EMPTY_MY_VAR=${EMPTY_MY_VAR:-}
 #   ```
 
-
 name: measure
 services:
   dashboard:
@@ -97,7 +96,10 @@ services:
         condition: service_healthy
       symbolicator-android:
         condition: service_healthy
-      dbmate:
+      dbmate-postgres:
+        condition: service_completed_successfully
+        required: false
+      dbmate-clickhouse:
         condition: service_completed_successfully
         required: false
       mc:
@@ -137,7 +139,10 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-      dbmate:
+      dbmate-postgres:
+        condition: service_completed_successfully
+        required: false
+      dbmate-clickhouse:
         condition: service_completed_successfully
         required: false
       mc:
@@ -202,29 +207,43 @@ services:
       exit 0;
       "
 
-  dbmate:
+  dbmate-postgres:
     image: ghcr.io/amacneil/dbmate
     profiles:
       - migrate
     environment:
-      - POSTGRES_DSN=${POSTGRES_MIGRATION_URL}
-      - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
-      - DBMATE_MIGRATIONS_DIR=.
-      - DBMATE_SCHEMA_FILE=./schema.sql
+      - DATABASE_URL=${POSTGRES_MIGRATION_URL}
+      - DBMATE_MIGRATIONS_DIR=/opt/postgres
+      - DBMATE_SCHEMA_FILE=/opt/postgres/schema.sql
       - DBMATE_WAIT=true
+      - DBMATE_STRICT=true
       - DBMATE_NO_DUMP_SCHEMA=true
     depends_on:
       postgres:
         condition: service_healthy
         restart: true
+    volumes:
+      - ./postgres:/opt/postgres
+    command: [ "migrate" ]
+
+  dbmate-clickhouse:
+    image: ghcr.io/amacneil/dbmate
+    profiles:
+      - migrate
+    environment:
+      - DATABASE_URL=${CLICKHOUSE_DSN}
+      - DBMATE_MIGRATIONS_DIR=/opt/clickhouse
+      - DBMATE_SCHEMA_FILE=/opt/clickhouse/schema.sql
+      - DBMATE_WAIT=true
+      - DBMATE_STRICT=true
+      - DBMATE_NO_DUMP_SCHEMA=true
+    depends_on:
       clickhouse:
         condition: service_healthy
         restart: true
     volumes:
       - ./clickhouse:/opt/clickhouse
-      - ./postgres:/opt/postgres
-      - ./dbmate.sh:/opt/entrypoint.sh
-    entrypoint: /opt/entrypoint.sh
+    command: [ "migrate" ]
 
   postgres:
     image: postgres:16.3-alpine
