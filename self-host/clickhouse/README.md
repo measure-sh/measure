@@ -1,11 +1,16 @@
 # Clickhouse Schema Migrations
 
-Schema migrations for clickhouse instances are managed using [dbmate](https://github.com/amacneil/dbmate).
+Schema migrations for Clickhouse database are managed using the `dbmate-clickhouse` docker compose service. This service wraps the [dbmate](https://github.com/amacneil/dbmate)'s docker image configured for communicating to Measure's `clickhouse` compose service.
 
-## Notes
 
-- migrations are stored in the `default.schema_migrations` table
-- it is safe to rename a migration file before or after applying the migration
+> [!NOTE]
+>
+> ## Before you proceed
+>
+> - Clickhouse migrations files are located at `self-host/clickhouse/*`
+> - Migrations are stored in the `dbmate.schema_migrations` table
+> - It is safe to rename a migration file before or after applying the migration
+> - Always change to `cd self-host` directory first before running any database operations
 
 ## Migration Guidelines
 
@@ -24,49 +29,65 @@ Schema migrations for clickhouse instances are managed using [dbmate](https://gi
     - `dbmate new create-create_team_for_user-trigger`
 - When authoring migrations, always prefix the schema name in your objects
 
-## Deleting old migrations
+## Clickhouse Database Operations
 
-Though, generally not recommended, if you want to delete old migration files or squash multiple migration files into one, run the `./rigmarole.sh` script after deleting `.sql` files. This script will rollback all pending migrations and then re-run them. Read on to fully understand the consequences.
+During development, you may need to perform certain Clickhouse operations, like running migrations or reseting the entire Clickhouse database. We recommend the following commands for such database operations.
 
-* Data from all tables **WILL** get deleted
-* Before running `./rigmarole.sh`, manually truncate the `default.schema_migrations` table by running the following SQL.
-  
-  ```sql
-  truncate table if exists default.schema_migrations;
-  ```
+### View Status of Clickhouse Migrations
 
-  Using `clickhouse-client` from clickhouse's docker container. Make sure, docker compose is up. [More info](../README.md).
-  
+To view the status of the current Clickhouse migrations, run:
 
-  ```sh
-  # syntax
-  docker exec -it <clickhouse-container-name> \
-    clickhouse-client <dsn> \
-    -q "truncate table if exists default.schema_migrations;"
+```sh
+docker compose run --rm dbmate-clickhouse status
+```
 
-  # example
-  docker exec -it clickhouse clickhouse-client \
-    clickhouse://default@127.0.0.1:9000/default \
-    -q "truncate table if exists default.schema_migrations;"
-  ```
+### Create a new Clickhouse Migration
 
-* Run `./rigmarole.sh`
+To create a new Clickhouse migration, run:
+
+```sh
+docker compose run --rm dbmate-clickhouse new <migration-name>
+
+# Example
+docker compose run --rm dbmate-clickhouse new create-users-table
+```
+
+### Running Clickhouse Migrations
+
+Use the built-in `dbmate-clickhouse` compose service to run Clickhouse migrations like this:
+
+```sh
+docker compose run --rm dbmate-clickhouse migrate
+```
+
+### Reset Clickhouse Database
+
+To reset all data and run all migrations, run:
+
+> [!CAUTION]
+>
+> ## Destructive Action
+> 
+> Resetting database will **DELETE** all data in your Clickhouse database.
+> If you want need the data later, make sure you take a backup first.
+
+```sh
+docker compose run --rm --entrypoint /opt/clickhouse/rigmarole.sh dbmate-clickhouse
+```
 
 ## Examples
+
+Find a few examples of writing migration SQL scripts below.
 
 ### Creating tables
 
 ```sql
 -- migrate:up
-create table if not exists public.employees (
+create table if not exists default.events (
     id uuid primary key not null,
     name text
 );
 
 -- migrate:down
-drop table if exists public.employees;
+drop table if exists default.events;
 ```
-
-## Reset
-
-Run the `./rigmarole.sh` script to rollback all migrations and re-apply again. This will effectively reset the entire database and &amp; clear all data.
