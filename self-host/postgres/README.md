@@ -1,11 +1,15 @@
 # Postgres Schema Migrations
 
-Schema migrations for postgres instances are managed using [dbmate](https://github.com/amacneil/dbmate).
+Schema migrations for Postgres database are managed using the `dbmate-postgres` docker compose service. This service wraps the [dbmate](https://github.com/amacneil/dbmate)'s docker image configured for communicating to Measure's `postgres` compose service.
 
-## Notes
-
-- migrations are stored in the `dbmate.schema_migrations` table
-- it is safe to rename a migration file before or after applying the migration
+> [!NOTE]
+>
+> ## Before you proceed
+>
+> - Postgres migrations files are located at `self-host/postgres/*`
+> - Migrations are stored in the `dbmate.schema_migrations` table
+> - It is safe to rename a migration file before or after applying the migration
+> - Always change to `cd self-host` directory first before running any database operations
 
 ## Migration Guidelines
 
@@ -25,48 +29,65 @@ Schema migrations for postgres instances are managed using [dbmate](https://gith
     - `dbmate new alter_teams_relation` - add a new column
 - When authoring migrations, always prefix the schema name in your objects
 
-## Deleting old migrations
+## Postgres Database Operations
 
-Though, generally not recommended, if you want to delete old migration files or squash multiple migration files into one, run the `./rigmarole.sh` script after deleting `.sql` files. This script will rollback all pending migrations and then re-run them. Read on to fully understand the consequences.
+During development, you may need to perform certain Postgres operations, like running migrations or reseting the entire Postgres database. We recommend the following commands for such database operations.
 
-* Data from all tables **WILL** get deleted
-* Before running `./rigmarole.sh`, manually truncate the `dbmate.schema_migrations` table by running the following SQL.
-  
-  ```sql
-  truncate table if exists dbmate.schema_migrations;
-  ```
+### View Status of Postgres Migrations
 
-  Using `psql` from postgres docker container. Make sure, docker compose is up. [More info](../README.md).
+To view the status of the current Postgres migrations, run:
 
-  ```sh
-  # syntax
-  docker exec -it <container-name> \
-    psql <dsn> \
-    -c "truncate table if exists dbmate.schema_migrations;"
+```sh
+docker compose run --rm dbmate-postgres status
+```
 
-  # example
-  docker exec -it postgres \
-    psql postgresql://postgres:postgres@postgres:5432/postgres \
-    -c 'truncate table if exists dbmate.schema_migrations;'
-  ```
+### Create a new Postgres Migration
 
-* Run `./rigmarole.sh`
+To create a new Postgres migration, run:
 
-## Examples
+```sh
+docker compose run --rm dbmate-postgres new <migration-name>
+
+# Example
+docker compose run --rm dbmate-postgres new create-users-table
+```
+
+### Running Postgres Migrations
+
+Use the built-in `dbmate-postgres` compose service to run Postgres migrations like this:
+
+```sh
+docker compose run --rm dbmate-postgres migrate
+```
+
+### Reset Postgres Database
+
+To reset all data and run all migrations, run:
+
+> [!CAUTION]
+>
+> ## Destructive Action
+> 
+> Resetting database will **DELETE** all data in your Postgres database.
+> If you want need the data later, make sure you take a backup first.
+
+```sh
+docker compose run --rm --entrypoint /opt/postgres/rigmarole.sh dbmate-postgres
+```
+
+## Example Migrations
+
+Find a few examples of writing migration SQL scripts below.
 
 ### Creating tables
 
 ```sql
 -- migrate:up
-create table if not exists public.employees (
+create table if not exists public.users (
     id uuid primary key not null,
     name text
 );
 
 -- migrate:down
-drop table if exists public.employees;
+drop table if exists public.users;
 ```
-
-## Reset
-
-Run the `./rigmarole.sh` script to rollback all migrations and re-apply again. This will effectively reset the entire database &amp; clear all data. Note that, this will not delete records from the `auth.users` table.
