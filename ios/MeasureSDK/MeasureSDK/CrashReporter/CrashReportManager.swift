@@ -13,8 +13,8 @@ class CrashReportManager {
     
     private init() {}
     
-    func start() {
-        crashReporter.initializeCrashReporter(with: UUID().uuidString)
+    func start(with sessionId: String) {
+        crashReporter.initializeCrashReporter(with: sessionId)
         crashReporter.handleCrashReport()
     }
 }

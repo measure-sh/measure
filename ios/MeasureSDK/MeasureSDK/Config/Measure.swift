@@ -11,6 +11,7 @@ import Foundation
     private override init() {}
 
     @objc public static func start() {
-        CrashReportManager.shared.start()
+        
+        CrashReportManager.shared.start(with: UUID().uuidString)
     }
 }

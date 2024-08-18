@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		523C1AC52C6B1B850081D1CC /* CrashReporter in Frameworks */ = {isa = PBXBuildFile; productRef = 523C1AC42C6B1B850081D1CC /* CrashReporter */; };
+		520731442C7076C9007E8573 /* CrashReporter in Frameworks */ = {isa = PBXBuildFile; productRef = 520731432C7076C9007E8573 /* CrashReporter */; };
 		524CC5C32C6A4B12001AB506 /* MeasureSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* MeasureSDK.framework */; };
 		524CC5C82C6A4B12001AB506 /* MeasureSDKTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524CC5C72C6A4B12001AB506 /* MeasureSDKTests.swift */; };
 		524CC5C92C6A4B12001AB506 /* MeasureSDK.h in Headers */ = {isa = PBXBuildFile; fileRef = 524CC5BD2C6A4B11001AB506 /* MeasureSDK.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -16,6 +16,11 @@
 		524CC5DE2C6A4B48001AB506 /* MeasureCrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524CC5D72C6A4B48001AB506 /* MeasureCrashReporter.swift */; };
 		524CC5DF2C6A4B48001AB506 /* Measure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524CC5D92C6A4B48001AB506 /* Measure.swift */; };
 		524CC5EE2C6A55F0001AB506 /* CrashReportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524CC5ED2C6A55F0001AB506 /* CrashReportManager.swift */; };
+		529C0DDC2C6C7E2000B1B97B /* CrashReportSanitizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 529C0DDB2C6C7E2000B1B97B /* CrashReportSanitizer.swift */; };
+		529C0DE12C6CC8F000B1B97B /* CrashReporterModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 529C0DE02C6CC8F000B1B97B /* CrashReporterModels.swift */; };
+		529C0DE42C6E519F00B1B97B /* CrashSanitizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 529C0DE32C6E519F00B1B97B /* CrashSanitizerTests.swift */; };
+		529C0DE62C6E51B200B1B97B /* crashReport.plcrash in Resources */ = {isa = PBXBuildFile; fileRef = 529C0DE52C6E51B200B1B97B /* crashReport.plcrash */; };
+		529C0DE82C6F2D0E00B1B97B /* MockPLCrashReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 529C0DE72C6F2D0E00B1B97B /* MockPLCrashReport.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -38,6 +43,11 @@
 		524CC5D72C6A4B48001AB506 /* MeasureCrashReporter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MeasureCrashReporter.swift; sourceTree = "<group>"; };
 		524CC5D92C6A4B48001AB506 /* Measure.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Measure.swift; sourceTree = "<group>"; };
 		524CC5ED2C6A55F0001AB506 /* CrashReportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReportManager.swift; sourceTree = "<group>"; };
+		529C0DDB2C6C7E2000B1B97B /* CrashReportSanitizer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CrashReportSanitizer.swift; sourceTree = "<group>"; };
+		529C0DE02C6CC8F000B1B97B /* CrashReporterModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporterModels.swift; sourceTree = "<group>"; };
+		529C0DE32C6E519F00B1B97B /* CrashSanitizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashSanitizerTests.swift; sourceTree = "<group>"; };
+		529C0DE52C6E51B200B1B97B /* crashReport.plcrash */ = {isa = PBXFileReference; lastKnownFileType = file; path = crashReport.plcrash; sourceTree = "<group>"; };
+		529C0DE72C6F2D0E00B1B97B /* MockPLCrashReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockPLCrashReport.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -45,7 +55,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				523C1AC52C6B1B850081D1CC /* CrashReporter in Frameworks */,
+				520731442C7076C9007E8573 /* CrashReporter in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -94,6 +104,7 @@
 		524CC5C62C6A4B12001AB506 /* MeasureSDKTests */ = {
 			isa = PBXGroup;
 			children = (
+				529C0DE22C6E4E1D00B1B97B /* CrashReporterTests */,
 				524CC5C72C6A4B12001AB506 /* MeasureSDKTests.swift */,
 			);
 			path = MeasureSDKTests;
@@ -118,8 +129,10 @@
 		524CC5D82C6A4B48001AB506 /* CrashReporter */ = {
 			isa = PBXGroup;
 			children = (
+				529C0DDB2C6C7E2000B1B97B /* CrashReportSanitizer.swift */,
 				524CC5D72C6A4B48001AB506 /* MeasureCrashReporter.swift */,
 				524CC5ED2C6A55F0001AB506 /* CrashReportManager.swift */,
+				529C0DE02C6CC8F000B1B97B /* CrashReporterModels.swift */,
 			);
 			path = CrashReporter;
 			sourceTree = "<group>";
@@ -137,6 +150,16 @@
 			children = (
 			);
 			path = Utils;
+			sourceTree = "<group>";
+		};
+		529C0DE22C6E4E1D00B1B97B /* CrashReporterTests */ = {
+			isa = PBXGroup;
+			children = (
+				529C0DE52C6E51B200B1B97B /* crashReport.plcrash */,
+				529C0DE32C6E519F00B1B97B /* CrashSanitizerTests.swift */,
+				529C0DE72C6F2D0E00B1B97B /* MockPLCrashReport.swift */,
+			);
+			path = CrashReporterTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -168,7 +191,7 @@
 			);
 			name = MeasureSDK;
 			packageProductDependencies = (
-				523C1AC42C6B1B850081D1CC /* CrashReporter */,
+				520731432C7076C9007E8573 /* CrashReporter */,
 			);
 			productName = MeasureSDK;
 			productReference = 524CC5BA2C6A4B11001AB506 /* MeasureSDK.framework */;
@@ -220,7 +243,7 @@
 			);
 			mainGroup = 524CC5B02C6A4B11001AB506;
 			packageReferences = (
-				523C1AC32C6B1B850081D1CC /* XCRemoteSwiftPackageReference "plcrashreporter" */,
+				520731422C7076C9007E8573 /* XCRemoteSwiftPackageReference "plcrashreporter" */,
 			);
 			productRefGroup = 524CC5BB2C6A4B11001AB506 /* Products */;
 			projectDirPath = "";
@@ -244,6 +267,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				529C0DE62C6E51B200B1B97B /* crashReport.plcrash in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -258,7 +282,9 @@
 				524CC5DD2C6A4B48001AB506 /* MeasureModel.xcdatamodeld in Sources */,
 				524CC5EE2C6A55F0001AB506 /* CrashReportManager.swift in Sources */,
 				524CC5DF2C6A4B48001AB506 /* Measure.swift in Sources */,
+				529C0DE12C6CC8F000B1B97B /* CrashReporterModels.swift in Sources */,
 				524CC5DC2C6A4B48001AB506 /* CoreDataManager.swift in Sources */,
+				529C0DDC2C6C7E2000B1B97B /* CrashReportSanitizer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -266,7 +292,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				529C0DE82C6F2D0E00B1B97B /* MockPLCrashReport.swift in Sources */,
 				524CC5C82C6A4B12001AB506 /* MeasureSDKTests.swift in Sources */,
+				529C0DE42C6E519F00B1B97B /* CrashSanitizerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -549,7 +577,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		523C1AC32C6B1B850081D1CC /* XCRemoteSwiftPackageReference "plcrashreporter" */ = {
+		520731422C7076C9007E8573 /* XCRemoteSwiftPackageReference "plcrashreporter" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/microsoft/plcrashreporter";
 			requirement = {
@@ -560,9 +588,9 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		523C1AC42C6B1B850081D1CC /* CrashReporter */ = {
+		520731432C7076C9007E8573 /* CrashReporter */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 523C1AC32C6B1B850081D1CC /* XCRemoteSwiftPackageReference "plcrashreporter" */;
+			package = 520731422C7076C9007E8573 /* XCRemoteSwiftPackageReference "plcrashreporter" */;
 			productName = CrashReporter;
 		};
 /* End XCSwiftPackageProductDependency section */
