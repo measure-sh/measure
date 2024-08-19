@@ -1,7 +1,7 @@
 services:
   dashboard:
     build:
-      dockerfile: ../frontend/dashboard/dockerfile.prod
+      dockerfile: dockerfile.prod
     environment:
       - NODE_ENV=production
     volumes: !reset null
