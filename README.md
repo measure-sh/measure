@@ -18,9 +18,6 @@
 
 
 ## Table of Contents
-
-- [Measure is an open source tool to monitor mobile apps](#measure-is-an-open-source-tool-to-monitor-mobile-apps)
-- [Table of Contents](#table-of-contents)
 - [Quick start](#quick-start)
 - [Features](#features)
   - [User Journeys](#user-journeys)
@@ -77,7 +74,7 @@ Debug issues easily with full session timelines. Get the complete context with a
 2. [**Android SDK Guide**](./android/README.md) - Integrate our Android SDK and start measuring in no time
 3. [**REST API Docs**](./docs/api/README.md) - REST APIs used by the dashboard app and SDKs
 4. [**Versioning Guide**](./docs/versioning/README.md) - Understand how versions are tagged
-5. [**Contribution Guide**](./docs/contributing/CONTRIBUTING.md) - Contribute to Measure
+5. [**Contribution Guide**](./docs/CONTRIBUTING.md) - Contribute to Measure
 
 
 ## Platform Support
