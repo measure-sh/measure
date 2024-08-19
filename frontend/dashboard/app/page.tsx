@@ -83,9 +83,8 @@ export default function Home() {
         <p className="font-display font-regular text-black text-6xl max-w-4xl text-center">Measure on every platform</p>
         <div className="py-4 md:py-8" />
         <div className="flex flex-col md:flex-row items-center">
-          <div className="flex flex-col items-center font-display text-neutral-400 border border-neutral-400 rounded-md py-2 px-8">
+          <div className="flex flex-col items-center font-display text-black border border-black rounded-md py-4 px-8">
             <p className="text-center">Android</p>
-            <p className="text-xs text-center">In progress</p>
           </div>
           <div className="py-2 md:px-4" />
           <div className="flex flex-col items-center font-display text-neutral-400 border border-neutral-400 rounded-md py-2 px-8">
