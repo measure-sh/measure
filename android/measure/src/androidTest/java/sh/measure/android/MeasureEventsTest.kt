@@ -8,6 +8,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.IdlingRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import okhttp3.Headers
+import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert
@@ -47,7 +48,7 @@ import java.util.concurrent.TimeUnit
  */
 @RunWith(AndroidJUnit4::class)
 class MeasureEventsTest {
-    private lateinit var robot: TestRobot
+    private val robot: TestRobot = TestRobot()
     private val mockWebServer: MockWebServer = MockWebServer()
 
     @OptIn(ExperimentalPerfettoCaptureApi::class)
@@ -57,8 +58,7 @@ class MeasureEventsTest {
     @Before
     fun setup() {
         mockWebServer.start(port = 8080)
-        // mockWebServer.enqueue(MockResponse().setResponseCode(200))
-        robot = TestRobot()
+        mockWebServer.enqueue(MockResponse().setResponseCode(200))
     }
 
     @After
@@ -676,7 +676,7 @@ class MeasureEventsTest {
     }
 
     private fun getLastRequestBody(): String {
-        val request = mockWebServer.takeRequest(timeout = 500, unit = TimeUnit.MILLISECONDS)
+        val request = mockWebServer.takeRequest(timeout = 1000, unit = TimeUnit.MILLISECONDS)
         Assert.assertNotNull(request)
         return request!!.body.readUtf8()
     }
