@@ -1,5 +1,12 @@
 name: Cleanup
 on:
+  pull_request:
+    paths:
+      - .github/workflows/cleanup.yml
+      - backend/cleanup/dockerfile
+      - backend/cleanup/**/*.go
+      - backend/cleanup/**/*.mod
+      - backend/cleanup/**/*.sum
   push:
     branches:
       - 'main'
@@ -9,13 +16,8 @@ on:
       - backend/cleanup/**/*.go
       - backend/cleanup/**/*.mod
       - backend/cleanup/**/*.sum
-  pull_request:
-    paths:
-      - .github/workflows/cleanup.yml
-      - backend/cleanup/dockerfile
-      - backend/cleanup/**/*.go
-      - backend/cleanup/**/*.mod
-      - backend/cleanup/**/*.sum
+    tags:
+      - 'v*'
 
 env:
   REGISTRY: ghcr.io

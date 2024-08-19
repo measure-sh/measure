@@ -1,5 +1,12 @@
 name: API
 on:
+  pull_request:
+    paths:
+      - .github/workflows/api.yml
+      - backend/api/dockerfile
+      - backend/api/**/*.go
+      - backend/api/**/*.mod
+      - backend/api/**/*.sum
   push:
     branches:
       - 'main'
@@ -9,13 +16,8 @@ on:
       - backend/api/**/*.go
       - backend/api/**/*.mod
       - backend/api/**/*.sum
-  pull_request:
-    paths:
-      - .github/workflows/api.yml
-      - backend/api/dockerfile
-      - backend/api/**/*.go
-      - backend/api/**/*.mod
-      - backend/api/**/*.sum
+    tags:
+      - 'v*'
 
 env:
   REGISTRY: ghcr.io
