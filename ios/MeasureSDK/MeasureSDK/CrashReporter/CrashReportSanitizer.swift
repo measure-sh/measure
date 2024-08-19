@@ -67,6 +67,14 @@ class CrashReportSanitizer {
     var timestamp: Date? {
         return crashReport.systemInfo.timestamp
     }
+    /// The operating system version, including the build number, on which the crash occurred.
+    var operatingSystemBuild: String? {
+        return crashReport.systemInfo.operatingSystemBuild
+    }
+    /// The CFBundleIdentifier of the process that crashed. If the binary doesn’t have a CFBundleIdentifier, this field contains either the process name or a placeholder value.
+    var applicationIdentifier: String? {
+        return crashReport.applicationInfo.applicationIdentifier
+    }
     /// The operating system's release version.
     var osVersion: String {
         return crashReport.systemInfo.operatingSystemVersion
@@ -164,6 +172,41 @@ class CrashReportSanitizer {
         lp64 = isLp64
         processorCodeType = codeType
     }
+    
+    func getCPUArch() -> String {
+        switch Int32(crashReport.systemInfo.processorInfo.type) {
+        case CPU_TYPE_ARM:
+            switch Int32(crashReport.systemInfo.processorInfo.subtype) {
+            case CPU_SUBTYPE_ARM_V6:
+                return "armv6"
+            case CPU_SUBTYPE_ARM_V7:
+                return "armv7"
+            case CPU_SUBTYPE_ARM_V7F:
+                return "armv7f"
+            case CPU_SUBTYPE_ARM_V7K:
+                return "armv7k"
+            case CPU_SUBTYPE_ARM_V7S:
+                return "armv7s"
+            default:
+                return "arm"
+            }
+        case CPU_TYPE_ARM64:
+            switch Int32(crashReport.systemInfo.processorInfo.subtype) {
+            case CPU_SUBTYPE_ARM64E:
+                return "arm64e"
+            default:
+                return "arm64"
+            }
+        case CPU_TYPE_X86:
+            return "i386"
+        case CPU_TYPE_X86_64:
+            return "x86_64"
+        default:
+            return "unknown(\(crashReport.systemInfo.processorInfo.type),\(crashReport.systemInfo.processorInfo.subtype))"
+        }
+    }
+
+
     
     /// Returns the operating system name of the crash
     /// - Returns: Operating system name
