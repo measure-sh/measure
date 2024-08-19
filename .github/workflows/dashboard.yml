@@ -11,6 +11,8 @@ on:
     paths:
       - .github/workflows/dashboard.yml
       - 'frontend/dashboard/**'
+    tags:
+      - 'v*'
 
 env:
   REGISTRY: ghcr.io
