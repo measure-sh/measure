@@ -35,7 +35,7 @@ version = properties["MEASURE_PLUGIN_VERSION_NAME"] as String
 
 mavenPublishing {
     coordinates(group as String, artifactId, version as String)
-    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = false)
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = true)
     configure(
         GradlePublishPlugin()
     )
