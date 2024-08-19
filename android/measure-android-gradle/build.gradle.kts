@@ -12,6 +12,7 @@ plugins {
     alias(libs.plugins.mavenPublish)
 }
 
+@Suppress("UnstableApiUsage")
 gradlePlugin {
     plugins {
         create("plugin") {
@@ -19,6 +20,9 @@ gradlePlugin {
             displayName = "Measure Gradle Plugin"
             description = "A gradle plugin for Measure Android SDK"
             implementationClass = "sh.measure.MeasurePlugin"
+            website = "https://measure.sh"
+            vcsUrl = "https://github.com/measure-sh/measure"
+            tags = listOf("measure")
         }
     }
 }
