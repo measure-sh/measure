@@ -38,6 +38,14 @@ Initial release to maven.
 
 # measure-android-gradle
 
+## 0.5.0
+#### Features
+* Add version constraints for bytecode transformation to ensure bytecode transformation is applied only to library
+  versions which are compatible by @abhaysood in https://github.com/measure-sh/measure/pull/1053
+
+#### Fixes
+* fix(android): plugin does not break configuration cache by @abhaysood in https://github.com/measure-sh/measure/pull/986
+
 ## 0.4.0
 #### Fixes
 * Fix for plugin breaking the configuration cache by @abhaysood in https://github.com/measure-sh/measure/pull/986
