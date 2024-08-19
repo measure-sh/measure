@@ -5,7 +5,7 @@ Measure SDK captures lifecycle and navigation events automatically, this include
 1. [Application foregrounded/backgrounded](#application-foregroundedbackgrounded)
 2. [Activity lifecycle](#activity-lifecycle)
 3. [Fragment lifecycle](#fragment-lifecycle)
-4. [Compose navigation](#compose-navigation)
+4. [Navigation](#navigation)
 
 ## Application foregrounded/backgrounded
 
@@ -84,7 +84,7 @@ using [ASM](https://asm.ow2.io/) by automatically tracking all
 navigation events by
 registering [NavController.OnDestinationChangedListener](https://developer.android.com/reference/androidx/navigation/NavController.OnDestinationChangedListener)
 This is done using the Measure gradle plugin, read more details about
-it [here](../../../android/measure-android-gradle/README.md#androidx-navigation).
+it [here](/docs/android/gradle-plugin.md).
 
 ### Data collected
 
