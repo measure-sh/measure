@@ -9,6 +9,7 @@ import sh.measure.android.events.Attachment
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
+import sh.measure.android.logger.LogLevel
 import sh.measure.android.okhttp.OkHttpEventCollector
 import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.TimeProvider
@@ -48,7 +49,8 @@ object Measure {
                 label = { "msr-init" },
                 block = {
                     val application = context.applicationContext as Application
-                    val initializer = MeasureInitializerImpl(application, inputConfig = measureConfig)
+                    val initializer =
+                        MeasureInitializerImpl(application, inputConfig = measureConfig)
                     measure = MeasureInternal(initializer)
                     measure.init()
                 },
@@ -269,7 +271,16 @@ object Measure {
 
     internal fun getOkHttpEventCollector(): OkHttpEventCollector? {
         if (isInitialized.get()) {
-            return measure.okHttpEventCollector
+            return try {
+                measure.httpEventCollector as OkHttpEventCollector
+            } catch (e: ClassCastException) {
+                measure.logger.log(
+                    LogLevel.Error,
+                    "OkHttp is not available as a runtime dependency. Accessing the OkHttpEventCollector is not allowed.",
+                    e,
+                )
+                null
+            }
         }
         return null
     }

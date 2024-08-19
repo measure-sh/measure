@@ -46,7 +46,7 @@ import sh.measure.android.networkchange.InitialNetworkStateProviderImpl
 import sh.measure.android.networkchange.NetworkChangesCollector
 import sh.measure.android.networkchange.NetworkStateProvider
 import sh.measure.android.networkchange.NetworkStateProviderImpl
-import sh.measure.android.okhttp.OkHttpEventCollector
+import sh.measure.android.okhttp.HttpEventCollector
 import sh.measure.android.okhttp.OkHttpEventCollectorImpl
 import sh.measure.android.performance.ComponentCallbacksCollector
 import sh.measure.android.performance.CpuUsageCollector
@@ -244,11 +244,6 @@ internal class TestMeasureInitializer(
     ),
     override val periodicEventExporter: PeriodicEventExporter = NoopPeriodicEventExporter(),
     private val osSysConfProvider: OsSysConfProvider = OsSysConfProviderImpl(),
-    override val okHttpEventCollector: OkHttpEventCollector = OkHttpEventCollectorImpl(
-        logger = logger,
-        timeProvider = timeProvider,
-        eventProcessor = eventProcessor,
-    ),
     override val unhandledExceptionCollector: UnhandledExceptionCollector = UnhandledExceptionCollector(
         logger = logger,
         timeProvider = timeProvider,
@@ -328,5 +323,10 @@ internal class TestMeasureInitializer(
         ioExecutor = executorServiceRegistry.ioExecutor(),
         sessionManager = sessionManager,
         configProvider = configProvider,
+    ),
+    override val httpEventCollector: HttpEventCollector = OkHttpEventCollectorImpl(
+        logger = logger,
+        eventProcessor = eventProcessor,
+        timeProvider = timeProvider,
     ),
 ) : MeasureInitializer

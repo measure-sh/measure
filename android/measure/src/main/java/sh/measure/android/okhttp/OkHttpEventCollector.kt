@@ -14,7 +14,7 @@ import sh.measure.android.logger.Logger
 import sh.measure.android.utils.TimeProvider
 import java.io.IOException
 
-internal abstract class OkHttpEventCollector : EventListener() {
+internal abstract class OkHttpEventCollector : EventListener(), HttpEventCollector {
     open fun request(call: Call, request: Request) {}
     open fun response(call: Call, request: Request, response: Response) {}
 }
