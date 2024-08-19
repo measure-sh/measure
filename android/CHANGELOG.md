@@ -1,5 +1,16 @@
 # measure-android
 
+## 0.5.0
+#### Features
+* Allow configuring http urls for which to enable collection of http events. This configuration is simpler to setup 
+than finding out all URLs to block by @abhaysood in https://github.com/measure-sh/measure/pull/1020
+
+#### Fixes
+* fix(android): gracefully handle session and event insertion failures by @abhaysood in https://github.com/measure-sh/measure/pull/1008
+* fix(android): overflow due to incorrect data type for time by @abhaysood in https://github.com/measure-sh/measure/pull/1014
+
+**Full Changelog**: https://github.com/measure-sh/measure/compare/android-v0.4.0...0.5.0
+
 ## 0.4.0
 #### Features
 * Add ability to turn on logs for the SDK, logs are disabled by default by @abhaysood in https://github.com/measure-sh/measure/pull/925
