@@ -93,7 +93,7 @@ The measure install script will check your system's requirements and start the i
 
 Once installation is complete, you'll be presented with the Measure configuration wizard.
 
-For the first prompt, it'll ask for a namespace for your company or team. This typically will be your company or team's name. If trying out individually, feel free to set any anonymous name.
+For the first prompt, it'll ask for a namespace for your company or team. This typically will be your company or team's name. If trying out individually, feel free to set any name.
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/70e5aa2c-8916-4b84-930a-e57a5c020e2a" alt="Measure Configuration Wizard" />
@@ -122,7 +122,7 @@ At this point, the install script will attempt to start all the Measure docker c
   <img src="https://github.com/user-attachments/assets/b33fbca4-4567-4077-9432-8be9f9c8b078" alt="Successful installation" />
 </p>
 
-At this point, all the services should be up, but they are not reachable from outside one machine. To make sure these services can serve traffic, let's setup: 
+At this point, all the services should be up, but they are not reachable from the internet. To make sure these services can serve traffic, let's setup: 
 
 - A reverse proxy using [caddy](https://caddyserver.com/)
 - Setup DNS A recods on your domain
