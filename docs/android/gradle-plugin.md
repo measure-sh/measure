@@ -34,6 +34,9 @@ Note that, OkHttp allows only one `EventListener`(https://square.github.io/okhtt
 you already set one, it will continue working as is. Measure plugin does not override it, rather delegates all callbacks
 to it.
 
+* Minimum supported version: `4.7.0`
+* Maximum supported version: `5.0.0-alpha.14`
+
 ### AndroidX Navigation
 
 Automatically tracks screen transition events from
@@ -41,6 +44,9 @@ the [AndroidX Navigation](https://developer.android.com/guide/navigation)
 library. This is done by automatically
 adding [NavController.OnDestinationChangedListener](https://developer.android.com/reference/androidx/navigation/NavController.OnDestinationChangedListener)
 to all the `NavHostController's` in your app.
+
+* Minimum supported version: `2.4.0`
+* Maximum supported version: `2.8.0-beta06`
 
 ## Mapping Files Upload
 
