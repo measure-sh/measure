@@ -27,6 +27,9 @@ In the repo root, run
 ```sh
 npm install
 npm prepare
+
+cd frontend/dashboard
+npm install
 ```
 
 The above commands would install the required dependencies and setup git hooks as intended. This is a one-time setup, unless you do a fresh clone again.
