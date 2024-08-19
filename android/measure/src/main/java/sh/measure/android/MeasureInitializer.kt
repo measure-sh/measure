@@ -49,8 +49,8 @@ import sh.measure.android.networkchange.InitialNetworkStateProviderImpl
 import sh.measure.android.networkchange.NetworkChangesCollector
 import sh.measure.android.networkchange.NetworkStateProvider
 import sh.measure.android.networkchange.NetworkStateProviderImpl
-import sh.measure.android.okhttp.OkHttpEventCollector
-import sh.measure.android.okhttp.OkHttpEventCollectorImpl
+import sh.measure.android.okhttp.HttpEventCollector
+import sh.measure.android.okhttp.HttpEventCollectorFactory
 import sh.measure.android.performance.ComponentCallbacksCollector
 import sh.measure.android.performance.CpuUsageCollector
 import sh.measure.android.performance.DefaultMemoryReader
@@ -259,11 +259,12 @@ internal class MeasureInitializerImpl(
         eventExporter = eventExporter,
     ),
     private val osSysConfProvider: OsSysConfProvider = OsSysConfProviderImpl(),
-    override val okHttpEventCollector: OkHttpEventCollector = OkHttpEventCollectorImpl(
+    private val httpEventCollectorFactory: HttpEventCollectorFactory = HttpEventCollectorFactory(
         logger = logger,
-        timeProvider = timeProvider,
         eventProcessor = eventProcessor,
+        timeProvider = timeProvider,
     ),
+    override val httpEventCollector: HttpEventCollector = httpEventCollectorFactory.create(),
     override val unhandledExceptionCollector: UnhandledExceptionCollector = UnhandledExceptionCollector(
         logger = logger,
         timeProvider = timeProvider,
@@ -355,7 +356,7 @@ internal interface MeasureInitializer {
     val resumedActivityProvider: ResumedActivityProvider
     val eventProcessor: EventProcessor
     val userTriggeredEventCollector: UserTriggeredEventCollector
-    val okHttpEventCollector: OkHttpEventCollector
+    val httpEventCollector: HttpEventCollector
     val sessionManager: SessionManager
     val unhandledExceptionCollector: UnhandledExceptionCollector
     val anrCollector: AnrCollector
