@@ -64,7 +64,7 @@ jobs:
   push:
     name: Build Docker image
     runs-on: ubuntu-latest
-    #if: github.ref_type == 'tag'
+    if: github.ref_type == 'tag' && startsWith(github.ref, 'v')
     needs: [build-and-test]
     permissions:
       contents: read

@@ -42,7 +42,7 @@ jobs:
   push:
     name: Build and push image
     runs-on: ubuntu-latest
-    #if: github.ref_type == 'tag'
+    if: github.ref_type == 'tag' && startsWith(github.ref, 'v')
     needs: [unit-test]
     permissions:
       contents: read
