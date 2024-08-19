@@ -1,3 +1,7 @@
+/**
+ * @jest-environment node
+ */
+
 import { getUserIdOrRedirectToAuth, logout, logoutIfAuthError } from '@/app/utils/auth/auth';
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
 
