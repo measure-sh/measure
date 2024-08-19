@@ -93,27 +93,23 @@ The measure install script will check your system's requirements and start the i
 
 Once installation is complete, you'll be presented with the Measure configuration wizard.
 
-_TODO: Insert image here_
+For the first prompt, it'll ask for a namespace for your company or team. This typically will be your company or team's name. If trying out individually, feel free to set any anonymous name.
 
-Measure needs to know the environment you are configuring for. Choose `0` for production.
-
-_TODO: Insert image here_
-
-Next, it'll ask for a namespace for your company or team. This typically will be your company or team's name. If trying out individually, feel free to set any anonymous name.
-
-_TODO: Insert image here_
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/70e5aa2c-8916-4b84-930a-e57a5c020e2a" alt="Measure Configuration Wizard" />
+</p>
 
 For the next prompt, you'll be asked to enter the URL to access Measure's web dashboard. Typically, this might look like a subdomain on your primary domain, for example, if your domain is `yourcompany.com`, enter `https://measure.yourcompany.com`.
 
 Next, you'll be asked to enter the URL to access Measure's REST API endpoint. Typically, this might look like, `https://measure-api.yourcompany.com`.
 
-For the next prompt, enter a URL for serving static files. This can be `https://measure-assets.yourcompany.com` for example.
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/22610a50-202d-4e05-baf0-f2ab464d3ed7" alt="Measure Dashboard URL prompt" />
+</p>
 
 Later in this guide, you'll be setting DNS A records for the above subdomains you entered. For now, let's move on to the next prompt.
 
-_TODO: Insert image here_
-
-For the next few prompts, you'll need to obtain a Google & GitHub OAuth Application's credentials. This is required to setup authentication in Measure dashboard.
+For the next few prompts, you'll need to obtain a Google & GitHub OAuth Application's credentials. This is required to setup authentication in Measure dashboard. Follow the below links to obtain Google & GitHub OAuth credentials.
 
 - [Create a Google OAuth App](./google-oauth.md)
 - [Create a GitHub OAuth App](./github-oauth.md)
@@ -122,9 +118,11 @@ Once you have created the above apps, copy the key and secrets and enter in the 
 
 At this point, the install script will attempt to start all the Measure docker compose services. You should see a similar output.
 
-_TODO: Insert image here_
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/b33fbca4-4567-4077-9432-8be9f9c8b078" alt="Successful installation" />
+</p>
 
-At this point, all the services should be up, but they are not reachable from the interwebs. To make sure these services can serve traffic, let's setup: 
+At this point, all the services should be up, but they are not reachable from outside one machine. To make sure these services can serve traffic, let's setup: 
 
 - A reverse proxy using [caddy](https://caddyserver.com/)
 - Setup DNS A recods on your domain
@@ -164,14 +162,10 @@ measure.yourcompany.com {
 measure-api.yourcompany.com {
   reverse_proxy http://localhost:8080
 }
-
-measure-assets.yourcompany.com {
-  reverse_proxy http://localhost:9119
-}
 EOF
 ```
 
-> [!Note]
+> [!NOTE]
 > 
 > In the above Caddyfile, we have used the example domains from above, but make sure you replace with your actual domain names.
 
@@ -184,18 +178,17 @@ caddy start
 
 ### 6. Setup DNS A records
 
-For this last step, we'll setup 3 DNS A records and put those subdomains to work. First, obtain your VM's external IP address. Let's say, the external IP is `101.102.103.104`.
+For this last step, we'll setup 2 DNS A records and put those subdomains to work. First, obtain your VM's external IP address. Let's say, the external IP is `101.102.103.104`.
 
 Go to your domain hosting provider and add A recrods for the following subdomains.
 
 ```
 measure.yourcompany.com         IN A        101.102.103.104
 measure-api.yourcompany.com     IN A        101.102.103.104
-measure-assets.yourcompany.com  IN A        101.102.103.104
 ```
 
 Depending on your domain provider, it might take a few mins to couple of hours for the above DNS records to take effect.
 
 ### 7. Access your Measure dashboard
 
-Visit `https://measure.yourcompany.com` to access your dashboard and sign in to continue.
+Visit `https://measure.yourcompany.com` to access your dashboard and sign in to continue. Replace `yourcompany.com` with your domain.

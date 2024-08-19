@@ -4,9 +4,9 @@
 2. Locate **Developer Settings** at the bottom of the left sidebar and click on **OAuth Apps**
 3. Click the **New Org OAuth App** button
 4. Enter a name for your GitHub OAuth app
-5. Enter the homepage URL, like: https://measure.yourcompany.com
+5. Enter the homepage URL, like: https://measure.yourcompany.com. Replace `yourcompany.com` with your domain.
 6. Enter a suitable description of your app
-7. Enter the following as the **Authorization callback URL** - https://measure.yourcompany.com/auth/callback/github
+7. Enter the following as the **Authorization callback URL** - https://measure.yourcompany.com/auth/callback/github. Replace `yourcompany.com` with your domain.
 8. Click on **Generate a new client secret**
 9. Copy the **Client ID** and **Client Secret**
 
