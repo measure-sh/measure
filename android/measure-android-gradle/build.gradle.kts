@@ -99,6 +99,7 @@ dependencies {
     functionalTestImplementation(libs.gradle.testkit.support)
     functionalTestImplementation(libs.gradle.testkit.truth)
     functionalTestImplementation(libs.squareup.okhttp.mockwebserver)
+    functionalTestImplementation(libs.semver)
 }
 
 tasks.withType<Test>().configureEach {
