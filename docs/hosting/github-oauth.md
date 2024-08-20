@@ -7,7 +7,8 @@
 5. Enter the homepage URL, like: https://measure.yourcompany.com. Replace `yourcompany.com` with your domain.
 6. Enter a suitable description of your app
 7. Enter the following as the **Authorization callback URL** - https://measure.yourcompany.com/auth/callback/github. Replace `yourcompany.com` with your domain.
-8. Click on **Generate a new client secret**
-9. Copy the **Client ID** and **Client Secret**
+8. Click on **Register application** button to create the GitHub OAuth app
+9. Click on **Generate a new client secret**
+10. Copy the **Client ID** and **Client Secret**
 
 [Go back to self host guide](./README.md)

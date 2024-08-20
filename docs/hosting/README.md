@@ -63,7 +63,7 @@ cd ~
 Clone the repository with git and change to the `measure` directory.
 
 ```sh
-git clone git@github.com:measure-sh/measure.git
+git clone https://github.com/measure-sh/measure.git
 cd measure
 ```
 
@@ -154,13 +154,13 @@ If you are not installing on Ubuntu or Debian, please follow the guide on Caddy'
 Create a basic `~/Caddyfile` config by running the following.
 
 ```sh
-echo <<EOF > ~./Caddyfile
+cat <<EOF > ~/Caddyfile
 measure.yourcompany.com {
-  reverse_proxy http://localhost:3000
+	reverse_proxy http://localhost:3000
 }
 
 measure-api.yourcompany.com {
-  reverse_proxy http://localhost:8080
+	reverse_proxy http://localhost:8080
 }
 EOF
 ```
@@ -169,11 +169,10 @@ EOF
 > 
 > In the above Caddyfile, we have used the example domains from above, but make sure you replace with your actual domain names.
 
-Next, run `caddy reload` to make sure caddy picks up our newly generated config.
+Next, run `sudo caddy start` to make sure caddy picks up our newly generated config.
 
 ```sh
-caddy reload
-caddy start
+sudo caddy start
 ```
 
 ### 6. Setup DNS A records
