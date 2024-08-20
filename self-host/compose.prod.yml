@@ -4,6 +4,7 @@ services:
       dockerfile: dockerfile.prod
     environment:
       - NODE_ENV=production
+      - HOSTNAME=0.0.0.0
     volumes: !reset null
 
   api:
