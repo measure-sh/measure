@@ -44,9 +44,15 @@ fun Project.versionsMap(variant: Variant): MapProperty<ModuleInfo, SemVer> {
             dependencies.forEach { dependency: DependencyResult ->
                 when (val requested = dependency.requested) {
                     is ModuleComponentSelector -> {
+                        val parse = try {
+                            SemVer.parse(requested.version)
+                        } catch (e: IllegalArgumentException) {
+                            logger.info("[Measure] unable to parse version: ${requested.version}")
+                            SemVer()
+                        }
                         versionsMap.put(
                             ModuleInfo(requested.group, requested.module),
-                            SemVer.parse(requested.version),
+                            parse,
                         )
                     }
                 }
