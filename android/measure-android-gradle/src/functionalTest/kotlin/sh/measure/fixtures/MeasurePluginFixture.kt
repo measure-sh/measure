@@ -23,7 +23,6 @@ class MeasurePluginFixture(
     private val setMeasureApiUrl: Boolean = true,
     private val measureApiUrl: String = "https://measure.sh",
     private val enabled: Boolean = true,
-    private val appDependencies: List<String> = emptyList(),
 ) : AbstractGradleProject() {
 
     val gradleProject: GradleProject = build()
@@ -41,7 +40,7 @@ class MeasurePluginFixture(
                     repositories = Repositories(
                         Repository.MAVEN_CENTRAL, Repository.GOOGLE, Repository.MAVEN_LOCAL
                     ), dependencies = Dependencies(
-                        Dependency.androidPlugin(agpVersion.toString())
+                        Dependency.androidPlugin(agpVersion.toString()),
                     )
                 )
             }
@@ -103,24 +102,13 @@ class MeasurePluginFixture(
                         }
                     """.trimIndent()
                 )
-
-                // Add dependencies block with constructor-passed dependencies
-                if (appDependencies.isNotEmpty()) {
-                    withGroovy(
-                        """
-                        dependencies {
-                            ${appDependencies.joinToString("\n") { "implementation '$it'" }}
-                        }
-                        """.trimIndent()
-                    )
-                }
             }
         }
     }
 
     private fun AndroidSubproject.Builder.withAndroidManifest(
         setApiKey: Boolean,
-        setApiUrl: Boolean,
+        setApiUrl: Boolean
     ) {
         val apiKeyMetaData = if (setApiKey) {
             """
