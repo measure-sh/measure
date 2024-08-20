@@ -2,8 +2,8 @@ package sh.measure
 
 import com.android.build.api.variant.Variant
 import org.gradle.api.Project
-import org.gradle.api.artifacts.component.ModuleComponentSelector
 import org.gradle.api.artifacts.result.DependencyResult
+import org.gradle.api.artifacts.result.ResolvedDependencyResult
 import org.gradle.api.provider.MapProperty
 import sh.measure.asm.ModuleInfo
 
@@ -42,18 +42,18 @@ fun Project.versionsMap(variant: Variant): MapProperty<ModuleInfo, SemVer> {
             val dependencies =
                 configuration.incoming.resolutionResult.rootComponent.get().dependencies
             dependencies.forEach { dependency: DependencyResult ->
-                when (val requested = dependency.requested) {
-                    is ModuleComponentSelector -> {
-                        val parse = try {
-                            SemVer.parse(requested.version)
+                if (dependency is ResolvedDependencyResult) {
+                    dependency.selected.moduleVersion?.let {
+                        val version = try {
+                            SemVer.parse(it.version)
                         } catch (e: IllegalArgumentException) {
-                            logger.info("[Measure] unable to parse version: ${requested.version}")
                             SemVer()
                         }
-                        versionsMap.put(
-                            ModuleInfo(requested.group, requested.module),
-                            parse,
+                        val module = ModuleInfo(
+                            it.group,
+                            it.name,
                         )
+                        versionsMap.put(module, version)
                     }
                 }
             }
