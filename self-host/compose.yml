@@ -37,7 +37,7 @@ services:
       - NODE_ENV=development
       - NEXT_TELEMETRY_DISABLED=1
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      test: ["CMD-SHELL", "curl -s http://localhost:3000 || exit 1"]
       interval: 5s
       timeout: 10s
       retries: 5
