@@ -11,9 +11,7 @@ import sh.measure.isVersionCompatible
 
 class OkHttpTransformer : AsmBytecodeTransformer() {
     override val visitorFactoryClass = OkHttpVisitorFactory::class.java
-    // Tested from 4.7.0, earlier versions do not have all required event factory overrides
-    override val minVersion = SemVer(4, 7, 0)
-    // Tested up-to 5.0.0-alpha.14 which is the latest version at the time of writing
+    override val minVersion = SemVer(4, 9, 0)
     override val maxVersion = SemVer(5, 0, 0)
 }
 

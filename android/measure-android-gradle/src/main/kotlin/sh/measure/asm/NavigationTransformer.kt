@@ -11,12 +11,8 @@ import sh.measure.isVersionCompatible
 
 class NavigationTransformer : AsmBytecodeTransformer() {
     override val visitorFactoryClass = NavigationVisitorFactory::class.java
-
-    // Tested from 2.4.0, 2.3.5 does not have navigation-compose package
     override val minVersion = SemVer(2, 4, 0)
-
-    // Tested up-to 2.8.0-beta06, 2.8.0-beta07 requires compile SDK 35
-    override val maxVersion = SemVer(2, 8, 0, "-beta06")
+    override val maxVersion = SemVer(3, 0, 0)
 }
 
 abstract class NavigationVisitorFactory : AsmClassVisitorFactory<TransformerParameters>,
