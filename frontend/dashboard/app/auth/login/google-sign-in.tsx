@@ -38,7 +38,7 @@ export default function GoogleSignIn() {
       <div id="g_id_onload"
         data-client_id={googleClientID}
         data-context="signin"
-        data-ux_mode="redirect"
+        data-ux_mode="popup"
         data-nonce={hashedNonce}
         data-login_uri={`${origin}/auth/callback/google?nonce=${encodeURIComponent(nonce)}&state=${encodeURIComponent(state)}`}
         data-auto_prompt="false"
