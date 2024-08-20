@@ -7,14 +7,6 @@ import org.gradle.api.artifacts.result.DependencyResult
 import org.gradle.api.provider.MapProperty
 import sh.measure.asm.ModuleInfo
 
-/**
- * Checks if the version of the library is compatible with the given range.
- *
- * @param group The group of the library.
- * @param name The name of the library.
- * @param minVersion The minimum version of the library that is compatible. This version is inclusive.
- * @param maxVersion The maximum version of the library that is compatible. This version is exclusive.
- */
 fun Map<ModuleInfo, SemVer>.isVersionCompatible(
     group: String,
     name: String,
@@ -26,13 +18,7 @@ fun Map<ModuleInfo, SemVer>.isVersionCompatible(
 }
 
 /**
- * Returns a map of all resolved dependency versions.
  *
- * Note that this function is evaluated lazily by gradle, and is only evaluated when dependency
- * versions are resolved.
- *
- * @param variant The variant for which the dependencies are to be resolved.
- * @return A map of all resolved dependency versions.
  */
 fun Project.versionsMap(variant: Variant): MapProperty<ModuleInfo, SemVer> {
     val versionsMap: MapProperty<ModuleInfo, SemVer> =
