@@ -1,33 +1,19 @@
-package sh.measure.asm
+package sh.measure.okhttp
 
 import com.android.build.api.instrumentation.AsmClassVisitorFactory
+import com.android.build.api.instrumentation.ClassContext
 import com.android.build.api.instrumentation.ClassData
+import com.android.build.api.instrumentation.InstrumentationParameters
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.commons.AdviceAdapter
-import sh.measure.SemVer
-import sh.measure.isVersionCompatible
 
-class OkHttpTransformer : AsmBytecodeTransformer() {
-    override val visitorFactoryClass = OkHttpVisitorFactory::class.java
-    override val minVersion = SemVer(4, 9, 0)
-    override val maxVersion = SemVer(5, 0, 0)
-}
+abstract class OkHttpVisitorFactory : AsmClassVisitorFactory<InstrumentationParameters.None> {
 
-abstract class OkHttpVisitorFactory : AsmClassVisitorFactory<TransformerParameters>,
-    VersionAwareVisitor<TransformerParameters> {
-    override fun isVersionCompatible(
-        versions: Map<ModuleInfo, SemVer>,
-        minVersion: SemVer,
-        maxVersion: SemVer,
-    ): Boolean {
-        return versions.isVersionCompatible(
-            "com.squareup.okhttp3", "okhttp", minVersion, maxVersion
-        )
-    }
-
-    override fun createClassVisitor(nextClassVisitor: ClassVisitor): ClassVisitor {
+    override fun createClassVisitor(
+        classContext: ClassContext, nextClassVisitor: ClassVisitor
+    ): ClassVisitor {
         return OkHttpClassVisitor(nextClassVisitor)
     }
 
@@ -52,7 +38,7 @@ class OkHttpClassVisitor(classVisitor: ClassVisitor) : ClassVisitor(Opcodes.ASM9
 }
 
 class OkHttpMethodVisitor(
-    apiVersion: Int, originalVisitor: MethodVisitor, access: Int, name: String, descriptor: String,
+    apiVersion: Int, originalVisitor: MethodVisitor, access: Int, name: String, descriptor: String
 ) : AdviceAdapter(
     apiVersion, originalVisitor, access, name, descriptor
 ) {

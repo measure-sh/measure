@@ -1,33 +1,19 @@
-package sh.measure.asm
+package sh.measure.navigation
 
 import com.android.build.api.instrumentation.AsmClassVisitorFactory
+import com.android.build.api.instrumentation.ClassContext
 import com.android.build.api.instrumentation.ClassData
+import com.android.build.api.instrumentation.InstrumentationParameters
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.commons.AdviceAdapter
-import sh.measure.SemVer
-import sh.measure.isVersionCompatible
 
-class NavigationTransformer : AsmBytecodeTransformer() {
-    override val visitorFactoryClass = NavigationVisitorFactory::class.java
-    override val minVersion = SemVer(2, 4, 0)
-    override val maxVersion = SemVer(3, 0, 0)
-}
+abstract class NavigationVisitorFactory : AsmClassVisitorFactory<InstrumentationParameters.None> {
 
-abstract class NavigationVisitorFactory : AsmClassVisitorFactory<TransformerParameters>,
-    VersionAwareVisitor<TransformerParameters> {
-    override fun isVersionCompatible(
-        versions: Map<ModuleInfo, SemVer>,
-        minVersion: SemVer,
-        maxVersion: SemVer,
-    ): Boolean {
-        return versions.isVersionCompatible(
-            "androidx.navigation", "navigation-compose", minVersion, maxVersion
-        )
-    }
-
-    override fun createClassVisitor(nextClassVisitor: ClassVisitor): ClassVisitor {
+    override fun createClassVisitor(
+        classContext: ClassContext, nextClassVisitor: ClassVisitor
+    ): ClassVisitor {
         return NavigationClassVisitor(nextClassVisitor)
     }
 
@@ -78,7 +64,7 @@ class NavigationClassVisitor(classVisitor: ClassVisitor) :
  * ```
  */
 class NavigationMethodVisitor(
-    apiVersion: Int, originalVisitor: MethodVisitor, access: Int, name: String, descriptor: String,
+    apiVersion: Int, originalVisitor: MethodVisitor, access: Int, name: String, descriptor: String
 ) : AdviceAdapter(
     apiVersion, originalVisitor, access, name, descriptor
 ) {
