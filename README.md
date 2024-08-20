@@ -29,6 +29,7 @@
 - [Philosophy](#philosophy)
 - [Roadmap](#roadmap)
 - [Open Source](#open-source)
+- [Team](#team)
 
 ## Quick start
 
@@ -101,3 +102,11 @@ Check out what's being worked on and what's in the pipeline in our [Roadmap](htt
 ## Open Source
 
 Measure is fully open source and is available under the [Apache 2.0 license](./LICENSE)
+
+## Team
+
+- Gandharva Kumar - [Github](https://github.com/gandharva) • [X](https://x.com/gandharva) • [Linkedin](https://www.linkedin.com/in/gandharvakr/)
+- Anup Cowkur - [Github](https://github.com/anupcowkur) • [X](https://x.com/anupcowkur) • [Linkedin](https://www.linkedin.com/in/anupcowkur/)
+- Debjeet Biswas - [Github](https://github.com/detj) • [X](https://x.com/detj) • [Linkedin](https://www.linkedin.com/in/debjeet-biswas-9b4337281/)
+- Abhay Sood - [Github](https://github.com/abhaysood) • [X](https://x.com/abhaysood_) • [Linkedin](https://www.linkedin.com/in/abhaysood/)
+- Adwin Ross - [Github](https://github.com/adwinross) • [X](https://x.com/adwinross) • [Linkedin](https://www.linkedin.com/in/adwin-ronald-ross-0879898b/)
