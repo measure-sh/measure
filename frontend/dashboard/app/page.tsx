@@ -5,10 +5,50 @@ import LandingHeader from './components/landing_header'
 import Link from 'next/link'
 import landingHeroAnim from "./animations/landing_hero.json"
 import dynamic from 'next/dynamic'
+import { useRef, useState } from 'react'
+import VideoPlayButton from './components/video_play_button'
 
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
 
+type VideoName = 'journey' | 'appHealth' | 'exceptions' | 'session'
+
+type IsPlayingState = {
+  [K in VideoName]: boolean;
+}
+
+type VideoRefs = {
+  [K in VideoName]: React.RefObject<HTMLVideoElement>;
+}
+
 export default function Home() {
+
+  const [isPlaying, setIsPlaying] = useState<IsPlayingState>({
+    journey: false,
+    appHealth: false,
+    exceptions: false,
+    session: false,
+  })
+
+  const videoRefs: VideoRefs = {
+    journey: useRef<HTMLVideoElement>(null),
+    appHealth: useRef<HTMLVideoElement>(null),
+    exceptions: useRef<HTMLVideoElement>(null),
+    session: useRef<HTMLVideoElement>(null),
+  }
+
+  const handlePlay = (videoName: VideoName) => {
+    const video = videoRefs[videoName].current;
+    if (video) {
+      if (video.paused) {
+        video.play();
+        setIsPlaying(prev => ({ ...prev, [videoName]: true }));
+      } else {
+        video.pause();
+        setIsPlaying(prev => ({ ...prev, [videoName]: false }));
+      }
+    }
+  }
+
   return (
     <main className="flex flex-col items-center justify-between selection:bg-yellow-200/75">
       <LandingHeader />
@@ -30,8 +70,22 @@ export default function Home() {
           </div>
           <div className="py-8" />
           <div className='border border-emerald-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-emerald-200'>
-            <div className='flex bg-white rounded-3xl h-full border border-emerald-400 items-center justify-center'>
-              <video src="/videos/journey.webm" autoPlay loop muted playsInline className="w-full h-full rounded-3xl" />
+            <div className='relative flex bg-white rounded-3xl h-full border border-emerald-400 items-center justify-center overflow-hidden'>
+              <video
+                ref={videoRefs.journey}
+                src="/videos/journey.webm"
+                poster='/images/journey_poster.png'
+                preload='none'
+                loop
+                muted
+                playsInline
+                className="w-full h-full rounded-3xl"
+                onPlay={() => setIsPlaying(prev => ({ ...prev, journey: true }))}
+                onPause={() => setIsPlaying(prev => ({ ...prev, journey: false }))}
+              />
+              {!isPlaying.journey &&
+                <VideoPlayButton onClick={() => handlePlay('journey')} />
+              }
             </div>
           </div>
         </div>
@@ -44,8 +98,22 @@ export default function Home() {
           </div>
           <div className="py-8" />
           <div className='border border-violet-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-violet-200'>
-            <div className='flex bg-white rounded-3xl h-full border border-violet-400 items-center justify-center p-4'>
-              <video src="/videos/app_health.webm" autoPlay loop muted playsInline className="w-full h-full rounded-3xl" />
+            <div className='relative flex bg-white rounded-3xl h-full border border-violet-400 items-center justify-center overflow-hidden'>
+              <video
+                ref={videoRefs.appHealth}
+                src="/videos/app_health.webm"
+                poster='/images/app_health_poster.png'
+                preload='none'
+                loop
+                muted
+                playsInline
+                className="w-full h-full rounded-3xl"
+                onPlay={() => setIsPlaying(prev => ({ ...prev, appHealth: true }))}
+                onPause={() => setIsPlaying(prev => ({ ...prev, appHealth: false }))}
+              />
+              {!isPlaying.appHealth &&
+                <VideoPlayButton onClick={() => handlePlay('appHealth')} />
+              }
             </div>
           </div>
         </div>
@@ -58,8 +126,22 @@ export default function Home() {
           </div>
           <div className="py-8" />
           <div className='border border-cyan-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-cyan-200'>
-            <div className='flex bg-white rounded-3xl h-full border border-cyan-400 items-center justify-center p-4'>
-              <video src="/videos/exceptions.webm" autoPlay loop muted playsInline className="w-full h-full rounded-3xl" />
+            <div className='relative flex bg-white rounded-3xl h-full border border-cyan-400 items-center justify-center overflow-hidden'>
+              <video
+                ref={videoRefs.exceptions}
+                src="/videos/exceptions.webm"
+                poster='/images/exceptions_poster.png'
+                preload='none'
+                loop
+                muted
+                playsInline
+                className="w-full h-full rounded-3xl"
+                onPlay={() => setIsPlaying(prev => ({ ...prev, exceptions: true }))}
+                onPause={() => setIsPlaying(prev => ({ ...prev, exceptions: false }))}
+              />
+              {!isPlaying.exceptions &&
+                <VideoPlayButton onClick={() => handlePlay('exceptions')} />
+              }
             </div>
           </div>
         </div>
@@ -72,8 +154,22 @@ export default function Home() {
           </div>
           <div className="py-8" />
           <div className='border border-pink-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-pink-200'>
-            <div className='flex bg-white rounded-3xl h-full border border-pink-400 items-center justify-center p-4'>
-              <video src="/videos/session.webm" autoPlay loop muted playsInline className="w-full h-full rounded-3xl" />
+            <div className='relative flex bg-white rounded-3xl h-full border border-pink-400 items-center justify-center overflow-hidden'>
+              <video
+                ref={videoRefs.session}
+                src="/videos/session.webm"
+                poster='/images/session_poster.png'
+                preload='none'
+                loop
+                muted
+                playsInline
+                className="w-full h-full rounded-3xl"
+                onPlay={() => setIsPlaying(prev => ({ ...prev, session: true }))}
+                onPause={() => setIsPlaying(prev => ({ ...prev, session: false }))}
+              />
+              {!isPlaying.session &&
+                <VideoPlayButton onClick={() => handlePlay('session')} />
+              }
             </div>
           </div>
         </div>
