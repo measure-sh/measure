@@ -15,11 +15,12 @@ In this guide, we'll help you setup a Google OAuth app so that your users can lo
 9. Click on **SAVE AND CONTINUE**
 10. On the next screen, review all info and click on **BACK TO DASHBOARD** when done
 11. On the left sidebar, click on **Credentials**
-12. Select **Web application**
-13. Enter a name for the application
-14. Under **Authorized JavaScript origins**, enter your Measure dashboard URL (Example: https://measure.yourcompany.com). Replace `yourcompany.com` with your domain.
-15. Under **Authorized redirect URIs**, enter the redirect URI in the following way: https://measure.yourcompany.com/auth/callback/google. Replace `yourcompany.com` with your domain.
-16. Click **CREATE**
-17. Copy the **Client ID**
+12. Click on the **+ CREATE CREDENTIALS** button and choose **OAuth client ID**
+13. Select **Web application**
+14. Enter a name for the application
+15. Under **Authorized JavaScript origins**, enter your Measure dashboard URL (Example: https://measure.yourcompany.com). Replace `yourcompany.com` with your domain.
+16. Under **Authorized redirect URIs**, enter the redirect URI in the following way: https://measure.yourcompany.com/auth/callback/google. Replace `yourcompany.com` with your domain.
+17. Click **CREATE**
+18. Copy the **Client ID**
 
 [Go back to self host guide](./README.md)
