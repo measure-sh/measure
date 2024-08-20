@@ -18,8 +18,10 @@ export default function Home() {
         <div className="py-2" />
         <p className="text-lg leading-relaxed font-sans text-black max-w-4xl text-center">open source tool to monitor mobile apps</p>
         <div className="py-8" />
-        <Lottie animationData={landingHeroAnim} />
-        <div className="py-4 md:py-8" />
+        <div className='w-80 h-80 md:w-[56rem] md:h-[40rem]'>
+          <Lottie animationData={landingHeroAnim} />
+        </div>
+        <div className="py-4 md:py-24" />
         <div className="flex flex-col md:w-full items-center">
           <div className="flex flex-col items-center max-w-4xl">
             <p className="text-6xl font-regular text-black font-display text-center">User Journeys</p>
