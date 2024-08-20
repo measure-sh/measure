@@ -7,7 +7,7 @@
 ENV_FILE=.env
 
 # Path to dashboard environment file
-ENV_WEB_FILE=../frontend/.env.local
+ENV_WEB_FILE=../frontend/dashboard/.env.local
 
 # Measure insignia
 ENV_HEADER=$(cat <<'EOF'
