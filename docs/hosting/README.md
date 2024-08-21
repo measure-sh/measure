@@ -63,8 +63,7 @@ cd ~
 Clone the repository with git and change to the `measure` directory.
 
 ```sh
-git clone https://github.com/measure-sh/measure.git
-cd measure
+git clone https://github.com/measure-sh/measure.git && cd measure
 ```
 
 Checkout to git a tag. Replace `GIT-TAG` with an existing git tag. You can find out the latest stable release tag from the [releases](https://github.com/measure-sh/measure/releases) page.
@@ -142,10 +141,10 @@ cd ~
 Run the following commands to install caddy.
 
 ```sh
-sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
-sudo apt update
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl && \
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg && \
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list && \
+sudo apt update && \
 sudo apt install caddy
 ```
 
@@ -169,10 +168,10 @@ EOF
 > 
 > In the above Caddyfile, we have used the example domains from above, but make sure you replace with your actual domain names.
 
-Next, run `sudo caddy start` to make sure caddy picks up our newly generated config.
+Next, reload caddy to make sure caddy picks up our newly generated config.
 
 ```sh
-sudo caddy start
+caddy reload
 ```
 
 ### 6. Setup DNS A records
