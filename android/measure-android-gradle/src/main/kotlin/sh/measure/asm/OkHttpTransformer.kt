@@ -1,19 +1,35 @@
-package sh.measure.okhttp
+package sh.measure.asm
 
 import com.android.build.api.instrumentation.AsmClassVisitorFactory
-import com.android.build.api.instrumentation.ClassContext
 import com.android.build.api.instrumentation.ClassData
-import com.android.build.api.instrumentation.InstrumentationParameters
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.commons.AdviceAdapter
+import sh.measure.SemVer
+import sh.measure.isVersionCompatible
 
-abstract class OkHttpVisitorFactory : AsmClassVisitorFactory<InstrumentationParameters.None> {
+class OkHttpTransformer : AsmBytecodeTransformer() {
+    override val visitorFactoryClass = OkHttpVisitorFactory::class.java
+    // Tested from 4.7.0, earlier versions do not have all required event factory overrides
+    override val minVersion = SemVer(4, 7, 0)
+    // Tested up-to 5.0.0-alpha.14 which is the latest version at the time of writing
+    override val maxVersion = SemVer(5, 0, 0)
+}
 
-    override fun createClassVisitor(
-        classContext: ClassContext, nextClassVisitor: ClassVisitor
-    ): ClassVisitor {
+abstract class OkHttpVisitorFactory : AsmClassVisitorFactory<TransformerParameters>,
+    VersionAwareVisitor<TransformerParameters> {
+    override fun isVersionCompatible(
+        versions: Map<ModuleInfo, SemVer>,
+        minVersion: SemVer,
+        maxVersion: SemVer,
+    ): Boolean {
+        return versions.isVersionCompatible(
+            "com.squareup.okhttp3", "okhttp", minVersion, maxVersion
+        )
+    }
+
+    override fun createClassVisitor(nextClassVisitor: ClassVisitor): ClassVisitor {
         return OkHttpClassVisitor(nextClassVisitor)
     }
 
@@ -38,7 +54,7 @@ class OkHttpClassVisitor(classVisitor: ClassVisitor) : ClassVisitor(Opcodes.ASM9
 }
 
 class OkHttpMethodVisitor(
-    apiVersion: Int, originalVisitor: MethodVisitor, access: Int, name: String, descriptor: String
+    apiVersion: Int, originalVisitor: MethodVisitor, access: Int, name: String, descriptor: String,
 ) : AdviceAdapter(
     apiVersion, originalVisitor, access, name, descriptor
 ) {

@@ -25,6 +25,9 @@ We apply the following transformations to your app, provided your app uses these
 
 ### OkHttp
 
+* Minimum supported version: `4.7.0`
+* Maximum supported version: `5.0.0-alpha.14`
+
 Enables tracking network requests and metrics from OkHttp.
 This is done by injecting an [Interceptor](https://square.github.io/okhttp/features/interceptors/)
 and an [EventListener](https://square.github.io/okhttp/features/events/#eventlistener) into
@@ -35,6 +38,9 @@ you already set one, it will continue working as is. Measure plugin does not ove
 to it.
 
 ### AndroidX Navigation
+
+* Minimum supported version: `2.4.0`
+* Maximum supported version: `2.8.0-beta06`
 
 Automatically tracks screen transition events from
 the [AndroidX Navigation](https://developer.android.com/guide/navigation)
