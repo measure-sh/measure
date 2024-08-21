@@ -130,7 +130,7 @@ jobs:
         uses: gradle/wrapper-validation-action@v1
       - name: Publish measure-android-gradle
         # publish the plugin to Gradle Plugin Portal and Maven Central
-        run: ./gradlew clean :measure-android-gradle:publishPluginMavenPublicationToMavenCentralRepository :measure-android-gradle:publishPlugins --no-daemon --no-parallel --no-configuration-cache --stacktrace
+        run: ./gradlew clean :measure-android-gradle:publish :measure-android-gradle:publishPlugins --no-daemon --no-parallel --no-configuration-cache --stacktrace
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_PASSWORD }}
