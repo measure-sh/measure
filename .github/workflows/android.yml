@@ -128,9 +128,13 @@ jobs:
           cache: 'gradle'
       - name: Validate Gradle wrapper
         uses: gradle/wrapper-validation-action@v1
-      - name: Publish measure-android-gradle
-        # publish the plugin to Gradle Plugin Portal and Maven Central
-        run: ./gradlew clean :measure-android-gradle:publish :measure-android-gradle:publishPlugins --no-daemon --no-parallel --no-configuration-cache --stacktrace
+      - name: Publish measure-android-gradle to gradle plugin portal
+        run: ./gradlew clean :measure-android:gradle:publishPlugins -Pgradle.publish.key=$gradlePluginPortalKey -Pgradle.publish.secret=$gradlePluginPortalSecret --no-daemon --no-parallel --no-configuration-cache --stacktrace
+        env:
+          gradlePluginPortalKey: ${{ secrets.GRADLE_PLUGIN_PORTAL_KEY }}
+          gradlePluginPortalSecret: ${{ secrets.GRADLE_PLUGIN_PORTAL_SECRET }}
+      - name: Publish measure-android-gradle to maven
+        run: ./gradlew :measure-android-gradle:publish --no-daemon --no-parallel --no-configuration-cache --stacktrace
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_PASSWORD }}
