@@ -1,5 +1,13 @@
 # measure-android
 
+## 0.6.0
+#### Fixes
+
+* Resolve crash when OkHttp is not a runtime dependency by @abhaysood in https://github.com/measure-sh/measure/pull/1067
+* Make Android tests more reliable by @abhaysood in https://github.com/measure-sh/measure/pull/1070
+
+**Full Changelog**: https://github.com/measure-sh/measure/compare/android-v0.5.0...0.6.0
+
 ## 0.5.0
 #### Features
 * Allow configuring http urls for which to enable collection of http events. This configuration is simpler to setup 
