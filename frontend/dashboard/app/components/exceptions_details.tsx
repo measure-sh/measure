@@ -11,6 +11,7 @@ import ExceptionspDetailsPlot from './exceptions_details_plot';
 import Filters, { AppVersionsInitialSelectionType, defaultSelectedFilters } from './filters';
 import Journey, { JourneyType } from './journey';
 import Image from 'next/image';
+import CopyAiContext from './copy_ai_context';
 
 interface ExceptionsDetailsProps {
   exceptionsType: ExceptionsType,
@@ -180,7 +181,11 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
                   ))}
                 </div>}
               <div className="py-4" />
-              <Link key={exceptionsDetails.results[0].id} href={`/${teamId}/sessions/${appId}/${exceptionsDetails.results[0].session_id}`} className="outline-none justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4">View Session </Link>
+              <div className='flex flex-row items-center'>
+                <Link key={exceptionsDetails.results[0].id} href={`/${teamId}/sessions/${appId}/${exceptionsDetails.results[0].session_id}`} className="outline-none justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4">View Session</Link>
+                <div className='px-2' />
+                <CopyAiContext appName={selectedFilters.selectedApp.name} exceptionsType={exceptionsType} exceptionsDetails={exceptionsDetails} />
+              </div>
               <div className="py-2" />
               {exceptionsType === ExceptionsType.Crash &&
                 <Accordion key='crash-thread' title={'Thread: ' + exceptionsDetails.results[0].attribute.thread_name} id='crash' active={true}>
