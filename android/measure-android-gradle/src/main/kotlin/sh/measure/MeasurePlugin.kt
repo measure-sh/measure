@@ -1,8 +1,6 @@
 package sh.measure
 
 import com.android.build.api.artifact.SingleArtifact
-import com.android.build.api.instrumentation.FramesComputationMode
-import com.android.build.api.instrumentation.InstrumentationScope
 import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.api.variant.Variant
 import com.android.build.gradle.internal.tasks.factory.dependsOn
@@ -11,13 +9,14 @@ import org.gradle.api.Project
 import org.gradle.api.file.Directory
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
-import sh.measure.navigation.NavigationVisitorFactory
-import sh.measure.okhttp.OkHttpVisitorFactory
+import sh.measure.asm.BytecodeTransformationPipelineBuilder
+import sh.measure.asm.BytecodeTransformer
+import sh.measure.asm.NavigationTransformer
+import sh.measure.asm.OkHttpTransformer
 import sh.measure.utils.capitalize
 import java.time.Duration
 
 class MeasurePlugin : Plugin<Project> {
-
     companion object {
         const val GROUP_NAME = "measure"
         const val SHARED_SERVICE_HTTP_CLIENT = "measure-http-client"
@@ -45,6 +44,9 @@ class MeasurePlugin : Plugin<Project> {
         ) { spec ->
             spec.parameters.timeout.set(Duration.ofMillis(DEFAULT_TIMEOUT_MS))
         }
+        val bytecodeTransformer: BytecodeTransformer =
+            BytecodeTransformationPipelineBuilder().addTransformer(OkHttpTransformer())
+                .addTransformer(NavigationTransformer()).build()
 
         androidComponents.onVariants { variant ->
             val variantFilter = VariantFilterImpl(variant.name)
@@ -53,24 +55,9 @@ class MeasurePlugin : Plugin<Project> {
                 project.logger.info("Measure gradle plugin is disabled for ${variant.name}")
                 return@onVariants
             }
-            injectOkHttpListener(variant)
-            injectComposeNavigationListener(variant)
+            bytecodeTransformer.transform(variant, project)
             registerBuildTasks(variant, project, httpClientProvider, sdkDirectory)
         }
-    }
-
-    private fun injectComposeNavigationListener(variant: Variant) {
-        variant.instrumentation.transformClassesWith(
-            NavigationVisitorFactory::class.java, InstrumentationScope.ALL
-        ) {}
-        variant.instrumentation.setAsmFramesComputationMode(FramesComputationMode.COMPUTE_FRAMES_FOR_INSTRUMENTED_METHODS)
-    }
-
-    private fun injectOkHttpListener(variant: Variant) {
-        variant.instrumentation.transformClassesWith(
-            OkHttpVisitorFactory::class.java, InstrumentationScope.ALL
-        ) {}
-        variant.instrumentation.setAsmFramesComputationMode(FramesComputationMode.COMPUTE_FRAMES_FOR_INSTRUMENTED_METHODS)
     }
 
     private fun registerBuildTasks(
