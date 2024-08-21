@@ -46,6 +46,11 @@ Initial release to maven.
 
 # measure-android-gradle
 
+## 0.6.0
+#### Features
+
+* Apply bytecode transformation only for supported dependency versions by @abhaysood in https://github.com/measure-sh/measure/pull/1087
+
 ## 0.5.0
 #### Features
 * Add version constraints for bytecode transformation to ensure bytecode transformation is applied only to library
