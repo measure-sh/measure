@@ -8,6 +8,16 @@
 
 /* Begin PBXBuildFile section */
 		520731442C7076C9007E8573 /* CrashReporter in Frameworks */ = {isa = PBXBuildFile; productRef = 520731432C7076C9007E8573 /* CrashReporter */; };
+		520C83222C736F220085570E /* Attribute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 520C83212C736F220085570E /* Attribute.swift */; };
+		520C83262C73774A0085570E /* AttributeGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 520C83252C73774A0085570E /* AttributeGenerator.swift */; };
+		520C832A2C737D360085570E /* FrameworkInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 520C83292C737D360085570E /* FrameworkInfo.swift */; };
+		520C832D2C737DF30085570E /* UIDevice+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 520C832C2C737DF30085570E /* UIDevice+Extension.swift */; };
+		520C83302C7455FD0085570E /* Event.swift in Sources */ = {isa = PBXBuildFile; fileRef = 520C832F2C7455FD0085570E /* Event.swift */; };
+		520C83332C745B800085570E /* Attachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 520C83322C745B800085570E /* Attachment.swift */; };
+		520C83362C746D2B0085570E /* Exception.swift in Sources */ = {isa = PBXBuildFile; fileRef = 520C83352C746D2B0085570E /* Exception.swift */; };
+		520C83382C74737A0085570E /* StackFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 520C83372C74737A0085570E /* StackFrame.swift */; };
+		520C833A2C74758E0085570E /* Thread.swift in Sources */ = {isa = PBXBuildFile; fileRef = 520C83392C74758E0085570E /* Thread.swift */; };
+		520C833C2C7482C80085570E /* ExceptionDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 520C833B2C7482C80085570E /* ExceptionDetail.swift */; };
 		524CC5C32C6A4B12001AB506 /* MeasureSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* MeasureSDK.framework */; };
 		524CC5C82C6A4B12001AB506 /* MeasureSDKTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524CC5C72C6A4B12001AB506 /* MeasureSDKTests.swift */; };
 		524CC5C92C6A4B12001AB506 /* MeasureSDK.h in Headers */ = {isa = PBXBuildFile; fileRef = 524CC5BD2C6A4B11001AB506 /* MeasureSDK.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -17,7 +27,6 @@
 		524CC5DF2C6A4B48001AB506 /* Measure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524CC5D92C6A4B48001AB506 /* Measure.swift */; };
 		524CC5EE2C6A55F0001AB506 /* CrashReportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524CC5ED2C6A55F0001AB506 /* CrashReportManager.swift */; };
 		529C0DDC2C6C7E2000B1B97B /* CrashReportSanitizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 529C0DDB2C6C7E2000B1B97B /* CrashReportSanitizer.swift */; };
-		529C0DE12C6CC8F000B1B97B /* CrashReporterModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 529C0DE02C6CC8F000B1B97B /* CrashReporterModels.swift */; };
 		529C0DE42C6E519F00B1B97B /* CrashSanitizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 529C0DE32C6E519F00B1B97B /* CrashSanitizerTests.swift */; };
 		529C0DE62C6E51B200B1B97B /* crashReport.plcrash in Resources */ = {isa = PBXBuildFile; fileRef = 529C0DE52C6E51B200B1B97B /* crashReport.plcrash */; };
 		529C0DE82C6F2D0E00B1B97B /* MockPLCrashReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 529C0DE72C6F2D0E00B1B97B /* MockPLCrashReport.swift */; };
@@ -34,6 +43,16 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		520C83212C736F220085570E /* Attribute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Attribute.swift; sourceTree = "<group>"; };
+		520C83252C73774A0085570E /* AttributeGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributeGenerator.swift; sourceTree = "<group>"; };
+		520C83292C737D360085570E /* FrameworkInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameworkInfo.swift; sourceTree = "<group>"; };
+		520C832C2C737DF30085570E /* UIDevice+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIDevice+Extension.swift"; sourceTree = "<group>"; };
+		520C832F2C7455FD0085570E /* Event.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Event.swift; sourceTree = "<group>"; };
+		520C83322C745B800085570E /* Attachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Attachment.swift; sourceTree = "<group>"; };
+		520C83352C746D2B0085570E /* Exception.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Exception.swift; sourceTree = "<group>"; };
+		520C83372C74737A0085570E /* StackFrame.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StackFrame.swift; sourceTree = "<group>"; };
+		520C83392C74758E0085570E /* Thread.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Thread.swift; sourceTree = "<group>"; };
+		520C833B2C7482C80085570E /* ExceptionDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExceptionDetail.swift; sourceTree = "<group>"; };
 		524CC5BA2C6A4B11001AB506 /* MeasureSDK.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MeasureSDK.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		524CC5BD2C6A4B11001AB506 /* MeasureSDK.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MeasureSDK.h; sourceTree = "<group>"; };
 		524CC5C22C6A4B12001AB506 /* MeasureSDKTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MeasureSDKTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -44,7 +63,6 @@
 		524CC5D92C6A4B48001AB506 /* Measure.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Measure.swift; sourceTree = "<group>"; };
 		524CC5ED2C6A55F0001AB506 /* CrashReportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReportManager.swift; sourceTree = "<group>"; };
 		529C0DDB2C6C7E2000B1B97B /* CrashReportSanitizer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CrashReportSanitizer.swift; sourceTree = "<group>"; };
-		529C0DE02C6CC8F000B1B97B /* CrashReporterModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporterModels.swift; sourceTree = "<group>"; };
 		529C0DE32C6E519F00B1B97B /* CrashSanitizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashSanitizerTests.swift; sourceTree = "<group>"; };
 		529C0DE52C6E51B200B1B97B /* crashReport.plcrash */ = {isa = PBXFileReference; lastKnownFileType = file; path = crashReport.plcrash; sourceTree = "<group>"; };
 		529C0DE72C6F2D0E00B1B97B /* MockPLCrashReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockPLCrashReport.swift; sourceTree = "<group>"; };
@@ -70,6 +88,53 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		520C831E2C736C950085570E /* Attributes */ = {
+			isa = PBXGroup;
+			children = (
+				520C83212C736F220085570E /* Attribute.swift */,
+				520C83252C73774A0085570E /* AttributeGenerator.swift */,
+			);
+			path = Attributes;
+			sourceTree = "<group>";
+		};
+		520C832B2C737DDD0085570E /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				520C832C2C737DF30085570E /* UIDevice+Extension.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		520C832E2C7455E00085570E /* Events */ = {
+			isa = PBXGroup;
+			children = (
+				520C83342C746D170085570E /* Exception */,
+				520C83312C745B6F0085570E /* Attachment */,
+				520C831E2C736C950085570E /* Attributes */,
+				520C832F2C7455FD0085570E /* Event.swift */,
+			);
+			path = Events;
+			sourceTree = "<group>";
+		};
+		520C83312C745B6F0085570E /* Attachment */ = {
+			isa = PBXGroup;
+			children = (
+				520C83322C745B800085570E /* Attachment.swift */,
+			);
+			path = Attachment;
+			sourceTree = "<group>";
+		};
+		520C83342C746D170085570E /* Exception */ = {
+			isa = PBXGroup;
+			children = (
+				520C83352C746D2B0085570E /* Exception.swift */,
+				520C83372C74737A0085570E /* StackFrame.swift */,
+				520C83392C74758E0085570E /* Thread.swift */,
+				520C833B2C7482C80085570E /* ExceptionDetail.swift */,
+			);
+			path = Exception;
+			sourceTree = "<group>";
+		};
 		524CC5B02C6A4B11001AB506 = {
 			isa = PBXGroup;
 			children = (
@@ -91,12 +156,15 @@
 		524CC5BC2C6A4B11001AB506 /* MeasureSDK */ = {
 			isa = PBXGroup;
 			children = (
+				520C832E2C7455E00085570E /* Events */,
+				520C832B2C737DDD0085570E /* Extensions */,
 				524CC5DA2C6A4B48001AB506 /* Config */,
 				524CC5D32C6A4B48001AB506 /* CoreData */,
 				524CC5D82C6A4B48001AB506 /* CrashReporter */,
 				524CC5DB2C6A4B48001AB506 /* Utils */,
 				524CC5D52C6A4B48001AB506 /* XCDataModel */,
 				524CC5BD2C6A4B11001AB506 /* MeasureSDK.h */,
+				520C83292C737D360085570E /* FrameworkInfo.swift */,
 			);
 			path = MeasureSDK;
 			sourceTree = "<group>";
@@ -132,7 +200,6 @@
 				529C0DDB2C6C7E2000B1B97B /* CrashReportSanitizer.swift */,
 				524CC5D72C6A4B48001AB506 /* MeasureCrashReporter.swift */,
 				524CC5ED2C6A55F0001AB506 /* CrashReportManager.swift */,
-				529C0DE02C6CC8F000B1B97B /* CrashReporterModels.swift */,
 			);
 			path = CrashReporter;
 			sourceTree = "<group>";
@@ -281,10 +348,19 @@
 				524CC5DE2C6A4B48001AB506 /* MeasureCrashReporter.swift in Sources */,
 				524CC5DD2C6A4B48001AB506 /* MeasureModel.xcdatamodeld in Sources */,
 				524CC5EE2C6A55F0001AB506 /* CrashReportManager.swift in Sources */,
+				520C833C2C7482C80085570E /* ExceptionDetail.swift in Sources */,
+				520C832D2C737DF30085570E /* UIDevice+Extension.swift in Sources */,
+				520C83302C7455FD0085570E /* Event.swift in Sources */,
 				524CC5DF2C6A4B48001AB506 /* Measure.swift in Sources */,
-				529C0DE12C6CC8F000B1B97B /* CrashReporterModels.swift in Sources */,
+				520C83332C745B800085570E /* Attachment.swift in Sources */,
 				524CC5DC2C6A4B48001AB506 /* CoreDataManager.swift in Sources */,
+				520C832A2C737D360085570E /* FrameworkInfo.swift in Sources */,
+				520C83222C736F220085570E /* Attribute.swift in Sources */,
 				529C0DDC2C6C7E2000B1B97B /* CrashReportSanitizer.swift in Sources */,
+				520C83382C74737A0085570E /* StackFrame.swift in Sources */,
+				520C83262C73774A0085570E /* AttributeGenerator.swift in Sources */,
+				520C83362C746D2B0085570E /* Exception.swift in Sources */,
+				520C833A2C74758E0085570E /* Thread.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -9,9 +9,8 @@ import Foundation
 
 @objc public class Measure: NSObject {
     private override init() {}
-
+    
     @objc public static func start() {
-        
         CrashReportManager.shared.start(with: UUID().uuidString)
     }
 }

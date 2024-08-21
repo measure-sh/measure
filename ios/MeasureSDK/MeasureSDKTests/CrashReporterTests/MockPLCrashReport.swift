@@ -2,7 +2,7 @@
 //  MockPLCrashReport.swift
 //  MeasureSDKTests
 //
-//  Created by EdPu on 16/08/24.
+//  Created by Adwin Ross on 16/08/24.
 //
 
 import CrashReporter
