@@ -82,7 +82,7 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGrou
 		Select(`line_number`).
 		Select("fingerprint").
 		Select("event_ids").
-		Select("array_length(event_ids, 1) as count").
+		Select("COALESCE(array_length(event_ids, 1), 0) as count").
 		Select("first_event_timestamp").
 		Select("created_at").
 		Select("updated_at").
@@ -122,7 +122,7 @@ func (a App) GetExceptionGroupByFingerprint(ctx context.Context, fingerprint str
 		Select(`line_number`).
 		Select("fingerprint").
 		Select("event_ids").
-		Select("array_length(event_ids, 1) as count").
+		Select("COALESCE(array_length(event_ids, 1), 0) as count").
 		Select("first_event_timestamp").
 		Select("created_at").
 		Select("updated_at").
@@ -162,7 +162,7 @@ func (a App) GetExceptionGroups(ctx context.Context) (groups []group.ExceptionGr
 		Select(`line_number`).
 		Select("fingerprint").
 		Select("event_ids").
-		Select("array_length(event_ids, 1) as count").
+		Select("COALESCE(array_length(event_ids, 1), 0) as count").
 		Select("first_event_timestamp").
 		Select("created_at").
 		Select("updated_at").
@@ -188,7 +188,7 @@ func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (anrGroup *group.ANR
 		Select(`line_number`).
 		Select("fingerprint").
 		Select("event_ids").
-		Select("array_length(event_ids, 1) as count").
+		Select("COALESCE(array_length(event_ids, 1), 0) as count").
 		Select("first_event_timestamp").
 		Select("created_at").
 		Select("updated_at").
@@ -228,7 +228,7 @@ func (a App) GetANRGroupByFingerprint(ctx context.Context, fingerprint string) (
 		Select(`line_number`).
 		Select("fingerprint").
 		Select("event_ids").
-		Select("array_length(event_ids, 1) as count").
+		Select("COALESCE(array_length(event_ids, 1), 0) as count").
 		Select("first_event_timestamp").
 		Select("created_at").
 		Select("updated_at").
@@ -267,7 +267,7 @@ func (a App) GetANRGroups(ctx context.Context) (groups []group.ANRGroup, err err
 		Select(`line_number`).
 		Select("fingerprint").
 		Select("event_ids").
-		Select("array_length(event_ids, 1) as count").
+		Select("COALESCE(array_length(event_ids, 1), 0) as count").
 		Select("first_event_timestamp").
 		Select("created_at").
 		Select("updated_at").
