@@ -10,9 +10,9 @@ import Foundation
 class CrashReportManager {
     static let shared = CrashReportManager()
     let crashReporter = MeasureCrashReporter()
-    
+
     private init() {}
-    
+
     func start() {
         crashReporter.initializeCrashReporter(with: UUID().uuidString)
         crashReporter.handleCrashReport()
