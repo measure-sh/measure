@@ -69,7 +69,7 @@ git clone https://github.com/measure-sh/measure.git && cd measure
 Checkout to git a tag. Replace `GIT-TAG` with an existing git tag. You can find out the latest stable release tag from the [releases](https://github.com/measure-sh/measure/releases) page.
 
 > [!IMPORTANT]
-
+>
 > Always choose a tag matching the format `v[MAJOR].[MINOR].[PATCH]`, for example: `v1.2.3`.
 > These tags are tailored for self host deployments.
 
