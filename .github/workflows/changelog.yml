@@ -9,6 +9,8 @@ jobs:
     name: Generate changelog
     if: ${{ github.event.pull_request.merged }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,4 +34,5 @@ jobs:
           set +e
           git add CHANGELOG.md
           git commit -m "ci: update changelog"
-          git push
+          git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git main
+
