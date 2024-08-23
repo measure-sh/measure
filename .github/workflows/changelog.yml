@@ -32,5 +32,4 @@ jobs:
           set +e
           git add CHANGELOG.md
           git commit -m "ci: update changelog"
-          git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git main
-
+          git push
