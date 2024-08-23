@@ -182,6 +182,14 @@ All commits landing in any branch are first linted in your local environment and
   exceeding the allowed limit of max characters per line
   ```
 
+## Release process
+
+To trigger a release, create a signed git using [git-cliff](https://git-cliff.org/) and push the tag.
+
+```sh
+VERSION=$(git cliff --bumped-version) git tag -s $VERSION -m $VERSION && git push origin $VERSION
+```
+
 ## Documentation
 - Public facing docs should be in [docs](../README.md) folder - API requests & responses, self host guide, sdk guides and so on
 - Main folder of subproject should link to main guide. ex: [frontend README](../../frontend/README.md) has link to self hosting and local dev guide
