@@ -29,6 +29,7 @@
 - [Philosophy](#philosophy)
 - [Roadmap](#roadmap)
 - [Open Source](#open-source)
+- [Discord](#discord)
 - [Team](#team)
 
 ## Quick start
@@ -102,6 +103,10 @@ Check out what's being worked on and what's in the pipeline in our [Roadmap](htt
 ## Open Source
 
 Measure is fully open source and is available under the [Apache 2.0 license](./LICENSE)
+
+## Discord
+
+Come say hi on our [Discord](https://discord.gg/V5XYs7fakt)
 
 ## Team
 
