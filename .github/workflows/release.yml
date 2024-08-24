@@ -16,6 +16,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
 
       - name: Generate changelog using git-cliff
         uses: orhun/git-cliff-action@v3
@@ -33,7 +34,7 @@ jobs:
           set +e
           git add CHANGELOG.md
           git commit -m "ci: update changelog"
-          git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPSITORY}.git main
+          git push
 
       - name: Generate release notes
         uses: orhun/git-cliff-action@v3
