@@ -13,6 +13,7 @@ internal object Attribute {
     const val DEVICE_HEIGHT_PX_KEY = "device_height_px"
     const val DEVICE_DENSITY_KEY = "device_density"
     const val DEVICE_LOCALE_KEY = "device_locale"
+    const val DEVICE_CPU_ARCH = "device_cpu_arch"
     const val OS_NAME_KEY = "os_name"
     const val OS_VERSION_KEY = "os_version"
     const val PLATFORM_KEY = "platform"

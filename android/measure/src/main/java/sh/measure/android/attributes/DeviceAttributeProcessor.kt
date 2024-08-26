@@ -35,7 +35,17 @@ internal class DeviceAttributeProcessor(
             Attribute.OS_NAME_KEY to "android",
             Attribute.OS_VERSION_KEY to Build.VERSION.SDK_INT.toString(),
             Attribute.PLATFORM_KEY to "android",
+            Attribute.DEVICE_CPU_ARCH to getCpuArchitecture(),
         )
+    }
+
+    private fun getCpuArchitecture(): String? {
+        return try {
+            System.getProperty("os.arch")
+        } catch (e: Exception) {
+            logger.log(LogLevel.Error, "Error getting CPU architecture", e)
+            null
+        }
     }
 
     // Using heuristics from:
