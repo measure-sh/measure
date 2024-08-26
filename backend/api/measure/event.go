@@ -1867,25 +1867,21 @@ func PutEvents(c *gin.Context) {
 		_, symbolicationSpan := symbolicationTracer.Start(ctx, "symbolicate-events")
 
 		for i := range batches {
+			// If symoblication fails for whole batch, continue
 			if err := symbolicator.Symbolicate(ctx, batches[i]); err != nil {
 				msg := `failed to symbolicate batch`
 				fmt.Println(msg, err)
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error":   msg,
-					"details": err.Error(),
-				})
-				symbolicationSpan.End()
-				return
+				continue
 			}
 
-			// handle symbolication errors
+			// If symbolication succeeds but has errors while decoding individual frames, log them and proceed
 			if len(batches[i].Errs) > 0 {
 				for _, err := range batches[i].Errs {
 					fmt.Println("symbolication err: ", err.Error())
 				}
 			}
 
-			// rewrite symbolicated events
+			// rewrite symbolicated events to event request
 			for j := range batches[i].Events {
 				eventId := batches[i].Events[j].ID
 				idx, exists := eventReq.symbolicate[eventId]
