@@ -27,6 +27,7 @@ internal object ExceptionFactory {
                         line_num = it.lineNumber,
                     )
                 },
+                thread_name = thread.name,
             )
             exceptions.add(exception)
             error = error.cause

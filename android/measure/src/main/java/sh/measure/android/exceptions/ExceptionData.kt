@@ -53,6 +53,11 @@ internal data class ExceptionUnit(
      * A list of stack frames for the exception.
      */
     val frames: List<Frame>,
+
+    /**
+     * The thread name where the exception occurred.
+     */
+    val thread_name: String,
 )
 
 /**
