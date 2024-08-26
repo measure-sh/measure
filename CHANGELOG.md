@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Proceed with event ingestion on symbolication failure by @anupcowkur in #1134
 - (**backend**): Handle exception/anr groups with no events by @anupcowkur in #1098
 
 
