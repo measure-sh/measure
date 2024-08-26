@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- Add issue template by @anupcowkur in #1122
+- Add feature request template by @anupcowkur in #1124
 - Add security policy by @anupcowkur in #1113
 - Add discord link to README by @anupcowkur in #1112
 - Fix formatting (#1094) by @detj in #1094
