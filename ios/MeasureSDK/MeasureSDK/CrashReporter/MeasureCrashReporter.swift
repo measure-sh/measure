@@ -10,7 +10,7 @@ import CrashReporter
 
 class MeasureCrashReporter {
     private let crashReporter = PLCrashReporter()
-    
+
     func initializeCrashReporter(with sessionId: String) {
         do {
             let customData = ["session_id": sessionId]
@@ -25,20 +25,19 @@ class MeasureCrashReporter {
             print("Could not enable crash reporter: \(error)")
         }
     }
-    
+
     func handleCrashReport() {
         if crashReporter.hasPendingCrashReport() {
             do {
-                let crashPath = crashReporter.crashReportPath()
                 let crashData = try crashReporter.loadPendingCrashReportDataAndReturnError()
                 let crashReport = try PLCrashReport(data: crashData)
-                
+
                 // Convert the crash report to a human-readable string
                 let crashReportString = PLCrashReportTextFormatter.stringValue(for: crashReport, with: PLCrashReportTextFormatiOS)
-                
+
                 // Save the crash report to a file or send it to your server
                 print(crashReportString ?? "No crash report string")
-                
+
                 // Purge the report
                 crashReporter.purgePendingCrashReport()
             } catch {
