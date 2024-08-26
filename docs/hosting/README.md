@@ -15,6 +15,13 @@ Measure is designed from the ground up for easy self-hosting. Follow along to ru
   - [5. Setup a reverse proxy server](#5-setup-a-reverse-proxy-server)
   - [6. Setup DNS A records](#6-setup-dns-a-records)
   - [7. Access your Measure dashboard](#7-access-your-measure-dashboard)
+- [Run on macOS locally](#run-on-macos-locally)
+  - [System Requirements](#system-requirements-1)
+  - [1. Clone the measure repo](#1-clone-the-measure-repo)
+  - [2. Install dependencies](#2-install-dependencies)
+  - [2. Run `config.sh` script to configure](#2-run-configsh-script-to-configure)
+  - [3. Start the containers](#3-start-the-containers)
+  - [4. Access your Measure dashboard](#4-access-your-measure-dashboard)
 
 ## Objectives
 
@@ -95,7 +102,7 @@ The measure install script will check your system's requirements and start the i
 
 ### 4. Configure and start your self hosted measure instance
 
-Once installation is complete, you'll be presented with the Measure configuration wizard.
+During installation, you'll be presented with the Measure configuration wizard.
 
 For the first prompt, it'll ask for a namespace for your company or team. This typically will be your company or team's name. If trying out individually, feel free to set any name.
 
@@ -195,3 +202,86 @@ Depending on your domain provider, it might take a few mins to couple of hours f
 ### 7. Access your Measure dashboard
 
 Visit `https://measure.yourcompany.com` to access your dashboard and sign in to continue. Replace `yourcompany.com` with your domain.
+
+## Run on macOS locally
+
+You can run Measure locally on macOS for trying it out quickly, but keep in mind that not all features may not work as expected on macOS.
+
+> [!WARNING]
+>
+> Not all features on macOS may work as expected. Don't use this setup for production. This guide was tested on macOS 14.6, though older versions of macOS may work too.
+
+### System Requirements
+
+Make sure the following requirements present before proceeding.
+
+| Name           | Version  |
+| -------------- | -------- |
+| Docker         | v26.1+   |
+| Docker Compose | v2.27.3+ |
+| node           | v20+     |
+
+### 1. Clone the measure repo
+
+Clone the repository with git and change to the `measure` directory.
+
+```sh
+git clone https://github.com/measure-sh/measure.git && cd measure
+```
+
+Checkout to git a tag. Replace `GIT-TAG` with an existing git tag. You can find out the latest stable release tag from the [releases](https://github.com/measure-sh/measure/releases) page.
+
+> [!IMPORTANT]
+>
+> Always choose a tag matching the format `v[MAJOR].[MINOR].[PATCH]`, for example: `v1.2.3`.
+> These tags are tailored for self host deployments.
+
+```sh
+git checkout GIT-TAG
+```
+
+### 2. Install dependencies
+
+Install frontend dashboard app's dependencies.
+
+```sh
+npm --prefix frontend/dashboard install
+```
+
+Next, change into the `self-host` directory. All commands will be run mostly from the `self-host` directory after this point.
+
+```sh
+cd self-host
+```
+
+### 2. Run `config.sh` script to configure
+
+Run the `config.sh` script to auto configure most settings.
+
+```sh
+./config.sh
+```
+
+To continue, you'll need to obtain a Google & GitHub OAuth Application's credentials. This is required to setup authentication in Measure dashboard. Follow the below links to obtain Google & GitHub OAuth credentials.
+
+- [Create a Google OAuth App](./google-oauth.md)
+- [Create a GitHub OAuth App](./github-oauth.md)
+
+Once you have created the above apps, copy the key and secrets and enter in the relevant prompts.
+
+### 3. Start the containers
+
+To start the containers in production mode, run.
+
+```sh
+docker compose -f compose.yml -f compose.prod.yml \
+  --profile init \
+  --profile migrate \
+  up --build
+```
+
+It'll take a few seconds for the containers to be healthy.
+
+### 4. Access your Measure dashboard
+
+Visit [Dashboard](http://localhost:3000/auth/login) to access your dashboard and sign in to continue.
