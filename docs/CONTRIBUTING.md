@@ -17,7 +17,7 @@
 
 After cloning the repostiory, run the following commands for the best contribution experience. All core maintainers **MUST** follow these steps.
 
-> [!Note]
+> [!NOTE]
 >
 > You would need [node](https://nodejs.org/) to run the above commands. We recommend you always stick to the `lts` version of node.
 > If you need to setup node, we recommend you use [fnm (Fast Node Manager)](https://github.com/Schniz/fnm) to manage node version(s). Follow [fnm's installation instructions](https://github.com/Schniz/fnm?tab=readme-ov-file#installation).
@@ -27,9 +27,7 @@ In the repo root, run
 ```sh
 npm install
 npm prepare
-
-cd frontend/dashboard
-npm install
+npm --prefix frontend/dashboard install
 ```
 
 The above commands would install the required dependencies and setup git hooks as intended. This is a one-time setup, unless you do a fresh clone again.
@@ -58,7 +56,9 @@ Once configuration is complete, run the following docker compose command to star
 docker compose --profile init --profile migrate up
 ```
 
-> [!Note] Compose Profiles
+> [!NOTE]
+>
+> #### About Compose Profiles
 > 
 > Both `init` and `migrate` profiles are idempotent in nature. You can use them everytime, though for subsequent runs you may choose to skip them.
 
