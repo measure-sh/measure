@@ -15,6 +15,7 @@
 		524CC58D2C6A1811001AB506 /* Base in Resources */ = {isa = PBXBuildFile; fileRef = 524CC58C2C6A1811001AB506 /* Base */; };
 		524CC5E82C6A4C10001AB506 /* MeasureSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5E72C6A4C10001AB506 /* MeasureSDK.framework */; };
 		524CC5E92C6A4C10001AB506 /* MeasureSDK.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5E72C6A4C10001AB506 /* MeasureSDK.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		52CD91322C7DAEDB000189BA /* MeasureManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 52CD91312C7DAEDB000189BA /* MeasureManager.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -41,6 +42,9 @@
 		524CC58C2C6A1811001AB506 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		524CC58E2C6A1811001AB506 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		524CC5E72C6A4C10001AB506 /* MeasureSDK.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = MeasureSDK.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		52CD912F2C7DAEDA000189BA /* MeasureDemo-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "MeasureDemo-Bridging-Header.h"; sourceTree = "<group>"; };
+		52CD91302C7DAEDB000189BA /* MeasureManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MeasureManager.h; sourceTree = "<group>"; };
+		52CD91312C7DAEDB000189BA /* MeasureManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MeasureManager.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -76,12 +80,15 @@
 			isa = PBXGroup;
 			children = (
 				524CC5802C6A180F001AB506 /* AppDelegate.swift */,
+				52CD91302C7DAEDB000189BA /* MeasureManager.h */,
+				52CD91312C7DAEDB000189BA /* MeasureManager.m */,
 				524CC5822C6A180F001AB506 /* SceneDelegate.swift */,
 				524CC5842C6A180F001AB506 /* ViewController.swift */,
 				524CC5862C6A180F001AB506 /* Main.storyboard */,
 				524CC5892C6A1811001AB506 /* Assets.xcassets */,
 				524CC58B2C6A1811001AB506 /* LaunchScreen.storyboard */,
 				524CC58E2C6A1811001AB506 /* Info.plist */,
+				52CD912F2C7DAEDA000189BA /* MeasureDemo-Bridging-Header.h */,
 			);
 			path = MeasureDemo;
 			sourceTree = "<group>";
@@ -128,6 +135,7 @@
 				TargetAttributes = {
 					524CC57C2C6A180F001AB506 = {
 						CreatedOnToolsVersion = 15.3;
+						LastSwiftMigration = 1530;
 					};
 				};
 			};
@@ -189,6 +197,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				52CD91322C7DAEDB000189BA /* MeasureManager.m in Sources */,
 				524CC5852C6A180F001AB506 /* ViewController.swift in Sources */,
 				524CC5812C6A180F001AB506 /* AppDelegate.swift in Sources */,
 				524CC5832C6A180F001AB506 /* SceneDelegate.swift in Sources */,
@@ -341,6 +350,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -360,6 +370,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.measure.MeasureDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "MeasureDemo/MeasureDemo-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -370,6 +382,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -389,6 +402,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.measure.MeasureDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "MeasureDemo/MeasureDemo-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
