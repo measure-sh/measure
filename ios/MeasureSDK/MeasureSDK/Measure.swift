@@ -13,6 +13,7 @@ import Foundation
         return instance
     }()
     private var measure: MeasureInternal?
+    private let initializationQueue = DispatchQueue(label: "MeasureInitializationQueue")
 
     // Private initializer to ensure the singleton pattern
     private override init() {
@@ -25,11 +26,13 @@ import Foundation
     ///
     /// Initializing the SDK multiple times will have no effect.
     /// - Parameter config: The configuration for the Measure SDK.
-    @objc public func initialize(with config: MeasureConfig = MeasureConfig()) {
-        // Ensure initialization is done only once
-        guard measure == nil else { return }
+    @objc public func initialize(with config: BaseMeasureConfig? = nil) {
+        initializationQueue.sync {
+            // Ensure initialization is done only once
+            guard measure == nil else { return }
 
-        let initializer = MeasureInitializer(config)
-        measure = MeasureInternal(initializer)
+            let initializer = BaseMeasureInitializer(config ?? BaseMeasureConfig())
+            measure = MeasureInternal(initializer)
+        }
     }
 }
