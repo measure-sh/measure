@@ -1,19 +1,16 @@
 package sh.measure.android.attributes
 
 import sh.measure.android.config.ConfigProvider
-import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import sh.measure.android.storage.Database
 import sh.measure.android.utils.isLowerCase
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.RejectedExecutionException
-import java.util.concurrent.atomic.AtomicBoolean
 
 internal interface UserDefinedAttribute {
-    fun put(key: String, value: Number, store: Boolean)
-    fun put(key: String, value: String, store: Boolean)
-    fun put(key: String, value: Boolean, store: Boolean)
+    fun put(key: String, value: Number)
+    fun put(key: String, value: String)
+    fun put(key: String, value: Boolean)
     fun getAll(): Map<String, Any?>
     fun remove(key: String)
     fun clear()
@@ -22,88 +19,50 @@ internal interface UserDefinedAttribute {
 internal class UserDefinedAttributeImpl(
     private val logger: Logger,
     private val configProvider: ConfigProvider,
-    private val database: Database,
-    private val ioExecutor: MeasureExecutorService,
 ) : UserDefinedAttribute {
-    // used to ensure that the attributes are loaded from disk only once
-    // given all further operations are done in memory and then persisted to disk
-    private val loadedFromDisk = AtomicBoolean(false)
     private val attributes = ConcurrentHashMap<String, Any?>()
 
-    override fun put(key: String, value: Number, store: Boolean) {
+    override fun put(key: String, value: Number) {
         if (validate(key, value)) {
             attributes[key] = value
-            if (store) {
-                ioExecutor.submit {
-                    database.insertUserDefinedAttribute(key, value)
-                }
-            }
         }
     }
 
-    override fun put(key: String, value: String, store: Boolean) {
+    override fun put(key: String, value: String) {
         if (validate(key, value)) {
             attributes[key] = value
-            if (store) {
-                try {
-                    ioExecutor.submit {
-                        database.insertUserDefinedAttribute(key, value)
-                    }
-                } catch (e: RejectedExecutionException) {
-                    logger.log(LogLevel.Error, "Failed to submit insert user defined attribute task to executor", e)
-                }
-            }
         }
     }
 
-    override fun put(key: String, value: Boolean, store: Boolean) {
+    override fun put(key: String, value: Boolean) {
         if (validate(key, value)) {
             attributes[key] = value
-            if (store) {
-                try {
-                    ioExecutor.submit {
-                        database.insertUserDefinedAttribute(key, value)
-                    }
-                } catch (e: RejectedExecutionException) {
-                    logger.log(LogLevel.Error, "Failed to submit insert user defined attribute task to executor", e)
-                }
-            }
         }
     }
 
     override fun getAll(): Map<String, Any?> {
-        if (loadedFromDisk.getAndSet(true)) {
-            val persistedAttributes = database.getUserDefinedAttributes()
-            attributes.putAll(persistedAttributes)
-        }
         return attributes.toMap()
     }
 
     override fun remove(key: String) {
         try {
             attributes.remove(key)
-            ioExecutor.submit {
-                database.removeUserDefinedAttribute(key)
-            }
         } catch (npe: NullPointerException) {
             logger.log(
                 LogLevel.Warning,
                 "Unable to remove attribute: $key, as it does not exist",
             )
         } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Error, "Failed to submit remove user defined attribute task to executor", e)
+            logger.log(
+                LogLevel.Error,
+                "Failed to submit remove user defined attribute task to executor",
+                e
+            )
         }
     }
 
     override fun clear() {
         attributes.clear()
-        try {
-            ioExecutor.submit {
-                database.clearUserDefinedAttributes()
-            }
-        } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Error, "Failed to submit clear user defined attributes task to executor", e)
-        }
     }
 
     private fun validate(key: String, value: Any?): Boolean {

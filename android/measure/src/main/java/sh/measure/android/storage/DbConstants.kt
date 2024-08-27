@@ -152,14 +152,6 @@ internal object Sql {
         CREATE INDEX IF NOT EXISTS sessions_needs_reporting_index ON ${SessionsTable.TABLE_NAME} (${SessionsTable.COL_NEEDS_REPORTING})
     """
 
-    const val CREATE_USER_DEFINED_ATTRIBUTES_TABLE = """
-        CREATE TABLE ${UserDefinedAttributesTable.TABLE_NAME} (
-            ${UserDefinedAttributesTable.COL_KEY} TEXT PRIMARY KEY,
-            ${UserDefinedAttributesTable.COL_VALUE} TEXT,
-            ${UserDefinedAttributesTable.COL_TYPE} TEXT NOT NULL
-        )
-    """
-
     /**
      * Query to get a batch of events that are not yet batched.
      *

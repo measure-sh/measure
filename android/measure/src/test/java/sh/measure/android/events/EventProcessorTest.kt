@@ -16,7 +16,6 @@ import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeEventStore
 import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakeSessionManager
-import sh.measure.android.fakes.FakeUserDefinedAttribute
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.fakes.TestData
@@ -37,7 +36,6 @@ internal class EventProcessorTest {
     private val eventTransformer = object : EventTransformer {
         override fun <T> transform(event: Event<T>): Event<T> = event
     }
-    private val userDefinedAttribute = FakeUserDefinedAttribute()
 
     private val eventProcessor = EventProcessorImpl(
         logger = NoopLogger(),
@@ -50,7 +48,6 @@ internal class EventProcessorTest {
         screenshotCollector = screenshotCollector,
         configProvider = configProvider,
         eventTransformer = eventTransformer,
-        userDefinedAttribute = userDefinedAttribute,
     )
 
     @Before
@@ -161,7 +158,6 @@ internal class EventProcessorTest {
             screenshotCollector = screenshotCollector,
             configProvider = configProvider,
             eventTransformer = eventTransformer,
-            userDefinedAttribute = userDefinedAttribute,
         )
 
         // When
@@ -332,7 +328,6 @@ internal class EventProcessorTest {
             screenshotCollector = screenshotCollector,
             configProvider = configProvider,
             eventTransformer = eventTransformer,
-            userDefinedAttribute = userDefinedAttribute,
         )
 
         // When
@@ -377,7 +372,6 @@ internal class EventProcessorTest {
             screenshotCollector = screenshotCollector,
             configProvider = configProvider,
             eventTransformer = eventTransformer,
-            userDefinedAttribute = userDefinedAttribute,
         )
 
         // When

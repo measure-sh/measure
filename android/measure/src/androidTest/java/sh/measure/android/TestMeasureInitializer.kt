@@ -169,8 +169,6 @@ internal class TestMeasureInitializer(
     override val userDefinedAttribute: UserDefinedAttribute = UserDefinedAttributeImpl(
         logger,
         configProvider,
-        database,
-        executorServiceRegistry.ioExecutor(),
     ),
     override val userAttributeProcessor: UserAttributeProcessor = UserAttributeProcessor(
         logger,
@@ -261,7 +259,6 @@ internal class TestMeasureInitializer(
         screenshotCollector = screenshotCollector,
         eventTransformer = eventTransformer,
         configProvider = configProvider,
-        userDefinedAttribute = userDefinedAttribute,
     ),
     override val userTriggeredEventCollector: UserTriggeredEventCollector = UserTriggeredEventCollectorImpl(
         eventProcessor = eventProcessor,

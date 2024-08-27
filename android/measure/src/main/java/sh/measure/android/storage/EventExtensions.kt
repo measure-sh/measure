@@ -42,7 +42,7 @@ internal fun <T> Event<T>.serializeAttributes(): String? {
  *
  */
 internal fun <T> Event<T>.serializeUserDefinedAttributes(): String? {
-    if (userDefinedAttributes.isEmpty()) {
+    if (userDefinedAttributes.isNullOrEmpty()) {
         return null
     }
     val result = Json.encodeToString(

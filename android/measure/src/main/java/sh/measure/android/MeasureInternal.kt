@@ -167,16 +167,16 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         userTriggeredEventCollector.trackHandledException(throwable)
     }
 
-    fun putAttribute(key: String, value: Number, store: Boolean) {
-        userDefinedAttribute.put(key, value, store)
+    fun putAttribute(key: String, value: Number) {
+        userDefinedAttribute.put(key, value)
     }
 
-    fun putAttribute(key: String, value: String, store: Boolean) {
-        userDefinedAttribute.put(key, value, store)
+    fun putAttribute(key: String, value: String) {
+        userDefinedAttribute.put(key, value)
     }
 
-    fun putAttribute(key: String, value: Boolean, store: Boolean) {
-        userDefinedAttribute.put(key, value, store)
+    fun putAttribute(key: String, value: Boolean) {
+        userDefinedAttribute.put(key, value)
     }
 
     fun removeAttribute(key: String) {

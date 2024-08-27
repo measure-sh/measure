@@ -69,7 +69,7 @@ internal object TestData {
         attachments: MutableList<Attachment> = mutableListOf(),
         attributes: MutableMap<String, Any?> = mutableMapOf(),
         userTriggered: Boolean = false,
-        userDefinedAttributes: Map<String, Any?> = emptyMap(),
+        userDefinedAttributes: Map<String, Any?>? = null,
     ): Event<T> {
         return Event(
             id = id,
