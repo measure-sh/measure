@@ -58,14 +58,14 @@ internal interface EventProcessor {
      * @param data The data to be tracked.
      * @param timestamp The timestamp of the event in milliseconds since epoch.
      * @param type The type of the event.
-     * @param attributes The attributes to be attached to the event.
+     * @param userDefinedAttributes The user defined attributes to be attached to the event.
      * @param attachments The attachments to be attached to the event.
      */
     fun <T> track(
         data: T,
         timestamp: Long,
         type: String,
-        attributes: MutableMap<String, Any?> = mutableMapOf(),
+        userDefinedAttributes: MutableMap<String, Any?> = mutableMapOf(),
         attachments: MutableList<Attachment> = mutableListOf(),
     )
 
@@ -83,7 +83,7 @@ internal interface EventProcessor {
         data: ExceptionData,
         timestamp: Long,
         type: String,
-        attributes: MutableMap<String, Any?> = mutableMapOf(),
+        userDefinedAttributes: MutableMap<String, Any?> = mutableMapOf(),
         attachments: MutableList<Attachment> = mutableListOf(),
     )
 }
@@ -117,10 +117,10 @@ internal class EventProcessorImpl(
         data: T,
         timestamp: Long,
         type: String,
-        attributes: MutableMap<String, Any?>,
+        userDefinedAttributes: MutableMap<String, Any?>,
         attachments: MutableList<Attachment>,
     ) {
-        track(data, timestamp, type, attributes, attachments, null)
+        track(data, timestamp, type, userDefinedAttributes, attachments, null)
     }
 
     override fun <T> trackUserTriggered(data: T, timestamp: Long, type: String) {
@@ -139,7 +139,7 @@ internal class EventProcessorImpl(
         data: ExceptionData,
         timestamp: Long,
         type: String,
-        attributes: MutableMap<String, Any?>,
+        userDefinedAttributes: MutableMap<String, Any?>,
         attachments: MutableList<Attachment>,
     ) {
         val threadName = Thread.currentThread().name
@@ -148,7 +148,7 @@ internal class EventProcessorImpl(
             timestamp = timestamp,
             type = type,
             attachments = attachments,
-            attributes = attributes,
+            userDefinedAttributes = userDefinedAttributes,
             userTriggered = false,
         )
         if (configProvider.trackScreenshotOnCrash) {
@@ -168,7 +168,7 @@ internal class EventProcessorImpl(
         data: T,
         timestamp: Long,
         type: String,
-        attributes: MutableMap<String, Any?>,
+        userDefinedAttributes: MutableMap<String, Any?>,
         attachments: MutableList<Attachment>,
         sessionId: String?,
         userTriggered: Boolean = false,
@@ -184,7 +184,7 @@ internal class EventProcessorImpl(
                             timestamp = timestamp,
                             type = type,
                             attachments = attachments,
-                            attributes = attributes,
+                            userDefinedAttributes = userDefinedAttributes,
                             userTriggered = userTriggered,
                             sessionId = sessionId,
                         )
@@ -227,7 +227,7 @@ internal class EventProcessorImpl(
         type: String,
         data: T,
         attachments: MutableList<Attachment>,
-        attributes: MutableMap<String, Any?>,
+        userDefinedAttributes: MutableMap<String, Any?>,
         userTriggered: Boolean,
         sessionId: String? = null,
     ): Event<T> {
@@ -240,7 +240,8 @@ internal class EventProcessorImpl(
             type = type,
             data = data,
             attachments = attachments,
-            attributes = attributes,
+            attributes = mutableMapOf(),
+            userDefinedAttributes = userDefinedAttributes,
             userTriggered = userTriggered,
         )
     }

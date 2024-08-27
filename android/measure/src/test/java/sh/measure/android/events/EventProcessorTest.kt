@@ -109,7 +109,7 @@ internal class EventProcessorTest {
     }
 
     @Test
-    fun `given event with attributes, adds session id, event id and thread name as attribute, then stores event`() {
+    fun `given event with user defined attributes, adds session id, event id and thread name as attribute, then stores event`() {
         // Given
         val exceptionData = TestData.getExceptionData()
         val timestamp = 1710746412L
@@ -121,7 +121,7 @@ internal class EventProcessorTest {
             data = exceptionData,
             timestamp = timestamp,
             type = type,
-            attributes = attributes,
+            userDefinedAttributes = attributes,
         )
 
         val expectedEvent = exceptionData.toEvent(
@@ -129,7 +129,7 @@ internal class EventProcessorTest {
             timestamp = timestamp.iso8601Timestamp(),
             id = idProvider.id,
             sessionId = sessionManager.getSessionId(),
-            attributes = attributes,
+            userDefinedAttributes = attributes,
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 
         assertEquals(1, eventStore.trackedEvents.size)

@@ -60,7 +60,7 @@ class AnrCollectorTest {
             data = dataCaptor.capture(),
             timestamp = timestampCaptor.capture(),
             type = typeCaptor.capture(),
-            attributes = attributesCaptor.capture(),
+            userDefinedAttributes = attributesCaptor.capture(),
             attachments = attachmentsCaptor.capture(),
         )
 

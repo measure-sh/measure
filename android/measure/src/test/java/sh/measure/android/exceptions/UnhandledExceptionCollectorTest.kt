@@ -68,7 +68,7 @@ internal class UnhandledExceptionCollectorTest {
             timestamp = timeProvider.now(),
             type = EventType.EXCEPTION,
             data = expectedException,
-            attributes = mutableMapOf(),
+            userDefinedAttributes = mutableMapOf(),
             attachments = mutableListOf(),
         )
     }
