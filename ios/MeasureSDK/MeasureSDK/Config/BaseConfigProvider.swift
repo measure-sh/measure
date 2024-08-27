@@ -7,11 +7,11 @@
 
 import Foundation
 
-protocol ConfigProviderProtocol: MeasureConfigProtocol, InternalConfig {
+protocol ConfigProvider: MeasureConfig, InternalConfig {
     func loadNetworkConfig()
 }
 
-class ConfigProvider: ConfigProviderProtocol {
+class BaseConfigProvider: ConfigProvider {
     private let defaultConfig: Config
     private let configLoader: ConfigLoaderProtocol
     private var cachedConfig: Config?

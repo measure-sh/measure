@@ -7,18 +7,18 @@
 
 import Foundation
 
-protocol MeasureInitializerProtocol {
-    var configProvider: ConfigProviderProtocol { get }
+protocol MeasureInitializer {
+    var configProvider: ConfigProvider { get }
 }
 
-struct MeasureInitializer: MeasureInitializerProtocol {
-    let configProvider: ConfigProviderProtocol
+struct BaseMeasureInitializer: MeasureInitializer {
+    let configProvider: ConfigProvider
 
-    init(_ config: MeasureConfigProtocol) {
+    init(_ config: MeasureConfig) {
         let defaultConfig = Config(enableLogging: config.enableLogging,
                                    trackScreenshotOnCrash: config.trackScreenshotOnCrash,
                                    sessionSamplingRate: config.sessionSamplingRate)
 
-        configProvider = ConfigProvider(defaultConfig: defaultConfig, configLoader: ConfigLoader())
+        configProvider = BaseConfigProvider(defaultConfig: defaultConfig, configLoader: ConfigLoader())
     }
 }

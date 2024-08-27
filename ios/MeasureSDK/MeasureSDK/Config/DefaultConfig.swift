@@ -7,8 +7,8 @@
 
 import Foundation
 
-public struct DefaultConfig {
-    public static let enableLogging = true
-    public static let trackScreenshotOnCrash = false
-    public static let sessionSamplingRate: Float = 1.0
+struct DefaultConfig {
+    static let enableLogging = true
+    static let trackScreenshotOnCrash = false
+    static let sessionSamplingRate: Float = 1.0
 }

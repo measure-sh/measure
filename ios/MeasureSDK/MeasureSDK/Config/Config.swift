@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Config: InternalConfig, MeasureConfigProtocol {
+struct Config: InternalConfig, MeasureConfig {
     let enableLogging: Bool
     let trackScreenshotOnCrash: Bool
     let sessionSamplingRate: Float

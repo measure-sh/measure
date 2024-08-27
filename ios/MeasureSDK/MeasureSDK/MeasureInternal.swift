@@ -8,9 +8,9 @@
 import Foundation
 
 struct MeasureInternal {
-    let measureInitializer: MeasureInitializerProtocol
+    let measureInitializer: MeasureInitializer
 
-    init(_ measureInitializer: MeasureInitializerProtocol) {
+    init(_ measureInitializer: MeasureInitializer) {
         self.measureInitializer = measureInitializer
     }
 }
