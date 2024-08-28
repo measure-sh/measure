@@ -39,7 +39,7 @@
             "installation_id": "453fbd08-9097-47b1-ab19-827bbbccd4ae",
             "network_type": "wifi",
             "network_generation": "unknown",
-            "network_provider_name": "unknown"
+            "network_provider": "unknown"
         }
     },
     {
@@ -82,7 +82,7 @@
             "installation_id": "453fbd08-9097-47b1-ab19-827bbbccd4ae",
             "network_type": "wifi",
             "network_generation": "unknown",
-            "network_provider_name": "unknown"
+            "network_provider": "unknown"
         }
     },
     {
@@ -127,7 +127,7 @@
             "installation_id": "453fbd08-9097-47b1-ab19-827bbbccd4ae",
             "network_type": "wifi",
             "network_generation": "unknown",
-            "network_provider_name": "unknown"
+            "network_provider": "unknown"
         }
     },
     {
@@ -170,7 +170,7 @@
             "installation_id": "453fbd08-9097-47b1-ab19-827bbbccd4ae",
             "network_type": "wifi",
             "network_generation": "unknown",
-            "network_provider_name": "unknown"
+            "network_provider": "unknown"
         }
     },
     {
@@ -213,7 +213,7 @@
             "installation_id": "453fbd08-9097-47b1-ab19-827bbbccd4ae",
             "network_type": "wifi",
             "network_generation": "unknown",
-            "network_provider_name": "unknown"
+            "network_provider": "unknown"
         }
     },
     {
@@ -838,7 +838,7 @@
             "installation_id": "453fbd08-9097-47b1-ab19-827bbbccd4ae",
             "network_type": "wifi",
             "network_generation": "unknown",
-            "network_provider_name": "unknown"
+            "network_provider": "unknown"
         }
     },
     {
@@ -883,7 +883,7 @@
             "installation_id": "453fbd08-9097-47b1-ab19-827bbbccd4ae",
             "network_type": "wifi",
             "network_generation": "unknown",
-            "network_provider_name": "unknown"
+            "network_provider": "unknown"
         }
     },
     {
@@ -928,7 +928,7 @@
             "installation_id": "453fbd08-9097-47b1-ab19-827bbbccd4ae",
             "network_type": "wifi",
             "network_generation": "unknown",
-            "network_provider_name": "unknown"
+            "network_provider": "unknown"
         }
     },
     {
@@ -973,7 +973,7 @@
             "installation_id": "453fbd08-9097-47b1-ab19-827bbbccd4ae",
             "network_type": "wifi",
             "network_generation": "unknown",
-            "network_provider_name": "unknown"
+            "network_provider": "unknown"
         }
     },
     {
@@ -1016,7 +1016,7 @@
             "installation_id": "453fbd08-9097-47b1-ab19-827bbbccd4ae",
             "network_type": "wifi",
             "network_generation": "unknown",
-            "network_provider_name": "unknown"
+            "network_provider": "unknown"
         }
     },
     {
@@ -1059,7 +1059,7 @@
             "installation_id": "453fbd08-9097-47b1-ab19-827bbbccd4ae",
             "network_type": "wifi",
             "network_generation": "unknown",
-            "network_provider_name": "unknown"
+            "network_provider": "unknown"
         }
     },
     {
@@ -1102,7 +1102,7 @@
             "installation_id": "453fbd08-9097-47b1-ab19-827bbbccd4ae",
             "network_type": "wifi",
             "network_generation": "unknown",
-            "network_provider_name": "unknown"
+            "network_provider": "unknown"
         }
     },
     {
@@ -1147,7 +1147,7 @@
             "installation_id": "453fbd08-9097-47b1-ab19-827bbbccd4ae",
             "network_type": "wifi",
             "network_generation": "unknown",
-            "network_provider_name": "unknown"
+            "network_provider": "unknown"
         }
     },
     {
@@ -1190,7 +1190,7 @@
             "installation_id": "453fbd08-9097-47b1-ab19-827bbbccd4ae",
             "network_type": "wifi",
             "network_generation": "unknown",
-            "network_provider_name": "unknown"
+            "network_provider": "unknown"
         }
     }
 ]
