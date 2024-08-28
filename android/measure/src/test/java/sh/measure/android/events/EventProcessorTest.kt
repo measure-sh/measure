@@ -9,8 +9,10 @@ import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.verify
+import sh.measure.android.Attributes
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
+import sh.measure.android.buildAttributes
 import sh.measure.android.exporter.ExceptionExporter
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeEventStore
@@ -114,7 +116,7 @@ internal class EventProcessorTest {
         val exceptionData = TestData.getExceptionData()
         val timestamp = 1710746412L
         val type = EventType.EXCEPTION
-        val attributes: MutableMap<String, Any?> = mutableMapOf("key" to "value")
+        val attributes: Attributes = buildAttributes { "key" to "value" }
 
         // When
         eventProcessor.track(

@@ -36,10 +36,10 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     private val appExitCollector by lazy { measureInitializer.appExitCollector }
     private val periodicEventExporter by lazy { measureInitializer.periodicEventExporter }
     private val userAttributeProcessor by lazy { measureInitializer.userAttributeProcessor }
-    private val userDefinedAttribute by lazy { measureInitializer.userDefinedAttribute }
     private val configProvider by lazy { measureInitializer.configProvider }
     private val dataCleanupService by lazy { measureInitializer.dataCleanupService }
     private val powerStateProvider by lazy { measureInitializer.powerStateProvider }
+    private val customEventCollector by lazy { measureInitializer.customEventCollector }
     private var isStarted: Boolean = false
     private var startLock = Any()
 
@@ -167,29 +167,16 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         userTriggeredEventCollector.trackHandledException(throwable)
     }
 
-    fun putAttribute(key: String, value: Number) {
-        userDefinedAttribute.put(key, value)
-    }
-
-    fun putAttribute(key: String, value: String) {
-        userDefinedAttribute.put(key, value)
-    }
-
-    fun putAttribute(key: String, value: Boolean) {
-        userDefinedAttribute.put(key, value)
-    }
-
-    fun removeAttribute(key: String) {
-        userDefinedAttribute.remove(key)
-    }
-
-    fun clearAttributes() {
-        userDefinedAttribute.clear()
+    fun trackEvent(
+        name: String,
+        attributes: Attributes,
+        attachment: MeasureAttachment? = null,
+    ) {
+        customEventCollector.trackEvent(name, attributes, attachment)
     }
 
     fun clear() {
         userAttributeProcessor.clearUserId()
-        userDefinedAttribute.clear()
     }
 
     private fun unregisterCollectors() {

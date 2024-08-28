@@ -14,13 +14,13 @@ import sh.measure.android.attributes.InstallationIdAttributeProcessor
 import sh.measure.android.attributes.NetworkStateAttributeProcessor
 import sh.measure.android.attributes.PowerStateAttributeProcessor
 import sh.measure.android.attributes.UserAttributeProcessor
-import sh.measure.android.attributes.UserDefinedAttribute
-import sh.measure.android.attributes.UserDefinedAttributeImpl
 import sh.measure.android.config.Config
 import sh.measure.android.config.ConfigLoaderImpl
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.ConfigProviderImpl
 import sh.measure.android.config.MeasureConfig
+import sh.measure.android.customevents.CustomEventsCollector
+import sh.measure.android.customevents.CustomEventsCollectorImpl
 import sh.measure.android.events.DefaultEventTransformer
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventProcessorImpl
@@ -374,6 +374,13 @@ internal class MeasureInitializerImpl(
         sessionManager = sessionManager,
         configProvider = configProvider,
     ),
+    override val customEventCollector: CustomEventsCollector = CustomEventsCollectorImpl(
+        logger = logger,
+        configProvider = configProvider,
+        timeProvider = timeProvider,
+        eventProcessor = eventProcessor,
+        fileStorage = fileStorage,
+    ),
 ) : MeasureInitializer
 
 internal interface MeasureInitializer {
@@ -401,9 +408,9 @@ internal interface MeasureInitializer {
     val networkChangesCollector: NetworkChangesCollector
     val periodicEventExporter: PeriodicEventExporter
     val userAttributeProcessor: UserAttributeProcessor
-    val userDefinedAttribute: UserDefinedAttribute
     val screenshotCollector: ScreenshotCollector
     val dataCleanupService: DataCleanupService
     val processInfoProvider: ProcessInfoProvider
     val powerStateProvider: PowerStateProvider
+    val customEventCollector: CustomEventsCollector
 }

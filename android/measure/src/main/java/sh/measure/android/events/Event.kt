@@ -1,5 +1,8 @@
 package sh.measure.android.events
 
+import kotlinx.serialization.Contextual
+import sh.measure.android.AttributeValue
+
 /**
  * Represents an event in Measure. This object maps very closely to the event object in
  * the Measure API.
@@ -51,7 +54,7 @@ internal data class Event<T>(
      * Attributes set by the user in the event. The type of values in the map is set to Any here,
      * however, the allowed values can only be String, Int, Long, Double, Float or Boolean.
      */
-    val userDefinedAttributes: Map<String, Any?>?,
+    val userDefinedAttributes: Map<String, @Contextual AttributeValue>,
 ) {
     /**
      * Adds an attribute to the event.

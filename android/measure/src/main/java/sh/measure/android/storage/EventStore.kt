@@ -32,34 +32,37 @@ internal class EventStoreImpl(
 ) : EventStore {
 
     override fun <T> store(event: Event<T>) {
-        val serializedAttributes = event.serializeAttributes()
-        val serializedUserDefAttributes = event.serializeUserDefinedAttributes()
-        val attachmentEntities = event.createAttachmentEntities()
-        val serializedAttachments = serializeAttachmentEntities(attachmentEntities)
-        val attachmentsSize = calculateAttachmentsSize(attachmentEntities)
-        val serializedData = event.serializeDataToString()
-        val storeEventDataInFile = event.shouldStoreEventDataInFile()
-        val filePath = if (storeEventDataInFile) {
-            // return from the function if writing to the file failed
-            // this is to ensure that the event without data is never stored in the database
-            fileStorage.writeEventData(event.id, serializedData) ?: return
-        } else {
-            null
-        }
-
-        val eventEntity = createEventEntity(
-            event,
-            serializedAttributes,
-            serializedUserDefAttributes,
-            attachmentEntities,
-            serializedAttachments,
-            attachmentsSize,
-            filePath,
-            serializedData,
-        )
-        val successfulInsert = insertEventToDatabase(eventEntity)
-        if (!successfulInsert) {
-            handleEventInsertionFailure(eventEntity)
+        try {
+            val serializedAttributes = event.serializeAttributes()
+            val serializedUserDefAttributes = event.serializeUserDefinedAttributes()
+            val attachmentEntities = event.createAttachmentEntities()
+            val serializedAttachments = serializeAttachmentEntities(attachmentEntities)
+            val attachmentsSize = calculateAttachmentsSize(attachmentEntities)
+            val serializedData = event.serializeDataToString()
+            val storeEventDataInFile = event.shouldStoreEventDataInFile()
+            val filePath = if (storeEventDataInFile) {
+                // return from the function if writing to the file failed
+                // this is to ensure that the event without data is never stored in the database
+                fileStorage.writeEventData(event.id, serializedData) ?: return
+            } else {
+                null
+            }
+            val eventEntity = createEventEntity(
+                event,
+                serializedAttributes,
+                serializedUserDefAttributes,
+                attachmentEntities,
+                serializedAttachments,
+                attachmentsSize,
+                filePath,
+                serializedData,
+            )
+            val successfulInsert = insertEventToDatabase(eventEntity)
+            if (!successfulInsert) {
+                handleEventInsertionFailure(eventEntity)
+            }
+        } catch (e: IllegalStateException) {
+            logger.log(LogLevel.Error, "Failed to serialize event: ${event.type}", e)
         }
     }
 

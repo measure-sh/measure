@@ -1,5 +1,6 @@
 package sh.measure.android.events
 
+import sh.measure.android.Attributes
 import sh.measure.android.SessionManager
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
@@ -65,7 +66,7 @@ internal interface EventProcessor {
         data: T,
         timestamp: Long,
         type: String,
-        userDefinedAttributes: MutableMap<String, Any?> = mutableMapOf(),
+        userDefinedAttributes: Attributes = mapOf(),
         attachments: MutableList<Attachment> = mutableListOf(),
     )
 
@@ -83,7 +84,7 @@ internal interface EventProcessor {
         data: ExceptionData,
         timestamp: Long,
         type: String,
-        userDefinedAttributes: MutableMap<String, Any?> = mutableMapOf(),
+        userDefinedAttributes: Attributes = mutableMapOf(),
         attachments: MutableList<Attachment> = mutableListOf(),
     )
 }
@@ -117,7 +118,7 @@ internal class EventProcessorImpl(
         data: T,
         timestamp: Long,
         type: String,
-        userDefinedAttributes: MutableMap<String, Any?>,
+        userDefinedAttributes: Attributes,
         attachments: MutableList<Attachment>,
     ) {
         track(data, timestamp, type, userDefinedAttributes, attachments, null)
@@ -139,7 +140,7 @@ internal class EventProcessorImpl(
         data: ExceptionData,
         timestamp: Long,
         type: String,
-        userDefinedAttributes: MutableMap<String, Any?>,
+        userDefinedAttributes: Attributes,
         attachments: MutableList<Attachment>,
     ) {
         val threadName = Thread.currentThread().name
@@ -168,7 +169,7 @@ internal class EventProcessorImpl(
         data: T,
         timestamp: Long,
         type: String,
-        userDefinedAttributes: MutableMap<String, Any?>,
+        userDefinedAttributes: Attributes,
         attachments: MutableList<Attachment>,
         sessionId: String?,
         userTriggered: Boolean = false,
@@ -179,6 +180,10 @@ internal class EventProcessorImpl(
                 val threadName = Thread.currentThread().name
                 try {
                     ioExecutor.submit {
+                        logger.log(
+                            LogLevel.Debug,
+                            "Processing event: $type",
+                        )
                         val event = createEvent(
                             data = data,
                             timestamp = timestamp,
@@ -227,7 +232,7 @@ internal class EventProcessorImpl(
         type: String,
         data: T,
         attachments: MutableList<Attachment>,
-        userDefinedAttributes: MutableMap<String, Any?>,
+        userDefinedAttributes: Attributes,
         userTriggered: Boolean,
         sessionId: String? = null,
     ): Event<T> {

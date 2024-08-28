@@ -188,6 +188,40 @@ object Measure {
         }
     }
 
+    /**
+     * Track a custom event.
+     *
+     * @param name The name of the event.
+     * @param attributes The attributes associated with the event. It can be any key-value pair.
+     */
+    @JvmStatic
+    fun trackEvent(
+        name: String,
+        attributes: Attributes,
+    ) {
+        if (isInitialized.get()) {
+            measure.trackEvent(name, attributes)
+        }
+    }
+
+    /**
+     * Track a custom event with an attachment.
+     *
+     * @param name The name of the event.
+     * @param attributes The attributes associated with the event. It can be any key-value pair.
+     * @param attachment The attachment associated with the event.
+     */
+    @JvmStatic
+    fun trackEvent(
+        name: String,
+        attachment: MeasureAttachment,
+        attributes: Attributes,
+    ) {
+        if (isInitialized.get()) {
+            measure.trackEvent(name, attributes, attachment)
+        }
+    }
+
     internal fun getOkHttpEventCollector(): OkHttpEventCollector? {
         if (isInitialized.get()) {
             return try {
@@ -217,14 +251,14 @@ object Measure {
         data: ExceptionData,
         timestamp: Long,
         type: String,
-        attributes: MutableMap<String, Any?>,
+        userDefinedAttributes: Attributes,
         attachments: MutableList<Attachment>,
     ) {
         measure.eventProcessor.trackCrash(
             data = data,
             timestamp = timestamp,
             type = type,
-            userDefinedAttributes = attributes,
+            userDefinedAttributes = userDefinedAttributes,
             attachments = attachments,
         )
     }
@@ -233,14 +267,14 @@ object Measure {
     internal fun simulateAnr(
         data: ExceptionData,
         timestamp: Long,
-        attributes: MutableMap<String, Any?>,
+        userDefinedAttributes: Attributes,
         attachments: MutableList<Attachment>,
     ) {
         measure.eventProcessor.trackCrash(
             type = EventType.ANR,
             data = data,
             timestamp = timestamp,
-            userDefinedAttributes = attributes,
+            userDefinedAttributes = userDefinedAttributes,
             attachments = attachments,
         )
     }

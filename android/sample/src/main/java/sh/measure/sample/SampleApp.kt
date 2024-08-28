@@ -2,6 +2,7 @@ package sh.measure.sample
 
 import android.app.Application
 import sh.measure.android.Measure
+import sh.measure.android.buildAttributes
 import sh.measure.android.config.MeasureConfig
 import sh.measure.android.config.ScreenshotMaskLevel
 
@@ -29,6 +30,13 @@ class SampleApp : Application() {
         Measure.clearUserId()
         Measure.trackScreenView("screen-name")
         Measure.trackHandledException(RuntimeException("sample-handled-exception"))
+        val attributes = buildAttributes {
+            put("key-1", 123)
+            put("key-2", 123.45)
+            put("key-3", "value")
+            put("key-4", true)
+        }
+        Measure.trackEvent("custom-event", attributes)
         /*
         Measure.putAttribute("sample-key-1", 123)
         Measure.putAttribute("sample-key-2", 123.45)

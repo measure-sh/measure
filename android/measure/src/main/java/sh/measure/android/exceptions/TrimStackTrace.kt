@@ -1,5 +1,6 @@
 package sh.measure.android.exceptions
 
+// TODO: move this to config
 /**
  * The maximum number of threads to include in the exception.
  */

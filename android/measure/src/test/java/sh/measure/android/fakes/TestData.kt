@@ -1,5 +1,6 @@
 package sh.measure.android.fakes
 
+import sh.measure.android.AttributeValue
 import sh.measure.android.appexit.AppExit
 import sh.measure.android.applaunch.ColdLaunchData
 import sh.measure.android.applaunch.HotLaunchData
@@ -69,7 +70,7 @@ internal object TestData {
         attachments: MutableList<Attachment> = mutableListOf(),
         attributes: MutableMap<String, Any?> = mutableMapOf(),
         userTriggered: Boolean = false,
-        userDefinedAttributes: Map<String, Any?>? = mutableMapOf(),
+        userDefinedAttributes: Map<String, AttributeValue> = mutableMapOf(),
     ): Event<T> {
         return Event(
             id = id,

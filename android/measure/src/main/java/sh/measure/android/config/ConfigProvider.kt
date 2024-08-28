@@ -94,9 +94,8 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { maxUserDefinedAttributeValueLength }
     override val autoStart: Boolean
         get() = getMergedConfig { autoStart }
-
-    override val userDefinedAttributeKeyWithSpaces: Boolean
-        get() = getMergedConfig { userDefinedAttributeKeyWithSpaces }
+    override val maxUserDefinedAttributesPerEvent: Int
+        get() = getMergedConfig { maxUserDefinedAttributesPerEvent }
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         if (!trackHttpBody) {

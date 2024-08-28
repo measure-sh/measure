@@ -31,8 +31,8 @@ internal class FakeConfigProvider : ConfigProvider {
     override var maxSessionDurationMs: Long = 6 * 60 * 60 * 1000 // 6 hours
     override var maxUserDefinedAttributeKeyLength: Int = 64
     override var maxUserDefinedAttributeValueLength: Int = 256
-    override var userDefinedAttributeKeyWithSpaces: Boolean = false
     override val autoStart: Boolean = true
+    override var maxUserDefinedAttributesPerEvent: Int = 100
 
     var shouldTrackHttpBody = false
 

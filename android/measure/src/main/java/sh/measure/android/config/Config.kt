@@ -33,7 +33,7 @@ internal data class Config(
     override val maxSessionDurationMs: Long = 6 * 60 * 60 * 1000 // 6 hours
     override val maxUserDefinedAttributeKeyLength: Int = 64 // 64 chars
     override val maxUserDefinedAttributeValueLength: Int = 256 // 256 chars
-    override val userDefinedAttributeKeyWithSpaces: Boolean = false
+    override val maxUserDefinedAttributesPerEvent: Int = 100
     override val eventTypeExportAllowList: List<String> = listOf(
         EventType.COLD_LAUNCH,
         EventType.HOT_LAUNCH,
