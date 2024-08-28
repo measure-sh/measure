@@ -21,7 +21,7 @@
 
 A quick reference to the entire public API for Measure Android SDK.
 
-<img src="https://github.com/user-attachments/assets/ff835b3b-2953-4920-b5fa-060761862cac" width="60%" alt="Cheatsheet">
+<img src="images/cheatsheet.png" width="60%" alt="Cheatsheet">
 
 
 # Getting started
