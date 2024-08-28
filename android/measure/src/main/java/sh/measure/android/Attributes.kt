@@ -57,7 +57,7 @@ class EventAttributesBuilder {
 fun buildAttributes(block: EventAttributesBuilder.() -> Unit): Attributes =
     EventAttributesBuilder().apply(block).build()
 
-object AttributeValueSerializer : KSerializer<AttributeValue> {
+internal object AttributeValueSerializer : KSerializer<AttributeValue> {
     @OptIn(InternalSerializationApi::class, ExperimentalSerializationApi::class)
     override val descriptor: SerialDescriptor =
         buildSerialDescriptor("AttributeValue", SerialKind.CONTEXTUAL)
