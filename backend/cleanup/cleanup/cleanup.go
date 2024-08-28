@@ -28,8 +28,6 @@ type StaleData struct {
 	AppID         string       `json:"app_id"`
 	RetentionDate time.Time    `json:"retention_date"`
 	EventIDs      []string     `json:"event_ids"`
-	ANRGroupIDs   []string     `json:"anr_group_ids"`
-	CrashGroupIds []string     `json:"crash_group_ids"`
 	Attachments   []Attachment `json:"attachments"`
 }
 
@@ -42,58 +40,6 @@ func DeleteStaleData(ctx context.Context) {
 	}
 
 	for _, st := range staleData {
-
-		// Update ANR groups in postgres
-		if len(st.ANRGroupIDs) > 0 {
-			fmt.Printf("Deleting events from %v ANR groups for app_id: %v\n", len(st.ANRGroupIDs), st.AppID)
-
-			updateANRGroupsStmt := `
-							UPDATE public.anr_groups
-							SET event_ids = (
-  								SELECT array(
-    								SELECT unnest(event_ids)
-    								EXCEPT
-    								SELECT unnest($1::uuid[])
-  								)
-							)
-							WHERE app_id = $2
-  							AND event_ids && $3::uuid[]
-  							AND id = ANY($4::uuid[]);
-							`
-
-			if _, err := server.Server.PgPool.Exec(ctx, updateANRGroupsStmt, st.EventIDs, st.AppID, st.EventIDs, st.ANRGroupIDs); err != nil {
-				fmt.Printf("Failed to delete events from %v ANR groups for app_id: %v, err: %v\n", len(st.ANRGroupIDs), st.AppID, err)
-				return
-			}
-
-			fmt.Printf("Deleted events from %v ANR groups for app_id: %v\n", len(st.ANRGroupIDs), st.AppID)
-		}
-
-		// Update Crash groups in postgres
-		if len(st.CrashGroupIds) > 0 {
-			fmt.Printf("Deleting events from %v crash groups for app_id: %v\n", len(st.CrashGroupIds), st.AppID)
-
-			updateCrashGroupsStmt := `
-							UPDATE public.unhandled_exception_groups
-							SET event_ids = (
-  								SELECT array(
-    								SELECT unnest(event_ids)
-    								EXCEPT
-    								SELECT unnest($1::uuid[])
-  								)
-							)
-							WHERE app_id = $2
-  							AND event_ids && $3::uuid[]
-  							AND id = ANY($4::uuid[]);
-							`
-
-			if _, err := server.Server.PgPool.Exec(ctx, updateCrashGroupsStmt, st.EventIDs, st.AppID, st.EventIDs, st.CrashGroupIds); err != nil {
-				fmt.Printf("Failed to delete events from %v crash groups for app_id: %v, err: %v\n", len(st.CrashGroupIds), st.AppID, err)
-				return
-			}
-
-			fmt.Printf("Deleted events from %v crash groups for app_id: %v\n", len(st.CrashGroupIds), st.AppID)
-		}
 
 		// Delete attachments from object storage
 		if len(st.Attachments) > 0 {
@@ -196,60 +142,10 @@ func fetchStaleData(ctx context.Context) ([]StaleData, error) {
 			staleEventIDs = append(staleEventIDs, eventID)
 		}
 
-		// Fetch ANR group IDs that contain these events
-		var anrGroupIDs []string
-		if len(staleEventIDs) > 0 {
-			fetchANRGroupsStmt := sqlf.Select("id").
-				From("public.anr_groups").
-				Where("app_id = ?", appID).
-				Where("event_ids && ?", staleEventIDs)
-
-			anrGroupRows, err := server.Server.PgPool.Query(ctx, fetchANRGroupsStmt.String(), fetchANRGroupsStmt.Args()...)
-			if err != nil {
-				fmt.Printf("Failed to fetch ANR groups: %v\n", err)
-				continue
-			}
-
-			var anrGroupID string
-			for anrGroupRows.Next() {
-				if err := anrGroupRows.Scan(&anrGroupID); err != nil {
-					fmt.Printf("Failed to scan ANR group ID: %v\n", err)
-					continue
-				}
-				anrGroupIDs = append(anrGroupIDs, anrGroupID)
-			}
-		}
-
-		// Fetch unhandled exception group IDs that contain these events
-		var crashGroupIDs []string
-		if len(staleEventIDs) > 0 {
-			fetchCrashGroupsStmt := sqlf.Select("id").
-				From("public.unhandled_exception_groups").
-				Where("app_id = ?", appID).
-				Where("event_ids && ?", staleEventIDs)
-
-			ueGroupRows, err := server.Server.PgPool.Query(ctx, fetchCrashGroupsStmt.String(), fetchCrashGroupsStmt.Args()...)
-			if err != nil {
-				fmt.Printf("Failed to fetch unhandled exception groups: %v\n", err)
-				continue
-			}
-
-			var ueGroupID string
-			for ueGroupRows.Next() {
-				if err := ueGroupRows.Scan(&ueGroupID); err != nil {
-					fmt.Printf("Failed to scan unhandled exception group ID: %v\n", err)
-					continue
-				}
-				crashGroupIDs = append(crashGroupIDs, ueGroupID)
-			}
-		}
-
 		staleData = append(staleData, StaleData{
 			AppID:         appID,
 			RetentionDate: retentionDate,
 			EventIDs:      staleEventIDs,
-			ANRGroupIDs:   anrGroupIDs,
-			CrashGroupIds: crashGroupIDs,
 			Attachments:   staleAttachments,
 		})
 	}

@@ -81,8 +81,6 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGrou
 		Select(`file_name`).
 		Select(`line_number`).
 		Select("fingerprint").
-		Select("event_ids").
-		Select("COALESCE(array_length(event_ids, 1), 0) as count").
 		Select("first_event_timestamp").
 		Select("created_at").
 		Select("updated_at").
@@ -106,7 +104,35 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGrou
 
 	exceptionGroup = &row
 
-	return
+	// Get list of event IDs
+	eventDataStmt := sqlf.From(`default.events`).
+		Select(`id`).
+		Where(`exception.fingerprint = (?)`, exceptionGroup.Fingerprint)
+
+	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
+	if err != nil {
+		return nil, err
+	}
+	defer eventDataRows.Close()
+
+	var eventIds = []uuid.UUID{}
+	var eventID uuid.UUID
+	for eventDataRows.Next() {
+		if err := eventDataRows.Scan(&eventID); err != nil {
+			return nil, err
+		}
+
+		eventIds = append(eventIds, eventID)
+	}
+
+	if eventDataRows.Err() != nil {
+		return nil, eventDataRows.Err()
+	}
+
+	exceptionGroup.EventIDs = eventIds
+	exceptionGroup.Count = len(eventIds)
+
+	return exceptionGroup, nil
 }
 
 // GetExceptionGroupByFingerprint queries a single exception group by its fingerprint.
@@ -121,8 +147,6 @@ func (a App) GetExceptionGroupByFingerprint(ctx context.Context, fingerprint str
 		Select(`file_name`).
 		Select(`line_number`).
 		Select("fingerprint").
-		Select("event_ids").
-		Select("COALESCE(array_length(event_ids, 1), 0) as count").
 		Select("first_event_timestamp").
 		Select("created_at").
 		Select("updated_at").
@@ -145,12 +169,40 @@ func (a App) GetExceptionGroupByFingerprint(ctx context.Context, fingerprint str
 
 	exceptionGroup = &row
 
-	return
+	// Get list of event IDs
+	eventDataStmt := sqlf.From(`default.events`).
+		Select(`id`).
+		Where(`exception.fingerprint = ?`, exceptionGroup.Fingerprint)
+
+	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
+	if err != nil {
+		return nil, err
+	}
+	defer eventDataRows.Close()
+
+	var eventIds = []uuid.UUID{}
+	var eventID uuid.UUID
+	for eventDataRows.Next() {
+		if err := eventDataRows.Scan(&eventID); err != nil {
+			return nil, err
+		}
+
+		eventIds = append(eventIds, eventID)
+	}
+
+	if eventDataRows.Err() != nil {
+		return nil, eventDataRows.Err()
+	}
+
+	exceptionGroup.EventIDs = eventIds
+	exceptionGroup.Count = len(eventIds)
+
+	return exceptionGroup, nil
 }
 
 // GetExceptionGroups returns slice of ExceptionGroup
 // of an app.
-func (a App) GetExceptionGroups(ctx context.Context) (groups []group.ExceptionGroup, err error) {
+func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ExceptionGroup, err error) {
 	stmt := sqlf.PostgreSQL.
 		From("public.unhandled_exception_groups").
 		Select("id").
@@ -161,18 +213,65 @@ func (a App) GetExceptionGroups(ctx context.Context) (groups []group.ExceptionGr
 		Select(`file_name`).
 		Select(`line_number`).
 		Select("fingerprint").
-		Select("event_ids").
-		Select("COALESCE(array_length(event_ids, 1), 0) as count").
 		Select("first_event_timestamp").
 		Select("created_at").
 		Select("updated_at").
-		Where("app_id = ?", a.ID).
-		OrderBy("count desc")
+		Where("app_id = ?", a.ID)
 
 	defer stmt.Close()
 
 	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
-	return pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
+	exceptionGroups, err := pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
+
+	if err != nil {
+		return nil, err
+	}
+
+	var exceptionGroup *group.ExceptionGroup
+	for i := range exceptionGroups {
+		exceptionGroup = &exceptionGroups[i]
+
+		eventDataStmt := sqlf.
+			From("default.events").
+			Select("id").
+			Where("exception.fingerprint = ?", exceptionGroup.Fingerprint)
+
+		defer eventDataStmt.Close()
+
+		if len(af.Versions) > 0 {
+			stmt.Where("attribute.app_version").In(af.Versions)
+		}
+
+		if len(af.VersionCodes) > 0 {
+			stmt.Where("attribute.app_build").In(af.VersionCodes)
+		}
+
+		if af.HasTimeRange() {
+			stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+		}
+
+		rows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
+		if err != nil {
+			return nil, err
+		}
+
+		defer rows.Close()
+
+		var ids []uuid.UUID
+		for rows.Next() {
+			var id uuid.UUID
+			if err := rows.Scan(&id); err != nil {
+				return nil, err
+			}
+
+			ids = append(ids, id)
+		}
+
+		exceptionGroup.EventIDs = ids
+		exceptionGroup.Count = len(ids)
+	}
+
+	return exceptionGroups, nil
 }
 
 // GetANRGroup queries a single ANR group by its id.
@@ -187,8 +286,6 @@ func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (anrGroup *group.ANR
 		Select(`file_name`).
 		Select(`line_number`).
 		Select("fingerprint").
-		Select("event_ids").
-		Select("COALESCE(array_length(event_ids, 1), 0) as count").
 		Select("first_event_timestamp").
 		Select("created_at").
 		Select("updated_at").
@@ -212,7 +309,35 @@ func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (anrGroup *group.ANR
 
 	anrGroup = &row
 
-	return
+	// Get list of event IDs
+	eventDataStmt := sqlf.From(`default.events`).
+		Select(`id`).
+		Where(`anr.fingerprint = ?`, anrGroup.Fingerprint)
+
+	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
+	if err != nil {
+		return nil, err
+	}
+	defer eventDataRows.Close()
+
+	var eventIds = []uuid.UUID{}
+	var eventID uuid.UUID
+	for eventDataRows.Next() {
+		if err := eventDataRows.Scan(&eventID); err != nil {
+			return nil, err
+		}
+
+		eventIds = append(eventIds, eventID)
+	}
+
+	if eventDataRows.Err() != nil {
+		return nil, eventDataRows.Err()
+	}
+
+	anrGroup.EventIDs = eventIds
+	anrGroup.Count = len(eventIds)
+
+	return anrGroup, nil
 }
 
 // GetANRGroupByFingerprint queries a single ANR group by its fingerprint.
@@ -227,8 +352,6 @@ func (a App) GetANRGroupByFingerprint(ctx context.Context, fingerprint string) (
 		Select(`file_name`).
 		Select(`line_number`).
 		Select("fingerprint").
-		Select("event_ids").
-		Select("COALESCE(array_length(event_ids, 1), 0) as count").
 		Select("first_event_timestamp").
 		Select("created_at").
 		Select("updated_at").
@@ -251,11 +374,39 @@ func (a App) GetANRGroupByFingerprint(ctx context.Context, fingerprint string) (
 
 	anrGroup = &row
 
-	return
+	// Get list of event IDs
+	eventDataStmt := sqlf.From(`default.events`).
+		Select(`id`).
+		Where(`anr.fingerprint = ?`, anrGroup.Fingerprint)
+
+	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
+	if err != nil {
+		return nil, err
+	}
+	defer eventDataRows.Close()
+
+	var eventIds = []uuid.UUID{}
+	var eventID uuid.UUID
+	for eventDataRows.Next() {
+		if err := eventDataRows.Scan(&eventID); err != nil {
+			return nil, err
+		}
+
+		eventIds = append(eventIds, eventID)
+	}
+
+	if eventDataRows.Err() != nil {
+		return nil, eventDataRows.Err()
+	}
+
+	anrGroup.EventIDs = eventIds
+	anrGroup.Count = len(eventIds)
+
+	return anrGroup, nil
 }
 
 // GetANRGroups returns slice of ANRGroup of an app.
-func (a App) GetANRGroups(ctx context.Context) (groups []group.ANRGroup, err error) {
+func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ANRGroup, err error) {
 	stmt := sqlf.PostgreSQL.
 		From("public.anr_groups").
 		Select("id").
@@ -266,18 +417,65 @@ func (a App) GetANRGroups(ctx context.Context) (groups []group.ANRGroup, err err
 		Select(`file_name`).
 		Select(`line_number`).
 		Select("fingerprint").
-		Select("event_ids").
-		Select("COALESCE(array_length(event_ids, 1), 0) as count").
 		Select("first_event_timestamp").
 		Select("created_at").
 		Select("updated_at").
-		Where("app_id = ?", a.ID).
-		OrderBy("count desc")
+		Where("app_id = ?", a.ID)
 
 	defer stmt.Close()
 
 	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
-	return pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ANRGroup])
+	anrGroups, err := pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ANRGroup])
+
+	if err != nil {
+		return nil, err
+	}
+
+	var anrGroup *group.ANRGroup
+	for i := range anrGroups {
+		anrGroup = &anrGroups[i]
+
+		eventDataStmt := sqlf.
+			From("default.events").
+			Select("id").
+			Where("anr.fingerprint = ?", anrGroup.Fingerprint)
+
+		defer eventDataStmt.Close()
+
+		if len(af.Versions) > 0 {
+			stmt.Where("attribute.app_version").In(af.Versions)
+		}
+
+		if len(af.VersionCodes) > 0 {
+			stmt.Where("attribute.app_build").In(af.VersionCodes)
+		}
+
+		if af.HasTimeRange() {
+			stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+		}
+
+		rows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
+		if err != nil {
+			return nil, err
+		}
+
+		defer rows.Close()
+
+		var ids []uuid.UUID
+		for rows.Next() {
+			var id uuid.UUID
+			if err := rows.Scan(&id); err != nil {
+				return nil, err
+			}
+
+			ids = append(ids, id)
+		}
+
+		anrGroup.EventIDs = ids
+		anrGroup.Count = len(ids)
+	}
+
+	return anrGroups, nil
 }
 
 // GetSizeMetrics computes app size of the selected app version
@@ -2258,9 +2456,9 @@ func GetCrashOverview(c *gin.Context) {
 		return
 	}
 
-	groups, err := app.GetExceptionGroups(ctx)
+	groups, err := app.GetExceptionGroupsWithFilter(ctx, &af)
 	if err != nil {
-		msg := "failed to get app's exception groups"
+		msg := "failed to get app's exception groups with filter"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -2268,25 +2466,12 @@ func GetCrashOverview(c *gin.Context) {
 
 	var crashGroups []group.ExceptionGroup
 	for i := range groups {
-		ids, err := GetEventIdsMatchingFilter(ctx, groups[i].EventIDs, &af)
-		if err != nil {
-			msg := "failed to get app's exception group's event ids"
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-			return
-		}
-
-		count := len(ids)
-
 		// only consider those groups that have at least 1 exception
 		// event
-		if count > 0 {
-			groups[i].Count = count
-
-			// omit `event_ids` & `exception_events` fields from JSON
+		if groups[i].Count > 0 {
+			// omit `event_ids` field from JSON
 			// response, because these can get really huge
 			groups[i].EventIDs = nil
-			groups[i].EventExceptions = nil
 
 			crashGroups = append(crashGroups, groups[i])
 		}
@@ -3005,9 +3190,9 @@ func GetANROverview(c *gin.Context) {
 		return
 	}
 
-	groups, err := app.GetANRGroups(ctx)
+	groups, err := app.GetANRGroupsWithFilter(ctx, &af)
 	if err != nil {
-		msg := "failed to get app's anr groups"
+		msg := "failed to get app's anr groups matching filter"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -3015,25 +3200,12 @@ func GetANROverview(c *gin.Context) {
 
 	var anrGroups []group.ANRGroup
 	for i := range groups {
-		ids, err := GetEventIdsMatchingFilter(ctx, groups[i].EventIDs, &af)
-		if err != nil {
-			msg := "failed to get app's anr group's event ids"
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-			return
-		}
-
-		count := len(ids)
-
 		// only consider those groups that have at least 1 anr
 		// event
-		if count > 0 {
-			groups[i].Count = count
-
-			// omit `event_ids` & `exception_anrs` fields from JSON
+		if groups[i].Count > 0 {
+			// omit `event_ids` field from JSON
 			// response, because these can get really huge
 			groups[i].EventIDs = nil
-			groups[i].EventANRs = nil
 
 			anrGroups = append(anrGroups, groups[i])
 		}

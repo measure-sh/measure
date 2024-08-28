@@ -342,15 +342,16 @@ func (e eventreq) bucketUnhandledExceptions(ctx context.Context, tx *pgx.Tx) (er
 		}
 
 		if matchedGroup == nil {
-			exceptionGroup := group.NewExceptionGroup(events[i].AppID, events[i].Exception.GetType(), events[i].Exception.GetMessage(), events[i].Exception.GetMethodName(), events[i].Exception.GetFileName(), events[i].Exception.GetLineNumber(), events[i].Exception.Fingerprint, []uuid.UUID{events[i].ID}, events[i].Timestamp)
+			exceptionGroup := group.NewExceptionGroup(events[i].AppID, events[i].Exception.GetType(), events[i].Exception.GetMessage(), events[i].Exception.GetMethodName(), events[i].Exception.GetFileName(), events[i].Exception.GetLineNumber(), events[i].Exception.Fingerprint, events[i].Timestamp)
 			if err := exceptionGroup.Insert(ctx, tx); err != nil {
 				return err
 			}
-			matchedGroup = exceptionGroup
+
+			return nil
 		}
 
 		if !matchedGroup.EventExists(events[i].ID) {
-			if err := matchedGroup.AppendEvent(ctx, &events[i], tx); err != nil {
+			if err := matchedGroup.UpdateTimeStamps(ctx, &events[i], tx); err != nil {
 				return err
 			}
 		}
@@ -380,16 +381,16 @@ func (e eventreq) bucketANRs(ctx context.Context, tx *pgx.Tx) (err error) {
 		}
 
 		if matchedGroup == nil {
-			anrGroup := group.NewANRGroup(events[i].AppID, events[i].ANR.GetType(), events[i].ANR.GetMessage(), events[i].ANR.GetMethodName(), events[i].ANR.GetFileName(), events[i].ANR.GetLineNumber(), events[i].ANR.Fingerprint, []uuid.UUID{events[i].ID}, events[i].Timestamp)
+			anrGroup := group.NewANRGroup(events[i].AppID, events[i].ANR.GetType(), events[i].ANR.GetMessage(), events[i].ANR.GetMethodName(), events[i].ANR.GetFileName(), events[i].ANR.GetLineNumber(), events[i].ANR.Fingerprint, events[i].Timestamp)
 			if err := anrGroup.Insert(ctx, tx); err != nil {
 				return err
 			}
 
-			matchedGroup = anrGroup
+			return nil
 		}
 
 		if !matchedGroup.EventExists(events[i].ID) {
-			if err := matchedGroup.AppendEvent(ctx, &events[i], tx); err != nil {
+			if err := matchedGroup.UpdateTimeStamps(ctx, &events[i], tx); err != nil {
 				return err
 			}
 		}
@@ -1659,48 +1660,6 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 	}
 
 	return
-}
-
-// GetEventIdsWithFilter gets the event ids matching event ids and optionally
-// applies matching AppFilter.
-func GetEventIdsMatchingFilter(ctx context.Context, eventIds []uuid.UUID, af *filter.AppFilter) ([]uuid.UUID, error) {
-	stmt := sqlf.
-		From("default.events").
-		Select("id").
-		Where("id").In(eventIds)
-
-	defer stmt.Close()
-
-	if len(af.Versions) > 0 {
-		stmt.Where("attribute.app_version").In(af.Versions)
-	}
-
-	if len(af.VersionCodes) > 0 {
-		stmt.Where("attribute.app_build").In(af.VersionCodes)
-	}
-
-	if af.HasTimeRange() {
-		stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-	}
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-
-	var ids []uuid.UUID
-	for rows.Next() {
-		var id uuid.UUID
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-
-		ids = append(ids, id)
-	}
-
-	return ids, nil
 }
 
 // GetIssuesPlot queries and prepares aggregated issue instances

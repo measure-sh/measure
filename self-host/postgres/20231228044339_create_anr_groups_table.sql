@@ -8,7 +8,6 @@ create table if not exists public.anr_groups (
     file_name text not null,
     line_number int not null,
     fingerprint varchar(32) not null,
-    event_ids uuid[] not null,
     first_event_timestamp timestamptz not null,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
@@ -22,7 +21,6 @@ comment on column public.anr_groups.method_name is 'method name where the anr oc
 comment on column public.anr_groups.file_name is 'file name where the anr occured';
 comment on column public.anr_groups.line_number is 'line number where the anr occured';
 comment on column public.anr_groups.fingerprint is 'fingerprint of the anr';
-comment on column public.anr_groups.event_ids is 'list of associated event ids';
 comment on column public.anr_groups.first_event_timestamp is 'utc timestamp of the oldest event in the group';
 comment on column public.anr_groups.created_at is 'utc timestamp at the time of record creation';
 comment on column public.anr_groups.updated_at is 'utc timestamp at the time of record updation';
