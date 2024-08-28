@@ -35,7 +35,6 @@ internal fun AttributeValue.Companion.serializer(): KSerializer<@Contextual Attr
 @JvmInline
 value class StringAttr(override val value: String) : AttributeValue
 
-
 @JvmInline
 value class BooleanAttr(override val value: Boolean) : AttributeValue
 
@@ -48,10 +47,18 @@ value class DoubleAttr(override val value: Double) : AttributeValue
 class EventAttributesBuilder {
     private val attributes = mutableMapOf<String, AttributeValue>()
 
-    infix fun String.to(value: String) { attributes[this] = StringAttr(value) }
-    infix fun String.to(value: Boolean) { attributes[this] = BooleanAttr(value) }
-    infix fun String.to(value: Int) { attributes[this] = IntAttr(value) }
-    infix fun String.to(value: Double) { attributes[this] = DoubleAttr(value) }
+    infix fun String.to(value: String) {
+        attributes[this] = StringAttr(value)
+    }
+    infix fun String.to(value: Boolean) {
+        attributes[this] = BooleanAttr(value)
+    }
+    infix fun String.to(value: Int) {
+        attributes[this] = IntAttr(value)
+    }
+    infix fun String.to(value: Double) {
+        attributes[this] = DoubleAttr(value)
+    }
 
     fun build(): Attributes = attributes.toMap()
 }
