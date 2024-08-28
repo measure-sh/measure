@@ -7,8 +7,9 @@
 
 import Foundation
 
+/// Default values of configuration options for the Measure SDK.
 struct DefaultConfig {
-    static let enableLogging = true
-    static let trackScreenshotOnCrash = false
+    static let enableLogging = false
+    static let trackScreenshotOnCrash = true
     static let sessionSamplingRate: Float = 1.0
 }

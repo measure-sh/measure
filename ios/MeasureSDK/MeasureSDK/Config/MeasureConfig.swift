@@ -15,14 +15,15 @@ protocol MeasureConfig {
 }
 
 /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
+///
+/// Properties:
+/// - `enableLogging`: Whether to enable internal SDK logging. Defaults to `false`.
+/// - `trackScreenshotOnCrash`: Whether to capture a screenshot of the app on crash due to an unhandled exception. Defaults to `true`.
+/// - `sessionSamplingRate`: The sampling rate for non-crashed sessions. Must be between 0.0 and 1.0. Defaults to 1.0.
+///
 @objc public class BaseMeasureConfig: NSObject, MeasureConfig {
-    /// Enable or disable internal SDK logs. Defaults to `false`.
     let enableLogging: Bool
-
-    /// Whether to capture a screenshot of the app when it crashes due to an unhandled exception. Defaults to `true`.
     let trackScreenshotOnCrash: Bool
-
-    /// Allows setting a sampling rate for non-crashed sessions. Session sampling rate must be between 0.0 and 1.0. By default, all non-crashed sessions are always exported.
     let sessionSamplingRate: Float
 
     /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.

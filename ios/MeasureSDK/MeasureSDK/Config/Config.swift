@@ -7,6 +7,13 @@
 
 import Foundation
 
+/// Represents the configuration for initializing the Measure SDK.
+///
+/// The `Config` struct is used to specify the settings for the Measure SDK. It includes properties
+/// that control various aspects of the SDK's behavior.
+///
+/// - Note: If no values are provided during initialization, the struct will use default values specified in `DefaultConfig` where applicable.
+///
 struct Config: InternalConfig, MeasureConfig {
     let enableLogging: Bool
     let trackScreenshotOnCrash: Bool

@@ -7,23 +7,24 @@
 
 import Foundation
 
-protocol ConfigLoaderProtocol {
-    /// Returns the cached config synchronously, if available. Returns `nil` if cached config is
-    /// unavailable or failed to load.
+/// A protocol that defines the methods for loading configuration data either a cache or a network source.
+protocol ConfigLoader {
     func getCachedConfig() -> Config?
-
-    /// Fetches a fresh config from the server asynchronously and calls `onSuccess` with the result,
-    /// if successful. Ignores the result if the fetch fails.
     func getNetworkConfig(onSuccess: @escaping (Config) -> Void)
 }
 
-struct ConfigLoader: ConfigLoaderProtocol {
+/// A base implementation of the `ConfigLoader` protocol.
+struct BaseConfigLoader: ConfigLoader {
+    /// Returns the cached configuration if available.
+    /// - Returns: Optional cached `Confg`
     func getCachedConfig() -> Config? {
         // swiftlint:disable todo
         // TODO: Load the cached config from disk.
         return nil
     }
 
+    /// Fetches a fresh configuration from the server.
+    /// - Parameter onSuccess: A closure that returns a server `Config`
     func getNetworkConfig(onSuccess: @escaping (Config) -> Void) {
         // TODO: Fetch the config from the server, write it to disk, and call onSuccess.
         // swiftlint:enable todo

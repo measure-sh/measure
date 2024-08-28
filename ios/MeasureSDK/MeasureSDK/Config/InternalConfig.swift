@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// Internal configuration options for the Measure SDK.
 protocol InternalConfig {
     /// The interval at which to create a batch for export.
     var eventsBatchingIntervalMs: TimeInterval { get }

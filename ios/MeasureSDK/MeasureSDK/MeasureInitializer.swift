@@ -7,10 +7,16 @@
 
 import Foundation
 
+/// Protocol defining the requirements for initializing the Measure SDK.
 protocol MeasureInitializer {
     var configProvider: ConfigProvider { get }
 }
 
+/// `BaseMeasureInitializer` is responsible for setting up the internal configuration
+///
+/// Properties:
+/// - `configProvider`: `ConfigProvider` object managing the `Config` for the MeasureSDK.
+/// 
 struct BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
 
@@ -19,6 +25,6 @@ struct BaseMeasureInitializer: MeasureInitializer {
                                    trackScreenshotOnCrash: config.trackScreenshotOnCrash,
                                    sessionSamplingRate: config.sessionSamplingRate)
 
-        configProvider = BaseConfigProvider(defaultConfig: defaultConfig, configLoader: ConfigLoader())
+        configProvider = BaseConfigProvider(defaultConfig: defaultConfig, configLoader: BaseConfigLoader())
     }
 }
