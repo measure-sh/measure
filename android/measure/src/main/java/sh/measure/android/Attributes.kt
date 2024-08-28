@@ -1,9 +1,9 @@
 package sh.measure.android
 
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.SerialKind
@@ -22,24 +22,26 @@ import kotlinx.serialization.json.intOrNull
 
 typealias Attributes = Map<String, AttributeValue>
 
-@Serializable(with = AttributeValueSerializer::class)
 sealed interface AttributeValue {
     val value: Any
+
+    companion object
 }
 
-@Serializable
+internal fun AttributeValue.Companion.serializer(): KSerializer<@Contextual AttributeValue> {
+    return AttributeValueSerializer
+}
+
 @JvmInline
 value class StringAttr(override val value: String) : AttributeValue
 
-@Serializable
+
 @JvmInline
 value class BooleanAttr(override val value: Boolean) : AttributeValue
 
-@Serializable
 @JvmInline
 value class IntAttr(override val value: Int) : AttributeValue
 
-@Serializable
 @JvmInline
 value class DoubleAttr(override val value: Double) : AttributeValue
 

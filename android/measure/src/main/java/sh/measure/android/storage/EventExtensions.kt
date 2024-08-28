@@ -28,6 +28,7 @@ import sh.measure.android.okhttp.HttpData
 import sh.measure.android.performance.CpuUsageData
 import sh.measure.android.performance.MemoryUsageData
 import sh.measure.android.performance.TrimMemoryData
+import sh.measure.android.serializer
 import sh.measure.android.utils.toJsonElement
 
 private val json by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
