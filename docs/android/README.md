@@ -225,7 +225,32 @@ Reopen the app and launch the dashboard, you should see the crash report in the 
 
 # Custom events
 
-The following events can be triggered manually to get more context while debugging issues.
+To track a custom event, use the `trackEvent` method and pass the event name and attributes.
+
+```kotlin
+ val attributes = buildAttributes {
+  "key-1" to 123
+  "key-2" to 123.45
+  "key-3" to "value"
+  "key-4" to true
+}
+Measure.trackEvent("custom-event", attributes)
+```
+
+There are some constraints on the attributes:
+
+1. Keys must be strings.
+2. Values can be one of the types - `String`, `Int`, `Double`, `Boolean`, `Long` and `Float`.
+3. Max length of key — 256 chars, if the key is longer than 256 chars, the event will be discarded.
+4. Max length of value — 256 chars, if the value is longer than 256 chars, the value will be truncated.
+5. Max number of attributes per event — 100, if the number of attributes exceeds 100, the event will be discarded.
+
+## Manually trigger pre-defined events
+
+Apart from custom events, you can also manually track the following events which already have a well-defined schema:
+
+* [Handled exceptions](#handled-exceptions)
+* [Navigation](#navigation)
 
 ### Handled exceptions
 
