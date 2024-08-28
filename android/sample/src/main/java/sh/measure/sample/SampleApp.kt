@@ -31,10 +31,10 @@ class SampleApp : Application() {
         Measure.trackScreenView("screen-name")
         Measure.trackHandledException(RuntimeException("sample-handled-exception"))
         val attributes = buildAttributes {
-            put("key-1", 123)
-            put("key-2", 123.45)
-            put("key-3", "value")
-            put("key-4", true)
+            "key-1" to 123
+            "key-2" to 123.45
+            "key-3" to "value"
+            "key-4" to true
         }
         Measure.trackEvent("custom-event", attributes)
         /*

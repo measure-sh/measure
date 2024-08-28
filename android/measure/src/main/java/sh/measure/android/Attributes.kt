@@ -48,10 +48,10 @@ value class DoubleAttr(override val value: Double) : AttributeValue
 class EventAttributesBuilder {
     private val attributes = mutableMapOf<String, AttributeValue>()
 
-    fun put(key: String, value: String) = apply { attributes[key] = StringAttr(value) }
-    fun put(key: String, value: Boolean) = apply { attributes[key] = BooleanAttr(value) }
-    fun put(key: String, value: Int) = apply { attributes[key] = IntAttr(value) }
-    fun put(key: String, value: Double) = apply { attributes[key] = DoubleAttr(value) }
+    infix fun String.to(value: String) { attributes[this] = StringAttr(value) }
+    infix fun String.to(value: Boolean) { attributes[this] = BooleanAttr(value) }
+    infix fun String.to(value: Int) { attributes[this] = IntAttr(value) }
+    infix fun String.to(value: Double) { attributes[this] = DoubleAttr(value) }
 
     fun build(): Attributes = attributes.toMap()
 }
