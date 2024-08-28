@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		523C1AC52C6B1B850081D1CC /* CrashReporter in Frameworks */ = {isa = PBXBuildFile; productRef = 523C1AC42C6B1B850081D1CC /* CrashReporter */; };
+		5242B2A02C7F4AF600BE19F7 /* ClientInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5242B29F2C7F4AF600BE19F7 /* ClientInfo.swift */; };
 		524CC5C32C6A4B12001AB506 /* MeasureSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* MeasureSDK.framework */; };
 		524CC5C82C6A4B12001AB506 /* MeasureSDKTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524CC5C72C6A4B12001AB506 /* MeasureSDKTests.swift */; };
 		524CC5C92C6A4B12001AB506 /* MeasureSDK.h in Headers */ = {isa = PBXBuildFile; fileRef = 524CC5BD2C6A4B11001AB506 /* MeasureSDK.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -37,6 +38,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		5242B29F2C7F4AF600BE19F7 /* ClientInfo.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ClientInfo.swift; sourceTree = "<group>"; };
 		524CC5BA2C6A4B11001AB506 /* MeasureSDK.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MeasureSDK.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		524CC5BD2C6A4B11001AB506 /* MeasureSDK.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MeasureSDK.h; sourceTree = "<group>"; };
 		524CC5C22C6A4B12001AB506 /* MeasureSDKTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MeasureSDKTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -137,8 +139,8 @@
 		524CC5D82C6A4B48001AB506 /* CrashReporter */ = {
 			isa = PBXGroup;
 			children = (
-				524CC5D72C6A4B48001AB506 /* MeasureCrashReporter.swift */,
 				524CC5ED2C6A55F0001AB506 /* CrashReportManager.swift */,
+				524CC5D72C6A4B48001AB506 /* MeasureCrashReporter.swift */,
 			);
 			path = CrashReporter;
 			sourceTree = "<group>";
@@ -146,12 +148,13 @@
 		524CC5DA2C6A4B48001AB506 /* Config */ = {
 			isa = PBXGroup;
 			children = (
-				52CD91172C7B2B4E000189BA /* MeasureConfig.swift */,
-				52CD91192C7B2C77000189BA /* DefaultConfig.swift */,
-				52CD911B2C7B388B000189BA /* InternalConfig.swift */,
 				52CD911D2C7B397C000189BA /* BaseConfigProvider.swift */,
+				5242B29F2C7F4AF600BE19F7 /* ClientInfo.swift */,
 				52CD911F2C7B39AE000189BA /* Config.swift */,
 				52CD91212C7C318C000189BA /* ConfigLoader.swift */,
+				52CD91192C7B2C77000189BA /* DefaultConfig.swift */,
+				52CD911B2C7B388B000189BA /* InternalConfig.swift */,
+				52CD91172C7B2B4E000189BA /* MeasureConfig.swift */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -282,6 +285,7 @@
 				524CC5DE2C6A4B48001AB506 /* MeasureCrashReporter.swift in Sources */,
 				52CD911C2C7B388B000189BA /* InternalConfig.swift in Sources */,
 				52CD91242C7C3D0F000189BA /* MeasureInternal.swift in Sources */,
+				5242B2A02C7F4AF600BE19F7 /* ClientInfo.swift in Sources */,
 				524CC5DD2C6A4B48001AB506 /* MeasureModel.xcdatamodeld in Sources */,
 				524CC5EE2C6A55F0001AB506 /* CrashReportManager.swift in Sources */,
 				52CD91222C7C318C000189BA /* ConfigLoader.swift in Sources */,

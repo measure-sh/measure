@@ -14,7 +14,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, strong, readonly) Measure *measure;
 
-- (void)initializeMeasureSDKWithConfig:(nullable BaseMeasureConfig *)config;
+- (void)initializeMeasureSDKWithConfig:(nullable BaseMeasureConfig *)config clientInfo:(nullable ClientInfo *)clientInfo;
 
 @end
 
