@@ -9,9 +9,9 @@
 
 @implementation MeasureManager
 
-- (void)initializeMeasureSDKWithConfig:(nullable BaseMeasureConfig *)config {
+- (void)initializeMeasureSDKWithConfig:(nullable BaseMeasureConfig *)config clientInfo:(nullable ClientInfo *)clientInfo {
     _measure = [Measure shared];
-    [_measure initializeWith:config];
+    [_measure initializeWith:clientInfo config:config];
 }
 
 @end
