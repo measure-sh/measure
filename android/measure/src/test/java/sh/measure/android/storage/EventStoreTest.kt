@@ -303,7 +303,7 @@ internal class EventStoreTest {
         val event = TestData.getClickData().toEvent(
             type = EventType.CLICK,
             id = idProvider.id,
-            userDefinedAttributes = buildAttributes { put("key", "value") },
+            userDefinedAttributes = buildAttributes { "key" to "value" },
         )
 
         eventStore.store(event)

@@ -73,10 +73,10 @@ class AttributeValueSerializerTest {
     @Test
     fun testSerializeDeserializeAttributes() {
         val attributes = buildAttributes {
-            put("string", "test")
-            put("boolean", true)
-            put("int", 42)
-            put("double", 3.14)
+            "string" to "test"
+            "boolean" to true
+            "int" to 42
+            "double" to 3.14
         }
         val serialized = json.encodeToString(
             MapSerializer(String.serializer(), AttributeValue.serializer()),
@@ -108,7 +108,7 @@ class AttributeValueSerializerTest {
     fun testLargeNumberOfAttributes() {
         val attributes = buildAttributes {
             for (i in 1..1000) {
-                put("key$i", i)
+                "key$i" to i
             }
         }
         val serialized = json.encodeToString(

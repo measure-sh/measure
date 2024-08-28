@@ -41,7 +41,7 @@ class CustomEventsCollectorImplTest {
     fun `trackEvent given valid attributes and attachment, tracks event`() {
         // Given
         val name = "event_name"
-        val attributes = buildAttributes { put("key", "value") }
+        val attributes = buildAttributes { "key" to "value" }
         val attachment = MeasureAttachment("name", "type", "path")
 
         // When
@@ -63,7 +63,7 @@ class CustomEventsCollectorImplTest {
     fun `trackEvent with attribute key exceeding max length, does not track event`() {
         // Given
         val name = "event_name"
-        val attributes = buildAttributes { put("k".repeat(257), "value") }
+        val attributes = buildAttributes { "k".repeat(257) to "value" }
 
         // When
         customEventsCollector.trackEvent(name, attributes, null)
@@ -76,7 +76,7 @@ class CustomEventsCollectorImplTest {
     fun `trackEvent with attribute value exceeding max length, does not track event`() {
         // Given
         val name = "event_name"
-        val attributes = buildAttributes { put("key", "v".repeat(257)) }
+        val attributes = buildAttributes { "key" to "v".repeat(257) }
 
         // When
         customEventsCollector.trackEvent(name, attributes, null)
@@ -89,7 +89,7 @@ class CustomEventsCollectorImplTest {
     fun `trackEvent with non-existent attachment file, does not track event`() {
         // Given
         val name = "event_name"
-        val attributes = buildAttributes { put("key", "value") }
+        val attributes = buildAttributes { "key" to "value" }
         val attachment = MeasureAttachment("name", "type", "path")
         `when`(fileStorage.getFile(attachment.path)).thenReturn(null)
 
@@ -106,7 +106,7 @@ class CustomEventsCollectorImplTest {
         val name = "event_name"
         val attributes = buildAttributes {
             for (i in 0..configProvider.maxUserDefinedAttributesPerEvent) {
-                put("key$i", "value$i")
+                "key$i" to "value$i"
             }
         }
 
