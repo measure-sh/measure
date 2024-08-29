@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Remove eventIds array from crash + anr groups by @anupcowkur in #1145
 
+- (**frontend**): Remove commented code by @anupcowkur in #1150
+
 
 ### :books: Documentation
 
