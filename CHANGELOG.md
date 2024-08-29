@@ -24,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Update landing hero animation by @anupcowkur in #1095
 
 
+### :coffin: Removed
+
+- (**backend**): Remove eventIds array from crash + anr groups by @anupcowkur in #1145
+
+
 ### :books: Documentation
 
 - Fix typo in README by @anupcowkur in #1149
