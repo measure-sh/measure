@@ -387,8 +387,6 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journey
           fitView
         >
           <Controls position='bottom-right' showInteractive={false} showFitView={false} />
-          {/* <p className='w-24'>Edges: {upstreamNodes}</p>
-          <p className='w-24'>Upstream: {upstreamNodes}</p> */}
         </ReactFlow>}
     </div>
   )
