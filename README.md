@@ -89,7 +89,7 @@ Our mission is to build the best tool for monitoring mobile apps.
 
 Building and maintaining mobile apps in production is hard and developers need to use a variety of different tools to collect issues, measure performance and analyse user behavior without having any control over where, how and for how long their data is stored. 
 
-We aim to build a tool that unifies and simplifies monitoring capablitlies for mobile teams while providing full control over 
+We aim to build a tool that unifies and simplifies monitoring capabilities for mobile teams while providing full control over 
 the collection and storage of data.
 
 We operate in public as much as possible and we aim to be community focused and driven by feedback from real developers building in the trenches.
