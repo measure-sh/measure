@@ -295,6 +295,7 @@ Events can contain the following attributes, some of which are mandatory.
 | `network_type`        | string  | No       | One of<br/>- wifi<br/>- cellular<br/>- vpn<br/>- unknown<br/>- no_network   |
 | `network_provider`    | string  | No       | Example: airtel, T-mobile or "unknown" if unavailable.                      |
 | `network_generation`  | string  | No       | One of:<br/>- 2g<br/>- 3g<br/>- 4g<br/>- 5g<br/>- unknown                   |
+| `device_cpu_arch`     | string  | No       | The CPU architecture, eg. arm64                                             |
 
 ### Attachments
 
@@ -400,35 +401,46 @@ Use the `exception` type for errors and crashes.
 
 `exception` objects
 
-Each exception object contains further fields.
+Each exception object contains the thread information of the crashed thread and its stackframes along with the metadata required for symbolication.
 
-| Field     | Type   | Optional | Comment                     |
-| --------- | ------ | -------- | --------------------------- |
-| `type`    | string | No       | Type of the exception       |
-| `message` | string | No       | Error message text          |
-| `frames`  | array  | Yes      | Array of stackframe objects |
+| Field                      | Type    | Optional | Comment                        |
+| -------------------------- | ------- | -------- | ------------------------------ |
+| `type`                     | string  | Yes      | Type of the exception          |
+| `message`                  | string  | Yes      | Error message text             |
+| `frames`                   | array   | Yes      | Array of stackframe objects    |
+| `signal`                   | string  | Yes      | BSD termination signal         |
+| `thread_name`              | string  | Yes      | Name of thread                 |
+| `thread_sequence`          | number  | Yes      | Thread number                  |
+| `os_build_number`          | string  | Yes      | Operating system build number  |
 
 `thread` objects
 
 Each thread object contains further fields.
+Note: Only non-crashed threads are to be send in thread object.
 
-| Field    | Type   | Optional | Comment                     |
-| -------- | ------ | -------- | --------------------------- |
-| `name`   | string | Yes      | Name of thread              |
-| `frames` | array  | Yes      | Array of stackframe objects |
+| Field      | Type   | Optional | Comment                     |
+| ---------- | ------ | -------- | --------------------------- |
+| `name`     | string | Yes      | Name of thread              |
+| `frames`   | array  | Yes      | Array of stackframe objects |
+| `sequence` | number | Yes      | Thread number               |
 
 `frame` objects
 
 Each frame object contains further fields.
 
-| Field         | Type   | Optional | Comment                        |
-| ------------- | ------ | -------- | ------------------------------ |
-| `line_num`    | number | Yes      | Line number of the method      |
-| `col_num`     | number | Yes      | Column number of the method    |
-| `module_name` | string | Yes      | Name of the originating module |
-| `file_name`   | string | Yes      | Name of the originating file   |
-| `class_name`  | string | Yes      | Name of the originating class  |
-| `method_name` | string | Yes      | Name of the originating method |
+| Field               | Type    | Optional | Comment                                                  |
+| ------------------- | ------- | -------- | -------------------------------------------------------- |
+| `line_num`          | number  | Yes      | Line number of the method                                |
+| `col_num`           | number  | Yes      | Column number of the method                              |
+| `module_name`       | string  | Yes      | Name of the originating module                           |
+| `file_name`         | string  | Yes      | Name of the originating file                             |
+| `class_name`        | string  | Yes      | Name of the originating class                            |
+| `method_name`       | string  | Yes      | Name of the originating method                           |
+| `binary_name`       | string  | Yes      | Name of the iOS binary image                             |
+| `symbol_address`    | string  | Yes      | Address to symbolicate                                   |
+| `offset`            | number  | Yes      | Byte offset                                              |
+| `binary_address`    | string  | Yes      | Binary load address                                      |
+| `in_app`            | boolean | No       | `true` if the frame originates from the app module       |
 
 #### **`string`**
 
