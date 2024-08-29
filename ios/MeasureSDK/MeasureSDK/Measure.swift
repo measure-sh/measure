@@ -24,11 +24,12 @@ import Foundation
     /// - Example:
     ///   - Swift:
     ///   ```swift
-    ///   Measure.shared.initialize()
+    ///   let clientInfo = ClientInfo(apiKey: "apiKey", apiUrl: "apiUrl")
+    ///   Measure.shared.initialize(with: clientInfo)
     ///   ```
     ///   - Objective-C:
     ///   ```objc
-    ///   [[Measure shared] initializeWith:nil];
+    ///   [[Measure shared] initializeWith:clientInfo config:config];
     ///   ```
     @objc public static let shared: Measure = {
         let instance = Measure()
@@ -50,24 +51,28 @@ import Foundation
     ///
     /// Initializing the SDK multiple times will have no effect.
     /// - Parameter config: The configuration for the Measure SDK.
+    /// - Parameter client: `ClientInfo` object consisting the api-key and api-url
     ///
     /// - Example:
     ///   - Swift:
     ///   ```swift
     ///   let config = BaseMeasureConfig()
-    ///   Measure.shared.initialize(with: config)
+    ///   let clientInfo = ClientInfo(apiKey: "<apiKey>", apiUrl: "<apiUrl>")
+    ///   Measure.shared.initialize(with: clientInfo, config: config)
     ///   ```
     ///   - Objective-C:
     ///   ```objc
     ///   BaseMeasureConfig *config = [[BaseMeasureConfig alloc] init];
-    ///   [[Measure shared] initializeWith:config];
+    ///   ClientInfo *clientInfo = [[ClientInfo alloc] initWithApiKey:@"<apiKey>" apiUrl:@"<apiUrl>"];
+    ///   [[Measure shared] initializeWith:clientInfo config:config];
     ///   ```
-    @objc public func initialize(with config: BaseMeasureConfig? = nil) {
+    @objc public func initialize(with client: ClientInfo, config: BaseMeasureConfig? = nil) {
         initializationQueue.sync {
             // Ensure initialization is done only once
             guard measure == nil else { return }
 
-            let initializer = BaseMeasureInitializer(config ?? BaseMeasureConfig())
+            let initializer = BaseMeasureInitializer(config: config ?? BaseMeasureConfig(),
+                                                     client: client)
             measure = MeasureInternal(initializer)
         }
     }
