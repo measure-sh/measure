@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- Fix typo in README by @anupcowkur in #1149
 - Update self host guide by @detj
 - Update contributing guide by @detj
 - Add code of conduct by @anupcowkur in #1128
