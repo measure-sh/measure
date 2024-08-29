@@ -19,6 +19,8 @@ import kotlinx.serialization.json.double
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.long
+import kotlinx.serialization.json.longOrNull
 
 /**
  * Represents a map of attributes that describe an event.
@@ -73,6 +75,12 @@ value class BooleanAttr(override val value: Boolean) : AttributeValue
 value class IntAttr(override val value: Int) : AttributeValue
 
 @JvmInline
+value class LongAttr(override val value: Long) : AttributeValue
+
+@JvmInline
+value class FloatAttr(override val value: Float) : AttributeValue
+
+@JvmInline
 value class DoubleAttr(override val value: Double) : AttributeValue
 
 /**
@@ -92,6 +100,14 @@ class EventAttributesBuilder {
 
     infix fun String.to(value: Int) {
         attributes[this] = IntAttr(value)
+    }
+
+    infix fun String.to(value: Long) {
+        attributes[this] = LongAttr(value)
+    }
+
+    infix fun String.to(value: Float) {
+        attributes[this] = FloatAttr(value)
     }
 
     infix fun String.to(value: Double) {
@@ -119,7 +135,9 @@ internal object AttributeValueSerializer : KSerializer<AttributeValue> {
             is StringAttr -> JsonPrimitive(value.value)
             is BooleanAttr -> JsonPrimitive(value.value)
             is IntAttr -> JsonPrimitive(value.value)
-            is DoubleAttr -> JsonPrimitive(value.value)
+            is LongAttr -> JsonPrimitive(value.value.toString())  // Convert to string
+            is FloatAttr -> JsonPrimitive(value.value)
+            is DoubleAttr -> JsonPrimitive(value.value.toString())  // Convert to string
         }
         jsonEncoder.encodeJsonElement(jsonElement)
     }
@@ -129,13 +147,19 @@ internal object AttributeValueSerializer : KSerializer<AttributeValue> {
             ?: throw SerializationException("This serializer can be used only with Json format.")
         return when (val element = jsonDecoder.decodeJsonElement()) {
             is JsonPrimitive -> when {
-                element.isString -> StringAttr(element.content)
+                element.isString -> {
+                    val content = element.content
+                    // Try parsing as Long or Double if it's a numeric string
+                    content.toLongOrNull()?.let { return LongAttr(it) }
+                    content.toDoubleOrNull()?.let { return DoubleAttr(it) }
+                    StringAttr(content)
+                }
                 element.booleanOrNull != null -> BooleanAttr(element.boolean)
                 element.intOrNull != null -> IntAttr(element.int)
+                element.longOrNull != null -> LongAttr(element.long)
                 element.doubleOrNull != null -> DoubleAttr(element.double)
                 else -> throw SerializationException("Unsupported JSON primitive: $element")
             }
-
             else -> throw SerializationException("Unsupported JSON element: $element")
         }
     }

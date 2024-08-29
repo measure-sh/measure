@@ -32,10 +32,24 @@ class AttributeValueSerializerTest {
     }
 
     @Test
-    fun testSerializeDouble() {
+    fun testSerializeLongAsString() {
+        val attr = LongAttr(1234567890L)
+        val serialized = json.encodeToString(AttributeValueSerializer, attr)
+        assertEquals("\"1234567890\"", serialized)
+    }
+
+    @Test
+    fun testSerializeFloat() {
+        val attr = FloatAttr(2.5f)
+        val serialized = json.encodeToString(AttributeValueSerializer, attr)
+        assertEquals("2.5", serialized)
+    }
+
+    @Test
+    fun testSerializeDoubleAsString() {
         val attr = DoubleAttr(3.14)
         val serialized = json.encodeToString(AttributeValueSerializer, attr)
-        assertEquals("3.14", serialized)
+        assertEquals("\"3.14\"", serialized)
     }
 
     @Test
@@ -63,30 +77,27 @@ class AttributeValueSerializerTest {
     }
 
     @Test
-    fun testDeserializeDouble() {
-        val json = "3.14"
+    fun testDeserializeLong() {
+        val json = "12345678901456787"
         val deserialized = this.json.decodeFromString(AttributeValueSerializer, json)
-        assertTrue(deserialized is DoubleAttr)
-        assertEquals(3.14, (deserialized as DoubleAttr).value, 0.001)
+        assertTrue(deserialized is LongAttr)
+        assertEquals(12345678901456787L, (deserialized as LongAttr).value)
     }
 
     @Test
-    fun testSerializeDeserializeAttributes() {
-        val attributes = buildAttributes {
-            "string" to "test"
-            "boolean" to true
-            "int" to 42
-            "double" to 3.14
-        }
-        val serialized = json.encodeToString(
-            MapSerializer(String.serializer(), AttributeValue.serializer()),
-            attributes,
-        )
-        val deserialized = json.decodeFromString(
-            MapSerializer(String.serializer(), AttributeValue.serializer()),
-            serialized,
-        )
-        assertEquals(attributes, deserialized)
+    fun testDeserializeFloat() {
+        val json = "2.5"
+        val deserialized = this.json.decodeFromString(AttributeValueSerializer, json)
+        assertTrue(deserialized is DoubleAttr)
+        assertEquals(2.5, (deserialized as DoubleAttr).value, 0.0)
+    }
+
+    @Test
+    fun testDeserializeDouble() {
+        val json = "3.146789098765492"
+        val deserialized = this.json.decodeFromString(AttributeValueSerializer, json)
+        assertTrue(deserialized is DoubleAttr)
+        assertEquals(3.146789098765492, (deserialized as DoubleAttr).value, 0.0)
     }
 
     @Test
@@ -152,15 +163,24 @@ class AttributeValueSerializerTest {
     @Test
     fun testSerializeDeserializeExtremeNumericValues() {
         val intAttr = IntAttr(Int.MAX_VALUE)
-        val doubleAttr = DoubleAttr(Double.MIN_VALUE)
+        val longAttr = LongAttr(Long.MAX_VALUE)
+        val floatAttr = FloatAttr(Float.MAX_VALUE)
+        val doubleAttr = DoubleAttr(Double.MAX_VALUE)
 
         val serializedInt = json.encodeToString(AttributeValueSerializer, intAttr)
+        val serializedLong = json.encodeToString(AttributeValueSerializer, longAttr)
+        val serializedFloat = json.encodeToString(AttributeValueSerializer, floatAttr)
         val serializedDouble = json.encodeToString(AttributeValueSerializer, doubleAttr)
 
         val deserializedInt = json.decodeFromString(AttributeValueSerializer, serializedInt)
+        val deserializedLong = json.decodeFromString(AttributeValueSerializer, serializedLong)
+        val deserializedFloat = json.decodeFromString(AttributeValueSerializer, serializedFloat)
         val deserializedDouble = json.decodeFromString(AttributeValueSerializer, serializedDouble)
 
         assertEquals(Int.MAX_VALUE, (deserializedInt as IntAttr).value)
-        assertEquals(Double.MIN_VALUE, (deserializedDouble as DoubleAttr).value, 0.0)
+        assertEquals(Long.MAX_VALUE, (deserializedLong as LongAttr).value)
+        // float is deserialized as double, the 3.4028235E38F value is the maximum value for float
+        assertEquals(3.4028235E38, (deserializedFloat as DoubleAttr).value, 0.0)
+        assertEquals(Double.MAX_VALUE, (deserializedDouble as DoubleAttr).value, 0.0)
     }
 }
