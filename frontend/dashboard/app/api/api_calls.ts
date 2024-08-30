@@ -1,7 +1,7 @@
 import { auth, fetchAuth, logoutIfAuthError } from "@/app/utils/auth/auth";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
 import { JourneyType } from "../components/journey"
-import { UserInputDateType, formatUserInputDateToServerFormat } from "../utils/time_utils"
+import { formatUserInputDateToServerFormat } from "../utils/time_utils"
 
 export enum TeamsApiStatus {
     Loading,
@@ -43,6 +43,12 @@ export enum MetricsApiStatus {
     Error
 }
 
+export enum SessionsOverviewApiStatus {
+    Loading,
+    Success,
+    Error
+}
+
 export enum ExceptionsType {
     Crash,
     Anr
@@ -55,6 +61,13 @@ export enum ExceptionsOverviewApiStatus {
 }
 
 export enum ExceptionsOverviewPlotApiStatus {
+    Loading,
+    Success,
+    Error,
+    NoData
+}
+
+export enum SessionsOverviewPlotApiStatus {
     Loading,
     Success,
     Error,
@@ -161,6 +174,13 @@ export enum FetchUsageApiStatus {
     NoApps
 }
 
+export enum SessionType {
+    All = 'All Sessions',
+    Crashes = 'Crash Sessions',
+    ANRs = 'ANR Sessions',
+    Issues = 'Crash & ANR Sessions'
+}
+
 export const emptyTeam = { 'id': '', 'name': '' }
 
 export const emptyApp = {
@@ -261,6 +281,31 @@ export const emptyMetrics = {
         "nan": false,
         "p95": 0
     }
+}
+
+export const emptySessionsOverviewResponse = {
+    "meta": {
+        "next": false,
+        "previous": false
+    },
+    "results": [] as {
+        "session_id": string,
+        "app_id": string,
+        "first_event_time": string,
+        "last_event_time": string,
+        "duration": string,
+        "matched_free_text": string,
+        "attribute": {
+            "app_version": "",
+            "app_build": "",
+            "user_id": "",
+            "device_name": "",
+            "device_model": "",
+            "device_manufacturer": "",
+            "os_name": "",
+            "os_version": ""
+        },
+    }[]
 }
 
 const emptyExceptionGroup = {
@@ -650,8 +695,8 @@ export const fetchJourneyFromServer = async (appId: string, journeyType: Journey
     }
 
     // Append dates
-    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate, UserInputDateType.From)
-    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate, UserInputDateType.To)
+    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
+    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
     url = url + `?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
 
     // Append versions if present
@@ -713,8 +758,8 @@ export const fetchJourneyFromServer = async (appId: string, journeyType: Journey
 export const fetchMetricsFromServer = async (appId: string, startDate: string, endDate: string, appVersions: AppVersion[], router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate, UserInputDateType.From)
-    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate, UserInputDateType.To)
+    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
+    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
 
     let url = `${origin}/apps/${appId}/metrics?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
 
@@ -736,11 +781,171 @@ export const fetchMetricsFromServer = async (appId: string, startDate: string, e
     return { status: MetricsApiStatus.Success, data: data }
 }
 
+export const fetchSessionsOverviewFromServer = async (appId: string, startDate: string, endDate: string, appVersions: AppVersion[], sessionType: string, countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], freeText: string, keyId: string | null, limit: number, router: AppRouterInstance) => {
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+
+    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
+    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
+
+    var url = `${origin}/apps/${appId}/sessions?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&limit=${limit}`
+
+    // Append versions if present
+    if (appVersions.length > 0) {
+        url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
+        url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
+    }
+
+    // Append session type if needed
+    if (sessionType === SessionType.Issues) {
+        url = url + `&crash=1&anr=1`
+    } else if (sessionType === SessionType.Crashes) {
+        url = url + `&crash=1`
+    } else if (sessionType === SessionType.ANRs) {
+        url = url + `&anr=1`
+    }
+
+    // Append countries if present
+    if (countries.length > 0) {
+        url = url + `&countries=${Array.from(countries).join(',')}`
+    }
+
+    // Append network providers if present
+    if (networkProviders.length > 0) {
+        url = url + `&network_providers=${Array.from(networkProviders).join(',')}`
+    }
+
+    // Append network types if present
+    if (networkTypes.length > 0) {
+        url = url + `&network_types=${Array.from(networkTypes).join(',')}`
+    }
+
+    // Append network generations if present
+    if (networkGenerations.length > 0) {
+        url = url + `&network_generations=${Array.from(networkGenerations).join(',')}`
+    }
+
+    // Append locales if present
+    if (locales.length > 0) {
+        url = url + `&locales=${Array.from(locales).join(',')}`
+    }
+
+    // Append device manufacturers if present
+    if (deviceManufacturers.length > 0) {
+        url = url + `&device_manufacturers=${Array.from(deviceManufacturers).join(',')}`
+    }
+
+    // Append device names if present
+    if (deviceNames.length > 0) {
+        url = url + `&device_names=${Array.from(deviceNames).join(',')}`
+    }
+
+    // Append free text if present
+    if (freeText !== '') {
+        url = url + `&free_text=${freeText}`
+    }
+
+    // Append keyId if present
+    if (keyId !== null) {
+        url = url + `&key_id=${keyId}`
+    }
+
+    const res = await fetchAuth(url);
+
+    if (!res.ok) {
+        logoutIfAuthError(auth, router, res)
+        return { status: SessionsOverviewApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: SessionsOverviewApiStatus.Success, data: data }
+
+}
+
+export const fetchSessionsOverviewPlotFromServer = async (appId: string, startDate: string, endDate: string, appVersions: AppVersion[], sessionType: string, countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], freeText: string, router: AppRouterInstance) => {
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+
+    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
+    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
+
+    var url = `${origin}/apps/${appId}/sessions/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
+
+    // Append versions if present
+    if (appVersions.length > 0) {
+        url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
+        url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
+    }
+
+    // Append session type if needed
+    if (sessionType === SessionType.Issues) {
+        url = url + `&crash=1&anr=1`
+    } else if (sessionType === SessionType.Crashes) {
+        url = url + `&crash=1`
+    } else if (sessionType === SessionType.ANRs) {
+        url = url + `&anr=1`
+    }
+
+    // Append countries if present
+    if (countries.length > 0) {
+        url = url + `&countries=${Array.from(countries).join(',')}`
+    }
+
+    // Append network providers if present
+    if (networkProviders.length > 0) {
+        url = url + `&network_providers=${Array.from(networkProviders).join(',')}`
+    }
+
+    // Append network types if present
+    if (networkTypes.length > 0) {
+        url = url + `&network_types=${Array.from(networkTypes).join(',')}`
+    }
+
+    // Append network generations if present
+    if (networkGenerations.length > 0) {
+        url = url + `&network_generations=${Array.from(networkGenerations).join(',')}`
+    }
+
+    // Append locales if present
+    if (locales.length > 0) {
+        url = url + `&locales=${Array.from(locales).join(',')}`
+    }
+
+    // Append device manufacturers if present
+    if (deviceManufacturers.length > 0) {
+        url = url + `&device_manufacturers=${Array.from(deviceManufacturers).join(',')}`
+    }
+
+    // Append device names if present
+    if (deviceNames.length > 0) {
+        url = url + `&device_names=${Array.from(deviceNames).join(',')}`
+    }
+
+    // Append free text if present
+    if (freeText !== '') {
+        url = url + `&free_text=${freeText}`
+    }
+
+    const res = await fetchAuth(url);
+
+    if (!res.ok) {
+        logoutIfAuthError(auth, router, res)
+        return { status: SessionsOverviewPlotApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data === null) {
+        return { status: SessionsOverviewPlotApiStatus.NoData, data: null }
+    }
+
+    return { status: SessionsOverviewPlotApiStatus.Success, data: data }
+}
+
 export const fetchExceptionsOverviewFromServer = async (exceptionsType: ExceptionsType, appId: string, startDate: string, endDate: string, appVersions: AppVersion[], keyId: string | null, limit: number, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate, UserInputDateType.From)
-    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate, UserInputDateType.To)
+    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
+    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
 
     var url = ""
     if (exceptionsType === ExceptionsType.Crash) {
@@ -776,8 +981,8 @@ export const fetchExceptionsOverviewFromServer = async (exceptionsType: Exceptio
 export const fetchExceptionsDetailsFromServer = async (exceptionsType: ExceptionsType, appId: string, exceptionsGroupdId: string, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], keyId: string | null, keyTimestamp: string | null, limit: number, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate, UserInputDateType.From)
-    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate, UserInputDateType.To)
+    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
+    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
 
     var url = ""
     if (exceptionsType === ExceptionsType.Crash) {
@@ -853,8 +1058,8 @@ export const fetchExceptionsDetailsFromServer = async (exceptionsType: Exception
 export const fetchExceptionsOverviewPlotFromServer = async (appId: string, exceptionsType: ExceptionsType, startDate: string, endDate: string, appVersions: AppVersion[], router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate, UserInputDateType.From)
-    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate, UserInputDateType.To)
+    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
+    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
 
     var url = ""
     if (exceptionsType === ExceptionsType.Crash) {
@@ -889,8 +1094,8 @@ export const fetchExceptionsOverviewPlotFromServer = async (appId: string, excep
 export const fetchExceptionsDetailsPlotFromServer = async (appId: string, exceptionsType: ExceptionsType, exceptionsGroupdId: string, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate, UserInputDateType.From)
-    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate, UserInputDateType.To)
+    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
+    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
 
     var url = ""
     if (exceptionsType === ExceptionsType.Crash) {

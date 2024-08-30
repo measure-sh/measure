@@ -9,10 +9,20 @@ import (
 )
 
 type Session struct {
-	SessionID uuid.UUID          `json:"session_id" binding:"required"`
-	AppID     uuid.UUID          `json:"app_id"`
-	Attribute *event.Attribute   `json:"attribute" binding:"required"`
-	Events    []event.EventField `json:"events" binding:"required"`
+	SessionID       uuid.UUID          `json:"session_id" binding:"required"`
+	AppID           uuid.UUID          `json:"app_id"`
+	Attribute       *event.Attribute   `json:"attribute" binding:"required"`
+	Events          []event.EventField `json:"events" binding:"required"`
+	FirstEventTime  *time.Time         `json:"first_event_time" binding:"required"`
+	LastEventTime   *time.Time         `json:"last_event_time" binding:"required"`
+	Duration        int64              `json:"duration"`
+	MatchedFreeText string             `json:"matched_free_text"`
+}
+
+// firstEvent returns a pointer to the first event
+// from the session's event slice.
+func (s Session) GetID() uuid.UUID {
+	return s.SessionID
 }
 
 // firstEvent returns a pointer to the first event
@@ -89,8 +99,14 @@ func (s *Session) GetLastEventTime() time.Time {
 
 // Duration calculates time duration between the last
 // event and the first event in the session.
-func (s Session) Duration() time.Duration {
+func (s Session) DurationFromEvents() time.Duration {
 	return s.GetLastEventTime().Sub(s.GetFirstEventTime())
+}
+
+// Duration calculates time duration between the last
+// event and the first event in the session.
+func (s Session) DurationFromTimeStamps() time.Duration {
+	return s.LastEventTime.Sub(*s.FirstEventTime)
 }
 
 // hasEvents returns true if the session contains at least

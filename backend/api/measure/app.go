@@ -15,6 +15,7 @@ import (
 	"backend/api/group"
 	"backend/api/journey"
 	"backend/api/metrics"
+	"backend/api/paginate"
 	"backend/api/replay"
 	"backend/api/server"
 
@@ -2483,7 +2484,7 @@ func GetCrashOverview(c *gin.Context) {
 
 	group.ComputeCrashContribution(crashGroups)
 	group.SortExceptionGroups(crashGroups)
-	crashGroups, next, previous := group.PaginateGroups(crashGroups, &af)
+	crashGroups, next, previous := paginate.Paginate(crashGroups, &af)
 	meta := gin.H{"next": next, "previous": previous}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -3217,7 +3218,7 @@ func GetANROverview(c *gin.Context) {
 
 	group.ComputeANRContribution(anrGroups)
 	group.SortANRGroups(anrGroups)
-	anrGroups, next, previous := group.PaginateGroups(anrGroups, &af)
+	anrGroups, next, previous := paginate.Paginate(anrGroups, &af)
 	meta := gin.H{"next": next, "previous": previous}
 
 	c.JSON(http.StatusOK, gin.H{"results": anrGroups, "meta": meta})
@@ -3885,7 +3886,447 @@ func CreateApp(c *gin.Context) {
 	c.JSON(http.StatusCreated, app)
 }
 
-func GetAppSession(c *gin.Context) {
+func GetSessionsOverview(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	af.Expand()
+
+	msg := "sessions overview request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+	}
+
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	sessions, err := app.GetSessionsWithFilter(ctx, &af)
+	if err != nil {
+		msg := "failed to get app's sessions matching filter"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	sessions, next, previous := paginate.Paginate(sessions, &af)
+	meta := gin.H{"next": next, "previous": previous}
+
+	c.JSON(http.StatusOK, gin.H{"results": sessions, "meta": meta})
+}
+
+// GetSessionsWithFilters returns a slice of sessions of an app.
+func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions []Session, err error) {
+	stmt := sqlf.
+		From("default.events").
+		Select("session_id").
+		Select("app_id").
+		Select("toString(any(attribute.app_version)) AS app_version").
+		Select("toString(any(attribute.app_build)) AS app_build").
+		Select("toString(any(attribute.user_id)) AS user_id").
+		Select("toString(any(attribute.device_name)) AS device_name").
+		Select("toString(any(attribute.device_model)) AS device_model").
+		Select("toString(any(attribute.device_manufacturer)) AS device_manufacturer").
+		Select("toString(any(attribute.os_name)) AS os_name").
+		Select("toString(any(attribute.os_version)) AS os_version").
+		Select("MIN(timestamp) AS first_event_timestamp").
+		Select("MAX(timestamp) AS last_event_timestamp")
+
+	if af.FreeText != "" {
+		stmt.Select(
+			"COALESCE("+
+				"multiIf("+
+				"any(attribute.user_id) ILIKE ?, concat('User ID: ', any(attribute.user_id)),"+
+				"any(string.string) ILIKE ?, concat('Log: ', any(string.string)),"+
+				"any(exception.exceptions) ILIKE ?, concat('Exception: ',any(exception.exceptions)),"+
+				"any(anr.exceptions) ILIKE ?, concat('ANR: ', any(anr.exceptions)),"+
+				"any(type) ILIKE ?, any(type),"+
+				"any(lifecycle_activity.class_name) ILIKE ?, concat('Activity: ', any(lifecycle_activity.class_name)),"+
+				"any(lifecycle_fragment.class_name) ILIKE ?, concat('Fragment: ', any(lifecycle_fragment.class_name)),"+
+				"''"+
+				")"+
+				") AS matched_free_text",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%")
+	} else {
+		stmt.Select("'' AS matched_free_text")
+	}
+
+	stmt.GroupBy("session_id, app_id").
+		OrderBy("first_event_timestamp desc").
+		Where("app_id = ?", af.AppID)
+
+	defer stmt.Close()
+
+	if len(af.Versions) > 0 {
+		stmt.Where("attribute.app_version").In(af.Versions)
+	}
+
+	if len(af.VersionCodes) > 0 {
+		stmt.Where("attribute.app_build").In(af.VersionCodes)
+	}
+
+	if af.Crash && af.ANR {
+		stmt.Where("((type = 'exception' AND exception.handled = false) OR type = 'anr')")
+	} else if af.Crash {
+		stmt.Where("type = 'exception' AND exception.handled = false")
+	} else if af.ANR {
+		stmt.Where("type = 'anr'")
+	}
+
+	if len(af.Countries) > 0 {
+		stmt.Where("inet.country_code").In(af.Countries)
+	}
+
+	if len(af.DeviceNames) > 0 {
+		stmt.Where("attribute.device_name").In(af.DeviceNames)
+	}
+
+	if len(af.DeviceManufacturers) > 0 {
+		stmt.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
+	}
+
+	if len(af.Locales) > 0 {
+		stmt.Where("attribute.device_locale").In(af.Locales)
+	}
+
+	if len(af.NetworkProviders) > 0 {
+		stmt.Where("attribute.network_provider").In(af.NetworkProviders)
+	}
+
+	if len(af.NetworkTypes) > 0 {
+		stmt.Where("attribute.network_type").In(af.NetworkTypes)
+	}
+
+	if len(af.NetworkGenerations) > 0 {
+		stmt.Where("attribute.network_generation").In(af.NetworkGenerations)
+	}
+
+	if af.FreeText != "" {
+		stmt.Where(
+			"("+
+				"attribute.user_id ILIKE ? OR "+
+				"string.string ILIKE ? OR "+
+				"toString(exception.exceptions) ILIKE ? OR "+
+				"toString(anr.exceptions) ILIKE ? OR "+
+				"type ILIKE ? OR "+
+				"lifecycle_activity.class_name ILIKE ? OR "+
+				"lifecycle_fragment.class_name ILIKE ?"+
+				")",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%")
+	}
+
+	if af.HasTimeRange() {
+		stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+	}
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return nil, err
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+
+	defer rows.Close()
+
+	sessions = []Session{}
+	for rows.Next() {
+		var session Session
+		session.Attribute = &event.Attribute{}
+
+		if err := rows.Scan(&session.SessionID,
+			&session.AppID,
+			&session.Attribute.AppVersion,
+			&session.Attribute.AppBuild,
+			&session.Attribute.UserID,
+			&session.Attribute.DeviceName,
+			&session.Attribute.DeviceModel,
+			&session.Attribute.DeviceManufacturer,
+			&session.Attribute.OSName,
+			&session.Attribute.OSVersion,
+			&session.FirstEventTime,
+			&session.LastEventTime,
+			&session.MatchedFreeText); err != nil {
+			return nil, err
+		}
+
+		if af.FreeText != "" {
+			session.MatchedFreeText = extractShortenedMatchedFreeText(af.FreeText, session.MatchedFreeText)
+		}
+
+		session.Duration = session.DurationFromTimeStamps().Milliseconds()
+
+		sessions = append(sessions, session)
+	}
+
+	return sessions, nil
+}
+
+func extractShortenedMatchedFreeText(inputFreeText, matchedFreeText string) string {
+	matchedFreeTextForwardChars := 24
+	matchedFreeTextBackwardChars := 24
+
+	// Remove null padding that clickhouse adds in some cases
+	matchedFreeText = strings.ReplaceAll(matchedFreeText, "\u0000", "")
+
+	// Find the first occurrence of ':' in matchedFreeText and extract everything before it as the prefix
+	colonIdx := strings.Index(matchedFreeText, ":")
+	prefix := ""
+	if colonIdx != -1 {
+		prefix = matchedFreeText[:colonIdx+1]          // Include ':' in the prefix
+		matchedFreeText = matchedFreeText[colonIdx+1:] // Remove the prefix from matchedFreeText
+	}
+
+	// Convert both strings to lowercase for case-insensitive comparison
+	lowerInputFreeText := strings.ToLower(inputFreeText)
+	lowerMatchedFreeText := strings.ToLower(matchedFreeText)
+
+	// Find the index of inputFreeText in matchedFreeText (case-insensitive)
+	idx := strings.Index(lowerMatchedFreeText, lowerInputFreeText)
+	if idx == -1 {
+		return "" // Substring not found
+	}
+
+	// Calculate the start and end positions for the padded substring
+	start := idx - matchedFreeTextBackwardChars
+	if start < 0 {
+		start = 0
+	}
+
+	end := idx + len(inputFreeText) + matchedFreeTextForwardChars
+	if end > len(matchedFreeText) {
+		end = len(matchedFreeText)
+	}
+
+	// Extract the padded substring from the original matchedFreeText (not lowercased)
+	result := matchedFreeText[start:end]
+
+	// Return the prefix followed by the result
+	return strings.TrimSpace(prefix + " " + result)
+}
+
+func GetSessionsOverviewPlot(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	af.Expand()
+	msg := `sessions overview plot instances request validation failed`
+
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+	}
+
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	sessionInstances, err := GetSessionsPlot(ctx, &af)
+	if err != nil {
+		msg := `failed to query exception instances`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	type instance struct {
+		ID   string  `json:"id"`
+		Data []gin.H `json:"data"`
+	}
+
+	lut := make(map[string]int)
+	var instances []instance
+
+	for i := range sessionInstances {
+		instance := instance{
+			ID: sessionInstances[i].Version,
+			Data: []gin.H{{
+				"datetime":  sessionInstances[i].DateTime,
+				"instances": sessionInstances[i].Instances,
+			}},
+		}
+
+		ndx, ok := lut[sessionInstances[i].Version]
+
+		if ok {
+			instances[ndx].Data = append(instances[ndx].Data, instance.Data...)
+		} else {
+			lut[sessionInstances[i].Version] = i
+			instances = append(instances, instance)
+		}
+	}
+
+	c.JSON(http.StatusOK, instances)
+}
+
+func GetSession(c *gin.Context) {
 	ctx := c.Request.Context()
 	appId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -3982,7 +4423,7 @@ func GetAppSession(c *gin.Context) {
 		}
 	}
 
-	duration := session.Duration().Milliseconds()
+	duration := session.DurationFromEvents().Milliseconds()
 	cpuUsageEvents := session.EventsOfType(event.TypeCPUUsage)
 	cpuUsages := replay.ComputeCPUUsage(cpuUsageEvents)
 

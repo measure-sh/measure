@@ -44,6 +44,7 @@ export default function Session({ params }: { params: { appId: string, sessionId
 
       {sessionReplayApiStatus === SessionReplayApiStatus.Success &&
         <div>
+          <p className="font-sans"> User ID: {sessionReplay.attribute.user_id !== "" ? sessionReplay.attribute.user_id : "N/A"}</p>
           <p className="font-sans"> Duration: {formatMillisToHumanReadable(sessionReplay.duration as unknown as number)}</p>
           <p className="font-sans"> Device: {sessionReplay.attribute.device_manufacturer + sessionReplay.attribute.device_model}</p>
           <p className="font-sans"> App version: {sessionReplay.attribute.app_version}</p>
