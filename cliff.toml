@@ -61,13 +61,14 @@ commit_parsers = [
   { message = ".*sessionator.*", skip = true },
   { message = "^.*\\(android\\):", skip = true },
   { message = "^.*\\(ios\\):", skip = true },
-  { message = "^docs:", group = "<!-- 5 -->:books: Documentation", default_scope = "other" },
+  { message = "^docs", group = "<!-- 7 -->:books: Documentation", default_scope = "other" },
   { message = "^feat", group = "<!-- 0 -->:sparkles: New features" },
   { message = "^test", group = "<!-- 3 -->:test_tube: Testing", skip = true },
   { message = "^fix", group = "<!-- 1 -->:bug: Bug fixes" },
-  { message = "^.*: fix", group = "<!-- 1 -->:bug: Bug fixes" },
-  { message = "^.*: remove", group = "<!-- 4 -->:coffin: Removed" },
-  { message = "^.*: delete", group = "<!-- 4 -->:coffin: Removed" },
+  { message = "^perf", group = "<!-- 4 -->:zap: Performance" },
+  { message = "^refactor", group = "<!-- 5 -->:recycle: Refactor" },
+  { message = "^.*: remove", group = "<!-- 6 -->:coffin: Removed" },
+  { message = "^.*: delete", group = "<!-- 6 -->:coffin: Removed" },
   { message = "^.*", group = "<!-- 2 -->:hammer: Misc" },
 ]
 # protect breaking changes from being skipped due to matching a skipping commit_parser

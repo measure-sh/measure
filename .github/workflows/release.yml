@@ -54,5 +54,5 @@ jobs:
           gh release create ${{ github.ref_name }} \
             --title "Release ${{ github.ref_name }}" \
             ${{ contains(github.ref_name, '-') && '--prerelease' || ''}} \
-            --notes-file release.md \
+            --notes-file ${{ github.workspace }}/release.md \
             --verify-tag
