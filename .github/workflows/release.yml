@@ -52,7 +52,7 @@ jobs:
           PRERELEASE: ${{ contains(github.ref_name, '-') }}
         run: |
           gh release create ${{ github.ref_name }} \
-            --title Release ${{ github.ref_name }} \
+            --title "Release ${{ github.ref_name }}" \
             --draft false \
             --prerelease ${{ env.PRERELEASE }} \
             --latest false \
