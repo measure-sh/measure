@@ -47,10 +47,9 @@ jobs:
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PRERELEASE: ${{ contains(github.ref_name, '-') }}
         run: |
           gh release create ${{ github.ref_name }} \
             --title "Release ${{ github.ref_name }}" \
-            --prerelease ${{ env.PRERELEASE }} \
+            ${{ contains(github.ref_name, '-') && '--prerelease' || ''}} \
             --notes-file release.md \
             --verify-tag
