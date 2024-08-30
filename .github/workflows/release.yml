@@ -44,7 +44,7 @@ jobs:
           config: cliff.toml
           args: --verbose --current --strip header footer
         env:
-          OUTPUT: release.md
+          OUTPUT: CHANGES.md
           GITHUB_REPO: ${{ github.repository }}
 
       - name: Create release
@@ -54,5 +54,5 @@ jobs:
           gh release create ${{ github.ref_name }} \
             --title "Release ${{ github.ref_name }}" \
             ${{ contains(github.ref_name, '-') && '--prerelease' || ''}} \
-            --notes-file ${{ github.workspace }}/release.md \
+            --notes "${{ steps.git-cliff.outputs.content }}" \
             --verify-tag
