@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Reorder & cleanup postgres migrations (#1155) by @detj in #1155
+
 - (**frontend**): Update landing hero animation by @anupcowkur in #1095
 
 
