@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Fix incorrect filter query for crash & anr groups by @anupcowkur in #1153
 - (**backend**): Fix session data (#1141) by @detj in #1141
 - (**backend**): Proceed with event ingestion on symbolication failure by @anupcowkur in #1134
 - (**backend**): Handle exception/anr groups with no events by @anupcowkur in #1098
