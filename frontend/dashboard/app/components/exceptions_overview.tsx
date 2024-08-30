@@ -88,6 +88,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
         teamId={teamId}
         filtersApiType={exceptionsType === ExceptionsType.Crash ? FiltersApiType.Crash : FiltersApiType.Anr}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
+        showSessionType={false}
         showCountries={false}
         showNetworkTypes={false}
         showNetworkProviders={false}
@@ -95,6 +96,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
         showLocales={false}
         showDeviceManufacturers={false}
         showDeviceNames={false}
+        showFreeText={false}
         onFiltersChanged={(updatedFilters) => setSelectedFilters(updatedFilters)} />
       <div className="py-4" />
 

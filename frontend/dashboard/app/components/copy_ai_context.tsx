@@ -1,6 +1,6 @@
 import React from 'react';
 import { emptyAnrExceptionsDetailsResponse, emptyCrashExceptionsDetailsResponse, ExceptionsType } from '../api/api_calls';
-import { formatDateToHumanReadable, formatTimeToHumanReadable } from '../utils/time_utils';
+import { formatDateToHumanReadable } from '../utils/time_utils';
 
 interface CopyAiContextProps {
   appName: string,
@@ -14,7 +14,7 @@ const CopyAiContext: React.FC<CopyAiContextProps> = ({ appName, exceptionsType, 
 
     formatted = formatted + "App Name: " + appName + "\n"
     formatted = formatted + "App version: " + exceptionsDetails.results[0].attribute.app_version + "\n"
-    formatted = formatted + "Date & time: " + formatDateToHumanReadable(exceptionsDetails.results[0].timestamp) + ", " + formatTimeToHumanReadable(exceptionsDetails.results[0].timestamp) + "\n"
+    formatted = formatted + "Date & time: " + formatDateToHumanReadable(exceptionsDetails.results[0].timestamp) + "\n"
     formatted = formatted + "Platform: " + exceptionsDetails.results[0].attribute.platform + "\n"
     formatted = formatted + "Device: " + exceptionsDetails.results[0].attribute.device_manufacturer + exceptionsDetails.results[0].attribute.device_model + "\n"
     formatted = formatted + "Network type: " + exceptionsDetails.results[0].attribute.network_type + "\n"

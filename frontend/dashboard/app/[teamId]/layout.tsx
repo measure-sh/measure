@@ -27,6 +27,10 @@ export default function DashboardLayout({
       title: 'ANRs',
     },
     {
+      hrefSuffix: 'sessions',
+      title: 'Sessions',
+    },
+    {
       hrefSuffix: 'team',
       title: 'Team',
     },

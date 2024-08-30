@@ -98,6 +98,10 @@ type AppFilter struct {
 	// pagination.
 	KeyID string `form:"key_id"`
 
+	// FreeText is a free form text string that can be used
+	// to filter over logs, exceptions, events etc
+	FreeText string `form:"free_text"`
+
 	// KeyTimestamp is the anchor point for
 	// keyset pagination.
 	KeyTimestamp time.Time `form:"key_timestamp"`

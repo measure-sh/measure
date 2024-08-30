@@ -2,7 +2,7 @@
 
 import { useState, useEffect, ReactNode } from 'react'
 import FilterPill from './filter_pill'
-import { formatDateToHumanReadable, formatTimeToHumanReadable } from '../utils/time_utils'
+import { formatDateToHumanReadable } from '../utils/time_utils'
 import { formatToCamelCase } from '../utils/string_utils'
 import Image from 'next/image';
 
@@ -177,7 +177,7 @@ export default function SessionReplayEventAccordion({
           <div className="flex grow" />
           <FilterPill title={threadName} />
           <div className="p-2" />
-          <FilterPill title={`${formatDateToHumanReadable(timestamp)} \u25CF ${formatTimeToHumanReadable(timestamp)}`} />
+          <FilterPill title={`${formatDateToHumanReadable(timestamp)}`} />
         </div>
       </button>
       <div

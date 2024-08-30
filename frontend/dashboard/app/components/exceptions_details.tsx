@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ExceptionsDetailsApiStatus, ExceptionsType, emptyCrashExceptionsDetailsResponse, emptyAnrExceptionsDetailsResponse, fetchExceptionsDetailsFromServer, FiltersApiType } from '@/app/api/api_calls';
 import { useRouter } from 'next/navigation';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
-import { formatDateToHumanReadable, formatTimeToHumanReadable } from '../utils/time_utils';
+import { formatDateToHumanReadable } from '../utils/time_utils';
 import ExceptionspDetailsPlot from './exceptions_details_plot';
 import Filters, { AppVersionsInitialSelectionType, defaultSelectedFilters } from './filters';
 import Journey, { JourneyType } from './journey';
@@ -85,6 +85,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
         appId={appId}
         filtersApiType={exceptionsType === ExceptionsType.Crash ? FiltersApiType.Crash : FiltersApiType.Anr}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
+        showSessionType={false}
         showCountries={true}
         showNetworkTypes={true}
         showNetworkProviders={true}
@@ -92,6 +93,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
         showLocales={true}
         showDeviceManufacturers={true}
         showDeviceNames={true}
+        showFreeText={false}
         onFiltersChanged={(updatedFilters) => setSelectedFilters(updatedFilters)} />
 
       <div className="py-4" />
@@ -161,7 +163,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
 
               {/* We show ... in loading state for Crash/Anr ID so that user knows some API call is happening */}
               <p className="font-display text-xl"> Id: {exceptionsDetailsApiStatus == ExceptionsDetailsApiStatus.Loading ? '...' : exceptionsDetails.results[0].id}</p>
-              <p className="font-sans"> Date & time: {formatDateToHumanReadable(exceptionsDetails.results[0].timestamp)}, {formatTimeToHumanReadable(exceptionsDetails.results[0].timestamp)}</p>
+              <p className="font-sans"> Date & time: {formatDateToHumanReadable(exceptionsDetails.results[0].timestamp)}</p>
               <p className="font-sans"> Device: {exceptionsDetails.results[0].attribute.device_manufacturer + exceptionsDetails.results[0].attribute.device_model}</p>
               <p className="font-sans"> App version: {exceptionsDetails.results[0].attribute.app_version}</p>
               <p className="font-sans"> Network type: {exceptionsDetails.results[0].attribute.network_type}</p>

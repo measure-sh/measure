@@ -19,6 +19,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         teamId={params.teamId}
         filtersApiType={FiltersApiType.All}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.Latest}
+        showSessionType={false}
         showCountries={false}
         showNetworkTypes={false}
         showNetworkProviders={false}
@@ -26,6 +27,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         showLocales={false}
         showDeviceManufacturers={false}
         showDeviceNames={false}
+        showFreeText={false}
         onFiltersChanged={(updatedFilters) => setSelectedFilters(updatedFilters)} />
 
       <div className="py-4" />

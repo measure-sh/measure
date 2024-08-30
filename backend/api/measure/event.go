@@ -1724,6 +1724,119 @@ func GetIssuesPlot(ctx context.Context, eventIds []uuid.UUID, af *filter.AppFilt
 	return
 }
 
+// GetSessionsPlot queries session instances
+// by datetime and filters.
+func GetSessionsPlot(ctx context.Context, af *filter.AppFilter) (sessionInstances []event.SessionInstance, err error) {
+	base := sqlf.
+		From("default.events").
+		Select("session_id").
+		Select("any(attribute.app_version) as app_version").
+		Select("any(attribute.app_build) as app_build").
+		Select("MIN(timestamp) as first_event_time").
+		GroupBy("session_id").
+		Where("app_id = ?", af.AppID)
+
+	if len(af.Versions) > 0 {
+		base.Where("attribute.app_version").In(af.Versions)
+	}
+
+	if len(af.VersionCodes) > 0 {
+		base.Where("attribute.app_build").In(af.VersionCodes)
+	}
+
+	if af.Crash && af.ANR {
+		base.Where("((type = 'exception' AND exception.handled = false) OR type = 'anr')")
+	} else if af.Crash {
+		base.Where("type = 'exception' AND exception.handled = false")
+	} else if af.ANR {
+		base.Where("type = 'anr'")
+	}
+
+	if len(af.Countries) > 0 {
+		base.Where("inet.country_code").In(af.Countries)
+	}
+
+	if len(af.DeviceNames) > 0 {
+		base.Where("attribute.device_name").In(af.DeviceNames)
+	}
+
+	if len(af.DeviceManufacturers) > 0 {
+		base.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
+	}
+
+	if len(af.Locales) > 0 {
+		base.Where("attribute.device_locale").In(af.Locales)
+	}
+
+	if len(af.NetworkProviders) > 0 {
+		base.Where("attribute.network_provider").In(af.NetworkProviders)
+	}
+
+	if len(af.NetworkTypes) > 0 {
+		base.Where("attribute.network_type").In(af.NetworkTypes)
+	}
+
+	if len(af.NetworkGenerations) > 0 {
+		base.Where("attribute.network_generation").In(af.NetworkGenerations)
+	}
+
+	if af.FreeText != "" {
+		base.Where(
+			"("+
+				"attribute.user_id ILIKE ? OR "+
+				"string.string ILIKE ? OR "+
+				"toString(exception.exceptions) ILIKE ? OR "+
+				"toString(anr.exceptions) ILIKE ? OR "+
+				"type ILIKE ? OR "+
+				"lifecycle_activity.class_name ILIKE ? OR "+
+				"lifecycle_fragment.class_name ILIKE ?"+
+				")",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%")
+	}
+
+	if af.HasTimeRange() {
+		base.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+	}
+
+	stmt := sqlf.
+		With("base_events", base).
+		From("base_events").
+		Select("formatDateTime(first_event_time, '%Y-%m-%d') as datetime").
+		Select("concat(toString(app_version), '', '(', toString(app_build), ')') as app_version").
+		Select("count(distinct session_id) as instances").
+		GroupBy("app_version, datetime").
+		OrderBy("datetime, app_version")
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+	if rows.Err() != nil {
+		return
+	}
+
+	for rows.Next() {
+		var instance event.SessionInstance
+		if err := rows.Scan(&instance.DateTime, &instance.Version, &instance.Instances); err != nil {
+			return nil, err
+		}
+
+		if *instance.Instances > 0 {
+			sessionInstances = append(sessionInstances, instance)
+		}
+	}
+
+	return
+}
+
 func PutEvents(c *gin.Context) {
 	appId, err := uuid.Parse(c.GetString("appId"))
 	if err != nil {

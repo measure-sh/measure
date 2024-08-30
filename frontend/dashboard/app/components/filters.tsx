@@ -1,13 +1,14 @@
 "use client"
 
 import { useRouter } from "next/navigation";
-import { formatDateToHumanReadable, isValidTimestamp } from "../utils/time_utils";
+import { formatDateToHumanReadable, formatIsoDateForDateTimeInputField, isValidTimestamp } from "../utils/time_utils";
 import { useEffect, useState } from "react";
-import { AppVersion, AppsApiStatus, FiltersApiStatus, FiltersApiType, emptyApp, fetchAppsFromServer, fetchFiltersFromServer } from "../api/api_calls";
+import { AppVersion, AppsApiStatus, FiltersApiStatus, FiltersApiType, SessionType, emptyApp, fetchAppsFromServer, fetchFiltersFromServer } from "../api/api_calls";
 import { DateTime } from "luxon";
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
 import FilterPill from "./filter_pill";
 import CreateApp from "./create_app";
+import DebounceTextInput from "./debounce_text_input";
 
 export enum AppVersionsInitialSelectionType {
   Latest,
@@ -26,7 +27,25 @@ interface FiltersProps {
   showLocales: boolean
   showDeviceManufacturers: boolean
   showDeviceNames: boolean
+  showFreeText: boolean
+  showSessionType: boolean
   onFiltersChanged: (selectedFilters: SelectedFilters) => void
+}
+
+enum DateRange {
+  Last15Mins = 'Last 15 Minutes',
+  Last30Mins = 'Last 30 Minutes',
+  LastHour = 'Last hour',
+  Last3Hours = 'Last 3 Hours',
+  Last6Hours = 'Last 6 Hours',
+  Last12Hours = 'Last 12 Hours',
+  Last24Hours = 'Last 24 Hours',
+  LastWeek = 'Last Week',
+  Last15Days = 'Last 15 Days',
+  LastMonth = 'Last Month',
+  Last3Months = 'Last 3 Months',
+  LastYear = 'Last Year',
+  Custom = 'Custom Range'
 }
 
 export type SelectedFilters = {
@@ -35,6 +54,7 @@ export type SelectedFilters = {
   selectedStartDate: string
   selectedEndDate: string
   selectedVersions: AppVersion[]
+  selectedSessionType: SessionType
   selectedCountries: string[]
   selectedNetworkProviders: string[]
   selectedNetworkTypes: string[]
@@ -42,6 +62,7 @@ export type SelectedFilters = {
   selectedLocales: string[]
   selectedDeviceManufacturers: string[]
   selectedDeviceNames: string[]
+  selectedFreeText: string
 }
 
 type PersistedFilters = {
@@ -57,23 +78,27 @@ export const defaultSelectedFilters: SelectedFilters = {
   selectedStartDate: '',
   selectedEndDate: '',
   selectedVersions: [],
+  selectedSessionType: SessionType.All,
   selectedCountries: [],
   selectedNetworkProviders: [],
   selectedNetworkTypes: [],
   selectedNetworkGenerations: [],
   selectedLocales: [],
   selectedDeviceManufacturers: [],
-  selectedDeviceNames: []
+  selectedDeviceNames: [],
+  selectedFreeText: ''
 }
 
-enum DateRange {
-  Last24Hours = 'Last 24 Hours',
-  LastWeek = 'Last Week',
-  Last15Days = 'Last 15 Days',
-  LastMonth = 'Last Month',
-  Last3Months = 'Last 3 Months',
-  LastYear = 'Last Year',
-  Custom = 'Custom Range'
+function getSessionTypeFromString(value: string): SessionType {
+  const enumValues = Object.values(SessionType) as string[];
+  const enumKeys = Object.keys(SessionType) as Array<keyof typeof SessionType>;
+
+  const index = enumValues.indexOf(value);
+  if (index !== -1) {
+    return SessionType[enumKeys[index]];
+  }
+
+  throw ("Invalid string cannot be mapped to SessionType: " + value)
 }
 
 const Filters: React.FC<FiltersProps> = ({
@@ -81,6 +106,7 @@ const Filters: React.FC<FiltersProps> = ({
   appId,
   filtersApiType,
   appVersionsInitialSelectionType,
+  showSessionType,
   showCountries,
   showNetworkTypes,
   showNetworkProviders,
@@ -88,6 +114,7 @@ const Filters: React.FC<FiltersProps> = ({
   showLocales,
   showDeviceManufacturers,
   showDeviceNames,
+  showFreeText,
   onFiltersChanged }) => {
 
   const router = useRouter()
@@ -103,6 +130,8 @@ const Filters: React.FC<FiltersProps> = ({
 
   const [versions, setVersions] = useState([] as AppVersion[]);
   const [selectedVersions, setSelectedVersions] = useState([] as AppVersion[]);
+
+  const [selectedSessionType, setSelectedSessionType] = useState(SessionType.All);
 
   const [countries, setCountries] = useState([] as string[]);
   const [selectedCountries, setSelectedCountries] = useState([] as string[]);
@@ -125,12 +154,14 @@ const Filters: React.FC<FiltersProps> = ({
   const [deviceNames, setDeviceNames] = useState([] as string[]);
   const [selectedDeviceNames, setSelectedDeviceNames] = useState([] as string[]);
 
+  const [selectedFreeText, setSelectedFreeText] = useState('');
+
   const [dateRange, setDateRange] = useState(persistedFilters === null ? DateRange.LastWeek : persistedFilters.selectedDateRange)
 
-  const [startDate, setStartDate] = useState(persistedFilters === null ? DateTime.now().minus({ days: 7 }).toFormat('yyyy-MM-dd') : persistedFilters.selectedStartDate);
+  const [startDate, setStartDate] = useState(persistedFilters === null ? DateTime.now().minus({ days: 7 }).toISO() : persistedFilters.selectedStartDate);
   const [formattedStartDate, setFormattedStartDate] = useState(formatDateToHumanReadable(startDate));
 
-  const [endDate, setEndDate] = useState(persistedFilters === null ? DateTime.now().toFormat('yyyy-MM-dd') : persistedFilters.selectedEndDate);
+  const [endDate, setEndDate] = useState(persistedFilters === null ? DateTime.now().toISO() : persistedFilters.selectedEndDate);
   const [formattedEndDate, setFormattedEndDate] = useState(formatDateToHumanReadable(endDate));
 
   useEffect(() => {
@@ -140,33 +171,51 @@ const Filters: React.FC<FiltersProps> = ({
 
   useEffect(() => {
     let today = DateTime.now()
-    let daysAgoDate
+    let newDate
 
     switch (dateRange) {
+      case DateRange.Last15Mins:
+        newDate = today.minus({ minutes: 15 })
+        break
+      case DateRange.Last30Mins:
+        newDate = today.minus({ minutes: 30 })
+        break
+      case DateRange.LastHour:
+        newDate = today.minus({ hours: 1 })
+        break
+      case DateRange.Last3Hours:
+        newDate = today.minus({ hours: 3 })
+        break
+      case DateRange.Last6Hours:
+        newDate = today.minus({ hours: 6 })
+        break
+      case DateRange.Last12Hours:
+        newDate = today.minus({ hours: 12 })
+        break
       case DateRange.Last24Hours:
-        daysAgoDate = today.minus({ days: 1 })
+        newDate = today.minus({ hours: 24 })
         break
       case DateRange.LastWeek:
-        daysAgoDate = today.minus({ days: 7 })
+        newDate = today.minus({ days: 7 })
         break
       case DateRange.Last15Days:
-        daysAgoDate = today.minus({ days: 15 })
+        newDate = today.minus({ days: 15 })
         break
       case DateRange.LastMonth:
-        daysAgoDate = today.minus({ months: 1 })
+        newDate = today.minus({ months: 1 })
         break
       case DateRange.Last3Months:
-        daysAgoDate = today.minus({ months: 3 })
+        newDate = today.minus({ months: 3 })
         break
       case DateRange.LastYear:
-        daysAgoDate = today.minus({ years: 1 })
+        newDate = today.minus({ years: 1 })
         break
       case DateRange.Custom:
         return
     }
 
-    setStartDate(daysAgoDate!.toFormat('yyyy-MM-dd'))
-    setEndDate(today.toFormat('yyyy-MM-dd'))
+    setStartDate(newDate!.toISO())
+    setEndDate(today.toISO())
   }, [dateRange]);
 
   const getApps = async () => {
@@ -302,18 +351,20 @@ const Filters: React.FC<FiltersProps> = ({
       selectedStartDate: startDate,
       selectedEndDate: endDate,
       selectedVersions: selectedVersions,
+      selectedSessionType: selectedSessionType,
       selectedCountries: selectedCountries,
       selectedNetworkProviders: selectedNetworkProviders,
       selectedNetworkTypes: selectedNetworkTypes,
       selectedNetworkGenerations: selectedNetworkGenerations,
       selectedLocales: selectedLocales,
       selectedDeviceManufacturers: selectedDeviceManufacturers,
-      selectedDeviceNames: selectedDeviceNames
+      selectedDeviceNames: selectedDeviceNames,
+      selectedFreeText: selectedFreeText
     }
 
     onFiltersChanged(updatedSelectedFilters)
     sessionStorage.setItem(persistedFiltersStorageKey, JSON.stringify(updatedPersistedFilters))
-  }, [appsApiStatus, filtersApiStatus, selectedApp, startDate, endDate, selectedVersions, selectedCountries, selectedNetworkProviders, selectedNetworkTypes, selectedNetworkGenerations, selectedLocales, selectedDeviceManufacturers, selectedDeviceNames]);
+  }, [appsApiStatus, filtersApiStatus, selectedApp, startDate, endDate, selectedVersions, selectedSessionType, selectedCountries, selectedNetworkProviders, selectedNetworkTypes, selectedNetworkGenerations, selectedLocales, selectedDeviceManufacturers, selectedDeviceNames, selectedFreeText]);
 
   return (
     <div>
@@ -351,19 +402,26 @@ const Filters: React.FC<FiltersProps> = ({
             <div className="flex flex-row items-center">
               <DropdownSelect title="Date Range" type={DropdownSelectType.SingleString} items={Object.values(DateRange)} initialSelected={dateRange} onChangeSelected={(item) => setDateRange(item as string)} />
               {dateRange === DateRange.Custom && <p className="font-display px-2">:</p>}
-              {dateRange === DateRange.Custom && <input type="date" defaultValue={startDate} max={endDate} className="font-display border border-black rounded-md p-2" onChange={(e) => {
+              {dateRange === DateRange.Custom && <input type="datetime-local" defaultValue={formatIsoDateForDateTimeInputField(startDate)} max={formatIsoDateForDateTimeInputField(endDate)} className="font-display border border-black rounded-md p-2" onChange={(e) => {
                 if (isValidTimestamp(e.target.value)) {
-                  setStartDate(e.target.value)
+                  setStartDate(DateTime.fromISO(e.target.value).toISO()!)
                 }
               }} />}
               {dateRange === DateRange.Custom && <p className="font-display px-2">to</p>}
-              {dateRange === DateRange.Custom && <input type="date" defaultValue={endDate} min={startDate} max={DateTime.now().toFormat('yyyy-MM-dd')} className="font-display border border-black rounded-md p-2" onChange={(e) => {
+              {dateRange === DateRange.Custom && <input type="datetime-local" defaultValue={formatIsoDateForDateTimeInputField(endDate)} min={formatIsoDateForDateTimeInputField(startDate)} max={formatIsoDateForDateTimeInputField(DateTime.now().toISO())} className="font-display border border-black rounded-md p-2" onChange={(e) => {
                 if (isValidTimestamp(e.target.value)) {
-                  setEndDate(e.target.value)
+                  // If "To" date is greater than now, ignore the change and reset to current end date.
+                  // We need to do this since setting "max" isn't enough in some browsers
+                  if (DateTime.fromISO(e.target.value) <= DateTime.now()) {
+                    setEndDate(DateTime.fromISO(e.target.value).toISO()!)
+                  } else {
+                    e.target.value = formatIsoDateForDateTimeInputField(endDate)
+                  }
                 }
               }} />}
             </div>
             <DropdownSelect title="App versions" type={DropdownSelectType.MultiAppVersion} items={versions} initialSelected={selectedVersions} onChangeSelected={(items) => setSelectedVersions(items as AppVersion[])} />
+            {showSessionType && <DropdownSelect title="Session Types" type={DropdownSelectType.SingleString} items={Object.values(SessionType)} initialSelected={selectedSessionType} onChangeSelected={(item) => setSelectedSessionType(getSessionTypeFromString(item as string))} />}
             {showCountries && countries.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Country" items={countries} initialSelected={countries} onChangeSelected={(items) => setSelectedCountries(items as string[])} />}
             {showNetworkProviders && networkProviders.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Network Provider" items={networkProviders} initialSelected={networkProviders} onChangeSelected={(items) => setSelectedNetworkProviders(items as string[])} />}
             {showNetworkTypes && networkTypes.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Network type" items={networkTypes} initialSelected={networkTypes} onChangeSelected={(items) => setSelectedNetworkTypes(items as string[])} />}
@@ -371,11 +429,13 @@ const Filters: React.FC<FiltersProps> = ({
             {showLocales && locales.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Locale" items={locales} initialSelected={locales} onChangeSelected={(items) => setSelectedLocales(items as string[])} />}
             {showDeviceManufacturers && deviceManufacturers.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Device Manufacturer" items={deviceManufacturers} initialSelected={deviceManufacturers} onChangeSelected={(items) => setSelectedDeviceManufacturers(items as string[])} />}
             {showDeviceNames && deviceNames.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Device Name" items={deviceNames} initialSelected={deviceNames} onChangeSelected={(items) => setSelectedDeviceNames(items as string[])} />}
+            {showFreeText && <DebounceTextInput id="free-text" placeholder="Search User ID, Session ID, Logs, Class names or Exception Traces..." onChange={(input) => setSelectedFreeText(input)} />}
           </div>
           <div className="py-4" />
           <div className="flex flex-wrap gap-2 items-center">
             <FilterPill title={`${formattedStartDate} to ${formattedEndDate}`} />
             {selectedVersions.length > 0 && <FilterPill title={Array.from(selectedVersions).map((v) => v.displayName).join(', ')} />}
+            {showSessionType && <FilterPill title={selectedSessionType} />}
             {showCountries && selectedCountries.length > 0 && <FilterPill title={Array.from(selectedCountries).join(', ')} />}
             {showNetworkProviders && selectedNetworkProviders.length > 0 && <FilterPill title={Array.from(selectedNetworkProviders).join(', ')} />}
             {showNetworkTypes && selectedNetworkTypes.length > 0 && <FilterPill title={Array.from(selectedNetworkTypes).join(', ')} />}
@@ -383,6 +443,7 @@ const Filters: React.FC<FiltersProps> = ({
             {showLocales && selectedLocales.length > 0 && <FilterPill title={Array.from(selectedLocales).join(', ')} />}
             {showDeviceManufacturers && selectedDeviceManufacturers.length > 0 && <FilterPill title={Array.from(selectedDeviceManufacturers).join(', ')} />}
             {showDeviceNames && selectedDeviceNames.length > 0 && <FilterPill title={Array.from(selectedDeviceNames).join(', ')} />}
+            {showFreeText && selectedFreeText !== '' && <FilterPill title={"Search Text: " + selectedFreeText} />}
           </div>
         </div>
       }
