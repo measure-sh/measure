@@ -42,7 +42,10 @@ jobs:
         id: git-cliff
         with:
           config: cliff.toml
-          args: --verbose --github-repo ${{ github.repository }} --current --strip header footer --output "release.md"
+          args: --verbose --current --strip header footer
+        env:
+          OUTPUT: release.md
+          GITHUB_REPO: ${{ github.repository }}
 
       - name: Create release
         env:
