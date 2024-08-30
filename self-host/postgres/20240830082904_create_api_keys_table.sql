@@ -1,7 +1,7 @@
 -- migrate:up
 create table if not exists public.api_keys (
     id uuid primary key not null default gen_random_uuid(),
-    app_id uuid references public.apps(id) on delete cascade deferrable initially immediate,
+    app_id uuid references public.apps(id) on delete cascade,
     key_prefix varchar(16) not null,
     key_value varchar(256) not null,
     checksum varchar(16) not null,
