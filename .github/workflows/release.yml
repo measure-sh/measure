@@ -9,6 +9,8 @@ jobs:
   release-notes:
     name: Generate release notes
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       release_body: ${{ steps.git-cliff.outputs.content }}
     steps:
@@ -45,27 +47,14 @@ jobs:
           args: --verbose --github-repo ${{ github.repository }} --current --strip header footer
 
       - name: Create GitHub release
-        if: ${{ !contains(github.ref, '-' )}}
-        id: create-release
-        uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: ${{ steps.git-cliff.outputs.content }}
-          draft: true
-          prerelease: false
-
-      - name: Create GitHub pre-release
-        if: ${{ contains(github.ref, '-' )}}
-        id: create-prerelease
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: ${{ steps.git-cliff.outputs.content }}
-          draft: true
-          prerelease: true
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRERELEASE: ${{ contains(github.ref_name, '-') }}
+        run: |
+          gh release create ${{ github.ref_name }} \
+            --title Release ${{ github.ref_name }} \
+            --draft false \
+            --prerelease ${{ env.PRERELEASE }} \
+            --latest false \
+            --notes "${{ steps.git-cliff.outputs.content }}" \
+            --verify-tag
