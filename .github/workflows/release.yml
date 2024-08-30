@@ -52,6 +52,5 @@ jobs:
           gh release create ${{ github.ref_name }} \
             --title "Release ${{ github.ref_name }}" \
             --prerelease ${{ env.PRERELEASE }} \
-            --latest false \
             --notes-file release.md \
             --verify-tag
