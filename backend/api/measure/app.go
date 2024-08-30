@@ -239,15 +239,15 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 		defer eventDataStmt.Close()
 
 		if len(af.Versions) > 0 {
-			stmt.Where("attribute.app_version").In(af.Versions)
+			eventDataStmt.Where("attribute.app_version").In(af.Versions)
 		}
 
 		if len(af.VersionCodes) > 0 {
-			stmt.Where("attribute.app_build").In(af.VersionCodes)
+			eventDataStmt.Where("attribute.app_build").In(af.VersionCodes)
 		}
 
 		if af.HasTimeRange() {
-			stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+			eventDataStmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 		}
 
 		rows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
@@ -443,15 +443,15 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 		defer eventDataStmt.Close()
 
 		if len(af.Versions) > 0 {
-			stmt.Where("attribute.app_version").In(af.Versions)
+			eventDataStmt.Where("attribute.app_version").In(af.Versions)
 		}
 
 		if len(af.VersionCodes) > 0 {
-			stmt.Where("attribute.app_build").In(af.VersionCodes)
+			eventDataStmt.Where("attribute.app_build").In(af.VersionCodes)
 		}
 
 		if af.HasTimeRange() {
-			stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+			eventDataStmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 		}
 
 		rows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
