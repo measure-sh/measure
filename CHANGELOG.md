@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0] - 2024-08-30
 
 ### :sparkles: New features
 
@@ -15,7 +15,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :bug: Bug fixes
 
 - (**backend**): Fix incorrect filter query for crash & anr groups by @anupcowkur in #1153
-- (**backend**): Fix session data (#1141) by @detj in #1141
 - (**backend**): Proceed with event ingestion on symbolication failure by @anupcowkur in #1134
 - (**backend**): Handle exception/anr groups with no events by @anupcowkur in #1098
 
@@ -23,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 - (**backend**): Reorder & cleanup postgres migrations (#1155) by @detj in #1155
+- (**backend**): Fix session data (#1141) by @detj in #1141
 
 - (**frontend**): Update landing hero animation by @anupcowkur in #1095
 
@@ -178,12 +178,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
-- (**backend**): Fix dashboard healthcheck by @detj in #1085
-- (**backend**): Fix dashboard healthcheck by @detj in #1084
-- (**backend**): Fix incorrect path by @detj
-- (**backend**): Fix dockerfile by @detj
-- (**backend**): Fix dashboard docker compose by @detj
-- (**backend**): Fix typos by @detj
 - (**backend**): Google auth (#1022) by @detj in #1022
 - (**backend**): Update memory usage struct by @abhaysood
 - (**backend**): Remove validation for 0 percentage usage as it's valid value by @abhaysood
@@ -191,7 +185,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Allow zero interval as it's valid value for first event by @abhaysood
 - (**backend**): Ignore cold launch greater than 30s for metrics calculation by @anupcowkur in #942
 - (**backend**): Update method comments to match code by @anupcowkur
-- (**backend**): Fix a typo by @detj
 - (**backend**): Authn issue by @detj
 - (**backend**): Handle no teams by @detj
 - (**backend**): Anr overview mismatch by @detj in #820
@@ -216,33 +209,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Attachment processing by @detj
 - (**backend**): Anr overview plot query by @detj in #750
 - (**backend**): Crash overview plot query by @detj
-- (**backend**): Fix typo by @detj
 - (**backend**): Response of anr plot by @detj in #705
 - (**backend**): Response of crash plot by @detj
 - (**backend**): Journey issue count (#679) by @detj in #679
-- (**backend**): Fix typo by @detj in #676
 - (**backend**): Format anr stacktrace by @detj
 - (**backend**): Modify stacktrace by @detj
 - (**backend**): Add authz in metrics (#658) by @detj in #658
-- (**backend**): Fix typo by @detj
-- (**backend**): Fix app onboarding by @detj
-- (**backend**): Fix broken code by @detj
-- (**backend**): Fix context in get team by @detj
 - (**backend**): Fix failing test by @anupcowkur in #601
-- (**backend**): Fix anr symbolication by @detj
-- (**backend**): Fix missing ctx by @detj
-- (**backend**): Fix bucketting by @detj
-- (**backend**): Fix event ingestion by @detj
-- (**backend**): Fix app onboarding by @detj
-- (**backend**): Fix hand during bucketting by @detj
-- (**backend**): Fix hang during bucketting by @detj
-- (**backend**): Fix hang up during bucketting by @detj
-- (**backend**): Fix symbolication issues by @detj
-- (**backend**): Fix multipart event processing by @detj
-- (**backend**): Fix event request by @detj
-- (**backend**): Fix event batching by @detj
-- (**backend**): Fix invalid json bug by @detj
-- (**backend**): Fix error message by @detj
 - (**backend**): No data for size by @detj
 - (**backend**): No data for perceived anr free by @detj
 - (**backend**): No data for perceived crash free by @detj
@@ -257,10 +230,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Fix clickhouse schema by @abhaysood
 - (**backend**): Issue with uploading build by @detj
 - (**backend**): Update cpu usage compute by @detj
-- (**backend**): Fix `warm_launch` duration compute by @detj
 - (**backend**): Bug with launch time processing by @detj
 - (**backend**): Add validation check by @detj
-- (**backend**): Fix paths patterns (#500) by @detj in #500
 - (**backend**): Handle error when no teams (#498) by @detj in #498
 - (**backend**): `app_exit` validation (#479) by @detj in #479
 - (**backend**): Incorrect struct tag by @detj in #451
@@ -270,14 +241,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Incorrect struct tag by @detj
 - (**backend**): Unused code by @detj
 - (**backend**): Extra parameter by @detj
-- (**backend**): Fix issue with anr events by @detj
-- (**backend**): Fix a typo by @detj
-- (**backend**): Fix a typo by @detj
-- (**backend**): Fix bad file name by @detj
-- (**backend**): Fix minio bucket creation by @detj in #429
-- (**backend**): Fix incorrect column name by @detj
 - (**backend**): Non-consistent pagination issues by @detj
-- (**backend**): Fix an edge case by @detj
 - (**backend**): Non-consistent pagination issues by @detj
 - (**backend**): Consistent grouping pagination by @detj
 - (**backend**): Set default limit for filters api (#386) by @detj in #386
@@ -297,21 +261,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Retrace frame parsing (#300) by @detj in #300
 - (**backend**): Lookup country by ip (#291) by @detj in #291
 - (**backend**): Respond with bad request on team not found (#281) by @detj in #281
-- (**backend**): Fix typo by @detj
 - (**backend**): Handle existing & new invitee(s) by @detj
 - (**backend**): Panics if api key is supplied in place of access token (#279) by @detj in #279
 - (**backend**): Role validation logic (#270) by @detj in #270
 - (**backend**): Add validation for thread name in anr and exception by @abhaysood in #267
 - (**backend**): Increase thread name max size to 64 by @abhaysood
 - (**backend**): Pre authz logic for teams by @detj in #264
-- (**backend**): Fix types of create app response by @detj
 - (**backend**): Change teamId to id to match client response expectation by @anupcowkur in #224
 - (**backend**): Use correct table name in CH migrations by @abhaysood in #211
 - (**backend**): Invalid error format (#215) by @detj in #215
 - (**backend**): Use correct column name in query to get mapping key by @abhaysood in #217
-- (**backend**): Fix a mistake by @detj
-- (**backend**): Fix incorrect version in go.mod (#186) by @detj in #186
-- (**backend**): Fix syntax (#176) by @detj in #176
 - (**backend**): Validate all events (#142) by @detj in #142
 - (**backend**): Resolve go-staticcheck warnings (#116) by @detj in #116
 - (**backend**): Partial symbolication should work (#113) by @detj in #113
@@ -338,7 +297,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Handle invalid selected app in persisted filters by @anupcowkur in #915
 - (**webapp**): Remove hover,active & focus states on disabled buttons by @anupcowkur in #899
 - (**webapp**): Self-hosted check by @anupcowkur in #864
-- (**webapp**): Fix logout by @detj
 - (**webapp**): Prevent unnecessary useEffect calls by @anupcowkur in #858
 - (**webapp**): Expand journey node on title hover only by @anupcowkur
 - (**webapp**): Decode title in exceptions details page by @anupcowkur in #827
@@ -362,12 +320,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Append crash or anr query param to filters api by @anupcowkur in #645
 - (**webapp**): Handle null cpu & memory data in session replay by @anupcowkur in #642
 - (**webapp**): Update api response handling by @anupcowkur
-- (**webapp**): Fix FilterPill test name by @anupcowkur in #640
-- (**webapp**): Fix accordion test file name by @anupcowkur in #626
 - (**webapp**): Set mock timezone for time_utils tests by @anupcowkur
 - (**webapp**): Fix incorrect session replay event timestamp state format by @anupcowkur
 - (**webapp**): Fix chart datetime format by @anupcowkur
-- (**webapp**): Fix string_utils test file extension by @anupcowkur
 - (**webapp**): Updated alert prefs not reflecting in UI by @anupcowkur in #604
 - (**webapp**): Set updatedAlertPrefs on fetch alert prefs API success by @anupcowkur
 - (**webapp**): Fix version and codes query params in metrics API call by @anupcowkur
@@ -379,8 +334,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Display correct stacktrace thread name by @anupcowkur in #517
 - (**webapp**): Disable side nav link if current page is same as link by @anupcowkur
 - (**webapp**): Fix event timeline animation jittering by @anupcowkur in #474
-- (**webapp**): Fix case  of ref variable in TeamSwitcher by @anupcowkur
-- (**webapp**): Fix typo in formatMillisToHumanReadable util function by @anupcowkur
 - (**webapp**): Sort events by timestamp in session replay event timeline by @anupcowkur
 - (**webapp**): Remove unneeded IDs in DangerConfirmationModal comoponent by @anupcowkur in #444
 - (**webapp**): Fix placeholder text in create new team input field by @anupcowkur in #436
@@ -406,19 +359,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Show API key in create app from new apps API response format by @anupcowkur in #244
 - (**webapp**): Fix typo by @anupcowkur in #237
 - (**webapp**): Put conditional state inside useState to avoid calling useState conditionally by @anupcowkur in #236
-- (**webapp**): Fix indent in Dropdown component by @anupcowkur
 - (**webapp**): Add missing return on overview filters api failure by @anupcowkur
 - (**webapp**): Update param names for journey & metrics apis by @anupcowkur in #202
 - (**webapp**): Set max & min limits for date filters by @anupcowkur
 - (**webapp**): Update date & uuids format to match journey & metrics api formats by @anupcowkur
 - (**webapp**): Fix server renderd HTML mismatch error for date filter pills by @anupcowkur in #192
 - (**webapp**): Save date filter state in crash details page by @anupcowkur in #182
-- (**webapp**): Fix indent by @anupcowkur
 - (**webapp**): Change env var name (#165) by @detj in #165
-- (**webapp**): Fix width of role selector button in team page by @anupcowkur
-- (**webapp**): Fix dropdown components z-index so that they are always on top of other UI by @anupcowkur
-- (**webapp**): Fix user flow tooltip anr length check by @anupcowkur
-- (**webapp**): Fix crash details route by @anupcowkur
 - (**webapp**): Fix comment syntax by @anupcowkur
 - (**webapp**): Change text to black on side nav button on focus visible by @anupcowkur in #86
 - (**webapp**): Set header z-index so it's always on top by @anupcowkur in #66
@@ -427,9 +374,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
-- (**backend**): Update self host guide by @detj
+- (**backend**): Fix dashboard healthcheck by @detj in #1085
+- (**backend**): Fix dashboard healthcheck by @detj in #1084
+- (**backend**): Fix incorrect path by @detj
 - (**backend**): Update dashboard github workflow by @anupcowkur
-- (**backend**): Update migrations by @detj in #1052
+- (**backend**): Fix dockerfile by @detj
+- (**backend**): Fix dashboard docker compose by @detj
 - (**backend**): Update compose.yml by @detj
 - (**backend**): Update rigmarole script by @detj
 - (**backend**): Update go.work.sum (#1050) by @detj in #1050
@@ -443,16 +393,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Rename directory & service names by @detj
 - (**backend**): Tidy go.mod by @anupcowkur in #1044
 - (**backend**): Change default retention period to 90 days by @anupcowkur in #1042
-- (**backend**): Minor refactor to google auth (#1038) by @detj in #1038
 - (**backend**): Extend access token expiry (#1031) by @detj in #1031
 - (**backend**): Update `config.sh` by @detj in #1030
 - (**backend**): Proxy attachments by default by @detj
+- (**backend**): Fix typos by @detj
 - (**backend**): Rename web env vars by @detj
 - (**backend**): Consistent healthcheck (#997) by @detj in #997
-- (**backend**): Update self-host guide by @detj in #990
 - (**backend**): Add healthchecks (#989) by @detj in #989
 - (**backend**): Add otel instrumentation to api server by @anupcowkur
-- (**backend**): Improve interval calculation function for cpu and memory usage collectors by @abhaysood
 - (**backend**): Add new sessions with real cpu usage data by @abhaysood
 - (**backend**): Add dummy percentage usage in session data by @abhaysood
 - (**backend**): Update interval_config to interval in session data by @abhaysood
@@ -467,6 +415,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Mod github auth by @detj
 - (**backend**): Mod github auth by @detj
 - (**backend**): Update compose.yml by @detj
+- (**backend**): Fix a typo by @detj
 - (**backend**): Parameterized cors settings by @detj
 - (**backend**): Update self-host settings by @detj
 - (**backend**): Update installation script by @detj
@@ -504,7 +453,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Change env vars by @detj
 - (**backend**): Add team id by @detj
 - (**backend**): Improve create team by @detj
-- (**backend**): Rename authsession path by @detj
 - (**backend**): Add google signin by @detj
 - (**backend**): Update deps by @detj
 - (**backend**): Update dot env example by @detj
@@ -525,8 +473,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update `.env.example` by @detj
 - (**backend**): Add tables for auth by @detj
 - (**backend**): Update session replay api by @detj in #835
-- (**backend**): Update dashboard api by @detj
-- (**backend**): Update sdk api docs by @detj
 - (**backend**): Update session replay api by @detj
 - (**backend**): Mod event ingestion by @detj
 - (**backend**): Mod events table by @detj
@@ -535,11 +481,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add go mods by @detj
 - (**backend**): Misc improvements by @detj
 - (**backend**): Change docker registry (#818) by @detj in #818
-- (**backend**): Update dashboard api by @detj in #812
-- (**backend**): Update dashboard api by @detj
-- (**backend**): Update dashboard api by @detj
-- (**backend**): Update dashboard api by @detj
-- (**backend**): Update dashboard api by @detj
 - (**backend**): Modify frame location method by @detj
 - (**backend**): Send display title in anr by @detj
 - (**backend**): Set exception group name by @detj
@@ -550,17 +491,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Set older event timestamp by @detj
 - (**backend**): Modify exception grouping by @detj
 - (**backend**): Modify unhandled exception groups table by @detj
-- (**backend**): Update dashboard api by @detj in #802
-- (**backend**): Update dashboard api by @detj
-- (**backend**): Update dashboard api by @detj in #796
 - (**backend**): Delta in metrics by @detj
 - (**backend**): Multi version filtering (#776) by @detj in #776
 - (**backend**): Record new events by @abhaysood
 - (**backend**): Validate network type & generation by @abhaysood in #726
 - (**backend**): Use non-nullable network properties by @abhaysood
-- (**backend**): Update dashboard api by @detj in #758
-- (**backend**): Update dashboard api by @detj
-- (**backend**): Update dashboard api by @detj
 - (**backend**): Update session replay api by @detj
 - (**backend**): Update anr detail api by @detj
 - (**backend**): Update crash detail api by @detj
@@ -571,36 +506,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update .env.example by @detj
 - (**backend**): Update symbolicator-retrace docker by @detj in #740
 - (**backend**): Clickhouse:24 (#739) by @detj in #739
-- (**backend**): Update dashboard api docs by @detj in #724
 - (**backend**): Anr overview plot instances route by @detj
 - (**backend**): Add anr plot instances method by @detj
-- (**backend**): Organize function order by @detj
-- (**backend**): Improve query by @detj
 - (**backend**): Crash overview instance plot route by @detj
 - (**backend**): Add query function by @detj
 - (**backend**): Rename methods by @detj
 - (**backend**): Update dependencies in symbolicator by @abhaysood
-- (**backend**): Update dashboard api docs by @detj in #709
-- (**backend**): Update dashboard api docs by @detj
-- (**backend**): Update dashboard api docs by @detj
 - (**backend**): Anr detail journey plot api by @detj
 - (**backend**): Minor refactor by @detj
 - (**backend**): Add full filter support by @detj
 - (**backend**): Add crash detail journey plot by @detj
 - (**backend**): Add journey in filter pkg by @detj
-- (**backend**): Rename route functions by @detj
-- (**backend**): Update dashboard api docs by @detj in #699
 - (**backend**): Add journey options by @detj
-- (**backend**): Update dashboard api docs by @detj in #690
 - (**backend**): Add anr instance plot api by @detj
-- (**backend**): Update dashboard api docs by @detj in #688
 - (**backend**): Add crash plot route by @detj
 - (**backend**): Add exceptions plot method by @detj
+- (**backend**): Fix typo by @detj in #676
 - (**backend**): Doc comments by @detj
-- (**backend**): Organize events by @detj
-- (**backend**): Udpate dashboard api docs by @detj in #675
-- (**backend**): Update dashboard api docs by @detj
-- (**backend**): Crash group crashes by @detj
 - (**backend**): Add doc comments by @detj
 - (**backend**): Modify response by @detj
 - (**backend**): Modify response by @detj
@@ -610,24 +532,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Organize method by @detj
 - (**backend**): Optimize journey events by @detj in #646
 - (**backend**): Add doc comment by @detj
-- (**backend**): Update self host docs by @anupcowkur in #653
-- (**backend**): Update dashboard api by @detj
 - (**backend**): Update get journey by @detj
 - (**backend**): New method in journey by @detj
 - (**backend**): Update group by @detj
-- (**backend**): Update dashboard api docs by @detj
 - (**backend**): Authz checks in journey by @detj
+- (**backend**): Fix typo by @detj
 - (**backend**): Change method names by @detj
 - (**backend**): Create journey interface by @detj
 - (**backend**): Journey map api by @detj
 - (**backend**): Add set pkg by @detj
 - (**backend**): Update group by @detj
 - (**backend**): Update group by @detj
-- (**backend**): Organize group methods by @detj
-- (**backend**): Group pkg by @detj
-- (**backend**): Filter pkg by @detj
-- (**backend**): Journey by @detj
-- (**backend**): Organize group by @detj
 - (**backend**): Compute issues to journey by @detj
 - (**backend**): Update doc comments by @detj
 - (**backend**): Doc comments by @detj
@@ -639,7 +554,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add graph pkg by @detj
 - (**backend**): Get journey events by @detj
 - (**backend**): Lifecycle events constants by @detj
-- (**backend**): Rearrange methods by @detj
 - (**backend**): Update app metrics api by @detj
 - (**backend**): Validate app journey by @detj
 - (**backend**): Improve app metrics by @detj
@@ -647,17 +561,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Improve app metrics by @detj
 - (**backend**): Doc comments for app filter by @detj
 - (**backend**): Update dashboard api docs (#644) by @detj in #644
-- (**backend**): Update dashboard api docs by @detj
-- (**backend**): Update dashboard api docs by @detj
-- (**backend**): Update dashboard api docs by @detj
-- (**backend**): Update dashboard api docs by @detj
 - (**backend**): Update event validation by @detj
-- (**backend**): Update success message by @detj
-- (**backend**): Update sdk api by @detj
-- (**backend**): Update sdk docs by @detj
+- (**backend**): Fix app onboarding by @detj
+- (**backend**): Fix broken code by @detj
+- (**backend**): Fix context in get team by @detj
 - (**backend**): Update schema.sql with alert_prefs table by @anupcowkur
 - (**backend**): Add missing sqlf statement close method by @anupcowkur
-- (**backend**): Update alert prefs docs and fix brokens subsection links by @anupcowkur
 - (**backend**): Add doc comments by @detj
 - (**backend**): Update old symbolicate by @detj
 - (**backend**): Rewire session replay by @detj
@@ -674,36 +583,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update events schema by @detj
 - (**backend**): Additional events by @detj
 - (**backend**): Rewire metricsa api by @detj
+- (**backend**): Fix anr symbolication by @detj
 - (**backend**): Modify attachment by @detj
 - (**backend**): Contextified get team by @detj
 - (**backend**): Rewire anr groups anrs api by @detj
 - (**backend**): Update crash group with crashes by @detj
 - (**backend**): Rewire crash groups crashes api by @detj
+- (**backend**): Fix missing ctx by @detj
 - (**backend**): Update references by @detj
 - (**backend**): Rewire get crash groups api by @detj
 - (**backend**): App filters request context by @detj
 - (**backend**): Context in app filters by @detj
 - (**backend**): Update get app filters api by @detj
+- (**backend**): Fix bucketting by @detj
 - (**backend**): Format doc comments by @detj
 - (**backend**): Save event req to db by @detj
 - (**backend**): Idempotecy of request id by @detj
 - (**backend**): Add event_reqs db table by @detj
 - (**backend**): Modify events table schema by @detj
+- (**backend**): Fix event ingestion by @detj
+- (**backend**): Fix app onboarding by @detj
+- (**backend**): Fix hand during bucketting by @detj
 - (**backend**): Measure ingest duration by @detj
+- (**backend**): Fix hang during bucketting by @detj
 - (**backend**): More metrics during ingestion by @detj
+- (**backend**): Fix hang up during bucketting by @detj
+- (**backend**): Fix symbolication issues by @detj
+- (**backend**): Fix multipart event processing by @detj
+- (**backend**): Fix event request by @detj
+- (**backend**): Fix event batching by @detj
 - (**backend**): Close writer by @detj
 - (**backend**): Add fresh events by @detj
 - (**backend**): Add event req id by @detj
 - (**backend**): Modify ingest to send events by @detj
 - (**backend**): Change scan logic to read blobs by @detj
 - (**backend**): Attribute as key name instead of attributes by @detj
+- (**backend**): Fix invalid json bug by @detj
+- (**backend**): Fix error message by @detj
 - (**backend**): Support transactions in bucketting by @detj
 - (**backend**): Add app onboarding by @detj
 - (**backend**): Update field name by @detj
 - (**backend**): Update bucketting by @detj
 - (**backend**): Rewire event ingestion by @detj
 - (**backend**): Update events table schema by @detj
-- (**backend**): Organize methods by @detj
 - (**backend**): Bucket exceptions, anrs by @detj
 - (**backend**): Rewire attachment processing by @detj
 - (**backend**): Add new events route by @detj
@@ -717,31 +639,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update attribute validation by @detj
 - (**backend**): Define attributes by @detj in #598
 - (**backend**): Wip - attribute by @detj
-- (**backend**): Update sdk api docs by @detj in #590
-- (**backend**): Update dashboard api by @detj in #581
 - (**backend**): Organize response by @detj
-- (**backend**): Update text pkg by @detj in #573
-- (**backend**): Trim exception event by @detj
-- (**backend**): Trim exception by @detj
-- (**backend**): Trim lifecycle app by @detj
-- (**backend**): Trim lifecycle fragment by @detj
-- (**backend**): Trim lifecycle activity by @detj
-- (**backend**): Trim gesture clicks by @detj
-- (**backend**): Trim gesture scroll by @detj
-- (**backend**): Trim gesture long click by @detj
-- (**backend**): Trim app exit by @detj
-- (**backend**): Trim string by @detj
-- (**backend**): Trim anr by @detj
-- (**backend**): Trim resource fields by @detj
-- (**backend**): Trim resource by @detj
-- (**backend**): Trim navigation by @detj
-- (**backend**): Trim trim memory by @detj
-- (**backend**): Trim http by @detj
-- (**backend**): Trim network change by @detj
-- (**backend**): Trim cold launch by @detj
-- (**backend**): Trim hot launch by @detj
 - (**backend**): Sort only by version code (#569) by @detj in #569
-- (**backend**): Update dashboard api docs by @detj in #551
 - (**backend**): Format response by @detj
 - (**backend**): Add launch time metrics by @detj
 - (**backend**): Compute hot launch duration by @detj
@@ -758,20 +657,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Modify adoption metric by @detj
 - (**backend**): Modify size metric by @detj
 - (**backend**): Wip - metrics api by @detj
-- (**backend**): Update dashboard api docs by @detj in #543
 - (**backend**): Club version name & code by @detj
-- (**backend**): Update dashboard api docs by @detj
 - (**backend**): Version code in anr detail api by @detj
 - (**backend**): Version code in crash detail api by @detj
 - (**backend**): Version code in crash/anr groups by @detj
 - (**backend**): Add version code in app filter by @detj
 - (**backend**): Add pocket cast sessions by @abhaysood in #537
-- (**backend**): Organize methods by @detj in #533
-- (**backend**): Improve doc comment by @detj
-- (**backend**): Update dashboard api by @detj in #516
 - (**backend**): Update `cold_launch` event by @detj
 - (**backend**): Update `http` event by @detj
 - (**backend**): Update `hot_launch` event by @detj
+- (**backend**): Fix `warm_launch` duration compute by @detj
 - (**backend**): Update `warm_launch` event by @detj
 - (**backend**): Update `gesture_scroll` event by @detj
 - (**backend**): Update `gesture_long_click` event by @detj
@@ -779,59 +674,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update `anr` event by @detj
 - (**backend**): Update `exception` event by @detj
 - (**backend**): Update record command to capture build size by @abhaysood
-- (**backend**): Improve mapping by @detj
 - (**backend**): Mapping is optional by @detj
 - (**backend**): Improve error messages by @detj
-- (**backend**): Update sdk api docs by @detj
 - (**backend**): Update mapping key fetch by @detj
 - (**backend**): Add transaction to builds api by @detj
 - (**backend**): Upsert `build_sizes` by @detj
 - (**backend**): Update `build_sizes` relation by @detj
 - (**backend**): Add `build_type` column by @detj
 - (**backend**): Add `build_sizes` relation by @detj
-- (**backend**): Refactor symbols upload by @detj
 - (**backend**): Use `app_id` for build mappings by @detj
 - (**backend**): Modify `build_mappings` relation by @detj
-- (**backend**): Use query builder for get apps (#503) by @detj in #503
 - (**backend**): Upgrade go version by @detj in #501
 - (**backend**): Use go v1.22.x by @detj
-- (**backend**): Update dashboard api docs by @detj in #472
-- (**backend**): Update api docs by @detj
+- (**backend**): Fix paths patterns (#500) by @detj in #500
 - (**backend**): Add `foreground` to session replay by @detj
 - (**backend**): Add `foreground` to session replay by @detj
 - (**backend**): Update session-data sessions by @detj
 - (**backend**): Add `foreground` to anr by @detj
 - (**backend**): Add `foreground` to exception by @detj
 - (**backend**): Update clickhouse schema by @detj
-- (**backend**): Use query builder for sql query by @detj in #453
-- (**backend**): Use query builder to build sql by @detj
-- (**backend**): Use query builder for sql query by @detj
-- (**backend**): Use query builder for sql query by @detj
-- (**backend**): Simplify code by @detj
-- (**backend**): Use query builder to build sql by @detj
 - (**backend**): Change job trigger file list (#450) by @detj in #450
 - (**backend**): Change mapping file key query by @detj
 - (**backend**): Add `low_memory` event by @detj
 - (**backend**): Handle updated `low_memory` events by @detj
 - (**backend**): Expand `low_memory` click schema by @detj
 - (**backend**): Bring back duration by @detj
-- (**backend**): Use query builder for sql query by @detj
-- (**backend**): Use query builder to build sql by @detj
-- (**backend**): Use query builder for sql query by @detj
-- (**backend**): Use query builder for sql query by @detj
-- (**backend**): Simplify code by @detj
-- (**backend**): Use query builder to build sql by @detj
 - (**backend**): Change job trigger file list (#450) by @detj
 - (**backend**): Send first/last event time by @detj
-- (**backend**): Update dashboard api docs (#449) by @detj in #449
-- (**backend**): Update dashboard api docs by @detj in #442
 - (**backend**): Add `http` event by @detj
-- (**backend**): Update doc comment by @detj
 - (**backend**): Modify structure of thread groups by @detj
-- (**backend**): Add docs for replay package by @detj
-- (**backend**): Organize code by @detj
+- (**backend**): Fix issue with anr events by @detj
 - (**backend**): Add `anr` event by @detj
 - (**backend**): Add `exception` event by @detj
+- (**backend**): Fix a typo by @detj
+- (**backend**): Fix a typo by @detj
 - (**backend**): Add `app_exit` event by @detj
 - (**backend**): Add `trim_memory` event by @detj
 - (**backend**): Add `lifecycle_app` event by @detj
@@ -843,6 +719,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add `cold_launch` event by @detj
 - (**backend**): Add `network_change` event by @detj
 - (**backend**): Add `string` event by @detj
+- (**backend**): Fix bad file name by @detj
 - (**backend**): Add `navigation` event by @detj
 - (**backend**): Add `gesture_scroll` events by @detj
 - (**backend**): Add `gesture_long_click` events by @detj
@@ -850,38 +727,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add `memory usage` data points by @detj
 - (**backend**): Rename `cpu` pkg to `replay` by @detj
 - (**backend**): Add `resource` in session replay response by @detj
-- (**backend**): Add trim function in text pkg by @detj
-- (**backend**): Update doc comment by @detj
 - (**backend**): Add `cpu_usage` calculation for session replay by @detj
-- (**backend**): Update doc comment by @detj
 - (**backend**): Add `text` package by @detj
 - (**backend**): Add `cpu` package by @detj
 - (**backend**): Update `chrono` package by @detj
 - (**backend**): Add session replay api route by @detj
-- (**backend**): Update self host guide by @detj in #441
 - (**backend**): Add init compose profile by @detj
 - (**backend**): Update `go.work.sum` (#440) by @detj in #440
-- (**backend**): Add missing `role` (#438) by @detj in #438
-- (**backend**): Update dashboard api docs (#433) by @detj in #433
 - (**backend**): Ignore existing buckets (#432) by @detj in #432
-- (**backend**): Clean up get teams api (#428) by @detj in #428
-- (**backend**): Update `go.work` file by @detj in #426
-- (**backend**): Update docker-compose.yml by @detj
-- (**backend**): Update api docs by @detj in #425
+- (**backend**): Fix minio bucket creation by @detj in #429
 - (**backend**): Add create team api by @detj
 - (**backend**): Add session-data by @abhaysood in #417
 - (**backend**): Rename session-data app name to use app-unique-id by @abhaysood
-- (**backend**): Update sesionator readme by @detj
 - (**backend**): Update docker compose by @detj
 - (**backend**): Support local s3 fetching in symbolicator-retrace by @detj
 - (**backend**): Update symbolicator-retrace's env file by @detj
 - (**backend**): Files now uploads locally by @detj
 - (**backend**): Update `.env.example` by @detj
 - (**backend**): Upload files locally if in debug mode by @detj
-- (**backend**): Update dashboard api docs by @detj in #411
-- (**backend**): Update dashboard api docs by @detj
 - (**backend**): Network_generations in anr groups anr by @detj
 - (**backend**): Network_types in anr groups anr by @detj
+- (**backend**): Fix incorrect column name by @detj
 - (**backend**): Network_providers in anr groups anr by @detj
 - (**backend**): Locales in anr groups anr by @detj
 - (**backend**): Device_manufacturers in anr groups anr by @detj
@@ -902,13 +768,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Device_names in crash groups crashes by @detj
 - (**backend**): Add `device_names` filter by @detj
 - (**backend**): Update dashboard api docs by @detj in #409
-- (**backend**): Update dashboard api docs by @detj
 - (**backend**): Add session_id in anr groups anrs api by @detj
 - (**backend**): Add session_id in crash groups crasshes api by @detj
-- (**backend**): Update crash groups crashes api docs by @detj in #408
 - (**backend**): Add time range support anr groups anr get by @detj
 - (**backend**): Add time range support crash groups crashes get by @detj
-- (**backend**): Update events in SDK API documentation by @abhaysood in #405
+- (**backend**): Fix an edge case by @detj
 - (**backend**): Add navigation sample by @abhaysood
 - (**backend**): Use non deprecated API to read response error by @abhaysood
 - (**backend**): Update go workspace by @detj in #398
@@ -918,20 +782,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Organize routes (#396) by @detj in #396
 - (**backend**): Update clickhouse schema file by @detj in #392
 - (**backend**): Reverting route re-org by @detj in #391
-- (**backend**): Organize defer statements by @detj in #390
-- (**backend**): Organize query formatting by @detj
-- (**backend**): Improve health route by @detj
-- (**backend**): Organize dashboard routes better by @detj
-- (**backend**): Update api docs by @detj in #388
-- (**backend**): Update api docs by @detj
 - (**backend**): Update app filter validation by @detj
 - (**backend**): Upgrade uuid pkg by @detj
 - (**backend**): Modify grouping schema by @detj
 - (**backend**): Rearrange events table columns (#385) by @detj in #385
-- (**backend**): Update get anr group's anrs api docs by @detj
-- (**backend**): Update get crash group's crashes api docs by @detj
-- (**backend**): Update get anr groups api docs by @detj
-- (**backend**): Update get crash  groups docs by @detj
 - (**backend**): Add get anr group detail api by @detj
 - (**backend**): Add get crash group detail api by @detj
 - (**backend**): Modify pagination behavior by @detj
@@ -942,28 +796,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update list anr groups api by @detj
 - (**backend**): Update anr_groups table schema by @detj
 - (**backend**): Modify crash groups list api by @detj
-- (**backend**): Add code comments by @detj
 - (**backend**): Change event group field name by @detj
 - (**backend**): Change event group schemas by @detj
 - (**backend**): Update crash groups list api by @detj
-- (**backend**): Add code comment by @detj
 - (**backend**): Add trim method to resource by @detj
-- (**backend**): Exceptions & anr schema to store in string format (#360) by @detj in #360
-- (**backend**): Update invite api docs by @anupcowkur in #355
-- (**backend**): Update API docs with Team APIs by @anupcowkur in #354
 - (**backend**): Add function to fetch exception group events by @detj
 - (**backend**): Add function expand filters by @detj
-- (**backend**): Add docs for 'apps/:id/filters' API by @anupcowkur in #349
 - (**backend**): Reorder event columns (#346) by @detj in #346
 - (**backend**): Sort anr groups by @detj in #345
 - (**backend**): Sort crash groups by @detj
 - (**backend**): Add 2 sessions from pocketcast app by @abhaysood in #332
-- (**backend**): Organize session ingestion by @detj in #327
-- (**backend**): Session attachments insertion by @detj
-- (**backend**): Update session insert query by @detj
 - (**backend**): Check presence of unhandled_exceptions & anrs by @detj
 - (**backend**): Add new methods to session by @detj
-- (**backend**): Update code comments by @detj
 - (**backend**): Modify anr group query by @detj
 - (**backend**): Modify exception group query by @detj
 - (**backend**): Change handling of attribute map by @detj
@@ -977,7 +821,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add sample config file by @detj
 - (**backend**): Add toml package by @detj
 - (**backend**): Tests are being silently skipped (#302) by @detj in #302
-- (**backend**): Add readme by @detj in #297
 - (**backend**): Add version filter support by @detj in #290
 - (**backend**): Add `app_version` to `anr_groups` table by @detj
 - (**backend**): Add version filter support by @detj
@@ -998,7 +841,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Refactor exception grouping by @detj
 - (**backend**): Implement exception grouping by @detj
 - (**backend**): Modify anr and exception group relation schema by @detj
-- (**backend**): Improve exception & anr fingerprinting by @detj
 - (**backend**): Create exception & anr grouping relations by @detj
 - (**backend**): Compute fingerprint by @detj
 - (**backend**): Add simhash pkg by @detj
@@ -1008,30 +850,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Modify events schema by @detj
 - (**backend**): Add ipinfo pkg by @detj
 - (**backend**): Add `inet` package by @detj
-- (**backend**): Improve code comments by @detj
 - (**backend**): Support querying unhandled exceptions by @detj
 - (**backend**): Add get filters api by @detj
-- (**backend**): Add doc comments by @detj in #280
 - (**backend**): Set onboarded_at field by @detj
 - (**backend**): Update clickhouse schema by @detj
 - (**backend**): Update apps after session save by @detj
 - (**backend**): Add platform package by @detj
-- (**backend**): Update cipher pkg by @detj
-- (**backend**): Rename files by @detj
-- (**backend**): Add measure pkg by @detj
 - (**backend**): Add support for `appId` by @detj
 - (**backend**): Update cipher pkg by @detj
 - (**backend**): Update clickhouse schema by @detj
 - (**backend**): Modify postgres schema by @detj
-- (**backend**): Update clickhouse readme by @detj in #272
-- (**backend**): Update postgres readme by @detj
-- (**backend**): Update clickhouse readme by @detj
-- (**backend**): Update postgres readme by @detj
-- (**backend**): Update postgres readme by @detj
-- (**backend**): Update readme by @detj
 - (**backend**): Update clickhouse schema dump by @detj
 - (**backend**): Add rigmarole.sh to clickhouse migrations by @detj
-- (**backend**): Move server into its own package by @detj in #268
 - (**backend**): Add change member role api by @detj in #256
 - (**backend**): Add method to validate role by @detj
 - (**backend**): Add remove team member api by @detj in #255
@@ -1054,7 +884,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Modify team_invitations schema by @detj
 - (**backend**): Add cipher package by @detj
 - (**backend**): Update get team apps api by @detj in #239
-- (**backend**): Update team apps get api by @detj
 - (**backend**): Update get app details api by @detj
 - (**backend**): Increase access token expiration by @detj
 - (**backend**): Add app details api by @detj
@@ -1062,6 +891,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Return apps from db by @detj
 - (**backend**): Wip get team apps api by @detj
 - (**backend**): Change name of app key by @detj in #233
+- (**backend**): Fix types of create app response by @detj
 - (**backend**): Return response in app create api by @detj in #227
 - (**backend**): Add create app by @detj in #226
 - (**backend**): Update jwt package by @detj
@@ -1072,14 +902,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add env var (#220) by @detj in #220
 - (**backend**): Rename migration files by @abhaysood
 - (**backend**): Add github oauth redirection (#219) by @detj in #219
-- (**backend**): Update self host guide by @detj
 - (**backend**): Update docker compose by @detj
 - (**backend**): Drop old clickhouse table by @detj
 - (**backend**): Change a column in `mapping_files` by @detj
 - (**backend**): Change events table name by @detj
 - (**backend**): Add migrations infra by @detj
 - (**backend**): Change container names by @detj in #210
-- (**backend**): Add launch time metrics by @detj in #205
 - (**backend**): Change mapping files parameter (#204) by @detj in #204
 - (**backend**): Add app filters stub api by @detj in #201
 - (**backend**): Add teams stub apis (#199) by @detj in #199
@@ -1087,7 +915,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add missing metrics by @detj in #194
 - (**backend**): Change cors origin (#188) by @detj in #188
 - (**backend**): Add cors config (#187) by @detj in #187
+- (**backend**): Fix incorrect version in go.mod (#186) by @detj in #186
 - (**backend**): Add api server build action (#179) by @detj in #179
+- (**backend**): Fix syntax (#176) by @detj in #176
 - (**backend**): Add rest of the events to symbolication (#141) by @detj in #141
 - (**backend**): Refactor magic strings (#139) by @detj in #139
 - (**backend**): Symbolication codec (#137) by @detj in #137
@@ -1138,12 +968,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Update landing copy by @anupcowkur
 - (**webapp**): Add login button to landing page header by @anupcowkur in #861
 - (**webapp**): Replace email waitlist with Github link by @anupcowkur
+- (**webapp**): Fix logout by @detj
 - (**webapp**): Revamp auth by @detj
 - (**webapp**): Update auth callbacks by @detj
 - (**webapp**): Update auth by @detj
 - (**webapp**): Add google signin by @detj
 - (**webapp**): Add next parameter by @detj
-- (**webapp**): Format by @detj
 - (**webapp**): Revamp invite flow by @detj
 - (**webapp**): Revamp authn by @detj
 - (**webapp**): Add authn utils by @detj
@@ -1178,11 +1008,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Extract filters to a component by @anupcowkur in #711
 - (**webapp**): Adjust tick padding in crash or anr group details plot by @anupcowkur in #703
 - (**webapp**): Add Paginator component tests by @anupcowkur in #641
+- (**webapp**): Fix FilterPill test name by @anupcowkur in #640
 - (**webapp**): Add FilterPill component tests by @anupcowkur in #639
 - (**webapp**): Add TeamSwitcher component tests by @anupcowkur in #638
 - (**webapp**): Decouple TeamSwitcher component from API by @anupcowkur
 - (**webapp**): Add DangerConfirmationModal tests by @anupcowkur
 - (**webapp**): Add AlertDialogModal component tests by @anupcowkur in #627
+- (**webapp**): Fix accordion test file name by @anupcowkur in #626
 - (**webapp**): Add test for accordion component by @anupcowkur in #625
 - (**webapp**): Add snapshot tests for accordion component by @anupcowkur
 - (**webapp**): Add webapp github action ci pipeline by @anupcowkur in #613
@@ -1200,6 +1032,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Throw error on invalid date in time_utils by @anupcowkur
 - (**webapp**): Add tests for formatMillisToHumanReadable in time_utils by @anupcowkur
 - (**webapp**): Use luxon lib to handle dates/times in time_utils by @anupcowkur
+- (**webapp**): Fix string_utils test file extension by @anupcowkur
 - (**webapp**): Add unit tests for utils/string_utils by @anupcowkur in #606
 - (**webapp**): Set up jest for testing with NextJs by @anupcowkur
 - (**webapp**): Handle no data cases in metrics API by @anupcowkur in #582
@@ -1208,6 +1041,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Adjust spacing in session replay page by @anupcowkur in #538
 - (**webapp**): Extract camel case formatting function to util file by @anupcowkur
 - (**webapp**): Extract scroll direction detection into a util function by @anupcowkur
+- (**webapp**): Fix case  of ref variable in TeamSwitcher by @anupcowkur
+- (**webapp**): Fix typo in formatMillisToHumanReadable util function by @anupcowkur
 - (**webapp**): Extract utility function to format milliseconds to human readable format by @anupcowkur
 - (**webapp**): Refactor TeamSwitcher to handle loading & error states internally by @anupcowkur in #445
 - (**webapp**): Improve team switcher title & arrow alignment by @anupcowkur
@@ -1215,7 +1050,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Upgrade to NexJs version 14 by @anupcowkur in #380
 - (**webapp**): Pass initial selected item instead of index in Dropdown component by @anupcowkur in #372
 - (**webapp**): Refactor UI rendering in response to API statuses in Apps, Crashes & Overview pages by @anupcowkur in #370
-- (**webapp**): Replace team/:id/invite docs with /auth/invite docs by @anupcowkur in #367
 - (**webapp**): Extract team management APIs into centralised api calls file by @anupcowkur in #364
 - (**webapp**): Extract crash groups API into centralised API calls file by @anupcowkur
 - (**webapp**): Extract metrics API into centralised API calls file by @anupcowkur
@@ -1228,7 +1062,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Fetch apps + filters from centralised APIs in Apps page by @anupcowkur
 - (**webapp**): Fetch apps + filters from centralised APIs in overview page by @anupcowkur
 - (**webapp**): Extract apps and filters fetch apis in separate file by @anupcowkur
-- (**webapp**): Add API docs for crash & ANR groups APIs by @anupcowkur in #350
 - (**webapp**): Update supabase js npm package by @anupcowkur in #317
 - (**webapp**): Refactor role names camel case conversions into a function by @anupcowkur
 - (**webapp**): Update change role/remove member error msg alignment in Team page by @anupcowkur in #273
@@ -1259,6 +1092,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Fetch apps list in overview from API by @anupcowkur
 - (**webapp**): Disable react hooks exhaustive deps rule by @anupcowkur in #209
 - (**webapp**): Store selected team state in side nav by @anupcowkur
+- (**webapp**): Fix indent in Dropdown component by @anupcowkur
 - (**webapp**): Add onChangeSelectedItemListener & initialItemIndex params to TeamSwitcher by @anupcowkur
 - (**webapp**): Fetch teams from API by @anupcowkur
 - (**webapp**): Update TeamSwitcher layout by @anupcowkur
@@ -1275,9 +1109,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Add API key field to Apps page by @anupcowkur in #171
 - (**webapp**): Add basic sign in with github (#168) by @detj
 - (**webapp**): Add Apps page ui by @anupcowkur in #170
+- (**webapp**): Fix indent by @anupcowkur
 - (**webapp**): Add landing page animation for app health section by @anupcowkur in #166
 - (**webapp**): Update landing page hero animation by @anupcowkur
 - (**webapp**): Add change team name field to Team page by @anupcowkur
+- (**webapp**): Fix width of role selector button in team page by @anupcowkur
+- (**webapp**): Fix dropdown components z-index so that they are always on top of other UI by @anupcowkur
 - (**webapp**): Add team page ui by @anupcowkur
 - (**webapp**): Combine thread events into single chart in session replay by @anupcowkur in #155
 - (**webapp**): Show only time on x-axis in session replay by @anupcowkur
@@ -1288,6 +1125,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Add user id to crash details session list by @anupcowkur
 - (**webapp**): Add crash details page by @anupcowkur in #145
 - (**webapp**): Keep side nav link highlighted even when navigating to sub paths by @anupcowkur
+- (**webapp**): Fix user flow tooltip anr length check by @anupcowkur
+- (**webapp**): Fix crash details route by @anupcowkur
 - (**webapp**): Add selected date filter pill to crashes by @anupcowkur in #133
 - (**webapp**): Add selected filters pills to overview by @anupcowkur
 - (**webapp**): Change grid gap in overview filters by @anupcowkur
@@ -1325,6 +1164,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Add hero animation to landing page by @anupcowkur in #63
 
 
+### :recycle: Refactor
+
+- (**backend**): Minor refactor to google auth (#1038) by @detj in #1038
+- (**backend**): Improve interval calculation function for cpu and memory usage collectors by @abhaysood
+- (**backend**): Rename authsession path by @detj
+- (**backend**): Organize function order by @detj
+- (**backend**): Fix typo by @detj
+- (**backend**): Improve query by @detj
+- (**backend**): Rename route functions by @detj
+- (**backend**): Organize events by @detj
+- (**backend**): Organize group methods by @detj
+- (**backend**): Group pkg by @detj
+- (**backend**): Filter pkg by @detj
+- (**backend**): Journey by @detj
+- (**backend**): Remove resource by @detj
+- (**backend**): Organize group by @detj
+- (**backend**): Rearrange methods by @detj
+- (**backend**): Organize methods by @detj
+- (**backend**): Update text pkg by @detj in #573
+- (**backend**): Trim exception event by @detj
+- (**backend**): Trim exception by @detj
+- (**backend**): Trim lifecycle app by @detj
+- (**backend**): Trim lifecycle fragment by @detj
+- (**backend**): Trim lifecycle activity by @detj
+- (**backend**): Trim gesture clicks by @detj
+- (**backend**): Trim gesture scroll by @detj
+- (**backend**): Trim gesture long click by @detj
+- (**backend**): Trim app exit by @detj
+- (**backend**): Trim string by @detj
+- (**backend**): Trim anr by @detj
+- (**backend**): Trim resource fields by @detj
+- (**backend**): Trim resource by @detj
+- (**backend**): Trim navigation by @detj
+- (**backend**): Trim trim memory by @detj
+- (**backend**): Trim http by @detj
+- (**backend**): Trim network change by @detj
+- (**backend**): Trim cold launch by @detj
+- (**backend**): Trim hot launch by @detj
+- (**backend**): Organize methods by @detj in #533
+- (**backend**): Improve mapping by @detj
+- (**backend**): Refactor symbols upload by @detj
+- (**backend**): Use query builder for get apps (#503) by @detj in #503
+- (**backend**): Use query builder for sql query by @detj in #453
+- (**backend**): Use query builder to build sql by @detj
+- (**backend**): Use query builder for sql query by @detj
+- (**backend**): Use query builder for sql query by @detj
+- (**backend**): Simplify code by @detj
+- (**backend**): Use query builder to build sql by @detj
+- (**backend**): Remove dead code (#452) by @detj in #452
+- (**backend**): Use query builder for sql query by @detj
+- (**backend**): Use query builder to build sql by @detj
+- (**backend**): Use query builder for sql query by @detj
+- (**backend**): Use query builder for sql query by @detj
+- (**backend**): Simplify code by @detj
+- (**backend**): Use query builder to build sql by @detj
+- (**backend**): Remove dead code (#452) by @detj
+- (**backend**): Organize code by @detj
+- (**backend**): Add trim function in text pkg by @detj
+- (**backend**): Remove dead code by @detj
+- (**backend**): Clean up get teams api (#428) by @detj in #428
+- (**backend**): Update `go.work` file by @detj in #426
+- (**backend**): Update docker-compose.yml by @detj
+- (**backend**): Remove symbolicator codebase by @detj
+- (**backend**): Organize defer statements by @detj in #390
+- (**backend**): Organize query formatting by @detj
+- (**backend**): Improve health route by @detj
+- (**backend**): Organize dashboard routes better by @detj
+- (**backend**): Exceptions & anr schema to store in string format (#360) by @detj in #360
+- (**backend**): Organize session ingestion by @detj in #327
+- (**backend**): Session attachments insertion by @detj
+- (**backend**): Update session insert query by @detj
+- (**backend**): Improve exception & anr fingerprinting by @detj
+- (**backend**): Remove unused code by @detj in #274
+- (**backend**): Update cipher pkg by @detj
+- (**backend**): Rename files by @detj
+- (**backend**): Add measure pkg by @detj
+- (**backend**): Move server into its own package by @detj in #268
+- (**backend**): Update team apps get api by @detj
+
+- (**webapp**): Format by @detj
+
+
 ### :coffin: Removed
 
 - (**backend**): Remove stale files by @detj
@@ -1342,7 +1263,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Remove unused route by @detj
 - (**backend**): Remove unused code by @detj
 - (**backend**): Remove hardcoded prefix by @detj
-- (**backend**): Remove resource by @detj
 - (**backend**): Remove dead code by @detj
 - (**backend**): Remove unused tables by @detj
 - (**backend**): Remove unnecessary error return by @anupcowkur
@@ -1359,11 +1279,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Delete old attachment by @detj
 - (**backend**): Remove `/events` route by @detj in #597
 - (**backend**): Remove unneeded logs by @abhaysood in #541
-- (**backend**): Remove dead code (#452) by @detj in #452
 - (**backend**): Remove `app_exit.timestamp` by @detj
-- (**backend**): Remove dead code (#452) by @detj
-- (**backend**): Remove dead code by @detj
-- (**backend**): Remove symbolicator codebase by @detj
 - (**backend**): Remove dead code by @detj
 - (**backend**): Remove `key` query parameter by @detj
 - (**backend**): Remove `version` field from app filter by @detj
@@ -1376,7 +1292,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Remove unused const (#282) by @detj in #282
 - (**backend**): Remove `apps.first_seen_at` field by @detj in #275
 - (**backend**): Remove latest version by @detj
-- (**backend**): Remove unused code by @detj in #274
 - (**backend**): Remove all clickhouse migrations by @abhaysood in #265
 - (**backend**): Remove invitation related db modifications by @detj in #261
 - (**backend**): Remove invitations relation sql by @detj
@@ -1432,6 +1347,95 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### :books: Documentation
+
+- (**backend**): Update self host guide by @detj
+- (**backend**): Update migrations by @detj in #1052
+- (**backend**): Update self-host guide by @detj in #990
+- (**backend**): Update dashboard api by @detj
+- (**backend**): Update sdk api docs by @detj
+- (**backend**): Update dashboard api by @detj in #812
+- (**backend**): Update dashboard api by @detj
+- (**backend**): Update dashboard api by @detj
+- (**backend**): Update dashboard api by @detj
+- (**backend**): Update dashboard api by @detj
+- (**backend**): Update dashboard api by @detj in #802
+- (**backend**): Update dashboard api by @detj
+- (**backend**): Update dashboard api by @detj in #796
+- (**backend**): Update dashboard api by @detj in #758
+- (**backend**): Update dashboard api by @detj
+- (**backend**): Update dashboard api by @detj
+- (**backend**): Update dashboard api docs by @detj in #724
+- (**backend**): Update dashboard api docs by @detj in #709
+- (**backend**): Update dashboard api docs by @detj
+- (**backend**): Update dashboard api docs by @detj
+- (**backend**): Update dashboard api docs by @detj in #699
+- (**backend**): Update dashboard api docs by @detj in #690
+- (**backend**): Update dashboard api docs by @detj in #688
+- (**backend**): Udpate dashboard api docs by @detj in #675
+- (**backend**): Update dashboard api docs by @detj
+- (**backend**): Crash group crashes by @detj
+- (**backend**): Update self host docs by @anupcowkur in #653
+- (**backend**): Update dashboard api by @detj
+- (**backend**): Update dashboard api docs by @detj
+- (**backend**): Update dashboard api docs by @detj
+- (**backend**): Update dashboard api docs by @detj
+- (**backend**): Update dashboard api docs by @detj
+- (**backend**): Update dashboard api docs by @detj
+- (**backend**): Update success message by @detj
+- (**backend**): Update sdk api by @detj
+- (**backend**): Update sdk docs by @detj
+- (**backend**): Update alert prefs docs and fix brokens subsection links by @anupcowkur
+- (**backend**): Update sdk api docs by @detj in #590
+- (**backend**): Update dashboard api by @detj in #581
+- (**backend**): Update dashboard api docs by @detj in #551
+- (**backend**): Update dashboard api docs by @detj in #543
+- (**backend**): Update dashboard api docs by @detj
+- (**backend**): Improve doc comment by @detj
+- (**backend**): Update dashboard api by @detj in #516
+- (**backend**): Update sdk api docs by @detj
+- (**backend**): Update dashboard api docs by @detj in #472
+- (**backend**): Update api docs by @detj
+- (**backend**): Update dashboard api docs (#449) by @detj in #449
+- (**backend**): Update dashboard api docs by @detj in #442
+- (**backend**): Update doc comment by @detj
+- (**backend**): Add docs for replay package by @detj
+- (**backend**): Update doc comment by @detj
+- (**backend**): Update doc comment by @detj
+- (**backend**): Update self host guide by @detj in #441
+- (**backend**): Add missing `role` (#438) by @detj in #438
+- (**backend**): Update dashboard api docs (#433) by @detj in #433
+- (**backend**): Update api docs by @detj in #425
+- (**backend**): Update sesionator readme by @detj
+- (**backend**): Update dashboard api docs by @detj in #411
+- (**backend**): Update dashboard api docs by @detj
+- (**backend**): Update dashboard api docs by @detj
+- (**backend**): Update crash groups crashes api docs by @detj in #408
+- (**backend**): Update events in SDK API documentation by @abhaysood in #405
+- (**backend**): Update api docs by @detj in #388
+- (**backend**): Update api docs by @detj
+- (**backend**): Update get anr group's anrs api docs by @detj
+- (**backend**): Update get crash group's crashes api docs by @detj
+- (**backend**): Update get anr groups api docs by @detj
+- (**backend**): Update get crash  groups docs by @detj
+- (**backend**): Add code comments by @detj
+- (**backend**): Add code comment by @detj
+- (**backend**): Update invite api docs by @anupcowkur in #355
+- (**backend**): Update API docs with Team APIs by @anupcowkur in #354
+- (**backend**): Add docs for 'apps/:id/filters' API by @anupcowkur in #349
+- (**backend**): Update code comments by @detj
+- (**backend**): Add readme by @detj in #297
+- (**backend**): Improve code comments by @detj
+- (**backend**): Add doc comments by @detj in #280
+- (**backend**): Fix typo by @detj
+- (**backend**): Update clickhouse readme by @detj in #272
+- (**backend**): Update postgres readme by @detj
+- (**backend**): Update clickhouse readme by @detj
+- (**backend**): Update postgres readme by @detj
+- (**backend**): Update postgres readme by @detj
+- (**backend**): Update readme by @detj
+- (**backend**): Update self host guide by @detj
+- (**backend**): Add launch time metrics by @detj in #205
+- (**backend**): Fix a mistake by @detj
 
 - Add team section to README by @anupcowkur in #1077
 - Update README.md by @anupcowkur in #1065
@@ -1521,5 +1525,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update measure-go readme by @detj
 - Add contributing file by @detj
 
-[unreleased]: https://github.com/measure-sh/measure/compare/v0.0.1..HEAD
+- (**webapp**): Replace team/:id/invite docs with /auth/invite docs by @anupcowkur in #367
+- (**webapp**): Add API docs for crash & ANR groups APIs by @anupcowkur in #350
+
+[0.1.0]: https://github.com/measure-sh/measure/compare/v0.0.1..v0.1.0
 
