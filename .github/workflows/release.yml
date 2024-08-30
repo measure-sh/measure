@@ -6,13 +6,11 @@ on:
       - "v*"
 
 jobs:
-  release-notes:
-    name: Generate release notes
+  create-release:
+    name: Create release
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    outputs:
-      release_body: ${{ steps.git-cliff.outputs.content }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -21,7 +19,7 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
 
-      - name: Generate changelog using git-cliff
+      - name: Generate changelog
         uses: orhun/git-cliff-action@v3
         with:
           config: cliff.toml
@@ -30,7 +28,7 @@ jobs:
           OUTPUT: CHANGELOG.md
           GITHUB_REPO: ${{ github.repository }}
 
-      - name: Commit the changelog
+      - name: Commit changelog
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
@@ -44,17 +42,11 @@ jobs:
         id: git-cliff
         with:
           config: cliff.toml
-          args: --verbose --github-repo ${{ github.repository }} --current --strip header footer
+          args: --verbose --github-repo ${{ github.repository }} --current --strip header footer --output "release.md"
 
-      - name: Create GitHub release
+      - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PRERELEASE: ${{ contains(github.ref_name, '-') }}
         run: |
-          gh release create ${{ github.ref_name }} \
-            --title "Release ${{ github.ref_name }}" \
-            --draft false \
-            --prerelease ${{ env.PRERELEASE }} \
-            --latest false \
-            --notes "${{ steps.git-cliff.outputs.content }}" \
-            --verify-tag
+          gh release create ${{ github.ref_name }} --title "Release ${{ github.ref_name }}" --draft false --prerelease ${{ env.PRERELEASE }} --latest false --notes-file release.md --verify-tag
