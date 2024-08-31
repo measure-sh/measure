@@ -706,6 +706,13 @@ func (af *AppFilter) GetExcludedVersions(ctx context.Context) (versions Versions
 		return
 	}
 
+	// If no versions are selected, treat it as if all versions were selected
+	if len(af.Versions) == 0 || len(af.VersionCodes) == 0 {
+		af.Versions = allVersions
+		af.VersionCodes = allCodes
+		return
+	}
+
 	count := len(allVersions)
 
 	if count != len(allCodes) {

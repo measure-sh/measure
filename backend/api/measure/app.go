@@ -1888,13 +1888,15 @@ func GetAppJourney(c *gin.Context) {
 		return
 	}
 
-	if err := af.ValidateVersions(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
 	}
 
 	if !af.HasTimeRange() {
@@ -2118,13 +2120,15 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	if err := af.ValidateVersions(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
 	}
 
 	if !af.HasTimeRange() {
@@ -2201,7 +2205,7 @@ func GetAppMetrics(c *gin.Context) {
 	}
 
 	var sizes *metrics.SizeMetric = nil
-	if !af.HasMultiVersions() {
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 && !af.HasMultiVersions() {
 		sizes, err = app.GetSizeMetrics(ctx, &af, excludedVersions)
 		if err != nil {
 			fmt.Println(msg, err)
