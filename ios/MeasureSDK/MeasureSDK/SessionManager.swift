@@ -16,11 +16,11 @@ protocol SessionManager {
     func applicationWillTerminate()
 }
 
-/// `MeasureSessionManager`  is responsible for creating and managing sessions within the Measure SDK.
+/// `BaseSessionManager`  is responsible for creating and managing sessions within the Measure SDK.
 ///
 /// - Note: This class assumes that `start()` is called before accessing `sessionId` to ensure a valid session ID is available.
 /// 
-class MeasureSessionManager: SessionManager {
+class BaseSessionManager: SessionManager {
     private let idProvider: IdProvider
     private let logger: Logger
     private var currentSessionId: String?

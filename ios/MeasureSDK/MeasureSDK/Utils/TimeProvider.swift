@@ -12,6 +12,7 @@ protocol TimeProvider {
     var currentTimeSinceEpochInMillis: Int64 { get }
     var currentTimeSinceEpochInNanos: Int64 { get }
     var uptimeInMillis: Int64 { get }
+    func iso8601Timestamp(timeInMillis: Int64) -> String
 }
 
 /// Client Info identifiers for the Measure SDK.
@@ -22,8 +23,9 @@ protocol TimeProvider {
 /// - `uptimeInMillis`: Milliseconds since the system was booted. This clock stops when the system enters deep sleep but is not affected by clock scaling, idle, or other power-saving mechanisms.
 ///
 struct SystemTimeProvider: TimeProvider {
+    private let systemTime: SystemTime
     var currentTimeSinceEpochInMillis: Int64 {
-        return Int64(Date().timeIntervalSince1970 * 1000)
+        return systemTime.timeIntervalSince1970 * 1000
     }
 
     var currentTimeSinceEpochInNanos: Int64 {
@@ -31,6 +33,17 @@ struct SystemTimeProvider: TimeProvider {
     }
 
     var uptimeInMillis: Int64 {
-        return Int64(ProcessInfo.processInfo.systemUptime * 1000)
+        return systemTime.systemUptime * 1000
+    }
+
+    init(systemTime: SystemTime) {
+        self.systemTime = systemTime
+    }
+
+    /// Returns a ISO 8601 standard timestamp as `String`
+    /// - Parameter timeInMillis: A `Int64` timestamp in milliseconds
+    /// - Returns: A ISO 8601 standard timestamp as `String`
+    func iso8601Timestamp(timeInMillis: Int64) -> String {
+        return systemTime.iso8601Timestamp(timeInMillis: timeInMillis)
     }
 }

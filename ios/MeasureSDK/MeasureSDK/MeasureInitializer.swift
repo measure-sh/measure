@@ -25,7 +25,7 @@ protocol MeasureInitializer {
 /// - `logger`: `Logger` object used for logging messages and errors within the MeasureSDK.
 /// - `sessionManager`: `SessionManager` for the MeasureSDK.
 /// - `idProvider`: `IdProvider` object used to generate unique identifiers.
-/// - `timeProvider`: `TimeProvider` object providing time-related information/
+/// - `timeProvider`: `TimeProvider` object providing time-related information.
 ///
 class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -41,11 +41,12 @@ class BaseMeasureInitializer: MeasureInitializer {
                                    trackScreenshotOnCrash: config.trackScreenshotOnCrash,
                                    sessionSamplingRate: config.sessionSamplingRate)
 
-        self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig, configLoader: BaseConfigLoader())
-        self.timeProvider = SystemTimeProvider()
+        self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig,
+                                                 configLoader: BaseConfigLoader())
+        self.timeProvider = SystemTimeProvider(systemTime: BaseSystemTime())
         self.logger = MeasureLogger(enabled: configProvider.enableLogging)
         self.idProvider = UUIDProvider()
-        self.sessionManager = MeasureSessionManager(idProvider: idProvider,
+        self.sessionManager = BaseSessionManager(idProvider: idProvider,
                                                     logger: logger,
                                                     timeProvider: timeProvider,
                                                     configProvider: configProvider)

@@ -5,7 +5,6 @@ opt_in_rules: # some rules are only opt-in
 included: # paths to include during linting. `--path` is ignored if present.
   - MeasureDemo
   - MeasureSDK
-excluded: # paths to ignore during linting. Takes precedence over `included`.
   - MeasureSDK/MeasureSDKTests
 analyzer_rules: # Rules run by `swiftlint analyze` (experimental)
   - explicit_self
