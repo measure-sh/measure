@@ -6,18 +6,47 @@
 //
 
 import Foundation
+import UIKit
 
 /// Internal implementation of the Measure SDK.
 ///
-/// This struct initializes the Measure SDK and hides the internal dependencies from the public API.
+/// This class initializes the Measure SDK and hides the internal dependencies from the public API.
 ///
-/// Properties:
-/// - `measureInitializer`: An instance of `MeasureInitializer` used to configure and initialize the Measure SDK.
-///
-struct MeasureInternal {
+class MeasureInternal {
     let measureInitializer: MeasureInitializer
+    private var logger: Logger {
+        return measureInitializer.logger
+    }
+    private var sessionManager: SessionManager {
+        return measureInitializer.sessionManager
+    }
+    private var timeProvider: TimeProvider {
+        return measureInitializer.timeProvider
+    }
+    private var configProvider: ConfigProvider {
+        return measureInitializer.configProvider
+    }
+    private let lifecycleObserver: LifecycleObserver
 
     init(_ measureInitializer: MeasureInitializer) {
         self.measureInitializer = measureInitializer
+        self.lifecycleObserver = LifecycleObserver()
+        self.logger.log(level: .debug, message: "Starting Measure SDK", error: nil)
+        self.sessionManager.start()
+        self.lifecycleObserver.applicationDidEnterBackground = applicationDidEnterBackground
+        self.lifecycleObserver.applicationWillEnterForeground = applicationWillEnterForeground
+        self.lifecycleObserver.applicationWillTerminate = applicationWillTerminate
+    }
+
+    private func applicationDidEnterBackground() {
+        sessionManager.applicationDidEnterBackground()
+    }
+
+    private func applicationWillEnterForeground() {
+        sessionManager.applicationWillEnterForeground()
+    }
+
+    private func applicationWillTerminate() {
+        sessionManager.applicationWillTerminate()
     }
 }

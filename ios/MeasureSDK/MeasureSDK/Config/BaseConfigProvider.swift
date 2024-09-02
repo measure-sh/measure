@@ -45,8 +45,12 @@ class BaseConfigProvider: ConfigProvider {
         return getMergedConfig(\.trackScreenshotOnCrash)
     }
 
-    var eventsBatchingIntervalMs: TimeInterval {
+    var eventsBatchingIntervalMs: Int64 {
         return getMergedConfig(\.eventsBatchingIntervalMs)
+    }
+
+    var sessionEndThresholdMs: Int64 {
+        return getMergedConfig(\.sessionEndThresholdMs)
     }
 
     private func getMergedConfig<T>(_ keyPath: KeyPath<Config, T>) -> T {

@@ -17,6 +17,13 @@
 		524CC5DE2C6A4B48001AB506 /* MeasureCrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524CC5D72C6A4B48001AB506 /* MeasureCrashReporter.swift */; };
 		524CC5DF2C6A4B48001AB506 /* Measure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524CC5D92C6A4B48001AB506 /* Measure.swift */; };
 		524CC5EE2C6A55F0001AB506 /* CrashReportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524CC5ED2C6A55F0001AB506 /* CrashReportManager.swift */; };
+		528EAB892C804AA100CB1574 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 528EAB882C804AA100CB1574 /* SessionManager.swift */; };
+		528EAB8B2C807BA800CB1574 /* IdProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 528EAB8A2C807BA800CB1574 /* IdProvider.swift */; };
+		528EAB8D2C80824200CB1574 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 528EAB8C2C80824200CB1574 /* Logger.swift */; };
+		528EAB8F2C81B4C700CB1574 /* TimeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 528EAB8E2C81B4C700CB1574 /* TimeProvider.swift */; };
+		528EAB942C81BF8900CB1574 /* Int64+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 528EAB932C81BF8900CB1574 /* Int64+Extension.swift */; };
+		528EAB962C84553500CB1574 /* LifecycleObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 528EAB952C84553500CB1574 /* LifecycleObserver.swift */; };
+		528EAB982C845AF400CB1574 /* Randomizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 528EAB972C845AF400CB1574 /* Randomizer.swift */; };
 		52CD91182C7B2B4E000189BA /* MeasureConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CD91172C7B2B4E000189BA /* MeasureConfig.swift */; };
 		52CD911A2C7B2C77000189BA /* DefaultConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CD91192C7B2C77000189BA /* DefaultConfig.swift */; };
 		52CD911C2C7B388B000189BA /* InternalConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CD911B2C7B388B000189BA /* InternalConfig.swift */; };
@@ -48,6 +55,13 @@
 		524CC5D72C6A4B48001AB506 /* MeasureCrashReporter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MeasureCrashReporter.swift; sourceTree = "<group>"; };
 		524CC5D92C6A4B48001AB506 /* Measure.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Measure.swift; sourceTree = "<group>"; };
 		524CC5ED2C6A55F0001AB506 /* CrashReportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReportManager.swift; sourceTree = "<group>"; };
+		528EAB882C804AA100CB1574 /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
+		528EAB8A2C807BA800CB1574 /* IdProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdProvider.swift; sourceTree = "<group>"; };
+		528EAB8C2C80824200CB1574 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
+		528EAB8E2C81B4C700CB1574 /* TimeProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeProvider.swift; sourceTree = "<group>"; };
+		528EAB932C81BF8900CB1574 /* Int64+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Int64+Extension.swift"; sourceTree = "<group>"; };
+		528EAB952C84553500CB1574 /* LifecycleObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleObserver.swift; sourceTree = "<group>"; };
+		528EAB972C845AF400CB1574 /* Randomizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Randomizer.swift; sourceTree = "<group>"; };
 		52CD91172C7B2B4E000189BA /* MeasureConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureConfig.swift; sourceTree = "<group>"; };
 		52CD91192C7B2C77000189BA /* DefaultConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultConfig.swift; sourceTree = "<group>"; };
 		52CD911B2C7B388B000189BA /* InternalConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InternalConfig.swift; sourceTree = "<group>"; };
@@ -106,6 +120,7 @@
 				52CD91252C7C3D90000189BA /* MeasureInitializer.swift */,
 				52CD91232C7C3D0F000189BA /* MeasureInternal.swift */,
 				524CC5BD2C6A4B11001AB506 /* MeasureSDK.h */,
+				528EAB882C804AA100CB1574 /* SessionManager.swift */,
 				524CC5DB2C6A4B48001AB506 /* Utils */,
 				524CC5D52C6A4B48001AB506 /* XCDataModel */,
 			);
@@ -162,8 +177,22 @@
 		524CC5DB2C6A4B48001AB506 /* Utils */ = {
 			isa = PBXGroup;
 			children = (
+				528EAB902C81B53100CB1574 /* Extension */,
+				528EAB8A2C807BA800CB1574 /* IdProvider.swift */,
+				528EAB952C84553500CB1574 /* LifecycleObserver.swift */,
+				528EAB8C2C80824200CB1574 /* Logger.swift */,
+				528EAB972C845AF400CB1574 /* Randomizer.swift */,
+				528EAB8E2C81B4C700CB1574 /* TimeProvider.swift */,
 			);
 			path = Utils;
+			sourceTree = "<group>";
+		};
+		528EAB902C81B53100CB1574 /* Extension */ = {
+			isa = PBXGroup;
+			children = (
+				528EAB932C81BF8900CB1574 /* Int64+Extension.swift */,
+			);
+			path = Extension;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -284,14 +313,21 @@
 				52CD91182C7B2B4E000189BA /* MeasureConfig.swift in Sources */,
 				524CC5DE2C6A4B48001AB506 /* MeasureCrashReporter.swift in Sources */,
 				52CD911C2C7B388B000189BA /* InternalConfig.swift in Sources */,
+				528EAB8B2C807BA800CB1574 /* IdProvider.swift in Sources */,
 				52CD91242C7C3D0F000189BA /* MeasureInternal.swift in Sources */,
 				5242B2A02C7F4AF600BE19F7 /* ClientInfo.swift in Sources */,
 				524CC5DD2C6A4B48001AB506 /* MeasureModel.xcdatamodeld in Sources */,
 				524CC5EE2C6A55F0001AB506 /* CrashReportManager.swift in Sources */,
+				528EAB8D2C80824200CB1574 /* Logger.swift in Sources */,
+				528EAB8F2C81B4C700CB1574 /* TimeProvider.swift in Sources */,
 				52CD91222C7C318C000189BA /* ConfigLoader.swift in Sources */,
+				528EAB892C804AA100CB1574 /* SessionManager.swift in Sources */,
 				52CD91262C7C3D90000189BA /* MeasureInitializer.swift in Sources */,
+				528EAB982C845AF400CB1574 /* Randomizer.swift in Sources */,
 				524CC5DF2C6A4B48001AB506 /* Measure.swift in Sources */,
+				528EAB962C84553500CB1574 /* LifecycleObserver.swift in Sources */,
 				52CD911E2C7B397C000189BA /* BaseConfigProvider.swift in Sources */,
+				528EAB942C81BF8900CB1574 /* Int64+Extension.swift in Sources */,
 				52CD91202C7B39AE000189BA /* Config.swift in Sources */,
 				52CD911A2C7B2C77000189BA /* DefaultConfig.swift in Sources */,
 				524CC5DC2C6A4B48001AB506 /* CoreDataManager.swift in Sources */,
