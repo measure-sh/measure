@@ -106,7 +106,7 @@ Measure is fully open source and is available under the [Apache 2.0 license](./L
 
 ## Discord
 
-Come say hi on our [Discord](https://discord.gg/V5XYs7fakt)
+Come say hi on our [Discord](https://discord.gg/f6zGkBCt42)
 
 ## Team
 
