@@ -1,5 +1,9 @@
 package sh.measure.android
 
+import android.util.Log
+import sh.measure.android.logger.LogLevel
+import sh.measure.android.logger.Logger
+
 /**
  * Listener interface for receiving ANR detection events.
  */
@@ -20,10 +24,18 @@ internal interface NativeBridge {
 /**
  * A bridge between Kotlin and native code.
  */
-internal class NativeBridgeImpl : NativeBridge {
+internal class NativeBridgeImpl(private val logger: Logger) : NativeBridge {
     companion object {
         init {
-            System.loadLibrary("measure-ndk")
+            try {
+                System.loadLibrary("measure-ndk")
+            } catch (e: UnsatisfiedLinkError) {
+                Log.e("Measure", "Failed to load measure-ndk, ANR detection will not work.", e)
+            } catch (e: SecurityException) {
+                Log.e("Measure", "Failed to load measure-ndk, ANR detection will not work.", e)
+            } catch (e: NullPointerException) {
+                Log.e("Measure", "Failed to load measure-ndk, ANR detection will not work.", e)
+            }
         }
     }
 
@@ -36,7 +48,19 @@ internal class NativeBridgeImpl : NativeBridge {
      * @return true if ANR reporting was enabled successfully, false otherwise.
      */
     override fun enableAnrReporting(anrListener: AnrListener): Boolean {
-        val success = enableAnrReportingInternal()
+        val success = try {
+            enableAnrReportingInternal()
+        } catch (e: Throwable) {
+            // Catch all exceptions to prevent the app from crashing if the native code fails
+            // or the native library fails to load.
+            logger.log(
+                LogLevel.Error,
+                "Failed to enable ANR reporting, ANR detection will not work.",
+                e,
+            )
+            false
+        }
+
         if (success) {
             this.anrListener = anrListener
         }

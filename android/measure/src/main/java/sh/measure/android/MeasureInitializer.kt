@@ -271,7 +271,7 @@ internal class MeasureInitializerImpl(
         eventProcessor = eventProcessor,
         processInfo = processInfoProvider,
     ),
-    private val nativeBridgeImpl: NativeBridgeImpl = NativeBridgeImpl(),
+    private val nativeBridgeImpl: NativeBridgeImpl = NativeBridgeImpl(logger),
     override val anrCollector: AnrCollector = AnrCollector(
         logger = logger,
         processInfo = processInfoProvider,
