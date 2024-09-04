@@ -27,7 +27,8 @@ internal class AppExitCollector(
                 if (appExits.isNullOrEmpty()) {
                     return@submit emptyList<Triple<Int, String, AppExit>>()
                 }
-                val pidsToSessionsMap: Map<Int, List<String>> = sessionManager.getSessionsWithUntrackedAppExit()
+                val pidsToSessionsMap: Map<Int, List<String>> =
+                    sessionManager.getSessionsWithUntrackedAppExit()
                 val appExitsToTrack = mapAppExitsToSession(pidsToSessionsMap, appExits)
                 markSessionsAsCrashedByAppExitReason(appExitsToTrack)
                 appExitsToTrack.forEach {
@@ -63,7 +64,10 @@ internal class AppExitCollector(
                 val appExit = appExits[pid]
                 // assuming last session for the PID to be the one that maps to app exit.
                 val lastSessionId = sessionIds.last()
-                result.add(Triple(pid, lastSessionId, appExit!!))
+                appExit?.let { result.add(Triple(pid, lastSessionId, appExit)) } ?: logger.log(
+                    LogLevel.Error,
+                    "AppExit not found for PID: $pid",
+                )
             }
         }
 
