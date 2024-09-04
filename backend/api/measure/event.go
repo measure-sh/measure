@@ -836,7 +836,7 @@ func (e eventreq) ingest(ctx context.Context) error {
 		if e.events[i].IsLowMemory() {
 			row.
 				Set(`low_memory.java_max_heap`, e.events[i].LowMemory.JavaMaxHeap).
-				Set(`low_memory.java_total_heap`, e.events[i].MemoryUsage.JavaTotalHeap).
+				Set(`low_memory.java_total_heap`, e.events[i].LowMemory.JavaTotalHeap).
 				Set(`low_memory.java_free_heap`, e.events[i].LowMemory.JavaFreeHeap).
 				Set(`low_memory.total_pss`, e.events[i].LowMemory.TotalPSS).
 				Set(`low_memory.rss`, e.events[i].LowMemory.RSS).
