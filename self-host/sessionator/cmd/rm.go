@@ -36,6 +36,50 @@ func parameterize[T string | uuid.UUID](items []T) (string, []any) {
 	return strings.Join(placeholders, ", "), args
 }
 
+// deleteAllObjects paginates & deletes all objects of a bucket.
+func deleteAllObjects(ctx context.Context, bucket *string, client *s3.Client) (err error) {
+	paginator := s3.NewListObjectsV2Paginator(client, &s3.ListObjectsV2Input{
+		Bucket: bucket,
+	})
+
+	for paginator.HasMorePages() {
+		// get the next page of objects
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return err
+		}
+
+		// prepare the objects to be deleted
+		var objectIdentifiers []types.ObjectIdentifier
+		for _, object := range page.Contents {
+			objectIdentifiers = append(objectIdentifiers, types.ObjectIdentifier{
+				Key: object.Key,
+			})
+		}
+
+		if len(objectIdentifiers) == 0 {
+			continue
+		}
+
+		// delete the objects
+		_, err = client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
+			Bucket: bucket,
+			Delete: &types.Delete{
+				Objects: objectIdentifiers,
+				Quiet:   aws.Bool(true),
+			},
+		})
+
+		if err != nil {
+			return fmt.Errorf("failed to delete objects: %w", err)
+		}
+
+		fmt.Printf("....removed %d objects from bucket %s\n", len(objectIdentifiers), *bucket)
+	}
+
+	return
+}
+
 // rmEvents removes all data associated with
 // the apps in config.
 func rmEvents(ctx context.Context, c *config.Config) (err error) {
@@ -60,6 +104,12 @@ func rmEvents(ctx context.Context, c *config.Config) (err error) {
 	if err != nil {
 		return
 	}
+
+	defer func() {
+		if err := tx.Rollback(ctx); err != nil {
+			return
+		}
+	}()
 
 	j := &janitor{
 		config: c,
@@ -102,6 +152,129 @@ func rmEvents(ctx context.Context, c *config.Config) (err error) {
 	}
 
 	return
+}
+
+// rmAll removes all data regardless of apps configuration
+// in config.
+func rmAll(ctx context.Context, c *config.Config) (err error) {
+	pgconn, err := pgx.Connect(ctx, c.Storage["postgres_dsn"])
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if err := pgconn.Close(ctx); err != nil {
+			return
+		}
+	}()
+
+	tx, err := pgconn.Begin(ctx)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if err := tx.Rollback(ctx); err != nil {
+			return
+		}
+	}()
+
+	j := &janitor{
+		config: c,
+	}
+
+	symbolsClient := j.getSymbolsClient()
+	symbolsBucket := aws.String(j.config.Storage["symbols_s3_bucket"])
+	attachmentsClient := j.getAttachmentsClient()
+	attachmentsBucket := aws.String(j.config.Storage["attachments_s3_bucket"])
+
+	fmt.Println("removing all builds, events and attachments")
+	_, err = tx.Exec(ctx, "truncate table unhandled_exception_groups, anr_groups, build_mappings, build_sizes, event_reqs")
+	if err != nil {
+		return
+	}
+
+	opts, err := clickhouse.ParseDSN(j.config.Storage["clickhouse_dsn"])
+	if err != nil {
+		return
+	}
+
+	chconn, err := clickhouse.Open(opts)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if err := chconn.Close(); err != nil {
+			return
+		}
+	}()
+
+	if err = chconn.Exec(ctx, "truncate table events;"); err != nil {
+		return
+	}
+
+	if err = deleteAllObjects(ctx, symbolsBucket, symbolsClient); err != nil {
+		return
+	}
+
+	if err = deleteAllObjects(ctx, attachmentsBucket, attachmentsClient); err != nil {
+		return
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return
+	}
+
+	return
+}
+
+// getSymbolsClient creates an S3 client for operating
+// on symbols S3 bucket.
+func (j *janitor) getSymbolsClient() (client *s3.Client) {
+	var credentialsProvider aws.CredentialsProviderFunc = func(ctx context.Context) (aws.Credentials, error) {
+		return aws.Credentials{
+			AccessKeyID:     j.config.Storage["symbols_access_key"],
+			SecretAccessKey: j.config.Storage["symbols_secret_access_key"],
+		}, nil
+	}
+
+	awsConfig := &aws.Config{
+		Region:      j.config.Storage["symbols_s3_bucket_region"],
+		Credentials: credentialsProvider,
+	}
+
+	return s3.NewFromConfig(*awsConfig, func(o *s3.Options) {
+		endpoint := j.config.Storage["aws_endpoint_url"]
+		if endpoint != "" {
+			o.BaseEndpoint = aws.String(endpoint)
+			o.UsePathStyle = *aws.Bool(true)
+		}
+	})
+}
+
+// getAttachmentsClient creates an S3 client for operating
+// on attachments S3 bucket.
+func (j *janitor) getAttachmentsClient() (client *s3.Client) {
+	var credentialsProvider aws.CredentialsProviderFunc = func(ctx context.Context) (aws.Credentials, error) {
+		return aws.Credentials{
+			AccessKeyID:     j.config.Storage["symbols_access_key"],
+			SecretAccessKey: j.config.Storage["symbols_secret_access_key"],
+		}, nil
+	}
+
+	awsConfig := &aws.Config{
+		Region:      j.config.Storage["symbols_s3_bucket_region"],
+		Credentials: credentialsProvider,
+	}
+
+	return s3.NewFromConfig(*awsConfig, func(o *s3.Options) {
+		endpoint := j.config.Storage["aws_endpoint_url"]
+		if endpoint != "" {
+			o.BaseEndpoint = aws.String(endpoint)
+			o.UsePathStyle = *aws.Bool(true)
+		}
+	})
 }
 
 // resolveAppIds resolves app uuids from

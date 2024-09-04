@@ -42,9 +42,12 @@ var configLocation string
 // `config.toml` file.
 var configData *config.Config
 
-// clean is used to decide if existing events and
-// attachments will be cleared.
+// clean if true is used to remove data for matching
+// apps in config.
 var clean bool
+
+// cleanAll if true is used to clear all the data.
+var cleanAll bool
 
 // metrics is used to store progress of ingestion
 // operations.
@@ -65,7 +68,11 @@ func init() {
 
 	ingestCmd.
 		Flags().
-		BoolVarP(&clean, "clean", "x", false, "clear all events and attachments before ingestion")
+		BoolVarP(&clean, "clean", "x", false, "remove builds, events & attachments for configured apps before ingestion")
+
+	ingestCmd.
+		Flags().
+		BoolVarP(&cleanAll, "clean-all", "X", false, "remove all builds, events & attachments before ingestion")
 
 	ingestCmd.Flags().SortFlags = false
 
@@ -400,7 +407,15 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 			}
 			ctx := context.Background()
 			if err := rmEvents(ctx, configData); err != nil {
-				log.Fatal("failed to cleanup old data", err)
+				log.Fatal("failed to clean old data", err)
+			}
+		} else if cleanAll {
+			if err := configData.ValidateStorage(); err != nil {
+				log.Fatal(err)
+			}
+			ctx := context.Background()
+			if err := rmAll(ctx, configData); err != nil {
+				log.Fatal("failed to clean all old data", err)
 			}
 		}
 
