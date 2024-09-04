@@ -50,6 +50,9 @@ const (
 	maxNavigationToChars                      = 128
 	maxNavigationFromChars                    = 128
 	maxNavigationSourceChars                  = 128
+	maxUseDefAttrsCount                       = 100
+	maxUseDefAttrsKeyChars                    = 256
+	maxUseDefAttrsValChars                    = 256
 )
 
 const TypeANR = "anr"
@@ -360,6 +363,7 @@ type EventField struct {
 	Type              string             `json:"type" binding:"required"`
 	UserTriggered     bool               `json:"user_triggered" binding:"required"`
 	Attribute         Attribute          `json:"attribute" binding:"required"`
+	UseDefAttrs       UDAttribute        `json:"user_defined_attributes" binding:"required"`
 	Attachments       []Attachment       `json:"attachments" binding:"required"`
 	ANR               *ANR               `json:"anr,omitempty"`
 	Exception         *Exception         `json:"exception,omitempty"`
