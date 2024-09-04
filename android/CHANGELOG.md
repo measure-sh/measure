@@ -1,5 +1,12 @@
 # measure-android
 
+## 0.6.1
+#### Fixes
+
+* fix(android): handle exceptions when loading native library by @abhaysood in https://github.com/measure-sh/measure/pull/1179
+* fix(android): NPE when app visible time isn't available to calculate launch time by @abhaysood in https://github.com/measure-sh/measure/pull/1183
+* refactor(android): remove usage of double bang operator by @abhaysood in https://github.com/measure-sh/measure/pull/1185 
+
 ## 0.6.0
 #### Fixes
 
