@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :hammer: Misc
+
+- (**backend**): Format log line (#1189) by @detj in #1189
+
+
 ### :books: Documentation
 
 - Update discord link by @anupcowkur in #1169
