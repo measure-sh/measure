@@ -21,7 +21,7 @@ protocol MeasureConfig {
 /// - `trackScreenshotOnCrash`: Whether to capture a screenshot of the app on crash due to an unhandled exception. Defaults to `true`.
 /// - `sessionSamplingRate`: The sampling rate for non-crashed sessions. Must be between 0.0 and 1.0. Defaults to 1.0.
 ///
-@objc public class BaseMeasureConfig: NSObject, MeasureConfig {
+@objc public final class BaseMeasureConfig: NSObject, MeasureConfig {
     let enableLogging: Bool
     let trackScreenshotOnCrash: Bool
     let sessionSamplingRate: Float

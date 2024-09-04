@@ -27,7 +27,7 @@ protocol MeasureInitializer {
 /// - `idProvider`: `IdProvider` object used to generate unique identifiers.
 /// - `timeProvider`: `TimeProvider` object providing time-related information.
 ///
-class BaseMeasureInitializer: MeasureInitializer {
+final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
     let client: Client
     let logger: Logger

@@ -13,7 +13,7 @@ protocol IdProvider {
 }
 
 /// UUID provider
-class UUIDProvider: IdProvider {
+final class UUIDProvider: IdProvider {
     func createId() -> String {
         return UUID().uuidString
     }

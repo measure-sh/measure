@@ -12,7 +12,7 @@ import UIKit
 ///
 /// This class initializes the Measure SDK and hides the internal dependencies from the public API.
 ///
-class MeasureInternal {
+final class MeasureInternal {
     let measureInitializer: MeasureInitializer
     private var logger: Logger {
         return measureInitializer.logger

@@ -21,7 +21,7 @@ protocol ConfigProvider: MeasureConfig, InternalConfig {
 /// Cached Configuration: If no network configuration is available, the cached configuration is used.
 /// Default Configuration: If neither network nor cached configurations are available, the default configuration is applied.
 /// 
-class BaseConfigProvider: ConfigProvider {
+final class BaseConfigProvider: ConfigProvider {
     private let defaultConfig: Config
     private let configLoader: ConfigLoader
     private var cachedConfig: Config?

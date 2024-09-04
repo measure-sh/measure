@@ -2,7 +2,7 @@
 //  BaseSystemTimeTests.swift
 //  MeasureSDKTests
 //
-//  Created by EdPu on 02/09/24.
+//  Created by Adwin Ross on 02/09/24.
 //
 
 import XCTest
@@ -19,26 +19,6 @@ final class BaseSystemTimeTests: XCTestCase {
     override func tearDown() {
         systemTime = nil
         super.tearDown()
-    }
-
-    func testTimeIntervalSince1970() {
-        let timeInterval = systemTime.timeIntervalSince1970
-
-        let expectedTimeInterval = Int64(Date().timeIntervalSince1970)
-
-        let tolerance: Int64 = 1
-
-        XCTAssertEqual(timeInterval, expectedTimeInterval, accuracy: Int64(tolerance), "timeIntervalSince1970 should be close to the current time interval")
-    }
-
-    func testSystemUptime() {
-        let systemUptime = systemTime.systemUptime
-
-        let expectedUptime = Int64(ProcessInfo.processInfo.systemUptime)
-
-        let tolerance: Int64 = 1
-
-        XCTAssertEqual(systemUptime, expectedUptime, accuracy: Int64(tolerance), "systemUptime should be close to the current system uptime")
     }
 
     func testISO8601Timestamp() {

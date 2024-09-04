@@ -16,7 +16,7 @@ import UIKit
 ///
 /// - Note: Make sure to retain an instance of this class as long as you need to observe the lifecycle events.
 /// 
-class LifecycleObserver {
+final class LifecycleObserver {
     var applicationDidEnterBackground: (() -> Void)?
     var applicationWillEnterForeground: (() -> Void)?
     var applicationWillTerminate: (() -> Void)?

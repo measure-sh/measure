@@ -67,9 +67,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
             }
         case "Corrupt Object":
             let object: AnyObject = NSArray()
-            // swiftlint:disable redundant_discardable_let
-            let _ = object.perform(Selector(("invalidSelector")))
-            // swiftlint:enable redundant_discardable_let
+            let _ = object.perform(Selector(("invalidSelector"))) // swiftlint:disable:this redundant_discardable_let
         case "Deadlock":
             let queue = DispatchQueue(label: "deadlockQueue")
             queue.sync {
@@ -84,15 +82,13 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
             }
             recurse()
         case "Zombie":
-            // swiftlint:disable identifier_name
             var object: NSObject? = NSObject()
-            let __weakObject = object
+            let __weakObject = object // swiftlint:disable:this identifier_name
             object = nil
             print(__weakObject!.description)
         case "Zombie NSException":
             var exception: NSException? = NSException(name: .genericException, reason: "Test", userInfo: nil)
-            let __weakException = exception
-            // swiftlint:enable identifier_name
+            let __weakException = exception // swiftlint:disable:this identifier_name
             exception = nil
             __weakException?.raise()
         default:

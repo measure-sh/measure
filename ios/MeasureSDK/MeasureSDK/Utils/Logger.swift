@@ -25,7 +25,7 @@ protocol Logger {
 }
 
 /// A logger that logs to the Apple unified logging system (os_log).
-class MeasureLogger: Logger {
+final class MeasureLogger: Logger {
     private let logTag: String = "Measure"
     let enabled: Bool
 

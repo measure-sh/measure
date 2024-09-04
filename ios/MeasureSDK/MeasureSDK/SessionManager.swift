@@ -20,7 +20,7 @@ protocol SessionManager {
 ///
 /// - Note: This class assumes that `start()` is called before accessing `sessionId` to ensure a valid session ID is available.
 /// 
-class BaseSessionManager: SessionManager {
+final class BaseSessionManager: SessionManager {
     private let idProvider: IdProvider
     private let logger: Logger
     private var currentSessionId: String?
@@ -34,7 +34,7 @@ class BaseSessionManager: SessionManager {
         if let id = currentSessionId {
             return id
         } else {
-            fatalError("Session ID is null. Ensure that start() is called before calling getSessionId()")
+            fatalError("Session ID is null. Ensure that start() is called before acessing sessionId.")
         }
     }
 
