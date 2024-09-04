@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :bug: Bug fixes
+
+- (**backend**): Nil pointer dereference when ingesting `low_memory` events (#1190) by @detj in #1190
+
+
 ### :hammer: Misc
 
 - (**backend**): Format log line (#1189) by @detj in #1189
