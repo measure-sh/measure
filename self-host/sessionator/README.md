@@ -103,7 +103,7 @@ go run . ingest --clean
 
 The `--clean` flag would remove all old data for **only** matching apps in `config.toml`. Use this if you want to clear data for certain apps.
 
-Additionally, when using `--clean` mention the app name in the `name` field per app, like this.
+Additionally, when using `--clean` mention the app name in the `name` field per app, like this. The names should match exactly as the app names in Measure dashboard.
 
 ```toml
 [apps.sample-app]
@@ -137,10 +137,6 @@ symbols_secret_access_key = "minio123"
 
 ### Uploading mappings & attachments locally
 
-When sessionator is running, the mapping and attachments files can be either configured to be uploaded to a remote S3 bucket or a local S3-compatible storage service. Like [minio](https://min.io/).
+The mapping and attachment files can be either configured to be uploaded to a remote S3 bucket or a local S3-compatible storage service. Like [minio](https://min.io/).
 
-Make sure the `self-host/docker-compose.yml` file has the correct environment variables configured for minio to work.
-
-Make sure `backend/api/.env` file has the `AWS_ENDPOINT_URL` environment variable pointing to the minio host url. Also, the bucket name, region and access key/secret must be configured correctly.
-
-For symbolication to work, make sure `backend/symbolicator-android/.env` file has the `AWS_ENDPONT_URL` variable pointing to the minio host. Also, the bucket name, region and access key/secret must be configured correctly.
+For this to work, make sure `self-host/.env` has the `AWS_ENDPOINT_URL` environment variable pointing to the minio host url. Also, the bucket name, region and access key/secret must be configured correctly. These settings are required for symbolication to work correctly.
