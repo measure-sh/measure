@@ -426,7 +426,7 @@ internal class DatabaseImpl(
                 val eventId = it.getString(eventIdIndex)
                 val batchId = it.getString(batchIdIndex)
                 if (batchIdToEventIds.containsKey(batchId)) {
-                    batchIdToEventIds[batchId]!!.add(eventId)
+                    batchIdToEventIds[batchId]?.add(eventId)
                 } else {
                     batchIdToEventIds[batchId] = mutableListOf(eventId)
                 }
@@ -481,7 +481,7 @@ internal class DatabaseImpl(
                 val pid = it.getInt(pidIndex)
 
                 if (pid in pidToSessionsMap) {
-                    pidToSessionsMap[pid]!!.add(sessionId)
+                    pidToSessionsMap[pid]?.add(sessionId)
                 } else {
                     pidToSessionsMap[pid] = mutableListOf(sessionId)
                 }

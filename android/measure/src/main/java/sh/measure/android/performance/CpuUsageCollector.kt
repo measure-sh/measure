@@ -99,6 +99,7 @@ internal class CpuUsageCollector(
             (uptime - it.uptime).coerceAtLeast(0)
         } ?: 0
     }
+
     private fun getPercentageCpuUsage(
         utime: Long,
         stime: Long,
@@ -107,24 +108,22 @@ internal class CpuUsageCollector(
         uptime: Long,
         numCores: Int,
         clockSpeedHz: Long,
-    ) = if (prevCpuUsageData == null) {
-        0.0
-    } else {
+    ): Double = prevCpuUsageData?.let { prev ->
         calculatePercentageUsage(
             utime = utime,
             stime = stime,
             cutime = cutime,
             cstime = cstime,
             uptime = uptime,
-            previousCstime = prevCpuUsageData!!.cstime,
-            previousCutime = prevCpuUsageData!!.cutime,
-            previousStime = prevCpuUsageData!!.stime,
-            previousUtime = prevCpuUsageData!!.utime,
-            previousUptime = prevCpuUsageData!!.uptime,
+            previousCstime = prev.cstime,
+            previousCutime = prev.cutime,
+            previousStime = prev.stime,
+            previousUtime = prev.utime,
+            previousUptime = prev.uptime,
             numCores = numCores,
             clockSpeedHz = clockSpeedHz,
         )
-    }
+    } ?: 0.0
 
     private fun readStatFile(): Array<Long>? {
         val pid = processInfo.getPid()
