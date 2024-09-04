@@ -122,26 +122,36 @@ internal class LaunchTracker(
                     }
 
                     "Hot" -> {
-                        callbacks.onHotLaunch(
-                            HotLaunchData(
-                                app_visible_uptime = LaunchState.lastAppVisibleTime!!,
-                                on_next_draw_uptime = onNextDrawUptime,
-                                launched_activity = onCreateRecord.activityName,
-                                has_saved_state = onCreateRecord.hasSavedState,
-                                intent_data = onCreateRecord.intentData,
-                            ),
+                        LaunchState.lastAppVisibleTime?.let {
+                            callbacks.onHotLaunch(
+                                HotLaunchData(
+                                    app_visible_uptime = it,
+                                    on_next_draw_uptime = onNextDrawUptime,
+                                    launched_activity = onCreateRecord.activityName,
+                                    has_saved_state = onCreateRecord.hasSavedState,
+                                    intent_data = onCreateRecord.intentData,
+                                ),
+                            )
+                        } ?: logger.log(
+                            LogLevel.Error,
+                            "lastAppVisibleTime is null, cannot calculate hot launch time",
                         )
                     }
 
                     "Warm" -> {
-                        callbacks.onWarmLaunch(
-                            WarmLaunchData(
-                                app_visible_uptime = LaunchState.lastAppVisibleTime!!,
-                                on_next_draw_uptime = onNextDrawUptime,
-                                launched_activity = onCreateRecord.activityName,
-                                has_saved_state = onCreateRecord.hasSavedState,
-                                intent_data = onCreateRecord.intentData,
-                            ),
+                        LaunchState.lastAppVisibleTime?.let {
+                            callbacks.onWarmLaunch(
+                                WarmLaunchData(
+                                    app_visible_uptime = it,
+                                    on_next_draw_uptime = onNextDrawUptime,
+                                    launched_activity = onCreateRecord.activityName,
+                                    has_saved_state = onCreateRecord.hasSavedState,
+                                    intent_data = onCreateRecord.intentData,
+                                ),
+                            )
+                        } ?: logger.log(
+                            LogLevel.Error,
+                            "lastAppVisibleTime is null, cannot calculate warm launch time",
                         )
                     }
 
@@ -177,6 +187,7 @@ internal class LaunchTracker(
                     "Hot"
                 }
             }
+
             processInfo.isForegroundProcess() -> "Cold"
             else -> "Warm"
         }
