@@ -401,7 +401,7 @@ func (cl *ColdLaunch) Compute() {
 	cl.Duration = time.Duration(onNextDrawUptime-uptime) * time.Millisecond
 
 	if cl.Duration >= NominalColdLaunchThreshold {
-		fmt.Printf(`anomaly in cold_launch duration compute. nominal threshold: < %v . actual value: %f\n`, NominalColdLaunchThreshold, cl.Duration.Seconds())
+		fmt.Printf("anomaly in cold_launch duration compute. nominal threshold: < %v . actual value: %f\n", NominalColdLaunchThreshold, cl.Duration.Seconds())
 	}
 }
 
