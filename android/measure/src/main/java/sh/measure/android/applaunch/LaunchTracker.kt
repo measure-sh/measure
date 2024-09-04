@@ -57,8 +57,9 @@ internal class LaunchTracker(
         // The handler processes this message after the activity is resumed.
         mainHandler.post {
             if (identityHash in createdActivities) {
-                val update = createdActivities.getValue(identityHash).copy(sameMessage = false)
-                createdActivities[identityHash] = update
+                createdActivities[identityHash]?.copy(sameMessage = false)?.let {
+                    createdActivities[identityHash] = it
+                }
             }
         }
 
@@ -98,65 +99,67 @@ internal class LaunchTracker(
 
         val identityHash = Integer.toHexString(System.identityHashCode(activity))
         resumedActivities += identityHash
-        val onCreateRecord = createdActivities.getValue(identityHash)
+        val onCreateRecord = createdActivities[identityHash]
         activity.window.onNextDraw {
             mainHandler.postAtFrontOfQueueAsync {
                 if (!launchInProgress) return@postAtFrontOfQueueAsync
                 launchInProgress = false
 
                 val onNextDrawUptime = SystemClock.uptimeMillis()
-                when (val launchType = computeLaunchType(onCreateRecord)) {
-                    "Cold" -> {
-                        coldLaunchComplete = true
-                        callbacks.onColdLaunch(
-                            coldLaunchData = ColdLaunchData(
-                                process_start_uptime = LaunchState.processStartUptime,
-                                process_start_requested_uptime = LaunchState.processStartRequestedUptime,
-                                content_provider_attach_uptime = LaunchState.contentLoaderAttachUptime,
-                                on_next_draw_uptime = onNextDrawUptime,
-                                launched_activity = onCreateRecord.activityName,
-                                has_saved_state = onCreateRecord.hasSavedState,
-                                intent_data = onCreateRecord.intentData,
-                            ),
-                        )
-                    }
-
-                    "Hot" -> {
-                        LaunchState.lastAppVisibleTime?.let {
-                            callbacks.onHotLaunch(
-                                HotLaunchData(
-                                    app_visible_uptime = it,
+                onCreateRecord?.let { onCreateRecord ->
+                    when (val launchType = computeLaunchType(onCreateRecord)) {
+                        "Cold" -> {
+                            coldLaunchComplete = true
+                            callbacks.onColdLaunch(
+                                coldLaunchData = ColdLaunchData(
+                                    process_start_uptime = LaunchState.processStartUptime,
+                                    process_start_requested_uptime = LaunchState.processStartRequestedUptime,
+                                    content_provider_attach_uptime = LaunchState.contentLoaderAttachUptime,
                                     on_next_draw_uptime = onNextDrawUptime,
                                     launched_activity = onCreateRecord.activityName,
                                     has_saved_state = onCreateRecord.hasSavedState,
                                     intent_data = onCreateRecord.intentData,
                                 ),
                             )
-                        } ?: logger.log(
-                            LogLevel.Error,
-                            "lastAppVisibleTime is null, cannot calculate hot launch time",
-                        )
-                    }
+                        }
 
-                    "Warm" -> {
-                        LaunchState.lastAppVisibleTime?.let {
-                            callbacks.onWarmLaunch(
-                                WarmLaunchData(
-                                    app_visible_uptime = it,
-                                    on_next_draw_uptime = onNextDrawUptime,
-                                    launched_activity = onCreateRecord.activityName,
-                                    has_saved_state = onCreateRecord.hasSavedState,
-                                    intent_data = onCreateRecord.intentData,
-                                ),
+                        "Hot" -> {
+                            LaunchState.lastAppVisibleTime?.let {
+                                callbacks.onHotLaunch(
+                                    HotLaunchData(
+                                        app_visible_uptime = it,
+                                        on_next_draw_uptime = onNextDrawUptime,
+                                        launched_activity = onCreateRecord.activityName,
+                                        has_saved_state = onCreateRecord.hasSavedState,
+                                        intent_data = onCreateRecord.intentData,
+                                    ),
+                                )
+                            } ?: logger.log(
+                                LogLevel.Error,
+                                "lastAppVisibleTime is null, cannot calculate hot launch time",
                             )
-                        } ?: logger.log(
-                            LogLevel.Error,
-                            "lastAppVisibleTime is null, cannot calculate warm launch time",
-                        )
-                    }
+                        }
 
-                    else -> {
-                        throw IllegalStateException("Unknown preLaunchState: $launchType")
+                        "Warm" -> {
+                            LaunchState.lastAppVisibleTime?.let {
+                                callbacks.onWarmLaunch(
+                                    WarmLaunchData(
+                                        app_visible_uptime = it,
+                                        on_next_draw_uptime = onNextDrawUptime,
+                                        launched_activity = onCreateRecord.activityName,
+                                        has_saved_state = onCreateRecord.hasSavedState,
+                                        intent_data = onCreateRecord.intentData,
+                                    ),
+                                )
+                            } ?: logger.log(
+                                LogLevel.Error,
+                                "lastAppVisibleTime is null, cannot calculate warm launch time",
+                            )
+                        }
+
+                        else -> {
+                            throw IllegalStateException("Unknown preLaunchState: $launchType")
+                        }
                     }
                 }
             }
