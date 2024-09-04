@@ -158,7 +158,7 @@ internal class LaunchTracker(
                         }
 
                         else -> {
-                            throw IllegalStateException("Unknown preLaunchState: $launchType")
+                            logger.log(LogLevel.Error, "Unknown launch type: $launchType")
                         }
                     }
                 }
