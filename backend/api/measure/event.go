@@ -22,7 +22,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/ipinfo/go/v2/ipinfo"
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
 	"go.opentelemetry.io/otel"
@@ -197,11 +196,6 @@ func (e *eventreq) infuseInet(rawIP string) error {
 		return err
 	}
 
-	bogon, err := ipinfo.GetIPBogon(ip)
-	if err != nil {
-		return err
-	}
-
 	v4 := inet.Isv4(ip)
 
 	for i := range e.events {
@@ -211,12 +205,12 @@ func (e *eventreq) infuseInet(rawIP string) error {
 			e.events[i].IPv6 = ip
 		}
 
-		if bogon {
-			e.events[i].CountryCode = "bogon"
-		} else if country != "" {
+		if country != "" {
 			e.events[i].CountryCode = country
+		} else if inet.IsBogon(ip) {
+			e.events[i].CountryCode = "bogon"
 		} else {
-			e.events[i].CountryCode = "not available"
+			e.events[i].CountryCode = "n/a"
 		}
 	}
 
