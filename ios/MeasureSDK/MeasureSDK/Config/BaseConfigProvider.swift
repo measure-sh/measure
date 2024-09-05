@@ -21,7 +21,7 @@ protocol ConfigProvider: MeasureConfig, InternalConfig {
 /// Cached Configuration: If no network configuration is available, the cached configuration is used.
 /// Default Configuration: If neither network nor cached configurations are available, the default configuration is applied.
 /// 
-class BaseConfigProvider: ConfigProvider {
+final class BaseConfigProvider: ConfigProvider {
     private let defaultConfig: Config
     private let configLoader: ConfigLoader
     private var cachedConfig: Config?
@@ -45,8 +45,12 @@ class BaseConfigProvider: ConfigProvider {
         return getMergedConfig(\.trackScreenshotOnCrash)
     }
 
-    var eventsBatchingIntervalMs: TimeInterval {
+    var eventsBatchingIntervalMs: Int64 {
         return getMergedConfig(\.eventsBatchingIntervalMs)
+    }
+
+    var sessionEndThresholdMs: Int64 {
+        return getMergedConfig(\.sessionEndThresholdMs)
     }
 
     private func getMergedConfig<T>(_ keyPath: KeyPath<Config, T>) -> T {

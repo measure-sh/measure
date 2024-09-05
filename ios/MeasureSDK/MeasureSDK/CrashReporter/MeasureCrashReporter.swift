@@ -8,7 +8,7 @@
 import Foundation
 import CrashReporter
 
-class MeasureCrashReporter {
+final class MeasureCrashReporter {
     private let crashReporter = PLCrashReporter()
 
     func initializeCrashReporter(with sessionId: String) {

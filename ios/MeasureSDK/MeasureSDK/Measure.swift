@@ -15,7 +15,7 @@ import Foundation
 /// - Note: It is recommended to initialize the SDK as early as possible during the application startup to ensure
 /// that exceptions and other events are captured promptly.
 ///
-@objc public class Measure: NSObject {
+@objc public final class Measure: NSObject {
     /// The shared instance of `Measure`.
     ///
     /// Use this property to access the singleton instance of the `Measure` class. The shared instance is lazily

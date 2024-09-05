@@ -7,7 +7,7 @@
 
 import Foundation
 
-class CrashReportManager {
+final class CrashReportManager {
     static let shared = CrashReportManager()
     let crashReporter = MeasureCrashReporter()
 

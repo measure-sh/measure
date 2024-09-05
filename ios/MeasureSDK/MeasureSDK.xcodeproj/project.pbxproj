@@ -7,16 +7,32 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5224ECE02C88057A00D1B1F7 /* FatalErrorUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5224ECDF2C88057A00D1B1F7 /* FatalErrorUtil.swift */; };
+		5224ECE32C880FA400D1B1F7 /* XCTextCase+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5224ECE22C880FA300D1B1F7 /* XCTextCase+Extension.swift */; };
+		523287672C85D0AA000EE268 /* SystemTime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523287662C85D0AA000EE268 /* SystemTime.swift */; };
+		523287692C85E07B000EE268 /* LifecycleObserverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523287682C85E07B000EE268 /* LifecycleObserverTests.swift */; };
+		523287702C85E43E000EE268 /* BaseSystemTimeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5232876F2C85E43E000EE268 /* BaseSystemTimeTests.swift */; };
+		523287732C86195E000EE268 /* SessionManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523287722C86195E000EE268 /* SessionManagerTests.swift */; };
+		523287752C8619C4000EE268 /* MockIdProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523287742C8619C4000EE268 /* MockIdProvider.swift */; };
+		523287772C8619E0000EE268 /* MockLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523287762C8619E0000EE268 /* MockLogger.swift */; };
+		523287792C8619EF000EE268 /* MockRandomizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523287782C8619EF000EE268 /* MockRandomizer.swift */; };
+		5232877B2C861A14000EE268 /* MockTimeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5232877A2C861A14000EE268 /* MockTimeProvider.swift */; };
+		5232877D2C861D48000EE268 /* MockConfigProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5232877C2C861D48000EE268 /* MockConfigProvider.swift */; };
 		523C1AC52C6B1B850081D1CC /* CrashReporter in Frameworks */ = {isa = PBXBuildFile; productRef = 523C1AC42C6B1B850081D1CC /* CrashReporter */; };
 		5242B2A02C7F4AF600BE19F7 /* ClientInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5242B29F2C7F4AF600BE19F7 /* ClientInfo.swift */; };
 		524CC5C32C6A4B12001AB506 /* MeasureSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* MeasureSDK.framework */; };
-		524CC5C82C6A4B12001AB506 /* MeasureSDKTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524CC5C72C6A4B12001AB506 /* MeasureSDKTests.swift */; };
 		524CC5C92C6A4B12001AB506 /* MeasureSDK.h in Headers */ = {isa = PBXBuildFile; fileRef = 524CC5BD2C6A4B11001AB506 /* MeasureSDK.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		524CC5DC2C6A4B48001AB506 /* CoreDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524CC5D22C6A4B48001AB506 /* CoreDataManager.swift */; };
 		524CC5DD2C6A4B48001AB506 /* MeasureModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 524CC5D42C6A4B48001AB506 /* MeasureModel.xcdatamodeld */; };
 		524CC5DE2C6A4B48001AB506 /* MeasureCrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524CC5D72C6A4B48001AB506 /* MeasureCrashReporter.swift */; };
 		524CC5DF2C6A4B48001AB506 /* Measure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524CC5D92C6A4B48001AB506 /* Measure.swift */; };
 		524CC5EE2C6A55F0001AB506 /* CrashReportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524CC5ED2C6A55F0001AB506 /* CrashReportManager.swift */; };
+		528EAB892C804AA100CB1574 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 528EAB882C804AA100CB1574 /* SessionManager.swift */; };
+		528EAB8B2C807BA800CB1574 /* IdProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 528EAB8A2C807BA800CB1574 /* IdProvider.swift */; };
+		528EAB8D2C80824200CB1574 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 528EAB8C2C80824200CB1574 /* Logger.swift */; };
+		528EAB8F2C81B4C700CB1574 /* TimeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 528EAB8E2C81B4C700CB1574 /* TimeProvider.swift */; };
+		528EAB962C84553500CB1574 /* LifecycleObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 528EAB952C84553500CB1574 /* LifecycleObserver.swift */; };
+		528EAB982C845AF400CB1574 /* Randomizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 528EAB972C845AF400CB1574 /* Randomizer.swift */; };
 		52CD91182C7B2B4E000189BA /* MeasureConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CD91172C7B2B4E000189BA /* MeasureConfig.swift */; };
 		52CD911A2C7B2C77000189BA /* DefaultConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CD91192C7B2C77000189BA /* DefaultConfig.swift */; };
 		52CD911C2C7B388B000189BA /* InternalConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CD911B2C7B388B000189BA /* InternalConfig.swift */; };
@@ -38,16 +54,32 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		5224ECDF2C88057A00D1B1F7 /* FatalErrorUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FatalErrorUtil.swift; sourceTree = "<group>"; };
+		5224ECE22C880FA300D1B1F7 /* XCTextCase+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XCTextCase+Extension.swift"; sourceTree = "<group>"; };
+		523287662C85D0AA000EE268 /* SystemTime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemTime.swift; sourceTree = "<group>"; };
+		523287682C85E07B000EE268 /* LifecycleObserverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleObserverTests.swift; sourceTree = "<group>"; };
+		5232876F2C85E43E000EE268 /* BaseSystemTimeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseSystemTimeTests.swift; sourceTree = "<group>"; };
+		523287722C86195E000EE268 /* SessionManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManagerTests.swift; sourceTree = "<group>"; };
+		523287742C8619C4000EE268 /* MockIdProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockIdProvider.swift; sourceTree = "<group>"; };
+		523287762C8619E0000EE268 /* MockLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockLogger.swift; sourceTree = "<group>"; };
+		523287782C8619EF000EE268 /* MockRandomizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockRandomizer.swift; sourceTree = "<group>"; };
+		5232877A2C861A14000EE268 /* MockTimeProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockTimeProvider.swift; sourceTree = "<group>"; };
+		5232877C2C861D48000EE268 /* MockConfigProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockConfigProvider.swift; sourceTree = "<group>"; };
 		5242B29F2C7F4AF600BE19F7 /* ClientInfo.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ClientInfo.swift; sourceTree = "<group>"; };
 		524CC5BA2C6A4B11001AB506 /* MeasureSDK.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MeasureSDK.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		524CC5BD2C6A4B11001AB506 /* MeasureSDK.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MeasureSDK.h; sourceTree = "<group>"; };
 		524CC5C22C6A4B12001AB506 /* MeasureSDKTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MeasureSDKTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		524CC5C72C6A4B12001AB506 /* MeasureSDKTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureSDKTests.swift; sourceTree = "<group>"; };
 		524CC5D22C6A4B48001AB506 /* CoreDataManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CoreDataManager.swift; sourceTree = "<group>"; };
 		524CC5D62C6A4B48001AB506 /* MeasureModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MeasureModel.xcdatamodel; sourceTree = "<group>"; };
 		524CC5D72C6A4B48001AB506 /* MeasureCrashReporter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MeasureCrashReporter.swift; sourceTree = "<group>"; };
 		524CC5D92C6A4B48001AB506 /* Measure.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Measure.swift; sourceTree = "<group>"; };
 		524CC5ED2C6A55F0001AB506 /* CrashReportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReportManager.swift; sourceTree = "<group>"; };
+		528EAB882C804AA100CB1574 /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
+		528EAB8A2C807BA800CB1574 /* IdProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdProvider.swift; sourceTree = "<group>"; };
+		528EAB8C2C80824200CB1574 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
+		528EAB8E2C81B4C700CB1574 /* TimeProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeProvider.swift; sourceTree = "<group>"; };
+		528EAB952C84553500CB1574 /* LifecycleObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleObserver.swift; sourceTree = "<group>"; };
+		528EAB972C845AF400CB1574 /* Randomizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Randomizer.swift; sourceTree = "<group>"; };
 		52CD91172C7B2B4E000189BA /* MeasureConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureConfig.swift; sourceTree = "<group>"; };
 		52CD91192C7B2C77000189BA /* DefaultConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultConfig.swift; sourceTree = "<group>"; };
 		52CD911B2C7B388B000189BA /* InternalConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InternalConfig.swift; sourceTree = "<group>"; };
@@ -78,6 +110,35 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		5224ECE12C880F7400D1B1F7 /* Helper */ = {
+			isa = PBXGroup;
+			children = (
+				5224ECE22C880FA300D1B1F7 /* XCTextCase+Extension.swift */,
+			);
+			path = Helper;
+			sourceTree = "<group>";
+		};
+		5232876A2C85E277000EE268 /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				5232876F2C85E43E000EE268 /* BaseSystemTimeTests.swift */,
+				523287682C85E07B000EE268 /* LifecycleObserverTests.swift */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
+		523287712C861928000EE268 /* Mocks */ = {
+			isa = PBXGroup;
+			children = (
+				5232877C2C861D48000EE268 /* MockConfigProvider.swift */,
+				523287742C8619C4000EE268 /* MockIdProvider.swift */,
+				523287762C8619E0000EE268 /* MockLogger.swift */,
+				523287782C8619EF000EE268 /* MockRandomizer.swift */,
+				5232877A2C861A14000EE268 /* MockTimeProvider.swift */,
+			);
+			path = Mocks;
+			sourceTree = "<group>";
+		};
 		524CC5B02C6A4B11001AB506 = {
 			isa = PBXGroup;
 			children = (
@@ -106,6 +167,7 @@
 				52CD91252C7C3D90000189BA /* MeasureInitializer.swift */,
 				52CD91232C7C3D0F000189BA /* MeasureInternal.swift */,
 				524CC5BD2C6A4B11001AB506 /* MeasureSDK.h */,
+				528EAB882C804AA100CB1574 /* SessionManager.swift */,
 				524CC5DB2C6A4B48001AB506 /* Utils */,
 				524CC5D52C6A4B48001AB506 /* XCDataModel */,
 			);
@@ -115,7 +177,10 @@
 		524CC5C62C6A4B12001AB506 /* MeasureSDKTests */ = {
 			isa = PBXGroup;
 			children = (
-				524CC5C72C6A4B12001AB506 /* MeasureSDKTests.swift */,
+				5224ECE12C880F7400D1B1F7 /* Helper */,
+				523287712C861928000EE268 /* Mocks */,
+				5232876A2C85E277000EE268 /* Utils */,
+				523287722C86195E000EE268 /* SessionManagerTests.swift */,
 			);
 			path = MeasureSDKTests;
 			sourceTree = "<group>";
@@ -162,6 +227,13 @@
 		524CC5DB2C6A4B48001AB506 /* Utils */ = {
 			isa = PBXGroup;
 			children = (
+				528EAB8A2C807BA800CB1574 /* IdProvider.swift */,
+				528EAB952C84553500CB1574 /* LifecycleObserver.swift */,
+				528EAB8C2C80824200CB1574 /* Logger.swift */,
+				528EAB972C845AF400CB1574 /* Randomizer.swift */,
+				528EAB8E2C81B4C700CB1574 /* TimeProvider.swift */,
+				523287662C85D0AA000EE268 /* SystemTime.swift */,
+				5224ECDF2C88057A00D1B1F7 /* FatalErrorUtil.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -284,13 +356,21 @@
 				52CD91182C7B2B4E000189BA /* MeasureConfig.swift in Sources */,
 				524CC5DE2C6A4B48001AB506 /* MeasureCrashReporter.swift in Sources */,
 				52CD911C2C7B388B000189BA /* InternalConfig.swift in Sources */,
+				528EAB8B2C807BA800CB1574 /* IdProvider.swift in Sources */,
 				52CD91242C7C3D0F000189BA /* MeasureInternal.swift in Sources */,
 				5242B2A02C7F4AF600BE19F7 /* ClientInfo.swift in Sources */,
 				524CC5DD2C6A4B48001AB506 /* MeasureModel.xcdatamodeld in Sources */,
+				5224ECE02C88057A00D1B1F7 /* FatalErrorUtil.swift in Sources */,
 				524CC5EE2C6A55F0001AB506 /* CrashReportManager.swift in Sources */,
+				528EAB8D2C80824200CB1574 /* Logger.swift in Sources */,
+				528EAB8F2C81B4C700CB1574 /* TimeProvider.swift in Sources */,
 				52CD91222C7C318C000189BA /* ConfigLoader.swift in Sources */,
+				523287672C85D0AA000EE268 /* SystemTime.swift in Sources */,
+				528EAB892C804AA100CB1574 /* SessionManager.swift in Sources */,
 				52CD91262C7C3D90000189BA /* MeasureInitializer.swift in Sources */,
+				528EAB982C845AF400CB1574 /* Randomizer.swift in Sources */,
 				524CC5DF2C6A4B48001AB506 /* Measure.swift in Sources */,
+				528EAB962C84553500CB1574 /* LifecycleObserver.swift in Sources */,
 				52CD911E2C7B397C000189BA /* BaseConfigProvider.swift in Sources */,
 				52CD91202C7B39AE000189BA /* Config.swift in Sources */,
 				52CD911A2C7B2C77000189BA /* DefaultConfig.swift in Sources */,
@@ -302,7 +382,15 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				524CC5C82C6A4B12001AB506 /* MeasureSDKTests.swift in Sources */,
+				5232877B2C861A14000EE268 /* MockTimeProvider.swift in Sources */,
+				523287792C8619EF000EE268 /* MockRandomizer.swift in Sources */,
+				523287702C85E43E000EE268 /* BaseSystemTimeTests.swift in Sources */,
+				523287752C8619C4000EE268 /* MockIdProvider.swift in Sources */,
+				5224ECE32C880FA400D1B1F7 /* XCTextCase+Extension.swift in Sources */,
+				523287732C86195E000EE268 /* SessionManagerTests.swift in Sources */,
+				523287692C85E07B000EE268 /* LifecycleObserverTests.swift in Sources */,
+				5232877D2C861D48000EE268 /* MockConfigProvider.swift in Sources */,
+				523287772C8619E0000EE268 /* MockLogger.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

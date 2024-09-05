@@ -19,7 +19,7 @@ protocol Client {
 /// - `apiKey`: `API Key` from the Measure dashboard.
 /// - `apiUrl`: `API URL` from the Measure dashboard.
 ///
-@objc public class ClientInfo: NSObject, Client {
+@objc public final class ClientInfo: NSObject, Client {
     let apiKey: String
     let apiUrl: URL
 

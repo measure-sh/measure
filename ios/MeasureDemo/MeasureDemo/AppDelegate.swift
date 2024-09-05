@@ -14,7 +14,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         let clientInfo = ClientInfo(apiKey: "apiKey", apiUrl: "api.measure.com")
-        Measure.shared.initialize(with: clientInfo)
+        let config = BaseMeasureConfig(enableLogging: true,
+                                       trackScreenshotOnCrash: false,
+                                       sessionSamplingRate: 1.0)
+        Measure.shared.initialize(with: clientInfo, config: config)
         return true
     }
 
