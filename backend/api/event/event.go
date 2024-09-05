@@ -204,8 +204,8 @@ type LogString struct {
 type GestureLongClick struct {
 	Target        string  `json:"target"`
 	TargetID      string  `json:"target_id"`
-	TouchDownTime uint32  `json:"touch_down_time"`
-	TouchUpTime   uint32  `json:"touch_up_time"`
+	TouchDownTime uint64  `json:"touch_down_time"`
+	TouchUpTime   uint64  `json:"touch_up_time"`
 	Width         uint16  `json:"width"`
 	Height        uint16  `json:"height"`
 	X             float32 `json:"x" binding:"required"`
@@ -215,8 +215,8 @@ type GestureLongClick struct {
 type GestureScroll struct {
 	Target        string  `json:"target"`
 	TargetID      string  `json:"target_id"`
-	TouchDownTime uint32  `json:"touch_down_time"`
-	TouchUpTime   uint32  `json:"touch_up_time"`
+	TouchDownTime uint64  `json:"touch_down_time"`
+	TouchUpTime   uint64  `json:"touch_up_time"`
 	X             float32 `json:"x"`
 	Y             float32 `json:"y"`
 	EndX          float32 `json:"end_x"`
@@ -227,8 +227,8 @@ type GestureScroll struct {
 type GestureClick struct {
 	Target        string  `json:"target"`
 	TargetID      string  `json:"target_id"`
-	TouchDownTime uint32  `json:"touch_down_time"`
-	TouchUpTime   uint32  `json:"touch_up_time"`
+	TouchDownTime uint64  `json:"touch_down_time"`
+	TouchUpTime   uint64  `json:"touch_up_time"`
 	Width         uint16  `json:"width"`
 	Height        uint16  `json:"height"`
 	X             float32 `json:"x"`
@@ -254,10 +254,10 @@ type LifecycleApp struct {
 }
 
 type ColdLaunch struct {
-	ProcessStartUptime          uint32        `json:"process_start_uptime"`
-	ProcessStartRequestedUptime uint32        `json:"process_start_requested_uptime"`
-	ContentProviderAttachUptime uint32        `json:"content_provider_attach_uptime"`
-	OnNextDrawUptime            uint32        `json:"on_next_draw_uptime" binding:"required"`
+	ProcessStartUptime          uint64        `json:"process_start_uptime"`
+	ProcessStartRequestedUptime uint64        `json:"process_start_requested_uptime"`
+	ContentProviderAttachUptime uint64        `json:"content_provider_attach_uptime"`
+	OnNextDrawUptime            uint64        `json:"on_next_draw_uptime" binding:"required"`
 	LaunchedActivity            string        `json:"launched_activity" binding:"required"`
 	HasSavedState               bool          `json:"has_saved_state" binding:"required"`
 	IntentData                  string        `json:"intent_data"`
@@ -265,8 +265,8 @@ type ColdLaunch struct {
 }
 
 type WarmLaunch struct {
-	AppVisibleUptime uint32        `json:"app_visible_uptime"`
-	OnNextDrawUptime uint32        `json:"on_next_draw_uptime" binding:"required"`
+	AppVisibleUptime uint64        `json:"app_visible_uptime"`
+	OnNextDrawUptime uint64        `json:"on_next_draw_uptime" binding:"required"`
 	LaunchedActivity string        `json:"launched_activity" binding:"required"`
 	HasSavedState    bool          `json:"has_saved_state" binding:"required"`
 	IntentData       string        `json:"intent_data"`
@@ -274,8 +274,8 @@ type WarmLaunch struct {
 }
 
 type HotLaunch struct {
-	AppVisibleUptime uint32        `json:"app_visible_uptime"`
-	OnNextDrawUptime uint32        `json:"on_next_draw_uptime" binding:"required"`
+	AppVisibleUptime uint64        `json:"app_visible_uptime"`
+	OnNextDrawUptime uint64        `json:"on_next_draw_uptime" binding:"required"`
 	LaunchedActivity string        `json:"launched_activity" binding:"required"`
 	HasSavedState    bool          `json:"has_saved_state" binding:"required"`
 	IntentData       string        `json:"intent_data"`
@@ -313,7 +313,7 @@ type MemoryUsage struct {
 	RSS             uint64 `json:"rss"`
 	NativeTotalHeap uint64 `json:"native_total_heap" binding:"required"`
 	NativeFreeHeap  uint64 `json:"native_free_heap" binding:"required"`
-	Interval        uint32 `json:"interval" binding:"required"`
+	Interval        uint64 `json:"interval" binding:"required"`
 }
 
 type LowMemory struct {
@@ -339,7 +339,7 @@ type CPUUsage struct {
 	CUTime          uint64  `json:"cutime" binding:"required"`
 	STime           uint64  `json:"stime" binding:"required"`
 	CSTime          uint64  `json:"cstime" binding:"required"`
-	Interval        uint32  `json:"interval" binding:"required"`
+	Interval        uint64  `json:"interval" binding:"required"`
 	PercentageUsage float64 `json:"percentage_usage" binding:"required"`
 }
 

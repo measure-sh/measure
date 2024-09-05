@@ -447,8 +447,8 @@ Use the `gesture_long_click` body type for longer press and hold gestures.
 |-------------------|---------|----------|---------------------------------------------|
 | `target`          | string  | Yes      | Class/Instance name of the originating view |
 | `target_id`       | string  | Yes      | Unique identifier for the target            |
-| `touch_down_time` | string  | Yes      | System uptime when target was pressed       |
-| `touch_up_time`   | string  | Yes      | System uptime when target was released      |
+| `touch_down_time` | uint64  | Yes      | System uptime when target was pressed       |
+| `touch_up_time`   | uint64  | Yes      | System uptime when target was released      |
 | `width`           | uint16  | Yes      | Width of the target view in pixels          |
 | `height`          | uint16  | Yes      | Height of the target view in pixels         |
 | `x`               | float32 | No       | X coordinate of the target view             |
@@ -462,8 +462,8 @@ Use the `gesture_scroll` body type for scroll events.
 |-------------------|---------|----------|-----------------------------------------------------|
 | `target`          | string  | Yes      | Class/Instance name of the originating view         |
 | `target_id`       | string  | Yes      | Unique identifier for the target                    |
-| `touch_down_time` | uint32  | Yes      | System uptime when target scroll started            |
-| `touch_up_time`   | uint32  | Yes      | System uptime when target scroll ended              |
+| `touch_down_time` | uint64  | Yes      | System uptime when target scroll started            |
+| `touch_up_time`   | uint64  | Yes      | System uptime when target scroll ended              |
 | `x`               | float32 | No       | X coordinate of the target where scroll started     |
 | `y`               | float32 | No       | Y coordinate of the target where scroll started     |
 | `end_x`           | float32 | No       | X coordinate of the target where scroll ended       |
@@ -478,8 +478,8 @@ Use the `gesture_click` body type for taps or clicks.
 |-------------------|---------|----------|-------------------------------------------------|
 | `target`          | string  | Yes      | Class/Instance name of the originating view     |
 | `target_id`       | string  | Yes      | Unique identifier for the target                |
-| `touch_down_time` | string  | Yes      | System uptime when target was pressed           |
-| `touch_up_time`   | string  | Yes      | System uptime when target was released          |
+| `touch_down_time` | uint64  | Yes      | System uptime when target was pressed           |
+| `touch_up_time`   | uint64  | Yes      | System uptime when target was released          |
 | `width`           | uint16  | Yes      | Width of the target view in pixels              |
 | `height`          | uint16  | Yes      | Height of the target view in pixels             |
 | `x`               | float32 | No       | X coordinate of the target where click happened |
@@ -494,8 +494,8 @@ Use the `http` body type for tracking a single HTTP network.
 | `url`                 | string | No       | Complete URL of the HTTP request                                                |
 | `method`              | string | No       | Any of the common HTTP method like, `GET` or `POST`                             |
 | `status_code`         | int    | Yes      | Any of the common HTTP response codes.                                          |
-| `start_time`          | uint32 | Yes      | The uptime at which the http call started, in ms.                               |
-| `end_time`            | uint32 | Yes      | The uptime at which the http call ended, in ms.                                 |
+| `start_time`          | uint64 | Yes      | The uptime at which the http call started, in ms.                               |
+| `end_time`            | uint64 | Yes      | The uptime at which the http call ended, in ms.                                 |
 | `failure_reason`      | string | Yes      | The reason for failure. For Android, typically the IOException class name.      |
 | `failure_description` | string | Yes      | The description of the failure. For Android, Typically the IOException message. |
 | `request_headers`     | map    | Yes      | The request headers.                                                            |
@@ -567,10 +567,10 @@ Use the `cold_launch` type for Android cold app launch time.
 
 | Field                            | Type    | Optional | Comment                                                                |
 | -------------------------------- | ------- | -------- | ---------------------------------------------------------------------- |
-| `process_start_uptime`           | uint32  | Yes      | The start uptime, measure in ms.                                       |
-| `process_start_requested_uptime` | uint32  | Yes      | The start uptime, measure in ms.                                       |
-| `content_provider_attach_uptime` | uint32  | Yes      | The start uptime, measure in ms.                                       |
-| `on_next_draw_uptime`            | uint32  | No       | The time at which the app became visible to the user.                  |
+| `process_start_uptime`           | uint64  | Yes      | The start uptime, measure in ms.                                       |
+| `process_start_requested_uptime` | uint64  | Yes      | The start uptime, measure in ms.                                       |
+| `content_provider_attach_uptime` | uint64  | Yes      | The start uptime, measure in ms.                                       |
+| `on_next_draw_uptime`            | uint64  | No       | The time at which the app became visible to the user.                  |
 | `launched_activity`              | string  | No       | The activity which drew the first frame during cold launch.            |
 | `has_saved_state`                | boolean | No       | Whether the _launched_activity_ was created with a saved state bundle. |
 | `intent_data`                    | string  | Yes      | The Intent data used to launch the _launched_activity_.                |
@@ -581,8 +581,8 @@ Use the `warm_launch` type for Android warm app launch time.
 
 | Field               | Type    | Optional | Comment                                                                |
 | ------------------- | ------- | -------- | ---------------------------------------------------------------------- |
-| app_visible_uptime  | uint32  | Yes      | The time since the app became visible to the user, in ms.              |
-| on_next_draw_uptime | uint32  | No       | The time at which the app became visible to the user, in ms.           |
+| app_visible_uptime  | uint64  | Yes      | The time since the app became visible to the user, in ms.              |
+| on_next_draw_uptime | uint64  | No       | The time at which the app became visible to the user, in ms.           |
 | launched_activity   | string  | No       | The activity which drew the first frame during launch                  |
 | has_saved_state     | boolean | No       | Whether the _launched_activity_ was created with a saved state bundle. |
 | intent_data         | string  | Yes      | The Intent data used to launch the _launched_activity_.                |
@@ -593,8 +593,8 @@ Use the `hot_launch` type for Android hot app launch time.
 
 | Field               | Type    | Optional | Comment                                                           |
 | ------------------- | ------- | -------- | ----------------------------------------------------------------- |
-| app_visible_uptime  | uint32  | Yes      | The time elapsed since the app became visible to the user, in ms. |
-| on_next_draw_uptime | uint32  | No       | The time at which the app became visible to the user, in ms.      |
+| app_visible_uptime  | uint64  | Yes      | The time elapsed since the app became visible to the user, in ms. |
+| on_next_draw_uptime | uint64  | No       | The time at which the app became visible to the user, in ms.      |
 | launched_activity   | string  | No       | The activity which drew the first frame during launch             |
 | has_saved_state     | boolean | No       | Whether the _launched_activity_ was created with a saved state.   |
 | intent_data         | string  | Yes      | The Intent data used to launch the _launched_activity_.           |
@@ -612,7 +612,7 @@ Use the `cpu_usage` type for CPU usage of a Linux based OS.
 | `stime`            | uint64  | No       | Time spent executing code in kernel mode, in Jiffies.               |
 | `cutime`           | uint64  | No       | Time spent executing code in user mode with children, in Jiffies.   |
 | `cstime`           | uint64  | No       | Time spent executing code in kernel mode with children, in Jiffies. |
-| `interval`         | uint32  | No       | The interval between two collections, in ms.                        |
+| `interval`         | uint64  | No       | The interval between two collections, in ms.                        |
 | `percentage_usage` | float64 | No       | The percentage CPU usage in the interval.                           |
 | `start_time`       | uint64  | No       | The process start time, in Jiffies.                                 |
 
