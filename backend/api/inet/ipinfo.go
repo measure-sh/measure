@@ -39,7 +39,7 @@ func Init() (err error) {
 		"172.16.0.0/12",  // private
 		"192.168.0.0/16", // private
 		"169.254.0.0/16", // subnet, link-local addresses
-		"127.0.0.0/8",    //loopback
+		"127.0.0.0/8",    // loopback
 		"224.0.0.0/4",    // multicast (former Class D)
 		"240.0.0.0/4",    // reserved (former Class E)
 	}
