@@ -19,14 +19,15 @@ Schema migrations for Postgres database are managed using the `dbmate-postgres` 
 - Follow this naming convention for naming migration files
   - Syntax: `<sql-command>_<entity-name>_<entity-type>`
   - `<sql-command>` should be `create` or `alter` etc sql commands
-  - `<entity-name>` should be name of the relation or role or function or trigger etc
+  - `<entity-name>` should be name of the table or role or function or trigger etc
   - `<entity-type>` should be name of the sql entity type, like `table`, `function`, `role`, `index`, `trigger`
   - Examples:
-    - `dbmate new create_sessions_table`
-    - `dbmate new create_sessions_attachments_table`
-    - `dbmate new create_create_team_function`
-    - `dbmate new create_create_team_for_user_trigger`
-    - `dbmate new alter_teams_relation` - add a new column
+    - `create_sessions_table`
+    - `create_sessions_attachments_table`
+    - `create_create_team_function`
+    - `create_create_team_for_user_trigger`
+    - `alter_teams_table` - add a new column
+- Note that you don't need to specify the `.sql` file extension at the end. The extension gets appended automatically.
 - When authoring migrations, always prefix the schema name in your objects
 
 ## Postgres Database Operations
