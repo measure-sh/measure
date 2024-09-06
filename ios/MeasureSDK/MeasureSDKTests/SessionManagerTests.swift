@@ -19,7 +19,7 @@ final class SessionManagerTests: XCTestCase {
     override func setUp() {
         super.setUp()
         idProvider = MockIdProvider("test-session-id-1")
-        logger = MockLogger(enabled: false)
+        logger = MockLogger()
         timeProvider = MockTimeProvider(currentTimeSinceEpochInMillis: 1_000_000_000,
                                             currentTimeSinceEpochInNanos: 1_000_000_000_000,
                                             uptimeInMillis: 1_000_000,
