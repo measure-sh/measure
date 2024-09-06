@@ -15,6 +15,14 @@ protocol MeasureInitializer {
     var sessionManager: SessionManager { get }
     var idProvider: IdProvider { get }
     var timeProvider: TimeProvider { get }
+    var systemTime: SystemTime { get }
+    var userDefaultStorage: UserDefaultStorage { get }
+    var appAttributeProcessor: AppAttributeProcessor { get }
+    var deviceAttributeProcessor: DeviceAttributeProcessor { get }
+    var installationIdAttributeProcessor: InstallationIdAttributeProcessor { get }
+    var networkStateAttributeProcessor: NetworkStateAttributeProcessor { get }
+    var userAttributeProcessor: UserAttributeProcessor { get }
+    var attributeProcessors: [AttributeProcessor] { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -26,6 +34,14 @@ protocol MeasureInitializer {
 /// - `sessionManager`: `SessionManager` for the MeasureSDK.
 /// - `idProvider`: `IdProvider` object used to generate unique identifiers.
 /// - `timeProvider`: `TimeProvider` object providing time-related information.
+/// - `systemTime`: `SystemTime` object which is a wrapper around the existing `Date` class.
+/// - `userDefaultStorage`: `UserDefaultStorage` object used to manage userDefaults data
+/// - `appAttributeProcessor`: `AppAttributeProcessor` object used to process app related info.
+/// - `deviceAttributeProcessor`: `DeviceAttributeProcessor` object used to process device related info.
+/// - `installationIdAttributeProcessor`: `InstallationIdAttributeProcessor` object used to process installation_id.
+/// - `networkStateAttributeProcessor`: `NetworkStateAttributeProcessor` object used to process network info.
+/// - `userAttributeProcessor`: `UserAttributeProcessor` object used to process user_id.
+/// - `attributeProcessors`: An array containing all the `AttributeProcessor`.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -34,6 +50,14 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let sessionManager: SessionManager
     let idProvider: IdProvider
     let timeProvider: TimeProvider
+    let systemTime: SystemTime
+    let userDefaultStorage: UserDefaultStorage
+    let appAttributeProcessor: AppAttributeProcessor
+    let deviceAttributeProcessor: DeviceAttributeProcessor
+    let installationIdAttributeProcessor: InstallationIdAttributeProcessor
+    let networkStateAttributeProcessor: NetworkStateAttributeProcessor
+    let userAttributeProcessor: UserAttributeProcessor
+    let attributeProcessors: [AttributeProcessor]
 
     init(config: MeasureConfig,
          client: Client) {
@@ -43,13 +67,27 @@ final class BaseMeasureInitializer: MeasureInitializer {
 
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig,
                                                  configLoader: BaseConfigLoader())
-        self.timeProvider = SystemTimeProvider(systemTime: BaseSystemTime())
+        self.systemTime = BaseSystemTime()
+        self.timeProvider = SystemTimeProvider(systemTime: self.systemTime)
         self.logger = MeasureLogger(enabled: configProvider.enableLogging)
         self.idProvider = UUIDProvider()
         self.sessionManager = BaseSessionManager(idProvider: idProvider,
                                                     logger: logger,
                                                     timeProvider: timeProvider,
                                                     configProvider: configProvider)
+        self.userDefaultStorage = BaseUserDefaultStorage()
+        self.appAttributeProcessor = AppAttributeProcessor()
+        self.deviceAttributeProcessor = DeviceAttributeProcessor()
+        self.installationIdAttributeProcessor = InstallationIdAttributeProcessor(userDefaultStorage: userDefaultStorage,
+                                                                                 idProvider: idProvider)
+        self.networkStateAttributeProcessor = NetworkStateAttributeProcessor()
+        self.userAttributeProcessor = UserAttributeProcessor(userDefaultStorage: userDefaultStorage)
+        self.attributeProcessors = [appAttributeProcessor,
+                                    deviceAttributeProcessor,
+                                    installationIdAttributeProcessor,
+                                    networkStateAttributeProcessor,
+                                    userAttributeProcessor]
+
         self.client = client
     }
 }
