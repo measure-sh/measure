@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- Improved language and formatting for working with databases (#1198) by @detj in #1198
 - Update discord link by @anupcowkur in #1169
 
 ## [0.1.1] - 2024-08-31
