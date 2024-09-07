@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- Update README.md by @anupcowkur in #1201
 - Improved language and formatting for working with databases (#1198) by @detj in #1198
 - Update discord link by @anupcowkur in #1169
 
