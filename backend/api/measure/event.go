@@ -126,38 +126,43 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 		if events[i] == "" {
 			return fmt.Errorf(`any event field must not be empty`)
 		}
-		var event event.EventField
+		var ev event.EventField
 		bytes := []byte(events[i])
-		if err := json.Unmarshal(bytes, &event); err != nil {
+		if err := json.Unmarshal(bytes, &ev); err != nil {
 			return err
 		}
 		e.bumpSize(int64(len(bytes)))
-		event.AppID = appId
+		ev.AppID = appId
 
-		if event.NeedsSymbolication() {
-			e.symbolicate[event.ID] = i
+		if ev.NeedsSymbolication() {
+			e.symbolicate[ev.ID] = i
 		}
 
-		if event.IsUnhandledException() {
+		if ev.IsUnhandledException() {
 			e.exceptionIds = append(e.exceptionIds, i)
 		}
 
-		if event.IsANR() {
+		if ev.IsANR() {
 			e.anrIds = append(e.anrIds, i)
 		}
 
 		// compute launch timings
-		if event.IsColdLaunch() {
-			event.ColdLaunch.Compute()
+		if ev.IsColdLaunch() {
+			ev.ColdLaunch.Compute()
+
+			// log anomalous cold launch durations
+			if ev.ColdLaunch.Duration >= event.NominalColdLaunchThreshold {
+				fmt.Printf("anomaly in cold_launch duration compute. nominal_threshold: < %q actual: %f os_name: %q os_version: %q\n", event.NominalColdLaunchThreshold, ev.ColdLaunch.Duration.Seconds(), ev.Attribute.Platform, ev.Attribute.OSVersion)
+			}
 		}
-		if event.IsWarmLaunch() {
-			event.WarmLaunch.Compute()
+		if ev.IsWarmLaunch() {
+			ev.WarmLaunch.Compute()
 		}
-		if event.IsHotLaunch() {
-			event.HotLaunch.Compute()
+		if ev.IsHotLaunch() {
+			ev.HotLaunch.Compute()
 		}
 
-		e.events = append(e.events, event)
+		e.events = append(e.events, ev)
 	}
 
 	for key, headers := range form.File {
