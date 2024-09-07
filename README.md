@@ -20,13 +20,14 @@
 ## Table of Contents
 - [Quick start](#quick-start)
 - [Features](#features)
+  - [Session Timelines](#session-timelines)
   - [User Journeys](#user-journeys)
   - [App Health](#app-health)
   - [Crashes and ANRs](#crashes-and-anrs)
-  - [Session Timelines](#session-timelines)
-- [Docs](#docs)
-- [Platform Support](#platform-support)
 - [Philosophy](#philosophy)
+- [Support the project](#support-the-project)
+- [Docs](#docs)
+- [Platforms](#platforms)
 - [Roadmap](#roadmap)
 - [Open Source](#open-source)
 - [Discord](#discord)
@@ -37,6 +38,14 @@
 Measure is available as a self hosted platform that comes with a simple one line install script. Check out our [Self hosting](./docs/hosting/README.md) and [Android SDK](./docs/android/README.md) guides.
 
 ## Features
+
+### Session Timelines
+
+Debug issues easily with full session timelines. Get the complete context with automatic tracking for clicks, navigations, http calls and more.
+
+<p align="center">
+  <img width="800" alt="Measure Sessions Timelines" src="https://github.com/user-attachments/assets/59179612-58bb-4935-a740-51de1f787e37">
+</p>
 
 ### User Journeys
 
@@ -62,27 +71,6 @@ Automatically track Crashes and ANRs. Dive deeper with screenshots, filters and 
   <img width="800" alt="Measure Crashes" src="https://github.com/user-attachments/assets/68125854-ff00-41c9-a795-3bff51a185aa">
 </p>
 
-### Session Timelines
-
-Debug issues easily with full session timelines. Get the complete context with automatic tracking for clicks, navigations, http calls and more.
-
-<p align="center">
-  <img width="800" alt="Measure Sessions Timelines" src="https://github.com/user-attachments/assets/59179612-58bb-4935-a740-51de1f787e37">
-</p>
-
-## Docs
-
-1. [**Self Hosting Guide**](./docs/hosting/README.md) - Get started with hosting Measure
-2. [**Android SDK Guide**](./android/README.md) - Integrate our Android SDK and start measuring in no time
-3. [**REST API Docs**](./docs/api/README.md) - REST APIs used by the dashboard app and SDKs
-4. [**Versioning Guide**](./docs/versioning/README.md) - Understand how versions are tagged
-5. [**Contribution Guide**](./docs/CONTRIBUTING.md) - Contribute to Measure
-
-
-## Platform Support
-
-Currently, we support Android with iOS, Flutter, React Native and Unity SDKs planned for the future.
-
 ## Philosophy
 
 Our mission is to build the best tool for monitoring mobile apps. 
@@ -95,6 +83,23 @@ the collection and storage of data.
 We operate in public as much as possible and we aim to be community focused and driven by feedback from real developers building in the trenches.
 
 We would love for you to contribute to Measure by opening issues, sending PRs and recommending us to your friends! 
+
+## Support the project
+
+If you want to support the project and get updates on new features and releases, please ⭐ this repo and share it with your friends!
+
+## Docs
+
+1. [**Self Hosting Guide**](./docs/hosting/README.md) - Get started with hosting Measure
+2. [**Android SDK Guide**](./android/README.md) - Integrate our Android SDK and start measuring in no time
+3. [**REST API Docs**](./docs/api/README.md) - REST APIs used by the dashboard app and SDKs
+4. [**Versioning Guide**](./docs/versioning/README.md) - Understand how versions are tagged
+5. [**Contribution Guide**](./docs/CONTRIBUTING.md) - Contribute to Measure
+
+
+## Platforms
+
+Currently, we support Android with iOS, Flutter and React Native SDKs planned for the future.
 
 ## Roadmap
 
