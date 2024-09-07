@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :sparkles: New features
+
+- (**backend**): Add session explorer with text search filter by @anupcowkur in #1200
+
+
 ### :bug: Bug fixes
 
 - (**backend**): Addressed ingestion failures related to ip inspection (#1197) by @detj in #1197
