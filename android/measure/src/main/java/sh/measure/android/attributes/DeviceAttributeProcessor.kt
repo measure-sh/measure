@@ -3,9 +3,11 @@ package sh.measure.android.attributes
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.system.OsConstants
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.LocaleProvider
+import sh.measure.android.utils.OsSysConfProvider
 
 /**
  * Generates the device attributes such as device name, model, manufacturer, and more. These
@@ -15,6 +17,7 @@ internal class DeviceAttributeProcessor(
     private val logger: Logger,
     private val context: Context,
     private val localeProvider: LocaleProvider,
+    private val osSysConfProvider: OsSysConfProvider,
 ) : ComputeOnceAttributeProcessor() {
     private val configuration = context.resources.configuration
     private val resources = context.resources
@@ -34,6 +37,7 @@ internal class DeviceAttributeProcessor(
             Attribute.DEVICE_LOCALE_KEY to getDeviceLocale(),
             Attribute.OS_NAME_KEY to "android",
             Attribute.OS_VERSION_KEY to Build.VERSION.SDK_INT.toString(),
+            Attribute.OS_PAGE_SIZE to getPageSizeKB(),
             Attribute.PLATFORM_KEY to "android",
         )
     }
@@ -87,5 +91,10 @@ internal class DeviceAttributeProcessor(
 
     private fun getDeviceLocale(): String {
         return localeProvider.getLocale()
+    }
+
+    // Returns page size in KB.
+    private fun getPageSizeKB(): Long {
+        return osSysConfProvider.get(OsConstants._SC_PAGESIZE) / 1024
     }
 }

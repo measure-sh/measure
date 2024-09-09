@@ -1,14 +1,14 @@
 package sh.measure.android.performance
 
 import android.os.Debug
+import android.system.OsConstants
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.DebugProvider
+import sh.measure.android.utils.OsSysConfProvider
 import sh.measure.android.utils.ProcProvider
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.RuntimeProvider
-
-internal const val PAGE_SIZE = 4
 
 /**
  * A utility clas to read memory information from difference sources such as runtime, debug, and
@@ -57,12 +57,18 @@ internal class DefaultMemoryReader(
     private val runtimeProvider: RuntimeProvider,
     private val processInfo: ProcessInfoProvider,
     private val procProvider: ProcProvider,
+    private val osSysConfProvider: OsSysConfProvider,
 ) : MemoryReader {
     override fun maxHeapSize() = runtimeProvider.maxMemory() / BYTES_TO_KB_FACTOR
 
     override fun totalHeapSize() = runtimeProvider.totalMemory() / BYTES_TO_KB_FACTOR
 
     override fun freeHeapSize() = runtimeProvider.freeMemory() / BYTES_TO_KB_FACTOR
+
+    private val pageSize by lazy(LazyThreadSafetyMode.NONE) {
+        // https://developer.android.com/guide/practices/page-sizes#check-code
+        osSysConfProvider.get(OsConstants._SC_PAGESIZE) / BYTES_TO_KB_FACTOR
+    }
 
     override fun totalPss(): Int {
         val memoryInfo = Debug.MemoryInfo()
@@ -76,7 +82,7 @@ internal class DefaultMemoryReader(
         if (file.exists()) {
             try {
                 val pages = file.readText().split(" ")[1].toLong()
-                return pages * PAGE_SIZE
+                return pages * pageSize
             } catch (e: Exception) {
                 logger.log(LogLevel.Error, "Failed to read RSS from /proc/pid/statm", e)
             }
