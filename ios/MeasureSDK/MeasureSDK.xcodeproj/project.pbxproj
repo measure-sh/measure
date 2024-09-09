@@ -66,8 +66,7 @@
 		52CD91222C7C318C000189BA /* ConfigLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CD91212C7C318C000189BA /* ConfigLoader.swift */; };
 		52CD91242C7C3D0F000189BA /* MeasureInternal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CD91232C7C3D0F000189BA /* MeasureInternal.swift */; };
 		52CD91262C7C3D90000189BA /* MeasureInitializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CD91252C7C3D90000189BA /* MeasureInitializer.swift */; };
-		52EB38062C8B4786002D63EC /* MockSystemTime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52EB38052C8B4786002D63EC /* MockSystemTime.swift */; };
-		52EB38082C8B485F002D63EC /* MockSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52EB38072C8B485F002D63EC /* MockSessionManager.swift */; };
+		52EB380C2C8C7334002D63EC /* SignPost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52EB380B2C8C7334002D63EC /* SignPost.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -140,9 +139,7 @@
 		52CD91212C7C318C000189BA /* ConfigLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigLoader.swift; sourceTree = "<group>"; };
 		52CD91232C7C3D0F000189BA /* MeasureInternal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureInternal.swift; sourceTree = "<group>"; };
 		52CD91252C7C3D90000189BA /* MeasureInitializer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureInitializer.swift; sourceTree = "<group>"; };
-		52EB38002C8B3688002D63EC /* CoreTelephony.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreTelephony.framework; path = System/Library/Frameworks/CoreTelephony.framework; sourceTree = SDKROOT; };
-		52EB38052C8B4786002D63EC /* MockSystemTime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockSystemTime.swift; sourceTree = "<group>"; };
-		52EB38072C8B485F002D63EC /* MockSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockSessionManager.swift; sourceTree = "<group>"; };
+		52EB380B2C8C7334002D63EC /* SignPost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignPost.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -354,6 +351,7 @@
 				528EAB952C84553500CB1574 /* LifecycleObserver.swift */,
 				528EAB8C2C80824200CB1574 /* Logger.swift */,
 				528EAB972C845AF400CB1574 /* Randomizer.swift */,
+				52EB380B2C8C7334002D63EC /* SignPost.swift */,
 				523287662C85D0AA000EE268 /* SystemTime.swift */,
 				528EAB8E2C81B4C700CB1574 /* TimeProvider.swift */,
 				5202BE452C89600200A3496E /* UserDefaultStorage.swift */,
@@ -510,6 +508,7 @@
 				52CD91222C7C318C000189BA /* ConfigLoader.swift in Sources */,
 				5202BE402C895FC800A3496E /* UserAttributeProcessor.swift in Sources */,
 				5202BE422C895FD600A3496E /* FrameworkInfo.swift in Sources */,
+				52EB380C2C8C7334002D63EC /* SignPost.swift in Sources */,
 				523287672C85D0AA000EE268 /* SystemTime.swift in Sources */,
 				528EAB892C804AA100CB1574 /* SessionManager.swift in Sources */,
 				52CD91262C7C3D90000189BA /* MeasureInitializer.swift in Sources */,
@@ -714,7 +713,7 @@
 				MARKETING_VERSION = 1.0;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
-				OTHER_SWIFT_FLAGS = "-no-verify-emitted-module-interface";
+				OTHER_SWIFT_FLAGS = "-no-verify-emitted-module-interface -DINTERNAL_LOGGING";
 				PRODUCT_BUNDLE_IDENTIFIER = com.measure.MeasureSDK;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
