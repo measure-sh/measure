@@ -26,6 +26,33 @@ final class MeasureInternal {
     private var configProvider: ConfigProvider {
         return measureInitializer.configProvider
     }
+    private var systemTime: SystemTime {
+        return measureInitializer.systemTime
+    }
+    private var appAttributeProcessor: AppAttributeProcessor {
+        return measureInitializer.appAttributeProcessor
+    }
+    private var deviceAttributeProcessor: DeviceAttributeProcessor {
+        return measureInitializer.deviceAttributeProcessor
+    }
+    private var installationIdAttributeProcessor: InstallationIdAttributeProcessor {
+        return measureInitializer.installationIdAttributeProcessor
+    }
+    private var networkStateAttributeProcessor: NetworkStateAttributeProcessor {
+        return measureInitializer.networkStateAttributeProcessor
+    }
+    private var userAttributeProcessor: UserAttributeProcessor {
+        return measureInitializer.userAttributeProcessor
+    }
+    private var userDefaultStorage: UserDefaultStorage {
+        return measureInitializer.userDefaultStorage
+    }
+    private var attributeProcessors: [AttributeProcessor] {
+        return measureInitializer.attributeProcessors
+    }
+    private var eventProcessor: EventProcessor {
+        return measureInitializer.eventProcessor
+    }
     private let lifecycleObserver: LifecycleObserver
 
     init(_ measureInitializer: MeasureInitializer) {
@@ -36,6 +63,16 @@ final class MeasureInternal {
         self.lifecycleObserver.applicationDidEnterBackground = applicationDidEnterBackground
         self.lifecycleObserver.applicationWillEnterForeground = applicationWillEnterForeground
         self.lifecycleObserver.applicationWillTerminate = applicationWillTerminate
+        let dic = ["2": "B", "1": "A", "3": "C"]
+
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: dic, options: .prettyPrinted)
+            // here "jsonData" is the dictionary encoded in JSON data
+
+            self.eventProcessor.track(data: jsonData, timestamp: 1_000_000_000_000, type: .exception)
+        } catch {
+            print(error.localizedDescription)
+        }
     }
 
     private func applicationDidEnterBackground() {

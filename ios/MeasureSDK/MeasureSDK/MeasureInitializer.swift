@@ -23,6 +23,7 @@ protocol MeasureInitializer {
     var networkStateAttributeProcessor: NetworkStateAttributeProcessor { get }
     var userAttributeProcessor: UserAttributeProcessor { get }
     var attributeProcessors: [AttributeProcessor] { get }
+    var eventProcessor: EventProcessor { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -58,6 +59,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let networkStateAttributeProcessor: NetworkStateAttributeProcessor
     let userAttributeProcessor: UserAttributeProcessor
     let attributeProcessors: [AttributeProcessor]
+    let eventProcessor: EventProcessor
 
     init(config: MeasureConfig,
          client: Client) {
@@ -87,7 +89,12 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                     installationIdAttributeProcessor,
                                     networkStateAttributeProcessor,
                                     userAttributeProcessor]
-
+        self.eventProcessor = BaseEventProcessor(logger: logger,
+                                                 idProvider: idProvider,
+                                                 sessionManager: sessionManager,
+                                                 attributeProcessors: attributeProcessors,
+                                                 configProvider: configProvider,
+                                                 systemTime: systemTime)
         self.client = client
     }
 }
