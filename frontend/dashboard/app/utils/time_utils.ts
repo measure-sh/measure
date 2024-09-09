@@ -1,5 +1,9 @@
 import { DateTime } from 'luxon';
 
+export function getTimeZoneForServer(): string {
+  return DateTime.now().zone.name
+}
+
 export function formatMillisToHumanReadable(millis: number) {
   if (millis <= 0) {
     return '0ms'

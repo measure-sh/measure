@@ -3993,7 +3993,7 @@ func GetSessionsOverview(c *gin.Context) {
 
 // GetSessionsWithFilters returns a slice of sessions of an app.
 func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions []Session, err error) {
-	stmt := sqlf.
+	base := sqlf.
 		From("default.events").
 		Select("session_id").
 		Select("app_id").
@@ -4004,12 +4004,10 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 		Select("toString(any(attribute.device_model)) AS device_model").
 		Select("toString(any(attribute.device_manufacturer)) AS device_manufacturer").
 		Select("toString(any(attribute.os_name)) AS os_name").
-		Select("toString(any(attribute.os_version)) AS os_version").
-		Select("MIN(timestamp) AS first_event_timestamp").
-		Select("MAX(timestamp) AS last_event_timestamp")
+		Select("toString(any(attribute.os_version)) AS os_version")
 
 	if af.FreeText != "" {
-		stmt.Select(
+		base.Select(
 			"COALESCE("+
 				"multiIf("+
 				"any(attribute.user_id) ILIKE ?, concat('User ID: ', any(attribute.user_id)),"+
@@ -4019,6 +4017,12 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 				"any(type) ILIKE ?, any(type),"+
 				"any(lifecycle_activity.class_name) ILIKE ?, concat('Activity: ', any(lifecycle_activity.class_name)),"+
 				"any(lifecycle_fragment.class_name) ILIKE ?, concat('Fragment: ', any(lifecycle_fragment.class_name)),"+
+				"any(gesture_click.target_id) ILIKE ?, concat('Gesture Click: ', any(gesture_click.target_id)),"+
+				"any(gesture_long_click.target_id) ILIKE ?, concat('Gesture Long Click: ', any(gesture_long_click.target_id)),"+
+				"any(gesture_scroll.target_id) ILIKE ?, concat('Gesture Scroll: ', any(gesture_scroll.target_id)),"+
+				"any(gesture_click.target) ILIKE ?, concat('Gesture Click: ', any(gesture_click.target)),"+
+				"any(gesture_long_click.target) ILIKE ?, concat('Gesture Long Click: ', any(gesture_long_click.target)),"+
+				"any(gesture_scroll.target) ILIKE ?, concat('Gesture Scroll: ', any(gesture_scroll.target)),"+
 				"''"+
 				")"+
 				") AS matched_free_text",
@@ -4028,63 +4032,65 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 			"%"+af.FreeText+"%",
 			"%"+af.FreeText+"%",
 			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
 			"%"+af.FreeText+"%")
 	} else {
-		stmt.Select("'' AS matched_free_text")
+		base.Select("'' AS matched_free_text")
 	}
 
-	stmt.GroupBy("session_id, app_id").
-		OrderBy("first_event_timestamp desc").
-		Where("app_id = ?", af.AppID)
-
-	defer stmt.Close()
+	base.Where("app_id = ?", af.AppID)
 
 	if len(af.Versions) > 0 {
-		stmt.Where("attribute.app_version").In(af.Versions)
+		base.Where("attribute.app_version").In(af.Versions)
 	}
 
 	if len(af.VersionCodes) > 0 {
-		stmt.Where("attribute.app_build").In(af.VersionCodes)
+		base.Where("attribute.app_build").In(af.VersionCodes)
 	}
 
 	if af.Crash && af.ANR {
-		stmt.Where("((type = 'exception' AND exception.handled = false) OR type = 'anr')")
+		base.Where("((type = 'exception' AND exception.handled = false) OR type = 'anr')")
 	} else if af.Crash {
-		stmt.Where("type = 'exception' AND exception.handled = false")
+		base.Where("type = 'exception' AND exception.handled = false")
 	} else if af.ANR {
-		stmt.Where("type = 'anr'")
+		base.Where("type = 'anr'")
 	}
 
 	if len(af.Countries) > 0 {
-		stmt.Where("inet.country_code").In(af.Countries)
+		base.Where("inet.country_code").In(af.Countries)
 	}
 
 	if len(af.DeviceNames) > 0 {
-		stmt.Where("attribute.device_name").In(af.DeviceNames)
+		base.Where("attribute.device_name").In(af.DeviceNames)
 	}
 
 	if len(af.DeviceManufacturers) > 0 {
-		stmt.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
+		base.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
 	}
 
 	if len(af.Locales) > 0 {
-		stmt.Where("attribute.device_locale").In(af.Locales)
+		base.Where("attribute.device_locale").In(af.Locales)
 	}
 
 	if len(af.NetworkProviders) > 0 {
-		stmt.Where("attribute.network_provider").In(af.NetworkProviders)
+		base.Where("attribute.network_provider").In(af.NetworkProviders)
 	}
 
 	if len(af.NetworkTypes) > 0 {
-		stmt.Where("attribute.network_type").In(af.NetworkTypes)
+		base.Where("attribute.network_type").In(af.NetworkTypes)
 	}
 
 	if len(af.NetworkGenerations) > 0 {
-		stmt.Where("attribute.network_generation").In(af.NetworkGenerations)
+		base.Where("attribute.network_generation").In(af.NetworkGenerations)
 	}
 
 	if af.FreeText != "" {
-		stmt.Where(
+		base.Where(
 			"("+
 				"attribute.user_id ILIKE ? OR "+
 				"string.string ILIKE ? OR "+
@@ -4092,8 +4098,20 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 				"toString(anr.exceptions) ILIKE ? OR "+
 				"type ILIKE ? OR "+
 				"lifecycle_activity.class_name ILIKE ? OR "+
-				"lifecycle_fragment.class_name ILIKE ?"+
+				"lifecycle_fragment.class_name ILIKE ? OR "+
+				"gesture_click.target_id ILIKE ? OR "+
+				"gesture_long_click.target_id ILIKE ? OR "+
+				"gesture_scroll.target_id ILIKE ? OR "+
+				"gesture_click.target ILIKE ? OR "+
+				"gesture_long_click.target ILIKE ? OR "+
+				"gesture_scroll.target ILIKE ?"+
 				")",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
 			"%"+af.FreeText+"%",
 			"%"+af.FreeText+"%",
 			"%"+af.FreeText+"%",
@@ -4104,8 +4122,40 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 	}
 
 	if af.HasTimeRange() {
-		stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+		base.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 	}
+
+	base.GroupBy("session_id, app_id")
+
+	eventTimesStmt := sqlf.
+		From("default.events").
+		Select("session_id").
+		Select("MIN(timestamp) AS first_event_time").
+		Select("MAX(timestamp) AS last_event_time").
+		Where("app_id = ?", af.AppID).
+		GroupBy("session_id")
+
+	stmt := sqlf.
+		With("base_events", base).
+		With("event_times", eventTimesStmt).
+		From("base_events").
+		Join("event_times e ", "base_events.session_id = e.session_id").
+		Select("session_id").
+		Select("app_id").
+		Select("app_version").
+		Select("app_build").
+		Select("user_id").
+		Select("device_name").
+		Select("device_model").
+		Select("device_manufacturer").
+		Select("os_name").
+		Select("os_version").
+		Select("first_event_time").
+		Select("last_event_time").
+		Select("matched_free_text").
+		OrderBy("first_event_time desc")
+
+	defer stmt.Close()
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {

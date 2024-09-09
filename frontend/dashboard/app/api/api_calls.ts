@@ -1,7 +1,7 @@
 import { auth, fetchAuth, logoutIfAuthError } from "@/app/utils/auth/auth";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
 import { JourneyType } from "../components/journey"
-import { formatUserInputDateToServerFormat } from "../utils/time_utils"
+import { formatUserInputDateToServerFormat, getTimeZoneForServer } from "../utils/time_utils"
 
 export enum TeamsApiStatus {
     Loading,
@@ -867,8 +867,9 @@ export const fetchSessionsOverviewPlotFromServer = async (appId: string, startDa
 
     const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
     const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
+    const timezone = getTimeZoneForServer()
 
-    var url = `${origin}/apps/${appId}/sessions/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
+    var url = `${origin}/apps/${appId}/sessions/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&timezone=${timezone}`
 
     // Append versions if present
     if (appVersions.length > 0) {

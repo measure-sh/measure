@@ -64,8 +64,8 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
 
     // Reset pagination range if not in default if any filters change
     useEffect(() => {
-        // If we reset pagination range even if values haven't change, we will trigger
-        // and unnecessary getSessionsOverview effect
+        // If we reset pagination range even if values haven't changed, we will trigger
+        // an unnecessary getSessionsOverview effect
         if (paginationRange.start === 1 && paginationRange.end === paginationOffset) {
             return
         }
@@ -162,7 +162,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                                         <div className='py-1' />
                                         <p className='text-xs truncate'>{formatDateToHumanReadable(first_event_time).split(',').slice(2).join(',').trim()}</p>
                                     </div>
-                                    <div className="table-cell w-48 p-4 truncate text-center">{formatMillisToHumanReadable(duration as unknown as number)}</div>
+                                    <div className="table-cell w-48 p-4 truncate text-center">{(duration as unknown as number) === 0 ? 'N/A' : formatMillisToHumanReadable(duration as unknown as number)}</div>
                                 </Link>
                             ))}
                         </div>
