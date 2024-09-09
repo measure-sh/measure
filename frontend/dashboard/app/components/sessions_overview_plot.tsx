@@ -151,7 +151,7 @@ const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ appId, star
           sliceTooltip={({ slice }) => {
             return (
               <div className="bg-neutral-950 text-white flex flex-col p-2 text-xs">
-                <p className='p-2'>Date: {formatDateToHumanReadable(slice.points[0].data.xFormatted.toString())}</p>
+                <p className='p-2'>Date: {formatDateToHumanReadable(slice.points[0].data.xFormatted.toString()).split(',').slice(0, 2).join(',')}</p>
                 {slice.points.map((point) => (
                   <div className="flex flex-row items-center p-2" key={point.id}>
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: point.serieColor }} />

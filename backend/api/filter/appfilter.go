@@ -45,6 +45,10 @@ type AppFilter struct {
 	// the filter time range.
 	To time.Time `form:"to" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`
 
+	// Timezone represents the timezone of the
+	// client
+	Timezone string `form:"timezone"`
+
 	// Versions is the list of version string
 	// to be matched & filtered on.
 	Versions []string `form:"versions"`

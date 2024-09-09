@@ -429,7 +429,7 @@ const Filters: React.FC<FiltersProps> = ({
             {showLocales && locales.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Locale" items={locales} initialSelected={locales} onChangeSelected={(items) => setSelectedLocales(items as string[])} />}
             {showDeviceManufacturers && deviceManufacturers.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Device Manufacturer" items={deviceManufacturers} initialSelected={deviceManufacturers} onChangeSelected={(items) => setSelectedDeviceManufacturers(items as string[])} />}
             {showDeviceNames && deviceNames.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Device Name" items={deviceNames} initialSelected={deviceNames} onChangeSelected={(items) => setSelectedDeviceNames(items as string[])} />}
-            {showFreeText && <DebounceTextInput id="free-text" placeholder="Search User ID, Session ID, Logs, Class names or Exception Traces..." onChange={(input) => setSelectedFreeText(input)} />}
+            {showFreeText && <DebounceTextInput id="free-text" placeholder="Search User/Session ID, Logs, Event Type, Target View ID, File/Class name or Exception Traces..." onChange={(input) => setSelectedFreeText(input)} />}
           </div>
           <div className="py-4" />
           <div className="flex flex-wrap gap-2 items-center">

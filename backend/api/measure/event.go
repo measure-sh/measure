@@ -1732,13 +1732,15 @@ func GetIssuesPlot(ctx context.Context, eventIds []uuid.UUID, af *filter.AppFilt
 // GetSessionsPlot queries session instances
 // by datetime and filters.
 func GetSessionsPlot(ctx context.Context, af *filter.AppFilter) (sessionInstances []event.SessionInstance, err error) {
+	if af.Timezone == "" {
+		return nil, errors.New("timezone filter needs to be provided for sessions plot")
+	}
+
 	base := sqlf.
 		From("default.events").
 		Select("session_id").
 		Select("any(attribute.app_version) as app_version").
 		Select("any(attribute.app_build) as app_build").
-		Select("MIN(timestamp) as first_event_time").
-		GroupBy("session_id").
 		Where("app_id = ?", af.AppID)
 
 	if len(af.Versions) > 0 {
@@ -1794,8 +1796,20 @@ func GetSessionsPlot(ctx context.Context, af *filter.AppFilter) (sessionInstance
 				"toString(anr.exceptions) ILIKE ? OR "+
 				"type ILIKE ? OR "+
 				"lifecycle_activity.class_name ILIKE ? OR "+
-				"lifecycle_fragment.class_name ILIKE ?"+
+				"lifecycle_fragment.class_name ILIKE ? OR "+
+				"gesture_click.target_id ILIKE ? OR "+
+				"gesture_long_click.target_id ILIKE ? OR "+
+				"gesture_scroll.target_id ILIKE ? OR "+
+				"gesture_click.target ILIKE ? OR "+
+				"gesture_long_click.target ILIKE ? OR "+
+				"gesture_scroll.target ILIKE ?"+
 				")",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
+			"%"+af.FreeText+"%",
 			"%"+af.FreeText+"%",
 			"%"+af.FreeText+"%",
 			"%"+af.FreeText+"%",
@@ -1809,12 +1823,23 @@ func GetSessionsPlot(ctx context.Context, af *filter.AppFilter) (sessionInstance
 		base.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 	}
 
+	base.GroupBy("session_id")
+
+	firstEventTimeStmt := sqlf.
+		From("default.events").
+		Select("session_id").
+		Select("MIN(timestamp) AS first_event_time").
+		Where("app_id = ?", af.AppID).
+		GroupBy("session_id")
+
 	stmt := sqlf.
 		With("base_events", base).
+		With("first_event_times", firstEventTimeStmt).
 		From("base_events").
-		Select("formatDateTime(first_event_time, '%Y-%m-%d') as datetime").
+		Join("first_event_times f ", "base_events.session_id = f.session_id").
+		Select("formatDateTime(toTimeZone(f.first_event_time, ?), '%Y-%m-%d') as datetime", af.Timezone).
 		Select("concat(toString(app_version), '', '(', toString(app_build), ')') as app_version").
-		Select("count(distinct session_id) as instances").
+		Select("count(distinct base_events.session_id) as instances").
 		GroupBy("app_version, datetime").
 		OrderBy("datetime, app_version")
 
@@ -1827,6 +1852,8 @@ func GetSessionsPlot(ctx context.Context, af *filter.AppFilter) (sessionInstance
 	if rows.Err() != nil {
 		return
 	}
+
+	defer rows.Close()
 
 	for rows.Next() {
 		var instance event.SessionInstance
