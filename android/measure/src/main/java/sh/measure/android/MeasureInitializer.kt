@@ -137,12 +137,14 @@ internal class MeasureInitializerImpl(
     private val procProvider: ProcProvider = ProcProviderImpl(),
     private val debugProvider: DebugProvider = DefaultDebugProvider(),
     private val runtimeProvider: RuntimeProvider = DefaultRuntimeProvider(),
+    private val osSysConfProvider: OsSysConfProvider = OsSysConfProviderImpl(),
     private val memoryReader: MemoryReader = DefaultMemoryReader(
         logger = logger,
         processInfo = processInfoProvider,
         procProvider = procProvider,
         debugProvider = debugProvider,
         runtimeProvider = runtimeProvider,
+        osSysConfProvider = osSysConfProvider,
     ),
     private val localeProvider: LocaleProvider = LocaleProviderImpl(),
     private val prefsStorage: PrefsStorage = PrefsStorageImpl(context = application),
@@ -170,6 +172,7 @@ internal class MeasureInitializerImpl(
         logger,
         context = application,
         localeProvider = localeProvider,
+        osSysConfProvider = osSysConfProvider,
     ),
     private val appAttributeProcessor: AppAttributeProcessor = AppAttributeProcessor(
         context = application,
@@ -258,7 +261,6 @@ internal class MeasureInitializerImpl(
         heartbeat = periodicHeartbeat,
         eventExporter = eventExporter,
     ),
-    private val osSysConfProvider: OsSysConfProvider = OsSysConfProviderImpl(),
     private val httpEventCollectorFactory: HttpEventCollectorFactory = HttpEventCollectorFactory(
         logger = logger,
         eventProcessor = eventProcessor,
