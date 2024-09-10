@@ -520,6 +520,7 @@ func (e eventreq) ingest(ctx context.Context) error {
 			Set(`attribute.device_locale`, e.events[i].Attribute.DeviceLocale).
 			Set(`attribute.os_name`, e.events[i].Attribute.OSName).
 			Set(`attribute.os_version`, e.events[i].Attribute.OSVersion).
+			Set(`attribute.os_page_size`, e.events[i].Attribute.OSPageSize).
 			Set(`attribute.network_type`, e.events[i].Attribute.NetworkType).
 			Set(`attribute.network_generation`, e.events[i].Attribute.NetworkGeneration).
 			Set(`attribute.network_provider`, e.events[i].Attribute.NetworkProvider).

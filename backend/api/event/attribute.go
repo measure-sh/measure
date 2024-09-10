@@ -84,6 +84,9 @@ type Attribute struct {
 	// OSVersion is the operating system's vesrion.
 	OSVersion string `json:"os_version"`
 
+	// OSPageSize is the operating system's memory page size.
+	OSPageSize uint8 `json:"os_page_size"`
+
 	// NetworkType is the type of the network. One of
 	// - wifi
 	// - cellular
