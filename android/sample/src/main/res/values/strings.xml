@@ -16,4 +16,8 @@
     <string name="compose_screenshot">Compose Screenshot</string>
     <string name="crash">Throw unhandled exception</string>
     <string name="anr">ANR</string>
+    <string name="parent_fragment">Parent Fragment</string>
+    <string name="child_fragment">Child Fragment</string>
+    <string name="nested_fragments">Nested Fragments</string>
+    <string name="title_activity_nested_fragments">Nested Fragments</string>
 </resources>

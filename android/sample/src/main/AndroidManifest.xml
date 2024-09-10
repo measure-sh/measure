@@ -27,17 +27,20 @@
             android:exported="false"
             android:label="@string/title_activity_compose_navigation"
             android:theme="@style/Theme.MeasureAndroid" />
-
         <activity
             android:name=".screenshot.ViewScreenshotActivity"
             android:exported="false"
             android:label="@string/title_activity_view_screenshot"
             android:theme="@style/Theme.MeasureAndroid" />
-
         <activity
             android:name=".screenshot.ComposeScreenshotActivity"
             android:exported="false"
             android:label="@string/title_activity_compose_screenshot"
+            android:theme="@style/Theme.MeasureAndroid" />
+        <activity
+            android:name=".fragments.NestedFragmentActivity"
+            android:exported="false"
+            android:label="@string/title_activity_nested_fragments"
             android:theme="@style/Theme.MeasureAndroid" />
 
         <activity
@@ -59,7 +62,6 @@
         <meta-data
             android:name="sh.measure.android.API_KEY"
             android:value="${MEASURE_API_KEY}" />
-
         <meta-data
             android:name="sh.measure.android.API_URL"
             android:value="${MEASURE_API_URL}" />
