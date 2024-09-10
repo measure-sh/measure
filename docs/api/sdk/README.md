@@ -292,6 +292,7 @@ Events can contain the following attributes, some of which are mandatory.
 | `device_locale`       | string  | Yes      | Locale based on RFC 5646, eg. en-US                                         |
 | `os_name`             | string  | Yes      | Operating system name                                                       |
 | `os_version`          | string  | Yes      | Operating system version                                                    |
+| `os_page_size`        | uint8   | Yes      | Operating system memory page size                                           |
 | `network_type`        | string  | No       | One of<br/>- wifi<br/>- cellular<br/>- vpn<br/>- unknown<br/>- no_network   |
 | `network_provider`    | string  | No       | Example: airtel, T-mobile or "unknown" if unavailable.                      |
 | `network_generation`  | string  | No       | One of:<br/>- 2g<br/>- 3g<br/>- 4g<br/>- 5g<br/>- unknown                   |
