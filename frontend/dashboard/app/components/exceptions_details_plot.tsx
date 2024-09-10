@@ -108,6 +108,7 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ appId, ex
           axisLeft={{
             tickSize: 1,
             tickPadding: 5,
+            format: value => Number.isInteger(value) ? value : '',
             legend: exceptionsType === ExceptionsType.Crash ? 'Crash instances' : 'ANR instances',
             legendOffset: -80,
             legendPosition: 'middle'

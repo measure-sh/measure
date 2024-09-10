@@ -116,6 +116,7 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ appId, 
           axisLeft={{
             tickSize: 1,
             tickPadding: 5,
+            format: value => Number.isInteger(value) ? value : '',
             legend: exceptionsType === ExceptionsType.Crash ? '% Crash free sessions ' : '% ANR free sessions',
             legendOffset: -80,
             legendPosition: 'middle'
