@@ -24,9 +24,10 @@ protocol Logger {
     func log(level: LogLevel, message: String, error: Error?)
 }
 
+let logTag = "com.measure.sh"
+
 /// A logger that logs to the Apple unified logging system (os_log).
 final class MeasureLogger: Logger {
-    private let logTag: String = "Measure"
     let enabled: Bool
 
     init(enabled: Bool) {
@@ -60,5 +61,11 @@ final class MeasureLogger: Logger {
         } else {
             os_log("%{public}@", log: OSLog(subsystem: logTag, category: level.rawValue), type: logType, message)
         }
+    }
+
+    func internalLog(level: LogLevel, message: String, error: Error? = nil) {
+#if INTERNAL_LOGGING
+        log(level: level, message: message, error: error)
+#endif
     }
 }

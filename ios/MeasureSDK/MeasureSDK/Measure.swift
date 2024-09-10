@@ -70,10 +70,11 @@ import Foundation
         initializationQueue.sync {
             // Ensure initialization is done only once
             guard measure == nil else { return }
-
-            let initializer = BaseMeasureInitializer(config: config ?? BaseMeasureConfig(),
-                                                     client: client)
-            measure = MeasureInternal(initializer)
+            SignPost.trace(label: "Measure Initialisation") {
+                let initializer = BaseMeasureInitializer(config: config ?? BaseMeasureConfig(),
+                                                         client: client)
+                measure = MeasureInternal(initializer)
+            }
         }
     }
 }
