@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add os_page_size attribute by @abhaysood in #1211
 - (**backend**): Additional log for anomalous cold launch duration (#1199) by @detj in #1199
 - (**backend**): Format log line (#1189) by @detj in #1189
 
