@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Addressed ingestion failures related to ip inspection (#1197) by @detj in #1197
 - (**backend**): Nil pointer dereference when ingesting `low_memory` events (#1190) by @detj in #1190
 
+- (**frontend**): Add missing useEffect deps for journey by @anupcowkur in #1230
 - (**frontend**): Use whole int left axes for crash + anr instances plots by @anupcowkur in #1219
 
 
