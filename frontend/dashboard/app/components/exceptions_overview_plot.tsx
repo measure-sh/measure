@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { ResponsiveLine } from '@nivo/line'
 import { AppVersion, ExceptionsType, ExceptionsOverviewPlotApiStatus, fetchExceptionsOverviewPlotFromServer } from '../api/api_calls';
 import { useRouter } from 'next/navigation';
-import { formatDateToHumanReadable } from '../utils/time_utils';
+import { formatDateToHumanReadableDate } from '../utils/time_utils';
 
 interface ExceptionsOverviewPlotProps {
   appId: string,
@@ -155,7 +155,7 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ appId, 
           sliceTooltip={({ slice }) => {
             return (
               <div className="bg-neutral-950 text-white flex flex-col p-2 text-xs">
-                <p className='p-2'>Date: {formatDateToHumanReadable(slice.points[0].data.xFormatted.toString())}</p>
+                <p className='p-2'>Date: {formatDateToHumanReadableDate(slice.points[0].data.xFormatted.toString())}</p>
                 {slice.points.map((point) => (
                   <div className="flex flex-row items-center p-2" key={point.id}>
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: point.serieColor }} />
