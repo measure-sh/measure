@@ -1233,9 +1233,13 @@ func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filt
 // GetExceptionPlotInstances queries aggregated exception
 // instances and crash free sessions by datetime and filters.
 func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstances []event.IssueInstance, err error) {
+	if af.Timezone == "" {
+		return nil, errors.New("missing timezone filter")
+	}
+
 	base := sqlf.
 		From("default.events").
-		Select("formatDateTime(timestamp, '%Y-%m-%d') as datetime").
+		Select("formatDateTime(toTimeZone(timestamp, ?), '%Y-%m-%d') as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), '', '(', toString(attribute.app_build), ')') as app_version").
 		Select("type").
 		Select("session_id").
@@ -1604,9 +1608,13 @@ func GetANRsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filter.App
 // GetANRPlotInstances queries aggregated ANRs
 // instances and ANR free sessions by datetime and filters.
 func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstances []event.IssueInstance, err error) {
+	if af.Timezone == "" {
+		return nil, errors.New("missing timezone filter")
+	}
+
 	base := sqlf.
 		From("default.events").
-		Select("formatDateTime(timestamp, '%Y-%m-%d') as datetime").
+		Select("formatDateTime(toTimeZone(timestamp, ?), '%Y-%m-%d') as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build), ')') as app_version").
 		Select("type").
 		Select("session_id").
@@ -1665,14 +1673,18 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 // GetIssuesPlot queries and prepares aggregated issue instances
 // based on datetime and filters.
 func GetIssuesPlot(ctx context.Context, eventIds []uuid.UUID, af *filter.AppFilter) (issueInstances []event.IssueInstance, err error) {
+	if af.Timezone == "" {
+		return nil, errors.New("missing timezone filter")
+	}
+
 	stmt := sqlf.
 		From(`default.events`).
-		Select("formatDateTime(timestamp, '%Y-%m-%d') as datetime").
+		Select("formatDateTime(toTimeZone(timestamp, ?), '%Y-%m-%d') as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build),')') as version").
 		Select("count(id) as instances").
 		Where("`id` in (?)", eventIds).
-		GroupBy("version, formatDateTime(timestamp, '%Y-%m-%d') as datetime").
-		OrderBy("version, formatDateTime(timestamp, '%Y-%m-%d') as datetime")
+		GroupBy("version, datetime").
+		OrderBy("version, datetime")
 
 	stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
