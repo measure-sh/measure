@@ -5,6 +5,7 @@ import (
 	"backend/api/event"
 	"backend/api/server"
 	"context"
+	"math"
 	"slices"
 	"sort"
 	"time"
@@ -210,7 +211,8 @@ func ComputeCrashContribution(groups []ExceptionGroup) {
 	}
 
 	for i := range groups {
-		groups[i].Percentage = (float32(groups[i].Count) / float32(total)) * 100
+		percentage := (float64(groups[i].Count) / float64(total)) * 100
+		groups[i].Percentage = float32(math.Round(percentage*100) / 100)
 	}
 }
 
@@ -224,7 +226,8 @@ func ComputeANRContribution(groups []ANRGroup) {
 	}
 
 	for i := range groups {
-		groups[i].Percentage = (float32(groups[i].Count) / float32(total)) * 100
+		percentage := (float64(groups[i].Count) / float64(total)) * 100
+		groups[i].Percentage = float32(math.Round(percentage*100) / 100)
 	}
 }
 
