@@ -1061,12 +1061,13 @@ export const fetchExceptionsOverviewPlotFromServer = async (appId: string, excep
 
     const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
     const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
+    const timezone = getTimeZoneForServer()
 
     var url = ""
     if (exceptionsType === ExceptionsType.Crash) {
-        url = `${origin}/apps/${appId}/crashGroups/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
+        url = `${origin}/apps/${appId}/crashGroups/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&timezone=${timezone}`
     } else {
-        url = `${origin}/apps/${appId}/anrGroups/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
+        url = `${origin}/apps/${appId}/anrGroups/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&timezone=${timezone}`
     }
 
     // Append versions if present
@@ -1097,12 +1098,13 @@ export const fetchExceptionsDetailsPlotFromServer = async (appId: string, except
 
     const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
     const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
+    const timezone = getTimeZoneForServer()
 
     var url = ""
     if (exceptionsType === ExceptionsType.Crash) {
-        url = `${origin}/apps/${appId}/crashGroups/${exceptionsGroupdId}/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
+        url = `${origin}/apps/${appId}/crashGroups/${exceptionsGroupdId}/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&timezone=${timezone}`
     } else {
-        url = `${origin}/apps/${appId}/anrGroups/${exceptionsGroupdId}/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
+        url = `${origin}/apps/${appId}/anrGroups/${exceptionsGroupdId}/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&timezone=${timezone}`
     }
 
     // Append versions if present

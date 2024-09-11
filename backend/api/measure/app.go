@@ -4338,7 +4338,7 @@ func GetSessionsOverviewPlot(c *gin.Context) {
 
 	sessionInstances, err := GetSessionsPlot(ctx, &af)
 	if err != nil {
-		msg := `failed to query exception instances`
+		msg := `failed to query data for sessions overview plot`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
