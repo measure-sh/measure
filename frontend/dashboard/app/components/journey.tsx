@@ -335,7 +335,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journey
     return { nodes, edges }
   }
 
-  const getJourney = async (teamId: string, appId: string, bidirectional: boolean, startDate: string, endDate: string, appVersions: AppVersion[]) => {
+  const getJourney = async () => {
     setJourneyApiStatus(JourneyApiStatus.Loading)
 
     const result = await fetchJourneyFromServer(appId, journeyType, exceptionsGroupId, bidirectional, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, router)
@@ -361,12 +361,11 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journey
   }
 
   useEffect(() => {
-    getJourney(teamId, appId, bidirectional, startDate, endDate, appVersions)
-  }, [teamId, appId, bidirectional, startDate, endDate, appVersions])
+    getJourney()
+  }, [teamId, appId, bidirectional, journeyType, exceptionsGroupId, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames])
 
   return (
     <div className="flex items-center justify-center border border-black text-black font-sans text-sm w-full h-full">
-      {journeyApiStatus === JourneyApiStatus.Loading && <p className="text-lg font-display text-center p-4">Updating journey...</p>}
       {journeyApiStatus === JourneyApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching journey. Please refresh page or change filters to try again.</p>}
       {journeyApiStatus === JourneyApiStatus.NoData && <p className="text-lg font-display text-center p-4">No data</p>}
       {journeyApiStatus === JourneyApiStatus.Success
