@@ -15,8 +15,10 @@ import (
 	"path/filepath"
 	"sessionator/app"
 	"sessionator/config"
+	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
@@ -49,6 +51,20 @@ var clean bool
 // cleanAll if true is used to clear all the data.
 var cleanAll bool
 
+// dryRun is used to simulate ingestion.
+var dryRun bool
+
+// frequency is used to control frequency of virtual
+// event batch ingestion.
+var frequency uint
+
+// duration is used to control the total
+// duration for virtual event batch ingestion.
+var duration time.Duration
+
+// parallel is used to enable virtualization.
+var parallel bool
+
 // metrics is used to store progress of ingestion
 // operations.
 var metrics Metrics
@@ -65,6 +81,18 @@ func init() {
 	ingestCmd.
 		Flags().
 		StringVarP(&configLocation, "config", "c", "../session-data/config.toml", "location to config.toml")
+
+	ingestCmd.
+		Flags().
+		UintVarP(&frequency, "frequency", "f", 1, "frequency of virtual ingestion. greater numbers consume more system resources.")
+
+	ingestCmd.
+		Flags().
+		DurationVarP(&duration, "duration", "d", time.Minute*0, "duration of virutal ingestion")
+
+	ingestCmd.
+		Flags().
+		BoolVarP(&dryRun, "dry-run", "n", false, "when true, all write operations are simulated")
 
 	ingestCmd.
 		Flags().
@@ -92,6 +120,14 @@ func ValidateFlags() bool {
 		return false
 	}
 
+	if frequency > 1 {
+		parallel = true
+	}
+
+	if duration < 1*time.Minute {
+		parallel = false
+	}
+
 	return true
 }
 
@@ -101,6 +137,7 @@ func IngestSerial(apps *app.Apps, origin string) {
 	startTime := time.Now()
 	eventURL := fmt.Sprintf("%s/events", origin)
 	mappingURL := fmt.Sprintf("%s/builds", origin)
+	virtualizer := NewVirtualizer()
 
 	for _, app := range apps.Items {
 		fmt.Printf("Processing %q\n", app.FullName())
@@ -127,7 +164,7 @@ func IngestSerial(apps *app.Apps, origin string) {
 
 		for i := range app.EventFiles {
 			eventFile := app.EventFiles[i]
-			content, eventCount, err := prepareEvents(eventFile)
+			content, eventCount, err := prepareEvents(eventFile, virtualizer)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -154,9 +191,108 @@ func IngestSerial(apps *app.Apps, origin string) {
 	metrics.setIngestDuration(time.Since(startTime))
 }
 
+// IngestParallel repeteadly ingests batches of
+// events and build of each app version.
+func IngestParallel(apps *app.Apps, origin string) {
+	startTime := time.Now()
+	eventURL := fmt.Sprintf("%s/events", origin)
+	mappingURL := fmt.Sprintf("%s/builds", origin)
+
+	var logResults = func(results *[]string) {
+		for _, result := range *results {
+			fmt.Print(result)
+		}
+		results = nil
+	}
+
+	for _, app := range apps.Items {
+		fmt.Printf("Processing %q\n", app.FullName())
+
+		if len(app.EventFiles) < 1 {
+			fmt.Println("No event files found, skipping...")
+			continue
+		}
+
+		apiKey := configData.Apps[app.Name].ApiKey
+
+		fmt.Printf("Uploading build info...")
+		status, err := UploadBuild(mappingURL, apiKey, app)
+		if err != nil {
+			if status == "" {
+				status = err.Error()
+			}
+			fmt.Printf("🔴 %s \n", status)
+			log.Fatal(err)
+		}
+
+		fmt.Printf("🟢 %s \n", status)
+		metrics.bumpBuild()
+
+		count := int(frequency)
+		done := make(chan struct{})
+		timeout := duration / time.Duration(len(apps.Items))
+		var wg sync.WaitGroup
+
+		time.AfterFunc(timeout, func() {
+			close(done)
+		})
+
+		for i := 0; i < count; i += 1 {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				select {
+				case <-done:
+					fmt.Println("Timeout, exiting.")
+					return
+				default:
+					virtualizer := NewVirtualizer().Event().Session()
+					for j := range app.EventFiles {
+						results := []string{}
+						eventFile := app.EventFiles[j]
+						content, eventCount, err := prepareEvents(eventFile, virtualizer)
+						if err != nil {
+							log.Fatal(err)
+						}
+						reqId := uuid.New().String()
+						result := fmt.Sprintf("Ingesting virtual events %q...", reqId)
+						status, err := UploadEvents(eventURL, apiKey, reqId, content)
+						if err != nil {
+							if status == "" {
+								status = err.Error()
+							}
+							result += fmt.Sprintf("🔴 %s \n", status)
+							results = append(results, result)
+							logResults(&results)
+							fmt.Println("event file", eventFile)
+							log.Fatal(err)
+						}
+						result += fmt.Sprintf("🟢 %s \n", status)
+						results = append(results, result)
+						logResults(&results)
+
+						metrics.bumpEventFile()
+						metrics.bumpEvent(eventCount)
+					}
+				}
+			}()
+		}
+
+		wg.Wait()
+
+		fmt.Printf("\n")
+		metrics.bumpApp()
+	}
+
+	metrics.setIngestDuration(time.Since(startTime))
+}
+
 // UploadBuild prepares & sends the request to
 // upload mapping file & build info.
 func UploadBuild(url, apiKey string, app app.App) (string, error) {
+	if dryRun {
+		return http.StatusText(http.StatusOK), nil
+	}
 	var buff bytes.Buffer
 	w := multipart.NewWriter(&buff)
 	w.SetBoundary(multipartBoundary)
@@ -220,7 +356,7 @@ func UploadBuild(url, apiKey string, app app.App) (string, error) {
 }
 
 // prepareEvents prepares request for events.
-func prepareEvents(eventFile string) (data []byte, eventCount int, err error) {
+func prepareEvents(eventFile string, virtualizer *virtualizer) (data []byte, eventCount int, err error) {
 	events := []event.EventField{}
 	rawEvents := []json.RawMessage{}
 	content, err := os.ReadFile(eventFile)
@@ -241,6 +377,11 @@ func prepareEvents(eventFile string) (data []byte, eventCount int, err error) {
 		if err = decoder.Decode(&r); err != nil {
 			return
 		}
+
+		if err = virtualizer.Virtualize(&r); err != nil {
+			return
+		}
+
 		rawEvents = append(rawEvents, r)
 	}
 
@@ -305,6 +446,10 @@ func prepareEvents(eventFile string) (data []byte, eventCount int, err error) {
 // UploadEvents prepares & sends the request to upload
 // events.
 func UploadEvents(url, apiKey, reqId string, data []byte) (status string, err error) {
+	if dryRun {
+		return http.StatusText(http.StatusAccepted), nil
+	}
+
 	headers := map[string]string{
 		"msr-req-id":   reqId,
 		"Content-Type": fmt.Sprintf("multipart/form-data; boundary=%s", multipartBoundary),
@@ -419,7 +564,11 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 			}
 		}
 
-		IngestSerial(apps, origin)
+		if parallel {
+			IngestParallel(apps, origin)
+		} else {
+			IngestSerial(apps, origin)
+		}
 
 		fmt.Printf("\nSummary\n=======\n\n")
 

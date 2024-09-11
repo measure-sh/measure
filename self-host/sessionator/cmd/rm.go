@@ -83,6 +83,10 @@ func deleteAllObjects(ctx context.Context, bucket *string, client *s3.Client) (e
 // rmEvents removes all data associated with
 // the apps in config.
 func rmEvents(ctx context.Context, c *config.Config) (err error) {
+	if dryRun {
+		return nil
+	}
+
 	hasApps := len(c.Apps) > 0
 
 	if !hasApps {
@@ -157,6 +161,10 @@ func rmEvents(ctx context.Context, c *config.Config) (err error) {
 // rmAll removes all data regardless of apps configuration
 // in config.
 func rmAll(ctx context.Context, c *config.Config) (err error) {
+	if dryRun {
+		return nil
+	}
+
 	pgconn, err := pgx.Connect(ctx, c.Storage["postgres_dsn"])
 	if err != nil {
 		return
