@@ -84,5 +84,17 @@
             android:layout_height="wrap_content"
             android:text="@string/nested_fragments" />
 
+        <Button
+            android:id="@+id/btn_fragment_navigation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/fragment_navigation" />
+
+        <Button
+            android:id="@+id/btn_fragment_androidx_navigation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/androidx_fragment_navigation" />
+
     </LinearLayout>
 </ScrollView>

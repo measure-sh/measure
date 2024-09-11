@@ -7,6 +7,8 @@ import android.os.Looper
 import android.util.Log
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
+import sh.measure.sample.fragments.AndroidXFragmentNavigationActivity
+import sh.measure.sample.fragments.FragmentNavigationActivity
 import sh.measure.sample.fragments.NestedFragmentActivity
 import sh.measure.sample.screenshot.ComposeScreenshotActivity
 import sh.measure.sample.screenshot.ViewScreenshotActivity
@@ -19,7 +21,7 @@ class ExceptionDemoActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_exception_demo)
         findViewById<Button>(R.id.btn_single_exception).setOnClickListener {
-            throw IllegalAccessException("This is a new exception")
+            throw IOException("test of time")
         }
         findViewById<Button>(R.id.btn_chained_exception).setOnClickListener {
             throw IOException("This is a test exception").initCause(
@@ -59,6 +61,12 @@ class ExceptionDemoActivity : AppCompatActivity() {
         }
         findViewById<Button>(R.id.btn_nested_fragments).setOnClickListener {
             startActivity(Intent(this, NestedFragmentActivity::class.java))
+        }
+        findViewById<Button>(R.id.btn_fragment_navigation).setOnClickListener {
+            startActivity(Intent(this, FragmentNavigationActivity::class.java))
+        }
+        findViewById<Button>(R.id.btn_fragment_androidx_navigation).setOnClickListener {
+            startActivity(Intent(this, AndroidXFragmentNavigationActivity::class.java))
         }
     }
 
