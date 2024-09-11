@@ -615,6 +615,78 @@ export class AppVersion {
     }
 }
 
+function applyGenericFiltersToUrl(url: string, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], freeText: string | null, keyId: string | null, keyTimestamp: string | null, limit: number | null) {
+    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
+    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
+    const timezone = getTimeZoneForServer()
+
+    url = url + `from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&timezone=${timezone}`
+
+    // Append versions if present
+    if (appVersions.length > 0) {
+        url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
+        url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
+    }
+
+    // Append countries if present
+    if (countries.length > 0) {
+        url = url + `&countries=${Array.from(countries).join(',')}`
+    }
+
+    // Append network providers if present
+    if (networkProviders.length > 0) {
+        url = url + `&network_providers=${Array.from(networkProviders).join(',')}`
+    }
+
+    // Append network types if present
+    if (networkTypes.length > 0) {
+        url = url + `&network_types=${Array.from(networkTypes).join(',')}`
+    }
+
+    // Append network generations if present
+    if (networkGenerations.length > 0) {
+        url = url + `&network_generations=${Array.from(networkGenerations).join(',')}`
+    }
+
+    // Append locales if present
+    if (locales.length > 0) {
+        url = url + `&locales=${Array.from(locales).join(',')}`
+    }
+
+    // Append device manufacturers if present
+    if (deviceManufacturers.length > 0) {
+        url = url + `&device_manufacturers=${Array.from(deviceManufacturers).join(',')}`
+    }
+
+    // Append device names if present
+    if (deviceNames.length > 0) {
+        url = url + `&device_names=${Array.from(deviceNames).join(',')}`
+    }
+
+    // Append free text if present
+    if (freeText !== null) {
+        url = url + `&free_text=${freeText}`
+    }
+
+    // Append keyId if present
+    if (keyId !== null) {
+        url = url + `&key_id=${keyId}`
+    }
+
+    // Append keyTimestamp if present
+    if (keyTimestamp !== null) {
+        url = url + `&key_timestamp=${keyTimestamp}`
+    }
+
+    // Append limit if present
+    if (limit !== null) {
+        url = url + `&limit=${limit}`
+    }
+
+    return url
+
+}
+
 export const fetchTeamsFromServer = async (router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
     const res = await fetchAuth(`${origin}/teams`);
@@ -687,61 +759,17 @@ export const fetchJourneyFromServer = async (appId: string, journeyType: Journey
 
     let url = ''
     if (journeyType === JourneyType.CrashDetails) {
-        url = `${origin}/apps/${appId}/crashGroups/${exceptionsGroupdId}/plots/journey`
+        url = `${origin}/apps/${appId}/crashGroups/${exceptionsGroupdId}/plots/journey?`
     } else if (journeyType === JourneyType.AnrDetails) {
-        url = `${origin}/apps/${appId}/anrGroups/${exceptionsGroupdId}/plots/journey`
+        url = `${origin}/apps/${appId}/anrGroups/${exceptionsGroupdId}/plots/journey?`
     } else {
-        url = `${origin}/apps/${appId}/journey`
-    }
-
-    // Append dates
-    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
-    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
-    url = url + `?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
-
-    // Append versions if present
-    if (appVersions.length > 0) {
-        url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
-        url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
+        url = `${origin}/apps/${appId}/journey?`
     }
 
     // Append bidirectional value
-    url = url + `&bigraph=${bidirectional ? '1' : '0'}`
+    url = url + `bigraph=${bidirectional ? '1&' : '0&'}`
 
-    // Append countries if present
-    if (countries.length > 0) {
-        url = url + `&countries=${Array.from(countries).join(',')}`
-    }
-
-    // Append network providers if present
-    if (networkProviders.length > 0) {
-        url = url + `&network_providers=${Array.from(networkProviders).join(',')}`
-    }
-
-    // Append network types if present
-    if (networkTypes.length > 0) {
-        url = url + `&network_types=${Array.from(networkTypes).join(',')}`
-    }
-
-    // Append network generations if present
-    if (networkGenerations.length > 0) {
-        url = url + `&network_generations=${Array.from(networkGenerations).join(',')}`
-    }
-
-    // Append locales if present
-    if (locales.length > 0) {
-        url = url + `&locales=${Array.from(locales).join(',')}`
-    }
-
-    // Append device manufacturers if present
-    if (deviceManufacturers.length > 0) {
-        url = url + `&device_manufacturers=${Array.from(deviceManufacturers).join(',')}`
-    }
-
-    // Append device names if present
-    if (deviceNames.length > 0) {
-        url = url + `&device_names=${Array.from(deviceNames).join(',')}`
-    }
+    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, null, null, null, null)
 
     const res = await fetchAuth(url);
 
@@ -758,16 +786,9 @@ export const fetchJourneyFromServer = async (appId: string, journeyType: Journey
 export const fetchMetricsFromServer = async (appId: string, startDate: string, endDate: string, appVersions: AppVersion[], router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
-    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
+    let url = `${origin}/apps/${appId}/metrics?`
 
-    let url = `${origin}/apps/${appId}/metrics?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`
-
-    // Append versions if present
-    if (appVersions.length > 0) {
-        url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
-        url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
-    }
+    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, [], [], [], [], [], [], [], null, null, null, null)
 
     const res = await fetchAuth(url);
 
@@ -784,70 +805,18 @@ export const fetchMetricsFromServer = async (appId: string, startDate: string, e
 export const fetchSessionsOverviewFromServer = async (appId: string, startDate: string, endDate: string, appVersions: AppVersion[], sessionType: string, countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], freeText: string, keyId: string | null, limit: number, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
-    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
-
-    var url = `${origin}/apps/${appId}/sessions?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&limit=${limit}`
-
-    // Append versions if present
-    if (appVersions.length > 0) {
-        url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
-        url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
-    }
+    var url = `${origin}/apps/${appId}/sessions?`
 
     // Append session type if needed
     if (sessionType === SessionType.Issues) {
-        url = url + `&crash=1&anr=1`
+        url = url + `crash=1&anr=1&`
     } else if (sessionType === SessionType.Crashes) {
-        url = url + `&crash=1`
+        url = url + `crash=1&`
     } else if (sessionType === SessionType.ANRs) {
-        url = url + `&anr=1`
+        url = url + `anr=1&`
     }
 
-    // Append countries if present
-    if (countries.length > 0) {
-        url = url + `&countries=${Array.from(countries).join(',')}`
-    }
-
-    // Append network providers if present
-    if (networkProviders.length > 0) {
-        url = url + `&network_providers=${Array.from(networkProviders).join(',')}`
-    }
-
-    // Append network types if present
-    if (networkTypes.length > 0) {
-        url = url + `&network_types=${Array.from(networkTypes).join(',')}`
-    }
-
-    // Append network generations if present
-    if (networkGenerations.length > 0) {
-        url = url + `&network_generations=${Array.from(networkGenerations).join(',')}`
-    }
-
-    // Append locales if present
-    if (locales.length > 0) {
-        url = url + `&locales=${Array.from(locales).join(',')}`
-    }
-
-    // Append device manufacturers if present
-    if (deviceManufacturers.length > 0) {
-        url = url + `&device_manufacturers=${Array.from(deviceManufacturers).join(',')}`
-    }
-
-    // Append device names if present
-    if (deviceNames.length > 0) {
-        url = url + `&device_names=${Array.from(deviceNames).join(',')}`
-    }
-
-    // Append free text if present
-    if (freeText !== '') {
-        url = url + `&free_text=${freeText}`
-    }
-
-    // Append keyId if present
-    if (keyId !== null) {
-        url = url + `&key_id=${keyId}`
-    }
+    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, freeText, keyId, null, limit)
 
     const res = await fetchAuth(url);
 
@@ -865,66 +834,18 @@ export const fetchSessionsOverviewFromServer = async (appId: string, startDate: 
 export const fetchSessionsOverviewPlotFromServer = async (appId: string, startDate: string, endDate: string, appVersions: AppVersion[], sessionType: string, countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], freeText: string, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
-    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
-    const timezone = getTimeZoneForServer()
-
-    var url = `${origin}/apps/${appId}/sessions/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&timezone=${timezone}`
-
-    // Append versions if present
-    if (appVersions.length > 0) {
-        url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
-        url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
-    }
+    var url = `${origin}/apps/${appId}/sessions/plots/instances?`
 
     // Append session type if needed
     if (sessionType === SessionType.Issues) {
-        url = url + `&crash=1&anr=1`
+        url = url + `crash=1&anr=1&`
     } else if (sessionType === SessionType.Crashes) {
-        url = url + `&crash=1`
+        url = url + `crash=1&`
     } else if (sessionType === SessionType.ANRs) {
-        url = url + `&anr=1`
+        url = url + `anr=1&`
     }
 
-    // Append countries if present
-    if (countries.length > 0) {
-        url = url + `&countries=${Array.from(countries).join(',')}`
-    }
-
-    // Append network providers if present
-    if (networkProviders.length > 0) {
-        url = url + `&network_providers=${Array.from(networkProviders).join(',')}`
-    }
-
-    // Append network types if present
-    if (networkTypes.length > 0) {
-        url = url + `&network_types=${Array.from(networkTypes).join(',')}`
-    }
-
-    // Append network generations if present
-    if (networkGenerations.length > 0) {
-        url = url + `&network_generations=${Array.from(networkGenerations).join(',')}`
-    }
-
-    // Append locales if present
-    if (locales.length > 0) {
-        url = url + `&locales=${Array.from(locales).join(',')}`
-    }
-
-    // Append device manufacturers if present
-    if (deviceManufacturers.length > 0) {
-        url = url + `&device_manufacturers=${Array.from(deviceManufacturers).join(',')}`
-    }
-
-    // Append device names if present
-    if (deviceNames.length > 0) {
-        url = url + `&device_names=${Array.from(deviceNames).join(',')}`
-    }
-
-    // Append free text if present
-    if (freeText !== '') {
-        url = url + `&free_text=${freeText}`
-    }
+    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, freeText, null, null, null)
 
     const res = await fetchAuth(url);
 
@@ -945,26 +866,14 @@ export const fetchSessionsOverviewPlotFromServer = async (appId: string, startDa
 export const fetchExceptionsOverviewFromServer = async (exceptionsType: ExceptionsType, appId: string, startDate: string, endDate: string, appVersions: AppVersion[], keyId: string | null, limit: number, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
-    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
-
     var url = ""
     if (exceptionsType === ExceptionsType.Crash) {
-        url = `${origin}/apps/${appId}/crashGroups?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&limit=${limit}`
+        url = `${origin}/apps/${appId}/crashGroups?`
     } else {
-        url = `${origin}/apps/${appId}/anrGroups?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&limit=${limit}`
+        url = `${origin}/apps/${appId}/anrGroups?`
     }
 
-    // Append versions if present
-    if (appVersions.length > 0) {
-        url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
-        url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
-    }
-
-    // Append keyId if present
-    if (keyId !== null) {
-        url = url + `&key_id=${keyId}`
-    }
+    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, [], [], [], [], [], [], [], null, keyId, null, limit)
 
     const res = await fetchAuth(url);
 
@@ -982,66 +891,14 @@ export const fetchExceptionsOverviewFromServer = async (exceptionsType: Exceptio
 export const fetchExceptionsDetailsFromServer = async (exceptionsType: ExceptionsType, appId: string, exceptionsGroupdId: string, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], keyId: string | null, keyTimestamp: string | null, limit: number, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
-    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
-
     var url = ""
     if (exceptionsType === ExceptionsType.Crash) {
-        url = `${origin}/apps/${appId}/crashGroups/${exceptionsGroupdId}/crashes?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&limit=${limit}`
+        url = `${origin}/apps/${appId}/crashGroups/${exceptionsGroupdId}/crashes?`
     } else {
-        url = `${origin}/apps/${appId}/anrGroups/${exceptionsGroupdId}/anrs?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&limit=${limit}`
+        url = `${origin}/apps/${appId}/anrGroups/${exceptionsGroupdId}/anrs?`
     }
 
-    // Append versions if present
-    if (appVersions.length > 0) {
-        url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
-        url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
-    }
-
-    // Append countries if present
-    if (countries.length > 0) {
-        url = url + `&countries=${Array.from(countries).join(',')}`
-    }
-
-    // Append network providers if present
-    if (networkProviders.length > 0) {
-        url = url + `&network_providers=${Array.from(networkProviders).join(',')}`
-    }
-
-    // Append network types if present
-    if (networkTypes.length > 0) {
-        url = url + `&network_types=${Array.from(networkTypes).join(',')}`
-    }
-
-    // Append network generations if present
-    if (networkGenerations.length > 0) {
-        url = url + `&network_generations=${Array.from(networkGenerations).join(',')}`
-    }
-
-    // Append locales if present
-    if (locales.length > 0) {
-        url = url + `&locales=${Array.from(locales).join(',')}`
-    }
-
-    // Append device manufacturers if present
-    if (deviceManufacturers.length > 0) {
-        url = url + `&device_manufacturers=${Array.from(deviceManufacturers).join(',')}`
-    }
-
-    // Append device names if present
-    if (deviceNames.length > 0) {
-        url = url + `&device_names=${Array.from(deviceNames).join(',')}`
-    }
-
-    // Append keyId if present
-    if (keyId !== null) {
-        url = url + `&key_id=${keyId}`
-    }
-
-    // Append keyTimestamp if present
-    if (keyTimestamp !== null) {
-        url = url + `&key_timestamp=${keyTimestamp}`
-    }
+    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, null, keyId, keyTimestamp, limit)
 
     const res = await fetchAuth(url);
 
@@ -1059,22 +916,14 @@ export const fetchExceptionsDetailsFromServer = async (exceptionsType: Exception
 export const fetchExceptionsOverviewPlotFromServer = async (appId: string, exceptionsType: ExceptionsType, startDate: string, endDate: string, appVersions: AppVersion[], router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
-    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
-    const timezone = getTimeZoneForServer()
-
     var url = ""
     if (exceptionsType === ExceptionsType.Crash) {
-        url = `${origin}/apps/${appId}/crashGroups/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&timezone=${timezone}`
+        url = `${origin}/apps/${appId}/crashGroups/plots/instances?`
     } else {
-        url = `${origin}/apps/${appId}/anrGroups/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&timezone=${timezone}`
+        url = `${origin}/apps/${appId}/anrGroups/plots/instances?`
     }
 
-    // Append versions if present
-    if (appVersions.length > 0) {
-        url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
-        url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
-    }
+    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, [], [], [], [], [], [], [], null, null, null, null)
 
     const res = await fetchAuth(url);
 
@@ -1096,57 +945,14 @@ export const fetchExceptionsOverviewPlotFromServer = async (appId: string, excep
 export const fetchExceptionsDetailsPlotFromServer = async (appId: string, exceptionsType: ExceptionsType, exceptionsGroupdId: string, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
-    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
-    const timezone = getTimeZoneForServer()
-
     var url = ""
     if (exceptionsType === ExceptionsType.Crash) {
-        url = `${origin}/apps/${appId}/crashGroups/${exceptionsGroupdId}/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&timezone=${timezone}`
+        url = `${origin}/apps/${appId}/crashGroups/${exceptionsGroupdId}/plots/instances?`
     } else {
-        url = `${origin}/apps/${appId}/anrGroups/${exceptionsGroupdId}/plots/instances?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&timezone=${timezone}`
+        url = `${origin}/apps/${appId}/anrGroups/${exceptionsGroupdId}/plots/instances?`
     }
 
-    // Append versions if present
-    if (appVersions.length > 0) {
-        url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
-        url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
-    }
-
-    // Append countries if present
-    if (countries.length > 0) {
-        url = url + `&countries=${Array.from(countries).join(',')}`
-    }
-
-    // Append network providers if present
-    if (networkProviders.length > 0) {
-        url = url + `&network_providers=${Array.from(networkProviders).join(',')}`
-    }
-
-    // Append network types if present
-    if (networkTypes.length > 0) {
-        url = url + `&network_types=${Array.from(networkTypes).join(',')}`
-    }
-
-    // Append network generations if present
-    if (networkGenerations.length > 0) {
-        url = url + `&network_generations=${Array.from(networkGenerations).join(',')}`
-    }
-
-    // Append locales if present
-    if (locales.length > 0) {
-        url = url + `&locales=${Array.from(locales).join(',')}`
-    }
-
-    // Append device manufacturers if present
-    if (deviceManufacturers.length > 0) {
-        url = url + `&device_manufacturers=${Array.from(deviceManufacturers).join(',')}`
-    }
-
-    // Append device names if present
-    if (deviceNames.length > 0) {
-        url = url + `&device_names=${Array.from(deviceNames).join(',')}`
-    }
+    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, null, null, null, null)
 
     const res = await fetchAuth(url);
 
