@@ -1,4 +1,4 @@
-import { formatChartFormatTimestampToHumanReadable, formatDateToHumanReadable, formatIsoDateForDateTimeInputField, formatMillisToHumanReadable, formatTimestampToChartFormat, formatUserInputDateToServerFormat, isValidTimestamp } from '@/app/utils/time_utils'
+import { formatChartFormatTimestampToHumanReadable, formatDateToHumanReadableDate, formatDateToHumanReadableDateTime, formatDateToHumanReadableTime, formatIsoDateForDateTimeInputField, formatMillisToHumanReadable, formatTimestampToChartFormat, formatUserInputDateToServerFormat, isValidTimestamp } from '@/app/utils/time_utils'
 import { expect, it, describe, beforeEach, afterEach } from '@jest/globals'
 import { Settings, DateTime } from "luxon"
 
@@ -40,7 +40,7 @@ describe('formatMillisToHumanReadable', () => {
     })
 })
 
-describe('formatDateToHumanReadable', () => {
+describe('formatDateToHumanReadableDateTime', () => {
     beforeEach(() => {
         Settings.now = () => 0
         Settings.defaultZone = "Asia/Kolkata"
@@ -53,18 +53,74 @@ describe('formatDateToHumanReadable', () => {
     it('should format a UTC timestamp to a human readable date', () => {
         const timestamp = '2024-04-16T12:00:00Z'
         const expected = '16 Apr, 2024, 5:30:00 PM'
-        expect(formatDateToHumanReadable(timestamp)).toBe(expected)
+        expect(formatDateToHumanReadableDateTime(timestamp)).toBe(expected)
     })
 
     it('should format a UTC timestamp to a human readable date', () => {
         const timestamp = '2024-04-15T03:44:00Z'
         const expected = '15 Apr, 2024, 9:14:00 AM'
-        expect(formatDateToHumanReadable(timestamp)).toBe(expected)
+        expect(formatDateToHumanReadableDateTime(timestamp)).toBe(expected)
     })
 
     it('should throw on invalid timestamps', () => {
         const timestamp = 'invalid-timestamp'
-        expect(() => formatDateToHumanReadable(timestamp)).toThrow()
+        expect(() => formatDateToHumanReadableDateTime(timestamp)).toThrow()
+    })
+})
+
+describe('formatDateToHumanReadableDate', () => {
+    beforeEach(() => {
+        Settings.now = () => 0
+        Settings.defaultZone = "Asia/Kolkata"
+    })
+
+    afterEach(() => {
+        Settings.now = () => DateTime.now().valueOf()
+    })
+
+    it('should format a UTC timestamp to a human readable date', () => {
+        const timestamp = '2024-04-16T12:00:00Z'
+        const expected = '16 Apr, 2024'
+        expect(formatDateToHumanReadableDate(timestamp)).toBe(expected)
+    })
+
+    it('should format a UTC timestamp to a human readable date', () => {
+        const timestamp = '2024-04-15T03:44:00Z'
+        const expected = '15 Apr, 2024'
+        expect(formatDateToHumanReadableDate(timestamp)).toBe(expected)
+    })
+
+    it('should throw on invalid timestamps', () => {
+        const timestamp = 'invalid-timestamp'
+        expect(() => formatDateToHumanReadableDate(timestamp)).toThrow()
+    })
+})
+
+describe('formatDateToHumanReadableTime', () => {
+    beforeEach(() => {
+        Settings.now = () => 0
+        Settings.defaultZone = "Asia/Kolkata"
+    })
+
+    afterEach(() => {
+        Settings.now = () => DateTime.now().valueOf()
+    })
+
+    it('should format a UTC timestamp to a human readable date', () => {
+        const timestamp = '2024-04-16T12:00:00Z'
+        const expected = '5:30:00 PM'
+        expect(formatDateToHumanReadableTime(timestamp)).toBe(expected)
+    })
+
+    it('should format a UTC timestamp to a human readable date', () => {
+        const timestamp = '2024-04-15T03:44:00Z'
+        const expected = '9:14:00 AM'
+        expect(formatDateToHumanReadableTime(timestamp)).toBe(expected)
+    })
+
+    it('should throw on invalid timestamps', () => {
+        const timestamp = 'invalid-timestamp'
+        expect(() => formatDateToHumanReadableTime(timestamp)).toThrow()
     })
 })
 

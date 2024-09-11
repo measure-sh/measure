@@ -4,7 +4,7 @@ import { emptySessionsOverviewResponse, SessionsOverviewApiStatus, fetchSessions
 import Filters, { AppVersionsInitialSelectionType, defaultSelectedFilters } from '@/app/components/filters';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import SessionsOverviewPlot from '@/app/components/sessions_overview_plot';
-import { formatDateToHumanReadable, formatMillisToHumanReadable } from '@/app/utils/time_utils';
+import { formatDateToHumanReadableDate, formatDateToHumanReadableTime, formatMillisToHumanReadable } from '@/app/utils/time_utils';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
@@ -158,9 +158,9 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                                         {matched_free_text !== "" && <p className='p-1 mt-2 w-fit text-xs truncate border border-black rounded-md '>{"Matched " + matched_free_text}</p>}
                                     </div>
                                     <div className="table-cell w-48 p-4 text-center">
-                                        <p className='truncate'>{formatDateToHumanReadable(first_event_time).split(',').slice(0, 2).join(',')}</p>
+                                        <p className='truncate'>{formatDateToHumanReadableDate(first_event_time)}</p>
                                         <div className='py-1' />
-                                        <p className='text-xs truncate'>{formatDateToHumanReadable(first_event_time).split(',').slice(2).join(',').trim()}</p>
+                                        <p className='text-xs truncate'>{formatDateToHumanReadableTime(first_event_time)}</p>
                                     </div>
                                     <div className="table-cell w-48 p-4 truncate text-center">{(duration as unknown as number) === 0 ? 'N/A' : formatMillisToHumanReadable(duration as unknown as number)}</div>
                                 </Link>

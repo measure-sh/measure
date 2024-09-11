@@ -36,7 +36,7 @@ export function formatMillisToHumanReadable(millis: number) {
   return output.trim().replace(/,\s*$/, ''); // Remove trailing comma if any
 }
 
-export function formatDateToHumanReadable(timestamp: string): string {
+export function formatDateToHumanReadableDateTime(timestamp: string): string {
   const utcDateTime = DateTime.fromISO(timestamp);
 
   if (!utcDateTime.isValid) {
@@ -46,6 +46,30 @@ export function formatDateToHumanReadable(timestamp: string): string {
   const localDateTime = utcDateTime.toLocal();
 
   return localDateTime.toFormat('d MMM, yyyy, h:mm:ss a');
+}
+
+export function formatDateToHumanReadableDate(timestamp: string): string {
+  const utcDateTime = DateTime.fromISO(timestamp);
+
+  if (!utcDateTime.isValid) {
+    throw (utcDateTime.invalidReason)
+  }
+
+  const localDateTime = utcDateTime.toLocal();
+
+  return localDateTime.toFormat('d MMM, yyyy');
+}
+
+export function formatDateToHumanReadableTime(timestamp: string): string {
+  const utcDateTime = DateTime.fromISO(timestamp);
+
+  if (!utcDateTime.isValid) {
+    throw (utcDateTime.invalidReason)
+  }
+
+  const localDateTime = utcDateTime.toLocal();
+
+  return localDateTime.toFormat('h:mm:ss a');
 }
 
 export function formatTimestampToChartFormat(timestamp: string): string {

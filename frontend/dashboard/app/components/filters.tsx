@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation";
-import { formatDateToHumanReadable, formatIsoDateForDateTimeInputField, isValidTimestamp } from "../utils/time_utils";
+import { formatDateToHumanReadableDateTime, formatIsoDateForDateTimeInputField, isValidTimestamp } from "../utils/time_utils";
 import { useEffect, useState } from "react";
 import { AppVersion, AppsApiStatus, FiltersApiStatus, FiltersApiType, SessionType, emptyApp, fetchAppsFromServer, fetchFiltersFromServer } from "../api/api_calls";
 import { DateTime } from "luxon";
@@ -159,14 +159,14 @@ const Filters: React.FC<FiltersProps> = ({
   const [dateRange, setDateRange] = useState(persistedFilters === null ? DateRange.LastWeek : persistedFilters.selectedDateRange)
 
   const [startDate, setStartDate] = useState(persistedFilters === null ? DateTime.now().minus({ days: 7 }).toISO() : persistedFilters.selectedStartDate);
-  const [formattedStartDate, setFormattedStartDate] = useState(formatDateToHumanReadable(startDate));
+  const [formattedStartDate, setFormattedStartDate] = useState(formatDateToHumanReadableDateTime(startDate));
 
   const [endDate, setEndDate] = useState(persistedFilters === null ? DateTime.now().toISO() : persistedFilters.selectedEndDate);
-  const [formattedEndDate, setFormattedEndDate] = useState(formatDateToHumanReadable(endDate));
+  const [formattedEndDate, setFormattedEndDate] = useState(formatDateToHumanReadableDateTime(endDate));
 
   useEffect(() => {
-    setFormattedStartDate(formatDateToHumanReadable(startDate));
-    setFormattedEndDate(formatDateToHumanReadable(endDate));
+    setFormattedStartDate(formatDateToHumanReadableDateTime(startDate));
+    setFormattedEndDate(formatDateToHumanReadableDateTime(endDate));
   }, [startDate, endDate]);
 
   useEffect(() => {
