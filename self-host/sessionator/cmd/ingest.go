@@ -120,8 +120,12 @@ func ValidateFlags() bool {
 		return false
 	}
 
-	if frequency > 1 || duration > 0 {
+	if frequency > 1 {
 		parallel = true
+	}
+
+	if duration < 1*time.Minute {
+		parallel = false
 	}
 
 	return true
@@ -225,42 +229,55 @@ func IngestParallel(apps *app.Apps, origin string) {
 		metrics.bumpBuild()
 
 		count := int(frequency)
+		done := make(chan struct{})
+		timeout := duration / time.Duration(len(apps.Items))
 		var wg sync.WaitGroup
-		wg.Add(count)
+
+		time.AfterFunc(timeout, func() {
+			close(done)
+		})
 
 		for i := 0; i < count; i += 1 {
+			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				virtualizer := NewVirtualizer().Event().Session()
-				for j := range app.EventFiles {
-					results := []string{}
-					eventFile := app.EventFiles[j]
-					content, eventCount, err := prepareEvents(eventFile, virtualizer)
-					if err != nil {
-						log.Fatal(err)
-					}
-					reqId := uuid.New().String()
-					result := fmt.Sprintf("Ingesting virtual events %q...", reqId)
-					status, err := UploadEvents(eventURL, apiKey, reqId, content)
-					if err != nil {
-						if status == "" {
-							status = err.Error()
+				select {
+				case <-done:
+					fmt.Println("Timeout, exiting.")
+					return
+				default:
+					virtualizer := NewVirtualizer().Event().Session()
+					for j := range app.EventFiles {
+						results := []string{}
+						eventFile := app.EventFiles[j]
+						content, eventCount, err := prepareEvents(eventFile, virtualizer)
+						if err != nil {
+							log.Fatal(err)
 						}
-						result += fmt.Sprintf("🔴 %s \n", status)
+						reqId := uuid.New().String()
+						result := fmt.Sprintf("Ingesting virtual events %q...", reqId)
+						status, err := UploadEvents(eventURL, apiKey, reqId, content)
+						if err != nil {
+							if status == "" {
+								status = err.Error()
+							}
+							result += fmt.Sprintf("🔴 %s \n", status)
+							results = append(results, result)
+							logResults(&results)
+							fmt.Println("event file", eventFile)
+							log.Fatal(err)
+						}
+						result += fmt.Sprintf("🟢 %s \n", status)
 						results = append(results, result)
 						logResults(&results)
-						fmt.Println("event file", eventFile)
-						log.Fatal(err)
-					}
-					result += fmt.Sprintf("🟢 %s \n", status)
-					results = append(results, result)
-					logResults(&results)
 
-					metrics.bumpEventFile()
-					metrics.bumpEvent(eventCount)
+						metrics.bumpEventFile()
+						metrics.bumpEvent(eventCount)
+					}
 				}
 			}()
 		}
+
 		wg.Wait()
 
 		fmt.Printf("\n")
