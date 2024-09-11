@@ -140,29 +140,29 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                             }} />
                     </div>
                     <div className="py-1" />
-                    <div className="table border border-black rounded-md w-full">
+                    <div className="table border border-black rounded-md w-full" style={{ tableLayout: "fixed" }}>
                         <div className="table-header-group bg-neutral-950">
                             <div className="table-row text-white font-display">
                                 <div className="table-cell w-96 p-4">Session Id</div>
-                                <div className="table-cell w-56 py-4 px-2 text-center">Start Time</div>
-                                <div className="table-cell w-56 p-4 text-center">Duration</div>
+                                <div className="table-cell w-48 p-4 text-center">Start Time</div>
+                                <div className="table-cell w-48 p-4 text-center">Duration</div>
                             </div>
                         </div>
                         <div className="table-row-group font-sans">
                             {sessionsOverview.results.map(({ session_id, app_id, first_event_time, duration, matched_free_text, attribute }) => (
                                 <Link key={session_id} href={`/${params.teamId}/sessions/${app_id}/${session_id}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
-                                    <div className="table-cell w-96 p-4">
+                                    <div className="table-cell p-4">
                                         <p className='truncate'>{session_id}</p>
                                         <div className='py-1' />
                                         <p className='text-xs truncate text-gray-500'>{"v" + attribute.app_version + "(" + attribute.app_build + "), " + attribute.os_name + " " + attribute.os_version + ", " + attribute.device_manufacturer + " " + attribute.device_model}</p>
                                         {matched_free_text !== "" && <p className='p-1 mt-2 w-fit text-xs truncate border border-black rounded-md '>{"Matched " + matched_free_text}</p>}
                                     </div>
-                                    <div className="table-cell w-48 p-4 text-center">
+                                    <div className="table-cell p-4 text-center">
                                         <p className='truncate'>{formatDateToHumanReadableDate(first_event_time)}</p>
                                         <div className='py-1' />
                                         <p className='text-xs truncate'>{formatDateToHumanReadableTime(first_event_time)}</p>
                                     </div>
-                                    <div className="table-cell w-48 p-4 truncate text-center">{(duration as unknown as number) === 0 ? 'N/A' : formatMillisToHumanReadable(duration as unknown as number)}</div>
+                                    <div className="table-cell p-4 text-center truncate">{(duration as unknown as number) === 0 ? 'N/A' : formatMillisToHumanReadable(duration as unknown as number)}</div>
                                 </Link>
                             ))}
                         </div>

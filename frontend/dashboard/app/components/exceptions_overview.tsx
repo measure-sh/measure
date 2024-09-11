@@ -123,19 +123,31 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
             startDate={selectedFilters.selectedStartDate}
             endDate={selectedFilters.selectedEndDate}
             appVersions={selectedFilters.selectedVersions} />
-          <div className="py-8" />
-          <div className="table border border-black rounded-md w-full">
+          <div className="py-4" />
+          <div className='self-end'>
+            <Paginator prevEnabled={exceptionsOverview.meta.previous} nextEnabled={exceptionsOverview.meta.next} displayText={paginationRange.start + ' - ' + paginationRange.end}
+              onNext={() => {
+                setPaginationRange({ start: paginationRange.start + paginationOffset, end: paginationRange.end + paginationOffset })
+                setPaginationDirection(PaginationDirection.Forward)
+              }}
+              onPrev={() => {
+                setPaginationRange({ start: paginationRange.start - paginationOffset, end: paginationRange.end - paginationOffset })
+                setPaginationDirection(PaginationDirection.Backward)
+              }} />
+          </div>
+          <div className="py-1" />
+          <div className="table border border-black rounded-md w-full" style={{ tableLayout: "fixed" }}>
             <div className="table-header-group bg-neutral-950">
               <div className="table-row text-white font-display">
-                <div className="table-cell p-4 py-4">{exceptionsType === ExceptionsType.Crash ? 'Crash' : 'ANR'} Name</div>
-                <div className="table-cell p-4 py-4">Instances</div>
-                <div className="table-cell p-4 py-4">Percentage contribution</div>
+                <div className="table-cell w-96 p-4">{exceptionsType === ExceptionsType.Crash ? 'Crash' : 'ANR'} Name</div>
+                <div className="table-cell w-48 p-4 text-center">Instances</div>
+                <div className="table-cell w-48 p-4 text-center">Percentage contribution</div>
               </div>
             </div>
             <div className="table-row-group font-sans">
               {exceptionsOverview.results.map(({ id, type, message, method_name, file_name, line_number, count, percentage_contribution }) => (
                 <Link key={id} href={`/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${selectedFilters.selectedApp.id}/${id}/${type + "@" + file_name}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
-                  <div className="table-cell p-4 max-w-2xl">
+                  <div className="table-cell p-4">
                     <p className='truncate'>{file_name + ": " + method_name + "()"}</p>
                     <div className='py-1' />
                     <p className='text-xs truncate text-gray-500'>{type + ":" + message}</p>
@@ -146,16 +158,6 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
               ))}
             </div>
           </div>
-          <div className="py-2" />
-          <Paginator prevEnabled={exceptionsOverview.meta.previous} nextEnabled={exceptionsOverview.meta.next} displayText={paginationRange.start + ' - ' + paginationRange.end}
-            onNext={() => {
-              setPaginationRange({ start: paginationRange.start + paginationOffset, end: paginationRange.end + paginationOffset })
-              setPaginationDirection(PaginationDirection.Forward)
-            }}
-            onPrev={() => {
-              setPaginationRange({ start: paginationRange.start - paginationOffset, end: paginationRange.end - paginationOffset })
-              setPaginationDirection(PaginationDirection.Backward)
-            }} />
         </div>}
     </div>
   )
