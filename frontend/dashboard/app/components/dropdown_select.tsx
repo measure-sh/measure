@@ -61,9 +61,27 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
     setIsOpen(false);
   };
 
+  const selectAll = () => {
+    setSelected(items)
+  };
+
+  const selectLatestAppVersion = () => {
+    // find version with highest build number
+    let versions = items as AppVersion[]
+    let latestVersion = versions.reduce((highest, current) =>
+      parseInt(current.code) > parseInt(highest.code) ? current : highest
+    )
+
+    setSelected([latestVersion])
+  };
+
   const toggleCheckboxStringItem = (item: string) => {
     let curSelected = selected as string[]
     if (curSelected.includes(item)) {
+      // If only one item is selected, do nothing
+      if (curSelected.length === 1) {
+        return
+      }
       setSelected(curSelected.filter(a => a != item))
     } else {
       setSelected([item, ...curSelected])
@@ -79,6 +97,10 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
   const toggleCheckboxAppVersionItem = (item: AppVersion) => {
     let curSelected = selected as AppVersion[]
     if (isAppVersionSelected(item)) {
+      // If only one item is selected, do nothing
+      if (curSelected.length === 1) {
+        return
+      }
       setSelected(curSelected.filter(a => a.displayName != item.displayName))
     } else {
       setSelected([item, ...curSelected])
@@ -90,6 +112,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
   }, [selected]);
 
   const buttonStyle = "block px-2 py-2 w-full truncate text-white bg-neutral-950 hover:text-black font-display text-left hover:bg-yellow-200 active:bg-yellow-300 outline-none focus:bg-yellow-200"
+  const groupSelectButtonStyle = "text-white text-xs font-display rounded-md border border-white p-1 bg-neutral-950 hover:text-black hover:bg-yellow-200 hover:border-black focus-visible:bg-yellow-200 focus-visible:text-black focus-visible:border-black active:bg-yellow-300 outline-none"
   const checkboxContainerStyle = "px-2 py-2 bg-neutral-950 truncate text-white hover:text-black hover:bg-yellow-200 font-display text-left"
   const checkboxInputStyle = "appearance-none border-white rounded-sm font-display bg-neutral-950 checked:bg-neutral-950 checked:hover:bg-neutral-950 checked:focus:bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:ring-1 checked:ring-white"
 
@@ -134,30 +157,60 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                 {(item as AppVersion).displayName}
               </button>
             ))}
-            {type === DropdownSelectType.MultiString && items.map((item) => (
-              <div key={item as string} className={checkboxContainerStyle} role="menuitem">
-                <input
-                  type="checkbox"
-                  className={checkboxInputStyle}
-                  value={item as string}
-                  checked={(selected as string[]).includes(item as string)}
-                  onChange={() => { toggleCheckboxStringItem(item as string) }}
-                />
-                <span className="ml-2">{item as string}</span>
+            {type === DropdownSelectType.MultiString &&
+              <div>
+                {(items as string[]).length > 1 && <div className='flex flex-row w-full p-2 bg-neutral-950'>
+                  <button
+                    onClick={() => selectAll()}
+                    className={groupSelectButtonStyle}
+                  >
+                    All
+                  </button>
+                </div>}
+                {items.map((item) => (
+                  <div key={item as string} className={checkboxContainerStyle} role="menuitem">
+                    <input
+                      type="checkbox"
+                      className={checkboxInputStyle}
+                      value={item as string}
+                      checked={(selected as string[]).includes(item as string)}
+                      onChange={() => { toggleCheckboxStringItem(item as string) }}
+                    />
+                    <span className="ml-2">{item as string}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-            {type === DropdownSelectType.MultiAppVersion && items.map((item) => (
-              <div key={(item as AppVersion).displayName} className={checkboxContainerStyle} role="menuitem">
-                <input
-                  type="checkbox"
-                  className={checkboxInputStyle}
-                  value={(item as AppVersion).displayName}
-                  checked={isAppVersionSelected(item as AppVersion)}
-                  onChange={() => { toggleCheckboxAppVersionItem(item as AppVersion) }}
-                />
-                <span className="ml-2">{(item as AppVersion).displayName}</span>
-              </div>
-            ))}
+            }
+            {type === DropdownSelectType.MultiAppVersion &&
+              <div>
+                {(items as AppVersion[]).length > 1 && <div className='flex flex-row w-full p-2 bg-neutral-950'>
+                  <button
+                    onClick={() => selectAll()}
+                    className={groupSelectButtonStyle}
+                  >
+                    All
+                  </button>
+                  <div className="px-1" />
+                  <button
+                    onClick={() => selectLatestAppVersion()}
+                    className={groupSelectButtonStyle}
+                  >
+                    Latest
+                  </button>
+                </div>}
+                {items.map((item) => (
+                  <div key={(item as AppVersion).displayName} className={checkboxContainerStyle} role="menuitem">
+                    <input
+                      type="checkbox"
+                      className={checkboxInputStyle}
+                      value={(item as AppVersion).displayName}
+                      checked={isAppVersionSelected(item as AppVersion)}
+                      onChange={() => { toggleCheckboxAppVersionItem(item as AppVersion) }}
+                    />
+                    <span className="ml-2">{(item as AppVersion).displayName}</span>
+                  </div>
+                ))}
+              </div>}
           </div>
         </div>
       )}
