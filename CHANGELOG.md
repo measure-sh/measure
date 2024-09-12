@@ -35,6 +35,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Refactor time utils to have separate functions for human readable datetime, date only and time only by @anupcowkur in #1225
 
 
+### :coffin: Removed
+
+- (**backend**): Remove compose profile by @detj
+
+
 ### :books: Documentation
 
 - Update README.md by @anupcowkur in #1201
