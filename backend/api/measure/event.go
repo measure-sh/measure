@@ -682,12 +682,14 @@ func (e eventreq) ingest(ctx context.Context) error {
 				Set(`lifecycle_fragment.type`, e.events[i].LifecycleFragment.Type).
 				Set(`lifecycle_fragment.class_name`, e.events[i].LifecycleFragment.ClassName).
 				Set(`lifecycle_fragment.parent_activity`, e.events[i].LifecycleFragment.ParentActivity).
+				Set(`lifecycle_fragment.parent_fragment`, e.events[i].LifecycleFragment.ParentFragment).
 				Set(`lifecycle_fragment.tag`, e.events[i].LifecycleFragment.Tag)
 		} else {
 			row.
 				Set(`lifecycle_fragment.type`, nil).
 				Set(`lifecycle_fragment.class_name`, nil).
 				Set(`lifecycle_fragment.parent_activity`, nil).
+				Set(`lifecycle_fragment.parent_fragment`, nil).
 				Set(`lifecycle_fragment.tag`, nil)
 		}
 

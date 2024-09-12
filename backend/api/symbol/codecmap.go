@@ -16,6 +16,7 @@ type LutVal struct {
 	SwapTrace            bool
 	SwapClassName        bool
 	SwapParentActivity   bool
+	SwapParentFragment   bool
 	SwapLaunchedActivity bool
 }
 

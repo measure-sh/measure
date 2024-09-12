@@ -989,6 +989,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		Select(`toString(lifecycle_fragment.type)`).
 		Select(`toString(lifecycle_fragment.class_name)`).
 		Select(`toString(lifecycle_fragment.parent_activity)`).
+		Select(`toString(lifecycle_fragment.parent_fragment)`).
 		Where(`app_id = ?`, a.ID).
 		Where("`timestamp` >= ? and `timestamp` <= ?", af.From, af.To)
 
@@ -1052,6 +1053,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		var lifecycleFragmentType string
 		var lifecycleFragmentClassName string
 		var lifecycleFragmentParentActivity string
+		var lifecycleFragmentParentFragment string
 
 		dest := []any{
 			&ev.ID,
@@ -1063,6 +1065,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 			&lifecycleFragmentType,
 			&lifecycleFragmentClassName,
 			&lifecycleFragmentParentActivity,
+			&lifecycleFragmentParentFragment,
 		}
 
 		if err := rows.Scan(dest...); err != nil {
@@ -1079,6 +1082,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 				Type:           lifecycleFragmentType,
 				ClassName:      lifecycleFragmentClassName,
 				ParentActivity: lifecycleFragmentParentActivity,
+				ParentFragment: lifecycleFragmentParentFragment,
 			}
 		} else if ev.IsException() {
 			ev.Exception = &event.Exception{}
@@ -1368,6 +1372,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`toString(lifecycle_fragment.type)`,
 		`toString(lifecycle_fragment.class_name)`,
 		`lifecycle_fragment.parent_activity`,
+		`lifecycle_fragment.parent_fragment`,
 		`lifecycle_fragment.tag`,
 		`toString(lifecycle_app.type)`,
 		`cold_launch.process_start_uptime`,
@@ -1592,6 +1597,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&lifecycleFragment.Type,
 			&lifecycleFragment.ClassName,
 			&lifecycleFragment.ParentActivity,
+			&lifecycleFragment.ParentFragment,
 			&lifecycleFragment.Tag,
 
 			// lifecycle app
