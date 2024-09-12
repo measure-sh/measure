@@ -20,6 +20,9 @@ interface FiltersProps {
   appId?: string,
   filtersApiType: FiltersApiType,
   appVersionsInitialSelectionType: AppVersionsInitialSelectionType,
+  showCreateApp: boolean
+  showDates: boolean
+  showAppVersions: boolean
   showCountries: boolean
   showNetworkProviders: boolean
   showNetworkTypes: boolean
@@ -106,6 +109,9 @@ const Filters: React.FC<FiltersProps> = ({
   appId,
   filtersApiType,
   appVersionsInitialSelectionType,
+  showCreateApp,
+  showAppVersions,
+  showDates,
   showSessionType,
   showCountries,
   showNetworkTypes,
@@ -373,8 +379,8 @@ const Filters: React.FC<FiltersProps> = ({
       {appsApiStatus === AppsApiStatus.NoApps &&
         <div>
           <p className="text-lg font-display">Looks like you don&apos;t have any apps yet. Get started by creating your first app!</p>
-          <div className="py-4" />
-          <CreateApp teamId={teamId} />
+          {showCreateApp && <div className="py-4" />}
+          {showCreateApp && <CreateApp teamId={teamId} />}
         </div>}
 
       {/* Error states for app success but filters fetch failure */}
@@ -400,15 +406,15 @@ const Filters: React.FC<FiltersProps> = ({
             {/* only show app selector if appId is not provided */}
             {appId === undefined ? <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={apps.map((e) => e.name)} initialSelected={selectedApp.name} onChangeSelected={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} /> : null}
             <div className="flex flex-row items-center">
-              <DropdownSelect title="Date Range" type={DropdownSelectType.SingleString} items={Object.values(DateRange)} initialSelected={dateRange} onChangeSelected={(item) => setDateRange(item as string)} />
-              {dateRange === DateRange.Custom && <p className="font-display px-2">:</p>}
-              {dateRange === DateRange.Custom && <input type="datetime-local" defaultValue={formatIsoDateForDateTimeInputField(startDate)} max={formatIsoDateForDateTimeInputField(endDate)} className="font-display border border-black rounded-md p-2" onChange={(e) => {
+              {showDates && <DropdownSelect title="Date Range" type={DropdownSelectType.SingleString} items={Object.values(DateRange)} initialSelected={dateRange} onChangeSelected={(item) => setDateRange(item as string)} />}
+              {showDates && dateRange === DateRange.Custom && <p className="font-display px-2">:</p>}
+              {showDates && dateRange === DateRange.Custom && <input type="datetime-local" defaultValue={formatIsoDateForDateTimeInputField(startDate)} max={formatIsoDateForDateTimeInputField(endDate)} className="font-display border border-black rounded-md p-2" onChange={(e) => {
                 if (isValidTimestamp(e.target.value)) {
                   setStartDate(DateTime.fromISO(e.target.value).toISO()!)
                 }
               }} />}
-              {dateRange === DateRange.Custom && <p className="font-display px-2">to</p>}
-              {dateRange === DateRange.Custom && <input type="datetime-local" defaultValue={formatIsoDateForDateTimeInputField(endDate)} min={formatIsoDateForDateTimeInputField(startDate)} max={formatIsoDateForDateTimeInputField(DateTime.now().toISO())} className="font-display border border-black rounded-md p-2" onChange={(e) => {
+              {showDates && dateRange === DateRange.Custom && <p className="font-display px-2">to</p>}
+              {showDates && dateRange === DateRange.Custom && <input type="datetime-local" defaultValue={formatIsoDateForDateTimeInputField(endDate)} min={formatIsoDateForDateTimeInputField(startDate)} max={formatIsoDateForDateTimeInputField(DateTime.now().toISO())} className="font-display border border-black rounded-md p-2" onChange={(e) => {
                 if (isValidTimestamp(e.target.value)) {
                   // If "To" date is greater than now, ignore the change and reset to current end date.
                   // We need to do this since setting "max" isn't enough in some browsers
@@ -420,7 +426,7 @@ const Filters: React.FC<FiltersProps> = ({
                 }
               }} />}
             </div>
-            <DropdownSelect title="App versions" type={DropdownSelectType.MultiAppVersion} items={versions} initialSelected={selectedVersions} onChangeSelected={(items) => setSelectedVersions(items as AppVersion[])} />
+            {showAppVersions && <DropdownSelect title="App versions" type={DropdownSelectType.MultiAppVersion} items={versions} initialSelected={selectedVersions} onChangeSelected={(items) => setSelectedVersions(items as AppVersion[])} />}
             {showSessionType && <DropdownSelect title="Session Types" type={DropdownSelectType.SingleString} items={Object.values(SessionType)} initialSelected={selectedSessionType} onChangeSelected={(item) => setSelectedSessionType(getSessionTypeFromString(item as string))} />}
             {showCountries && countries.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Country" items={countries} initialSelected={countries} onChangeSelected={(items) => setSelectedCountries(items as string[])} />}
             {showNetworkProviders && networkProviders.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Network Provider" items={networkProviders} initialSelected={networkProviders} onChangeSelected={(items) => setSelectedNetworkProviders(items as string[])} />}
@@ -433,8 +439,8 @@ const Filters: React.FC<FiltersProps> = ({
           </div>
           <div className="py-4" />
           <div className="flex flex-wrap gap-2 items-center">
-            <FilterPill title={`${formattedStartDate} to ${formattedEndDate}`} />
-            {selectedVersions.length > 0 && <FilterPill title={Array.from(selectedVersions).map((v) => v.displayName).join(', ')} />}
+            {showDates && <FilterPill title={`${formattedStartDate} to ${formattedEndDate}`} />}
+            {showAppVersions && selectedVersions.length > 0 && <FilterPill title={Array.from(selectedVersions).map((v) => v.displayName).join(', ')} />}
             {showSessionType && <FilterPill title={selectedSessionType} />}
             {showCountries && selectedCountries.length > 0 && <FilterPill title={Array.from(selectedCountries).join(', ')} />}
             {showNetworkProviders && selectedNetworkProviders.length > 0 && <FilterPill title={Array.from(selectedNetworkProviders).join(', ')} />}

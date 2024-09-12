@@ -83,6 +83,9 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                 teamId={params.teamId}
                 filtersApiType={FiltersApiType.All}
                 appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
+                showCreateApp={true}
+                showAppVersions={true}
+                showDates={true}
                 showSessionType={true}
                 showCountries={true}
                 showNetworkTypes={true}

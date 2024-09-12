@@ -85,6 +85,9 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
         appId={appId}
         filtersApiType={exceptionsType === ExceptionsType.Crash ? FiltersApiType.Crash : FiltersApiType.Anr}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
+        showCreateApp={true}
+        showAppVersions={true}
+        showDates={true}
         showSessionType={false}
         showCountries={true}
         showNetworkTypes={true}

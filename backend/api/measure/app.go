@@ -70,6 +70,21 @@ func (a App) MarshalJSON() ([]byte, error) {
 	})
 }
 
+func (a App) rename() error {
+	stmt := sqlf.PostgreSQL.Update("public.apps").
+		Set("app_name", a.AppName).
+		Set("updated_at", time.Now()).
+		Where("id = ?", a.ID)
+	defer stmt.Close()
+
+	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), stmt.Args()...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GetExceptionGroup queries a single exception group by its id.
 func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGroup *group.ExceptionGroup, err error) {
 	stmt := sqlf.PostgreSQL.
@@ -4782,6 +4797,64 @@ func UpdateAppSettings(c *gin.Context) {
 	appSettings.RetentionPeriod = payload.RetentionPeriod
 
 	appSettings.update()
+
+	c.JSON(http.StatusOK, gin.H{"ok": "done"})
+}
+
+func RenameApp(c *gin.Context) {
+	userId := c.GetString("userId")
+	appId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `app id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	app := App{
+		ID: &appId,
+	}
+
+	team, err := app.getTeam(c)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	ok, err := PerformAuthz(userId, team.ID.String(), *ScopeAppAll)
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`you don't have permissions to modify app in team [%s]`, team.ID.String())
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&app); err != nil {
+		msg := `failed to parse app rename json payload`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	err = app.rename()
+	if err != nil {
+		msg := `failed to rename app`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": "done"})
 }

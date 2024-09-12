@@ -108,6 +108,13 @@ export enum TeamNameChangeApiStatus {
     Error
 }
 
+export enum AppNameChangeApiStatus {
+    Init,
+    Loading,
+    Success,
+    Error
+}
+
 export enum RoleChangeApiStatus {
     Init,
     Loading,
@@ -1169,6 +1176,22 @@ export const updateAppSettingsFromServer = async (appdId: string, appSettings: t
     }
 
     return { status: UpdateAppSettingsApiStatus.Success }
+}
+
+export const changeAppNameFromServer = async (appId: string, newAppName: string, router: AppRouterInstance) => {
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+        method: 'PATCH',
+        body: JSON.stringify({ name: newAppName })
+    };
+
+    const res = await fetchAuth(`${origin}/apps/${appId}/rename`, opts);
+    if (!res.ok) {
+        logoutIfAuthError(auth, router, res)
+        return { status: AppNameChangeApiStatus.Error }
+    }
+
+    return { status: AppNameChangeApiStatus.Success }
 }
 
 export const fetchUsageFromServer = async (teamId: string, router: AppRouterInstance) => {
