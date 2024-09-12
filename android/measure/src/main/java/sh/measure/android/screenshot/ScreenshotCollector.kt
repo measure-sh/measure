@@ -10,17 +10,19 @@ import android.graphics.RectF
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.Looper
 import android.view.PixelCopy
 import android.view.View
 import android.view.Window
 import androidx.annotation.RequiresApi
 import sh.measure.android.config.ConfigProvider
-import sh.measure.android.isMainThread
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.LowMemoryCheck
 import sh.measure.android.utils.ResumedActivityProvider
 import java.io.ByteArrayOutputStream
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.LazyThreadSafetyMode.NONE
 
 internal class Screenshot(
@@ -60,24 +62,25 @@ internal class ScreenshotCollectorImpl(
     private val maskRadius = 8f
     private val screenshotCompressionQuality = config.screenshotCompressionQuality
 
+    companion object {
+        private const val TIME_TO_WAIT_FOR_SCREENSHOT_MS = 1000L
+    }
+
     override fun takeScreenshot(): Screenshot? {
         if (lowMemoryCheck.isLowMemory()) {
-            logger.log(
-                LogLevel.Debug,
-                "Unable to take screenshot, system has low memory.",
-            )
+            logger.log(LogLevel.Debug, "Unable to take screenshot, system has low memory.")
             return null
         }
 
-        return resumedActivityProvider.getResumedActivity()?.let {
-            if (!isActivityAlive(it)) {
+        return resumedActivityProvider.getResumedActivity()?.let { activity ->
+            if (!isActivityAlive(activity)) {
                 logger.log(LogLevel.Debug, "Unable to take screenshot, activity is unavailable.")
                 return null
             }
-            val bitmap = captureBitmap(it) ?: return null
-            val (extension: String, compressed: ByteArray) = compressBitmap(bitmap) ?: return null
+            val bitmap = captureBitmap(activity) ?: return null
+            val (extension, compressed) = compressBitmap(bitmap) ?: return null
             logger.log(LogLevel.Debug, "Screenshot taken successfully")
-            return Screenshot(data = compressed, extension = extension)
+            Screenshot(data = compressed, extension = extension)
         }
     }
 
@@ -105,35 +108,44 @@ internal class ScreenshotCollectorImpl(
         val rectsToMask = ScreenshotMask(config).findRectsToMask(view)
         val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            captureBitmapUsingPixelCopy(window, bitmap)?.apply {
-                rectsToMask.forEach { rect ->
-                    val canvas = Canvas(this)
-                    val rectF = RectF(rect)
-                    canvas.clipRect(rectF)
-                    canvas.drawRoundRect(rectF, maskRadius, maskRadius, maskPaint)
-                }
-            }
+            captureBitmapUsingPixelCopy(window, bitmap, rectsToMask)
         } else {
             captureBitmapUsingCanvas(activity, view, bitmap, rectsToMask)
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun captureBitmapUsingPixelCopy(window: Window, bitmap: Bitmap): Bitmap? {
-        val thread = HandlerThread("msr-pixel-copy")
-        thread.start()
+    private fun captureBitmapUsingPixelCopy(
+        window: Window,
+        bitmap: Bitmap,
+        rectsToMask: List<Rect>,
+    ): Bitmap? {
+        val thread = HandlerThread("msr-pixel-copy").apply { start() }
+        val handler = Handler(thread.looper)
 
-        try {
-            val handler = Handler(thread.looper)
-            PixelCopy.request(window, bitmap, { }, handler)
+        return try {
+            val latch = CountDownLatch(1)
+            var pixelCopyResult: Bitmap? = null
+
+            PixelCopy.request(window, bitmap, { copyResult ->
+                if (copyResult == PixelCopy.SUCCESS) {
+                    pixelCopyResult = bitmap.apply {
+                        maskRects(this, rectsToMask)
+                    }
+                } else {
+                    logger.log(LogLevel.Error, "PixelCopy request failed with result: $copyResult")
+                }
+                latch.countDown()
+            }, handler)
+
+            latch.await(TIME_TO_WAIT_FOR_SCREENSHOT_MS, TimeUnit.MILLISECONDS)
+            pixelCopyResult
         } catch (e: Throwable) {
             logger.log(LogLevel.Error, "Failed to take screenshot using PixelCopy", e)
-            return null
+            null
         } finally {
-            thread.quit()
+            thread.quitSafely()
         }
-
-        return bitmap
     }
 
     private fun captureBitmapUsingCanvas(
@@ -146,12 +158,11 @@ internal class ScreenshotCollectorImpl(
             val canvas = Canvas(bitmap)
             if (isMainThread()) {
                 view.draw(canvas)
-                rectsToMask.forEach { rect ->
-                    applyMask(rect, canvas)
-                }
+                maskRects(bitmap, rectsToMask)
             } else {
                 activity.runOnUiThread {
                     view.draw(canvas)
+                    maskRects(bitmap, rectsToMask)
                 }
             }
         } catch (e: Throwable) {
@@ -160,14 +171,17 @@ internal class ScreenshotCollectorImpl(
         return bitmap
     }
 
-    private fun applyMask(rect: Rect, canvas: Canvas) {
-        val rectF = RectF(rect)
-        canvas.clipRect(rectF)
-        canvas.drawRoundRect(rectF, maskRadius, maskRadius, maskPaint)
+    private fun maskRects(bitmap: Bitmap, rectsToMask: List<Rect>) {
+        val canvas = Canvas(bitmap)
+        rectsToMask.forEach { rect ->
+            val rectF = RectF(rect)
+            canvas.clipRect(rectF)
+            canvas.drawRoundRect(rectF, maskRadius, maskRadius, maskPaint)
+        }
     }
 
     private fun compressBitmap(bitmap: Bitmap): Pair<String, ByteArray>? {
-        try {
+        return try {
             ByteArrayOutputStream().use { byteArrayOutputStream ->
                 val extension = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     bitmap.compress(
@@ -188,16 +202,19 @@ internal class ScreenshotCollectorImpl(
                     logger.log(LogLevel.Debug, "Screenshot is 0 bytes, discarding")
                     return null
                 }
-                val byteArray = byteArrayOutputStream.toByteArray()
-                return Pair(extension, byteArray)
+                Pair(extension, byteArrayOutputStream.toByteArray())
             }
         } catch (e: Throwable) {
-            logger.log(LogLevel.Error, "Failed to take screenshot, compression to PNG failed", e)
-            return null
+            logger.log(LogLevel.Error, "Failed to take screenshot, compression failed", e)
+            null
         }
     }
 
     private fun isActivityAlive(activity: Activity): Boolean {
         return !activity.isFinishing && !activity.isDestroyed
+    }
+
+    private fun isMainThread(): Boolean {
+        return Thread.currentThread() == Looper.getMainLooper().thread
     }
 }
