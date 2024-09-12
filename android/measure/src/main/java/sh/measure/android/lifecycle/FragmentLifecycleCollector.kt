@@ -1,11 +1,8 @@
 package sh.measure.android.lifecycle
 
 import android.content.Context
-import android.util.Log
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.utils.TimeProvider
@@ -45,7 +42,6 @@ internal class FragmentLifecycleCollector(
             timestamp = timeProvider.currentTimeSinceEpochInMillis,
             data = data,
         )
-        Log.i("FragmentNavigation", Json.encodeToString(data))
     }
 
     override fun onFragmentPaused(fm: FragmentManager, f: Fragment) {
@@ -61,7 +57,6 @@ internal class FragmentLifecycleCollector(
             timestamp = timeProvider.currentTimeSinceEpochInMillis,
             data = data,
         )
-        Log.i("FragmentNavigation", Json.encodeToString(data))
     }
 
     override fun onFragmentDetached(fm: FragmentManager, f: Fragment) {
@@ -77,7 +72,5 @@ internal class FragmentLifecycleCollector(
             timestamp = timeProvider.currentTimeSinceEpochInMillis,
             data = data,
         )
-        Log.i("FragmentNavigation", Json.encodeToString(data))
-
     }
 }
