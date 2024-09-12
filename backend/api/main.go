@@ -111,6 +111,7 @@ func main() {
 		apps.PATCH(":id/alertPrefs", measure.UpdateAlertPrefs)
 		apps.GET(":id/settings", measure.GetAppSettings)
 		apps.PATCH(":id/settings", measure.UpdateAppSettings)
+		apps.PATCH(":id/rename", measure.RenameApp)
 	}
 
 	teams := r.Group("/teams", measure.ValidateAccessToken())

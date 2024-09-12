@@ -88,6 +88,9 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
         teamId={teamId}
         filtersApiType={exceptionsType === ExceptionsType.Crash ? FiltersApiType.Crash : FiltersApiType.Anr}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
+        showCreateApp={true}
+        showAppVersions={true}
+        showDates={true}
         showSessionType={false}
         showCountries={false}
         showNetworkTypes={false}

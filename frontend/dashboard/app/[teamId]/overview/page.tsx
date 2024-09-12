@@ -19,6 +19,9 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         teamId={params.teamId}
         filtersApiType={FiltersApiType.All}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.Latest}
+        showCreateApp={true}
+        showAppVersions={true}
+        showDates={true}
         showSessionType={false}
         showCountries={false}
         showNetworkTypes={false}
