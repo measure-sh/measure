@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Improve session explorer by @anupcowkur in #1218
 - (**backend**): Add session explorer with text search filter by @anupcowkur in #1200
 
+- (**frontend**): Add filter for OS versions by @anupcowkur in #1242
 - (**frontend**): Add 'All', 'Latest' options + 'at least 1' enforcement by @anupcowkur in #1238
 - (**frontend**): Redesign apps page by @anupcowkur in #1237
 
