@@ -622,7 +622,19 @@ export class AppVersion {
     }
 }
 
-function applyGenericFiltersToUrl(url: string, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], freeText: string | null, keyId: string | null, keyTimestamp: string | null, limit: number | null) {
+export class OsVersion {
+    name: string;
+    version: string;
+    displayName: string;
+
+    constructor(name: string, version: string) {
+        this.name = name;
+        this.version = version;
+        this.displayName = this.name + ' ' + this.version
+    }
+}
+
+function applyGenericFiltersToUrl(url: string, startDate: string, endDate: string, appVersions: AppVersion[], osVersions: OsVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], freeText: string | null, keyId: string | null, keyTimestamp: string | null, limit: number | null) {
     const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
     const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
     const timezone = getTimeZoneForServer()
@@ -633,6 +645,12 @@ function applyGenericFiltersToUrl(url: string, startDate: string, endDate: strin
     if (appVersions.length > 0) {
         url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
         url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
+    }
+
+    // Append OS versions if present
+    if (osVersions.length > 0) {
+        url = url + `&os_names=${Array.from(osVersions).map((v) => v.name).join(',')}`
+        url = url + `&os_versions=${Array.from(osVersions).map((v) => v.version).join(',')}`
     }
 
     // Append countries if present
@@ -756,7 +774,7 @@ export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filte
     return { status: FiltersApiStatus.Success, data: data }
 }
 
-export const fetchJourneyFromServer = async (appId: string, journeyType: JourneyType, exceptionsGroupdId: string | null, bidirectional: boolean, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], router: AppRouterInstance) => {
+export const fetchJourneyFromServer = async (appId: string, journeyType: JourneyType, exceptionsGroupdId: string | null, bidirectional: boolean, startDate: string, endDate: string, appVersions: AppVersion[], osVersions: OsVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], router: AppRouterInstance) => {
     // Must pass in exceptionsGroupdId if journey type is crash or anr details
     if ((journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) && exceptionsGroupdId === undefined) {
         return { status: JourneyApiStatus.Error, data: null }
@@ -776,7 +794,7 @@ export const fetchJourneyFromServer = async (appId: string, journeyType: Journey
     // Append bidirectional value
     url = url + `bigraph=${bidirectional ? '1&' : '0&'}`
 
-    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, null, null, null, null)
+    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, null, null, null, null)
 
     const res = await fetchAuth(url);
 
@@ -795,7 +813,7 @@ export const fetchMetricsFromServer = async (appId: string, startDate: string, e
 
     let url = `${origin}/apps/${appId}/metrics?`
 
-    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, [], [], [], [], [], [], [], null, null, null, null)
+    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, [], [], [], [], [], [], [], [], null, null, null, null)
 
     const res = await fetchAuth(url);
 
@@ -809,7 +827,7 @@ export const fetchMetricsFromServer = async (appId: string, startDate: string, e
     return { status: MetricsApiStatus.Success, data: data }
 }
 
-export const fetchSessionsOverviewFromServer = async (appId: string, startDate: string, endDate: string, appVersions: AppVersion[], sessionType: string, countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], freeText: string, keyId: string | null, limit: number, router: AppRouterInstance) => {
+export const fetchSessionsOverviewFromServer = async (appId: string, startDate: string, endDate: string, appVersions: AppVersion[], sessionType: string, osVersions: OsVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], freeText: string, keyId: string | null, limit: number, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
     var url = `${origin}/apps/${appId}/sessions?`
@@ -823,7 +841,7 @@ export const fetchSessionsOverviewFromServer = async (appId: string, startDate: 
         url = url + `anr=1&`
     }
 
-    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, freeText, keyId, null, limit)
+    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, freeText, keyId, null, limit)
 
     const res = await fetchAuth(url);
 
@@ -838,7 +856,7 @@ export const fetchSessionsOverviewFromServer = async (appId: string, startDate: 
 
 }
 
-export const fetchSessionsOverviewPlotFromServer = async (appId: string, startDate: string, endDate: string, appVersions: AppVersion[], sessionType: string, countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], freeText: string, router: AppRouterInstance) => {
+export const fetchSessionsOverviewPlotFromServer = async (appId: string, startDate: string, endDate: string, appVersions: AppVersion[], sessionType: string, osVersions: OsVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], freeText: string, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
     var url = `${origin}/apps/${appId}/sessions/plots/instances?`
@@ -852,7 +870,7 @@ export const fetchSessionsOverviewPlotFromServer = async (appId: string, startDa
         url = url + `anr=1&`
     }
 
-    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, freeText, null, null, null)
+    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, freeText, null, null, null)
 
     const res = await fetchAuth(url);
 
@@ -880,7 +898,7 @@ export const fetchExceptionsOverviewFromServer = async (exceptionsType: Exceptio
         url = `${origin}/apps/${appId}/anrGroups?`
     }
 
-    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, [], [], [], [], [], [], [], null, keyId, null, limit)
+    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, [], [], [], [], [], [], [], [], null, keyId, null, limit)
 
     const res = await fetchAuth(url);
 
@@ -895,7 +913,7 @@ export const fetchExceptionsOverviewFromServer = async (exceptionsType: Exceptio
 
 }
 
-export const fetchExceptionsDetailsFromServer = async (exceptionsType: ExceptionsType, appId: string, exceptionsGroupdId: string, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], keyId: string | null, keyTimestamp: string | null, limit: number, router: AppRouterInstance) => {
+export const fetchExceptionsDetailsFromServer = async (exceptionsType: ExceptionsType, appId: string, exceptionsGroupdId: string, startDate: string, endDate: string, appVersions: AppVersion[], osVersions: OsVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], keyId: string | null, keyTimestamp: string | null, limit: number, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
     var url = ""
@@ -905,7 +923,7 @@ export const fetchExceptionsDetailsFromServer = async (exceptionsType: Exception
         url = `${origin}/apps/${appId}/anrGroups/${exceptionsGroupdId}/anrs?`
     }
 
-    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, null, keyId, keyTimestamp, limit)
+    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, null, keyId, keyTimestamp, limit)
 
     const res = await fetchAuth(url);
 
@@ -930,7 +948,7 @@ export const fetchExceptionsOverviewPlotFromServer = async (appId: string, excep
         url = `${origin}/apps/${appId}/anrGroups/plots/instances?`
     }
 
-    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, [], [], [], [], [], [], [], null, null, null, null)
+    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, [], [], [], [], [], [], [], [], null, null, null, null)
 
     const res = await fetchAuth(url);
 
@@ -949,7 +967,7 @@ export const fetchExceptionsOverviewPlotFromServer = async (appId: string, excep
 }
 
 
-export const fetchExceptionsDetailsPlotFromServer = async (appId: string, exceptionsType: ExceptionsType, exceptionsGroupdId: string, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], router: AppRouterInstance) => {
+export const fetchExceptionsDetailsPlotFromServer = async (appId: string, exceptionsType: ExceptionsType, exceptionsGroupdId: string, startDate: string, endDate: string, appVersions: AppVersion[], osVersions: OsVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
     var url = ""
@@ -959,7 +977,7 @@ export const fetchExceptionsDetailsPlotFromServer = async (appId: string, except
         url = `${origin}/apps/${appId}/anrGroups/${exceptionsGroupdId}/plots/instances?`
     }
 
-    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, null, null, null, null)
+    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, null, null, null, null)
 
     const res = await fetchAuth(url);
 

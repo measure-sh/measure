@@ -49,7 +49,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
       limit = - limit
     }
 
-    const result = await fetchExceptionsDetailsFromServer(exceptionsType, appId, exceptionsGroupId, selectedFilters.selectedStartDate, selectedFilters.selectedEndDate, selectedFilters.selectedVersions, selectedFilters.selectedCountries, selectedFilters.selectedNetworkProviders, selectedFilters.selectedNetworkTypes, selectedFilters.selectedNetworkGenerations, selectedFilters.selectedLocales, selectedFilters.selectedDeviceManufacturers, selectedFilters.selectedDeviceNames, keyId, keyTimestamp, limit, router)
+    const result = await fetchExceptionsDetailsFromServer(exceptionsType, appId, exceptionsGroupId, selectedFilters.selectedStartDate, selectedFilters.selectedEndDate, selectedFilters.selectedVersions, selectedFilters.selectedOsVersions, selectedFilters.selectedCountries, selectedFilters.selectedNetworkProviders, selectedFilters.selectedNetworkTypes, selectedFilters.selectedNetworkGenerations, selectedFilters.selectedLocales, selectedFilters.selectedDeviceManufacturers, selectedFilters.selectedDeviceNames, keyId, keyTimestamp, limit, router)
 
     switch (result.status) {
       case ExceptionsDetailsApiStatus.Error:
@@ -89,6 +89,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
         showAppVersions={true}
         showDates={true}
         showSessionType={false}
+        showOsVersions={true}
         showCountries={true}
         showNetworkTypes={true}
         showNetworkProviders={true}
@@ -112,6 +113,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
               startDate={selectedFilters.selectedStartDate}
               endDate={selectedFilters.selectedEndDate}
               appVersions={selectedFilters.selectedVersions}
+              osVersions={selectedFilters.selectedOsVersions}
               countries={selectedFilters.selectedCountries}
               networkProviders={selectedFilters.selectedNetworkProviders}
               networkTypes={selectedFilters.selectedNetworkTypes}
@@ -130,6 +132,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
                 startDate={selectedFilters.selectedStartDate}
                 endDate={selectedFilters.selectedEndDate}
                 appVersions={selectedFilters.selectedVersions}
+                osVersions={selectedFilters.selectedOsVersions}
                 countries={selectedFilters.selectedCountries}
                 networkProviders={selectedFilters.selectedNetworkProviders}
                 networkTypes={selectedFilters.selectedNetworkTypes}

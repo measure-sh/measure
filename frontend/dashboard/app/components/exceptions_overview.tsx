@@ -92,6 +92,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
         showAppVersions={true}
         showDates={true}
         showSessionType={false}
+        showOsVersions={false}
         showCountries={false}
         showNetworkTypes={false}
         showNetworkProviders={false}

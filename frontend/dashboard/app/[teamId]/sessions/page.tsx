@@ -39,7 +39,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
             limit = - limit
         }
 
-        const result = await fetchSessionsOverviewFromServer(selectedFilters.selectedApp.id, selectedFilters.selectedStartDate, selectedFilters.selectedEndDate, selectedFilters.selectedVersions, selectedFilters.selectedSessionType, selectedFilters.selectedCountries, selectedFilters.selectedNetworkProviders, selectedFilters.selectedNetworkTypes, selectedFilters.selectedNetworkGenerations, selectedFilters.selectedLocales, selectedFilters.selectedDeviceManufacturers, selectedFilters.selectedDeviceNames, selectedFilters.selectedFreeText, keyId, limit, router)
+        const result = await fetchSessionsOverviewFromServer(selectedFilters.selectedApp.id, selectedFilters.selectedStartDate, selectedFilters.selectedEndDate, selectedFilters.selectedVersions, selectedFilters.selectedSessionType, selectedFilters.selectedOsVersions, selectedFilters.selectedCountries, selectedFilters.selectedNetworkProviders, selectedFilters.selectedNetworkTypes, selectedFilters.selectedNetworkGenerations, selectedFilters.selectedLocales, selectedFilters.selectedDeviceManufacturers, selectedFilters.selectedDeviceNames, selectedFilters.selectedFreeText, keyId, limit, router)
 
         switch (result.status) {
             case SessionsOverviewApiStatus.Error:
@@ -87,6 +87,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                 showAppVersions={true}
                 showDates={true}
                 showSessionType={true}
+                showOsVersions={true}
                 showCountries={true}
                 showNetworkTypes={true}
                 showNetworkProviders={true}
@@ -122,6 +123,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                         endDate={selectedFilters.selectedEndDate}
                         appVersions={selectedFilters.selectedVersions}
                         sessionType={selectedFilters.selectedSessionType}
+                        osVersions={selectedFilters.selectedOsVersions}
                         countries={selectedFilters.selectedCountries}
                         networkProviders={selectedFilters.selectedNetworkProviders}
                         networkTypes={selectedFilters.selectedNetworkTypes}

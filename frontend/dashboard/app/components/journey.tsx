@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { AppVersion, JourneyApiStatus, emptyJourney, fetchJourneyFromServer } from '../api/api_calls'
+import { AppVersion, JourneyApiStatus, OsVersion, emptyJourney, fetchJourneyFromServer } from '../api/api_calls'
 import Dagre from '@dagrejs/dagre'
 import ReactFlow, {
   useNodesState,
@@ -23,6 +23,7 @@ interface JourneyProps {
   startDate: string,
   endDate: string,
   appVersions: AppVersion[]
+  osVersions: OsVersion[],
   countries: string[],
   networkProviders: string[],
   networkTypes: string[],
@@ -88,7 +89,7 @@ const edgeStrokeWidthHighlight = 4
 const nodeColorPositive = '#10b981'
 const nodeColorNegative = '#f87171'
 
-const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journeyType, exceptionsGroupId, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames }) => {
+const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journeyType, exceptionsGroupId, startDate, endDate, appVersions, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames }) => {
 
   const [journeyApiStatus, setJourneyApiStatus] = useState(JourneyApiStatus.Loading)
   const [nodes, setNodes, onNodesChange] = useNodesState([])
@@ -338,7 +339,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journey
   const getJourney = async () => {
     setJourneyApiStatus(JourneyApiStatus.Loading)
 
-    const result = await fetchJourneyFromServer(appId, journeyType, exceptionsGroupId, bidirectional, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, router)
+    const result = await fetchJourneyFromServer(appId, journeyType, exceptionsGroupId, bidirectional, startDate, endDate, appVersions, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, router)
 
     switch (result.status) {
       case JourneyApiStatus.Error:
@@ -362,7 +363,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journey
 
   useEffect(() => {
     getJourney()
-  }, [teamId, appId, bidirectional, journeyType, exceptionsGroupId, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames])
+  }, [teamId, appId, bidirectional, journeyType, exceptionsGroupId, startDate, endDate, appVersions, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames])
 
   return (
     <div className="flex items-center justify-center border border-black text-black font-sans text-sm w-full h-full">

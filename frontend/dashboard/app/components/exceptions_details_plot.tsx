@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { ResponsiveLine } from '@nivo/line'
-import { AppVersion, ExceptionsDetailsPlotApiStatus, ExceptionsType, fetchExceptionsDetailsPlotFromServer } from '../api/api_calls';
+import { AppVersion, ExceptionsDetailsPlotApiStatus, ExceptionsType, fetchExceptionsDetailsPlotFromServer, OsVersion } from '../api/api_calls';
 import { useRouter } from 'next/navigation';
 import { formatDateToHumanReadableDate } from '../utils/time_utils';
 
@@ -13,6 +13,7 @@ interface ExceptionsDetailsPlotProps {
   startDate: string,
   endDate: string,
   appVersions: AppVersion[],
+  osVersions: OsVersion[],
   countries: string[],
   networkProviders: string[],
   networkTypes: string[],
@@ -30,7 +31,7 @@ type ExceptionsDetailsPlot = {
   }[]
 }[]
 
-const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ appId, exceptionsType, exceptionsGroupId, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames }) => {
+const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ appId, exceptionsType, exceptionsGroupId, startDate, endDate, appVersions, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames }) => {
   const router = useRouter()
 
   const [exceptionsDetailsPlotApiStatus, setExceptionsDetailsPlotApiStatus] = useState(ExceptionsDetailsPlotApiStatus.Loading);
@@ -44,7 +45,7 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ appId, ex
 
     setExceptionsDetailsPlotApiStatus(ExceptionsDetailsPlotApiStatus.Loading)
 
-    const result = await fetchExceptionsDetailsPlotFromServer(appId, exceptionsType, exceptionsGroupId, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, router)
+    const result = await fetchExceptionsDetailsPlotFromServer(appId, exceptionsType, exceptionsGroupId, startDate, endDate, appVersions, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, router)
 
     switch (result.status) {
       case ExceptionsDetailsPlotApiStatus.Error:
@@ -70,7 +71,7 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ appId, ex
 
   useEffect(() => {
     getExceptionsDetailsPlot()
-  }, [appId, exceptionsType, exceptionsGroupId, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames]);
+  }, [appId, exceptionsType, exceptionsGroupId, startDate, endDate, appVersions, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames]);
 
   return (
     <div className="flex border border-black font-sans items-center justify-center w-full h-[32rem]">

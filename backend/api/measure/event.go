@@ -975,6 +975,16 @@ func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filt
 			args = append(args, af.VersionCodes)
 		}
 
+		if len(af.OsNames) > 0 {
+			countStmt.Where("`attribute.os_name` in (?)", nil)
+			args = append(args, af.OsNames)
+		}
+
+		if len(af.OsVersions) > 0 {
+			countStmt.Where("`attribute.os_version` in (?)", nil)
+			args = append(args, af.OsVersions)
+		}
+
 		if len(af.Countries) > 0 {
 			countStmt.Where("`inet.country_code` in (?)", nil)
 			args = append(args, af.Countries)
@@ -1092,6 +1102,16 @@ func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filt
 	if len(af.VersionCodes) > 0 {
 		stmt.Where("`attribute.app_build` in (?)", nil)
 		args = append(args, af.VersionCodes)
+	}
+
+	if len(af.OsNames) > 0 {
+		stmt.Where("`attribute.os_name` in (?)", nil)
+		args = append(args, af.OsNames)
+	}
+
+	if len(af.OsVersions) > 0 {
+		stmt.Where("`attribute.os_version` in (?)", nil)
+		args = append(args, af.OsVersions)
 	}
 
 	if len(af.Countries) > 0 {
@@ -1351,6 +1371,16 @@ func GetANRsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filter.App
 			args = append(args, af.VersionCodes)
 		}
 
+		if len(af.OsNames) > 0 {
+			countStmt.Where("`attribute.os_name` in (?)", nil)
+			args = append(args, af.OsNames)
+		}
+
+		if len(af.OsVersions) > 0 {
+			countStmt.Where("`attribute.os_version` in (?)", nil)
+			args = append(args, af.OsVersions)
+		}
+
 		if len(af.Countries) > 0 {
 			countStmt.Where("`inet.country_code` in (?)", nil)
 			args = append(args, af.Countries)
@@ -1467,6 +1497,16 @@ func GetANRsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filter.App
 	if len(af.VersionCodes) > 0 {
 		stmt.Where("`attribute.app_build` in (?)", nil)
 		args = append(args, af.VersionCodes)
+	}
+
+	if len(af.OsNames) > 0 {
+		stmt.Where("`attribute.os_name` in (?)", nil)
+		args = append(args, af.OsNames)
+	}
+
+	if len(af.OsVersions) > 0 {
+		stmt.Where("`attribute.os_version` in (?)", nil)
+		args = append(args, af.OsVersions)
 	}
 
 	if len(af.Countries) > 0 {
@@ -1696,6 +1736,14 @@ func GetIssuesPlot(ctx context.Context, eventIds []uuid.UUID, af *filter.AppFilt
 		stmt.Where("attribute.app_build in (?)", af.VersionCodes)
 	}
 
+	if len(af.OsNames) > 0 {
+		stmt.Where("attribute.os_name in (?)", af.OsNames)
+	}
+
+	if len(af.OsVersions) > 0 {
+		stmt.Where("attribute.os_version in (?)", af.OsVersions)
+	}
+
 	if len(af.Countries) > 0 {
 		stmt.Where("inet.country_code in (?)", af.Countries)
 	}
@@ -1770,6 +1818,14 @@ func GetSessionsPlot(ctx context.Context, af *filter.AppFilter) (sessionInstance
 		base.Where("type = 'exception' AND exception.handled = false")
 	} else if af.ANR {
 		base.Where("type = 'anr'")
+	}
+
+	if len(af.OsNames) > 0 {
+		base.Where("attribute.os_name").In(af.OsNames)
+	}
+
+	if len(af.OsVersions) > 0 {
+		base.Where("attribute.os_version").In(af.OsVersions)
 	}
 
 	if len(af.Countries) > 0 {

@@ -57,6 +57,14 @@ type AppFilter struct {
 	// to be matched & filtered on.
 	VersionCodes []string `form:"version_codes"`
 
+	// OsNames is the list of os names
+	// to be matched on & filtered on.
+	OsNames []string `form:"os_names"`
+
+	// OsVersions is the list of os versions
+	// to be matched on & filtered on.
+	OsVersions []string `form:"os_versions"`
+
 	// Countries is the list of country codes
 	// to be matched on & filtered on.
 	Countries []string `form:"countries"`
@@ -126,6 +134,8 @@ type AppFilter struct {
 type FilterList struct {
 	Versions            []string `json:"versions"`
 	VersionCodes        []string `json:"version_codes"`
+	OsNames             []string `json:"os_names"`
+	OsVersions          []string `json:"os_versions"`
 	Countries           []string `json:"countries"`
 	NetworkProviders    []string `json:"network_providers"`
 	NetworkTypes        []string `json:"network_types"`
@@ -203,6 +213,14 @@ func (af *AppFilter) Expand() {
 
 	if len(af.VersionCodes) > 0 {
 		af.VersionCodes = text.SplitTrimEmpty(af.VersionCodes[0], ",")
+	}
+
+	if len(af.OsNames) > 0 {
+		af.OsNames = text.SplitTrimEmpty(af.OsNames[0], ",")
+	}
+
+	if len(af.OsVersions) > 0 {
+		af.OsVersions = text.SplitTrimEmpty(af.OsVersions[0], ",")
 	}
 
 	if len(af.Countries) > 0 {
@@ -297,6 +315,13 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 	}
 	fl.Versions = append(fl.Versions, versions...)
 	fl.VersionCodes = append(fl.VersionCodes, versionCodes...)
+
+	osNames, osVersions, err := af.getOsVersions(ctx)
+	if err != nil {
+		return err
+	}
+	fl.OsNames = append(fl.OsNames, osNames...)
+	fl.OsVersions = append(fl.OsVersions, osVersions...)
 
 	countries, err := af.getCountries(ctx)
 	if err != nil {
@@ -395,6 +420,51 @@ func (af *AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes
 		}
 		versions = append(versions, version)
 		versionCodes = append(versionCodes, code)
+	}
+
+	err = rows.Err()
+
+	return
+}
+
+// getOsVersions finds distinct values of os versions
+// from available events.
+//
+// Additionally, filters `exception` and `anr` event types.
+func (af *AppFilter) getOsVersions(ctx context.Context) (osNames, osVersions []string, err error) {
+	stmt := sqlf.
+		From("default.events").
+		Select("distinct toString(attribute.os_name), toString(attribute.os_version)").
+		Where("app_id = toUUID(?)", af.AppID)
+
+	defer stmt.Close()
+
+	if af.Exception {
+		stmt.Where("type = 'exception'")
+	}
+
+	if af.Crash {
+		stmt.Where("type = 'exception'")
+		stmt.Where("`exception.handled` = false")
+	}
+
+	if af.ANR {
+		stmt.Where("type = 'anr'")
+	}
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var osName string
+		var osVersion string
+		if err = rows.Scan(&osName, &osVersion); err != nil {
+			return
+		}
+		osNames = append(osNames, osName)
+		osVersions = append(osVersions, osVersion)
 	}
 
 	err = rows.Err()
