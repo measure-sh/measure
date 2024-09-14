@@ -23,6 +23,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         showAppVersions={true}
         showDates={true}
         showSessionType={false}
+        showOsVersions={false}
         showCountries={false}
         showNetworkTypes={false}
         showNetworkProviders={false}
@@ -46,6 +47,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
             startDate={selectedFilters.selectedStartDate}
             endDate={selectedFilters.selectedEndDate}
             appVersions={selectedFilters.selectedVersions}
+            osVersions={[]}
             countries={[]}
             networkProviders={[]}
             networkTypes={[]}

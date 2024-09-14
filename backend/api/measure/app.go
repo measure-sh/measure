@@ -1023,6 +1023,14 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?))", whereVals...)
 	}
 
+	if len(af.OsNames) > 0 {
+		stmt.Where("`attribute.os_name` in ?", af.OsNames)
+	}
+
+	if len(af.OsVersions) > 0 {
+		stmt.Where("`attribute.os_version` in ?", af.OsVersions)
+	}
+
 	if len(af.Countries) > 0 {
 		stmt.Where("`inet.country_code` in ?", af.Countries)
 	}
@@ -2379,8 +2387,16 @@ func GetAppFilters(c *gin.Context) {
 		versions = append(versions, version)
 	}
 
+	// club os names & versions
+	var osVersions []any
+	for i := range fl.OsVersions {
+		osVersion := gin.H{"name": fl.OsNames[i], "version": fl.OsVersions[i]}
+		osVersions = append(osVersions, osVersion)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"versions":             versions,
+		"os_versions":          osVersions,
 		"countries":            fl.Countries,
 		"network_providers":    fl.NetworkProviders,
 		"network_types":        fl.NetworkTypes,
@@ -4074,6 +4090,14 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 		base.Where("type = 'exception' AND exception.handled = false")
 	} else if af.ANR {
 		base.Where("type = 'anr'")
+	}
+
+	if len(af.OsNames) > 0 {
+		base.Where("attribute.os_name").In(af.OsNames)
+	}
+
+	if len(af.OsVersions) > 0 {
+		base.Where("attribute.os_version").In(af.OsVersions)
 	}
 
 	if len(af.Countries) > 0 {

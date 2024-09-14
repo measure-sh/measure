@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { ResponsiveLine } from '@nivo/line'
-import { AppVersion, SessionType, SessionsOverviewPlotApiStatus, fetchSessionsOverviewPlotFromServer } from '../api/api_calls';
+import { AppVersion, OsVersion, SessionType, SessionsOverviewPlotApiStatus, fetchSessionsOverviewPlotFromServer } from '../api/api_calls';
 import { useRouter } from 'next/navigation';
 import { formatDateToHumanReadableDate } from '../utils/time_utils';
 
@@ -12,6 +12,7 @@ interface SessionsOverviewPlotProps {
   endDate: string,
   appVersions: AppVersion[],
   sessionType: SessionType,
+  osVersions: OsVersion[],
   countries: string[],
   networkProviders: string[],
   networkTypes: string[],
@@ -31,7 +32,7 @@ type SessionsOverviewPlot = {
   }[]
 }[]
 
-const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ appId, startDate, endDate, appVersions, sessionType, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, freeText }) => {
+const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ appId, startDate, endDate, appVersions, sessionType, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, freeText }) => {
   const router = useRouter()
 
   const [sessionsOverviewPlotApiStatus, setSessionsOverviewPlotApiStatus] = useState(SessionsOverviewPlotApiStatus.Loading);
@@ -45,7 +46,7 @@ const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ appId, star
 
     setSessionsOverviewPlotApiStatus(SessionsOverviewPlotApiStatus.Loading)
 
-    const result = await fetchSessionsOverviewPlotFromServer(appId, startDate, endDate, appVersions, sessionType, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, freeText, router)
+    const result = await fetchSessionsOverviewPlotFromServer(appId, startDate, endDate, appVersions, sessionType, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, freeText, router)
 
     switch (result.status) {
       case SessionsOverviewPlotApiStatus.Error:
@@ -74,7 +75,7 @@ const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ appId, star
 
   useEffect(() => {
     getSessionsOverviewPlot()
-  }, [appId, startDate, endDate, appVersions, sessionType, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, freeText]);
+  }, [appId, startDate, endDate, appVersions, sessionType, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, freeText]);
 
   return (
     <div className="flex border border-black font-sans items-center justify-center w-full h-[36rem]">

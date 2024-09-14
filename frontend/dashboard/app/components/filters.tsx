@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { formatDateToHumanReadableDateTime, formatIsoDateForDateTimeInputField, isValidTimestamp } from "../utils/time_utils";
 import { useEffect, useState } from "react";
-import { AppVersion, AppsApiStatus, FiltersApiStatus, FiltersApiType, SessionType, emptyApp, fetchAppsFromServer, fetchFiltersFromServer } from "../api/api_calls";
+import { AppVersion, AppsApiStatus, FiltersApiStatus, FiltersApiType, OsVersion, SessionType, emptyApp, fetchAppsFromServer, fetchFiltersFromServer } from "../api/api_calls";
 import { DateTime } from "luxon";
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
 import FilterPill from "./filter_pill";
@@ -23,6 +23,7 @@ interface FiltersProps {
   showCreateApp: boolean
   showDates: boolean
   showAppVersions: boolean
+  showOsVersions: boolean
   showCountries: boolean
   showNetworkProviders: boolean
   showNetworkTypes: boolean
@@ -58,6 +59,7 @@ export type SelectedFilters = {
   selectedEndDate: string
   selectedVersions: AppVersion[]
   selectedSessionType: SessionType
+  selectedOsVersions: OsVersion[]
   selectedCountries: string[]
   selectedNetworkProviders: string[]
   selectedNetworkTypes: string[]
@@ -82,6 +84,7 @@ export const defaultSelectedFilters: SelectedFilters = {
   selectedEndDate: '',
   selectedVersions: [],
   selectedSessionType: SessionType.All,
+  selectedOsVersions: [],
   selectedCountries: [],
   selectedNetworkProviders: [],
   selectedNetworkTypes: [],
@@ -114,6 +117,7 @@ const Filters: React.FC<FiltersProps> = ({
   showDates,
   showSessionType,
   showCountries,
+  showOsVersions,
   showNetworkTypes,
   showNetworkProviders,
   showNetworkGenerations,
@@ -138,6 +142,9 @@ const Filters: React.FC<FiltersProps> = ({
   const [selectedVersions, setSelectedVersions] = useState([] as AppVersion[]);
 
   const [selectedSessionType, setSelectedSessionType] = useState(SessionType.All);
+
+  const [osVersions, setOsVersions] = useState([] as OsVersion[]);
+  const [selectedOsVersions, setSelectedOsVersions] = useState([] as OsVersion[]);
 
   const [countries, setCountries] = useState([] as string[]);
   const [selectedCountries, setSelectedCountries] = useState([] as string[]);
@@ -290,6 +297,12 @@ const Filters: React.FC<FiltersProps> = ({
           setSelectedVersions(versions.slice(0, 1))
         }
 
+        if (result.data.os_versions !== null) {
+          let osVersions = result.data.os_versions.map((v: { name: string; version: string; }) => new OsVersion(v.name, v.version))
+          setOsVersions(osVersions)
+          setSelectedOsVersions(osVersions)
+        }
+
         if (result.data.countries !== null) {
           setCountries(result.data.countries)
           setSelectedCountries(result.data.countries)
@@ -358,6 +371,7 @@ const Filters: React.FC<FiltersProps> = ({
       selectedEndDate: endDate,
       selectedVersions: selectedVersions,
       selectedSessionType: selectedSessionType,
+      selectedOsVersions: selectedOsVersions,
       selectedCountries: selectedCountries,
       selectedNetworkProviders: selectedNetworkProviders,
       selectedNetworkTypes: selectedNetworkTypes,
@@ -370,7 +384,7 @@ const Filters: React.FC<FiltersProps> = ({
 
     onFiltersChanged(updatedSelectedFilters)
     sessionStorage.setItem(persistedFiltersStorageKey, JSON.stringify(updatedPersistedFilters))
-  }, [appsApiStatus, filtersApiStatus, selectedApp, startDate, endDate, selectedVersions, selectedSessionType, selectedCountries, selectedNetworkProviders, selectedNetworkTypes, selectedNetworkGenerations, selectedLocales, selectedDeviceManufacturers, selectedDeviceNames, selectedFreeText]);
+  }, [appsApiStatus, filtersApiStatus, selectedApp, startDate, endDate, selectedVersions, selectedSessionType, selectedOsVersions, selectedCountries, selectedNetworkProviders, selectedNetworkTypes, selectedNetworkGenerations, selectedLocales, selectedDeviceManufacturers, selectedDeviceNames, selectedFreeText]);
 
   return (
     <div>
@@ -428,6 +442,7 @@ const Filters: React.FC<FiltersProps> = ({
             </div>
             {showAppVersions && <DropdownSelect title="App versions" type={DropdownSelectType.MultiAppVersion} items={versions} initialSelected={selectedVersions} onChangeSelected={(items) => setSelectedVersions(items as AppVersion[])} />}
             {showSessionType && <DropdownSelect title="Session Types" type={DropdownSelectType.SingleString} items={Object.values(SessionType)} initialSelected={selectedSessionType} onChangeSelected={(item) => setSelectedSessionType(getSessionTypeFromString(item as string))} />}
+            {showOsVersions && osVersions.length > 0 && <DropdownSelect type={DropdownSelectType.MultiOsVersion} title="OS Versions" items={osVersions} initialSelected={osVersions} onChangeSelected={(items) => setSelectedOsVersions(items as OsVersion[])} />}
             {showCountries && countries.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Country" items={countries} initialSelected={countries} onChangeSelected={(items) => setSelectedCountries(items as string[])} />}
             {showNetworkProviders && networkProviders.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Network Provider" items={networkProviders} initialSelected={networkProviders} onChangeSelected={(items) => setSelectedNetworkProviders(items as string[])} />}
             {showNetworkTypes && networkTypes.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Network type" items={networkTypes} initialSelected={networkTypes} onChangeSelected={(items) => setSelectedNetworkTypes(items as string[])} />}
@@ -442,6 +457,7 @@ const Filters: React.FC<FiltersProps> = ({
             {showDates && <FilterPill title={`${formattedStartDate} to ${formattedEndDate}`} />}
             {showAppVersions && selectedVersions.length > 0 && <FilterPill title={Array.from(selectedVersions).map((v) => v.displayName).join(', ')} />}
             {showSessionType && <FilterPill title={selectedSessionType} />}
+            {showOsVersions && selectedOsVersions.length > 0 && <FilterPill title={Array.from(selectedOsVersions).map((v) => v.displayName).join(', ')} />}
             {showCountries && selectedCountries.length > 0 && <FilterPill title={Array.from(selectedCountries).join(', ')} />}
             {showNetworkProviders && selectedNetworkProviders.length > 0 && <FilterPill title={Array.from(selectedNetworkProviders).join(', ')} />}
             {showNetworkTypes && selectedNetworkTypes.length > 0 && <FilterPill title={Array.from(selectedNetworkTypes).join(', ')} />}
