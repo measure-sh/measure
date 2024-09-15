@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from 'next/navigation';
 import { ExceptionsOverviewApiStatus, ExceptionsType, FiltersApiType, emptyExceptionsOverviewResponse, fetchExceptionsOverviewFromServer } from '@/app/api/api_calls';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
-import Filters, { AppVersionsInitialSelectionType, defaultSelectedFilters } from './filters';
+import Filters, { AppVersionsInitialSelectionType, defaultFilters } from './filters';
 import ExceptionsOverviewPlot from './exceptions_overview_plot';
 
 interface ExceptionsOverviewProps {
@@ -17,7 +17,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
   const router = useRouter()
   const [exceptionsOverviewApiStatus, setExceptionsOverviewApiStatus] = useState(ExceptionsOverviewApiStatus.Loading);
 
-  const [selectedFilters, setSelectedFilters] = useState(defaultSelectedFilters);
+  const [filters, setFilters] = useState(defaultFilters);
 
   const [exceptionsOverview, setExceptionsOverview] = useState(emptyExceptionsOverviewResponse);
   const paginationOffset = 10
@@ -44,7 +44,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
       limit = - limit
     }
 
-    const result = await fetchExceptionsOverviewFromServer(exceptionsType, selectedFilters.selectedApp.id, selectedFilters.selectedStartDate, selectedFilters.selectedEndDate, selectedFilters.selectedVersions, keyId, limit, router)
+    const result = await fetchExceptionsOverviewFromServer(exceptionsType, filters, keyId, limit, router)
 
     switch (result.status) {
       case ExceptionsOverviewApiStatus.Error:
@@ -60,12 +60,12 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
   }
 
   useEffect(() => {
-    if (!selectedFilters.ready) {
+    if (!filters.ready) {
       return
     }
 
     getExceptionsOverview()
-  }, [paginationRange, selectedFilters]);
+  }, [paginationRange, filters]);
 
   // Reset pagination range if not in default if any filters change
   useEffect(() => {
@@ -76,7 +76,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
     }
 
     setPaginationRange({ start: 1, end: paginationOffset })
-  }, [selectedFilters]);
+  }, [filters]);
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
@@ -101,32 +101,29 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
         showDeviceManufacturers={false}
         showDeviceNames={false}
         showFreeText={false}
-        onFiltersChanged={(updatedFilters) => setSelectedFilters(updatedFilters)} />
+        onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
       <div className="py-4" />
 
       {/* Error state for crash groups fetch */}
-      {selectedFilters.ready
+      {filters.ready
         && exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Error
         && <p className="text-lg font-display">Error fetching list of {exceptionsType === ExceptionsType.Crash ? 'crashes' : 'ANRs'}, please change filters, refresh page or select a different app to try again</p>}
 
       {/* Empty state for crash groups fetch */}
-      {selectedFilters.ready
+      {filters.ready
         && exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Success
         && exceptionsOverview.results === null
         && <p className="text-lg font-display">It seems there are no {exceptionsType === ExceptionsType.Crash ? 'crashes' : 'ANRs'} for the current combination of filters. Please change filters to try again</p>}
 
       {/* Main crash groups list UI */}
-      {selectedFilters.ready
+      {filters.ready
         && (exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Success || exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading)
         && exceptionsOverview.results !== null &&
         <div className="flex flex-col items-center w-full">
           <div className="py-4" />
           <ExceptionsOverviewPlot
-            appId={selectedFilters.selectedApp.id}
             exceptionsType={exceptionsType}
-            startDate={selectedFilters.selectedStartDate}
-            endDate={selectedFilters.selectedEndDate}
-            appVersions={selectedFilters.selectedVersions} />
+            filters={filters} />
           <div className="py-4" />
           <div className='self-end'>
             <Paginator prevEnabled={exceptionsOverview.meta.previous} nextEnabled={exceptionsOverview.meta.next} displayText={paginationRange.start + ' - ' + paginationRange.end}
@@ -150,7 +147,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
             </div>
             <div className="table-row-group font-sans">
               {exceptionsOverview.results.map(({ id, type, message, method_name, file_name, line_number, count, percentage_contribution }) => (
-                <Link key={id} href={`/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${selectedFilters.selectedApp.id}/${id}/${type + "@" + file_name}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
+                <Link key={id} href={`/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${filters.app.id}/${id}/${type + "@" + file_name}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
                   <div className="table-cell p-4">
                     <p className='truncate'>{file_name + ": " + method_name + "()"}</p>
                     <div className='py-1' />

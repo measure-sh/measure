@@ -4,7 +4,7 @@ import { AppNameChangeApiStatus, AuthzAndMembersApiStatus, changeAppNameFromServ
 import CreateApp from "@/app/components/create_app";
 import DangerConfirmationModal from "@/app/components/danger_confirmation_modal";
 import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select";
-import Filters, { AppVersionsInitialSelectionType, defaultSelectedFilters } from "@/app/components/filters";
+import Filters, { AppVersionsInitialSelectionType, defaultFilters } from "@/app/components/filters";
 import { auth, getUserIdOrRedirectToAuth } from "@/app/utils/auth/auth";
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils";
 import { useRouter } from 'next/navigation';
@@ -13,7 +13,7 @@ import React, { useState, useEffect } from 'react';
 export default function Apps({ params }: { params: { teamId: string } }) {
   const router = useRouter()
 
-  const [selectedFilters, setSelectedFilters] = useState(defaultSelectedFilters);
+  const [filtesr, setFilters] = useState(defaultFilters);
 
   const [currentUserCanChangeAppSettings, setCurrentUserCanChangeAppSettings] = useState(false)
 
@@ -54,7 +54,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
   const getAppSettings = async () => {
     setFetchAppSettingsApiStatus(FetchAppSettingsApiStatus.Loading)
 
-    const result = await fetchAppSettingsFromServer(selectedFilters.selectedApp.id, router);
+    const result = await fetchAppSettingsFromServer(filtesr.app.id, router);
 
     switch (result.status) {
       case FetchAppSettingsApiStatus.Error:
@@ -69,18 +69,18 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
   useEffect(() => {
     // Don't try to fetch settings if selected app is not yet set
-    if (!selectedFilters.ready) {
+    if (!filtesr.ready) {
       return
     }
 
     getAppSettings()
-  }, [selectedFilters]);
+  }, [filtesr]);
 
   const saveAppSettings = async () => {
     setUpdateAppSettingsApiStatus(UpdateAppSettingsApiStatus.Loading)
     setUpdateAppSettingsMsg("Saving...")
 
-    const result = await updateAppSettingsFromServer(selectedFilters.selectedApp.id, updatedAppSettings, router)
+    const result = await updateAppSettingsFromServer(filtesr.app.id, updatedAppSettings, router)
 
     switch (result.status) {
 
@@ -122,7 +122,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
   const changeAppName = async () => {
     setAppNameChangeApiStatus(AppNameChangeApiStatus.Loading)
 
-    const result = await changeAppNameFromServer(selectedFilters.selectedApp.id, newAppName, router)
+    const result = await changeAppNameFromServer(filtesr.app.id, newAppName, router)
 
     switch (result.status) {
       case AppNameChangeApiStatus.Error:
@@ -157,14 +157,14 @@ export default function Apps({ params }: { params: { teamId: string } }) {
         showDeviceManufacturers={false}
         showDeviceNames={false}
         showFreeText={false}
-        onFiltersChanged={(updatedFilters) => setSelectedFilters(updatedFilters)} />
+        onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
 
 
       {/* Main UI*/}
-      {selectedFilters.ready &&
+      {filtesr.ready &&
         <div>
           {/* Modal for confirming app name change */}
-          <DangerConfirmationModal body={<p className="font-sans">Are you sure you want to rename app <span className="font-display font-bold">{selectedFilters.selectedApp.name}</span> to <span className="font-display font-bold">{newAppName}</span>?</p>} open={appNameConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          <DangerConfirmationModal body={<p className="font-sans">Are you sure you want to rename app <span className="font-display font-bold">{filtesr.app.name}</span> to <span className="font-display font-bold">{newAppName}</span>?</p>} open={appNameConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
               setAppNameConfirmationModalOpen(false)
               changeAppName()
@@ -177,9 +177,9 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               <div className="flex flex-row items-center">
                 <p>App name:</p>
                 <div className="px-1" />
-                <input id="change-team-name-input" type="text" defaultValue={selectedFilters.selectedApp.name}
+                <input id="change-team-name-input" type="text" defaultValue={filtesr.app.name}
                   onChange={(event) => {
-                    event.target.value === selectedFilters.selectedApp.name ? setSaveAppNameButtonDisabled(true) : setSaveAppNameButtonDisabled(false)
+                    event.target.value === filtesr.app.name ? setSaveAppNameButtonDisabled(true) : setSaveAppNameButtonDisabled(false)
                     setNewAppName(event.target.value)
                     setAppNameChangeApiStatus(AppNameChangeApiStatus.Init)
                   }}
@@ -188,11 +188,11 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                 {appNameChangeApiStatus === AppNameChangeApiStatus.Loading && <p className="text-sm align-bottom font-display">Changing app name...</p>}
                 {appNameChangeApiStatus === AppNameChangeApiStatus.Error && <p className="text-sm align-bottom font-display">Error changing app name, please try again</p>}
               </div>
-              <p>Package name: {selectedFilters.selectedApp.unique_identifier}</p>
+              <p>Package name: {filtesr.app.unique_identifier}</p>
               <div className="py-1" />
-              <p>Platform: {selectedFilters.selectedApp.platform}</p>
+              <p>Platform: {filtesr.app.platform}</p>
               <div className="py-1" />
-              <p>Created at: {formatDateToHumanReadableDateTime(selectedFilters.selectedApp.created_at)}</p>
+              <p>Created at: {formatDateToHumanReadableDateTime(filtesr.app.created_at)}</p>
             </div>
             <div className="flex flex-row items-center">
               <p>Data retention period</p>
@@ -213,8 +213,8 @@ export default function Apps({ params }: { params: { teamId: string } }) {
             <div className="flex flex-row items-center">
               <p>API key</p>
               <div className="px-3" />
-              <input type="text" readOnly={true} value={selectedFilters.selectedApp.api_key.key} className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-sans placeholder:text-neutral-400" />
-              <button className="mx-4 my-1 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => navigator.clipboard.writeText(selectedFilters.selectedApp.api_key.key)}>Copy</button>
+              <input type="text" readOnly={true} value={filtesr.app.api_key.key} className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-sans placeholder:text-neutral-400" />
+              <button className="mx-4 my-1 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => navigator.clipboard.writeText(filtesr.app.api_key.key)}>Copy</button>
             </div>
           </div>
         </div>

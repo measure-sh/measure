@@ -2,25 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { ResponsiveLine } from '@nivo/line'
-import { AppVersion, OsVersion, SessionType, SessionsOverviewPlotApiStatus, fetchSessionsOverviewPlotFromServer } from '../api/api_calls';
+import { SessionsOverviewPlotApiStatus, fetchSessionsOverviewPlotFromServer } from '../api/api_calls';
 import { useRouter } from 'next/navigation';
 import { formatDateToHumanReadableDate } from '../utils/time_utils';
+import { Filters } from './filters';
 
 interface SessionsOverviewPlotProps {
-  appId: string,
-  startDate: string,
-  endDate: string,
-  appVersions: AppVersion[],
-  sessionType: SessionType,
-  osVersions: OsVersion[],
-  countries: string[],
-  networkProviders: string[],
-  networkTypes: string[],
-  networkGenerations: string[],
-  locales: string[],
-  deviceManufacturers: string[],
-  deviceNames: string[]
-  freeText: string
+  filters: Filters
 }
 
 type SessionsOverviewPlot = {
@@ -32,21 +20,21 @@ type SessionsOverviewPlot = {
   }[]
 }[]
 
-const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ appId, startDate, endDate, appVersions, sessionType, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, freeText }) => {
+const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ filters }) => {
   const router = useRouter()
 
   const [sessionsOverviewPlotApiStatus, setSessionsOverviewPlotApiStatus] = useState(SessionsOverviewPlotApiStatus.Loading);
   const [plot, setPlot] = useState<SessionsOverviewPlot>();
 
   const getSessionsOverviewPlot = async () => {
-    // Don't try to fetch plot if app id is not yet set
-    if (appId === "") {
+    // Don't try to fetch plot if filters aren't ready
+    if (!filters.ready) {
       return
     }
 
     setSessionsOverviewPlotApiStatus(SessionsOverviewPlotApiStatus.Loading)
 
-    const result = await fetchSessionsOverviewPlotFromServer(appId, startDate, endDate, appVersions, sessionType, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, freeText, router)
+    const result = await fetchSessionsOverviewPlotFromServer(filters, router)
 
     switch (result.status) {
       case SessionsOverviewPlotApiStatus.Error:
@@ -75,7 +63,7 @@ const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ appId, star
 
   useEffect(() => {
     getSessionsOverviewPlot()
-  }, [appId, startDate, endDate, appVersions, sessionType, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, freeText]);
+  }, [filters]);
 
   return (
     <div className="flex border border-black font-sans items-center justify-center w-full h-[36rem]">

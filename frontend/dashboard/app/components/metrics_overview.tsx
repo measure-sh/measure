@@ -6,26 +6,24 @@ import InfoCircleAppSize from './info_circle_app_size';
 import InfoCircleExceptionRate from './info_circle_exception_rate';
 import InfoCircleAppStartTime from './info_circle_app_start_time';
 import { useRouter } from 'next/navigation';
-import { AppVersion, MetricsApiStatus, emptyMetrics, fetchMetricsFromServer } from '../api/api_calls';
+import { MetricsApiStatus, emptyMetrics, fetchMetricsFromServer } from '../api/api_calls';
+import { Filters } from './filters';
 
 interface MetricsOverviewProps {
-  appId: string,
-  startDate: string,
-  endDate: string,
-  appVersions: AppVersion[],
+  filters: Filters
 }
 
-const MetricsOverview: React.FC<MetricsOverviewProps> = ({ appId, startDate, endDate, appVersions }) => {
+const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters }) => {
 
   const [metrics, setMetrics] = useState(emptyMetrics);
   const [metricsApiStatus, setMetricsApiStatus] = useState(MetricsApiStatus.Loading);
 
   const router = useRouter()
 
-  const getMetrics = async (appId: string, startDate: string, endDate: string, appVersions: AppVersion[]) => {
+  const getMetrics = async () => {
     setMetricsApiStatus(MetricsApiStatus.Loading)
 
-    const result = await fetchMetricsFromServer(appId, startDate, endDate, appVersions, router)
+    const result = await fetchMetricsFromServer(filters, router)
 
     switch (result.status) {
       case MetricsApiStatus.Error:
@@ -39,8 +37,8 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ appId, startDate, end
   }
 
   useEffect(() => {
-    getMetrics(appId, startDate, endDate, appVersions)
-  }, [appId, startDate, endDate, appVersions]);
+    getMetrics()
+  }, [filters]);
 
   return (
     <div className="flex flex-wrap gap-16 w-5/6">
@@ -54,7 +52,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ appId, startDate, end
       <InfoCircleAppStartTime status={metricsApiStatus} title="App hot launch time" launchType="Hot" noData={metrics.hot_launch.nan} value={metrics.hot_launch.p95} delta={metrics.warm_launch.delta} />
 
       {/* show app size metrics only on single app version selection && only when app size is available */}
-      {appVersions.length === 1 && metrics.sizes !== null && <InfoCircleAppSize status={metricsApiStatus} title="App size" noData={metrics.sizes.nan} valueInBytes={metrics.sizes.selected_app_size} deltaInBytes={metrics.sizes.delta} />}
+      {filters.versions.length === 1 && metrics.sizes !== null && <InfoCircleAppSize status={metricsApiStatus} title="App size" noData={metrics.sizes.nan} valueInBytes={metrics.sizes.selected_app_size} deltaInBytes={metrics.sizes.delta} />}
     </div>
   );
 };

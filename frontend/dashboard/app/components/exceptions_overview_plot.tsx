@@ -2,16 +2,14 @@
 
 import React, { useEffect, useState } from 'react';
 import { ResponsiveLine } from '@nivo/line'
-import { AppVersion, ExceptionsType, ExceptionsOverviewPlotApiStatus, fetchExceptionsOverviewPlotFromServer } from '../api/api_calls';
+import { ExceptionsType, ExceptionsOverviewPlotApiStatus, fetchExceptionsOverviewPlotFromServer } from '../api/api_calls';
 import { useRouter } from 'next/navigation';
 import { formatDateToHumanReadableDate } from '../utils/time_utils';
+import { Filters } from './filters';
 
 interface ExceptionsOverviewPlotProps {
-  appId: string,
   exceptionsType: ExceptionsType,
-  startDate: string,
-  endDate: string,
-  appVersions: AppVersion[]
+  filters: Filters
 }
 
 type ExceptionsOverviewPlot = {
@@ -24,7 +22,7 @@ type ExceptionsOverviewPlot = {
   }[]
 }[]
 
-const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ appId, exceptionsType, startDate, endDate, appVersions }) => {
+const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ exceptionsType, filters }) => {
   const router = useRouter()
 
   const [exceptionsOverviewPlotApiStatus, setExceptionsOverviewPlotApiStatus] = useState(ExceptionsOverviewPlotApiStatus.Loading);
@@ -32,14 +30,14 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ appId, 
   const [pointIdToInstanceMap, setPointIdToInstanceMap] = useState(new Map<String, number>())
 
   const getExceptionsOverviewPlot = async () => {
-    // Don't try to fetch plot if app id is not yet set
-    if (appId === "") {
+    // Don't try to fetch plot if filters aren't ready
+    if (!filters.ready) {
       return
     }
 
     setExceptionsOverviewPlotApiStatus(ExceptionsOverviewPlotApiStatus.Loading)
 
-    const result = await fetchExceptionsOverviewPlotFromServer(appId, exceptionsType, startDate, endDate, appVersions, router)
+    const result = await fetchExceptionsOverviewPlotFromServer(exceptionsType, filters, router)
 
     switch (result.status) {
       case ExceptionsOverviewPlotApiStatus.Error:
@@ -78,7 +76,7 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ appId, 
 
   useEffect(() => {
     getExceptionsOverviewPlot()
-  }, [appId, exceptionsType, startDate, endDate, appVersions]);
+  }, [exceptionsType, filters]);
 
   return (
     <div className="flex border border-black font-sans items-center justify-center w-full h-[36rem]">
