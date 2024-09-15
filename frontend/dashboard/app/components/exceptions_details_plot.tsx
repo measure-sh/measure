@@ -2,25 +2,15 @@
 
 import React, { useEffect, useState } from 'react';
 import { ResponsiveLine } from '@nivo/line'
-import { AppVersion, ExceptionsDetailsPlotApiStatus, ExceptionsType, fetchExceptionsDetailsPlotFromServer, OsVersion } from '../api/api_calls';
+import { ExceptionsDetailsPlotApiStatus, ExceptionsType, fetchExceptionsDetailsPlotFromServer } from '../api/api_calls';
 import { useRouter } from 'next/navigation';
 import { formatDateToHumanReadableDate } from '../utils/time_utils';
+import { Filters } from './filters';
 
 interface ExceptionsDetailsPlotProps {
-  appId: string,
   exceptionsType: ExceptionsType,
   exceptionsGroupId: string,
-  startDate: string,
-  endDate: string,
-  appVersions: AppVersion[],
-  osVersions: OsVersion[],
-  countries: string[],
-  networkProviders: string[],
-  networkTypes: string[],
-  networkGenerations: string[],
-  locales: string[],
-  deviceManufacturers: string[],
-  deviceNames: string[]
+  filters: Filters
 }
 
 type ExceptionsDetailsPlot = {
@@ -31,21 +21,21 @@ type ExceptionsDetailsPlot = {
   }[]
 }[]
 
-const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ appId, exceptionsType, exceptionsGroupId, startDate, endDate, appVersions, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames }) => {
+const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exceptionsType, exceptionsGroupId, filters }) => {
   const router = useRouter()
 
   const [exceptionsDetailsPlotApiStatus, setExceptionsDetailsPlotApiStatus] = useState(ExceptionsDetailsPlotApiStatus.Loading);
   const [plot, setPlot] = useState<ExceptionsDetailsPlot>();
 
   const getExceptionsDetailsPlot = async () => {
-    // Don't try to fetch plot if app id is not yet set
-    if (appId === "") {
+    // Don't try to fetch plot if filters aren't ready
+    if (!filters.ready) {
       return
     }
 
     setExceptionsDetailsPlotApiStatus(ExceptionsDetailsPlotApiStatus.Loading)
 
-    const result = await fetchExceptionsDetailsPlotFromServer(appId, exceptionsType, exceptionsGroupId, startDate, endDate, appVersions, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, router)
+    const result = await fetchExceptionsDetailsPlotFromServer(exceptionsType, exceptionsGroupId, filters, router)
 
     switch (result.status) {
       case ExceptionsDetailsPlotApiStatus.Error:
@@ -71,7 +61,7 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ appId, ex
 
   useEffect(() => {
     getExceptionsDetailsPlot()
-  }, [appId, exceptionsType, exceptionsGroupId, startDate, endDate, appVersions, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames]);
+  }, [exceptionsType, exceptionsGroupId, filters]);
 
   return (
     <div className="flex border border-black font-sans items-center justify-center w-full h-[32rem]">

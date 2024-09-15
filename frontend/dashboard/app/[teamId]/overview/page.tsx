@@ -4,10 +4,10 @@ import React, { useState } from 'react';
 import Journey, { JourneyType } from "@/app/components/journey";
 import MetricsOverview from '@/app/components/metrics_overview';
 import { FiltersApiType } from '@/app/api/api_calls';
-import Filters, { AppVersionsInitialSelectionType, defaultSelectedFilters } from '@/app/components/filters';
+import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters';
 
 export default function Overview({ params }: { params: { teamId: string } }) {
-  const [selectedFilters, setSelectedFilters] = useState(defaultSelectedFilters);
+  const [filters, setFilters] = useState(defaultFilters);
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
@@ -32,40 +32,25 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         showDeviceManufacturers={false}
         showDeviceNames={false}
         showFreeText={false}
-        onFiltersChanged={(updatedFilters) => setSelectedFilters(updatedFilters)} />
+        onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
 
       <div className="py-4" />
 
-      {selectedFilters.ready &&
+      {filters.ready &&
         <div className='w-5/6 h-[600px]'>
           <Journey
             teamId={params.teamId}
-            appId={selectedFilters.selectedApp.id}
             bidirectional={false}
             journeyType={JourneyType.Overview}
             exceptionsGroupId={null}
-            startDate={selectedFilters.selectedStartDate}
-            endDate={selectedFilters.selectedEndDate}
-            appVersions={selectedFilters.selectedVersions}
-            osVersions={[]}
-            countries={[]}
-            networkProviders={[]}
-            networkTypes={[]}
-            networkGenerations={[]}
-            locales={[]}
-            deviceManufacturers={[]}
-            deviceNames={[]} />
+            filters={filters} />
         </div>
       }
       <div className="py-8" />
 
-      {selectedFilters.ready &&
+      {filters.ready &&
         <MetricsOverview
-          appId={selectedFilters.selectedApp.id}
-          startDate={selectedFilters.selectedStartDate}
-          endDate={selectedFilters.selectedEndDate}
-          appVersions={selectedFilters.selectedVersions} />}
-
+          filters={filters} />}
     </div>
   )
 }

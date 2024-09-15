@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { AppVersion, JourneyApiStatus, OsVersion, emptyJourney, fetchJourneyFromServer } from '../api/api_calls'
+import { JourneyApiStatus, emptyJourney, fetchJourneyFromServer } from '../api/api_calls'
 import Dagre from '@dagrejs/dagre'
 import ReactFlow, {
   useNodesState,
@@ -13,24 +13,14 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import Link from 'next/link'
+import { Filters } from './filters'
 
 interface JourneyProps {
   teamId: string,
-  appId: string,
   bidirectional: boolean,
   journeyType: JourneyType,
   exceptionsGroupId: string | null,
-  startDate: string,
-  endDate: string,
-  appVersions: AppVersion[]
-  osVersions: OsVersion[],
-  countries: string[],
-  networkProviders: string[],
-  networkTypes: string[],
-  networkGenerations: string[],
-  locales: string[],
-  deviceManufacturers: string[],
-  deviceNames: string[]
+  filters: Filters
 }
 
 export enum JourneyType {
@@ -89,7 +79,7 @@ const edgeStrokeWidthHighlight = 4
 const nodeColorPositive = '#10b981'
 const nodeColorNegative = '#f87171'
 
-const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journeyType, exceptionsGroupId, startDate, endDate, appVersions, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames }) => {
+const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, exceptionsGroupId, filters }) => {
 
   const [journeyApiStatus, setJourneyApiStatus] = useState(JourneyApiStatus.Loading)
   const [nodes, setNodes, onNodesChange] = useNodesState([])
@@ -339,7 +329,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journey
   const getJourney = async () => {
     setJourneyApiStatus(JourneyApiStatus.Loading)
 
-    const result = await fetchJourneyFromServer(appId, journeyType, exceptionsGroupId, bidirectional, startDate, endDate, appVersions, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, router)
+    const result = await fetchJourneyFromServer(journeyType, exceptionsGroupId, bidirectional, filters, router)
 
     switch (result.status) {
       case JourneyApiStatus.Error:
@@ -347,7 +337,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journey
         break
       case JourneyApiStatus.Success:
         setJourneyApiStatus(JourneyApiStatus.Success)
-        let flow = getReactFlowFromJourney(teamId, appId, journeyType, startDate, endDate, result.data)
+        let flow = getReactFlowFromJourney(teamId, filters.app.id, journeyType, filters.startDate, filters.endDate, result.data)
 
         if (flow.nodes.length === 0) {
           setJourneyApiStatus(JourneyApiStatus.NoData)
@@ -363,7 +353,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, appId, bidirectional, journey
 
   useEffect(() => {
     getJourney()
-  }, [teamId, appId, bidirectional, journeyType, exceptionsGroupId, startDate, endDate, appVersions, osVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames])
+  }, [teamId, bidirectional, journeyType, exceptionsGroupId, filters])
 
   return (
     <div className="flex items-center justify-center border border-black text-black font-sans text-sm w-full h-full">

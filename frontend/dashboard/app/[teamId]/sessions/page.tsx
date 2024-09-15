@@ -1,7 +1,7 @@
 "use client"
 
 import { emptySessionsOverviewResponse, SessionsOverviewApiStatus, fetchSessionsOverviewFromServer, FiltersApiType } from '@/app/api/api_calls';
-import Filters, { AppVersionsInitialSelectionType, defaultSelectedFilters } from '@/app/components/filters';
+import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import SessionsOverviewPlot from '@/app/components/sessions_overview_plot';
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime, formatMillisToHumanReadable } from '@/app/utils/time_utils';
@@ -13,7 +13,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
     const router = useRouter()
     const [sessionsOverviewApiStatus, setSessionsOverviewApiStatus] = useState(SessionsOverviewApiStatus.Loading);
 
-    const [selectedFilters, setSelectedFilters] = useState(defaultSelectedFilters);
+    const [filters, setFilters] = useState(defaultFilters);
 
     const [sessionsOverview, setSessionsOverview] = useState(emptySessionsOverviewResponse);
     const paginationOffset = 5
@@ -39,7 +39,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
             limit = - limit
         }
 
-        const result = await fetchSessionsOverviewFromServer(selectedFilters.selectedApp.id, selectedFilters.selectedStartDate, selectedFilters.selectedEndDate, selectedFilters.selectedVersions, selectedFilters.selectedSessionType, selectedFilters.selectedOsVersions, selectedFilters.selectedCountries, selectedFilters.selectedNetworkProviders, selectedFilters.selectedNetworkTypes, selectedFilters.selectedNetworkGenerations, selectedFilters.selectedLocales, selectedFilters.selectedDeviceManufacturers, selectedFilters.selectedDeviceNames, selectedFilters.selectedFreeText, keyId, limit, router)
+        const result = await fetchSessionsOverviewFromServer(filters, keyId, limit, router)
 
         switch (result.status) {
             case SessionsOverviewApiStatus.Error:
@@ -55,12 +55,12 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
     }
 
     useEffect(() => {
-        if (!selectedFilters.ready) {
+        if (!filters.ready) {
             return
         }
 
         getSessionsOverview()
-    }, [paginationRange, selectedFilters]);
+    }, [paginationRange, filters]);
 
     // Reset pagination range if not in default if any filters change
     useEffect(() => {
@@ -71,7 +71,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
         }
 
         setPaginationRange({ start: 1, end: paginationOffset })
-    }, [selectedFilters]);
+    }, [filters]);
 
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
@@ -96,42 +96,29 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                 showDeviceManufacturers={true}
                 showDeviceNames={true}
                 showFreeText={true}
-                onFiltersChanged={(updatedFilters) => setSelectedFilters(updatedFilters)} />
+                onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
             <div className="py-4" />
 
             {/* Error state for sessions fetch */}
-            {selectedFilters.ready
+            {filters.ready
                 && sessionsOverviewApiStatus === SessionsOverviewApiStatus.Error
                 && <p className="text-lg font-display">Error fetching list of sessions, please change filters, refresh page or select a different app to try again</p>}
 
             {/* Empty state for sessions fetch */}
-            {selectedFilters.ready
+            {filters.ready
                 && sessionsOverviewApiStatus === SessionsOverviewApiStatus.Success
                 && (sessionsOverview.results === null || sessionsOverview.results.length === 0)
                 && <p className="text-lg font-display">It seems there are no sessions for the current combination of filters. Please change filters to try again</p>}
 
             {/* Main sessions list UI */}
-            {selectedFilters.ready
+            {filters.ready
                 && (sessionsOverviewApiStatus === SessionsOverviewApiStatus.Success || sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading)
                 && sessionsOverview.results !== null
                 && sessionsOverview.results.length > 0 &&
                 <div className="flex flex-col items-center w-full">
                     <div className="py-4" />
                     <SessionsOverviewPlot
-                        appId={selectedFilters.selectedApp.id}
-                        startDate={selectedFilters.selectedStartDate}
-                        endDate={selectedFilters.selectedEndDate}
-                        appVersions={selectedFilters.selectedVersions}
-                        sessionType={selectedFilters.selectedSessionType}
-                        osVersions={selectedFilters.selectedOsVersions}
-                        countries={selectedFilters.selectedCountries}
-                        networkProviders={selectedFilters.selectedNetworkProviders}
-                        networkTypes={selectedFilters.selectedNetworkTypes}
-                        networkGenerations={selectedFilters.selectedNetworkGenerations}
-                        locales={selectedFilters.selectedLocales}
-                        deviceManufacturers={selectedFilters.selectedDeviceManufacturers}
-                        deviceNames={selectedFilters.selectedDeviceNames}
-                        freeText={selectedFilters.selectedFreeText} />
+                        filters={filters} />
                     <div className="py-4" />
                     <div className='self-end'>
                         <Paginator prevEnabled={sessionsOverview.meta.previous} nextEnabled={sessionsOverview.meta.next} displayText={paginationRange.start + ' - ' + paginationRange.end}
