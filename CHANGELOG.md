@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Additional log for anomalous cold launch duration (#1199) by @detj in #1199
 - (**backend**): Format log line (#1189) by @detj in #1189
 
+- (**frontend**): Use selected filters instead of expanded params by @anupcowkur in #1244
 - (**frontend**): Fix table column widths and move paginator to top right by @anupcowkur in #1232
 - (**frontend**): Refactor filter application to api calls by @anupcowkur in #1229
 - (**frontend**): Refactor time utils to have separate functions for human readable datetime, date only and time only by @anupcowkur in #1225
