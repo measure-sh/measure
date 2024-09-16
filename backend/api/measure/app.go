@@ -262,6 +262,42 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 			eventDataStmt.Where("attribute.app_build").In(af.VersionCodes)
 		}
 
+		if len(af.OsNames) > 0 {
+			eventDataStmt.Where("attribute.os_name").In(af.OsNames)
+		}
+
+		if len(af.OsVersions) > 0 {
+			eventDataStmt.Where("attribute.os_version").In(af.OsVersions)
+		}
+
+		if len(af.Countries) > 0 {
+			eventDataStmt.Where("inet.country_code").In(af.Countries)
+		}
+
+		if len(af.DeviceNames) > 0 {
+			eventDataStmt.Where("attribute.device_name").In(af.DeviceNames)
+		}
+
+		if len(af.DeviceManufacturers) > 0 {
+			eventDataStmt.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
+		}
+
+		if len(af.Locales) > 0 {
+			eventDataStmt.Where("attribute.device_locale").In(af.Locales)
+		}
+
+		if len(af.NetworkProviders) > 0 {
+			eventDataStmt.Where("attribute.network_provider").In(af.NetworkProviders)
+		}
+
+		if len(af.NetworkTypes) > 0 {
+			eventDataStmt.Where("attribute.network_type").In(af.NetworkTypes)
+		}
+
+		if len(af.NetworkGenerations) > 0 {
+			eventDataStmt.Where("attribute.network_generation").In(af.NetworkGenerations)
+		}
+
 		if af.HasTimeRange() {
 			eventDataStmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 		}
@@ -464,6 +500,42 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 
 		if len(af.VersionCodes) > 0 {
 			eventDataStmt.Where("attribute.app_build").In(af.VersionCodes)
+		}
+
+		if len(af.OsNames) > 0 {
+			eventDataStmt.Where("attribute.os_name").In(af.OsNames)
+		}
+
+		if len(af.OsVersions) > 0 {
+			eventDataStmt.Where("attribute.os_version").In(af.OsVersions)
+		}
+
+		if len(af.Countries) > 0 {
+			eventDataStmt.Where("inet.country_code").In(af.Countries)
+		}
+
+		if len(af.DeviceNames) > 0 {
+			eventDataStmt.Where("attribute.device_name").In(af.DeviceNames)
+		}
+
+		if len(af.DeviceManufacturers) > 0 {
+			eventDataStmt.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
+		}
+
+		if len(af.Locales) > 0 {
+			eventDataStmt.Where("attribute.device_locale").In(af.Locales)
+		}
+
+		if len(af.NetworkProviders) > 0 {
+			eventDataStmt.Where("attribute.network_provider").In(af.NetworkProviders)
+		}
+
+		if len(af.NetworkTypes) > 0 {
+			eventDataStmt.Where("attribute.network_type").In(af.NetworkTypes)
+		}
+
+		if len(af.NetworkGenerations) > 0 {
+			eventDataStmt.Where("attribute.network_generation").In(af.NetworkGenerations)
 		}
 
 		if af.HasTimeRange() {

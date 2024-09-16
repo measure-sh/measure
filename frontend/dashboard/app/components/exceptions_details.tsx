@@ -26,7 +26,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
 
   const [exceptionsDetailsApiStatus, setExceptionsDetailsApiStatus] = useState(ExceptionsDetailsApiStatus.Loading);
 
-  const [selectedFilters, setSelectedFilters] = useState(defaultFilters);
+  const [filters, setFilters] = useState(defaultFilters);
 
   const [exceptionsDetails, setExceptionsDetails] = useState(exceptionsType === ExceptionsType.Crash ? emptyCrashExceptionsDetailsResponse : emptyAnrExceptionsDetailsResponse)
   const [paginationIndex, setPaginationIndex] = useState(0)
@@ -49,7 +49,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
       limit = - limit
     }
 
-    const result = await fetchExceptionsDetailsFromServer(exceptionsType, exceptionsGroupId, selectedFilters, keyId, keyTimestamp, limit, router)
+    const result = await fetchExceptionsDetailsFromServer(exceptionsType, exceptionsGroupId, filters, keyId, keyTimestamp, limit, router)
 
     switch (result.status) {
       case ExceptionsDetailsApiStatus.Error:
@@ -65,17 +65,17 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
   }
 
   useEffect(() => {
-    if (!selectedFilters.ready) {
+    if (!filters.ready) {
       return
     }
 
     getExceptionsDetails()
-  }, [paginationIndex, selectedFilters]);
+  }, [paginationIndex, filters]);
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
       <div className="py-4" />
-      <p className="font-display font-normal text-4xl max-w-6xl text-center">{selectedFilters.app.name}</p>
+      <p className="font-display font-normal text-4xl max-w-6xl text-center">{filters.app.name}</p>
       <div className="py-1" />
       <p className="font-display font-light text-3xl max-w-6xl text-center">{decodeURIComponent(exceptionsGroupName)}</p>
       <div className="py-4" />
@@ -98,18 +98,18 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
         showDeviceManufacturers={true}
         showDeviceNames={true}
         showFreeText={false}
-        onFiltersChanged={(updatedFilters) => setSelectedFilters(updatedFilters)} />
+        onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
 
       <div className="py-4" />
 
-      {selectedFilters.ready &&
+      {filters.ready &&
         <div className='w-full'>
           <div className="py-6" />
           <div className="flex flex-col md:flex-row w-full">
             <ExceptionspDetailsPlot
               exceptionsType={exceptionsType}
               exceptionsGroupId={exceptionsGroupId}
-              filters={selectedFilters} />
+              filters={filters} />
             <div className="p-2" />
             <div className="w-full h-[32rem]">
               <Journey
@@ -117,7 +117,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
                 bidirectional={false}
                 journeyType={exceptionsType === ExceptionsType.Crash ? JourneyType.CrashDetails : JourneyType.AnrDetails}
                 exceptionsGroupId={exceptionsGroupId}
-                filters={selectedFilters} />
+                filters={filters} />
             </div>
           </div>
           <div className="py-4" />
@@ -170,7 +170,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
               <div className='flex flex-row items-center'>
                 <Link key={exceptionsDetails.results[0].id} href={`/${teamId}/sessions/${appId}/${exceptionsDetails.results[0].session_id}`} className="outline-none justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4">View Session</Link>
                 <div className='px-2' />
-                <CopyAiContext appName={selectedFilters.app.name} exceptionsType={exceptionsType} exceptionsDetails={exceptionsDetails} />
+                <CopyAiContext appName={filters.app.name} exceptionsType={exceptionsType} exceptionsDetails={exceptionsDetails} />
               </div>
               <div className="py-2" />
               {exceptionsType === ExceptionsType.Crash &&
