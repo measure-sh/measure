@@ -191,7 +191,18 @@ internal class LaunchTracker(
                 }
             }
 
+            // Cold launch hasn't completed yet.
+            // However, the activity has a saved state, so it must be a warm launch. The process
+            // was recreated but the system still retained some state. This is not a cold launch as
+            // the process didn't really start from scratch.
+            onCreateRecord.hasSavedState -> "Warm"
+
             processInfo.isForegroundProcess() -> "Cold"
+
+            // While the process was starting in background the system must have decided to create
+            // the activity and it got resumed. This is not a cold start as the system likely got a
+            // chance to warm up before the activity was created. Sadly the system doesn't tell us
+            // when it decided to do so, the data for this can be noisy.
             else -> "Warm"
         }
     }
