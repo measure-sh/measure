@@ -298,10 +298,7 @@ internal object Sql {
         """.trimIndent()
     }
 
-    fun getEventsForSessions(sessions: List<String>): String? {
-        if (sessions.isEmpty()) {
-            return null
-        }
+    fun getEventsForSessions(sessions: List<String>): String {
         return """
             SELECT ${EventTable.COL_ID}
             FROM ${EventTable.TABLE_NAME}
