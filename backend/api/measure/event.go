@@ -1267,15 +1267,54 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 		Select("attribute.app_build").
 		Select("timestamp").
 		Select("exception.handled").
-		Where("app_id = ?", af.AppID).
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+		Where("app_id = ?", af.AppID)
 
 	if len(af.Versions) > 0 {
-		base = base.Where("attribute.app_version in ?", af.Versions)
+		base.Where("attribute.app_version in ?", af.Versions)
 	}
 
 	if len(af.VersionCodes) > 0 {
-		base = base.Where("attribute.app_build in ?", af.VersionCodes)
+		base.Where("attribute.app_build in ?", af.VersionCodes)
+	}
+
+	if len(af.OsNames) > 0 {
+		base.Where("attribute.os_name").In(af.OsNames)
+	}
+
+	if len(af.OsVersions) > 0 {
+		base.Where("attribute.os_version").In(af.OsVersions)
+	}
+
+	if len(af.Countries) > 0 {
+		base.Where("inet.country_code").In(af.Countries)
+	}
+
+	if len(af.DeviceNames) > 0 {
+		base.Where("attribute.device_name").In(af.DeviceNames)
+	}
+
+	if len(af.DeviceManufacturers) > 0 {
+		base.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
+	}
+
+	if len(af.Locales) > 0 {
+		base.Where("attribute.device_locale").In(af.Locales)
+	}
+
+	if len(af.NetworkProviders) > 0 {
+		base.Where("attribute.network_provider").In(af.NetworkProviders)
+	}
+
+	if len(af.NetworkTypes) > 0 {
+		base.Where("attribute.network_type").In(af.NetworkTypes)
+	}
+
+	if len(af.NetworkGenerations) > 0 {
+		base.Where("attribute.network_generation").In(af.NetworkGenerations)
+	}
+
+	if af.HasTimeRange() {
+		base.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 	}
 
 	stmt := sqlf.
@@ -1661,15 +1700,54 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 		Select("attribute.app_version").
 		Select("attribute.app_build").
 		Select("timestamp").
-		Where("app_id = ?", af.AppID).
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+		Where("app_id = ?", af.AppID)
 
 	if len(af.Versions) > 0 {
-		base = base.Where("attribute.app_version in ?", af.Versions)
+		base.Where("attribute.app_version in ?", af.Versions)
 	}
 
 	if len(af.VersionCodes) > 0 {
-		base = base.Where("attribute.app_build in ?", af.VersionCodes)
+		base.Where("attribute.app_build in ?", af.VersionCodes)
+	}
+
+	if len(af.OsNames) > 0 {
+		base.Where("attribute.os_name").In(af.OsNames)
+	}
+
+	if len(af.OsVersions) > 0 {
+		base.Where("attribute.os_version").In(af.OsVersions)
+	}
+
+	if len(af.Countries) > 0 {
+		base.Where("inet.country_code").In(af.Countries)
+	}
+
+	if len(af.DeviceNames) > 0 {
+		base.Where("attribute.device_name").In(af.DeviceNames)
+	}
+
+	if len(af.DeviceManufacturers) > 0 {
+		base.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
+	}
+
+	if len(af.Locales) > 0 {
+		base.Where("attribute.device_locale").In(af.Locales)
+	}
+
+	if len(af.NetworkProviders) > 0 {
+		base.Where("attribute.network_provider").In(af.NetworkProviders)
+	}
+
+	if len(af.NetworkTypes) > 0 {
+		base.Where("attribute.network_type").In(af.NetworkTypes)
+	}
+
+	if len(af.NetworkGenerations) > 0 {
+		base.Where("attribute.network_generation").In(af.NetworkGenerations)
+	}
+
+	if af.HasTimeRange() {
+		base.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 	}
 
 	stmt := sqlf.
