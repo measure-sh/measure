@@ -48,6 +48,7 @@ enum DateRange {
   Last15Days = 'Last 15 Days',
   LastMonth = 'Last Month',
   Last3Months = 'Last 3 Months',
+  Last6Months = 'Last 6 Months',
   LastYear = 'Last Year',
   Custom = 'Custom Range'
 }
@@ -219,6 +220,9 @@ const Filters: React.FC<FiltersProps> = ({
         break
       case DateRange.Last3Months:
         newDate = today.minus({ months: 3 })
+        break
+      case DateRange.Last6Months:
+        newDate = today.minus({ months: 6 })
         break
       case DateRange.LastYear:
         newDate = today.minus({ years: 1 })
