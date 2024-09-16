@@ -133,12 +133,14 @@ internal class TestMeasureInitializer(
     private val procProvider: ProcProvider = ProcProviderImpl(),
     private val debugProvider: DebugProvider = DefaultDebugProvider(),
     private val runtimeProvider: RuntimeProvider = DefaultRuntimeProvider(),
+    private val osSysConfProvider: OsSysConfProvider = OsSysConfProviderImpl(),
     private val memoryReader: MemoryReader = DefaultMemoryReader(
         logger = logger,
         processInfo = processInfoProvider,
         procProvider = procProvider,
         debugProvider = debugProvider,
         runtimeProvider = runtimeProvider,
+        osSysConfProvider = osSysConfProvider,
     ),
     private val localeProvider: LocaleProvider = LocaleProviderImpl(),
     private val prefsStorage: PrefsStorage = PrefsStorageImpl(context = application),
@@ -166,6 +168,7 @@ internal class TestMeasureInitializer(
         logger,
         context = application,
         localeProvider = localeProvider,
+        osSysConfProvider = osSysConfProvider,
     ),
     private val appAttributeProcessor: AppAttributeProcessor = AppAttributeProcessor(
         context = application,
@@ -243,7 +246,6 @@ internal class TestMeasureInitializer(
         processInfoProvider = processInfoProvider,
     ),
     override val periodicEventExporter: PeriodicEventExporter = NoopPeriodicEventExporter(),
-    private val osSysConfProvider: OsSysConfProvider = OsSysConfProviderImpl(),
     override val unhandledExceptionCollector: UnhandledExceptionCollector = UnhandledExceptionCollector(
         logger = logger,
         timeProvider = timeProvider,
