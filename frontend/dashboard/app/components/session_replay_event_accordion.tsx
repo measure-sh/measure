@@ -133,7 +133,10 @@ export default function SessionReplayEventAccordion({
       if (typeof value === 'object' && value !== null) {
         if (Object.keys(value).length === 0) {
           return `${key}: --`;
-        } else {
+        } else if (key === 'attachments') {
+          return ''
+        }
+        else {
           return `${key}: ${getBodyFromEventDetails(value)}`;
         }
       } else if (value === '' || value === null) {
