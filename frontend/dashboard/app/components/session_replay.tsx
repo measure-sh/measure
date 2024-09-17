@@ -10,10 +10,12 @@ import DropdownSelect, { DropdownSelectType } from './dropdown_select'
 import { DateTime } from 'luxon'
 
 interface SessionReplayProps {
+  teamId: string
+  appId: string
   sessionReplay: typeof emptySessionReplay
 }
 
-const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
+const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionReplay }) => {
 
   const cpuData = sessionReplay.cpu_usage != null ? [
     {
@@ -302,7 +304,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ sessionReplay }) => {
               <SessionReplayEventVerticalConnector milliseconds={DateTime.fromISO(e.timestamp, { zone: 'utc' }).toMillis() - DateTime.fromISO(events[index - 1].timestamp, { zone: 'utc' }).toMillis()} />
             }
             {index > 0 && <div className='py-2' />}
-            <SessionReplayEventAccordion eventType={e.eventType} eventDetails={e.details} timestamp={e.timestamp} threadName={e.thread} id={`${e.eventType}-${index}`} active={false} />
+            <SessionReplayEventAccordion teamId={teamId} appId={appId} eventType={e.eventType} eventDetails={e.details} timestamp={e.timestamp} threadName={e.thread} id={`${e.eventType}-${index}`} active={false} />
           </div>
         ))}
       </div>

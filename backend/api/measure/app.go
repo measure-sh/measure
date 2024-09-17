@@ -4722,14 +4722,28 @@ func GetSession(c *gin.Context) {
 
 	exceptionEvents := eventMap[event.TypeException]
 	if len(exceptionEvents) > 0 {
-		exceptions := replay.ComputeExceptions(exceptionEvents)
+		exceptions, err := replay.ComputeExceptions(c, app.ID, exceptionEvents)
+		if err != nil {
+			msg := fmt.Sprintf(`unable to compute exceptions for session %q for app %q`, sessionId, app.ID)
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": msg,
+			})
+			return
+		}
 		threadedExceptions := replay.GroupByThreads(exceptions)
 		threads.Organize(event.TypeException, threadedExceptions)
 	}
 
 	anrEvents := eventMap[event.TypeANR]
 	if len(anrEvents) > 0 {
-		anrs := replay.ComputeANRs(anrEvents)
+		anrs, err := replay.ComputeANRs(c, app.ID, anrEvents)
+		if err != nil {
+			msg := fmt.Sprintf(`unable to compute ANRs for session %q for app %q`, sessionId, app.ID)
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": msg,
+			})
+			return
+		}
 		threadedANRs := replay.GroupByThreads(anrs)
 		threads.Organize(event.TypeANR, threadedANRs)
 	}
