@@ -149,7 +149,7 @@ export default function SessionReplayEventAccordion({
   function getAttachmentsFromEventDetails(): ReactNode {
     if (eventDetails.attachments !== undefined && eventDetails.attachments !== null && eventDetails.attachments.length > 0) {
       // Return screenshots for exceptions
-      if (eventType === 'exception' || eventType === 'anr') {
+      if ((eventType === "exception" && eventDetails.user_triggered === false) || eventType === 'anr') {
         return (
           <div className='flex flex-wrap gap-8 px-4 pt-4 items-center'>
             {eventDetails.attachments.map((attachment: {
