@@ -2052,6 +2052,7 @@ func GetAppJourney(c *gin.Context) {
 			crashes = append(crashes, issue)
 		}
 
+		// crashes are shown in descending order
 		sort.Slice(crashes, func(i, j int) bool {
 			return crashes[i].Count > crashes[j].Count
 		})
@@ -2068,6 +2069,7 @@ func GetAppJourney(c *gin.Context) {
 			anrs = append(anrs, issue)
 		}
 
+		// ANRs are shown in descending order
 		sort.Slice(anrs, func(i, j int) bool {
 			return anrs[i].Count > anrs[j].Count
 		})
