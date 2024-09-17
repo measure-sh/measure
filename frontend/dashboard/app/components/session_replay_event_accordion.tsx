@@ -5,8 +5,11 @@ import FilterPill from './filter_pill'
 import { formatDateToHumanReadableDateTime } from '../utils/time_utils'
 import { formatToCamelCase } from '../utils/string_utils'
 import Image from 'next/image';
+import Link from 'next/link'
 
 type SessionReplayEventAccordionpProps = {
+  teamId: string
+  appId: string
   eventType: string
   eventDetails: any
   threadName: string
@@ -16,6 +19,8 @@ type SessionReplayEventAccordionpProps = {
 }
 
 export default function SessionReplayEventAccordion({
+  teamId,
+  appId,
   eventType,
   eventDetails,
   threadName,
@@ -131,7 +136,7 @@ export default function SessionReplayEventAccordion({
         } else {
           return `${key}: ${getBodyFromEventDetails(value)}`;
         }
-      } else if (value === '') {
+      } else if (value === '' || value === null) {
         return `${key}: --`;
       } else if (key === 'stacktrace') {
         return `${key}: \n\t${(value as string).replace(/\n/g, '\n\t')}`;
@@ -146,7 +151,7 @@ export default function SessionReplayEventAccordion({
       // Return screenshots for exceptions
       if (eventType === 'exception' || eventType === 'anr') {
         return (
-          <div className='flex flex-wrap gap-8 p-4 items-center'>
+          <div className='flex flex-wrap gap-8 px-4 pt-4 items-center'>
             {eventDetails.attachments.map((attachment: {
               key: string, location: string
             }, index: number) => (
@@ -162,6 +167,16 @@ export default function SessionReplayEventAccordion({
             ))}
           </div>)
       }
+    }
+  }
+
+  function getExceptionOverviewLinkFromEventDetails(): ReactNode {
+    if ((eventType === "exception" && eventDetails.user_triggered === false) || eventType === "anr") {
+      return (
+        <div className='px-4 pt-4'>
+          <Link key={eventDetails.id} href={`/${teamId}/${eventType === "exception" ? 'crashes' : 'anrs'}/${appId}/${eventDetails.group_id}/${eventDetails.type + "@" + eventDetails.file_name}`} className="outline-none justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-white hover:border-black rounded-md text-white hover:text-black font-display transition-colors duration-100 py-2 px-4">View {eventType === "exception" ? 'Crash' : 'ANR'} Details</Link>
+        </div>
+      )
     }
   }
 
@@ -188,6 +203,7 @@ export default function SessionReplayEventAccordion({
       >
         <div className="overflow-hidden flex flex-col">
           {getAttachmentsFromEventDetails()}
+          {getExceptionOverviewLinkFromEventDetails()}
           <p className="whitespace-pre-wrap p-4 text-white">
             {getBodyFromEventDetails(eventDetails)}
           </p>

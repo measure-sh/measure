@@ -6,7 +6,7 @@ import { formatMillisToHumanReadable } from "@/app/utils/time_utils";
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from "react";
 
-export default function Session({ params }: { params: { appId: string, sessionId: string } }) {
+export default function Session({ params }: { params: { teamId: string, appId: string, sessionId: string } }) {
   const router = useRouter()
 
   const [sessionReplay, setSessionReplay] = useState(emptySessionReplay);
@@ -50,7 +50,7 @@ export default function Session({ params }: { params: { appId: string, sessionId
           <p className="font-sans"> App version: {sessionReplay.attribute.app_version}</p>
           <p className="font-sans"> Network type: {sessionReplay.attribute.network_type}</p>
           <div className="py-6" />
-          <SessionReplay sessionReplay={sessionReplay} />
+          <SessionReplay teamId={params.teamId} appId={params.appId} sessionReplay={sessionReplay} />
         </div>}
     </div>
 
