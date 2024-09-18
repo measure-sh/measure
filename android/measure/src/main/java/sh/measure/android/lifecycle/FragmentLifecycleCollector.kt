@@ -21,6 +21,7 @@ internal class FragmentLifecycleCollector(
             data = FragmentLifecycleData(
                 type = FragmentLifecycleType.ATTACHED,
                 parent_activity = f.activity?.javaClass?.name,
+                parent_fragment = f.parentFragment?.javaClass?.name,
                 class_name = f.javaClass.name,
                 tag = f.tag,
             ),
@@ -35,6 +36,7 @@ internal class FragmentLifecycleCollector(
                 type = FragmentLifecycleType.RESUMED,
                 parent_activity = f.activity?.javaClass?.name,
                 class_name = f.javaClass.name,
+                parent_fragment = f.parentFragment?.javaClass?.name,
                 tag = f.tag,
             ),
         )
@@ -48,6 +50,7 @@ internal class FragmentLifecycleCollector(
                 type = FragmentLifecycleType.PAUSED,
                 parent_activity = f.activity?.javaClass?.name,
                 class_name = f.javaClass.name,
+                parent_fragment = f.parentFragment?.javaClass?.name,
                 tag = f.tag,
             ),
         )
@@ -61,6 +64,7 @@ internal class FragmentLifecycleCollector(
                 type = FragmentLifecycleType.DETACHED,
                 parent_activity = f.activity?.javaClass?.name,
                 class_name = f.javaClass.name,
+                parent_fragment = f.parentFragment?.javaClass?.name,
                 tag = f.tag,
             ),
         )

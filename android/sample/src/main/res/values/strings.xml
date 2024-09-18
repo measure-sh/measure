@@ -16,4 +16,16 @@
     <string name="compose_screenshot">Compose Screenshot</string>
     <string name="crash">Throw unhandled exception</string>
     <string name="anr">ANR</string>
+    <string name="parent_fragment">Parent Fragment</string>
+    <string name="child_fragment">Child Fragment</string>
+    <string name="nested_fragments">Nested Fragments</string>
+    <string name="title_activity_nested_fragments">Nested Fragments</string>
+    <string name="open_product">Open Product</string>
+    <string name="open_checkout">Open Checkout</string>
+    <string name="checkout_fragment">Checkout Fragment</string>
+    <string name="title_activity_fragment_navigation">Fragment Navigation</string>
+    <string name="fragment_navigation">Fragment Navigation</string>
+    <string name="open_fragment_2">Open Fragment 2</string>
+    <string name="open_fragment_3">Open Fragment 3</string>
+    <string name="androidx_fragment_navigation">AndroidX Fragment Navigation</string>
 </resources>

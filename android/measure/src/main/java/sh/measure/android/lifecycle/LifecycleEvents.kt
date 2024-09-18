@@ -15,6 +15,7 @@ internal data class FragmentLifecycleData(
     val type: String,
     val class_name: String,
     val parent_activity: String?,
+    val parent_fragment: String?,
     val tag: String? = null,
 )
 
