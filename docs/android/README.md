@@ -168,12 +168,17 @@ implementation 'sh.measure:measure-android:0.6.1'
 
 ### 4. Initialize the SDK
 
-Add the following to your app's Application class. Ideally, done as soon as `Application.onCreate` is
-called to allow tracking events as early as possible.
+Add the following to your app's Application class `onCreate` method.
+
+> [!IMPORTANT]
+> To be able to detect early crashes and accurate launch time metrics,
+> initialize the SDK as soon as possible in Application `onCreate` method.
 
 ```kotlin
 Measure.init(context)
 ```
+
+
 
 If you wish to configure the SDK during initialization with a custom config use the overloaded function:
 

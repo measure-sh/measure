@@ -124,7 +124,7 @@ internal class MeasureInitializerImpl(
         fileStorage = fileStorage,
     ),
     private val idProvider: IdProvider = UUIDProvider(),
-    private val processInfoProvider: ProcessInfoProvider = ProcessInfoProviderImpl(),
+    override val processInfoProvider: ProcessInfoProvider = ProcessInfoProviderImpl(),
     override val sessionManager: SessionManager = SessionManagerImpl(
         logger = logger,
         timeProvider = timeProvider,
@@ -329,7 +329,6 @@ internal class MeasureInitializerImpl(
         application = application,
         eventProcessor = eventProcessor,
         timeProvider = timeProvider,
-        processInfo = processInfoProvider,
     ),
     override val networkChangesCollector: NetworkChangesCollector = NetworkChangesCollector(
         logger = logger,
@@ -375,4 +374,5 @@ internal interface MeasureInitializer {
     val userDefinedAttribute: UserDefinedAttribute
     val screenshotCollector: ScreenshotCollector
     val dataCleanupService: DataCleanupService
+    val processInfoProvider: ProcessInfoProvider
 }

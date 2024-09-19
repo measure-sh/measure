@@ -37,7 +37,7 @@ class DefaultEventTransformerTest {
     }
 
     @Test
-    fun `leaves intent data as if trackActivityIntentData=true`() {
+    fun `leaves intent data as is if trackActivityIntentData=true`() {
         configProvider.trackActivityIntentData = true
 
         // lifecycle_activity event
