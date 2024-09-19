@@ -1,6 +1,5 @@
 package sh.measure.android.storage
 
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import sh.measure.android.appexit.AppExit
@@ -17,6 +16,7 @@ import sh.measure.android.lifecycle.ActivityLifecycleData
 import sh.measure.android.lifecycle.ApplicationLifecycleData
 import sh.measure.android.lifecycle.FragmentLifecycleData
 import sh.measure.android.navigation.NavigationData
+import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.networkchange.NetworkChangeData
 import sh.measure.android.okhttp.HttpData
 import sh.measure.android.performance.CpuUsageData
@@ -141,6 +141,10 @@ internal fun <T> Event<T>.serializeDataToString(): String {
 
         EventType.NAVIGATION -> {
             Json.encodeToString(NavigationData.serializer(), data as NavigationData)
+        }
+
+        EventType.SCREEN_VIEW -> {
+            Json.encodeToString(ScreenViewData.serializer(), data as ScreenViewData)
         }
 
         else -> {

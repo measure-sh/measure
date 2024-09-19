@@ -42,6 +42,7 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [**`low_memory`**](#low_memory)
     - [**`trim_memory`**](#trim_memory)
     - [**`navigation`**](#navigation)
+    - [**`screen_view`**](#screen_view)
 
 ## Resources
 
@@ -666,3 +667,12 @@ Use the `navigation` type for navigation events.
 | source | string | Yes      | Adds context on how the event was collected. Null if not set.<br/>Example: `androidx_navigation` if the event was collected from `androidx.navigation` library. |
 | from   | string | Yes      | The source page or screen from where the navigation was triggered, if available, null otherwise.                                                                |
 | to     | string | No       | The destination page or screen where the navigation led to.                                                                                                     |
+
+
+### **`screen_view`**
+
+Use the `screen_view` type for screen view events.
+
+| Field       | Type   | Optional | Description                                                                                                                                                     |
+|-------------|--------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| screen_name | string | No       | The name of the screen viewed                                                                                                                                   |

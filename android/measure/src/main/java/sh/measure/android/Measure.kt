@@ -115,9 +115,29 @@ object Measure {
      */
     @JvmStatic
     @JvmOverloads
+    @Deprecated(
+        message = "This method will be removed in the next version, use trackScreenView instead",
+        replaceWith = ReplaceWith("Measure.trackScreenView(screenName)"),
+    )
     fun trackNavigation(to: String, from: String? = null) {
         if (isInitialized.get()) {
             measure.trackNavigation(to, from)
+        }
+    }
+
+    /**
+     * Track a screen view event.
+     *
+     * Screen view events are important to understand user journey in the app. Measure SDK
+     * automatically collects screen view events from the [Compose Navigation library](https://developer.android.com/jetpack/androidx/releases/navigation)
+     * along with Activity and Fragment lifecycle events. But if your app uses a custom navigation
+     * system, you can use this method to track screen view events to have more context when
+     * debugging issues.
+     */
+    @JvmStatic
+    fun trackScreenView(screenName: String) {
+        if (isInitialized.get()) {
+            measure.trackScreenView(screenName)
         }
     }
 

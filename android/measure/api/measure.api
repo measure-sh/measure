@@ -18,6 +18,7 @@ public final class sh/measure/android/Measure {
 	public static final fun trackNavigation (Ljava/lang/String;)V
 	public static final fun trackNavigation (Ljava/lang/String;Ljava/lang/String;)V
 	public static synthetic fun trackNavigation$default (Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)V
+	public static final fun trackScreenView (Ljava/lang/String;)V
 }
 
 public final class sh/measure/android/config/MeasureConfig : sh/measure/android/config/IMeasureConfig {

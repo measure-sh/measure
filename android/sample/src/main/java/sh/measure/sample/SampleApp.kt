@@ -26,7 +26,7 @@ class SampleApp : Application() {
         )
         Measure.setUserId("sample-user-sd")
         Measure.clearUserId()
-        Measure.trackNavigation("sample-to", "sample-from")
+        Measure.trackScreenView("screen-name")
         Measure.trackHandledException(RuntimeException("sample-handled-exception"))
         /*
         Measure.putAttribute("sample-key-1", 123)

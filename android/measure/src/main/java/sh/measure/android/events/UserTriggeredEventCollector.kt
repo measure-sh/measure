@@ -2,12 +2,15 @@ package sh.measure.android.events
 
 import sh.measure.android.exceptions.ExceptionFactory
 import sh.measure.android.navigation.NavigationData
+import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TimeProvider
 
 internal interface UserTriggeredEventCollector {
+    @Deprecated("Use trackScreenView instead")
     fun trackNavigation(to: String, from: String?)
     fun trackHandledException(throwable: Throwable)
+    fun trackScreenView(screenName: String)
 }
 
 internal class UserTriggeredEventCollectorImpl(
@@ -15,6 +18,7 @@ internal class UserTriggeredEventCollectorImpl(
     private val timeProvider: TimeProvider,
     private val processInfoProvider: ProcessInfoProvider,
 ) : UserTriggeredEventCollector {
+    @Deprecated("Use trackScreenView instead")
     override fun trackNavigation(to: String, from: String?) {
         eventProcessor.trackUserTriggered(
             data = NavigationData(
@@ -39,6 +43,14 @@ internal class UserTriggeredEventCollectorImpl(
             ),
             timestamp = timeProvider.currentTimeSinceEpochInMillis,
             type = EventType.EXCEPTION,
+        )
+    }
+
+    override fun trackScreenView(screenName: String) {
+        eventProcessor.trackUserTriggered(
+            data = ScreenViewData(name = screenName),
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            type = EventType.SCREEN_VIEW,
         )
     }
 }
