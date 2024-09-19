@@ -10,6 +10,7 @@ import android.os.Process
  * This information is used by [AppLaunchCollector] to calculate the cold launch time.
  */
 internal object LaunchState {
+    var processImportanceOnInit: Int? = null
     var contentLoaderAttachUptime: Long? = null
     var lastAppVisibleTime: Long? = null
 

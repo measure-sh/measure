@@ -46,6 +46,21 @@ internal data class ColdLaunchData(
 @Serializable
 internal data class WarmLaunchData(
     /**
+     * The start time captured using [Process.getStartUptimeMillis].
+     */
+    val process_start_uptime: Long?,
+
+    /**
+     * The start time captured using [Process.getStartRequestedUptimeMillis].
+     */
+    val process_start_requested_uptime: Long?,
+
+    /**
+     * The start time captured using [MeasureInitProvider.attachInfo].
+     */
+    val content_provider_attach_uptime: Long?,
+
+    /**
      * The time at which the app became visible to the user.
      */
     val app_visible_uptime: Long,
@@ -69,6 +84,11 @@ internal data class WarmLaunchData(
      * The Intent data used to launch the [launched_activity].
      */
     var intent_data: String?,
+
+    /**
+     * Whether the warm launch is actually a lukewarm launch.
+     */
+    var is_lukewarm: Boolean,
 )
 
 @Serializable

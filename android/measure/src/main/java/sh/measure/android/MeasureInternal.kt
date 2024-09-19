@@ -17,6 +17,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     val eventProcessor by lazy { measureInitializer.eventProcessor }
     val timeProvider by lazy { measureInitializer.timeProvider }
     val httpEventCollector by lazy { measureInitializer.httpEventCollector }
+    val processInfoProvider by lazy { measureInitializer.processInfoProvider }
     private val userTriggeredEventCollector by lazy { measureInitializer.userTriggeredEventCollector }
     private val sessionManager by lazy { measureInitializer.sessionManager }
     private val resumedActivityProvider by lazy { measureInitializer.resumedActivityProvider }

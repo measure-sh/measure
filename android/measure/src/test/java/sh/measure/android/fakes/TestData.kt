@@ -156,18 +156,26 @@ internal object TestData {
     }
 
     fun getWarmLaunchData(
+        processStartUptime: Long = 100,
+        processStartRequestedUptime: Long = 200,
+        contentProviderAttachUptime: Long = 300,
         appVisibleUptime: Long = 100,
         onNextDrawUptime: Long = 200,
         launchedActivity: String = "launched_activity",
         hasSavedState: Boolean = true,
         intentData: String = "intent_data",
+        isLukewarm: Boolean = false,
     ): WarmLaunchData {
         return WarmLaunchData(
+            processStartUptime,
+            processStartRequestedUptime,
+            contentProviderAttachUptime,
             appVisibleUptime,
             onNextDrawUptime,
             launchedActivity,
             hasSavedState,
             intentData,
+            isLukewarm,
         )
     }
 

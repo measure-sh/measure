@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import androidx.annotation.VisibleForTesting
 import org.jetbrains.annotations.TestOnly
+import sh.measure.android.applaunch.LaunchState
 import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.Attachment
 import sh.measure.android.events.EventProcessor
@@ -52,6 +53,7 @@ object Measure {
                     val initializer =
                         MeasureInitializerImpl(application, inputConfig = measureConfig)
                     measure = MeasureInternal(initializer)
+                    storeProcessImportanceState()
                     measure.init()
                 },
             )
@@ -324,5 +326,18 @@ object Measure {
             attributes = attributes,
             attachments = attachments,
         )
+    }
+
+    private fun storeProcessImportanceState() {
+        try {
+            LaunchState.processImportanceOnInit =
+                measure.processInfoProvider.getProcessImportance()
+        } catch (e: Throwable) {
+            measure.logger.log(
+                LogLevel.Error,
+                "Failed to get process importance during initialization.",
+                e,
+            )
+        }
     }
 }

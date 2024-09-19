@@ -308,7 +308,6 @@ internal class TestMeasureInitializer(
         application = application,
         eventProcessor = eventProcessor,
         timeProvider = timeProvider,
-        processInfo = processInfoProvider,
     ),
     override val networkChangesCollector: NetworkChangesCollector = NetworkChangesCollector(
         logger = logger,
