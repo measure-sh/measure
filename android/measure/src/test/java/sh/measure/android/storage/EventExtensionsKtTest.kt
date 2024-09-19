@@ -89,6 +89,9 @@ class EventExtensionsKtTest {
         val navigationEvent = TestData.getNavigationData().toEvent(type = EventType.NAVIGATION)
         assert(navigationEvent.serializeDataToString().isNotEmpty())
 
+        val screenViewEvent = TestData.getScreenViewData().toEvent(type = EventType.SCREEN_VIEW)
+        assert(screenViewEvent.serializeDataToString().isNotEmpty())
+
         val lowMemoryEvent = TestData.getLowMemoryData().toEvent(type = EventType.LOW_MEMORY)
         assert(lowMemoryEvent.serializeDataToString().isNotEmpty())
     }

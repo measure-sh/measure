@@ -5,7 +5,7 @@ Measure SDK captures lifecycle and navigation events automatically, this include
 1. [Application foregrounded/backgrounded](#application-foregroundedbackgrounded)
 2. [Activity lifecycle](#activity-lifecycle)
 3. [Fragment lifecycle](#fragment-lifecycle)
-4. [Navigation](#navigation)
+4. [Screen Views](#screen-views)
 
 ## Application foregrounded/backgrounded
 
@@ -75,21 +75,21 @@ the [Fragment Lifecycle Event](../../api/sdk/README.md#lifecyclefragment) sectio
 > The Fragment lifecycle events are only tracked if the androidx.Fragment dependency is added to the app. Measure does
 > not introduce any dependency on androidx.Fragment automatically.
 
-## Navigation
+## Screen Views
 
 ### How it works
 
 Measure instruments the [AndroidX navigation library](https://developer.android.com/guide/navigation)
 using [ASM](https://asm.ow2.io/) by automatically tracking all
-navigation events by
+screen view events by
 registering [NavController.OnDestinationChangedListener](https://developer.android.com/reference/androidx/navigation/NavController.OnDestinationChangedListener)
 This is done using the Measure gradle plugin, read more details about
 it [here](/docs/android/gradle-plugin.md).
 
 ### Data collected
 
-Checkout all the data collected for navigation in
-the [Navigation Event](../../api/sdk/README.md#navigation) section.
+Checkout all the data collected for screen view in
+the [Screen View Event](../../api/sdk/README.md#screenview) section.
 
 > [!NOTE]  
 > Compose navigation events are only tracked if the project uses Compose and the Compose navigation library. Measure

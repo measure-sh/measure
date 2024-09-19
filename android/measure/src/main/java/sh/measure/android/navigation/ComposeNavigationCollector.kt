@@ -31,12 +31,6 @@ fun NavHostController.withMeasureNavigationListener(): NavHostController {
 private class MeasureNavigationObserver(
     private val navController: NavController,
 ) : LifecycleEventObserver {
-    var lastDestinationRoute: String? = null
-
-    private companion object {
-        private const val SOURCE_ANDROIDX_NAVIGATION = "androidx-navigation"
-    }
-
     override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
         if (event == Lifecycle.Event.ON_RESUME) {
             navController.addOnDestinationChangedListener(destinationChangedListener)
@@ -55,15 +49,10 @@ private class MeasureNavigationObserver(
                 val timeProvider = Measure.getTimeProvider() ?: return@let
                 val eventProcessor = Measure.getEventProcessor() ?: return@let
                 eventProcessor.track(
-                    type = EventType.NAVIGATION,
+                    type = EventType.SCREEN_VIEW,
                     timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                    data = NavigationData(
-                        source = SOURCE_ANDROIDX_NAVIGATION,
-                        from = lastDestinationRoute,
-                        to = to,
-                    ),
+                    data = ScreenViewData(name = to),
                 )
-                lastDestinationRoute = to
             }
         }
 }

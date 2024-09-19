@@ -20,6 +20,7 @@ import sh.measure.android.lifecycle.ApplicationLifecycleData
 import sh.measure.android.lifecycle.FragmentLifecycleData
 import sh.measure.android.lifecycle.FragmentLifecycleType
 import sh.measure.android.navigation.NavigationData
+import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.networkchange.NetworkChangeData
 import sh.measure.android.networkchange.NetworkGeneration
 import sh.measure.android.okhttp.HttpData
@@ -456,5 +457,9 @@ internal object TestData {
             app_exit_time_ms = appExitTimeMs,
             pid = pid,
         )
+    }
+
+    fun getScreenViewData(): ScreenViewData {
+        return ScreenViewData(name = "screen-name")
     }
 }

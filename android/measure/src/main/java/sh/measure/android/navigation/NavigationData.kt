@@ -3,6 +3,7 @@ package sh.measure.android.navigation
 import kotlinx.serialization.Serializable
 
 @Serializable
+@Deprecated("This class is deprecated and will be removed in the next version. Use ScreenViewData instead.")
 internal data class NavigationData(
     /**
      * Adds context on how the event was collected.
