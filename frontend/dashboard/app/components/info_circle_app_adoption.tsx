@@ -22,9 +22,12 @@ const InfoCircleAppAdoption = ({ status, noData, value, sessions, totalSessions,
         {status === MetricsApiStatus.Success && noData === false && <p className="font-sans text-xl"> {value}%</p>}
         {status === MetricsApiStatus.Success && noData === false && <div className="py-1" />}
         {status === MetricsApiStatus.Success && noData === false && <p className="font-sans text-sm">{formatter.format(sessions)}/{formatter.format(totalSessions)} sessions</p>}
-        <span className="pointer-events-none z-50 max-w-xl absolute font-sans text-sm text-white rounded-md p-4 bg-neutral-800 -top-28 left-0 w-max opacity-0 transition-opacity group-hover:opacity-100">
-          Adoption =  (Sessions of selected app versions / Sessions of all app versions) * 100
-        </span>
+        <div className="pointer-events-none z-50 max-w-xl absolute font-sans text-xs text-white rounded-md p-4 bg-neutral-800 left-0 top-0 transform -translate-y-full -mt-4 w-max opacity-0 transition-opacity group-hover:opacity-100">
+          <p>Adoption =  (Sessions of selected app versions / Sessions of all app versions) * 100</p>
+          <div className='py-2' />
+          <p>Selected Sessions = {sessions}</p>
+          <p>Total Sessions = {totalSessions}</p>
+        </div>
       </div>
       <div className="py-2" />
       <p className="font-display text-lg">{title}</p>

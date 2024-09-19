@@ -20,7 +20,7 @@ const InfoCircleAppStartTime = ({ status, noData, value, delta, title, launchTyp
         {status === MetricsApiStatus.Success && noData === false && <p className="font-sans text-xl"> {value}ms</p>}
         {status === MetricsApiStatus.Success && noData === false && <div className="py-1" />}
         {status === MetricsApiStatus.Success && noData === false && <p className={`font-sans text-sm ${delta > 0 && delta < 1 ? 'text-green-600' : delta > 1 ? 'text-red-400' : ''}`}>{delta > 1 ? `${delta}x slower` : delta > 0 && delta < 1 ? `${delta}x faster` : 'No change'}</p>}
-        <span className="pointer-events-none z-50 max-w-xl absolute font-sans text-sm text-white rounded-md p-4 bg-neutral-800 -top-44 left-0 w-max opacity-0 transition-opacity group-hover:opacity-100">
+        <span className="pointer-events-none z-50 max-w-xl absolute font-sans text-xs text-white rounded-md p-4 bg-neutral-800 left-0 top-0 transform -translate-y-full -mt-4 w-max opacity-0 transition-opacity group-hover:opacity-100">
           App start time = p95 {launchType} launch time of selected app versions<br /><br />Delta value = p95 {launchType} launch time of selected app versions / p95 {launchType} launch time of unselected app versions
         </span>
       </div>
