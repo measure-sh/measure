@@ -19,7 +19,7 @@ const InfoCircleAppSize = ({ status, noData, valueInBytes, deltaInBytes, title }
         {status === MetricsApiStatus.Success && noData === false && <p className="font-sans text-xl"> {(valueInBytes / (1024 * 1024)).toPrecision(3)} MB</p>}
         {status === MetricsApiStatus.Success && noData === false && <div className="py-1" />}
         {status === MetricsApiStatus.Success && noData === false && <p className={`font-sans text-sm ${deltaInBytes < 0 ? 'text-green-600' : deltaInBytes > 0 ? 'text-red-400' : ''}`}>{deltaInBytes > 0 ? '+' : ''}{deltaInBytes === 0 ? 'No change' : (deltaInBytes / (1024 * 1024)).toPrecision(3) + ' MB'}</p>}
-        <span className="pointer-events-none z-50 max-w-xl absolute font-sans text-sm text-white rounded-md p-4 bg-neutral-800 -top-32 left-0 w-max opacity-0 transition-opacity group-hover:opacity-100">
+        <span className="pointer-events-none z-50 max-w-xl absolute font-sans text-xs text-white rounded-md p-4 bg-neutral-800 left-0 top-0 transform -translate-y-full -mt-4 w-max opacity-0 transition-opacity group-hover:opacity-100">
           Delta value = App size of selected app version - Average app size of unselected app versions
         </span>
       </div>
