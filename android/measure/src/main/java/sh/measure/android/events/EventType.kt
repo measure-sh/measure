@@ -21,4 +21,5 @@ internal object EventType {
     const val TRIM_MEMORY: String = "trim_memory"
     const val CPU_USAGE: String = "cpu_usage"
     const val NAVIGATION: String = "navigation"
+    const val CUSTOM: String = "custom"
 }

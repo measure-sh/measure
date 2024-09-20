@@ -12,13 +12,13 @@ import sh.measure.android.attributes.DeviceAttributeProcessor
 import sh.measure.android.attributes.InstallationIdAttributeProcessor
 import sh.measure.android.attributes.NetworkStateAttributeProcessor
 import sh.measure.android.attributes.UserAttributeProcessor
-import sh.measure.android.attributes.UserDefinedAttribute
-import sh.measure.android.attributes.UserDefinedAttributeImpl
 import sh.measure.android.config.Config
 import sh.measure.android.config.ConfigLoaderImpl
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.ConfigProviderImpl
 import sh.measure.android.config.MeasureConfig
+import sh.measure.android.customevents.CustomEventsCollector
+import sh.measure.android.customevents.CustomEventsCollectorImpl
 import sh.measure.android.events.DefaultEventTransformer
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventProcessorImpl
@@ -153,12 +153,6 @@ internal class TestMeasureInitializer(
     private val networkStateProvider: NetworkStateProvider = NetworkStateProviderImpl(
         initialNetworkStateProvider = initialNetworkStateProvider,
     ),
-    override val userDefinedAttribute: UserDefinedAttribute = UserDefinedAttributeImpl(
-        logger,
-        configProvider,
-        database,
-        executorServiceRegistry.ioExecutor(),
-    ),
     override val userAttributeProcessor: UserAttributeProcessor = UserAttributeProcessor(
         logger,
         prefsStorage,
@@ -238,7 +232,6 @@ internal class TestMeasureInitializer(
         screenshotCollector = screenshotCollector,
         eventTransformer = eventTransformer,
         configProvider = configProvider,
-        userDefinedAttribute = userDefinedAttribute,
     ),
     override val userTriggeredEventCollector: UserTriggeredEventCollector = UserTriggeredEventCollectorImpl(
         eventProcessor = eventProcessor,
@@ -330,5 +323,12 @@ internal class TestMeasureInitializer(
         logger = logger,
         eventProcessor = eventProcessor,
         timeProvider = timeProvider,
+    ),
+    override val customEventCollector: CustomEventsCollector = CustomEventsCollectorImpl(
+        logger = logger,
+        eventProcessor = eventProcessor,
+        timeProvider = timeProvider,
+        configProvider = configProvider,
+        fileStorage = fileStorage,
     ),
 ) : MeasureInitializer

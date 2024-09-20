@@ -2,7 +2,7 @@ package sh.measure.android.storage
 
 internal object DbConstants {
     const val DATABASE_NAME = "measure.db"
-    const val DATABASE_VERSION = 1
+    const val DATABASE_VERSION = 2
 }
 
 internal object EventTable {
@@ -46,13 +46,6 @@ internal object SessionsTable {
     const val COL_APP_EXIT_TRACKED = "app_exit_tracked"
     const val COL_NEEDS_REPORTING = "needs_reporting"
     const val COL_CRASHED = "crashed"
-}
-
-internal object UserDefinedAttributesTable {
-    const val TABLE_NAME = "user_defined_attributes"
-    const val COL_KEY = "key"
-    const val COL_VALUE = "value"
-    const val COL_TYPE = "type"
 }
 
 internal object Sql {
@@ -125,14 +118,6 @@ internal object Sql {
 
     const val CREATE_SESSIONS_NEEDS_REPORTING_INDEX = """
         CREATE INDEX IF NOT EXISTS sessions_needs_reporting_index ON ${SessionsTable.TABLE_NAME} (${SessionsTable.COL_NEEDS_REPORTING})
-    """
-
-    const val CREATE_USER_DEFINED_ATTRIBUTES_TABLE = """
-        CREATE TABLE ${UserDefinedAttributesTable.TABLE_NAME} (
-            ${UserDefinedAttributesTable.COL_KEY} TEXT PRIMARY KEY,
-            ${UserDefinedAttributesTable.COL_VALUE} TEXT,
-            ${UserDefinedAttributesTable.COL_TYPE} TEXT NOT NULL
-        )
     """
 
     /**
@@ -269,16 +254,6 @@ internal object Sql {
             UPDATE ${SessionsTable.TABLE_NAME}
             SET ${SessionsTable.COL_APP_EXIT_TRACKED} = 1
             WHERE ${SessionsTable.COL_PID} = $pid
-        """.trimIndent()
-    }
-
-    fun getUserDefinedAttributes(): String {
-        return """
-            SELECT 
-                ${UserDefinedAttributesTable.COL_KEY}, 
-                ${UserDefinedAttributesTable.COL_VALUE}, 
-                ${UserDefinedAttributesTable.COL_TYPE}
-            FROM ${UserDefinedAttributesTable.TABLE_NAME}
         """.trimIndent()
     }
 

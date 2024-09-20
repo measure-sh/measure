@@ -9,14 +9,15 @@ import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.verify
+import sh.measure.android.Attributes
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
+import sh.measure.android.buildAttributes
 import sh.measure.android.exporter.ExceptionExporter
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeEventStore
 import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakeSessionManager
-import sh.measure.android.fakes.FakeUserDefinedAttribute
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.fakes.TestData
@@ -37,7 +38,6 @@ internal class EventProcessorTest {
     private val eventTransformer = object : EventTransformer {
         override fun <T> transform(event: Event<T>): Event<T> = event
     }
-    private val userDefinedAttribute = FakeUserDefinedAttribute()
 
     private val eventProcessor = EventProcessorImpl(
         logger = NoopLogger(),
@@ -50,7 +50,6 @@ internal class EventProcessorTest {
         screenshotCollector = screenshotCollector,
         configProvider = configProvider,
         eventTransformer = eventTransformer,
-        userDefinedAttribute = userDefinedAttribute,
     )
 
     @Before
@@ -112,19 +111,19 @@ internal class EventProcessorTest {
     }
 
     @Test
-    fun `given event with attributes, adds session id, event id and thread name as attribute, then stores event`() {
+    fun `given event with user defined attributes, adds session id, event id and thread name as attribute, then stores event`() {
         // Given
         val exceptionData = TestData.getExceptionData()
         val timestamp = 1710746412L
         val type = EventType.EXCEPTION
-        val attributes: MutableMap<String, Any?> = mutableMapOf("key" to "value")
+        val attributes: Attributes = buildAttributes { "key" to "value" }
 
         // When
         eventProcessor.track(
             data = exceptionData,
             timestamp = timestamp,
             type = type,
-            attributes = attributes,
+            userDefinedAttributes = attributes,
         )
 
         val expectedEvent = exceptionData.toEvent(
@@ -132,7 +131,7 @@ internal class EventProcessorTest {
             timestamp = timestamp.iso8601Timestamp(),
             id = idProvider.id,
             sessionId = sessionManager.getSessionId(),
-            attributes = attributes,
+            userDefinedAttributes = attributes,
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 
         assertEquals(1, eventStore.trackedEvents.size)
@@ -161,7 +160,6 @@ internal class EventProcessorTest {
             screenshotCollector = screenshotCollector,
             configProvider = configProvider,
             eventTransformer = eventTransformer,
-            userDefinedAttribute = userDefinedAttribute,
         )
 
         // When
@@ -332,7 +330,6 @@ internal class EventProcessorTest {
             screenshotCollector = screenshotCollector,
             configProvider = configProvider,
             eventTransformer = eventTransformer,
-            userDefinedAttribute = userDefinedAttribute,
         )
 
         // When
@@ -377,7 +374,6 @@ internal class EventProcessorTest {
             screenshotCollector = screenshotCollector,
             configProvider = configProvider,
             eventTransformer = eventTransformer,
-            userDefinedAttribute = userDefinedAttribute,
         )
 
         // When
@@ -413,29 +409,6 @@ internal class EventProcessorTest {
         )
 
         assertEquals(1, eventStore.trackedEvents.size)
-        assertEquals(expectedEvent, eventStore.trackedEvents.first())
-    }
-
-    @Test
-    fun `given user defined attributes available, adds them to event`() {
-        userDefinedAttribute.put("key", "value", false)
-        val data = TestData.getNavigationData()
-        val timestamp = 1710746412L
-        val eventType = EventType.NAVIGATION
-        val expectedEvent = data.toEvent(
-            type = eventType,
-            timestamp = timestamp.iso8601Timestamp(),
-            id = idProvider.id,
-            sessionId = sessionManager.getSessionId(),
-            userDefinedAttributes = mapOf("key" to "value"),
-        ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
-
-        eventProcessor.track(
-            data = data,
-            timestamp = timestamp,
-            type = eventType,
-        )
-
         assertEquals(expectedEvent, eventStore.trackedEvents.first())
     }
 }

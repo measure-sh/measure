@@ -36,4 +36,29 @@ internal class Attachment(
             "Failed to create Attachment. Only one of bytes or path must be provided"
         }
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Attachment) return false
+
+        if (name != other.name) return false
+        if (type != other.type) return false
+        if (bytes != null) {
+            if (other.bytes == null) return false
+            if (!bytes.contentEquals(other.bytes)) return false
+        } else {
+            if (other.bytes != null) return false
+        }
+        if (path != other.path) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = name.hashCode()
+        result = 31 * result + type.hashCode()
+        result = 31 * result + (bytes?.contentHashCode() ?: 0)
+        result = 31 * result + (path?.hashCode() ?: 0)
+        return result
+    }
 }

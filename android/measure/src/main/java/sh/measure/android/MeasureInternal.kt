@@ -34,9 +34,9 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     private val appExitCollector by lazy { measureInitializer.appExitCollector }
     private val periodicEventExporter by lazy { measureInitializer.periodicEventExporter }
     private val userAttributeProcessor by lazy { measureInitializer.userAttributeProcessor }
-    private val userDefinedAttribute by lazy { measureInitializer.userDefinedAttribute }
     private val configProvider by lazy { measureInitializer.configProvider }
     private val dataCleanupService by lazy { measureInitializer.dataCleanupService }
+    private val customEventCollector by lazy { measureInitializer.customEventCollector }
 
     fun init() {
         logger.log(LogLevel.Debug, "Starting Measure SDK")
@@ -123,28 +123,11 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
         userTriggeredEventCollector.trackHandledException(throwable)
     }
 
-    fun putAttribute(key: String, value: Number, store: Boolean) {
-        userDefinedAttribute.put(key, value, store)
-    }
-
-    fun putAttribute(key: String, value: String, store: Boolean) {
-        userDefinedAttribute.put(key, value, store)
-    }
-
-    fun putAttribute(key: String, value: Boolean, store: Boolean) {
-        userDefinedAttribute.put(key, value, store)
-    }
-
-    fun removeAttribute(key: String) {
-        userDefinedAttribute.remove(key)
-    }
-
-    fun clearAttributes() {
-        userDefinedAttribute.clear()
-    }
-
-    fun clear() {
-        userAttributeProcessor.clearUserId()
-        userDefinedAttribute.clear()
+    fun trackEvent(
+        name: String,
+        attributes: Attributes,
+        attachment: MeasureAttachment? = null,
+    ) {
+        customEventCollector.trackEvent(name, attributes, attachment)
     }
 }

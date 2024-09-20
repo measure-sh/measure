@@ -51,11 +51,6 @@ class DatabaseTest {
             assertEquals(AttachmentTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
             it.moveToNext()
             assertEquals(EventsBatchTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
-            it.moveToNext()
-            assertEquals(
-                UserDefinedAttributesTable.TABLE_NAME,
-                it.getString(it.getColumnIndex("name")),
-            )
         }
     }
 

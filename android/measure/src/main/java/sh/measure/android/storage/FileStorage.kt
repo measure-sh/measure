@@ -111,9 +111,14 @@ internal class FileStorageImpl(
 
     override fun getFile(path: String): File? {
         val file = File(path)
-        return when {
-            file.exists() -> file
-            else -> null
+        return try {
+            when {
+                file.exists() -> file
+                else -> null
+            }
+        } catch (e: SecurityException) {
+            logger.log(LogLevel.Error, "Error getting file with path=$path", e)
+            return null
         }
     }
 

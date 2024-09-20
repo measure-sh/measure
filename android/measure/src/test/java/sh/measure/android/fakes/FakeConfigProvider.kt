@@ -28,9 +28,9 @@ internal class FakeConfigProvider : ConfigProvider {
     override var httpContentTypeAllowlist: List<String> = emptyList()
     override var defaultHttpHeadersBlocklist: List<String> = emptyList()
     override var sessionEndThresholdMs: Long = 60 * 1000 // 1 minute
-    override var maxUserDefinedAttributeKeyLength: Int = 64
+    override var maxUserDefinedAttributeKeyLength: Int = 256
     override var maxUserDefinedAttributeValueLength: Int = 256
-    override var userDefinedAttributeKeyWithSpaces: Boolean = false
+    override var maxUserDefinedAttributesPerEvent: Int = 100
 
     var shouldTrackHttpBody = false
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {

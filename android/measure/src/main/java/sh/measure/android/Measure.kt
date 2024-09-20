@@ -145,113 +145,36 @@ object Measure {
     }
 
     /**
-     * Adds an attribute which will be collected along with every event in the session.
+     * Track a custom event.
      *
-     * Attributes are key-value pairs that provide additional context to the events. For example,
-     * you can add user's subscription status, plan, or any other relevant information to help
-     * debug issues with more context.
-     *
-     * Note that these attributes are not persisted across app launches. You need to set them
-     * each time the app starts.
-     *
-     * To be able to filter and search on these attributes on the Measure Dashboard, it is
-     * recommended to use consistent naming conventions and namespacing them with relevant context.
-     *
-     * Setting an attribute with different values overrides the previous value.
-     *
-     * @param key The key for the attribute.
-     * @param value The value for the attribute, can be an Integer, Long, Float or Double.
-     * @param store If true, the attribute will be stored on disk and persisted across app launches.
+     * @param name The name of the event.
+     * @param attributes The attributes associated with the event. It can be any key-value pair.
      */
-    private fun putAttribute(key: String, value: Number, store: Boolean) {
+    @JvmStatic
+    fun trackEvent(
+        name: String,
+        attributes: Attributes,
+    ) {
         if (isInitialized.get()) {
-            measure.putAttribute(key, value, store)
+            measure.trackEvent(name, attributes)
         }
     }
 
     /**
-     * Adds an attribute which will be collected along with every event in the session.
+     * Track a custom event with an attachment.
      *
-     * Attributes are key-value pairs that provide additional context to the events. For example,
-     * you can add user's subscription status, plan, or any other relevant information to help
-     * debug issues with more context.
-     *
-     * Note that these attributes are not persisted across app launches. You need to set them
-     * each time the app starts.
-     *
-     * To be able to filter and search on these attributes on the Measure Dashboard, it is
-     * recommended to use consistent naming conventions and namespacing them with relevant context.
-     *
-     * Setting an attribute with different values overrides the previous value.
-     *
-     * @param key The key for the attribute.
-     * @param value The value for the attribute.
-     * @param store If true, the attribute will be stored on disk and persisted across app launches.
+     * @param name The name of the event.
+     * @param attributes The attributes associated with the event. It can be any key-value pair.
+     * @param attachment The attachment associated with the event.
      */
-    private fun putAttribute(key: String, value: String, store: Boolean) {
+    @JvmStatic
+    fun trackEvent(
+        name: String,
+        attachment: MeasureAttachment,
+        attributes: Attributes,
+    ) {
         if (isInitialized.get()) {
-            measure.putAttribute(key, value, store)
-        }
-    }
-
-    /**
-     * Adds an attribute which will be collected along with every event in the session.
-     *
-     * Attributes are key-value pairs that provide additional context to the events. For example,
-     * you can add user's subscription status, plan, or any other relevant information to help
-     * debug issues with more context.
-     *
-     * Note that these attributes are not persisted across app launches. You need to set them
-     * each time the app starts.
-     *
-     * To be able to filter and search on these attributes on the Measure Dashboard, it is
-     * recommended to use consistent naming conventions and namespacing them with relevant context.
-     *
-     * Setting an attribute with different values overrides the previous value.
-     *
-     * @param key The key for the attribute.
-     * @param value The value for the attribute.
-     * @param store If true, the attribute will be stored on disk and persisted across app launches.
-     */
-    private fun putAttribute(key: String, value: Boolean, store: Boolean) {
-        if (isInitialized.get()) {
-            measure.putAttribute(key, value, store)
-        }
-    }
-
-    /**
-     * Removes an attribute with the given key, if previously set by [putAttribute]. No-op if the
-     * key is not set. If the attribute was stored on disk, it will be removed from disk storage.
-     *
-     * @param key The key for the attribute to remove.
-     */
-    private fun removeAttribute(key: String) {
-        if (isInitialized.get()) {
-            measure.removeAttribute(key)
-        }
-    }
-
-    /**
-     * Clears the attributes set by [putAttribute], if any. No-op if no attributes are set. If the
-     * attributes were stored on disk, they will be removed from disk storage.
-     */
-    private fun clearAttributes() {
-        if (isInitialized.get()) {
-            measure.clearAttributes()
-        }
-    }
-
-    /**
-     * Clears the following data from memory and disk storage, if any:
-     * 1. User ID set by [setUserId].
-     * 2. Attributes set by [putAttribute].
-     *
-     * Note that this will not clear the events already collected by the SDK, such events will
-     * still be sent to the server without any change.
-     */
-    private fun clear() {
-        if (isInitialized.get()) {
-            measure.clear()
+            measure.trackEvent(name, attributes, attachment)
         }
     }
 
@@ -298,14 +221,14 @@ object Measure {
         data: ExceptionData,
         timestamp: Long,
         type: String,
-        attributes: MutableMap<String, Any?>,
+        userDefinedAttributes: Attributes,
         attachments: MutableList<Attachment>,
     ) {
         measure.eventProcessor.trackCrash(
             data = data,
             timestamp = timestamp,
             type = type,
-            attributes = attributes,
+            userDefinedAttributes = userDefinedAttributes,
             attachments = attachments,
         )
     }
@@ -314,14 +237,14 @@ object Measure {
     internal fun simulateAnr(
         data: ExceptionData,
         timestamp: Long,
-        attributes: MutableMap<String, Any?>,
+        userDefinedAttributes: Attributes,
         attachments: MutableList<Attachment>,
     ) {
         measure.eventProcessor.trackCrash(
             type = EventType.ANR,
             data = data,
             timestamp = timestamp,
-            attributes = attributes,
+            userDefinedAttributes = userDefinedAttributes,
             attachments = attachments,
         )
     }

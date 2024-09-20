@@ -1,9 +1,9 @@
 package sh.measure.android.events
 
+import sh.measure.android.Attributes
 import sh.measure.android.SessionManager
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
-import sh.measure.android.attributes.UserDefinedAttribute
 import sh.measure.android.attributes.appendAttributes
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.exceptions.ExceptionData
@@ -59,14 +59,14 @@ internal interface EventProcessor {
      * @param data The data to be tracked.
      * @param timestamp The timestamp of the event in milliseconds since epoch.
      * @param type The type of the event.
-     * @param attributes The attributes to be attached to the event.
+     * @param userDefinedAttributes The user defined attributes to be attached to the event.
      * @param attachments The attachments to be attached to the event.
      */
     fun <T> track(
         data: T,
         timestamp: Long,
         type: String,
-        attributes: MutableMap<String, Any?> = mutableMapOf(),
+        userDefinedAttributes: Attributes = mapOf(),
         attachments: MutableList<Attachment> = mutableListOf(),
     )
 
@@ -84,7 +84,7 @@ internal interface EventProcessor {
         data: ExceptionData,
         timestamp: Long,
         type: String,
-        attributes: MutableMap<String, Any?> = mutableMapOf(),
+        userDefinedAttributes: Attributes = mutableMapOf(),
         attachments: MutableList<Attachment> = mutableListOf(),
     )
 }
@@ -96,7 +96,6 @@ internal class EventProcessorImpl(
     private val idProvider: IdProvider,
     private val sessionManager: SessionManager,
     private val attributeProcessors: List<AttributeProcessor>,
-    private val userDefinedAttribute: UserDefinedAttribute,
     private val eventTransformer: EventTransformer,
     private val exceptionExporter: ExceptionExporter,
     private val screenshotCollector: ScreenshotCollector,
@@ -119,10 +118,10 @@ internal class EventProcessorImpl(
         data: T,
         timestamp: Long,
         type: String,
-        attributes: MutableMap<String, Any?>,
+        userDefinedAttributes: Attributes,
         attachments: MutableList<Attachment>,
     ) {
-        track(data, timestamp, type, attributes, attachments, null)
+        track(data, timestamp, type, userDefinedAttributes, attachments, null)
     }
 
     override fun <T> trackUserTriggered(data: T, timestamp: Long, type: String) {
@@ -141,7 +140,7 @@ internal class EventProcessorImpl(
         data: ExceptionData,
         timestamp: Long,
         type: String,
-        attributes: MutableMap<String, Any?>,
+        userDefinedAttributes: Attributes,
         attachments: MutableList<Attachment>,
     ) {
         val threadName = Thread.currentThread().name
@@ -150,7 +149,7 @@ internal class EventProcessorImpl(
             timestamp = timestamp,
             type = type,
             attachments = attachments,
-            attributes = attributes,
+            userDefinedAttributes = userDefinedAttributes,
             userTriggered = false,
         )
         if (configProvider.trackScreenshotOnCrash) {
@@ -169,7 +168,7 @@ internal class EventProcessorImpl(
         data: T,
         timestamp: Long,
         type: String,
-        attributes: MutableMap<String, Any?>,
+        userDefinedAttributes: Attributes,
         attachments: MutableList<Attachment>,
         sessionId: String?,
         userTriggered: Boolean = false,
@@ -180,12 +179,16 @@ internal class EventProcessorImpl(
                 val threadName = Thread.currentThread().name
                 try {
                     ioExecutor.submit {
+                        logger.log(
+                            LogLevel.Debug,
+                            "Processing event: $type",
+                        )
                         val event = createEvent(
                             data = data,
                             timestamp = timestamp,
                             type = type,
                             attachments = attachments,
-                            attributes = attributes,
+                            userDefinedAttributes = userDefinedAttributes,
                             userTriggered = userTriggered,
                             sessionId = sessionId,
                         )
@@ -208,7 +211,11 @@ internal class EventProcessorImpl(
                         }
                     }
                 } catch (e: RejectedExecutionException) {
-                    logger.log(LogLevel.Error, "Failed to submit event processing task to executor", e)
+                    logger.log(
+                        LogLevel.Error,
+                        "Failed to submit event processing task to executor",
+                        e,
+                    )
                 }
             },
         )
@@ -219,7 +226,7 @@ internal class EventProcessorImpl(
         type: String,
         data: T,
         attachments: MutableList<Attachment>,
-        attributes: MutableMap<String, Any?>,
+        userDefinedAttributes: Attributes,
         userTriggered: Boolean,
         sessionId: String? = null,
     ): Event<T> {
@@ -232,9 +239,9 @@ internal class EventProcessorImpl(
             type = type,
             data = data,
             attachments = attachments,
-            attributes = attributes,
+            attributes = mutableMapOf(),
+            userDefinedAttributes = userDefinedAttributes,
             userTriggered = userTriggered,
-            userDefinedAttributes = userDefinedAttribute.getAll(),
         )
     }
 

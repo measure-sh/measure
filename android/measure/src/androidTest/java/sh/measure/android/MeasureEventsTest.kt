@@ -615,6 +615,36 @@ class MeasureEventsTest {
     }
 
     @Test
+    fun tracksCustomEvent() {
+        // Given
+        robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        ActivityScenario.launch(TestActivity::class.java).use {
+            // When
+            robot.trackCustomEvent()
+            triggerExport()
+
+            // Then
+            assertEventTracked(EventType.CUSTOM)
+        }
+    }
+
+    @Test
+    fun tracksCustomEventWithAttachment() {
+        // Given
+        robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        ActivityScenario.launch(TestActivity::class.java).use {
+            // When
+            robot.trackCustomEventWithAttachment("attachment_content")
+            triggerExport()
+
+            // Then
+            val body = getLastRequestBody()
+            assertEventTracked(body, EventType.CUSTOM)
+            Assert.assertTrue(body.contains("attachment_content"))
+        }
+    }
+
+    @Test
     @Ignore("Unable to trigger trim memory callbacks in tests")
     fun tracksTrimMemoryEvent() {
         // Implementation would go here if we could reliably trigger trim memory in tests
@@ -634,7 +664,7 @@ class MeasureEventsTest {
                 foreground = true,
             ),
             timestamp = 987654321L,
-            attributes = mutableMapOf(),
+            userDefinedAttributes = mutableMapOf(),
             attachments = mutableListOf(),
         )
     }
@@ -648,7 +678,7 @@ class MeasureEventsTest {
                 foreground = true,
             ),
             timestamp = 987654321L,
-            attributes = mutableMapOf(),
+            userDefinedAttributes = mutableMapOf(),
             attachments = mutableListOf(),
         )
     }
