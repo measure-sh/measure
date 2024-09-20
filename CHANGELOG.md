@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Track email on new user sign in by @anupcowkur in #1270
 - (**backend**): Improve session explorer by @anupcowkur in #1218
 - (**backend**): Add session explorer with text search filter by @anupcowkur in #1200
 
