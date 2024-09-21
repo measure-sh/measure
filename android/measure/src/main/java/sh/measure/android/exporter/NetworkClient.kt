@@ -48,7 +48,8 @@ internal class NetworkClientImpl(
         val multipartData = prepareMultipartData(eventPackets, attachmentPackets)
 
         return try {
-            val response = httpClient.sendMultipartRequest(eventsUrl.toString(), "PUT", headers, multipartData)
+            val response =
+                httpClient.sendMultipartRequest(eventsUrl.toString(), "PUT", headers, multipartData)
             handleResponse(response)
         } catch (e: Exception) {
             logger.log(LogLevel.Error, "Failed to send request", e)
@@ -75,9 +76,9 @@ internal class NetworkClientImpl(
     }
 
     private fun validateInitialization() {
-        require(baseUrl != null) { "NetworkClient must be initialized before executing requests" }
-        require(apiKey != null) { "NetworkClient must be initialized before executing requests" }
-        require(eventsUrl != null) { "Failed to create events URL during initialization" }
+        requireNotNull(baseUrl) { "Base URL not found, events will not be exported" }
+        requireNotNull(apiKey) { "API key not found, events will not be exported" }
+        requireNotNull(eventsUrl) { "Events URL not found, events will not be exported" }
     }
 
     private fun createHeaders(batchId: String): Map<String, String> {
@@ -106,18 +107,22 @@ internal class NetworkClientImpl(
                 logger.log(LogLevel.Debug, "Request successful")
                 response
             }
+
             is HttpResponse.Error.RateLimitError -> {
                 logger.log(LogLevel.Debug, "Request rate limited, will retry later")
                 response
             }
+
             is HttpResponse.Error.ClientError -> {
                 logger.log(LogLevel.Error, "Unable to process request: ${response.code}")
                 response
             }
+
             is HttpResponse.Error.ServerError -> {
                 logger.log(LogLevel.Error, "Request failed with code: ${response.code}")
                 response
             }
+
             is HttpResponse.Error.UnknownError -> {
                 logger.log(LogLevel.Error, "Request failed with unknown error")
                 response
