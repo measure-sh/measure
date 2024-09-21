@@ -102,6 +102,10 @@ const LifecycleAppTypeForeground = "foreground"
 // of a nominal cold launch duration.
 const NominalColdLaunchThreshold = 30 * time.Second
 
+// NominalWarmLaunchThreshold defines the upper bound
+// of a nominal warm launch duration.
+const NominalWarmLaunchThreshold = 10 * time.Second
+
 // ValidLifecycleActivityTypes defines allowed
 // `lifecycle_activity.type` values.
 var ValidLifecycleActivityTypes = []string{
@@ -265,12 +269,16 @@ type ColdLaunch struct {
 }
 
 type WarmLaunch struct {
-	AppVisibleUptime uint64        `json:"app_visible_uptime"`
-	OnNextDrawUptime uint64        `json:"on_next_draw_uptime" binding:"required"`
-	LaunchedActivity string        `json:"launched_activity" binding:"required"`
-	HasSavedState    bool          `json:"has_saved_state" binding:"required"`
-	IntentData       string        `json:"intent_data"`
-	Duration         time.Duration `json:"duration"`
+	AppVisibleUptime            uint64        `json:"app_visible_uptime"`
+	ProcessStartUptime          uint64        `json:"process_start_uptime"`
+	ProcessStartRequestedUptime uint64        `json:"process_start_requested_uptime"`
+	ContentProviderAttachUptime uint64        `json:"content_provider_attach_uptime"`
+	OnNextDrawUptime            uint64        `json:"on_next_draw_uptime" binding:"required"`
+	LaunchedActivity            string        `json:"launched_activity" binding:"required"`
+	HasSavedState               bool          `json:"has_saved_state" binding:"required"`
+	IntentData                  string        `json:"intent_data"`
+	Duration                    time.Duration `json:"duration"`
+	IsLukewarm                  bool          `json:"is_lukewarm"`
 }
 
 type HotLaunch struct {
@@ -402,8 +410,30 @@ func (cl *ColdLaunch) Compute() {
 }
 
 // Compute computes the warm launch duration.
+//
+// Warm launch duration is not calculated for lukewarm
+// launches and for non-lukewarm launches which do not
+// have a valid app visible uptime.
 func (wl *WarmLaunch) Compute() {
-	wl.Duration = time.Duration(wl.OnNextDrawUptime-wl.AppVisibleUptime) * time.Millisecond
+	if wl.IsLukewarm {
+		wl.Duration = 0
+	} else if wl.AppVisibleUptime > 0 {
+		wl.Duration = time.Duration(wl.OnNextDrawUptime-wl.AppVisibleUptime) * time.Millisecond
+		return
+	} else {
+		wl.Duration = 0
+		fmt.Printf(
+			"anomaly in warm_launch duration compute. "+
+				"app_visible_uptime: %q, "+
+				"process_start_uptime: %q, "+
+				"process_start_requested_uptime: %q, "+
+				"content_provider_attach_uptime: %q",
+			wl.AppVisibleUptime,
+			wl.ProcessStartUptime,
+			wl.ProcessStartRequestedUptime,
+			wl.ContentProviderAttachUptime,
+		)
+	}
 }
 
 // Compute computes the hot launch duration.
@@ -758,8 +788,8 @@ func (e *EventField) Validate() error {
 	}
 
 	if e.IsWarmLaunch() {
-		if e.WarmLaunch.AppVisibleUptime <= 0 {
-			return fmt.Errorf(`%q must be greater than 0`, `warm_launch.app_visible_uptime`)
+		if e.WarmLaunch.ProcessStartUptime <= 0 && e.WarmLaunch.ContentProviderAttachUptime <= 0 && e.WarmLaunch.ProcessStartRequestedUptime <= 0 && e.WarmLaunch.AppVisibleUptime <= 0 {
+			return fmt.Errorf(`one of %q, %q, %q or %q must be greater than 0`, `warm_launch.process_start_uptime`, `warm_launch.process_start_requested_uptime`, `warm_launch.content_provider_attach_uptime`, `warm_launch.app_visible_uptime`)
 		}
 		if e.WarmLaunch.OnNextDrawUptime <= 0 {
 			return fmt.Errorf(`%q must be greater than 0`, `warm_launch.on_next_draw_uptime`)

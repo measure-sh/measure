@@ -1014,6 +1014,7 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter, version
 				Select("round(quantile(0.95)(warm_launch.duration), 2) as warm_launch").
 				Where("type = 'warm_launch'").
 				Where("warm_launch.duration > 0").
+				Where("warm_launch.duration <= 30000"). //ignore warm launch durations greater than 30 seconds. Similar to https://github.com/measure-sh/measure/issues/933
 				Where("attribute.app_version in ? and attribute.app_build in ?", af.Versions, af.VersionCodes)).
 		With("hot_selected",
 			sqlf.From("timings").
@@ -1474,11 +1475,15 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`cold_launch.intent_data`,
 		`cold_launch.duration`,
 		`warm_launch.app_visible_uptime`,
+		`warm_launch.process_start_uptime`,
+		`warm_launch.process_start_requested_uptime`,
+		`warm_launch.content_provider_attach_uptime`,
 		`warm_launch.on_next_draw_uptime`,
 		`warm_launch.launched_activity`,
 		`warm_launch.has_saved_state`,
 		`warm_launch.intent_data`,
 		`warm_launch.duration`,
+		`warm_launch.is_lukewarm`,
 		`hot_launch.app_visible_uptime`,
 		`hot_launch.on_next_draw_uptime`,
 		`toString(hot_launch.launched_activity)`,
@@ -1704,11 +1709,15 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 
 			// warm launch
 			&warmLaunch.AppVisibleUptime,
+			&warmLaunch.ProcessStartUptime,
+			&warmLaunch.ProcessStartRequestedUptime,
+			&warmLaunch.ContentProviderAttachUptime,
 			&warmLaunch.OnNextDrawUptime,
 			&warmLaunch.LaunchedActivity,
 			&warmLaunch.HasSavedState,
 			&warmLaunch.IntentData,
 			&warmLaunchDuration,
+			&warmLaunch.IsLukewarm,
 
 			// hot launch
 			&hotLaunch.AppVisibleUptime,

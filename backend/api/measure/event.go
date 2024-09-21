@@ -157,6 +157,11 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 		}
 		if ev.IsWarmLaunch() {
 			ev.WarmLaunch.Compute()
+
+			// log anomalous cold launch durations
+			if ev.WarmLaunch.Duration >= event.NominalWarmLaunchThreshold {
+				fmt.Printf("anomaly in warm_launch duration compute. nominal_threshold: < %q actual: %f os_name: %q os_version: %q\n", event.NominalWarmLaunchThreshold, ev.WarmLaunch.Duration.Seconds(), ev.Attribute.Platform, ev.Attribute.OSVersion)
+			}
 		}
 		if ev.IsHotLaunch() {
 			ev.HotLaunch.Compute()
@@ -728,19 +733,27 @@ func (e eventreq) ingest(ctx context.Context) error {
 		if e.events[i].IsWarmLaunch() {
 			row.
 				Set(`warm_launch.app_visible_uptime`, e.events[i].WarmLaunch.AppVisibleUptime).
+				Set(`warm_launch.process_start_uptime`, e.events[i].WarmLaunch.ProcessStartUptime).
+				Set(`warm_launch.process_start_requested_uptime`, e.events[i].WarmLaunch.ProcessStartRequestedUptime).
+				Set(`warm_launch.content_provider_attach_uptime`, e.events[i].WarmLaunch.ContentProviderAttachUptime).
 				Set(`warm_launch.on_next_draw_uptime`, e.events[i].WarmLaunch.OnNextDrawUptime).
 				Set(`warm_launch.launched_activity`, e.events[i].WarmLaunch.LaunchedActivity).
 				Set(`warm_launch.has_saved_state`, e.events[i].WarmLaunch.HasSavedState).
 				Set(`warm_launch.intent_data`, e.events[i].WarmLaunch.IntentData).
-				Set(`warm_launch.duration`, e.events[i].WarmLaunch.Duration.Milliseconds())
+				Set(`warm_launch.duration`, e.events[i].WarmLaunch.Duration.Milliseconds()).
+				Set(`warm_launch.is_lukewarm`, e.events[i].WarmLaunch.IsLukewarm)
 		} else {
 			row.
 				Set(`warm_launch.app_visible_uptime`, nil).
+				Set(`warm_launch.process_start_uptime`, nil).
+				Set(`warm_launch.process_start_requested_uptime`, nil).
+				Set(`warm_launch.content_provider_attach_uptime`, nil).
 				Set(`warm_launch.on_next_draw_uptime`, nil).
 				Set(`warm_launch.launched_activity`, nil).
 				Set(`warm_launch.has_saved_state`, nil).
 				Set(`warm_launch.intent_data`, nil).
-				Set(`warm_launch.duration`, nil)
+				Set(`warm_launch.duration`, nil).
+				Set(`warm_launch.is_lukewarm`, nil)
 		}
 
 		// hot launch
