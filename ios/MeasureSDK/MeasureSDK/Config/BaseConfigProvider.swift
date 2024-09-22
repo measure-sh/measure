@@ -45,11 +45,11 @@ final class BaseConfigProvider: ConfigProvider {
         return getMergedConfig(\.trackScreenshotOnCrash)
     }
 
-    var eventsBatchingIntervalMs: Int64 {
+    var eventsBatchingIntervalMs: Number {
         return getMergedConfig(\.eventsBatchingIntervalMs)
     }
 
-    var sessionEndThresholdMs: Int64 {
+    var sessionEndThresholdMs: Number {
         return getMergedConfig(\.sessionEndThresholdMs)
     }
 

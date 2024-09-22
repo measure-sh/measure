@@ -25,7 +25,7 @@ final class BaseSessionManager: SessionManager {
     private let logger: Logger
     private var currentSessionId: String?
     private let timeProvider: TimeProvider
-    private var appBackgroundTimeMs: Int64
+    private var appBackgroundTimeMs: Number
     private let configProvider: ConfigProvider
     private let randomizer: Randomizer
 
@@ -53,7 +53,7 @@ final class BaseSessionManager: SessionManager {
 
     private func createNewSession() {
         currentSessionId = idProvider.createId()
-        logger.log(level: .debug, message: "New session created", error: nil)
+        logger.log(level: .info, message: "New session created", error: nil)
     }
 
     func start() {
@@ -62,7 +62,7 @@ final class BaseSessionManager: SessionManager {
 
     func applicationDidEnterBackground() {
         self.appBackgroundTimeMs = timeProvider.uptimeInMillis
-        logger.log(level: .debug, message: "applicationDidEnterBackground", error: nil)
+        logger.log(level: .info, message: "applicationDidEnterBackground", error: nil)
     }
 
     func applicationWillEnterForeground() {
@@ -73,18 +73,18 @@ final class BaseSessionManager: SessionManager {
         if shouldEndSession() {
             createNewSession()
         }
-        logger.log(level: .debug, message: "applicationWillEnterForeground", error: nil)
+        logger.log(level: .info, message: "applicationWillEnterForeground", error: nil)
     }
 
     func applicationWillTerminate() {
-        logger.log(level: .debug, message: "applicationWillTerminate", error: nil)
+        logger.log(level: .info, message: "applicationWillTerminate", error: nil)
     }
 
     private func shouldEndSession() -> Bool {
         let durationInBackground = timeProvider.uptimeInMillis - appBackgroundTimeMs
 
         if durationInBackground >= configProvider.sessionEndThresholdMs {
-            logger.log(level: .debug, message: "Ending session as app was relaunched after being in background for \(durationInBackground) ms", error: nil)
+            logger.log(level: .info, message: "Ending session as app was relaunched after being in background for \(durationInBackground) ms", error: nil)
             return true
         }
 

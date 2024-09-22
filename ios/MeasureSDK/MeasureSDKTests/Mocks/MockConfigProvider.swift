@@ -12,14 +12,14 @@ final class MockConfigProvider: ConfigProvider {
     var enableLogging: Bool
     var trackScreenshotOnCrash: Bool
     var sessionSamplingRate: Float
-    var eventsBatchingIntervalMs: Int64
-    var sessionEndThresholdMs: Int64
+    var eventsBatchingIntervalMs: Number
+    var sessionEndThresholdMs: Number
 
     init(enableLogging: Bool,
          trackScreenshotOnCrash: Bool,
          sessionSamplingRate: Float,
-         eventsBatchingIntervalMs: Int64,
-         sessionEndThresholdMs: Int64) {
+         eventsBatchingIntervalMs: Number,
+         sessionEndThresholdMs: Number) {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
         self.sessionSamplingRate = sessionSamplingRate

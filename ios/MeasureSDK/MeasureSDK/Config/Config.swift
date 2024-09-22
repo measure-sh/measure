@@ -18,8 +18,8 @@ struct Config: InternalConfig, MeasureConfig {
     let enableLogging: Bool
     let trackScreenshotOnCrash: Bool
     let sessionSamplingRate: Float
-    let eventsBatchingIntervalMs: Int64
-    let sessionEndThresholdMs: Int64
+    let eventsBatchingIntervalMs: Number
+    let sessionEndThresholdMs: Number
 
     // Additional properties with specific values
     let maxEventsInBatch: Int

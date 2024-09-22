@@ -10,40 +10,27 @@ import Foundation
 /// A protocol for processing events. Responsible for tracking events, processing them by applying
 /// various attributes and transformations, and then eventually storing them or sending them to the server.
 protocol EventProcessor {
-    /// Tracks an event with the given data, timestamp, and type.
-    func track<T: Codable>(
+    /// Tracks an event with the given data, timestamp, type, attributes, sessionId and attachments.
+    func track<T: Codable>( // swiftlint:disable:this function_parameter_count
         data: T,
-        timestamp: Int64,
-        type: EventType
-    )
-
-    /// Tracks an event with the given data, timestamp, type, and sessionId.
-    func track<T: Codable>(
-        data: T,
-        timestamp: Int64,
-        type: EventType,
-        sessionId: String
-    )
-
-    /// Tracks an event with the given data, timestamp, type, attributes, and attachments.
-    func track<T: Codable>(
-        data: T,
-        timestamp: Int64,
+        timestamp: Number,
         type: EventType,
         attributes: Attributes?,
+        sessionId: String?,
         attachments: [Attachment]
     )
 }
 
 /// A concrete implementation of the `EventProcessor` protocol, responsible for tracking and
 /// processing events.
-internal class BaseEventProcessor: EventProcessor {
+final class BaseEventProcessor: EventProcessor {
     private let logger: Logger
     private let idProvider: IdProvider
     private let sessionManager: SessionManager
     private let attributeProcessors: [AttributeProcessor]
     private let configProvider: ConfigProvider
     private let systemTime: SystemTime
+    private var crashDataPersistence: CrashDataPersistence
 
     init(
         logger: Logger,
@@ -51,7 +38,8 @@ internal class BaseEventProcessor: EventProcessor {
         sessionManager: SessionManager,
         attributeProcessors: [AttributeProcessor],
         configProvider: ConfigProvider,
-        systemTime: SystemTime
+        systemTime: SystemTime,
+        crashDataPersistence: CrashDataPersistence
     ) {
         self.logger = logger
         self.idProvider = idProvider
@@ -59,62 +47,50 @@ internal class BaseEventProcessor: EventProcessor {
         self.attributeProcessors = attributeProcessors
         self.configProvider = configProvider
         self.systemTime = systemTime
+        self.crashDataPersistence = crashDataPersistence
     }
 
-    func track<T: Codable>(
+    func track<T: Codable>( // swiftlint:disable:this function_parameter_count
         data: T,
-        timestamp: Int64,
-        type: EventType
-    ) {
-        track(data: data, timestamp: timestamp, type: type, attributes: Attributes(), attachments: [])
-    }
-
-    func track<T: Codable>(
-        data: T,
-        timestamp: Int64,
-        type: EventType,
-        sessionId: String
-    ) {
-        track(data: data, timestamp: timestamp, type: type, attributes: Attributes(), attachments: [], sessionId: sessionId)
-    }
-
-    func track<T: Codable>(
-        data: T,
-        timestamp: Int64,
+        timestamp: Number,
         type: EventType,
         attributes: Attributes?,
+        sessionId: String?,
         attachments: [Attachment]
     ) {
-        track(data: data, timestamp: timestamp, type: type, attributes: attributes, attachments: attachments, sessionId: nil)
+        track(data: data, timestamp: timestamp, type: type, attributes: attributes, attachments: attachments, sessionId: sessionId)
     }
 
     private func track<T: Codable>( // swiftlint:disable:this function_parameter_count
         data: T,
-        timestamp: Int64,
+        timestamp: Number,
         type: EventType,
         attributes: Attributes?,
         attachments: [Attachment],
         sessionId: String?
     ) {
-        let threadName = Thread.current.name ?? "unknown"
+        let threadName = ((Thread.current.name?.isEmpty) != nil) ? "unknown" : Thread.current.name
         let event = createEvent(
             data: data,
             timestamp: timestamp,
             type: type,
             attachments: attachments,
-            attributes: attributes,
+            attributes: attributes ?? Attributes(),
             userTriggered: false,
             sessionId: sessionId
         )
         event.attributes?.threadName = threadName
         event.appendAttributes(self.attributeProcessors)
+        if let attributes = event.attributes {
+            self.crashDataPersistence.attribute = attributes
+        }
 
         logger.log(level: .debug, message: "Event processed: \(type), \(event.sessionId)", error: nil)
     }
 
     private func createEvent<T: Codable>( // swiftlint:disable:this function_parameter_count
         data: T,
-        timestamp: Int64,
+        timestamp: Number,
         type: EventType,
         attachments: [Attachment],
         attributes: Attributes?,

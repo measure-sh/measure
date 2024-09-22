@@ -17,7 +17,12 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         "NSException",
         "Stack Overflow",
         "Zombie",
-        "Zombie NSException"
+        "Zombie NSException",
+        "Background thread crash",
+        "Segmentation Fault (SIGSEGV)",
+        "Abnormal Termination (SIGABRT)",
+        "Illegal Instruction (SIGILL)",
+        "Bus Error (SIGBUS)"
     ]
 
     override func viewDidLoad() {
@@ -53,7 +58,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
 
     // MARK: - Crash Triggers
 
-    func triggerCrash(type: String) {
+    func triggerCrash(type: String) { // swiftlint:disable:this cyclomatic_complexity function_body_length
         switch type {
         case "Abort":
             abort()
@@ -91,8 +96,26 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
             let __weakException = exception // swiftlint:disable:this identifier_name
             exception = nil
             __weakException?.raise()
+        case "Background thread crash":
+            let backgroundQueue = DispatchQueue(label: "com.demo.backgroundQueue", qos: .background)
+            backgroundQueue.async {
+                let array = NSArray()
+                print(array[1])
+            }
+        case "Segmentation Fault (SIGSEGV)":
+            let pointer = UnsafeMutablePointer<Int>.allocate(capacity: 1)
+            pointer.deallocate()
+        case "Abnormal Termination (SIGABRT)":
+            let array: [Int] = []
+            print(array[1])
+        case "Illegal Instruction (SIGILL)":
+            let invalidInstruction: UnsafeMutablePointer<Void> = UnsafeMutablePointer(bitPattern: 0)!
+            print("invalidInstruction.pointee: ", invalidInstruction.pointee)
+        case "Bus Error (SIGBUS)":
+            let invalidAddress = UnsafeMutableRawPointer(bitPattern: 0x1)
+            invalidAddress!.storeBytes(of: 0, as: Int.self) // Attempting to write to an invalid memory address
         default:
-            break
+            print("Unknown crash type.")
         }
     }
 }

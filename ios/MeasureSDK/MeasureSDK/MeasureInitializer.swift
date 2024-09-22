@@ -24,6 +24,10 @@ protocol MeasureInitializer {
     var userAttributeProcessor: UserAttributeProcessor { get }
     var attributeProcessors: [AttributeProcessor] { get }
     var eventProcessor: EventProcessor { get }
+    var crashReportManager: CrashReportManager { get }
+    var crashDataPersistence: CrashDataPersistence { get set }
+    var systemFileManager: SystemFileManager { get }
+    var systemCrashReporter: SystemCrashReporter { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -43,6 +47,11 @@ protocol MeasureInitializer {
 /// - `networkStateAttributeProcessor`: `NetworkStateAttributeProcessor` object used to process network info.
 /// - `userAttributeProcessor`: `UserAttributeProcessor` object used to process user_id.
 /// - `attributeProcessors`: An array containing all the `AttributeProcessor`.
+/// - `eventProcessor`: `EventProcessor` object used to track events
+/// - `crashReportManager`: `CrashReportManager` object used to manage crash reports.
+/// - `crashDataPersistence`: `CrashDataPersistence` object used to manage crash `Attributes` and metadata.
+/// - `systemFileManager`: `SystemFileManager` object used to manage files in local file system.
+/// - `systemCrashReporter`: `SystemCrashReporter` object generates crash reports.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -60,6 +69,10 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let userAttributeProcessor: UserAttributeProcessor
     let attributeProcessors: [AttributeProcessor]
     let eventProcessor: EventProcessor
+    let crashReportManager: CrashReportManager
+    var crashDataPersistence: CrashDataPersistence
+    let systemFileManager: SystemFileManager
+    let systemCrashReporter: SystemCrashReporter
 
     init(config: MeasureConfig,
          client: Client) {
@@ -89,12 +102,22 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                     installationIdAttributeProcessor,
                                     networkStateAttributeProcessor,
                                     userAttributeProcessor]
+        self.systemFileManager = BaseSystemFileManager(logger: logger)
+        self.crashDataPersistence = BaseCrashDataPersistence(logger: logger,
+                                                             systemFileManager: systemFileManager)
+        CrashDataWriter.shared.setCrashDataPersistence(crashDataPersistence)
         self.eventProcessor = BaseEventProcessor(logger: logger,
                                                  idProvider: idProvider,
                                                  sessionManager: sessionManager,
                                                  attributeProcessors: attributeProcessors,
                                                  configProvider: configProvider,
-                                                 systemTime: systemTime)
+                                                 systemTime: systemTime,
+                                                 crashDataPersistence: crashDataPersistence)
+        self.systemCrashReporter = BaseSystemCrashReporter()
+        self.crashReportManager = CrashReportingManager(logger: logger,
+                                                        eventProcessor: eventProcessor,
+                                                        crashDataPersistence: crashDataPersistence,
+                                                        crashReporter: systemCrashReporter)
         self.client = client
     }
 }
