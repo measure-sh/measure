@@ -84,13 +84,11 @@ internal class LaunchTracker(
     }
 
     private fun appMightBecomeVisible() {
-        if (coldLaunchComplete) {
-            LaunchState.lastAppVisibleTime = SystemClock.uptimeMillis()
-            logger.log(
-                LogLevel.Debug,
-                "Updated last app visible time: ${LaunchState.lastAppVisibleTime}",
-            )
-        }
+        LaunchState.lastAppVisibleTime = SystemClock.uptimeMillis()
+        logger.log(
+            LogLevel.Error,
+            "Updated last app visible time: ${LaunchState.lastAppVisibleTime}",
+        )
     }
 
     override fun onActivityResumed(activity: Activity) {
