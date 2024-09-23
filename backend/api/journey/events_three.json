@@ -1,0 +1,3494 @@
+[
+  {
+    "id": "1e5467f4-ca59-4e90-a93a-4e508200e1d6", "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:18.774Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "0fcd5c7e-133b-4b77-a378-ee2033893a74",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:19.008Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "7d4153a9-0002-42a4-9816-3966092fb3ad",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:21.334Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "1896bb02-1ad7-4090-8638-eeb2ebb38f75",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:21.391Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "androidx.navigation.fragment.NavHostFragment",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "713917d2-489a-4eae-bc04-4ef81f54d0a9",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:21.453Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment1",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "800bb82a-856d-46f8-895f-f0eafe21e8af",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:21.537Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "5c615074-9ecf-4756-96dc-52f33184da40",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:21.537Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "androidx.navigation.fragment.NavHostFragment",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "38ada30f-9e5e-4c85-9dae-db12d2f22b47",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:21.537Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment1",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "fa640004-1189-49c0-b3fe-360c8caf7b4a",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:22.783Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment2",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "283abd7e-3512-46ad-8865-2f33a8a98980",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:22.79Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment2",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "d4dbd50e-183b-42cd-b234-a8a364a85bbd",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:23.461Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment3",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "23ef12de-d0c9-4ecb-816f-e6dffd489d15",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:23.466Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment3",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "e53cad36-033a-4db7-ab6a-5cffc07e01a7",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:26.247Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "a5b3700a-953f-4ecf-a18e-0f8e4e53526e",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:26.249Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment3",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "1492be26-42bf-4560-bb25-b348f0bce876",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:26.249Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "androidx.navigation.fragment.NavHostFragment",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "d9dc94fb-5404-4ec2-8829-61be5720ac5a",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:26.928Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment2",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "5e252ba0-4c56-42d4-a55e-4e658e146793",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:27.42Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment1",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "b2d1fdf2-e1b5-4757-a149-b1549e272a0e",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:28.962Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "d2ef4bac-676b-4580-a062-084fc21d731c",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:30.068Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "4e865459-da8f-43a7-8e70-c3d8299079f3",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:30.086Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.HomeFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "64fd1d1c-8dad-4db8-bdb0-7bb7bdbae78c",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:30.131Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "5a2a7c4c-2366-45f4-9792-a43c737d94da",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:30.133Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.HomeFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "5f947108-33fd-4508-bb41-c69bc7326000",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:30.159Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "c27916ac-901e-4279-a250-80743fde24e2",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:30.163Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "43ba0335-b575-45ba-8151-58f8b0b3cc88",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:31.257Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "25f96cef-57e2-4852-b527-f77ac9436706",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:31.259Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "dd8da771-80f7-4cf3-addf-768bf2a06437",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:31.624Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "de496de9-0a01-49f7-bf37-e8d33a8f4ce8",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:31.69Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "8ca229a5-b817-48b4-91ed-2561fa3af72d",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:31.698Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "ba4439ca-f5ee-498e-a455-4390c491821e",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:32.061Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "e698487a-d8a7-44b8-b116-67bd8abdeeb1",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:32.212Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.ProductFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "6812857b-2f37-46e6-8a3c-86a7e83e15bc",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:32.218Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.ProductFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "c090791c-9a0d-4ee5-8ba8-217d200fb2df",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:33.019Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.CheckoutFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "4fa823c9-2e0c-44e9-a189-9f58997a0f01",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:33.023Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.CheckoutFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "2c2a7688-bb0a-411f-a194-a239dbfcc836",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:36.15Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "fb5f5ebf-8360-4c20-b178-a990c67d4781",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:36.15Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.CheckoutFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "695bf9ee-88b0-482d-9279-56cb3f49eda4",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:37.298Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.ProductFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "755a2cd0-931d-47f2-9584-3d28f0f2e2a4",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:37.819Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "894c4bc9-d4b9-43fc-99f0-3cfc3577d21a",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:37.819Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.HomeFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "42cb3243-9bdf-4f96-8b2a-46550801af24",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:39.308Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "c8775634-5647-4072-8a7b-c208681476d8",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:39.702Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "38aa42a2-fd79-4e99-befa-b82a6a665390",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:42.682Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "leakcanary.internal.RequestPermissionActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "93ee61a4-f4ef-4311-ad03-59df0f8b8e17",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:42.736Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "leakcanary.internal.RequestPermissionActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "fa45d196-4369-411f-9281-e63fb88896f4",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:42.97Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "d9623a9f-b5a7-4d6c-bd50-27934fde6171",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:42.988Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.ParentFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "998d7d75-105b-4aab-a813-b603c0d56a9e",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:42.991Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.ChildFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "sh.measure.sample.fragments.ParentFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "d76c1423-782d-4847-8461-8c814bcba757",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:43.009Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.ParentFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "9f7fc8b6-03dd-49ce-8a32-3048cbedde02",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:43.009Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.ChildFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "sh.measure.sample.fragments.ParentFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "0b8e1de7-c016-4805-a364-cd0b02bdd5a6",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:43.009Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "fd52f5a1-412f-43a4-b6bc-3a1a3020ecb7",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:46.146Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "196f1107-0ba8-4743-8766-c074a03862a5",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:46.148Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.ParentFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "62b6d180-1a8c-4b76-a151-e45934782f8d",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:46.148Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.ChildFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "sh.measure.sample.fragments.ParentFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "9bf388e9-7c8d-4d00-a677-e008f29e9149",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:46.792Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "e9615367-b3fe-4631-af98-afb0fb5579c3",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:48.195Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "08efb342-320f-494b-bf3e-0bd36c7b02cc",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:48.204Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.HomeFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "87dd8de6-bbbd-4dce-95d2-4c6977eecd62",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:48.222Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "4d9b8452-9131-43d8-a253-2fbc7760a671",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:48.223Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.HomeFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "7b97e000-ff60-42cb-b682-2acfcc7beb7d",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:48.249Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "d0f664b3-8a7a-4219-9c83-644b72e59b86",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:48.25Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "8287c813-3a1f-4807-b66c-e8312989ecc6",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:50.568Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.ProductFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "f848686c-a38a-42b1-a586-57efa78b4498",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:50.581Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.ProductFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "a557a0c3-5e80-4ccf-8321-5688a9392108",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:51.517Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.CheckoutFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "213c232c-05ad-4b26-8595-7945db4e220f",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:51.522Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.CheckoutFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "f3afc3a7-0b17-40f6-a212-4753b13e3d1a",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:53.223Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.ProductFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "d57968f5-78cb-4586-805b-961fd211a3d8",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:53.595Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "1f05a126-a573-416b-95fd-f47ceca2363a",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:53.595Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.HomeFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "0c1e16cd-43e2-4c37-b04c-e7506d84ceae",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:53.838Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "26fe369d-48aa-4c99-9ded-a2671176d487",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:57.008Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "8fd17f9a-4834-40f8-83e8-6ebf2a8b8eb9",
+    "session_id": "26f4ebd0-7866-47fc-a045-25b1ebaa0f49",
+    "timestamp": "2024-09-18T16:12:57.938Z",
+    "type": "exception",
+    "exception": {
+      "handled": false,
+      "exceptions": null,
+      "threads": null,
+      "fingerprint": "",
+      "foreground": false
+    }
+  },
+  {
+    "id": "0524b51b-2969-4518-9019-199cfd1812bf",
+    "session_id": "7087bbc3-5933-4d43-82f9-2890e47acc7f",
+    "timestamp": "2024-09-18T16:13:00.782Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "9a19d810-ce16-441d-88c6-ac916812d0c5",
+    "session_id": "7087bbc3-5933-4d43-82f9-2890e47acc7f",
+    "timestamp": "2024-09-18T16:13:00.895Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "02840cca-9025-44ca-88b8-31f87b958319",
+    "session_id": "7087bbc3-5933-4d43-82f9-2890e47acc7f",
+    "timestamp": "2024-09-18T16:13:01.97Z",
+    "type": "exception",
+    "exception": {
+      "handled": false,
+      "exceptions": null,
+      "threads": null,
+      "fingerprint": "",
+      "foreground": false
+    }
+  },
+  {
+    "id": "953aa62e-12a4-4c7e-b23c-61db80955b58",
+    "session_id": "175f9b4e-33a9-4b37-ab98-ae2ce6d50da1",
+    "timestamp": "2024-09-18T16:13:05.629Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "ef2bc16c-f945-4eef-9832-6cf18e217cd6",
+    "session_id": "175f9b4e-33a9-4b37-ab98-ae2ce6d50da1",
+    "timestamp": "2024-09-18T16:13:05.768Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "2655550f-2274-4b04-8c7d-b44a1e2bc4bb",
+    "session_id": "175f9b4e-33a9-4b37-ab98-ae2ce6d50da1",
+    "timestamp": "2024-09-18T16:13:06.752Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "c2f8ed24-b269-4fed-a45a-b5e3ae44b4e4",
+    "session_id": "175f9b4e-33a9-4b37-ab98-ae2ce6d50da1",
+    "timestamp": "2024-09-18T16:13:06.77Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.HomeFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "0d5e2234-a0b0-4679-acac-07bb718f0387",
+    "session_id": "175f9b4e-33a9-4b37-ab98-ae2ce6d50da1",
+    "timestamp": "2024-09-18T16:13:06.836Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "9ff91775-1a3e-496d-8556-c5ba2ad37948",
+    "session_id": "175f9b4e-33a9-4b37-ab98-ae2ce6d50da1",
+    "timestamp": "2024-09-18T16:13:06.837Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.HomeFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "292cfe39-88a2-4127-a510-176e5816ec57",
+    "session_id": "175f9b4e-33a9-4b37-ab98-ae2ce6d50da1",
+    "timestamp": "2024-09-18T16:13:06.869Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "3a77efa7-e762-482a-b05b-3ec507fd8c68",
+    "session_id": "175f9b4e-33a9-4b37-ab98-ae2ce6d50da1",
+    "timestamp": "2024-09-18T16:13:06.87Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "330a208b-086c-4501-8783-9ca5b36ba553",
+    "session_id": "175f9b4e-33a9-4b37-ab98-ae2ce6d50da1",
+    "timestamp": "2024-09-18T16:13:09.279Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.ProductFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "283b363a-3076-4c60-8d30-8483bc94a4d9",
+    "session_id": "175f9b4e-33a9-4b37-ab98-ae2ce6d50da1",
+    "timestamp": "2024-09-18T16:13:09.285Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.ProductFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "bc5c5e9e-619c-43e5-b4a4-26ee289c1b5e",
+    "session_id": "175f9b4e-33a9-4b37-ab98-ae2ce6d50da1",
+    "timestamp": "2024-09-18T16:13:14.5Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "leakcanary.internal.RequestPermissionActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "8f19f3ec-d7b8-4492-9ee9-a586699dabf3",
+    "session_id": "175f9b4e-33a9-4b37-ab98-ae2ce6d50da1",
+    "timestamp": "2024-09-18T16:13:14.513Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "leakcanary.internal.RequestPermissionActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "c72abbeb-97af-437b-a0f0-6f90ca7a47e8",
+    "session_id": "175f9b4e-33a9-4b37-ab98-ae2ce6d50da1",
+    "timestamp": "2024-09-18T16:13:17.755Z",
+    "type": "exception",
+    "exception": {
+      "handled": false,
+      "exceptions": null,
+      "threads": null,
+      "fingerprint": "",
+      "foreground": false
+    }
+  },
+  {
+    "id": "573aa66a-2fb7-497b-a9a7-34e5b6d331ed",
+    "session_id": "60d0dfef-f334-4407-a1d6-91e429cd0c3a",
+    "timestamp": "2024-09-18T16:13:21.882Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "c0d724d6-c064-4874-a0df-91e39868cc6f",
+    "session_id": "60d0dfef-f334-4407-a1d6-91e429cd0c3a",
+    "timestamp": "2024-09-18T16:13:22.037Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "8f0dee65-48a3-4251-9f63-b6fffc8774ac",
+    "session_id": "60d0dfef-f334-4407-a1d6-91e429cd0c3a",
+    "timestamp": "2024-09-18T16:13:24.3Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "da2084ad-ff8f-483f-b584-2b57e19f55f7",
+    "session_id": "60d0dfef-f334-4407-a1d6-91e429cd0c3a",
+    "timestamp": "2024-09-18T16:13:24.324Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.HomeFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "72e455db-8f6c-4a82-8c65-ba69e962e62d",
+    "session_id": "60d0dfef-f334-4407-a1d6-91e429cd0c3a",
+    "timestamp": "2024-09-18T16:13:24.402Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "e0e86867-ac53-437c-a96b-1aac483bd7ec",
+    "session_id": "60d0dfef-f334-4407-a1d6-91e429cd0c3a",
+    "timestamp": "2024-09-18T16:13:24.402Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.HomeFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "1588a30d-29f7-43e1-a7ea-985c22d3e852",
+    "session_id": "60d0dfef-f334-4407-a1d6-91e429cd0c3a",
+    "timestamp": "2024-09-18T16:13:24.448Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "3cbcf0c9-7238-4e9e-b8a8-f8320acb3246",
+    "session_id": "60d0dfef-f334-4407-a1d6-91e429cd0c3a",
+    "timestamp": "2024-09-18T16:13:24.45Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "476cf3c6-97fe-496a-a13f-a3af6f2f82fe",
+    "session_id": "60d0dfef-f334-4407-a1d6-91e429cd0c3a",
+    "timestamp": "2024-09-18T16:13:28.238Z",
+    "type": "exception",
+    "exception": {
+      "handled": false,
+      "exceptions": null,
+      "threads": null,
+      "fingerprint": "",
+      "foreground": false
+    }
+  },
+  {
+    "id": "4a106595-784c-4ee7-808d-a98cf23ec654",
+    "session_id": "a816378a-0741-4a62-9254-8654a8b0f2fc",
+    "timestamp": "2024-09-18T16:13:29.246Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "ea58a4cc-0946-467a-933e-48d465c70c69",
+    "session_id": "a816378a-0741-4a62-9254-8654a8b0f2fc",
+    "timestamp": "2024-09-18T16:13:29.413Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "645ccd0e-654c-411d-ab17-a2da57e6840d",
+    "session_id": "a816378a-0741-4a62-9254-8654a8b0f2fc",
+    "timestamp": "2024-09-18T16:13:31.434Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.screenshot.ComposeScreenshotActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "9ab4e089-c29c-467e-ad04-01720aa24baf",
+    "session_id": "a816378a-0741-4a62-9254-8654a8b0f2fc",
+    "timestamp": "2024-09-18T16:13:31.456Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.screenshot.ComposeScreenshotActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "d92e3fb8-01fd-41ee-bae7-8cb56ccf73d4",
+    "session_id": "a816378a-0741-4a62-9254-8654a8b0f2fc",
+    "timestamp": "2024-09-18T16:13:33.009Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "8d0e8121-8ba1-47bd-8cb2-5b3e52b044c0",
+    "session_id": "a816378a-0741-4a62-9254-8654a8b0f2fc",
+    "timestamp": "2024-09-18T16:13:34.088Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "4607d32d-df42-47c2-8e4b-2b3d1e38ec36",
+    "session_id": "a816378a-0741-4a62-9254-8654a8b0f2fc",
+    "timestamp": "2024-09-18T16:13:34.102Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.ParentFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "7a0366ee-9831-4a60-abe5-b5c8b38b6a7d",
+    "session_id": "a816378a-0741-4a62-9254-8654a8b0f2fc",
+    "timestamp": "2024-09-18T16:13:34.107Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.ChildFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "sh.measure.sample.fragments.ParentFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "25fe64e5-cea6-460b-bc03-8f29519822c0",
+    "session_id": "a816378a-0741-4a62-9254-8654a8b0f2fc",
+    "timestamp": "2024-09-18T16:13:34.114Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "0e49daf1-ca0a-43f0-9a7b-1e8a289a6f91",
+    "session_id": "a816378a-0741-4a62-9254-8654a8b0f2fc",
+    "timestamp": "2024-09-18T16:13:34.115Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.ChildFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "sh.measure.sample.fragments.ParentFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "038d7cff-d537-4cf0-9bc1-9c9531d98c77",
+    "session_id": "a816378a-0741-4a62-9254-8654a8b0f2fc",
+    "timestamp": "2024-09-18T16:13:34.115Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.ParentFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "7523c0c3-f1e7-4a5a-8f7a-a18c4c95de81",
+    "session_id": "a816378a-0741-4a62-9254-8654a8b0f2fc",
+    "timestamp": "2024-09-18T16:13:37.996Z",
+    "type": "exception",
+    "exception": {
+      "handled": false,
+      "exceptions": null,
+      "threads": null,
+      "fingerprint": "",
+      "foreground": false
+    }
+  },
+  {
+    "id": "3e730bc1-e8e0-4d7d-a9b4-991ecacadcd9",
+    "session_id": "e4cfa50d-7692-401b-89c1-8e2e59872d72",
+    "timestamp": "2024-09-18T16:13:38.948Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "14d0ea8b-14d4-4c6e-b65d-df0ea683af9b",
+    "session_id": "e4cfa50d-7692-401b-89c1-8e2e59872d72",
+    "timestamp": "2024-09-18T16:13:39.051Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "2df2e355-6fd5-4e64-9adf-bcf54a17fa55",
+    "session_id": "e4cfa50d-7692-401b-89c1-8e2e59872d72",
+    "timestamp": "2024-09-18T16:13:42.534Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "b8555af0-7871-4a55-8443-b6e7b8f17f35",
+    "session_id": "e4cfa50d-7692-401b-89c1-8e2e59872d72",
+    "timestamp": "2024-09-18T16:13:44.33Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "5af1aeb4-110e-40c5-9f88-6df4c22ec0cc",
+    "session_id": "e4cfa50d-7692-401b-89c1-8e2e59872d72",
+    "timestamp": "2024-09-18T16:13:44.369Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "androidx.navigation.fragment.NavHostFragment",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "9b9913b0-580e-4d3f-978b-d795b0c872c1",
+    "session_id": "e4cfa50d-7692-401b-89c1-8e2e59872d72",
+    "timestamp": "2024-09-18T16:13:44.404Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment1",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "5fb401f6-0535-4638-bdbe-f407bf3f491d",
+    "session_id": "e4cfa50d-7692-401b-89c1-8e2e59872d72",
+    "timestamp": "2024-09-18T16:13:44.425Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "835fc12b-80ed-44be-92c2-ea434bffffbf",
+    "session_id": "e4cfa50d-7692-401b-89c1-8e2e59872d72",
+    "timestamp": "2024-09-18T16:13:44.431Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment1",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "fcb1049f-82c9-4f5c-bd65-7b63f4464353",
+    "session_id": "e4cfa50d-7692-401b-89c1-8e2e59872d72",
+    "timestamp": "2024-09-18T16:13:44.431Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "androidx.navigation.fragment.NavHostFragment",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "9e549d99-6b62-4662-be16-e08d5460ac93",
+    "session_id": "e4cfa50d-7692-401b-89c1-8e2e59872d72",
+    "timestamp": "2024-09-18T16:13:45.613Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment2",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "27997e7c-8784-4934-aae2-b3a0b4a3f570",
+    "session_id": "e4cfa50d-7692-401b-89c1-8e2e59872d72",
+    "timestamp": "2024-09-18T16:13:45.618Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment2",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "8e680c39-741e-4e24-962d-5f9df2cb03d4",
+    "session_id": "e4cfa50d-7692-401b-89c1-8e2e59872d72",
+    "timestamp": "2024-09-18T16:13:46.219Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment3",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "2a5f368e-e6a0-498d-942d-faaad33f5b1f",
+    "session_id": "e4cfa50d-7692-401b-89c1-8e2e59872d72",
+    "timestamp": "2024-09-18T16:13:46.224Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment3",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "0d811713-3106-400d-a341-d6787174f89f",
+    "session_id": "e4cfa50d-7692-401b-89c1-8e2e59872d72",
+    "timestamp": "2024-09-18T16:13:48.237Z",
+    "type": "exception",
+    "exception": {
+      "handled": false,
+      "exceptions": null,
+      "threads": null,
+      "fingerprint": "",
+      "foreground": false
+    }
+  },
+  {
+    "id": "b28c8beb-2197-4889-ae31-b05ac3515c93",
+    "session_id": "c5d386fb-49a2-4566-9609-42e0176534ea",
+    "timestamp": "2024-09-18T16:13:49.286Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "0d0ae70a-23d5-4d0b-a1f5-f34898980e7a",
+    "session_id": "c5d386fb-49a2-4566-9609-42e0176534ea",
+    "timestamp": "2024-09-18T16:13:49.417Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "7ecfac7b-8dac-4b72-bba3-0f4cf17fda47",
+    "session_id": "c5d386fb-49a2-4566-9609-42e0176534ea",
+    "timestamp": "2024-09-18T16:13:51.683Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "cf78d1bc-d0d5-4597-9f5c-226a75e6afab",
+    "session_id": "c5d386fb-49a2-4566-9609-42e0176534ea",
+    "timestamp": "2024-09-18T16:13:52.87Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "717ee053-5c06-4316-9377-477bec5f6053",
+    "session_id": "c5d386fb-49a2-4566-9609-42e0176534ea",
+    "timestamp": "2024-09-18T16:13:52.883Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.HomeFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "19fd86c3-ece7-4b1f-84fd-03a15a7f0f9e",
+    "session_id": "c5d386fb-49a2-4566-9609-42e0176534ea",
+    "timestamp": "2024-09-18T16:13:52.925Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "60328198-3f2a-4ccf-9b1f-834f4869c5ed",
+    "session_id": "c5d386fb-49a2-4566-9609-42e0176534ea",
+    "timestamp": "2024-09-18T16:13:52.926Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.HomeFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "908f3caa-4f8e-4e44-b2bb-96cc1eb6c52c",
+    "session_id": "c5d386fb-49a2-4566-9609-42e0176534ea",
+    "timestamp": "2024-09-18T16:13:52.965Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "8d12b880-1a00-4ee8-9681-d2a83d77aad9",
+    "session_id": "c5d386fb-49a2-4566-9609-42e0176534ea",
+    "timestamp": "2024-09-18T16:13:52.966Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "20ec6ff5-38e0-42dc-9229-63de263d8888",
+    "session_id": "c5d386fb-49a2-4566-9609-42e0176534ea",
+    "timestamp": "2024-09-18T16:13:54.166Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.ProductFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "15e88cf3-6abe-4d6a-95c2-6a4e043a81b0",
+    "session_id": "c5d386fb-49a2-4566-9609-42e0176534ea",
+    "timestamp": "2024-09-18T16:13:54.172Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.ProductFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "459889b1-6e76-4e80-8b70-76c613d67053",
+    "session_id": "c5d386fb-49a2-4566-9609-42e0176534ea",
+    "timestamp": "2024-09-18T16:13:55.068Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.CheckoutFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "d1d031bc-6f6a-408a-9bd4-500c60bbfa4b",
+    "session_id": "c5d386fb-49a2-4566-9609-42e0176534ea",
+    "timestamp": "2024-09-18T16:13:55.071Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.CheckoutFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "2c6ec3ea-14a9-43be-b694-6a0dbbac0f60",
+    "session_id": "c5d386fb-49a2-4566-9609-42e0176534ea",
+    "timestamp": "2024-09-18T16:13:57.462Z",
+    "type": "exception",
+    "exception": {
+      "handled": false,
+      "exceptions": null,
+      "threads": null,
+      "fingerprint": "",
+      "foreground": false
+    }
+  },
+  {
+    "id": "f217bc7d-b159-4bf6-a4e8-98ba4c676130",
+    "session_id": "c1320e60-c97a-42af-b6bc-19fa57846e44",
+    "timestamp": "2024-09-18T16:13:58.485Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "1e00f5ad-a8bb-4b57-994f-998d390e22f6",
+    "session_id": "c1320e60-c97a-42af-b6bc-19fa57846e44",
+    "timestamp": "2024-09-18T16:13:58.602Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "da6c5ace-4440-4b9c-8cc8-2832468a1d22",
+    "session_id": "c1320e60-c97a-42af-b6bc-19fa57846e44",
+    "timestamp": "2024-09-18T16:14:01.101Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "daf0f9a3-2249-4a30-8918-883cad07a8ee",
+    "session_id": "c1320e60-c97a-42af-b6bc-19fa57846e44",
+    "timestamp": "2024-09-18T16:14:01.114Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.ParentFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "af5c3e0d-5d97-4623-ba48-70161e2ca9d3",
+    "session_id": "c1320e60-c97a-42af-b6bc-19fa57846e44",
+    "timestamp": "2024-09-18T16:14:01.117Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.ChildFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "sh.measure.sample.fragments.ParentFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "b11203c8-1348-45cb-82af-e50214c42803",
+    "session_id": "c1320e60-c97a-42af-b6bc-19fa57846e44",
+    "timestamp": "2024-09-18T16:14:01.121Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.ParentFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "bfb579a0-1c01-49c1-a4e8-a042fbf2cec6",
+    "session_id": "c1320e60-c97a-42af-b6bc-19fa57846e44",
+    "timestamp": "2024-09-18T16:14:01.121Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.ChildFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "sh.measure.sample.fragments.ParentFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "48432ff2-d0c1-425e-a772-cf7c33bd6d42",
+    "session_id": "c1320e60-c97a-42af-b6bc-19fa57846e44",
+    "timestamp": "2024-09-18T16:14:01.121Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "edd75a4e-26c7-4290-814c-5476de7e3ec9",
+    "session_id": "c1320e60-c97a-42af-b6bc-19fa57846e44",
+    "timestamp": "2024-09-18T16:14:04.578Z",
+    "type": "exception",
+    "exception": {
+      "handled": false,
+      "exceptions": null,
+      "threads": null,
+      "fingerprint": "",
+      "foreground": false
+    }
+  },
+  {
+    "id": "9cc59169-d6ea-4324-87ac-8f6e4b8ed49d",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:05.532Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "b24f5cf1-89ef-45bc-bb85-511f0dac0f2d",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:05.652Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "938bec52-fd8a-4f5b-ac6b-97d77e31f209",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:07.375Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "f3433f50-c835-4263-8f71-f98ba277b71e",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:08.454Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "44790326-8d76-42c5-ae13-6bdb8e78b0cb",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:08.469Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.HomeFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "d9f8e604-039e-407b-b036-ab7b429cad6c",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:08.505Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "c52397c3-fa0b-412d-a772-7aa0b0c6f764",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:08.507Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.HomeFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "63898c2c-ea5e-47c1-9a6f-55de561b74e6",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:08.55Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "79dabaad-3b02-48e4-866c-b5ed0c830c22",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:08.554Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "d522282a-b08c-40ec-9865-c8f0049b09ef",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:10.198Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.ProductFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "c1c5f933-a31d-4221-85e6-89ab43279650",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:10.207Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.ProductFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "aca4d005-bc25-444a-a1c7-658384285341",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:11.579Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.CheckoutFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "81da740b-f113-4abe-aad5-084a430400ad",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:11.581Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.CheckoutFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "858d1e98-1c68-4265-aca4-96ee0618df16",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:12.976Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.ProductFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "f779a771-e8ed-4273-8f4d-97e1ebf8ad64",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:13.191Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.HomeFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "2d078030-bcc4-4f01-ae0c-df7f3840476f",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:13.191Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "874415cb-c9a0-46cc-92f3-f0a65a6f1acd",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:14.449Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "1f8bc9c1-26ce-412f-8ad0-9199a2f6e785",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:15.578Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "27c1b4de-c83c-40a8-bc9d-e3235b8f5012",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:15.598Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "androidx.navigation.fragment.NavHostFragment",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "4e576343-9759-4bf9-933f-956b52e84188",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:15.615Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment1",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "5dc72dcb-0258-4ab5-9773-c04e37f5ffb2",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:15.621Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "androidx.navigation.fragment.NavHostFragment",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "75e3482c-7b5e-475e-9856-8ad654259633",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:15.621Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment1",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "c8229c19-e5a7-4add-afaf-68c76100e338",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:15.621Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "9a7178b9-9927-4713-a92c-56a2dfbda6c1",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:17.497Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment2",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "67ce5b8c-8762-421b-ad19-96c498e3aa93",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:17.502Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment2",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "b14b6226-cb87-4445-b64f-01c50ba9168b",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:18.711Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment3",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "c79880cc-a40d-4e56-8877-7115347cf1bd",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:18.714Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment3",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "e98ddcad-9668-46c1-b4f6-dbaeeab31ec5",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:19.777Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment2",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "bde7762f-c220-4caa-a825-3b9801e7b22c",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:20.111Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment1",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "a2500ca0-aa6a-4bf5-ba46-33be188e40a6",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:20.585Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "034e9631-5bf6-4d4c-86fa-23141960d683",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:22.265Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "aae37955-a02a-45b3-9d39-48358dbbf821",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:22.274Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.ParentFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "5019e712-c680-4bd6-b7c2-6ddc8a0a0b8b",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:22.278Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.ChildFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "sh.measure.sample.fragments.ParentFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "5ccb9caf-4c63-41dd-848c-65c07a065e3b",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:22.28Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "5938354c-25d1-4011-a09c-3e152754cf9d",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:22.28Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.ParentFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "ea2425ba-0798-467a-b1b7-77a6bfacbab8",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:22.28Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.ChildFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "sh.measure.sample.fragments.ParentFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "32f25d99-a24f-46eb-9495-a5f980ae85cf",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:24.186Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "cfa5b731-3099-45b7-a8f4-0bbe54b790db",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:25.3Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "f386f08c-dbf3-4c18-9daa-0bb28d0fde8e",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:25.308Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.HomeFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "b985a23a-9b32-41b8-924f-582ec40250f2",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:25.324Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "ad7e87b4-1ee8-4a13-a47b-ce18b294d366",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:25.324Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.HomeFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "1891d59c-d772-420a-adbd-1158510dd1ad",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:25.338Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "c79c4205-4c30-4191-8941-3fdb40efe5e1",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:25.341Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.PageFragment",
+      "parent_activity": "sh.measure.sample.fragments.FragmentNavigationActivity",
+      "parent_fragment": "sh.measure.sample.fragments.HomeFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "1559e706-554f-4dd0-9336-28bba76964da",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:26.478Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "23550117-4ebf-408a-8bf4-5dfadbb0e31b",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:27.758Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "e85205b4-d7df-4396-9f6a-c444b2a3eff6",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:27.766Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "androidx.navigation.fragment.NavHostFragment",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "3cc8ca48-a786-435a-8c93-7fbce94dd44d",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:27.768Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment1",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "115de3fc-b44d-4166-a300-52b2b8596071",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:27.771Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "81c48aae-9566-43a6-afc4-3c69e7fdb136",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:27.772Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "androidx.navigation.fragment.NavHostFragment",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "65797ddc-6e7f-43ba-b83d-613bb41a7178",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:27.772Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment1",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "9fc7c3f0-3994-4048-8f64-1c235243bd76",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:29.685Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "000f9c6b-7547-4e9b-ba65-309e3307936e",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:31.033Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "de27184a-ad59-4930-be96-2b3e9ad20d4f",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:31.038Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "androidx.navigation.fragment.NavHostFragment",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "581fb616-2a8e-46c7-98de-28db880b3842",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:31.04Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment1",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "c68b2bb3-e89d-42ac-9f7e-9c4b25112a20",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:31.049Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment1",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "7417024d-fe6d-40be-a9ea-d2c122c33da8",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:31.049Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "930fc1f2-b819-41ac-b7e3-8142eae25df6",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:31.049Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "androidx.navigation.fragment.NavHostFragment",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "d5146f22-3143-4976-b3a0-4e42ec64ca79",
+    "session_id": "b1eb8d33-bacb-475d-8587-09efaae497f4",
+    "timestamp": "2024-09-18T16:14:33.081Z",
+    "type": "exception",
+    "exception": {
+      "handled": false,
+      "exceptions": null,
+      "threads": null,
+      "fingerprint": "",
+      "foreground": false
+    }
+  },
+  {
+    "id": "1cf5e3b8-7fbd-4363-a991-adb2c4928b30",
+    "session_id": "ae4e9895-0282-4ce0-8d60-e3c3b9947697",
+    "timestamp": "2024-09-18T16:14:34.15Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "0fa28820-bba7-42d6-a09b-f3b09a411c72",
+    "session_id": "ae4e9895-0282-4ce0-8d60-e3c3b9947697",
+    "timestamp": "2024-09-18T16:14:34.29Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "ceb28de0-56ca-4bf5-813d-2a4baebf9c05",
+    "session_id": "ae4e9895-0282-4ce0-8d60-e3c3b9947697",
+    "timestamp": "2024-09-18T16:14:36.685Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "cae58f91-76a6-46b5-bcb2-b03a0251af42",
+    "session_id": "ae4e9895-0282-4ce0-8d60-e3c3b9947697",
+    "timestamp": "2024-09-18T16:14:36.7Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.ParentFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "ebddee62-e41b-4aad-87fb-94ba7d8b4d38",
+    "session_id": "ae4e9895-0282-4ce0-8d60-e3c3b9947697",
+    "timestamp": "2024-09-18T16:14:36.703Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.ChildFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "sh.measure.sample.fragments.ParentFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "4ac45947-db8c-4c40-8124-974969843bd8",
+    "session_id": "ae4e9895-0282-4ce0-8d60-e3c3b9947697",
+    "timestamp": "2024-09-18T16:14:36.718Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "a19673d8-4538-49b5-8a93-e2987060bffb",
+    "session_id": "ae4e9895-0282-4ce0-8d60-e3c3b9947697",
+    "timestamp": "2024-09-18T16:14:36.718Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.ParentFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "a241de21-701b-4cd5-8d45-307b45f4b45d",
+    "session_id": "ae4e9895-0282-4ce0-8d60-e3c3b9947697",
+    "timestamp": "2024-09-18T16:14:36.718Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.ChildFragment",
+      "parent_activity": "sh.measure.sample.fragments.NestedFragmentActivity",
+      "parent_fragment": "sh.measure.sample.fragments.ParentFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "34ed1e5c-93f9-444a-8d4c-10cd02de42fd",
+    "session_id": "ae4e9895-0282-4ce0-8d60-e3c3b9947697",
+    "timestamp": "2024-09-18T16:14:37.884Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "7bfdc200-1b4d-45b4-b647-91fb2f9f3493",
+    "session_id": "ae4e9895-0282-4ce0-8d60-e3c3b9947697",
+    "timestamp": "2024-09-18T16:14:38.938Z",
+    "type": "exception",
+    "exception": {
+      "handled": false,
+      "exceptions": null,
+      "threads": null,
+      "fingerprint": "",
+      "foreground": false
+    }
+  },
+  {
+    "id": "0a520842-fa9f-481f-9f3a-d3dc58f2869f",
+    "session_id": "7ba161b2-0187-4098-98de-4c3ef826ec5e",
+    "timestamp": "2024-09-18T16:14:41.765Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "72dd4875-cd48-47cd-961e-d65a6c25eca4",
+    "session_id": "7ba161b2-0187-4098-98de-4c3ef826ec5e",
+    "timestamp": "2024-09-18T16:14:41.919Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "b9ffcd87-7829-41da-ad71-a8b1c053dfc6",
+    "session_id": "7ba161b2-0187-4098-98de-4c3ef826ec5e",
+    "timestamp": "2024-09-18T16:14:43.401Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "d4028e0f-c8ea-445d-b0dc-177ad2f09fd3",
+    "session_id": "7ba161b2-0187-4098-98de-4c3ef826ec5e",
+    "timestamp": "2024-09-18T16:14:43.449Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "androidx.navigation.fragment.NavHostFragment",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "f7d4a3b7-8423-4165-95a9-945ea0b9f56a",
+    "session_id": "7ba161b2-0187-4098-98de-4c3ef826ec5e",
+    "timestamp": "2024-09-18T16:14:43.483Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment1",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "aeaa0bbb-651f-4f75-a7b6-79e3ac10ac48",
+    "session_id": "7ba161b2-0187-4098-98de-4c3ef826ec5e",
+    "timestamp": "2024-09-18T16:14:43.497Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "231f68a2-12f8-439c-913b-68483cd37129",
+    "session_id": "7ba161b2-0187-4098-98de-4c3ef826ec5e",
+    "timestamp": "2024-09-18T16:14:43.498Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "androidx.navigation.fragment.NavHostFragment",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "a7ca4e69-738b-4567-a5f0-ad502572736c",
+    "session_id": "7ba161b2-0187-4098-98de-4c3ef826ec5e",
+    "timestamp": "2024-09-18T16:14:43.498Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment1",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "aa9aaadb-4046-4785-9207-699292e206a1",
+    "session_id": "7ba161b2-0187-4098-98de-4c3ef826ec5e",
+    "timestamp": "2024-09-18T16:14:44.909Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "46a9bceb-a4af-4ece-a6eb-835be73eb589",
+    "session_id": "7ba161b2-0187-4098-98de-4c3ef826ec5e",
+    "timestamp": "2024-09-18T16:14:46.787Z",
+    "type": "exception",
+    "exception": {
+      "handled": false,
+      "exceptions": null,
+      "threads": null,
+      "fingerprint": "",
+      "foreground": false
+    }
+  },
+  {
+    "id": "8b8e77eb-ff95-4c5c-9fb9-9a9cd60f5aa7",
+    "session_id": "affde65a-ee8f-450a-ac44-3d52d4f3b15c",
+    "timestamp": "2024-09-18T16:14:50.783Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "a075ddea-f9e4-47cf-a430-6bd3717feb1f",
+    "session_id": "affde65a-ee8f-450a-ac44-3d52d4f3b15c",
+    "timestamp": "2024-09-18T16:14:50.92Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "18994c38-6d88-4443-bf04-081c53166206",
+    "session_id": "affde65a-ee8f-450a-ac44-3d52d4f3b15c",
+    "timestamp": "2024-09-18T16:15:00Z",
+    "type": "anr",
+    "anr": {
+      "handled": false,
+      "exceptions": null,
+      "threads": null,
+      "fingerprint": "",
+      "foreground": false
+    }
+  },
+  {
+    "id": "9635f9b7-390b-48d7-8bb4-2bc7d807ac45",
+    "session_id": "dcb19306-1747-4d55-850c-c2633f444ba4",
+    "timestamp": "2024-09-18T16:15:05.666Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "b108fae4-ff78-4b8f-9418-2606a2e70a96",
+    "session_id": "dcb19306-1747-4d55-850c-c2633f444ba4",
+    "timestamp": "2024-09-18T16:15:05.797Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "62efc03d-8434-4697-a5f8-b9c443d5342c",
+    "session_id": "dcb19306-1747-4d55-850c-c2633f444ba4",
+    "timestamp": "2024-09-18T16:15:07.199Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.screenshot.ComposeScreenshotActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "aa2fc169-4e31-45d7-b410-d676c6b8319f",
+    "session_id": "dcb19306-1747-4d55-850c-c2633f444ba4",
+    "timestamp": "2024-09-18T16:15:07.216Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.screenshot.ComposeScreenshotActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "b9755d61-9680-4e69-83a2-270afb2f0153",
+    "session_id": "dcb19306-1747-4d55-850c-c2633f444ba4",
+    "timestamp": "2024-09-18T16:15:15Z",
+    "type": "anr",
+    "anr": {
+      "handled": false,
+      "exceptions": null,
+      "threads": null,
+      "fingerprint": "",
+      "foreground": false
+    }
+  },
+  {
+    "id": "39fc0ca9-5856-4320-8414-cedc5f8de1d1",
+    "session_id": "1d72df05-44ea-4d6f-8306-7b9b5a5b600e",
+    "timestamp": "2024-09-18T16:15:19.397Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "9d1da51a-e896-4963-a64b-776b6c136cd0",
+    "session_id": "1d72df05-44ea-4d6f-8306-7b9b5a5b600e",
+    "timestamp": "2024-09-18T16:15:19.52Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "231f9a86-467c-4dc2-99f6-2848a61d1254",
+    "session_id": "1d72df05-44ea-4d6f-8306-7b9b5a5b600e",
+    "timestamp": "2024-09-18T16:15:21.536Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ComposeActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "1dbaeebb-aa7b-4dc3-af9b-bb2571befcd4",
+    "session_id": "1d72df05-44ea-4d6f-8306-7b9b5a5b600e",
+    "timestamp": "2024-09-18T16:15:21.564Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ComposeActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "12317b17-453b-46d7-85c0-4240c6c97989",
+    "session_id": "1d72df05-44ea-4d6f-8306-7b9b5a5b600e",
+    "timestamp": "2024-09-18T16:15:24.309Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "da1fd321-fdd7-4dc5-983d-fb148d10b545",
+    "session_id": "1d72df05-44ea-4d6f-8306-7b9b5a5b600e",
+    "timestamp": "2024-09-18T16:15:25.422Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ComposeNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "c23260a4-e767-4153-b242-020da4f3bbf4",
+    "session_id": "1d72df05-44ea-4d6f-8306-7b9b5a5b600e",
+    "timestamp": "2024-09-18T16:15:25.437Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ComposeNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "83549578-62a5-447e-aeb7-096a05c09450",
+    "session_id": "1d72df05-44ea-4d6f-8306-7b9b5a5b600e",
+    "timestamp": "2024-09-18T16:15:28.508Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "ec3a76cf-3aad-4af4-a4e1-54db2bf168df",
+    "session_id": "1d72df05-44ea-4d6f-8306-7b9b5a5b600e",
+    "timestamp": "2024-09-18T16:15:33.249Z",
+    "type": "exception",
+    "exception": {
+      "handled": false,
+      "exceptions": null,
+      "threads": null,
+      "fingerprint": "",
+      "foreground": false
+    }
+  },
+  {
+    "id": "329f0d92-38c1-46e5-9f06-a7de694f273b",
+    "session_id": "0ca4ccba-efb4-45b2-9b97-2422ba152396",
+    "timestamp": "2024-09-18T16:15:38.119Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "3128871e-091e-44ff-ab9f-4a64abb728d4",
+    "session_id": "0ca4ccba-efb4-45b2-9b97-2422ba152396",
+    "timestamp": "2024-09-18T16:15:38.3Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "c1cd9d0a-d622-4fe1-ad7c-4aa8c48629c6",
+    "session_id": "0ca4ccba-efb4-45b2-9b97-2422ba152396",
+    "timestamp": "2024-09-18T16:15:50Z",
+    "type": "anr",
+    "anr": {
+      "handled": false,
+      "exceptions": null,
+      "threads": null,
+      "fingerprint": "",
+      "foreground": false
+    }
+  },
+  {
+    "id": "7bc2dd4f-e25c-431f-8679-35d52cd6742c",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:15:56.704Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "eeaad94b-1645-46e0-a736-02dcff2db2c3",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:15:56.854Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "c97b10d5-0c6e-4097-9bba-bd54b484c023",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:13.137Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ComposeActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "6b5b7fc5-7bc9-410c-be7d-9cb1b9103b29",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:13.183Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ComposeActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "5cbd4ac7-e35c-4a66-bc5e-779e246fbe7f",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:25.33Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "dda6ae79-05cb-44e5-b70d-3e304f0f43ba",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:27.901Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.OkHttpActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "0c252c83-cda7-497e-a469-86b3b600d56a",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:27.957Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.OkHttpActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "76eb0b90-8ab9-4cc1-ae62-043b055bc6d9",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:30.258Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "4c7d4314-3ac5-43df-9df1-1c45c97fdeff",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:31.492Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ComposeNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "95193769-44a9-4647-8ca5-727c895a0488",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:31.5Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ComposeNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "f508025a-5abc-425e-9e93-d98f6bb334f3",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:35.6Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ComposeNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "33a91be8-06ab-4896-9ca9-2943abcfa5cf",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:37.241Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "67cdfa2d-a3a0-409c-829d-de03256c6ecc",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:39.197Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "ca6392b8-ca83-4a15-bc68-7df5e6e38215",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:39.213Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "androidx.navigation.fragment.NavHostFragment",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "0a324bfe-13fa-4cff-8ee0-28a3d37ec12b",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:39.216Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment1",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "0a2f1947-c421-4670-99c3-c3683b586aba",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:39.227Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "83f643f0-2728-461c-b57a-04eb94d95333",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:39.227Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "androidx.navigation.fragment.NavHostFragment",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "bfb33bc6-55c5-466c-b8de-2eb2332ca2ba",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:39.227Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment1",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "792093fe-1b04-471f-8243-3501c2a80527",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:40.281Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment2",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "d72b6a01-7e1e-490d-8b44-d766263d63e4",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:40.286Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment2",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "37cb6471-4e49-40e7-bc58-09cd29991697",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:41.167Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "attached",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment3",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "b9fe85ae-2447-4cae-99b4-e223b3913378",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:41.175Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment3",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "05e651db-6865-4c98-a0a7-39ef7e4cada0",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:44.349Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "7494725b-1df2-463a-b357-204b3c37a879",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:44.35Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "androidx.navigation.fragment.NavHostFragment",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "ce142841-57d3-4d1a-ba91-d86e3bd856f1",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:44.35Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment3",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "eb4fb6af-7b1d-44e5-af2c-602ecb6ce6b7",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:45.028Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment2",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "4bf00d5c-4b6e-4489-8383-97e286cd8e9f",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:45.669Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.fragments.AndroidxNavFragment1",
+      "parent_activity": "sh.measure.sample.fragments.AndroidXFragmentNavigationActivity",
+      "parent_fragment": "androidx.navigation.fragment.NavHostFragment",
+      "tag": ""
+    }
+  },
+  {
+    "id": "dd4ba13e-c4b9-4c7a-82ee-ade094940963",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:47.07Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "ffbcc3eb-1815-4d35-b91d-ea058cad0d98",
+    "session_id": "9df333bb-24b5-4f83-a5b8-850c750ed934",
+    "timestamp": "2024-09-18T16:16:49.019Z",
+    "type": "exception",
+    "exception": {
+      "handled": false,
+      "exceptions": null,
+      "threads": null,
+      "fingerprint": "",
+      "foreground": false
+    }
+  },
+  {
+    "id": "a4d8c4e7-c86c-4f6f-a95f-1a3d19d8d9a8",
+    "session_id": "9d29d3b5-ebac-49df-9d15-34692fa032c1",
+    "timestamp": "2024-09-18T16:16:52.755Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "c60bed83-0eb3-4cf9-8544-9ee02bbad15f",
+    "session_id": "9d29d3b5-ebac-49df-9d15-34692fa032c1",
+    "timestamp": "2024-09-18T16:16:52.832Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "ef1bc348-846b-482d-9318-80682dc9188d",
+    "session_id": "9d29d3b5-ebac-49df-9d15-34692fa032c1",
+    "timestamp": "2024-09-18T16:16:55.454Z",
+    "type": "exception",
+    "exception": {
+      "handled": false,
+      "exceptions": null,
+      "threads": null,
+      "fingerprint": "",
+      "foreground": false
+    }
+  },
+  {
+    "id": "7f1ce019-d90a-499a-9d63-e9d459984c8d",
+    "session_id": "8650f139-635c-49c4-8a83-6970b4bbc18d",
+    "timestamp": "2024-09-18T16:17:52.456Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "created",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "da93fbbb-534a-48dd-801a-39031eb8a3aa",
+    "session_id": "8650f139-635c-49c4-8a83-6970b4bbc18d",
+    "timestamp": "2024-09-18T16:17:52.534Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "f24f1e1f-b002-43d8-9d93-8c2da8bc54e3",
+    "session_id": "8650f139-635c-49c4-8a83-6970b4bbc18d",
+    "timestamp": "2024-09-18T16:18:02.554Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "0ada1cc3-b798-42ca-9427-743660aeacb7",
+    "session_id": "8650f139-635c-49c4-8a83-6970b4bbc18d",
+    "timestamp": "2024-09-18T16:18:06.483Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "sh.measure.sample.ExceptionDemoActivity",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "507598d7-ef20-4080-b94d-2a6d571b22f6",
+    "session_id": "8650f139-635c-49c4-8a83-6970b4bbc18d",
+    "timestamp": "2024-09-18T16:18:23Z",
+    "type": "anr",
+    "anr": {
+      "handled": false,
+      "exceptions": null,
+      "threads": null,
+      "fingerprint": "",
+      "foreground": false
+    }
+  }
+]

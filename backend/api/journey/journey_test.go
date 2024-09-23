@@ -14,6 +14,9 @@ import (
 
 func readEvents(path string) (events []event.EventField, err error) {
 	bytes, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
 	events = []event.EventField{}
 	json.Unmarshal(bytes, &events)
 	return
@@ -64,6 +67,26 @@ var exceptionGroupTwo = group.ExceptionGroup{
 		uuid.MustParse("57e9ae14-ee28-4df5-bded-4ac4b187d7f9"),
 		uuid.MustParse("23cfa1ba-9407-457e-8edd-bba060f5ec33"),
 		uuid.MustParse("7b9e79ab-fac4-406e-8e92-31e93ef367fd"),
+	},
+}
+
+var exceptionGroupThree = group.ExceptionGroup{
+	ID: uuid.MustParse("6ed37c84-fa37-4627-879e-87c0787cfe36"),
+	EventIDs: []uuid.UUID{
+		uuid.MustParse("8fe6d874-8066-463c-b895-825d24cbf418"),
+		uuid.MustParse("02840cca-9025-44ca-88b8-31f87b958319"),
+		uuid.MustParse("c72abbeb-97af-437b-a0f0-6f90ca7a47e8"),
+		uuid.MustParse("476cf3c6-97fe-496a-a13f-a3af6f2f82fe"),
+		uuid.MustParse("7523c0c3-f1e7-4a5a-8f7a-a18c4c95de81"),
+		uuid.MustParse("0d811713-3106-400d-a341-d6787174f89f"),
+		uuid.MustParse("2c6ec3ea-14a9-43be-b694-6a0dbbac0f60"),
+		uuid.MustParse("edd75a4e-26c7-4290-814c-5476de7e3ec9"),
+		uuid.MustParse("d5146f22-3143-4976-b3a0-4e42ec64ca79"),
+		uuid.MustParse("7bfdc200-1b4d-45b4-b647-91fb2f9f3493"),
+		uuid.MustParse("46a9bceb-a4af-4ece-a6eb-835be73eb589"),
+		uuid.MustParse("ec3a76cf-3aad-4af4-a4e1-54db2bf168df"),
+		uuid.MustParse("ffbcc3eb-1815-4d35-b91d-ea058cad0d98"),
+		uuid.MustParse("ef1bc348-846b-482d-9318-80682dc9188d"),
 	},
 }
 
@@ -277,7 +300,7 @@ func TestNewJourneyAndroidTwo(t *testing.T) {
 		t.Errorf("Expected %d order, but got %d", expectedOrder, gotOrder)
 	}
 
-	expectedString := "5 [(0 1) (0 2) (0 3) (4 0)]"
+	expectedString := "5 [(0 1) (1 2) (2 3) (4 0)]"
 	gotString := journey.Graph.String()
 
 	if expectedString != gotString {
@@ -313,7 +336,7 @@ func TestNewJourneyAndroidTwo(t *testing.T) {
 	}
 
 	{
-		sessionIds := journey.metalut[journey.makeKey(0, 2)].Slice()
+		sessionIds := journey.metalut[journey.makeKey(1, 2)].Slice()
 		expectedLen := 4
 		gotLen := len(sessionIds)
 		if expectedLen != gotLen {
@@ -341,35 +364,7 @@ func TestNewJourneyAndroidTwo(t *testing.T) {
 	}
 
 	{
-		sessionIds := journey.metalut[journey.makeKey(0, 3)].Slice()
-		expectedLen := 4
-		gotLen := len(sessionIds)
-		if expectedLen != gotLen {
-			t.Errorf("Expected %d length, got %d", expectedLen, gotLen)
-		}
-
-		expected := []uuid.UUID{
-			uuid.MustParse("4339f2be-ec13-4858-9b7f-322e5ddf55f4"),
-			uuid.MustParse("65aaf877-e000-4ff3-9f8f-a0dbb10e9b00"),
-			uuid.MustParse("1755de51-18c8-4c14-a58d-ad677485130e"),
-			uuid.MustParse("bcafd264-43eb-433b-8851-00306ecc2706"),
-		}
-		if expected[0] != sessionIds[0] {
-			t.Errorf("Expected %v, but got %v", expected[0], sessionIds[0])
-		}
-		if expected[1] != sessionIds[1] {
-			t.Errorf("Expected %v, but got %v", expected[1], sessionIds[1])
-		}
-		if expected[2] != sessionIds[2] {
-			t.Errorf("Expected %v, but got %v", expected[2], sessionIds[2])
-		}
-		if expected[3] != sessionIds[3] {
-			t.Errorf("Expected %v, but got %v", expected[3], sessionIds[3])
-		}
-	}
-
-	{
-		sessionIds := journey.metalut[journey.makeKey(0, 3)].Slice()
+		sessionIds := journey.metalut[journey.makeKey(2, 3)].Slice()
 		expectedLen := 4
 		gotLen := len(sessionIds)
 		if expectedLen != gotLen {
@@ -413,12 +408,192 @@ func TestNewJourneyAndroidTwo(t *testing.T) {
 	}
 
 	{
+		sessionIds := journey.metalut[journey.makeKey(4, 0)].Slice()
+		expectedLen := 1
+		gotLen := len(sessionIds)
+		if expectedLen != gotLen {
+			t.Errorf("Expected %d length, got %d", expectedLen, gotLen)
+		}
+
+		expected := []uuid.UUID{
+			uuid.MustParse("65aaf877-e000-4ff3-9f8f-a0dbb10e9b00"),
+		}
+		if expected[0] != sessionIds[0] {
+			t.Errorf("Expected %v, but got %v", expected[0], sessionIds[0])
+		}
+	}
+
+	{
 		expected := graph.Stats{
 			Size:     4,
 			Multi:    0,
 			Weighted: 0,
 			Loops:    0,
-			Isolated: 3,
+			Isolated: 1,
+		}
+		got := graph.Check(journey.Graph)
+
+		if !reflect.DeepEqual(expected, got) {
+			t.Errorf("Expected %v graph stats, but got %v", expected, got)
+		}
+	}
+}
+
+func TestNewJourneyAndroidThree(t *testing.T) {
+	events, err := readEvents("events_three.json")
+	if err != nil {
+		panic(err)
+	}
+
+	journey := NewJourneyAndroid(events, &Options{
+		BiGraph: true,
+	})
+
+	expectedOrder := 19
+	gotOrder := journey.Graph.Order()
+
+	if expectedOrder != gotOrder {
+		t.Errorf("Expected %d order, but got %d", expectedOrder, gotOrder)
+	}
+
+	expectedString := "19 [{0 1} {0 6} (0 11) {0 12} {0 15} {0 16} {0 17} {0 18} (1 2) (2 3) (2 4) (2 5) (6 7) (6 10) (6 11) (7 8) {7 9} {9 10} (11 12) (12 13) (13 14)]"
+	gotString := journey.Graph.String()
+
+	if expectedString != gotString {
+		t.Errorf("Expected %q, got %q", expectedString, gotString)
+	}
+
+	{
+		sessionIds := journey.metalut[journey.makeKey(0, 1)].Slice()
+		expectedLen := 5
+		gotLen := len(sessionIds)
+		if expectedLen != gotLen {
+			t.Errorf("Expected %d length, got %d", expectedLen, gotLen)
+		}
+
+		expected := []uuid.UUID{
+			uuid.MustParse("26f4ebd0-7866-47fc-a045-25b1ebaa0f49"),
+			uuid.MustParse("e4cfa50d-7692-401b-89c1-8e2e59872d72"),
+			uuid.MustParse("b1eb8d33-bacb-475d-8587-09efaae497f4"),
+			uuid.MustParse("7ba161b2-0187-4098-98de-4c3ef826ec5e"),
+		}
+		if expected[0] != sessionIds[0] {
+			t.Errorf("Expected %v, but got %v", expected[0], sessionIds[0])
+		}
+		if expected[1] != sessionIds[1] {
+			t.Errorf("Expected %v, but got %v", expected[1], sessionIds[1])
+		}
+		if expected[2] != sessionIds[2] {
+			t.Errorf("Expected %v, but got %v", expected[2], sessionIds[2])
+		}
+		if expected[3] != sessionIds[3] {
+			t.Errorf("Expected %v, but got %v", expected[3], sessionIds[3])
+		}
+	}
+
+	{
+		sessionIds := journey.metalut[journey.makeKey(0, 6)].Slice()
+		expectedLen := 5
+		gotLen := len(sessionIds)
+		if expectedLen != gotLen {
+			t.Errorf("Expected %d length, got %d", expectedLen, gotLen)
+		}
+
+		expected := []uuid.UUID{
+			uuid.MustParse("26f4ebd0-7866-47fc-a045-25b1ebaa0f49"),
+			uuid.MustParse("175f9b4e-33a9-4b37-ab98-ae2ce6d50da1"),
+			uuid.MustParse("60d0dfef-f334-4407-a1d6-91e429cd0c3a"),
+			uuid.MustParse("c5d386fb-49a2-4566-9609-42e0176534ea"),
+			uuid.MustParse("b1eb8d33-bacb-475d-8587-09efaae497f4"),
+		}
+		if expected[0] != sessionIds[0] {
+			t.Errorf("Expected %v, but got %v", expected[0], sessionIds[0])
+		}
+		if expected[1] != sessionIds[1] {
+			t.Errorf("Expected %v, but got %v", expected[1], sessionIds[1])
+		}
+		if expected[2] != sessionIds[2] {
+			t.Errorf("Expected %v, but got %v", expected[2], sessionIds[2])
+		}
+		if expected[3] != sessionIds[3] {
+			t.Errorf("Expected %v, but got %v", expected[3], sessionIds[3])
+		}
+		if expected[4] != sessionIds[4] {
+			t.Errorf("Expected %v, but got %v", expected[4], sessionIds[4])
+		}
+	}
+
+	{
+		sessionIds := journey.metalut[journey.makeKey(0, 11)].Slice()
+		expectedLen := 1
+		gotLen := len(sessionIds)
+		if expectedLen != gotLen {
+			t.Errorf("Expected %d length, got %d", expectedLen, gotLen)
+		}
+
+		expected := []uuid.UUID{
+			uuid.MustParse("26f4ebd0-7866-47fc-a045-25b1ebaa0f49"),
+		}
+		if expected[0] != sessionIds[0] {
+			t.Errorf("Expected %v, but got %v", expected[0], sessionIds[0])
+		}
+	}
+
+	{
+		sessionIds := journey.metalut[journey.makeKey(0, 12)].Slice()
+		expectedLen := 4
+		gotLen := len(sessionIds)
+		if expectedLen != gotLen {
+			t.Errorf("Expected %d length, got %d", expectedLen, gotLen)
+		}
+
+		expected := []uuid.UUID{
+			uuid.MustParse("a816378a-0741-4a62-9254-8654a8b0f2fc"),
+			uuid.MustParse("c1320e60-c97a-42af-b6bc-19fa57846e44"),
+			uuid.MustParse("b1eb8d33-bacb-475d-8587-09efaae497f4"),
+			uuid.MustParse("ae4e9895-0282-4ce0-8d60-e3c3b9947697"),
+		}
+		if expected[0] != sessionIds[0] {
+			t.Errorf("Expected %v, but got %v", expected[0], sessionIds[0])
+		}
+		if expected[1] != sessionIds[1] {
+			t.Errorf("Expected %v, but got %v", expected[1], sessionIds[1])
+		}
+		if expected[2] != sessionIds[2] {
+			t.Errorf("Expected %v, but got %v", expected[2], sessionIds[2])
+		}
+		if expected[3] != sessionIds[3] {
+			t.Errorf("Expected %v, but got %v", expected[3], sessionIds[3])
+		}
+	}
+
+	{
+		sessionIds := journey.metalut[journey.makeKey(0, 15)].Slice()
+		expectedLen := 2
+		gotLen := len(sessionIds)
+		if expectedLen != gotLen {
+			t.Errorf("Expected %d length, got %d", expectedLen, gotLen)
+		}
+
+		expected := []uuid.UUID{
+			uuid.MustParse("a816378a-0741-4a62-9254-8654a8b0f2fc"),
+			uuid.MustParse("dcb19306-1747-4d55-850c-c2633f444ba4"),
+		}
+		if expected[0] != sessionIds[0] {
+			t.Errorf("Expected %v, but got %v", expected[0], sessionIds[0])
+		}
+		if expected[1] != sessionIds[1] {
+			t.Errorf("Expected %v, but got %v", expected[1], sessionIds[1])
+		}
+	}
+
+	{
+		expected := graph.Stats{
+			Size:     30,
+			Multi:    0,
+			Weighted: 0,
+			Loops:    0,
+			Isolated: 5,
 		}
 		got := graph.Check(journey.Graph)
 
@@ -548,7 +723,7 @@ func TestGetEdgeSessionsTwo(t *testing.T) {
 			uuid.MustParse("1755de51-18c8-4c14-a58d-ad677485130e"),
 			uuid.MustParse("bcafd264-43eb-433b-8851-00306ecc2706"),
 		}
-		got := journey.metalut[journey.makeKey(0, 2)].Slice()
+		got := journey.metalut[journey.makeKey(1, 2)].Slice()
 
 		if !reflect.DeepEqual(expected, got) {
 			t.Errorf("Expected %v sessions, but got %v", expected, got)
@@ -562,7 +737,7 @@ func TestGetEdgeSessionsTwo(t *testing.T) {
 			uuid.MustParse("1755de51-18c8-4c14-a58d-ad677485130e"),
 			uuid.MustParse("bcafd264-43eb-433b-8851-00306ecc2706"),
 		}
-		got := journey.metalut[journey.makeKey(0, 3)].Slice()
+		got := journey.metalut[journey.makeKey(2, 3)].Slice()
 
 		if !reflect.DeepEqual(expected, got) {
 			t.Errorf("Expected %v sessions, but got %v", expected, got)
@@ -667,7 +842,7 @@ func TestGetEdgeSessionsCountTwo(t *testing.T) {
 
 	{
 		expected := 4
-		got := journey.GetEdgeSessionCount(0, 2)
+		got := journey.GetEdgeSessionCount(1, 2)
 
 		if expected != got {
 			t.Errorf("Expected %d session count, but got %v", expected, got)
@@ -676,7 +851,7 @@ func TestGetEdgeSessionsCountTwo(t *testing.T) {
 
 	{
 		expected := 4
-		got := journey.GetEdgeSessionCount(0, 3)
+		got := journey.GetEdgeSessionCount(2, 3)
 
 		if expected != got {
 			t.Errorf("Expected %d session count, but got %v", expected, got)
@@ -1182,7 +1357,7 @@ func TestNewJourneyAndroidExceptionsTwo(t *testing.T) {
 		t.Errorf("Expected %d order, but got %d", expectedOrder, gotOrder)
 	}
 
-	expectedString := "5 [(0 1) (0 2) (0 3) (4 0)]"
+	expectedString := "5 [(0 1) (1 2) (2 3) (4 0)]"
 	gotString := journey.Graph.String()
 
 	if expectedString != gotString {
@@ -1218,7 +1393,7 @@ func TestNewJourneyAndroidExceptionsTwo(t *testing.T) {
 	}
 
 	{
-		sessionIds := journey.metalut[journey.makeKey(0, 2)].Slice()
+		sessionIds := journey.metalut[journey.makeKey(1, 2)].Slice()
 		expectedLen := 4
 		gotLen := len(sessionIds)
 		if expectedLen != gotLen {
@@ -1246,35 +1421,7 @@ func TestNewJourneyAndroidExceptionsTwo(t *testing.T) {
 	}
 
 	{
-		sessionIds := journey.metalut[journey.makeKey(0, 3)].Slice()
-		expectedLen := 4
-		gotLen := len(sessionIds)
-		if expectedLen != gotLen {
-			t.Errorf("Expected %d length, got %d", expectedLen, gotLen)
-		}
-
-		expected := []uuid.UUID{
-			uuid.MustParse("4339f2be-ec13-4858-9b7f-322e5ddf55f4"),
-			uuid.MustParse("65aaf877-e000-4ff3-9f8f-a0dbb10e9b00"),
-			uuid.MustParse("1755de51-18c8-4c14-a58d-ad677485130e"),
-			uuid.MustParse("bcafd264-43eb-433b-8851-00306ecc2706"),
-		}
-		if expected[0] != sessionIds[0] {
-			t.Errorf("Expected %v, but got %v", expected[0], sessionIds[0])
-		}
-		if expected[1] != sessionIds[1] {
-			t.Errorf("Expected %v, but got %v", expected[1], sessionIds[1])
-		}
-		if expected[2] != sessionIds[2] {
-			t.Errorf("Expected %v, but got %v", expected[2], sessionIds[2])
-		}
-		if expected[3] != sessionIds[3] {
-			t.Errorf("Expected %v, but got %v", expected[3], sessionIds[3])
-		}
-	}
-
-	{
-		sessionIds := journey.metalut[journey.makeKey(0, 3)].Slice()
+		sessionIds := journey.metalut[journey.makeKey(2, 3)].Slice()
 		expectedLen := 4
 		gotLen := len(sessionIds)
 		if expectedLen != gotLen {
@@ -1318,12 +1465,28 @@ func TestNewJourneyAndroidExceptionsTwo(t *testing.T) {
 	}
 
 	{
+		sessionIds := journey.metalut[journey.makeKey(4, 0)].Slice()
+		expectedLen := 1
+		gotLen := len(sessionIds)
+		if expectedLen != gotLen {
+			t.Errorf("Expected %d length, got %d", expectedLen, gotLen)
+		}
+
+		expected := []uuid.UUID{
+			uuid.MustParse("65aaf877-e000-4ff3-9f8f-a0dbb10e9b00"),
+		}
+		if expected[0] != sessionIds[0] {
+			t.Errorf("Expected %v, but got %v", expected[0], sessionIds[0])
+		}
+	}
+
+	{
 		expected := graph.Stats{
 			Size:     4,
 			Multi:    0,
 			Weighted: 0,
 			Loops:    0,
-			Isolated: 3,
+			Isolated: 1,
 		}
 		got := graph.Check(journey.Graph)
 
@@ -1333,7 +1496,7 @@ func TestNewJourneyAndroidExceptionsTwo(t *testing.T) {
 	}
 
 	{
-		expected := 0
+		expected := 18
 		got := journey.GetNodeExceptionCount(0, exceptionGroupTwo.ID)
 
 		if expected != got {
@@ -1360,7 +1523,7 @@ func TestNewJourneyAndroidExceptionsTwo(t *testing.T) {
 	}
 
 	{
-		expected := 18
+		expected := 0
 		got := journey.GetNodeExceptionCount(3, exceptionGroupTwo.ID)
 
 		if expected != got {
@@ -1371,6 +1534,243 @@ func TestNewJourneyAndroidExceptionsTwo(t *testing.T) {
 	{
 		expected := 0
 		got := journey.GetNodeExceptionCount(4, exceptionGroupTwo.ID)
+
+		if expected != got {
+			t.Errorf("Expected %d node exceptions, but got %d", expected, got)
+		}
+	}
+}
+
+func TestNewJourneyAndroidExceptionsThree(t *testing.T) {
+	events, err := readEvents("events_three.json")
+	if err != nil {
+		panic(err)
+	}
+
+	journey := NewJourneyAndroid(events, &Options{
+		BiGraph:        true,
+		ExceptionGroup: &exceptionGroupThree,
+	})
+
+	if err := journey.SetNodeExceptionGroups(func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error) {
+		exceptionGroups = []group.ExceptionGroup{exceptionGroupThree}
+		return
+	}); err != nil {
+		panic(err)
+	}
+
+	expectedOrder := 19
+	gotOrder := journey.Graph.Order()
+
+	if expectedOrder != gotOrder {
+		t.Errorf("Expected %d order, but got %d", expectedOrder, gotOrder)
+	}
+
+	expectedString := "19 [{0 1} {0 6} (0 11) {0 12} {0 15} {0 16} {0 17} {0 18} (1 2) (2 3) (2 4) (2 5) (6 7) (6 10) (6 11) (7 8) {7 9} {9 10} (11 12) (12 13) (13 14)]"
+	gotString := journey.Graph.String()
+
+	if expectedString != gotString {
+		t.Errorf("Expected %q, got %q", expectedString, gotString)
+	}
+
+	{
+		sessionIds := journey.metalut[journey.makeKey(0, 1)].Slice()
+		expectedLen := 5
+		gotLen := len(sessionIds)
+		if expectedLen != gotLen {
+			t.Errorf("Expected %d length, got %d", expectedLen, gotLen)
+		}
+
+		expected := []uuid.UUID{
+			uuid.MustParse("26f4ebd0-7866-47fc-a045-25b1ebaa0f49"),
+			uuid.MustParse("e4cfa50d-7692-401b-89c1-8e2e59872d72"),
+			uuid.MustParse("b1eb8d33-bacb-475d-8587-09efaae497f4"),
+			uuid.MustParse("7ba161b2-0187-4098-98de-4c3ef826ec5e"),
+			uuid.MustParse("9df333bb-24b5-4f83-a5b8-850c750ed934"),
+		}
+		if expected[0] != sessionIds[0] {
+			t.Errorf("Expected %v, but got %v", expected[0], sessionIds[0])
+		}
+		if expected[1] != sessionIds[1] {
+			t.Errorf("Expected %v, but got %v", expected[1], sessionIds[1])
+		}
+		if expected[2] != sessionIds[2] {
+			t.Errorf("Expected %v, but got %v", expected[2], sessionIds[2])
+		}
+		if expected[3] != sessionIds[3] {
+			t.Errorf("Expected %v, but got %v", expected[3], sessionIds[3])
+		}
+		if expected[4] != sessionIds[4] {
+			t.Errorf("Expected %v, but got %v", expected[4], sessionIds[4])
+		}
+	}
+
+	{
+		sessionIds := journey.metalut[journey.makeKey(1, 2)].Slice()
+		expectedLen := 5
+		gotLen := len(sessionIds)
+		if expectedLen != gotLen {
+			t.Errorf("Expected %d length, got %d", expectedLen, gotLen)
+		}
+
+		expected := []uuid.UUID{
+			uuid.MustParse("26f4ebd0-7866-47fc-a045-25b1ebaa0f49"),
+			uuid.MustParse("e4cfa50d-7692-401b-89c1-8e2e59872d72"),
+			uuid.MustParse("b1eb8d33-bacb-475d-8587-09efaae497f4"),
+			uuid.MustParse("7ba161b2-0187-4098-98de-4c3ef826ec5e"),
+			uuid.MustParse("9df333bb-24b5-4f83-a5b8-850c750ed934"),
+		}
+		if expected[0] != sessionIds[0] {
+			t.Errorf("Expected %v, but got %v", expected[0], sessionIds[0])
+		}
+		if expected[1] != sessionIds[1] {
+			t.Errorf("Expected %v, but got %v", expected[1], sessionIds[1])
+		}
+		if expected[2] != sessionIds[2] {
+			t.Errorf("Expected %v, but got %v", expected[2], sessionIds[2])
+		}
+		if expected[3] != sessionIds[3] {
+			t.Errorf("Expected %v, but got %v", expected[3], sessionIds[3])
+		}
+		if expected[4] != sessionIds[4] {
+			t.Errorf("Expected %v, but got %v", expected[4], sessionIds[4])
+		}
+	}
+
+	{
+		sessionIds := journey.metalut[journey.makeKey(2, 3)].Slice()
+		expectedLen := 5
+		gotLen := len(sessionIds)
+		if expectedLen != gotLen {
+			t.Errorf("Expected %d length, got %d", expectedLen, gotLen)
+		}
+
+		expected := []uuid.UUID{
+			uuid.MustParse("26f4ebd0-7866-47fc-a045-25b1ebaa0f49"),
+			uuid.MustParse("e4cfa50d-7692-401b-89c1-8e2e59872d72"),
+			uuid.MustParse("b1eb8d33-bacb-475d-8587-09efaae497f4"),
+			uuid.MustParse("7ba161b2-0187-4098-98de-4c3ef826ec5e"),
+			uuid.MustParse("9df333bb-24b5-4f83-a5b8-850c750ed934"),
+		}
+		if expected[0] != sessionIds[0] {
+			t.Errorf("Expected %v, but got %v", expected[0], sessionIds[0])
+		}
+		if expected[1] != sessionIds[1] {
+			t.Errorf("Expected %v, but got %v", expected[1], sessionIds[1])
+		}
+		if expected[2] != sessionIds[2] {
+			t.Errorf("Expected %v, but got %v", expected[2], sessionIds[2])
+		}
+		if expected[3] != sessionIds[3] {
+			t.Errorf("Expected %v, but got %v", expected[3], sessionIds[3])
+		}
+		if expected[4] != sessionIds[4] {
+			t.Errorf("Expected %v, but got %v", expected[4], sessionIds[4])
+		}
+	}
+
+	{
+		sessionIds := journey.metalut[journey.makeKey(2, 4)].Slice()
+		expectedLen := 2
+		gotLen := len(sessionIds)
+		if expectedLen != gotLen {
+			t.Errorf("Expected %d length, got %d", expectedLen, gotLen)
+		}
+
+		expected := []uuid.UUID{
+			uuid.MustParse("26f4ebd0-7866-47fc-a045-25b1ebaa0f49"),
+			uuid.MustParse("e4cfa50d-7692-401b-89c1-8e2e59872d72"),
+		}
+		if expected[0] != sessionIds[0] {
+			t.Errorf("Expected %v, but got %v", expected[0], sessionIds[0])
+		}
+		if expected[1] != sessionIds[1] {
+			t.Errorf("Expected %v, but got %v", expected[1], sessionIds[1])
+		}
+	}
+
+	{
+		sessionIds := journey.metalut[journey.makeKey(1, 0)].Slice()
+		expectedLen := 4
+		gotLen := len(sessionIds)
+		if expectedLen != gotLen {
+			t.Errorf("Expected %d length, got %d", expectedLen, gotLen)
+		}
+
+		expected := []uuid.UUID{
+			uuid.MustParse("26f4ebd0-7866-47fc-a045-25b1ebaa0f49"),
+			uuid.MustParse("b1eb8d33-bacb-475d-8587-09efaae497f4"),
+			uuid.MustParse("7ba161b2-0187-4098-98de-4c3ef826ec5e"),
+			uuid.MustParse("9df333bb-24b5-4f83-a5b8-850c750ed934"),
+		}
+		if expected[0] != sessionIds[0] {
+			t.Errorf("Expected %v, but got %v", expected[0], sessionIds[0])
+		}
+		if expected[1] != sessionIds[1] {
+			t.Errorf("Expected %v, but got %v", expected[1], sessionIds[1])
+		}
+		if expected[2] != sessionIds[2] {
+			t.Errorf("Expected %v, but got %v", expected[2], sessionIds[2])
+		}
+		if expected[3] != sessionIds[3] {
+			t.Errorf("Expected %v, but got %v", expected[3], sessionIds[3])
+		}
+	}
+
+	{
+		expected := graph.Stats{
+			Size:     30,
+			Multi:    0,
+			Weighted: 0,
+			Loops:    0,
+			Isolated: 5,
+		}
+		got := graph.Check(journey.Graph)
+
+		if !reflect.DeepEqual(expected, got) {
+			t.Errorf("Expected %v graph stats, but got %v", expected, got)
+		}
+	}
+
+	{
+		expected := 6
+		got := journey.GetNodeExceptionCount(0, exceptionGroupThree.ID)
+
+		if expected != got {
+			t.Errorf("Expected %d node exceptions, but got %d", expected, got)
+		}
+	}
+
+	{
+		expected := 2
+		got := journey.GetNodeExceptionCount(1, exceptionGroupThree.ID)
+
+		if expected != got {
+			t.Errorf("Expected %d node exceptions, but got %d", expected, got)
+		}
+	}
+
+	{
+		expected := 0
+		got := journey.GetNodeExceptionCount(2, exceptionGroupThree.ID)
+
+		if expected != got {
+			t.Errorf("Expected %d node exceptions, but got %d", expected, got)
+		}
+	}
+
+	{
+		expected := 0
+		got := journey.GetNodeExceptionCount(3, exceptionGroupThree.ID)
+
+		if expected != got {
+			t.Errorf("Expected %d node exceptions, but got %d", expected, got)
+		}
+	}
+
+	{
+		expected := 0
+		got := journey.GetNodeExceptionCount(4, exceptionGroupThree.ID)
 
 		if expected != got {
 			t.Errorf("Expected %d node exceptions, but got %d", expected, got)

@@ -234,6 +234,7 @@ func (j *JourneyAndroid) buildGraph() {
 		j.metalut = make(map[string]*set.UUIDSet)
 	}
 
+	// keep track of who should be parent
 	lastParent := -1
 
 	var nodeidxs []int
@@ -241,7 +242,6 @@ func (j *JourneyAndroid) buildGraph() {
 	for i := range j.Nodes {
 		if j.Nodes[i].IsActivity || j.Nodes[i].IsFragment {
 			nodeidxs = append(nodeidxs, i)
-			fmt.Println(i, j.Nodes[i].Name, j.Nodes[i].IsFragmentParent, !j.Nodes[i].IsFragmentParent)
 		}
 	}
 
@@ -272,35 +272,15 @@ func (j *JourneyAndroid) buildGraph() {
 			lastParent = i
 		}
 
-		// if currNode.IsFragment && currNode.IsFragmentParent {
-		// 	lastParent = i
-		// } else if currNode.IsFragment && !currNode.IsFragmentParent {
-		// 	parentNode := j.GetParentFragmentNode(&currNode)
-		// 	if parentNode != nil {
-		// 		lastParent = parentNode.ID
-		// 		fmt.Println("found parent", j.Nodes[lastParent].Name)
-		// 	}
-		// }
-
 		// an activity node should not create an edge directly
 		// to a child fragment.
 		if currNode.IsActivity && nextNode.IsFragment && !nextNode.IsFragmentParent {
 			continue
 		}
 
-		// if currNode.IsFragment && !nextNode.IsFragmentParent {
-		// 	parentNode := j.GetParentFragmentNode(&nextNode)
-		// 	if parentNode != nil {
-		// 		if nextEvent.LifecycleFragment.ParentFragment != currEvent.LifecycleFragment.ClassName {
-		// 			continue
-		// 		}
-		// 	}
-		// }
-
-		// if currNode.IsFragment && nextNode.IsActivity {
-		// 	continue
-		// }
-
+		// perform some basic heuristics to
+		// look for a parent node when current
+		// node is a fragment
 		if currNode.IsFragment {
 			// determine parent when current node
 			// is a fragment.
@@ -325,10 +305,18 @@ func (j *JourneyAndroid) buildGraph() {
 				}
 			}
 
-			// a fragment and activity should not make an edge
-			// so, ignore.
+			// if going from fragment to activity, we find the
+			// last activity and set that as the next activity's
+			// parent node.
 			if nextNode.IsActivity {
-				continue
+				parentNode := j.GetLastActivity(&currNode)
+				if parentNode != nil {
+					lastParent = parentNode.ID
+				} else {
+					// did not find a parent activity
+					// wil not create an edge
+					continue
+				}
 			}
 		}
 
@@ -336,6 +324,11 @@ func (j *JourneyAndroid) buildGraph() {
 		wkey := nextNode.Name
 		v := j.nodelut[vkey]
 		w := j.nodelut[wkey]
+
+		// discard self node loops
+		if vkey == wkey {
+			continue
+		}
 
 		if nextNode.IsFragment && !j.isFragmentOrphan(nextNode.ID) {
 			j.addEdgeID(v.vertex, w.vertex, currSession)
@@ -367,15 +360,12 @@ func (j *JourneyAndroid) buildGraph() {
 
 		if nextNode.IsFragment && !j.isFragmentOrphan(nextNode.ID) {
 			if j.options.BiGraph {
-				// fmt.Println("F bigraph: true, v:", v, "w:", w)
 				if !j.Graph.Edge(v.vertex, w.vertex) {
 					j.Graph.Add(v.vertex, w.vertex)
 				}
 			} else {
-				// fmt.Println("F bigraph: false, v:", v, "w:", w)
 				if !j.Graph.Edge(w.vertex, v.vertex) {
 					j.Graph.Add(v.vertex, w.vertex)
-					fmt.Println("parent", lastParent, "curr", currNode.ID, "next", nextNode.ID)
 				}
 			}
 			continue
@@ -384,14 +374,11 @@ func (j *JourneyAndroid) buildGraph() {
 		if nextNode.IsActivity {
 			if j.options.BiGraph {
 				if !j.Graph.Edge(v.vertex, w.vertex) {
-					// fmt.Println("A bigraph: true, v:", v.vertex, "w:", w.vertex)
 					j.Graph.Add(v.vertex, w.vertex)
 				}
 			} else {
 				if !j.Graph.Edge(w.vertex, v.vertex) {
-					// fmt.Println("A bigraph: false, v:", v.vertex, "w:", w.vertex)
 					j.Graph.Add(v.vertex, w.vertex)
-					fmt.Println("parent", lastParent, "curr", currNode.ID, "next", nextNode.ID)
 				}
 			}
 			continue
@@ -585,6 +572,26 @@ func (j JourneyAndroid) GetParentFragmentNode(node *NodeAndroid) (parent *NodeAn
 	return &j.Nodes[nodebag.nodeid]
 }
 
+// GetLastActivity finds the last activity
+// node by traversing towards start direction.
+func (j JourneyAndroid) GetLastActivity(node *NodeAndroid) (parent *NodeAndroid) {
+	c := node.ID
+
+	for {
+		c--
+
+		if c < 0 {
+			break
+		}
+
+		if j.Nodes[c].IsActivity {
+			return &j.Nodes[c]
+		}
+	}
+
+	return
+}
+
 // NewJourneyAndroid creates a journey graph object
 // from a list of events.
 func NewJourneyAndroid(events []event.EventField, opts *Options) (journey JourneyAndroid) {
@@ -617,17 +624,19 @@ func NewJourneyAndroid(events []event.EventField, opts *Options) (journey Journe
 			}
 
 		} else if issue {
-			// find the previous activity or fragment node
+			// find the previous activity node
 			// and attach the issue to the node.
 			c := i
 			for {
 				c--
-				if c < 1 {
+
+				// reached the end, we're done
+				if c < 0 {
 					break
 				}
 
-				// we only add issues to activity or fragment nodes
-				if journey.Nodes[c].IsActivity || journey.Nodes[c].IsFragment {
+				// we only add issues to activity nodes
+				if journey.Nodes[c].IsActivity {
 					addIssue := false
 
 					// only add exception if requested and if the issue exists
