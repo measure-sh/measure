@@ -552,7 +552,7 @@ Use the `lifecycle_fragment` type for Android's fragment lifecycle events.
 | `type`            | string | No       | One of the following:<br />- `attached`<br />- `resumed`<br />- `paused`<br />- `detached` |
 | `class_name`      | string | No       | Fragment's fully qualified class name                                                      |
 | `parent_activity` | string | Yes      | Fragment's parent activity's fully qualified class name                                    |
-| `parent_fragment` | string | Yes      | Fragment's parent frament's fully qualified class name                                    |
+| `parent_fragment` | string | Yes      | Fragment's parent fragment's fully qualified class name                                    |
 | `tag`             | string | Yes      | [Fragment's Tag](https://developer.android.com/reference/android/app/Fragment#getTag())    |
 
 #### **`lifecycle_app`**
