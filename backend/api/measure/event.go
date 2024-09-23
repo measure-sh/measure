@@ -152,15 +152,15 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 
 			// log anomalous cold launch durations
 			if ev.ColdLaunch.Duration >= event.NominalColdLaunchThreshold {
-				fmt.Printf("anomaly in cold_launch duration compute. nominal_threshold: < %q actual: %f os_name: %q os_version: %q\n", event.NominalColdLaunchThreshold, ev.ColdLaunch.Duration.Seconds(), ev.Attribute.Platform, ev.Attribute.OSVersion)
+				fmt.Printf("anomaly in cold_launch duration compute. nominal_threshold: < %q actual: %d os_name: %q os_version: %q\n", event.NominalColdLaunchThreshold, ev.ColdLaunch.Duration.Milliseconds(), ev.Attribute.OSName, ev.Attribute.OSVersion)
 			}
 		}
 		if ev.IsWarmLaunch() {
 			ev.WarmLaunch.Compute()
 
-			// log anomalous cold launch durations
-			if ev.WarmLaunch.Duration >= event.NominalWarmLaunchThreshold {
-				fmt.Printf("anomaly in warm_launch duration compute. nominal_threshold: < %q actual: %f os_name: %q os_version: %q\n", event.NominalWarmLaunchThreshold, ev.WarmLaunch.Duration.Seconds(), ev.Attribute.Platform, ev.Attribute.OSVersion)
+			// log anomalous warm launch durations
+			if !ev.WarmLaunch.IsLukewarm && ev.WarmLaunch.AppVisibleUptime <= 0 {
+				fmt.Printf("anomaly in warm_launch duration compute with invalid app_visible_uptime for non-lukewarm warm_launch. process_start_uptime: %d process_start_requested_uptime: %d content_provider_attach_uptime: %d os_name: %q os_version: %q\n", ev.WarmLaunch.ProcessStartUptime, ev.WarmLaunch.ProcessStartRequestedUptime, ev.WarmLaunch.ContentProviderAttachUptime, ev.Attribute.OSName, ev.Attribute.OSVersion)
 			}
 		}
 		if ev.IsHotLaunch() {
