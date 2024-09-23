@@ -222,29 +222,29 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 	defer stmt.Close()
 
 	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
-	exceptionGroups, err := pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
-
+	groups, err = pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	var exceptionGroup *group.ExceptionGroup
-	for i := range exceptionGroups {
-		exceptionGroup = &exceptionGroups[i]
+	for i := range groups {
+		exceptionGroup = &groups[i]
 
 		eventDataStmt := sqlf.
 			From("default.events").
 			Select("id").
+			Where("app_id in ?", af.AppID).
 			Where("exception.fingerprint = ?", exceptionGroup.Fingerprint)
 
 		defer eventDataStmt.Close()
 
 		if len(af.Versions) > 0 {
-			eventDataStmt.Where("attribute.app_version").In(af.Versions)
+			eventDataStmt.Where("attribute.app_version in ?", af.Versions)
 		}
 
 		if len(af.VersionCodes) > 0 {
-			eventDataStmt.Where("attribute.app_build").In(af.VersionCodes)
+			eventDataStmt.Where("attribute.app_build in ?", af.VersionCodes)
 		}
 
 		if af.HasTimeRange() {
@@ -268,11 +268,15 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 			ids = append(ids, id)
 		}
 
+		if rows.Err() != nil {
+			return nil, err
+		}
+
 		exceptionGroup.EventIDs = ids
 		exceptionGroup.Count = len(ids)
 	}
 
-	return exceptionGroups, nil
+	return
 }
 
 // GetANRGroup queries a single ANR group by its id.
@@ -426,29 +430,29 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 	defer stmt.Close()
 
 	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
-	anrGroups, err := pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ANRGroup])
-
+	groups, err = pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ANRGroup])
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	var anrGroup *group.ANRGroup
-	for i := range anrGroups {
-		anrGroup = &anrGroups[i]
+	for i := range groups {
+		anrGroup = &groups[i]
 
 		eventDataStmt := sqlf.
 			From("default.events").
 			Select("id").
+			Where("app_id = ?", af.AppID).
 			Where("anr.fingerprint = ?", anrGroup.Fingerprint)
 
 		defer eventDataStmt.Close()
 
 		if len(af.Versions) > 0 {
-			eventDataStmt.Where("attribute.app_version").In(af.Versions)
+			eventDataStmt.Where("attribute.app_version in ?", af.Versions)
 		}
 
 		if len(af.VersionCodes) > 0 {
-			eventDataStmt.Where("attribute.app_build").In(af.VersionCodes)
+			eventDataStmt.Where("attribute.app_build in ?", af.VersionCodes)
 		}
 
 		if af.HasTimeRange() {
@@ -472,11 +476,15 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 			ids = append(ids, id)
 		}
 
+		if rows.Err() != nil {
+			return nil, err
+		}
+
 		anrGroup.EventIDs = ids
 		anrGroup.Count = len(ids)
 	}
 
-	return anrGroups, nil
+	return
 }
 
 // GetSizeMetrics computes app size of the selected app version
@@ -3138,6 +3146,8 @@ func GetANROverview(c *gin.Context) {
 		})
 		return
 	}
+
+	af.Expand()
 
 	msg := "anr overview request validation failed"
 	if err := af.Validate(); err != nil {
