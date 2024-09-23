@@ -42,7 +42,12 @@ internal class NetworkClientImpl(
         eventPackets: List<EventPacket>,
         attachmentPackets: List<AttachmentPacket>,
     ): HttpResponse {
-        validateInitialization()
+        if (!isInitialized()) {
+            // Handling this case as a HTTP response to make error handling consistent
+            // with other network errors. This can only happen if the API_URL or API_KEY are
+            // not correctly set.
+            return HttpResponse.Error.UnknownError(UninitializedPropertyAccessException("Unable to initialize network client, please check the API_KEY and API_URL"))
+        }
 
         val headers = createHeaders(batchId)
         val multipartData = prepareMultipartData(eventPackets, attachmentPackets)
@@ -61,7 +66,7 @@ internal class NetworkClientImpl(
         return try {
             URL(url)
         } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Invalid API_URL: $baseUrl", e)
+            logger.log(LogLevel.Error, "Invalid API_URL", e)
             null
         }
     }
@@ -70,15 +75,13 @@ internal class NetworkClientImpl(
         return try {
             baseUrl.toURI().resolve(PATH_EVENTS).toURL()
         } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Invalid API_URL: $baseUrl", e)
+            logger.log(LogLevel.Error, "Invalid API_URL", e)
             null
         }
     }
 
-    private fun validateInitialization() {
-        requireNotNull(baseUrl) { "Base URL not found, events will not be exported" }
-        requireNotNull(apiKey) { "API key not found, events will not be exported" }
-        requireNotNull(eventsUrl) { "Events URL not found, events will not be exported" }
+    private fun isInitialized(): Boolean {
+        return !(baseUrl == null || eventsUrl == null || apiKey == null)
     }
 
     private fun createHeaders(batchId: String): Map<String, String> {

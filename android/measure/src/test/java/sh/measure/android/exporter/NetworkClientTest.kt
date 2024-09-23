@@ -1,7 +1,7 @@
 package sh.measure.android.exporter
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.mock
@@ -46,7 +46,7 @@ class NetworkClientTest {
 
         clientWithErrorLogger.init(baseUrl = "invalid-url", apiKey = "secret")
 
-        verify(errorLogger).log(eq(LogLevel.Error), eq("Invalid base URL: invalid-url"), any())
+        verify(errorLogger).log(eq(LogLevel.Error), eq("Invalid API_URL"), any())
     }
 
     @Test
@@ -162,7 +162,7 @@ class NetworkClientTest {
     }
 
     @Test
-    fun `execute throws exception when network client is not initialized`() {
+    fun `execute returns error when network client is not initialized`() {
         val uninitializedNetworkClient = NetworkClientImpl(
             logger = NoopLogger(),
             fileStorage = fileStorage,
@@ -170,9 +170,8 @@ class NetworkClientTest {
             multipartDataFactory = multipartDataFactory,
         )
 
-        assertThrows(
-            IllegalArgumentException::class.java,
-        ) { uninitializedNetworkClient.execute("batch123", emptyList(), emptyList()) }
+        val result = uninitializedNetworkClient.execute("batch123", emptyList(), emptyList())
+        assertTrue(result is HttpResponse.Error.UnknownError)
     }
 
     @Test
