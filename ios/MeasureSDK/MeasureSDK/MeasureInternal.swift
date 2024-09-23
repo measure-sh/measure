@@ -13,7 +13,7 @@ import UIKit
 /// This class initializes the Measure SDK and hides the internal dependencies from the public API.
 ///
 final class MeasureInternal {
-    let measureInitializer: MeasureInitializer
+    var measureInitializer: MeasureInitializer
     private var logger: Logger {
         return measureInitializer.logger
     }
@@ -53,34 +53,45 @@ final class MeasureInternal {
     private var eventProcessor: EventProcessor {
         return measureInitializer.eventProcessor
     }
+    private var crashReportManager: CrashReportManager {
+        return measureInitializer.crashReportManager
+    }
+    private var crashDataPersistence: CrashDataPersistence {
+        get {
+            return measureInitializer.crashDataPersistence
+        }
+        set {
+            measureInitializer.crashDataPersistence = newValue
+        }
+    }
+    private var systemFileManager: SystemFileManager {
+        return measureInitializer.systemFileManager
+    }
     private let lifecycleObserver: LifecycleObserver
 
     init(_ measureInitializer: MeasureInitializer) {
         self.measureInitializer = measureInitializer
         self.lifecycleObserver = LifecycleObserver()
-        self.logger.log(level: .debug, message: "Starting Measure SDK", error: nil)
+        self.logger.log(level: .info, message: "Starting Measure SDK", error: nil)
         self.sessionManager.start()
         self.lifecycleObserver.applicationDidEnterBackground = applicationDidEnterBackground
         self.lifecycleObserver.applicationWillEnterForeground = applicationWillEnterForeground
         self.lifecycleObserver.applicationWillTerminate = applicationWillTerminate
-        let dic = ["2": "B", "1": "A", "3": "C"]
+        self.crashDataPersistence.prepareCrashFile()
+        self.crashDataPersistence.sessionId = sessionManager.sessionId
 
-        do {
-            let jsonData = try JSONSerialization.data(withJSONObject: dic, options: .prettyPrinted)
-            // here "jsonData" is the dictionary encoded in JSON data
-
-            self.eventProcessor.track(data: jsonData, timestamp: 1_000_000_000_000, type: .exception)
-        } catch {
-            print(error.localizedDescription)
-        }
+        self.crashReportManager.enableCrashReporting()
+        self.crashReportManager.trackException()
     }
 
     private func applicationDidEnterBackground() {
         sessionManager.applicationDidEnterBackground()
+        self.crashDataPersistence.isForeground = false
     }
 
     private func applicationWillEnterForeground() {
         sessionManager.applicationWillEnterForeground()
+        self.crashDataPersistence.isForeground = true
     }
 
     private func applicationWillTerminate() {

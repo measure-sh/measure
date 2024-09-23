@@ -2,7 +2,7 @@
 //  XCTextCase+Extension.swift
 //  MeasureSDKTests
 //
-//  Created by EdPu on 04/09/24.
+//  Created by Adwin Ross on 04/09/24.
 //
 
 import XCTest

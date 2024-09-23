@@ -10,8 +10,8 @@ import Foundation
 /// Internal configuration options for the Measure SDK.
 protocol InternalConfig {
     /// The interval at which to create a batch for export.
-    var eventsBatchingIntervalMs: Int64 { get }
+    var eventsBatchingIntervalMs: Number { get }
 
     /// The threshold after which a session is considered ended. Defaults to 1 minute.
-    var sessionEndThresholdMs: Int64 { get }
+    var sessionEndThresholdMs: Number { get }
 }

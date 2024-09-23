@@ -16,6 +16,7 @@ force_try:
 # rules that have both warning and error levels, can set just the warning level
 # implicitly
 line_length: 200
+large_tuple: 3
 # they can set both implicitly with an array
 type_body_length:
   - 300 # warning
