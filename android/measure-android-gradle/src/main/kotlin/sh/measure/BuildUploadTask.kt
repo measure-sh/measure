@@ -16,6 +16,7 @@ import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
 import java.io.File
 import java.io.IOException
+import java.net.URI
 
 private const val HEADER_AUTHORIZATION = "Authorization"
 private const val VERSION_CODE = "version_code"
@@ -80,7 +81,7 @@ abstract class BuildUploadTask : DefaultTask() {
             addFormDataPart(BUILD_SIZE, appSize)
             addFormDataPart(BUILD_TYPE, buildType)
         }.build()
-        val url = "${manifestData.apiUrl}/${BUILDS_PATH}"
+        val url = URI.create(manifestData.apiUrl).resolve(BUILDS_PATH).toURL()
         val request: Request = Request.Builder().url(url)
             .header(HEADER_AUTHORIZATION, "Bearer ${manifestData.apiKey}").put(requestBody).build()
         try {

@@ -111,8 +111,6 @@ services:
       context: ../backend/cleanup
     ports:
       - "8081:8081"
-    profiles:
-      - cleanup
     environment:
       - POSTGRES_DSN=${POSTGRES_DSN}
       - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}

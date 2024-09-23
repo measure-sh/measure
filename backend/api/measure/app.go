@@ -70,6 +70,21 @@ func (a App) MarshalJSON() ([]byte, error) {
 	})
 }
 
+func (a App) rename() error {
+	stmt := sqlf.PostgreSQL.Update("public.apps").
+		Set("app_name", a.AppName).
+		Set("updated_at", time.Now()).
+		Where("id = ?", a.ID)
+	defer stmt.Close()
+
+	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), stmt.Args()...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GetExceptionGroup queries a single exception group by its id.
 func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGroup *group.ExceptionGroup, err error) {
 	stmt := sqlf.PostgreSQL.
@@ -245,6 +260,42 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 
 		if len(af.VersionCodes) > 0 {
 			eventDataStmt.Where("attribute.app_build in ?", af.VersionCodes)
+		}
+
+		if len(af.OsNames) > 0 {
+			eventDataStmt.Where("attribute.os_name").In(af.OsNames)
+		}
+
+		if len(af.OsVersions) > 0 {
+			eventDataStmt.Where("attribute.os_version").In(af.OsVersions)
+		}
+
+		if len(af.Countries) > 0 {
+			eventDataStmt.Where("inet.country_code").In(af.Countries)
+		}
+
+		if len(af.DeviceNames) > 0 {
+			eventDataStmt.Where("attribute.device_name").In(af.DeviceNames)
+		}
+
+		if len(af.DeviceManufacturers) > 0 {
+			eventDataStmt.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
+		}
+
+		if len(af.Locales) > 0 {
+			eventDataStmt.Where("attribute.device_locale").In(af.Locales)
+		}
+
+		if len(af.NetworkProviders) > 0 {
+			eventDataStmt.Where("attribute.network_provider").In(af.NetworkProviders)
+		}
+
+		if len(af.NetworkTypes) > 0 {
+			eventDataStmt.Where("attribute.network_type").In(af.NetworkTypes)
+		}
+
+		if len(af.NetworkGenerations) > 0 {
+			eventDataStmt.Where("attribute.network_generation").In(af.NetworkGenerations)
 		}
 
 		if af.HasTimeRange() {
@@ -453,6 +504,42 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 
 		if len(af.VersionCodes) > 0 {
 			eventDataStmt.Where("attribute.app_build in ?", af.VersionCodes)
+		}
+
+		if len(af.OsNames) > 0 {
+			eventDataStmt.Where("attribute.os_name").In(af.OsNames)
+		}
+
+		if len(af.OsVersions) > 0 {
+			eventDataStmt.Where("attribute.os_version").In(af.OsVersions)
+		}
+
+		if len(af.Countries) > 0 {
+			eventDataStmt.Where("inet.country_code").In(af.Countries)
+		}
+
+		if len(af.DeviceNames) > 0 {
+			eventDataStmt.Where("attribute.device_name").In(af.DeviceNames)
+		}
+
+		if len(af.DeviceManufacturers) > 0 {
+			eventDataStmt.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
+		}
+
+		if len(af.Locales) > 0 {
+			eventDataStmt.Where("attribute.device_locale").In(af.Locales)
+		}
+
+		if len(af.NetworkProviders) > 0 {
+			eventDataStmt.Where("attribute.network_provider").In(af.NetworkProviders)
+		}
+
+		if len(af.NetworkTypes) > 0 {
+			eventDataStmt.Where("attribute.network_type").In(af.NetworkTypes)
+		}
+
+		if len(af.NetworkGenerations) > 0 {
+			eventDataStmt.Where("attribute.network_generation").In(af.NetworkGenerations)
 		}
 
 		if af.HasTimeRange() {
@@ -934,7 +1021,7 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter, version
 			sqlf.From("timings").
 				Select("round(quantile(0.95)(warm_launch.duration), 2) as warm_launch").
 				Where("type = 'warm_launch'").
-				Where("warm_launch.duration > 0").
+				Where("warm_launch.duration > 0 and warm_launch.duration <= ?", event.NominalWarmLaunchThreshold.Milliseconds()). //ignore warm launch durations greater than 10 seconds. Similar to https://github.com/measure-sh/measure/issues/933
 				Where("attribute.app_version in ? and attribute.app_build in ?", af.Versions, af.VersionCodes)).
 		With("hot_selected",
 			sqlf.From("timings").
@@ -1015,6 +1102,14 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ? and `exception.handled` = ?))", whereVals...)
 	} else if opts.ANRs {
 		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?))", whereVals...)
+	}
+
+	if len(af.OsNames) > 0 {
+		stmt.Where("`attribute.os_name` in ?", af.OsNames)
+	}
+
+	if len(af.OsVersions) > 0 {
+		stmt.Where("`attribute.os_version` in ?", af.OsVersions)
 	}
 
 	if len(af.Countries) > 0 {
@@ -1392,11 +1487,15 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`cold_launch.intent_data`,
 		`cold_launch.duration`,
 		`warm_launch.app_visible_uptime`,
+		`warm_launch.process_start_uptime`,
+		`warm_launch.process_start_requested_uptime`,
+		`warm_launch.content_provider_attach_uptime`,
 		`warm_launch.on_next_draw_uptime`,
 		`warm_launch.launched_activity`,
 		`warm_launch.has_saved_state`,
 		`warm_launch.intent_data`,
 		`warm_launch.duration`,
+		`warm_launch.is_lukewarm`,
 		`hot_launch.app_visible_uptime`,
 		`hot_launch.on_next_draw_uptime`,
 		`toString(hot_launch.launched_activity)`,
@@ -1623,11 +1722,15 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 
 			// warm launch
 			&warmLaunch.AppVisibleUptime,
+			&warmLaunch.ProcessStartUptime,
+			&warmLaunch.ProcessStartRequestedUptime,
+			&warmLaunch.ContentProviderAttachUptime,
 			&warmLaunch.OnNextDrawUptime,
 			&warmLaunch.LaunchedActivity,
 			&warmLaunch.HasSavedState,
 			&warmLaunch.IntentData,
 			&warmLaunchDuration,
+			&warmLaunch.IsLukewarm,
 
 			// hot launch
 			&hotLaunch.AppVisibleUptime,
@@ -2380,8 +2483,16 @@ func GetAppFilters(c *gin.Context) {
 		versions = append(versions, version)
 	}
 
+	// club os names & versions
+	var osVersions []any
+	for i := range fl.OsVersions {
+		osVersion := gin.H{"name": fl.OsNames[i], "version": fl.OsVersions[i]}
+		osVersions = append(osVersions, osVersion)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"versions":             versions,
+		"os_versions":          osVersions,
 		"countries":            fl.Countries,
 		"network_providers":    fl.NetworkProviders,
 		"network_types":        fl.NetworkTypes,
@@ -4079,6 +4190,14 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 		base.Where("type = 'anr'")
 	}
 
+	if len(af.OsNames) > 0 {
+		base.Where("attribute.os_name").In(af.OsNames)
+	}
+
+	if len(af.OsVersions) > 0 {
+		base.Where("attribute.os_version").In(af.OsVersions)
+	}
+
 	if len(af.Countries) > 0 {
 		base.Where("inet.country_code").In(af.Countries)
 	}
@@ -4629,14 +4748,28 @@ func GetSession(c *gin.Context) {
 
 	exceptionEvents := eventMap[event.TypeException]
 	if len(exceptionEvents) > 0 {
-		exceptions := replay.ComputeExceptions(exceptionEvents)
+		exceptions, err := replay.ComputeExceptions(c, app.ID, exceptionEvents)
+		if err != nil {
+			msg := fmt.Sprintf(`unable to compute exceptions for session %q for app %q`, sessionId, app.ID)
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": msg,
+			})
+			return
+		}
 		threadedExceptions := replay.GroupByThreads(exceptions)
 		threads.Organize(event.TypeException, threadedExceptions)
 	}
 
 	anrEvents := eventMap[event.TypeANR]
 	if len(anrEvents) > 0 {
-		anrs := replay.ComputeANRs(anrEvents)
+		anrs, err := replay.ComputeANRs(c, app.ID, anrEvents)
+		if err != nil {
+			msg := fmt.Sprintf(`unable to compute ANRs for session %q for app %q`, sessionId, app.ID)
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": msg,
+			})
+			return
+		}
 		threadedANRs := replay.GroupByThreads(anrs)
 		threads.Organize(event.TypeANR, threadedANRs)
 	}
@@ -4800,6 +4933,64 @@ func UpdateAppSettings(c *gin.Context) {
 	appSettings.RetentionPeriod = payload.RetentionPeriod
 
 	appSettings.update()
+
+	c.JSON(http.StatusOK, gin.H{"ok": "done"})
+}
+
+func RenameApp(c *gin.Context) {
+	userId := c.GetString("userId")
+	appId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `app id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	app := App{
+		ID: &appId,
+	}
+
+	team, err := app.getTeam(c)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	ok, err := PerformAuthz(userId, team.ID.String(), *ScopeAppAll)
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`you don't have permissions to modify app in team [%s]`, team.ID.String())
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&app); err != nil {
+		msg := `failed to parse app rename json payload`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	err = app.rename()
+	if err != nil {
+		msg := `failed to rename app`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": "done"})
 }

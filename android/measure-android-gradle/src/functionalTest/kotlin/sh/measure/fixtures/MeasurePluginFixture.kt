@@ -54,7 +54,7 @@ class MeasurePluginFixture(
             defaultConfig = DefaultConfig(
                 applicationId = "com.example",
                 minSdkVersion = 21,
-                targetSdkVersion = 34,
+                targetSdkVersion = 35,
                 versionCode = 1,
                 versionName = "1.0",
             )
@@ -64,6 +64,7 @@ class MeasurePluginFixture(
     // Ref: https://developer.android.com/build/releases/gradle-plugin#api-level-support
     private fun computeCompileSdkVersion(agpVersion: SemVer): Int {
         return when {
+            agpVersion >= SemVer(8, 4, 0) -> 35
             agpVersion >= SemVer(8, 1, 1) -> 34
             else -> 33
         }

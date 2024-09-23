@@ -1,5 +1,6 @@
 package sh.measure.android.fakes
 
+import android.app.ActivityManager.RunningAppProcessInfo
 import sh.measure.android.utils.ProcessInfoProvider
 
 internal class FakeProcessInfoProvider(var id: Int = 0) : ProcessInfoProvider {
@@ -11,5 +12,9 @@ internal class FakeProcessInfoProvider(var id: Int = 0) : ProcessInfoProvider {
 
     override fun getPid(): Int {
         return id
+    }
+
+    override fun getProcessImportance(): Int {
+        return RunningAppProcessInfo.IMPORTANCE_FOREGROUND
     }
 }

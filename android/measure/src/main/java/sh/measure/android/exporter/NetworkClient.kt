@@ -3,6 +3,7 @@ package sh.measure.android.exporter
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.FileStorage
+import java.net.URL
 
 internal interface NetworkClient {
     fun init(baseUrl: String, apiKey: String)
@@ -13,8 +14,6 @@ internal interface NetworkClient {
     ): HttpResponse
 }
 
-private const val PATH_EVENTS = "/events"
-
 internal class NetworkClientImpl(
     private val logger: Logger,
     private val fileStorage: FileStorage,
@@ -24,12 +23,18 @@ internal class NetworkClientImpl(
         fileStorage,
     ),
 ) : NetworkClient {
-    private var baseUrl: String? = null
+    private var baseUrl: URL? = null
+    private var eventsUrl: URL? = null
     private var apiKey: String? = null
 
+    companion object {
+        private const val PATH_EVENTS = "/events"
+    }
+
     override fun init(baseUrl: String, apiKey: String) {
-        this.baseUrl = baseUrl
+        this.baseUrl = parseUrl(baseUrl)
         this.apiKey = apiKey
+        this.eventsUrl = this.baseUrl?.let { createEventsUrl(it) }
     }
 
     override fun execute(
@@ -37,25 +42,53 @@ internal class NetworkClientImpl(
         eventPackets: List<EventPacket>,
         attachmentPackets: List<AttachmentPacket>,
     ): HttpResponse {
-        requireNotNull(baseUrl) { "NetworkClient must be initialized before executing requests" }
-        requireNotNull(apiKey) { "NetworkClient must be initialized before executing requests" }
+        if (!isInitialized()) {
+            // Handling this case as a HTTP response to make error handling consistent
+            // with other network errors. This can only happen if the API_URL or API_KEY are
+            // not correctly set.
+            return HttpResponse.Error.UnknownError(UninitializedPropertyAccessException("Unable to initialize network client, please check the API_KEY and API_URL"))
+        }
 
-        val url = "$baseUrl$PATH_EVENTS"
-
-        val headers = mapOf(
-            "msr-req-id" to batchId,
-            "Authorization" to "Bearer $apiKey",
-        )
-
+        val headers = createHeaders(batchId)
         val multipartData = prepareMultipartData(eventPackets, attachmentPackets)
 
         return try {
-            val response = httpClient.sendMultipartRequest(url, "PUT", headers, multipartData)
+            val response =
+                httpClient.sendMultipartRequest(eventsUrl.toString(), "PUT", headers, multipartData)
             handleResponse(response)
         } catch (e: Exception) {
             logger.log(LogLevel.Error, "Failed to send request", e)
             HttpResponse.Error.UnknownError(e)
         }
+    }
+
+    private fun parseUrl(url: String): URL? {
+        return try {
+            URL(url)
+        } catch (e: Exception) {
+            logger.log(LogLevel.Error, "Invalid API_URL", e)
+            null
+        }
+    }
+
+    private fun createEventsUrl(baseUrl: URL): URL? {
+        return try {
+            baseUrl.toURI().resolve(PATH_EVENTS).toURL()
+        } catch (e: Exception) {
+            logger.log(LogLevel.Error, "Invalid API_URL", e)
+            null
+        }
+    }
+
+    private fun isInitialized(): Boolean {
+        return !(baseUrl == null || eventsUrl == null || apiKey == null)
+    }
+
+    private fun createHeaders(batchId: String): Map<String, String> {
+        return mapOf(
+            "msr-req-id" to batchId,
+            "Authorization" to "Bearer $apiKey",
+        )
     }
 
     private fun prepareMultipartData(

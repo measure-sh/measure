@@ -57,7 +57,7 @@ mavenPublishing {
 
 android {
     namespace = "sh.measure.android"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 21

@@ -9,18 +9,18 @@ import Foundation
 @testable import MeasureSDK
 
 final class MockTimeProvider: TimeProvider {
-    var currentTimeSinceEpochInMillis: Int64
-    var currentTimeSinceEpochInNanos: Int64
-    var uptimeInMillis: Int64
+    var currentTimeSinceEpochInMillis: Number
+    var currentTimeSinceEpochInNanos: Number
+    var uptimeInMillis: Number
     private let iso8601Timestamp: String
 
-    func iso8601Timestamp(timeInMillis: Int64) -> String {
+    func iso8601Timestamp(timeInMillis: Number) -> String {
         return iso8601Timestamp
     }
 
-    init(currentTimeSinceEpochInMillis: Int64,
-         currentTimeSinceEpochInNanos: Int64,
-         uptimeInMillis: Int64,
+    init(currentTimeSinceEpochInMillis: Number,
+         currentTimeSinceEpochInNanos: Number,
+         uptimeInMillis: Number,
          iso8601Timestamp: String) {
         self.currentTimeSinceEpochInMillis = currentTimeSinceEpochInMillis
         self.currentTimeSinceEpochInNanos = currentTimeSinceEpochInNanos

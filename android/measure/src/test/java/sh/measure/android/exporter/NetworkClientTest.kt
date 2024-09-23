@@ -1,7 +1,7 @@
 package sh.measure.android.exporter
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.mock
@@ -10,6 +10,8 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.logger.LogLevel
+import sh.measure.android.logger.Logger
 import sh.measure.android.storage.FileStorage
 
 class NetworkClientTest {
@@ -23,6 +25,28 @@ class NetworkClientTest {
         multipartDataFactory = multipartDataFactory,
     ).apply {
         init(apiKey = "secret", baseUrl = "http://localhost:8080")
+    }
+
+    @Test
+    fun `init with valid URL succeeds`() {
+        networkClient.init(baseUrl = "http://localhost:8080", apiKey = "secret")
+        networkClient.init(baseUrl = "http://localhost:8080/", apiKey = "secret")
+        // The init method doesn't return anything, so just checking that it doesn't throw an exception
+    }
+
+    @Test
+    fun `init with invalid URL logs error`() {
+        val errorLogger = mock<Logger>()
+        val clientWithErrorLogger = NetworkClientImpl(
+            logger = errorLogger,
+            fileStorage = fileStorage,
+            httpClient = httpClient,
+            multipartDataFactory = multipartDataFactory,
+        )
+
+        clientWithErrorLogger.init(baseUrl = "invalid-url", apiKey = "secret")
+
+        verify(errorLogger).log(eq(LogLevel.Error), eq("Invalid API_URL"), any())
     }
 
     @Test
@@ -138,7 +162,7 @@ class NetworkClientTest {
     }
 
     @Test
-    fun `execute throws exception when network client is not initialized`() {
+    fun `execute returns error when network client is not initialized`() {
         val uninitializedNetworkClient = NetworkClientImpl(
             logger = NoopLogger(),
             fileStorage = fileStorage,
@@ -146,8 +170,27 @@ class NetworkClientTest {
             multipartDataFactory = multipartDataFactory,
         )
 
-        assertThrows(
-            IllegalArgumentException::class.java,
-        ) { uninitializedNetworkClient.execute("batch123", emptyList(), emptyList()) }
+        val result = uninitializedNetworkClient.execute("batch123", emptyList(), emptyList())
+        assertTrue(result is HttpResponse.Error.UnknownError)
+    }
+
+    @Test
+    fun `execute with trailing slash in base URL works correctly`() {
+        networkClient.init(baseUrl = "http://localhost:8080/", apiKey = "secret")
+        val eventPackets = listOf<EventPacket>()
+        val attachmentPackets = listOf<AttachmentPacket>()
+
+        `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenReturn(
+            HttpResponse.Success(),
+        )
+
+        networkClient.execute("batch123", eventPackets, attachmentPackets)
+
+        verify(httpClient).sendMultipartRequest(
+            eq("http://localhost:8080/events"),
+            any(),
+            any(),
+            any(),
+        )
     }
 }

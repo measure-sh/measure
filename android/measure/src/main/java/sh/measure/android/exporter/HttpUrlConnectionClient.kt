@@ -60,6 +60,7 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
         try {
             connection = createConnection(url, method, headers)
             val outputStream = getOutputStream(connection)
+            logger.log(LogLevel.Debug, "Request: $method $url")
             streamMultipartData(outputStream, multipartData)
             if (isRedirect(connection.responseCode)) {
                 val location = connection.getHeaderField("Location")

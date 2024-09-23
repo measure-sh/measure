@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import { formatDateToHumanReadableDateTime } from '../utils/time_utils';
 import ExceptionspDetailsPlot from './exceptions_details_plot';
-import Filters, { AppVersionsInitialSelectionType, defaultSelectedFilters } from './filters';
+import Filters, { AppVersionsInitialSelectionType, defaultFilters } from './filters';
 import Journey, { JourneyType } from './journey';
 import Image from 'next/image';
 import CopyAiContext from './copy_ai_context';
@@ -26,7 +26,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
 
   const [exceptionsDetailsApiStatus, setExceptionsDetailsApiStatus] = useState(ExceptionsDetailsApiStatus.Loading);
 
-  const [selectedFilters, setSelectedFilters] = useState(defaultSelectedFilters);
+  const [filters, setFilters] = useState(defaultFilters);
 
   const [exceptionsDetails, setExceptionsDetails] = useState(exceptionsType === ExceptionsType.Crash ? emptyCrashExceptionsDetailsResponse : emptyAnrExceptionsDetailsResponse)
   const [paginationIndex, setPaginationIndex] = useState(0)
@@ -49,7 +49,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
       limit = - limit
     }
 
-    const result = await fetchExceptionsDetailsFromServer(exceptionsType, appId, exceptionsGroupId, selectedFilters.selectedStartDate, selectedFilters.selectedEndDate, selectedFilters.selectedVersions, selectedFilters.selectedCountries, selectedFilters.selectedNetworkProviders, selectedFilters.selectedNetworkTypes, selectedFilters.selectedNetworkGenerations, selectedFilters.selectedLocales, selectedFilters.selectedDeviceManufacturers, selectedFilters.selectedDeviceNames, keyId, keyTimestamp, limit, router)
+    const result = await fetchExceptionsDetailsFromServer(exceptionsType, exceptionsGroupId, filters, keyId, keyTimestamp, limit, router)
 
     switch (result.status) {
       case ExceptionsDetailsApiStatus.Error:
@@ -65,17 +65,17 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
   }
 
   useEffect(() => {
-    if (!selectedFilters.ready) {
+    if (!filters.ready) {
       return
     }
 
     getExceptionsDetails()
-  }, [paginationIndex, selectedFilters]);
+  }, [paginationIndex, filters]);
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
       <div className="py-4" />
-      <p className="font-display font-normal text-4xl max-w-6xl text-center">{selectedFilters.selectedApp.name}</p>
+      <p className="font-display font-normal text-4xl max-w-6xl text-center">{filters.app.name}</p>
       <div className="py-1" />
       <p className="font-display font-light text-3xl max-w-6xl text-center">{decodeURIComponent(exceptionsGroupName)}</p>
       <div className="py-4" />
@@ -85,7 +85,11 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
         appId={appId}
         filtersApiType={exceptionsType === ExceptionsType.Crash ? FiltersApiType.Crash : FiltersApiType.Anr}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
+        showCreateApp={true}
+        showAppVersions={true}
+        showDates={true}
         showSessionType={false}
+        showOsVersions={true}
         showCountries={true}
         showNetworkTypes={true}
         showNetworkProviders={true}
@@ -94,46 +98,26 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
         showDeviceManufacturers={true}
         showDeviceNames={true}
         showFreeText={false}
-        onFiltersChanged={(updatedFilters) => setSelectedFilters(updatedFilters)} />
+        onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
 
       <div className="py-4" />
 
-      {selectedFilters.ready &&
+      {filters.ready &&
         <div className='w-full'>
           <div className="py-6" />
           <div className="flex flex-col md:flex-row w-full">
             <ExceptionspDetailsPlot
-              appId={appId}
               exceptionsType={exceptionsType}
               exceptionsGroupId={exceptionsGroupId}
-              startDate={selectedFilters.selectedStartDate}
-              endDate={selectedFilters.selectedEndDate}
-              appVersions={selectedFilters.selectedVersions}
-              countries={selectedFilters.selectedCountries}
-              networkProviders={selectedFilters.selectedNetworkProviders}
-              networkTypes={selectedFilters.selectedNetworkTypes}
-              networkGenerations={selectedFilters.selectedNetworkGenerations}
-              locales={selectedFilters.selectedLocales}
-              deviceManufacturers={selectedFilters.selectedDeviceManufacturers}
-              deviceNames={selectedFilters.selectedDeviceNames} />
+              filters={filters} />
             <div className="p-2" />
             <div className="w-full h-[32rem]">
               <Journey
                 teamId={teamId}
-                appId={selectedFilters.selectedApp.id}
                 bidirectional={false}
                 journeyType={exceptionsType === ExceptionsType.Crash ? JourneyType.CrashDetails : JourneyType.AnrDetails}
                 exceptionsGroupId={exceptionsGroupId}
-                startDate={selectedFilters.selectedStartDate}
-                endDate={selectedFilters.selectedEndDate}
-                appVersions={selectedFilters.selectedVersions}
-                countries={selectedFilters.selectedCountries}
-                networkProviders={selectedFilters.selectedNetworkProviders}
-                networkTypes={selectedFilters.selectedNetworkTypes}
-                networkGenerations={selectedFilters.selectedNetworkGenerations}
-                locales={selectedFilters.selectedLocales}
-                deviceManufacturers={selectedFilters.selectedDeviceManufacturers}
-                deviceNames={selectedFilters.selectedDeviceNames} />
+                filters={filters} />
             </div>
           </div>
           <div className="py-4" />
@@ -186,7 +170,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
               <div className='flex flex-row items-center'>
                 <Link key={exceptionsDetails.results[0].id} href={`/${teamId}/sessions/${appId}/${exceptionsDetails.results[0].session_id}`} className="outline-none justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4">View Session</Link>
                 <div className='px-2' />
-                <CopyAiContext appName={selectedFilters.selectedApp.name} exceptionsType={exceptionsType} exceptionsDetails={exceptionsDetails} />
+                <CopyAiContext appName={filters.app.name} exceptionsType={exceptionsType} exceptionsDetails={exceptionsDetails} />
               </div>
               <div className="py-2" />
               {exceptionsType === ExceptionsType.Crash &&

@@ -1,11 +1,11 @@
 package sh.measure.android.applaunch
 
 import android.app.Application
+import android.util.Log
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TimeProvider
 
 internal interface ColdLaunchListener {
@@ -20,7 +20,6 @@ internal class AppLaunchCollector(
     private val application: Application,
     private val timeProvider: TimeProvider,
     private val eventProcessor: EventProcessor,
-    private val processInfo: ProcessInfoProvider,
 ) : LaunchCallbacks {
 
     private var coldLaunchListener: ColdLaunchListener? = null
@@ -28,7 +27,7 @@ internal class AppLaunchCollector(
     fun register() {
         logger.log(LogLevel.Debug, "Registering AppLaunchCollector")
         application.registerActivityLifecycleCallbacks(
-            LaunchTracker(logger, processInfo, this),
+            LaunchTracker(logger, this),
         )
     }
 
@@ -42,6 +41,7 @@ internal class AppLaunchCollector(
                 ?: return
         val endUptime = coldLaunchData.on_next_draw_uptime
         val duration = endUptime - startUptime
+        Log.e("Measure", "cold: $duration")
         logger.log(LogLevel.Debug, "cold launch duration: $duration ms, start uptime: $startUptime")
         eventProcessor.track(
             timestamp = timeProvider.currentTimeSinceEpochInMillis,
@@ -55,6 +55,7 @@ internal class AppLaunchCollector(
         val startUptime = warmLaunchData.app_visible_uptime
         val endUptime = warmLaunchData.on_next_draw_uptime
         val duration = endUptime - startUptime
+        Log.e("Measure", "warm: $duration, isLukeWarm = ${warmLaunchData.is_lukewarm}")
         logger.log(LogLevel.Debug, "warm launch duration: $duration ms, start uptime: $startUptime")
         eventProcessor.track(
             timestamp = timeProvider.currentTimeSinceEpochInMillis,
@@ -67,6 +68,7 @@ internal class AppLaunchCollector(
         val startUptime = hotLaunchData.app_visible_uptime
         val endUptime = hotLaunchData.on_next_draw_uptime
         val duration = endUptime - startUptime
+        Log.e("Measure", "hot: $duration")
         logger.log(LogLevel.Debug, "hot launch duration: $duration ms, start uptime: $startUptime")
         eventProcessor.track(
             timestamp = timeProvider.currentTimeSinceEpochInMillis,

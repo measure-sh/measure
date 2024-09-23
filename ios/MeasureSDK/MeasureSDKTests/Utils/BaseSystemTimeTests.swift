@@ -22,7 +22,7 @@ final class BaseSystemTimeTests: XCTestCase {
     }
 
     func testISO8601Timestamp() {
-        let timeInMillis: Int64 = 1_000_000_000_000
+        let timeInMillis: Number = 1_000_000_000_000
         let expectedTimestamp = "2001-09-09T01:46:40.000Z"
         let timestamp = systemTime.iso8601Timestamp(timeInMillis: timeInMillis)
 

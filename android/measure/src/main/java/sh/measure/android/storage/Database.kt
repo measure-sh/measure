@@ -688,6 +688,9 @@ internal class DatabaseImpl(
     }
 
     override fun getEventsForSessions(sessions: List<String>): List<String> {
+        if (sessions.isEmpty()) {
+            return emptyList()
+        }
         val eventIds = mutableListOf<String>()
         readableDatabase.rawQuery(Sql.getEventsForSessions(sessions), null).use {
             while (it.moveToNext()) {

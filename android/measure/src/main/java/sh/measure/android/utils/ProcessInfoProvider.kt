@@ -13,6 +13,11 @@ internal interface ProcessInfoProvider {
      * Returns the PID of the current process.
      */
     fun getPid(): Int
+
+    /**
+     * Returns the process importance of the of the current process.
+     */
+    fun getProcessImportance(): Int
 }
 
 internal class ProcessInfoProviderImpl : ProcessInfoProvider {
@@ -24,5 +29,11 @@ internal class ProcessInfoProviderImpl : ProcessInfoProvider {
 
     override fun getPid(): Int {
         return Process.myPid()
+    }
+
+    override fun getProcessImportance(): Int {
+        val processInfo = ActivityManager.RunningAppProcessInfo()
+        ActivityManager.getMyMemoryState(processInfo)
+        return processInfo.importance
     }
 }

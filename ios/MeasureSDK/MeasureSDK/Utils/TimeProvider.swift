@@ -9,10 +9,10 @@ import Foundation
 
 /// Provides time from different clocks.
 protocol TimeProvider {
-    var currentTimeSinceEpochInMillis: Int64 { get }
-    var currentTimeSinceEpochInNanos: Int64 { get }
-    var uptimeInMillis: Int64 { get }
-    func iso8601Timestamp(timeInMillis: Int64) -> String
+    var currentTimeSinceEpochInMillis: Number { get }
+    var currentTimeSinceEpochInNanos: Number { get }
+    var uptimeInMillis: Number { get }
+    func iso8601Timestamp(timeInMillis: Number) -> String
 }
 
 /// Client Info identifiers for the Measure SDK.
@@ -24,15 +24,15 @@ protocol TimeProvider {
 ///
 struct SystemTimeProvider: TimeProvider {
     private let systemTime: SystemTime
-    var currentTimeSinceEpochInMillis: Int64 {
+    var currentTimeSinceEpochInMillis: Number {
         return systemTime.timeIntervalSince1970 * 1000
     }
 
-    var currentTimeSinceEpochInNanos: Int64 {
+    var currentTimeSinceEpochInNanos: Number {
         return currentTimeSinceEpochInMillis * 1_000_000
     }
 
-    var uptimeInMillis: Int64 {
+    var uptimeInMillis: Number {
         return systemTime.systemUptime * 1000
     }
 
@@ -43,7 +43,7 @@ struct SystemTimeProvider: TimeProvider {
     /// Returns a ISO 8601 standard timestamp as `String`
     /// - Parameter timeInMillis: A `Int64` timestamp in milliseconds
     /// - Returns: A ISO 8601 standard timestamp as `String`
-    func iso8601Timestamp(timeInMillis: Int64) -> String {
+    func iso8601Timestamp(timeInMillis: Number) -> String {
         return systemTime.iso8601Timestamp(timeInMillis: timeInMillis)
     }
 }

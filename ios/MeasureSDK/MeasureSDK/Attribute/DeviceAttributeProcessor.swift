@@ -17,10 +17,10 @@ final class DeviceAttributeProcessor: BaseComputeOnceAttributeProcessor {
     private var deviceType: DeviceType?
     private var deviceIsFoldable: Bool?
     private var deviceIsPhysical: Bool?
-    private var deviceDensityDpi: Int64?
-    private var deviceWidthPx: Int64?
-    private var deviceHeightPx: Int64?
-    private var deviceDensity: Int64?
+    private var deviceDensityDpi: Number?
+    private var deviceWidthPx: Number?
+    private var deviceHeightPx: Number?
+    private var deviceDensity: Number?
     private var deviceLocale: String?
     private var osName: String?
     private var osVersion: String?
@@ -52,10 +52,10 @@ final class DeviceAttributeProcessor: BaseComputeOnceAttributeProcessor {
         deviceType = UIDevice.current.userInterfaceIdiom == .phone ? .phone : .tablet
         deviceIsFoldable = false
         deviceIsPhysical = TARGET_OS_SIMULATOR == 0
-        deviceDensityDpi = Int64(UIScreen.main.scale * 160)
-        deviceWidthPx = Int64(UIScreen.main.bounds.width * UIScreen.main.scale)
-        deviceHeightPx = Int64(UIScreen.main.bounds.height * UIScreen.main.scale)
-        deviceDensity = Int64(UIScreen.main.scale)
+        deviceDensityDpi = Number(UIScreen.main.scale * 160)
+        deviceWidthPx = Number(UIScreen.main.bounds.width * UIScreen.main.scale)
+        deviceHeightPx = Number(UIScreen.main.bounds.height * UIScreen.main.scale)
+        deviceDensity = Number(UIScreen.main.scale)
         deviceLocale = Locale.current.identifier
         osName = UIDevice.current.systemName
         osVersion = UIDevice.current.systemVersion

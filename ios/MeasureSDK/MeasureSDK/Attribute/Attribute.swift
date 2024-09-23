@@ -36,10 +36,10 @@ struct Attributes: Codable {
     var deviceType: DeviceType?
     var deviceIsFoldable: Bool?
     var deviceIsPhysical: Bool?
-    var deviceDensityDpi: Int64?
-    var deviceWidthPx: Int64?
-    var deviceHeightPx: Int64?
-    var deviceDensity: Int64?
+    var deviceDensityDpi: Number?
+    var deviceWidthPx: Number?
+    var deviceHeightPx: Number?
+    var deviceDensity: Number?
     var deviceLocale: String?
     var osName: String?
     var osVersion: String?

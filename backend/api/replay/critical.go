@@ -2,7 +2,12 @@ package replay
 
 import (
 	"backend/api/event"
+	"backend/api/server"
+	"context"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/leporo/sqlf"
 )
 
 // Exception represents exception events suitable
@@ -10,6 +15,7 @@ import (
 type Exception struct {
 	EventType     string             `json:"event_type"`
 	UserTriggered bool               `json:"user_triggered"`
+	GroupId       *uuid.UUID         `json:"group_id"`
 	Type          string             `json:"type"`
 	Message       string             `json:"message"`
 	MethodName    string             `json:"method_name"`
@@ -39,6 +45,7 @@ func (e Exception) GetTimestamp() time.Time {
 // for session replay.
 type ANR struct {
 	EventType   string             `json:"event_type"`
+	GroupId     *uuid.UUID         `json:"group_id"`
 	Type        string             `json:"type"`
 	Message     string             `json:"message"`
 	MethodName  string             `json:"method_name"`
@@ -65,11 +72,33 @@ func (a ANR) GetTimestamp() time.Time {
 
 // ComputeExceptions computes exceptions
 // for session replay.
-func ComputeExceptions(events []event.EventField) (result []ThreadGrouper) {
+func ComputeExceptions(ctx context.Context, appId *uuid.UUID, events []event.EventField) (result []ThreadGrouper, err error) {
 	for _, event := range events {
+
+		var groupId *uuid.UUID
+
+		if !event.Exception.Handled {
+			stmt := sqlf.PostgreSQL.
+				From("public.unhandled_exception_groups").
+				Select("id").
+				Where("app_id = ?", appId).
+				Where("fingerprint = ?", event.Exception.Fingerprint)
+
+			defer stmt.Close()
+
+			row := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
+
+			err := row.Scan(&groupId)
+
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		exceptions := Exception{
 			event.Type,
 			event.UserTriggered,
+			groupId,
 			event.Exception.GetType(),
 			event.Exception.GetMessage(),
 			event.Exception.GetMethodName(),
@@ -85,15 +114,35 @@ func ComputeExceptions(events []event.EventField) (result []ThreadGrouper) {
 		result = append(result, exceptions)
 	}
 
-	return
+	return result, nil
 }
 
 // ComputeANR computes anrs
 // for session replay.
-func ComputeANRs(events []event.EventField) (result []ThreadGrouper) {
+func ComputeANRs(ctx context.Context, appId *uuid.UUID, events []event.EventField) (result []ThreadGrouper, err error) {
 	for _, event := range events {
+
+		var groupId *uuid.UUID
+
+		stmt := sqlf.PostgreSQL.
+			From("public.anr_groups").
+			Select("id").
+			Where("app_id = ?", appId).
+			Where("fingerprint = ?", event.ANR.Fingerprint)
+
+		defer stmt.Close()
+
+		row := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
+
+		err := row.Scan(&groupId)
+
+		if err != nil {
+			return nil, err
+		}
+
 		anrs := ANR{
 			event.Type,
+			groupId,
 			event.ANR.GetType(),
 			event.ANR.GetMessage(),
 			event.ANR.GetMethodName(),
@@ -108,5 +157,5 @@ func ComputeANRs(events []event.EventField) (result []ThreadGrouper) {
 		result = append(result, anrs)
 	}
 
-	return
+	return result, nil
 }

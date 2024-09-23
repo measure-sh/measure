@@ -1,6 +1,7 @@
 package sh.measure.android.applaunch
 
 import android.app.Activity
+import android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
 import android.os.Bundle
 import android.os.SystemClock
 import curtains.onNextDraw
@@ -9,7 +10,6 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.mainHandler
 import sh.measure.android.postAtFrontOfQueueAsync
-import sh.measure.android.utils.ProcessInfoProvider
 
 internal interface LaunchCallbacks {
     fun onColdLaunch(coldLaunchData: ColdLaunchData)
@@ -23,7 +23,6 @@ internal interface LaunchCallbacks {
  */
 internal class LaunchTracker(
     private val logger: Logger,
-    private val processInfo: ProcessInfoProvider,
     private val callbacks: LaunchCallbacks,
 ) : ActivityLifecycleAdapter {
 
@@ -85,13 +84,11 @@ internal class LaunchTracker(
     }
 
     private fun appMightBecomeVisible() {
-        if (coldLaunchComplete) {
-            LaunchState.lastAppVisibleTime = SystemClock.uptimeMillis()
-            logger.log(
-                LogLevel.Debug,
-                "Updated last app visible time: ${LaunchState.lastAppVisibleTime}",
-            )
-        }
+        LaunchState.lastAppVisibleTime = SystemClock.uptimeMillis()
+        logger.log(
+            LogLevel.Error,
+            "Updated last app visible time: ${LaunchState.lastAppVisibleTime}",
+        )
     }
 
     override fun onActivityResumed(activity: Activity) {
@@ -141,19 +138,34 @@ internal class LaunchTracker(
                         }
 
                         "Warm" -> {
-                            LaunchState.lastAppVisibleTime?.let {
-                                callbacks.onWarmLaunch(
-                                    WarmLaunchData(
-                                        app_visible_uptime = it,
-                                        on_next_draw_uptime = onNextDrawUptime,
-                                        launched_activity = onCreateRecord.activityName,
-                                        has_saved_state = onCreateRecord.hasSavedState,
-                                        intent_data = onCreateRecord.intentData,
-                                    ),
-                                )
-                            } ?: logger.log(
-                                LogLevel.Error,
-                                "lastAppVisibleTime is null, cannot calculate warm launch time",
+                            callbacks.onWarmLaunch(
+                                WarmLaunchData(
+                                    process_start_uptime = LaunchState.processStartUptime,
+                                    process_start_requested_uptime = LaunchState.processStartRequestedUptime,
+                                    content_provider_attach_uptime = LaunchState.contentLoaderAttachUptime,
+                                    app_visible_uptime = LaunchState.lastAppVisibleTime ?: 0,
+                                    on_next_draw_uptime = onNextDrawUptime,
+                                    launched_activity = onCreateRecord.activityName,
+                                    has_saved_state = onCreateRecord.hasSavedState,
+                                    intent_data = onCreateRecord.intentData,
+                                    is_lukewarm = false,
+                                ),
+                            )
+                        }
+
+                        "Lukewarm" -> {
+                            callbacks.onWarmLaunch(
+                                WarmLaunchData(
+                                    process_start_uptime = LaunchState.processStartUptime,
+                                    process_start_requested_uptime = LaunchState.processStartRequestedUptime,
+                                    content_provider_attach_uptime = LaunchState.contentLoaderAttachUptime,
+                                    app_visible_uptime = LaunchState.lastAppVisibleTime ?: 0,
+                                    on_next_draw_uptime = onNextDrawUptime,
+                                    launched_activity = onCreateRecord.activityName,
+                                    has_saved_state = onCreateRecord.hasSavedState,
+                                    intent_data = onCreateRecord.intentData,
+                                    is_lukewarm = true,
+                                ),
                             )
                         }
 
@@ -191,8 +203,25 @@ internal class LaunchTracker(
                 }
             }
 
-            processInfo.isForegroundProcess() -> "Cold"
-            else -> "Warm"
+            // This could have been a cold launch, but the activity was created with a saved state.
+            // Which reflects that the app was previously alive but the system evicted it from
+            // memory, but still kept the saved state. This is a "lukewarm" launch as the activity
+            // will still be created from scratch. It's not a cold launch as the system can benefit
+            // from the saved state.
+            LaunchState.processImportanceOnInit == IMPORTANCE_FOREGROUND && onCreateRecord.hasSavedState -> "Lukewarm"
+
+            // This is clearly a cold launch as the process was started with a foreground importance
+            // and does not have a saved state.
+            LaunchState.processImportanceOnInit == IMPORTANCE_FOREGROUND -> "Cold"
+
+            // This is a case where activity was created and resumed, but the app was
+            // not launched with a foreground importance. The system started the app without
+            // foreground importance but decided to change it's mind later. We track this as a
+            // lukewarm launch as the system got a chance to warm up before deciding to bring the
+            // activity to the foreground. Sadly we do not know when the system changed it's mind, so
+            // we just use the same launch time as a cold launch. We cannot rely on
+            // app_visible_uptime as it won't be set in this case.
+            else -> "Lukewarm"
         }
     }
 }

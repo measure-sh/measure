@@ -1,21 +1,23 @@
 "use client"
 
 import React, { useEffect, useRef, useState } from 'react';
-import { AppVersion } from '../api/api_calls';
+import { AppVersion, OsVersion } from '../api/api_calls';
 
 export enum DropdownSelectType {
   SingleString,
   MultiString,
   SingleAppVersion,
-  MultiAppVersion
+  MultiAppVersion,
+  SingleOsVersion,
+  MultiOsVersion
 }
 
 interface DropdownSelectProps {
   type: DropdownSelectType;
   title: string;
-  items: string[] | AppVersion[];
-  initialSelected: string | AppVersion | string[] | AppVersion[];
-  onChangeSelected?: (item: string | AppVersion | string[] | AppVersion[]) => void;
+  items: string[] | AppVersion[] | OsVersion[];
+  initialSelected: string | AppVersion | OsVersion | string[] | AppVersion[] | OsVersion[];
+  onChangeSelected?: (item: string | AppVersion | OsVersion | string[] | AppVersion[] | OsVersion[]) => void;
 }
 
 const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, initialSelected, onChangeSelected }) => {
@@ -56,14 +58,51 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
     setIsOpen(!isOpen);
   };
 
-  const selectSingleItem = (item: string | AppVersion) => {
+  const selectSingleItem = (item: string | AppVersion | OsVersion) => {
     setSelected(item);
     setIsOpen(false);
+  };
+
+  const selectAll = () => {
+    setSelected(items)
+  };
+
+  const selectLatestAppVersion = () => {
+    // find version with highest build number
+    let versions = items as AppVersion[]
+    let latestVersion = versions.reduce((highest, current) =>
+      parseInt(current.code) > parseInt(highest.code) ? current : highest
+    )
+
+    setSelected([latestVersion])
   };
 
   const toggleCheckboxStringItem = (item: string) => {
     let curSelected = selected as string[]
     if (curSelected.includes(item)) {
+      // If only one item is selected, do nothing
+      if (curSelected.length === 1) {
+        return
+      }
+      setSelected(curSelected.filter(a => a != item))
+    } else {
+      setSelected([item, ...curSelected])
+    }
+  };
+
+  const isOsVersionSelected = (item: OsVersion) => {
+    return (selected as OsVersion[]).some((i) => {
+      return item.displayName === i.displayName;
+    });
+  }
+
+  const toggleCheckboxOsVersionItem = (item: OsVersion) => {
+    let curSelected = selected as OsVersion[]
+    if (isOsVersionSelected(item)) {
+      // If only one item is selected, do nothing
+      if (curSelected.length === 1) {
+        return
+      }
       setSelected(curSelected.filter(a => a != item))
     } else {
       setSelected([item, ...curSelected])
@@ -79,6 +118,10 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
   const toggleCheckboxAppVersionItem = (item: AppVersion) => {
     let curSelected = selected as AppVersion[]
     if (isAppVersionSelected(item)) {
+      // If only one item is selected, do nothing
+      if (curSelected.length === 1) {
+        return
+      }
       setSelected(curSelected.filter(a => a.displayName != item.displayName))
     } else {
       setSelected([item, ...curSelected])
@@ -90,6 +133,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
   }, [selected]);
 
   const buttonStyle = "block px-2 py-2 w-full truncate text-white bg-neutral-950 hover:text-black font-display text-left hover:bg-yellow-200 active:bg-yellow-300 outline-none focus:bg-yellow-200"
+  const groupSelectButtonStyle = "text-white text-xs font-display rounded-md border border-white p-1 bg-neutral-950 hover:text-black hover:bg-yellow-200 hover:border-black focus-visible:bg-yellow-200 focus-visible:text-black focus-visible:border-black active:bg-yellow-300 outline-none"
   const checkboxContainerStyle = "px-2 py-2 bg-neutral-950 truncate text-white hover:text-black hover:bg-yellow-200 font-display text-left"
   const checkboxInputStyle = "appearance-none border-white rounded-sm font-display bg-neutral-950 checked:bg-neutral-950 checked:hover:bg-neutral-950 checked:focus:bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:ring-1 checked:ring-white"
 
@@ -102,7 +146,8 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
           className="inline-flex justify-center w-full font-display border border-black rounded-md outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
           {type === DropdownSelectType.SingleString && <span className="px-6 py-2">{selected as string}</span>}
           {type === DropdownSelectType.SingleAppVersion && <span className="px-6 py-2">{(selected as AppVersion).displayName}</span>}
-          {(type == DropdownSelectType.MultiString || type === DropdownSelectType.MultiAppVersion) && <span className="px-6 py-2">{title}</span>}
+          {type === DropdownSelectType.SingleOsVersion && <span className="px-6 py-2">{(selected as OsVersion).displayName}</span>}
+          {(type == DropdownSelectType.MultiString || type === DropdownSelectType.MultiAppVersion || type === DropdownSelectType.MultiOsVersion) && <span className="px-6 py-2">{title}</span>}
           <span className="border border-black border-t-0 border-r-0 border-b-0 px-4 py-2">⏷</span>
         </button>
       </div>
@@ -134,30 +179,94 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                 {(item as AppVersion).displayName}
               </button>
             ))}
-            {type === DropdownSelectType.MultiString && items.map((item) => (
-              <div key={item as string} className={checkboxContainerStyle} role="menuitem">
-                <input
-                  type="checkbox"
-                  className={checkboxInputStyle}
-                  value={item as string}
-                  checked={(selected as string[]).includes(item as string)}
-                  onChange={() => { toggleCheckboxStringItem(item as string) }}
-                />
-                <span className="ml-2">{item as string}</span>
-              </div>
+            {type === DropdownSelectType.SingleOsVersion && items.map((item) => (
+              <button
+                key={(item as OsVersion).displayName}
+                onClick={() => selectSingleItem(item as OsVersion)}
+                className={buttonStyle}
+                role="menuitem"
+              >
+                {(item as OsVersion).displayName}
+              </button>
             ))}
-            {type === DropdownSelectType.MultiAppVersion && items.map((item) => (
-              <div key={(item as AppVersion).displayName} className={checkboxContainerStyle} role="menuitem">
-                <input
-                  type="checkbox"
-                  className={checkboxInputStyle}
-                  value={(item as AppVersion).displayName}
-                  checked={isAppVersionSelected(item as AppVersion)}
-                  onChange={() => { toggleCheckboxAppVersionItem(item as AppVersion) }}
-                />
-                <span className="ml-2">{(item as AppVersion).displayName}</span>
+            {type === DropdownSelectType.MultiString &&
+              <div>
+                {(items as string[]).length > 1 && <div className='flex flex-row w-full p-2 bg-neutral-950'>
+                  <button
+                    onClick={() => selectAll()}
+                    className={groupSelectButtonStyle}
+                  >
+                    All
+                  </button>
+                </div>}
+                {items.map((item) => (
+                  <div key={item as string} className={checkboxContainerStyle} role="menuitem">
+                    <input
+                      type="checkbox"
+                      className={checkboxInputStyle}
+                      value={item as string}
+                      checked={(selected as string[]).includes(item as string)}
+                      onChange={() => { toggleCheckboxStringItem(item as string) }}
+                    />
+                    <span className="ml-2">{item as string}</span>
+                  </div>
+                ))}
               </div>
-            ))}
+            }
+            {type === DropdownSelectType.MultiOsVersion &&
+              <div>
+                {(items as OsVersion[]).length > 1 && <div className='flex flex-row w-full p-2 bg-neutral-950'>
+                  <button
+                    onClick={() => selectAll()}
+                    className={groupSelectButtonStyle}
+                  >
+                    All
+                  </button>
+                </div>}
+                {items.map((item) => (
+                  <div key={item as string} className={checkboxContainerStyle} role="menuitem">
+                    <input
+                      type="checkbox"
+                      className={checkboxInputStyle}
+                      value={(item as OsVersion).displayName}
+                      checked={isOsVersionSelected(item as OsVersion)}
+                      onChange={() => { toggleCheckboxOsVersionItem(item as OsVersion) }}
+                    />
+                    <span className="ml-2">{(item as OsVersion).displayName}</span>
+                  </div>
+                ))}
+              </div>
+            }
+            {type === DropdownSelectType.MultiAppVersion &&
+              <div>
+                {(items as AppVersion[]).length > 1 && <div className='flex flex-row w-full p-2 bg-neutral-950'>
+                  <button
+                    onClick={() => selectAll()}
+                    className={groupSelectButtonStyle}
+                  >
+                    All
+                  </button>
+                  <div className="px-1" />
+                  <button
+                    onClick={() => selectLatestAppVersion()}
+                    className={groupSelectButtonStyle}
+                  >
+                    Latest
+                  </button>
+                </div>}
+                {items.map((item) => (
+                  <div key={(item as AppVersion).displayName} className={checkboxContainerStyle} role="menuitem">
+                    <input
+                      type="checkbox"
+                      className={checkboxInputStyle}
+                      value={(item as AppVersion).displayName}
+                      checked={isAppVersionSelected(item as AppVersion)}
+                      onChange={() => { toggleCheckboxAppVersionItem(item as AppVersion) }}
+                    />
+                    <span className="ml-2">{(item as AppVersion).displayName}</span>
+                  </div>
+                ))}
+              </div>}
           </div>
         </div>
       )}

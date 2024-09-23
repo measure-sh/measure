@@ -12,4 +12,5 @@ final class MockLogger: Logger {
     var enabled: Bool = false
 
     func log(level: MeasureSDK.LogLevel, message: String, error: (any Error)?) {}
+    func internalLog(level: MeasureSDK.LogLevel, message: String, error: (any Error)?) {}
 }

@@ -2,6 +2,7 @@ import { auth, fetchAuth, logoutIfAuthError } from "@/app/utils/auth/auth";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
 import { JourneyType } from "../components/journey"
 import { formatUserInputDateToServerFormat, getTimeZoneForServer } from "../utils/time_utils"
+import { Filters } from "../components/filters";
 
 export enum TeamsApiStatus {
     Loading,
@@ -102,6 +103,13 @@ export enum CreateAppApiStatus {
 }
 
 export enum TeamNameChangeApiStatus {
+    Init,
+    Loading,
+    Success,
+    Error
+}
+
+export enum AppNameChangeApiStatus {
     Init,
     Loading,
     Success,
@@ -615,57 +623,84 @@ export class AppVersion {
     }
 }
 
-function applyGenericFiltersToUrl(url: string, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], freeText: string | null, keyId: string | null, keyTimestamp: string | null, limit: number | null) {
-    const serverFormattedStartDate = formatUserInputDateToServerFormat(startDate)
-    const serverFormattedEndDate = formatUserInputDateToServerFormat(endDate)
+export class OsVersion {
+    name: string;
+    version: string;
+    displayName: string;
+
+    constructor(name: string, version: string) {
+        this.name = name;
+        this.version = version;
+        this.displayName = this.name + ' ' + this.version
+    }
+}
+
+function applyGenericFiltersToUrl(url: string, filters: Filters, keyId: string | null, keyTimestamp: string | null, limit: number | null) {
+    const serverFormattedStartDate = formatUserInputDateToServerFormat(filters.startDate)
+    const serverFormattedEndDate = formatUserInputDateToServerFormat(filters.endDate)
     const timezone = getTimeZoneForServer()
 
     url = url + `from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&timezone=${timezone}`
 
     // Append versions if present
-    if (appVersions.length > 0) {
-        url = url + `&versions=${Array.from(appVersions).map((v) => v.name).join(',')}`
-        url = url + `&version_codes=${Array.from(appVersions).map((v) => v.code).join(',')}`
+    if (filters.versions.length > 0) {
+        url = url + `&versions=${Array.from(filters.versions).map((v) => v.name).join(',')}`
+        url = url + `&version_codes=${Array.from(filters.versions).map((v) => v.code).join(',')}`
+    }
+
+    // Append OS versions if present
+    if (filters.osVersions.length > 0) {
+        url = url + `&os_names=${Array.from(filters.osVersions).map((v) => v.name).join(',')}`
+        url = url + `&os_versions=${Array.from(filters.osVersions).map((v) => v.version).join(',')}`
     }
 
     // Append countries if present
-    if (countries.length > 0) {
-        url = url + `&countries=${Array.from(countries).join(',')}`
+    if (filters.countries.length > 0) {
+        url = url + `&countries=${Array.from(filters.countries).join(',')}`
     }
 
     // Append network providers if present
-    if (networkProviders.length > 0) {
-        url = url + `&network_providers=${Array.from(networkProviders).join(',')}`
+    if (filters.networkProviders.length > 0) {
+        url = url + `&network_providers=${Array.from(filters.networkProviders).join(',')}`
     }
 
     // Append network types if present
-    if (networkTypes.length > 0) {
-        url = url + `&network_types=${Array.from(networkTypes).join(',')}`
+    if (filters.networkTypes.length > 0) {
+        url = url + `&network_types=${Array.from(filters.networkTypes).join(',')}`
     }
 
     // Append network generations if present
-    if (networkGenerations.length > 0) {
-        url = url + `&network_generations=${Array.from(networkGenerations).join(',')}`
+    if (filters.networkGenerations.length > 0) {
+        url = url + `&network_generations=${Array.from(filters.networkGenerations).join(',')}`
     }
 
     // Append locales if present
-    if (locales.length > 0) {
-        url = url + `&locales=${Array.from(locales).join(',')}`
+    if (filters.locales.length > 0) {
+        url = url + `&locales=${Array.from(filters.locales).join(',')}`
     }
 
     // Append device manufacturers if present
-    if (deviceManufacturers.length > 0) {
-        url = url + `&device_manufacturers=${Array.from(deviceManufacturers).join(',')}`
+    if (filters.deviceManufacturers.length > 0) {
+        url = url + `&device_manufacturers=${Array.from(filters.deviceManufacturers).join(',')}`
     }
 
     // Append device names if present
-    if (deviceNames.length > 0) {
-        url = url + `&device_names=${Array.from(deviceNames).join(',')}`
+    if (filters.deviceNames.length > 0) {
+        url = url + `&device_names=${Array.from(filters.deviceNames).join(',')}`
+    }
+
+    // Append session type if needed
+    if (filters.sessionType === SessionType.Issues) {
+        url = url + `&crash=1&anr=1`
+    } else if (filters.sessionType === SessionType.Crashes) {
+        url = url + `&crash=1`
+    } else if (filters.sessionType === SessionType.ANRs) {
+        url = url + `&anr=1`
     }
 
     // Append free text if present
-    if (freeText !== null) {
-        url = url + `&free_text=${freeText}`
+    if (filters.freeText !== '') {
+        url = url + `&free_text=${filters.freeText}`
     }
 
     // Append keyId if present
@@ -749,7 +784,7 @@ export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filte
     return { status: FiltersApiStatus.Success, data: data }
 }
 
-export const fetchJourneyFromServer = async (appId: string, journeyType: JourneyType, exceptionsGroupdId: string | null, bidirectional: boolean, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], router: AppRouterInstance) => {
+export const fetchJourneyFromServer = async (journeyType: JourneyType, exceptionsGroupdId: string | null, bidirectional: boolean, filters: Filters, router: AppRouterInstance) => {
     // Must pass in exceptionsGroupdId if journey type is crash or anr details
     if ((journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) && exceptionsGroupdId === undefined) {
         return { status: JourneyApiStatus.Error, data: null }
@@ -759,17 +794,17 @@ export const fetchJourneyFromServer = async (appId: string, journeyType: Journey
 
     let url = ''
     if (journeyType === JourneyType.CrashDetails) {
-        url = `${origin}/apps/${appId}/crashGroups/${exceptionsGroupdId}/plots/journey?`
+        url = `${origin}/apps/${filters.app.id}/crashGroups/${exceptionsGroupdId}/plots/journey?`
     } else if (journeyType === JourneyType.AnrDetails) {
-        url = `${origin}/apps/${appId}/anrGroups/${exceptionsGroupdId}/plots/journey?`
+        url = `${origin}/apps/${filters.app.id}/anrGroups/${exceptionsGroupdId}/plots/journey?`
     } else {
-        url = `${origin}/apps/${appId}/journey?`
+        url = `${origin}/apps/${filters.app.id}/journey?`
     }
 
     // Append bidirectional value
     url = url + `bigraph=${bidirectional ? '1&' : '0&'}`
 
-    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, null, null, null, null)
+    url = applyGenericFiltersToUrl(url, filters, null, null, null)
 
     const res = await fetchAuth(url);
 
@@ -783,12 +818,12 @@ export const fetchJourneyFromServer = async (appId: string, journeyType: Journey
     return { status: JourneyApiStatus.Success, data: data }
 }
 
-export const fetchMetricsFromServer = async (appId: string, startDate: string, endDate: string, appVersions: AppVersion[], router: AppRouterInstance) => {
+export const fetchMetricsFromServer = async (filters: Filters, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-    let url = `${origin}/apps/${appId}/metrics?`
+    let url = `${origin}/apps/${filters.app.id}/metrics?`
 
-    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, [], [], [], [], [], [], [], null, null, null, null)
+    url = applyGenericFiltersToUrl(url, filters, null, null, null)
 
     const res = await fetchAuth(url);
 
@@ -802,21 +837,12 @@ export const fetchMetricsFromServer = async (appId: string, startDate: string, e
     return { status: MetricsApiStatus.Success, data: data }
 }
 
-export const fetchSessionsOverviewFromServer = async (appId: string, startDate: string, endDate: string, appVersions: AppVersion[], sessionType: string, countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], freeText: string, keyId: string | null, limit: number, router: AppRouterInstance) => {
+export const fetchSessionsOverviewFromServer = async (filters: Filters, keyId: string | null, limit: number, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-    var url = `${origin}/apps/${appId}/sessions?`
+    var url = `${origin}/apps/${filters.app.id}/sessions?`
 
-    // Append session type if needed
-    if (sessionType === SessionType.Issues) {
-        url = url + `crash=1&anr=1&`
-    } else if (sessionType === SessionType.Crashes) {
-        url = url + `crash=1&`
-    } else if (sessionType === SessionType.ANRs) {
-        url = url + `anr=1&`
-    }
-
-    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, freeText, keyId, null, limit)
+    url = applyGenericFiltersToUrl(url, filters, keyId, null, limit)
 
     const res = await fetchAuth(url);
 
@@ -831,21 +857,12 @@ export const fetchSessionsOverviewFromServer = async (appId: string, startDate: 
 
 }
 
-export const fetchSessionsOverviewPlotFromServer = async (appId: string, startDate: string, endDate: string, appVersions: AppVersion[], sessionType: string, countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], freeText: string, router: AppRouterInstance) => {
+export const fetchSessionsOverviewPlotFromServer = async (filters: Filters, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-    var url = `${origin}/apps/${appId}/sessions/plots/instances?`
+    var url = `${origin}/apps/${filters.app.id}/sessions/plots/instances?`
 
-    // Append session type if needed
-    if (sessionType === SessionType.Issues) {
-        url = url + `crash=1&anr=1&`
-    } else if (sessionType === SessionType.Crashes) {
-        url = url + `crash=1&`
-    } else if (sessionType === SessionType.ANRs) {
-        url = url + `anr=1&`
-    }
-
-    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, freeText, null, null, null)
+    url = applyGenericFiltersToUrl(url, filters, null, null, null)
 
     const res = await fetchAuth(url);
 
@@ -863,17 +880,17 @@ export const fetchSessionsOverviewPlotFromServer = async (appId: string, startDa
     return { status: SessionsOverviewPlotApiStatus.Success, data: data }
 }
 
-export const fetchExceptionsOverviewFromServer = async (exceptionsType: ExceptionsType, appId: string, startDate: string, endDate: string, appVersions: AppVersion[], keyId: string | null, limit: number, router: AppRouterInstance) => {
+export const fetchExceptionsOverviewFromServer = async (exceptionsType: ExceptionsType, filters: Filters, keyId: string | null, limit: number, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
     var url = ""
     if (exceptionsType === ExceptionsType.Crash) {
-        url = `${origin}/apps/${appId}/crashGroups?`
+        url = `${origin}/apps/${filters.app.id}/crashGroups?`
     } else {
-        url = `${origin}/apps/${appId}/anrGroups?`
+        url = `${origin}/apps/${filters.app.id}/anrGroups?`
     }
 
-    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, [], [], [], [], [], [], [], null, keyId, null, limit)
+    url = applyGenericFiltersToUrl(url, filters, keyId, null, limit)
 
     const res = await fetchAuth(url);
 
@@ -888,17 +905,17 @@ export const fetchExceptionsOverviewFromServer = async (exceptionsType: Exceptio
 
 }
 
-export const fetchExceptionsDetailsFromServer = async (exceptionsType: ExceptionsType, appId: string, exceptionsGroupdId: string, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], keyId: string | null, keyTimestamp: string | null, limit: number, router: AppRouterInstance) => {
+export const fetchExceptionsDetailsFromServer = async (exceptionsType: ExceptionsType, exceptionsGroupdId: string, filters: Filters, keyId: string | null, keyTimestamp: string | null, limit: number, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
     var url = ""
     if (exceptionsType === ExceptionsType.Crash) {
-        url = `${origin}/apps/${appId}/crashGroups/${exceptionsGroupdId}/crashes?`
+        url = `${origin}/apps/${filters.app.id}/crashGroups/${exceptionsGroupdId}/crashes?`
     } else {
-        url = `${origin}/apps/${appId}/anrGroups/${exceptionsGroupdId}/anrs?`
+        url = `${origin}/apps/${filters.app.id}/anrGroups/${exceptionsGroupdId}/anrs?`
     }
 
-    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, null, keyId, keyTimestamp, limit)
+    url = applyGenericFiltersToUrl(url, filters, keyId, keyTimestamp, limit)
 
     const res = await fetchAuth(url);
 
@@ -913,17 +930,17 @@ export const fetchExceptionsDetailsFromServer = async (exceptionsType: Exception
 
 }
 
-export const fetchExceptionsOverviewPlotFromServer = async (appId: string, exceptionsType: ExceptionsType, startDate: string, endDate: string, appVersions: AppVersion[], router: AppRouterInstance) => {
+export const fetchExceptionsOverviewPlotFromServer = async (exceptionsType: ExceptionsType, filters: Filters, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
     var url = ""
     if (exceptionsType === ExceptionsType.Crash) {
-        url = `${origin}/apps/${appId}/crashGroups/plots/instances?`
+        url = `${origin}/apps/${filters.app.id}/crashGroups/plots/instances?`
     } else {
-        url = `${origin}/apps/${appId}/anrGroups/plots/instances?`
+        url = `${origin}/apps/${filters.app.id}/anrGroups/plots/instances?`
     }
 
-    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, [], [], [], [], [], [], [], null, null, null, null)
+    url = applyGenericFiltersToUrl(url, filters, null, null, null)
 
     const res = await fetchAuth(url);
 
@@ -942,17 +959,17 @@ export const fetchExceptionsOverviewPlotFromServer = async (appId: string, excep
 }
 
 
-export const fetchExceptionsDetailsPlotFromServer = async (appId: string, exceptionsType: ExceptionsType, exceptionsGroupdId: string, startDate: string, endDate: string, appVersions: AppVersion[], countries: string[], networkProviders: string[], networkTypes: string[], networkGenerations: string[], locales: string[], deviceManufacturers: string[], deviceNames: string[], router: AppRouterInstance) => {
+export const fetchExceptionsDetailsPlotFromServer = async (exceptionsType: ExceptionsType, exceptionsGroupdId: string, filters: Filters, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
     var url = ""
     if (exceptionsType === ExceptionsType.Crash) {
-        url = `${origin}/apps/${appId}/crashGroups/${exceptionsGroupdId}/plots/instances?`
+        url = `${origin}/apps/${filters.app.id}/crashGroups/${exceptionsGroupdId}/plots/instances?`
     } else {
-        url = `${origin}/apps/${appId}/anrGroups/${exceptionsGroupdId}/plots/instances?`
+        url = `${origin}/apps/${filters.app.id}/anrGroups/${exceptionsGroupdId}/plots/instances?`
     }
 
-    url = applyGenericFiltersToUrl(url, startDate, endDate, appVersions, countries, networkProviders, networkTypes, networkGenerations, locales, deviceManufacturers, deviceNames, null, null, null, null)
+    url = applyGenericFiltersToUrl(url, filters, null, null, null)
 
     const res = await fetchAuth(url);
 
@@ -1169,6 +1186,22 @@ export const updateAppSettingsFromServer = async (appdId: string, appSettings: t
     }
 
     return { status: UpdateAppSettingsApiStatus.Success }
+}
+
+export const changeAppNameFromServer = async (appId: string, newAppName: string, router: AppRouterInstance) => {
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    const opts = {
+        method: 'PATCH',
+        body: JSON.stringify({ name: newAppName })
+    };
+
+    const res = await fetchAuth(`${origin}/apps/${appId}/rename`, opts);
+    if (!res.ok) {
+        logoutIfAuthError(auth, router, res)
+        return { status: AppNameChangeApiStatus.Error }
+    }
+
+    return { status: AppNameChangeApiStatus.Success }
 }
 
 export const fetchUsageFromServer = async (teamId: string, router: AppRouterInstance) => {

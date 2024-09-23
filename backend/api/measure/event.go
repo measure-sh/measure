@@ -152,11 +152,16 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 
 			// log anomalous cold launch durations
 			if ev.ColdLaunch.Duration >= event.NominalColdLaunchThreshold {
-				fmt.Printf("anomaly in cold_launch duration compute. nominal_threshold: < %q actual: %f os_name: %q os_version: %q\n", event.NominalColdLaunchThreshold, ev.ColdLaunch.Duration.Seconds(), ev.Attribute.Platform, ev.Attribute.OSVersion)
+				fmt.Printf("anomaly in cold_launch duration compute. nominal_threshold: < %q actual: %d os_name: %q os_version: %q\n", event.NominalColdLaunchThreshold, ev.ColdLaunch.Duration.Milliseconds(), ev.Attribute.OSName, ev.Attribute.OSVersion)
 			}
 		}
 		if ev.IsWarmLaunch() {
 			ev.WarmLaunch.Compute()
+
+			// log anomalous warm launch durations
+			if !ev.WarmLaunch.IsLukewarm && ev.WarmLaunch.AppVisibleUptime <= 0 {
+				fmt.Printf("anomaly in warm_launch duration compute with invalid app_visible_uptime for non-lukewarm warm_launch. process_start_uptime: %d process_start_requested_uptime: %d content_provider_attach_uptime: %d os_name: %q os_version: %q\n", ev.WarmLaunch.ProcessStartUptime, ev.WarmLaunch.ProcessStartRequestedUptime, ev.WarmLaunch.ContentProviderAttachUptime, ev.Attribute.OSName, ev.Attribute.OSVersion)
+			}
 		}
 		if ev.IsHotLaunch() {
 			ev.HotLaunch.Compute()
@@ -730,19 +735,27 @@ func (e eventreq) ingest(ctx context.Context) error {
 		if e.events[i].IsWarmLaunch() {
 			row.
 				Set(`warm_launch.app_visible_uptime`, e.events[i].WarmLaunch.AppVisibleUptime).
+				Set(`warm_launch.process_start_uptime`, e.events[i].WarmLaunch.ProcessStartUptime).
+				Set(`warm_launch.process_start_requested_uptime`, e.events[i].WarmLaunch.ProcessStartRequestedUptime).
+				Set(`warm_launch.content_provider_attach_uptime`, e.events[i].WarmLaunch.ContentProviderAttachUptime).
 				Set(`warm_launch.on_next_draw_uptime`, e.events[i].WarmLaunch.OnNextDrawUptime).
 				Set(`warm_launch.launched_activity`, e.events[i].WarmLaunch.LaunchedActivity).
 				Set(`warm_launch.has_saved_state`, e.events[i].WarmLaunch.HasSavedState).
 				Set(`warm_launch.intent_data`, e.events[i].WarmLaunch.IntentData).
-				Set(`warm_launch.duration`, e.events[i].WarmLaunch.Duration.Milliseconds())
+				Set(`warm_launch.duration`, e.events[i].WarmLaunch.Duration.Milliseconds()).
+				Set(`warm_launch.is_lukewarm`, e.events[i].WarmLaunch.IsLukewarm)
 		} else {
 			row.
 				Set(`warm_launch.app_visible_uptime`, nil).
+				Set(`warm_launch.process_start_uptime`, nil).
+				Set(`warm_launch.process_start_requested_uptime`, nil).
+				Set(`warm_launch.content_provider_attach_uptime`, nil).
 				Set(`warm_launch.on_next_draw_uptime`, nil).
 				Set(`warm_launch.launched_activity`, nil).
 				Set(`warm_launch.has_saved_state`, nil).
 				Set(`warm_launch.intent_data`, nil).
-				Set(`warm_launch.duration`, nil)
+				Set(`warm_launch.duration`, nil).
+				Set(`warm_launch.is_lukewarm`, nil)
 		}
 
 		// hot launch
@@ -977,6 +990,16 @@ func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filt
 			args = append(args, af.VersionCodes)
 		}
 
+		if len(af.OsNames) > 0 {
+			countStmt.Where("`attribute.os_name` in (?)", nil)
+			args = append(args, af.OsNames)
+		}
+
+		if len(af.OsVersions) > 0 {
+			countStmt.Where("`attribute.os_version` in (?)", nil)
+			args = append(args, af.OsVersions)
+		}
+
 		if len(af.Countries) > 0 {
 			countStmt.Where("`inet.country_code` in (?)", nil)
 			args = append(args, af.Countries)
@@ -1094,6 +1117,16 @@ func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filt
 	if len(af.VersionCodes) > 0 {
 		stmt.Where("`attribute.app_build` in (?)", nil)
 		args = append(args, af.VersionCodes)
+	}
+
+	if len(af.OsNames) > 0 {
+		stmt.Where("`attribute.os_name` in (?)", nil)
+		args = append(args, af.OsNames)
+	}
+
+	if len(af.OsVersions) > 0 {
+		stmt.Where("`attribute.os_version` in (?)", nil)
+		args = append(args, af.OsVersions)
 	}
 
 	if len(af.Countries) > 0 {
@@ -1249,15 +1282,54 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 		Select("attribute.app_build").
 		Select("timestamp").
 		Select("exception.handled").
-		Where("app_id = ?", af.AppID).
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+		Where("app_id = ?", af.AppID)
 
 	if len(af.Versions) > 0 {
-		base = base.Where("attribute.app_version in ?", af.Versions)
+		base.Where("attribute.app_version in ?", af.Versions)
 	}
 
 	if len(af.VersionCodes) > 0 {
-		base = base.Where("attribute.app_build in ?", af.VersionCodes)
+		base.Where("attribute.app_build in ?", af.VersionCodes)
+	}
+
+	if len(af.OsNames) > 0 {
+		base.Where("attribute.os_name").In(af.OsNames)
+	}
+
+	if len(af.OsVersions) > 0 {
+		base.Where("attribute.os_version").In(af.OsVersions)
+	}
+
+	if len(af.Countries) > 0 {
+		base.Where("inet.country_code").In(af.Countries)
+	}
+
+	if len(af.DeviceNames) > 0 {
+		base.Where("attribute.device_name").In(af.DeviceNames)
+	}
+
+	if len(af.DeviceManufacturers) > 0 {
+		base.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
+	}
+
+	if len(af.Locales) > 0 {
+		base.Where("attribute.device_locale").In(af.Locales)
+	}
+
+	if len(af.NetworkProviders) > 0 {
+		base.Where("attribute.network_provider").In(af.NetworkProviders)
+	}
+
+	if len(af.NetworkTypes) > 0 {
+		base.Where("attribute.network_type").In(af.NetworkTypes)
+	}
+
+	if len(af.NetworkGenerations) > 0 {
+		base.Where("attribute.network_generation").In(af.NetworkGenerations)
+	}
+
+	if af.HasTimeRange() {
+		base.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 	}
 
 	stmt := sqlf.
@@ -1351,6 +1423,16 @@ func GetANRsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filter.App
 		if len(af.VersionCodes) > 0 {
 			countStmt.Where("`attribute.app_build` in (?)", nil)
 			args = append(args, af.VersionCodes)
+		}
+
+		if len(af.OsNames) > 0 {
+			countStmt.Where("`attribute.os_name` in (?)", nil)
+			args = append(args, af.OsNames)
+		}
+
+		if len(af.OsVersions) > 0 {
+			countStmt.Where("`attribute.os_version` in (?)", nil)
+			args = append(args, af.OsVersions)
 		}
 
 		if len(af.Countries) > 0 {
@@ -1469,6 +1551,16 @@ func GetANRsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filter.App
 	if len(af.VersionCodes) > 0 {
 		stmt.Where("`attribute.app_build` in (?)", nil)
 		args = append(args, af.VersionCodes)
+	}
+
+	if len(af.OsNames) > 0 {
+		stmt.Where("`attribute.os_name` in (?)", nil)
+		args = append(args, af.OsNames)
+	}
+
+	if len(af.OsVersions) > 0 {
+		stmt.Where("`attribute.os_version` in (?)", nil)
+		args = append(args, af.OsVersions)
 	}
 
 	if len(af.Countries) > 0 {
@@ -1623,15 +1715,54 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 		Select("attribute.app_version").
 		Select("attribute.app_build").
 		Select("timestamp").
-		Where("app_id = ?", af.AppID).
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+		Where("app_id = ?", af.AppID)
 
 	if len(af.Versions) > 0 {
-		base = base.Where("attribute.app_version in ?", af.Versions)
+		base.Where("attribute.app_version in ?", af.Versions)
 	}
 
 	if len(af.VersionCodes) > 0 {
-		base = base.Where("attribute.app_build in ?", af.VersionCodes)
+		base.Where("attribute.app_build in ?", af.VersionCodes)
+	}
+
+	if len(af.OsNames) > 0 {
+		base.Where("attribute.os_name").In(af.OsNames)
+	}
+
+	if len(af.OsVersions) > 0 {
+		base.Where("attribute.os_version").In(af.OsVersions)
+	}
+
+	if len(af.Countries) > 0 {
+		base.Where("inet.country_code").In(af.Countries)
+	}
+
+	if len(af.DeviceNames) > 0 {
+		base.Where("attribute.device_name").In(af.DeviceNames)
+	}
+
+	if len(af.DeviceManufacturers) > 0 {
+		base.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
+	}
+
+	if len(af.Locales) > 0 {
+		base.Where("attribute.device_locale").In(af.Locales)
+	}
+
+	if len(af.NetworkProviders) > 0 {
+		base.Where("attribute.network_provider").In(af.NetworkProviders)
+	}
+
+	if len(af.NetworkTypes) > 0 {
+		base.Where("attribute.network_type").In(af.NetworkTypes)
+	}
+
+	if len(af.NetworkGenerations) > 0 {
+		base.Where("attribute.network_generation").In(af.NetworkGenerations)
+	}
+
+	if af.HasTimeRange() {
+		base.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 	}
 
 	stmt := sqlf.
@@ -1696,6 +1827,14 @@ func GetIssuesPlot(ctx context.Context, eventIds []uuid.UUID, af *filter.AppFilt
 
 	if len(af.VersionCodes) > 0 {
 		stmt.Where("attribute.app_build in (?)", af.VersionCodes)
+	}
+
+	if len(af.OsNames) > 0 {
+		stmt.Where("attribute.os_name in (?)", af.OsNames)
+	}
+
+	if len(af.OsVersions) > 0 {
+		stmt.Where("attribute.os_version in (?)", af.OsVersions)
 	}
 
 	if len(af.Countries) > 0 {
@@ -1772,6 +1911,14 @@ func GetSessionsPlot(ctx context.Context, af *filter.AppFilter) (sessionInstance
 		base.Where("type = 'exception' AND exception.handled = false")
 	} else if af.ANR {
 		base.Where("type = 'anr'")
+	}
+
+	if len(af.OsNames) > 0 {
+		base.Where("attribute.os_name").In(af.OsNames)
+	}
+
+	if len(af.OsVersions) > 0 {
+		base.Where("attribute.os_version").In(af.OsVersions)
 	}
 
 	if len(af.Countries) > 0 {

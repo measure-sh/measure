@@ -9,29 +9,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Update warm launch schema and duration calculation by @abhaysood
+- (**backend**): Track email on new user sign in by @anupcowkur in #1270
 - (**backend**): Improve session explorer by @anupcowkur in #1218
 - (**backend**): Add session explorer with text search filter by @anupcowkur in #1200
+
+- (**frontend**): Add custom error page by @anupcowkur in #1279
+- (**frontend**): Add custom 404 page by @anupcowkur in #1276
+- (**frontend**): Update tooltips by @anupcowkur in #1266
+- (**frontend**): Link to crash/anr details from session replay by @anupcowkur in #1255
+- (**frontend**): Add 'Last 6 months' date range option by @anupcowkur in #1252
+- (**frontend**): Add detailed filters to crash + anr overview pages by @anupcowkur in #1250
+- (**frontend**): Add filter for OS versions by @anupcowkur in #1242
+- (**frontend**): Add 'All', 'Latest' options + 'at least 1' enforcement by @anupcowkur in #1238
+- (**frontend**): Redesign apps page by @anupcowkur in #1237
 
 
 ### :bug: Bug fixes
 
+- (**backend**): Update warm_launch ingest by @detj
+- (**backend**): Set warm launch duration threshold to 10s by @abhaysood
 - (**backend**): Use client timezone for plots by @anupcowkur in #1224
 - (**backend**): Round crash and anr contribution percentage to 2 decimal places (#1221) by @detj in #1221
 - (**backend**): Addressed ingestion failures related to ip inspection (#1197) by @detj in #1197
 - (**backend**): Nil pointer dereference when ingesting `low_memory` events (#1190) by @detj in #1190
 
+- (**frontend**): Hide attachment data in session replay event body by @anupcowkur in #1259
+- (**frontend**): Only attempt to show attachments for crashes/anrs in sesion replay by @anupcowkur in #1258
 - (**frontend**): Add missing useEffect deps for journey by @anupcowkur in #1230
 - (**frontend**): Use whole int left axes for crash + anr instances plots by @anupcowkur in #1219
 
 
 ### :hammer: Misc
 
+- (**backend**): Add new sessions by @abhaysood in #1268
 - (**backend**): Add os_page_size attribute by @abhaysood in #1211
 - (**backend**): Additional log for anomalous cold launch duration (#1199) by @detj in #1199
 - (**backend**): Format log line (#1189) by @detj in #1189
 
+- (**frontend**): Use selected filters instead of expanded params by @anupcowkur in #1244
+- (**frontend**): Fix table column widths and move paginator to top right by @anupcowkur in #1232
 - (**frontend**): Refactor filter application to api calls by @anupcowkur in #1229
 - (**frontend**): Refactor time utils to have separate functions for human readable datetime, date only and time only by @anupcowkur in #1225
+
+
+### :coffin: Removed
+
+- (**backend**): Remove compose profile by @detj
 
 
 ### :books: Documentation
