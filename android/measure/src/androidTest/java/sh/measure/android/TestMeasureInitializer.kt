@@ -120,7 +120,7 @@ internal class TestMeasureInitializer(
         fileStorage = fileStorage,
     ),
     private val idProvider: IdProvider = UUIDProvider(),
-    private val processInfoProvider: ProcessInfoProvider = ProcessInfoProviderImpl(),
+    override val processInfoProvider: ProcessInfoProvider = ProcessInfoProviderImpl(),
     override val sessionManager: SessionManager = SessionManagerImpl(
         logger = logger,
         timeProvider = timeProvider,
