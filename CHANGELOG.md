@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Improve session explorer by @anupcowkur in #1218
 - (**backend**): Add session explorer with text search filter by @anupcowkur in #1200
 
+- (**frontend**): Add custom error page by @anupcowkur in #1279
 - (**frontend**): Add custom 404 page by @anupcowkur in #1276
 - (**frontend**): Update tooltips by @anupcowkur in #1266
 - (**frontend**): Link to crash/anr details from session replay by @anupcowkur in #1255
