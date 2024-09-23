@@ -1241,7 +1241,7 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 
 	base := sqlf.
 		From("default.events").
-		Select("formatDateTime(toTimeZone(timestamp, ?), '%Y-%m-%d') as datetime", af.Timezone).
+		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), '', '(', toString(attribute.app_build), ')') as app_version").
 		Select("type").
 		Select("session_id").
@@ -1616,7 +1616,7 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 
 	base := sqlf.
 		From("default.events").
-		Select("formatDateTime(toTimeZone(timestamp, ?), '%Y-%m-%d') as datetime", af.Timezone).
+		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build), ')') as app_version").
 		Select("type").
 		Select("session_id").
@@ -1681,7 +1681,7 @@ func GetIssuesPlot(ctx context.Context, eventIds []uuid.UUID, af *filter.AppFilt
 
 	stmt := sqlf.
 		From(`default.events`).
-		Select("formatDateTime(toTimeZone(timestamp, ?), '%Y-%m-%d') as datetime", af.Timezone).
+		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build),')') as version").
 		Select("count(id) as instances").
 		Where("`id` in (?)", eventIds).
@@ -1852,7 +1852,7 @@ func GetSessionsPlot(ctx context.Context, af *filter.AppFilter) (sessionInstance
 		With("first_event_times", firstEventTimeStmt).
 		From("base_events").
 		Join("first_event_times f ", "base_events.session_id = f.session_id").
-		Select("formatDateTime(toTimeZone(f.first_event_time, ?), '%Y-%m-%d') as datetime", af.Timezone).
+		Select("formatDateTime(f.first_event_time, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(app_version), '', '(', toString(app_build), ')') as app_version").
 		Select("count(distinct base_events.session_id) as instances").
 		GroupBy("app_version, datetime").
