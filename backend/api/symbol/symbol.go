@@ -167,8 +167,15 @@ func (s Symbolicator) GetKey(ctx context.Context, batch SymbolBatch) (key string
 // in the batch if any.
 func (s Symbolicator) Symbolicate(ctx context.Context, batch SymbolBatch) error {
 	key, err := s.GetKey(ctx, batch)
+
 	if err != nil {
 		return err
+	}
+
+	// in case no mapping file is found, just log and proceed
+	if key == "" {
+		fmt.Println("no mapping file found for event batch")
+		return nil
 	}
 
 	batch.encode()
