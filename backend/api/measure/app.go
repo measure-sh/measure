@@ -1014,7 +1014,7 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter, version
 				Select("round(quantile(0.95)(warm_launch.duration), 2) as warm_launch").
 				Where("type = 'warm_launch'").
 				Where("warm_launch.duration > 0").
-				Where("warm_launch.duration <= 30000"). //ignore warm launch durations greater than 30 seconds. Similar to https://github.com/measure-sh/measure/issues/933
+				Where("warm_launch.duration <= 10000"). //ignore warm launch durations greater than 10 seconds. Similar to https://github.com/measure-sh/measure/issues/933
 				Where("attribute.app_version in ? and attribute.app_build in ?", af.Versions, af.VersionCodes)).
 		With("hot_selected",
 			sqlf.From("timings").
