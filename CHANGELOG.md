@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Update warm launch schema and duration calculation by @abhaysood
 - (**backend**): Track email on new user sign in by @anupcowkur in #1270
 - (**backend**): Improve session explorer by @anupcowkur in #1218
 - (**backend**): Add session explorer with text search filter by @anupcowkur in #1200
@@ -24,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Update warm_launch ingest by @detj
+- (**backend**): Set warm launch duration threshold to 10s by @abhaysood
 - (**backend**): Use client timezone for plots by @anupcowkur in #1224
 - (**backend**): Round crash and anr contribution percentage to 2 decimal places (#1221) by @detj in #1221
 - (**backend**): Addressed ingestion failures related to ip inspection (#1197) by @detj in #1197
@@ -37,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add new sessions by @abhaysood in #1268
 - (**backend**): Add os_page_size attribute by @abhaysood in #1211
 - (**backend**): Additional log for anomalous cold launch duration (#1199) by @detj in #1199
 - (**backend**): Format log line (#1189) by @detj in #1189
