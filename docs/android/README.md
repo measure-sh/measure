@@ -273,9 +273,9 @@ more details, and the raw results are available in the
 > for your app to get results specific to your app. These numbers are published to provide
 > a reference point and are used internally to detect any performance regressions.
 
-For v0.2.0, the following benchmarks are available.
+For v0.7.0, the following benchmarks are available.
 
-* Adds 22.772ms-33.512ms to the app startup time (Time to Initial Display) for a simple app.
+* Adds 26.258ms-34.416ms to the app startup time (Time to Initial Display) for a simple app.
 * Takes 0.30ms to find the target view for every click/scroll gesture in a deep view hierarchy.
 * Takes 0.45ms to find the target composable for every click/scroll gesture in a deep composable
   hierarchy.
