@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Capture more details in otel traces (#1289) by @detj in #1289
 - (**backend**): Add new sessions by @abhaysood in #1268
 - (**backend**): Add os_page_size attribute by @abhaysood in #1211
 - (**backend**): Additional log for anomalous cold launch duration (#1199) by @detj in #1199
