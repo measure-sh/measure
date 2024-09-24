@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"sort"
 	"strings"
@@ -702,7 +703,8 @@ func (a App) GetCrashFreeMetrics(ctx context.Context, af *filter.AppFilter, vers
 	if versions.HasVersions() {
 		// avoid division by zero
 		if crashFreeUnselected != 0 {
-			crashFree.Delta = crashFree.CrashFreeSessions / crashFreeUnselected
+			// Round to two decimal places
+			crashFree.Delta = math.Round(crashFree.CrashFreeSessions/crashFreeUnselected*100) / 100
 		} else {
 			crashFree.Delta = 1
 		}
@@ -776,7 +778,8 @@ func (a App) GetPerceivedCrashFreeMetrics(ctx context.Context, af *filter.AppFil
 	if versions.HasVersions() {
 		// avoid division by zero
 		if crashFreeUnselected != 0 {
-			crashFree.Delta = crashFree.CrashFreeSessions / crashFreeUnselected
+			// Round to two decimal places
+			crashFree.Delta = math.Round(crashFree.CrashFreeSessions/crashFreeUnselected*100) / 100
 		} else {
 			crashFree.Delta = 1
 		}
@@ -849,7 +852,8 @@ func (a App) GetANRFreeMetrics(ctx context.Context, af *filter.AppFilter, versio
 	if versions.HasVersions() {
 		// avoid division by zero
 		if anrFreeUnselected != 0 {
-			anrFree.Delta = anrFree.ANRFreeSessions / anrFreeUnselected
+			// Round to two decimal places
+			anrFree.Delta = math.Round(anrFree.ANRFreeSessions/anrFreeUnselected*100) / 100
 		} else {
 			anrFree.Delta = 1
 		}
@@ -923,7 +927,8 @@ func (a App) GetPerceivedANRFreeMetrics(ctx context.Context, af *filter.AppFilte
 	if versions.HasVersions() {
 		// avoid division by zero
 		if anrFreeUnselected != 0 {
-			anrFree.Delta = anrFree.ANRFreeSessions / anrFreeUnselected
+			// Round to two decimal places
+			anrFree.Delta = math.Round(anrFree.ANRFreeSessions/anrFreeUnselected*100) / 100
 		} else {
 			anrFree.Delta = 1
 		}
