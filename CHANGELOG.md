@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Round crash rate metrics to 2 decimal places by @anupcowkur in #1284
 - (**backend**): Update warm_launch ingest by @detj
 - (**backend**): Set warm launch duration threshold to 10s by @abhaysood
 - (**backend**): Use client timezone for plots by @anupcowkur in #1224
