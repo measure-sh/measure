@@ -15,6 +15,7 @@ Measure is designed from the ground up for easy self-hosting. Follow along to ru
   - [5. Setup a reverse proxy server](#5-setup-a-reverse-proxy-server)
   - [6. Setup DNS A records](#6-setup-dns-a-records)
   - [7. Access your Measure dashboard](#7-access-your-measure-dashboard)
+- [Upgrade a Self Hosted Installation](#upgrade-a-self-hosted-installation)
 - [Run on macOS locally](#run-on-macos-locally)
   - [System Requirements](#system-requirements-1)
   - [1. Clone the measure repo](#1-clone-the-measure-repo)
@@ -203,13 +204,56 @@ Depending on your domain provider, it might take a few mins to couple of hours f
 
 Visit `https://measure.yourcompany.com` to access your dashboard and sign in to continue. Replace `yourcompany.com` with your domain.
 
+## Upgrade a Self Hosted Installation
+
+To upgrade to a specific or latest version of Measure, SSH to your VM instance first and run these commands.
+
+```sh
+# change to the directory you
+# had cloned to.
+cd ~/measure
+```
+
+Find out the suitable version from the [list of release tags](https://github.com/measure-sh/measure/releases). **We recommend sticking to the latest stable release.**
+
+> [!IMPORTANT]
+>
+> Always choose a tag matching the format `v[MAJOR].[MINOR].[PATCH]`, for example: `v1.2.3`.
+> These tags are tailored for self host deployments.
+
+Run `git fetch` to fetch all tags.
+
+```sh
+git fetch
+```
+
+Checkout to a particular git tag.
+
+```sh
+# replace `v1.2.3` with the suitable git tag
+git checkout v1.2.3
+```
+
+Change to `self-host` directory and run `sudo ./install.sh` to perform the upgrade.
+
+```sh
+cd self-host
+sudo ./install.sh
+```
+
+It'll take a few seconds for the containers to come back up.
+
+> [!NOTE]
+>
+> Please note that an upgrade may not happen smoothly because of incompatible changes or configuration mismatches. If you face any issues while upgrading or need advice, please do not hesitate to [open an issue](https://github.com/measure-sh/measure/issues/new/choose) or to drop a message on our [Discord](https://discord.gg/f6zGkBCt42).
+
 ## Run on macOS locally
 
 You can run Measure locally on macOS for trying it out quickly, but keep in mind that not all features may not work as expected on macOS.
 
 > [!WARNING]
 >
-> Not all features on macOS may work as expected. Don't use this setup for production. This guide was tested on macOS 14.6, though older versions of macOS may work too.
+> Not all features on macOS may work as expected. Don't use this setup for production. This guide was tested on macOS 14.6, though older or newer versions of macOS may work too.
 
 ### System Requirements
 
