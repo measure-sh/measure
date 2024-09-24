@@ -1,5 +1,23 @@
 # measure-android
 
+# 0.7.0
+### Features
+
+* feat(android): report activity launched with saved state as warm launch by @abhaysood in https://github.com/measure-sh/measure/pull/1247
+* feat(android): handle warm launches that are lukewarm by @abhaysood in https://github.com/measure-sh/measure/pull/1268
+* feat(android): add parent fragment to fragment lifecycle events by @abhaysood in https://github.com/measure-sh/measure/pull/1262
+
+#### Fixes
+
+* fix(android): make sdk 16KB page size compliant by @abhaysood in https://github.com/measure-sh/measure/pull/1211
+* fix(android): blank screenshots for Android 15 by @abhaysood in https://github.com/measure-sh/measure/pull/1233
+* fix(android): incorrect URL parsing by @abhaysood in https://github.com/measure-sh/measure/pull/1272
+
+### Others
+* chore(android): update sdk version to 35 and agp to 8.6 by @abhaysood in https://github.com/measure-sh/measure/pull/1253
+  
+**Full Changelog**: https://github.com/measure-sh/measure/compare/android-v0.6.1...v0.7.0
+
 ## 0.6.1
 #### Fixes
 
