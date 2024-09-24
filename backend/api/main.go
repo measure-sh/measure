@@ -4,8 +4,6 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"os"
-	"strings"
 	"time"
 
 	"backend/api/inet"
@@ -14,22 +12,13 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"google.golang.org/grpc/credentials"
 
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
-	"go.opentelemetry.io/otel/sdk/resource"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 func main() {
 	config := server.NewConfig()
-
 	server.Init(config)
-	cleanup := initTracer(config.OtelServiceName)
 
 	defer server.Server.PgPool.Close()
 
@@ -47,22 +36,20 @@ func main() {
 		}
 	}()
 
+	r := gin.Default()
+
+	closeTracer := config.InitTracer()
 	// close otel tracer
 	defer func() {
-		if err := cleanup(context.Background()); err != nil {
+		if err := closeTracer(context.Background()); err != nil {
 			log.Fatalf("Unable to close otel tracer: %v", err)
 		}
 	}()
 
-	r := gin.Default()
 	r.Use(otelgin.Middleware(config.OtelServiceName))
-	cors := cors.New(cors.Config{
-		AllowOrigins:     []string{config.SiteOrigin},
-		AllowMethods:     []string{"GET", "OPTIONS", "PATCH", "DELETE", "PUT"},
-		AllowHeaders:     []string{"Authorization", "Content-Type"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	})
+	r.Use(server.CaptureRequest())
+	r.Use(server.CapturePanic())
+	r.Use(server.CaptureErrorBody())
 
 	// health check
 	r.GET("/ping", func(c *gin.Context) {
@@ -72,6 +59,14 @@ func main() {
 	// SDK routes
 	r.PUT("/events", measure.ValidateAPIKey(), measure.PutEvents)
 	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuild)
+
+	cors := cors.New(cors.Config{
+		AllowOrigins:     []string{config.SiteOrigin},
+		AllowMethods:     []string{"GET", "OPTIONS", "PATCH", "DELETE", "PUT"},
+		AllowHeaders:     []string{"Authorization", "Content-Type"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	})
 
 	// Dashboard routes
 	// Any route below this point will use CORS
@@ -131,48 +126,4 @@ func main() {
 	}
 
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080
-}
-
-func initTracer(otelServiceName string) func(context.Context) error {
-	otelCollectorURL := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-	otelInsecureMode := os.Getenv("OTEL_INSECURE_MODE")
-
-	var secureOption otlptracegrpc.Option
-
-	if strings.ToLower(otelInsecureMode) == "false" || otelInsecureMode == "0" || strings.ToLower(otelInsecureMode) == "f" {
-		secureOption = otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, ""))
-	} else {
-		secureOption = otlptracegrpc.WithInsecure()
-	}
-
-	exporter, err := otlptrace.New(
-		context.Background(),
-		otlptracegrpc.NewClient(
-			secureOption,
-			otlptracegrpc.WithEndpoint(otelCollectorURL),
-		),
-	)
-
-	if err != nil {
-		log.Fatalf("Failed to create exporter: %v", err)
-	}
-	resources, err := resource.New(
-		context.Background(),
-		resource.WithAttributes(
-			attribute.String("service.name", otelServiceName),
-			attribute.String("library.language", "go"),
-		),
-	)
-	if err != nil {
-		log.Fatalf("Could not set resources: %v", err)
-	}
-
-	otel.SetTracerProvider(
-		sdktrace.NewTracerProvider(
-			sdktrace.WithSampler(sdktrace.AlwaysSample()),
-			sdktrace.WithBatcher(exporter),
-			sdktrace.WithResource(resources),
-		),
-	)
-	return exporter.Shutdown
 }
