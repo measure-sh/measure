@@ -167,8 +167,15 @@ func (s Symbolicator) GetKey(ctx context.Context, batch SymbolBatch) (key string
 // in the batch if any.
 func (s Symbolicator) Symbolicate(ctx context.Context, batch SymbolBatch) error {
 	key, err := s.GetKey(ctx, batch)
+
 	if err != nil {
 		return err
+	}
+
+	// in case no mapping file is found, just log and proceed
+	if key == "" {
+		fmt.Println("no mapping file found for event batch")
+		return nil
 	}
 
 	batch.encode()
@@ -356,6 +363,15 @@ func (b *SymbolBatch) encode() {
 				frag.Values = []string{event.GenericPrefix + evt.LifecycleFragment.ParentActivity}
 				b.frags = append(b.frags, frag)
 			}
+			if len(evt.LifecycleFragment.ParentFragment) > 0 {
+				lut := NewLifecycleFragmentLutVal()
+				lut.SwapParentFragment = true
+				lut.EventIndex = evtIdx
+				frag := NewFragment()
+				b.lut[frag.ID] = lut
+				frag.Values = []string{event.GenericPrefix + evt.LifecycleFragment.ParentFragment}
+				b.frags = append(b.frags, frag)
+			}
 		}
 
 		if evt.IsColdLaunch() {
@@ -504,6 +520,9 @@ func (b *SymbolBatch) decode(frags []Fragment) {
 			}
 			if lut.SwapParentActivity {
 				b.Events[lut.EventIndex].LifecycleFragment.ParentActivity = strings.TrimPrefix(frag.Values[0], event.GenericPrefix)
+			}
+			if lut.SwapParentFragment {
+				b.Events[lut.EventIndex].LifecycleFragment.ParentFragment = strings.TrimPrefix(frag.Values[0], event.GenericPrefix)
 			}
 		case event.TypeColdLaunch:
 			if lut.SwapLaunchedActivity {

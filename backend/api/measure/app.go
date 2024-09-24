@@ -237,29 +237,29 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 	defer stmt.Close()
 
 	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
-	exceptionGroups, err := pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
-
+	groups, err = pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	var exceptionGroup *group.ExceptionGroup
-	for i := range exceptionGroups {
-		exceptionGroup = &exceptionGroups[i]
+	for i := range groups {
+		exceptionGroup = &groups[i]
 
 		eventDataStmt := sqlf.
 			From("default.events").
 			Select("id").
+			Where("app_id in ?", af.AppID).
 			Where("exception.fingerprint = ?", exceptionGroup.Fingerprint)
 
 		defer eventDataStmt.Close()
 
 		if len(af.Versions) > 0 {
-			eventDataStmt.Where("attribute.app_version").In(af.Versions)
+			eventDataStmt.Where("attribute.app_version in ?", af.Versions)
 		}
 
 		if len(af.VersionCodes) > 0 {
-			eventDataStmt.Where("attribute.app_build").In(af.VersionCodes)
+			eventDataStmt.Where("attribute.app_build in ?", af.VersionCodes)
 		}
 
 		if len(af.OsNames) > 0 {
@@ -319,11 +319,15 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 			ids = append(ids, id)
 		}
 
+		if rows.Err() != nil {
+			return nil, err
+		}
+
 		exceptionGroup.EventIDs = ids
 		exceptionGroup.Count = len(ids)
 	}
 
-	return exceptionGroups, nil
+	return
 }
 
 // GetANRGroup queries a single ANR group by its id.
@@ -477,29 +481,29 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 	defer stmt.Close()
 
 	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
-	anrGroups, err := pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ANRGroup])
-
+	groups, err = pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ANRGroup])
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	var anrGroup *group.ANRGroup
-	for i := range anrGroups {
-		anrGroup = &anrGroups[i]
+	for i := range groups {
+		anrGroup = &groups[i]
 
 		eventDataStmt := sqlf.
 			From("default.events").
 			Select("id").
+			Where("app_id = ?", af.AppID).
 			Where("anr.fingerprint = ?", anrGroup.Fingerprint)
 
 		defer eventDataStmt.Close()
 
 		if len(af.Versions) > 0 {
-			eventDataStmt.Where("attribute.app_version").In(af.Versions)
+			eventDataStmt.Where("attribute.app_version in ?", af.Versions)
 		}
 
 		if len(af.VersionCodes) > 0 {
-			eventDataStmt.Where("attribute.app_build").In(af.VersionCodes)
+			eventDataStmt.Where("attribute.app_build in ?", af.VersionCodes)
 		}
 
 		if len(af.OsNames) > 0 {
@@ -559,11 +563,15 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 			ids = append(ids, id)
 		}
 
+		if rows.Err() != nil {
+			return nil, err
+		}
+
 		anrGroup.EventIDs = ids
 		anrGroup.Count = len(ids)
 	}
 
-	return anrGroups, nil
+	return
 }
 
 // GetSizeMetrics computes app size of the selected app version
@@ -1076,6 +1084,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		Select(`toString(lifecycle_fragment.type)`).
 		Select(`toString(lifecycle_fragment.class_name)`).
 		Select(`toString(lifecycle_fragment.parent_activity)`).
+		Select(`toString(lifecycle_fragment.parent_fragment)`).
 		Where(`app_id = ?`, a.ID).
 		Where("`timestamp` >= ? and `timestamp` <= ?", af.From, af.To)
 
@@ -1147,6 +1156,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		var lifecycleFragmentType string
 		var lifecycleFragmentClassName string
 		var lifecycleFragmentParentActivity string
+		var lifecycleFragmentParentFragment string
 
 		dest := []any{
 			&ev.ID,
@@ -1158,6 +1168,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 			&lifecycleFragmentType,
 			&lifecycleFragmentClassName,
 			&lifecycleFragmentParentActivity,
+			&lifecycleFragmentParentFragment,
 		}
 
 		if err := rows.Scan(dest...); err != nil {
@@ -1174,6 +1185,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 				Type:           lifecycleFragmentType,
 				ClassName:      lifecycleFragmentClassName,
 				ParentActivity: lifecycleFragmentParentActivity,
+				ParentFragment: lifecycleFragmentParentFragment,
 			}
 		} else if ev.IsException() {
 			ev.Exception = &event.Exception{}
@@ -1463,6 +1475,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`toString(lifecycle_fragment.type)`,
 		`toString(lifecycle_fragment.class_name)`,
 		`lifecycle_fragment.parent_activity`,
+		`lifecycle_fragment.parent_fragment`,
 		`lifecycle_fragment.tag`,
 		`toString(lifecycle_app.type)`,
 		`cold_launch.process_start_uptime`,
@@ -1691,6 +1704,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&lifecycleFragment.Type,
 			&lifecycleFragment.ClassName,
 			&lifecycleFragment.ParentActivity,
+			&lifecycleFragment.ParentFragment,
 			&lifecycleFragment.Tag,
 
 			// lifecycle app
@@ -2149,6 +2163,7 @@ func GetAppJourney(c *gin.Context) {
 			crashes = append(crashes, issue)
 		}
 
+		// crashes are shown in descending order
 		sort.Slice(crashes, func(i, j int) bool {
 			return crashes[i].Count > crashes[j].Count
 		})
@@ -2165,6 +2180,7 @@ func GetAppJourney(c *gin.Context) {
 			anrs = append(anrs, issue)
 		}
 
+		// ANRs are shown in descending order
 		sort.Slice(anrs, func(i, j int) bool {
 			return anrs[i].Count > anrs[j].Count
 		})
@@ -3241,6 +3257,8 @@ func GetANROverview(c *gin.Context) {
 		})
 		return
 	}
+
+	af.Expand()
 
 	msg := "anr overview request validation failed"
 	if err := af.Validate(); err != nil {

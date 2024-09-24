@@ -250,6 +250,7 @@ type LifecycleFragment struct {
 	Type           string `json:"type" binding:"required"`
 	ClassName      string `json:"class_name" binding:"required"`
 	ParentActivity string `json:"parent_activity"`
+	ParentFragment string `json:"parent_fragment"`
 	Tag            string `json:"tag"`
 }
 
@@ -597,7 +598,9 @@ func (e EventField) NeedsSymbolication() (result bool) {
 	if e.IsLifecycleFragment() {
 		hasClassName := len(e.LifecycleFragment.ClassName) > 0
 		hasParentActivity := len(e.LifecycleFragment.ParentActivity) > 0
-		if hasClassName || hasParentActivity {
+		hasParentFragment := len(e.LifecycleFragment.ParentFragment) > 0
+
+		if hasClassName || hasParentActivity || hasParentFragment {
 			result = true
 			return
 		}
@@ -747,6 +750,9 @@ func (e *EventField) Validate() error {
 		}
 		if len(e.LifecycleFragment.ParentActivity) > maxLifecycleFragmentClassNameChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_fragment.parent_activity`, maxLifecycleFragmentClassNameChars)
+		}
+		if len(e.LifecycleFragment.ParentFragment) > maxLifecycleFragmentClassNameChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_fragment.parent_fragment`, maxLifecycleFragmentClassNameChars)
 		}
 		if !slices.Contains(ValidLifecycleFragmentTypes, e.LifecycleFragment.Type) {
 			return fmt.Errorf(`%q contains invalid lifecycle fragment type`, `lifecycle_fragment.type`)
