@@ -71,6 +71,9 @@ Initial release to maven.
 
 # measure-android-gradle
 
+## 0.6.1
+* fix(android): incorrect URL parsing by @abhaysood in https://github.com/measure-sh/measure/pull/1272
+
 ## 0.6.0
 #### Features
 
