@@ -1,5 +1,7 @@
 package sh.measure.android.lifecycle
 
+import android.os.Bundle
+import android.view.View
 import androidx.fragment.app.Fragment
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert
@@ -124,6 +126,7 @@ class LifecycleCollectorTest {
                 type = FragmentLifecycleType.ATTACHED,
                 parent_activity = TestLifecycleActivity::class.java.name,
                 class_name = TestFragment::class.java.name,
+                parent_fragment = null,
             ),
         )
     }
@@ -138,6 +141,7 @@ class LifecycleCollectorTest {
                 type = FragmentLifecycleType.RESUMED,
                 parent_activity = TestLifecycleActivity::class.java.name,
                 class_name = TestFragment::class.java.name,
+                parent_fragment = null,
             ),
         )
     }
@@ -152,6 +156,23 @@ class LifecycleCollectorTest {
                 type = FragmentLifecycleType.PAUSED,
                 parent_activity = TestLifecycleActivity::class.java.name,
                 class_name = TestFragment::class.java.name,
+                parent_fragment = null,
+            ),
+        )
+    }
+
+    @Test
+    fun `tracks parent fragment when fragment has a parent`() {
+        controller.setup()
+        verify(eventProcessor, atMostOnce()).track(
+            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            type = EventType.LIFECYCLE_FRAGMENT,
+            data = FragmentLifecycleData(
+                type = FragmentLifecycleType.ATTACHED,
+                parent_activity = TestLifecycleActivity::class.java.name,
+                class_name = ChildFragment::class.java.name,
+                parent_fragment = TestFragment::class.java.name,
+                tag = "child-fragment",
             ),
         )
     }
@@ -247,4 +268,11 @@ class LifecycleCollectorTest {
     }
 }
 
-internal class TestFragment : Fragment()
+internal class TestFragment : Fragment() {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        childFragmentManager.beginTransaction().add(ChildFragment(), "child-fragment").commit()
+    }
+}
+
+internal class ChildFragment : Fragment()

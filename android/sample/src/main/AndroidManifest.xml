@@ -18,6 +18,10 @@
         android:theme="@style/Theme.MeasureAndroid"
         android:usesCleartextTraffic="true"
         tools:targetApi="33">
+        <activity
+            android:name=".fragments.AndroidXFragmentNavigationActivity"
+            android:exported="false" />
+
         <profileable
             android:shell="true"
             tools:targetApi="29" />
@@ -27,19 +31,21 @@
             android:exported="false"
             android:label="@string/title_activity_compose_navigation"
             android:theme="@style/Theme.MeasureAndroid" />
-
         <activity
             android:name=".screenshot.ViewScreenshotActivity"
             android:exported="false"
             android:label="@string/title_activity_view_screenshot"
             android:theme="@style/Theme.MeasureAndroid" />
-
         <activity
             android:name=".screenshot.ComposeScreenshotActivity"
             android:exported="false"
             android:label="@string/title_activity_compose_screenshot"
             android:theme="@style/Theme.MeasureAndroid" />
-
+        <activity
+            android:name=".fragments.NestedFragmentActivity"
+            android:exported="false"
+            android:label="@string/title_activity_nested_fragments"
+            android:theme="@style/Theme.MeasureAndroid" />
         <activity
             android:name=".ExceptionDemoActivity"
             android:exported="true">
@@ -55,14 +61,18 @@
         <activity
             android:name=".ComposeActivity"
             android:exported="false" />
+        <activity
+            android:name=".fragments.FragmentNavigationActivity"
+            android:exported="false"
+            android:label="@string/title_activity_fragment_navigation"
+            android:theme="@style/Theme.MeasureAndroid" />
 
         <meta-data
             android:name="sh.measure.android.API_KEY"
-            android:value="${MEASURE_API_KEY}" />
-
+            android:value="msrsh_014e789f898cfb0ddb03548b8a591eeedf22d63bdd178d6a412b3fb4a5e8d7f8_c2b4a820" />
         <meta-data
             android:name="sh.measure.android.API_URL"
-            android:value="${MEASURE_API_URL}" />
+            android:value="http://10.0.2.2:8080" />
     </application>
 
 </manifest>
