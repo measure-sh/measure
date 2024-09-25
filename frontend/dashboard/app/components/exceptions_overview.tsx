@@ -89,6 +89,8 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
         filtersApiType={exceptionsType === ExceptionsType.Crash ? FiltersApiType.Crash : FiltersApiType.Anr}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
         showCreateApp={true}
+        showNoData={true}
+        showNotOnboarded={true}
         showAppVersions={true}
         showDates={true}
         showSessionType={false}
