@@ -3033,8 +3033,8 @@ func GetCrashDetailPlotInstances(c *gin.Context) {
 		if ok {
 			instances[ndx].Data = append(instances[ndx].Data, instance.Data...)
 		} else {
-			lut[crashInstances[i].Version] = i
 			instances = append(instances, instance)
+			lut[crashInstances[i].Version] = len(instances) - 1
 		}
 	}
 
@@ -3765,8 +3765,8 @@ func GetANRDetailPlotInstances(c *gin.Context) {
 		if ok {
 			instances[ndx].Data = append(instances[ndx].Data, instance.Data...)
 		} else {
-			lut[anrInstances[i].Version] = i
 			instances = append(instances, instance)
+			lut[anrInstances[i].Version] = len(instances) - 1
 		}
 	}
 
