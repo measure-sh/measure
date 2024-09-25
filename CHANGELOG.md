@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :bug: Bug fixes
+
+- (**backend**): Crash/anr details instances plot won't load sometimes (#1298) by @detj in #1298
+
+
 ### :books: Documentation
 
 - Update release one liner command (#1294) by @detj in #1294
