@@ -184,10 +184,14 @@ All commits landing in any branch are first linted in your local environment and
 
 ## Release process
 
-To trigger a release, create a signed git using [git-cliff](https://git-cliff.org/) and push the tag.
+To trigger a release, create a signed git tag using [git-cliff](https://git-cliff.org/) and push the tag. Here's a one liner.
 
 ```sh
-VERSION=$(git cliff --bumped-version) git tag -s $VERSION -m $VERSION && git push origin $VERSION
+# bash/zsh
+VERSION=$(git cliff --bumped-version) && git tag -s $VERSION -m $VERSION && git push origin $VERSION
+
+# fish
+set VERSION $(git cliff --bumped-version) && git tag -s $VERSION -m $VERSION && git push origin $VERSION
 ```
 
 ## Documentation
