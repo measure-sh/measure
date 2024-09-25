@@ -145,6 +145,8 @@ export default function Apps({ params }: { params: { teamId: string } }) {
         filtersApiType={FiltersApiType.All}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
         showCreateApp={false}
+        showNoData={false}
+        showNotOnboarded={false}
         showAppVersions={false}
         showDates={false}
         showSessionType={false}

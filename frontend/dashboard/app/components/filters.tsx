@@ -21,6 +21,8 @@ interface FiltersProps {
   filtersApiType: FiltersApiType,
   appVersionsInitialSelectionType: AppVersionsInitialSelectionType,
   showCreateApp: boolean
+  showNoData: boolean
+  showNotOnboarded: boolean
   showDates: boolean
   showAppVersions: boolean
   showOsVersions: boolean
@@ -114,6 +116,8 @@ const Filters: React.FC<FiltersProps> = ({
   filtersApiType,
   appVersionsInitialSelectionType,
   showCreateApp,
+  showNoData,
+  showNotOnboarded,
   showAppVersions,
   showDates,
   showSessionType,
@@ -368,8 +372,19 @@ const Filters: React.FC<FiltersProps> = ({
       endDate: selectedEndDate
     }
 
+    let ready = false
+    if (showNoData && showNotOnboarded) {
+      ready = AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success
+    } else if (showNoData) {
+      ready = AppsApiStatus.Success && (filtersApiStatus === FiltersApiStatus.Success || filtersApiStatus === FiltersApiStatus.NotOnboarded)
+    } else if (showNotOnboarded) {
+      ready = AppsApiStatus.Success && (filtersApiStatus === FiltersApiStatus.Success || filtersApiStatus === FiltersApiStatus.NoData)
+    } else {
+      ready = AppsApiStatus.Success && (filtersApiStatus === FiltersApiStatus.Success || filtersApiStatus === FiltersApiStatus.NoData || filtersApiStatus === FiltersApiStatus.NotOnboarded)
+    }
+
     const updatedSelectedFilters: Filters = {
-      ready: appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success,
+      ready: ready,
       app: selectedApp,
       startDate: selectedStartDate,
       endDate: selectedEndDate,
@@ -410,10 +425,10 @@ const Filters: React.FC<FiltersProps> = ({
               <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={apps.map((e) => e.name)} initialSelected={selectedApp.name} onChangeSelected={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} />
             </div>
             : null}
-          <div className="py-8" />
+          <div className="py-4" />
           {filtersApiStatus === FiltersApiStatus.Error && <p className="text-lg font-display">Error fetching filters, please refresh page or select a different app to try again</p>}
-          {filtersApiStatus === FiltersApiStatus.NoData && <p className="text-lg font-display">No {filtersApiType === FiltersApiType.Crash ? 'crashes' : filtersApiType === FiltersApiType.Anr ? 'ANRs' : 'data'} received for this app yet</p>}
-          {filtersApiStatus === FiltersApiStatus.NotOnboarded && <CreateApp teamId={teamId} existingAppName={selectedApp.name} existingApiKey={selectedApp.api_key.key} />}
+          {showNoData && filtersApiStatus === FiltersApiStatus.NoData && <p className="text-lg font-display">No {filtersApiType === FiltersApiType.Crash ? 'crashes' : filtersApiType === FiltersApiType.Anr ? 'ANRs' : 'data'} received for this app yet</p>}
+          {showNotOnboarded && filtersApiStatus === FiltersApiStatus.NotOnboarded && <CreateApp teamId={teamId} existingAppName={selectedApp.name} existingApiKey={selectedApp.api_key.key} />}
         </div>
       }
 

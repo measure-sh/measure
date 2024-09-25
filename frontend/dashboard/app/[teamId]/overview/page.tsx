@@ -20,6 +20,8 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         filtersApiType={FiltersApiType.All}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.Latest}
         showCreateApp={true}
+        showNoData={true}
+        showNotOnboarded={true}
         showAppVersions={true}
         showDates={true}
         showSessionType={false}
