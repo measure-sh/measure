@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Crash/anr details instances plot won't load sometimes (#1298) by @detj in #1298
 
+- (**frontend**): Add option to handle no data & not onboarded in filters by @anupcowkur in #1299
+
 
 ### :books: Documentation
 
