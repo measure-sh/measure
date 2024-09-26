@@ -12,6 +12,7 @@ import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.MalformedURLException
 import java.net.URL
+import kotlin.math.pow
 
 internal interface HttpClient {
     fun sendMultipartRequest(
@@ -36,6 +37,7 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
     private val readTimeoutMs = 10_000
     private val boundary = "--boundary-7MA4YWxkTrZu0gW"
     private val maxRedirects = 5
+    private val maxRetryCountPerUrl = 3//In case of 5 redirects total API calls can go upto 15
 
     override fun sendMultipartRequest(
         url: String,
@@ -52,6 +54,7 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
         headers: Map<String, String>,
         multipartData: List<MultipartData>,
         redirectCount: Int,
+        retryCount: Int = 0
     ): HttpResponse {
         if (redirectCount >= maxRedirects) {
             throw IOException("Too many redirects")
@@ -62,7 +65,8 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
             val outputStream = getOutputStream(connection)
             logger.log(LogLevel.Debug, "Request: $method $url")
             streamMultipartData(outputStream, multipartData)
-            if (isRedirect(connection.responseCode)) {
+            val responseCode = connection.responseCode
+            if (isRedirect(responseCode)) {
                 val location = connection.getHeaderField("Location")
                     ?: throw IOException("Redirect location is missing")
                 val newUrl = resolveRedirectUrl(url, location)
@@ -73,6 +77,22 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
                     headers = headers,
                     multipartData = multipartData,
                     redirectCount = redirectCount + 1,
+                )
+            } else if (isClientError(responseCode) && retryCount < maxRetryCountPerUrl) {
+                val timeToWait = (2.0.pow(retryCount + 1) * 100).toLong()
+                logger.log(
+                    LogLevel.Warning,
+                    "Retry ${retryCount + 1}. Waiting $timeToWait ms before retry."
+                )
+                //await delay (timeToWait) // ->This won;t work outside coroutine
+                Thread.sleep(timeToWait)
+                return sendMultiPartRequestWithRedirects(
+                    url = url,
+                    method = method,
+                    headers = headers,
+                    multipartData = multipartData,
+                    redirectCount = redirectCount,
+                    retryCount = retryCount + 1
                 )
             }
             return processResponse(connection)
@@ -91,6 +111,11 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
         // multipart requests.
         // https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/307
         return responseCode == 307 || responseCode == 308
+    }
+
+    //Returns true if responseCode signifies client error
+    private fun isClientError(responseCode: Int): Boolean {
+        return responseCode != 429 && responseCode in 400..499
     }
 
     @Throws(IOException::class)
