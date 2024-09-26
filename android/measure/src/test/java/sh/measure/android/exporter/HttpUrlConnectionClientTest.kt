@@ -95,8 +95,10 @@ class HttpUrlConnectionClientTest {
     }
 
     @Test
-    fun `test client error`() {
-        mockWebServer.enqueue(MockResponse().setResponseCode(400))
+    fun `test client error for all 3 retries`() {
+        repeat(4) {//1(initial Failure) + 3(retry failure)
+            mockWebServer.enqueue(MockResponse().setResponseCode(400))
+        }
 
         val result = client.sendMultipartRequest(
             mockWebServer.url("/").toString(),
@@ -109,8 +111,16 @@ class HttpUrlConnectionClientTest {
     }
 
     @Test
-    fun `test client error with body`() {
-        mockWebServer.enqueue(MockResponse().setResponseCode(400).setBody("error-body"))
+    fun `test success in retry after client error`() {
+        mockWebServer.enqueue(MockResponse().setResponseCode(400))//Simulate Failure
+        mockWebServer.enqueue(MockResponse().setResponseCode(200))//Simulate Success
+    }
+
+    @Test
+    fun `test client error with body for all 3 retries`() {
+        repeat(4) {
+            mockWebServer.enqueue(MockResponse().setResponseCode(400).setBody("error-body"))
+        }
 
         val result = client.sendMultipartRequest(
             mockWebServer.url("/").toString(),
