@@ -36,7 +36,6 @@ import Foundation
         return instance
     }()
     private var measure: MeasureInternal?
-    private let initializationQueue = DispatchQueue(label: "MeasureInitializationQueue")
 
     // Private initializer to ensure the singleton pattern
     private override init() {
@@ -67,7 +66,7 @@ import Foundation
     ///   [[Measure shared] initializeWith:clientInfo config:config];
     ///   ```
     @objc public func initialize(with client: ClientInfo, config: BaseMeasureConfig? = nil) {
-        initializationQueue.sync {
+        MeasureQueue.userInitiated.sync {
             // Ensure initialization is done only once
             guard measure == nil else { return }
             SignPost.trace(label: "Measure Initialisation") {

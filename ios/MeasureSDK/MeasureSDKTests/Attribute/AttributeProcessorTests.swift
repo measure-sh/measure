@@ -10,7 +10,7 @@ import XCTest
 
 final class AttributeProcessorTests: XCTestCase {
     func testAppendsAttributes() {
-        var attributes = Attributes()
+        var attributes = Attributes(deviceName: "iPhone 14")
 
         let attributeProcessor1 = MockAttributeProcessor { attributes in
             attributes.threadName = "com.thread.main"
@@ -24,10 +24,11 @@ final class AttributeProcessorTests: XCTestCase {
 
         XCTAssertEqual(attributes.threadName, "com.thread.main")
         XCTAssertEqual(attributes.measureSdkVersion, "0.0.1")
+        XCTAssertEqual(attributes.deviceName, "iPhone 14")
     }
 
     func testUpdatesValueIfTwoProcessorsSetSameKey() {
-        var attributes = Attributes()
+        var attributes = Attributes(deviceName: "iPhone 14")
 
         let attributeProcessor1 = MockAttributeProcessor { attributes in
             attributes.threadName = "com.thread.main"
@@ -40,6 +41,7 @@ final class AttributeProcessorTests: XCTestCase {
         processors.forEach { $0.appendAttributes(&attributes) }
 
         XCTAssertEqual(attributes.threadName, "com.thread.background")
+        XCTAssertEqual(attributes.deviceName, "iPhone 14")
     }
 
     func testNoopWhenEmptyListOfProcessorsIsPassed() {

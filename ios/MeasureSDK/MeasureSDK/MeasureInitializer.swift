@@ -28,6 +28,9 @@ protocol MeasureInitializer {
     var crashDataPersistence: CrashDataPersistence { get set }
     var systemFileManager: SystemFileManager { get }
     var systemCrashReporter: SystemCrashReporter { get }
+    var coreDataManager: CoreDataManager { get }
+    var sessionStore: SessionStore { get }
+    var eventStore: EventStore { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -52,6 +55,9 @@ protocol MeasureInitializer {
 /// - `crashDataPersistence`: `CrashDataPersistence` object used to manage crash `Attributes` and metadata.
 /// - `systemFileManager`: `SystemFileManager` object used to manage files in local file system.
 /// - `systemCrashReporter`: `SystemCrashReporter` object generates crash reports.
+/// - `coreDataManager`: `CoreDataManager` object that generates and manages core data persistance and contexts
+/// - `sessionStore`: `SessionStore` object that manages `Session` related operations
+/// - `eventStore`: `EventStore` object that manages `Event` related operations
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -73,6 +79,9 @@ final class BaseMeasureInitializer: MeasureInitializer {
     var crashDataPersistence: CrashDataPersistence
     let systemFileManager: SystemFileManager
     let systemCrashReporter: SystemCrashReporter
+    let sessionStore: SessionStore
+    let coreDataManager: CoreDataManager
+    let eventStore: EventStore
 
     init(config: MeasureConfig,
          client: Client) {
@@ -86,10 +95,16 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.timeProvider = SystemTimeProvider(systemTime: self.systemTime)
         self.logger = MeasureLogger(enabled: configProvider.enableLogging)
         self.idProvider = UUIDProvider()
+        self.coreDataManager = BaseCoreDataManager()
+        self.sessionStore = BaseSessionStore(coreDataManager: coreDataManager,
+                                             logger: logger)
+        self.eventStore = BaseEventStore(coreDataManager: coreDataManager,
+                                         logger: logger)
         self.sessionManager = BaseSessionManager(idProvider: idProvider,
-                                                    logger: logger,
-                                                    timeProvider: timeProvider,
-                                                    configProvider: configProvider)
+                                                 logger: logger,
+                                                 timeProvider: timeProvider,
+                                                 configProvider: configProvider,
+                                                 sessionStore: sessionStore)
         self.userDefaultStorage = BaseUserDefaultStorage()
         self.appAttributeProcessor = AppAttributeProcessor()
         self.deviceAttributeProcessor = DeviceAttributeProcessor()
@@ -112,7 +127,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                  attributeProcessors: attributeProcessors,
                                                  configProvider: configProvider,
                                                  systemTime: systemTime,
-                                                 crashDataPersistence: crashDataPersistence)
+                                                 crashDataPersistence: crashDataPersistence,
+                                                 eventStore: eventStore)
         self.systemCrashReporter = BaseSystemCrashReporter()
         self.crashReportManager = CrashReportingManager(logger: logger,
                                                         eventProcessor: eventProcessor,
