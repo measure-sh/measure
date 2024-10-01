@@ -420,7 +420,12 @@ func (e eventreq) validate() error {
 		if err := e.events[i].Validate(); err != nil {
 			return err
 		}
+
 		if err := e.events[i].Attribute.Validate(); err != nil {
+			return err
+		}
+
+		if err := e.events[i].UseDefAttrs.Validate(); err != nil {
 			return err
 		}
 
@@ -532,6 +537,11 @@ func (e eventreq) ingest(ctx context.Context) error {
 
 			// attachments
 			Set(`attachments`, attachments)
+
+		// user defined attributes
+		if e.events[i].UseDefAttrs.HasItems() {
+			e.events[i].UseDefAttrs.BuildArgs()
+		}
 
 		// anr
 		if e.events[i].IsANR() {
@@ -2077,6 +2087,10 @@ func PutEvents(c *gin.Context) {
 		})
 		return
 	}
+
+	// temporary
+	// c.JSON(http.StatusOK, gin.H{"events": eventReq.events})
+	// return
 
 	if seen, err := eventReq.seen(ctx); err != nil {
 		msg := `failed to check existing event request`
