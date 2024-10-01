@@ -28,6 +28,7 @@ final class BaseSessionManager: SessionManager {
     private var appBackgroundTimeMs: Number
     private let configProvider: ConfigProvider
     private let randomizer: Randomizer
+    private let sessionStore: SessionStore
 
     /// The current session ID.
     var sessionId: String {
@@ -42,18 +43,26 @@ final class BaseSessionManager: SessionManager {
          logger: Logger,
          timeProvider: TimeProvider,
          configProvider: ConfigProvider,
-         randomizer: Randomizer = BaseRandomizer()) {
+         randomizer: Randomizer = BaseRandomizer(),
+         sessionStore: SessionStore) {
         self.appBackgroundTimeMs = 0
         self.idProvider = idProvider
         self.logger = logger
         self.timeProvider = timeProvider
         self.configProvider = configProvider
         self.randomizer = randomizer
+        self.sessionStore = sessionStore
     }
 
     private func createNewSession() {
         currentSessionId = idProvider.createId()
         logger.log(level: .info, message: "New session created", error: nil)
+        let session = SessionEntity(sessionId: sessionId,
+                              pid: ProcessInfo.processInfo.processIdentifier,
+                              createdAt: Number(Date().timeIntervalSince1970),
+                              needsReporting: true,
+                              crashed: false)
+        sessionStore.insertSession(session)
     }
 
     func start() {

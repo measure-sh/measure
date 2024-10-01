@@ -12,6 +12,8 @@ typealias Number = Int64
 let logTag = "com.measure.sh"
 let cacheDirectoryName = "com.measure.sh"
 let crashDataFileName = "crash_data.txt"
+let backgroundQueueLabel = "com.measure.background"
+let userInitiatedQueueLabel = "com.measure.userInitiated"
 
 struct AttributeConstants {
     static let deviceManufacturer = "Apple"

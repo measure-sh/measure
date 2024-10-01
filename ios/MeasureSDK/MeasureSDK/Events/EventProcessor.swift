@@ -31,6 +31,7 @@ final class BaseEventProcessor: EventProcessor {
     private let configProvider: ConfigProvider
     private let systemTime: SystemTime
     private var crashDataPersistence: CrashDataPersistence
+    private let eventStore: EventStore
 
     init(
         logger: Logger,
@@ -39,7 +40,8 @@ final class BaseEventProcessor: EventProcessor {
         attributeProcessors: [AttributeProcessor],
         configProvider: ConfigProvider,
         systemTime: SystemTime,
-        crashDataPersistence: CrashDataPersistence
+        crashDataPersistence: CrashDataPersistence,
+        eventStore: EventStore
     ) {
         self.logger = logger
         self.idProvider = idProvider
@@ -48,6 +50,7 @@ final class BaseEventProcessor: EventProcessor {
         self.configProvider = configProvider
         self.systemTime = systemTime
         self.crashDataPersistence = crashDataPersistence
+        self.eventStore = eventStore
     }
 
     func track<T: Codable>( // swiftlint:disable:this function_parameter_count
@@ -85,7 +88,8 @@ final class BaseEventProcessor: EventProcessor {
             self.crashDataPersistence.attribute = attributes
         }
 
-        logger.log(level: .debug, message: "Event processed: \(type), \(event.sessionId)", error: nil)
+        eventStore.insertEvent(event: EventEntity(event))
+        logger.log(level: .debug, message: "Event processed: \(type), \(event.id)", error: nil)
     }
 
     private func createEvent<T: Codable>( // swiftlint:disable:this function_parameter_count

@@ -2,24 +2,24 @@
 //  MockSystemTime.swift
 //  MeasureSDKTests
 //
-//  Created by Adwin Ross on 06/09/24.
+//  Created by Adwin Ross on 26/09/24.
 //
 
 import Foundation
 @testable import MeasureSDK
 
 final class MockSystemTime: SystemTime {
-    var timeIntervalSince1970: Int64
-    var systemUptime: Int64
-    var timeInMillis: String
+    var timeIntervalSince1970: MeasureSDK.Number
+    var systemUptime: MeasureSDK.Number
+    var iso8601Timestamp: String
 
-    init(timeIntervalSince1970: Int64, systemUptime: Int64, timeInMillis: String) {
+    init(timeIntervalSince1970: MeasureSDK.Number, systemUptime: MeasureSDK.Number, iso8601Timestamp: String) {
         self.timeIntervalSince1970 = timeIntervalSince1970
         self.systemUptime = systemUptime
-        self.timeInMillis = timeInMillis
+        self.iso8601Timestamp = iso8601Timestamp
     }
 
-    func iso8601Timestamp(timeInMillis: Int64) -> String {
-        return self.timeInMillis
+    func iso8601Timestamp(timeInMillis: MeasureSDK.Number) -> String {
+        return iso8601Timestamp
     }
 }

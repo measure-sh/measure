@@ -67,6 +67,15 @@ final class MeasureInternal {
     private var systemFileManager: SystemFileManager {
         return measureInitializer.systemFileManager
     }
+    private var sessionStore: SessionStore {
+        return measureInitializer.sessionStore
+    }
+    private var coreDataManager: CoreDataManager {
+        return measureInitializer.coreDataManager
+    }
+    private var eventStore: EventStore {
+        return measureInitializer.eventStore
+    }
     private let lifecycleObserver: LifecycleObserver
 
     init(_ measureInitializer: MeasureInitializer) {
