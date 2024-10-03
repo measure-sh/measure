@@ -15,6 +15,16 @@ type Navigation struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+// ScreenView represents screen view events suitable
+// for session replay.
+type ScreenView struct {
+	EventType     string `json:"event_type"`
+	ThreadName    string `json:"thread_name"`
+	UserTriggered bool   `json:"user_triggered"`
+	*event.ScreenView
+	Timestamp time.Time `json:"timestamp"`
+}
+
 // GetThreadName provides the name of the thread
 // where navigation took place.
 func (n Navigation) GetThreadName() string {
@@ -42,4 +52,33 @@ func ComputeNavigation(events []event.EventField) (result []ThreadGrouper) {
 	}
 
 	return
+}
+
+// ComputeScreemViews computes screen view events
+// for session replay.
+func ComputeScreenViews(events []event.EventField) (result []ThreadGrouper) {
+	for _, event := range events {
+		sv := ScreenView{
+			event.Type,
+			event.Attribute.ThreadName,
+			event.UserTriggered,
+			event.ScreenView,
+			event.Timestamp,
+		}
+		result = append(result, sv)
+	}
+
+	return
+}
+
+// GetThreadName provides the name of the thread
+// where screen view took place.
+func (sv ScreenView) GetThreadName() string {
+	return sv.ThreadName
+}
+
+// GetTimestamp provides the timestamp of
+// the screen view.
+func (sv ScreenView) GetTimestamp() time.Time {
+	return sv.Timestamp
 }

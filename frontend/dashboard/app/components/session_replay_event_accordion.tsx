@@ -48,7 +48,7 @@ export default function SessionReplayEventAccordion({
       return "bg-emerald-200 hover:bg-emerald-300 active:bg-emerald-400 focus-visible:outline-emerald-300"
     }
 
-    if (eventType === "navigation") {
+    if (eventType === "navigation" || eventType === "screen_view") {
       return "bg-fuchsia-200 hover:bg-fuchsia-300 active:bg-fuchsia-400 focus-visible:outline-fuchsia-300"
     }
 
@@ -122,6 +122,10 @@ export default function SessionReplayEventAccordion({
 
     if (eventType === "trim_memory") {
       return 'System: Trim Memory'
+    }
+
+    if (eventType === "screen_view") {
+      return 'Screen View: ' + eventDetails.name
     }
 
     return eventType
