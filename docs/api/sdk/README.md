@@ -675,4 +675,4 @@ Use the `screen_view` type for screen view events.
 
 | Field       | Type   | Optional | Description                                                                                                                                                     |
 |-------------|--------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| screen_name | string | No       | The name of the screen viewed                                                                                                                                   |
+| name | string | No       | The name of the screen viewed                                                                                                                                   |

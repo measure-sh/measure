@@ -126,13 +126,17 @@ object Measure {
     }
 
     /**
-     * Track a screen view event.
+     * Call when a screen is viewed by the user.
      *
-     * Screen view events are important to understand user journey in the app. Measure SDK
-     * automatically collects screen view events from the [Compose Navigation library](https://developer.android.com/jetpack/androidx/releases/navigation)
-     * along with Activity and Fragment lifecycle events. But if your app uses a custom navigation
+     * Measure SDK automatically collects screen view events from the Jetpack Navigation library
+     * for AndroidX Fragment and Compose navigation. But if your app uses a custom navigation
      * system, you can use this method to track screen view events to have more context when
      * debugging issues.
+     *
+     * Example usage:
+     * ```kotlin
+     * Measure.trackScreenView("Home")
+     * ```
      */
     @JvmStatic
     fun trackScreenView(screenName: String) {

@@ -26,6 +26,9 @@ internal class LifecycleCollector(
     private val fragmentLifecycleCollector by lazy {
         FragmentLifecycleCollector(eventProcessor, timeProvider)
     }
+    private val androidXFragmentNavigationCollector by lazy {
+        AndroidXFragmentNavigationCollector(eventProcessor, timeProvider)
+    }
     private val startedActivities = mutableSetOf<String>()
     private var applicationLifecycleStateListener: ApplicationLifecycleStateListener? = null
 
@@ -39,6 +42,7 @@ internal class LifecycleCollector(
 
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
         registerFragmentLifecycleCollector(activity)
+        registerAndroidXFragmentNavigationCollector(activity)
         eventProcessor.track(
             timestamp = timeProvider.currentTimeSinceEpochInMillis,
             type = EventType.LIFECYCLE_ACTIVITY,
@@ -125,6 +129,15 @@ internal class LifecycleCollector(
         }
     }
 
+    private fun registerAndroidXFragmentNavigationCollector(activity: Activity) {
+        if (isAndroidXFragmentNavigationAvailable() && activity is FragmentActivity) {
+            activity.supportFragmentManager.registerFragmentLifecycleCallbacks(
+                androidXFragmentNavigationCollector,
+                true,
+            )
+        }
+    }
+
     private fun registerFragmentLifecycleCollector(activity: Activity) {
         if (isAndroidXFragmentAvailable() && activity is FragmentActivity) {
             activity.supportFragmentManager.registerFragmentLifecycleCallbacks(
@@ -136,4 +149,7 @@ internal class LifecycleCollector(
 
     private fun isAndroidXFragmentAvailable() =
         isClassAvailable("androidx.fragment.app.FragmentActivity")
+
+    private fun isAndroidXFragmentNavigationAvailable() =
+        isClassAvailable("androidx.navigation.fragment.NavHostFragment")
 }
