@@ -1553,6 +1553,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`toString(navigation.to)`,
 		`toString(navigation.from)`,
 		`toString(navigation.source)`,
+		`toString(screen_view.name) `,
 	}
 
 	stmt := sqlf.From("default.events")
@@ -1601,6 +1602,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		var trimMemory event.TrimMemory
 		var cpuUsage event.CPUUsage
 		var navigation event.Navigation
+		var screenView event.ScreenView
 
 		var coldLaunchDuration uint32
 		var warmLaunchDuration uint32
@@ -1804,6 +1806,9 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&navigation.To,
 			&navigation.From,
 			&navigation.Source,
+
+			// screen view
+			&screenView.Name,
 		}
 
 		if err := rows.Scan(dest...); err != nil {
@@ -1891,6 +1896,9 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			session.Events = append(session.Events, ev)
 		case event.TypeNavigation:
 			ev.Navigation = &navigation
+			session.Events = append(session.Events, ev)
+		case event.TypeScreenView:
+			ev.ScreenView = &screenView
 			session.Events = append(session.Events, ev)
 		default:
 			continue
@@ -4641,6 +4649,7 @@ func GetSession(c *gin.Context) {
 		event.TypeException,
 		event.TypeANR,
 		event.TypeHttp,
+		event.TypeScreenView,
 	}
 
 	eventMap := session.EventsOfTypes(typeList...)
@@ -4672,6 +4681,13 @@ func GetSession(c *gin.Context) {
 		navs := replay.ComputeNavigation(navEvents)
 		threadedNavs := replay.GroupByThreads(navs)
 		threads.Organize(event.TypeNavigation, threadedNavs)
+	}
+
+	screenViewEvents := eventMap[event.TypeScreenView]
+	if len(screenViewEvents) > 0 {
+		screenViews := replay.ComputeScreenViews(screenViewEvents)
+		threadedScreenViews := replay.GroupByThreads(screenViews)
+		threads.Organize(event.TypeScreenView, threadedScreenViews)
 	}
 
 	logEvents := eventMap[event.TypeString]
