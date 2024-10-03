@@ -916,6 +916,14 @@ func (e eventreq) ingest(ctx context.Context) error {
 				Set(`navigation.source`, nil)
 		}
 
+		// screen view
+		if e.events[i].IsScreenView() {
+			row.
+				Set(`screen_view.name`, e.events[i].ScreenView.Name)
+		} else {
+			row.
+				Set(`screen_view.name`, nil)
+		}
 	}
 
 	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), false, stmt.Args()...)

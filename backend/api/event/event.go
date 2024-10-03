@@ -50,6 +50,7 @@ const (
 	maxNavigationToChars                      = 128
 	maxNavigationFromChars                    = 128
 	maxNavigationSourceChars                  = 128
+	maxScreenViewNameChars                    = 128
 )
 
 const TypeANR = "anr"
@@ -72,6 +73,7 @@ const TypeLowMemory = "low_memory"
 const TypeTrimMemory = "trim_memory"
 const TypeCPUUsage = "cpu_usage"
 const TypeNavigation = "navigation"
+const TypeScreenView = "screen_view"
 
 const NetworkGeneration2G = "2g"
 const NetworkGeneration3G = "3g"
@@ -358,6 +360,10 @@ type Navigation struct {
 	Source string `json:"source"`
 }
 
+type ScreenView struct {
+	Name string `json:"name" binding:"required"`
+}
+
 type EventField struct {
 	ID                uuid.UUID          `json:"id"`
 	IPv4              net.IP             `json:"inet_ipv4"`
@@ -390,6 +396,7 @@ type EventField struct {
 	TrimMemory        *TrimMemory        `json:"trim_memory,omitempty"`
 	CPUUsage          *CPUUsage          `json:"cpu_usage,omitempty"`
 	Navigation        *Navigation        `json:"navigation,omitempty"`
+	ScreenView        *ScreenView        `json:"screen_view,omitempty"`
 }
 
 // Compute computes the most accurate cold launch timing
@@ -560,6 +567,12 @@ func (e EventField) IsNavigation() bool {
 	return e.Type == TypeNavigation
 }
 
+// IsScreenView returns true for screen
+// view event.
+func (e EventField) IsScreenView() bool {
+	return e.Type == TypeScreenView
+}
+
 // NeedsSymbolication returns true if the event needs
 // symbolication, false otherwise.
 func (e EventField) NeedsSymbolication() (result bool) {
@@ -625,7 +638,7 @@ func (e *EventField) Validate() error {
 		TypeLifecycleApp, TypeColdLaunch, TypeWarmLaunch,
 		TypeHotLaunch, TypeNetworkChange, TypeHttp,
 		TypeMemoryUsage, TypeLowMemory, TypeTrimMemory,
-		TypeCPUUsage, TypeNavigation,
+		TypeCPUUsage, TypeNavigation, TypeScreenView,
 	}
 
 	if !slices.Contains(validTypes, e.Type) {
@@ -900,6 +913,12 @@ func (e *EventField) Validate() error {
 		}
 		if len(e.Navigation.Source) > maxNavigationSourceChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `navigation.source`, maxNavigationSourceChars)
+		}
+	}
+
+	if e.IsScreenView() {
+		if len(e.ScreenView.Name) > maxScreenViewNameChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `screen_view.name`, maxScreenViewNameChars)
 		}
 	}
 
