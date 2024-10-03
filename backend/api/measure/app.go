@@ -4165,9 +4165,11 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 				"any(gesture_click.target) ILIKE ?, concat('Gesture Click: ', any(gesture_click.target)),"+
 				"any(gesture_long_click.target) ILIKE ?, concat('Gesture Long Click: ', any(gesture_long_click.target)),"+
 				"any(gesture_scroll.target) ILIKE ?, concat('Gesture Scroll: ', any(gesture_scroll.target)),"+
+				"any(screen_view.name) ILIKE ?, concat('Screen View: ', any(screen_view.name)),"+
 				"''"+
 				")"+
 				") AS matched_free_text",
+			"%"+af.FreeText+"%",
 			"%"+af.FreeText+"%",
 			"%"+af.FreeText+"%",
 			"%"+af.FreeText+"%",
@@ -4254,8 +4256,10 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 				"gesture_scroll.target_id ILIKE ? OR "+
 				"gesture_click.target ILIKE ? OR "+
 				"gesture_long_click.target ILIKE ? OR "+
-				"gesture_scroll.target ILIKE ?"+
+				"gesture_scroll.target ILIKE ? OR "+
+				"screen_view.name ILIKE ?"+
 				")",
+			"%"+af.FreeText+"%",
 			"%"+af.FreeText+"%",
 			"%"+af.FreeText+"%",
 			"%"+af.FreeText+"%",
