@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**frontend**): Improve security posture (#1305) by @detj in #1305
 
+
+### :hammer: Misc
+
+- (**backend**): Search sessions by screen view by @abhaysood in #1265
+- (**backend**): Integrate screen view event with session replay by @abhaysood
+- (**backend**): Ingest screen view event by @abhaysood
+- (**backend**): Add screen view sample sessions by @abhaysood
+
 ## [0.2.1] - 2024-09-25
 
 ### :bug: Bug fixes
