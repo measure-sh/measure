@@ -156,6 +156,7 @@ dependencies {
     compileOnly(libs.androidx.compose.runtime.android)
     compileOnly(libs.androidx.compose.ui)
     compileOnly(libs.androidx.navigation.compose)
+    compileOnly(libs.androidx.navigation.fragment)
     compileOnly(libs.squareup.okhttp)
 
     implementation(libs.kotlinx.serialization.json)
