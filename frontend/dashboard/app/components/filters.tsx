@@ -1,10 +1,10 @@
 "use client"
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { formatDateToHumanReadableDateTime, formatIsoDateForDateTimeInputField, isValidTimestamp } from "../utils/time_utils";
 import { useEffect, useState } from "react";
 import { AppVersion, AppsApiStatus, FiltersApiStatus, FiltersApiType, OsVersion, SessionType, emptyApp, fetchAppsFromServer, fetchFiltersFromServer } from "../api/api_calls";
-import { DateTime } from "luxon";
+import { DateTime, Interval } from "luxon";
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
 import FilterPill from "./filter_pill";
 import CreateApp from "./create_app";
@@ -23,9 +23,11 @@ interface FiltersProps {
   showCreateApp: boolean
   showNoData: boolean
   showNotOnboarded: boolean
+  showAppSelector: boolean
   showDates: boolean
   showAppVersions: boolean
   showOsVersions: boolean
+  showSessionType: boolean
   showCountries: boolean
   showNetworkProviders: boolean
   showNetworkTypes: boolean
@@ -34,7 +36,6 @@ interface FiltersProps {
   showDeviceManufacturers: boolean
   showDeviceNames: boolean
   showFreeText: boolean
-  showSessionType: boolean
   onFiltersChanged: (filters: Filters) => void
 }
 
@@ -118,11 +119,12 @@ const Filters: React.FC<FiltersProps> = ({
   showCreateApp,
   showNoData,
   showNotOnboarded,
-  showAppVersions,
+  showAppSelector,
   showDates,
+  showAppVersions,
+  showOsVersions,
   showSessionType,
   showCountries,
-  showOsVersions,
   showNetworkTypes,
   showNetworkProviders,
   showNetworkGenerations,
@@ -133,9 +135,205 @@ const Filters: React.FC<FiltersProps> = ({
   onFiltersChanged }) => {
 
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const persistedFiltersStorageKey = 'measurePersistedFilters'
   const persistedFilters: PersistedFilters = sessionStorage.getItem(persistedFiltersStorageKey) === null ? null : JSON.parse(sessionStorage.getItem(persistedFiltersStorageKey)!)
+
+  const updateUrlWithFilters = (filters: Partial<Filters>) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (filters.app?.id) {
+      params.set('appId', filters.app.id)
+    } else {
+      params.delete('appId')
+    }
+    if (filters.startDate && showDates) {
+      params.set('startDate', filters.startDate)
+    } else {
+      params.delete('startDate')
+    }
+    if (filters.endDate && showDates) {
+      params.set('endDate', filters.endDate)
+    } else {
+      params.delete('endDate')
+    }
+    if (filters.versions?.length && showAppVersions) {
+      params.set('versions', filters.versions.map(v => v.displayName).join(','))
+    } else {
+      params.delete('versions')
+    }
+    if (filters.sessionType && showSessionType) {
+      params.set('sessionType', filters.sessionType)
+    } else {
+      params.delete('sessionType')
+    }
+    if (filters.osVersions?.length && showOsVersions) {
+      params.set('osVersions', filters.osVersions.map(v => v.displayName).join(','))
+    } else {
+      params.delete('osVersions')
+    }
+    if (filters.countries?.length && showCountries) {
+      params.set('countries', filters.countries.join(','))
+    } else {
+      params.delete('countries')
+    }
+    if (filters.networkProviders?.length && showNetworkProviders) {
+      params.set('networkProviders', filters.networkProviders.join(','))
+    } else {
+      params.delete('networkProviders')
+    }
+    if (filters.networkTypes?.length && showNetworkTypes) {
+      params.set('networkTypes', filters.networkTypes.join(','))
+    } else {
+      params.delete('networkTypes')
+    }
+    if (filters.networkGenerations?.length && showNetworkGenerations) {
+      params.set('networkGenerations', filters.networkGenerations.join(','))
+    } else {
+      params.delete('networkGenerations')
+    }
+    if (filters.locales?.length && showLocales) {
+      params.set('locales', filters.locales.join(','))
+    } else {
+      params.delete('locales')
+    }
+    if (filters.deviceManufacturers?.length && showDeviceManufacturers) {
+      params.set('deviceManufacturers', filters.deviceManufacturers.join(','))
+    } else {
+      params.delete('deviceManufacturers')
+    }
+    if (filters.deviceNames?.length && showDeviceNames) {
+      params.set('deviceNames', filters.deviceNames.join(','))
+    } else {
+      params.delete('deviceNames')
+    }
+    if (filters.freeText && showFreeText) {
+      params.set('freeText', filters.freeText)
+    } else {
+      params.delete('freeText')
+    }
+
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
+
+  const getFiltersFromUrl = () => {
+    const appIdFromUrl = searchParams.get('appId');
+    const startDateFromUrl = searchParams.get('startDate');
+    const endDateFromUrl = searchParams.get('endDate');
+    const versionsFromUrl = searchParams.get('versions')?.split(',') || [];
+    const sessionTypeFromUrl = searchParams.get('sessionType');
+    const osVersionsFromUrl = searchParams.get('osVersions')?.split(',') || [];
+    const countriesFromUrl = searchParams.get('countries')?.split(',') || [];
+    const networkProvidersFromUrl = searchParams.get('networkProviders')?.split(',') || [];
+    const networkTypesFromUrl = searchParams.get('networkTypes')?.split(',') || [];
+    const networkGenerationsFromUrl = searchParams.get('networkGenerations')?.split(',') || [];
+    const localesFromUrl = searchParams.get('locales')?.split(',') || [];
+    const deviceManufacturersFromUrl = searchParams.get('deviceManufacturers')?.split(',') || [];
+    const deviceNamesFromUrl = searchParams.get('deviceNames')?.split(',') || [];
+    const freeTextFromUrl = searchParams.get('freeText') || '';
+
+    return {
+      appId: appIdFromUrl,
+      startDate: startDateFromUrl,
+      endDate: endDateFromUrl,
+      versions: versionsFromUrl,
+      sessionType: sessionTypeFromUrl as SessionType,
+      osVersions: osVersionsFromUrl,
+      countries: countriesFromUrl,
+      networkProviders: networkProvidersFromUrl,
+      networkTypes: networkTypesFromUrl,
+      networkGenerations: networkGenerationsFromUrl,
+      locales: localesFromUrl,
+      deviceManufacturers: deviceManufacturersFromUrl,
+      deviceNames: deviceNamesFromUrl,
+      freeText: freeTextFromUrl
+    };
+  }
+
+  function mapDateRangeToDate(dateRange: string) {
+    let today = DateTime.now()
+
+    switch (dateRange) {
+      case DateRange.Last15Mins:
+        return today.minus({ minutes: 15 })
+      case DateRange.Last30Mins:
+        return today.minus({ minutes: 30 })
+      case DateRange.LastHour:
+        return today.minus({ hours: 1 })
+      case DateRange.Last3Hours:
+        return today.minus({ hours: 3 })
+      case DateRange.Last6Hours:
+        return today.minus({ hours: 6 })
+      case DateRange.Last12Hours:
+        return today.minus({ hours: 12 })
+      case DateRange.Last24Hours:
+        return today.minus({ hours: 24 })
+      case DateRange.LastWeek:
+        return today.minus({ days: 7 })
+      case DateRange.Last15Days:
+        return today.minus({ days: 15 })
+      case DateRange.LastMonth:
+        return today.minus({ months: 1 })
+      case DateRange.Last3Months:
+        return today.minus({ months: 3 })
+      case DateRange.Last6Months:
+        return today.minus({ months: 6 })
+      case DateRange.LastYear:
+        return today.minus({ years: 1 })
+      case DateRange.Custom:
+        throw Error("Custom date range cannot be mapped to date")
+    }
+  }
+
+  function mapDatesToDateRange(startDateIso: string, endDateIso: string): DateRange {
+    const startDate = DateTime.fromISO(startDateIso);
+    const endDate = DateTime.fromISO(endDateIso);
+
+    if (!startDate.isValid || !endDate.isValid) {
+      throw new Error("Invalid date string provided");
+    }
+
+    if (startDate > endDate) {
+      throw new Error("Start date must be earlier than or equal to end date")
+    }
+
+    const interval = Interval.fromDateTimes(startDate, endDate);
+    const duration = interval.toDuration(['years', 'months', 'days', 'hours', 'minutes']);
+
+    const totalMinutes = duration.as('minutes');
+
+    switch (true) {
+      case totalMinutes === 15:
+        return DateRange.Last15Mins;
+      case totalMinutes === 30:
+        return DateRange.Last30Mins;
+      case totalMinutes === 60:
+        return DateRange.LastHour;
+      case totalMinutes === 3 * 60:
+        return DateRange.Last3Hours;
+      case totalMinutes === 6 * 60:
+        return DateRange.Last6Hours;
+      case totalMinutes === 12 * 60:
+        return DateRange.Last12Hours;
+      case totalMinutes === 24 * 60:
+        return DateRange.Last24Hours;
+      case totalMinutes === 7 * 24 * 60:
+        return DateRange.LastWeek;
+      case totalMinutes === 15 * 24 * 60:
+        return DateRange.Last15Days;
+      case duration.months === 1 && duration.days === 0:
+        return DateRange.LastMonth;
+      case duration.months === 3 && duration.days === 0:
+        return DateRange.Last3Months;
+      case duration.months === 6 && duration.days === 0:
+        return DateRange.Last6Months;
+      case duration.years === 1 && duration.months === 0 && duration.days === 0:
+        return DateRange.LastYear;
+      default:
+        return DateRange.Custom;
+    }
+  }
 
   const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading);
   const [filtersApiStatus, setFiltersApiStatus] = useState(FiltersApiStatus.Loading);
@@ -183,57 +381,17 @@ const Filters: React.FC<FiltersProps> = ({
   const [selectedFormattedEndDate, setSelectedFormattedEndDate] = useState(formatDateToHumanReadableDateTime(selectedEndDate));
 
   useEffect(() => {
-    setSelectedFormattedStartDate(formatDateToHumanReadableDateTime(selectedStartDate));
-    setSelectedFormattedEndDate(formatDateToHumanReadableDateTime(selectedEndDate));
-  }, [selectedStartDate, selectedEndDate]);
+    setSelectedFormattedStartDate(formatDateToHumanReadableDateTime(selectedStartDate))
+    setSelectedFormattedEndDate(formatDateToHumanReadableDateTime(selectedEndDate))
+  }, [selectedStartDate, selectedEndDate])
 
   useEffect(() => {
-    let today = DateTime.now()
-    let newDate
-
-    switch (selectedDateRange) {
-      case DateRange.Last15Mins:
-        newDate = today.minus({ minutes: 15 })
-        break
-      case DateRange.Last30Mins:
-        newDate = today.minus({ minutes: 30 })
-        break
-      case DateRange.LastHour:
-        newDate = today.minus({ hours: 1 })
-        break
-      case DateRange.Last3Hours:
-        newDate = today.minus({ hours: 3 })
-        break
-      case DateRange.Last6Hours:
-        newDate = today.minus({ hours: 6 })
-        break
-      case DateRange.Last12Hours:
-        newDate = today.minus({ hours: 12 })
-        break
-      case DateRange.Last24Hours:
-        newDate = today.minus({ hours: 24 })
-        break
-      case DateRange.LastWeek:
-        newDate = today.minus({ days: 7 })
-        break
-      case DateRange.Last15Days:
-        newDate = today.minus({ days: 15 })
-        break
-      case DateRange.LastMonth:
-        newDate = today.minus({ months: 1 })
-        break
-      case DateRange.Last3Months:
-        newDate = today.minus({ months: 3 })
-        break
-      case DateRange.Last6Months:
-        newDate = today.minus({ months: 6 })
-        break
-      case DateRange.LastYear:
-        newDate = today.minus({ years: 1 })
-        break
-      case DateRange.Custom:
-        return
+    if (selectedDateRange === DateRange.Custom) {
+      return
     }
+
+    let today = DateTime.now()
+    let newDate = mapDateRangeToDate(selectedDateRange)
 
     setSelectedStartDate(newDate!.toISO())
     setSelectedEndDate(today.toISO())
@@ -255,18 +413,24 @@ const Filters: React.FC<FiltersProps> = ({
       case AppsApiStatus.Success:
         setAppsApiStatus(AppsApiStatus.Success)
         setApps(result.data)
-        // If appId is provided, set selected app to given appId. If no app Id is provided but we have a saved appId from
-        // saved filters and we can find the corresponding app in the results, set selected app to the one from saved filters.
-        // If not, set to the first app id.
+        // Prefer provided appId if present, then appId from url if present,
+        // then appId from persisted filters if present. If all else fails,
+        // set app to first one
+        let appIdFromUrl = getFiltersFromUrl().appId
+
         if (appId !== undefined) {
-          setSelectedApp(result.data.find((e: typeof emptyApp) => e.id === appId))
-        } else if (persistedFilters !== null) {
-          const appMatchingPersisted = result.data.find((e: typeof emptyApp) => e.id === persistedFilters.appId)
-          if (appMatchingPersisted !== undefined) {
-            setSelectedApp(appMatchingPersisted)
+          let appFromGivenId = result.data.find((e: typeof emptyApp) => e.id === appId)
+          if (appFromGivenId === undefined) {
+            throw Error("Invalid app Id: " + appId + " provided to filters component")
           } else {
-            setSelectedApp(result.data[0])
+            setSelectedApp(appFromGivenId)
           }
+        } else if (appIdFromUrl !== null) {
+          let appFromUrl = result.data.find((e: typeof emptyApp) => e.id === appIdFromUrl)
+          setSelectedApp(appFromUrl !== undefined ? appFromUrl : result.data[0])
+        } else if (persistedFilters !== null) {
+          let appFromPersistedFilters = result.data.find((e: typeof emptyApp) => e.id === persistedFilters.appId)
+          setSelectedApp(appFromPersistedFilters !== undefined ? appFromPersistedFilters : result.data[0])
         } else {
           setSelectedApp(result.data[0])
         }
@@ -278,6 +442,20 @@ const Filters: React.FC<FiltersProps> = ({
     getApps()
   }, []);
 
+  const clearFiltersOnFilterApiFail = () => {
+    setSelectedVersions(defaultFilters.versions)
+    setSelectedSessionType(defaultFilters.sessionType)
+    setSelectedOsVersions(defaultFilters.osVersions)
+    setSelectedCountries(defaultFilters.countries)
+    setSelectedNetworkProviders(defaultFilters.networkProviders)
+    setSelectedNetworkTypes(defaultFilters.networkTypes)
+    setSelectedNetworkGenerations(defaultFilters.networkGenerations)
+    setSelectedLocales(defaultFilters.locales)
+    setSelectedDeviceManufacturers(defaultFilters.deviceManufacturers)
+    setSelectedDeviceNames(defaultFilters.deviceNames)
+    setSelectedFreeText(defaultFilters.freeText)
+  }
+
   const getFilters = async () => {
     setFiltersApiStatus(FiltersApiStatus.Loading)
 
@@ -286,64 +464,188 @@ const Filters: React.FC<FiltersProps> = ({
     switch (result.status) {
       case FiltersApiStatus.NotOnboarded:
         setFiltersApiStatus(FiltersApiStatus.NotOnboarded)
+        clearFiltersOnFilterApiFail()
         break
       case FiltersApiStatus.NoData:
         setFiltersApiStatus(FiltersApiStatus.NoData)
+        clearFiltersOnFilterApiFail()
         break
       case FiltersApiStatus.Error:
         setFiltersApiStatus(FiltersApiStatus.Error)
+        clearFiltersOnFilterApiFail()
         break
       case FiltersApiStatus.Success:
         setFiltersApiStatus(FiltersApiStatus.Success)
 
-        let versions = result.data.versions.map((v: { name: string; code: string; }) => new AppVersion(v.name, v.code))
-        setVersions(versions)
+        let urlFilters = getFiltersFromUrl()
 
-        if (appVersionsInitialSelectionType === AppVersionsInitialSelectionType.All) {
-          setSelectedVersions(versions)
-        } else {
-          setSelectedVersions(versions.slice(0, 1))
+        if (showDates) {
+          if (urlFilters.startDate
+            && urlFilters.endDate
+            && DateTime.fromISO(urlFilters.startDate).isValid
+            && DateTime.fromISO(urlFilters.endDate).isValid
+            && DateTime.fromISO(urlFilters.startDate) < DateTime.fromISO(urlFilters.endDate)) {
+            setSelectedStartDate(urlFilters.startDate)
+            setSelectedEndDate(urlFilters.endDate)
+            setSelectedDateRange(mapDatesToDateRange(urlFilters.startDate, urlFilters.endDate))
+          } else if (urlFilters.startDate
+            && DateTime.fromISO(urlFilters.startDate).isValid
+            && DateTime.fromISO(urlFilters.startDate) < DateTime.fromISO(selectedEndDate)) {
+            setSelectedStartDate(urlFilters.startDate)
+            setSelectedDateRange(mapDatesToDateRange(urlFilters.startDate, selectedEndDate))
+          } else if (urlFilters.endDate
+            && DateTime.fromISO(urlFilters.endDate).isValid
+            && DateTime.fromISO(urlFilters.endDate) > DateTime.fromISO(selectedStartDate)) {
+            setSelectedEndDate(urlFilters.endDate)
+            setSelectedDateRange(mapDatesToDateRange(selectedStartDate, urlFilters.endDate))
+          }
         }
 
-        if (result.data.os_versions !== null) {
+        if (result.data.versions !== null && showAppVersions) {
+          let versions = result.data.versions.map((v: { name: string; code: string; }) => new AppVersion(v.name, v.code))
+          setVersions(versions)
+
+          if (urlFilters.versions.length > 0) {
+            const versionsFromUrl = versions.filter((v: AppVersion) => urlFilters.versions.includes(v.displayName))
+            if (versionsFromUrl.length > 0) {
+              setSelectedVersions(versionsFromUrl)
+            } else if (appVersionsInitialSelectionType === AppVersionsInitialSelectionType.All) {
+              setSelectedVersions(versions)
+            } else {
+              setSelectedVersions(versions.slice(0, 1))
+            }
+          }
+          else if (appVersionsInitialSelectionType === AppVersionsInitialSelectionType.All) {
+            setSelectedVersions(versions)
+          } else {
+            setSelectedVersions(versions.slice(0, 1))
+          }
+        }
+
+        if (showSessionType) {
+          if (urlFilters.sessionType) {
+            setSelectedSessionType(urlFilters.sessionType)
+          }
+        }
+
+        if (result.data.os_versions !== null && showOsVersions) {
           let osVersions = result.data.os_versions.map((v: { name: string; version: string; }) => new OsVersion(v.name, v.version))
           setOsVersions(osVersions)
-          setSelectedOsVersions(osVersions)
+
+          if (urlFilters.osVersions.length > 0) {
+            const osVersionsFromUrl = osVersions.filter((o: OsVersion) => urlFilters.osVersions.includes(o.displayName))
+            if (osVersionsFromUrl.length > 0) {
+              setSelectedOsVersions(osVersionsFromUrl)
+            } else {
+              setSelectedOsVersions(osVersions)
+            }
+          } else {
+            setSelectedOsVersions(osVersions)
+          }
         }
 
-        if (result.data.countries !== null) {
+        if (result.data.countries !== null && showCountries) {
           setCountries(result.data.countries)
-          setSelectedCountries(result.data.countries)
+          if (urlFilters.countries) {
+            const countriesFromUrl = result.data.countries.filter((v: string) => urlFilters.countries.includes(v))
+            if (countriesFromUrl.length > 0) {
+              setSelectedCountries(countriesFromUrl)
+            } else {
+              setSelectedCountries(result.data.countries)
+            }
+          } else {
+            setSelectedCountries(result.data.countries)
+          }
         }
 
-        if (result.data.network_providers !== null) {
+        if (result.data.network_providers !== null && showNetworkProviders) {
           setNetworkProviders(result.data.network_providers)
-          setSelectedNetworkProviders(result.data.network_providers)
+          if (urlFilters.networkProviders) {
+            const networkProvidersFromUrl = result.data.network_providers.filter((v: string) => urlFilters.networkProviders.includes(v))
+            if (networkProvidersFromUrl.length > 0) {
+              setSelectedNetworkProviders(networkProvidersFromUrl)
+            } else {
+              setSelectedNetworkProviders(result.data.network_providers)
+            }
+          } else {
+            setSelectedNetworkProviders(result.data.network_providers)
+          }
         }
 
-        if (result.data.network_types !== null) {
+        if (result.data.network_types !== null && showNetworkTypes) {
           setNetworkTypes(result.data.network_types)
-          setSelectedNetworkTypes(result.data.network_types)
+          if (urlFilters.networkTypes) {
+            const networkTypesFromUrl = result.data.network_types.filter((v: string) => urlFilters.networkTypes.includes(v))
+            if (networkTypesFromUrl.length > 0) {
+              setSelectedNetworkTypes(networkTypesFromUrl)
+            } else {
+              setSelectedNetworkTypes(result.data.network_types)
+            }
+          } else {
+            setSelectedNetworkTypes(result.data.network_types)
+          }
         }
 
-        if (result.data.network_generations !== null) {
+        if (result.data.network_generations !== null && showNetworkGenerations) {
           setNetworkGenerations(result.data.network_generations)
-          setSelectedNetworkGenerations(result.data.network_generations)
+          if (urlFilters.networkGenerations) {
+            const networkGenerationsFromUrl = result.data.network_generations.filter((v: string) => urlFilters.networkGenerations.includes(v))
+            if (networkGenerationsFromUrl.length > 0) {
+              setSelectedNetworkGenerations(networkGenerationsFromUrl)
+            } else {
+              setSelectedNetworkGenerations(result.data.network_generations)
+            }
+          } else {
+            setSelectedNetworkGenerations(result.data.network_generations)
+          }
         }
 
-        if (result.data.locales !== null) {
+        if (result.data.locales !== null && showLocales) {
           setLocales(result.data.locales)
-          setSelectedLocales(result.data.locales)
+          if (urlFilters.locales) {
+            const localesFromUrl = result.data.locales.filter((v: string) => urlFilters.locales.includes(v))
+            if (localesFromUrl.length > 0) {
+              setSelectedLocales(localesFromUrl)
+            } else {
+              setSelectedLocales(result.data.locales)
+            }
+          } else {
+            setSelectedLocales(result.data.locales)
+          }
         }
 
-        if (result.data.device_manufacturers !== null) {
+        if (result.data.device_manufacturers !== null && showDeviceManufacturers) {
           setDeviceManufacturers(result.data.device_manufacturers)
-          setSelectedDeviceManufacturers(result.data.device_manufacturers)
+          if (urlFilters.deviceManufacturers) {
+            const deviceManufacturersFromUrl = result.data.device_manufacturers.filter((v: string) => urlFilters.deviceManufacturers.includes(v))
+            if (deviceManufacturersFromUrl.length > 0) {
+              setSelectedDeviceManufacturers(deviceManufacturersFromUrl)
+            } else {
+              setSelectedDeviceManufacturers(result.data.device_manufacturers)
+            }
+          } else {
+            setSelectedDeviceManufacturers(result.data.device_manufacturers)
+          }
         }
 
-        if (result.data.device_names !== null) {
+        if (result.data.device_names !== null && showDeviceNames) {
           setDeviceNames(result.data.device_names)
-          setSelectedDeviceNames(result.data.device_names)
+          if (urlFilters.deviceNames) {
+            const deviceNamesFromUrl = result.data.device_names.filter((v: string) => urlFilters.deviceNames.includes(v))
+            if (deviceNamesFromUrl.length > 0) {
+              setSelectedDeviceNames(deviceNamesFromUrl)
+            } else {
+              setSelectedDeviceNames(result.data.device_names)
+            }
+          } else {
+            setSelectedDeviceNames(result.data.device_names)
+          }
+        }
+
+        if (showFreeText) {
+          if (urlFilters.freeText) {
+            setSelectedFreeText(urlFilters.freeText)
+          }
         }
 
         break
@@ -360,16 +662,9 @@ const Filters: React.FC<FiltersProps> = ({
   }, [selectedApp]);
 
   useEffect(() => {
-    // Don't persist filters or fire change listener if selected app is not yet set
+    // Don't update url filters or fire change listener if selected app is not yet set
     if (selectedApp.id === "") {
       return
-    }
-
-    const updatedPersistedFilters: PersistedFilters = {
-      appId: selectedApp.id,
-      dateRange: selectedDateRange,
-      startDate: selectedStartDate,
-      endDate: selectedEndDate
     }
 
     let ready = false
@@ -381,6 +676,13 @@ const Filters: React.FC<FiltersProps> = ({
       ready = AppsApiStatus.Success && (filtersApiStatus === FiltersApiStatus.Success || filtersApiStatus === FiltersApiStatus.NoData)
     } else {
       ready = AppsApiStatus.Success && (filtersApiStatus === FiltersApiStatus.Success || filtersApiStatus === FiltersApiStatus.NoData || filtersApiStatus === FiltersApiStatus.NotOnboarded)
+    }
+
+    const updatedPersistedFilters: PersistedFilters = {
+      appId: selectedApp.id,
+      dateRange: selectedDateRange,
+      startDate: selectedStartDate,
+      endDate: selectedEndDate
     }
 
     const updatedSelectedFilters: Filters = {
@@ -401,9 +703,10 @@ const Filters: React.FC<FiltersProps> = ({
       freeText: selectedFreeText
     }
 
-    onFiltersChanged(updatedSelectedFilters)
     sessionStorage.setItem(persistedFiltersStorageKey, JSON.stringify(updatedPersistedFilters))
-  }, [appsApiStatus, filtersApiStatus, selectedApp, selectedStartDate, selectedEndDate, selectedVersions, selectedSessionType, selectedOsVersions, selectedCountries, selectedNetworkProviders, selectedNetworkTypes, selectedNetworkGenerations, selectedLocales, selectedDeviceManufacturers, selectedDeviceNames, selectedFreeText]);
+    onFiltersChanged(updatedSelectedFilters)
+    updateUrlWithFilters(updatedSelectedFilters)
+  }, [appsApiStatus, filtersApiStatus, selectedApp, selectedStartDate, selectedEndDate, selectedVersions, selectedSessionType, selectedOsVersions, selectedCountries, selectedNetworkProviders, selectedNetworkTypes, selectedNetworkGenerations, selectedLocales, selectedDeviceManufacturers, selectedDeviceNames, selectedFreeText])
 
   return (
     <div>
@@ -419,12 +722,10 @@ const Filters: React.FC<FiltersProps> = ({
       {/* Error states for app success but filters fetch failure */}
       {appsApiStatus === AppsApiStatus.Success && filtersApiStatus !== FiltersApiStatus.Success &&
         <div className="flex flex-col">
-          {/* only show app selector if appId is not provided */}
-          {appId === undefined ?
+          {showAppSelector &&
             <div className="flex flex-wrap gap-8 items-center">
               <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={apps.map((e) => e.name)} initialSelected={selectedApp.name} onChangeSelected={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} />
-            </div>
-            : null}
+            </div>}
           <div className="py-4" />
           {filtersApiStatus === FiltersApiStatus.Error && <p className="text-lg font-display">Error fetching filters, please refresh page or select a different app to try again</p>}
           {showNoData && filtersApiStatus === FiltersApiStatus.NoData && <p className="text-lg font-display">No {filtersApiType === FiltersApiType.Crash ? 'crashes' : filtersApiType === FiltersApiType.Anr ? 'ANRs' : 'data'} received for this app yet</p>}
@@ -437,7 +738,7 @@ const Filters: React.FC<FiltersProps> = ({
         <div>
           <div className="flex flex-wrap gap-8 items-center">
             {/* only show app selector if appId is not provided */}
-            {appId === undefined ? <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={apps.map((e) => e.name)} initialSelected={selectedApp.name} onChangeSelected={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} /> : null}
+            {showAppSelector && <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={apps.map((e) => e.name)} initialSelected={selectedApp.name} onChangeSelected={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} />}
             <div className="flex flex-row items-center">
               {showDates && <DropdownSelect title="Date Range" type={DropdownSelectType.SingleString} items={Object.values(DateRange)} initialSelected={selectedDateRange} onChangeSelected={(item) => setSelectedDateRange(item as string)} />}
               {showDates && selectedDateRange === DateRange.Custom && <p className="font-display px-2">:</p>}
@@ -461,15 +762,15 @@ const Filters: React.FC<FiltersProps> = ({
             </div>
             {showAppVersions && <DropdownSelect title="App versions" type={DropdownSelectType.MultiAppVersion} items={versions} initialSelected={selectedVersions} onChangeSelected={(items) => setSelectedVersions(items as AppVersion[])} />}
             {showSessionType && <DropdownSelect title="Session Types" type={DropdownSelectType.SingleString} items={Object.values(SessionType)} initialSelected={selectedSessionType} onChangeSelected={(item) => setSelectedSessionType(getSessionTypeFromString(item as string))} />}
-            {showOsVersions && osVersions.length > 0 && <DropdownSelect type={DropdownSelectType.MultiOsVersion} title="OS Versions" items={osVersions} initialSelected={osVersions} onChangeSelected={(items) => setSelectedOsVersions(items as OsVersion[])} />}
-            {showCountries && countries.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Country" items={countries} initialSelected={countries} onChangeSelected={(items) => setSelectedCountries(items as string[])} />}
-            {showNetworkProviders && networkProviders.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Network Provider" items={networkProviders} initialSelected={networkProviders} onChangeSelected={(items) => setSelectedNetworkProviders(items as string[])} />}
-            {showNetworkTypes && networkTypes.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Network type" items={networkTypes} initialSelected={networkTypes} onChangeSelected={(items) => setSelectedNetworkTypes(items as string[])} />}
-            {showNetworkGenerations && networkGenerations.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Network generation" items={networkGenerations} initialSelected={networkGenerations} onChangeSelected={(items) => setSelectedNetworkGenerations(items as string[])} />}
-            {showLocales && locales.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Locale" items={locales} initialSelected={locales} onChangeSelected={(items) => setSelectedLocales(items as string[])} />}
-            {showDeviceManufacturers && deviceManufacturers.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Device Manufacturer" items={deviceManufacturers} initialSelected={deviceManufacturers} onChangeSelected={(items) => setSelectedDeviceManufacturers(items as string[])} />}
-            {showDeviceNames && deviceNames.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Device Name" items={deviceNames} initialSelected={deviceNames} onChangeSelected={(items) => setSelectedDeviceNames(items as string[])} />}
-            {showFreeText && <DebounceTextInput id="free-text" placeholder="Search User/Session ID, Logs, Event Type, Target View ID, File/Class name or Exception Traces..." onChange={(input) => setSelectedFreeText(input)} />}
+            {showOsVersions && osVersions.length > 0 && <DropdownSelect type={DropdownSelectType.MultiOsVersion} title="OS Versions" items={osVersions} initialSelected={selectedOsVersions} onChangeSelected={(items) => setSelectedOsVersions(items as OsVersion[])} />}
+            {showCountries && countries.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Country" items={countries} initialSelected={selectedCountries} onChangeSelected={(items) => setSelectedCountries(items as string[])} />}
+            {showNetworkProviders && networkProviders.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Network Provider" items={networkProviders} initialSelected={selectedNetworkProviders} onChangeSelected={(items) => setSelectedNetworkProviders(items as string[])} />}
+            {showNetworkTypes && networkTypes.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Network type" items={networkTypes} initialSelected={selectedNetworkTypes} onChangeSelected={(items) => setSelectedNetworkTypes(items as string[])} />}
+            {showNetworkGenerations && networkGenerations.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Network generation" items={networkGenerations} initialSelected={selectedNetworkGenerations} onChangeSelected={(items) => setSelectedNetworkGenerations(items as string[])} />}
+            {showLocales && locales.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Locale" items={locales} initialSelected={selectedLocales} onChangeSelected={(items) => setSelectedLocales(items as string[])} />}
+            {showDeviceManufacturers && deviceManufacturers.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Device Manufacturer" items={deviceManufacturers} initialSelected={selectedDeviceManufacturers} onChangeSelected={(items) => setSelectedDeviceManufacturers(items as string[])} />}
+            {showDeviceNames && deviceNames.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Device Name" items={deviceNames} initialSelected={selectedDeviceNames} onChangeSelected={(items) => setSelectedDeviceNames(items as string[])} />}
+            {showFreeText && <DebounceTextInput id="free-text" placeholder="Search User/Session ID, Logs, Event Type, Target View ID, File/Class name or Exception Traces..." initialValue={selectedFreeText} onChange={(input) => setSelectedFreeText(input)} />}
           </div>
           <div className="py-4" />
           <div className="flex flex-wrap gap-2 items-center">

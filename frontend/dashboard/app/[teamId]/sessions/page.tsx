@@ -86,6 +86,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                 showCreateApp={true}
                 showNoData={true}
                 showNotOnboarded={true}
+                showAppSelector={true}
                 showAppVersions={true}
                 showDates={true}
                 showSessionType={true}

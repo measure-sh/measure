@@ -5,15 +5,23 @@ import React, { useState, useEffect, useCallback } from 'react';
 interface DebounceTextInputProps {
   id: string;
   placeholder: string;
+  initialValue: string;
   onChange: (input: string) => void;
 }
 
 const DebounceTextInput: React.FC<DebounceTextInputProps> = ({
   id,
   placeholder,
+  initialValue,
   onChange
 }) => {
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState(initialValue);
+
+  useEffect(() => {
+    if (inputValue !== initialValue) {
+      setInputValue(initialValue)
+    }
+  }, [initialValue]);
 
   const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(event.target.value);

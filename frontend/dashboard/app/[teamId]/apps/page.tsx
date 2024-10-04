@@ -147,6 +147,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
         showCreateApp={false}
         showNoData={false}
         showNotOnboarded={false}
+        showAppSelector={true}
         showAppVersions={false}
         showDates={false}
         showSessionType={false}

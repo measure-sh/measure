@@ -25,6 +25,11 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
   const [selected, setSelected] = useState(initialSelected);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
+  useEffect(() => {
+    if (selected !== initialSelected) {
+      setSelected(initialSelected)
+    }
+  }, [initialSelected]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
