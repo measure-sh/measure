@@ -79,8 +79,6 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
     }
   ] : null
 
-  const { events, threads, eventTypes } = parseEventsThreadsAndEventTypesFromSessionReplay()
-
   function parseEventsThreadsAndEventTypesFromSessionReplay() {
     let events: { eventType: string; timestamp: string; thread: string; details: any; }[] = []
     let threads = new Set<string>()
@@ -112,6 +110,8 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
 
     return { events, threads: threadsArray, eventTypes: eventsTypesArray }
   }
+
+  const { events, threads, eventTypes } = parseEventsThreadsAndEventTypesFromSessionReplay()
 
   const [selectedThreads, setSelectedThreads] = useState(threads)
   const [selectedEventTypes, setSelectedEventTypes] = useState(eventTypes)
@@ -293,8 +293,8 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
         <p className="font-sans text-3xl"> Events</p>
         <div className="py-4" />
         <div className="flex flex-wrap gap-8 items-center w-5/6">
-          <DropdownSelect type={DropdownSelectType.MultiString} title="Threads" items={threads} initialSelected={threads} onChangeSelected={(items) => setSelectedThreads(items as string[])} />
-          <DropdownSelect type={DropdownSelectType.MultiString} title="Event types" items={eventTypes} initialSelected={eventTypes} onChangeSelected={(items) => setSelectedEventTypes(items as string[])} />
+          <DropdownSelect type={DropdownSelectType.MultiString} title="Threads" items={threads} initialSelected={selectedThreads} onChangeSelected={(items) => setSelectedThreads(items as string[])} />
+          <DropdownSelect type={DropdownSelectType.MultiString} title="Event types" items={eventTypes} initialSelected={selectedEventTypes} onChangeSelected={(items) => setSelectedEventTypes(items as string[])} />
         </div>
         <div className="py-8" />
         {events.filter((e) => selectedThreads.includes(e.thread) && selectedEventTypes.includes(e.eventType)).map((e, index) => (

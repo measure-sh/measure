@@ -88,6 +88,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
         showCreateApp={true}
         showNoData={true}
         showNotOnboarded={true}
+        showAppSelector={false}
         showAppVersions={true}
         showDates={true}
         showSessionType={false}

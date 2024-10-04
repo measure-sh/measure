@@ -22,6 +22,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         showCreateApp={true}
         showNoData={true}
         showNotOnboarded={true}
+        showAppSelector={true}
         showAppVersions={true}
         showDates={true}
         showSessionType={false}
