@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :sparkles: New features
+
+- (**frontend**): Add filters to urls by @anupcowkur in #1322
+
+
 ### :bug: Bug fixes
 
 - (**frontend**): Improve security posture (#1305) by @detj in #1305
