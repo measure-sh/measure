@@ -261,6 +261,8 @@ func GetExceptionGroupsFromExceptionIds(ctx context.Context, eventIds []uuid.UUI
 		Select(`id, exception.fingerprint`).
 		Where(`id in (?)`, eventIds)
 
+	defer eventDataStmt.Close()
+
 	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
 	if err != nil {
 		return nil, err
