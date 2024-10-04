@@ -126,6 +126,8 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGrou
 		Select(`id`).
 		Where(`exception.fingerprint = (?)`, exceptionGroup.Fingerprint)
 
+	defer eventDataStmt.Close()
+
 	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
 	if err != nil {
 		return nil, err
@@ -143,13 +145,13 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGrou
 	}
 
 	if eventDataRows.Err() != nil {
-		return nil, eventDataRows.Err()
+		return
 	}
 
 	exceptionGroup.EventIDs = eventIds
 	exceptionGroup.Count = len(eventIds)
 
-	return exceptionGroup, nil
+	return
 }
 
 // GetExceptionGroupByFingerprint queries a single exception group by its fingerprint.
