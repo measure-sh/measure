@@ -64,3 +64,49 @@ public final class sh/measure/android/okhttp/MeasureOkHttpApplicationInterceptor
 	public fun intercept (Lokhttp3/Interceptor$Chain;)Lokhttp3/Response;
 }
 
+public abstract interface class sh/measure/android/tracing/Span {
+	public abstract fun end ()Lsh/measure/android/tracing/Span;
+	public abstract fun end (J)Lsh/measure/android/tracing/Span;
+	public abstract fun getName ()Ljava/lang/String;
+	public abstract fun getSpanId ()Ljava/lang/String;
+	public abstract fun hasEnded ()Z
+	public abstract fun setStatus (Lsh/measure/android/tracing/SpanStatus;)Lsh/measure/android/tracing/Span;
+	public abstract fun toSpanData ()Lsh/measure/android/tracing/SpanData;
+}
+
+public abstract interface class sh/measure/android/tracing/SpanBuilder {
+	public abstract fun startSpan ()Lsh/measure/android/tracing/Span;
+	public abstract fun startSpan (J)Lsh/measure/android/tracing/Span;
+}
+
+public final class sh/measure/android/tracing/SpanData {
+	public static final field $stable I
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;JJLsh/measure/android/tracing/SpanStatus;Z)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()J
+	public final fun component4 ()J
+	public final fun component5 ()Lsh/measure/android/tracing/SpanStatus;
+	public final fun component6 ()Z
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;JJLsh/measure/android/tracing/SpanStatus;Z)Lsh/measure/android/tracing/SpanData;
+	public static synthetic fun copy$default (Lsh/measure/android/tracing/SpanData;Ljava/lang/String;Ljava/lang/String;JJLsh/measure/android/tracing/SpanStatus;ZILjava/lang/Object;)Lsh/measure/android/tracing/SpanData;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEndTime ()J
+	public final fun getHasEnded ()Z
+	public final fun getName ()Ljava/lang/String;
+	public final fun getSpanId ()Ljava/lang/String;
+	public final fun getStartTime ()J
+	public final fun getStatus ()Lsh/measure/android/tracing/SpanStatus;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class sh/measure/android/tracing/SpanStatus : java/lang/Enum {
+	public static final field Error Lsh/measure/android/tracing/SpanStatus;
+	public static final field Ok Lsh/measure/android/tracing/SpanStatus;
+	public static final field Unset Lsh/measure/android/tracing/SpanStatus;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lsh/measure/android/tracing/SpanStatus;
+	public static fun values ()[Lsh/measure/android/tracing/SpanStatus;
+}
+

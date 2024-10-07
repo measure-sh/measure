@@ -68,6 +68,8 @@ import sh.measure.android.storage.FileStorage
 import sh.measure.android.storage.FileStorageImpl
 import sh.measure.android.storage.PrefsStorage
 import sh.measure.android.storage.PrefsStorageImpl
+import sh.measure.android.tracing.MsrTracer
+import sh.measure.android.tracing.Tracer
 import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.DebugProvider
 import sh.measure.android.utils.DefaultDebugProvider
@@ -112,6 +114,12 @@ internal class MeasureInitializerImpl(
     ),
     override val logger: Logger = AndroidLogger(configProvider.enableLogging),
     override val timeProvider: TimeProvider = AndroidTimeProvider(),
+    private val idProvider: IdProvider = UUIDProvider(),
+    override val tracer: Tracer = MsrTracer(
+        logger = logger,
+        idProvider = idProvider,
+        timeProvider = timeProvider,
+    ),
     private val executorServiceRegistry: ExecutorServiceRegistry = ExecutorServiceRegistryImpl(),
     private val fileStorage: FileStorage = FileStorageImpl(
         rootDir = application.filesDir.path,
@@ -123,7 +131,6 @@ internal class MeasureInitializerImpl(
         logger = logger,
         fileStorage = fileStorage,
     ),
-    private val idProvider: IdProvider = UUIDProvider(),
     override val processInfoProvider: ProcessInfoProvider = ProcessInfoProviderImpl(),
     override val sessionManager: SessionManager = SessionManagerImpl(
         logger = logger,
@@ -375,4 +382,5 @@ internal interface MeasureInitializer {
     val screenshotCollector: ScreenshotCollector
     val dataCleanupService: DataCleanupService
     val processInfoProvider: ProcessInfoProvider
+    val tracer: Tracer
 }
