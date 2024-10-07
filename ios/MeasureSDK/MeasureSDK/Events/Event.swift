@@ -25,7 +25,7 @@ final class Event<T: Codable>: Codable {
     let data: T?
 
     /// Attachments that can be added to the event.
-    var attachments: [Attachment]
+    var attachments: [Attachment]?
 
     /// Additional key-value pairs that can be added to the event.
     var attributes: Attributes?
@@ -33,7 +33,7 @@ final class Event<T: Codable>: Codable {
     /// A flag to indicate if the event is triggered by the user or the SDK.
     let userTriggered: Bool
 
-    init(id: String, sessionId: String, timestamp: String, type: EventType, data: T?, attachments: [Attachment], attributes: Attributes?, userTriggered: Bool) {
+    init(id: String, sessionId: String, timestamp: String, type: EventType, data: T?, attachments: [Attachment]?, attributes: Attributes?, userTriggered: Bool) {
         self.id = id
         self.sessionId = sessionId
         self.timestamp = timestamp

@@ -12,7 +12,6 @@ import CrashReporter
 final class CrashReportingManagerTests: XCTestCase {
     var crashReportingManager: CrashReportingManager!
     var eventProcessor: MockEventProcessor!
-    var coreDataManager: MockCoreDataManager!
     var crashDataPersistence: MockCrashDataPersistence!
     var systemCrashReporter: MockSystemCrashReporter!
 
@@ -48,7 +47,6 @@ final class CrashReportingManagerTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        coreDataManager = MockCoreDataManager()
         crashDataPersistence = MockCrashDataPersistence(attribute: attributes,
                                                         sessionId: "session-id",
                                                         isForeground: true)
@@ -68,7 +66,6 @@ final class CrashReportingManagerTests: XCTestCase {
         super.tearDown()
         crashReportingManager = nil
         eventProcessor = nil
-        coreDataManager = nil
         crashDataPersistence = nil
         systemCrashReporter = nil
     }
