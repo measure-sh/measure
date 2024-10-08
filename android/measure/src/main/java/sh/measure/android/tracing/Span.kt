@@ -8,7 +8,6 @@ interface Span {
     fun end(): Span
     fun end(timeMs: Long): Span
     fun hasEnded(): Boolean
-    fun toSpanData(): SpanData
     fun makeCurrent(): Scope
 
     companion object {

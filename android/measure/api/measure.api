@@ -79,7 +79,6 @@ public abstract interface class sh/measure/android/tracing/Span {
 	public abstract fun hasEnded ()Z
 	public abstract fun makeCurrent ()Lsh/measure/android/tracing/Scope;
 	public abstract fun setStatus (Lsh/measure/android/tracing/SpanStatus;)Lsh/measure/android/tracing/Span;
-	public abstract fun toSpanData ()Lsh/measure/android/tracing/SpanData;
 }
 
 public final class sh/measure/android/tracing/Span$Companion {

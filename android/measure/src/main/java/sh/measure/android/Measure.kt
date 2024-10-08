@@ -167,17 +167,19 @@ object Measure {
      */
     @JvmStatic
     fun trackHandledException(throwable: Throwable) {
-        if (isInitialized.get()) {
+        if (!isInitialized.get()) {
             measure.trackHandledException(throwable)
         }
     }
 
     @JvmStatic
-    fun createSpan(name: String): SpanBuilder? {
+    fun createSpan(name: String): SpanBuilder {
         if (isInitialized.get()) {
-            measure.spanBuilder(name)
+            return measure.spanBuilder(name)
         }
-        return null
+
+        // TODO: wtf to do here?
+        throw IllegalStateException("Measure SDK is not initialized.")
     }
 
     @JvmStatic
