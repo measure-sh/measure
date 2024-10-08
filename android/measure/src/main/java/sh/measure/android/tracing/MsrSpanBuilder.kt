@@ -10,11 +10,49 @@ internal class MsrSpanBuilder(
     private val timeProvider: TimeProvider,
     private val logger: Logger,
 ) : SpanBuilder {
+    private var parentSpan: Span? = null
+    private var addParent: Boolean = false
+
+    override fun setParent(span: Span): SpanBuilder {
+        this.parentSpan = span
+        return this
+    }
+
+    override fun setNoParent(): SpanBuilder {
+        addParent = true
+        return this
+    }
+
     override fun startSpan(): Span {
-        return MsrSpan.startSpan(name, logger, timeProvider, idProvider, null)
+        val parent = findSpanParent()
+        return MsrSpan.startSpan(
+            name,
+            logger,
+            timeProvider,
+            idProvider,
+            parentSpan = parent,
+        )
     }
 
     override fun startSpan(timeMs: Long): Span {
-        return MsrSpan.startSpan(name, logger, timeProvider, idProvider, timeMs)
+        val parent = findSpanParent()
+        return MsrSpan.startSpan(
+            name = name,
+            logger = logger,
+            timeProvider = timeProvider,
+            idProvider = idProvider,
+            parentSpan = parent,
+            timeMs = timeMs,
+        )
+    }
+
+    private fun findSpanParent(): Span? {
+        if (addParent) {
+            return null
+        }
+        if (parentSpan != null) {
+            return parentSpan
+        }
+        return SpanStorage.instance.current()
     }
 }

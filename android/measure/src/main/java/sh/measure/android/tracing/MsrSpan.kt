@@ -10,6 +10,8 @@ internal class MsrSpan(
     private val timeProvider: TimeProvider,
     override val name: String,
     override val spanId: String,
+    override val traceId: String,
+    private val parentId: String?,
     private val startTime: Long,
     private val startElapsedRealtime: Long,
 ) : Span {
@@ -24,18 +26,22 @@ internal class MsrSpan(
             logger: Logger,
             timeProvider: TimeProvider,
             idProvider: IdProvider,
+            parentSpan: Span?,
             timeMs: Long? = null,
         ): Span {
             val startTime = timeMs ?: timeProvider.currentTimeSinceEpochInMillis
             val startElapsedRealtime = timeProvider.elapsedRealtime
             val spanId: String = idProvider.createId()
+            val traceId = parentSpan?.traceId ?: idProvider.createId()
             return MsrSpan(
-                logger,
-                timeProvider,
-                name,
-                spanId,
-                startTime,
-                startElapsedRealtime,
+                logger = logger,
+                timeProvider = timeProvider,
+                name = name,
+                spanId = spanId,
+                traceId = traceId,
+                parentId = parentSpan?.spanId,
+                startTime = startTime,
+                startElapsedRealtime = startElapsedRealtime,
             )
         }
     }
@@ -97,8 +103,13 @@ internal class MsrSpan(
                 endTime = endTime,
                 status = status,
                 hasEnded = hasEnded == EndState.Ended,
+                parentId = parentId,
             )
         }
+    }
+
+    override fun makeCurrent(): Scope {
+        return SpanStorage.instance.makeCurrent(this)
     }
 
     private enum class EndState {

@@ -64,41 +64,65 @@ public final class sh/measure/android/okhttp/MeasureOkHttpApplicationInterceptor
 	public fun intercept (Lokhttp3/Interceptor$Chain;)Lokhttp3/Response;
 }
 
+public final class sh/measure/android/tracing/Measure {
+	public static final field $stable I
+	public static final field INSTANCE Lsh/measure/android/tracing/Measure;
+	public final fun createSpan (Ljava/lang/String;)Lsh/measure/android/tracing/SpanBuilder;
+	public final fun getSpan ()Lsh/measure/android/tracing/Span;
+}
+
+public abstract interface class sh/measure/android/tracing/Scope : java/lang/AutoCloseable {
+}
+
 public abstract interface class sh/measure/android/tracing/Span {
+	public static final field Companion Lsh/measure/android/tracing/Span$Companion;
 	public abstract fun end ()Lsh/measure/android/tracing/Span;
 	public abstract fun end (J)Lsh/measure/android/tracing/Span;
 	public abstract fun getName ()Ljava/lang/String;
 	public abstract fun getSpanId ()Ljava/lang/String;
+	public abstract fun getTraceId ()Ljava/lang/String;
 	public abstract fun hasEnded ()Z
+	public abstract fun makeCurrent ()Lsh/measure/android/tracing/Scope;
 	public abstract fun setStatus (Lsh/measure/android/tracing/SpanStatus;)Lsh/measure/android/tracing/Span;
 	public abstract fun toSpanData ()Lsh/measure/android/tracing/SpanData;
 }
 
+public final class sh/measure/android/tracing/Span$Companion {
+}
+
 public abstract interface class sh/measure/android/tracing/SpanBuilder {
+	public abstract fun setNoParent ()Lsh/measure/android/tracing/SpanBuilder;
+	public abstract fun setParent (Lsh/measure/android/tracing/Span;)Lsh/measure/android/tracing/SpanBuilder;
 	public abstract fun startSpan ()Lsh/measure/android/tracing/Span;
 	public abstract fun startSpan (J)Lsh/measure/android/tracing/Span;
 }
 
 public final class sh/measure/android/tracing/SpanData {
 	public static final field $stable I
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;JJLsh/measure/android/tracing/SpanStatus;Z)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;JJLsh/measure/android/tracing/SpanStatus;Z)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ljava/lang/String;
-	public final fun component3 ()J
+	public final fun component3 ()Ljava/lang/String;
 	public final fun component4 ()J
-	public final fun component5 ()Lsh/measure/android/tracing/SpanStatus;
-	public final fun component6 ()Z
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;JJLsh/measure/android/tracing/SpanStatus;Z)Lsh/measure/android/tracing/SpanData;
-	public static synthetic fun copy$default (Lsh/measure/android/tracing/SpanData;Ljava/lang/String;Ljava/lang/String;JJLsh/measure/android/tracing/SpanStatus;ZILjava/lang/Object;)Lsh/measure/android/tracing/SpanData;
+	public final fun component5 ()J
+	public final fun component6 ()Lsh/measure/android/tracing/SpanStatus;
+	public final fun component7 ()Z
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;JJLsh/measure/android/tracing/SpanStatus;Z)Lsh/measure/android/tracing/SpanData;
+	public static synthetic fun copy$default (Lsh/measure/android/tracing/SpanData;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;JJLsh/measure/android/tracing/SpanStatus;ZILjava/lang/Object;)Lsh/measure/android/tracing/SpanData;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getEndTime ()J
 	public final fun getHasEnded ()Z
 	public final fun getName ()Ljava/lang/String;
+	public final fun getParentId ()Ljava/lang/String;
 	public final fun getSpanId ()Ljava/lang/String;
 	public final fun getStartTime ()J
 	public final fun getStatus ()Lsh/measure/android/tracing/SpanStatus;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class sh/measure/android/tracing/SpanExtensionsKt {
+	public static final fun with (Lsh/measure/android/tracing/Span;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 }
 
 public final class sh/measure/android/tracing/SpanStatus : java/lang/Enum {
@@ -108,5 +132,14 @@ public final class sh/measure/android/tracing/SpanStatus : java/lang/Enum {
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lsh/measure/android/tracing/SpanStatus;
 	public static fun values ()[Lsh/measure/android/tracing/SpanStatus;
+}
+
+public final class sh/measure/android/tracing/TempKt {
+	public static final fun autoCloseScope ()V
+	public static final fun main ()V
+	public static synthetic fun main ([Ljava/lang/String;)V
+	public static final fun manual ()V
+	public static final fun manualScope ()V
+	public static final fun runInBackground ()V
 }
 
