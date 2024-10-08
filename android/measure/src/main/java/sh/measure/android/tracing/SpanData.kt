@@ -6,6 +6,7 @@ data class SpanData(
     val parentId: String?,
     val startTime: Long,
     val endTime: Long,
+    val duration: Long,
     val status: SpanStatus,
     val hasEnded: Boolean,
 )

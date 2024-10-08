@@ -1,6 +1,5 @@
 package sh.measure.android.tracing
 
-import android.util.Log
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.IdProvider
@@ -92,7 +91,7 @@ internal class MsrSpan(
         synchronized(lock) {
             hasEnded = EndState.Ended
         }
-        Log.i("MsrSpan", "${this.toSpanData()}")
+        // Log.i("MsrSpan", "${this.toSpanData()}")
         // TODO: span processor onEnd
     }
 
@@ -106,6 +105,7 @@ internal class MsrSpan(
                 status = status,
                 hasEnded = hasEnded == EndState.Ended,
                 parentId = parentId,
+                duration = (endTime - startTime).coerceAtLeast(0),
             )
         }
     }
