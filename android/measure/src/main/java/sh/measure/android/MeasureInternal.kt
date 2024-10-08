@@ -3,6 +3,8 @@ package sh.measure.android
 import sh.measure.android.applaunch.ColdLaunchListener
 import sh.measure.android.lifecycle.ApplicationLifecycleStateListener
 import sh.measure.android.logger.LogLevel
+import sh.measure.android.tracing.Span
+import sh.measure.android.tracing.SpanBuilder
 
 /**
  * Initializes the Measure SDK and hides the internal dependencies from public API.
@@ -16,6 +18,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     val logger by lazy { measureInitializer.logger }
     val eventProcessor by lazy { measureInitializer.eventProcessor }
     val timeProvider by lazy { measureInitializer.timeProvider }
+    private val tracer by lazy { measureInitializer.tracer }
     val httpEventCollector by lazy { measureInitializer.httpEventCollector }
     val processInfoProvider by lazy { measureInitializer.processInfoProvider }
     private val userTriggeredEventCollector by lazy { measureInitializer.userTriggeredEventCollector }
@@ -152,5 +155,13 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     fun clear() {
         userAttributeProcessor.clearUserId()
         userDefinedAttribute.clear()
+    }
+
+    fun spanBuilder(name: String): SpanBuilder {
+        return tracer.spanBuilder(name)
+    }
+
+    fun getSpan(): Span? {
+        return Span.current()
     }
 }

@@ -13,6 +13,8 @@ import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.okhttp.OkHttpEventCollector
 import sh.measure.android.tracing.InternalTrace
+import sh.measure.android.tracing.Span
+import sh.measure.android.tracing.SpanBuilder
 import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -168,6 +170,22 @@ object Measure {
         if (isInitialized.get()) {
             measure.trackHandledException(throwable)
         }
+    }
+
+    @JvmStatic
+    fun createSpan(name: String): SpanBuilder? {
+        if (isInitialized.get()) {
+            measure.spanBuilder(name)
+        }
+        return null
+    }
+
+    @JvmStatic
+    fun getSpan(): Span? {
+        if (isInitialized.get()) {
+            return measure.getSpan()
+        }
+        return null
     }
 
     /**

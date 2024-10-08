@@ -10,6 +10,8 @@ public final class sh/measure/android/Measure {
 	public static final field $stable I
 	public static final field INSTANCE Lsh/measure/android/Measure;
 	public static final fun clearUserId ()V
+	public static final fun createSpan (Ljava/lang/String;)Lsh/measure/android/tracing/SpanBuilder;
+	public static final fun getSpan ()Lsh/measure/android/tracing/Span;
 	public static final fun init (Landroid/content/Context;)V
 	public static final fun init (Landroid/content/Context;Lsh/measure/android/config/MeasureConfig;)V
 	public static synthetic fun init$default (Landroid/content/Context;Lsh/measure/android/config/MeasureConfig;ILjava/lang/Object;)V
@@ -62,13 +64,6 @@ public final class sh/measure/android/okhttp/MeasureOkHttpApplicationInterceptor
 	public static final field $stable I
 	public fun <init> ()V
 	public fun intercept (Lokhttp3/Interceptor$Chain;)Lokhttp3/Response;
-}
-
-public final class sh/measure/android/tracing/Measure {
-	public static final field $stable I
-	public static final field INSTANCE Lsh/measure/android/tracing/Measure;
-	public final fun createSpan (Ljava/lang/String;)Lsh/measure/android/tracing/SpanBuilder;
-	public final fun getSpan ()Lsh/measure/android/tracing/Span;
 }
 
 public abstract interface class sh/measure/android/tracing/Scope : java/lang/AutoCloseable {
@@ -132,14 +127,5 @@ public final class sh/measure/android/tracing/SpanStatus : java/lang/Enum {
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lsh/measure/android/tracing/SpanStatus;
 	public static fun values ()[Lsh/measure/android/tracing/SpanStatus;
-}
-
-public final class sh/measure/android/tracing/TempKt {
-	public static final fun autoCloseScope ()V
-	public static final fun main ()V
-	public static synthetic fun main ([Ljava/lang/String;)V
-	public static final fun manual ()V
-	public static final fun manualScope ()V
-	public static final fun runInBackground ()V
 }
 
