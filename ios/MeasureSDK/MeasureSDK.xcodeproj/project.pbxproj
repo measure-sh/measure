@@ -82,6 +82,12 @@
 		52A8533E2C994CC200B2A39F /* ExceptionDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A8533D2C994CC200B2A39F /* ExceptionDetail.swift */; };
 		52A853402C994D7900B2A39F /* Exception.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A8533F2C994D7900B2A39F /* Exception.swift */; };
 		52A853422C9983B900B2A39F /* CrashDataFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A853412C9983B900B2A39F /* CrashDataFormatter.swift */; };
+		52AE72012CABAE9000F2830A /* GestureCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AE71FB2CABAE9000F2830A /* GestureCollector.swift */; };
+		52AE72022CABAE9000F2830A /* GestureDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AE71FC2CABAE9000F2830A /* GestureDetector.swift */; };
+		52AE72032CABAE9000F2830A /* GestureEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AE71FD2CABAE9000F2830A /* GestureEvents.swift */; };
+		52AE72082CABAEAB00F2830A /* UIWindow+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AE72062CABAEAB00F2830A /* UIWindow+Extension.swift */; };
+		52AE72092CABAEAB00F2830A /* NSObject+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AE72072CABAEAB00F2830A /* NSObject+Extension.swift */; };
+		52C03C442CB3FB29002E3C36 /* GestureTargetFinderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52C03C432CB3FB29002E3C36 /* GestureTargetFinderTests.swift */; };
 		52CC63C12C9C608E00F7CA0A /* CrashDataPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CC63C02C9C608E00F7CA0A /* CrashDataPersistence.swift */; };
 		52CC63C32C9C609F00F7CA0A /* CrashDataWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CC63C22C9C609F00F7CA0A /* CrashDataWriter.swift */; };
 		52CC63C52C9D714200F7CA0A /* SystemFileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CC63C42C9D714200F7CA0A /* SystemFileManager.swift */; };
@@ -103,6 +109,7 @@
 		52CD91242C7C3D0F000189BA /* MeasureInternal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CD91232C7C3D0F000189BA /* MeasureInternal.swift */; };
 		52CD91262C7C3D90000189BA /* MeasureInitializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CD91252C7C3D90000189BA /* MeasureInitializer.swift */; };
 		52EB380C2C8C7334002D63EC /* SignPost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52EB380B2C8C7334002D63EC /* SignPost.swift */; };
+		52F93B9E2CAE6B3C00168AB4 /* GestureTargetFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F93B9D2CAE6B3C00168AB4 /* GestureTargetFinder.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -190,6 +197,12 @@
 		52A8533D2C994CC200B2A39F /* ExceptionDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExceptionDetail.swift; sourceTree = "<group>"; };
 		52A8533F2C994D7900B2A39F /* Exception.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Exception.swift; sourceTree = "<group>"; };
 		52A853412C9983B900B2A39F /* CrashDataFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashDataFormatter.swift; sourceTree = "<group>"; };
+		52AE71FB2CABAE9000F2830A /* GestureCollector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GestureCollector.swift; sourceTree = "<group>"; };
+		52AE71FC2CABAE9000F2830A /* GestureDetector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GestureDetector.swift; sourceTree = "<group>"; };
+		52AE71FD2CABAE9000F2830A /* GestureEvents.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GestureEvents.swift; sourceTree = "<group>"; };
+		52AE72062CABAEAB00F2830A /* UIWindow+Extension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIWindow+Extension.swift"; sourceTree = "<group>"; };
+		52AE72072CABAEAB00F2830A /* NSObject+Extension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "NSObject+Extension.swift"; sourceTree = "<group>"; };
+		52C03C432CB3FB29002E3C36 /* GestureTargetFinderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureTargetFinderTests.swift; sourceTree = "<group>"; };
 		52CC63C02C9C608E00F7CA0A /* CrashDataPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashDataPersistence.swift; sourceTree = "<group>"; };
 		52CC63C22C9C609F00F7CA0A /* CrashDataWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashDataWriter.swift; sourceTree = "<group>"; };
 		52CC63C42C9D714200F7CA0A /* SystemFileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemFileManager.swift; sourceTree = "<group>"; };
@@ -211,6 +224,7 @@
 		52CD91232C7C3D0F000189BA /* MeasureInternal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureInternal.swift; sourceTree = "<group>"; };
 		52CD91252C7C3D90000189BA /* MeasureInitializer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureInitializer.swift; sourceTree = "<group>"; };
 		52EB380B2C8C7334002D63EC /* SignPost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignPost.swift; sourceTree = "<group>"; };
+		52F93B9D2CAE6B3C00168AB4 /* GestureTargetFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureTargetFinder.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -251,8 +265,10 @@
 		5202BE442C89600200A3496E /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
-				5202BE432C89600200A3496E /* UIDevice+Extension.swift */,
 				52A1A9472CA31E8E00461103 /* NSManagedObjectContext+Extension.swift */,
+				52AE72072CABAEAB00F2830A /* NSObject+Extension.swift */,
+				5202BE432C89600200A3496E /* UIDevice+Extension.swift */,
+				52AE72062CABAEAB00F2830A /* UIWindow+Extension.swift */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";
@@ -360,6 +376,7 @@
 				5202BE782C8B117900A3496E /* Events */,
 				52A853382C994AD100B2A39F /* Exception */,
 				5202BE412C895FD600A3496E /* FrameworkInfo.swift */,
+				52AE72002CABAE9000F2830A /* Gestures */,
 				524CC5D92C6A4B48001AB506 /* Measure.swift */,
 				52CD91252C7C3D90000189BA /* MeasureInitializer.swift */,
 				52CD91232C7C3D0F000189BA /* MeasureInternal.swift */,
@@ -379,6 +396,7 @@
 				52A1A93D2CA0852500461103 /* CoreData */,
 				52CC63CA2C9E9B8900F7CA0A /* CrashReporter */,
 				52A1A9602CA5928100461103 /* Event */,
+				52F93BA32CB1996700168AB4 /* Gestures */,
 				5224ECE12C880F7400D1B1F7 /* Helper */,
 				523287712C861928000EE268 /* Mocks */,
 				523287722C86195E000EE268 /* SessionManagerTests.swift */,
@@ -490,6 +508,17 @@
 			path = Exception;
 			sourceTree = "<group>";
 		};
+		52AE72002CABAE9000F2830A /* Gestures */ = {
+			isa = PBXGroup;
+			children = (
+				52AE71FB2CABAE9000F2830A /* GestureCollector.swift */,
+				52AE71FC2CABAE9000F2830A /* GestureDetector.swift */,
+				52AE71FD2CABAE9000F2830A /* GestureEvents.swift */,
+				52F93B9D2CAE6B3C00168AB4 /* GestureTargetFinder.swift */,
+			);
+			path = Gestures;
+			sourceTree = "<group>";
+		};
 		52CC63CA2C9E9B8900F7CA0A /* CrashReporter */ = {
 			isa = PBXGroup;
 			children = (
@@ -516,6 +545,14 @@
 			children = (
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		52F93BA32CB1996700168AB4 /* Gestures */ = {
+			isa = PBXGroup;
+			children = (
+				52C03C432CB3FB29002E3C36 /* GestureTargetFinderTests.swift */,
+			);
+			path = Gestures;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -653,6 +690,7 @@
 				52CC63C92C9DE71300F7CA0A /* SystemCrashReporter.swift in Sources */,
 				5202BE392C895FC800A3496E /* AppAttributeProcessor.swift in Sources */,
 				5202BE472C89600200A3496E /* UIDevice+Extension.swift in Sources */,
+				52AE72012CABAE9000F2830A /* GestureCollector.swift in Sources */,
 				524CC5DD2C6A4B48001AB506 /* MeasureModel.xcdatamodeld in Sources */,
 				5202BE3B2C895FC800A3496E /* AttributeProcessor.swift in Sources */,
 				5202BE3C2C895FC800A3496E /* ComputeOnceAttributeProcessor.swift in Sources */,
@@ -670,6 +708,7 @@
 				52A8533A2C994B6900B2A39F /* ThreadDetail.swift in Sources */,
 				52A1A93C2CA0777300461103 /* SessionStore.swift in Sources */,
 				52A1A9482CA31E8E00461103 /* NSManagedObjectContext+Extension.swift in Sources */,
+				52AE72022CABAE9000F2830A /* GestureDetector.swift in Sources */,
 				52CC63C12C9C608E00F7CA0A /* CrashDataPersistence.swift in Sources */,
 				52EB380C2C8C7334002D63EC /* SignPost.swift in Sources */,
 				52A8533E2C994CC200B2A39F /* ExceptionDetail.swift in Sources */,
@@ -683,14 +722,18 @@
 				5202BE3F2C895FC800A3496E /* NetworkStateAttributeProcessor.swift in Sources */,
 				52CC63C32C9C609F00F7CA0A /* CrashDataWriter.swift in Sources */,
 				5202BE792C8B117900A3496E /* Attachment.swift in Sources */,
+				52F93B9E2CAE6B3C00168AB4 /* GestureTargetFinder.swift in Sources */,
 				528EAB962C84553500CB1574 /* LifecycleObserver.swift in Sources */,
+				52AE72032CABAE9000F2830A /* GestureEvents.swift in Sources */,
 				5202BE7D2C8B117900A3496E /* EventType.swift in Sources */,
 				52A8533C2C994BCE00B2A39F /* StackFrame.swift in Sources */,
 				52CD911E2C7B397C000189BA /* BaseConfigProvider.swift in Sources */,
 				52A853422C9983B900B2A39F /* CrashDataFormatter.swift in Sources */,
 				52A853372C983FFC00B2A39F /* CrashReportingManager.swift in Sources */,
 				52A1A9462CA1786A00461103 /* MeasureQueue.swift in Sources */,
+				52AE72092CABAEAB00F2830A /* NSObject+Extension.swift in Sources */,
 				52CD91202C7B39AE000189BA /* Config.swift in Sources */,
+				52AE72082CABAEAB00F2830A /* UIWindow+Extension.swift in Sources */,
 				52CD911A2C7B2C77000189BA /* DefaultConfig.swift in Sources */,
 				524CC5DC2C6A4B48001AB506 /* CoreDataManager.swift in Sources */,
 			);
@@ -715,6 +758,7 @@
 				523287792C8619EF000EE268 /* MockRandomizer.swift in Sources */,
 				523287702C85E43E000EE268 /* BaseSystemTimeTests.swift in Sources */,
 				5202BE592C89603400A3496E /* MockAttributeProcessor.swift in Sources */,
+				52C03C442CB3FB29002E3C36 /* GestureTargetFinderTests.swift in Sources */,
 				5202BE4F2C89601200A3496E /* AttributeProcessorTests.swift in Sources */,
 				523287752C8619C4000EE268 /* MockIdProvider.swift in Sources */,
 				52A1A95D2CA586CF00461103 /* Attributes+Extension.swift in Sources */,
@@ -973,6 +1017,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "";
 			};
 			name = Debug;
 		};
@@ -989,6 +1034,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "";
 			};
 			name = Release;
 		};

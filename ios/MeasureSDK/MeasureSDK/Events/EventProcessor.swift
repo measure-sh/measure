@@ -17,8 +17,26 @@ protocol EventProcessor {
         type: EventType,
         attributes: Attributes?,
         sessionId: String?,
-        attachments: [Attachment]
+        attachments: [Attachment]?
     )
+}
+
+extension EventProcessor {
+    func track<T: Codable>(
+        data: T,
+        timestamp: Number,
+        type: EventType,
+        attributes: Attributes? = nil,
+        sessionId: String? = nil,
+        attachments: [Attachment]? = nil
+    ) {
+        track(data: data,
+              timestamp: timestamp,
+              type: type,
+              attributes: attributes,
+              sessionId: sessionId,
+              attachments: attachments)
+    }
 }
 
 /// A concrete implementation of the `EventProcessor` protocol, responsible for tracking and
@@ -59,7 +77,7 @@ final class BaseEventProcessor: EventProcessor {
         type: EventType,
         attributes: Attributes?,
         sessionId: String?,
-        attachments: [Attachment]
+        attachments: [Attachment]?
     ) {
         track(data: data, timestamp: timestamp, type: type, attributes: attributes, attachments: attachments, sessionId: sessionId)
     }
@@ -69,7 +87,7 @@ final class BaseEventProcessor: EventProcessor {
         timestamp: Number,
         type: EventType,
         attributes: Attributes?,
-        attachments: [Attachment],
+        attachments: [Attachment]?,
         sessionId: String?
     ) {
         let threadName = ((Thread.current.name?.isEmpty) != nil) ? "unknown" : Thread.current.name
@@ -89,14 +107,14 @@ final class BaseEventProcessor: EventProcessor {
         }
 
         eventStore.insertEvent(event: EventEntity(event))
-        logger.log(level: .debug, message: "Event processed: \(type), \(event.id)", error: nil)
+        logger.log(level: .debug, message: "Event processed: \(type), \(event.id) \(data)", error: nil)
     }
 
     private func createEvent<T: Codable>( // swiftlint:disable:this function_parameter_count
         data: T,
         timestamp: Number,
         type: EventType,
-        attachments: [Attachment],
+        attachments: [Attachment]?,
         attributes: Attributes?,
         userTriggered: Bool,
         sessionId: String?

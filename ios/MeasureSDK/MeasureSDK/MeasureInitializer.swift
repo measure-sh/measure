@@ -31,6 +31,8 @@ protocol MeasureInitializer {
     var coreDataManager: CoreDataManager { get }
     var sessionStore: SessionStore { get }
     var eventStore: EventStore { get }
+    var gestureCollector: GestureCollector { get }
+    var gestureTargetFinder: GestureTargetFinder { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -58,6 +60,8 @@ protocol MeasureInitializer {
 /// - `coreDataManager`: `CoreDataManager` object that generates and manages core data persistance and contexts
 /// - `sessionStore`: `SessionStore` object that manages `Session` related operations
 /// - `eventStore`: `EventStore` object that manages `Event` related operations
+/// - `gestureCollector`: `GestureCollector` object is responsible for detecting and saving gesture related data.
+/// - `gestureTargetFinder`: `GestureTargetFinder` object that determines which view is handling the gesture.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -82,8 +86,10 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let sessionStore: SessionStore
     let coreDataManager: CoreDataManager
     let eventStore: EventStore
+    let gestureCollector: GestureCollector
+    let gestureTargetFinder: GestureTargetFinder
 
-    init(config: MeasureConfig,
+    init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
         let defaultConfig = Config(enableLogging: config.enableLogging,
                                    trackScreenshotOnCrash: config.trackScreenshotOnCrash,
@@ -134,6 +140,12 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                         eventProcessor: eventProcessor,
                                                         crashDataPersistence: crashDataPersistence,
                                                         crashReporter: systemCrashReporter)
+        self.gestureTargetFinder = BaseGestureTargetFinder()
+        self.gestureCollector = BaseGestureCollector(logger: logger,
+                                                     eventProcessor: eventProcessor,
+                                                     timeProvider: timeProvider,
+                                                     configProvider: configProvider,
+                                                     gestureTargetFinder: gestureTargetFinder)
         self.client = client
     }
 }

@@ -20,6 +20,8 @@ struct Config: InternalConfig, MeasureConfig {
     let sessionSamplingRate: Float
     let eventsBatchingIntervalMs: Number
     let sessionEndThresholdMs: Number
+    let longPressTimeout: TimeInterval
+    let scaledTouchSlop: CGFloat
 
     // Additional properties with specific values
     let maxEventsInBatch: Int
@@ -33,5 +35,7 @@ struct Config: InternalConfig, MeasureConfig {
         self.eventsBatchingIntervalMs = 30000 // 30 seconds
         self.maxEventsInBatch = 500
         self.sessionEndThresholdMs = 60000 // 60 seconds
+        self.longPressTimeout = 0.5 // 0.5 seconds
+        self.scaledTouchSlop = 3.5 // 3.5 points
     }
 }

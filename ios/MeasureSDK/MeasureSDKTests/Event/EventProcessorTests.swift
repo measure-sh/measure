@@ -58,7 +58,9 @@ final class EventProcessorTests: XCTestCase {
                                             trackScreenshotOnCrash: false,
                                             sessionSamplingRate: 1.0,
                                             eventsBatchingIntervalMs: 1000,
-                                            sessionEndThresholdMs: 1000)
+                                            sessionEndThresholdMs: 1000,
+                                            longPressTimeout: 0.5,
+                                            scaledTouchSlop: 20)
         randomizer = MockRandomizer(0.5)
         coreDataManager = MockCoreDataManager()
         sessionStore = BaseSessionStore(coreDataManager: coreDataManager,
@@ -147,8 +149,8 @@ final class EventProcessorTests: XCTestCase {
         XCTAssertEqual(event.sessionId, "session-id-1")
         XCTAssertEqual(event.timestamp, "1970-01-12T13:46:40.000Z")
         XCTAssertEqual(event.type, .exception)
-        XCTAssertEqual(event.attachments.count, 1)
-        XCTAssertEqual(event.attachments.first, Attachment(name: "file-name", type: .screenshot, path: "file-path"))
+        XCTAssertEqual(event.attachments?.count, 1)
+        XCTAssertEqual(event.attachments?.first, Attachment(name: "file-name", type: .screenshot, path: "file-path"))
         XCTAssertEqual(event.userTriggered, false)
         XCTAssertEqual(event.attributes, attributes)
         XCTAssertEqual(event.data, exception)
@@ -246,8 +248,8 @@ final class EventProcessorTests: XCTestCase {
         XCTAssertEqual(event.sessionId, "session-id-2")
         XCTAssertEqual(event.timestamp, "1970-01-12T13:46:40.000Z")
         XCTAssertEqual(event.type, .exception)
-        XCTAssertEqual(event.attachments.count, 1)
-        XCTAssertEqual(event.attachments.first, Attachment(name: "file-name", type: .screenshot, path: "file-path"))
+        XCTAssertEqual(event.attachments?.count, 1)
+        XCTAssertEqual(event.attachments?.first, Attachment(name: "file-name", type: .screenshot, path: "file-path"))
         XCTAssertEqual(event.userTriggered, false)
         XCTAssertEqual(event.attributes, updatedAttributes)
         XCTAssertEqual(event.data, exception)

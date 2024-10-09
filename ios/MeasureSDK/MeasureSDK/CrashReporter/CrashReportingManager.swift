@@ -63,7 +63,7 @@ final class CrashReportingManager: CrashReportManager {
                                       type: .exception,
                                       attributes: attributes,
                                       sessionId: sessionId,
-                                      attachments: [Attachment]())
+                                      attachments: nil)
         }
 
         crashReporter.clearCrashData()
