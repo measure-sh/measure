@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react';
-import Journey, { JourneyType } from "@/app/components/journey";
+import Journey, { JourneyType } from "@/app/components/journey_sankey";
 import MetricsOverview from '@/app/components/metrics_overview';
 import { FiltersApiType } from '@/app/api/api_calls';
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters';
@@ -40,7 +40,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
       <div className="py-4" />
 
       {filters.ready &&
-        <div className='w-5/6 h-[600px]'>
+        <div className='w-5/6 h-[700px]'>
           <Journey
             teamId={params.teamId}
             bidirectional={false}

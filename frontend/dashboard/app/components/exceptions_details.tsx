@@ -9,7 +9,7 @@ import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import { formatDateToHumanReadableDateTime } from '../utils/time_utils';
 import ExceptionspDetailsPlot from './exceptions_details_plot';
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from './filters';
-import Journey, { JourneyType } from './journey';
+import Journey, { JourneyType } from './journey_sankey';
 import Image from 'next/image';
 import CopyAiContext from './copy_ai_context';
 
