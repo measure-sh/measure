@@ -245,6 +245,34 @@ services:
       - ./clickhouse:/opt/clickhouse
     command: [ "migrate" ]
 
+  migrator:
+    build:
+      context: ../backend/migrator
+    environment:
+      - POSTGRES_DSN=${POSTGRES_DSN}
+      - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
+      - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
+      - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
+      - SYMBOLS_ACCESS_KEY=${SYMBOLS_ACCESS_KEY}
+      - SYMBOLS_SECRET_ACCESS_KEY=${SYMBOLS_SECRET_ACCESS_KEY}
+    develop:
+      watch:
+        - path: ../backend/migrator
+          action: rebuild
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      mc:
+        condition: service_completed_successfully
+        required: false
+    # volumes:
+    #   - migrator-volume:/data
+
   postgres:
     image: postgres:16.3-alpine
     restart: always
@@ -284,5 +312,6 @@ services:
 volumes:
   clickhouse-volume:
   symbolicator-volume:
+  # migrator-volue:
   minio-data:
   pgdata:

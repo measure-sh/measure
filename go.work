@@ -1,7 +1,8 @@
-go 1.22
+go 1.23.2
 
 use (
 	./backend/api
 	./backend/cleanup
+	./backend/migrator
 	./self-host/sessionator
 )
