@@ -124,13 +124,14 @@ These headers must be present in each request.
 
   ```json
   {
-    "ok": "a previous accepted request is in progress, retry after 60 seconds"
+    "warning": "a previous accepted request is in progress, retry after 60 seconds"
   }
   ```
 
-  > ⚠ **Note**
-  >
-  > A success response of `202 Accepted` implies the server has accepted the request, but it may choose to not process & discard some events depending on various conditions.
+
+> [!NOTE]
+>
+> A success response of `202 Accepted` implies the server has accepted the request, but it may choose to not process & discard some events depending on various conditions.
 
 - Failed requests have the following response shape
 
