@@ -42,11 +42,11 @@ const retryAfter = 60 * time.Second
 type status int
 
 const (
-	// Pending represents that the event request
+	// pending represents that the event request
 	// is still being processed.
 	pending status = iota
 
-	// Done represents that the event request
+	// done represents that the event request
 	// has finished processing.
 	done
 )
@@ -290,7 +290,8 @@ func (e eventreq) start(ctx context.Context) (err error) {
 }
 
 // end saves the event request batch marking its
-// status as "done".
+// status as "done" along with additional even request
+// related metadata.
 func (e eventreq) end(ctx context.Context, tx *pgx.Tx) (err error) {
 	stmt := sqlf.PostgreSQL.Update(`public.event_reqs`).
 		Set(`event_count`, len(e.events)).
@@ -2158,7 +2159,7 @@ func PutEvents(c *gin.Context) {
 	// in progress or was processed.
 	//
 	// if it's in progress, we don't know whether it will succeed or
-	// not, so we ask the client to retry after sometime.
+	// fail, so we ask the client to retry after sometime.
 	//
 	// if it was processed, tell the client that this event request
 	// was seen previously and we ignore this request.
@@ -2178,7 +2179,7 @@ func PutEvents(c *gin.Context) {
 			durStr := fmt.Sprintf("%d", int64(retryAfter.Seconds()))
 			c.Header("Retry-After", durStr)
 			c.JSON(http.StatusAccepted, gin.H{
-				"ok": fmt.Sprintf("previous accepted request %q is in progress, retry after %s seconds", eventReq.id, durStr),
+				"ok": fmt.Sprintf("a previous accepted request is in progress, retry after %s seconds", durStr),
 			})
 			return
 		case done:
@@ -2198,7 +2199,7 @@ func PutEvents(c *gin.Context) {
 				durStr := fmt.Sprintf("%d", int64(retryAfter.Seconds()))
 				c.Header("Retry-After", durStr)
 				c.JSON(http.StatusAccepted, gin.H{
-					"ok": fmt.Sprintf("previous accepted request %q is in progress, retry after %s seconds", eventReq.id, durStr),
+					"ok": fmt.Sprintf("a previous accepted request is in progress, retry after %s seconds", durStr),
 				})
 				return
 			}
