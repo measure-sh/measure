@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Prevent duplicate ingestion of events (#1331) by @detj in #1331
+
 - (**frontend**): Improve security posture (#1305) by @detj in #1305
 
 
