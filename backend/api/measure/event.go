@@ -2178,8 +2178,8 @@ func PutEvents(c *gin.Context) {
 		case pending:
 			durStr := fmt.Sprintf("%d", int64(retryAfter.Seconds()))
 			c.Header("Retry-After", durStr)
-			c.JSON(http.StatusAccepted, gin.H{
-				"ok": fmt.Sprintf("a previous accepted request is in progress, retry after %s seconds", durStr),
+			c.JSON(http.StatusTooManyRequests, gin.H{
+				"warning": fmt.Sprintf("a previous accepted request is in progress, retry after %s seconds", durStr),
 			})
 			return
 		case done:
@@ -2198,8 +2198,8 @@ func PutEvents(c *gin.Context) {
 			if pgErr.Code == "23505" {
 				durStr := fmt.Sprintf("%d", int64(retryAfter.Seconds()))
 				c.Header("Retry-After", durStr)
-				c.JSON(http.StatusAccepted, gin.H{
-					"ok": fmt.Sprintf("a previous accepted request is in progress, retry after %s seconds", durStr),
+				c.JSON(http.StatusTooManyRequests, gin.H{
+					"warning": fmt.Sprintf("a previous accepted request is in progress, retry after %s seconds", durStr),
 				})
 				return
 			}
