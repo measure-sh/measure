@@ -19,7 +19,6 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     val httpEventCollector by lazy { measureInitializer.httpEventCollector }
     val processInfoProvider by lazy { measureInitializer.processInfoProvider }
     private val userTriggeredEventCollector by lazy { measureInitializer.userTriggeredEventCollector }
-    private val sessionManager by lazy { measureInitializer.sessionManager }
     private val resumedActivityProvider by lazy { measureInitializer.resumedActivityProvider }
     private val networkClient by lazy { measureInitializer.networkClient }
     private val manifestReader by lazy { measureInitializer.manifestReader }
@@ -62,7 +61,6 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
             configProvider.setMeasureUrl(it.url)
             networkClient.init(baseUrl = it.url, apiKey = it.apiKey)
         }
-        sessionManager.init()
         registerCollectors()
         registerCallbacks()
     }
@@ -86,16 +84,12 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     }
 
     override fun onAppForeground() {
-        // session manager must be the first to be notified about app foreground to ensure that
-        // new session ID (if created) is reflected in all events collected after the launch.
-        sessionManager.onAppForeground()
         cpuUsageCollector.resume()
         memoryUsageCollector.resume()
         periodicEventExporter.onAppForeground()
     }
 
     override fun onAppBackground() {
-        sessionManager.onAppBackground()
         cpuUsageCollector.pause()
         memoryUsageCollector.pause()
         periodicEventExporter.onAppBackground()

@@ -121,13 +121,14 @@ internal class TestMeasureInitializer(
     ),
     private val idProvider: IdProvider = UUIDProvider(),
     override val processInfoProvider: ProcessInfoProvider = ProcessInfoProviderImpl(),
+    private val prefsStorage: PrefsStorage = PrefsStorageImpl(context = application),
     override val sessionManager: SessionManager = SessionManagerImpl(
         logger = logger,
         timeProvider = timeProvider,
         database = database,
+        prefs = prefsStorage,
         idProvider = idProvider,
         processInfo = processInfoProvider,
-        ioExecutor = executorServiceRegistry.ioExecutor(),
         configProvider = configProvider,
     ),
     private val procProvider: ProcProvider = ProcProviderImpl(),
@@ -143,7 +144,6 @@ internal class TestMeasureInitializer(
         osSysConfProvider = osSysConfProvider,
     ),
     private val localeProvider: LocaleProvider = LocaleProviderImpl(),
-    private val prefsStorage: PrefsStorage = PrefsStorageImpl(context = application),
     private val systemServiceProvider: SystemServiceProvider = SystemServiceProviderImpl(application),
     private val initialNetworkStateProvider: InitialNetworkStateProvider = InitialNetworkStateProviderImpl(
         context = application,
