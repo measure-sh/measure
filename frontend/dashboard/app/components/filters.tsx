@@ -705,7 +705,7 @@ const Filters: React.FC<FiltersProps> = ({
 
     sessionStorage.setItem(persistedFiltersStorageKey, JSON.stringify(updatedPersistedFilters))
     onFiltersChanged(updatedSelectedFilters)
-    updateUrlWithFilters(updatedSelectedFilters)
+    // updateUrlWithFilters(updatedSelectedFilters)
   }, [appsApiStatus, filtersApiStatus, selectedApp, selectedStartDate, selectedEndDate, selectedVersions, selectedSessionType, selectedOsVersions, selectedCountries, selectedNetworkProviders, selectedNetworkTypes, selectedNetworkGenerations, selectedLocales, selectedDeviceManufacturers, selectedDeviceNames, selectedFreeText])
 
   return (
