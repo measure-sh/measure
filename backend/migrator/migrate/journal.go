@@ -1,35 +1,50 @@
 package migrate
 
 import (
-	"os"
+	"io"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 type State int
+type Kind int
 
 const (
 	Pending State = iota
 	Applied
 )
 
+const (
+	ObjectMigration Kind = iota
+	DataMigration
+)
+
 func (s State) String() string {
-	return [...]string{"pending", "applied"}[s]
+	switch s {
+	default:
+		return "unknown"
+	case Pending:
+		return "pending"
+	case Applied:
+		return "applied"
+	}
 }
 
 type JournalEntry struct {
-	id     uuid.UUID
-	action string
-	state  State
-	time   time.Time
+	id    uuid.UUID
+	kind  Kind
+	state State
+	time  time.Time
 }
 
 type Journal struct {
-	file    *os.File
+	writer  *io.Writer
 	entries []JournalEntry
 }
 
-func NewJournal(file *os.File) (journal *Journal) {
-	return &Journal{}
+func NewJournal(w *io.Writer) (journal *Journal) {
+	return &Journal{
+		writer: w,
+	}
 }
