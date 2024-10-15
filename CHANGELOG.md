@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Ingest screen view event by @abhaysood
 - (**backend**): Add screen view sample sessions by @abhaysood
 
+- (**frontend**): Add loading spinners for plot components by @anupcowkur in #1359
 - (**frontend**): Go directly to dashboard if logged in by @anupcowkur in #1355
 
 ## [0.2.1] - 2024-09-25
