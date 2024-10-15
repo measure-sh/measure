@@ -931,6 +931,16 @@ func (e Exception) IsNested() bool {
 	return len(e.Exceptions) > 1
 }
 
+// HasNoFrames returns true if the exception
+// does not have any frame.
+//
+// This may happen
+// for certain OutOfMemory stacktraces in
+// Android.
+func (e Exception) HasNoFrames() bool {
+	return len(e.Exceptions[len(e.Exceptions)-1].Frames) == 0
+}
+
 // GetTitle provides the combined
 // exception's type and message as
 // a formatted string.
@@ -953,18 +963,30 @@ func (e Exception) GetMessage() string {
 // GetFileName provides the file name of
 // the exception.
 func (e Exception) GetFileName() string {
+	// some exception may have zero frames
+	if e.HasNoFrames() {
+		return ""
+	}
 	return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
 }
 
 // GetLineNumber provides the line number of
 // the exception.
 func (e Exception) GetLineNumber() int {
+	// some exception may have zero frames
+	if e.HasNoFrames() {
+		return 0
+	}
 	return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
 }
 
 // GetMethodName provides the method name of
 // the Exception.
 func (e Exception) GetMethodName() string {
+	// some exception may have zero frames
+	if e.HasNoFrames() {
+		return ""
+	}
 	return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
 }
 
@@ -1056,6 +1078,16 @@ func (a ANR) IsNested() bool {
 	return len(a.Exceptions) > 1
 }
 
+// HasNoFrames returns true if the ANR
+// does not have any frame.
+//
+// This may happen
+// for certain OutOfMemory stacktraces in
+// Android.
+func (a ANR) HasNoFrames() bool {
+	return len(a.Exceptions[len(a.Exceptions)-1].Frames) == 0
+}
+
 // GetTitle provides the combined
 // anr's type and message as a
 // formatted string.
@@ -1078,18 +1110,27 @@ func (a ANR) GetMessage() string {
 // GetFileName provides the file name of
 // the ANR.
 func (a ANR) GetFileName() string {
+	if a.HasNoFrames() {
+		return ""
+	}
 	return a.Exceptions[len(a.Exceptions)-1].Frames[0].FileName
 }
 
 // GetLineNumber provides the line number of
 // the ANR.
 func (a ANR) GetLineNumber() int {
+	if a.HasNoFrames() {
+		return 0
+	}
 	return a.Exceptions[len(a.Exceptions)-1].Frames[0].LineNum
 }
 
 // GetMethodName provides the method name of
 // the ANR.
 func (a ANR) GetMethodName() string {
+	if a.HasNoFrames() {
+		return ""
+	}
 	return a.Exceptions[len(a.Exceptions)-1].Frames[0].MethodName
 }
 
