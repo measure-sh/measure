@@ -120,7 +120,7 @@ func (a Attribute) Validate() error {
 		maxOSNameChars             = 32
 		maxOSVersionChars          = 32
 		maxPlatformChars           = 32
-		maxAppVersionChars         = 32
+		maxAppVersionChars         = 128
 		maxAppBuildChars           = 32
 		maxAppUniqueIDChars        = 128
 		maxMeasureSDKVersion       = 16
