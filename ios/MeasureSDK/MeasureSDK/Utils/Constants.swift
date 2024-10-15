@@ -8,6 +8,7 @@
 import Foundation
 
 typealias Number = Int64
+typealias FloatNumber = Float32
 
 let logTag = "com.measure.sh"
 let cacheDirectoryName = "com.measure.sh"

@@ -76,6 +76,9 @@ final class MeasureInternal {
     private var eventStore: EventStore {
         return measureInitializer.eventStore
     }
+    private var gestureCollector: GestureCollector {
+        return measureInitializer.gestureCollector
+    }
     private let lifecycleObserver: LifecycleObserver
 
     init(_ measureInitializer: MeasureInitializer) {
@@ -91,6 +94,7 @@ final class MeasureInternal {
 
         self.crashReportManager.enableCrashReporting()
         self.crashReportManager.trackException()
+        self.gestureCollector.enable()
     }
 
     private func applicationDidEnterBackground() {

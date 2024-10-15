@@ -6,8 +6,9 @@
 //
 
 import UIKit
+import SwiftUI
 
-class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
+@objc final class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
     let crashTypes = [
         "Abort",
         "Bad Pointer",
@@ -28,13 +29,94 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        self.title = "Swift View Controller"
         let tableView = UITableView(frame: view.bounds, style: .plain)
         tableView.delegate = self
         tableView.dataSource = self
 
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
 
+        let headerView = createTableHeaderView()
+        tableView.tableHeaderView = headerView
+
         view.addSubview(tableView)
+    }
+
+    // MARK: - Table Header View with Buttons
+
+    func createTableHeaderView() -> UIView {
+        let headerView = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: 150))
+
+        let buttonTitles = ["SwiftUI Controller", "Swift Controller", "Objc Controller", "Collection Controller", "System Controls"]
+
+        // Create vertical stack views to hold two buttons each
+        let verticalStackView1 = UIStackView()
+        verticalStackView1.axis = .vertical
+        verticalStackView1.distribution = .fillEqually
+        verticalStackView1.spacing = 8
+
+        let verticalStackView2 = UIStackView()
+        verticalStackView2.axis = .vertical
+        verticalStackView2.distribution = .fillEqually
+        verticalStackView2.spacing = 8
+
+        for (index, title) in buttonTitles.enumerated() {
+            let button = UIButton(type: .system)
+            button.layer.cornerRadius = 8
+            button.layer.borderWidth = 1
+            button.layer.borderColor = UIColor.systemBlue.cgColor
+            button.setTitle(title, for: .normal)
+            button.tag = index
+            button.addTarget(self, action: #selector(headerButtonTapped(_:)), for: .touchUpInside)
+
+            if index < 2 {
+                verticalStackView1.addArrangedSubview(button)
+            } else {
+                verticalStackView2.addArrangedSubview(button)
+            }
+        }
+
+        let horizontalStackView = UIStackView(arrangedSubviews: [verticalStackView1, verticalStackView2])
+        horizontalStackView.axis = .horizontal
+        horizontalStackView.distribution = .fillEqually
+        horizontalStackView.spacing = 16
+
+        horizontalStackView.translatesAutoresizingMaskIntoConstraints = false
+        headerView.addSubview(horizontalStackView)
+
+        NSLayoutConstraint.activate([
+            horizontalStackView.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 20),
+            horizontalStackView.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -20),
+            horizontalStackView.topAnchor.constraint(equalTo: headerView.topAnchor, constant: 8),
+            horizontalStackView.bottomAnchor.constraint(equalTo: headerView.bottomAnchor, constant: -8)
+        ])
+
+        return headerView
+    }
+
+    @objc func headerButtonTapped(_ sender: UIButton) {
+        switch sender.tag {
+        case 0:
+            let swiftUIView = SwiftUIDetailViewController()
+            let hostingController = UIHostingController(rootView: swiftUIView)
+            self.navigationController?.pushViewController(hostingController, animated: true)
+        case 1:
+            let controller = ViewController()
+            self.navigationController?.pushViewController(controller, animated: true)
+        case 2:
+            let controller = ObjcDetailViewController()
+            self.navigationController?.pushViewController(controller, animated: true)
+        case 3:
+            let controller = CollectionViewController()
+            self.navigationController?.pushViewController(controller, animated: true)
+        case 4:
+            if let controller = self.storyboard?.instantiateViewController(withIdentifier: "ControlsViewController") {
+                self.navigationController?.pushViewController(controller, animated: true)
+            }
+        default:
+            let controller = ControlsViewController()
+            self.navigationController?.pushViewController(controller, animated: true)
+        }
     }
 
     // MARK: - UITableViewDataSource
@@ -118,4 +200,12 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
             print("Unknown crash type.")
         }
     }
+}
+
+struct ViewControllerRepresentable: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> ViewController {
+        return ViewController()
+    }
+
+    func updateUIViewController(_ uiViewController: ViewController, context: Context) {}
 }

@@ -53,6 +53,14 @@ final class BaseConfigProvider: ConfigProvider {
         return getMergedConfig(\.sessionEndThresholdMs)
     }
 
+    var longPressTimeout: TimeInterval {
+        return getMergedConfig(\.longPressTimeout)
+    }
+
+    var scaledTouchSlop: CGFloat {
+        return getMergedConfig(\.scaledTouchSlop)
+    }
+
     private func getMergedConfig<T>(_ keyPath: KeyPath<Config, T>) -> T {
         if let networkConfig = networkConfig {
             return networkConfig[keyPath: keyPath]
