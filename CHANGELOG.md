@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Occasional runtime panic during ingestion (#1345) by @detj in #1345
 - (**backend**): Increase app version character limit (#1342) by @detj in #1342
 - (**backend**): Increase thread name character limit (#1341) by @detj in #1341
 - (**backend**): Prevent duplicate ingestion of events (#1331) by @detj in #1331
