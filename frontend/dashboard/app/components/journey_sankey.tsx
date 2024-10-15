@@ -7,6 +7,7 @@ import { ResponsiveSankey } from '@nivo/sankey'
 import 'reactflow/dist/style.css'
 import Link from 'next/link'
 import { Filters } from './filters'
+import LoadingSpinner from './loading_spinner'
 
 interface JourneyProps {
   teamId: string,
@@ -237,6 +238,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
 
   return (
     <div className="flex items-center justify-center border border-black text-black font-sans text-sm w-full h-full overflow-hidden">
+      {journeyApiStatus === JourneyApiStatus.Loading && <LoadingSpinner />}
       {journeyApiStatus === JourneyApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching journey. Please refresh page or change filters to try again.</p>}
       {journeyApiStatus === JourneyApiStatus.NoData && <p className="text-lg font-display text-center p-4">No data</p>}
       {journeyApiStatus === JourneyApiStatus.Success
