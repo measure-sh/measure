@@ -6,6 +6,7 @@ import { SessionsOverviewPlotApiStatus, fetchSessionsOverviewPlotFromServer } fr
 import { useRouter } from 'next/navigation';
 import { formatDateToHumanReadableDate } from '../utils/time_utils';
 import { Filters } from './filters';
+import LoadingSpinner from './loading_spinner';
 
 interface SessionsOverviewPlotProps {
   filters: Filters
@@ -67,6 +68,7 @@ const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ filters }) 
 
   return (
     <div className="flex border border-black font-sans items-center justify-center w-full h-[36rem]">
+      {sessionsOverviewPlotApiStatus === SessionsOverviewPlotApiStatus.Loading && <LoadingSpinner />}
       {sessionsOverviewPlotApiStatus === SessionsOverviewPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {sessionsOverviewPlotApiStatus === SessionsOverviewPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
       {sessionsOverviewPlotApiStatus === SessionsOverviewPlotApiStatus.Success &&

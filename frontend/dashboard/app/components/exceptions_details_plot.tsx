@@ -6,6 +6,7 @@ import { ExceptionsDetailsPlotApiStatus, ExceptionsType, fetchExceptionsDetailsP
 import { useRouter } from 'next/navigation';
 import { formatDateToHumanReadableDate } from '../utils/time_utils';
 import { Filters } from './filters';
+import LoadingSpinner from './loading_spinner';
 
 interface ExceptionsDetailsPlotProps {
   exceptionsType: ExceptionsType,
@@ -65,6 +66,7 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
 
   return (
     <div className="flex border border-black font-sans items-center justify-center w-full h-[32rem]">
+      {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Loading && <LoadingSpinner />}
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Success &&
