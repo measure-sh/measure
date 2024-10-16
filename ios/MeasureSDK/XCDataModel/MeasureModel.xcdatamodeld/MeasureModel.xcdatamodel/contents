@@ -4,6 +4,9 @@
         <attribute name="attachments" optional="YES" attributeType="Binary" valueTransformerName="NSSecureUnarchiveFromDataTransformerName"/>
         <attribute name="attributes" optional="YES" attributeType="Binary"/>
         <attribute name="exception" optional="YES" attributeType="Binary"/>
+        <attribute name="gestureClick" optional="YES" attributeType="Binary"/>
+        <attribute name="gestureLongClick" optional="YES" attributeType="Binary"/>
+        <attribute name="gestureScroll" optional="YES" attributeType="Binary"/>
         <attribute name="id" attributeType="String" defaultValueString=""/>
         <attribute name="sessionId" attributeType="String" defaultValueString=""/>
         <attribute name="timestamp" attributeType="String" defaultValueString=""/>

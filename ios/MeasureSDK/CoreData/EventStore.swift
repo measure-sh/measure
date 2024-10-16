@@ -38,6 +38,9 @@ final class BaseEventStore: EventStore {
             eventOb.exception = event.exception
             eventOb.attributes = event.attributes
             eventOb.attachments = event.attachments
+            eventOb.gestureClick = event.gestureClick
+            eventOb.gestureLongClick = event.gestureLongClick
+            eventOb.gestureScroll = event.gestureScroll
 
             do {
                 try context.saveIfNeeded()
@@ -66,6 +69,9 @@ final class BaseEventStore: EventStore {
                                 exception: eventOb.exception,
                                 attachments: eventOb.attachments,
                                 attributes: eventOb.attributes,
+                                gestureClick: eventOb.gestureClick,
+                                gestureLongClick: eventOb.gestureLongClick,
+                                gestureScroll: eventOb.gestureScroll,
                                 userTriggered: eventOb.userTriggered)
                 }
             } catch {
@@ -93,6 +99,9 @@ final class BaseEventStore: EventStore {
                                 exception: eventOb.exception,
                                 attachments: eventOb.attachments,
                                 attributes: eventOb.attributes,
+                                gestureClick: eventOb.gestureClick,
+                                gestureLongClick: eventOb.gestureLongClick,
+                                gestureScroll: eventOb.gestureScroll,
                                 userTriggered: eventOb.userTriggered)
                 }
             } catch {
@@ -139,6 +148,9 @@ final class BaseEventStore: EventStore {
                                               exception: eventOb.exception,
                                               attachments: eventOb.attachments,
                                               attributes: eventOb.attributes,
+                                              gestureClick: eventOb.gestureClick,
+                                              gestureLongClick: eventOb.gestureLongClick,
+                                              gestureScroll: eventOb.gestureScroll,
                                               userTriggered: eventOb.userTriggered))
                 }
             } catch {
