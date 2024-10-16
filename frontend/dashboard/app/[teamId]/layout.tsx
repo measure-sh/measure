@@ -119,7 +119,7 @@ export default function DashboardLayout({
             <button className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => logoutUser()}>Logout</button>
           </nav>
         </aside>
-        {teamsApiStatus === TeamsApiStatus.Success && <main>{children}</main>}
+        {teamsApiStatus === TeamsApiStatus.Success && <main className="md:overflow-auto">{children}</main>}
       </div>
     </div>
   );
