@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Increase thread name character limit (#1341) by @detj in #1341
 - (**backend**): Prevent duplicate ingestion of events (#1331) by @detj in #1331
 
+- (**frontend**): Fix nav aside scroll on detail content exceeding screen area by @anupcowkur in #1366
 - (**frontend**): Handle empty file/method name by @anupcowkur in #1364
 - (**frontend**): Handle empty file/method name for crashes/anrs by @anupcowkur in #1357
 - (**frontend**): Limit height of dropdown component by @anupcowkur in #1356
