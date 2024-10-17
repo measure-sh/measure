@@ -31,7 +31,7 @@ class AppExitCollectorTest {
 
     @Before
     fun setUp() {
-        `when`(sessionManager.getSessionId()).thenReturn("fake-session-id")
+        `when`(sessionManager.getOrCreateSession()).thenReturn("fake-session-id")
     }
 
     @Test
@@ -70,7 +70,7 @@ class AppExitCollectorTest {
 
     @Test
     fun `given sessions are available, but no corresponding app exits, does not track anything`() {
-        val sessionId = sessionManager.getSessionId()
+        val sessionId = sessionManager.getOrCreateSession()
         val pid = 7654
         appExitProvider.appExits = mapOf()
         `when`(sessionManager.getSessionsWithUntrackedAppExit()).thenReturn(mapOf(pid to listOf(sessionId)))
@@ -110,7 +110,7 @@ class AppExitCollectorTest {
 
     @Test
     fun `given app exits are available and sessions have the corresponding pids, tracks the app exits`() {
-        val sessionId = sessionManager.getSessionId()
+        val sessionId = sessionManager.getOrCreateSession()
         val pid = 7654
         val appExit = AppExit(
             reason = "REASON_USER_REQUESTED",
@@ -135,7 +135,7 @@ class AppExitCollectorTest {
 
     @Test
     fun `updates sessions table when app exit is tracked successfully`() {
-        val sessionId = sessionManager.getSessionId()
+        val sessionId = sessionManager.getOrCreateSession()
         val pid = 7654
         val appExit = AppExit(
             reason = "REASON_USER_REQUESTED",

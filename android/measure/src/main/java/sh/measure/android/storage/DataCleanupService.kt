@@ -72,10 +72,12 @@ internal class DataCleanupServiceImpl(
     }
 
     private fun deleteSessionsNotMarkedForReporting() {
-        val currentSessionId = sessionManager.getSessionId()
+        val currentSessionId = sessionManager.currentSessionId
+        val filteredSessions =
+            if (currentSessionId != null) listOf(currentSessionId) else emptyList()
         val sessionIds = database.getSessionIds(
             needReporting = false,
-            filterSessionIds = listOf(currentSessionId),
+            filterSessionIds = filteredSessions,
             maxCount = MAX_SESSIONS_TO_QUERY,
         )
         deleteSessions(sessionIds)

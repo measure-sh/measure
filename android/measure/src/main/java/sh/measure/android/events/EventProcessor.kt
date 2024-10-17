@@ -159,6 +159,7 @@ internal class EventProcessorImpl(
         applyAttributes(event, threadName)
         eventTransformer.transform(event)?.let {
             eventStore.store(event)
+            onEventTracked()
             sessionManager.markCrashedSession(event.sessionId)
             exceptionExporter.export(event.sessionId)
             logger.log(LogLevel.Debug, "Event processed: $type, ${event.sessionId}")
@@ -198,6 +199,7 @@ internal class EventProcessorImpl(
                         if (transformedEvent != null) {
                             InternalTrace.trace(label = { "msr-store-event" }, block = {
                                 eventStore.store(event)
+                                onEventTracked()
                                 logger.log(
                                     LogLevel.Debug,
                                     "Event processed: $type, ${event.sessionId}",
@@ -208,10 +210,18 @@ internal class EventProcessorImpl(
                         }
                     }
                 } catch (e: RejectedExecutionException) {
-                    logger.log(LogLevel.Error, "Failed to submit event processing task to executor", e)
+                    logger.log(
+                        LogLevel.Error,
+                        "Failed to submit event processing task to executor",
+                        e,
+                    )
                 }
             },
         )
+    }
+
+    private fun onEventTracked() {
+        sessionManager.onEventTracked()
     }
 
     private fun <T> createEvent(
@@ -224,7 +234,7 @@ internal class EventProcessorImpl(
         sessionId: String? = null,
     ): Event<T> {
         val id = idProvider.createId()
-        val resolvedSessionId = sessionId ?: sessionManager.getSessionId()
+        val resolvedSessionId = sessionId ?: sessionManager.getOrCreateSession()
         return Event(
             id = id,
             sessionId = resolvedSessionId,

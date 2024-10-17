@@ -76,7 +76,7 @@ internal class EventProcessorTest {
             type = type,
             timestamp = timestamp.iso8601Timestamp(),
             id = idProvider.id,
-            sessionId = sessionManager.getSessionId(),
+            sessionId = sessionManager.getOrCreateSession(),
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 
         assertEquals(1, eventStore.trackedEvents.size)
@@ -103,7 +103,7 @@ internal class EventProcessorTest {
             type = type,
             timestamp = timestamp.iso8601Timestamp(),
             id = idProvider.id,
-            sessionId = sessionManager.getSessionId(),
+            sessionId = sessionManager.getOrCreateSession(),
             attachments = attachments,
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 
@@ -131,7 +131,7 @@ internal class EventProcessorTest {
             type = type,
             timestamp = timestamp.iso8601Timestamp(),
             id = idProvider.id,
-            sessionId = sessionManager.getSessionId(),
+            sessionId = sessionManager.getOrCreateSession(),
             attributes = attributes,
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 
@@ -175,7 +175,7 @@ internal class EventProcessorTest {
             type = type,
             timestamp = timestamp.iso8601Timestamp(),
             id = idProvider.id,
-            sessionId = sessionManager.getSessionId(),
+            sessionId = sessionManager.getOrCreateSession(),
             attributes = mutableMapOf("key" to "value"),
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 
@@ -198,9 +198,9 @@ internal class EventProcessorTest {
         )
 
         // Then
-        assertEquals(sessionManager.getSessionId(), sessionManager.crashedSession)
+        assertEquals(sessionManager.getOrCreateSession(), sessionManager.crashedSession)
         assertEquals(1, eventStore.trackedEvents.size)
-        verify(exceptionExporter).export(sessionManager.getSessionId())
+        verify(exceptionExporter).export(sessionManager.getOrCreateSession())
     }
 
     @Test
@@ -218,9 +218,9 @@ internal class EventProcessorTest {
         )
 
         // Then
-        assertEquals(sessionManager.getSessionId(), sessionManager.crashedSession)
+        assertEquals(sessionManager.getOrCreateSession(), sessionManager.crashedSession)
         assertEquals(1, eventStore.trackedEvents.size)
-        verify(exceptionExporter).export(sessionManager.getSessionId())
+        verify(exceptionExporter).export(sessionManager.getOrCreateSession())
     }
 
     @Test
@@ -402,7 +402,7 @@ internal class EventProcessorTest {
             type = eventType,
             timestamp = timestamp.iso8601Timestamp(),
             id = idProvider.id,
-            sessionId = sessionManager.getSessionId(),
+            sessionId = sessionManager.getOrCreateSession(),
             userTriggered = true,
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 
@@ -426,7 +426,7 @@ internal class EventProcessorTest {
             type = eventType,
             timestamp = timestamp.iso8601Timestamp(),
             id = idProvider.id,
-            sessionId = sessionManager.getSessionId(),
+            sessionId = sessionManager.getOrCreateSession(),
             userDefinedAttributes = mapOf("key" to "value"),
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 
@@ -437,5 +437,41 @@ internal class EventProcessorTest {
         )
 
         assertEquals(expectedEvent, eventStore.trackedEvents.first())
+    }
+
+    @Test
+    fun `calls onEventTracked on session manager when crash is stored`() {
+        // Given
+        val exceptionData = TestData.getExceptionData()
+        val timestamp = 9856564654L
+        val type = EventType.EXCEPTION
+
+        // When
+        eventProcessor.trackCrash(
+            data = exceptionData,
+            timestamp = timestamp,
+            type = type,
+        )
+
+        // Then
+        assertTrue(sessionManager.onEventTracked)
+    }
+
+    @Test
+    fun `calls onEventTracked on session manager when event is stored`() {
+        // Given
+        val data = TestData.getScreenViewData()
+        val timestamp = 9856564654L
+        val type = EventType.SCREEN_VIEW
+
+        // When
+        eventProcessor.track(
+            data = data,
+            timestamp = timestamp,
+            type = type,
+        )
+
+        // Then
+        assertTrue(sessionManager.onEventTracked)
     }
 }

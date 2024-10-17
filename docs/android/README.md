@@ -260,6 +260,13 @@ All the features supported by the Measure SDK are listed below.
 * [Memory monitoring](features/feature_memory_monitoring.md)
 * [App size](features/feature_app_size.md)
 
+# Session
+
+A session represents a continuous period of activity in the app. A new session begins when an app is launched for the first time, 
+or when there's been no activity for a 20-minute period. A single session can continue across multiple app background and 
+foreground events; brief interruptions will not cause a new session to be created. This approach is helpful when reviewing 
+session replays, as it shows the app switching between background and foreground states within the same session.
+
 # Benchmarks
 
 Measure SDK has a set of benchmarks to measure the performance impact of the SDK on the app.
