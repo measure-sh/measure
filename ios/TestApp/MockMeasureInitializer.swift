@@ -9,6 +9,8 @@ import Foundation
 @testable import MeasureSDK
 
 final class MockMeasureInitializer: MeasureInitializer {
+    let networkClient: NetworkClient
+    let httpClient: HttpClient
     let configProvider: ConfigProvider
     let client: Client
     let logger: Logger
@@ -91,7 +93,10 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                      timeProvider: timeProvider,
                                                      configProvider: configProvider,
                                                      gestureTargetFinder: gestureTargetFinder)
-
+        self.httpClient = BaseHttpClient(logger: logger)
+        self.networkClient = BaseNetworkClient(client: client,
+                                               httpClient: httpClient,
+                                               dispatchQueue: MeasureQueue.background)
         self.client = client
     }
 }

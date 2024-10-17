@@ -76,7 +76,7 @@ import Foundation
                     meaureInitializer.logger.log(level: .info, message: "SDK enabled in testing mode.", error: nil, data: nil)
                 } else {
                     let meaureInitializer = BaseMeasureInitializer(config: config ?? BaseMeasureConfig(),
-                                                               client: client)
+                                                                   client: client)
                     measureInternal = MeasureInternal(meaureInitializer)
                 }
             }

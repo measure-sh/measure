@@ -17,6 +17,9 @@ final class MeasureInternal {
     private var logger: Logger {
         return measureInitializer.logger
     }
+    private var client: Client {
+        return measureInitializer.client
+    }
     private var sessionManager: SessionManager {
         return measureInitializer.sessionManager
     }
@@ -78,6 +81,12 @@ final class MeasureInternal {
     }
     private var gestureCollector: GestureCollector {
         return measureInitializer.gestureCollector
+    }
+    private var networkClient: NetworkClient {
+        return measureInitializer.networkClient
+    }
+    private var httpClient: HttpClient {
+        return measureInitializer.httpClient
     }
     private let lifecycleObserver: LifecycleObserver
 
