@@ -34,6 +34,8 @@ protocol MeasureInitializer {
     var eventStore: EventStore { get }
     var gestureCollector: GestureCollector { get }
     var gestureTargetFinder: GestureTargetFinder { get }
+    var networkClient: NetworkClient { get }
+    var httpClient: HttpClient { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -63,6 +65,8 @@ protocol MeasureInitializer {
 /// - `eventStore`: `EventStore` object that manages `Event` related operations
 /// - `gestureCollector`: `GestureCollector` object is responsible for detecting and saving gesture related data.
 /// - `gestureTargetFinder`: `GestureTargetFinder` object that determines which view is handling the gesture.
+/// - `httpClient`: `HttpClient` object that handles HTTP requests.
+/// - `networkClient`: `NetworkClient` object is responsible for initializing the network configuration and executing API requests.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -89,6 +93,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let eventStore: EventStore
     let gestureCollector: GestureCollector
     let gestureTargetFinder: GestureTargetFinder
+    let networkClient: NetworkClient
+    let httpClient: HttpClient
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -147,6 +153,10 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                      timeProvider: timeProvider,
                                                      configProvider: configProvider,
                                                      gestureTargetFinder: gestureTargetFinder)
+        self.httpClient = BaseHttpClient(logger: logger)
+        self.networkClient = BaseNetworkClient(client: client,
+                                               httpClient: httpClient,
+                                               dispatchQueue: MeasureQueue.background)
         self.client = client
     }
 }

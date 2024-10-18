@@ -15,6 +15,7 @@ let cacheDirectoryName = "com.measure.sh"
 let crashDataFileName = "crash_data.txt"
 let backgroundQueueLabel = "com.measure.background"
 let userInitiatedQueueLabel = "com.measure.userInitiated"
+let eventsEndpoint = "events"
 
 struct AttributeConstants {
     static let deviceManufacturer = "Apple"

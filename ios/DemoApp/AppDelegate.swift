@@ -14,7 +14,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
-        let clientInfo = ClientInfo(apiKey: "apiKey", apiUrl: "api.measure.com")
+        let clientInfo = ClientInfo(apiKey: "msrsh_48153449fa6045685d605a6dcb684cbf42d5b1cdf780cd79bd58a4423ce8b23d_e6b33343",
+                                    apiUrl: "http://localhost:8080")
         let config = BaseMeasureConfig(enableLogging: true,
                                        trackScreenshotOnCrash: false,
                                        sessionSamplingRate: 1.0)

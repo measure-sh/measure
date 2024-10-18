@@ -29,7 +29,17 @@ class EventStoreTests: XCTestCase {
     }
 
     func testInsertEvent() {
-        let event = EventEntity(id: "1", sessionId: "session1", timestamp: "2024-09-25T12:34:56Z", type: "test", exception: nil, attachments: nil, attributes: nil, userTriggered: false)
+        let event = EventEntity(id: "1",
+                                sessionId: "session1",
+                                timestamp: "2024-09-25T12:34:56Z",
+                                type: "test",
+                                exception: nil,
+                                attachments: nil,
+                                attributes: nil,
+                                gestureClick: nil,
+                                gestureLongClick: nil,
+                                gestureScroll: nil,
+                                userTriggered: false)
 
         let insertExpectation = expectation(description: "Insert event should complete")
         DispatchQueue.global().async {
@@ -49,8 +59,18 @@ class EventStoreTests: XCTestCase {
     }
 
     func testGetEvents() {
-        let event1 = EventEntity(id: "1", sessionId: "session1", timestamp: "2024-09-25T12:34:56Z", type: "test", exception: nil, attachments: nil, attributes: nil, userTriggered: false)
-        let event2 = EventEntity(id: "2", sessionId: "session1", timestamp: "2024-09-25T12:35:56Z", type: "test2", exception: nil, attachments: nil, attributes: nil, userTriggered: false)
+        let event1 = EventEntity(id: "1",
+                                 sessionId: "session1",
+                                 timestamp: "2024-09-25T12:34:56Z",
+                                 type: "test",
+                                 exception: nil,
+                                 attachments: nil,
+                                 attributes: nil,
+                                 gestureClick: nil,
+                                 gestureLongClick: nil,
+                                 gestureScroll: nil,
+                                 userTriggered: false)
+        let event2 = EventEntity(id: "2", sessionId: "session1", timestamp: "2024-09-25T12:35:56Z", type: "test2", exception: nil, attachments: nil, attributes: nil, gestureClick: nil, gestureLongClick: nil, gestureScroll: nil, userTriggered: false)
         self.eventStore.insertEvent(event: event1)
         self.eventStore.insertEvent(event: event2)
 
@@ -72,9 +92,39 @@ class EventStoreTests: XCTestCase {
     }
 
     func testGetEventsForSessions() {
-        let event1 = EventEntity(id: "1", sessionId: "session1", timestamp: "2024-09-25T12:34:56Z", type: "test", exception: nil, attachments: nil, attributes: nil, userTriggered: false)
-        let event2 = EventEntity(id: "2", sessionId: "session1", timestamp: "2024-09-25T12:35:56Z", type: "test2", exception: nil, attachments: nil, attributes: nil, userTriggered: false)
-        let event3 = EventEntity(id: "3", sessionId: "session2", timestamp: "2024-09-25T12:36:56Z", type: "test3", exception: nil, attachments: nil, attributes: nil, userTriggered: false)
+        let event1 = EventEntity(id: "1",
+                                 sessionId: "session1",
+                                 timestamp: "2024-09-25T12:34:56Z",
+                                 type: "test",
+                                 exception: nil,
+                                 attachments: nil,
+                                 attributes: nil,
+                                 gestureClick: nil,
+                                 gestureLongClick: nil,
+                                 gestureScroll: nil,
+                                 userTriggered: false)
+        let event2 = EventEntity(id: "2",
+                                 sessionId: "session1",
+                                 timestamp: "2024-09-25T12:35:56Z",
+                                 type: "test2",
+                                 exception: nil,
+                                 attachments: nil,
+                                 attributes: nil,
+                                 gestureClick: nil,
+                                 gestureLongClick: nil,
+                                 gestureScroll: nil,
+                                 userTriggered: false)
+        let event3 = EventEntity(id: "3",
+                                 sessionId: "session2",
+                                 timestamp: "2024-09-25T12:36:56Z",
+                                 type: "test3",
+                                 exception: nil,
+                                 attachments: nil,
+                                 attributes: nil,
+                                 gestureClick: nil,
+                                 gestureLongClick: nil,
+                                 gestureScroll: nil,
+                                 userTriggered: false)
         self.eventStore.insertEvent(event: event1)
         self.eventStore.insertEvent(event: event2)
         self.eventStore.insertEvent(event: event3)
@@ -97,8 +147,28 @@ class EventStoreTests: XCTestCase {
     }
 
     func testDeleteEvents() {
-        let event1 = EventEntity(id: "1", sessionId: "session1", timestamp: "2024-09-25T12:34:56Z", type: "test", exception: nil, attachments: nil, attributes: nil, userTriggered: false)
-        let event2 = EventEntity(id: "2", sessionId: "session1", timestamp: "2024-09-25T12:35:56Z", type: "test2", exception: nil, attachments: nil, attributes: nil, userTriggered: false)
+        let event1 = EventEntity(id: "1",
+                                 sessionId: "session1",
+                                 timestamp: "2024-09-25T12:34:56Z",
+                                 type: "test",
+                                 exception: nil,
+                                 attachments: nil,
+                                 attributes: nil,
+                                 gestureClick: nil,
+                                 gestureLongClick: nil,
+                                 gestureScroll: nil,
+                                 userTriggered: false)
+        let event2 = EventEntity(id: "2",
+                                 sessionId: "session1",
+                                 timestamp: "2024-09-25T12:35:56Z",
+                                 type: "test2",
+                                 exception: nil,
+                                 attachments: nil,
+                                 attributes: nil,
+                                 gestureClick: nil,
+                                 gestureLongClick: nil,
+                                 gestureScroll: nil,
+                                 userTriggered: false)
         self.eventStore.insertEvent(event: event1)
         self.eventStore.insertEvent(event: event2)
 
