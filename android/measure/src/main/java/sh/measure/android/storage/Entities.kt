@@ -100,6 +100,7 @@ internal data class SessionEntity(
     val createdAt: Long,
     val needsReporting: Boolean = false,
     val crashed: Boolean = false,
+    val supportsAppExit: Boolean,
 )
 
 internal data class BatchEntity(

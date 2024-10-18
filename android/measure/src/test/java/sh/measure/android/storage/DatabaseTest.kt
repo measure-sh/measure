@@ -2,6 +2,7 @@ package sh.measure.android.storage
 
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
+import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.After
@@ -56,6 +57,8 @@ class DatabaseTest {
                 UserDefinedAttributesTable.TABLE_NAME,
                 it.getString(it.getColumnIndex("name")),
             )
+            it.moveToNext()
+            assertEquals(AppExitTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
         }
     }
 
@@ -228,7 +231,12 @@ class DatabaseTest {
         val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-1")
         val batchedEvent =
             TestData.getEventEntity(eventId = "event-id-3", sessionId = "session-id-1")
-        database.insertSession(TestData.getSessionEntity(id = "session-id-1", needsReporting = true))
+        database.insertSession(
+            TestData.getSessionEntity(
+                id = "session-id-1",
+                needsReporting = true,
+            ),
+        )
         database.insertEvent(event1)
         database.insertEvent(event2)
         database.insertEvent(batchedEvent)
@@ -474,7 +482,15 @@ class DatabaseTest {
         // given
         val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
         val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-1")
-        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
+        database.insertSession(
+            SessionEntity(
+                "session-id-1",
+                123,
+                500,
+                true,
+                supportsAppExit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
+            ),
+        )
         database.insertEvent(event1)
         database.insertEvent(event2)
 
@@ -491,8 +507,10 @@ class DatabaseTest {
         // given
         val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
         val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-1")
-        val eventWithDifferentSession = TestData.getEventEntity(eventId = "event-id-3", sessionId = "session-id-2")
-        val eventNotInDb = TestData.getEventEntity(eventId = "event-id-4", sessionId = "session-id-1")
+        val eventWithDifferentSession =
+            TestData.getEventEntity(eventId = "event-id-3", sessionId = "session-id-2")
+        val eventNotInDb =
+            TestData.getEventEntity(eventId = "event-id-4", sessionId = "session-id-1")
         database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
         database.insertSession(TestData.getSessionEntity(id = "session-id-2"))
         database.insertEvent(event1)
@@ -509,45 +527,6 @@ class DatabaseTest {
         }
     }
 
-    @Test
-    fun `getSessionsWithUntrackedAppExit returns all sessions with untracked app exits from sessions table`() {
-        // given
-        database.insertSession(TestData.getSessionEntity(id = "session-id-1", pid = 1))
-        database.insertSession(TestData.getSessionEntity(id = "session-id-2", pid = 2))
-        database.insertSession(TestData.getSessionEntity(id = "session-id-3", pid = 3))
-        database.updateAppExitTracked(1)
-        database.updateAppExitTracked(2)
-
-        // when
-        val sessions = database.getSessionsWithUntrackedAppExit()
-
-        // then
-        assertEquals(1, sessions.size)
-    }
-
-    @Test
-    fun `getSessionsWithUntrackedAppExit returns empty map if no sessions exist in db`() {
-        // when
-        val sessions = database.getSessionsWithUntrackedAppExit()
-
-        // then
-        assertEquals(0, sessions.size)
-    }
-
-    @Test
-    fun `getSessionsWithUntrackedAppExit returns empty map if no sessions with untracked app exit exist in db`() {
-        // given
-        database.insertSession(TestData.getSessionEntity(id = "session-id-1", pid = 1))
-        database.updateAppExitTracked(1)
-
-        // when
-        val sessions = database.getSessionsWithUntrackedAppExit()
-
-        // then
-        assertEquals(0, sessions.size)
-    }
-
-    @Test
     fun `getOldestSession returns oldest session`() {
         database.insertSession(TestData.getSessionEntity(id = "session-id-1", createdAt = 500))
         database.insertSession(TestData.getSessionEntity(id = "session-id-2", createdAt = 700))
@@ -596,28 +575,49 @@ class DatabaseTest {
     }
 
     @Test
-    fun `updateAppExitTracked updates session with app exit as tracked`() {
-        // given
-        database.insertSession(TestData.getSessionEntity("session-id-1", pid = 1))
-        database.insertSession(TestData.getSessionEntity("session-id-2", pid = 2))
-
+    fun `insertSession inserts a new app exit entry successfully`() {
         // when
-        database.updateAppExitTracked(pid = 1)
+        database.insertSession(TestData.getSessionEntity("session-id-1", supportsAppExit = true))
 
         // then
-        val db = database.readableDatabase
+        val db = database.writableDatabase
         db.query(
-            SessionsTable.TABLE_NAME,
+            AppExitTable.TABLE_NAME,
             null,
-            "${SessionsTable.COL_PID} = ?",
-            arrayOf("1"),
+            "${AppExitTable.COL_SESSION_ID} = ?",
+            arrayOf("session-id-1"),
             null,
             null,
             null,
         ).use {
             assertEquals(1, it.count)
-            it.moveToFirst()
-            assertEquals("session-id-1", it.getString(it.getColumnIndex(SessionsTable.COL_SESSION_ID)))
+        }
+    }
+
+    @Test
+    fun `insertSession does not insert a new app exit entry`() {
+        // when
+        database.insertSession(TestData.getSessionEntity("session-id-1", supportsAppExit = false))
+
+        // then
+        val db = database.writableDatabase
+        db.rawQuery("SELECT * FROM ${AppExitTable.TABLE_NAME}", null).use {
+            assertEquals(0, it.count)
+        }
+    }
+
+    @Test
+    fun `updateSession creates new entry in app exit table`() {
+        val session = TestData.getSessionEntity(pid = 1, supportsAppExit = true)
+        database.insertSession(session)
+        database.updateSessionPid(
+            sessionId = session.sessionId,
+            pid = 2,
+            createdAt = session.createdAt,
+            true,
+        )
+        database.readableDatabase.rawQuery("SELECT * FROM ${AppExitTable.TABLE_NAME}", null).use {
+            assertEquals(2, it.count)
         }
     }
 
@@ -766,8 +766,10 @@ class DatabaseTest {
         // given
         database.insertSession(TestData.getSessionEntity("session-id-1"))
         database.insertSession(TestData.getSessionEntity("session-id-2"))
-        val eventToDelete = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
-        val eventToNotDelete = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-2")
+        val eventToDelete =
+            TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
+        val eventToNotDelete =
+            TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-2")
         database.insertEvent(eventToDelete)
         database.insertEvent(eventToNotDelete)
 
@@ -849,7 +851,8 @@ class DatabaseTest {
         database.insertEvent(event4)
 
         // when
-        val attachments = database.getAttachmentsForEvents(listOf("event-id-1", "event-id-2", "event-id-3"))
+        val attachments =
+            database.getAttachmentsForEvents(listOf("event-id-1", "event-id-2", "event-id-3"))
 
         // then
         assertEquals(4, attachments.size)

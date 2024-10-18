@@ -438,4 +438,40 @@ internal class EventProcessorTest {
 
         assertEquals(expectedEvent, eventStore.trackedEvents.first())
     }
+
+    @Test
+    fun `calls onEventTracked on session manager when crash is stored`() {
+        // Given
+        val exceptionData = TestData.getExceptionData()
+        val timestamp = 9856564654L
+        val type = EventType.EXCEPTION
+
+        // When
+        eventProcessor.trackCrash(
+            data = exceptionData,
+            timestamp = timestamp,
+            type = type,
+        )
+
+        // Then
+        assertTrue(sessionManager.onEventTracked)
+    }
+
+    @Test
+    fun `calls onEventTracked on session manager when event is stored`() {
+        // Given
+        val data = TestData.getScreenViewData()
+        val timestamp = 9856564654L
+        val type = EventType.SCREEN_VIEW
+
+        // When
+        eventProcessor.track(
+            data = data,
+            timestamp = timestamp,
+            type = type,
+        )
+
+        // Then
+        assertTrue(sessionManager.onEventTracked)
+    }
 }
