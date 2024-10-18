@@ -410,6 +410,7 @@ internal object TestData {
         createdAt: Long = 987654321L,
         needsReporting: Boolean = false,
         crashed: Boolean = false,
+        supportsAppExit: Boolean = false,
     ): SessionEntity {
         return SessionEntity(
             sessionId = id,
@@ -417,6 +418,7 @@ internal object TestData {
             createdAt = createdAt,
             needsReporting = needsReporting,
             crashed = crashed,
+            supportsAppExit = supportsAppExit,
         )
     }
 

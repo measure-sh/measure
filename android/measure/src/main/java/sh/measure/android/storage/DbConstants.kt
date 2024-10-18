@@ -2,7 +2,12 @@ package sh.measure.android.storage
 
 internal object DbConstants {
     const val DATABASE_NAME = "measure.db"
-    const val DATABASE_VERSION = 1
+    const val DATABASE_VERSION = DbVersion.V2
+}
+
+internal object DbVersion {
+    const val V1 = 1
+    const val V2 = 2
 }
 
 internal object EventTable {
@@ -41,11 +46,22 @@ internal object EventsBatchTable {
 internal object SessionsTable {
     const val TABLE_NAME = "sessions"
     const val COL_SESSION_ID = "session_id"
+
+    @Deprecated("Use AppExitTable instead")
     const val COL_PID = "pid"
     const val COL_CREATED_AT = "created_at"
+
+    @Deprecated("Use AppExitTable instead")
     const val COL_APP_EXIT_TRACKED = "app_exit_tracked"
     const val COL_NEEDS_REPORTING = "needs_reporting"
     const val COL_CRASHED = "crashed"
+}
+
+internal object AppExitTable {
+    const val TABLE_NAME = "app_exit"
+    const val COL_SESSION_ID = "session_id"
+    const val COL_PID = "pid"
+    const val COL_CREATED_AT = "created_at"
 }
 
 internal object UserDefinedAttributesTable {
@@ -57,7 +73,7 @@ internal object UserDefinedAttributesTable {
 
 internal object Sql {
     const val CREATE_EVENTS_TABLE = """
-        CREATE TABLE ${EventTable.TABLE_NAME} (
+        CREATE TABLE IF NOT EXISTS ${EventTable.TABLE_NAME} (
             ${EventTable.COL_ID} TEXT PRIMARY KEY,
             ${EventTable.COL_TYPE} TEXT NOT NULL,
             ${EventTable.COL_TIMESTAMP} TEXT NOT NULL,
@@ -82,7 +98,7 @@ internal object Sql {
     """
 
     const val CREATE_ATTACHMENTS_TABLE = """
-        CREATE TABLE ${AttachmentTable.TABLE_NAME} (
+        CREATE TABLE IF NOT EXISTS ${AttachmentTable.TABLE_NAME} (
             ${AttachmentTable.COL_ID} TEXT PRIMARY KEY,
             ${AttachmentTable.COL_EVENT_ID} TEXT NOT NULL,
             ${AttachmentTable.COL_TYPE} TEXT NOT NULL,
@@ -95,7 +111,7 @@ internal object Sql {
     """
 
     const val CREATE_EVENTS_BATCH_TABLE = """
-        CREATE TABLE ${EventsBatchTable.TABLE_NAME} (
+        CREATE TABLE IF NOT EXISTS ${EventsBatchTable.TABLE_NAME} (
             ${EventsBatchTable.COL_EVENT_ID} TEXT NOT NULL,
             ${EventsBatchTable.COL_BATCH_ID} TEXT NOT NULL,
             ${EventsBatchTable.COL_CREATED_AT} INTEGER NOT NULL,
@@ -109,13 +125,22 @@ internal object Sql {
     """
 
     const val CREATE_SESSIONS_TABLE = """
-        CREATE TABLE ${SessionsTable.TABLE_NAME} (
+        CREATE TABLE IF NOT EXISTS ${SessionsTable.TABLE_NAME} (
             ${SessionsTable.COL_SESSION_ID} TEXT PRIMARY KEY,
             ${SessionsTable.COL_PID} INTEGER NOT NULL,
             ${SessionsTable.COL_CREATED_AT} INTEGER NOT NULL,
             ${SessionsTable.COL_APP_EXIT_TRACKED} INTEGER DEFAULT 0,
             ${SessionsTable.COL_NEEDS_REPORTING} INTEGER DEFAULT 0,
             ${SessionsTable.COL_CRASHED} INTEGER DEFAULT 0
+        )
+    """
+
+    const val CREATE_APP_EXIT_TABLE = """
+        CREATE TABLE IF NOT EXISTS ${AppExitTable.TABLE_NAME} (
+            ${AppExitTable.COL_SESSION_ID} TEXT NOT NULL,
+            ${AppExitTable.COL_PID} INTEGER NOT NULL,
+            ${AppExitTable.COL_CREATED_AT} INTEGER NOT NULL,
+            PRIMARY KEY (${AppExitTable.COL_SESSION_ID}, ${AppExitTable.COL_PID})
         )
     """
 
@@ -253,25 +278,6 @@ internal object Sql {
         """
     }
 
-    fun getSessionsWithUntrackedAppExit(): String {
-        return """
-            SELECT
-                ${SessionsTable.COL_SESSION_ID},
-                ${SessionsTable.COL_PID}
-            FROM ${SessionsTable.TABLE_NAME}
-            WHERE ${SessionsTable.COL_APP_EXIT_TRACKED} = 0
-            ORDER BY ${SessionsTable.COL_CREATED_AT} ASC
-        """.trimIndent()
-    }
-
-    fun updateAppExitTracked(pid: Int): String {
-        return """
-            UPDATE ${SessionsTable.TABLE_NAME}
-            SET ${SessionsTable.COL_APP_EXIT_TRACKED} = 1
-            WHERE ${SessionsTable.COL_PID} = $pid
-        """.trimIndent()
-    }
-
     fun getUserDefinedAttributes(): String {
         return """
             SELECT 
@@ -347,6 +353,18 @@ internal object Sql {
         return """
             SELECT COUNT(${EventTable.COL_ID}) AS count
             FROM ${EventTable.TABLE_NAME}
+        """.trimIndent()
+    }
+
+    fun getSessionForAppExit(pid: Int): String {
+        return """
+            SELECT
+                ${AppExitTable.COL_SESSION_ID},
+                ${AppExitTable.COL_CREATED_AT}
+            FROM ${AppExitTable.TABLE_NAME}
+            WHERE ${AppExitTable.COL_PID} = $pid 
+            ORDER BY ${AppExitTable.COL_CREATED_AT} DESC
+            LIMIT 1
         """.trimIndent()
     }
 }
