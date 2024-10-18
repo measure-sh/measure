@@ -76,7 +76,7 @@ const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ filters }) 
           data={plot!}
           curve="monotoneX"
           colors={{ scheme: 'nivo' }}
-          margin={{ top: 40, right: 160, bottom: 120, left: 120 }}
+          margin={{ top: 40, right: 120, bottom: 120, left: 120 }}
           xFormat="time:%Y-%m-%d"
           xScale={{
             format: '%Y-%m-%d',
@@ -121,23 +121,6 @@ const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ filters }) 
           }}
           pointLabelYOffset={-12}
           useMesh={true}
-          legends={[
-            {
-              anchor: 'bottom-right',
-              direction: 'column',
-              justify: false,
-              translateX: 100,
-              translateY: 0,
-              itemsSpacing: 0,
-              itemDirection: 'left-to-right',
-              itemWidth: 80,
-              itemHeight: 20,
-              itemOpacity: 0.75,
-              symbolSize: 12,
-              symbolShape: 'circle',
-              symbolBorderColor: 'rgba(0, 0, 0, .5)',
-            }
-          ]}
           enableSlices="x"
           sliceTooltip={({ slice }) => {
             return (
@@ -146,6 +129,8 @@ const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ filters }) 
                 {slice.points.map((point) => (
                   <div className="flex flex-row items-center p-2" key={point.id}>
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: point.serieColor }} />
+                    <div className="px-2" />
+                    <p>{point.serieId.toString()} - </p>
                     <div className="px-2" />
                     <p>{point.data.yFormatted} sessions</p>
                   </div>
