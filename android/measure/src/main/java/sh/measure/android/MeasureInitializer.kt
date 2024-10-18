@@ -125,13 +125,18 @@ internal class MeasureInitializerImpl(
     ),
     private val idProvider: IdProvider = UUIDProvider(),
     override val processInfoProvider: ProcessInfoProvider = ProcessInfoProviderImpl(),
+    private val prefsStorage: PrefsStorage = PrefsStorageImpl(
+        logger = logger,
+        context = application,
+    ),
     override val sessionManager: SessionManager = SessionManagerImpl(
         logger = logger,
         timeProvider = timeProvider,
         database = database,
+        prefs = prefsStorage,
         idProvider = idProvider,
-        processInfo = processInfoProvider,
         ioExecutor = executorServiceRegistry.ioExecutor(),
+        processInfo = processInfoProvider,
         configProvider = configProvider,
     ),
     private val procProvider: ProcProvider = ProcProviderImpl(),
@@ -147,7 +152,6 @@ internal class MeasureInitializerImpl(
         osSysConfProvider = osSysConfProvider,
     ),
     private val localeProvider: LocaleProvider = LocaleProviderImpl(),
-    private val prefsStorage: PrefsStorage = PrefsStorageImpl(context = application),
     private val systemServiceProvider: SystemServiceProvider = SystemServiceProviderImpl(application),
     private val initialNetworkStateProvider: InitialNetworkStateProvider = InitialNetworkStateProviderImpl(
         context = application,
@@ -290,6 +294,7 @@ internal class MeasureInitializerImpl(
         ioExecutor = executorServiceRegistry.ioExecutor(),
         eventProcessor = eventProcessor,
         sessionManager = sessionManager,
+        database = database,
     ),
     override val cpuUsageCollector: CpuUsageCollector = CpuUsageCollector(
         logger = logger,

@@ -1,5 +1,6 @@
 package sh.measure.android.exporter
 
+import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.serialization.encodeToString
@@ -206,7 +207,15 @@ internal class EventExporterTest {
         attachmentSize: Long = 0,
     ) {
         val sessionId = "sessionId"
-        database.insertSession(SessionEntity(sessionId, 12345, 12345, needsReporting = false))
+        database.insertSession(
+            SessionEntity(
+                sessionId,
+                12345,
+                12345,
+                needsReporting = false,
+                supportsAppExit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
+            ),
+        )
         database.insertEvent(
             EventEntity(
                 id = eventId,
