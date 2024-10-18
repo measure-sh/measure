@@ -44,6 +44,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Go directly to dashboard if logged in by @anupcowkur in #1355
 
 
+### :coffin: Removed
+
+- (**frontend**): Remove legends & add versions in tooltips to exception & sessions overview plots by @anupcowkur in #1374
+
+
 ### :books: Documentation
 
 - (**backend**): Update incorrect json key name (#1363) by @detj in #1363
