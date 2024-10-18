@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**frontend**): Persist paginator on master detail nav by @anupcowkur in #1373
 - (**frontend**): Add search bar to dropdown component by @anupcowkur in #1370
 - (**frontend**): Use sankey graphs for journeys by @anupcowkur in #1343
 - (**frontend**): Add filters to urls by @anupcowkur in #1322
