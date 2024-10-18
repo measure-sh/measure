@@ -1,5 +1,6 @@
 package sh.measure.android
 
+import android.os.Build
 import sh.measure.android.applaunch.ColdLaunchListener
 import sh.measure.android.lifecycle.ApplicationLifecycleStateListener
 import sh.measure.android.logger.LogLevel
@@ -15,11 +16,11 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     ApplicationLifecycleStateListener, ColdLaunchListener {
     val logger by lazy { measureInitializer.logger }
     val eventProcessor by lazy { measureInitializer.eventProcessor }
+    val sessionManager by lazy { measureInitializer.sessionManager }
     val timeProvider by lazy { measureInitializer.timeProvider }
     val httpEventCollector by lazy { measureInitializer.httpEventCollector }
     val processInfoProvider by lazy { measureInitializer.processInfoProvider }
     private val userTriggeredEventCollector by lazy { measureInitializer.userTriggeredEventCollector }
-    private val sessionManager by lazy { measureInitializer.sessionManager }
     private val resumedActivityProvider by lazy { measureInitializer.resumedActivityProvider }
     private val networkClient by lazy { measureInitializer.networkClient }
     private val manifestReader by lazy { measureInitializer.manifestReader }
@@ -105,7 +106,9 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     override fun onColdLaunch() {
         networkChangesCollector.register()
         periodicEventExporter.onColdLaunch()
-        appExitCollector.onColdLaunch()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            appExitCollector.onColdLaunch()
+        }
     }
 
     fun setUserId(userId: String) {

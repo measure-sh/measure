@@ -15,7 +15,7 @@ import sh.measure.android.config.MeasureConfig
  * A helper class to interact with the app under test. This class abstracts how the user
  * interactions are performed on the app and allows the test code to focus on the test logic.
  */
-class TestRobot {
+class EventsTestRobot {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context = instrumentation.context.applicationContext
     private val device = UiDevice.getInstance(instrumentation)

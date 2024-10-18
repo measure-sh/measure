@@ -16,8 +16,10 @@ import sh.measure.android.storage.PrefsStorageImpl
 class UserAttributeProcessorTest {
     private val logger = NoopLogger()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
-    private val prefsStorage = PrefsStorageImpl(InstrumentationRegistry.getInstrumentation().context)
-    private val userAttributeProcessor = UserAttributeProcessor(logger, prefsStorage, executorService)
+    private val prefsStorage =
+        PrefsStorageImpl(logger, InstrumentationRegistry.getInstrumentation().context)
+    private val userAttributeProcessor =
+        UserAttributeProcessor(logger, prefsStorage, executorService)
 
     @Test
     fun `sets user id in memory and updates shared prefs`() {
