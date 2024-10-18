@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from "next/link";
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ExceptionsOverviewApiStatus, ExceptionsType, FiltersApiType, emptyExceptionsOverviewResponse, fetchExceptionsOverviewFromServer } from '@/app/api/api_calls';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from './filters';
@@ -15,21 +15,38 @@ interface ExceptionsOverviewProps {
 
 export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptionsType, teamId }) => {
   const router = useRouter()
+  const searchParams = useSearchParams()
+
   const [exceptionsOverviewApiStatus, setExceptionsOverviewApiStatus] = useState(ExceptionsOverviewApiStatus.Loading);
 
   const [filters, setFilters] = useState(defaultFilters);
 
   const [exceptionsOverview, setExceptionsOverview] = useState(emptyExceptionsOverviewResponse);
   const paginationOffset = 10
-  const [paginationRange, setPaginationRange] = useState({ start: 1, end: paginationOffset })
+
+  const getDefaultPaginatorStart = () => {
+    let start = searchParams.get('paginatorStart')
+    if (start) {
+      return parseInt(start)
+    } else {
+      return 1
+    }
+  }
+
+  const getDefaultPaginatorEnd = () => {
+    let end = searchParams.get('paginatorEnd')
+    if (end) {
+      return parseInt(end)
+    } else {
+      return paginationOffset
+    }
+  }
+
+  const [paginationRange, setPaginationRange] = useState({ start: getDefaultPaginatorStart(), end: getDefaultPaginatorEnd() })
   const [paginationDirection, setPaginationDirection] = useState(PaginationDirection.None)
 
-
-  const getExceptionsOverview = async () => {
-    setExceptionsOverviewApiStatus(ExceptionsOverviewApiStatus.Loading)
-
-    // Set key id if user has paginated. Last index of current list if forward navigation, first index if backward
-    var keyId = null
+  const getKeyId = () => {
+    var keyId = searchParams.get('keyId')
     if (exceptionsOverview.results !== null && exceptionsOverview.results.length > 0) {
       if (paginationDirection === PaginationDirection.Forward) {
         keyId = exceptionsOverview.results[exceptionsOverview.results.length - 1].id
@@ -37,12 +54,49 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
         keyId = exceptionsOverview.results[0].id
       }
     }
+    return keyId
+  }
 
+  const getLimit = () => {
     // Invert limit if paginating backward
     var limit = paginationOffset
     if (paginationDirection === PaginationDirection.Backward) {
       limit = - limit
     }
+    return limit
+  }
+
+  const updateUrlWithPaginatorData = () => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    const keyId = getKeyId()
+
+    if (!keyId) {
+      return
+    }
+
+    params.set('keyId', keyId)
+    params.set('paginatorStart', paginationRange.start.toString())
+    params.set('paginatorEnd', paginationRange.end.toString())
+
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }
+
+  const clearUrlPaginatorData = () => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    params.delete('keyId')
+    params.delete('paginatorStart')
+    params.delete('paginatorEnd')
+
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }
+
+  const getExceptionsOverview = async () => {
+    setExceptionsOverviewApiStatus(ExceptionsOverviewApiStatus.Loading)
+
+    const keyId = getKeyId()
+    const limit = getLimit()
 
     const result = await fetchExceptionsOverviewFromServer(exceptionsType, filters, keyId, limit, router)
 
@@ -50,11 +104,13 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
       case ExceptionsOverviewApiStatus.Error:
         setPaginationDirection(PaginationDirection.None) // Reset pagination direction to None after API call so that a change in any filters does not cause keyId to be added to the next API call
         setExceptionsOverviewApiStatus(ExceptionsOverviewApiStatus.Error)
+        clearUrlPaginatorData()
         break
       case ExceptionsOverviewApiStatus.Success:
         setPaginationDirection(PaginationDirection.None) // Reset pagination direction to None after API call so that a change in any filters does not cause keyId to be added to the next API call
         setExceptionsOverviewApiStatus(ExceptionsOverviewApiStatus.Success)
         setExceptionsOverview(result.data)
+        updateUrlWithPaginatorData()
         break
     }
   }
@@ -67,11 +123,12 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
     getExceptionsOverview()
   }, [paginationRange, filters]);
 
-  // Reset pagination range if not in default if any filters change
+  // Reset pagination range on filters change
   useEffect(() => {
     // If we reset pagination range even if values haven't change, we will trigger
     // and unnecessary getExceptionsOverview effect
-    if (paginationRange.start === 1 && paginationRange.end === paginationOffset) {
+    if (paginationRange.start === getDefaultPaginatorStart()
+      && paginationRange.end === getDefaultPaginatorEnd()) {
       return
     }
 
