@@ -12,6 +12,7 @@ import Filters, { AppVersionsInitialSelectionType, defaultFilters } from './filt
 import Journey, { JourneyType } from './journey_sankey';
 import Image from 'next/image';
 import CopyAiContext from './copy_ai_context';
+import LoadingSpinner from './loading_spinner';
 
 interface ExceptionsDetailsProps {
   exceptionsType: ExceptionsType,
@@ -131,6 +132,10 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
           {/* Empty state for crash details fetch */}
           {exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Success && exceptionsDetails.results === null && <p className="text-lg font-display">It seems there are no {exceptionsType === ExceptionsType.Crash ? 'Crashes' : 'ANRs'} for the current combination of filters. Please change filters to try again</p>}
 
+          {/*Loading state when no results are fetched yet*/}
+          {exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading && (exceptionsDetails.results === null || exceptionsDetails.results.length === 0) && <LoadingSpinner />}
+
+          {/*Success state && loading state some results are already fetched*/}
           {(exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Success || exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading) && exceptionsDetails.results !== null && exceptionsDetails.results.length > 0 &&
             <div className='flex flex-col'>
               <div className="flex flex-col md:flex-row md:items-center w-full">
