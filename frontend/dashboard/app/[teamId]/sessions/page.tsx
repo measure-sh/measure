@@ -7,43 +7,25 @@ import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import SessionsOverviewPlot from '@/app/components/sessions_overview_plot';
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime, formatMillisToHumanReadable } from '@/app/utils/time_utils';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
 export default function SessionsOverview({ params }: { params: { teamId: string } }) {
     const router = useRouter()
-    const searchParams = useSearchParams()
-
     const [sessionsOverviewApiStatus, setSessionsOverviewApiStatus] = useState(SessionsOverviewApiStatus.Loading);
 
     const [filters, setFilters] = useState(defaultFilters);
 
     const [sessionsOverview, setSessionsOverview] = useState(emptySessionsOverviewResponse);
     const paginationOffset = 5
-
-    const getDefaultPaginatorStart = () => {
-        let start = searchParams.get('paginatorStart')
-        if (start) {
-            return parseInt(start)
-        } else {
-            return 1
-        }
-    }
-
-    const getDefaultPaginatorEnd = () => {
-        let end = searchParams.get('paginatorEnd')
-        if (end) {
-            return parseInt(end)
-        } else {
-            return paginationOffset
-        }
-    }
-
-    const [paginationRange, setPaginationRange] = useState({ start: getDefaultPaginatorStart(), end: getDefaultPaginatorEnd() })
+    const [paginationRange, setPaginationRange] = useState({ start: 1, end: paginationOffset })
     const [paginationDirection, setPaginationDirection] = useState(PaginationDirection.None)
 
-    const getKeyId = () => {
-        var keyId = searchParams.get('keyId')
+    const getSessionsOverview = async () => {
+        setSessionsOverviewApiStatus(SessionsOverviewApiStatus.Loading)
+
+        // Set key id if user has paginated. Last index of current list if forward navigation, first index if backward
+        var keyId = null
         if (sessionsOverview.results !== null && sessionsOverview.results.length > 0) {
             if (paginationDirection === PaginationDirection.Forward) {
                 keyId = sessionsOverview.results[sessionsOverview.results.length - 1].session_id
@@ -51,49 +33,12 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                 keyId = sessionsOverview.results[0].session_id
             }
         }
-        return keyId
-    }
 
-    const getLimit = () => {
         // Invert limit if paginating backward
         var limit = paginationOffset
         if (paginationDirection === PaginationDirection.Backward) {
             limit = - limit
         }
-        return limit
-    }
-
-    const updateUrlWithPaginatorData = () => {
-        const params = new URLSearchParams(searchParams.toString());
-
-        const keyId = getKeyId()
-
-        if (!keyId) {
-            return
-        }
-
-        params.set('keyId', keyId)
-        params.set('paginatorStart', paginationRange.start.toString())
-        params.set('paginatorEnd', paginationRange.end.toString())
-
-        router.replace(`?${params.toString()}`, { scroll: false });
-    }
-
-    const clearUrlPaginatorData = () => {
-        const params = new URLSearchParams(searchParams.toString());
-
-        params.delete('keyId')
-        params.delete('paginatorStart')
-        params.delete('paginatorEnd')
-
-        router.replace(`?${params.toString()}`, { scroll: false });
-    }
-
-    const getSessionsOverview = async () => {
-        setSessionsOverviewApiStatus(SessionsOverviewApiStatus.Loading)
-
-        const keyId = getKeyId()
-        const limit = getLimit()
 
         const result = await fetchSessionsOverviewFromServer(filters, keyId, limit, router)
 
@@ -101,13 +46,11 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
             case SessionsOverviewApiStatus.Error:
                 setPaginationDirection(PaginationDirection.None) // Reset pagination direction to None after API call so that a change in any filters does not cause keyId to be added to the next API call
                 setSessionsOverviewApiStatus(SessionsOverviewApiStatus.Error)
-                clearUrlPaginatorData()
                 break
             case SessionsOverviewApiStatus.Success:
                 setPaginationDirection(PaginationDirection.None) // Reset pagination direction to None after API call so that a change in any filters does not cause keyId to be added to the next API call
                 setSessionsOverviewApiStatus(SessionsOverviewApiStatus.Success)
                 setSessionsOverview(result.data)
-                updateUrlWithPaginatorData()
                 break
         }
     }
@@ -120,12 +63,11 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
         getSessionsOverview()
     }, [paginationRange, filters]);
 
-    // Reset pagination range on filters change
+    // Reset pagination range if not in default if any filters change
     useEffect(() => {
         // If we reset pagination range even if values haven't changed, we will trigger
         // an unnecessary getSessionsOverview effect
-        if (paginationRange.start === getDefaultPaginatorStart()
-            && paginationRange.end === getDefaultPaginatorEnd()) {
+        if (paginationRange.start === 1 && paginationRange.end === paginationOffset) {
             return
         }
 
