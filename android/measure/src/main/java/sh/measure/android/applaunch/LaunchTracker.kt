@@ -86,7 +86,7 @@ internal class LaunchTracker(
     private fun appMightBecomeVisible() {
         LaunchState.lastAppVisibleTime = SystemClock.uptimeMillis()
         logger.log(
-            LogLevel.Error,
+            LogLevel.Debug,
             "Updated last app visible time: ${LaunchState.lastAppVisibleTime}",
         )
     }
