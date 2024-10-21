@@ -25,7 +25,6 @@ import sh.measure.android.networkchange.NetworkChangeData
 import sh.measure.android.networkchange.NetworkGeneration
 import sh.measure.android.okhttp.HttpData
 import sh.measure.android.performance.CpuUsageData
-import sh.measure.android.performance.LowMemoryData
 import sh.measure.android.performance.MemoryUsageData
 import sh.measure.android.performance.TrimMemoryData
 import sh.measure.android.storage.AttachmentEntity
@@ -261,26 +260,6 @@ internal object TestData {
             nativeTotalHeap,
             nativeFreeHeap,
             interval,
-        )
-    }
-
-    fun getLowMemoryData(
-        javaMaxHeap: Long = 100,
-        javaTotalHeap: Long = 200,
-        javaFreeHeap: Long = 300,
-        totalPss: Int = 400,
-        rss: Long? = 500,
-        nativeTotalHeap: Long = 600,
-        nativeFreeHeap: Long = 700,
-    ): LowMemoryData {
-        return LowMemoryData(
-            javaMaxHeap,
-            javaTotalHeap,
-            javaFreeHeap,
-            totalPss,
-            rss,
-            nativeTotalHeap,
-            nativeFreeHeap,
         )
     }
 

@@ -317,7 +317,6 @@ internal class MeasureInitializerImpl(
         application = application,
         timeProvider = timeProvider,
         eventProcessor = eventProcessor,
-        memoryReader = memoryReader,
     ),
     override val lifecycleCollector: LifecycleCollector = LifecycleCollector(
         application = application,

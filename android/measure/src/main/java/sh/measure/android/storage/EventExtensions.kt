@@ -20,7 +20,6 @@ import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.networkchange.NetworkChangeData
 import sh.measure.android.okhttp.HttpData
 import sh.measure.android.performance.CpuUsageData
-import sh.measure.android.performance.LowMemoryData
 import sh.measure.android.performance.MemoryUsageData
 import sh.measure.android.performance.TrimMemoryData
 import sh.measure.android.utils.toJsonElement
@@ -125,10 +124,6 @@ internal fun <T> Event<T>.serializeDataToString(): String {
 
         EventType.MEMORY_USAGE -> {
             Json.encodeToString(MemoryUsageData.serializer(), data as MemoryUsageData)
-        }
-
-        EventType.LOW_MEMORY -> {
-            Json.encodeToString(LowMemoryData.serializer(), data as LowMemoryData)
         }
 
         EventType.TRIM_MEMORY -> {
