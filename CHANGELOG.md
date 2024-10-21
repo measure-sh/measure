@@ -1640,23 +1640,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Talk about session idempotency (#61) by @detj in #61
 - Throw some light on tailing clickhouse logs (#60) by @detj in #60
 - Update contribution guide (#53) by @detj in #53
-- Improve self hosting guide by @detj
-- Improve self hosting docs by @detj
-- Wrote basic self hosting guide by @detj
-- Improve meaning by @detj
-- Improve meaning by @detj
-- Improve meaning by @detj
-- Improve meaning by @detj
-- Add success & failure response shapes by @detj
-- Improve meaning by @detj
-- Improve meaning by @detj
-- Add charset utf8 by @detj
-- Fix formatting by @detj
-- Add named anchors by @detj
-- Fix links by @detj
-- Add basic api docs by @detj
-- Update measure-go readme by @detj
-- Add contributing file by @detj
+- Improve self hosting guide
+- Improve self hosting docs
+- Wrote basic self hosting guide
+- Improve meaning
+- Improve meaning
+- Improve meaning
+- Improve meaning
+- Add success & failure response shapes
+- Improve meaning
+- Improve meaning
+- Add charset utf8
+- Fix formatting
+- Add named anchors
+- Fix links
+- Add basic api docs
+- Update measure-go readme
+- Add contributing file
 
 - (**webapp**): Replace team/:id/invite docs with /auth/invite docs by @anupcowkur in #367
 - (**webapp**): Add API docs for crash & ANR groups APIs by @anupcowkur in #350
