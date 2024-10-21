@@ -18,10 +18,10 @@ final class MockTimeProvider: TimeProvider {
         return iso8601Timestamp
     }
 
-    init(currentTimeSinceEpochInMillis: Number,
-         currentTimeSinceEpochInNanos: Number,
-         uptimeInMillis: Number,
-         iso8601Timestamp: String) {
+    init(currentTimeSinceEpochInMillis: Number = 0,
+         currentTimeSinceEpochInNanos: Number = 0,
+         uptimeInMillis: Number = 0,
+         iso8601Timestamp: String = "") {
         self.currentTimeSinceEpochInMillis = currentTimeSinceEpochInMillis
         self.currentTimeSinceEpochInNanos = currentTimeSinceEpochInNanos
         self.uptimeInMillis = uptimeInMillis

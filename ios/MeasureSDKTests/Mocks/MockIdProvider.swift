@@ -15,7 +15,7 @@ final class MockIdProvider: IdProvider {
         return idString
     }
 
-    init(_ id: String) {
+    init(_ id: String = "") {
         idString = id
     }
 }

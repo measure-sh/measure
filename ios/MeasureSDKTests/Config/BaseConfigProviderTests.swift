@@ -67,5 +67,10 @@ final class BaseConfigProviderTests: XCTestCase {
         XCTAssertEqual(baseConfigProvider.trackScreenshotOnCrash, false)
         XCTAssertEqual(baseConfigProvider.sessionEndThresholdMs, 60000)
         XCTAssertEqual(baseConfigProvider.eventsBatchingIntervalMs, 30000)
+        XCTAssertEqual(baseConfigProvider.maxEventsInBatch, 500)
+        XCTAssertEqual(baseConfigProvider.sessionEndThresholdMs, 60000)
+        XCTAssertEqual(baseConfigProvider.longPressTimeout, 0.5)
+        XCTAssertEqual(baseConfigProvider.scaledTouchSlop, 3.5)
+        XCTAssertEqual(baseConfigProvider.maxAttachmentSizeInEventsBatchInBytes, 3_000_000)
     }
 }
