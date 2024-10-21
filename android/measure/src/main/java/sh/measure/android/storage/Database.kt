@@ -459,7 +459,12 @@ internal class DatabaseImpl(
                     put(AppExitTable.COL_PID, session.pid)
                     put(AppExitTable.COL_CREATED_AT, session.createdAt)
                 }
-                writableDatabase.insert(AppExitTable.TABLE_NAME, null, appExitValues)
+                writableDatabase.insertWithOnConflict(
+                    AppExitTable.TABLE_NAME,
+                    null,
+                    appExitValues,
+                    SQLiteDatabase.CONFLICT_IGNORE,
+                )
             } else {
                 0
             }
@@ -505,10 +510,11 @@ internal class DatabaseImpl(
                     put(AppExitTable.COL_PID, pid)
                     put(AppExitTable.COL_CREATED_AT, createdAt)
                 }
-                writableDatabase.insert(
+                writableDatabase.insertWithOnConflict(
                     AppExitTable.TABLE_NAME,
                     null,
                     appExitValues,
+                    SQLiteDatabase.CONFLICT_IGNORE,
                 )
             } else {
                 0
