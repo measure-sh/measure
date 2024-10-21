@@ -17,6 +17,9 @@ final class MeasureInternal {
     private var logger: Logger {
         return measureInitializer.logger
     }
+    private var client: Client {
+        return measureInitializer.client
+    }
     private var sessionManager: SessionManager {
         return measureInitializer.sessionManager
     }
@@ -79,6 +82,18 @@ final class MeasureInternal {
     private var gestureCollector: GestureCollector {
         return measureInitializer.gestureCollector
     }
+    private var networkClient: NetworkClient {
+        return measureInitializer.networkClient
+    }
+    private var httpClient: HttpClient {
+        return measureInitializer.httpClient
+    }
+    private var heartbeat: Heartbeat {
+        return measureInitializer.heartbeat
+    }
+    private var periodicEventExporter: PeriodicEventExporter {
+        return measureInitializer.periodicEventExporter
+    }
     private let lifecycleObserver: LifecycleObserver
 
     init(_ measureInitializer: MeasureInitializer) {
@@ -102,16 +117,18 @@ final class MeasureInternal {
     }
 
     private func applicationDidEnterBackground() {
-        sessionManager.applicationDidEnterBackground()
         self.crashDataPersistence.isForeground = false
+        self.sessionManager.applicationDidEnterBackground()
+        self.periodicEventExporter.applicationDidEnterBackground()
     }
 
     private func applicationWillEnterForeground() {
-        sessionManager.applicationWillEnterForeground()
         self.crashDataPersistence.isForeground = true
+        self.sessionManager.applicationWillEnterForeground()
+        self.periodicEventExporter.applicationWillEnterForeground()
     }
 
     private func applicationWillTerminate() {
-        sessionManager.applicationWillTerminate()
+        self.sessionManager.applicationWillTerminate()
     }
 }
