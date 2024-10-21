@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { ResponsiveLine } from '@nivo/line'
 import { emptySessionReplay } from '../api/api_calls'
 import SessionReplayEventAccordion from './session_replay_event_accordion'
@@ -115,6 +115,11 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
 
   const [selectedThreads, setSelectedThreads] = useState(threads)
   const [selectedEventTypes, setSelectedEventTypes] = useState(eventTypes)
+  const [filteredEvents, setFilteredEvents] = useState(events)
+
+  useEffect(() => {
+    setFilteredEvents(events.filter((e) => selectedThreads.includes(e.thread) && selectedEventTypes.includes(e.eventType)))
+  }, [selectedThreads, selectedEventTypes]);
 
   return (
     <div className="flex flex-col w-screen font-sans text-black">
@@ -297,11 +302,11 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
           <DropdownSelect type={DropdownSelectType.MultiString} title="Event types" items={eventTypes} initialSelected={selectedEventTypes} onChangeSelected={(items) => setSelectedEventTypes(items as string[])} />
         </div>
         <div className="py-8" />
-        {events.filter((e) => selectedThreads.includes(e.thread) && selectedEventTypes.includes(e.eventType)).map((e, index) => (
+        {filteredEvents.map((e, index) => (
           <div key={index} className={"ml-16 w-3/5"}>
             {index > 0 && <div className='py-2' />}
             {index > 0 &&
-              <SessionReplayEventVerticalConnector milliseconds={DateTime.fromISO(e.timestamp, { zone: 'utc' }).toMillis() - DateTime.fromISO(events[index - 1].timestamp, { zone: 'utc' }).toMillis()} />
+              <SessionReplayEventVerticalConnector milliseconds={DateTime.fromISO(e.timestamp, { zone: 'utc' }).toMillis() - DateTime.fromISO(filteredEvents[index - 1].timestamp, { zone: 'utc' }).toMillis()} />
             }
             {index > 0 && <div className='py-2' />}
             <SessionReplayEventAccordion teamId={teamId} appId={appId} eventType={e.eventType} eventDetails={e.details} timestamp={e.timestamp} threadName={e.thread} id={`${e.eventType}-${index}`} active={false} />
