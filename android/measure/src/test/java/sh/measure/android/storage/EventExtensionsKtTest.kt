@@ -91,9 +91,6 @@ class EventExtensionsKtTest {
 
         val screenViewEvent = TestData.getScreenViewData().toEvent(type = EventType.SCREEN_VIEW)
         assert(screenViewEvent.serializeDataToString().isNotEmpty())
-
-        val lowMemoryEvent = TestData.getLowMemoryData().toEvent(type = EventType.LOW_MEMORY)
-        assert(lowMemoryEvent.serializeDataToString().isNotEmpty())
     }
 
     @Test

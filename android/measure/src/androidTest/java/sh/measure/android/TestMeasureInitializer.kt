@@ -296,7 +296,6 @@ internal class TestMeasureInitializer(
         application = application,
         timeProvider = timeProvider,
         eventProcessor = eventProcessor,
-        memoryReader = memoryReader,
     ),
     override val lifecycleCollector: LifecycleCollector = LifecycleCollector(
         application = application,
