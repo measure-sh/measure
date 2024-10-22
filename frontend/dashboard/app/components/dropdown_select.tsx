@@ -146,7 +146,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
   const searchInputStyle = "w-full bg-neutral-950 text-white text-sm border border-white rounded-md focus-visible:ring-yellow-300 py-2 px-4 font-sans placeholder:text-gray-400"
 
   return (
-    <div className="relative inline-block text-left" ref={dropdownRef} >
+    <div className="relative inline-block text-left select-none" ref={dropdownRef} >
       <div>
         <button
           type="button"
