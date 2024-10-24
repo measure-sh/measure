@@ -151,7 +151,8 @@ class SessionManagerTest {
                 crashed = false,
             ),
         )
-        timeProvider.fakeElapsedRealtime = recentSessionCreatedAtTime + configProvider.maxSessionDurationMs
+        timeProvider.fakeElapsedRealtime =
+            recentSessionCreatedAtTime + configProvider.maxSessionDurationMs
 
         // When
         sessionManager.init()
@@ -326,17 +327,22 @@ class SessionManagerTest {
     }
 
     @Test
-    fun `continues session when app comes to foreground for first time`() {
-        // Given
+    fun `creates new session if elapsed time is zero due to device boot`() {
+        // Given a recent session
+        val initialSessionId = "initial-session-id"
+        idProvider.id = initialSessionId
+        val initialTime = 1000L
+        timeProvider.fakeElapsedRealtime = initialTime
+        `when`(prefsStorage.getRecentSession()).thenReturn(
+            RecentSession(initialSessionId, createdAt = initialTime, lastEventTime = initialTime),
+        )
+
+        val expectedSessionId = "new-session-id"
+        idProvider.id = expectedSessionId
+        timeProvider.fakeElapsedRealtime = 0
         sessionManager.init()
-        val initialSessionId = sessionManager.getSessionId()
 
-        idProvider.id = "new-session-id"
-
-        // When
-        sessionManager.onAppForeground()
-
-        assertEquals(initialSessionId, sessionManager.getSessionId())
+        assertEquals(expectedSessionId, sessionManager.getSessionId())
     }
 
     @Test

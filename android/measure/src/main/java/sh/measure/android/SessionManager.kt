@@ -207,6 +207,14 @@ internal class SessionManagerImpl(
         if (recentSession.hasTrackedEvent()) {
             val elapsedTime =
                 timeProvider.elapsedRealtime - recentSession.lastEventTime
+
+            // Elapsed time can be negative as we're using [timeProvider.elapsedRealtime]
+            // which can get reset to 0 when the device boots. In such a case we create a new
+            // session.
+            if (elapsedTime < 0) {
+                return false
+            }
+
             return elapsedTime <= configProvider.sessionEndLastEventThresholdMs
         }
         return true
