@@ -47,12 +47,16 @@ class SessionTestRobot {
         }
     }
 
-    fun incrementTimeBeyondSessionThreshold() {
-        timeProvider.elapsedRealtime += configProvider.sessionEndThresholdMs + 1000
+    fun incrementTimeBeyondLastEventThreshold() {
+        timeProvider.elapsedRealtime += configProvider.sessionEndLastEventThresholdMs + 1000
     }
 
     fun incrementTimeWithinSessionThreshold() {
-        timeProvider.elapsedRealtime += configProvider.sessionEndThresholdMs - 1000
+        timeProvider.elapsedRealtime += configProvider.sessionEndLastEventThresholdMs - 1000
+    }
+
+    fun incrementTimeBeyondMaxSessionDuration() {
+        timeProvider.elapsedRealtime += configProvider.maxSessionDurationMs + 100
     }
 
     fun moveAppToBackground() {
@@ -86,5 +90,13 @@ class SessionTestRobot {
             attributes = mutableMapOf(),
             attachments = mutableListOf(),
         )
+    }
+
+    fun setSessionMaxDurationConfig(maxDuration: Long) {
+        configProvider.maxSessionDurationMs = maxDuration
+    }
+
+    fun setSessionEndThresholdConfig(threshold: Long) {
+        configProvider.sessionEndLastEventThresholdMs = threshold
     }
 }

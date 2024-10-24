@@ -68,7 +68,7 @@ internal interface SessionManager {
  * Manages creation of sessions.
  *
  * A new session is created when [getSessionId] is first called. A session ends when the app comes
- * back to foreground after being in background for more than [ConfigProvider.sessionEndThresholdMs].
+ * back to foreground after being in background for more than [ConfigProvider.sessionEndLastEventThresholdMs].
  */
 internal class SessionManagerImpl(
     private val logger: Logger,
@@ -198,11 +198,16 @@ internal class SessionManagerImpl(
             return false
         }
 
+        val sessionDuration = timeProvider.elapsedRealtime - recentSession.createdAt
+        if (sessionDuration >= configProvider.maxSessionDurationMs) {
+            return false
+        }
+
         // Continue session if no event have been tracked yet.
         if (recentSession.hasTrackedEvent()) {
             val elapsedTime =
                 timeProvider.elapsedRealtime - recentSession.lastEventTime
-            return elapsedTime <= configProvider.sessionEndThresholdMs
+            return elapsedTime <= configProvider.sessionEndLastEventThresholdMs
         }
         return true
     }

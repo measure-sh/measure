@@ -101,7 +101,7 @@ class SessionManagerTest {
             ),
         )
         timeProvider.fakeElapsedRealtime = lastEventTime + 5000
-        configProvider.sessionEndThresholdMs = lastEventTime + 1000
+        configProvider.sessionEndLastEventThresholdMs = lastEventTime + 1000
 
         // When
         sessionManager.init()
@@ -126,7 +126,32 @@ class SessionManagerTest {
             ),
         )
         timeProvider.fakeElapsedRealtime = lastEventTIme + 1000
-        configProvider.sessionEndThresholdMs = lastEventTIme + 10000
+        configProvider.sessionEndLastEventThresholdMs = lastEventTIme + 10000
+
+        // When
+        sessionManager.init()
+        val sessionId = sessionManager.getSessionId()
+
+        // Then
+        assertEquals(expectedSessionId, sessionId)
+    }
+
+    @Test
+    fun `starts new session if max session duration has been reached`() {
+        // Given
+        configProvider.maxSessionDurationMs = 500
+        val recentSessionCreatedAtTime = 1000L
+        val expectedSessionId = "new-session-id"
+        idProvider.id = expectedSessionId
+        `when`(prefsStorage.getRecentSession()).thenReturn(
+            RecentSession(
+                id = "previous-session-id",
+                lastEventTime = 1000L,
+                createdAt = recentSessionCreatedAtTime,
+                crashed = false,
+            ),
+        )
+        timeProvider.fakeElapsedRealtime = recentSessionCreatedAtTime + configProvider.maxSessionDurationMs
 
         // When
         sessionManager.init()
@@ -139,7 +164,7 @@ class SessionManagerTest {
     @Test
     fun `creates new session if last session crashed even if last event happened within threshold time`() {
         // Given
-        configProvider.sessionEndThresholdMs = 100000L
+        configProvider.sessionEndLastEventThresholdMs = 100000L
         val sessionCreatedAt = 1000L
         timeProvider.fakeElapsedRealtime = sessionCreatedAt
         sessionManager.init()
@@ -190,7 +215,7 @@ class SessionManagerTest {
             ),
         )
         timeProvider.fakeElapsedRealtime = lastEventTIme + 1000
-        configProvider.sessionEndThresholdMs = lastEventTIme + 10000
+        configProvider.sessionEndLastEventThresholdMs = lastEventTIme + 10000
 
         // When
         sessionManager.init()
@@ -250,7 +275,7 @@ class SessionManagerTest {
     @Test
     fun `creates new session when app comes back to foreground after threshold time`() {
         // Given
-        configProvider.sessionEndThresholdMs = 100L
+        configProvider.sessionEndLastEventThresholdMs = 100L
         sessionManager.init()
         sessionManager.onAppForeground()
 
@@ -279,7 +304,7 @@ class SessionManagerTest {
         `when`(prefsStorage.getRecentSession()).thenReturn(RecentSession(expectedSessionId, 9876))
         `when`(database.insertSession(any())).thenReturn(true)
 
-        configProvider.sessionEndThresholdMs = 10000L
+        configProvider.sessionEndLastEventThresholdMs = 10000L
         sessionManager.init()
         sessionManager.onAppForeground()
 

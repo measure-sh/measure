@@ -27,7 +27,8 @@ internal class FakeConfigProvider : ConfigProvider {
     override var maxEventsInBatch: Int = 100
     override var httpContentTypeAllowlist: List<String> = emptyList()
     override var defaultHttpHeadersBlocklist: List<String> = emptyList()
-    override var sessionEndThresholdMs: Long = 60 * 1000 // 1 minute
+    override var sessionEndLastEventThresholdMs: Long = 60 * 1000 // 1 minute
+    override var maxSessionDurationMs: Long = 6 * 60 * 60 * 1000 // 6 hours
     override var maxUserDefinedAttributeKeyLength: Int = 64
     override var maxUserDefinedAttributeValueLength: Int = 256
     override var userDefinedAttributeKeyWithSpaces: Boolean = false
