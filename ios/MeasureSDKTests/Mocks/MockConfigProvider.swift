@@ -9,6 +9,7 @@ import Foundation
 @testable import MeasureSDK
 
 final class MockConfigProvider: ConfigProvider {
+    var maxSessionDurationMs: Number
     var enableLogging: Bool
     var trackScreenshotOnCrash: Bool
     var sessionSamplingRate: Float
@@ -29,7 +30,8 @@ final class MockConfigProvider: ConfigProvider {
          scaledTouchSlop: CGFloat = 3.5,
          maxAttachmentSizeInEventsBatchInBytes: Number = 3_000_000,
          maxEventsInBatch: Number = 500,
-         timeoutIntervalForRequest: TimeInterval = 30) {
+         timeoutIntervalForRequest: TimeInterval = 30,
+         maxSessionDurationMs: Number = 60 * 60 * 1000) {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
         self.sessionSamplingRate = sessionSamplingRate
@@ -40,6 +42,7 @@ final class MockConfigProvider: ConfigProvider {
         self.maxAttachmentSizeInEventsBatchInBytes = maxAttachmentSizeInEventsBatchInBytes
         self.maxEventsInBatch = maxEventsInBatch
         self.timeoutIntervalForRequest = timeoutIntervalForRequest
+        self.maxSessionDurationMs = maxSessionDurationMs
     }
 
     func loadNetworkConfig() {}

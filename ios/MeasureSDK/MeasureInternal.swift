@@ -29,9 +29,6 @@ final class MeasureInternal {
     private var configProvider: ConfigProvider {
         return measureInitializer.configProvider
     }
-    private var systemTime: SystemTime {
-        return measureInitializer.systemTime
-    }
     private var appAttributeProcessor: AppAttributeProcessor {
         return measureInitializer.appAttributeProcessor
     }
@@ -100,6 +97,7 @@ final class MeasureInternal {
         self.measureInitializer = measureInitializer
         self.lifecycleObserver = LifecycleObserver()
         self.logger.log(level: .info, message: "Starting Measure SDK", error: nil, data: nil)
+        self.sessionManager.setPreviousSessionCrashed(crashReportManager.hasPendingCrashReport)
         self.sessionManager.start()
         self.lifecycleObserver.applicationDidEnterBackground = applicationDidEnterBackground
         self.lifecycleObserver.applicationWillEnterForeground = applicationWillEnterForeground
