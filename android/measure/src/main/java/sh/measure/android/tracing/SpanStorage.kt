@@ -28,3 +28,9 @@ internal class SpanStorage private constructor() {
         }
     }
 }
+
+internal class NoopScope: Scope {
+    override fun close() {
+        // No-op
+    }
+}

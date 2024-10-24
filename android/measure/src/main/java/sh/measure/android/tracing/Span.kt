@@ -64,5 +64,9 @@ interface Span {
         internal fun current(): Span? {
             return SpanStorage.instance.current()
         }
+
+        internal fun invalid(): Span {
+            return InvalidSpan()
+        }
     }
 }
