@@ -9,7 +9,9 @@ import Foundation
 @testable import MeasureSDK
 
 final class MockSessionManager: SessionManager {
-    var sessionId: String
+    var sessionId: String = ""
+    var isPreviousSessionCrashed = false
+    var trackedEvent: EventEntity?
 
     init(sessionId: String) {
         self.sessionId = sessionId
@@ -19,4 +21,11 @@ final class MockSessionManager: SessionManager {
     func applicationDidEnterBackground() {}
     func applicationWillEnterForeground() {}
     func applicationWillTerminate() {}
+    func onEventTracked(_ event: EventEntity) {
+        trackedEvent = event
+    }
+
+    func setPreviousSessionCrashed(_ crashed: Bool) {
+        isPreviousSessionCrashed = crashed
+    }
 }

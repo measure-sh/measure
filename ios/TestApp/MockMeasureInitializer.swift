@@ -17,7 +17,6 @@ final class MockMeasureInitializer: MeasureInitializer {
     let sessionManager: SessionManager
     let idProvider: IdProvider
     let timeProvider: TimeProvider
-    let systemTime: SystemTime
     let userDefaultStorage: UserDefaultStorage
     let appAttributeProcessor: AppAttributeProcessor
     let deviceAttributeProcessor: DeviceAttributeProcessor
@@ -49,8 +48,7 @@ final class MockMeasureInitializer: MeasureInitializer {
 
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig,
                                                  configLoader: BaseConfigLoader())
-        self.systemTime = BaseSystemTime()
-        self.timeProvider = SystemTimeProvider(systemTime: self.systemTime)
+        self.timeProvider = BaseTimeProvider()
         self.logger = MockLogger()
         self.idProvider = UUIDProvider()
         self.coreDataManager = BaseCoreDataManager()
@@ -58,12 +56,13 @@ final class MockMeasureInitializer: MeasureInitializer {
                                              logger: logger)
         self.eventStore = BaseEventStore(coreDataManager: coreDataManager,
                                          logger: logger)
+        self.userDefaultStorage = BaseUserDefaultStorage()
         self.sessionManager = BaseSessionManager(idProvider: idProvider,
                                                  logger: logger,
                                                  timeProvider: timeProvider,
                                                  configProvider: configProvider,
-                                                 sessionStore: sessionStore)
-        self.userDefaultStorage = BaseUserDefaultStorage()
+                                                 sessionStore: sessionStore,
+                                                 userDefaultStorage: userDefaultStorage)
         self.appAttributeProcessor = AppAttributeProcessor()
         self.deviceAttributeProcessor = DeviceAttributeProcessor()
         self.installationIdAttributeProcessor = InstallationIdAttributeProcessor(userDefaultStorage: userDefaultStorage,
@@ -84,7 +83,7 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                  sessionManager: sessionManager,
                                                  attributeProcessors: attributeProcessors,
                                                  configProvider: configProvider,
-                                                 systemTime: systemTime,
+                                                 timeProvider: timeProvider,
                                                  crashDataPersistence: crashDataPersistence,
                                                  eventStore: eventStore)
         self.systemCrashReporter = BaseSystemCrashReporter()

@@ -16,12 +16,13 @@ final class SessionManagerTests: XCTestCase {
     var randomizer: MockRandomizer!
     var timeProvider: TimeProvider!
     var sessionStore: SessionStore!
+    var userDefaultStorage = MockUserDefaultStorage()
 
     override func setUp() {
         super.setUp()
         idProvider = MockIdProvider("test-session-id-1")
         logger = MockLogger()
-        timeProvider = SystemTimeProvider(systemTime: BaseSystemTime())
+        timeProvider = BaseTimeProvider()
         configProvider = MockConfigProvider(enableLogging: false,
                                             trackScreenshotOnCrash: false,
                                             sessionSamplingRate: 1.0,
@@ -39,7 +40,8 @@ final class SessionManagerTests: XCTestCase {
                                             timeProvider: timeProvider,
                                             configProvider: configProvider,
                                             randomizer: randomizer,
-                                            sessionStore: sessionStore)
+                                            sessionStore: sessionStore,
+                                            userDefaultStorage: userDefaultStorage)
     }
 
     override func tearDown() {
