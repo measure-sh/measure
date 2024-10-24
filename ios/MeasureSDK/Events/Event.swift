@@ -18,6 +18,9 @@ final class Event<T: Codable>: Codable {
     /// The timestamp of the event. The time when the event was triggered, measured in milliseconds since epoch.
     let timestamp: String
 
+    /// The timestamp of the event in milliseconds.
+    let timestampInMillis: Number?
+
     /// The type of the event.
     let type: EventType
 
@@ -33,7 +36,7 @@ final class Event<T: Codable>: Codable {
     /// A flag to indicate if the event is triggered by the user or the SDK.
     let userTriggered: Bool
 
-    init(id: String, sessionId: String, timestamp: String, type: EventType, data: T?, attachments: [Attachment]?, attributes: Attributes?, userTriggered: Bool) {
+    init(id: String, sessionId: String, timestamp: String, timestampInMillis: Number, type: EventType, data: T?, attachments: [Attachment]?, attributes: Attributes?, userTriggered: Bool) {
         self.id = id
         self.sessionId = sessionId
         self.timestamp = timestamp
@@ -42,6 +45,7 @@ final class Event<T: Codable>: Codable {
         self.attachments = attachments
         self.attributes = attributes
         self.userTriggered = userTriggered
+        self.timestampInMillis = timestampInMillis
     }
 
     enum CodingKeys: String, CodingKey {
@@ -53,6 +57,7 @@ final class Event<T: Codable>: Codable {
         case attachments
         case attributes
         case userTriggered = "user_triggered"
+        case timestampInMillis
     }
 
     func appendAttributes(_ attributeProcessors: [AttributeProcessor]) {

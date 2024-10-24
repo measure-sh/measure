@@ -33,6 +33,18 @@ final class BaseConfigProvider: ConfigProvider {
         self.cachedConfig = configLoader.getCachedConfig()
     }
 
+    var maxAttachmentSizeInEventsBatchInBytes: Number {
+        return getMergedConfig(\.maxAttachmentSizeInEventsBatchInBytes)
+    }
+
+    var timeoutIntervalForRequest: TimeInterval {
+        return getMergedConfig(\.timeoutIntervalForRequest)
+    }
+
+    var maxEventsInBatch: Number {
+        return getMergedConfig(\.maxEventsInBatch)
+    }
+
     var sessionSamplingRate: Float {
         return getMergedConfig(\.sessionSamplingRate)
     }

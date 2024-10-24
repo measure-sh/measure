@@ -9,6 +9,8 @@ import Foundation
 @testable import MeasureSDK
 
 final class MockMeasureInitializer: MeasureInitializer {
+    let networkClient: NetworkClient
+    let httpClient: HttpClient
     let configProvider: ConfigProvider
     let client: Client
     let logger: Logger
@@ -33,6 +35,11 @@ final class MockMeasureInitializer: MeasureInitializer {
     let eventStore: EventStore
     let gestureCollector: GestureCollector
     let gestureTargetFinder: GestureTargetFinder
+    let periodicEventExporter: PeriodicEventExporter
+    let heartbeat: Heartbeat
+    let eventExporter: EventExporter
+    let batchStore: BatchStore
+    let batchCreator: BatchCreator
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -91,7 +98,30 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                      timeProvider: timeProvider,
                                                      configProvider: configProvider,
                                                      gestureTargetFinder: gestureTargetFinder)
-
+        self.httpClient = BaseHttpClient(logger: logger, configProvider: configProvider)
+        self.networkClient = BaseNetworkClient(client: client,
+                                               httpClient: httpClient,
+                                               eventSerializer: EventSerializer())
+        self.heartbeat = BaseHeartbeat()
+        self.batchStore = BaseBatchStore(coreDataManager: coreDataManager,
+                                         logger: logger)
+        self.batchCreator = BaseBatchCreator(logger: logger,
+                                             idProvider: idProvider,
+                                             configProvider: configProvider,
+                                             timeProvider: timeProvider,
+                                             eventStore: eventStore,
+                                             batchStore: batchStore)
+        self.eventExporter = BaseEventExporter(logger: logger,
+                                               networkClient: networkClient,
+                                               batchCreator: batchCreator,
+                                               batchStore: batchStore,
+                                               eventStore: eventStore)
+        self.periodicEventExporter = BasePeriodicEventExporter(logger: logger,
+                                                               configProvider: configProvider,
+                                                               timeProvider: timeProvider,
+                                                               heartbeat: heartbeat,
+                                                               eventExporter: eventExporter,
+                                                               dispatchQueue: MeasureQueue.periodicEventExporter)
         self.client = client
     }
 }
