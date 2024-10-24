@@ -19,6 +19,9 @@ struct EventEntity {
     let gestureLongClick: Data?
     let gestureScroll: Data?
     let userTriggered: Bool
+    let attachmentSize: Number
+    let timestampInMillis: Number
+    var batchId: String?
 
     init<T: Codable>(_ event: Event<T>) { // swiftlint:disable:this cyclomatic_complexity function_body_length
         self.id = event.id
@@ -26,6 +29,9 @@ struct EventEntity {
         self.timestamp = event.timestamp
         self.type = event.type.rawValue
         self.userTriggered = event.userTriggered
+        self.timestampInMillis = event.timestampInMillis ?? 0
+        self.attachmentSize = 0
+        self.batchId = nil
 
         if let exception = event.data as? Exception {
             do {
@@ -100,7 +106,10 @@ struct EventEntity {
          gestureClick: Data?,
          gestureLongClick: Data?,
          gestureScroll: Data?,
-         userTriggered: Bool) {
+         userTriggered: Bool,
+         attachmentSize: Number,
+         timestampInMillis: Number,
+         batchId: String?) {
         self.id = id
         self.sessionId = sessionId
         self.timestamp = timestamp
@@ -112,32 +121,49 @@ struct EventEntity {
         self.gestureClick = gestureClick
         self.gestureLongClick = gestureLongClick
         self.gestureScroll = gestureScroll
+        self.attachmentSize = attachmentSize
+        self.timestampInMillis = timestampInMillis
+        self.batchId = batchId
     }
 
-    func getEvent<T: Codable>() -> Event<T> { // swiftlint:disable:this cyclomatic_complexity
+    func getEvent<T: Codable>() -> Event<T> { // swiftlint:disable:this cyclomatic_complexity function_body_length
         var decodedData: T?
-        if let exceptionData = self.exception {
-            do {
-                decodedData = try JSONDecoder().decode(T.self, from: exceptionData)
-            } catch {}
-        }
-
-        if let gestureClickData = self.gestureClick {
-            do {
-                decodedData = try JSONDecoder().decode(T.self, from: gestureClickData)
-            } catch {}
-        }
-
-        if let gestureLongClickData = self.gestureLongClick {
-            do {
-                decodedData = try JSONDecoder().decode(T.self, from: gestureLongClickData)
-            } catch {}
-        }
-
-        if let gestureScrollData = self.gestureScroll {
-            do {
-                decodedData = try JSONDecoder().decode(T.self, from: gestureScrollData)
-            } catch {}
+        let eventType = EventType(rawValue: type)
+        switch eventType {
+        case .exception:
+            if let exceptionData = self.exception {
+                do {
+                    decodedData = try JSONDecoder().decode(T.self, from: exceptionData)
+                } catch {
+                    decodedData = nil
+                }
+            }
+        case .gestureClick:
+            if let gestureClickData = self.gestureClick {
+                do {
+                    decodedData = try JSONDecoder().decode(T.self, from: gestureClickData)
+                } catch {
+                    decodedData = nil
+                }
+            }
+        case .gestureLongClick:
+            if let gestureLongClickData = self.gestureLongClick {
+                do {
+                    decodedData = try JSONDecoder().decode(T.self, from: gestureLongClickData)
+                } catch {
+                    decodedData = nil
+                }
+            }
+        case .gestureScroll:
+            if let gestureScrollData = self.gestureScroll {
+                do {
+                    decodedData = try JSONDecoder().decode(T.self, from: gestureScrollData)
+                } catch {
+                    decodedData = nil
+                }
+            }
+        case nil:
+            decodedData = nil
         }
 
         let decodedAttachments: [Attachment]?
@@ -165,6 +191,7 @@ struct EventEntity {
         return Event(id: self.id,
                      sessionId: self.sessionId,
                      timestamp: self.timestamp,
+                     timestampInMillis: self.timestampInMillis,
                      type: EventType(rawValue: self.type) ?? .exception,
                      data: decodedData,
                      attachments: decodedAttachments ?? [Attachment](),

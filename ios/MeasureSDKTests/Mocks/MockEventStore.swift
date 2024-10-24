@@ -10,6 +10,8 @@ import Foundation
 
 final class MockEventStore: EventStore {
     var events = [EventEntity]()
+    var deleteEventsCalled = false
+    var deletedEventIds = [String]()
 
     func insertEvent(event: EventEntity) {
         events.append(event)
@@ -26,10 +28,30 @@ final class MockEventStore: EventStore {
     }
 
     func deleteEvents(eventIds: [String]) {
+        deletedEventIds = eventIds
+        deleteEventsCalled = true
         events.removeAll { eventIds.contains($0.id) }
     }
 
     func getAllEvents() -> [EventEntity]? {
         return events.isEmpty ? nil : events
+    }
+
+    func getUnBatchedEventsWithAttachmentSize(eventCount: Number, ascending: Bool, sessionId: String?) -> [String: Number] {
+        var filteredEvents = sessionId == nil ? events : events.filter { $0.sessionId == sessionId }
+
+        filteredEvents.sort {
+            return ascending ? $0.attachmentSize < $1.attachmentSize : $0.attachmentSize > $1.attachmentSize
+        }
+
+        let limitedEvents = Array(filteredEvents.prefix(Int(eventCount)))
+
+        return Dictionary(uniqueKeysWithValues: limitedEvents.map { ($0.id, $0.attachmentSize) })
+    }
+
+    func updateBatchId(_ batchId: String, for events: [String]) {
+        for index in 0..<self.events.count where events.contains(self.events[index].id) {
+            self.events[index].batchId = batchId
+        }
     }
 }

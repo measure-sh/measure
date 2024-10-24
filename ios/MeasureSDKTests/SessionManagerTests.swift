@@ -28,7 +28,9 @@ final class SessionManagerTests: XCTestCase {
                                             eventsBatchingIntervalMs: 1000,
                                             sessionEndThresholdMs: 1000,
                                             longPressTimeout: 0.5,
-                                            scaledTouchSlop: 20)
+                                            scaledTouchSlop: 20,
+                                            maxAttachmentSizeInEventsBatchInBytes: 30000,
+                                            maxEventsInBatch: 500)
         randomizer = MockRandomizer(0.5)
         sessionStore = BaseSessionStore(coreDataManager: MockCoreDataManager(),
                                         logger: logger)
