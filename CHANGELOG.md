@@ -56,6 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Update incorrect json key name (#1363) by @detj in #1363
 
+- Add call to action for star to README by @gandharva in #1401
+
 ## [0.2.1] - 2024-09-25
 
 ### :bug: Bug fixes
