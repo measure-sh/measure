@@ -140,7 +140,7 @@ internal class NetworkChangesCollector(
 
             eventProcessor.track(
                 type = EventType.NETWORK_CHANGE,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                timestamp = timeProvider.now(),
                 data = NetworkChangeData(
                     previous_network_type = previousNetworkType,
                     network_type = newNetworkType,
@@ -165,7 +165,7 @@ internal class NetworkChangesCollector(
             }
             eventProcessor.track(
                 type = EventType.NETWORK_CHANGE,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                timestamp = timeProvider.now(),
                 data = NetworkChangeData(
                     previous_network_type = previousNetworkType,
                     network_type = newNetworkType,

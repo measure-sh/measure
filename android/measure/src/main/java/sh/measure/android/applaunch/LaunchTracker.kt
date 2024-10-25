@@ -3,13 +3,13 @@ package sh.measure.android.applaunch
 import android.app.Activity
 import android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
 import android.os.Bundle
-import android.os.SystemClock
 import curtains.onNextDraw
 import sh.measure.android.lifecycle.ActivityLifecycleAdapter
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.mainHandler
 import sh.measure.android.postAtFrontOfQueueAsync
+import sh.measure.android.utils.TimeProvider
 
 internal interface LaunchCallbacks {
     fun onColdLaunch(coldLaunchData: ColdLaunchData)
@@ -23,6 +23,7 @@ internal interface LaunchCallbacks {
  */
 internal class LaunchTracker(
     private val logger: Logger,
+    private val timeProvider: TimeProvider,
     private val callbacks: LaunchCallbacks,
 ) : ActivityLifecycleAdapter {
 
@@ -84,7 +85,7 @@ internal class LaunchTracker(
     }
 
     private fun appMightBecomeVisible() {
-        LaunchState.lastAppVisibleTime = SystemClock.uptimeMillis()
+        LaunchState.lastAppVisibleTime = timeProvider.millisTime
         logger.log(
             LogLevel.Debug,
             "Updated last app visible time: ${LaunchState.lastAppVisibleTime}",
@@ -102,7 +103,7 @@ internal class LaunchTracker(
                 if (!launchInProgress) return@postAtFrontOfQueueAsync
                 launchInProgress = false
 
-                val onNextDrawUptime = SystemClock.uptimeMillis()
+                val onNextDrawUptime = timeProvider.millisTime
                 onCreateRecord?.let { onCreateRecord ->
                     when (val launchType = computeLaunchType(onCreateRecord)) {
                         "Cold" -> {

@@ -113,7 +113,7 @@ internal class SessionManagerImpl(
             return
         }
 
-        prefs.setRecentSessionEventTime(timeProvider.elapsedRealtime)
+        prefs.setRecentSessionEventTime(timeProvider.now())
         val crashed = event.isUnhandledException() || event.isAnr()
         if (crashed) {
             prefs.setRecentSessionCrashed()
@@ -131,7 +131,7 @@ internal class SessionManagerImpl(
     }
 
     override fun onAppBackground() {
-        appBackgroundTime = timeProvider.elapsedRealtime
+        appBackgroundTime = timeProvider.millisTime
     }
 
     override fun clearAppExitSessionsBefore(timestamp: Long) {
@@ -145,7 +145,7 @@ internal class SessionManagerImpl(
     private fun createNewSession(): RecentSession {
         val newSessionId = idProvider.createId()
         val needsReporting = shouldMarkSessionForExport()
-        val createdAt = timeProvider.elapsedRealtime
+        val createdAt = timeProvider.now()
         val session = RecentSession(newSessionId, createdAt)
         storeSession(session, needsReporting)
         return session
@@ -198,20 +198,22 @@ internal class SessionManagerImpl(
             return false
         }
 
-        val sessionDuration = timeProvider.elapsedRealtime - recentSession.createdAt
+        val sessionDuration = timeProvider.now() - recentSession.createdAt
+        if (sessionDuration < 0) {
+            // Session duration can be negative due to clock skewness. In such a case create a new
+            // session.
+            return false
+        }
         if (sessionDuration >= configProvider.maxSessionDurationMs) {
             return false
         }
 
-        // Continue session if no event have been tracked yet.
         if (recentSession.hasTrackedEvent()) {
-            val elapsedTime =
-                timeProvider.elapsedRealtime - recentSession.lastEventTime
+            val elapsedTime = timeProvider.now() - recentSession.lastEventTime
 
-            // Elapsed time can be negative as we're using [timeProvider.elapsedRealtime]
-            // which can get reset to 0 when the device boots. In such a case we create a new
-            // session.
             if (elapsedTime < 0) {
+                // Elapsed time can be negative due to clock skewness. In such a case create a new
+                // session.
                 return false
             }
 

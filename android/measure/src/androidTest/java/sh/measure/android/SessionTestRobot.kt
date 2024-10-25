@@ -13,6 +13,8 @@ import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.logger.AndroidLogger
 import sh.measure.android.storage.DatabaseImpl
 import sh.measure.android.storage.SessionsTable
+import sh.measure.android.utils.AndroidTimeProvider
+import java.time.Duration
 
 class SessionTestRobot {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
@@ -20,11 +22,11 @@ class SessionTestRobot {
     private val logger = AndroidLogger(enabled = true)
     private val database = DatabaseImpl(context, logger)
     private val device = UiDevice.getInstance(instrumentation)
-    private val timeProvider = FakeTimeProvider()
+    private val testClock = TestClock.create()
+    private val timeProvider = AndroidTimeProvider(testClock)
     private val configProvider = FakeConfigProvider()
 
     fun initializeMeasure(config: MeasureConfig = MeasureConfig()) {
-        timeProvider.elapsedRealtime = 1000L
         Measure.initForInstrumentationTest(
             TestMeasureInitializer(
                 application = context as Application,
@@ -48,19 +50,19 @@ class SessionTestRobot {
     }
 
     fun incrementTimeBeyondLastEventThreshold() {
-        timeProvider.elapsedRealtime += configProvider.sessionEndLastEventThresholdMs + 1000
+        testClock.advance(Duration.ofMillis(configProvider.sessionEndLastEventThresholdMs + 1000))
     }
 
     fun incrementTimeWithinSessionThreshold() {
-        timeProvider.elapsedRealtime += configProvider.sessionEndLastEventThresholdMs - 1000
+        testClock.advance(Duration.ofMillis(configProvider.sessionEndLastEventThresholdMs - 1000))
     }
 
     fun incrementTimeBeyondMaxSessionDuration() {
-        timeProvider.elapsedRealtime += configProvider.maxSessionDurationMs + 100
+        testClock.advance(Duration.ofMillis(configProvider.maxSessionDurationMs + 100))
     }
 
     fun moveAppToBackground() {
-        timeProvider.elapsedRealtime += 1000
+        testClock.advance(Duration.ofMillis(1000))
         device.pressHome()
         device.waitForIdle()
     }

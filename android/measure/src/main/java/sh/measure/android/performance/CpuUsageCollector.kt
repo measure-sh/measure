@@ -66,7 +66,7 @@ internal class CpuUsageCollector(
         val numCores = osSysConfProvider.get(OsConstants._SC_NPROCESSORS_CONF).toInt()
         val clockSpeedHz = osSysConfProvider.get(OsConstants._SC_CLK_TCK)
         if (clockSpeedHz <= 0L || numCores <= 0L) return
-        val uptime = timeProvider.elapsedRealtime
+        val uptime = timeProvider.millisTime
         val percentageCpuUsage =
             getPercentageCpuUsage(utime, stime, cutime, cstime, uptime, numCores, clockSpeedHz)
         val interval = getInterval(uptime)
@@ -88,7 +88,7 @@ internal class CpuUsageCollector(
         }
         eventProcessor.track(
             type = EventType.CPU_USAGE,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             data = cpuUsageData,
         )
         prevCpuUsageData = cpuUsageData

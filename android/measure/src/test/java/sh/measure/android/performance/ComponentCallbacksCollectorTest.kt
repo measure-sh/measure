@@ -13,11 +13,12 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
-import sh.measure.android.fakes.FakeTimeProvider
+import sh.measure.android.utils.AndroidTimeProvider
+import sh.measure.android.utils.TestClock
 
 internal class ComponentCallbacksCollectorTest {
     private val eventProcessor = mock<EventProcessor>()
-    private val timeProvider = FakeTimeProvider()
+    private val timeProvider = AndroidTimeProvider(TestClock.create())
     private lateinit var componentCallbacksCollector: ComponentCallbacksCollector
 
     @Before
@@ -45,7 +46,7 @@ internal class ComponentCallbacksCollectorTest {
         componentCallbacksCollector.onTrimMemory(trimLevel)
         verify(eventProcessor).track(
             type = EventType.TRIM_MEMORY,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             data = TrimMemoryData(
                 level = expectedLevel,
             ),

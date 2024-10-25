@@ -17,7 +17,7 @@ internal class FragmentLifecycleCollector(
     override fun onFragmentAttached(fm: FragmentManager, f: Fragment, context: Context) {
         eventProcessor.track(
             type = EventType.LIFECYCLE_FRAGMENT,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             data = FragmentLifecycleData(
                 type = FragmentLifecycleType.ATTACHED,
                 parent_activity = f.activity?.javaClass?.name,
@@ -31,7 +31,7 @@ internal class FragmentLifecycleCollector(
     override fun onFragmentResumed(fm: FragmentManager, f: Fragment) {
         eventProcessor.track(
             type = EventType.LIFECYCLE_FRAGMENT,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             data = FragmentLifecycleData(
                 type = FragmentLifecycleType.RESUMED,
                 parent_activity = f.activity?.javaClass?.name,
@@ -45,7 +45,7 @@ internal class FragmentLifecycleCollector(
     override fun onFragmentPaused(fm: FragmentManager, f: Fragment) {
         eventProcessor.track(
             type = EventType.LIFECYCLE_FRAGMENT,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             data = FragmentLifecycleData(
                 type = FragmentLifecycleType.PAUSED,
                 parent_activity = f.activity?.javaClass?.name,
@@ -59,7 +59,7 @@ internal class FragmentLifecycleCollector(
     override fun onFragmentDetached(fm: FragmentManager, f: Fragment) {
         eventProcessor.track(
             type = EventType.LIFECYCLE_FRAGMENT,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             data = FragmentLifecycleData(
                 type = FragmentLifecycleType.DETACHED,
                 parent_activity = f.activity?.javaClass?.name,

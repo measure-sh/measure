@@ -42,7 +42,7 @@ internal class AndroidXFragmentNavigationCollector(
         val displayName = getDisplayName(controller.context, destination.id)
         eventProcessor.track(
             type = EventType.SCREEN_VIEW,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             data = ScreenViewData(name = displayName),
         )
     }

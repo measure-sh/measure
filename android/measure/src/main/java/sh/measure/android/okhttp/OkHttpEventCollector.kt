@@ -33,8 +33,8 @@ internal class OkHttpEventCollectorImpl(
         val request = call.request()
         val url = request.url.toString()
         httpDataBuilders[key] =
-            HttpData.Builder().url(url).startTime(timeProvider.uptimeInMillis)
-                .method(request.method.lowercase()).startTime(timeProvider.uptimeInMillis)
+            HttpData.Builder().url(url).startTime(timeProvider.millisTime)
+                .method(request.method.lowercase()).startTime(timeProvider.millisTime)
                 .client(HttpClientName.OK_HTTP)
     }
 
@@ -47,7 +47,7 @@ internal class OkHttpEventCollectorImpl(
         val key = getIdentityHash(call)
         val builder = httpDataBuilders[key]
         builder?.failureReason(ioe.javaClass.name)?.failureDescription(ioe.message)
-            ?.endTime(timeProvider.uptimeInMillis)
+            ?.endTime(timeProvider.millisTime)
     }
 
     override fun responseHeadersEnd(call: Call, response: Response) {
@@ -60,14 +60,14 @@ internal class OkHttpEventCollectorImpl(
         val key = getIdentityHash(call)
         val builder = httpDataBuilders[key]
         builder?.failureReason(ioe.javaClass.name)?.failureDescription(ioe.message)
-            ?.endTime(timeProvider.uptimeInMillis)
+            ?.endTime(timeProvider.millisTime)
         trackEvent(call, builder)
     }
 
     override fun callEnd(call: Call) {
         val key = getIdentityHash(call)
         val builder = httpDataBuilders[key]
-        builder?.endTime(timeProvider.uptimeInMillis)
+        builder?.endTime(timeProvider.millisTime)
         trackEvent(call, builder)
     }
 
@@ -75,7 +75,7 @@ internal class OkHttpEventCollectorImpl(
         val key = getIdentityHash(call)
         val builder = httpDataBuilders[key]
         builder?.failureReason(ioe.javaClass.name)?.failureDescription(ioe.message)
-            ?.endTime(timeProvider.uptimeInMillis)
+            ?.endTime(timeProvider.millisTime)
         trackEvent(call, builder)
     }
 
@@ -103,7 +103,7 @@ internal class OkHttpEventCollectorImpl(
             val httpEvent = it.build()
             eventProcessor.track(
                 type = EventType.HTTP,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                timestamp = timeProvider.now(),
                 data = httpEvent,
             )
         }
