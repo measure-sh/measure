@@ -26,7 +26,7 @@ internal class AppLaunchCollector(
     fun register() {
         logger.log(LogLevel.Debug, "Registering AppLaunchCollector")
         application.registerActivityLifecycleCallbacks(
-            LaunchTracker(logger, this),
+            LaunchTracker(logger, timeProvider, this),
         )
     }
 
@@ -42,7 +42,7 @@ internal class AppLaunchCollector(
         val duration = endUptime - startUptime
         logger.log(LogLevel.Debug, "cold launch duration: $duration ms, start uptime: $startUptime")
         eventProcessor.track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.COLD_LAUNCH,
             data = coldLaunchData,
         )
@@ -55,7 +55,7 @@ internal class AppLaunchCollector(
         val duration = endUptime - startUptime
         logger.log(LogLevel.Debug, "warm launch duration: $duration ms, start uptime: $startUptime")
         eventProcessor.track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.WARM_LAUNCH,
             data = warmLaunchData,
         )
@@ -67,7 +67,7 @@ internal class AppLaunchCollector(
         val duration = endUptime - startUptime
         logger.log(LogLevel.Debug, "hot launch duration: $duration ms, start uptime: $startUptime")
         eventProcessor.track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.HOT_LAUNCH,
             data = hotLaunchData,
         )

@@ -68,6 +68,7 @@ import sh.measure.android.storage.FileStorage
 import sh.measure.android.storage.FileStorageImpl
 import sh.measure.android.storage.PrefsStorage
 import sh.measure.android.storage.PrefsStorageImpl
+import sh.measure.android.utils.AndroidSystemClock
 import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.DebugProvider
 import sh.measure.android.utils.DefaultDebugProvider
@@ -111,7 +112,7 @@ internal class MeasureInitializerImpl(
         configLoader = ConfigLoaderImpl(),
     ),
     override val logger: Logger = AndroidLogger(configProvider.enableLogging),
-    override val timeProvider: TimeProvider = AndroidTimeProvider(),
+    override val timeProvider: TimeProvider = AndroidTimeProvider(AndroidSystemClock()),
     private val executorServiceRegistry: ExecutorServiceRegistry = ExecutorServiceRegistryImpl(),
     private val fileStorage: FileStorage = FileStorageImpl(
         rootDir = application.filesDir.path,

@@ -4,15 +4,15 @@ import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.verify
 import sh.measure.android.fakes.FakeProcessInfoProvider
-import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.TestData
 import sh.measure.android.navigation.NavigationData
+import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.ProcessInfoProvider
-import sh.measure.android.utils.TimeProvider
+import sh.measure.android.utils.TestClock
 
 class UserTriggeredEventCollectorImplTest {
     private val eventProcessor: EventProcessor = mock()
-    private val timeProvider: TimeProvider = FakeTimeProvider()
+    private val timeProvider = AndroidTimeProvider(TestClock.create())
     private val processInfoProvider: ProcessInfoProvider = FakeProcessInfoProvider()
 
     private val userTriggeredEventCollector = UserTriggeredEventCollectorImpl(
@@ -33,7 +33,7 @@ class UserTriggeredEventCollectorImplTest {
                 to = to,
             ),
             type = EventType.NAVIGATION,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
         )
     }
 
@@ -46,7 +46,7 @@ class UserTriggeredEventCollectorImplTest {
         verify(eventProcessor).trackUserTriggered(
             data = data,
             type = EventType.EXCEPTION,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
         )
     }
 }

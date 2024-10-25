@@ -31,7 +31,7 @@ internal class PeriodicEventExporterImpl(
     internal val isExportInProgress = AtomicBoolean(false)
 
     @VisibleForTesting
-    internal var lastBatchCreationUptimeMs = 0L
+    internal var lastBatchCreationTimeMs = 0L
 
     init {
         heartbeat.addListener(this)
@@ -99,9 +99,9 @@ internal class PeriodicEventExporterImpl(
     }
 
     private fun processNewBatchIfTimeElapsed() {
-        if (timeProvider.uptimeInMillis - lastBatchCreationUptimeMs >= configProvider.eventsBatchingIntervalMs) {
+        if (timeProvider.millisTime - lastBatchCreationTimeMs >= configProvider.eventsBatchingIntervalMs) {
             eventExporter.createBatch()?.let { result ->
-                lastBatchCreationUptimeMs = timeProvider.uptimeInMillis
+                lastBatchCreationTimeMs = timeProvider.millisTime
                 eventExporter.export(result.batchId, result.eventIds)
             }
         } else {

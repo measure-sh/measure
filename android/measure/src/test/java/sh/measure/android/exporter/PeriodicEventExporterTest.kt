@@ -9,15 +9,18 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import sh.measure.android.fakes.FakeConfigProvider
-import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.utils.AndroidTimeProvider
+import sh.measure.android.utils.TestClock
+import java.time.Duration
 
 class PeriodicEventExporterTest {
     private val logger = NoopLogger()
     private val configProvider = FakeConfigProvider()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
-    private val timeProvider = FakeTimeProvider()
+    private val testClock = TestClock.create()
+    private val timeProvider = AndroidTimeProvider(testClock)
     private val heartbeat = mock<Heartbeat>()
     private val eventExporter = mock<EventExporter>()
 
@@ -85,7 +88,12 @@ class PeriodicEventExporterTest {
         batches[batch1.first] = batch1.second
         batches[batch2.first] = batch2.second
         `when`(eventExporter.getExistingBatches()).thenReturn(batches)
-        `when`(eventExporter.export(batch1.first, batch1.second)).thenReturn(HttpResponse.Error.ServerError(500))
+        `when`(
+            eventExporter.export(
+                batch1.first,
+                batch1.second,
+            ),
+        ).thenReturn(HttpResponse.Error.ServerError(500))
 
         periodicEventExporter.onAppBackground()
 
@@ -101,7 +109,12 @@ class PeriodicEventExporterTest {
         batches[batch1.first] = batch1.second
         batches[batch2.first] = batch2.second
         `when`(eventExporter.getExistingBatches()).thenReturn(batches)
-        `when`(eventExporter.export(batch1.first, batch1.second)).thenReturn(HttpResponse.Error.RateLimitError())
+        `when`(
+            eventExporter.export(
+                batch1.first,
+                batch1.second,
+            ),
+        ).thenReturn(HttpResponse.Error.RateLimitError())
 
         periodicEventExporter.onAppBackground()
 
@@ -110,31 +123,36 @@ class PeriodicEventExporterTest {
     }
 
     @Test
-    fun `given existing batches are not available and last batch was not created recently, creates new batch and exports it, when app goes to background`() {
-        timeProvider.fakeUptimeMs = 5000
-        periodicEventExporter.lastBatchCreationUptimeMs = 1000
-        configProvider.eventsBatchingIntervalMs = 100
-        `when`(eventExporter.getExistingBatches()).thenReturn(LinkedHashMap())
-        val batchId = "batch1"
-        val eventIds = listOf("event1, event2")
-        `when`(eventExporter.createBatch()).thenReturn(BatchCreationResult(batchId, eventIds))
+    fun `creates and exports new batch when app goes to background and conditions are met`() {
+        // Given no existing batches to export
+        `when`(eventExporter.getExistingBatches()).thenReturn(linkedMapOf())
+        // Given a new batch is created successfully
+        `when`(eventExporter.createBatch()).thenReturn(
+            BatchCreationResult("batchId", listOf("event1", "event2")),
+        )
 
+        // When
         periodicEventExporter.onAppBackground()
 
-        verify(eventExporter).export(batchId, eventIds)
+        // Then
+        verify(eventExporter).export("batchId", listOf("event1", "event2"))
     }
 
     @Test
-    fun `given existing batches are not available and last batch was created recently, does not export, when app goes to background`() {
-        timeProvider.fakeCurrentTimeSinceEpochInMillis = 1000
-        periodicEventExporter.lastBatchCreationUptimeMs = 1500
-        configProvider.eventsBatchingIntervalMs = 5000
-        `when`(eventExporter.getExistingBatches()).thenReturn(LinkedHashMap())
+    fun `does not export if last batch was created within 30 seconds, when app goes to background`() {
+        val initialTime = testClock.epochTime()
+        // Given no existing batches to export
+        `when`(eventExporter.getExistingBatches()).thenReturn(linkedMapOf())
+        periodicEventExporter.lastBatchCreationTimeMs = initialTime
 
+        // Advance time within threshold
+        testClock.advance(Duration.ofSeconds(29))
+
+        // When
         periodicEventExporter.onAppBackground()
 
-        verify(eventExporter, never()).createBatch()
-        verify(eventExporter, never()).export(any(), any())
+        // Then
+        verify(eventExporter, never()).export(any<String>(), any<List<String>>())
     }
 
     @Test

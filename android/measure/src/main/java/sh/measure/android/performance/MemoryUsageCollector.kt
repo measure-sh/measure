@@ -61,7 +61,7 @@ internal class MemoryUsageCollector(
 
     private fun trackMemoryUsage() {
         val interval = getInterval()
-        previousMemoryUsageReadTimeMs = timeProvider.elapsedRealtime
+        previousMemoryUsageReadTimeMs = timeProvider.millisTime
 
         val data = MemoryUsageData(
             java_max_heap = memoryReader.maxHeapSize(),
@@ -74,7 +74,7 @@ internal class MemoryUsageCollector(
             interval = interval,
         )
         eventProcessor.track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.MEMORY_USAGE,
             data = data,
         )
@@ -82,7 +82,7 @@ internal class MemoryUsageCollector(
     }
 
     private fun getInterval(): Long {
-        val currentTime = timeProvider.elapsedRealtime
+        val currentTime = timeProvider.millisTime
         return if (previousMemoryUsageReadTimeMs != 0L) {
             (currentTime - previousMemoryUsageReadTimeMs).coerceAtLeast(0)
         } else {

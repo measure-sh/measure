@@ -44,7 +44,7 @@ internal class LifecycleCollector(
         registerFragmentLifecycleCollector(activity)
         registerAndroidXFragmentNavigationCollector(activity)
         eventProcessor.track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_ACTIVITY,
             data = ActivityLifecycleData(
                 type = ActivityLifecycleType.CREATED,
@@ -62,7 +62,7 @@ internal class LifecycleCollector(
             // is reflected in all events collected after the launch.
             applicationLifecycleStateListener?.onAppForeground()
             eventProcessor.track(
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                timestamp = timeProvider.now(),
                 type = EventType.LIFECYCLE_APP,
                 data = ApplicationLifecycleData(
                     type = AppLifecycleType.FOREGROUND,
@@ -75,7 +75,7 @@ internal class LifecycleCollector(
 
     override fun onActivityResumed(activity: Activity) {
         eventProcessor.track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_ACTIVITY,
             data = ActivityLifecycleData(
                 type = ActivityLifecycleType.RESUMED,
@@ -86,7 +86,7 @@ internal class LifecycleCollector(
 
     override fun onActivityPaused(activity: Activity) {
         eventProcessor.track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_ACTIVITY,
             data = ActivityLifecycleData(
                 type = ActivityLifecycleType.PAUSED,
@@ -100,7 +100,7 @@ internal class LifecycleCollector(
         startedActivities.remove(hash)
         if (startedActivities.isEmpty()) {
             eventProcessor.track(
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                timestamp = timeProvider.now(),
                 type = EventType.LIFECYCLE_APP,
                 data = ApplicationLifecycleData(
                     type = AppLifecycleType.BACKGROUND,
@@ -115,7 +115,7 @@ internal class LifecycleCollector(
 
     override fun onActivityDestroyed(activity: Activity) {
         eventProcessor.track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_ACTIVITY,
             data = ActivityLifecycleData(
                 type = ActivityLifecycleType.DESTROYED,

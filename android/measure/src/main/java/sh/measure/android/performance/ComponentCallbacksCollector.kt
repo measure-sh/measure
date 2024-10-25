@@ -41,7 +41,7 @@ internal class ComponentCallbacksCollector(
             else -> TrimMemoryData(level = "TRIM_MEMORY_UNKNOWN")
         }
         eventProcessor.track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.TRIM_MEMORY,
             data = trimMemoryData,
         )

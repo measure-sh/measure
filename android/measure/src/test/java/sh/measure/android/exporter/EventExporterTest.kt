@@ -16,7 +16,6 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeIdProvider
-import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.storage.AttachmentEntity
 import sh.measure.android.storage.BatchEntity
@@ -24,6 +23,8 @@ import sh.measure.android.storage.DatabaseImpl
 import sh.measure.android.storage.EventEntity
 import sh.measure.android.storage.FileStorageImpl
 import sh.measure.android.storage.SessionEntity
+import sh.measure.android.utils.AndroidTimeProvider
+import sh.measure.android.utils.TestClock
 
 // This test uses robolectric and a real instance of batch creator to ensure that the batch creator
 // and exporter work together correctly with a real database.
@@ -36,7 +37,7 @@ internal class EventExporterTest {
     private val database = DatabaseImpl(context, logger)
     private val rootDir = context.filesDir.path
     private val fileStorage = FileStorageImpl(rootDir, logger)
-    private val timeProvider = FakeTimeProvider()
+    private val timeProvider = AndroidTimeProvider(TestClock.create())
     private val configProvider = FakeConfigProvider()
     private val networkClient = mock<NetworkClient>()
     private val batchCreator = BatchCreatorImpl(

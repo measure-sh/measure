@@ -15,11 +15,11 @@ internal data class RecentSession(
      */
     val id: String,
     /**
-     * The time since boot when the session was created at.
+     * The epoch time when the session was created.
      */
     val createdAt: Long,
     /**
-     * The time since boot when the last event was tracked.
+     * The epoch time when the last event was tracked.
      */
     val lastEventTime: Long = 0,
     /**

@@ -71,7 +71,7 @@ internal class BatchCreatorImpl(
                 BatchEntity(
                     batchId = batchId,
                     eventIds = eventIds,
-                    createdAt = timeProvider.currentTimeSinceEpochInMillis,
+                    createdAt = timeProvider.now(),
                 ),
             )
             if (!batchInsertionResult) {
