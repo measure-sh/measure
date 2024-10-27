@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import com.google.android.material.switchmaterial.SwitchMaterial
 import sh.measure.android.Measure
+import sh.measure.android.tracing.SpanStatus
 import sh.measure.sample.fragments.AndroidXFragmentNavigationActivity
 import sh.measure.sample.fragments.FragmentNavigationActivity
 import sh.measure.sample.fragments.NestedFragmentActivity
@@ -23,6 +24,7 @@ class ExceptionDemoActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, true)
+        val span = Measure.startSpan("activity.onCreate")
         setContentView(R.layout.activity_exception_demo)
         findViewById<Button>(R.id.btn_single_exception).setOnClickListener {
             throw IOException("test of time")
@@ -85,6 +87,7 @@ class ExceptionDemoActivity : AppCompatActivity() {
                 }
             }
         }
+        span.setStatus(SpanStatus.Ok).end()
     }
 
     private fun infiniteLoop() {

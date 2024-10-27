@@ -24,8 +24,8 @@ import sh.measure.android.storage.Database
 import sh.measure.android.storage.PrefsStorage
 import sh.measure.android.storage.SessionEntity
 import sh.measure.android.utils.AndroidTimeProvider
+import sh.measure.android.utils.IdProviderImpl
 import sh.measure.android.utils.TestClock
-import sh.measure.android.utils.UUIDProvider
 import java.time.Duration
 
 class SessionManagerTest {
@@ -33,13 +33,13 @@ class SessionManagerTest {
     private val logger = NoopLogger()
     private val database = mock<Database>()
     private val prefsStorage = mock<PrefsStorage>()
-    private val idProvider = UUIDProvider()
+    private val randomizer = FakeRandomizer()
+    private val idProvider = IdProviderImpl(randomizer)
     private val processInfo = FakeProcessInfoProvider()
     private val testClock = TestClock.create()
     private val timeProvider = AndroidTimeProvider(testClock)
     private val configProvider = FakeConfigProvider()
     private val packageInfoProvider = FakePackageInfoProvider()
-    private val randomizer = FakeRandomizer()
 
     private val sessionManager = SessionManagerImpl(
         logger = logger,
@@ -51,6 +51,7 @@ class SessionManagerTest {
         configProvider = configProvider,
         ioExecutor = executorService,
         packageInfoProvider = packageInfoProvider,
+        randomizer = randomizer,
     )
 
     @Before
