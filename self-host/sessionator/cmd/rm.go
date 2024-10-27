@@ -151,6 +151,10 @@ func rmEvents(ctx context.Context, c *config.Config) (err error) {
 		return
 	}
 
+	if err = j.rmAppFilters(ctx); err != nil {
+		return
+	}
+
 	if err = tx.Commit(ctx); err != nil {
 		return
 	}
@@ -219,6 +223,14 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 	}()
 
 	if err = chconn.Exec(ctx, "truncate table events;"); err != nil {
+		return
+	}
+
+	if err = chconn.Exec(ctx, "truncate table app_filters;"); err != nil {
+		return
+	}
+
+	if err = chconn.Exec(ctx, "truncate table app_metrics;"); err != nil {
 		return
 	}
 
@@ -434,6 +446,41 @@ func (j *janitor) rmAppEvents(ctx context.Context) (err error) {
 		}
 
 		if err := conn.Exec(ctx, deleteEvents, namedAppId); err != nil {
+			return err
+		}
+	}
+
+	return
+}
+
+// rmAppFilters removes app's filters for apps
+// in config.
+func (j *janitor) rmAppFilters(ctx context.Context) (err error) {
+	deleteAppfilters := `delete from app_filters where app_id = toUUID(@app_id);`
+
+	dsn := j.config.Storage["clickhouse_dsn"]
+	opts, err := clickhouse.ParseDSN(dsn)
+	if err != nil {
+		return
+	}
+
+	conn, err := clickhouse.Open(opts)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			return
+		}
+	}()
+
+	fmt.Println("removing app filters")
+
+	for i := range j.appIds {
+		namedAppId := clickhouse.Named("app_id", j.appIds[i])
+
+		if err := conn.Exec(ctx, deleteAppfilters, namedAppId); err != nil {
 			return err
 		}
 	}
