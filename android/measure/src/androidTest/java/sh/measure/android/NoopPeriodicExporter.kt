@@ -1,8 +1,8 @@
 package sh.measure.android
 
-import sh.measure.android.exporter.PeriodicEventExporter
+import sh.measure.android.exporter.PeriodicExporter
 
-internal class NoopPeriodicEventExporter : PeriodicEventExporter {
+internal class NoopPeriodicExporter : PeriodicExporter {
     override fun register() {
         // No-op
     }

@@ -9,27 +9,27 @@ import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * Abstraction to run common functions for exporting of events and synchronizing different
- * exporters like [PeriodicEventExporter] and [ExceptionExporter].
+ * exporters like [PeriodicExporter] and [ExceptionExporter].
  */
-internal interface EventExporter {
-    fun createBatch(sessionId: String? = null): BatchCreationResult?
-    fun getExistingBatches(): LinkedHashMap<String, MutableList<String>>
+internal interface Exporter {
+    fun createBatch(sessionId: String? = null): Batch?
+    fun getExistingBatches(): List<Batch>
 
     /**
-     * Exports the events with the given [eventIds] in the batch with the given [batchId].
+     * Exports the events and spans in a given [batch].
      *
      * @return the response of the export operation.
      */
-    fun export(batchId: String, eventIds: List<String>): HttpResponse?
+    fun export(batch: Batch): HttpResponse?
 }
 
-internal class EventExporterImpl(
+internal class ExporterImpl(
     private val logger: Logger,
     private val database: Database,
     private val fileStorage: FileStorage,
     private val networkClient: NetworkClient,
     private val batchCreator: BatchCreator,
-) : EventExporter {
+) : Exporter {
     private companion object {
         const val MAX_EXISTING_BATCHES_TO_EXPORT = 5
     }
@@ -37,37 +37,41 @@ internal class EventExporterImpl(
     @VisibleForTesting
     internal val batchIdsInTransit = CopyOnWriteArrayList<String>()
 
-    override fun export(batchId: String, eventIds: List<String>): HttpResponse? {
-        if (batchIdsInTransit.contains(batchId)) {
-            logger.log(LogLevel.Warning, "Batch $batchId is already in transit, skipping export")
+    override fun export(batch: Batch): HttpResponse? {
+        if (batchIdsInTransit.contains(batch.batchId)) {
+            logger.log(
+                LogLevel.Warning,
+                "Batch ${batch.batchId} is already in transit, skipping export",
+            )
             return null
         }
-        batchIdsInTransit.add(batchId)
+        batchIdsInTransit.add(batch.batchId)
         try {
-            val events = database.getEventPackets(eventIds)
-            if (events.isEmpty()) {
+            val events = database.getEventPackets(batch.eventIds)
+            val spans = database.getSpanPackets(batch.spanIds)
+            if (events.isEmpty() && spans.isEmpty()) {
                 // shouldn't happen, but just in case it does we'd like to know.
                 logger.log(
                     LogLevel.Error,
-                    "No events found for batch $batchId, invalid export request",
+                    "No events or spans found for batch ${batch.batchId}, invalid export request",
                 )
                 return null
             }
-            val attachments = database.getAttachmentPackets(eventIds)
-            val response = networkClient.execute(batchId, events, attachments)
-            handleBatchProcessingResult(response, batchId, events, attachments)
+            val attachments = database.getAttachmentPackets(batch.eventIds)
+            val response = networkClient.execute(batch.batchId, events, attachments, spans)
+            handleBatchProcessingResult(response, batch.batchId, events, spans, attachments)
             return response
         } finally {
             // always remove the batch from the list of batches in transit
-            batchIdsInTransit.remove(batchId)
+            batchIdsInTransit.remove(batch.batchId)
         }
     }
 
-    override fun createBatch(sessionId: String?): BatchCreationResult? {
+    override fun createBatch(sessionId: String?): Batch? {
         return batchCreator.create(sessionId)
     }
 
-    override fun getExistingBatches(): LinkedHashMap<String, MutableList<String>> {
+    override fun getExistingBatches(): List<Batch> {
         return database.getBatches(MAX_EXISTING_BATCHES_TO_EXPORT)
     }
 
@@ -75,11 +79,12 @@ internal class EventExporterImpl(
         response: HttpResponse,
         batchId: String,
         events: List<EventPacket>,
+        spans: List<SpanPacket>,
         attachments: List<AttachmentPacket>,
     ) {
         when (response) {
             is HttpResponse.Success -> {
-                deleteEvents(events, attachments)
+                deleteBatch(events, spans, attachments, batchId)
                 logger.log(
                     LogLevel.Debug,
                     "Successfully sent batch $batchId",
@@ -87,7 +92,7 @@ internal class EventExporterImpl(
             }
 
             is HttpResponse.Error.ClientError -> {
-                deleteEvents(events, attachments)
+                deleteBatch(events, spans, attachments, batchId)
                 logger.log(
                     LogLevel.Error,
                     "Client error while sending batch $batchId, dropping the batch",
@@ -100,12 +105,15 @@ internal class EventExporterImpl(
         }
     }
 
-    private fun deleteEvents(
+    private fun deleteBatch(
         events: List<EventPacket>,
+        spans: List<SpanPacket>,
         attachments: List<AttachmentPacket>,
+        batchId: String,
     ) {
         val eventIds = events.map { it.eventId }
-        database.deleteEvents(eventIds)
+        val spanIds = spans.map { it.spanId }
+        database.deleteBatch(batchId, eventIds = eventIds, spanIds = spanIds)
         fileStorage.deleteEventsIfExist(eventIds, attachments.map { it.id })
     }
 }
