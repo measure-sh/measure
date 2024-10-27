@@ -237,7 +237,16 @@ git checkout v1.2.3
 Change to `self-host` directory and run `sudo ./install.sh` to perform the upgrade.
 
 ```sh
+# change to `self-host` directory
 cd self-host
+
+# bring down all containers
+sudo docker compose -f compose.yml -f compose.prod.yml \
+  --profile init \
+  --profile migrate \
+  down
+
+# bring up all containers
 sudo ./install.sh
 ```
 

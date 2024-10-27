@@ -82,7 +82,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-14)
   - [PATCH `/apps/:id/alertPrefs`](#patch-appsidalertprefs)
     - [Usage Notes](#usage-notes-15)
-    - [Request Body](#request-body)
+    - [Request body](#request-body)
     - [Authorization \& Content Type](#authorization--content-type-15)
     - [Response Body](#response-body-15)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-15)
@@ -93,7 +93,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-16)
   - [PATCH `/apps/:id/settings`](#patch-appsidsettings)
     - [Usage Notes](#usage-notes-17)
-    - [Request Body](#request-body-1)
+    - [Request body](#request-body-1)
     - [Authorization \& Content Type](#authorization--content-type-17)
     - [Response Body](#response-body-17)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-17)
@@ -120,19 +120,19 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-21)
   - [POST `/teams/:id/apps`](#post-teamsidapps)
     - [Usage Notes](#usage-notes-21)
-    - [Request Body](#request-body-3)
+    - [Request body](#request-body-3)
     - [Authorization \& Content Type](#authorization--content-type-22)
     - [Response Body](#response-body-22)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-22)
   - [POST `/auth/invite`](#post-authinvite)
     - [Usage Notes](#usage-notes-22)
-    - [Request Body](#request-body-4)
+    - [Request body](#request-body-4)
     - [Authorization \& Content Type](#authorization--content-type-23)
     - [Response Body](#response-body-23)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-23)
   - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
     - [Usage Notes](#usage-notes-23)
-    - [Request Body](#request-body-5)
+    - [Request body](#request-body-5)
     - [Authorization \& Content Type](#authorization--content-type-24)
     - [Response Body](#response-body-24)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-24)
@@ -148,7 +148,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-26)
   - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
     - [Usage Notes](#usage-notes-26)
-    - [Request Body](#request-body-6)
+    - [Request body](#request-body-6)
     - [Authorization \& Content Type](#authorization--content-type-27)
     - [Response Body](#response-body-27)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-27)
@@ -460,7 +460,6 @@ Fetch an app's filters.
 - App's UUID must be passed in the URI
 - Pass `crash=1` as query string parameter to only return filters for unhandled exceptions
 - Pass `anr=1` as query string parameter to only return filters for ANRs
-- Pass `exception=1` as query string parameter to only return filters for handled & unhandled exceptions
 - If no query string parameters are passed, the API computes filters from all events
 
 #### Authorization & Content Type
