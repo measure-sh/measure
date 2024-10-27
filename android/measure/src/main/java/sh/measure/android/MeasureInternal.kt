@@ -3,6 +3,7 @@ package sh.measure.android
 import android.os.Build
 import sh.measure.android.lifecycle.AppLifecycleListener
 import sh.measure.android.logger.LogLevel
+import sh.measure.android.tracing.Span
 
 /**
  * Initializes the Measure SDK and hides the internal dependencies from public API.
@@ -13,10 +14,11 @@ import sh.measure.android.logger.LogLevel
  */
 internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLifecycleListener {
     val logger by lazy { measureInitializer.logger }
-    val eventProcessor by lazy { measureInitializer.eventProcessor }
-    val timeProvider by lazy { measureInitializer.timeProvider }
+    val signalProcessor by lazy { measureInitializer.signalProcessor }
+    val tracer by lazy { measureInitializer.tracer }
     val httpEventCollector by lazy { measureInitializer.httpEventCollector }
     val processInfoProvider by lazy { measureInitializer.processInfoProvider }
+    val timeProvider by lazy { measureInitializer.timeProvider }
     private val sessionManager by lazy { measureInitializer.sessionManager }
     private val userTriggeredEventCollector by lazy { measureInitializer.userTriggeredEventCollector }
     private val resumedActivityProvider by lazy { measureInitializer.resumedActivityProvider }
@@ -34,7 +36,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     private val appLaunchCollector by lazy { measureInitializer.appLaunchCollector }
     private val networkChangesCollector by lazy { measureInitializer.networkChangesCollector }
     private val appExitCollector by lazy { measureInitializer.appExitCollector }
-    private val periodicEventExporter by lazy { measureInitializer.periodicEventExporter }
+    private val periodicExporter by lazy { measureInitializer.periodicExporter }
     private val userAttributeProcessor by lazy { measureInitializer.userAttributeProcessor }
     private val userDefinedAttribute by lazy { measureInitializer.userDefinedAttribute }
     private val configProvider by lazy { measureInitializer.configProvider }
@@ -115,7 +117,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         networkChangesCollector.register()
         httpEventCollector.register()
         powerStateProvider.register()
-        periodicEventExporter.resume()
+        periodicExporter.resume()
     }
 
     override fun onAppForeground() {
@@ -128,7 +130,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
                 networkChangesCollector.register()
                 cpuUsageCollector.resume()
                 memoryUsageCollector.resume()
-                periodicEventExporter.resume()
+                periodicExporter.resume()
             }
         }
     }
@@ -139,7 +141,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
             if (isStarted) {
                 cpuUsageCollector.pause()
                 memoryUsageCollector.pause()
-                periodicEventExporter.pause()
+                periodicExporter.pause()
                 powerStateProvider.unregister()
                 networkChangesCollector.unregister()
                 dataCleanupService.clearStaleData()
@@ -209,6 +211,14 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         networkChangesCollector.unregister()
         httpEventCollector.unregister()
         powerStateProvider.unregister()
-        periodicEventExporter.unregister()
+        periodicExporter.unregister()
+    }
+
+    fun getTraceParentHeaderValue(span: Span): String {
+        return tracer.getTraceParentHeaderValue(span)
+    }
+
+    fun getTraceParentHeaderKey(): String {
+        return tracer.getTraceParentHeaderKey()
     }
 }

@@ -14,7 +14,7 @@ import org.mockito.Mockito.times
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.verify
-import sh.measure.android.events.EventProcessor
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.TestClock
@@ -22,11 +22,11 @@ import java.net.ConnectException
 
 class OkHttpEventCollectorTest {
     private val logger = NoopLogger()
-    private val eventProcessor = mock<EventProcessor>()
+    private val signalProcessor = mock<SignalProcessor>()
     private val timeProvider = AndroidTimeProvider(TestClock.create())
     private val okHttpEventCollector: OkHttpEventCollector = OkHttpEventCollectorImpl(
         logger,
-        eventProcessor,
+        signalProcessor,
         timeProvider,
     )
     private val mockWebServer = MockWebServer()
@@ -53,7 +53,7 @@ class OkHttpEventCollectorTest {
         simulateSuccessfulPostRequest(statusCode = statusCode)
 
         // Then
-        verify(eventProcessor, never()).track(any<HttpData>(), any(), any())
+        verify(signalProcessor, never()).track(any<HttpData>(), any(), any())
     }
 
     @Test
@@ -68,7 +68,7 @@ class OkHttpEventCollectorTest {
         simulateSuccessfulPostRequest(statusCode = statusCode)
 
         // Then
-        verify(eventProcessor, times(1)).track(
+        verify(signalProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
             typeCaptor.capture(),
@@ -88,7 +88,7 @@ class OkHttpEventCollectorTest {
         simulateSuccessfulPostRequest()
 
         // Then
-        verify(eventProcessor, times(1)).track(
+        verify(signalProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
             typeCaptor.capture(),
@@ -109,7 +109,7 @@ class OkHttpEventCollectorTest {
         simulateSuccessfulPostRequest(url = url)
 
         // Then
-        verify(eventProcessor, times(1)).track(
+        verify(signalProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
             typeCaptor.capture(),
@@ -130,7 +130,7 @@ class OkHttpEventCollectorTest {
         simulateSuccessfulPostRequest(requestBody = requestBody)
 
         // Then
-        verify(eventProcessor, times(1)).track(
+        verify(signalProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
             typeCaptor.capture(),
@@ -151,7 +151,7 @@ class OkHttpEventCollectorTest {
         simulateSuccessfulPostRequest(requestBody = requestBody, client = clientWithoutInterceptor)
 
         // Then
-        verify(eventProcessor, times(1)).track(
+        verify(signalProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
             typeCaptor.capture(),
@@ -172,7 +172,7 @@ class OkHttpEventCollectorTest {
         simulateSuccessfulPostRequest(responseBody = responseBody)
 
         // Then
-        verify(eventProcessor, times(1)).track(
+        verify(signalProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
             typeCaptor.capture(),
@@ -196,7 +196,7 @@ class OkHttpEventCollectorTest {
         )
 
         // Then
-        verify(eventProcessor, times(1)).track(
+        verify(signalProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
             typeCaptor.capture(),
@@ -217,7 +217,7 @@ class OkHttpEventCollectorTest {
         simulateSuccessfulPostRequest()
 
         // Then
-        verify(eventProcessor, times(1)).track(
+        verify(signalProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
             typeCaptor.capture(),
@@ -238,7 +238,7 @@ class OkHttpEventCollectorTest {
         simulateSuccessfulPostRequest()
 
         // Then
-        verify(eventProcessor, times(1)).track(
+        verify(signalProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
             typeCaptor.capture(),
@@ -258,7 +258,7 @@ class OkHttpEventCollectorTest {
         simulateSuccessfulPostRequest()
 
         // Then
-        verify(eventProcessor, times(1)).track(
+        verify(signalProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
             typeCaptor.capture(),
@@ -279,7 +279,7 @@ class OkHttpEventCollectorTest {
         simulateSuccessfulPostRequest()
 
         // Then
-        verify(eventProcessor, times(1)).track(
+        verify(signalProcessor, times(1)).track(
             dataCaptor.capture(),
             timestampCaptor.capture(),
             typeCaptor.capture(),
@@ -308,7 +308,7 @@ class OkHttpEventCollectorTest {
         }
 
         // Then
-        verify(eventProcessor, times(1)).track(
+        verify(signalProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
             typeCaptor.capture(),
@@ -328,7 +328,7 @@ class OkHttpEventCollectorTest {
         simulateSuccessfulPostRequest()
 
         // Then
-        verify(eventProcessor, times(1)).track(
+        verify(signalProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
             typeCaptor.capture(),
@@ -348,7 +348,7 @@ class OkHttpEventCollectorTest {
         simulateConnectionFailed()
 
         // Then
-        verify(eventProcessor, times(1)).track(
+        verify(signalProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
             typeCaptor.capture(),
@@ -376,7 +376,7 @@ class OkHttpEventCollectorTest {
         simulateConnectionFailed()
 
         // Then
-        verify(eventProcessor, times(1)).track(
+        verify(signalProcessor, times(1)).track(
             captor.capture(),
             timestampCaptor.capture(),
             typeCaptor.capture(),

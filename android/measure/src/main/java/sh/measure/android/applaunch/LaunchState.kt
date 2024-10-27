@@ -15,14 +15,14 @@ internal object LaunchState {
     var lastAppVisibleTime: Long? = null
 
     val processStartUptime: Long? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-        Process.getStartUptimeMillis()
+        Process.getStartElapsedRealtime()
     } else {
         null
     }
 
     val processStartRequestedUptime: Long? =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            Process.getStartRequestedUptimeMillis()
+            Process.getStartRequestedElapsedRealtime()
         } else {
             null
         }

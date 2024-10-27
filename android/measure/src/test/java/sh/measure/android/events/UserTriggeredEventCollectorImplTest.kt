@@ -14,12 +14,12 @@ import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TestClock
 
 class UserTriggeredEventCollectorImplTest {
-    private val eventProcessor: EventProcessor = mock()
+    private val signalProcessor: SignalProcessor = mock()
     private val timeProvider = AndroidTimeProvider(TestClock.create())
     private val processInfoProvider: ProcessInfoProvider = FakeProcessInfoProvider()
 
     private val userTriggeredEventCollector = UserTriggeredEventCollectorImpl(
-        eventProcessor,
+        signalProcessor,
         timeProvider,
         processInfoProvider,
     )
@@ -30,7 +30,7 @@ class UserTriggeredEventCollectorImplTest {
         val to = "to"
         userTriggeredEventCollector.register()
         userTriggeredEventCollector.trackNavigation(to, from)
-        verify(eventProcessor).trackUserTriggered(
+        verify(signalProcessor).trackUserTriggered(
             data = NavigationData(
                 source = null,
                 from = from,
@@ -48,7 +48,7 @@ class UserTriggeredEventCollectorImplTest {
 
         userTriggeredEventCollector.register()
         userTriggeredEventCollector.trackHandledException(exception)
-        verify(eventProcessor).trackUserTriggered(
+        verify(signalProcessor).trackUserTriggered(
             data = data,
             type = EventType.EXCEPTION,
             timestamp = timeProvider.now(),
@@ -62,7 +62,7 @@ class UserTriggeredEventCollectorImplTest {
 
         userTriggeredEventCollector.unregister()
         userTriggeredEventCollector.trackHandledException(exception)
-        verify(eventProcessor, never()).trackUserTriggered(
+        verify(signalProcessor, never()).trackUserTriggered(
             any<ExceptionData>(),
             any(),
             any(),
