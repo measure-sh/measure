@@ -13,6 +13,8 @@ import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.okhttp.OkHttpEventCollector
 import sh.measure.android.tracing.InternalTrace
+import sh.measure.android.tracing.Span
+import sh.measure.android.tracing.SpanBuilder
 import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -167,6 +169,106 @@ object Measure {
     fun trackHandledException(throwable: Throwable) {
         if (isInitialized.get()) {
             measure.trackHandledException(throwable)
+        }
+    }
+
+    /**
+     * Starts a new span with the given [name].
+     *
+     * The SDK must be initialized before a span is started. Otherwise an invalid span is
+     * returned which will be a no-op and will not be exported.
+     */
+    private fun startSpan(name: String): Span {
+        return if (isInitialized.get()) {
+            measure.tracer.spanBuilder(name).startSpan()
+        } else {
+            Span.invalid()
+        }
+    }
+
+    /**
+     * Starts a new span at the specified [startTime]. Use when the operation to be traced has
+     * already started.
+     *
+     * The SDK must be initialized before a span is started. Otherwise an invalid span is
+     * returned which will be a no-op and will not be exported.
+     *
+     * @param startTime The milliseconds since epoch when the span started.
+     */
+    private fun startSpan(name: String, startTime: Long): Span {
+        return if (isInitialized.get()) {
+            measure.tracer.spanBuilder(name).startSpan(startTime)
+        } else {
+            Span.invalid()
+        }
+    }
+
+    /**
+     * Start a new span at the specified [startTime] and force it to be a root span by
+     * setting [setNoParent] flag.
+     *
+     * The SDK must be initialized before a span is started. Otherwise an invalid span is
+     * returned which will be a no-op and will not be exported.
+     *
+     * @param startTime The milliseconds since epoch when the span started.
+     * @param setNoParent Forces this span to be a root span when true.
+     */
+    private fun startSpan(name: String, startTime: Long, setNoParent: Boolean): Span {
+        if (isInitialized.get()) {
+            val spanBuilder = measure.tracer.spanBuilder(name)
+            if (setNoParent) {
+                spanBuilder.setNoParent()
+            }
+            return spanBuilder.startSpan(startTime)
+        } else {
+            return Span.invalid()
+        }
+    }
+
+    /**
+     * Start a new span by forcing it to be a root span by setting [setNoParent] flag.
+     *
+     * The SDK must be initialized before a span is started. Otherwise an invalid span is
+     * returned which will be a no-op and will not be exported.
+     *
+     * @param setNoParent Forces this span to be a root span when true.
+     */
+    private fun startSpan(name: String, setNoParent: Boolean): Span {
+        if (isInitialized.get()) {
+            val spanBuilder = measure.tracer.spanBuilder(name)
+            if (setNoParent) {
+                spanBuilder.setNoParent()
+            }
+            return spanBuilder.startSpan()
+        } else {
+            return Span.invalid()
+        }
+    }
+
+    /**
+     * Returns the current span from thread local, if any.
+     *
+     * The SDK must be initialized, otherwise this will always return null.
+     */
+    private fun getCurrentSpan(): Span? {
+        return if (isInitialized.get()) {
+            Span.current()
+        } else {
+            null
+        }
+    }
+
+    /**
+     * Allows creating a span without starting it immediately.
+     *
+     * @return A [SpanBuilder] to be used to configure the span before starting it. Null, if the
+     * SDK has not been initialized yet.
+     */
+    private fun createSpan(name: String): SpanBuilder? {
+        return if (isInitialized.get()) {
+            measure.tracer.spanBuilder(name)
+        } else {
+            null
         }
     }
 
@@ -354,8 +456,7 @@ object Measure {
 
     private fun storeProcessImportanceState() {
         try {
-            LaunchState.processImportanceOnInit =
-                measure.processInfoProvider.getProcessImportance()
+            LaunchState.processImportanceOnInit = measure.processInfoProvider.getProcessImportance()
         } catch (e: Throwable) {
             measure.logger.log(
                 LogLevel.Error,
