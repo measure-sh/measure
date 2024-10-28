@@ -43,33 +43,26 @@ Measure is available as a self hosted platform that comes with a simple one line
 
 Debug issues easily with full session timelines. Get the complete context with automatic tracking for clicks, navigations, http calls and more.
 
-<p align="center">
-  <img width="800" alt="Measure Sessions Timelines" src="https://github.com/user-attachments/assets/59179612-58bb-4935-a740-51de1f787e37">
-</p>
+[Session Timelines demo](https://github.com/user-attachments/assets/e8bac17c-c8c7-4f19-81e3-1979c7e70969)
 
 ### User Journeys
 
 Understand how users move through your app. Easily visualise screens most affected by issues.
 
-<p align="center">
-  <img width="800" alt="Measure User Journey" src="https://github.com/user-attachments/assets/119dc35d-0c75-46a5-9cb5-2eb2551e2888">
-</p>
+[Journey demo](https://github.com/user-attachments/assets/54a0f7c5-d078-4e67-a5df-0ae73b2309c9)
 
 ### App Health
 
 Monitor important metrics to stay on top of app health. Quickly see deltas to make sure you're moving in the right direction.
 
-<p align="center">
-  <img width="800" alt="Measure App Health" src="https://github.com/user-attachments/assets/7bffe005-54cd-4b44-a639-d2910edda211">
-</p>
+[App Health demo](https://github.com/user-attachments/assets/a6e7b57d-2dc8-4671-a461-6708921fdd72)
 
 ### Crashes and ANRs
 
 Automatically track Crashes and ANRs. Dive deeper with screenshots, filters and detailed stacktraces
 
-<p align="center">
-  <img width="800" alt="Measure Crashes" src="https://github.com/user-attachments/assets/68125854-ff00-41c9-a795-3bff51a185aa">
-</p>
+[Crashes and ANRs demo](https://github.com/user-attachments/assets/75a6227e-82e7-484f-95d2-e50f90e98c05)
+
 
 ⭐ If you find Measure useful, please consider [starring this repo!](https://github.com/measure-sh/measure)
 
