@@ -50,7 +50,7 @@ private class MeasureNavigationObserver(
                 val eventProcessor = Measure.getEventProcessor() ?: return@let
                 eventProcessor.track(
                     type = EventType.SCREEN_VIEW,
-                    timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                    timestamp = timeProvider.now(),
                     data = ScreenViewData(name = to),
                 )
             }

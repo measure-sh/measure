@@ -71,6 +71,8 @@ Automatically track Crashes and ANRs. Dive deeper with screenshots, filters and 
   <img width="800" alt="Measure Crashes" src="https://github.com/user-attachments/assets/68125854-ff00-41c9-a795-3bff51a185aa">
 </p>
 
+⭐ If you find Measure useful, please consider [starring this repo!](https://github.com/measure-sh/measure)
+
 ## Philosophy
 
 Our mission is to build the best tool for monitoring mobile apps. 

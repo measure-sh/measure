@@ -19,14 +19,15 @@ import org.robolectric.android.controller.ActivityController
 import sh.measure.android.TestLifecycleActivity
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
-import sh.measure.android.fakes.FakeTimeProvider
+import sh.measure.android.utils.AndroidTimeProvider
+import sh.measure.android.utils.TestClock
 
 @RunWith(AndroidJUnit4::class)
 class LifecycleCollectorTest {
 
     private lateinit var lifecycleCollector: LifecycleCollector
     private val eventProcessor: EventProcessor = mock()
-    private val timeProvider = FakeTimeProvider()
+    private val timeProvider = AndroidTimeProvider(TestClock.create())
     private lateinit var controller: ActivityController<TestLifecycleActivity>
 
     @Before
@@ -43,7 +44,7 @@ class LifecycleCollectorTest {
     fun `tracks activity onCreate event`() {
         controller.setup()
         verify(eventProcessor, atMostOnce()).track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_ACTIVITY,
             data = ActivityLifecycleData(
                 type = ActivityLifecycleType.CREATED,
@@ -58,7 +59,7 @@ class LifecycleCollectorTest {
     fun `tracks activity onCreate event with savedInstanceState when activity is recreated`() {
         controller.setup().recreate()
         verify(eventProcessor).track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_ACTIVITY,
             data = ActivityLifecycleData(
                 type = ActivityLifecycleType.CREATED,
@@ -67,7 +68,7 @@ class LifecycleCollectorTest {
         )
 
         verify(eventProcessor).track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_ACTIVITY,
             data = ActivityLifecycleData(
                 type = ActivityLifecycleType.CREATED,
@@ -81,7 +82,7 @@ class LifecycleCollectorTest {
     fun `tracks activity onResume`() {
         controller.setup()
         verify(eventProcessor, atMostOnce()).track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_ACTIVITY,
             data = ActivityLifecycleData(
                 type = ActivityLifecycleType.RESUMED,
@@ -94,7 +95,7 @@ class LifecycleCollectorTest {
     fun `tracks activity onPause`() {
         controller.setup().pause()
         verify(eventProcessor, atMostOnce()).track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_ACTIVITY,
             data = ActivityLifecycleData(
                 type = ActivityLifecycleType.PAUSED,
@@ -107,7 +108,7 @@ class LifecycleCollectorTest {
     fun `tracks activity onDestroy`() {
         controller.setup().destroy()
         verify(eventProcessor, atMostOnce()).track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_ACTIVITY,
             data = ActivityLifecycleData(
                 type = ActivityLifecycleType.DESTROYED,
@@ -120,7 +121,7 @@ class LifecycleCollectorTest {
     fun `tracks fragment onAttached`() {
         controller.setup()
         verify(eventProcessor, atMostOnce()).track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_FRAGMENT,
             data = FragmentLifecycleData(
                 type = FragmentLifecycleType.ATTACHED,
@@ -135,7 +136,7 @@ class LifecycleCollectorTest {
     fun `tracks fragment onResumed`() {
         controller.setup()
         verify(eventProcessor, atMostOnce()).track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_FRAGMENT,
             data = FragmentLifecycleData(
                 type = FragmentLifecycleType.RESUMED,
@@ -150,7 +151,7 @@ class LifecycleCollectorTest {
     fun `tracks fragment onPaused`() {
         controller.setup().pause()
         verify(eventProcessor, atMostOnce()).track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_FRAGMENT,
             data = FragmentLifecycleData(
                 type = FragmentLifecycleType.PAUSED,
@@ -165,7 +166,7 @@ class LifecycleCollectorTest {
     fun `tracks parent fragment when fragment has a parent`() {
         controller.setup()
         verify(eventProcessor, atMostOnce()).track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_FRAGMENT,
             data = FragmentLifecycleData(
                 type = FragmentLifecycleType.ATTACHED,
@@ -186,7 +187,7 @@ class LifecycleCollectorTest {
     fun `tracks application background event when all activities are stopped`() {
         controller.setup().stop()
         verify(eventProcessor, atMostOnce()).track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_APP,
             data = ApplicationLifecycleData(
                 type = AppLifecycleType.BACKGROUND,
@@ -198,7 +199,7 @@ class LifecycleCollectorTest {
     fun `tracks application background event when first activity starts`() {
         controller.setup()
         verify(eventProcessor, atMostOnce()).track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_APP,
             data = ApplicationLifecycleData(
                 type = AppLifecycleType.FOREGROUND,
@@ -210,14 +211,14 @@ class LifecycleCollectorTest {
     fun `does not trigger application lifecycle events on configuration change`() {
         controller.setup().configurationChange()
         verify(eventProcessor, atMostOnce()).track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_APP,
             data = ApplicationLifecycleData(
                 type = AppLifecycleType.FOREGROUND,
             ),
         )
         verify(eventProcessor, never()).track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_APP,
             data = ApplicationLifecycleData(
                 type = AppLifecycleType.BACKGROUND,

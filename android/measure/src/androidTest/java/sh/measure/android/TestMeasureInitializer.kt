@@ -65,6 +65,7 @@ import sh.measure.android.storage.FileStorage
 import sh.measure.android.storage.FileStorageImpl
 import sh.measure.android.storage.PrefsStorage
 import sh.measure.android.storage.PrefsStorageImpl
+import sh.measure.android.utils.AndroidSystemClock
 import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.DebugProvider
 import sh.measure.android.utils.DefaultDebugProvider
@@ -107,7 +108,7 @@ internal class TestMeasureInitializer(
         configLoader = ConfigLoaderImpl(),
     ),
     override val logger: Logger = AndroidLogger(configProvider.enableLogging),
-    override val timeProvider: TimeProvider = AndroidTimeProvider(),
+    override val timeProvider: TimeProvider = AndroidTimeProvider(AndroidSystemClock()),
     private val executorServiceRegistry: ExecutorServiceRegistry = ExecutorServiceRegistryImpl(),
     private val fileStorage: FileStorage = FileStorageImpl(
         rootDir = application.filesDir.path,
@@ -121,14 +122,19 @@ internal class TestMeasureInitializer(
     ),
     private val idProvider: IdProvider = UUIDProvider(),
     override val processInfoProvider: ProcessInfoProvider = ProcessInfoProviderImpl(),
+    private val prefsStorage: PrefsStorage = PrefsStorageImpl(
+        context = application,
+        logger = logger,
+    ),
     override val sessionManager: SessionManager = SessionManagerImpl(
         logger = logger,
-        timeProvider = timeProvider,
-        database = database,
         idProvider = idProvider,
+        database = database,
+        prefs = prefsStorage,
         processInfo = processInfoProvider,
-        ioExecutor = executorServiceRegistry.ioExecutor(),
+        timeProvider = timeProvider,
         configProvider = configProvider,
+        ioExecutor = executorServiceRegistry.ioExecutor(),
     ),
     private val procProvider: ProcProvider = ProcProviderImpl(),
     private val debugProvider: DebugProvider = DefaultDebugProvider(),
@@ -143,7 +149,6 @@ internal class TestMeasureInitializer(
         osSysConfProvider = osSysConfProvider,
     ),
     private val localeProvider: LocaleProvider = LocaleProviderImpl(),
-    private val prefsStorage: PrefsStorage = PrefsStorageImpl(context = application),
     private val systemServiceProvider: SystemServiceProvider = SystemServiceProviderImpl(application),
     private val initialNetworkStateProvider: InitialNetworkStateProvider = InitialNetworkStateProviderImpl(
         context = application,
@@ -264,11 +269,12 @@ internal class TestMeasureInitializer(
         systemServiceProvider = systemServiceProvider,
     ),
     override val appExitCollector: AppExitCollector = AppExitCollector(
-        logger = logger,
         appExitProvider = appExitProvider,
         ioExecutor = executorServiceRegistry.ioExecutor(),
         eventProcessor = eventProcessor,
         sessionManager = sessionManager,
+        database = database,
+        logger = logger,
     ),
     override val cpuUsageCollector: CpuUsageCollector = CpuUsageCollector(
         logger = logger,
@@ -291,7 +297,6 @@ internal class TestMeasureInitializer(
         application = application,
         timeProvider = timeProvider,
         eventProcessor = eventProcessor,
-        memoryReader = memoryReader,
     ),
     override val lifecycleCollector: LifecycleCollector = LifecycleCollector(
         application = application,

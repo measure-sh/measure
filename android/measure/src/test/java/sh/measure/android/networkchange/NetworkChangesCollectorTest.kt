@@ -23,15 +23,16 @@ import org.robolectric.shadows.ShadowNetwork
 import org.robolectric.shadows.ShadowNetworkCapabilities
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
-import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.SystemServiceProviderImpl
+import sh.measure.android.utils.TestClock
 
 @RunWith(AndroidJUnit4::class)
 class NetworkChangesCollectorTest {
     private val logger = NoopLogger()
-    private val timeProvider = FakeTimeProvider()
+    private val timeProvider = AndroidTimeProvider(TestClock.create())
     private val eventProcessor = mock<EventProcessor>()
     private lateinit var systemServiceProvider: SystemServiceProvider
     private lateinit var connectivityManager: ConnectivityManager
@@ -123,7 +124,7 @@ class NetworkChangesCollectorTest {
 
         verify(eventProcessor).track(
             type = EventType.NETWORK_CHANGE,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             data = NetworkChangeData(
                 previous_network_type = previousNetworkType,
                 network_type = NetworkType.CELLULAR,
@@ -154,7 +155,7 @@ class NetworkChangesCollectorTest {
 
         verify(eventProcessor).track(
             type = EventType.NETWORK_CHANGE,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             data = NetworkChangeData(
                 previous_network_type = NetworkType.UNKNOWN,
                 network_type = NetworkType.CELLULAR,
@@ -189,7 +190,7 @@ class NetworkChangesCollectorTest {
 
         verify(eventProcessor).track(
             type = EventType.NETWORK_CHANGE,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             data = NetworkChangeData(
                 previous_network_type = NetworkType.WIFI,
                 network_type = NetworkType.CELLULAR,
@@ -277,7 +278,7 @@ class NetworkChangesCollectorTest {
 
         verify(eventProcessor).track(
             type = EventType.NETWORK_CHANGE,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             data = NetworkChangeData(
                 previous_network_type = NetworkGeneration.UNKNOWN,
                 network_type = NetworkType.WIFI,
@@ -426,7 +427,7 @@ class NetworkChangesCollectorTest {
 
         verify(eventProcessor).track(
             type = EventType.NETWORK_CHANGE,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             data = NetworkChangeData(
                 previous_network_type = NetworkType.UNKNOWN,
                 network_type = NetworkType.VPN,
@@ -458,7 +459,7 @@ class NetworkChangesCollectorTest {
 
         verify(eventProcessor).track(
             type = EventType.NETWORK_CHANGE,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             data = NetworkChangeData(
                 previous_network_type = NetworkType.UNKNOWN,
                 network_type = NetworkType.NO_NETWORK,
@@ -521,7 +522,7 @@ class NetworkChangesCollectorTest {
 
         verify(eventProcessor).track(
             type = EventType.NETWORK_CHANGE,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             data = NetworkChangeData(
                 previous_network_type = NetworkType.UNKNOWN,
                 network_type = NetworkType.CELLULAR,

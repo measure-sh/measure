@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**frontend**): Add new UI for session replay by @anupcowkur in #1389
+- (**frontend**): Persist paginator on master detail nav by @anupcowkur in #1373
+- (**frontend**): Add search bar to dropdown component by @anupcowkur in #1370
 - (**frontend**): Use sankey graphs for journeys by @anupcowkur in #1343
 - (**frontend**): Add filters to urls by @anupcowkur in #1322
 
@@ -20,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Increase thread name character limit (#1341) by @detj in #1341
 - (**backend**): Prevent duplicate ingestion of events (#1331) by @detj in #1331
 
+- (**frontend**): Calculate time diff b/w filtered events by @anupcowkur in #1381
 - (**frontend**): Fix nav aside scroll on detail content exceeding screen area by @anupcowkur in #1366
 - (**frontend**): Handle empty file/method name by @anupcowkur in #1364
 - (**frontend**): Handle empty file/method name for crashes/anrs by @anupcowkur in #1357
@@ -38,13 +42,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Ingest screen view event by @abhaysood
 - (**backend**): Add screen view sample sessions by @abhaysood
 
+- (**frontend**): Add loading states by @anupcowkur in #1377
 - (**frontend**): Add loading spinners for plot components by @anupcowkur in #1359
 - (**frontend**): Go directly to dashboard if logged in by @anupcowkur in #1355
+
+
+### :coffin: Removed
+
+- (**frontend**): Remove legends & add versions in tooltips to exception & sessions overview plots by @anupcowkur in #1374
 
 
 ### :books: Documentation
 
 - (**backend**): Update incorrect json key name (#1363) by @detj in #1363
+
+- Add call to action for star to README by @gandharva in #1401
 
 ## [0.2.1] - 2024-09-25
 

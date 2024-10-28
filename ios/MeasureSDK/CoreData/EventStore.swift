@@ -14,6 +14,8 @@ protocol EventStore {
     func getEventsForSessions(sessions: [String]) -> [EventEntity]?
     func deleteEvents(eventIds: [String])
     func getAllEvents() -> [EventEntity]?
+    func getUnBatchedEventsWithAttachmentSize(eventCount: Number, ascending: Bool, sessionId: String?) -> [String: Number]
+    func updateBatchId(_ batchId: String, for events: [String])
 }
 
 final class BaseEventStore: EventStore {
@@ -72,7 +74,10 @@ final class BaseEventStore: EventStore {
                                 gestureClick: eventOb.gestureClick,
                                 gestureLongClick: eventOb.gestureLongClick,
                                 gestureScroll: eventOb.gestureScroll,
-                                userTriggered: eventOb.userTriggered)
+                                userTriggered: eventOb.userTriggered,
+                                attachmentSize: eventOb.attachmentSize,
+                                timestampInMillis: eventOb.timestampInMillis,
+                                batchId: eventOb.batchId)
                 }
             } catch {
                 guard let self = self else { return }
@@ -102,7 +107,10 @@ final class BaseEventStore: EventStore {
                                 gestureClick: eventOb.gestureClick,
                                 gestureLongClick: eventOb.gestureLongClick,
                                 gestureScroll: eventOb.gestureScroll,
-                                userTriggered: eventOb.userTriggered)
+                                userTriggered: eventOb.userTriggered,
+                                attachmentSize: eventOb.attachmentSize,
+                                timestampInMillis: eventOb.timestampInMillis,
+                                batchId: eventOb.batchId)
                 }
             } catch {
                 guard let self = self else { return }
@@ -151,7 +159,10 @@ final class BaseEventStore: EventStore {
                                               gestureClick: eventOb.gestureClick,
                                               gestureLongClick: eventOb.gestureLongClick,
                                               gestureScroll: eventOb.gestureScroll,
-                                              userTriggered: eventOb.userTriggered))
+                                              userTriggered: eventOb.userTriggered,
+                                              attachmentSize: eventOb.attachmentSize,
+                                              timestampInMillis: eventOb.timestampInMillis,
+                                              batchId: eventOb.batchId))
                 }
             } catch {
                 guard let self = self else {
@@ -161,5 +172,65 @@ final class BaseEventStore: EventStore {
             }
         }
         return events.isEmpty ? nil : events
+    }
+
+    func getUnBatchedEventsWithAttachmentSize(eventCount: Number, ascending: Bool, sessionId: String?) -> [String: Number] {
+        let context = coreDataManager.backgroundContext
+        let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
+
+        fetchRequest.fetchLimit = Int(eventCount)
+
+        let sortDescriptor = NSSortDescriptor(key: "timestampInMillis", ascending: ascending)
+        fetchRequest.sortDescriptors = [sortDescriptor]
+
+        var predicates = [NSPredicate]()
+
+        predicates.append(NSPredicate(format: "batchId == nil"))
+        if let sessionId = sessionId {
+            predicates.append(NSPredicate(format: "sessionId == %@", sessionId))
+        }
+
+        if !predicates.isEmpty {
+            fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+        }
+
+        var eventIdAttachmentSizeMap: [String: Int64] = [:]
+
+        context.performAndWait { [weak self] in
+            do {
+                let events = try context.fetch(fetchRequest)
+                for event in events {
+                    if let eventId = event.id {
+                        eventIdAttachmentSizeMap[eventId] = event.attachmentSize
+                    }
+                }
+            } catch {
+                guard let self = self else { return }
+                self.logger.internalLog(level: .error, message: "Failed to fetch events: \(error)", error: error, data: nil)
+            }
+        }
+
+        return eventIdAttachmentSizeMap
+    }
+
+    func updateBatchId(_ batchId: String, for events: [String]) {
+        let context = coreDataManager.backgroundContext
+        let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "id IN %@", events)
+
+        context.performAndWait { [weak self] in
+            do {
+                let fetchedEvents = try context.fetch(fetchRequest)
+
+                for event in fetchedEvents {
+                    event.batchId = batchId
+                }
+
+                try context.saveIfNeeded()
+            } catch {
+                guard let self = self else { return }
+                self.logger.internalLog(level: .error, message: "Failed to update batchId for events.", error: error, data: nil)
+            }
+        }
     }
 }

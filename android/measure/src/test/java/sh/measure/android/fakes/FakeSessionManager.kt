@@ -1,33 +1,19 @@
 package sh.measure.android.fakes
 
 import sh.measure.android.SessionManager
+import sh.measure.android.events.Event
 
 internal class FakeSessionManager : SessionManager {
-    var sessionPids = mutableListOf(Pair("fake-session-id", 1234))
     var crashedSession = ""
     var crashedSessions = mutableListOf<String>()
+    var onEventTracked = false
+
     override fun init() {
-        // No-op
+        // no-op
     }
 
     override fun getSessionId(): String {
         return "fake-session-id"
-    }
-
-    override fun getSessionsWithUntrackedAppExit(): Map<Int, List<String>> {
-        return sessionPids.groupBy({ it.second }, { it.first })
-    }
-
-    override fun onAppBackground() {
-        // No-op
-    }
-
-    override fun onAppForeground() {
-        // No-op
-    }
-
-    override fun updateAppExitTracked(pid: Int) {
-        // No-op
     }
 
     override fun markCrashedSession(sessionId: String) {
@@ -36,5 +22,21 @@ internal class FakeSessionManager : SessionManager {
 
     override fun markCrashedSessions(sessionIds: List<String>) {
         crashedSessions = sessionIds.toMutableList()
+    }
+
+    override fun <T> onEventTracked(event: Event<T>) {
+        onEventTracked = true
+    }
+
+    override fun onAppForeground() {
+        // no-op
+    }
+
+    override fun onAppBackground() {
+        // no-op
+    }
+
+    override fun clearAppExitSessionsBefore(timestamp: Long) {
+        // no-op
     }
 }

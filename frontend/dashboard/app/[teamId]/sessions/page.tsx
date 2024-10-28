@@ -2,6 +2,7 @@
 
 import { emptySessionsOverviewResponse, SessionsOverviewApiStatus, fetchSessionsOverviewFromServer, FiltersApiType } from '@/app/api/api_calls';
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters';
+import LoadingBar from '@/app/components/loading_bar';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import SessionsOverviewPlot from '@/app/components/sessions_overview_plot';
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime, formatMillisToHumanReadable } from '@/app/utils/time_utils';
@@ -107,17 +108,10 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                 && sessionsOverviewApiStatus === SessionsOverviewApiStatus.Error
                 && <p className="text-lg font-display">Error fetching list of sessions, please change filters, refresh page or select a different app to try again</p>}
 
-            {/* Empty state for sessions fetch */}
-            {filters.ready
-                && sessionsOverviewApiStatus === SessionsOverviewApiStatus.Success
-                && (sessionsOverview.results === null || sessionsOverview.results.length === 0)
-                && <p className="text-lg font-display">It seems there are no sessions for the current combination of filters. Please change filters to try again</p>}
-
             {/* Main sessions list UI */}
             {filters.ready
                 && (sessionsOverviewApiStatus === SessionsOverviewApiStatus.Success || sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading)
-                && sessionsOverview.results !== null
-                && sessionsOverview.results.length > 0 &&
+                && sessionsOverview.results !== null &&
                 <div className="flex flex-col items-center w-full">
                     <div className="py-4" />
                     <SessionsOverviewPlot
@@ -134,7 +128,9 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                                 setPaginationDirection(PaginationDirection.Backward)
                             }} />
                     </div>
-                    <div className="py-1" />
+                    <div className={`py-1 w-full ${sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading ? 'visible' : 'invisible'}`}>
+                        <LoadingBar />
+                    </div>
                     <div className="table border border-black rounded-md w-full" style={{ tableLayout: "fixed" }}>
                         <div className="table-header-group bg-neutral-950">
                             <div className="table-row text-white font-display">

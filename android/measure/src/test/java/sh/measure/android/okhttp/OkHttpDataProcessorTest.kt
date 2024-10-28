@@ -13,14 +13,15 @@ import org.mockito.Mockito.times
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.verify
 import sh.measure.android.events.EventProcessor
-import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.utils.AndroidTimeProvider
+import sh.measure.android.utils.TestClock
 import java.net.ConnectException
 
 class OkHttpDataProcessorTest {
     private val logger = NoopLogger()
     private val eventProcessor = mock<EventProcessor>()
-    private val timeProvider = FakeTimeProvider()
+    private val timeProvider = AndroidTimeProvider(TestClock.create())
     private val okHttpEventCollector: OkHttpEventCollector = OkHttpEventCollectorImpl(
         logger,
         eventProcessor,

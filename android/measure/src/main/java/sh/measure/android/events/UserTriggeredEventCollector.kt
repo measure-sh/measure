@@ -26,7 +26,7 @@ internal class UserTriggeredEventCollectorImpl(
                 from = from,
                 source = null,
             ),
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.NAVIGATION,
         )
     }
@@ -41,7 +41,7 @@ internal class UserTriggeredEventCollectorImpl(
                 thread = thread,
                 foreground = processInfoProvider.isForegroundProcess(),
             ),
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.EXCEPTION,
         )
     }
@@ -49,7 +49,7 @@ internal class UserTriggeredEventCollectorImpl(
     override fun trackScreenView(screenName: String) {
         eventProcessor.trackUserTriggered(
             data = ScreenViewData(name = screenName),
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.SCREEN_VIEW,
         )
     }

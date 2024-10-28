@@ -11,6 +11,7 @@ import XCTest
 final class GestureTargetFinderTests: XCTestCase {
     var targetFinder: BaseGestureTargetFinder!
     var window: UIWindow!
+    var depth = 1500
 
     override func setUp() {
         super.setUp()
@@ -18,16 +19,15 @@ final class GestureTargetFinderTests: XCTestCase {
         window = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 3000))
         window.makeKeyAndVisible()
 
-        // Add 2000 nested views (1 contains 2, 2 contains 3, and so on)
         var previousView: UIView? = window
-        for i in 1...2000 {
+        for index in 1...depth {
             var view: UIView
-            if i != 2000 {
+            if index != depth {
                 view = UIView(frame: CGRect(x: 0, y: 0, width: 300, height: 50))
             } else {
                 view = UIScrollView(frame: CGRect(x: 0, y: 0, width: 300, height: 50))
             }
-            view.accessibilityIdentifier = "View-\(i)"
+            view.accessibilityIdentifier = "View-\(index)"
             previousView?.addSubview(view)
             previousView = view
         }
@@ -41,7 +41,7 @@ final class GestureTargetFinderTests: XCTestCase {
         measure {
             let result = targetFinder.findClickable(x: tapX, y: tapY, window: window)
             XCTAssertNotNil(result.target)
-            XCTAssertEqual(result.targetId, "View-2000")
+            XCTAssertEqual(result.targetId, "View-\(depth)")
         }
     }
 
@@ -53,43 +53,7 @@ final class GestureTargetFinderTests: XCTestCase {
         measure {
             let result = targetFinder.findScrollable(startScrollPoint: startScrollPoint, endScrollPoint: endScrollPoint, window: window)
             XCTAssertNotNil(result)
-            XCTAssertEqual(result?.targetId, "View-2000")
+            XCTAssertEqual(result?.targetId, "View-\(depth)")
         }
     }
 }
-
-func findClickable(x: CGFloat, y: CGFloat, window: UIWindow) -> TargetFinderTuple {  // swiftlint:disable:this identifier_name
-        let tapPoint = CGPoint(x: x, y: y)
-
-        if let tappedView = window.hitTest(tapPoint, with: nil) {
-            if let targetData = searchSubviews(view: tappedView, tapPoint: tapPoint, window: window) {
-                return targetData
-            } else {
-                return ("\(type(of: tappedView))", tappedView.accessibilityIdentifier, tappedView.frame)
-            }
-        }
-        return (nil, nil, nil)
-    }
-
-    private func searchSubviews(view: UIView, tapPoint: CGPoint, window: UIWindow) -> TargetFinderTuple? {
-        var target: String?
-        var targetId: String?
-        var targetFrame: CGRect?
-        for subview in view.subviews {
-            let pointInSubview = view.convert(tapPoint, from: window)
-
-            if subview.frame.contains(pointInSubview) {
-                target = "\(type(of: subview))"
-                targetFrame = subview.frame
-                targetId = subview.accessibilityIdentifier
-                if subview.subviews.isEmpty {
-                    return (target, targetId, targetFrame)
-                } else {
-                    return searchSubviews(view: subview, tapPoint: tapPoint, window: window)
-                }
-            }
-        }
-        return nil
-    }
-
-

@@ -20,4 +20,13 @@ protocol InternalConfig {
 
     /// The minimum movement before a touch is detected as a scroll. Defaults to 20 points.
     var scaledTouchSlop: CGFloat { get }
+
+    /// The maximum size of attachments allowed in a single batch. Defaults to 3MB
+    var maxAttachmentSizeInEventsBatchInBytes: Number { get }
+
+    /// The maximum number of events to export in /events API. Defaults to 500.
+    var maxEventsInBatch: Number { get }
+
+    /// The request timeout interval for all tasks within sessions based on this configuration
+    var timeoutIntervalForRequest: TimeInterval { get }
 }

@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteException
 import android.database.sqlite.SQLiteOpenHelper
+import sh.measure.android.appexit.AppExitCollector
 import sh.measure.android.exporter.AttachmentPacket
 import sh.measure.android.exporter.EventPacket
 import sh.measure.android.logger.LogLevel
@@ -86,6 +87,13 @@ internal interface Database : Closeable {
      */
     fun insertSession(session: SessionEntity): Boolean
 
+    fun updateSessionPid(
+        sessionId: String,
+        pid: Int,
+        createdAt: Long,
+        supportsAppExit: Boolean,
+    ): Boolean
+
     /**
      * Deletes the sessions with the given IDs.
      *
@@ -93,18 +101,6 @@ internal interface Database : Closeable {
      * @return `true` if the sessions were successfully deleted, `false` otherwise.
      */
     fun deleteSessions(sessionIds: List<String>): Boolean
-
-    /**
-     * Returns a map of process IDs to list of session IDs that were created by that process
-     * where the app exit event has not been tracked. The session Ids are order by creation time
-     * in ascending order.
-     */
-    fun getSessionsWithUntrackedAppExit(): Map<Int, List<String>>
-
-    /**
-     * Updates the sessions table to mark the app exit event as tracked.
-     */
-    fun updateAppExitTracked(pid: Int)
 
     /**
      * Inserts a user defined attribute into the database.
@@ -189,6 +185,17 @@ internal interface Database : Closeable {
      * Returns the number of events in the database.
      */
     fun getEventsCount(): Int
+
+    /**
+     * Returns a session for a given pid from app exit table.
+     * If multiple sessions span across the same pid, the most recent session id is returned.
+     */
+    fun getSessionForAppExit(pid: Int): AppExitCollector.Session?
+
+    /**
+     * Clears app exit for sessions which happened before the given [timestamp].
+     */
+    fun clearAppExitSessionsBefore(timestamp: Long)
 }
 
 /**
@@ -207,6 +214,7 @@ internal class DatabaseImpl(
             db.execSQL(Sql.CREATE_ATTACHMENTS_TABLE)
             db.execSQL(Sql.CREATE_EVENTS_BATCH_TABLE)
             db.execSQL(Sql.CREATE_USER_DEFINED_ATTRIBUTES_TABLE)
+            db.execSQL(Sql.CREATE_APP_EXIT_TABLE)
             db.execSQL(Sql.CREATE_EVENTS_TIMESTAMP_INDEX)
             db.execSQL(Sql.CREATE_EVENTS_SESSION_ID_INDEX)
             db.execSQL(Sql.CREATE_EVENTS_BATCH_EVENT_ID_INDEX)
@@ -218,7 +226,7 @@ internal class DatabaseImpl(
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // Not implemented
+        DbMigrations.apply(logger, db, oldVersion, newVersion)
     }
 
     override fun onConfigure(db: SQLiteDatabase) {
@@ -436,19 +444,94 @@ internal class DatabaseImpl(
     }
 
     override fun insertSession(session: SessionEntity): Boolean {
-        val values = ContentValues().apply {
-            put(SessionsTable.COL_SESSION_ID, session.sessionId)
-            put(SessionsTable.COL_PID, session.pid)
-            put(SessionsTable.COL_CREATED_AT, session.createdAt)
-            put(SessionsTable.COL_NEEDS_REPORTING, session.needsReporting)
-            put(SessionsTable.COL_CRASHED, session.crashed)
-        }
+        writableDatabase.beginTransaction()
+        try {
+            val sessionValues = ContentValues().apply {
+                put(SessionsTable.COL_SESSION_ID, session.sessionId)
+                put(SessionsTable.COL_PID, session.pid)
+                put(SessionsTable.COL_CREATED_AT, session.createdAt)
+                put(SessionsTable.COL_NEEDS_REPORTING, session.needsReporting)
+                put(SessionsTable.COL_CRASHED, session.crashed)
+            }
+            val appExitResult = if (session.supportsAppExit) {
+                val appExitValues = ContentValues().apply {
+                    put(AppExitTable.COL_SESSION_ID, session.sessionId)
+                    put(AppExitTable.COL_PID, session.pid)
+                    put(AppExitTable.COL_CREATED_AT, session.createdAt)
+                }
+                writableDatabase.insertWithOnConflict(
+                    AppExitTable.TABLE_NAME,
+                    null,
+                    appExitValues,
+                    SQLiteDatabase.CONFLICT_IGNORE,
+                )
+            } else {
+                0
+            }
 
-        val result = writableDatabase.insert(SessionsTable.TABLE_NAME, null, values)
-        if (result == -1L) {
-            logger.log(LogLevel.Error, "Failed to insert pid and session id")
+            val sessionsResult =
+                writableDatabase.insert(SessionsTable.TABLE_NAME, null, sessionValues)
+            if (sessionsResult == -1L || appExitResult == -1L) {
+                logger.log(LogLevel.Error, "Failed to insert session ${session.sessionId}")
+                return false
+            }
+            writableDatabase.setTransactionSuccessful()
+            return true
+        } catch (e: Exception) {
+            logger.log(LogLevel.Error, "Failed to insert session ${session.sessionId}", e)
+            return false
+        } finally {
+            writableDatabase.endTransaction()
         }
-        return result != -1L
+    }
+
+    override fun updateSessionPid(
+        sessionId: String,
+        pid: Int,
+        createdAt: Long,
+        supportsAppExit: Boolean,
+    ): Boolean {
+        writableDatabase.beginTransaction()
+
+        try {
+            val sessionValues = ContentValues().apply {
+                put(SessionsTable.COL_PID, pid)
+            }
+            val sessionResult = writableDatabase.updateWithOnConflict(
+                SessionsTable.TABLE_NAME,
+                sessionValues,
+                "${SessionsTable.COL_SESSION_ID} = ?",
+                arrayOf(sessionId),
+                SQLiteDatabase.CONFLICT_IGNORE,
+            )
+            val appExitResult = if (supportsAppExit) {
+                val appExitValues = ContentValues().apply {
+                    put(AppExitTable.COL_SESSION_ID, sessionId)
+                    put(AppExitTable.COL_PID, pid)
+                    put(AppExitTable.COL_CREATED_AT, createdAt)
+                }
+                writableDatabase.insertWithOnConflict(
+                    AppExitTable.TABLE_NAME,
+                    null,
+                    appExitValues,
+                    SQLiteDatabase.CONFLICT_IGNORE,
+                )
+            } else {
+                0
+            }
+
+            if (appExitResult < 0 || sessionResult <= 0) {
+                logger.log(LogLevel.Error, "Unable to update session $sessionId")
+                return false
+            }
+            writableDatabase.setTransactionSuccessful()
+            return true
+        } catch (e: Exception) {
+            logger.log(LogLevel.Error, "Unable to update session $sessionId", e)
+            return false
+        } finally {
+            writableDatabase.endTransaction()
+        }
     }
 
     override fun deleteSessions(sessionIds: List<String>): Boolean {
@@ -467,32 +550,6 @@ internal class DatabaseImpl(
             logger.log(LogLevel.Error, "Failed to delete sessions")
         }
         return result != 0
-    }
-
-    override fun getSessionsWithUntrackedAppExit(): Map<Int, List<String>> {
-        readableDatabase.rawQuery(Sql.getSessionsWithUntrackedAppExit(), null).use {
-            val pidToSessionsMap = linkedMapOf<Int, MutableList<String>>()
-
-            while (it.moveToNext()) {
-                val sessionIdIndex = it.getColumnIndex(SessionsTable.COL_SESSION_ID)
-                val pidIndex = it.getColumnIndex(SessionsTable.COL_PID)
-
-                val sessionId = it.getString(sessionIdIndex)
-                val pid = it.getInt(pidIndex)
-
-                if (pid in pidToSessionsMap) {
-                    pidToSessionsMap[pid]?.add(sessionId)
-                } else {
-                    pidToSessionsMap[pid] = mutableListOf(sessionId)
-                }
-            }
-
-            return pidToSessionsMap
-        }
-    }
-
-    override fun updateAppExitTracked(pid: Int) {
-        writableDatabase.execSQL(Sql.updateAppExitTracked(pid))
     }
 
     override fun insertUserDefinedAttribute(key: String, value: Number) {
@@ -748,6 +805,30 @@ internal class DatabaseImpl(
             count = it.getInt(countIndex)
         }
         return count
+    }
+
+    override fun getSessionForAppExit(pid: Int): AppExitCollector.Session? {
+        readableDatabase.rawQuery(Sql.getSessionForAppExit(pid), null).use {
+            if (it.count == 0) {
+                return null
+            }
+            it.moveToFirst()
+            val sessionIdIndex = it.getColumnIndex(AppExitTable.COL_SESSION_ID)
+            val createdAtIndex = it.getColumnIndex(AppExitTable.COL_CREATED_AT)
+
+            val sessionId = it.getString(sessionIdIndex)
+            val createdAt = it.getLong(createdAtIndex)
+            return AppExitCollector.Session(id = sessionId, createdAt = createdAt, pid = pid)
+        }
+    }
+
+    override fun clearAppExitSessionsBefore(timestamp: Long) {
+        val result = writableDatabase.delete(
+            AppExitTable.TABLE_NAME,
+            "${AppExitTable.COL_CREATED_AT} <= ?",
+            arrayOf(timestamp.toString()),
+        )
+        logger.log(LogLevel.Debug, "Cleared $result app_exit rows")
     }
 
     override fun getAttachmentsForEvents(events: List<String>): List<String> {

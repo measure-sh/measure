@@ -1,15 +1,23 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22757" systemVersion="23F79" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="BatchOb" representedClassName="BatchOb" syncable="YES" codeGenerationType="class">
+        <attribute name="batchId" attributeType="String"/>
+        <attribute name="createdAt" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="eventId" attributeType="String"/>
+    </entity>
     <entity name="EventOb" representedClassName="EventOb" syncable="YES" codeGenerationType="class">
         <attribute name="attachments" optional="YES" attributeType="Binary" valueTransformerName="NSSecureUnarchiveFromDataTransformerName"/>
+        <attribute name="attachmentSize" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="attributes" optional="YES" attributeType="Binary"/>
+        <attribute name="batchId" optional="YES" attributeType="String"/>
         <attribute name="exception" optional="YES" attributeType="Binary"/>
         <attribute name="gestureClick" optional="YES" attributeType="Binary"/>
         <attribute name="gestureLongClick" optional="YES" attributeType="Binary"/>
         <attribute name="gestureScroll" optional="YES" attributeType="Binary"/>
         <attribute name="id" attributeType="String" defaultValueString=""/>
         <attribute name="sessionId" attributeType="String" defaultValueString=""/>
-        <attribute name="timestamp" attributeType="String" defaultValueString=""/>
+        <attribute name="timestamp" attributeType="String"/>
+        <attribute name="timestampInMillis" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="type" attributeType="String" defaultValueString=""/>
         <attribute name="userTriggered" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
     </entity>

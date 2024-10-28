@@ -653,6 +653,12 @@ Use the `memory_usage` type for memory usage of JVM applications.
 
 Use the `low_memory` type for a low memory event from the system.
 
+> [!NOTE]
+>
+> This event is no longer tracked. The callback is deprecated and the general guidance is to rely on 
+> trim_memory events instead. Removed in Android SDK version 0.8.0.
+> https://developer.android.com/reference/android/content/ComponentCallbacks#onLowMemory()
+
 | Field             | Type   | Optional | Description                                                                                                                   |
 | ----------------- | :----- | :------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | java_max_heap     | uint64 | No       | Maximum size of the Java heap allocated to the application. Measured in kB.                                                   |

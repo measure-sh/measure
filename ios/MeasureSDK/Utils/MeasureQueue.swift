@@ -8,8 +8,8 @@
 import Foundation
 
 struct MeasureQueue {
-    static let background: DispatchQueue = {
-        let queue = DispatchQueue(label: backgroundQueueLabel, qos: .background)
+    static let periodicEventExporter: DispatchQueue = {
+        let queue = DispatchQueue(label: periodicEventExporterLabel, qos: .background)
         return queue
     }()
 

@@ -28,7 +28,8 @@ internal data class Config(
         "WWW-Authenticate",
         "X-Api-Key",
     )
-    override val sessionEndThresholdMs: Long = 60 * 1000 // 1 minute
+    override val sessionEndLastEventThresholdMs: Long = 20 * 60 * 1000 // 20 minutes
+    override val maxSessionDurationMs: Long = 6 * 60 * 60 * 1000 // 6 hours
     override val maxUserDefinedAttributeKeyLength: Int = 64 // 64 chars
     override val maxUserDefinedAttributeValueLength: Int = 256 // 256 chars
     override val userDefinedAttributeKeyWithSpaces: Boolean = false

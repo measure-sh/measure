@@ -9,6 +9,7 @@ import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
 import FilterPill from "./filter_pill";
 import CreateApp from "./create_app";
 import DebounceTextInput from "./debounce_text_input";
+import LoadingSpinner from "./loading_spinner";
 
 export enum AppVersionsInitialSelectionType {
   Latest,
@@ -710,6 +711,8 @@ const Filters: React.FC<FiltersProps> = ({
 
   return (
     <div>
+      {appsApiStatus === AppsApiStatus.Loading && <LoadingSpinner />}
+
       {/* Error states for apps fetch */}
       {appsApiStatus === AppsApiStatus.Error && <p className="text-lg font-display">Error fetching apps, please check if Team ID is valid or refresh page to try again</p>}
       {appsApiStatus === AppsApiStatus.NoApps &&
@@ -719,12 +722,13 @@ const Filters: React.FC<FiltersProps> = ({
           {showCreateApp && <CreateApp teamId={teamId} />}
         </div>}
 
-      {/* Error states for app success but filters fetch failure */}
+      {/* Error states for app success but filters fetch loading or failure */}
       {appsApiStatus === AppsApiStatus.Success && filtersApiStatus !== FiltersApiStatus.Success &&
         <div className="flex flex-col">
           {showAppSelector &&
             <div className="flex flex-wrap gap-8 items-center">
               <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={apps.map((e) => e.name)} initialSelected={selectedApp.name} onChangeSelected={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} />
+              {filtersApiStatus === FiltersApiStatus.Loading && <LoadingSpinner />}
             </div>}
           <div className="py-4" />
           {filtersApiStatus === FiltersApiStatus.Error && <p className="text-lg font-display">Error fetching filters, please refresh page or select a different app to try again</p>}

@@ -25,7 +25,6 @@ import sh.measure.android.networkchange.NetworkChangeData
 import sh.measure.android.networkchange.NetworkGeneration
 import sh.measure.android.okhttp.HttpData
 import sh.measure.android.performance.CpuUsageData
-import sh.measure.android.performance.LowMemoryData
 import sh.measure.android.performance.MemoryUsageData
 import sh.measure.android.performance.TrimMemoryData
 import sh.measure.android.storage.AttachmentEntity
@@ -264,26 +263,6 @@ internal object TestData {
         )
     }
 
-    fun getLowMemoryData(
-        javaMaxHeap: Long = 100,
-        javaTotalHeap: Long = 200,
-        javaFreeHeap: Long = 300,
-        totalPss: Int = 400,
-        rss: Long? = 500,
-        nativeTotalHeap: Long = 600,
-        nativeFreeHeap: Long = 700,
-    ): LowMemoryData {
-        return LowMemoryData(
-            javaMaxHeap,
-            javaTotalHeap,
-            javaFreeHeap,
-            totalPss,
-            rss,
-            nativeTotalHeap,
-            nativeFreeHeap,
-        )
-    }
-
     fun getTrimMemoryData(
         level: String = "TRIM_MEMORY_UI_HIDDEN",
     ): TrimMemoryData {
@@ -410,6 +389,7 @@ internal object TestData {
         createdAt: Long = 987654321L,
         needsReporting: Boolean = false,
         crashed: Boolean = false,
+        supportsAppExit: Boolean = false,
     ): SessionEntity {
         return SessionEntity(
             sessionId = id,
@@ -417,6 +397,7 @@ internal object TestData {
             createdAt = createdAt,
             needsReporting = needsReporting,
             crashed = crashed,
+            supportsAppExit = supportsAppExit,
         )
     }
 

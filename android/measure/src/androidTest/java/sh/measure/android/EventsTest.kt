@@ -44,11 +44,11 @@ import java.util.concurrent.TimeUnit
  * Also note that certain tests are ignored if the test harness cannot trigger the events
  * in a reliable way, these must be verified manually.
  *
- * See [TestRobot] for helper methods to interact with the test app.
+ * See [EventsTestRobot] for helper methods to interact with the test app.
  */
 @RunWith(AndroidJUnit4::class)
-class MeasureEventsTest {
-    private val robot: TestRobot = TestRobot()
+class EventsTest {
+    private val robot: EventsTestRobot = EventsTestRobot()
     private val mockWebServer: MockWebServer = MockWebServer()
 
     @OptIn(ExperimentalPerfettoCaptureApi::class)

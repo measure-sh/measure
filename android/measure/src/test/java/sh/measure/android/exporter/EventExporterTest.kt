@@ -1,5 +1,6 @@
 package sh.measure.android.exporter
 
+import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.serialization.encodeToString
@@ -15,7 +16,6 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeIdProvider
-import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.storage.AttachmentEntity
 import sh.measure.android.storage.BatchEntity
@@ -23,6 +23,8 @@ import sh.measure.android.storage.DatabaseImpl
 import sh.measure.android.storage.EventEntity
 import sh.measure.android.storage.FileStorageImpl
 import sh.measure.android.storage.SessionEntity
+import sh.measure.android.utils.AndroidTimeProvider
+import sh.measure.android.utils.TestClock
 
 // This test uses robolectric and a real instance of batch creator to ensure that the batch creator
 // and exporter work together correctly with a real database.
@@ -35,7 +37,7 @@ internal class EventExporterTest {
     private val database = DatabaseImpl(context, logger)
     private val rootDir = context.filesDir.path
     private val fileStorage = FileStorageImpl(rootDir, logger)
-    private val timeProvider = FakeTimeProvider()
+    private val timeProvider = AndroidTimeProvider(TestClock.create())
     private val configProvider = FakeConfigProvider()
     private val networkClient = mock<NetworkClient>()
     private val batchCreator = BatchCreatorImpl(
@@ -206,7 +208,15 @@ internal class EventExporterTest {
         attachmentSize: Long = 0,
     ) {
         val sessionId = "sessionId"
-        database.insertSession(SessionEntity(sessionId, 12345, 12345, needsReporting = false))
+        database.insertSession(
+            SessionEntity(
+                sessionId,
+                12345,
+                12345,
+                needsReporting = false,
+                supportsAppExit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
+            ),
+        )
         database.insertEvent(
             EventEntity(
                 id = eventId,

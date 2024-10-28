@@ -125,6 +125,7 @@ final class BaseEventProcessor: EventProcessor {
             id: id,
             sessionId: resolvedSessionId,
             timestamp: systemTime.iso8601Timestamp(timeInMillis: timestamp),
+            timestampInMillis: timestamp,
             type: type,
             data: data,
             attachments: attachments,

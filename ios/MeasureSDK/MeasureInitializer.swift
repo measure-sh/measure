@@ -34,6 +34,13 @@ protocol MeasureInitializer {
     var eventStore: EventStore { get }
     var gestureCollector: GestureCollector { get }
     var gestureTargetFinder: GestureTargetFinder { get }
+    var networkClient: NetworkClient { get }
+    var httpClient: HttpClient { get }
+    var periodicEventExporter: PeriodicEventExporter { get }
+    var heartbeat: Heartbeat { get }
+    var eventExporter: EventExporter { get }
+    var batchStore: BatchStore { get }
+    var batchCreator: BatchCreator { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -63,6 +70,13 @@ protocol MeasureInitializer {
 /// - `eventStore`: `EventStore` object that manages `Event` related operations
 /// - `gestureCollector`: `GestureCollector` object is responsible for detecting and saving gesture related data.
 /// - `gestureTargetFinder`: `GestureTargetFinder` object that determines which view is handling the gesture.
+/// - `httpClient`: `HttpClient` object that handles HTTP requests.
+/// - `networkClient`: `NetworkClient` object is responsible for initializing the network configuration and executing API requests.
+/// - `heartbeat`: `Heartbeat` object that emits a pulse every 30 seconds.
+/// - `periodicEventExporter`: `PeriodicEventExporter` object that exports events periodically to server.
+/// - `eventExporter`: `EventExporter` object that exports a single batch.
+/// - `batchStore`: `BatchStore` object that manages `Batch` related operations
+/// - `batchCreator`: `BatchCreator` object used to create a batch.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -89,6 +103,13 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let eventStore: EventStore
     let gestureCollector: GestureCollector
     let gestureTargetFinder: GestureTargetFinder
+    let networkClient: NetworkClient
+    let httpClient: HttpClient
+    let heartbeat: Heartbeat
+    let periodicEventExporter: PeriodicEventExporter
+    let eventExporter: EventExporter
+    let batchStore: BatchStore
+    let batchCreator: BatchCreator
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -147,6 +168,30 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                      timeProvider: timeProvider,
                                                      configProvider: configProvider,
                                                      gestureTargetFinder: gestureTargetFinder)
+        self.httpClient = BaseHttpClient(logger: logger, configProvider: configProvider)
+        self.networkClient = BaseNetworkClient(client: client,
+                                               httpClient: httpClient,
+                                               eventSerializer: EventSerializer())
+        self.heartbeat = BaseHeartbeat()
+        self.batchStore = BaseBatchStore(coreDataManager: coreDataManager,
+                                         logger: logger)
+        self.batchCreator = BaseBatchCreator(logger: logger,
+                                             idProvider: idProvider,
+                                             configProvider: configProvider,
+                                             timeProvider: timeProvider,
+                                             eventStore: eventStore,
+                                             batchStore: batchStore)
+        self.eventExporter = BaseEventExporter(logger: logger,
+                                               networkClient: networkClient,
+                                               batchCreator: batchCreator,
+                                               batchStore: batchStore,
+                                               eventStore: eventStore)
+        self.periodicEventExporter = BasePeriodicEventExporter(logger: logger,
+                                                               configProvider: configProvider,
+                                                               timeProvider: timeProvider,
+                                                               heartbeat: heartbeat,
+                                                               eventExporter: eventExporter,
+                                                               dispatchQueue: MeasureQueue.periodicEventExporter)
         self.client = client
     }
 }

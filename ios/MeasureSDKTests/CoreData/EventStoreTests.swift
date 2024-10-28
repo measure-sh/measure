@@ -29,7 +29,7 @@ class EventStoreTests: XCTestCase {
     }
 
     func testInsertEvent() {
-        let event = EventEntity(id: "1", sessionId: "session1", timestamp: "2024-09-25T12:34:56Z", type: "test", exception: nil, attachments: nil, attributes: nil, userTriggered: false)
+        let event = TestDataGenerator.generateEvents(id: "1")
 
         let insertExpectation = expectation(description: "Insert event should complete")
         DispatchQueue.global().async {
@@ -49,8 +49,8 @@ class EventStoreTests: XCTestCase {
     }
 
     func testGetEvents() {
-        let event1 = EventEntity(id: "1", sessionId: "session1", timestamp: "2024-09-25T12:34:56Z", type: "test", exception: nil, attachments: nil, attributes: nil, userTriggered: false)
-        let event2 = EventEntity(id: "2", sessionId: "session1", timestamp: "2024-09-25T12:35:56Z", type: "test2", exception: nil, attachments: nil, attributes: nil, userTriggered: false)
+        let event1 = TestDataGenerator.generateEvents(id: "1")
+        let event2 = TestDataGenerator.generateEvents(id: "2")
         self.eventStore.insertEvent(event: event1)
         self.eventStore.insertEvent(event: event2)
 
@@ -71,10 +71,10 @@ class EventStoreTests: XCTestCase {
         XCTAssertTrue(fetchedEvents?.contains(where: { $0.id == "2" }) ?? false, "Fetched events should contain event with ID '2'.")
     }
 
-    func testGetEventsForSessions() {
-        let event1 = EventEntity(id: "1", sessionId: "session1", timestamp: "2024-09-25T12:34:56Z", type: "test", exception: nil, attachments: nil, attributes: nil, userTriggered: false)
-        let event2 = EventEntity(id: "2", sessionId: "session1", timestamp: "2024-09-25T12:35:56Z", type: "test2", exception: nil, attachments: nil, attributes: nil, userTriggered: false)
-        let event3 = EventEntity(id: "3", sessionId: "session2", timestamp: "2024-09-25T12:36:56Z", type: "test3", exception: nil, attachments: nil, attributes: nil, userTriggered: false)
+    func testGetEventsForSessions() { // swiftlint:disable:this function_body_length
+        let event1 = TestDataGenerator.generateEvents(id: "1")
+        let event2 = TestDataGenerator.generateEvents(id: "2")
+        let event3 = TestDataGenerator.generateEvents(id: "3", sessionId: "session2", timestamp: "2024-09-25T12:34:56Z", type: "test")
         self.eventStore.insertEvent(event: event1)
         self.eventStore.insertEvent(event: event2)
         self.eventStore.insertEvent(event: event3)
@@ -97,8 +97,8 @@ class EventStoreTests: XCTestCase {
     }
 
     func testDeleteEvents() {
-        let event1 = EventEntity(id: "1", sessionId: "session1", timestamp: "2024-09-25T12:34:56Z", type: "test", exception: nil, attachments: nil, attributes: nil, userTriggered: false)
-        let event2 = EventEntity(id: "2", sessionId: "session1", timestamp: "2024-09-25T12:35:56Z", type: "test2", exception: nil, attachments: nil, attributes: nil, userTriggered: false)
+        let event1 = TestDataGenerator.generateEvents(id: "1")
+        let event2 = TestDataGenerator.generateEvents(id: "2")
         self.eventStore.insertEvent(event: event1)
         self.eventStore.insertEvent(event: event2)
 

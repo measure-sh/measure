@@ -9,14 +9,15 @@ import org.mockito.Mockito.verify
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeProcessInfoProvider
-import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.utils.AndroidTimeProvider
+import sh.measure.android.utils.TestClock
 
 internal class UnhandledExceptionCollectorTest {
 
     private var originalDefaultHandler: Thread.UncaughtExceptionHandler? = null
     private val logger = NoopLogger()
-    private val timeProvider = FakeTimeProvider()
+    private val timeProvider = AndroidTimeProvider(TestClock.create())
     private val eventProcessor = mock<EventProcessor>()
     private val processInfo = FakeProcessInfoProvider()
 
@@ -64,7 +65,7 @@ internal class UnhandledExceptionCollectorTest {
 
         // Then
         verify(eventProcessor).trackCrash(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.EXCEPTION,
             data = expectedException,
             attributes = mutableMapOf(),

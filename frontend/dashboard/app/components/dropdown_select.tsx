@@ -23,6 +23,7 @@ interface DropdownSelectProps {
 const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, initialSelected, onChangeSelected }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selected, setSelected] = useState(initialSelected);
+  const [searchText, setSearchText] = useState('');
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -61,6 +62,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
 
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
+    setSearchText('')
   };
 
   const selectSingleItem = (item: string | AppVersion | OsVersion) => {
@@ -141,9 +143,10 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
   const groupSelectButtonStyle = "text-white text-xs font-display rounded-md border border-white p-1 bg-neutral-950 hover:text-black hover:bg-yellow-200 hover:border-black focus-visible:bg-yellow-200 focus-visible:text-black focus-visible:border-black active:bg-yellow-300 outline-none"
   const checkboxContainerStyle = "px-2 py-2 bg-neutral-950 truncate text-white hover:text-black hover:bg-yellow-200 font-display text-left"
   const checkboxInputStyle = "appearance-none border-white rounded-sm font-display bg-neutral-950 checked:bg-neutral-950 checked:hover:bg-neutral-950 checked:focus:bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:ring-1 checked:ring-white"
+  const searchInputStyle = "w-full bg-neutral-950 text-white text-sm border border-white rounded-md focus-visible:ring-yellow-300 py-2 px-4 font-sans placeholder:text-gray-400"
 
   return (
-    <div className="relative inline-block text-left" ref={dropdownRef} >
+    <div className="relative inline-block text-left select-none" ref={dropdownRef} >
       <div>
         <button
           type="button"
@@ -164,38 +167,94 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
             aria-orientation="vertical"
             aria-labelledby="options-menu"
           >
-            {type === DropdownSelectType.SingleString && items.map((item) => (
-              <button
-                key={item as string}
-                onClick={() => selectSingleItem(item as string)}
-                className={buttonStyle}
-                role="menuitem"
-              >
-                {item as string}
-              </button>
-            ))}
-            {type === DropdownSelectType.SingleAppVersion && items.map((item) => (
-              <button
-                key={(item as AppVersion).displayName}
-                onClick={() => selectSingleItem(item as AppVersion)}
-                className={buttonStyle}
-                role="menuitem"
-              >
-                {(item as AppVersion).displayName}
-              </button>
-            ))}
-            {type === DropdownSelectType.SingleOsVersion && items.map((item) => (
-              <button
-                key={(item as OsVersion).displayName}
-                onClick={() => selectSingleItem(item as OsVersion)}
-                className={buttonStyle}
-                role="menuitem"
-              >
-                {(item as OsVersion).displayName}
-              </button>
-            ))}
+            {type === DropdownSelectType.SingleString &&
+              <div>
+                {(items as string[]).length > 1 && <div className='w-full p-2 bg-neutral-950'>
+                  <input
+                    type="text"
+                    id="single-string-search"
+                    placeholder='Search...'
+                    className={searchInputStyle}
+                    onChange={(e) => {
+                      setSearchText(e.target.value)
+                    }}
+                  />
+                </div>}
+                {items.filter((item) => (item as string).toLowerCase().includes(searchText.toLowerCase())).map((item) => (
+                  <button
+                    key={item as string}
+                    onClick={() => selectSingleItem(item as string)}
+                    className={buttonStyle}
+                    role="menuitem"
+                  >
+                    {item as string}
+                  </button>
+                ))}
+              </div>
+            }
+            {type === DropdownSelectType.SingleAppVersion &&
+              <div>
+                {(items as AppVersion[]).length > 1 && <div className='w-full p-2 bg-neutral-950'>
+                  <input
+                    type="text"
+                    id="single-app-version-search"
+                    placeholder='Search...'
+                    className={searchInputStyle}
+                    onChange={(e) => {
+                      setSearchText(e.target.value)
+                    }}
+                  />
+                </div>}
+                {items.filter((item) => (item as AppVersion).displayName.toLowerCase().includes(searchText.toLowerCase())).map((item) => (
+                  <button
+                    key={(item as AppVersion).displayName}
+                    onClick={() => selectSingleItem(item as AppVersion)}
+                    className={buttonStyle}
+                    role="menuitem"
+                  >
+                    {(item as AppVersion).displayName}
+                  </button>
+                ))}
+              </div>
+            }
+            {type === DropdownSelectType.SingleOsVersion &&
+              <div>
+                {(items as OsVersion[]).length > 1 && <div className='w-full p-2 bg-neutral-950'>
+                  <input
+                    type="text"
+                    id="single-os-version-search"
+                    placeholder='Search...'
+                    className={searchInputStyle}
+                    onChange={(e) => {
+                      setSearchText(e.target.value)
+                    }}
+                  />
+                </div>}
+                {items.filter((item) => (item as OsVersion).displayName.toLowerCase().includes(searchText.toLowerCase())).map((item) => (
+                  <button
+                    key={(item as OsVersion).displayName}
+                    onClick={() => selectSingleItem(item as OsVersion)}
+                    className={buttonStyle}
+                    role="menuitem"
+                  >
+                    {(item as OsVersion).displayName}
+                  </button>
+                ))}
+              </div>
+            }
             {type === DropdownSelectType.MultiString &&
               <div>
+                {(items as string[]).length > 1 && <div className='w-full p-2 bg-neutral-950'>
+                  <input
+                    type="text"
+                    id="multi-string-search"
+                    placeholder='Search...'
+                    className={searchInputStyle}
+                    onChange={(e) => {
+                      setSearchText(e.target.value)
+                    }}
+                  />
+                </div>}
                 {(items as string[]).length > 1 && <div className='flex flex-row w-full p-2 bg-neutral-950'>
                   <button
                     onClick={() => selectAll()}
@@ -204,7 +263,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                     All
                   </button>
                 </div>}
-                {items.map((item) => (
+                {items.filter((item) => (item as string).toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((item) => (
                   <div key={item as string} className={checkboxContainerStyle} role="menuitem">
                     <input
                       type="checkbox"
@@ -220,6 +279,17 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
             }
             {type === DropdownSelectType.MultiOsVersion &&
               <div>
+                {(items as OsVersion[]).length > 1 && <div className='w-full p-2 bg-neutral-950'>
+                  <input
+                    type="text"
+                    id="multi-os-version-search"
+                    placeholder='Search...'
+                    className={searchInputStyle}
+                    onChange={(e) => {
+                      setSearchText(e.target.value)
+                    }}
+                  />
+                </div>}
                 {(items as OsVersion[]).length > 1 && <div className='flex flex-row w-full p-2 bg-neutral-950'>
                   <button
                     onClick={() => selectAll()}
@@ -228,7 +298,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                     All
                   </button>
                 </div>}
-                {items.map((item) => (
+                {items.filter((item) => (item as OsVersion).displayName.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((item) => (
                   <div key={item as string} className={checkboxContainerStyle} role="menuitem">
                     <input
                       type="checkbox"
@@ -244,6 +314,17 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
             }
             {type === DropdownSelectType.MultiAppVersion &&
               <div>
+                {(items as AppVersion[]).length > 1 && <div className='w-full p-2 bg-neutral-950'>
+                  <input
+                    type="text"
+                    id="multi-app-version-search"
+                    placeholder='Search...'
+                    className={searchInputStyle}
+                    onChange={(e) => {
+                      setSearchText(e.target.value)
+                    }}
+                  />
+                </div>}
                 {(items as AppVersion[]).length > 1 && <div className='flex flex-row w-full p-2 bg-neutral-950'>
                   <button
                     onClick={() => selectAll()}
@@ -259,7 +340,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                     Latest
                   </button>
                 </div>}
-                {items.map((item) => (
+                {items.filter((item) => (item as AppVersion).displayName.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((item) => (
                   <div key={(item as AppVersion).displayName} className={checkboxContainerStyle} role="menuitem">
                     <input
                       type="checkbox"

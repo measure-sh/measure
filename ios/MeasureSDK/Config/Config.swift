@@ -22,9 +22,9 @@ struct Config: InternalConfig, MeasureConfig {
     let sessionEndThresholdMs: Number
     let longPressTimeout: TimeInterval
     let scaledTouchSlop: CGFloat
-
-    // Additional properties with specific values
-    let maxEventsInBatch: Int
+    let maxAttachmentSizeInEventsBatchInBytes: Number
+    let maxEventsInBatch: Number
+    let timeoutIntervalForRequest: TimeInterval
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging,
                   trackScreenshotOnCrash: Bool = DefaultConfig.trackScreenshotOnCrash,
@@ -35,7 +35,9 @@ struct Config: InternalConfig, MeasureConfig {
         self.eventsBatchingIntervalMs = 30000 // 30 seconds
         self.maxEventsInBatch = 500
         self.sessionEndThresholdMs = 60000 // 60 seconds
+        self.timeoutIntervalForRequest = 30 // 30 seconds
         self.longPressTimeout = 0.5 // 0.5 seconds
         self.scaledTouchSlop = 3.5 // 3.5 points
+        self.maxAttachmentSizeInEventsBatchInBytes = 3_000_000 // 3 MB
     }
 }

@@ -18,27 +18,15 @@ internal class ComponentCallbacksCollector(
     private val application: Application,
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
-    private val memoryReader: MemoryReader,
 ) : ComponentCallbacks2 {
 
     fun register() {
         application.registerComponentCallbacks(this)
     }
 
+    @Deprecated("Not called since API level 34")
     override fun onLowMemory() {
-        eventProcessor.track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
-            type = EventType.LOW_MEMORY,
-            data = LowMemoryData(
-                java_free_heap = memoryReader.freeHeapSize(),
-                java_max_heap = memoryReader.maxHeapSize(),
-                java_total_heap = memoryReader.totalHeapSize(),
-                native_free_heap = memoryReader.nativeFreeHeapSize(),
-                native_total_heap = memoryReader.nativeTotalHeapSize(),
-                rss = memoryReader.rss(),
-                total_pss = memoryReader.totalPss(),
-            ),
-        )
+        // no-op
     }
 
     override fun onTrimMemory(level: Int) {
@@ -53,7 +41,7 @@ internal class ComponentCallbacksCollector(
             else -> TrimMemoryData(level = "TRIM_MEMORY_UNKNOWN")
         }
         eventProcessor.track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.TRIM_MEMORY,
             data = trimMemoryData,
         )
