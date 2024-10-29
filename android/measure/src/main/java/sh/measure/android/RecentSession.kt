@@ -26,6 +26,10 @@ internal data class RecentSession(
      * Whether this session crashed or not.
      */
     val crashed: Boolean = false,
+    /**
+     * The version code of the app for which this session was created.
+     */
+    val versionCode: String,
 ) {
     fun hasTrackedEvent(): Boolean {
         return lastEventTime != 0L

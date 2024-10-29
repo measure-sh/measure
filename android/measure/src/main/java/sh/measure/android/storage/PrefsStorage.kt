@@ -27,6 +27,7 @@ internal class PrefsStorageImpl(private val logger: Logger, private val context:
         private const val RECENT_SESSION_CREATED_AT = "rs_created_at"
         private const val RECENT_SESSION_EVENT_TIME = "rs_event_time"
         private const val RECENT_SESSION_CRASHED = "rs_crashed"
+        private const val RECENT_SESSION_VERSION_CODE = "rs_version_code"
     }
 
     private val sharedPreferences: SharedPreferences by lazy {
@@ -57,7 +58,8 @@ internal class PrefsStorageImpl(private val logger: Logger, private val context:
         sharedPreferences.edit().putString(RECENT_SESSION_ID, recentSession.id)
             .putLong(RECENT_SESSION_EVENT_TIME, recentSession.lastEventTime)
             .putLong(RECENT_SESSION_CREATED_AT, recentSession.createdAt)
-            .putBoolean(RECENT_SESSION_CRASHED, recentSession.crashed).apply()
+            .putBoolean(RECENT_SESSION_CRASHED, recentSession.crashed)
+            .putString(RECENT_SESSION_VERSION_CODE, recentSession.versionCode).apply()
     }
 
     override fun setRecentSessionCrashed() {
@@ -73,7 +75,8 @@ internal class PrefsStorageImpl(private val logger: Logger, private val context:
         val eventTime = sharedPreferences.getLong(RECENT_SESSION_EVENT_TIME, 0)
         val crashed = sharedPreferences.getBoolean(RECENT_SESSION_CRASHED, false)
         val createdAt = sharedPreferences.getLong(RECENT_SESSION_CREATED_AT, 0)
-        if (sessionId == null) {
+        val versionCode = sharedPreferences.getString(RECENT_SESSION_VERSION_CODE, null)
+        if (sessionId == null || versionCode == null) {
             return null
         }
         return RecentSession(
@@ -81,6 +84,7 @@ internal class PrefsStorageImpl(private val logger: Logger, private val context:
             lastEventTime = eventTime,
             createdAt = createdAt,
             crashed = crashed,
+            versionCode = versionCode,
         )
     }
 }

@@ -13,6 +13,7 @@ import org.mockito.Mockito.`when`
 import org.mockito.kotlin.verify
 import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeConfigProvider
+import sh.measure.android.fakes.FakePackageInfoProvider
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.FakeRandomizer
 import sh.measure.android.fakes.ImmediateExecutorService
@@ -37,6 +38,7 @@ class SessionManagerTest {
     private val testClock = TestClock.create()
     private val timeProvider = AndroidTimeProvider(testClock)
     private val configProvider = FakeConfigProvider()
+    private val packageInfoProvider = FakePackageInfoProvider()
     private val randomizer = FakeRandomizer()
 
     private val sessionManager = SessionManagerImpl(
@@ -48,6 +50,7 @@ class SessionManagerTest {
         timeProvider = timeProvider,
         configProvider = configProvider,
         ioExecutor = executorService,
+        packageInfoProvider = packageInfoProvider,
     )
 
     @Before
@@ -96,6 +99,7 @@ class SessionManagerTest {
             lastEventTime = initialTime,
             createdAt = initialTime - Duration.ofMinutes(3).toMillis(),
             crashed = false,
+            versionCode = packageInfoProvider.getVersionCode(),
         )
         `when`(prefsStorage.getRecentSession()).thenReturn(previousSession)
 
@@ -120,6 +124,7 @@ class SessionManagerTest {
             lastEventTime = initialTime,
             createdAt = initialTime - Duration.ofMinutes(3).toMillis(),
             crashed = false,
+            versionCode = packageInfoProvider.getVersionCode(),
         )
         `when`(prefsStorage.getRecentSession()).thenReturn(previousSession)
 
@@ -147,6 +152,7 @@ class SessionManagerTest {
             lastEventTime = lastEventTime,
             createdAt = previousSessionCreatedTime,
             crashed = false,
+            versionCode = packageInfoProvider.getVersionCode(),
         )
         `when`(prefsStorage.getRecentSession()).thenReturn(previousSession)
 
@@ -169,6 +175,7 @@ class SessionManagerTest {
             lastEventTime = initialTime,
             createdAt = initialTime - Duration.ofMinutes(3).toMillis(),
             crashed = true,
+            versionCode = packageInfoProvider.getVersionCode(),
         )
         `when`(prefsStorage.getRecentSession()).thenReturn(previousSession)
 
@@ -237,11 +244,29 @@ class SessionManagerTest {
             "previous-session-id",
             createdAt = initialTime - Duration.ofMinutes(3).toMillis(),
             lastEventTime = initialTime,
+            versionCode = packageInfoProvider.getVersionCode(),
         )
         `when`(prefsStorage.getRecentSession()).thenReturn(previousSession)
 
         // Reset time to 0
         testClock.setTime(0)
+        sessionManager.init()
+
+        val actualSessionId = sessionManager.getSessionId()
+        assertNotEquals(previousSession.id, actualSessionId)
+    }
+
+    @Test
+    fun `creates new session if app version changed since last session`() {
+        // Given
+        val initialTime = timeProvider.millisTime
+        val previousSession = RecentSession(
+            "previous-session-id",
+            createdAt = initialTime - Duration.ofMinutes(3).toMillis(),
+            lastEventTime = initialTime,
+            versionCode = "previous-version-code",
+        )
+        `when`(prefsStorage.getRecentSession()).thenReturn(previousSession)
         sessionManager.init()
 
         val actualSessionId = sessionManager.getSessionId()

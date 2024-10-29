@@ -12,6 +12,7 @@ import sh.measure.android.storage.Database
 import sh.measure.android.storage.PrefsStorage
 import sh.measure.android.storage.SessionEntity
 import sh.measure.android.utils.IdProvider
+import sh.measure.android.utils.PackageInfoProvider
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.Randomizer
 import sh.measure.android.utils.RandomizerImpl
@@ -79,6 +80,7 @@ internal class SessionManagerImpl(
     private val processInfo: ProcessInfoProvider,
     private val timeProvider: TimeProvider,
     private val configProvider: ConfigProvider,
+    private val packageInfoProvider: PackageInfoProvider,
     private val randomizer: Randomizer = RandomizerImpl(),
 ) : SessionManager {
     private var currentSession: RecentSession? = null
@@ -146,7 +148,11 @@ internal class SessionManagerImpl(
         val newSessionId = idProvider.createId()
         val needsReporting = shouldMarkSessionForExport()
         val createdAt = timeProvider.now()
-        val session = RecentSession(newSessionId, createdAt)
+        val session = RecentSession(
+            newSessionId,
+            createdAt,
+            versionCode = packageInfoProvider.getVersionCode(),
+        )
         storeSession(session, needsReporting)
         return session
     }
@@ -205,6 +211,11 @@ internal class SessionManagerImpl(
             return false
         }
         if (sessionDuration >= configProvider.maxSessionDurationMs) {
+            return false
+        }
+
+        if (packageInfoProvider.getVersionCode() != recentSession.versionCode) {
+            // The app version has changed since last session, create a new session.
             return false
         }
 

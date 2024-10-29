@@ -68,6 +68,7 @@ class PrefsStorageTest {
             lastEventTime = 1000,
             createdAt = 98765432,
             crashed = false,
+            versionCode = "app-version",
         )
         prefsStorage.setRecentSession(recentSession)
         val result = prefsStorage.getRecentSession()
