@@ -77,7 +77,7 @@ final class CrashReportingManagerTests: XCTestCase {
         XCTAssertEqual(eventProcessor.type, .exception)
         XCTAssertEqual(eventProcessor.attributes, attributes)
 
-        XCTAssertEqual(eventProcessor.timestamp, 1726903016)
+        XCTAssertEqual(eventProcessor.timestamp, 1726903016000)
         guard let exceptionJson = fileManagerHelper.getException(fileName: "backgroundThreadException", fileExtension: "json"), let eventException = eventProcessor.data as? Exception else {
             XCTFail("Failed to read JSON file from test bundle.")
             return

@@ -47,7 +47,7 @@ final class BaseEventProcessor: EventProcessor {
     private let sessionManager: SessionManager
     private let attributeProcessors: [AttributeProcessor]
     private let configProvider: ConfigProvider
-    private let systemTime: SystemTime
+    private let timeProvider: TimeProvider
     private var crashDataPersistence: CrashDataPersistence
     private let eventStore: EventStore
 
@@ -57,7 +57,7 @@ final class BaseEventProcessor: EventProcessor {
         sessionManager: SessionManager,
         attributeProcessors: [AttributeProcessor],
         configProvider: ConfigProvider,
-        systemTime: SystemTime,
+        timeProvider: TimeProvider,
         crashDataPersistence: CrashDataPersistence,
         eventStore: EventStore
     ) {
@@ -66,7 +66,7 @@ final class BaseEventProcessor: EventProcessor {
         self.sessionManager = sessionManager
         self.attributeProcessors = attributeProcessors
         self.configProvider = configProvider
-        self.systemTime = systemTime
+        self.timeProvider = timeProvider
         self.crashDataPersistence = crashDataPersistence
         self.eventStore = eventStore
     }
@@ -79,7 +79,9 @@ final class BaseEventProcessor: EventProcessor {
         sessionId: String?,
         attachments: [Attachment]?
     ) {
-        track(data: data, timestamp: timestamp, type: type, attributes: attributes, attachments: attachments, sessionId: sessionId)
+        SignPost.trace(label: "") {
+            track(data: data, timestamp: timestamp, type: type, attributes: attributes, attachments: attachments, sessionId: sessionId)
+        }
     }
 
     private func track<T: Codable>( // swiftlint:disable:this function_parameter_count
@@ -106,7 +108,9 @@ final class BaseEventProcessor: EventProcessor {
             self.crashDataPersistence.attribute = attributes
         }
 
-        eventStore.insertEvent(event: EventEntity(event))
+        let eventEntity = EventEntity(event)
+        eventStore.insertEvent(event: eventEntity)
+        sessionManager.onEventTracked(eventEntity)
         logger.log(level: .debug, message: "Event processed: \(type), \(event.id)", error: nil, data: data)
     }
 
@@ -124,7 +128,7 @@ final class BaseEventProcessor: EventProcessor {
         return Event(
             id: id,
             sessionId: resolvedSessionId,
-            timestamp: systemTime.iso8601Timestamp(timeInMillis: timestamp),
+            timestamp: timeProvider.iso8601Timestamp(timeInMillis: timestamp),
             timestampInMillis: timestamp,
             type: type,
             data: data,

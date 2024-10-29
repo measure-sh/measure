@@ -33,6 +33,10 @@ final class BaseConfigProvider: ConfigProvider {
         self.cachedConfig = configLoader.getCachedConfig()
     }
 
+    var maxSessionDurationMs: Number {
+        return getMergedConfig(\.maxSessionDurationMs)
+    }
+
     var maxAttachmentSizeInEventsBatchInBytes: Number {
         return getMergedConfig(\.maxAttachmentSizeInEventsBatchInBytes)
     }
@@ -61,8 +65,8 @@ final class BaseConfigProvider: ConfigProvider {
         return getMergedConfig(\.eventsBatchingIntervalMs)
     }
 
-    var sessionEndThresholdMs: Number {
-        return getMergedConfig(\.sessionEndThresholdMs)
+    var sessionEndLastEventThresholdMs: Number {
+        return getMergedConfig(\.sessionEndLastEventThresholdMs)
     }
 
     var longPressTimeout: TimeInterval {

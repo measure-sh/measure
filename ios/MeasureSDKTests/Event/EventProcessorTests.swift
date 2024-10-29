@@ -53,12 +53,12 @@ final class EventProcessorTests: XCTestCase {
         super.setUp()
         idProvider = MockIdProvider("event-id")
         logger = MockLogger()
-        timeProvider = SystemTimeProvider(systemTime: BaseSystemTime())
+        timeProvider = BaseTimeProvider()
         configProvider = MockConfigProvider(enableLogging: false,
                                             trackScreenshotOnCrash: false,
                                             sessionSamplingRate: 1.0,
                                             eventsBatchingIntervalMs: 1000,
-                                            sessionEndThresholdMs: 1000,
+                                            sessionEndLastEventThresholdMs: 1000,
                                             longPressTimeout: 0.5,
                                             scaledTouchSlop: 20,
                                             maxAttachmentSizeInEventsBatchInBytes: 30000,
@@ -126,7 +126,7 @@ final class EventProcessorTests: XCTestCase {
                                             sessionManager: sessionManager,
                                             attributeProcessors: [attributeProcessor],
                                             configProvider: configProvider,
-                                            systemTime: BaseSystemTime(),
+                                            timeProvider: BaseTimeProvider(),
                                             crashDataPersistence: crashDataPersistence,
                                             eventStore: eventStore)
         eventProcessor.track(data: exception,
@@ -171,7 +171,7 @@ final class EventProcessorTests: XCTestCase {
                                             sessionManager: sessionManager,
                                             attributeProcessors: [attributeProcessor],
                                             configProvider: configProvider,
-                                            systemTime: BaseSystemTime(),
+                                            timeProvider: BaseTimeProvider(),
                                             crashDataPersistence: crashDataPersistence,
                                             eventStore: eventStore)
         let attributes = Attributes(

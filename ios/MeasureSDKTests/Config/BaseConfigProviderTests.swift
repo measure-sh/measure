@@ -51,7 +51,7 @@ final class BaseConfigProviderTests: XCTestCase {
         XCTAssertEqual(baseConfigProvider.sessionSamplingRate, 1.0)
         XCTAssertEqual(baseConfigProvider.enableLogging, false)
         XCTAssertEqual(baseConfigProvider.trackScreenshotOnCrash, true)
-        XCTAssertEqual(baseConfigProvider.sessionEndThresholdMs, 60000)
+        XCTAssertEqual(baseConfigProvider.sessionEndLastEventThresholdMs, 1200000)
         XCTAssertEqual(baseConfigProvider.eventsBatchingIntervalMs, 30000)
     }
 
@@ -65,10 +65,9 @@ final class BaseConfigProviderTests: XCTestCase {
         XCTAssertEqual(baseConfigProvider.sessionSamplingRate, 0.25)
         XCTAssertEqual(baseConfigProvider.enableLogging, false)
         XCTAssertEqual(baseConfigProvider.trackScreenshotOnCrash, false)
-        XCTAssertEqual(baseConfigProvider.sessionEndThresholdMs, 60000)
+        XCTAssertEqual(baseConfigProvider.sessionEndLastEventThresholdMs, 1200000)
         XCTAssertEqual(baseConfigProvider.eventsBatchingIntervalMs, 30000)
         XCTAssertEqual(baseConfigProvider.maxEventsInBatch, 500)
-        XCTAssertEqual(baseConfigProvider.sessionEndThresholdMs, 60000)
         XCTAssertEqual(baseConfigProvider.longPressTimeout, 0.5)
         XCTAssertEqual(baseConfigProvider.scaledTouchSlop, 3.5)
         XCTAssertEqual(baseConfigProvider.maxAttachmentSizeInEventsBatchInBytes, 3_000_000)
