@@ -373,7 +373,7 @@ const Filters: React.FC<FiltersProps> = ({
 
   const [selectedFreeText, setSelectedFreeText] = useState('');
 
-  const [selectedDateRange, setSelectedDateRange] = useState(persistedFilters === null ? DateRange.LastWeek : persistedFilters.dateRange)
+  const [selectedDateRange, setSelectedDateRange] = useState(persistedFilters === null ? DateRange.Last6Hours : persistedFilters.dateRange)
 
   const [selectedStartDate, setSelectedStartDate] = useState(persistedFilters === null ? DateTime.now().minus({ days: 7 }).toISO() : persistedFilters.startDate);
   const [selectedFormattedStartDate, setSelectedFormattedStartDate] = useState(formatDateToHumanReadableDateTime(selectedStartDate));
