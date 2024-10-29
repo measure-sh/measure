@@ -77,6 +77,8 @@ import sh.measure.android.utils.LowMemoryCheck
 import sh.measure.android.utils.ManifestReaderImpl
 import sh.measure.android.utils.OsSysConfProvider
 import sh.measure.android.utils.OsSysConfProviderImpl
+import sh.measure.android.utils.PackageInfoProvider
+import sh.measure.android.utils.PackageInfoProviderImpl
 import sh.measure.android.utils.ProcProvider
 import sh.measure.android.utils.ProcProviderImpl
 import sh.measure.android.utils.ProcessInfoProvider
@@ -126,6 +128,7 @@ internal class TestMeasureInitializer(
         context = application,
         logger = logger,
     ),
+    private val packageInfoProvider: PackageInfoProvider = PackageInfoProviderImpl(application),
     override val sessionManager: SessionManager = SessionManagerImpl(
         logger = logger,
         idProvider = idProvider,
@@ -135,6 +138,7 @@ internal class TestMeasureInitializer(
         timeProvider = timeProvider,
         configProvider = configProvider,
         ioExecutor = executorServiceRegistry.ioExecutor(),
+        packageInfoProvider = packageInfoProvider,
     ),
     private val procProvider: ProcProvider = ProcProviderImpl(),
     private val debugProvider: DebugProvider = DefaultDebugProvider(),
@@ -177,6 +181,7 @@ internal class TestMeasureInitializer(
     ),
     private val appAttributeProcessor: AppAttributeProcessor = AppAttributeProcessor(
         context = application,
+        packageInfoProvider = packageInfoProvider,
     ),
     private val installationIdAttributeProcessor: InstallationIdAttributeProcessor = InstallationIdAttributeProcessor(
         prefsStorage = prefsStorage,

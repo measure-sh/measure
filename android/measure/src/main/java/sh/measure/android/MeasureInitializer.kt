@@ -81,6 +81,7 @@ import sh.measure.android.utils.ManifestReader
 import sh.measure.android.utils.ManifestReaderImpl
 import sh.measure.android.utils.OsSysConfProvider
 import sh.measure.android.utils.OsSysConfProviderImpl
+import sh.measure.android.utils.PackageInfoProviderImpl
 import sh.measure.android.utils.ProcProvider
 import sh.measure.android.utils.ProcProviderImpl
 import sh.measure.android.utils.ProcessInfoProvider
@@ -130,6 +131,7 @@ internal class MeasureInitializerImpl(
         logger = logger,
         context = application,
     ),
+    private val packageInfoProvider: PackageInfoProviderImpl = PackageInfoProviderImpl(application),
     override val sessionManager: SessionManager = SessionManagerImpl(
         logger = logger,
         timeProvider = timeProvider,
@@ -139,6 +141,7 @@ internal class MeasureInitializerImpl(
         ioExecutor = executorServiceRegistry.ioExecutor(),
         processInfo = processInfoProvider,
         configProvider = configProvider,
+        packageInfoProvider = packageInfoProvider,
     ),
     private val procProvider: ProcProvider = ProcProviderImpl(),
     private val debugProvider: DebugProvider = DefaultDebugProvider(),
@@ -181,6 +184,7 @@ internal class MeasureInitializerImpl(
     ),
     private val appAttributeProcessor: AppAttributeProcessor = AppAttributeProcessor(
         context = application,
+        packageInfoProvider = packageInfoProvider,
     ),
     private val installationIdAttributeProcessor: InstallationIdAttributeProcessor = InstallationIdAttributeProcessor(
         prefsStorage = prefsStorage,
