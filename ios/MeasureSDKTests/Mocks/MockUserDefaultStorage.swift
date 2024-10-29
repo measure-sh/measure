@@ -11,6 +11,9 @@ import Foundation
 final class MockUserDefaultStorage: UserDefaultStorage {
     var installationId: String?
     var userId: String?
+    var timestamp: Number = 0
+    var recentSessionId: String?
+    var recentSession: RecentSession?
 
     func getInstallationId() -> String? {
         return installationId
@@ -26,5 +29,23 @@ final class MockUserDefaultStorage: UserDefaultStorage {
 
     func setUserId(_ userId: String?) {
         self.userId = userId
+    }
+
+    func getRecentSession() -> RecentSession? {
+        return recentSession
+    }
+
+    func setRecentSessionEventTime(_ timestamp: Number) {
+        self.timestamp = timestamp
+        self.recentSession?.lastEventTime = timestamp
+    }
+
+    func setRecentSession(_ recentSession: RecentSession) {
+        self.recentSession = recentSession
+        self.recentSessionId = recentSession.id
+    }
+
+    func setRecentSessionCrashed() {
+        self.recentSession?.crashed = true
     }
 }

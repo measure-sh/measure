@@ -17,6 +17,7 @@ func measureCrashCallback(info: UnsafeMutablePointer<siginfo_t>?, uap: UnsafeMut
 protocol CrashReportManager {
     func enableCrashReporting()
     func trackException()
+    var hasPendingCrashReport: Bool { get }
 }
 
 /// The `CrashReportingManager` class is a concrete implementation of the `CrashReportManager` protocol.
@@ -28,6 +29,7 @@ final class CrashReportingManager: CrashReportManager {
     private let logger: Logger
     private let eventProcessor: EventProcessor
     private let crashDataPersistence: CrashDataPersistence
+    let hasPendingCrashReport: Bool
 
     init(logger: Logger, eventProcessor: EventProcessor, crashDataPersistence: CrashDataPersistence, crashReporter: SystemCrashReporter) {
         self.logger = logger
@@ -35,6 +37,7 @@ final class CrashReportingManager: CrashReportManager {
         self.crashDataPersistence = crashDataPersistence
         self.crashReporter = crashReporter
         self.crashReporter.setCrashCallback(measureCrashCallback)
+        self.hasPendingCrashReport = crashReporter.hasPendingCrashReport
     }
 
     func enableCrashReporting() {
@@ -47,10 +50,9 @@ final class CrashReportingManager: CrashReportManager {
     }
 
     func trackException() {
-        guard crashReporter.hasPendingCrashReport else {
+        guard hasPendingCrashReport else {
             return
         }
-        print("trackException called.")
         let exceptionData = processCrashReport()
         guard var exception = exceptionData.exception, let date = exceptionData.date else {
             return
@@ -59,9 +61,8 @@ final class CrashReportingManager: CrashReportManager {
         let crashDataAttributes = crashDataPersistence.readCrashData()
         if let attributes = crashDataAttributes.attribute, let sessionId = crashDataPersistence.sessionId {
             exception.foreground = crashDataPersistence.isForeground
-            print("self.eventProcessor.track called.")
             self.eventProcessor.track(data: exception,
-                                      timestamp: Number(date.timeIntervalSince1970),
+                                      timestamp: Number(date.timeIntervalSince1970 * 1000),
                                       type: .exception,
                                       attributes: attributes,
                                       sessionId: sessionId,

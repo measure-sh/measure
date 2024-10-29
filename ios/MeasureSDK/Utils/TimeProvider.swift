@@ -22,28 +22,30 @@ protocol TimeProvider {
 /// - `currentTimeSinceEpochInNanos`: Same as `currentTimeSinceEpochInMillis`, but in nanoseconds.
 /// - `uptimeInMillis`: Milliseconds since the system was booted. This clock stops when the system enters deep sleep but is not affected by clock scaling, idle, or other power-saving mechanisms.
 ///
-struct SystemTimeProvider: TimeProvider {
-    private let systemTime: SystemTime
+struct BaseTimeProvider: TimeProvider {
+    let formatter: ISO8601DateFormatter
     var currentTimeSinceEpochInMillis: Number {
-        return systemTime.timeIntervalSince1970 * 1000
+        return Number(Date().timeIntervalSince1970 * 1000)
     }
 
     var currentTimeSinceEpochInNanos: Number {
-        return currentTimeSinceEpochInMillis * 1_000_000
+        return Number(Date().timeIntervalSince1970 * 1_000_000_000)
     }
 
     var uptimeInMillis: Number {
-        return systemTime.systemUptime * 1000
+        return Number(DispatchTime.now().uptimeNanoseconds) / 1_000_000
     }
 
-    init(systemTime: SystemTime) {
-        self.systemTime = systemTime
+    init() {
+        self.formatter = ISO8601DateFormatter()
+        self.formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
     }
 
     /// Returns a ISO 8601 standard timestamp as `String`
     /// - Parameter timeInMillis: A `Int64` timestamp in milliseconds
     /// - Returns: A ISO 8601 standard timestamp as `String`
     func iso8601Timestamp(timeInMillis: Number) -> String {
-        return systemTime.iso8601Timestamp(timeInMillis: timeInMillis)
+        let date = Date(timeIntervalSince1970: TimeInterval(timeInMillis) / 1000)
+        return self.formatter.string(from: date)
     }
 }

@@ -71,7 +71,7 @@ class EventStoreTests: XCTestCase {
         XCTAssertTrue(fetchedEvents?.contains(where: { $0.id == "2" }) ?? false, "Fetched events should contain event with ID '2'.")
     }
 
-    func testGetEventsForSessions() { // swiftlint:disable:this function_body_length
+    func testGetEventsForSessions() {
         let event1 = TestDataGenerator.generateEvents(id: "1")
         let event2 = TestDataGenerator.generateEvents(id: "2")
         let event3 = TestDataGenerator.generateEvents(id: "3", sessionId: "session2", timestamp: "2024-09-25T12:34:56Z", type: "test")
