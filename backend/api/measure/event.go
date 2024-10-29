@@ -1049,13 +1049,16 @@ func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filt
 		countStmt = sqlf.Select("id").
 			From("default.events").
 			Where("`id` in (?)", nil).
+			Where("app_id = toUUID(?)", nil).
+			Where("type = 'exception'").
+			Where("exception.handled = false").
 			Where("`timestamp` "+op+" ? or (`timestamp` = ? and `id` "+op+" ?)", nil, nil, nil).
 			OrderBy("`timestamp` desc", "`id` desc").
 			Limit(nil)
 		defer countStmt.Close()
 
 		timestamp := af.KeyTimestamp.Format(timeformat)
-		args = append(args, eventIds, timestamp, timestamp, af.KeyID)
+		args = append(args, eventIds, af.AppID, timestamp, timestamp, af.KeyID)
 
 		if len(af.Versions) > 0 {
 			countStmt.Where("`attribute.app_version` in (?)", nil)
@@ -1866,7 +1869,7 @@ func GetIssuesPlot(ctx context.Context, eventIds []uuid.UUID, af *filter.AppFilt
 		From(`default.events`).
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build),')') as version").
-		Select("count(id) as instances").
+		Select("count(distinct id) as instances").
 		Where("`id` in ?", eventIds).
 		GroupBy("version, datetime").
 		OrderBy("version, datetime")

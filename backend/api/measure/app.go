@@ -123,7 +123,10 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGrou
 
 	// Get list of event IDs
 	eventDataStmt := sqlf.From(`default.events`).
-		Select(`id`).
+		Select(`distinct id`).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("type = 'exception'").
+		Where("exception.handled = false").
 		Where(`exception.fingerprint = (?)`, exceptionGroup.Fingerprint)
 
 	defer eventDataStmt.Close()
@@ -251,18 +254,20 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 
 		eventDataStmt := sqlf.
 			From("default.events").
-			Select("id").
-			Where("app_id in ?", af.AppID).
+			Select("distinct id").
+			Where("app_id = toUUID(?)", af.AppID).
+			Where("type = 'exception'").
+			Where("exception.handled = ?", false).
 			Where("exception.fingerprint = ?", exceptionGroup.Fingerprint)
 
 		defer eventDataStmt.Close()
 
 		if len(af.Versions) > 0 {
-			eventDataStmt.Where("attribute.app_version in ?", af.Versions)
+			eventDataStmt.Where("attribute.app_version").In(af.Versions)
 		}
 
 		if len(af.VersionCodes) > 0 {
-			eventDataStmt.Where("attribute.app_build in ?", af.VersionCodes)
+			eventDataStmt.Where("attribute.app_build").In(af.VersionCodes)
 		}
 
 		if len(af.OsNames) > 0 {
@@ -370,7 +375,9 @@ func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (anrGroup *group.ANR
 
 	// Get list of event IDs
 	eventDataStmt := sqlf.From(`default.events`).
-		Select(`id`).
+		Select(`distinct id`).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("type = 'anr'").
 		Where(`anr.fingerprint = ?`, anrGroup.Fingerprint)
 
 	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
@@ -495,18 +502,19 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 
 		eventDataStmt := sqlf.
 			From("default.events").
-			Select("id").
-			Where("app_id = ?", af.AppID).
+			Select("distinct id").
+			Where("app_id = toUUID(?)", af.AppID).
+			Where("type = 'anr'").
 			Where("anr.fingerprint = ?", anrGroup.Fingerprint)
 
 		defer eventDataStmt.Close()
 
 		if len(af.Versions) > 0 {
-			eventDataStmt.Where("attribute.app_version in ?", af.Versions)
+			eventDataStmt.Where("attribute.app_version").In(af.Versions)
 		}
 
 		if len(af.VersionCodes) > 0 {
-			eventDataStmt.Where("attribute.app_build in ?", af.VersionCodes)
+			eventDataStmt.Where("attribute.app_build").In(af.VersionCodes)
 		}
 
 		if len(af.OsNames) > 0 {
@@ -904,7 +912,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 
 	stmt := sqlf.
 		From(`default.events`).
-		Select(`id`).
+		Select(`distinct id`).
 		Select(`toString(type)`).
 		Select(`timestamp`).
 		Select(`session_id`).
