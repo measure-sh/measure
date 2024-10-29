@@ -1,7 +1,26 @@
 # measure-android
 
+# 0.8.0
+#### Features
+
+* feat(android): add screen view event & deprecate navigation event by @abhaysood in https://github.com/measure-sh/measure/pull/1265
+* feat(android): improve session management by @abhaysood in https://github.com/measure-sh/measure/pull/1372
+
+#### Fixes
+
+* fix(android): track fragment lifecycle events when r8 is enabled by @abhaysood in https://github.com/measure-sh/measure/pull/1327
+* fix(android): ignore duplicate inserts to app exit by @abhaysood in https://github.com/measure-sh/measure/pull/1379
+* chore(android): remove unnecessary logs for launch tracking by @abhaysood in https://github.com/measure-sh/measure/pull/1382
+* chore(android): support latest stable compose-navigation by @abhaysood in https://github.com/measure-sh/measure/pull/1383
+* chore(android): remove low memory event by @abhaysood in https://github.com/measure-sh/measure/pull/1384
+* chore(android): add max session duration config by @abhaysood in https://github.com/measure-sh/measure/pull/1392
+* fix(android): handle session management when elapsed time gets reset by @abhaysood in https://github.com/measure-sh/measure/pull/1394
+* refactor(android): use monotonic clock to get time by @abhaysood in https://github.com/measure-sh/measure/pull/1402
+
+**Full Changelog**: https://github.com/measure-sh/measure/compare/android-v0.7.0...0.8.0](https://github.com/measure-sh/measure/pull/1265)
+
 # 0.7.0
-### Features
+#### Features
 
 * feat(android): report activity launched with saved state as warm launch by @abhaysood in https://github.com/measure-sh/measure/pull/1247
 * feat(android): handle warm launches that are lukewarm by @abhaysood in https://github.com/measure-sh/measure/pull/1268
