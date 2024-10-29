@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Ingest screen view event by @abhaysood
 - (**backend**): Add screen view sample sessions by @abhaysood
 
+- (**frontend**): Improve exception details loading state by @anupcowkur in #1435
 - (**frontend**): Update default time filter to last 6 hours by @anupcowkur in #1434
 - (**frontend**): Update landing page videos by @anupcowkur in #1412
 - (**frontend**): Add loading states by @anupcowkur in #1377
