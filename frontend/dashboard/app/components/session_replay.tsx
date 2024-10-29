@@ -242,135 +242,136 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
   return (
     <div className="flex flex-col w-[1100px] font-sans text-black">
       {/* Graphs container */}
-      <div className="relative"
-        ref={graphContainerRef}
-      >
-        {/* Memory line */}
-        {memoryData != null &&
-          <div className="select-none">
-            <LineCanvas
-              width={1100}
-              height={200}
-              data={memoryData}
-              curve="monotoneX"
-              crosshairType="cross"
-              margin={{ top: 40, right: 0, bottom: 80, left: 90 }}
-              xFormat='time:%Y-%m-%d %H:%M:%S:%L %p'
-              xScale={{
-                format: '%Y-%m-%d %I:%M:%S:%L %p',
-                precision: 'second',
-                type: 'time',
-                min: DateTime.fromISO(events[0].timestamp).toLocal().toJSDate(),
-                max: DateTime.fromISO(events[events.length - 1].timestamp).toLocal().toJSDate(),
-                useUTC: false
-              }}
-              yScale={{
-                type: 'linear',
-                min: 0,
-                max: 'auto'
-              }}
-              axisTop={null}
-              axisRight={null}
-              axisBottom={{
-                format: '%-I:%M:%S %p',
-                legendPosition: 'middle',
-                tickRotation: 45
-              }}
-              axisLeft={{
-                tickSize: 1,
-                tickPadding: 5,
-                tickValues: 5,
-                legend: 'Memory in MB',
-                legendOffset: -80,
-                legendPosition: 'middle'
-              }}
-              colors={{ scheme: 'nivo' }}
-              tooltip={({ point }) => {
-                return (
-                  <div className='bg-neutral-950 text-white flex flex-row items-center p-2 text-xs'>
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: point.serieColor }} />
-                    <div className="flex flex-col items-left px-4 py-1" key={point.id}>
-                      <p>Time: {formatChartFormatTimestampToHumanReadable(point.data.xFormatted.toString())}</p>
-                      <div className="py-0.5" />
-                      <p>{point.serieId}: {point.data.y.toString()} MB</p>
+      {(cpuData != null || memoryData != null) &&
+        <div className="relative"
+          ref={graphContainerRef}
+        >
+          {/* Memory line */}
+          {memoryData != null &&
+            <div className="select-none">
+              <LineCanvas
+                width={1100}
+                height={200}
+                data={memoryData}
+                curve="monotoneX"
+                crosshairType="cross"
+                margin={{ top: 40, right: 0, bottom: 80, left: 90 }}
+                xFormat='time:%Y-%m-%d %H:%M:%S:%L %p'
+                xScale={{
+                  format: '%Y-%m-%d %I:%M:%S:%L %p',
+                  precision: 'second',
+                  type: 'time',
+                  min: DateTime.fromISO(events[0].timestamp).toLocal().toJSDate(),
+                  max: DateTime.fromISO(events[events.length - 1].timestamp).toLocal().toJSDate(),
+                  useUTC: false
+                }}
+                yScale={{
+                  type: 'linear',
+                  min: 0,
+                  max: 'auto'
+                }}
+                axisTop={null}
+                axisRight={null}
+                axisBottom={{
+                  format: '%-I:%M:%S %p',
+                  legendPosition: 'middle',
+                  tickRotation: 45
+                }}
+                axisLeft={{
+                  tickSize: 1,
+                  tickPadding: 5,
+                  tickValues: 5,
+                  legend: 'Memory in MB',
+                  legendOffset: -80,
+                  legendPosition: 'middle'
+                }}
+                colors={{ scheme: 'nivo' }}
+                tooltip={({ point }) => {
+                  return (
+                    <div className='bg-neutral-950 text-white flex flex-row items-center p-2 text-xs'>
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: point.serieColor }} />
+                      <div className="flex flex-col items-left px-4 py-1" key={point.id}>
+                        <p>Time: {formatChartFormatTimestampToHumanReadable(point.data.xFormatted.toString())}</p>
+                        <div className="py-0.5" />
+                        <p>{point.serieId}: {point.data.y.toString()} MB</p>
+                      </div>
                     </div>
-                  </div>
-                )
-              }}
-            />
-          </div>
-        }
-        {/* CPU line */}
-        {cpuData != null &&
-          <div className="select-none">
-            <LineCanvas
-              width={1100}
-              height={200}
-              data={cpuData}
-              curve="monotoneX"
-              crosshairType="cross"
-              margin={{ top: 40, right: 0, bottom: 80, left: 90 }}
-              xFormat='time:%Y-%m-%d %I:%M:%S:%L %p'
-              xScale={{
-                format: '%Y-%m-%d %I:%M:%S:%L %p',
-                precision: 'second',
-                type: 'time',
-                min: DateTime.fromISO(events[0].timestamp).toLocal().toJSDate(),
-                max: DateTime.fromISO(events[events.length - 1].timestamp).toLocal().toJSDate(),
-                useUTC: false
-              }}
-              yScale={{
-                type: 'linear',
-                min: 0,
-                max: 100
-              }}
-              yFormat=" >-.2f"
-              axisTop={null}
-              axisRight={null}
-              axisBottom={{
-                format: '%-I:%M:%S %p',
-                legendPosition: 'middle',
-                tickRotation: 45
-              }}
-              axisLeft={{
-                tickSize: 1,
-                tickPadding: 5,
-                tickValues: 5,
-                legend: '% CPU Usage',
-                legendOffset: -80,
-                legendPosition: 'middle'
-              }}
-              colors={{ scheme: 'nivo' }}
-              enableArea
-              enableCrosshair
-              pointSize={5}
-              pointBorderWidth={2}
-              pointBorderColor={{
-                from: 'color',
-                modifiers: [
-                  [
-                    'darker',
-                    0.3
+                  )
+                }}
+              />
+            </div>
+          }
+          {/* CPU line */}
+          {cpuData != null &&
+            <div className="select-none">
+              <LineCanvas
+                width={1100}
+                height={200}
+                data={cpuData}
+                curve="monotoneX"
+                crosshairType="cross"
+                margin={{ top: 40, right: 0, bottom: 80, left: 90 }}
+                xFormat='time:%Y-%m-%d %I:%M:%S:%L %p'
+                xScale={{
+                  format: '%Y-%m-%d %I:%M:%S:%L %p',
+                  precision: 'second',
+                  type: 'time',
+                  min: DateTime.fromISO(events[0].timestamp).toLocal().toJSDate(),
+                  max: DateTime.fromISO(events[events.length - 1].timestamp).toLocal().toJSDate(),
+                  useUTC: false
+                }}
+                yScale={{
+                  type: 'linear',
+                  min: 0,
+                  max: 100
+                }}
+                yFormat=" >-.2f"
+                axisTop={null}
+                axisRight={null}
+                axisBottom={{
+                  format: '%-I:%M:%S %p',
+                  legendPosition: 'middle',
+                  tickRotation: 45
+                }}
+                axisLeft={{
+                  tickSize: 1,
+                  tickPadding: 5,
+                  tickValues: 5,
+                  legend: '% CPU Usage',
+                  legendOffset: -80,
+                  legendPosition: 'middle'
+                }}
+                colors={{ scheme: 'nivo' }}
+                enableArea
+                enableCrosshair
+                pointSize={5}
+                pointBorderWidth={2}
+                pointBorderColor={{
+                  from: 'color',
+                  modifiers: [
+                    [
+                      'darker',
+                      0.3
+                    ]
                   ]
-                ]
-              }}
-              tooltip={({ point }) => {
-                return (
-                  <div className='bg-neutral-950 text-white flex flex-col p-2 text-xs'>
-                    <p>Time: {formatChartFormatTimestampToHumanReadable(point.data.xFormatted.toString())}</p>
-                    <p>Cpu Usage: {point.data.yFormatted.toString()}%</p>
-                  </div>
-                )
-              }}
-            />
+                }}
+                tooltip={({ point }) => {
+                  return (
+                    <div className='bg-neutral-950 text-white flex flex-col p-2 text-xs'>
+                      <p>Time: {formatChartFormatTimestampToHumanReadable(point.data.xFormatted.toString())}</p>
+                      <p>Cpu Usage: {point.data.yFormatted.toString()}%</p>
+                    </div>
+                  )
+                }}
+              />
+            </div>
+          }
+          {/* Vertical Seekbar */}
+          <div
+            className="w-full py-2" style={{ paddingLeft: `${seekBarIndicatorOffset}px` }}>
+            <SessionReplaySeekBar value={seekBarValue} onChange={handleSeekbarMove} />
           </div>
-        }
-        {/* Vertical Seekbar */}
-        <div
-          className="w-full py-2" style={{ paddingLeft: `${seekBarIndicatorOffset}px` }}>
-          <SessionReplaySeekBar value={seekBarValue} onChange={handleSeekbarMove} />
-        </div>
-      </div>
+        </div>}
       {/* Event filters */}
       <div className="flex flex-wrap gap-8 items-center mt-4">
         <DropdownSelect type={DropdownSelectType.MultiString} title="Threads" items={threads} initialSelected={selectedThreads} onChangeSelected={(items) => setSelectedThreads(items as string[])} />
