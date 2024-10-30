@@ -1,5 +1,6 @@
 package sh.measure.android.storage
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import sh.measure.android.RecentSession
@@ -62,8 +63,10 @@ internal class PrefsStorageImpl(private val logger: Logger, private val context:
             .putString(RECENT_SESSION_VERSION_CODE, recentSession.versionCode).apply()
     }
 
+    @SuppressLint("ApplySharedPref")
     override fun setRecentSessionCrashed() {
-        sharedPreferences.edit().putBoolean(RECENT_SESSION_CRASHED, true).apply()
+        // The app is crashing, using commit to have a better chance for the write to succeed.
+        sharedPreferences.edit().putBoolean(RECENT_SESSION_CRASHED, true).commit()
     }
 
     override fun setRecentSessionEventTime(timestamp: Long) {
