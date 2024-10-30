@@ -280,6 +280,9 @@ services:
     volumes:
       - clickhouse-volume:/var/lib/clickhouse
       - clickhouse-volume:/var/log/clickhouse-server
+      - type: bind
+        source: ./clickhouse/config/config.xml
+        target: /etc/clickhouse-server/config.d/config.xml
 
 volumes:
   clickhouse-volume:

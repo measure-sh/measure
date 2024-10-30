@@ -24,6 +24,7 @@ type MonthlyAppUsage struct {
 }
 
 func GetUsage(c *gin.Context) {
+	ctx := c.Request.Context()
 	userId := c.GetString("userId")
 	teamId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -77,6 +78,12 @@ func GetUsage(c *gin.Context) {
 		appIds = append(appIds, *app.ID)
 	}
 
+	// we want the API server to be the source-of-truth and
+	// arbiter of providing time. makes dealing with system
+	// clock skews easier, which is a horrendous problem to
+	// deal with honestly.
+	now := time.Now()
+
 	// Query events and session counts for all apps in team
 	stmt := sqlf.
 		From(`default.events`).
@@ -84,14 +91,14 @@ func GetUsage(c *gin.Context) {
 		Select("formatDateTime(toStartOfMonth(timestamp), '%b %Y') AS month_year").
 		Select("COUNT(*) AS event_count").
 		Select("COUNT(DISTINCT session_id) AS session_count").
-		Where("`app_id` in (?)", appIds).
-		Where("timestamp >= addMonths(toStartOfMonth(now()), -2) AND timestamp < toStartOfMonth(addMonths(now(), 1))").
+		Where("`app_id` in ?", appIds).
+		Where("timestamp >= addMonths(toStartOfMonth(?), -2) AND timestamp < toStartOfMonth(addMonths(?, 1))", now, now).
 		GroupBy("app_id, toStartOfMonth(timestamp)").
 		OrderBy("app_id, toStartOfMonth(timestamp) DESC")
 
 	defer stmt.Close()
 
-	rows, err := server.Server.ChPool.Query(c, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		msg := fmt.Sprintf("error occurred while querying usage for team: %s", teamId)
 		fmt.Println(msg, err)
@@ -111,7 +118,6 @@ func GetUsage(c *gin.Context) {
 	}
 
 	// Get the last three month names
-	now := time.Now()
 	monthYearFormat := "Jan 2006"
 	monthNames := []string{
 		now.AddDate(0, -2, 0).Format(monthYearFormat),

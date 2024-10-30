@@ -123,7 +123,10 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGrou
 
 	// Get list of event IDs
 	eventDataStmt := sqlf.From(`default.events`).
-		Select(`id`).
+		Select(`distinct id`).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("type = 'exception'").
+		Where("exception.handled = false").
 		Where(`exception.fingerprint = (?)`, exceptionGroup.Fingerprint)
 
 	defer eventDataStmt.Close()
@@ -251,18 +254,20 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 
 		eventDataStmt := sqlf.
 			From("default.events").
-			Select("id").
-			Where("app_id in ?", af.AppID).
+			Select("distinct id").
+			Where("app_id = toUUID(?)", af.AppID).
+			Where("type = 'exception'").
+			Where("exception.handled = ?", false).
 			Where("exception.fingerprint = ?", exceptionGroup.Fingerprint)
 
 		defer eventDataStmt.Close()
 
 		if len(af.Versions) > 0 {
-			eventDataStmt.Where("attribute.app_version in ?", af.Versions)
+			eventDataStmt.Where("attribute.app_version").In(af.Versions)
 		}
 
 		if len(af.VersionCodes) > 0 {
-			eventDataStmt.Where("attribute.app_build in ?", af.VersionCodes)
+			eventDataStmt.Where("attribute.app_build").In(af.VersionCodes)
 		}
 
 		if len(af.OsNames) > 0 {
@@ -370,7 +375,9 @@ func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (anrGroup *group.ANR
 
 	// Get list of event IDs
 	eventDataStmt := sqlf.From(`default.events`).
-		Select(`id`).
+		Select(`distinct id`).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("type = 'anr'").
 		Where(`anr.fingerprint = ?`, anrGroup.Fingerprint)
 
 	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
@@ -495,18 +502,19 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 
 		eventDataStmt := sqlf.
 			From("default.events").
-			Select("id").
-			Where("app_id = ?", af.AppID).
+			Select("distinct id").
+			Where("app_id = toUUID(?)", af.AppID).
+			Where("type = 'anr'").
 			Where("anr.fingerprint = ?", anrGroup.Fingerprint)
 
 		defer eventDataStmt.Close()
 
 		if len(af.Versions) > 0 {
-			eventDataStmt.Where("attribute.app_version in ?", af.Versions)
+			eventDataStmt.Where("attribute.app_version").In(af.Versions)
 		}
 
 		if len(af.VersionCodes) > 0 {
-			eventDataStmt.Where("attribute.app_build in ?", af.VersionCodes)
+			eventDataStmt.Where("attribute.app_build").In(af.VersionCodes)
 		}
 
 		if len(af.OsNames) > 0 {
@@ -650,301 +658,155 @@ func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter, versions 
 	return
 }
 
-// GetCrashFreeMetrics computes crash free sessions percentage
-// of selected app versions and ratio of crash free sessions
-// percentage of selected app versions and crash free sessions
-// percentage of unselected app versions.
-func (a App) GetCrashFreeMetrics(ctx context.Context, af *filter.AppFilter, versions filter.Versions) (crashFree *metrics.CrashFreeSession, err error) {
+// GetIssueFreeMetrics computes crash and anr free sessions
+// percentage and its deltas.
+//
+// - Crash free sessions
+// - Perceived crash free sessions
+// - ANR free sessions
+// - Perceived ANR free sessions
+func (a App) GetIssueFreeMetrics(
+	ctx context.Context,
+	af *filter.AppFilter,
+	versions filter.Versions,
+) (
+	crashFree *metrics.CrashFreeSession,
+	perceivedCrashFree *metrics.PerceivedCrashFreeSession,
+	anrFree *metrics.ANRFreeSession,
+	perceivedANRFree *metrics.PerceivedANRFreeSession,
+	err error,
+) {
 	crashFree = &metrics.CrashFreeSession{}
-
-	stmt := sqlf.
-		With("all_sessions",
-			sqlf.From("default.events").
-				Select("session_id, attribute.app_version, attribute.app_build, type, exception.handled").
-				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, af.AppID, af.From, af.To)).
-		With("t1",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as total_sessions_selected").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes)).
-		With("t2",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as count_exception_selected").
-				Where("`type` = 'exception' and `exception.handled` = false").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes))
-
-	defer stmt.Close()
-
-	dest := []any{&crashFree.CrashFreeSessions}
-	var crashFreeUnselected float64
-
-	if !versions.HasVersions() {
-		stmt.
-			Select("round((1 - (t2.count_exception_selected / t1.total_sessions_selected)) * 100, 2) as crash_free_sessions_selected").
-			From("t1, t2")
-	} else {
-		stmt.
-			With("t3",
-				sqlf.From("all_sessions").
-					Select("count(distinct session_id) as total_sessions_unselected").
-					Where("attribute.app_version in ? and attribute.app_build in ?", versions.Versions(), versions.Codes())).
-			With("t4", sqlf.From("all_sessions").
-				Select("count(distinct session_id) as count_exception_unselected").
-				Where("`type` = 'exception' and `exception.handled` = false").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", versions.Versions(), versions.Codes())).
-			Select("round((1 - (t2.count_exception_selected / t1.total_sessions_selected)) * 100, 2) as crash_free_sessions_selected").
-			Select("round((1 - (t4.count_exception_unselected / t3.total_sessions_unselected)) * 100, 2) as crash_free_sessions_unselected").
-			From("t1, t2, t3, t4")
-
-		dest = append(dest, &crashFreeUnselected)
-	}
-
-	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(dest...); err != nil {
-		return
-	}
-
-	if versions.HasVersions() {
-		// avoid division by zero
-		if crashFreeUnselected != 0 {
-			// Round to two decimal places
-			crashFree.Delta = math.Round(crashFree.CrashFreeSessions/crashFreeUnselected*100) / 100
-		} else {
-			crashFree.Delta = 1
-		}
-	} else {
-		// because if there are no unselected
-		// app versions, then:
-		// crash free sessions of unselected app versions = crash free sessions of selected app versions
-		// ratio between the two, will be always 1
-		if crashFree.CrashFreeSessions != 0 {
-			crashFree.Delta = 1
-		}
-	}
-
-	crashFree.SetNaNs()
-
-	return
-}
-
-// GetPerceivedCrashFreeMetrics computes perceived crash
-// free sessions percentage of selected app versions and
-// ratio of perceived crash free sessions percentage of
-// selected app versions and perceived crash free sessions
-// percentage of unselected app versions.
-func (a App) GetPerceivedCrashFreeMetrics(ctx context.Context, af *filter.AppFilter, versions filter.Versions) (crashFree *metrics.PerceivedCrashFreeSession, err error) {
-	crashFree = &metrics.PerceivedCrashFreeSession{}
-	stmt := sqlf.
-		With("all_sessions",
-			sqlf.From("default.events").
-				Select("session_id, attribute.app_version, attribute.app_build, type, exception.handled, exception.foreground").
-				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, af.AppID, af.From, af.To)).
-		With("t1",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as total_sessions_selected").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes)).
-		With("t2",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as count_exception_selected").
-				Where("`type` = 'exception' and `exception.handled` = false and `exception.foreground` = true").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes))
-
-	defer stmt.Close()
-
-	dest := []any{&crashFree.CrashFreeSessions}
-	var crashFreeUnselected float64
-
-	if !versions.HasVersions() {
-		stmt.
-			Select("round((1 - (t2.count_exception_selected / t1.total_sessions_selected)) * 100, 2) as crash_free_sessions_selected").
-			From("t1, t2")
-	} else {
-		stmt.
-			With("t3",
-				sqlf.From("all_sessions").
-					Select("count(distinct session_id) as total_sessions_unselected").
-					Where("attribute.app_version in ? and attribute.app_build in ?", versions.Versions(), versions.Codes())).
-			With("t4", sqlf.From("all_sessions").
-				Select("count(distinct session_id) as count_exception_unselected").
-				Where("`type` = 'exception' and `exception.handled` = false").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", versions.Versions(), versions.Codes())).
-			Select("round((1 - (t2.count_exception_selected / t1.total_sessions_selected)) * 100, 2) as crash_free_sessions_selected").
-			Select("round((1 - (t4.count_exception_unselected / t3.total_sessions_unselected)) * 100, 2) as crash_free_sessions_unselected").
-			From("t1, t2, t3, t4")
-
-		dest = append(dest, &crashFreeUnselected)
-	}
-
-	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(dest...); err != nil {
-		return
-	}
-
-	if versions.HasVersions() {
-		// avoid division by zero
-		if crashFreeUnselected != 0 {
-			// Round to two decimal places
-			crashFree.Delta = math.Round(crashFree.CrashFreeSessions/crashFreeUnselected*100) / 100
-		} else {
-			crashFree.Delta = 1
-		}
-	} else {
-		// because if there are no unselected
-		// app versions, then:
-		// crash free sessions of unselected app versions = crash free sessions of selected app versions
-		// ratio between the two, will be always 1
-		if crashFree.CrashFreeSessions != 0 {
-			crashFree.Delta = 1
-		}
-	}
-
-	crashFree.SetNaNs()
-
-	return
-}
-
-// GetANRFreeMetrics computes ANR free sessions percentage
-// of selected app versions and ratio of ANR free sessions
-// percentage of selected app versions and ANR free sessions
-// percentage of unselected app versions.
-func (a App) GetANRFreeMetrics(ctx context.Context, af *filter.AppFilter, versions filter.Versions) (anrFree *metrics.ANRFreeSession, err error) {
+	perceivedCrashFree = &metrics.PerceivedCrashFreeSession{}
 	anrFree = &metrics.ANRFreeSession{}
-	stmt := sqlf.
-		With("all_sessions",
-			sqlf.From("default.events").
-				Select("session_id, attribute.app_version, attribute.app_build, type").
-				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, af.AppID, af.From, af.To)).
-		With("t1",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as total_sessions_selected").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes)).
-		With("t2",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as count_anr_selected").
-				Where("`type` = 'anr'").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes))
+	perceivedANRFree = &metrics.PerceivedANRFreeSession{}
 
-	defer stmt.Close()
-
-	dest := []any{&anrFree.ANRFreeSessions}
-	var anrFreeUnselected float64
-
-	if !versions.HasVersions() {
-		stmt.
-			Select("round((1 - (t2.count_anr_selected / t1.total_sessions_selected)) * 100, 2) as anr_free_sessions_selected").
-			From("t1, t2")
-	} else {
-		stmt.
-			With("t3",
-				sqlf.From("all_sessions").
-					Select("count(distinct session_id) as total_sessions_unselected").
-					Where("attribute.app_version in ? and attribute.app_build in ?", versions.Versions(), versions.Codes())).
-			With("t4", sqlf.From("all_sessions").
-				Select("count(distinct session_id) as count_anr_unselected").
-				Where("`type` = 'anr'").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", versions.Versions(), versions.Codes())).
-			Select("round((1 - (t2.count_anr_selected / t1.total_sessions_selected)) * 100, 2) as anr_free_sessions_selected").
-			Select("round((1 - (t4.count_anr_unselected / t3.total_sessions_unselected)) * 100, 2) as anr_free_sessions_unselected").
-			From("t1, t2, t3, t4")
-
-		dest = append(dest, &anrFreeUnselected)
-	}
-
-	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(dest...); err != nil {
+	selectedVersions, err := af.VersionPairs()
+	if err != nil {
 		return
 	}
 
+	stmt := sqlf.From("app_metrics").
+		Select(fmt.Sprintf("uniqMergeIf(unique_sessions, app_version in (%s)) as selected_sessions", selectedVersions.String())).
+		Select(fmt.Sprintf("uniqMergeIf(unique_sessions, app_version not in (%s)) as unselected_sessions", selectedVersions.String())).
+		Select(fmt.Sprintf("uniqMergeIf(crash_sessions, app_version in (%s)) as selected_crash_sessions", selectedVersions.String())).
+		Select(fmt.Sprintf("uniqMergeIf(crash_sessions, app_version not in (%s)) as unselected_crash_sessions", selectedVersions.String())).
+		Select(fmt.Sprintf("uniqMergeIf(anr_sessions, app_version in (%s)) as selected_anr_sessions", selectedVersions.String())).
+		Select(fmt.Sprintf("uniqMergeIf(anr_sessions, app_version not in (%s)) as unselected_anr_sessions", selectedVersions.String())).
+		Select(fmt.Sprintf("uniqMergeIf(perceived_crash_sessions, app_version in (%s)) as selected_perceived_crash_sessions", selectedVersions.String())).
+		Select(fmt.Sprintf("uniqMergeIf(perceived_crash_sessions, app_version not in (%s)) as unselected_perceived_crash_sessions", selectedVersions.String())).
+		Select(fmt.Sprintf("uniqMergeIf(perceived_anr_sessions, app_version in (%s)) as selected_perceived_anr_sessions", selectedVersions.String())).
+		Select(fmt.Sprintf("uniqMergeIf(perceived_anr_sessions, app_version not in (%s)) as unselected_perceived_anr_sessions", selectedVersions.String())).
+		Where("app_id = toUUID(?)", af.AppID).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+	defer stmt.Close()
+
+	var (
+		selected, unselected                             uint64
+		crashSelected, crashUnselected                   uint64
+		anrSelected, anrUnselected                       uint64
+		perceivedCrashSelected, perceivedCrashUnselected uint64
+		perceivedANRSelected, perceivedANRUnselected     uint64
+		crashFreeUnselected                              float64
+		perceivedCrashFreeUnselected                     float64
+		anrFreeUnselected                                float64
+		perceivedANRFreeUnselected                       float64
+	)
+
+	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(
+		&selected,
+		&unselected,
+		&crashSelected,
+		&crashUnselected,
+		&anrSelected,
+		&anrUnselected,
+		&perceivedCrashSelected,
+		&perceivedCrashUnselected,
+		&perceivedANRSelected,
+		&perceivedANRUnselected,
+	); err != nil {
+		return
+	}
+
+	if selected == 0 {
+		crashFree.CrashFreeSessions = math.NaN()
+		anrFree.ANRFreeSessions = math.NaN()
+		perceivedCrashFree.CrashFreeSessions = math.NaN()
+		perceivedANRFree.ANRFreeSessions = math.NaN()
+	} else {
+		crashFree.CrashFreeSessions = math.Round(1-float64(crashSelected/selected)) * 100
+		anrFree.ANRFreeSessions = math.Round(1-float64(anrSelected/selected)) * 100
+		perceivedCrashFree.CrashFreeSessions = math.Round(1-float64(perceivedCrashSelected/selected)) * 100
+		perceivedANRFree.ANRFreeSessions = math.Round(1-float64(perceivedANRSelected/selected)) * 100
+	}
+
+	if unselected == 0 {
+		crashFreeUnselected = math.NaN()
+		perceivedCrashFreeUnselected = math.NaN()
+		anrFreeUnselected = math.NaN()
+		perceivedANRFreeUnselected = math.NaN()
+	} else {
+		crashFreeUnselected = math.Round(1-float64(crashUnselected/unselected)) * 100
+		perceivedCrashFreeUnselected = math.Round(1-float64(perceivedCrashUnselected/unselected)) * 100
+		anrFreeUnselected = math.Round(1-float64(anrUnselected/unselected)) * 100
+		perceivedANRFreeUnselected = math.Round(1-float64(perceivedANRUnselected/unselected)) * 100
+	}
+
+	// compute delta
 	if versions.HasVersions() {
 		// avoid division by zero
-		if anrFreeUnselected != 0 {
+		if crashFreeUnselected != 0 {
 			// Round to two decimal places
+			crashFree.Delta = math.Round(crashFree.CrashFreeSessions/crashFreeUnselected*100) / 100
+		} else {
+			crashFree.Delta = 1
+		}
+
+		if perceivedCrashFreeUnselected != 0 {
+			crashFree.Delta = math.Round(perceivedCrashFree.CrashFreeSessions/perceivedCrashFreeUnselected*100) / 100
+		} else {
+			perceivedCrashFree.Delta = 1
+		}
+
+		if anrFreeUnselected != 0 {
 			anrFree.Delta = math.Round(anrFree.ANRFreeSessions/anrFreeUnselected*100) / 100
 		} else {
 			anrFree.Delta = 1
 		}
-	} else {
-		// because if there are no unselected
-		// app versions, then:
-		// anr free sessions of unselected app versions = anr free sessions of selected app versions
-		// ratio between the two, will be always 1
-		if anrFree.ANRFreeSessions != 0 {
-			anrFree.Delta = 1
-		}
-	}
 
-	anrFree.SetNaNs()
+		if perceivedANRFreeUnselected != 0 {
+			perceivedANRFree.Delta = math.Round(perceivedANRFree.ANRFreeSessions/perceivedANRFreeUnselected*100) / 100
 
-	return
-}
-
-// GetPerceivedANRFreeMetrics computes perceived ANR
-// free sessions percentage of selected app versions and
-// ratio of perceived ANR free sessions percentage of
-// selected app versions and perceived ANR free sessions
-// percentage of unselected app versions.
-func (a App) GetPerceivedANRFreeMetrics(ctx context.Context, af *filter.AppFilter, versions filter.Versions) (anrFree *metrics.PerceivedANRFreeSession, err error) {
-	anrFree = &metrics.PerceivedANRFreeSession{}
-	stmt := sqlf.
-		With("all_sessions",
-			sqlf.From("default.events").
-				Select("session_id, attribute.app_version, attribute.app_build, type, anr.foreground").
-				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, af.AppID, af.From, af.To)).
-		With("t1",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as total_sessions_selected").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes)).
-		With("t2",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as count_anr_selected").
-				Where("`type` = 'anr' and anr.foreground = true").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes))
-
-	defer stmt.Close()
-
-	dest := []any{&anrFree.ANRFreeSessions}
-	var anrFreeUnselected float64
-
-	if !versions.HasVersions() {
-		stmt.
-			Select("round((1 - (t2.count_anr_selected / t1.total_sessions_selected)) * 100, 2) as anr_free_sessions_selected").
-			From("t1, t2")
-	} else {
-		stmt.
-			With("t3",
-				sqlf.From("all_sessions").
-					Select("count(distinct session_id) as total_sessions_unselected").
-					Where("attribute.app_version in ? and attribute.app_build in ?", versions.Versions(), versions.Codes())).
-			With("t4", sqlf.From("all_sessions").
-				Select("count(distinct session_id) as count_anr_unselected").
-				Where("`type` = 'anr'").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", versions.Versions(), versions.Codes())).
-			Select("round((1 - (t2.count_anr_selected / t1.total_sessions_selected)) * 100, 2) as anr_free_sessions_selected").
-			Select("round((1 - (t4.count_anr_unselected / t3.total_sessions_unselected)) * 100, 2) as anr_free_sessions_unselected").
-			From("t1, t2, t3, t4")
-
-		dest = append(dest, &anrFreeUnselected)
-	}
-
-	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(dest...); err != nil {
-		return
-	}
-
-	if versions.HasVersions() {
-		// avoid division by zero
-		if anrFreeUnselected != 0 {
-			// Round to two decimal places
-			anrFree.Delta = math.Round(anrFree.ANRFreeSessions/anrFreeUnselected*100) / 100
 		} else {
-			anrFree.Delta = 1
+			perceivedANRFree.Delta = 1
 		}
 	} else {
 		// because if there are no unselected
 		// app versions, then:
-		// anr free sessions of unselected app versions = anr free sessions of selected app versions
+		// crash free sessions of unselected app versions = crash free sessions of selected app versions
 		// ratio between the two, will be always 1
+		if crashFree.CrashFreeSessions != 0 {
+			crashFree.Delta = 1
+		}
+
+		if perceivedCrashFree.CrashFreeSessions != 0 {
+			perceivedCrashFree.Delta = 1
+		}
+
 		if anrFree.ANRFreeSessions != 0 {
 			anrFree.Delta = 1
 		}
+
+		if perceivedANRFree.ANRFreeSessions != 0 {
+			perceivedANRFree.Delta = 1
+		}
 	}
 
+	crashFree.SetNaNs()
+	perceivedCrashFree.SetNaNs()
 	anrFree.SetNaNs()
+	perceivedANRFree.SetNaNs()
 
 	return
 }
@@ -953,26 +815,21 @@ func (a App) GetPerceivedANRFreeMetrics(ctx context.Context, af *filter.AppFilte
 // for selected versions and sessions of all versions for an app.
 func (a App) GetAdoptionMetrics(ctx context.Context, af *filter.AppFilter) (adoption *metrics.SessionAdoption, err error) {
 	adoption = &metrics.SessionAdoption{}
-	stmt := sqlf.From("default.events").
-		With("all_sessions",
-			sqlf.From("default.events").
-				Select("session_id, attribute.app_version, attribute.app_build").
-				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, af.AppID, af.From, af.To)).
-		With("all_versions",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as all_app_versions")).
-		With("selected_versions",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as selected_app_versions").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes)).
-		Select("t1.all_app_versions as all_app_versions").
-		Select("t2.selected_app_versions as selected_app_versions").
-		Select("round((t2.selected_app_versions/t1.all_app_versions) * 100, 2) as adoption").
-		From("all_versions as t1, selected_versions as t2")
+	selectedVersions, err := af.VersionPairs()
+	if err != nil {
+		return
+	}
+
+	stmt := sqlf.From("app_metrics").
+		Select(fmt.Sprintf("uniqMergeIf(unique_sessions, app_version in (%s)) as selected_sessions", selectedVersions.String())).
+		Select("uniqMerge(unique_sessions) as all_sessions").
+		Select("round((selected_sessions / all_sessions) * 100, 2) as adoption").
+		Where("app_id = toUUID(?)", af.AppID).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
 	defer stmt.Close()
 
-	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&adoption.AllVersions, &adoption.SelectedVersion, &adoption.Adoption); err != nil {
+	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&adoption.SelectedVersion, &adoption.AllVersions, &adoption.Adoption); err != nil {
 		return
 	}
 
@@ -981,73 +838,46 @@ func (a App) GetAdoptionMetrics(ctx context.Context, af *filter.AppFilter) (adop
 	return
 }
 
-// GetLaunchMetrics computes cold, warm and hot launch percentiles
+// GetLaunchMetrics computes cold, warm and hot launch quantiles
 // and deltas while respecting all applicable app filters.
-// If at least 1 version pair exists, then delta is computed
-// between launch metric values of selected versions and
-// launch metric values of unselected versions.
-func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter, versions filter.Versions) (launch *metrics.LaunchMetric, err error) {
+// Deltas are computed between launch metric values of selected and
+// unselected app versions.
+func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch *metrics.LaunchMetric, err error) {
 	launch = &metrics.LaunchMetric{}
 
-	coldStmt := sqlf.From("timings").
-		Select("round(quantile(0.95)(cold_launch.duration), 2) as cold_launch").
-		Where("type = 'cold_launch' and cold_launch.duration > 0")
+	selectedVersions, err := af.VersionPairs()
 
-	warmStmt := sqlf.From("timings").
-		Select("round(quantile(0.95)(warm_launch.duration), 2) as warm_launch").
-		Where("type = 'warm_launch' and warm_launch.duration > 0")
+	withStmt := sqlf.From("app_metrics").
+		Select(fmt.Sprintf("quantileMergeIf(0.95)(cold_launch_p95, app_version not in (%s)) as cold_launch_p95", selectedVersions.String())).
+		Select(fmt.Sprintf("quantileMergeIf(0.95)(warm_launch_p95, app_version not in (%s)) as warm_launch_p95", selectedVersions.String())).
+		Select(fmt.Sprintf("quantileMergeIf(0.95)(hot_launch_p95, app_version not in (%s)) as hot_launch_p95", selectedVersions.String())).
+		Where("app_id = toUUID(?)", af.AppID).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
-	hotStmt := sqlf.From("timings").
-		Select("round(quantile(0.95)(hot_launch.duration), 2) as hot_launch").
-		Where("type = 'hot_launch' and hot_launch.duration > 0")
+	defer withStmt.Close()
 
-	if versions.HasVersions() {
-		coldStmt.Where("attribute.app_version in ? and attribute.app_build in ?", versions.Versions(), versions.Codes())
-		warmStmt.Where("attribute.app_version in ? and attribute.app_build in ?", versions.Versions(), versions.Codes())
-		hotStmt.Where("attribute.app_version in ? and attribute.app_build in ?", versions.Versions(), versions.Codes())
-	}
-
-	stmt := sqlf.
-		With("timings",
-			sqlf.From("default.events").
-				Select("type, cold_launch.duration, warm_launch.duration, hot_launch.duration, attribute.app_version, attribute.app_build").
-				Where("app_id = ?", af.AppID).
-				Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
-				Where("(type = 'cold_launch' or type = 'warm_launch' or type = 'hot_launch')")).
-		With("cold_unselected", coldStmt).
-		With("warm_unselected", warmStmt).
-		With("hot_unselected", hotStmt).
-		With("cold_selected",
-			sqlf.From("timings").
-				Select("round(quantile(0.95)(cold_launch.duration), 2) as cold_launch").
-				Where("type = 'cold_launch'").
-				Where("cold_launch.duration > 0").
-				Where("cold_launch.duration <= 30000"). //ignore cold launch durations greater than 30 seconds. See https://github.com/measure-sh/measure/issues/933
-				Where("attribute.app_version in ? and attribute.app_build in ?", af.Versions, af.VersionCodes)).
-		With("warm_selected",
-			sqlf.From("timings").
-				Select("round(quantile(0.95)(warm_launch.duration), 2) as warm_launch").
-				Where("type = 'warm_launch'").
-				Where("warm_launch.duration > 0 and warm_launch.duration <= ?", event.NominalWarmLaunchThreshold.Milliseconds()). //ignore warm launch durations greater than 10 seconds. Similar to https://github.com/measure-sh/measure/issues/933
-				Where("attribute.app_version in ? and attribute.app_build in ?", af.Versions, af.VersionCodes)).
-		With("hot_selected",
-			sqlf.From("timings").
-				Select("round(quantile(0.95)(hot_launch.duration), 2) as hot_launch").
-				Where("type = 'hot_launch'").
-				Where("hot_launch.duration > 0").
-				Where("attribute.app_version in ? and attribute.app_build in ?", af.Versions, af.VersionCodes)).
-		Select("cold_selected.cold_launch as cold_launch_p95").
-		Select("warm_selected.warm_launch as warm_launch_p95").
-		Select("hot_selected.hot_launch as hot_launch_p95").
-		Select("round(cold_selected.cold_launch / cold_unselected.cold_launch, 2) as cold_delta").
-		Select("round(warm_selected.warm_launch / warm_unselected.warm_launch, 2) as warm_delta").
-		Select("round(hot_selected.hot_launch / hot_unselected.hot_launch, 2) as hot_delta").
-		From("cold_selected, warm_selected, hot_selected, cold_unselected, warm_unselected, hot_unselected")
+	stmt := sqlf.New(fmt.Sprintf("with (%s) as unselected select", withStmt.String()), withStmt.Args()...).
+		Select(fmt.Sprintf("round(quantileMergeIf(0.95)(cold_launch_p95, app_version in (%s)), 2) as selected_cold_launch_p95", selectedVersions.String())).
+		Select(fmt.Sprintf("round(quantileMergeIf(0.95)(warm_launch_p95, app_version in (%s)), 2) as selected_warm_launch_p95", selectedVersions.String())).
+		Select(fmt.Sprintf("round(quantileMergeIf(0.95)(hot_launch_p95, app_version in (%s)), 2) as selected_hot_launch_p95", selectedVersions.String())).
+		Select("round((selected_cold_launch_p95 / unselected.cold_launch_p95), 2) as cold_delta").
+		Select("round((selected_warm_launch_p95 / unselected.warm_launch_p95), 2) as warm_delta").
+		Select("round((selected_hot_launch_p95 / unselected.hot_launch_p95), 2) as hot_delta").
+		From("app_metrics").
+		Where("app_id = toUUID(?)", af.AppID).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
 	defer stmt.Close()
 
-	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&launch.ColdLaunchP95, &launch.WarmLaunchP95, &launch.HotLaunchP95, &launch.ColdDelta, &launch.WarmDelta, &launch.ColdDelta); err != nil {
-		return nil, err
+	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(
+		&launch.ColdLaunchP95,
+		&launch.WarmLaunchP95,
+		&launch.HotLaunchP95,
+		&launch.ColdDelta,
+		&launch.WarmDelta,
+		&launch.HotDelta,
+	); err != nil {
+		return
 	}
 
 	launch.SetNaNs()
@@ -1082,7 +912,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 
 	stmt := sqlf.
 		From(`default.events`).
-		Select(`id`).
+		Select(`distinct id`).
 		Select(`toString(type)`).
 		Select(`timestamp`).
 		Select(`session_id`).
@@ -2104,12 +1934,19 @@ func GetAppJourney(c *gin.Context) {
 		BiGraph: af.BiGraph,
 	})
 
-	if err := journeyAndroid.SetNodeExceptionGroups(func(eventIds []uuid.UUID) ([]group.ExceptionGroup, error) {
-		exceptionGroups, err := group.GetExceptionGroupsFromExceptionIds(ctx, eventIds)
-		if err != nil {
-			return nil, err
+	if err := journeyAndroid.SetNodeExceptionGroups(func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error) {
+		// do not hit database if no event ids
+		// to query
+		if len(eventIds) == 0 {
+			return
 		}
-		return exceptionGroups, nil
+
+		exceptionGroups, err = group.GetExceptionGroupsFromExceptionIds(ctx, &af, eventIds)
+		if err != nil {
+			return
+		}
+
+		return
 	}); err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -2118,12 +1955,19 @@ func GetAppJourney(c *gin.Context) {
 		return
 	}
 
-	if err := journeyAndroid.SetNodeANRGroups(func(eventIds []uuid.UUID) ([]group.ANRGroup, error) {
-		anrGroups, err := group.GetANRGroupsFromANRIds(ctx, eventIds)
-		if err != nil {
-			return nil, err
+	if err := journeyAndroid.SetNodeANRGroups(func(eventIds []uuid.UUID) (anrGroups []group.ANRGroup, err error) {
+		// do not hit database if no event ids
+		// to query
+		if len(eventIds) == 0 {
+			return
 		}
-		return anrGroups, nil
+
+		anrGroups, err = group.GetANRGroupsFromANRIds(ctx, &af, eventIds)
+		if err != nil {
+			return
+		}
+
+		return
 	}); err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -2321,7 +2165,7 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	launch, err := app.GetLaunchMetrics(ctx, &af, excludedVersions)
+	adoption, err := app.GetAdoptionMetrics(ctx, &af)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -2330,7 +2174,16 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	adoption, err := app.GetAdoptionMetrics(ctx, &af)
+	crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err := app.GetIssueFreeMetrics(ctx, &af, excludedVersions)
+	if err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	launch, err := app.GetLaunchMetrics(ctx, &af)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -2349,42 +2202,6 @@ func GetAppMetrics(c *gin.Context) {
 			})
 			return
 		}
-	}
-
-	crashFree, err := app.GetCrashFreeMetrics(ctx, &af, excludedVersions)
-	if err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	anrFree, err := app.GetANRFreeMetrics(ctx, &af, excludedVersions)
-	if err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	perceivedCrashFree, err := app.GetPerceivedCrashFreeMetrics(ctx, &af, excludedVersions)
-	if err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	perceivedANRFree, err := app.GetPerceivedANRFreeMetrics(ctx, &af, excludedVersions)
-	if err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{

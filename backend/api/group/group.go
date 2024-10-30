@@ -3,6 +3,7 @@ package group
 import (
 	"backend/api/chrono"
 	"backend/api/event"
+	"backend/api/filter"
 	"backend/api/server"
 	"context"
 	"math"
@@ -254,12 +255,13 @@ func SortANRGroups(groups []ANRGroup) {
 }
 
 // GetExceptionGroupsFromExceptionIds gets exception groups
-// matched by exception ids.
-func GetExceptionGroupsFromExceptionIds(ctx context.Context, eventIds []uuid.UUID) (exceptionGroups []ExceptionGroup, err error) {
+// matched by app filter(s) and exception event ids.
+func GetExceptionGroupsFromExceptionIds(ctx context.Context, af *filter.AppFilter, eventIds []uuid.UUID) (exceptionGroups []ExceptionGroup, err error) {
 	// Get list of fingerprints and event IDs
 	eventDataStmt := sqlf.From(`default.events`).
 		Select(`id, exception.fingerprint`).
-		Where(`id in (?)`, eventIds)
+		Where("app_id = toUUID(?)", af.AppID).
+		Where("id in ?", eventIds)
 
 	defer eventDataStmt.Close()
 
@@ -330,13 +332,13 @@ func GetExceptionGroupsFromExceptionIds(ctx context.Context, eventIds []uuid.UUI
 }
 
 // GetANRGroupsFromANRIds gets ANR groups
-// matched by ANR ids.
-func GetANRGroupsFromANRIds(ctx context.Context, eventIds []uuid.UUID) (anrGroups []ANRGroup, err error) {
+// matched by app filter(s) and ANR event ids.
+func GetANRGroupsFromANRIds(ctx context.Context, af *filter.AppFilter, eventIds []uuid.UUID) (anrGroups []ANRGroup, err error) {
 	// Get list of fingerprints and event IDs
 	eventDataStmt := sqlf.From(`default.events`).
 		Select(`id, anr.fingerprint`).
-		Where(`id in (?)`, eventIds).
-		Where(`anr.fingerprint != ''`)
+		Where("app_id = toUUID(?)", af.AppID).
+		Where(`id in ?`, eventIds)
 
 	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
 	if err != nil {

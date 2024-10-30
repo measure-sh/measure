@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"backend/api/pairs"
 	"backend/api/server"
 	"backend/api/text"
 	"context"
@@ -92,11 +93,6 @@ type AppFilter struct {
 	// NetworkTypes is the list of network types
 	// to be matched & filtered on.
 	NetworkTypes []string `form:"network_types"`
-
-	// Exception indicates the filtering should
-	// only consider exception events, both
-	// handled & unhandled.
-	Exception bool `form:"exception"`
 
 	// Crash indicates the filtering should
 	// only consider unhandled exception events.
@@ -202,6 +198,18 @@ func (af *AppFilter) ValidateVersions() error {
 	}
 
 	return nil
+}
+
+// VersionPairs provides a convinient wrapper over versions
+// and version codes representing them in paired-up way, like
+// tuples. For many cases, a paired up version is more useful
+// than individual version names and codes.
+func (af *AppFilter) VersionPairs() (versions *pairs.Pairs[string, string], err error) {
+	versions, err = pairs.NewPairs(af.Versions, af.VersionCodes)
+	if err != nil {
+		return
+	}
+	return
 }
 
 // Expand expands comma separated fields to slice
@@ -387,24 +395,19 @@ func (af *AppFilter) hasKeyTimestamp() bool {
 // types.
 func (af *AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes []string, err error) {
 	stmt := sqlf.
-		From("default.events").
-		Select("distinct toString(attribute.app_version), toString(attribute.app_build)").
+		From("app_filters").
+		Select("distinct toString(tupleElement(app_version, 1)) as version, toString(tupleElement(app_version, 2)) as code").
 		Where("app_id = toUUID(?)", af.AppID).
-		OrderBy("attribute.app_build desc")
+		OrderBy("code desc, version")
 
 	defer stmt.Close()
 
-	if af.Exception {
-		stmt.Where("type = 'exception'")
-	}
-
 	if af.Crash {
-		stmt.Where("type = 'exception'")
-		stmt.Where("`exception.handled` = false")
+		stmt.Where("exception=true")
 	}
 
 	if af.ANR {
-		stmt.Where("type = 'anr'")
+		stmt.Where("anr=true")
 	}
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
@@ -433,23 +436,20 @@ func (af *AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getOsVersions(ctx context.Context) (osNames, osVersions []string, err error) {
 	stmt := sqlf.
-		From("default.events").
-		Select("distinct toString(attribute.os_name), toString(attribute.os_version)").
+		From("app_filters").
+		Select("distinct toString(tupleElement(os_version, 1)) as name, toString(tupleElement(os_version, 2)) as version").
+		GroupBy("name, version").
+		OrderBy("version desc, name").
 		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
 
-	if af.Exception {
-		stmt.Where("type = 'exception'")
-	}
-
 	if af.Crash {
-		stmt.Where("type = 'exception'")
-		stmt.Where("`exception.handled` = false")
+		stmt.Where("exception=true")
 	}
 
 	if af.ANR {
-		stmt.Where("type = 'anr'")
+		stmt.Where("anr=true")
 	}
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
@@ -477,24 +477,19 @@ func (af *AppFilter) getOsVersions(ctx context.Context) (osNames, osVersions []s
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getCountries(ctx context.Context) (countries []string, err error) {
-	stmt := sqlf.
-		From("default.events").
-		Select("distinct toString(inet.country_code)").
-		Where("app_id = toUUID(?)", af.AppID)
+	stmt := sqlf.From("app_filters").
+		Select("distinct country_code").
+		Where("app_id = toUUID(?)", af.AppID).
+		OrderBy("country_code")
 
 	defer stmt.Close()
 
-	if af.Exception {
-		stmt.Where("type = 'exception'")
-	}
-
 	if af.Crash {
-		stmt.Where("type = 'exception'")
-		stmt.Where("`exception.handled` = false")
+		stmt.Where("exception=true")
 	}
 
 	if af.ANR {
-		stmt.Where("type = 'anr'")
+		stmt.Where("anr=true")
 	}
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
@@ -520,24 +515,19 @@ func (af *AppFilter) getCountries(ctx context.Context) (countries []string, err 
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getNetworkProviders(ctx context.Context) (networkProviders []string, err error) {
-	stmt := sqlf.
-		From("default.events").
-		Select("distinct toString(attribute.network_provider)").
+	stmt := sqlf.From("app_filters").
+		Select("distinct network_provider").
+		OrderBy("network_provider").
 		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
 
-	if af.Exception {
-		stmt.Where("type = 'exception'")
-	}
-
 	if af.Crash {
-		stmt.Where("type = 'exception'")
-		stmt.Where("`exception.handled` = false")
+		stmt.Where("exception=true")
 	}
 
 	if af.ANR {
-		stmt.Where("type = 'anr'")
+		stmt.Where("anr=true")
 	}
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
@@ -563,24 +553,19 @@ func (af *AppFilter) getNetworkProviders(ctx context.Context) (networkProviders 
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getNetworkTypes(ctx context.Context) (networkTypes []string, err error) {
-	stmt := sqlf.
-		From("default.events").
-		Select("distinct toString(attribute.network_type)").
+	stmt := sqlf.From("app_filters").
+		Select("distinct network_type").
+		OrderBy("network_type").
 		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
 
-	if af.Exception {
-		stmt.Where("type = 'exception'")
-	}
-
 	if af.Crash {
-		stmt.Where("type = 'exception'")
-		stmt.Where("`exception.handled` = false")
+		stmt.Where("exception=true")
 	}
 
 	if af.ANR {
-		stmt.Where("type = 'anr'")
+		stmt.Where("anr=true")
 	}
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
@@ -606,24 +591,19 @@ func (af *AppFilter) getNetworkTypes(ctx context.Context) (networkTypes []string
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getNetworkGenerations(ctx context.Context) (networkGenerations []string, err error) {
-	stmt := sqlf.
-		From("default.events").
-		Select("distinct toString(attribute.network_generation)").
+	stmt := sqlf.From("app_filters").
+		Select("distinct network_generation").
+		OrderBy("network_generation").
 		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
 
-	if af.Exception {
-		stmt.Where("type = 'exception'")
-	}
-
 	if af.Crash {
-		stmt.Where("type = 'exception'")
-		stmt.Where("`exception.handled` = false")
+		stmt.Where("exception=true")
 	}
 
 	if af.ANR {
-		stmt.Where("type = 'anr'")
+		stmt.Where("anr=true")
 	}
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
@@ -652,24 +632,19 @@ func (af *AppFilter) getNetworkGenerations(ctx context.Context) (networkGenerati
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getDeviceLocales(ctx context.Context) (deviceLocales []string, err error) {
-	stmt := sqlf.
-		From("default.events").
-		Select("distinct toString(attribute.device_locale)").
+	stmt := sqlf.From("app_filters").
+		Select("distinct device_locale").
+		OrderBy("device_locale").
 		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
 
-	if af.Exception {
-		stmt.Where("type = 'exception'")
-	}
-
 	if af.Crash {
-		stmt.Where("type = 'exception'")
-		stmt.Where("`exception.handled` = false")
+		stmt.Where("exception=true")
 	}
 
 	if af.ANR {
-		stmt.Where("type = 'anr'")
+		stmt.Where("anr=true")
 	}
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
@@ -695,24 +670,19 @@ func (af *AppFilter) getDeviceLocales(ctx context.Context) (deviceLocales []stri
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getDeviceManufacturers(ctx context.Context) (deviceManufacturers []string, err error) {
-	stmt := sqlf.
-		From("default.events").
-		Select("distinct toString(attribute.device_manufacturer)").
+	stmt := sqlf.From("app_filters").
+		Select("distinct device_manufacturer").
+		OrderBy("device_manufacturer").
 		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
 
-	if af.Exception {
-		stmt.Where("type = 'exception'")
-	}
-
 	if af.Crash {
-		stmt.Where("type = 'exception'")
-		stmt.Where("`exception.handled` = false")
+		stmt.Where("exception=true")
 	}
 
 	if af.ANR {
-		stmt.Where("type = 'anr'")
+		stmt.Where("anr=true")
 	}
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
@@ -738,24 +708,19 @@ func (af *AppFilter) getDeviceManufacturers(ctx context.Context) (deviceManufact
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, err error) {
-	stmt := sqlf.
-		From("default.events").
-		Select("distinct toString(attribute.device_name)").
+	stmt := sqlf.From("app_filters").
+		Select("distinct device_name").
+		OrderBy("device_name").
 		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
 
-	if af.Exception {
-		stmt.Where("type = 'exception'")
-	}
-
 	if af.Crash {
-		stmt.Where("type = 'exception'")
-		stmt.Where("`exception.handled` = false")
+		stmt.Where("exception=true")
 	}
 
 	if af.ANR {
-		stmt.Where("type = 'anr'")
+		stmt.Where("anr=true")
 	}
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
