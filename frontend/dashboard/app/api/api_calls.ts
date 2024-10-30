@@ -1,8 +1,8 @@
 import { auth, fetchAuth, logoutIfAuthError } from "@/app/utils/auth/auth";
-import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
-import { JourneyType } from "../components/journey"
-import { formatUserInputDateToServerFormat, getTimeZoneForServer } from "../utils/time_utils"
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { Filters } from "../components/filters";
+import { JourneyType } from "../components/journey";
+import { formatUserInputDateToServerFormat, getTimeZoneForServer } from "../utils/time_utils";
 
 export enum TeamsApiStatus {
     Loading,
@@ -640,86 +640,93 @@ function applyGenericFiltersToUrl(url: string, filters: Filters, keyId: string |
     const serverFormattedEndDate = formatUserInputDateToServerFormat(filters.endDate)
     const timezone = getTimeZoneForServer()
 
-    url = url + `from=${serverFormattedStartDate}&to=${serverFormattedEndDate}&timezone=${timezone}`
+    const u = new URL(url)
+    const searchParams = new URLSearchParams()
+
+    searchParams.append('from', serverFormattedStartDate)
+    searchParams.append('to', serverFormattedEndDate)
+    searchParams.append('timezone', timezone)
 
     // Append versions if present
     if (filters.versions.length > 0) {
-        url = url + `&versions=${Array.from(filters.versions).map((v) => v.name).join(',')}`
-        url = url + `&version_codes=${Array.from(filters.versions).map((v) => v.code).join(',')}`
+        searchParams.append('versions', filters.versions.map(v => v.name).join(','))
+        searchParams.append('version_codes', filters.versions.map(v => v.code).join(','))
     }
 
     // Append OS versions if present
     if (filters.osVersions.length > 0) {
-        url = url + `&os_names=${Array.from(filters.osVersions).map((v) => v.name).join(',')}`
-        url = url + `&os_versions=${Array.from(filters.osVersions).map((v) => v.version).join(',')}`
+        searchParams.append('os_names', filters.osVersions.map(v => v.name).join(','))
+        searchParams.append('os_versions', filters.osVersions.map(v => v.version).join(','))
     }
 
     // Append countries if present
     if (filters.countries.length > 0) {
-        url = url + `&countries=${Array.from(filters.countries).join(',')}`
+        searchParams.append('countries', filters.countries.join(','))
     }
 
     // Append network providers if present
     if (filters.networkProviders.length > 0) {
-        url = url + `&network_providers=${Array.from(filters.networkProviders).join(',')}`
+        searchParams.append('network_providers', filters.networkProviders.join(','))
     }
 
     // Append network types if present
     if (filters.networkTypes.length > 0) {
-        url = url + `&network_types=${Array.from(filters.networkTypes).join(',')}`
+        searchParams.append('network_types', filters.networkTypes.join(','))
     }
 
     // Append network generations if present
     if (filters.networkGenerations.length > 0) {
-        url = url + `&network_generations=${Array.from(filters.networkGenerations).join(',')}`
+        searchParams.append('network_generations', filters.networkGenerations.join(','))
     }
 
     // Append locales if present
     if (filters.locales.length > 0) {
-        url = url + `&locales=${Array.from(filters.locales).join(',')}`
+        searchParams.append('locales', filters.locales.join(','))
     }
 
     // Append device manufacturers if present
     if (filters.deviceManufacturers.length > 0) {
-        url = url + `&device_manufacturers=${Array.from(filters.deviceManufacturers).join(',')}`
+        searchParams.append('device_manufacturers', filters.deviceManufacturers.join(','))
     }
 
     // Append device names if present
     if (filters.deviceNames.length > 0) {
-        url = url + `&device_names=${Array.from(filters.deviceNames).join(',')}`
+        searchParams.append('device_names', filters.deviceNames.join(','))
     }
 
     // Append session type if needed
     if (filters.sessionType === SessionType.Issues) {
-        url = url + `&crash=1&anr=1`
+        searchParams.append('crash', '1')
+        searchParams.append('anr', '1')
     } else if (filters.sessionType === SessionType.Crashes) {
-        url = url + `&crash=1`
+        searchParams.append('crash', '1')
     } else if (filters.sessionType === SessionType.ANRs) {
-        url = url + `&anr=1`
+        searchParams.append('anr', '1')
     }
 
     // Append free text if present
     if (filters.freeText !== '') {
-        url = url + `&free_text=${filters.freeText}`
+        searchParams.append('free_text', filters.freeText)
     }
 
     // Append keyId if present
     if (keyId !== null) {
-        url = url + `&key_id=${keyId}`
+        searchParams.append('key_id', keyId)
     }
 
     // Append keyTimestamp if present
     if (keyTimestamp !== null) {
-        url = url + `&key_timestamp=${keyTimestamp}`
+        searchParams.append('key_timestamp', keyTimestamp)
     }
 
     // Append limit if present
     if (limit !== null) {
-        url = url + `&limit=${limit}`
+        searchParams.append('limit', String(limit))
     }
 
-    return url
+    u.search = searchParams.toString()
 
+    return u.toString()
 }
 
 export const fetchTeamsFromServer = async (router: AppRouterInstance) => {
