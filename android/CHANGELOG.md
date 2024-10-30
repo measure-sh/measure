@@ -1,5 +1,12 @@
 # measure-android
 
+# 0.8.1
+
+#### Fixes
+
+* fix(android): create new session if previous session crashed by @abhaysood in https://github.com/measure-sh/measure/pull/1439
+* fix(android): use uptime millis for cold launch instead of realtime elapsed by @abhaysood in https://github.com/measure-sh/measure/pull/1438
+
 # 0.8.0
 #### Features
 
