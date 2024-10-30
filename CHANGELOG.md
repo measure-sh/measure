@@ -18,11 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Improve dashboard api response times (#1404) by @detj in #1404
 - (**backend**): Occasional runtime panic during ingestion (#1345) by @detj in #1345
 - (**backend**): Increase app version character limit (#1342) by @detj in #1342
 - (**backend**): Increase thread name character limit (#1341) by @detj in #1341
 - (**backend**): Prevent duplicate ingestion of events (#1331) by @detj in #1331
 
+- (**frontend**): Some dashboard apis were failing due to lack of url encoding (#1449) by @detj in #1449
 - (**frontend**): Handle empty mem/cpu graph in session replay by @anupcowkur in #1436
 - (**frontend**): Calculate time diff b/w filtered events by @anupcowkur in #1381
 - (**frontend**): Fix nav aside scroll on detail content exceeding screen area by @anupcowkur in #1366
