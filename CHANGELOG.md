@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Apply suitable restart policy (#1458) by @detj in #1458
 - (**backend**): Add data skipping indexes for fingerprints (#1455) by @detj in #1455
 - (**backend**): Prevent db statement leaks (#1318) by @detj in #1318
 - (**backend**): Search sessions by screen view by @abhaysood in #1265
