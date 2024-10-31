@@ -152,7 +152,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
 
               {exceptionsDetails.results.length > 0 &&
                 <div className={`${exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading ? 'invisible' : 'visible'}`}>
-                  <p className="font-display text-xl"> Id: exceptionsDetails.results[0].id</p>
+                  <p className="font-display text-xl"> Id: {exceptionsDetails.results[0].id}</p>
                   <p className="font-sans"> Date & time: {formatDateToHumanReadableDateTime(exceptionsDetails.results[0].timestamp)}</p>
                   <p className="font-sans"> Device: {exceptionsDetails.results[0].attribute.device_manufacturer + exceptionsDetails.results[0].attribute.device_model}</p>
                   <p className="font-sans"> App version: {exceptionsDetails.results[0].attribute.app_version}</p>
