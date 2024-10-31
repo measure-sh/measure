@@ -67,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Update incorrect json key name (#1363) by @detj in #1363
 
+- Improve spelling in readme (#1460) by @detj in #1460
 - Add videos to README by @anupcowkur in #1413
 - Add call to action for star to README by @gandharva in #1401
 
