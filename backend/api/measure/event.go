@@ -6,6 +6,7 @@ import (
 	"backend/api/filter"
 	"backend/api/group"
 	"backend/api/inet"
+	"backend/api/numeric"
 	"backend/api/server"
 	"backend/api/symbol"
 	"context"
@@ -1012,333 +1013,157 @@ func (e eventreq) sessionCount() (count int) {
 	return len(sessions)
 }
 
-// GetExceptionsWithFilter returns a slice of EventException for the given slice of
-// event id and matching AppFilter. Also computes the next, previous pagination meta
-// values.
-func GetExceptionsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filter.AppFilter) (events []event.EventException, next bool, previous bool, err error) {
-	var edgecount int
-	var countStmt *sqlf.Stmt
-	var exceptions string
-	var threads string
-	var attachments string
-
-	limit := af.ExtendLimit()
+// GetExceptionsWithFilter fetchs a slice of EventException for an
+// ExceptionGroup matching AppFilter. Also computes pagination meta
+// values for keyset pagination.
+func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, af *filter.AppFilter) (events []event.EventException, next, previous bool, err error) {
+	pageSize := af.ExtendLimit()
 	forward := af.HasPositiveLimit()
-	next = false
-	previous = false
-	timeformat := "2006-01-02T15:04:05.000"
-	abs := af.LimitAbs()
-	op := "<"
+	operator := ">"
+	order := "asc"
 	if !forward {
-		op = ">"
+		operator = "<"
+		order = "desc"
 	}
 
+	// don't entertain reverse order
+	// when no keyset present
 	if !af.HasKeyset() && !forward {
-		next = true
 		return
 	}
 
+	selectedVersions, err := af.VersionPairs()
+	if err != nil {
+		return
+	}
+
+	selectedOSVersions, err := af.OSVersionPairs()
+	if err != nil {
+		return
+	}
+
+	timeformat := "2006-01-02T15:04:05.000"
+	var keyTimestamp string
+	if !af.KeyTimestamp.IsZero() {
+		keyTimestamp = af.KeyTimestamp.Format(timeformat)
+	}
+
+	prewhere := "prewhere app_id = toUUID(?) and exception.fingerprint = ?"
+
+	substmt := sqlf.From("events").
+		Select("distinct id").
+		Select("type").
+		Select("timestamp").
+		Select("session_id").
+		Select("toString(attribute.app_version) app_version").
+		Select("toString(attribute.app_build) app_build").
+		Select("toString(attribute.device_manufacturer) device_manufacturer").
+		Select("toString(attribute.device_model) device_model").
+		Select("toString(attribute.network_type) network_type").
+		Select("exception.exceptions exceptions").
+		Select("exception.threads threads").
+		Select("attachments").
+		Select(fmt.Sprintf("row_number() over (order by timestamp %s, id) as row_num", order)).
+		Clause(prewhere, af.AppID, group.Fingerprint).
+		Where(fmt.Sprintf("(attribute.app_version, attribute.app_build) in (%s)", selectedVersions.String())).
+		Where(fmt.Sprintf("(attribute.os_name, attribute.os_version) in (%s)", selectedOSVersions.String())).
+		Where("type = ?", event.TypeException).
+		Where("exception.handled = false").
+		Where("inet.country_code in ?", af.Countries).
+		Where("attribute.device_name in ?", af.DeviceNames).
+		Where("attribute.device_manufacturer in ?", af.DeviceManufacturers).
+		Where("attribute.device_locale in ?", af.Locales).
+		Where("attribute.network_type in ?", af.NetworkTypes).
+		Where("attribute.network_provider in ?", af.NetworkProviders).
+		Where("attribute.network_generation in ?", af.NetworkGenerations).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
+		GroupBy("id, type, timestamp, session_id, attribute.app_version, attribute.app_build, attribute.device_manufacturer, attribute.device_model, attribute.network_type, exceptions, threads, attachments")
+
+	stmt := sqlf.New("with ? as page_size, ? as last_timestamp, ? as last_id select", pageSize, keyTimestamp, af.KeyID)
+
 	if af.HasKeyset() {
-		args := []any{}
-		op := ">"
-		if !forward {
-			op = "<"
-		}
-
-		var ids []uuid.UUID
-		countStmt = sqlf.Select("id").
-			From("default.events").
-			Where("`id` in (?)", nil).
-			Where("app_id = toUUID(?)", nil).
-			Where("type = 'exception'").
-			Where("exception.handled = false").
-			Where("`timestamp` "+op+" ? or (`timestamp` = ? and `id` "+op+" ?)", nil, nil, nil).
-			OrderBy("`timestamp` desc", "`id` desc").
-			Limit(nil)
-		defer countStmt.Close()
-
-		timestamp := af.KeyTimestamp.Format(timeformat)
-		args = append(args, eventIds, af.AppID, timestamp, timestamp, af.KeyID)
-
-		if len(af.Versions) > 0 {
-			countStmt.Where("`attribute.app_version` in (?)", nil)
-			args = append(args, af.Versions)
-		}
-
-		if len(af.VersionCodes) > 0 {
-			countStmt.Where("`attribute.app_build` in (?)", nil)
-			args = append(args, af.VersionCodes)
-		}
-
-		if len(af.OsNames) > 0 {
-			countStmt.Where("`attribute.os_name` in (?)", nil)
-			args = append(args, af.OsNames)
-		}
-
-		if len(af.OsVersions) > 0 {
-			countStmt.Where("`attribute.os_version` in (?)", nil)
-			args = append(args, af.OsVersions)
-		}
-
-		if len(af.Countries) > 0 {
-			countStmt.Where("`inet.country_code` in (?)", nil)
-			args = append(args, af.Countries)
-		}
-
-		if len(af.DeviceNames) > 0 {
-			countStmt.Where("`attribute.device_name` in (?)", nil)
-			args = append(args, af.DeviceNames)
-		}
-
-		if len(af.DeviceManufacturers) > 0 {
-			countStmt.Where("`attribute.device_manufacturer` in (?)", nil)
-			args = append(args, af.DeviceManufacturers)
-		}
-
-		if len(af.Locales) > 0 {
-			countStmt.Where("`attribute.device_locale` in (?)", nil)
-			args = append(args, af.Locales)
-		}
-
-		if len(af.NetworkProviders) > 0 {
-			countStmt.Where("`attribute.network_provider` in (?)", nil)
-			args = append(args, af.NetworkProviders)
-		}
-
-		if len(af.NetworkTypes) > 0 {
-			countStmt.Where("`attribute.network_type` in (?)", nil)
-			args = append(args, af.NetworkTypes)
-		}
-
-		if len(af.NetworkGenerations) > 0 {
-			countStmt.Where("`attribute.network_generation` in (?)", nil)
-			args = append(args, af.NetworkGenerations)
-		}
-
-		if af.HasTimeRange() {
-			countStmt.Where("`timestamp` >= ? and `timestamp` <= ?", nil, nil)
-			args = append(args, af.From, af.To)
-		}
-
-		// add limit
-		args = append(args, 1)
-
-		rows, err := server.Server.ChPool.Query(ctx, countStmt.String(), args...)
-		if err != nil {
-			return nil, next, previous, err
-		}
-
-		for rows.Next() {
-			var id uuid.UUID
-			rows.Scan(&id)
-			ids = append(ids, id)
-		}
-		edgecount = len(ids)
+		substmt = substmt.Where(fmt.Sprintf("(toDateTime64(timestamp, 3) %s last_timestamp) or (toDateTime64(timestamp, 3) = last_timestamp and id %s toUUID(last_id))", operator, operator))
 	}
 
-	cols := []string{
-		`id`,
-		`session_id`,
-		`toString(type)`,
-		`timestamp`,
-		`attribute.installation_id`,
-		`toString(attribute.device_name)`,
-		`toString(attribute.device_model)`,
-		`toString(attribute.device_manufacturer)`,
-		`toString(attribute.device_type)`,
-		`attribute.device_is_foldable`,
-		`attribute.device_is_physical`,
-		`attribute.device_density_dpi`,
-		`attribute.device_width_px`,
-		`attribute.device_height_px`,
-		`attribute.device_density`,
-		`toString(attribute.device_locale)`,
-		`toString(attribute.os_name)`,
-		`toString(attribute.os_version)`,
-		`toString(attribute.platform)`,
-		`toString(attribute.thread_name)`,
-		`toString(attribute.user_id)`,
-		`toString(attribute.app_version)`,
-		`toString(attribute.app_build)`,
-		`toString(attribute.app_unique_id)`,
-		`toString(attribute.measure_sdk_version)`,
-		`toString(attribute.network_type)`,
-		`toString(attribute.network_generation)`,
-		`toString(attribute.network_provider)`,
-		`exception.handled`,
-		`exception.fingerprint`,
-		`exception.exceptions`,
-		`exception.threads`,
-		`attachments`,
-	}
+	stmt = stmt.
+		Select("distinct id").
+		Select("toString(type)").
+		Select("timestamp").
+		Select("session_id").
+		Select("app_version").
+		Select("app_build").
+		Select("device_manufacturer").
+		Select("device_model").
+		Select("network_type").
+		Select("exceptions").
+		Select("threads").
+		Select("attachments").
+		From("").
+		SubQuery("(", ") as t", substmt).
+		Where("row_num <= abs(page_size)").
+		OrderBy(fmt.Sprintf("timestamp %s, id %s", order, order))
 
-	stmt := sqlf.From(`default.events`)
 	defer stmt.Close()
 
-	for i := range cols {
-		stmt.Select(cols[i], nil)
-	}
-
-	stmt.Where("`id` in (?)", nil)
-
-	if forward {
-		stmt.OrderBy("`timestamp` desc", "`id` desc")
-	} else {
-		stmt.OrderBy("`timestamp`", "`id`")
-	}
-	stmt.Limit(nil)
-	args := []any{eventIds}
-
-	if len(af.Versions) > 0 {
-		stmt.Where("`attribute.app_version` in (?)", nil)
-		args = append(args, af.Versions)
-	}
-
-	if len(af.VersionCodes) > 0 {
-		stmt.Where("`attribute.app_build` in (?)", nil)
-		args = append(args, af.VersionCodes)
-	}
-
-	if len(af.OsNames) > 0 {
-		stmt.Where("`attribute.os_name` in (?)", nil)
-		args = append(args, af.OsNames)
-	}
-
-	if len(af.OsVersions) > 0 {
-		stmt.Where("`attribute.os_version` in (?)", nil)
-		args = append(args, af.OsVersions)
-	}
-
-	if len(af.Countries) > 0 {
-		stmt.Where("`inet.country_code` in (?)", nil)
-		args = append(args, af.Countries)
-	}
-
-	if len(af.DeviceNames) > 0 {
-		stmt.Where("`attribute.device_name` in (?)", nil)
-		args = append(args, af.DeviceNames)
-	}
-
-	if len(af.DeviceManufacturers) > 0 {
-		stmt.Where("`attribute.device_manufacturer` in (?)", nil)
-		args = append(args, af.DeviceManufacturers)
-	}
-
-	if len(af.Locales) > 0 {
-		stmt.Where("`attribute.device_locale` in (?)", nil)
-		args = append(args, af.Locales)
-	}
-
-	if len(af.NetworkProviders) > 0 {
-		stmt.Where("`attribute.network_provider` in (?)", nil)
-		args = append(args, af.NetworkProviders)
-	}
-
-	if len(af.NetworkTypes) > 0 {
-		stmt.Where("`attribute.network_type` in (?)", nil)
-		args = append(args, af.NetworkTypes)
-	}
-
-	if len(af.NetworkGenerations) > 0 {
-		stmt.Where("`attribute.network_generation` in (?)", nil)
-		args = append(args, af.NetworkGenerations)
-	}
-
-	if af.HasTimeRange() {
-		stmt.Where("`timestamp` >= ? and `timestamp` <= ?", nil, nil)
-		args = append(args, af.From, af.To)
-	}
-
-	if af.HasKeyset() {
-		stmt.Where("`timestamp` "+op+" ? or (`timestamp` = ? and `id` "+op+" ?)", nil, nil, nil)
-		timestamp := af.KeyTimestamp.Format(timeformat)
-		args = append(args, timestamp, timestamp, af.KeyID)
-	}
-
-	args = append(args, limit)
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), args...)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
 
 	for rows.Next() {
 		var e event.EventException
-		fields := []any{
-			&e.ID,
-			&e.SessionID,
-			&e.Type,
-			&e.Timestamp,
-			&e.Attribute.InstallationID,
-			&e.Attribute.DeviceName,
-			&e.Attribute.DeviceModel,
-			&e.Attribute.DeviceManufacturer,
-			&e.Attribute.DeviceType,
-			&e.Attribute.DeviceIsFoldable,
-			&e.Attribute.DeviceIsPhysical,
-			&e.Attribute.DeviceDensityDPI,
-			&e.Attribute.DeviceWidthPX,
-			&e.Attribute.DeviceHeightPX,
-			&e.Attribute.DeviceDensity,
-			&e.Attribute.DeviceLocale,
-			&e.Attribute.OSName,
-			&e.Attribute.OSVersion,
-			&e.Attribute.Platform,
-			&e.Attribute.ThreadName,
-			&e.Attribute.UserID,
-			&e.Attribute.AppVersion,
-			&e.Attribute.AppBuild,
-			&e.Attribute.AppUniqueID,
-			&e.Attribute.MeasureSDKVersion,
-			&e.Attribute.NetworkType,
-			&e.Attribute.NetworkGeneration,
-			&e.Attribute.NetworkProvider,
-			&e.Exception.Handled,
-			&e.Exception.Fingerprint,
-			&exceptions,
-			&threads,
-			&attachments,
+		var exceptions string
+		var threads string
+		var attachments string
+
+		if err = rows.Scan(&e.ID, &e.Type, &e.Timestamp, &e.SessionID, &e.Attribute.AppVersion, &e.Attribute.AppBuild, &e.Attribute.DeviceManufacturer, &e.Attribute.DeviceModel, &e.Attribute.NetworkType, &exceptions, &threads, &attachments); err != nil {
+			return
 		}
 
-		if err := rows.Scan(fields...); err != nil {
-			return nil, next, previous, err
+		if err = json.Unmarshal([]byte(exceptions), &e.Exception.Exceptions); err != nil {
+			return
 		}
-
-		if err := json.Unmarshal([]byte(exceptions), &e.Exception.Exceptions); err != nil {
-			return nil, next, previous, err
+		if err = json.Unmarshal([]byte(threads), &e.Exception.Threads); err != nil {
+			return
 		}
-		if err := json.Unmarshal([]byte(threads), &e.Exception.Threads); err != nil {
-			return nil, next, previous, err
-		}
-		if err := json.Unmarshal([]byte(attachments), &e.Attachments); err != nil {
-			return nil, next, previous, err
+		if err = json.Unmarshal([]byte(attachments), &e.Attachments); err != nil {
+			return
 		}
 
 		e.ComputeView()
 		events = append(events, e)
 	}
 
-	length := len(events)
+	resultLen := len(events)
 
-	if forward {
-		if length > abs {
+	// set pagination meta
+	if af.HasKeyset() {
+		if resultLen >= numeric.AbsInt(pageSize) {
 			next = true
-			events = events[:length-1]
-		}
-		if edgecount > -1 && af.HasKeyset() {
 			previous = true
+		} else {
+			if forward {
+				previous = true
+			} else {
+				next = true
+			}
 		}
 	} else {
-		// reverse
+		// first record always
+		if resultLen >= numeric.AbsInt(pageSize) {
+			next = true
+		}
+	}
+
+	// truncate results
+	if resultLen >= numeric.AbsInt(pageSize) {
+		events = events[:resultLen-1]
+	}
+
+	// reverse list to respect client's ordering view
+	if !forward {
 		for i, j := 0, len(events)-1; i < j; i, j = i+1, j-1 {
 			events[i], events[j] = events[j], events[i]
-		}
-		if length > abs {
-			previous = true
-			events = events[1:]
-		}
-		if edgecount > -1 {
-			next = true
 		}
 	}
 
@@ -1356,10 +1181,11 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 		From("events").
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), '', '(', toString(attribute.app_build), ')') as app_version").
-		Select("count(if(type = 'exception' and exception.handled = false, 1, NULL)) as total_exceptions").
+		Select("uniqIf(id, type = ? and exception.handled = false) as total_exceptions", event.TypeException).
 		Select("round((1 - (exception_sessions / total_sessions)) * 100, 2) as crash_free_sessions").
-		Select("count(distinct session_id) as total_sessions").
-		Select("count(distinct if(type = 'exception' and exception.handled = false, session_id, NULL)) as exception_sessions").
+		Select("uniq(session_id) as total_sessions").
+		Select("uniqIf(session_id, type = ? and exception.handled = false) as exception_sessions", event.TypeException).
+		Clause("prewhere app_id = toUUID(?)", af.AppID).
 		GroupBy("app_version, datetime").
 		OrderBy("app_version, datetime")
 
@@ -1437,329 +1263,156 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 	return
 }
 
-// GetANRsWithFilter returns a slice of EventANR for the given slice of
-// event id and matching AppFilter.
-func GetANRsWithFilter(ctx context.Context, eventIds []uuid.UUID, af *filter.AppFilter) (events []event.EventANR, next bool, previous bool, err error) {
-	var edgecount int
-	var countStmt *sqlf.Stmt
-	var exceptions string
-	var threads string
-	var attachments string
-
-	limit := af.ExtendLimit()
+// GetANRsWithFilter fetchs a slice of EventException for an
+// ANRGroup matching AppFilter. Also computes pagination meta
+// values for keyset pagination.
+func GetANRsWithFilter(ctx context.Context, group *group.ANRGroup, af *filter.AppFilter) (events []event.EventANR, next, previous bool, err error) {
+	pageSize := af.ExtendLimit()
 	forward := af.HasPositiveLimit()
-	next = false
-	previous = false
-	timeformat := "2006-01-02T15:04:05.000"
-	abs := af.LimitAbs()
-	op := "<"
+	operator := ">"
+	order := "asc"
 	if !forward {
-		op = ">"
+		operator = "<"
+		order = "desc"
 	}
 
+	// don't entertain reverse order
+	// when no keyset present
 	if !af.HasKeyset() && !forward {
-		next = true
 		return
 	}
 
+	selectedVersions, err := af.VersionPairs()
+	if err != nil {
+		return
+	}
+
+	selectedOSVersions, err := af.OSVersionPairs()
+	if err != nil {
+		return
+	}
+
+	timeformat := "2006-01-02T15:04:05.000"
+	var keyTimestamp string
+	if !af.KeyTimestamp.IsZero() {
+		keyTimestamp = af.KeyTimestamp.Format(timeformat)
+	}
+
+	prewhere := "prewhere app_id = toUUID(?) and anr.fingerprint = ?"
+
+	substmt := sqlf.From("events").
+		Select("distinct id").
+		Select("type").
+		Select("timestamp").
+		Select("session_id").
+		Select("toString(attribute.app_version) app_version").
+		Select("toString(attribute.app_build) app_build").
+		Select("toString(attribute.device_manufacturer) device_manufacturer").
+		Select("toString(attribute.device_model) device_model").
+		Select("toString(attribute.network_type) network_type").
+		Select("anr.exceptions exceptions").
+		Select("anr.threads threads").
+		Select("attachments").
+		Select(fmt.Sprintf("row_number() over (order by timestamp %s, id) as row_num", order)).
+		Clause(prewhere, af.AppID, group.Fingerprint).
+		Where(fmt.Sprintf("(attribute.app_version, attribute.app_build) in (%s)", selectedVersions.String())).
+		Where(fmt.Sprintf("(attribute.os_name, attribute.os_version) in (%s)", selectedOSVersions.String())).
+		Where("type = ?", event.TypeANR).
+		Where("inet.country_code in ?", af.Countries).
+		Where("attribute.device_name in ?", af.DeviceNames).
+		Where("attribute.device_manufacturer in ?", af.DeviceManufacturers).
+		Where("attribute.device_locale in ?", af.Locales).
+		Where("attribute.network_type in ?", af.NetworkTypes).
+		Where("attribute.network_provider in ?", af.NetworkProviders).
+		Where("attribute.network_generation in ?", af.NetworkGenerations).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
+		GroupBy("id, type, timestamp, session_id, attribute.app_version, attribute.app_build, attribute.device_manufacturer, attribute.device_model, attribute.network_type, exceptions, threads, attachments")
+
+	stmt := sqlf.New("with ? as page_size, ? as last_timestamp, ? as last_id select", pageSize, keyTimestamp, af.KeyID)
+
 	if af.HasKeyset() {
-		args := []any{}
-		op := ">"
-		if !forward {
-			op = "<"
-		}
-
-		var ids []uuid.UUID
-		countStmt = sqlf.Select("id").
-			From("default.events").
-			Where("`id` in (?)", nil).
-			Where("`timestamp` "+op+" ? or (`timestamp` = ? and `id` "+op+" ?)", nil, nil, nil).
-			OrderBy("`timestamp` desc", "`id` desc").
-			Limit(nil)
-		defer countStmt.Close()
-
-		timestamp := af.KeyTimestamp.Format(timeformat)
-
-		args = append(args, eventIds, timestamp, timestamp, af.KeyID)
-
-		if len(af.Versions) > 0 {
-			countStmt.Where("`attribute.app_version` in (?)", nil)
-			args = append(args, af.Versions)
-		}
-
-		if len(af.VersionCodes) > 0 {
-			countStmt.Where("`attribute.app_build` in (?)", nil)
-			args = append(args, af.VersionCodes)
-		}
-
-		if len(af.OsNames) > 0 {
-			countStmt.Where("`attribute.os_name` in (?)", nil)
-			args = append(args, af.OsNames)
-		}
-
-		if len(af.OsVersions) > 0 {
-			countStmt.Where("`attribute.os_version` in (?)", nil)
-			args = append(args, af.OsVersions)
-		}
-
-		if len(af.Countries) > 0 {
-			countStmt.Where("`inet.country_code` in (?)", nil)
-			args = append(args, af.Countries)
-		}
-
-		if len(af.DeviceNames) > 0 {
-			countStmt.Where("`attribute.device_name` in (?)", nil)
-			args = append(args, af.DeviceNames)
-		}
-
-		if len(af.DeviceManufacturers) > 0 {
-			countStmt.Where("`attribute.device_manufacturer` in (?)", nil)
-			args = append(args, af.DeviceManufacturers)
-		}
-
-		if len(af.Locales) > 0 {
-			countStmt.Where("`attribute.device_locale` in (?)", nil)
-			args = append(args, af.Locales)
-		}
-
-		if len(af.NetworkProviders) > 0 {
-			countStmt.Where("`attribute.network_provider` in (?)", nil)
-			args = append(args, af.NetworkProviders)
-		}
-
-		if len(af.NetworkTypes) > 0 {
-			countStmt.Where("`attribute.network_type` in (?)", nil)
-			args = append(args, af.NetworkTypes)
-		}
-
-		if len(af.NetworkGenerations) > 0 {
-			countStmt.Where("`attribute.network_generation` in (?)", nil)
-			args = append(args, af.NetworkGenerations)
-		}
-
-		if af.HasTimeRange() {
-			countStmt.Where("`timestamp` >= ? and `timestamp` <= ?", nil, nil)
-			args = append(args, af.From, af.To)
-		}
-
-		// add limit
-		args = append(args, 1)
-
-		rows, err := server.Server.ChPool.Query(ctx, countStmt.String(), args...)
-		if err != nil {
-			return nil, next, previous, err
-		}
-		for rows.Next() {
-			var id uuid.UUID
-			rows.Scan(&id)
-			ids = append(ids, id)
-		}
-		edgecount = len(ids)
+		substmt = substmt.Where(fmt.Sprintf("(toDateTime64(timestamp, 3) %s last_timestamp) or (toDateTime64(timestamp, 3) = last_timestamp and id %s toUUID(last_id))", operator, operator))
 	}
 
-	cols := []string{
-		`id`,
-		`session_id`,
-		`toString(type)`,
-		`timestamp`,
-		`attribute.installation_id`,
-		`toString(attribute.device_name)`,
-		`toString(attribute.device_model)`,
-		`toString(attribute.device_manufacturer)`,
-		`toString(attribute.device_type)`,
-		`attribute.device_is_foldable`,
-		`attribute.device_is_physical`,
-		`attribute.device_density_dpi`,
-		`attribute.device_width_px`,
-		`attribute.device_height_px`,
-		`attribute.device_density`,
-		`toString(attribute.device_locale)`,
-		`toString(attribute.os_name)`,
-		`toString(attribute.os_version)`,
-		`toString(attribute.platform)`,
-		`toString(attribute.thread_name)`,
-		`toString(attribute.user_id)`,
-		`toString(attribute.app_version)`,
-		`toString(attribute.app_build)`,
-		`toString(attribute.app_unique_id)`,
-		`toString(attribute.measure_sdk_version)`,
-		`toString(attribute.network_type)`,
-		`toString(attribute.network_generation)`,
-		`toString(attribute.network_provider)`,
-		`anr.handled`,
-		`anr.fingerprint`,
-		`anr.exceptions`,
-		`anr.threads`,
-		`attachments`,
-	}
+	stmt = stmt.
+		Select("distinct id").
+		Select("toString(type)").
+		Select("timestamp").
+		Select("session_id").
+		Select("app_version").
+		Select("app_build").
+		Select("device_manufacturer").
+		Select("device_model").
+		Select("network_type").
+		Select("exceptions").
+		Select("threads").
+		Select("attachments").
+		From("").
+		SubQuery("(", ") as t", substmt).
+		Where("row_num <= abs(page_size)").
+		OrderBy(fmt.Sprintf("timestamp %s, id %s", order, order))
 
-	stmt := sqlf.From(`default.events`)
 	defer stmt.Close()
 
-	for i := range cols {
-		stmt.Select(cols[i], nil)
-	}
-
-	stmt.Where("`id` in (?)", nil)
-
-	if forward {
-		stmt.OrderBy("`timestamp` desc", "`id` desc")
-	} else {
-		stmt.OrderBy("`timestamp`", "`id`")
-	}
-	stmt.Limit(nil)
-	args := []any{eventIds}
-
-	if len(af.Versions) > 0 {
-		stmt.Where("`attribute.app_version` in (?)", nil)
-		args = append(args, af.Versions)
-	}
-
-	if len(af.VersionCodes) > 0 {
-		stmt.Where("`attribute.app_build` in (?)", nil)
-		args = append(args, af.VersionCodes)
-	}
-
-	if len(af.OsNames) > 0 {
-		stmt.Where("`attribute.os_name` in (?)", nil)
-		args = append(args, af.OsNames)
-	}
-
-	if len(af.OsVersions) > 0 {
-		stmt.Where("`attribute.os_version` in (?)", nil)
-		args = append(args, af.OsVersions)
-	}
-
-	if len(af.Countries) > 0 {
-		stmt.Where("`inet.country_code` in (?)", nil)
-		args = append(args, af.Countries)
-	}
-
-	if len(af.DeviceNames) > 0 {
-		stmt.Where("`attribute.device_name` in (?)", nil)
-		args = append(args, af.DeviceNames)
-	}
-
-	if len(af.DeviceManufacturers) > 0 {
-		stmt.Where("`attribute.device_manufacturer` in (?)", nil)
-		args = append(args, af.DeviceManufacturers)
-	}
-
-	if len(af.Locales) > 0 {
-		stmt.Where("`attribute.device_locale` in (?)", nil)
-		args = append(args, af.Locales)
-	}
-
-	if len(af.NetworkProviders) > 0 {
-		stmt.Where("`attribute.network_provider` in (?)", nil)
-		args = append(args, af.NetworkProviders)
-	}
-
-	if len(af.NetworkTypes) > 0 {
-		stmt.Where("`attribute.network_type` in (?)", nil)
-		args = append(args, af.NetworkTypes)
-	}
-
-	if len(af.NetworkGenerations) > 0 {
-		stmt.Where("`attribute.network_generation` in (?)", nil)
-		args = append(args, af.NetworkGenerations)
-	}
-
-	if af.HasTimeRange() {
-		stmt.Where("`timestamp` >= ? and `timestamp` <= ?", nil, nil)
-		args = append(args, af.From, af.To)
-	}
-
-	if af.HasKeyset() {
-		stmt.Where("`timestamp` "+op+" ? or (`timestamp` = ? and `id` "+op+" ?)", nil, nil, nil)
-		timestamp := af.KeyTimestamp.Format(timeformat)
-		args = append(args, timestamp, timestamp, af.KeyID)
-	}
-
-	args = append(args, limit)
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), args...)
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
 
 	for rows.Next() {
 		var e event.EventANR
-		fields := []any{
-			&e.ID,
-			&e.SessionID,
-			&e.Type,
-			&e.Timestamp,
-			&e.Attribute.InstallationID,
-			&e.Attribute.DeviceName,
-			&e.Attribute.DeviceModel,
-			&e.Attribute.DeviceManufacturer,
-			&e.Attribute.DeviceType,
-			&e.Attribute.DeviceIsFoldable,
-			&e.Attribute.DeviceIsPhysical,
-			&e.Attribute.DeviceDensityDPI,
-			&e.Attribute.DeviceWidthPX,
-			&e.Attribute.DeviceHeightPX,
-			&e.Attribute.DeviceDensity,
-			&e.Attribute.DeviceLocale,
-			&e.Attribute.OSName,
-			&e.Attribute.OSVersion,
-			&e.Attribute.Platform,
-			&e.Attribute.ThreadName,
-			&e.Attribute.UserID,
-			&e.Attribute.AppVersion,
-			&e.Attribute.AppBuild,
-			&e.Attribute.AppUniqueID,
-			&e.Attribute.MeasureSDKVersion,
-			&e.Attribute.NetworkType,
-			&e.Attribute.NetworkGeneration,
-			&e.Attribute.NetworkProvider,
-			&e.ANR.Handled,
-			&e.ANR.Fingerprint,
-			&exceptions,
-			&threads,
-			&attachments,
+		var exceptions string
+		var threads string
+		var attachments string
+
+		if err = rows.Scan(&e.ID, &e.Type, &e.Timestamp, &e.SessionID, &e.Attribute.AppVersion, &e.Attribute.AppBuild, &e.Attribute.DeviceManufacturer, &e.Attribute.DeviceModel, &e.Attribute.NetworkType, &exceptions, &threads, &attachments); err != nil {
+			return
 		}
 
-		if err := rows.Scan(fields...); err != nil {
-			return nil, next, previous, err
+		if err = json.Unmarshal([]byte(exceptions), &e.ANR.Exceptions); err != nil {
+			return
 		}
-
-		if err := json.Unmarshal([]byte(exceptions), &e.ANR.Exceptions); err != nil {
-			return nil, next, previous, err
+		if err = json.Unmarshal([]byte(threads), &e.ANR.Threads); err != nil {
+			return
 		}
-		if err := json.Unmarshal([]byte(threads), &e.ANR.Threads); err != nil {
-			return nil, next, previous, err
-		}
-		if err := json.Unmarshal([]byte(attachments), &e.Attachments); err != nil {
-			return nil, next, previous, err
+		if err = json.Unmarshal([]byte(attachments), &e.Attachments); err != nil {
+			return
 		}
 
 		e.ComputeView()
 		events = append(events, e)
 	}
 
-	length := len(events)
+	resultLen := len(events)
 
-	if forward {
-		if length > abs {
+	// set pagination meta
+	if af.HasKeyset() {
+		if resultLen >= numeric.AbsInt(pageSize) {
 			next = true
-			events = events[:length-1]
-		}
-		if edgecount > -1 && af.HasKeyset() {
 			previous = true
+		} else {
+			if forward {
+				previous = true
+			} else {
+				next = true
+			}
 		}
 	} else {
-		// reverse
+		// first record always
+		if resultLen >= numeric.AbsInt(pageSize) {
+			next = true
+		}
+	}
+
+	// truncate results
+	if resultLen >= numeric.AbsInt(pageSize) {
+		events = events[:resultLen-1]
+	}
+
+	// reverse list to respect client's ordering view
+	if !forward {
 		for i, j := 0, len(events)-1; i < j; i, j = i+1, j-1 {
 			events[i], events[j] = events[j], events[i]
-		}
-		if length > abs {
-			previous = true
-			events = events[1:]
-		}
-		if edgecount > -1 {
-			next = true
 		}
 	}
 
@@ -1777,10 +1430,11 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 		From("events").
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build), ')') as app_version").
-		Select("count(if(type = 'anr', 1, NULL)) as total_anrs").
+		Select("uniqIf(id, type = ?) as total_anr", event.TypeANR).
 		Select("round((1 - (anr_sessions / total_sessions)) * 100, 2) as anr_free_sessions").
-		Select("count(distinct session_id) as total_sessions").
-		Select("count(distinct if(type = 'anr', session_id, NULL)) as anr_sessions").
+		Select("uniq(session_id) as total_sessions").
+		Select("uniqIf(session_id, type = ?) as anr_sessions", event.TypeANR).
+		Clause("prewhere app_id = toUUID(?)", af.AppID).
 		GroupBy("app_version, datetime").
 		OrderBy("app_version, datetime")
 
@@ -1858,19 +1512,32 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 	return
 }
 
-// GetIssuesPlot queries and prepares aggregated issue instances
-// based on datetime and filters.
-func GetIssuesPlot(ctx context.Context, eventIds []uuid.UUID, af *filter.AppFilter) (issueInstances []event.IssueInstance, err error) {
+// GetIssuesPlot aggregates issue free percentage for plotting
+// visually from an ExceptionGroup or ANRGroup.
+func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter) (issueInstances []event.IssueInstance, err error) {
 	if af.Timezone == "" {
 		return nil, errors.New("missing timezone filter")
 	}
 
+	fingerprint := g.GetFingerprint()
+	groupType := event.TypeException
+
+	switch g.(type) {
+	case *group.ANRGroup:
+		groupType = event.TypeANR
+	case *group.ExceptionGroup:
+		groupType = event.TypeException
+	default:
+		err = errors.New("couldn't determine correct type of issue group")
+		return
+	}
+
 	stmt := sqlf.
-		From(`default.events`).
+		From(`events`).
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build),')') as version").
-		Select("count(distinct id) as instances").
-		Where("`id` in ?", eventIds).
+		Select("uniq(id) as instances").
+		Clause(fmt.Sprintf("prewhere app_id = toUUID(?) and %s.fingerprint = ?", groupType), af.AppID, fingerprint).
 		GroupBy("version, datetime").
 		OrderBy("version, datetime")
 

@@ -16,6 +16,13 @@ import (
 	"github.com/leporo/sqlf"
 )
 
+// IssueGroup interface represents
+// common interface for issue group
+// types like ExceptionGroup & ANRGroup.
+type IssueGroup interface {
+	GetFingerprint() string
+}
+
 type ExceptionGroup struct {
 	ID              uuid.UUID              `json:"id" db:"id"`
 	AppID           uuid.UUID              `json:"app_id" db:"app_id"`
@@ -54,6 +61,12 @@ type ANRGroup struct {
 
 func (e ExceptionGroup) GetID() uuid.UUID {
 	return e.ID
+}
+
+// GetFingerprint provides the exception's
+// fingerprint.
+func (e ExceptionGroup) GetFingerprint() string {
+	return e.Fingerprint
 }
 
 // GetDisplayTitle provides a user friendly display
@@ -129,6 +142,12 @@ func (e *ExceptionGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 
 func (a ANRGroup) GetID() uuid.UUID {
 	return a.ID
+}
+
+// GetFingerprint provides the ANR's
+// fingerprint.
+func (a ANRGroup) GetFingerprint() string {
+	return a.Fingerprint
 }
 
 // GetDisplayTitle provides a user friendly display

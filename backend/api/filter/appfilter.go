@@ -212,6 +212,18 @@ func (af *AppFilter) VersionPairs() (versions *pairs.Pairs[string, string], err 
 	return
 }
 
+// OSVersionPairs provides a convinient wrapper over OS name
+// and OS version representing them in paired-up way, like
+// tuples. For many cases, a paired up version is more useful
+// than individual OS names and versions.
+func (af *AppFilter) OSVersionPairs() (osVersions *pairs.Pairs[string, string], err error) {
+	osVersions, err = pairs.NewPairs(af.OsNames, af.OsVersions)
+	if err != nil {
+		return
+	}
+	return
+}
+
 // Expand expands comma separated fields to slice
 // of strings
 func (af *AppFilter) Expand() {
@@ -298,8 +310,7 @@ func (af *AppFilter) ExtendLimit() int {
 	if af.HasPositiveLimit() {
 		return af.Limit + 1
 	} else {
-		limit := -af.Limit
-		return limit + 1
+		return af.Limit - 1
 	}
 }
 
