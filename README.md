@@ -110,8 +110,8 @@ Come say hi on our [Discord](https://discord.gg/f6zGkBCt42)
 
 ## Team
 
-- Gandharva Kumar - [Github](https://github.com/gandharva) • [X](https://x.com/gandharva) • [Linkedin](https://www.linkedin.com/in/gandharvakr/)
-- Anup Cowkur - [Github](https://github.com/anupcowkur) • [X](https://x.com/anupcowkur) • [Linkedin](https://www.linkedin.com/in/anupcowkur/)
-- Debjeet Biswas - [Github](https://github.com/detj) • [X](https://x.com/detj) • [Linkedin](https://www.linkedin.com/in/debjeet-biswas-9b4337281/)
-- Abhay Sood - [Github](https://github.com/abhaysood) • [X](https://x.com/abhaysood_) • [Linkedin](https://www.linkedin.com/in/abhaysood/)
-- Adwin Ross - [Github](https://github.com/adwinross) • [X](https://x.com/adwinross) • [Linkedin](https://www.linkedin.com/in/adwin-ronald-ross-0879898b/)
+- Gandharva Kumar - [GitHub](https://github.com/gandharva) • [X](https://x.com/gandharva) • [LinkedIn](https://www.linkedin.com/in/gandharvakr/)
+- Anup Cowkur - [GitHub](https://github.com/anupcowkur) • [X](https://x.com/anupcowkur) • [LinkedIn](https://www.linkedin.com/in/anupcowkur/)
+- Debjeet Biswas - [GitHub](https://github.com/detj) • [X](https://x.com/detj) • [LinkedIn](https://www.linkedin.com/in/debjeet-biswas-9b4337281/)
+- Abhay Sood - [GitHub](https://github.com/abhaysood) • [X](https://x.com/abhaysood_) • [LinkedIn](https://www.linkedin.com/in/abhaysood/)
+- Adwin Ross - [GitHub](https://github.com/adwinross) • [X](https://x.com/adwinross) • [LinkedIn](https://www.linkedin.com/in/adwin-ronald-ross-0879898b/)
