@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Increase thread name character limit (#1341) by @detj in #1341
 - (**backend**): Prevent duplicate ingestion of events (#1331) by @detj in #1331
 
+- (**frontend**): Crash detail not showing id (#1453) by @detj in #1453
 - (**frontend**): Hot launch metric was incorrectly showing warm launch metric (#1448) by @detj in #1448
 - (**frontend**): Some dashboard apis were failing due to lack of url encoding (#1449) by @detj in #1449
 - (**frontend**): Handle empty mem/cpu graph in session replay by @anupcowkur in #1436
