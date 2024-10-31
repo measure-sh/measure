@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Improve crash/anr detail experience (#1451) by @detj in #1451
 - (**backend**): Improve dashboard api response times (#1404) by @detj in #1404
 - (**backend**): Occasional runtime panic during ingestion (#1345) by @detj in #1345
 - (**backend**): Increase app version character limit (#1342) by @detj in #1342
