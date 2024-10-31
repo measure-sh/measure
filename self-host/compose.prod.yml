@@ -6,22 +6,27 @@ services:
       - NODE_ENV=production
       - HOSTNAME=0.0.0.0
     volumes: !reset null
+    restart: unless-stopped
 
   api:
     environment:
       - GIN_MODE=release
     develop: !reset null
+    restart: unless-stopped
 
   cleanup:
     environment:
       - GIN_MODE=release
     develop: !reset null
+    restart: unless-stopped
 
   symbolicator-android:
     environment:
       - DEVELOPMENT_MODE=false
     develop: !reset null
+    restart: unless-stopped
 
   clickhouse:
     ports: !reset # see: https://docs.docker.com/compose/compose-file/13-merge/#reset-value
       - "9000:9000/tcp"
+    restart: unless-stopped
