@@ -122,12 +122,12 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGrou
 	exceptionGroup = &row
 
 	// Get list of event IDs
-	eventDataStmt := sqlf.From(`default.events`).
+	eventDataStmt := sqlf.From(`events`).
 		Select(`distinct id`).
-		Where("app_id = toUUID(?)", a.ID).
+		Clause("prewhere app_id = toUUID(?) and exception.fingerprint = ?", a.ID, exceptionGroup.Fingerprint).
 		Where("type = 'exception'").
 		Where("exception.handled = false").
-		Where(`exception.fingerprint = (?)`, exceptionGroup.Fingerprint)
+		GroupBy("id")
 
 	defer eventDataStmt.Close()
 
@@ -253,12 +253,12 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 		exceptionGroup = &groups[i]
 
 		eventDataStmt := sqlf.
-			From("default.events").
+			From("events").
 			Select("distinct id").
-			Where("app_id = toUUID(?)", af.AppID).
-			Where("type = 'exception'").
+			Clause("prewhere app_id = toUUID(?) and exception.fingerprint = ?", af.AppID, exceptionGroup.Fingerprint).
+			Where("type = ?", event.TypeException).
 			Where("exception.handled = ?", false).
-			Where("exception.fingerprint = ?", exceptionGroup.Fingerprint)
+			GroupBy("id")
 
 		defer eventDataStmt.Close()
 
@@ -374,11 +374,11 @@ func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (anrGroup *group.ANR
 	anrGroup = &row
 
 	// Get list of event IDs
-	eventDataStmt := sqlf.From(`default.events`).
+	eventDataStmt := sqlf.From(`events`).
 		Select(`distinct id`).
-		Where("app_id = toUUID(?)", a.ID).
-		Where("type = 'anr'").
-		Where(`anr.fingerprint = ?`, anrGroup.Fingerprint)
+		Clause("prewhere app_id = toUUID(?) and anr.fingerprint = ?", a.ID, anrGroup.Fingerprint).
+		Where("type = ?", event.TypeANR).
+		GroupBy("id")
 
 	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
 	if err != nil {
@@ -501,11 +501,11 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 		anrGroup = &groups[i]
 
 		eventDataStmt := sqlf.
-			From("default.events").
+			From("events").
 			Select("distinct id").
-			Where("app_id = toUUID(?)", af.AppID).
-			Where("type = 'anr'").
-			Where("anr.fingerprint = ?", anrGroup.Fingerprint)
+			Clause("prewhere app_id = toUUID(?) and anr.fingerprint = ?", af.AppID, anrGroup.Fingerprint).
+			Where("type = ?", event.TypeANR).
+			GroupBy("id")
 
 		defer eventDataStmt.Close()
 
@@ -2692,7 +2692,7 @@ func GetCrashDetailCrashes(c *gin.Context) {
 		return
 	}
 
-	eventExceptions, next, previous, err := GetExceptionsWithFilter(ctx, group.EventIDs, &af)
+	eventExceptions, next, previous, err := GetExceptionsWithFilter(ctx, group, &af)
 	if err != nil {
 		msg := `failed to get exception group's exception events`
 		fmt.Println(msg, err)
@@ -2828,7 +2828,7 @@ func GetCrashDetailPlotInstances(c *gin.Context) {
 		return
 	}
 
-	crashInstances, err := GetIssuesPlot(ctx, group.EventIDs, &af)
+	crashInstances, err := GetIssuesPlot(ctx, group, &af)
 	if err != nil {
 		msg := `failed to query data for crash instances plot`
 		fmt.Println(msg, err)
@@ -3415,7 +3415,7 @@ func GetANRDetailANRs(c *gin.Context) {
 
 	group, err := app.GetANRGroup(ctx, anrGroupId)
 	if err != nil {
-		msg := fmt.Sprintf("failed to get anr group with id %q", anrGroupId.String())
+		msg := fmt.Sprintf("failed to get ANR group with id %q", anrGroupId.String())
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -3430,7 +3430,7 @@ func GetANRDetailANRs(c *gin.Context) {
 		return
 	}
 
-	eventANRs, next, previous, err := GetANRsWithFilter(ctx, group.EventIDs, &af)
+	eventANRs, next, previous, err := GetANRsWithFilter(ctx, group, &af)
 	if err != nil {
 		msg := `failed to get anr group's anr events`
 		fmt.Println(msg, err)
@@ -3554,13 +3554,13 @@ func GetANRDetailPlotInstances(c *gin.Context) {
 
 	group, err := app.GetANRGroup(ctx, anrGroupId)
 	if err != nil {
-		msg := fmt.Sprintf("failed to get anr group with id %q", anrGroupId.String())
+		msg := fmt.Sprintf("failed to get ANR group with id %q", anrGroupId.String())
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
 
-	anrInstances, err := GetIssuesPlot(ctx, group.EventIDs, &af)
+	anrInstances, err := GetIssuesPlot(ctx, group, &af)
 	if err != nil {
 		msg := `failed to query data for anr instances plot`
 		fmt.Println(msg, err)
@@ -4595,6 +4595,7 @@ func GetSession(c *gin.Context) {
 		exceptions, err := replay.ComputeExceptions(c, app.ID, exceptionEvents)
 		if err != nil {
 			msg := fmt.Sprintf(`unable to compute exceptions for session %q for app %q`, sessionId, app.ID)
+			fmt.Println(msg, err)
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": msg,
 			})
@@ -4609,6 +4610,7 @@ func GetSession(c *gin.Context) {
 		anrs, err := replay.ComputeANRs(c, app.ID, anrEvents)
 		if err != nil {
 			msg := fmt.Sprintf(`unable to compute ANRs for session %q for app %q`, sessionId, app.ID)
+			fmt.Println(msg, err)
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": msg,
 			})
