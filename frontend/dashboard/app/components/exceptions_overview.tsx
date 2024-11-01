@@ -22,7 +22,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
 
   const [exceptionsOverview, setExceptionsOverview] = useState(emptyExceptionsOverviewResponse);
   const paginationOffset = 10
-  const [paginationRange, setPaginationRange] = useState({ start: 1, end: paginationOffset })
+  const [paginationIndex, setPaginationIndex] = useState(0)
   const [paginationDirection, setPaginationDirection] = useState(PaginationDirection.None)
 
 
@@ -66,18 +66,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
     }
 
     getExceptionsOverview()
-  }, [paginationRange, filters]);
-
-  // Reset pagination range if not in default if any filters change
-  useEffect(() => {
-    // If we reset pagination range even if values haven't change, we will trigger
-    // and unnecessary getExceptionsOverview effect
-    if (paginationRange.start === 1 && paginationRange.end === paginationOffset) {
-      return
-    }
-
-    setPaginationRange({ start: 1, end: paginationOffset })
-  }, [filters]);
+  }, [paginationIndex, filters]);
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
@@ -123,13 +112,13 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
             filters={filters} />
           <div className="py-4" />
           <div className='self-end'>
-            <Paginator prevEnabled={exceptionsOverview.meta.previous} nextEnabled={exceptionsOverview.meta.next} displayText={paginationRange.start + ' - ' + paginationRange.end}
+            <Paginator prevEnabled={exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? false : exceptionsOverview.meta.previous} nextEnabled={exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? false : exceptionsOverview.meta.next} displayText=''
               onNext={() => {
-                setPaginationRange({ start: paginationRange.start + paginationOffset, end: paginationRange.end + paginationOffset })
+                setPaginationIndex(paginationIndex + 1)
                 setPaginationDirection(PaginationDirection.Forward)
               }}
               onPrev={() => {
-                setPaginationRange({ start: paginationRange.start - paginationOffset, end: paginationRange.end - paginationOffset })
+                setPaginationIndex(paginationIndex - 1)
                 setPaginationDirection(PaginationDirection.Backward)
               }} />
           </div>
