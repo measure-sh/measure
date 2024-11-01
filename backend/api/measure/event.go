@@ -1512,6 +1512,121 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 	return
 }
 
+// GetIssuesAttributeDistribution queries distribution of attributes
+// based on datetime and filters.
+func GetIssuesAttributeDistribution(ctx context.Context, g group.IssueGroup, af *filter.AppFilter) (map[string]map[string]uint64, error) {
+	fingerprint := g.GetFingerprint()
+	groupType := event.TypeException
+
+	switch g.(type) {
+	case *group.ANRGroup:
+		groupType = event.TypeANR
+	case *group.ExceptionGroup:
+		groupType = event.TypeException
+	default:
+		err := errors.New("couldn't determine correct type of issue group")
+		return nil, err
+	}
+
+	stmt := sqlf.
+		From("default.events").
+		Select("concat(toString(attribute.app_version), ' (', toString(attribute.app_build), ')') as app_version").
+		Select("concat(toString(attribute.os_name), ' ', toString(attribute.os_version)) as os_version").
+		Select("toString(inet.country_code) as country").
+		Select("toString(attribute.network_type) as network_type").
+		Select("toString(attribute.device_locale) as locale").
+		Select("concat(toString(attribute.device_manufacturer), ' - ', toString(attribute.device_name)) as device").
+		Select("uniq(id) as count").
+		Clause(fmt.Sprintf("prewhere app_id = toUUID(?) and %s.fingerprint = ?", groupType), af.AppID, fingerprint).
+		GroupBy("app_version").
+		GroupBy("os_version").
+		GroupBy("country").
+		GroupBy("network_type").
+		GroupBy("locale").
+		GroupBy("device")
+
+	// Add filters as necessary
+	stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+	if len(af.Versions) > 0 {
+		stmt.Where("attribute.app_version in ?", af.Versions)
+	}
+	if len(af.VersionCodes) > 0 {
+		stmt.Where("attribute.app_build in ?", af.VersionCodes)
+	}
+	if len(af.OsNames) > 0 {
+		stmt.Where("attribute.os_name in ?", af.OsNames)
+	}
+	if len(af.OsVersions) > 0 {
+		stmt.Where("attribute.os_version in ?", af.OsVersions)
+	}
+	if len(af.Countries) > 0 {
+		stmt.Where("inet.country_code in ?", af.Countries)
+	}
+	if len(af.NetworkTypes) > 0 {
+		stmt.Where("attribute.network_type in ?", af.NetworkTypes)
+	}
+	if len(af.NetworkGenerations) > 0 {
+		stmt.Where("attribute.network_generation in ?", af.NetworkGenerations)
+	}
+	if len(af.Locales) > 0 {
+		stmt.Where("attribute.device_locale in ?", af.Locales)
+	}
+	if len(af.DeviceManufacturers) > 0 {
+		stmt.Where("attribute.device_manufacturer in ?", af.DeviceManufacturers)
+	}
+	if len(af.DeviceNames) > 0 {
+		stmt.Where("attribute.device_name in ?", af.DeviceNames)
+	}
+
+	// Execute the query and parse results
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Initialize a map to store distribution results for each attribute.
+	attributeDistributions := map[string]map[string]uint64{
+		"app_version":  make(map[string]uint64),
+		"os_version":   make(map[string]uint64),
+		"country":      make(map[string]uint64),
+		"network_type": make(map[string]uint64),
+		"locale":       make(map[string]uint64),
+		"device":       make(map[string]uint64),
+	}
+
+	// Parse each row in the result set.
+	for rows.Next() {
+		var (
+			appVersion  string
+			osVersion   string
+			country     string
+			networkType string
+			locale      string
+			device      string
+			count       uint64
+		)
+
+		if err := rows.Scan(&appVersion, &osVersion, &country, &networkType, &locale, &device, &count); err != nil {
+			return nil, err
+		}
+
+		// Update counts in the distribution map
+		attributeDistributions["app_version"][appVersion] += count
+		attributeDistributions["os_version"][osVersion] += count
+		attributeDistributions["country"][country] += count
+		attributeDistributions["network_type"][networkType] += count
+		attributeDistributions["locale"][locale] += count
+		attributeDistributions["device"][device] += count
+	}
+
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+
+	return attributeDistributions, nil
+}
+
 // GetIssuesPlot aggregates issue free percentage for plotting
 // visually from an ExceptionGroup or ANRGroup.
 func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter) (issueInstances []event.IssueInstance, err error) {

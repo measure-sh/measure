@@ -13,6 +13,7 @@ import Journey, { JourneyType } from './journey_sankey';
 import Image from 'next/image';
 import CopyAiContext from './copy_ai_context';
 import LoadingSpinner from './loading_spinner';
+import ExceptionsDistributionPlot from './exceptions_distribution_plot';
 
 interface ExceptionsDetailsProps {
   exceptionsType: ExceptionsType,
@@ -115,14 +116,10 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
               exceptionsGroupId={exceptionsGroupId}
               filters={filters} />
             <div className="p-2" />
-            <div className="w-full h-[32rem]">
-              <Journey
-                teamId={teamId}
-                bidirectional={false}
-                journeyType={exceptionsType === ExceptionsType.Crash ? JourneyType.CrashDetails : JourneyType.AnrDetails}
-                exceptionsGroupId={exceptionsGroupId}
-                filters={filters} />
-            </div>
+            <ExceptionsDistributionPlot
+              exceptionsType={exceptionsType}
+              exceptionsGroupId={exceptionsGroupId}
+              filters={filters} />
           </div>
           <div className="py-4" />
 

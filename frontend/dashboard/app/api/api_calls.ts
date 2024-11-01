@@ -87,6 +87,12 @@ export enum ExceptionsDetailsPlotApiStatus {
     Error,
     NoData
 }
+export enum ExceptionsDistributionPlotApiStatus {
+    Loading,
+    Success,
+    Error,
+    NoData
+}
 
 export enum CreateTeamApiStatus {
     Init,
@@ -992,6 +998,34 @@ export const fetchExceptionsDetailsPlotFromServer = async (exceptionsType: Excep
     }
 
     return { status: ExceptionsDetailsPlotApiStatus.Success, data: data }
+}
+
+export const fetchExceptionsDistributionPlotFromServer = async (exceptionsType: ExceptionsType, exceptionsGroupdId: string, filters: Filters, router: AppRouterInstance) => {
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+
+    var url = ""
+    if (exceptionsType === ExceptionsType.Crash) {
+        url = `${origin}/apps/${filters.app.id}/crashGroups/${exceptionsGroupdId}/plots/distribution?`
+    } else {
+        url = `${origin}/apps/${filters.app.id}/anrGroups/${exceptionsGroupdId}/plots/distribution?`
+    }
+
+    url = applyGenericFiltersToUrl(url, filters, null, null, null)
+
+    const res = await fetchAuth(url);
+
+    if (!res.ok) {
+        logoutIfAuthError(auth, router, res)
+        return { status: ExceptionsDistributionPlotApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data === null) {
+        return { status: ExceptionsDistributionPlotApiStatus.NoData, data: null }
+    }
+
+    return { status: ExceptionsDistributionPlotApiStatus.Success, data: data }
 }
 
 export const fetchAuthzAndMembersFromServer = async (teamId: string, router: AppRouterInstance) => {

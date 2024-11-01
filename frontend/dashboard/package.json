@@ -14,6 +14,7 @@
   "dependencies": {
     "@dagrejs/dagre": "^1.1.3",
     "@highlight-run/next": "^7.5.12",
+    "@nivo/bar": "^0.87.0",
     "@nivo/core": "^0.87.0",
     "@nivo/line": "^0.87.0",
     "@nivo/pie": "^0.87.0",
