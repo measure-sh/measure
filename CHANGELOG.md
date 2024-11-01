@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**frontend**): Replace exception detail journey with attr distribution plot
 - (**frontend**): Add new UI for session replay
 - (**frontend**): Persist paginator on master detail nav
 - (**frontend**): Add search bar to dropdown component
