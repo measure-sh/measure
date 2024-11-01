@@ -18,7 +18,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
 
     const [sessionsOverview, setSessionsOverview] = useState(emptySessionsOverviewResponse);
     const paginationOffset = 5
-    const [paginationRange, setPaginationRange] = useState({ start: 1, end: paginationOffset })
+    const [paginationIndex, setPaginationIndex] = useState(0)
     const [paginationDirection, setPaginationDirection] = useState(PaginationDirection.None)
 
     const getSessionsOverview = async () => {
@@ -61,18 +61,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
         }
 
         getSessionsOverview()
-    }, [paginationRange, filters]);
-
-    // Reset pagination range if not in default if any filters change
-    useEffect(() => {
-        // If we reset pagination range even if values haven't changed, we will trigger
-        // an unnecessary getSessionsOverview effect
-        if (paginationRange.start === 1 && paginationRange.end === paginationOffset) {
-            return
-        }
-
-        setPaginationRange({ start: 1, end: paginationOffset })
-    }, [filters]);
+    }, [paginationIndex, filters]);
 
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
@@ -118,14 +107,14 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                         filters={filters} />
                     <div className="py-4" />
                     <div className='self-end'>
-                        <Paginator prevEnabled={sessionsOverview.meta.previous} nextEnabled={sessionsOverview.meta.next} displayText={paginationRange.start + ' - ' + paginationRange.end}
+                        <Paginator prevEnabled={sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading ? false : sessionsOverview.meta.previous} nextEnabled={sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading ? false : sessionsOverview.meta.next} displayText=''
                             onNext={() => {
-                                setPaginationRange({ start: paginationRange.start + paginationOffset, end: paginationRange.end + paginationOffset })
                                 setPaginationDirection(PaginationDirection.Forward)
+                                setPaginationIndex(paginationIndex + 1)
                             }}
                             onPrev={() => {
-                                setPaginationRange({ start: paginationRange.start - paginationOffset, end: paginationRange.end - paginationOffset })
                                 setPaginationDirection(PaginationDirection.Backward)
+                                setPaginationIndex(paginationIndex - 1)
                             }} />
                     </div>
                     <div className={`py-1 w-full ${sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading ? 'visible' : 'invisible'}`}>
