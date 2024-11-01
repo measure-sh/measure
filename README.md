@@ -61,7 +61,7 @@ Monitor important metrics to stay on top of app health. Quickly see deltas to ma
 
 Automatically track Crashes and ANRs. Dive deeper with screenshots, filters and detailed stacktraces
 
-[Crashes and ANRs demo](https://github.com/user-attachments/assets/192f761b-a022-475f-80a2-6a3102b99045)
+[Crashes and ANRs demo](https://github.com/user-attachments/assets/fb8e3c67-f263-41d7-b547-1f9d09c90ae0)
 
 
 ⭐ If you find Measure useful, please consider [starring this repo!](https://github.com/measure-sh/measure)
