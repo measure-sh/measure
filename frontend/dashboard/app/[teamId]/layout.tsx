@@ -94,7 +94,8 @@ export default function DashboardLayout({
   const teamsApiStatusToTeamsSwitcherStatus = {
     [TeamsApiStatus.Loading]: TeamsSwitcherStatus.Loading,
     [TeamsApiStatus.Success]: TeamsSwitcherStatus.Success,
-    [TeamsApiStatus.Error]: TeamsSwitcherStatus.Error
+    [TeamsApiStatus.Error]: TeamsSwitcherStatus.Error,
+    [TeamsApiStatus.Cancelled]: TeamsSwitcherStatus.Loading
   };
 
   return (
