@@ -1,4 +1,4 @@
-import { auth, fetchAuth, logoutIfAuthError } from "@/app/utils/auth/auth";
+import { auth, fetchMeasure, logoutIfAuthError } from "@/app/utils/auth/auth";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { Filters } from "../components/filters";
 import { JourneyType } from "../components/journey";
@@ -7,14 +7,16 @@ import { formatUserInputDateToServerFormat, getTimeZoneForServer } from "../util
 export enum TeamsApiStatus {
     Loading,
     Success,
-    Error
+    Error,
+    Cancelled
 }
 
 export enum AppsApiStatus {
     Loading,
     Success,
     Error,
-    NoApps
+    NoApps,
+    Cancelled
 }
 
 export enum FiltersApiStatus {
@@ -22,7 +24,8 @@ export enum FiltersApiStatus {
     Success,
     Error,
     NotOnboarded,
-    NoData
+    NoData,
+    Cancelled
 }
 
 export enum FiltersApiType {
@@ -35,19 +38,22 @@ export enum JourneyApiStatus {
     Loading,
     Success,
     Error,
-    NoData
+    NoData,
+    Cancelled
 }
 
 export enum MetricsApiStatus {
     Loading,
     Success,
-    Error
+    Error,
+    Cancelled
 }
 
 export enum SessionsOverviewApiStatus {
     Loading,
     Success,
-    Error
+    Error,
+    Cancelled
 }
 
 export enum ExceptionsType {
@@ -58,134 +64,154 @@ export enum ExceptionsType {
 export enum ExceptionsOverviewApiStatus {
     Loading,
     Success,
-    Error
+    Error,
+    Cancelled
 }
 
 export enum ExceptionsOverviewPlotApiStatus {
     Loading,
     Success,
     Error,
-    NoData
+    NoData,
+    Cancelled
 }
 
 export enum SessionsOverviewPlotApiStatus {
     Loading,
     Success,
     Error,
-    NoData
+    NoData,
+    Cancelled
 }
 
 export enum ExceptionsDetailsApiStatus {
     Loading,
     Success,
-    Error
+    Error,
+    Cancelled
 }
 
 export enum ExceptionsDetailsPlotApiStatus {
     Loading,
     Success,
     Error,
-    NoData
+    NoData,
+    Cancelled
 }
 export enum ExceptionsDistributionPlotApiStatus {
     Loading,
     Success,
     Error,
-    NoData
+    NoData,
+    Cancelled
 }
 
 export enum CreateTeamApiStatus {
     Init,
     Loading,
     Success,
-    Error
+    Error,
+    Cancelled
 }
 
 export enum CreateAppApiStatus {
     Init,
     Loading,
     Success,
-    Error
+    Error,
+    Cancelled
 }
 
 export enum TeamNameChangeApiStatus {
     Init,
     Loading,
     Success,
-    Error
+    Error,
+    Cancelled
 }
 
 export enum AppNameChangeApiStatus {
     Init,
     Loading,
     Success,
-    Error
+    Error,
+    Cancelled
 }
 
 export enum RoleChangeApiStatus {
     Init,
     Loading,
     Success,
-    Error
+    Error,
+    Cancelled
 }
 
 export enum InviteMemberApiStatus {
     Init,
     Loading,
     Success,
-    Error
+    Error,
+    Cancelled
 }
 
 export enum RemoveMemberApiStatus {
     Init,
     Loading,
     Success,
-    Error
+    Error,
+    Cancelled
 }
 
 export enum AuthzAndMembersApiStatus {
     Loading,
     Success,
-    Error
+    Error,
+    Cancelled
 }
 
 export enum SessionReplayApiStatus {
     Loading,
     Success,
-    Error
+    Error,
+    Cancelled
 }
 
 export enum FetchAlertPrefsApiStatus {
     Loading,
     Success,
-    Error
+    Error,
+    Cancelled
 }
 
 export enum UpdateAlertPrefsApiStatus {
     Init,
     Loading,
     Success,
-    Error
+    Error,
+    Cancelled
 }
 
 export enum FetchAppSettingsApiStatus {
     Loading,
     Success,
-    Error
+    Error,
+    Cancelled
 }
 
 export enum UpdateAppSettingsApiStatus {
     Init,
     Loading,
     Success,
-    Error
+    Error,
+    Cancelled
 }
 
 export enum FetchUsageApiStatus {
     Loading,
     Success,
     Error,
-    NoApps
+    NoApps,
+    Cancelled
 }
 
 export enum SessionType {
@@ -737,32 +763,43 @@ function applyGenericFiltersToUrl(url: string, filters: Filters, keyId: string |
 
 export const fetchTeamsFromServer = async (router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
-    const res = await fetchAuth(`${origin}/teams`);
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: TeamsApiStatus.Error, data: null }
+
+    try {
+        const res = await fetchMeasure(`${origin}/teams`);
+
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: TeamsApiStatus.Error, data: null }
+        }
+
+        const data: [{ id: string, name: string }] = await res.json()
+
+        return { status: TeamsApiStatus.Success, data: data }
+    } catch {
+        return { status: TeamsApiStatus.Cancelled, data: null }
     }
-
-    const data: [{ id: string, name: string }] = await res.json()
-
-    return { status: TeamsApiStatus.Success, data: data }
 }
 
 export const fetchAppsFromServer = async (teamId: string, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
-    const res = await fetchAuth(`${origin}/teams/${teamId}/apps`);
 
-    if (!res.ok && res.status == 404) {
-        return { status: AppsApiStatus.NoApps, data: null }
+    try {
+        const res = await fetchMeasure(`${origin}/teams/${teamId}/apps`);
+
+        if (!res.ok && res.status == 404) {
+            return { status: AppsApiStatus.NoApps, data: null }
+        }
+
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: AppsApiStatus.Error, data: null }
+        }
+
+        const data = await res.json()
+        return { status: AppsApiStatus.Success, data: data }
+    } catch {
+        return { status: AppsApiStatus.Cancelled, data: null }
     }
-
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: AppsApiStatus.Error, data: null }
-    }
-
-    const data = await res.json()
-    return { status: AppsApiStatus.Success, data: data }
 }
 
 export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filtersApiType: FiltersApiType, router: AppRouterInstance) => {
@@ -781,20 +818,24 @@ export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filte
         url += '?anr=1'
     }
 
-    const res = await fetchAuth(url);
+    try {
+        const res = await fetchMeasure(url);
 
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: FiltersApiStatus.Error, data: null }
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: FiltersApiStatus.Error, data: null }
+        }
+
+        const data = await res.json()
+
+        if (data.versions === null) {
+            return { status: FiltersApiStatus.NoData, data: null }
+        }
+
+        return { status: FiltersApiStatus.Success, data: data }
+    } catch {
+        return { status: FiltersApiStatus.Cancelled, data: null }
     }
-
-    const data = await res.json()
-
-    if (data.versions === null) {
-        return { status: FiltersApiStatus.NoData, data: null }
-    }
-
-    return { status: FiltersApiStatus.Success, data: data }
 }
 
 export const fetchJourneyFromServer = async (journeyType: JourneyType, exceptionsGroupdId: string | null, bidirectional: boolean, filters: Filters, router: AppRouterInstance) => {
@@ -819,16 +860,20 @@ export const fetchJourneyFromServer = async (journeyType: JourneyType, exception
 
     url = applyGenericFiltersToUrl(url, filters, null, null, null)
 
-    const res = await fetchAuth(url);
+    try {
+        const res = await fetchMeasure(url);
 
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: JourneyApiStatus.Error, data: null }
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: JourneyApiStatus.Error, data: null }
+        }
+
+        const data = await res.json()
+
+        return { status: JourneyApiStatus.Success, data: data }
+    } catch {
+        return { status: JourneyApiStatus.Cancelled, data: null }
     }
-
-    const data = await res.json()
-
-    return { status: JourneyApiStatus.Success, data: data }
 }
 
 export const fetchMetricsFromServer = async (filters: Filters, router: AppRouterInstance) => {
@@ -838,16 +883,20 @@ export const fetchMetricsFromServer = async (filters: Filters, router: AppRouter
 
     url = applyGenericFiltersToUrl(url, filters, null, null, null)
 
-    const res = await fetchAuth(url);
+    try {
+        const res = await fetchMeasure(url);
 
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: MetricsApiStatus.Error, data: null }
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: MetricsApiStatus.Error, data: null }
+        }
+
+        const data = await res.json()
+
+        return { status: MetricsApiStatus.Success, data: data }
+    } catch {
+        return { status: MetricsApiStatus.Cancelled, data: null }
     }
-
-    const data = await res.json()
-
-    return { status: MetricsApiStatus.Success, data: data }
 }
 
 export const fetchSessionsOverviewFromServer = async (filters: Filters, keyId: string | null, limit: number, router: AppRouterInstance) => {
@@ -857,17 +906,20 @@ export const fetchSessionsOverviewFromServer = async (filters: Filters, keyId: s
 
     url = applyGenericFiltersToUrl(url, filters, keyId, null, limit)
 
-    const res = await fetchAuth(url);
+    try {
+        const res = await fetchMeasure(url);
 
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: SessionsOverviewApiStatus.Error, data: null }
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: SessionsOverviewApiStatus.Error, data: null }
+        }
+
+        const data = await res.json()
+
+        return { status: SessionsOverviewApiStatus.Success, data: data }
+    } catch {
+        return { status: SessionsOverviewApiStatus.Cancelled, data: null }
     }
-
-    const data = await res.json()
-
-    return { status: SessionsOverviewApiStatus.Success, data: data }
-
 }
 
 export const fetchSessionsOverviewPlotFromServer = async (filters: Filters, router: AppRouterInstance) => {
@@ -877,20 +929,24 @@ export const fetchSessionsOverviewPlotFromServer = async (filters: Filters, rout
 
     url = applyGenericFiltersToUrl(url, filters, null, null, null)
 
-    const res = await fetchAuth(url);
+    try {
+        const res = await fetchMeasure(url);
 
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: SessionsOverviewPlotApiStatus.Error, data: null }
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: SessionsOverviewPlotApiStatus.Error, data: null }
+        }
+
+        const data = await res.json()
+
+        if (data === null) {
+            return { status: SessionsOverviewPlotApiStatus.NoData, data: null }
+        }
+
+        return { status: SessionsOverviewPlotApiStatus.Success, data: data }
+    } catch {
+        return { status: SessionsOverviewPlotApiStatus.Cancelled, data: null }
     }
-
-    const data = await res.json()
-
-    if (data === null) {
-        return { status: SessionsOverviewPlotApiStatus.NoData, data: null }
-    }
-
-    return { status: SessionsOverviewPlotApiStatus.Success, data: data }
 }
 
 export const fetchExceptionsOverviewFromServer = async (exceptionsType: ExceptionsType, filters: Filters, keyId: string | null, limit: number, router: AppRouterInstance) => {
@@ -905,16 +961,20 @@ export const fetchExceptionsOverviewFromServer = async (exceptionsType: Exceptio
 
     url = applyGenericFiltersToUrl(url, filters, keyId, null, limit)
 
-    const res = await fetchAuth(url);
+    try {
+        const res = await fetchMeasure(url);
 
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: ExceptionsOverviewApiStatus.Error, data: null }
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: ExceptionsOverviewApiStatus.Error, data: null }
+        }
+
+        const data = await res.json()
+
+        return { status: ExceptionsOverviewApiStatus.Success, data: data }
+    } catch {
+        return { status: ExceptionsOverviewApiStatus.Cancelled, data: null }
     }
-
-    const data = await res.json()
-
-    return { status: ExceptionsOverviewApiStatus.Success, data: data }
 
 }
 
@@ -930,16 +990,20 @@ export const fetchExceptionsDetailsFromServer = async (exceptionsType: Exception
 
     url = applyGenericFiltersToUrl(url, filters, keyId, keyTimestamp, limit)
 
-    const res = await fetchAuth(url);
+    try {
+        const res = await fetchMeasure(url);
 
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: ExceptionsDetailsApiStatus.Error, data: null }
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: ExceptionsDetailsApiStatus.Error, data: null }
+        }
+
+        const data = await res.json()
+
+        return { status: ExceptionsDetailsApiStatus.Success, data: data }
+    } catch {
+        return { status: ExceptionsDetailsApiStatus.Cancelled, data: null }
     }
-
-    const data = await res.json()
-
-    return { status: ExceptionsDetailsApiStatus.Success, data: data }
 
 }
 
@@ -955,20 +1019,24 @@ export const fetchExceptionsOverviewPlotFromServer = async (exceptionsType: Exce
 
     url = applyGenericFiltersToUrl(url, filters, null, null, null)
 
-    const res = await fetchAuth(url);
+    try {
+        const res = await fetchMeasure(url);
 
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: ExceptionsOverviewPlotApiStatus.Error, data: null }
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: ExceptionsOverviewPlotApiStatus.Error, data: null }
+        }
+
+        const data = await res.json()
+
+        if (data === null) {
+            return { status: ExceptionsOverviewPlotApiStatus.NoData, data: null }
+        }
+
+        return { status: ExceptionsOverviewPlotApiStatus.Success, data: data }
+    } catch {
+        return { status: ExceptionsOverviewPlotApiStatus.Cancelled, data: null }
     }
-
-    const data = await res.json()
-
-    if (data === null) {
-        return { status: ExceptionsOverviewPlotApiStatus.NoData, data: null }
-    }
-
-    return { status: ExceptionsOverviewPlotApiStatus.Success, data: data }
 }
 
 
@@ -984,20 +1052,24 @@ export const fetchExceptionsDetailsPlotFromServer = async (exceptionsType: Excep
 
     url = applyGenericFiltersToUrl(url, filters, null, null, null)
 
-    const res = await fetchAuth(url);
+    try {
+        const res = await fetchMeasure(url);
 
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: ExceptionsDetailsPlotApiStatus.Error, data: null }
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: ExceptionsDetailsPlotApiStatus.Error, data: null }
+        }
+
+        const data = await res.json()
+
+        if (data === null) {
+            return { status: ExceptionsDetailsPlotApiStatus.NoData, data: null }
+        }
+
+        return { status: ExceptionsDetailsPlotApiStatus.Success, data: data }
+    } catch {
+        return { status: ExceptionsDetailsPlotApiStatus.Cancelled, data: null }
     }
-
-    const data = await res.json()
-
-    if (data === null) {
-        return { status: ExceptionsDetailsPlotApiStatus.NoData, data: null }
-    }
-
-    return { status: ExceptionsDetailsPlotApiStatus.Success, data: data }
 }
 
 export const fetchExceptionsDistributionPlotFromServer = async (exceptionsType: ExceptionsType, exceptionsGroupdId: string, filters: Filters, router: AppRouterInstance) => {
@@ -1012,48 +1084,60 @@ export const fetchExceptionsDistributionPlotFromServer = async (exceptionsType: 
 
     url = applyGenericFiltersToUrl(url, filters, null, null, null)
 
-    const res = await fetchAuth(url);
+    try {
+        const res = await fetchMeasure(url);
 
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: ExceptionsDistributionPlotApiStatus.Error, data: null }
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: ExceptionsDistributionPlotApiStatus.Error, data: null }
+        }
+
+        const data = await res.json()
+
+        if (data === null) {
+            return { status: ExceptionsDistributionPlotApiStatus.NoData, data: null }
+        }
+
+        return { status: ExceptionsDistributionPlotApiStatus.Success, data: data }
+    } catch {
+        return { status: ExceptionsDistributionPlotApiStatus.Cancelled, data: null }
     }
-
-    const data = await res.json()
-
-    if (data === null) {
-        return { status: ExceptionsDistributionPlotApiStatus.NoData, data: null }
-    }
-
-    return { status: ExceptionsDistributionPlotApiStatus.Success, data: data }
 }
 
 export const fetchAuthzAndMembersFromServer = async (teamId: string, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-    const res = await fetchAuth(`${origin}/teams/${teamId}/authz`);
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: AuthzAndMembersApiStatus.Error, data: null }
+    try {
+        const res = await fetchMeasure(`${origin}/teams/${teamId}/authz`);
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: AuthzAndMembersApiStatus.Error, data: null }
+        }
+
+        const data = await res.json()
+
+        return { status: AuthzAndMembersApiStatus.Success, data: data }
+    } catch {
+        return { status: AuthzAndMembersApiStatus.Cancelled, data: null }
     }
-
-    const data = await res.json()
-
-    return { status: AuthzAndMembersApiStatus.Success, data: data }
 }
 
 export const fetchSessionReplayFromServer = async (appId: string, sessionId: string, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-    const res = await fetchAuth(`${origin}/apps/${appId}/sessions/${sessionId}`);
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: SessionReplayApiStatus.Error, data: null }
+    try {
+        const res = await fetchMeasure(`${origin}/apps/${appId}/sessions/${sessionId}`);
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: SessionReplayApiStatus.Error, data: null }
+        }
+
+        const data = await res.json()
+
+        return { status: SessionReplayApiStatus.Success, data: data }
+    } catch {
+        return { status: SessionReplayApiStatus.Cancelled, data: null }
     }
-
-    const data = await res.json()
-
-    return { status: SessionReplayApiStatus.Success, data: data }
 }
 
 export const changeTeamNameFromServer = async (teamId: string, newTeamName: string, router: AppRouterInstance) => {
@@ -1063,13 +1147,17 @@ export const changeTeamNameFromServer = async (teamId: string, newTeamName: stri
         body: JSON.stringify({ name: newTeamName })
     };
 
-    const res = await fetchAuth(`${origin}/teams/${teamId}/rename`, opts);
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: TeamNameChangeApiStatus.Error }
-    }
+    try {
+        const res = await fetchMeasure(`${origin}/teams/${teamId}/rename`, opts);
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: TeamNameChangeApiStatus.Error }
+        }
 
-    return { status: TeamNameChangeApiStatus.Success }
+        return { status: TeamNameChangeApiStatus.Success }
+    } catch {
+        return { status: TeamNameChangeApiStatus.Cancelled }
+    }
 }
 
 export const createTeamFromServer = async (teamName: string, router: AppRouterInstance) => {
@@ -1079,15 +1167,19 @@ export const createTeamFromServer = async (teamName: string, router: AppRouterIn
         body: JSON.stringify({ name: teamName })
     };
 
-    const res = await fetchAuth(`${origin}/teams`, opts);
-    const data = await res.json()
+    try {
+        const res = await fetchMeasure(`${origin}/teams`, opts);
+        const data = await res.json()
 
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: CreateTeamApiStatus.Error, error: data.error }
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: CreateTeamApiStatus.Error, error: data.error }
+        }
+
+        return { status: CreateTeamApiStatus.Success }
+    } catch {
+        return { status: CreateTeamApiStatus.Cancelled }
     }
-
-    return { status: CreateTeamApiStatus.Success }
 }
 
 export const createAppFromServer = async (teamId: string, appName: string, router: AppRouterInstance) => {
@@ -1097,15 +1189,19 @@ export const createAppFromServer = async (teamId: string, appName: string, route
         body: JSON.stringify({ name: appName })
     };
 
-    const res = await fetchAuth(`${origin}/teams/${teamId}/apps`, opts);
-    const data = await res.json()
+    try {
+        const res = await fetchMeasure(`${origin}/teams/${teamId}/apps`, opts);
+        const data = await res.json()
 
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: CreateAppApiStatus.Error, error: data.error }
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: CreateAppApiStatus.Error, error: data.error }
+        }
+
+        return { status: CreateAppApiStatus.Success, data: data }
+    } catch {
+        return { status: CreateAppApiStatus.Cancelled }
     }
-
-    return { status: CreateAppApiStatus.Success, data: data }
 }
 
 export const changeRoleFromServer = async (teamId: string, newRole: string, memberId: string, router: AppRouterInstance) => {
@@ -1115,15 +1211,19 @@ export const changeRoleFromServer = async (teamId: string, newRole: string, memb
         body: JSON.stringify({ role: newRole.toLocaleLowerCase() })
     };
 
-    const res = await fetchAuth(`${origin}/teams/${teamId}/members/${memberId}/role`, opts);
-    const data = await res.json()
+    try {
+        const res = await fetchMeasure(`${origin}/teams/${teamId}/members/${memberId}/role`, opts);
+        const data = await res.json()
 
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: RoleChangeApiStatus.Error, error: data.error }
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: RoleChangeApiStatus.Error, error: data.error }
+        }
+
+        return { status: RoleChangeApiStatus.Success }
+    } catch {
+        return { status: RoleChangeApiStatus.Cancelled }
     }
-
-    return { status: RoleChangeApiStatus.Success }
 }
 
 export const inviteMemberFromServer = async (teamId: string, email: string, role: string, router: AppRouterInstance) => {
@@ -1137,15 +1237,19 @@ export const inviteMemberFromServer = async (teamId: string, email: string, role
         body: JSON.stringify([{ email: email, role: lowerCaseRole }])
     };
 
-    const res = await fetchAuth(`${origin}/teams/${teamId}/invite`, opts);
-    const data = await res.json();
+    try {
+        const res = await fetchMeasure(`${origin}/teams/${teamId}/invite`, opts);
+        const data = await res.json();
 
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: InviteMemberApiStatus.Error, error: data.error }
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: InviteMemberApiStatus.Error, error: data.error }
+        }
+
+        return { status: InviteMemberApiStatus.Success }
+    } catch {
+        return { status: InviteMemberApiStatus.Cancelled }
     }
-
-    return { status: InviteMemberApiStatus.Success }
 }
 
 export const removeMemberFromServer = async (teamId: string, memberId: string, router: AppRouterInstance) => {
@@ -1154,29 +1258,38 @@ export const removeMemberFromServer = async (teamId: string, memberId: string, r
         method: 'DELETE',
     };
 
-    const res = await fetchAuth(`${origin}/teams/${teamId}/members/${memberId}`, opts);
-    const data = await res.json()
+    try {
+        const res = await fetchMeasure(`${origin}/teams/${teamId}/members/${memberId}`, opts);
+        const data = await res.json()
 
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: RemoveMemberApiStatus.Error, error: data.error }
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: RemoveMemberApiStatus.Error, error: data.error }
+        }
+
+        return { status: RemoveMemberApiStatus.Success }
+    } catch {
+        return { status: RemoveMemberApiStatus.Cancelled }
     }
-
-    return { status: RemoveMemberApiStatus.Success }
 }
 
 export const fetchAlertPrefsFromServer = async (appId: string, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
-    const res = await fetchAuth(`${origin}/apps/${appId}/alertPrefs`);
 
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: FetchAlertPrefsApiStatus.Error, data: null }
+    try {
+        const res = await fetchMeasure(`${origin}/apps/${appId}/alertPrefs`);
+
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: FetchAlertPrefsApiStatus.Error, data: null }
+        }
+
+        const data = await res.json()
+
+        return { status: FetchAlertPrefsApiStatus.Success, data: data }
+    } catch {
+        return { status: FetchAlertPrefsApiStatus.Cancelled, data: null }
     }
-
-    const data = await res.json()
-
-    return { status: FetchAlertPrefsApiStatus.Success, data: data }
 }
 
 export const updateAlertPrefsFromServer = async (appdId: string, alertPrefs: typeof emptyAlertPrefs, router: AppRouterInstance) => {
@@ -1186,29 +1299,38 @@ export const updateAlertPrefsFromServer = async (appdId: string, alertPrefs: typ
         body: JSON.stringify(alertPrefs)
     };
 
-    const res = await fetchAuth(`${origin}/apps/${appdId}/alertPrefs`, opts);
-    const data = await res.json()
+    try {
+        const res = await fetchMeasure(`${origin}/apps/${appdId}/alertPrefs`, opts);
+        const data = await res.json()
 
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: UpdateAlertPrefsApiStatus.Error, error: data.error }
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: UpdateAlertPrefsApiStatus.Error, error: data.error }
+        }
+
+        return { status: UpdateAlertPrefsApiStatus.Success }
+    } catch {
+        return { status: UpdateAlertPrefsApiStatus.Cancelled }
     }
-
-    return { status: UpdateAlertPrefsApiStatus.Success }
 }
 
 export const fetchAppSettingsFromServer = async (appId: string, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
-    const res = await fetchAuth(`${origin}/apps/${appId}/settings`);
 
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: FetchAppSettingsApiStatus.Error, data: null }
+    try {
+        const res = await fetchMeasure(`${origin}/apps/${appId}/settings`);
+
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: FetchAppSettingsApiStatus.Error, data: null }
+        }
+
+        const data = await res.json()
+
+        return { status: FetchAppSettingsApiStatus.Success, data: data }
+    } catch {
+        return { status: FetchAppSettingsApiStatus.Cancelled, data: null }
     }
-
-    const data = await res.json()
-
-    return { status: FetchAppSettingsApiStatus.Success, data: data }
 }
 
 export const updateAppSettingsFromServer = async (appdId: string, appSettings: typeof emptyAppSettings, router: AppRouterInstance) => {
@@ -1218,15 +1340,19 @@ export const updateAppSettingsFromServer = async (appdId: string, appSettings: t
         body: JSON.stringify(appSettings)
     };
 
-    const res = await fetchAuth(`${origin}/apps/${appdId}/settings`, opts);
-    const data = await res.json()
+    try {
+        const res = await fetchMeasure(`${origin}/apps/${appdId}/settings`, opts);
+        const data = await res.json()
 
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: UpdateAppSettingsApiStatus.Error, error: data.error }
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: UpdateAppSettingsApiStatus.Error, error: data.error }
+        }
+
+        return { status: UpdateAppSettingsApiStatus.Success }
+    } catch {
+        return { status: UpdateAppSettingsApiStatus.Cancelled }
     }
-
-    return { status: UpdateAppSettingsApiStatus.Success }
 }
 
 export const changeAppNameFromServer = async (appId: string, newAppName: string, router: AppRouterInstance) => {
@@ -1236,29 +1362,38 @@ export const changeAppNameFromServer = async (appId: string, newAppName: string,
         body: JSON.stringify({ name: newAppName })
     };
 
-    const res = await fetchAuth(`${origin}/apps/${appId}/rename`, opts);
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: AppNameChangeApiStatus.Error }
-    }
+    try {
+        const res = await fetchMeasure(`${origin}/apps/${appId}/rename`, opts);
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: AppNameChangeApiStatus.Error }
+        }
 
-    return { status: AppNameChangeApiStatus.Success }
+        return { status: AppNameChangeApiStatus.Success }
+    } catch {
+        return { status: AppNameChangeApiStatus.Cancelled }
+    }
 }
 
 export const fetchUsageFromServer = async (teamId: string, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
-    const res = await fetchAuth(`${origin}/teams/${teamId}/usage`);
 
-    if (!res.ok && res.status == 404) {
-        return { status: FetchUsageApiStatus.NoApps, data: null }
+    try {
+        const res = await fetchMeasure(`${origin}/teams/${teamId}/usage`);
+
+        if (!res.ok && res.status == 404) {
+            return { status: FetchUsageApiStatus.NoApps, data: null }
+        }
+
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: FetchUsageApiStatus.Error, data: null }
+        }
+
+        const data = await res.json()
+
+        return { status: FetchUsageApiStatus.Success, data: data }
+    } catch {
+        return { status: FetchUsageApiStatus.Cancelled, data: null }
     }
-
-    if (!res.ok) {
-        logoutIfAuthError(auth, router, res)
-        return { status: FetchUsageApiStatus.Error, data: null }
-    }
-
-    const data = await res.json()
-
-    return { status: FetchUsageApiStatus.Success, data: data }
 }
