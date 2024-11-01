@@ -24,8 +24,8 @@ body = """
         {% for commit in commits %}
             - {% if commit.scope != "other" %}(**{{ commit.scope }}**): {% endif %}\
             {{ commit.message | upper_first }}\
-            {% if commit.github.username %} by @{{ commit.github.username }}{%- endif %}\
-            {% if commit.github.pr_number %} in #{{ commit.github.pr_number }}{%- endif -%}
+            {% if commit.remote.username %} by @{{ commit.remote.username }}{%- endif %}\
+            {% if commit.remote.pr_number %} in #{{ commit.remote.pr_number }}{%- endif -%}
         {%- endfor -%}
     {% endfor %}\n
 {% endfor %}
