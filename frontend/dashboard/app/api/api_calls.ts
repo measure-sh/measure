@@ -27,6 +27,12 @@ export enum FiltersApiStatus {
     NoData,
     Cancelled
 }
+export enum SaveFiltersApiStatus {
+    Loading,
+    Success,
+    Error,
+    Cancelled
+}
 
 export enum FiltersApiType {
     All,
@@ -667,7 +673,56 @@ export class OsVersion {
     }
 }
 
-function applyGenericFiltersToUrl(url: string, filters: Filters, keyId: string | null, keyTimestamp: string | null, limit: number | null) {
+export const saveListFiltersToServer = async (filters: Filters) => {
+    if (filters.versions.length === 0 &&
+        filters.osVersions.length === 0 &&
+        filters.countries.length === 0 &&
+        filters.networkProviders.length === 0 &&
+        filters.networkTypes.length === 0 &&
+        filters.networkGenerations.length === 0 &&
+        filters.locales.length === 0 &&
+        filters.deviceManufacturers.length === 0 &&
+        filters.deviceNames.length === 0
+    ) {
+        return null
+    }
+
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+    let url = `${origin}/apps/${filters.app.id}/shortFilters`
+    const opts = {
+        method: 'POST',
+        body: JSON.stringify({
+            filters: {
+                versions: filters.versions.map((v) => v.name),
+                version_codes: filters.versions.map((v) => v.code),
+                os_names: filters.osVersions.map((v) => v.name),
+                os_versions: filters.osVersions.map((v) => v.version),
+                countries: filters.countries,
+                network_providers: filters.networkProviders,
+                network_types: filters.networkTypes,
+                network_generations: filters.networkGenerations,
+                locales: filters.locales,
+                device_manufacturers: filters.deviceManufacturers,
+                device_names: filters.deviceNames
+            }
+        })
+    }
+
+    try {
+        const res = await fetchMeasure(url, opts);
+
+        if (!res.ok) {
+            return null
+        }
+
+        const data = await res.json()
+        return data.filter_short_code
+    } catch {
+        return null
+    }
+}
+
+async function applyGenericFiltersToUrl(url: string, filters: Filters, keyId: string | null, keyTimestamp: string | null, limit: number | null) {
     const serverFormattedStartDate = formatUserInputDateToServerFormat(filters.startDate)
     const serverFormattedEndDate = formatUserInputDateToServerFormat(filters.endDate)
     const timezone = getTimeZoneForServer()
@@ -679,51 +734,10 @@ function applyGenericFiltersToUrl(url: string, filters: Filters, keyId: string |
     searchParams.append('to', serverFormattedEndDate)
     searchParams.append('timezone', timezone)
 
-    // Append versions if present
-    if (filters.versions.length > 0) {
-        searchParams.append('versions', filters.versions.map(v => v.name).join(','))
-        searchParams.append('version_codes', filters.versions.map(v => v.code).join(','))
-    }
+    const filterShortCode = await saveListFiltersToServer(filters)
 
-    // Append OS versions if present
-    if (filters.osVersions.length > 0) {
-        searchParams.append('os_names', filters.osVersions.map(v => v.name).join(','))
-        searchParams.append('os_versions', filters.osVersions.map(v => v.version).join(','))
-    }
-
-    // Append countries if present
-    if (filters.countries.length > 0) {
-        searchParams.append('countries', filters.countries.join(','))
-    }
-
-    // Append network providers if present
-    if (filters.networkProviders.length > 0) {
-        searchParams.append('network_providers', filters.networkProviders.join(','))
-    }
-
-    // Append network types if present
-    if (filters.networkTypes.length > 0) {
-        searchParams.append('network_types', filters.networkTypes.join(','))
-    }
-
-    // Append network generations if present
-    if (filters.networkGenerations.length > 0) {
-        searchParams.append('network_generations', filters.networkGenerations.join(','))
-    }
-
-    // Append locales if present
-    if (filters.locales.length > 0) {
-        searchParams.append('locales', filters.locales.join(','))
-    }
-
-    // Append device manufacturers if present
-    if (filters.deviceManufacturers.length > 0) {
-        searchParams.append('device_manufacturers', filters.deviceManufacturers.join(','))
-    }
-
-    // Append device names if present
-    if (filters.deviceNames.length > 0) {
-        searchParams.append('device_names', filters.deviceNames.join(','))
+    if (filterShortCode !== null) {
+        searchParams.append('filter_short_code', filterShortCode)
     }
 
     // Append session type if needed
@@ -858,7 +872,7 @@ export const fetchJourneyFromServer = async (journeyType: JourneyType, exception
     // Append bidirectional value
     url = url + `bigraph=${bidirectional ? '1&' : '0&'}`
 
-    url = applyGenericFiltersToUrl(url, filters, null, null, null)
+    url = await applyGenericFiltersToUrl(url, filters, null, null, null)
 
     try {
         const res = await fetchMeasure(url);
@@ -881,7 +895,7 @@ export const fetchMetricsFromServer = async (filters: Filters, router: AppRouter
 
     let url = `${origin}/apps/${filters.app.id}/metrics?`
 
-    url = applyGenericFiltersToUrl(url, filters, null, null, null)
+    url = await applyGenericFiltersToUrl(url, filters, null, null, null)
 
     try {
         const res = await fetchMeasure(url);
@@ -904,7 +918,7 @@ export const fetchSessionsOverviewFromServer = async (filters: Filters, keyId: s
 
     var url = `${origin}/apps/${filters.app.id}/sessions?`
 
-    url = applyGenericFiltersToUrl(url, filters, keyId, null, limit)
+    url = await applyGenericFiltersToUrl(url, filters, keyId, null, limit)
 
     try {
         const res = await fetchMeasure(url);
@@ -927,7 +941,7 @@ export const fetchSessionsOverviewPlotFromServer = async (filters: Filters, rout
 
     var url = `${origin}/apps/${filters.app.id}/sessions/plots/instances?`
 
-    url = applyGenericFiltersToUrl(url, filters, null, null, null)
+    url = await applyGenericFiltersToUrl(url, filters, null, null, null)
 
     try {
         const res = await fetchMeasure(url);
@@ -959,7 +973,7 @@ export const fetchExceptionsOverviewFromServer = async (exceptionsType: Exceptio
         url = `${origin}/apps/${filters.app.id}/anrGroups?`
     }
 
-    url = applyGenericFiltersToUrl(url, filters, keyId, null, limit)
+    url = await applyGenericFiltersToUrl(url, filters, keyId, null, limit)
 
     try {
         const res = await fetchMeasure(url);
@@ -988,7 +1002,7 @@ export const fetchExceptionsDetailsFromServer = async (exceptionsType: Exception
         url = `${origin}/apps/${filters.app.id}/anrGroups/${exceptionsGroupdId}/anrs?`
     }
 
-    url = applyGenericFiltersToUrl(url, filters, keyId, keyTimestamp, limit)
+    url = await applyGenericFiltersToUrl(url, filters, keyId, keyTimestamp, limit)
 
     try {
         const res = await fetchMeasure(url);
@@ -1017,7 +1031,7 @@ export const fetchExceptionsOverviewPlotFromServer = async (exceptionsType: Exce
         url = `${origin}/apps/${filters.app.id}/anrGroups/plots/instances?`
     }
 
-    url = applyGenericFiltersToUrl(url, filters, null, null, null)
+    url = await applyGenericFiltersToUrl(url, filters, null, null, null)
 
     try {
         const res = await fetchMeasure(url);
@@ -1050,7 +1064,7 @@ export const fetchExceptionsDetailsPlotFromServer = async (exceptionsType: Excep
         url = `${origin}/apps/${filters.app.id}/anrGroups/${exceptionsGroupdId}/plots/instances?`
     }
 
-    url = applyGenericFiltersToUrl(url, filters, null, null, null)
+    url = await applyGenericFiltersToUrl(url, filters, null, null, null)
 
     try {
         const res = await fetchMeasure(url);
@@ -1082,7 +1096,7 @@ export const fetchExceptionsDistributionPlotFromServer = async (exceptionsType: 
         url = `${origin}/apps/${filters.app.id}/anrGroups/${exceptionsGroupdId}/plots/distribution?`
     }
 
-    url = applyGenericFiltersToUrl(url, filters, null, null, null)
+    url = await applyGenericFiltersToUrl(url, filters, null, null, null)
 
     try {
         const res = await fetchMeasure(url);

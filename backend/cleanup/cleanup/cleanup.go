@@ -32,6 +32,10 @@ type StaleData struct {
 }
 
 func DeleteStaleData(ctx context.Context) {
+	// Delete shortened filters
+	deleteStaleShortenedFilters(ctx)
+
+	// Delete events and attachments
 	staleData, err := fetchStaleData(ctx)
 
 	if err != nil {
@@ -40,7 +44,6 @@ func DeleteStaleData(ctx context.Context) {
 	}
 
 	for _, st := range staleData {
-
 		// Delete attachments from object storage
 		if len(st.Attachments) > 0 {
 			fmt.Printf("Deleting %v attachments for app_id: %v\n", len(st.Attachments), st.AppID)
@@ -73,7 +76,21 @@ func DeleteStaleData(ctx context.Context) {
 	}
 
 	staleDataJson, _ := json.MarshalIndent(staleData, "", "    ")
-	fmt.Printf("Succesfully deleted stale data %v\n", string(staleDataJson))
+	fmt.Printf("Succesfully deleted stale stale data %v\n", string(staleDataJson))
+}
+
+func deleteStaleShortenedFilters(ctx context.Context) {
+	threshold := time.Now().Add(-60 * time.Minute) // 1 hour expiry
+	stmt := sqlf.PostgreSQL.DeleteFrom("public.short_filters").
+		Where("created_at < ?", threshold)
+
+	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		fmt.Printf("Failed to delete stale short filter codes: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Succesfully deleted stale short filters\n")
 }
 
 func fetchStaleData(ctx context.Context) ([]StaleData, error) {

@@ -380,9 +380,9 @@ export const fetchMeasure = (() => {
       // Get the base endpoint
       const endpoint = getEndpoint(resource);
 
-      // Cancel existing request for this endpoint if it exists
+      // Cancel existing request for this endpoint if it exists except in case of 'shortFilters' endpoint
       const existingController = inFlightRequests.get(endpoint);
-      if (existingController) {
+      if (existingController && !endpoint.includes('shortFilters')) {
         existingController.abort();
         inFlightRequests.delete(endpoint);
       }
