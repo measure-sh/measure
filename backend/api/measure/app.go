@@ -5066,3 +5066,64 @@ func RenameApp(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"ok": "done"})
 }
+
+func CreateShortFilters(c *gin.Context) {
+	userId := c.GetString("userId")
+	appId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `app id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	app := App{
+		ID: &appId,
+	}
+
+	team, err := app.getTeam(c)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	ok, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`you don't have permissions to create short filters in team [%s]`, team.ID.String())
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	var payload filter.ShortFiltersPayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		msg := `failed to parse filters json payload`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	shortFilters, err := filter.NewShortFilters(appId, payload.Filters)
+	if err != nil {
+		msg := `failed to create generate filter hash`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	shortFilters.Create()
+
+	c.JSON(http.StatusOK, gin.H{"filter_short_code": shortFilters.Code})
+}
