@@ -96,9 +96,9 @@ final class BasePeriodicEventExporter: PeriodicEventExporter, HeartbeatListener 
     }
 
     private func processNewBatchIfTimeElapsed() {
-        if timeProvider.uptimeInMillis - lastBatchCreationUptimeMs >= configProvider.eventsBatchingIntervalMs {
+        if timeProvider.millisTime - lastBatchCreationUptimeMs >= configProvider.eventsBatchingIntervalMs {
             if let result = eventExporter.createBatch(nil) {
-                lastBatchCreationUptimeMs = timeProvider.uptimeInMillis
+                lastBatchCreationUptimeMs = timeProvider.millisTime
                 processExistingBatches([BatchEntity(batchId: result.batchId,
                                                     eventIds: result.eventIds,
                                                     createdAt: lastBatchCreationUptimeMs)])

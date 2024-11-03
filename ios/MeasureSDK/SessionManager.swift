@@ -65,7 +65,7 @@ final class BaseSessionManager: SessionManager {
         logger.log(level: .info, message: "New session created", error: nil, data: nil)
         let session = SessionEntity(sessionId: sessionId,
                                     pid: ProcessInfo.processInfo.processIdentifier,
-                                    createdAt: Number(timeProvider.currentTimeSinceEpochInMillis),
+                                    createdAt: Number(timeProvider.now()),
                                     needsReporting: true,
                                     crashed: false)
         sessionStore.insertSession(session)
@@ -80,7 +80,7 @@ final class BaseSessionManager: SessionManager {
         }
 
         if let recentSession = userDefaultStorage.getRecentSession(), recentSession.lastEventTime != 0 {
-            let elapsedTime = timeProvider.currentTimeSinceEpochInMillis - recentSession.lastEventTime
+            let elapsedTime = timeProvider.now() - recentSession.lastEventTime
             if elapsedTime <= configProvider.sessionEndLastEventThresholdMs {
                 return recentSession.id
             }
@@ -94,11 +94,11 @@ final class BaseSessionManager: SessionManager {
         }
 
         // Check negative time to handle clock skew
-        guard (timeProvider.currentTimeSinceEpochInMillis - recentSession.createdAt) > 0 else {
+        guard (timeProvider.now() - recentSession.createdAt) > 0 else {
             return false
         }
 
-        return (timeProvider.currentTimeSinceEpochInMillis - recentSession.createdAt) >= configProvider.maxSessionDurationMs
+        return (timeProvider.now() - recentSession.createdAt) >= configProvider.maxSessionDurationMs
     }
 
     func start() {
@@ -114,7 +114,7 @@ final class BaseSessionManager: SessionManager {
     }
 
     func applicationDidEnterBackground() {
-        self.appBackgroundTimeMs = timeProvider.uptimeInMillis
+        self.appBackgroundTimeMs = timeProvider.millisTime
         logger.log(level: .info, message: "applicationDidEnterBackground", error: nil, data: nil)
     }
 
@@ -142,7 +142,7 @@ final class BaseSessionManager: SessionManager {
     }
 
     private func shouldEndSession() -> Bool {
-        let durationInBackground = timeProvider.uptimeInMillis - appBackgroundTimeMs
+        let durationInBackground = timeProvider.millisTime - appBackgroundTimeMs
 
         if durationInBackground >= configProvider.sessionEndLastEventThresholdMs {
             logger.log(level: .info, message: "Ending session as app was relaunched after being in background for \(durationInBackground) ms", error: nil, data: nil)

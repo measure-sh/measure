@@ -35,7 +35,7 @@ class BaseLifecycleCollector: LifecycleCollector {
 
     func applicationDidEnterBackground() {
         eventProcessor.track(data: ApplicationLifecycleData(type: .background),
-                             timestamp: timeProvider.currentTimeSinceEpochInMillis,
+                             timestamp: timeProvider.now(),
                              type: .lifecycleApp,
                              attributes: nil,
                              sessionId: nil,
@@ -44,7 +44,7 @@ class BaseLifecycleCollector: LifecycleCollector {
 
     func applicationWillEnterForeground() {
         eventProcessor.track(data: ApplicationLifecycleData(type: .foreground),
-                             timestamp: timeProvider.currentTimeSinceEpochInMillis,
+                             timestamp: timeProvider.now(),
                              type: .lifecycleApp,
                              attributes: nil,
                              sessionId: nil,
@@ -55,7 +55,7 @@ class BaseLifecycleCollector: LifecycleCollector {
         let className = String(describing: type(of: viewController))
 
         eventProcessor.track(data: VCLifecycleData(type: vcLifecycleType.stringValue, className: className),
-                             timestamp: timeProvider.currentTimeSinceEpochInMillis,
+                             timestamp: timeProvider.now(),
                              type: .lifecycleViewController,
                              attributes: nil,
                              sessionId: nil,
@@ -64,7 +64,7 @@ class BaseLifecycleCollector: LifecycleCollector {
 
     func processSwiftUILifecycleEvent(_ swiftUILifecycleType: SwiftUILifecycleType, for viewName: String) {
         eventProcessor.track(data: SwiftUILifecycleData(type: swiftUILifecycleType, viewName: viewName),
-                             timestamp: timeProvider.currentTimeSinceEpochInMillis,
+                             timestamp: timeProvider.now(),
                              type: .lifecycleSwiftUI,
                              attributes: nil,
                              sessionId: nil,

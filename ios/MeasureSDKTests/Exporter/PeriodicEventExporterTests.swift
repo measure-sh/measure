@@ -69,7 +69,7 @@ final class PeriodicEventExporterTests: XCTestCase {
 
     func testProcessNewBatchIfTimeElapsed_createsAndExportsBatch() {
         let batchingIntervalMs: Int64 = 1000
-        timeProvider.uptimeInMillis = 2000
+        timeProvider.millisTime = 2000
         configProvider.eventsBatchingIntervalMs = batchingIntervalMs
         eventExporter.createBatchResult = BatchCreationResult(batchId: "testBatch", eventIds: ["event1", "event2"])
 
@@ -82,7 +82,7 @@ final class PeriodicEventExporterTests: XCTestCase {
 
     func testProcessNewBatchIfTimeElapsed_doesNotCreateBatchIfIntervalNotElapsed() {
         let batchingIntervalMs: Int64 = 1000
-        timeProvider.uptimeInMillis = 1500
+        timeProvider.millisTime = 1500
         periodicEventExporter.lastBatchCreationUptimeMs = 1000
         configProvider.eventsBatchingIntervalMs = batchingIntervalMs
 

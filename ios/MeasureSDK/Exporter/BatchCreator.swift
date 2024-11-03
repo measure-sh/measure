@@ -45,7 +45,7 @@ final class BaseBatchCreator: BatchCreator {
         }
 
         let batchId = idProvider.createId()
-        let isBatchInsertionSuccessful = batchStore.insertBatch(BatchEntity(batchId: batchId, eventIds: eventIds, createdAt: timeProvider.currentTimeSinceEpochInMillis))
+        let isBatchInsertionSuccessful = batchStore.insertBatch(BatchEntity(batchId: batchId, eventIds: eventIds, createdAt: timeProvider.now()))
 
         if !isBatchInsertionSuccessful {
             logger.log(level: .error, message: "Failed to insert batched event IDs", error: nil, data: nil)
