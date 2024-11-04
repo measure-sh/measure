@@ -1,5 +1,14 @@
 # measure-android
 
+# 0.8.2
+
+#### Features
+
+chore(android): Collect only launch & journey events for non-crashed sessions by @abhaysood in https://github.com/measure-sh/measure/pull/1482
+All events for crashed sessions continue to be reported. Non-crashed sessions are not reported by default, only launch and lifecycle events
+are reported.
+
+
 # 0.8.1
 
 #### Fixes
