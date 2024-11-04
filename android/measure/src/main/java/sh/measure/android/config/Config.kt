@@ -37,6 +37,9 @@ internal data class Config(
         EventType.COLD_LAUNCH,
         EventType.HOT_LAUNCH,
         EventType.WARM_LAUNCH,
+        EventType.LIFECYCLE_ACTIVITY,
+        EventType.LIFECYCLE_FRAGMENT,
+        EventType.SCREEN_VIEW,
     )
     override val maxEventsInDatabase: Int = 50_000
 }
