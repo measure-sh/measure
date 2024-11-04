@@ -63,7 +63,8 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                  timeProvider: timeProvider,
                                                  configProvider: configProvider,
                                                  sessionStore: sessionStore,
-                                                 userDefaultStorage: userDefaultStorage)
+                                                 userDefaultStorage: userDefaultStorage,
+                                                 versionCode: "1.0.0")
         self.appAttributeProcessor = AppAttributeProcessor()
         self.deviceAttributeProcessor = DeviceAttributeProcessor()
         self.installationIdAttributeProcessor = InstallationIdAttributeProcessor(userDefaultStorage: userDefaultStorage,

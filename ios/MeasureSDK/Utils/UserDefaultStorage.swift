@@ -47,6 +47,7 @@ final class BaseUserDefaultStorage: UserDefaultStorage {
         userDefaults.set(recentSession.lastEventTime, forKey: recentSessionEventTimeKey)
         userDefaults.set(recentSession.createdAt, forKey: recentSessionCreatedAtKey)
         userDefaults.set(recentSession.crashed, forKey: recentSessionCrashedKey)
+        userDefaults.set(recentSession.versionCode, forKey: recentSessionVersionCodeKey)
     }
 
     func setRecentSessionEventTime(_ timestamp: Number) {
@@ -54,7 +55,8 @@ final class BaseUserDefaultStorage: UserDefaultStorage {
     }
 
     func getRecentSession() -> RecentSession? {
-        guard let sessionId = userDefaults.string(forKey: recentSessionIdKey) else {
+        guard let sessionId = userDefaults.string(forKey: recentSessionIdKey),
+              let versionCode = userDefaults.string(forKey: recentSessionVersionCodeKey) else {
             return nil
         }
         let eventTime = Number(userDefaults.integer(forKey: recentSessionEventTimeKey))
@@ -65,7 +67,8 @@ final class BaseUserDefaultStorage: UserDefaultStorage {
             id: sessionId,
             createdAt: createdAt,
             lastEventTime: eventTime,
-            crashed: crashed
+            crashed: crashed,
+            versionCode: versionCode
         )
     }
 }

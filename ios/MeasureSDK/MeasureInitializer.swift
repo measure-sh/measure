@@ -132,7 +132,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                  timeProvider: timeProvider,
                                                  configProvider: configProvider,
                                                  sessionStore: sessionStore,
-                                                 userDefaultStorage: userDefaultStorage)
+                                                 userDefaultStorage: userDefaultStorage,
+                                                 versionCode: FrameworkInfo.version)
         self.appAttributeProcessor = AppAttributeProcessor()
         self.deviceAttributeProcessor = DeviceAttributeProcessor()
         self.installationIdAttributeProcessor = InstallationIdAttributeProcessor(userDefaultStorage: userDefaultStorage,

@@ -12,12 +12,18 @@ struct RecentSession {
     let createdAt: Int64
     var lastEventTime: Int64
     var crashed: Bool
+    let versionCode: String
 
-    init(id: String, createdAt: Int64, lastEventTime: Int64 = 0, crashed: Bool = false) {
+    init(id: String,
+         createdAt: Int64,
+         lastEventTime: Int64 = 0,
+         crashed: Bool = false,
+         versionCode: String) {
         self.id = id
         self.createdAt = createdAt
         self.lastEventTime = lastEventTime
         self.crashed = crashed
+        self.versionCode = versionCode
     }
 
     func hasTrackedEvent() -> Bool {

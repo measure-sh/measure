@@ -33,6 +33,7 @@ final class BaseSessionManager: SessionManager {
     private let sessionStore: SessionStore
     private let userDefaultStorage: UserDefaultStorage
     private var previousSessionCrashed = false
+    private let versionCode: String
 
     /// The current session ID.
     var sessionId: String {
@@ -49,7 +50,8 @@ final class BaseSessionManager: SessionManager {
          configProvider: ConfigProvider,
          randomizer: Randomizer = BaseRandomizer(),
          sessionStore: SessionStore,
-         userDefaultStorage: UserDefaultStorage) {
+         userDefaultStorage: UserDefaultStorage,
+         versionCode: String) {
         self.appBackgroundTimeMs = 0
         self.idProvider = idProvider
         self.logger = logger
@@ -58,6 +60,7 @@ final class BaseSessionManager: SessionManager {
         self.randomizer = randomizer
         self.sessionStore = sessionStore
         self.userDefaultStorage = userDefaultStorage
+        self.versionCode = versionCode
     }
 
     private func createNewSession() {
@@ -70,7 +73,8 @@ final class BaseSessionManager: SessionManager {
                                     crashed: false)
         sessionStore.insertSession(session)
         let recentSession = RecentSession(id: session.sessionId,
-                                          createdAt: session.createdAt)
+                                          createdAt: session.createdAt,
+                                          versionCode: versionCode)
         userDefaultStorage.setRecentSession(recentSession)
     }
 
@@ -101,8 +105,19 @@ final class BaseSessionManager: SessionManager {
         return (timeProvider.now() - recentSession.createdAt) >= configProvider.maxSessionDurationMs
     }
 
+    private func isFrameworkVersionUpdated() -> Bool {
+        if let recentSession = userDefaultStorage.getRecentSession(),
+           recentSession.versionCode == self.versionCode {
+            return false
+        }
+        return true
+    }
+
     func start() {
-        if isSessonDurationThreadholdReached() {
+        if isFrameworkVersionUpdated() {
+            logger.log(level: .info, message: "Ending previous session as SDK version has been updated.", error: nil, data: nil)
+            createNewSession()
+        } else if isSessonDurationThreadholdReached() {
             logger.log(level: .info, message: "Ending previous session as maxSessionDurationMs threshold is reached.", error: nil, data: nil)
             createNewSession()
         } else if let recentSessionId = getRecentSessionId() {
