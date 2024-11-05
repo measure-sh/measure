@@ -9,6 +9,7 @@ import Foundation
 @testable import MeasureSDK
 
 final class MockMeasureInitializer: MeasureInitializer {
+    let lifecycleCollector: LifecycleCollector
     let networkClient: NetworkClient
     let httpClient: HttpClient
     let configProvider: ConfigProvider
@@ -121,6 +122,9 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                heartbeat: heartbeat,
                                                                eventExporter: eventExporter,
                                                                dispatchQueue: MeasureQueue.periodicEventExporter)
+        self.lifecycleCollector = BaseLifecycleCollector(eventProcessor: eventProcessor,
+                                                         timeProvider: timeProvider,
+                                                         logger: logger)
         self.client = client
     }
 }

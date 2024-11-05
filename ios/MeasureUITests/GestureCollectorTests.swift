@@ -18,7 +18,7 @@ class GestureCollectorTests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        let button = app.buttons["Swift Controller"]
+        let button = app.buttons["SwiftUI Controller"]
         XCTAssertTrue(button.exists, "The 'Swift Controller' button does not exist.")
 
         if button.exists {
@@ -39,7 +39,7 @@ class GestureCollectorTests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        let button = app.buttons["Swift Controller"]
+        let button = app.buttons["SwiftUI Controller"]
         XCTAssertTrue(button.exists, "The 'Swift Controller' button does not exist.")
 
         if button.exists {

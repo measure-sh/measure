@@ -8,7 +8,7 @@
 import Foundation
 
 struct EventSerializer {
-    private func getSerialisedData(for event: EventEntity) -> String? {  // swiftlint:disable:this cyclomatic_complexity
+    private func getSerialisedData(for event: EventEntity) -> String? { // swiftlint:disable:this cyclomatic_complexity function_body_length
         let eventType = EventType(rawValue: event.type)
         switch eventType {
         case .exception:
@@ -46,6 +46,36 @@ struct EventSerializer {
                 do {
                     let decodedData = try JSONDecoder().decode(ScrollData.self, from: gestureScrollData)
                     return serialiseScrollData(decodedData)
+                } catch {
+                    return nil
+                }
+            }
+            return nil
+        case .lifecycleApp:
+            if let lifecycleAppData = event.lifecycleApp {
+                do {
+                    let decodedData = try JSONDecoder().decode(ApplicationLifecycleData.self, from: lifecycleAppData)
+                    return serialiseApplicationLifecycleData(decodedData)
+                } catch {
+                    return nil
+                }
+            }
+            return nil
+        case .lifecycleViewController:
+            if let lifecycleViewControllerData = event.lifecycleViewController {
+                do {
+                    let decodedData = try JSONDecoder().decode(VCLifecycleData.self, from: lifecycleViewControllerData)
+                    return serialiseVCLifecycleData(decodedData)
+                } catch {
+                    return nil
+                }
+            }
+            return nil
+        case .lifecycleSwiftUI:
+            if let lifecycleSwiftUIData = event.lifecycleSwiftUI {
+                do {
+                    let decodedData = try JSONDecoder().decode(SwiftUILifecycleData.self, from: lifecycleSwiftUIData)
+                    return serialiseSwiftUILifecycleData(decodedData)
                 } catch {
                     return nil
                 }
@@ -154,6 +184,29 @@ struct EventSerializer {
         result += "\"direction\":\"\(scrollData.direction.rawValue)\","
         result += "\"touch_down_time\":\(scrollData.touchDownTime),"
         result += "\"touch_up_time\":\(scrollData.touchUpTime)"
+        result += "}"
+        return result
+    }
+
+    private func serialiseApplicationLifecycleData(_ applicationLifecycleData: ApplicationLifecycleData) -> String {
+        var result = "{"
+        result += "\"type\":\"\(applicationLifecycleData.type.rawValue)\","
+        result += "}"
+        return result
+    }
+
+    private func serialiseVCLifecycleData(_ lifecycleViewController: VCLifecycleData) -> String {
+        var result = "{"
+        result += "\"type\":\"\(lifecycleViewController.type)\","
+        result += "\"class_name\":\"\(lifecycleViewController.className)\","
+        result += "}"
+        return result
+    }
+
+    private func serialiseSwiftUILifecycleData(_ swiftUILifecycleData: SwiftUILifecycleData) -> String {
+        var result = "{"
+        result += "\"type\":\"\(swiftUILifecycleData.type.rawValue)\","
+        result += "\"view_name\":\"\(swiftUILifecycleData.viewName)\","
         result += "}"
         return result
     }

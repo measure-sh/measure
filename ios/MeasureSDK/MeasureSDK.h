@@ -14,3 +14,5 @@ FOUNDATION_EXPORT double MeasureSDKVersionNumber;
 FOUNDATION_EXPORT const unsigned char MeasureSDKVersionString[];
 
 // In this header, you should import all the public headers of your framework using statements like #import <MeasureSDK/PublicHeader.h>
+
+#import <MeasureSDK/MSRViewController.h>

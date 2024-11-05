@@ -18,6 +18,9 @@ struct EventEntity {
     let gestureClick: Data?
     let gestureLongClick: Data?
     let gestureScroll: Data?
+    let lifecycleApp: Data?
+    let lifecycleViewController: Data?
+    let lifecycleSwiftUI: Data?
     let userTriggered: Bool
     let attachmentSize: Number
     let timestampInMillis: Number
@@ -77,6 +80,39 @@ struct EventEntity {
             self.gestureScroll = nil
         }
 
+        if let lifecycleApp = event.data as? ApplicationLifecycleData {
+            do {
+                let data = try JSONEncoder().encode(lifecycleApp)
+                self.lifecycleApp = data
+            } catch {
+                self.lifecycleApp = nil
+            }
+        } else {
+            self.lifecycleApp = nil
+        }
+
+        if let lifecycleViewController = event.data as? VCLifecycleData {
+            do {
+                let data = try JSONEncoder().encode(lifecycleViewController)
+                self.lifecycleViewController = data
+            } catch {
+                self.lifecycleViewController = nil
+            }
+        } else {
+            self.lifecycleViewController = nil
+        }
+
+        if let lifecycleSwiftUI = event.data as? SwiftUILifecycleData {
+            do {
+                let data = try JSONEncoder().encode(lifecycleSwiftUI)
+                self.lifecycleSwiftUI = data
+            } catch {
+                self.lifecycleSwiftUI = nil
+            }
+        } else {
+            self.lifecycleSwiftUI = nil
+        }
+
         if let attributes = event.attributes {
             do {
                 let data = try JSONEncoder().encode(attributes)
@@ -109,7 +145,10 @@ struct EventEntity {
          userTriggered: Bool,
          attachmentSize: Number,
          timestampInMillis: Number,
-         batchId: String?) {
+         batchId: String?,
+         lifecycleApp: Data?,
+         lifecycleViewController: Data?,
+         lifecycleSwiftUI: Data?) {
         self.id = id
         self.sessionId = sessionId
         self.timestamp = timestamp
@@ -124,6 +163,9 @@ struct EventEntity {
         self.attachmentSize = attachmentSize
         self.timestampInMillis = timestampInMillis
         self.batchId = batchId
+        self.lifecycleApp = lifecycleApp
+        self.lifecycleViewController = lifecycleViewController
+        self.lifecycleSwiftUI = lifecycleSwiftUI
     }
 
     func getEvent<T: Codable>() -> Event<T> { // swiftlint:disable:this cyclomatic_complexity function_body_length
@@ -158,6 +200,30 @@ struct EventEntity {
             if let gestureScrollData = self.gestureScroll {
                 do {
                     decodedData = try JSONDecoder().decode(T.self, from: gestureScrollData)
+                } catch {
+                    decodedData = nil
+                }
+            }
+        case .lifecycleApp:
+            if let lifecycleAppData = self.lifecycleApp {
+                do {
+                    decodedData = try JSONDecoder().decode(T.self, from: lifecycleAppData)
+                } catch {
+                    decodedData = nil
+                }
+            }
+        case .lifecycleViewController:
+            if let lifecycleViewControllerData = self.lifecycleViewController {
+                do {
+                    decodedData = try JSONDecoder().decode(T.self, from: lifecycleViewControllerData)
+                } catch {
+                    decodedData = nil
+                }
+            }
+        case .lifecycleSwiftUI:
+            if let lifecycleSwiftUIData = self.lifecycleSwiftUI {
+                do {
+                    decodedData = try JSONDecoder().decode(T.self, from: lifecycleSwiftUIData)
                 } catch {
                     decodedData = nil
                 }

@@ -20,7 +20,8 @@ extension UIWindow {
     }
 
     @objc func swizzled_sendEvent(_ event: UIEvent) {
-        gestureCollector?.processEvent(event)
+        guard let gestureCollector = gestureCollector else { return }
+        gestureCollector.processEvent(event)
         self.swizzled_sendEvent(event) // Call the original sendEvent
     }
 

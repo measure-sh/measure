@@ -6,8 +6,9 @@
 //
 
 import UIKit
+import MeasureSDK
 
-final class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
+final class ViewController: MeasureViewController, UITableViewDelegate, UITableViewDataSource {
     let crashTypes = [
         "Abort",
         "Bad Pointer",
@@ -24,29 +25,6 @@ final class ViewController: UIViewController, UITableViewDelegate, UITableViewDa
         "Illegal Instruction (SIGILL)",
         "Bus Error (SIGBUS)"
     ]
-    let labelMessage: UILabel = {
-        let lbl = UILabel()
-        lbl.text = ""
-        lbl.isAccessibilityElement = true
-        lbl.accessibilityIdentifier = "log-output-label-message"
-        lbl.textColor = .black
-        lbl.font = UIFont.systemFont(ofSize: 18)
-        lbl.textAlignment = .center
-        lbl.translatesAutoresizingMaskIntoConstraints = false
-        return lbl
-    }()
-
-    let labelData: UILabel = {
-        let lbl = UILabel()
-        lbl.text = ""
-        lbl.isAccessibilityElement = true
-        lbl.accessibilityIdentifier = "log-output-label-data"
-        lbl.textColor = .black
-        lbl.font = UIFont.systemFont(ofSize: 18)
-        lbl.textAlignment = .center
-        lbl.translatesAutoresizingMaskIntoConstraints = false
-        return lbl
-    }()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -63,26 +41,6 @@ final class ViewController: UIViewController, UITableViewDelegate, UITableViewDa
         tableView.tableHeaderView = headerView
 
         view.addSubview(tableView)
-        if let appDelegate = UIApplication.shared.delegate as? AppDelegate, let logger = appDelegate.mockMeasureInitializer?.logger as? MockLogger {
-            logger.onLog = { _, message, _, data in
-                self.labelMessage.text = message
-                if let data = data {
-                    if let jsonData = try? JSONEncoder().encode(data) {
-                        self.labelData.text = String(data: jsonData, encoding: .utf8)
-                    }
-                }
-            }
-        }
-        view.addSubview(labelMessage)
-        NSLayoutConstraint.activate([
-            labelMessage.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            labelMessage.centerYAnchor.constraint(equalTo: view.centerYAnchor)
-        ])
-        view.addSubview(labelData)
-        NSLayoutConstraint.activate([
-            labelData.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            labelData.topAnchor.constraint(equalTo: labelMessage.bottomAnchor, constant: 8)
-        ])
     }
 
     // MARK: - Table Header View with Buttons
@@ -137,7 +95,12 @@ final class ViewController: UIViewController, UITableViewDelegate, UITableViewDa
         return headerView
     }
 
-    @objc func headerButtonTapped(_ sender: UIButton) {}
+    @objc func headerButtonTapped(_ sender: UIButton) {
+        if sender.tag != 0 {
+            let controller = ViewController()
+            self.navigationController?.pushViewController(controller, animated: true)
+        }
+    }
 
     // MARK: - UITableViewDataSource
 
