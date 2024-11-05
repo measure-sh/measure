@@ -103,7 +103,7 @@ func main() {
 		apps.GET(":id/anrGroups/:anrGroupId/plots/journey", measure.GetANRDetailPlotJourney)
 		apps.GET(":id/sessions", measure.GetSessionsOverview)
 		apps.GET(":id/sessions/:sessionId", measure.GetSession)
-		apps.GET(":id/sessions/plots/instances", measure.GetSessionsOverviewPlot)
+		apps.GET(":id/sessions/plots/instances", measure.GetSessionsOverviewPlotInstances)
 		apps.GET(":id/alertPrefs", measure.GetAlertPrefs)
 		apps.PATCH(":id/alertPrefs", measure.UpdateAlertPrefs)
 		apps.GET(":id/settings", measure.GetAppSettings)
