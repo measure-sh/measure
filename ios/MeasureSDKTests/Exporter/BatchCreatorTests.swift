@@ -76,7 +76,7 @@ final class BatchCreatorTests: XCTestCase {
         configProvider.maxAttachmentSizeInEventsBatchInBytes = 300
         configProvider.maxEventsInBatch = 2
         idProvider.idString = "batch1"
-        timeProvider.currentTimeSinceEpochInMillis = 1727272496000
+        timeProvider.current = 1727272496000
 
         let result = batchCreator.create(sessionId: nil)
 
