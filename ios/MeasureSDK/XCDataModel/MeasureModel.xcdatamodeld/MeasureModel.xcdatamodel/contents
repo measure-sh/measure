@@ -15,6 +15,9 @@
         <attribute name="gestureLongClick" optional="YES" attributeType="Binary"/>
         <attribute name="gestureScroll" optional="YES" attributeType="Binary"/>
         <attribute name="id" attributeType="String" defaultValueString=""/>
+        <attribute name="lifecycleApp" optional="YES" attributeType="Binary"/>
+        <attribute name="lifecycleSwiftUI" optional="YES" attributeType="Binary"/>
+        <attribute name="lifecycleViewController" optional="YES" attributeType="Binary"/>
         <attribute name="sessionId" attributeType="String" defaultValueString=""/>
         <attribute name="timestamp" attributeType="String"/>
         <attribute name="timestampInMillis" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>

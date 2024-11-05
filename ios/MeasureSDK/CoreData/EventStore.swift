@@ -77,7 +77,10 @@ final class BaseEventStore: EventStore {
                                 userTriggered: eventOb.userTriggered,
                                 attachmentSize: eventOb.attachmentSize,
                                 timestampInMillis: eventOb.timestampInMillis,
-                                batchId: eventOb.batchId)
+                                batchId: eventOb.batchId,
+                                lifecycleApp: eventOb.lifecycleApp,
+                                lifecycleViewController: eventOb.lifecycleViewController,
+                                lifecycleSwiftUI: eventOb.lifecycleSwiftUI)
                 }
             } catch {
                 guard let self = self else { return }
@@ -110,7 +113,10 @@ final class BaseEventStore: EventStore {
                                 userTriggered: eventOb.userTriggered,
                                 attachmentSize: eventOb.attachmentSize,
                                 timestampInMillis: eventOb.timestampInMillis,
-                                batchId: eventOb.batchId)
+                                batchId: eventOb.batchId,
+                                lifecycleApp: eventOb.lifecycleApp,
+                                lifecycleViewController: eventOb.lifecycleViewController,
+                                lifecycleSwiftUI: eventOb.lifecycleSwiftUI)
                 }
             } catch {
                 guard let self = self else { return }
@@ -162,7 +168,10 @@ final class BaseEventStore: EventStore {
                                               userTriggered: eventOb.userTriggered,
                                               attachmentSize: eventOb.attachmentSize,
                                               timestampInMillis: eventOb.timestampInMillis,
-                                              batchId: eventOb.batchId))
+                                              batchId: eventOb.batchId,
+                                              lifecycleApp: eventOb.lifecycleApp,
+                                              lifecycleViewController: eventOb.lifecycleViewController,
+                                              lifecycleSwiftUI: eventOb.lifecycleSwiftUI))
                 }
             } catch {
                 guard let self = self else {

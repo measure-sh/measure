@@ -91,6 +91,9 @@ final class MeasureInternal {
     private var periodicEventExporter: PeriodicEventExporter {
         return measureInitializer.periodicEventExporter
     }
+    private var lifecycleCollector: LifecycleCollector {
+        return measureInitializer.lifecycleCollector
+    }
     private let lifecycleObserver: LifecycleObserver
 
     init(_ measureInitializer: MeasureInitializer) {
@@ -107,6 +110,7 @@ final class MeasureInternal {
 
         self.crashReportManager.enableCrashReporting()
         self.crashReportManager.trackException()
+        self.lifecycleCollector.enable()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             if let window = UIApplication.shared.windows.first {
                 self.gestureCollector.enable(for: window)
@@ -118,12 +122,14 @@ final class MeasureInternal {
         self.crashDataPersistence.isForeground = false
         self.sessionManager.applicationDidEnterBackground()
         self.periodicEventExporter.applicationDidEnterBackground()
+        self.lifecycleCollector.applicationDidEnterBackground()
     }
 
     private func applicationWillEnterForeground() {
         self.crashDataPersistence.isForeground = true
         self.sessionManager.applicationWillEnterForeground()
         self.periodicEventExporter.applicationWillEnterForeground()
+        self.lifecycleCollector.applicationWillEnterForeground()
     }
 
     private func applicationWillTerminate() {

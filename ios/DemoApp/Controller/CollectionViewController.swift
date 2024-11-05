@@ -84,14 +84,17 @@ class CollectionViewController: UIViewController {
             let section = Section(rawValue: indexPath.section)!
             switch section {
             case .horizontal:
-                let cell = collectionView.dequeueReusableCell(withReuseIdentifier: HorizontalCell.reuseIdentifier, for: indexPath) as! HorizontalCell
-                cell.configure(with: item, color: self.colors.randomElement()!)
-                return cell
+                if let cell = collectionView.dequeueReusableCell(withReuseIdentifier: HorizontalCell.reuseIdentifier, for: indexPath) as? HorizontalCell {
+                    cell.configure(with: item, color: self.colors.randomElement()!)
+                    return cell
+                }
             case .vertical:
-                let cell = collectionView.dequeueReusableCell(withReuseIdentifier: VerticalCell.reuseIdentifier, for: indexPath) as! VerticalCell
-                cell.configure(with: item, color: self.colors.randomElement()!)
-                return cell
+                if let cell = collectionView.dequeueReusableCell(withReuseIdentifier: VerticalCell.reuseIdentifier, for: indexPath) as? VerticalCell {
+                    cell.configure(with: item, color: self.colors.randomElement()!)
+                    return cell
+                }
             }
+            return UICollectionViewCell()
         }
     }
 

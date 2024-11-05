@@ -373,4 +373,50 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
         }
     }
 
+    func testApplicationLifecycleDataSerialization() {
+        let lifecycleData = ApplicationLifecycleData(type: .foreground)
+
+        do {
+            let jsonData = try JSONEncoder().encode(lifecycleData)
+            if let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] {
+                XCTAssertEqual(jsonDict["type"] as? String, "foreground")
+            } else {
+                XCTFail("Application lifecycle data JSON structure is invalid.")
+            }
+        } catch {
+            XCTFail("Failed to serialize ApplicationLifecycleData: \(error.localizedDescription)")
+        }
+    }
+
+    func testVCLifecycleDataSerialization() {
+        let lifecycleData = VCLifecycleData(type: VCLifecycleEventType.viewDidAppear.stringValue, className: "SampleViewController")
+
+        do {
+            let jsonData = try JSONEncoder().encode(lifecycleData)
+            if let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] {
+                XCTAssertEqual(jsonDict["type"] as? String, "viewDidAppear")
+                XCTAssertEqual(jsonDict["className"] as? String, "SampleViewController")
+            } else {
+                XCTFail("VC lifecycle data JSON structure is invalid.")
+            }
+        } catch {
+            XCTFail("Failed to serialize VCLifecycleData: \(error.localizedDescription)")
+        }
+    }
+
+    func testSwiftUILifecycleDataSerialization() {
+        let lifecycleData = SwiftUILifecycleData(type: .onAppear, viewName: "SampleView")
+
+        do {
+            let jsonData = try JSONEncoder().encode(lifecycleData)
+            if let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] {
+                XCTAssertEqual(jsonDict["type"] as? String, "on_appear")
+                XCTAssertEqual(jsonDict["viewName"] as? String, "SampleView")
+            } else {
+                XCTFail("SwiftUI lifecycle data JSON structure is invalid.")
+            }
+        } catch {
+            XCTFail("Failed to serialize SwiftUILifecycleData: \(error.localizedDescription)")
+        }
+    }
 }

@@ -16,11 +16,15 @@ final class MockLogger: Logger {
 
     func log(level: MeasureSDK.LogLevel, message: String, error: (any Error)?, data: Encodable?) {
         onLog?(level, message, error, data)
+        print("---------------------------------------------------------------------------")
+        print("Log: level \(level) message \(message) error \(String(describing: error)) data \(data ?? "nil")")
         logs.append(message)
     }
 
     func internalLog(level: MeasureSDK.LogLevel, message: String, error: (any Error)?, data: Encodable?) {
         onInternalLog?(level, message, error, data)
+        print("---------------------------------------------------------------------------")
+        print("InternalLog: level \(level) message \(message) error \(String(describing: error)) data \(data ?? "")")
         logs.append(message)
     }
 }
