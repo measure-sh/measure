@@ -147,8 +147,7 @@ func GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessio
 		Select("first_event_timestamp").
 		Select("last_event_timestamp").
 		Select("app_version").
-		Where("app_id = toUUID(?)", af.AppID).
-		Where("first_event_timestamp >= ? and last_event_timestamp <= ?", af.From, af.To)
+		Clause("prewhere app_id = toUUID(?) and first_event_timestamp >= ? and last_event_timestamp <= ?", af.AppID, af.From, af.To)
 
 	if af.Crash && af.ANR {
 		base.Select("uniqMerge(crash_count) crash_count")
@@ -214,33 +213,39 @@ func GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessio
 		// to add/remove items, only modify this slice
 		// of query strings. rest of the query exec
 		// infra is self adapting.
-		likeQueries := []string{
+		matches := []string{
 			"user_id like ?",
-			"arrayExists(x -> x like ?, unique_types)",
-			"arrayExists(x -> x like ?, unique_strings)",
-			"arrayExists(x -> x like ?, unique_view_classnames)",
-			"arrayExists(x -> x like ?, unique_subview_classnames)",
-			"arrayExists(x -> x.1 like ?, unique_exceptions)",
-			"arrayExists(x -> x.2 like ?, unique_exceptions)",
-			"arrayExists(x -> x.1 like ?, unique_anrs)",
-			"arrayExists(x -> x.2 like ?, unique_anrs)",
-			"arrayExists(x -> x.1 like ?, unique_click_targets)",
-			"arrayExists(x -> x.2 like ?, unique_click_targets)",
-			"arrayExists(x -> x.1 like ?, unique_longclick_targets)",
-			"arrayExists(x -> x.2 like ?, unique_longclick_targets)",
-			"arrayExists(x -> x.1 like ?, unique_scroll_targets)",
-			"arrayExists(x -> x.2 like ?, unique_scroll_targets)",
+			"arrayExists(x -> x ilike ?, unique_types)",
+			"arrayExists(x -> x ilike ?, unique_strings)",
+			"arrayExists(x -> x ilike ?, unique_view_classnames)",
+			"arrayExists(x -> x ilike ?, unique_subview_classnames)",
+			"arrayExists(x -> x.type ilike ?, unique_exceptions)",
+			"arrayExists(x -> x.message ilike ?, unique_exceptions)",
+			"arrayExists(x -> x.file_name ilike ?, unique_exceptions)",
+			"arrayExists(x -> x.class_name ilike ?, unique_exceptions)",
+			"arrayExists(x -> x.method_name ilike ?, unique_exceptions)",
+			"arrayExists(x -> x.type ilike ?, unique_anrs)",
+			"arrayExists(x -> x.message ilike ?, unique_anrs)",
+			"arrayExists(x -> x.file_name ilike ?, unique_anrs)",
+			"arrayExists(x -> x.class_name ilike ?, unique_anrs)",
+			"arrayExists(x -> x.method_name ilike ?, unique_anrs)",
+			"arrayExists(x -> x.1 ilike ?, unique_click_targets)",
+			"arrayExists(x -> x.2 ilike ?, unique_click_targets)",
+			"arrayExists(x -> x.1 ilike ?, unique_longclick_targets)",
+			"arrayExists(x -> x.2 ilike ?, unique_longclick_targets)",
+			"arrayExists(x -> x.1 ilike ?, unique_scroll_targets)",
+			"arrayExists(x -> x.2 ilike ?, unique_scroll_targets)",
 		}
 
 		// compute arguments automatically
 		args := []any{}
-		for i := 0; i < len(likeQueries); i++ {
+		for i := 0; i < len(matches); i++ {
 			args = append(args, freeText)
 		}
 
 		// run the complex text matching query joined
 		// with multiple 'OR' and inject the args
-		base.Where(strings.Join(likeQueries, " or "), args...)
+		base.Where(strings.Join(matches, " or "), args...)
 	}
 
 	applyGroupBy := af.Crash ||
@@ -471,8 +476,8 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 		Select("device_manufacturer").
 		Select("device_model").
 		Select(fmt.Sprintf("row_number() over (order by first_event_timestamp %s, session_id) as row_num", order)).
+		Clause("prewhere app_id = toUUID(?) and first_event_timestamp >= ? and last_event_timestamp <= ?", af.AppID, af.From, af.To)
 		// Select("row_number() over (order by first_event_timestamp desc, session_id) as row_num").
-		Where("app_id = toUUID(?) and first_event_timestamp >= ? and last_event_timestamp <= ?", af.AppID, af.From, af.To)
 		// GroupBy("session_id, first_event_timestamp, last_event_timestamp, app_version, os_version, device_name, device_manufacturer, device_model, user_id")
 		// Where("app_id = toUUID(?)", af.AppID).
 		// GroupBy("os_version").
