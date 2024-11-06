@@ -114,9 +114,13 @@ type AppFilter struct {
 	// keyset pagination.
 	KeyTimestamp time.Time `form:"key_timestamp"`
 
-	// Limit is the count of matching results to
-	// limit to.
+	// Limit is the count of matching rows to
+	// return.
 	Limit int `form:"limit"`
+
+	// Offset if the count of matching rows to
+	// skip.
+	Offset int `form:"offset"`
 
 	// BiGraph represents if journey plot
 	// constructions should be bidirectional
