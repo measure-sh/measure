@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Use short codes for list filters
 
 
+### :bug: Bug fixes
+
+- (**frontend**): Handle empty attr distributions
+
+
 ### :hammer: Misc
 
 - (**frontend**): Set default session type filter to all issues
