@@ -1108,7 +1108,7 @@ export const fetchExceptionsDistributionPlotFromServer = async (exceptionsType: 
 
         const data = await res.json()
 
-        if (data === null) {
+        if (data === null || Object.values(data).every(value => typeof value === 'object' && value !== null && Object.keys(value).length === 0)) {
             return { status: ExceptionsDistributionPlotApiStatus.NoData, data: null }
         }
 
