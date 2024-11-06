@@ -722,7 +722,7 @@ export const saveListFiltersToServer = async (filters: Filters) => {
     }
 }
 
-async function applyGenericFiltersToUrl(url: string, filters: Filters, keyId: string | null, keyTimestamp: string | null, limit: number | null) {
+async function applyGenericFiltersToUrl(url: string, filters: Filters, keyId: string | null, keyTimestamp: string | null, limit: number | null, offset: number | null) {
     const serverFormattedStartDate = formatUserInputDateToServerFormat(filters.startDate)
     const serverFormattedEndDate = formatUserInputDateToServerFormat(filters.endDate)
     const timezone = getTimeZoneForServer()
@@ -768,6 +768,11 @@ async function applyGenericFiltersToUrl(url: string, filters: Filters, keyId: st
     // Append limit if present
     if (limit !== null) {
         searchParams.append('limit', String(limit))
+    }
+
+    // Append offset if present
+    if (offset !== null) {
+        searchParams.append('offset', String(offset))
     }
 
     u.search = searchParams.toString()
@@ -872,7 +877,7 @@ export const fetchJourneyFromServer = async (journeyType: JourneyType, exception
     // Append bidirectional value
     url = url + `bigraph=${bidirectional ? '1&' : '0&'}`
 
-    url = await applyGenericFiltersToUrl(url, filters, null, null, null)
+    url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
 
     try {
         const res = await fetchMeasure(url);
@@ -895,7 +900,7 @@ export const fetchMetricsFromServer = async (filters: Filters, router: AppRouter
 
     let url = `${origin}/apps/${filters.app.id}/metrics?`
 
-    url = await applyGenericFiltersToUrl(url, filters, null, null, null)
+    url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
 
     try {
         const res = await fetchMeasure(url);
@@ -913,12 +918,12 @@ export const fetchMetricsFromServer = async (filters: Filters, router: AppRouter
     }
 }
 
-export const fetchSessionsOverviewFromServer = async (filters: Filters, keyId: string | null, limit: number, router: AppRouterInstance) => {
+export const fetchSessionsOverviewFromServer = async (filters: Filters, keyId: string | null, keyTimestamp: string | null, limit: number, offset: number, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
     var url = `${origin}/apps/${filters.app.id}/sessions?`
 
-    url = await applyGenericFiltersToUrl(url, filters, keyId, null, limit)
+    url = await applyGenericFiltersToUrl(url, filters, keyId, keyTimestamp, limit, offset)
 
     try {
         const res = await fetchMeasure(url);
@@ -941,7 +946,7 @@ export const fetchSessionsOverviewPlotFromServer = async (filters: Filters, rout
 
     var url = `${origin}/apps/${filters.app.id}/sessions/plots/instances?`
 
-    url = await applyGenericFiltersToUrl(url, filters, null, null, null)
+    url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
 
     try {
         const res = await fetchMeasure(url);
@@ -973,7 +978,7 @@ export const fetchExceptionsOverviewFromServer = async (exceptionsType: Exceptio
         url = `${origin}/apps/${filters.app.id}/anrGroups?`
     }
 
-    url = await applyGenericFiltersToUrl(url, filters, keyId, null, limit)
+    url = await applyGenericFiltersToUrl(url, filters, keyId, null, limit, null)
 
     try {
         const res = await fetchMeasure(url);
@@ -1002,7 +1007,7 @@ export const fetchExceptionsDetailsFromServer = async (exceptionsType: Exception
         url = `${origin}/apps/${filters.app.id}/anrGroups/${exceptionsGroupdId}/anrs?`
     }
 
-    url = await applyGenericFiltersToUrl(url, filters, keyId, keyTimestamp, limit)
+    url = await applyGenericFiltersToUrl(url, filters, keyId, keyTimestamp, limit, null)
 
     try {
         const res = await fetchMeasure(url);
@@ -1031,7 +1036,7 @@ export const fetchExceptionsOverviewPlotFromServer = async (exceptionsType: Exce
         url = `${origin}/apps/${filters.app.id}/anrGroups/plots/instances?`
     }
 
-    url = await applyGenericFiltersToUrl(url, filters, null, null, null)
+    url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
 
     try {
         const res = await fetchMeasure(url);
@@ -1064,7 +1069,7 @@ export const fetchExceptionsDetailsPlotFromServer = async (exceptionsType: Excep
         url = `${origin}/apps/${filters.app.id}/anrGroups/${exceptionsGroupdId}/plots/instances?`
     }
 
-    url = await applyGenericFiltersToUrl(url, filters, null, null, null)
+    url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
 
     try {
         const res = await fetchMeasure(url);
@@ -1096,7 +1101,7 @@ export const fetchExceptionsDistributionPlotFromServer = async (exceptionsType: 
         url = `${origin}/apps/${filters.app.id}/anrGroups/${exceptionsGroupdId}/plots/distribution?`
     }
 
-    url = await applyGenericFiltersToUrl(url, filters, null, null, null)
+    url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
 
     try {
         const res = await fetchMeasure(url);

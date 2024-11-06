@@ -298,8 +298,8 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                     All
                   </button>
                 </div>}
-                {items.filter((item) => (item as OsVersion).displayName.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((item) => (
-                  <div key={item as string} className={checkboxContainerStyle} role="menuitem">
+                {items.filter((item) => (item as OsVersion).displayName.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((item, idx) => (
+                  <div key={`${idx}-${item as string}`} className={checkboxContainerStyle} role="menuitem">
                     <input
                       type="checkbox"
                       className={checkboxInputStyle}
