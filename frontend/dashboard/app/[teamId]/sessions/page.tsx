@@ -121,7 +121,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                                         <p className='truncate'>{session_id}</p>
                                         <div className='py-1' />
                                         <p className='text-xs truncate text-gray-500'>{"v" + attribute.app_version + "(" + attribute.app_build + "), " + attribute.os_name + " " + attribute.os_version + ", " + attribute.device_manufacturer + " " + attribute.device_model}</p>
-                                        {matched_free_text !== "" && <p className='p-1 mt-2 w-fit text-xs truncate border border-black rounded-md '>{"Matched " + matched_free_text}</p>}
+                                        {matched_free_text !== "" && <p className='p-1 mt-2 text-xs truncate border border-black rounded-md '>{"Matched " + matched_free_text}</p>}
                                     </div>
                                     <div className="table-cell p-4 text-center">
                                         <p className='truncate'>{formatDateToHumanReadableDate(first_event_time)}</p>
