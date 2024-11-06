@@ -40,6 +40,7 @@ protocol MeasureInitializer {
     var eventExporter: EventExporter { get }
     var batchStore: BatchStore { get }
     var batchCreator: BatchCreator { get }
+    var lifecycleCollector: LifecycleCollector { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -107,6 +108,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let eventExporter: EventExporter
     let batchStore: BatchStore
     let batchCreator: BatchCreator
+    let lifecycleCollector: LifecycleCollector
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -130,7 +132,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                  timeProvider: timeProvider,
                                                  configProvider: configProvider,
                                                  sessionStore: sessionStore,
-                                                 userDefaultStorage: userDefaultStorage)
+                                                 userDefaultStorage: userDefaultStorage,
+                                                 versionCode: FrameworkInfo.version)
         self.appAttributeProcessor = AppAttributeProcessor()
         self.deviceAttributeProcessor = DeviceAttributeProcessor()
         self.installationIdAttributeProcessor = InstallationIdAttributeProcessor(userDefaultStorage: userDefaultStorage,
@@ -189,6 +192,9 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                                heartbeat: heartbeat,
                                                                eventExporter: eventExporter,
                                                                dispatchQueue: MeasureQueue.periodicEventExporter)
+        self.lifecycleCollector = BaseLifecycleCollector(eventProcessor: eventProcessor,
+                                                         timeProvider: timeProvider,
+                                                         logger: logger)
         self.client = client
     }
 }

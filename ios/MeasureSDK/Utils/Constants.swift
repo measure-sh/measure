@@ -30,6 +30,7 @@ let recentSessionIdKey = "recent_session_id"
 let recentSessionEventTimeKey = "recent_session_event_time"
 let recentSessionCreatedAtKey = "recent_session_created_at"
 let recentSessionCrashedKey = "recent_session_crashed_key"
+let recentSessionVersionCodeKey = "recent_session_version_code"
 
 struct AttributeConstants {
     static let deviceManufacturer = "Apple"

@@ -3,8 +3,10 @@ package filter
 import (
 	"backend/api/pairs"
 	"backend/api/server"
-	"backend/api/text"
 	"context"
+	"crypto/md5"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"slices"
 	"time"
@@ -49,6 +51,9 @@ type AppFilter struct {
 	// Timezone represents the timezone of the
 	// client
 	Timezone string `form:"timezone"`
+
+	// Represents a short code for list filters
+	FilterShortCode string `form:"filter_short_code"`
 
 	// Versions is the list of version string
 	// to be matched & filtered on.
@@ -114,9 +119,13 @@ type AppFilter struct {
 	// keyset pagination.
 	KeyTimestamp time.Time `form:"key_timestamp"`
 
-	// Limit is the count of matching results to
-	// limit to.
+	// Limit is the count of matching rows to
+	// return.
 	Limit int `form:"limit"`
+
+	// Offset if the count of matching rows to
+	// skip.
+	Offset int `form:"offset"`
 
 	// BiGraph represents if journey plot
 	// constructions should be bidirectional
@@ -139,6 +148,20 @@ type FilterList struct {
 	DeviceLocales       []string `json:"locales"`
 	DeviceManufacturers []string `json:"device_manufacturers"`
 	DeviceNames         []string `json:"device_names"`
+}
+
+// Hash generates an MD5 hash of the FilterList struct.
+func (f *FilterList) Hash() (string, error) {
+	data, err := json.Marshal(f)
+	if err != nil {
+		return "", err
+	}
+
+	// Compute MD5 hash
+	md5Hash := md5.Sum(data)
+
+	// Convert hash to hex string
+	return hex.EncodeToString(md5Hash[:]), nil
 }
 
 // Versions represents a list of
@@ -227,48 +250,43 @@ func (af *AppFilter) OSVersionPairs() (osVersions *pairs.Pairs[string, string], 
 // Expand expands comma separated fields to slice
 // of strings
 func (af *AppFilter) Expand() {
-	if len(af.Versions) > 0 {
-		af.Versions = text.SplitTrimEmpty(af.Versions[0], ",")
+	filters, err := GetFiltersFromFilterShortCode(af.FilterShortCode, af.AppID)
+	if err != nil {
+		return
 	}
 
-	if len(af.VersionCodes) > 0 {
-		af.VersionCodes = text.SplitTrimEmpty(af.VersionCodes[0], ",")
+	if len(filters.Versions) > 0 {
+		af.Versions = filters.Versions
 	}
-
-	if len(af.OsNames) > 0 {
-		af.OsNames = text.SplitTrimEmpty(af.OsNames[0], ",")
+	if len(filters.VersionCodes) > 0 {
+		af.VersionCodes = filters.VersionCodes
 	}
-
-	if len(af.OsVersions) > 0 {
-		af.OsVersions = text.SplitTrimEmpty(af.OsVersions[0], ",")
+	if len(filters.OsNames) > 0 {
+		af.OsNames = filters.OsNames
 	}
-
-	if len(af.Countries) > 0 {
-		af.Countries = text.SplitTrimEmpty(af.Countries[0], ",")
+	if len(filters.OsVersions) > 0 {
+		af.OsVersions = filters.OsVersions
 	}
-
-	if len(af.DeviceNames) > 0 {
-		af.DeviceNames = text.SplitTrimEmpty(af.DeviceNames[0], ",")
+	if len(filters.Countries) > 0 {
+		af.Countries = filters.Countries
 	}
-
-	if len(af.DeviceManufacturers) > 0 {
-		af.DeviceManufacturers = text.SplitTrimEmpty(af.DeviceManufacturers[0], ",")
+	if len(filters.DeviceNames) > 0 {
+		af.DeviceNames = filters.DeviceNames
 	}
-
-	if len(af.Locales) > 0 {
-		af.Locales = text.SplitTrimEmpty(af.Locales[0], ",")
+	if len(filters.DeviceManufacturers) > 0 {
+		af.DeviceManufacturers = filters.DeviceManufacturers
 	}
-
-	if len(af.NetworkProviders) > 0 {
-		af.NetworkProviders = text.SplitTrimEmpty(af.NetworkProviders[0], ",")
+	if len(filters.DeviceLocales) > 0 {
+		af.Locales = filters.DeviceLocales
 	}
-
-	if len(af.NetworkTypes) > 0 {
-		af.NetworkTypes = text.SplitTrimEmpty(af.NetworkTypes[0], ",")
+	if len(filters.NetworkProviders) > 0 {
+		af.NetworkProviders = filters.NetworkProviders
 	}
-
-	if len(af.NetworkGenerations) > 0 {
-		af.NetworkGenerations = text.SplitTrimEmpty(af.NetworkGenerations[0], ",")
+	if len(filters.NetworkTypes) > 0 {
+		af.NetworkTypes = filters.NetworkTypes
+	}
+	if len(filters.NetworkGenerations) > 0 {
+		af.NetworkGenerations = filters.NetworkGenerations
 	}
 }
 
@@ -290,10 +308,70 @@ func (af *AppFilter) HasPositiveLimit() bool {
 	return af.Limit > 0
 }
 
+// HasVersions returns true if at least one
+// app version is requested.
+func (af *AppFilter) HasVersions() bool {
+	return len(af.Versions) > 0 && len(af.VersionCodes) > 0
+}
+
+// HasOSVersions returns true if there at least
+// one OS Version is requested.
+func (af *AppFilter) HasOSVersions() bool {
+	return len(af.OsNames) > 0 && len(af.OsVersions) > 0
+}
+
 // HasMultiVersions checks if multiple versions
-// were requested.
+// are requested.
 func (af *AppFilter) HasMultiVersions() bool {
 	return len(af.Versions) > 1 && len(af.VersionCodes) > 1
+}
+
+// HasCountries returns true if at least one
+// country is requested.
+func (af *AppFilter) HasCountries() bool {
+	return len(af.Countries) > 0
+}
+
+// HasNetworkProviders returns true if at least
+// one network provider is requested.
+func (af *AppFilter) HasNetworkProviders() bool {
+	return len(af.NetworkProviders) > 0
+}
+
+// HasNetworkTypes returns true if at least
+// one network type is requested.
+func (af *AppFilter) HasNetworkTypes() bool {
+	return len(af.NetworkTypes) > 0
+}
+
+// HasNetworkGenerations returns true if at least
+// one network generation is requested.
+func (af *AppFilter) HasNetworkGenerations() bool {
+	return len(af.NetworkGenerations) > 0
+}
+
+// HasDeviceLocales returns true if at least
+// one device locale is requested.
+func (af *AppFilter) HasDeviceLocales() bool {
+	return len(af.Locales) > 0
+}
+
+// HasDeviceManufacturers returns true if at least
+// one device manufacturer is requested.
+func (af *AppFilter) HasDeviceManufacturers() bool {
+	return len(af.DeviceManufacturers) > 0
+}
+
+// HasDeviceNames returns true if at least
+// one device name is requested.
+func (af *AppFilter) HasDeviceNames() bool {
+	return len(af.DeviceNames) > 0
+}
+
+// HasTimezone returns true if a timezone
+// is requested.
+func (af *AppFilter) HasTimezone() bool {
+	return af.Timezone != ""
 }
 
 // LimitAbs returns the absolute value of limit

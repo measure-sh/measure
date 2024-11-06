@@ -4164,285 +4164,24 @@ func GetSessionsOverview(c *gin.Context) {
 		return
 	}
 
-	sessions, err := app.GetSessionsWithFilter(ctx, &af)
+	sessions, next, previous, err := GetSessionsWithFilter(ctx, &af)
 	if err != nil {
-		msg := "failed to get app's sessions matching filter"
+		msg := "failed to get app's sessions"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
 
-	sessions, next, previous := paginate.Paginate(sessions, &af)
-	meta := gin.H{"next": next, "previous": previous}
-
-	c.JSON(http.StatusOK, gin.H{"results": sessions, "meta": meta})
+	c.JSON(http.StatusOK, gin.H{
+		"results": sessions,
+		"meta": gin.H{
+			"next":     next,
+			"previous": previous,
+		},
+	})
 }
 
-// GetSessionsWithFilters returns a slice of sessions of an app.
-func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions []Session, err error) {
-	base := sqlf.
-		From("default.events").
-		Select("session_id").
-		Select("app_id").
-		Select("toString(any(attribute.app_version)) AS app_version").
-		Select("toString(any(attribute.app_build)) AS app_build").
-		Select("toString(any(attribute.user_id)) AS user_id").
-		Select("toString(any(attribute.device_name)) AS device_name").
-		Select("toString(any(attribute.device_model)) AS device_model").
-		Select("toString(any(attribute.device_manufacturer)) AS device_manufacturer").
-		Select("toString(any(attribute.os_name)) AS os_name").
-		Select("toString(any(attribute.os_version)) AS os_version")
-
-	if af.FreeText != "" {
-		base.Select(
-			"COALESCE("+
-				"multiIf("+
-				"any(attribute.user_id) ILIKE ?, concat('User ID: ', any(attribute.user_id)),"+
-				"any(string.string) ILIKE ?, concat('Log: ', any(string.string)),"+
-				"any(exception.exceptions) ILIKE ?, concat('Exception: ',any(exception.exceptions)),"+
-				"any(anr.exceptions) ILIKE ?, concat('ANR: ', any(anr.exceptions)),"+
-				"any(type) ILIKE ?, any(type),"+
-				"any(lifecycle_activity.class_name) ILIKE ?, concat('Activity: ', any(lifecycle_activity.class_name)),"+
-				"any(lifecycle_fragment.class_name) ILIKE ?, concat('Fragment: ', any(lifecycle_fragment.class_name)),"+
-				"any(gesture_click.target_id) ILIKE ?, concat('Gesture Click: ', any(gesture_click.target_id)),"+
-				"any(gesture_long_click.target_id) ILIKE ?, concat('Gesture Long Click: ', any(gesture_long_click.target_id)),"+
-				"any(gesture_scroll.target_id) ILIKE ?, concat('Gesture Scroll: ', any(gesture_scroll.target_id)),"+
-				"any(gesture_click.target) ILIKE ?, concat('Gesture Click: ', any(gesture_click.target)),"+
-				"any(gesture_long_click.target) ILIKE ?, concat('Gesture Long Click: ', any(gesture_long_click.target)),"+
-				"any(gesture_scroll.target) ILIKE ?, concat('Gesture Scroll: ', any(gesture_scroll.target)),"+
-				"any(screen_view.name) ILIKE ?, concat('Screen View: ', any(screen_view.name)),"+
-				"''"+
-				")"+
-				") AS matched_free_text",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%")
-	} else {
-		base.Select("'' AS matched_free_text")
-	}
-
-	base.Where("app_id = ?", af.AppID)
-
-	if len(af.Versions) > 0 {
-		base.Where("attribute.app_version").In(af.Versions)
-	}
-
-	if len(af.VersionCodes) > 0 {
-		base.Where("attribute.app_build").In(af.VersionCodes)
-	}
-
-	if af.Crash && af.ANR {
-		base.Where("((type = 'exception' AND exception.handled = false) OR type = 'anr')")
-	} else if af.Crash {
-		base.Where("type = 'exception' AND exception.handled = false")
-	} else if af.ANR {
-		base.Where("type = 'anr'")
-	}
-
-	if len(af.OsNames) > 0 {
-		base.Where("attribute.os_name").In(af.OsNames)
-	}
-
-	if len(af.OsVersions) > 0 {
-		base.Where("attribute.os_version").In(af.OsVersions)
-	}
-
-	if len(af.Countries) > 0 {
-		base.Where("inet.country_code").In(af.Countries)
-	}
-
-	if len(af.DeviceNames) > 0 {
-		base.Where("attribute.device_name").In(af.DeviceNames)
-	}
-
-	if len(af.DeviceManufacturers) > 0 {
-		base.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
-	}
-
-	if len(af.Locales) > 0 {
-		base.Where("attribute.device_locale").In(af.Locales)
-	}
-
-	if len(af.NetworkProviders) > 0 {
-		base.Where("attribute.network_provider").In(af.NetworkProviders)
-	}
-
-	if len(af.NetworkTypes) > 0 {
-		base.Where("attribute.network_type").In(af.NetworkTypes)
-	}
-
-	if len(af.NetworkGenerations) > 0 {
-		base.Where("attribute.network_generation").In(af.NetworkGenerations)
-	}
-
-	if af.FreeText != "" {
-		base.Where(
-			"("+
-				"attribute.user_id ILIKE ? OR "+
-				"string.string ILIKE ? OR "+
-				"toString(exception.exceptions) ILIKE ? OR "+
-				"toString(anr.exceptions) ILIKE ? OR "+
-				"type ILIKE ? OR "+
-				"lifecycle_activity.class_name ILIKE ? OR "+
-				"lifecycle_fragment.class_name ILIKE ? OR "+
-				"gesture_click.target_id ILIKE ? OR "+
-				"gesture_long_click.target_id ILIKE ? OR "+
-				"gesture_scroll.target_id ILIKE ? OR "+
-				"gesture_click.target ILIKE ? OR "+
-				"gesture_long_click.target ILIKE ? OR "+
-				"gesture_scroll.target ILIKE ? OR "+
-				"screen_view.name ILIKE ?"+
-				")",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%")
-	}
-
-	if af.HasTimeRange() {
-		base.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-	}
-
-	base.GroupBy("session_id, app_id")
-
-	eventTimesStmt := sqlf.
-		From("default.events").
-		Select("session_id").
-		Select("MIN(timestamp) AS first_event_time").
-		Select("MAX(timestamp) AS last_event_time").
-		Where("app_id = ?", af.AppID).
-		GroupBy("session_id")
-
-	stmt := sqlf.
-		With("base_events", base).
-		With("event_times", eventTimesStmt).
-		From("base_events").
-		Join("event_times e ", "base_events.session_id = e.session_id").
-		Select("session_id").
-		Select("app_id").
-		Select("app_version").
-		Select("app_build").
-		Select("user_id").
-		Select("device_name").
-		Select("device_model").
-		Select("device_manufacturer").
-		Select("os_name").
-		Select("os_version").
-		Select("first_event_time").
-		Select("last_event_time").
-		Select("matched_free_text").
-		OrderBy("first_event_time desc")
-
-	defer stmt.Close()
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return nil, err
-	}
-	if rows.Err() != nil {
-		return nil, rows.Err()
-	}
-
-	defer rows.Close()
-
-	sessions = []Session{}
-	for rows.Next() {
-		var session Session
-		session.Attribute = &event.Attribute{}
-
-		if err := rows.Scan(&session.SessionID,
-			&session.AppID,
-			&session.Attribute.AppVersion,
-			&session.Attribute.AppBuild,
-			&session.Attribute.UserID,
-			&session.Attribute.DeviceName,
-			&session.Attribute.DeviceModel,
-			&session.Attribute.DeviceManufacturer,
-			&session.Attribute.OSName,
-			&session.Attribute.OSVersion,
-			&session.FirstEventTime,
-			&session.LastEventTime,
-			&session.MatchedFreeText); err != nil {
-			return nil, err
-		}
-
-		if af.FreeText != "" {
-			session.MatchedFreeText = extractShortenedMatchedFreeText(af.FreeText, session.MatchedFreeText)
-		}
-
-		session.Duration = session.DurationFromTimeStamps().Milliseconds()
-
-		sessions = append(sessions, session)
-	}
-
-	return sessions, nil
-}
-
-func extractShortenedMatchedFreeText(inputFreeText, matchedFreeText string) string {
-	matchedFreeTextForwardChars := 24
-	matchedFreeTextBackwardChars := 24
-
-	// Remove null padding that clickhouse adds in some cases
-	matchedFreeText = strings.ReplaceAll(matchedFreeText, "\u0000", "")
-
-	// Find the first occurrence of ':' in matchedFreeText and extract everything before it as the prefix
-	colonIdx := strings.Index(matchedFreeText, ":")
-	prefix := ""
-	if colonIdx != -1 {
-		prefix = matchedFreeText[:colonIdx+1]          // Include ':' in the prefix
-		matchedFreeText = matchedFreeText[colonIdx+1:] // Remove the prefix from matchedFreeText
-	}
-
-	// Convert both strings to lowercase for case-insensitive comparison
-	lowerInputFreeText := strings.ToLower(inputFreeText)
-	lowerMatchedFreeText := strings.ToLower(matchedFreeText)
-
-	// Find the index of inputFreeText in matchedFreeText (case-insensitive)
-	idx := strings.Index(lowerMatchedFreeText, lowerInputFreeText)
-	if idx == -1 {
-		return "" // Substring not found
-	}
-
-	// Calculate the start and end positions for the padded substring
-	start := idx - matchedFreeTextBackwardChars
-	if start < 0 {
-		start = 0
-	}
-
-	end := idx + len(inputFreeText) + matchedFreeTextForwardChars
-	if end > len(matchedFreeText) {
-		end = len(matchedFreeText)
-	}
-
-	// Extract the padded substring from the original matchedFreeText (not lowercased)
-	result := matchedFreeText[start:end]
-
-	// Return the prefix followed by the result
-	return strings.TrimSpace(prefix + " " + result)
-}
-
-func GetSessionsOverviewPlot(c *gin.Context) {
+func GetSessionsOverviewPlotInstances(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -4470,13 +4209,20 @@ func GetSessionsOverviewPlot(c *gin.Context) {
 	}
 
 	af.Expand()
-	msg := `sessions overview plot instances request validation failed`
+	msg := `sessions overview request validation failed`
 
 	if err := af.Validate(); err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   msg,
 			"details": err.Error(),
+		})
+		return
+	}
+
+	if !af.HasTimezone() {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "missing required field `timezone`",
 		})
 		return
 	}
@@ -4535,7 +4281,7 @@ func GetSessionsOverviewPlot(c *gin.Context) {
 		return
 	}
 
-	sessionInstances, err := GetSessionsPlot(ctx, &af)
+	sessionInstances, err := GetSessionsInstancesPlot(ctx, &af)
 	if err != nil {
 		msg := `failed to query data for sessions overview plot`
 		fmt.Println(msg, err)
@@ -5065,4 +4811,65 @@ func RenameApp(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": "done"})
+}
+
+func CreateShortFilters(c *gin.Context) {
+	userId := c.GetString("userId")
+	appId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `app id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	app := App{
+		ID: &appId,
+	}
+
+	team, err := app.getTeam(c)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	ok, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`you don't have permissions to create short filters in team [%s]`, team.ID.String())
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	var payload filter.ShortFiltersPayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		msg := `failed to parse filters json payload`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	shortFilters, err := filter.NewShortFilters(appId, payload.Filters)
+	if err != nil {
+		msg := `failed to create generate filter hash`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	shortFilters.Create()
+
+	c.JSON(http.StatusOK, gin.H{"filter_short_code": shortFilters.Code})
 }

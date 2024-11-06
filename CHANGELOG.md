@@ -7,8 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :sparkles: New features
+
+- (**backend**): Use short codes for list filters
+
+
+### :bug: Bug fixes
+
+- (**backend**): Optimize session detail apis and overall loading experience (#1490)
+
+- (**frontend**): Handle empty attr distributions
+
+
 ### :hammer: Misc
 
+- (**backend**): Add skip indexes for sessions table (#1492)
+
+- (**frontend**): Set default session type filter to all issues
 - (**frontend**): Update landing page exceptions video
 - (**frontend**): Standardise paginator UI
 - (**frontend**): Cancel in-flight requests

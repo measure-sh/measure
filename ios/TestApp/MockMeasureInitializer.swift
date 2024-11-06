@@ -9,6 +9,7 @@ import Foundation
 @testable import MeasureSDK
 
 final class MockMeasureInitializer: MeasureInitializer {
+    let lifecycleCollector: LifecycleCollector
     let networkClient: NetworkClient
     let httpClient: HttpClient
     let configProvider: ConfigProvider
@@ -62,7 +63,8 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                  timeProvider: timeProvider,
                                                  configProvider: configProvider,
                                                  sessionStore: sessionStore,
-                                                 userDefaultStorage: userDefaultStorage)
+                                                 userDefaultStorage: userDefaultStorage,
+                                                 versionCode: "1.0.0")
         self.appAttributeProcessor = AppAttributeProcessor()
         self.deviceAttributeProcessor = DeviceAttributeProcessor()
         self.installationIdAttributeProcessor = InstallationIdAttributeProcessor(userDefaultStorage: userDefaultStorage,
@@ -121,6 +123,9 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                heartbeat: heartbeat,
                                                                eventExporter: eventExporter,
                                                                dispatchQueue: MeasureQueue.periodicEventExporter)
+        self.lifecycleCollector = BaseLifecycleCollector(eventProcessor: eventProcessor,
+                                                         timeProvider: timeProvider,
+                                                         logger: logger)
         self.client = client
     }
 }

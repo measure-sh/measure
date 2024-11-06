@@ -12,6 +12,29 @@ import UIKit
 class AppDelegate: UIResponder, UIApplicationDelegate {
     let measureInstance = Measure.shared
     var mockMeasureInitializer: MockMeasureInitializer?
+    let labelMessage: UILabel = {
+        let lbl = UILabel()
+        lbl.text = ""
+        lbl.isAccessibilityElement = true
+        lbl.accessibilityIdentifier = "log-output-label-message"
+        lbl.textColor = .black
+        lbl.font = UIFont.systemFont(ofSize: 18)
+        lbl.textAlignment = .center
+        lbl.translatesAutoresizingMaskIntoConstraints = false
+        return lbl
+    }()
+
+    let labelData: UILabel = {
+        let lbl = UILabel()
+        lbl.text = ""
+        lbl.isAccessibilityElement = true
+        lbl.accessibilityIdentifier = "log-output-label-data"
+        lbl.textColor = .black
+        lbl.font = UIFont.systemFont(ofSize: 18)
+        lbl.textAlignment = .center
+        lbl.translatesAutoresizingMaskIntoConstraints = false
+        return lbl
+    }()
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         let clientInfo = ClientInfo(apiKey: "test", apiUrl: "test")
@@ -21,6 +44,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         mockMeasureInitializer = MockMeasureInitializer(config: config, client: clientInfo)
         measureInstance.meaureInitializerInternal = mockMeasureInitializer
         measureInstance.initialize(with: clientInfo, config: config)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.addLogLabels()
+        }
 
         return true
     }
@@ -32,5 +58,30 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func application(_ application: UIApplication, didDiscardSceneSessions sceneSessions: Set<UISceneSession>) {
+    }
+
+    func addLogLabels() {
+        if let logger = mockMeasureInitializer?.logger as? MockLogger {
+            logger.onLog = { _, message, _, data in
+                if let data = data {
+                    if let jsonData = try? JSONEncoder().encode(data) {
+                        self.labelData.text = String(data: jsonData, encoding: .utf8)
+                    }
+                }
+                self.labelMessage.text = (self.labelMessage.text ?? "") + message + (self.labelData.text ?? "")
+            }
+        }
+        if let window = UIApplication.shared.windows.first {
+            window.addSubview(labelMessage)
+            NSLayoutConstraint.activate([
+                labelMessage.centerXAnchor.constraint(equalTo: window.centerXAnchor),
+                labelMessage.centerYAnchor.constraint(equalTo: window.centerYAnchor)
+            ])
+            window.addSubview(labelData)
+            NSLayoutConstraint.activate([
+                labelData.centerXAnchor.constraint(equalTo: window.centerXAnchor),
+                labelData.topAnchor.constraint(equalTo: labelMessage.bottomAnchor, constant: 8)
+            ])
+        }
     }
 }

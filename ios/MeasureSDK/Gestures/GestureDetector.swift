@@ -72,7 +72,7 @@ struct GestureDetector {
         case .began:
             startTouchX = location.x
             startTouchY = location.y
-            startTouchEventTime = timeProvider.uptimeInMillis
+            startTouchEventTime = timeProvider.millisTime
             isScrolling = false
         case .moved:
             // Movement detected, check if it is a scroll gesture
@@ -94,7 +94,7 @@ struct GestureDetector {
                             x: location.x,
                             y: location.y,
                             touchDownTime: startTouchEventTime,
-                            touchUpTime: timeProvider.uptimeInMillis,
+                            touchUpTime: timeProvider.millisTime,
                             target: target,
                             targetId: targetId,
                             targetFrame: targetFrame)
@@ -106,7 +106,7 @@ struct GestureDetector {
                             x: location.x,
                             y: location.y,
                             touchDownTime: startTouchEventTime,
-                            touchUpTime: timeProvider.uptimeInMillis,
+                            touchUpTime: timeProvider.millisTime,
                             target: target,
                             targetId: targetId,
                             targetFrame: targetFrame)
@@ -123,7 +123,7 @@ struct GestureDetector {
                     endY: location.y,
                     direction: calculateScrollDirection(endX: location.x, endY: location.y, startX: startTouchX, startY: startTouchY),
                     touchDownTime: startTouchEventTime,
-                    touchUpTime: timeProvider.uptimeInMillis,
+                    touchUpTime: timeProvider.millisTime,
                     target: target,
                     targetId: targetId)
                 target = nil

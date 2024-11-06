@@ -33,6 +33,8 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [**`app_exit`**](#app_exit)
     - [**`lifecycle_activity`**](#lifecycle_activity)
     - [**`lifecycle_fragment`**](#lifecycle_fragment)
+    - [**`lifecycle_view_controller`**](#lifecycle_view_controller)
+    - [**`lifecycle_swift_ui`**](#lifecycle_swift_ui)
     - [**`lifecycle_app`**](#lifecycle_app)
     - [**`cold_launch`**](#cold_launch)
     - [**`warm_launch`**](#warm_launch)
@@ -570,6 +572,24 @@ Use the `lifecycle_fragment` type for Android's fragment lifecycle events.
 | `parent_activity` | string | Yes      | Fragment's parent activity's fully qualified class name                                    |
 | `parent_fragment` | string | Yes      | Fragment's parent fragment's fully qualified class name                                    |
 | `tag`             | string | Yes      | [Fragment's Tag](https://developer.android.com/reference/android/app/Fragment#getTag())    |
+
+#### **`lifecycle_view_controller`**
+
+Use the `lifecycle_view_controller` type for iOS ViewController lifecycle events.
+
+| Field             | Type   | Optional | Comment                                                                                    |
+| ----------------- | ------ | -------- | ------------------------------------------------------------------------------------------ |
+| `type`            | string | No       | One of the following:<br />- `loadView` <br />- `viewDidLoad`<br />- `viewWillAppear`<br />- `viewDidAppear`<br />- `viewWillDisappear`<br />- `viewDidDisappear` <br />- `didReceiveMemoryWarning` <br />- `initWithNibName` <br />- `initWithCoder` <br />- `vcDeinit` |
+| `class_name`      | string | No       | View Controller class name                                                                 |
+
+#### **`lifecycle_swift_ui`**
+
+Use the `lifecycle_swift_ui` type for iOS SwiftUI view lifecycle events.
+
+| Field             | Type   | Optional | Comment                                                                                    |
+| ----------------- | ------ | -------- | ------------------------------------------------------------------------------------------ |
+| `type`            | string | No       | One of the following:<br />- `on_appear`<br />- `on_disappear`                             |
+| `view_name`       | string | No       | SwiftUI View class name                                                                    |
 
 #### **`lifecycle_app`**
 

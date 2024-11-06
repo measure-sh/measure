@@ -12,4 +12,7 @@ enum EventType: String, Codable {
     case gestureClick = "gesture_click"
     case gestureLongClick = "gesture_long_click"
     case gestureScroll = "gesture_scroll"
+    case lifecycleApp = "lifecycle_app"
+    case lifecycleViewController = "lifecycle_view_controller"
+    case lifecycleSwiftUI = "lifecycle_swift_ui"
 }

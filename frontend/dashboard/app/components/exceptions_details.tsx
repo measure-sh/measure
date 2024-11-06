@@ -124,8 +124,6 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
 
           {exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Error && <p className="text-lg font-display">Error fetching list of {exceptionsType === ExceptionsType.Crash ? 'crashes' : 'ANRs'}, please change filters, refresh page or select a different app to try again</p>}
 
-          {exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Success && exceptionsDetails.results === null && <p className="text-lg font-display">It seems there are no {exceptionsType === ExceptionsType.Crash ? 'Crashes' : 'ANRs'} for the current combination of filters. Please change filters to try again</p>}
-
           {(exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Success || exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading) &&
             <div className='flex flex-col'>
               <div className="flex flex-col md:flex-row md:items-center w-full">
@@ -146,7 +144,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
 
               {exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading && <LoadingSpinner />}
 
-              {exceptionsDetails.results.length > 0 &&
+              {exceptionsDetails.results?.length > 0 &&
                 <div className={`${exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading ? 'invisible' : 'visible'}`}>
                   <p className="font-display text-xl"> Id: {exceptionsDetails.results[0].id}</p>
                   <p className="font-sans"> Date & time: {formatDateToHumanReadableDateTime(exceptionsDetails.results[0].timestamp)}</p>

@@ -79,7 +79,10 @@ struct TestDataGenerator {
         userTriggered: Bool = true,
         attachmentSize: Number = 200,
         timestampInMillis: Number = 1727272496000,
-        batchId: String? = nil
+        batchId: String? = nil,
+        lifecycleApp: Data? = nil,
+        lifecycleViewController: Data? = nil,
+        lifecycleSwiftUI: Data? = nil
     ) -> EventEntity {
         return EventEntity(
             id: id,
@@ -95,7 +98,10 @@ struct TestDataGenerator {
             userTriggered: userTriggered,
             attachmentSize: attachmentSize,
             timestampInMillis: timestampInMillis,
-            batchId: batchId
+            batchId: batchId,
+            lifecycleApp: lifecycleApp,
+            lifecycleViewController: lifecycleViewController,
+            lifecycleSwiftUI: lifecycleSwiftUI
         )
     }
 

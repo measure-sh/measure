@@ -31,7 +31,7 @@ class TimeProviderTests: XCTestCase {
     }
 
     func testIso8601Timestamp_withCurrentTime() {
-        let timestamp = timeProvider.currentTimeSinceEpochInMillis
+        let timestamp = timeProvider.now()
         let isoTimestamp = timeProvider.iso8601Timestamp(timeInMillis: timestamp)
 
         XCTAssertTrue(isoTimestamp.matchesIso8601Pattern(), "The iso8601Timestamp should return a valid ISO 8601 formatted string.")
