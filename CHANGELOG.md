@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add skip indexes for sessions table (#1492)
+
 - (**frontend**): Set default session type filter to all issues
 - (**frontend**): Update landing page exceptions video
 - (**frontend**): Standardise paginator UI
