@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Optimize session detail apis and overall loading experience (#1490)
 
+- (**frontend**): Better pagination in session detail (#1491)
 - (**frontend**): Handle empty attr distributions
 
 
