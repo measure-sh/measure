@@ -38,10 +38,6 @@ var maxBatchSize = 20 * 1024 * 1024
 // request should be retried after.
 const retryAfter = 60 * time.Second
 
-// status defines the status of processing
-// of an event request.
-type status int
-
 const (
 	// pending represents that the event request
 	// is still being processed.
@@ -51,19 +47,6 @@ const (
 	// has finished processing.
 	done
 )
-
-// String returns a string representation of the
-// status.
-func (s status) String() string {
-	switch s {
-	default:
-		return "unknown"
-	case pending:
-		return "pending"
-	case done:
-		return "done"
-	}
-}
 
 type attachment struct {
 	id       uuid.UUID
@@ -84,6 +67,23 @@ type eventreq struct {
 	symbolicationAttempted int
 	events                 []event.EventField
 	attachments            map[uuid.UUID]*attachment
+}
+
+// status defines the status of processing
+// of an event request.
+type status int
+
+// String returns a string representation of the
+// status.
+func (s status) String() string {
+	switch s {
+	default:
+		return "unknown"
+	case pending:
+		return "pending"
+	case done:
+		return "done"
+	}
 }
 
 // uploadAttachments prepares and uploads each attachment.
@@ -1715,154 +1715,6 @@ func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter
 
 	if rows.Err() != nil {
 		return
-	}
-
-	return
-}
-
-// GetSessionsPlot queries session instances
-// by datetime and filters.
-func GetSessionsPlot(ctx context.Context, af *filter.AppFilter) (sessionInstances []event.SessionInstance, err error) {
-	if af.Timezone == "" {
-		return nil, errors.New("timezone filter needs to be provided for sessions plot")
-	}
-
-	base := sqlf.
-		From("default.events").
-		Select("session_id").
-		Select("any(attribute.app_version) as app_version").
-		Select("any(attribute.app_build) as app_build").
-		Where("app_id = ?", af.AppID)
-
-	if len(af.Versions) > 0 {
-		base.Where("attribute.app_version").In(af.Versions)
-	}
-
-	if len(af.VersionCodes) > 0 {
-		base.Where("attribute.app_build").In(af.VersionCodes)
-	}
-
-	if af.Crash && af.ANR {
-		base.Where("((type = 'exception' AND exception.handled = false) OR type = 'anr')")
-	} else if af.Crash {
-		base.Where("type = 'exception' AND exception.handled = false")
-	} else if af.ANR {
-		base.Where("type = 'anr'")
-	}
-
-	if len(af.OsNames) > 0 {
-		base.Where("attribute.os_name").In(af.OsNames)
-	}
-
-	if len(af.OsVersions) > 0 {
-		base.Where("attribute.os_version").In(af.OsVersions)
-	}
-
-	if len(af.Countries) > 0 {
-		base.Where("inet.country_code").In(af.Countries)
-	}
-
-	if len(af.DeviceNames) > 0 {
-		base.Where("attribute.device_name").In(af.DeviceNames)
-	}
-
-	if len(af.DeviceManufacturers) > 0 {
-		base.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
-	}
-
-	if len(af.Locales) > 0 {
-		base.Where("attribute.device_locale").In(af.Locales)
-	}
-
-	if len(af.NetworkProviders) > 0 {
-		base.Where("attribute.network_provider").In(af.NetworkProviders)
-	}
-
-	if len(af.NetworkTypes) > 0 {
-		base.Where("attribute.network_type").In(af.NetworkTypes)
-	}
-
-	if len(af.NetworkGenerations) > 0 {
-		base.Where("attribute.network_generation").In(af.NetworkGenerations)
-	}
-
-	if af.FreeText != "" {
-		base.Where(
-			"("+
-				"attribute.user_id ILIKE ? OR "+
-				"string.string ILIKE ? OR "+
-				"toString(exception.exceptions) ILIKE ? OR "+
-				"toString(anr.exceptions) ILIKE ? OR "+
-				"type ILIKE ? OR "+
-				"lifecycle_activity.class_name ILIKE ? OR "+
-				"lifecycle_fragment.class_name ILIKE ? OR "+
-				"gesture_click.target_id ILIKE ? OR "+
-				"gesture_long_click.target_id ILIKE ? OR "+
-				"gesture_scroll.target_id ILIKE ? OR "+
-				"gesture_click.target ILIKE ? OR "+
-				"gesture_long_click.target ILIKE ? OR "+
-				"gesture_scroll.target ILIKE ?"+
-				")",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%")
-	}
-
-	if af.HasTimeRange() {
-		base.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-	}
-
-	base.GroupBy("session_id")
-
-	firstEventTimeStmt := sqlf.
-		From("default.events").
-		Select("session_id").
-		Select("MIN(timestamp) AS first_event_time").
-		Where("app_id = ?", af.AppID).
-		GroupBy("session_id")
-
-	stmt := sqlf.
-		With("base_events", base).
-		With("first_event_times", firstEventTimeStmt).
-		From("base_events").
-		Join("first_event_times f ", "base_events.session_id = f.session_id").
-		Select("formatDateTime(f.first_event_time, '%Y-%m-%d', ?) as datetime", af.Timezone).
-		Select("concat(toString(app_version), '', '(', toString(app_build), ')') as app_version").
-		Select("count(distinct base_events.session_id) as instances").
-		GroupBy("app_version, datetime").
-		OrderBy("datetime, app_version")
-
-	defer stmt.Close()
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
-	if rows.Err() != nil {
-		return
-	}
-
-	defer rows.Close()
-
-	for rows.Next() {
-		var instance event.SessionInstance
-		if err := rows.Scan(&instance.DateTime, &instance.Version, &instance.Instances); err != nil {
-			return nil, err
-		}
-
-		if *instance.Instances > 0 {
-			sessionInstances = append(sessionInstances, instance)
-		}
 	}
 
 	return

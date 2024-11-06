@@ -119,9 +119,13 @@ type AppFilter struct {
 	// keyset pagination.
 	KeyTimestamp time.Time `form:"key_timestamp"`
 
-	// Limit is the count of matching results to
-	// limit to.
+	// Limit is the count of matching rows to
+	// return.
 	Limit int `form:"limit"`
+
+	// Offset if the count of matching rows to
+	// skip.
+	Offset int `form:"offset"`
 
 	// BiGraph represents if journey plot
 	// constructions should be bidirectional
@@ -304,10 +308,70 @@ func (af *AppFilter) HasPositiveLimit() bool {
 	return af.Limit > 0
 }
 
+// HasVersions returns true if at least one
+// app version is requested.
+func (af *AppFilter) HasVersions() bool {
+	return len(af.Versions) > 0 && len(af.VersionCodes) > 0
+}
+
+// HasOSVersions returns true if there at least
+// one OS Version is requested.
+func (af *AppFilter) HasOSVersions() bool {
+	return len(af.OsNames) > 0 && len(af.OsVersions) > 0
+}
+
 // HasMultiVersions checks if multiple versions
-// were requested.
+// are requested.
 func (af *AppFilter) HasMultiVersions() bool {
 	return len(af.Versions) > 1 && len(af.VersionCodes) > 1
+}
+
+// HasCountries returns true if at least one
+// country is requested.
+func (af *AppFilter) HasCountries() bool {
+	return len(af.Countries) > 0
+}
+
+// HasNetworkProviders returns true if at least
+// one network provider is requested.
+func (af *AppFilter) HasNetworkProviders() bool {
+	return len(af.NetworkProviders) > 0
+}
+
+// HasNetworkTypes returns true if at least
+// one network type is requested.
+func (af *AppFilter) HasNetworkTypes() bool {
+	return len(af.NetworkTypes) > 0
+}
+
+// HasNetworkGenerations returns true if at least
+// one network generation is requested.
+func (af *AppFilter) HasNetworkGenerations() bool {
+	return len(af.NetworkGenerations) > 0
+}
+
+// HasDeviceLocales returns true if at least
+// one device locale is requested.
+func (af *AppFilter) HasDeviceLocales() bool {
+	return len(af.Locales) > 0
+}
+
+// HasDeviceManufacturers returns true if at least
+// one device manufacturer is requested.
+func (af *AppFilter) HasDeviceManufacturers() bool {
+	return len(af.DeviceManufacturers) > 0
+}
+
+// HasDeviceNames returns true if at least
+// one device name is requested.
+func (af *AppFilter) HasDeviceNames() bool {
+	return len(af.DeviceNames) > 0
+}
+
+// HasTimezone returns true if a timezone
+// is requested.
+func (af *AppFilter) HasTimezone() bool {
+	return af.Timezone != ""
 }
 
 // LimitAbs returns the absolute value of limit
