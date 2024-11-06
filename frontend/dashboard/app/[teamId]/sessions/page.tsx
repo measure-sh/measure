@@ -87,8 +87,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
 
             {/* Main sessions list UI */}
             {filters.ready
-                && (sessionsOverviewApiStatus === SessionsOverviewApiStatus.Success || sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading)
-                && sessionsOverview.results !== null &&
+                && (sessionsOverviewApiStatus === SessionsOverviewApiStatus.Success || sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading) &&
                 <div className="flex flex-col items-center w-full">
                     <div className="py-4" />
                     <SessionsOverviewPlot
@@ -115,7 +114,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                             </div>
                         </div>
                         <div className="table-row-group font-sans">
-                            {sessionsOverview.results.map(({ session_id, app_id, first_event_time, duration, matched_free_text, attribute }, idx) => (
+                            {sessionsOverview.results?.map(({ session_id, app_id, first_event_time, duration, matched_free_text, attribute }, idx) => (
                                 <Link key={`${idx}-${session_id}`} href={`/${params.teamId}/sessions/${app_id}/${session_id}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
                                     <div className="table-cell p-4">
                                         <p className='truncate'>{session_id}</p>
