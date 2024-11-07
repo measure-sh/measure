@@ -37,6 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Update exceptions landing video
 
 
+### :coffin: Removed
+
+- (**backend**): Remove backfilling migrations (#1511)
+
+
 ### :books: Documentation
 
 - (**backend**): Document sessions overview list api (#1502)
