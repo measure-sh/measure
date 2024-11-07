@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Validate limit to not be zero (#1500)
 - (**backend**): Incorrect pagination when no data (#1499)
 - (**backend**): Optimize session detail apis and overall loading experience (#1490)
 
