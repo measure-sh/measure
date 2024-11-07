@@ -32,7 +32,7 @@ sudo docker compose down api cleanup
 ```sh
 sudo docker compose exec clickhouse clickhouse-client --progress -q "truncate table events;"
 
-sudo docker comopse exec postgres psql -U postgres -c "truncate table unhandled_exception_groups, anr_groups, event_reqs;"
+sudo docker compose exec postgres psql -U postgres -c "truncate table unhandled_exception_groups, anr_groups, event_reqs;"
 ```
 
 ### 4. Perform the upgrade
@@ -40,7 +40,7 @@ sudo docker comopse exec postgres psql -U postgres -c "truncate table unhandled_
 Visit [Releases](https://github.com/measure-sh/measure/releases) page to capture the latest tag matching the `[MAJOR].[MINOR].[PATCH]` format.
 
 ```sh
-cd measure
+cd ~/measure
 git fetch
 git checkout <git-tag>
 cd self-host
@@ -48,10 +48,11 @@ sudo docker compose -f compose.yml -f compose.prod.yml \
   --profile init \
   --profile migrate \
   down
+sudo docker compose pull
 sudo ./install.sh
 ```
 
-### 6. Run data backfills
+### 5. Run data backfills
 
 Perform this step regardless of whether you chose to drop data or not. Certain features on the Measure dashboard like filters, metrics and some graphical plots won't show otherwise.
 

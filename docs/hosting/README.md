@@ -248,6 +248,9 @@ sudo docker compose -f compose.yml -f compose.prod.yml \
   --profile migrate \
   down
 
+# pull fresh images
+sudo docker compose pull
+
 # bring up all containers
 sudo ./install.sh
 ```
