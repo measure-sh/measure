@@ -70,93 +70,98 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-12)
     - [Response Body](#response-body-12)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-12)
-  - [GET `/apps/:id/sessions/:id`](#get-appsidsessionsid)
+  - [GET `/apps/:id/sessions`](#get-appsidsessions)
     - [Usage Notes](#usage-notes-13)
     - [Authorization \& Content Type](#authorization--content-type-13)
     - [Response Body](#response-body-13)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-13)
-  - [GET `/apps/:id/alertPrefs`](#get-appsidalertprefs)
+  - [GET `/apps/:id/sessions/:id`](#get-appsidsessionsid)
     - [Usage Notes](#usage-notes-14)
     - [Authorization \& Content Type](#authorization--content-type-14)
     - [Response Body](#response-body-14)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-14)
-  - [PATCH `/apps/:id/alertPrefs`](#patch-appsidalertprefs)
+  - [GET `/apps/:id/alertPrefs`](#get-appsidalertprefs)
     - [Usage Notes](#usage-notes-15)
-    - [Request body](#request-body)
     - [Authorization \& Content Type](#authorization--content-type-15)
     - [Response Body](#response-body-15)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-15)
-  - [GET `/apps/:id/settings`](#get-appsidsettings)
+  - [PATCH `/apps/:id/alertPrefs`](#patch-appsidalertprefs)
     - [Usage Notes](#usage-notes-16)
+    - [Request body](#request-body)
     - [Authorization \& Content Type](#authorization--content-type-16)
     - [Response Body](#response-body-16)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-16)
-  - [PATCH `/apps/:id/settings`](#patch-appsidsettings)
+  - [GET `/apps/:id/settings`](#get-appsidsettings)
     - [Usage Notes](#usage-notes-17)
-    - [Request body](#request-body-1)
     - [Authorization \& Content Type](#authorization--content-type-17)
     - [Response Body](#response-body-17)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-17)
-- [Teams](#teams)
-  - [POST `/teams`](#post-teams)
-    - [Authorization \& Content Type](#authorization--content-type-18)
-    - [Request Body](#request-body-2)
+  - [PATCH `/apps/:id/settings`](#patch-appsidsettings)
     - [Usage Notes](#usage-notes-18)
+    - [Request body](#request-body-1)
+    - [Authorization \& Content Type](#authorization--content-type-18)
     - [Response Body](#response-body-18)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-18)
-  - [GET `/teams`](#get-teams)
+- [Teams](#teams)
+  - [POST `/teams`](#post-teams)
     - [Authorization \& Content Type](#authorization--content-type-19)
+    - [Request Body](#request-body-2)
+    - [Usage Notes](#usage-notes-19)
     - [Response Body](#response-body-19)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-19)
-  - [GET `/teams/:id/apps`](#get-teamsidapps)
-    - [Usage Notes](#usage-notes-19)
+  - [GET `/teams`](#get-teams)
     - [Authorization \& Content Type](#authorization--content-type-20)
     - [Response Body](#response-body-20)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-20)
-  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
+  - [GET `/teams/:id/apps`](#get-teamsidapps)
     - [Usage Notes](#usage-notes-20)
     - [Authorization \& Content Type](#authorization--content-type-21)
     - [Response Body](#response-body-21)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-21)
-  - [POST `/teams/:id/apps`](#post-teamsidapps)
+  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
     - [Usage Notes](#usage-notes-21)
-    - [Request body](#request-body-3)
     - [Authorization \& Content Type](#authorization--content-type-22)
     - [Response Body](#response-body-22)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-22)
-  - [POST `/auth/invite`](#post-authinvite)
+  - [POST `/teams/:id/apps`](#post-teamsidapps)
     - [Usage Notes](#usage-notes-22)
-    - [Request body](#request-body-4)
+    - [Request body](#request-body-3)
     - [Authorization \& Content Type](#authorization--content-type-23)
     - [Response Body](#response-body-23)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-23)
-  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
+  - [POST `/auth/invite`](#post-authinvite)
     - [Usage Notes](#usage-notes-23)
-    - [Request body](#request-body-5)
+    - [Request body](#request-body-4)
     - [Authorization \& Content Type](#authorization--content-type-24)
     - [Response Body](#response-body-24)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-24)
-  - [GET `/teams/:id/members`](#get-teamsidmembers)
+  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
     - [Usage Notes](#usage-notes-24)
+    - [Request body](#request-body-5)
     - [Authorization \& Content Type](#authorization--content-type-25)
     - [Response Body](#response-body-25)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-25)
-  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+  - [GET `/teams/:id/members`](#get-teamsidmembers)
     - [Usage Notes](#usage-notes-25)
     - [Authorization \& Content Type](#authorization--content-type-26)
     - [Response Body](#response-body-26)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-26)
-  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
     - [Usage Notes](#usage-notes-26)
-    - [Request body](#request-body-6)
     - [Authorization \& Content Type](#authorization--content-type-27)
     - [Response Body](#response-body-27)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-27)
-  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
     - [Usage Notes](#usage-notes-27)
+    - [Request body](#request-body-6)
     - [Authorization \& Content Type](#authorization--content-type-28)
     - [Response Body](#response-body-28)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-28)
+  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+    - [Usage Notes](#usage-notes-28)
+    - [Authorization \& Content Type](#authorization--content-type-29)
+    - [Response Body](#response-body-29)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-29)
 
 ## Apps
 
@@ -1938,6 +1943,255 @@ List of HTTP status codes for success and failures.
 
 </details>
 
+### GET `/apps/:id/sessions`
+
+Fetch an app's sessions by applying various optional filters.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+<summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details><summary>Click to expand</summary>
+
+  ```json
+  {
+    "meta": {
+      "next": true,
+      "previous": false
+    },
+    "results": [
+      {
+        "session_id": "295842e1-7cd9-4ca3-8545-d6a5b36be9a4",
+        "app_id": "36e1b948-3a0a-4e71-80f3-625e61d6c832",
+        "attribute": {
+          "installation_id": "00000000-0000-0000-0000-000000000000",
+          "app_version": "0.8.0-SNAPSHOT.debug",
+          "app_build": "800",
+          "app_unique_id": "",
+          "measure_sdk_version": "",
+          "platform": "",
+          "thread_name": "",
+          "user_id": "",
+          "device_name": "emu64a16k",
+          "device_model": "sdk_gphone16k_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "",
+          "device_is_foldable": false,
+          "device_is_physical": false,
+          "device_density_dpi": 0,
+          "device_width_px": 0,
+          "device_height_px": 0,
+          "device_density": 0,
+          "device_locale": "",
+          "os_name": "android",
+          "os_version": "35",
+          "os_page_size": 0,
+          "network_type": "",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "events": null,
+        "first_event_time": "2024-10-26T05:52:43.104Z",
+        "last_event_time": "2024-10-26T05:53:58.596Z",
+        "duration": 75492,
+        "matched_free_text": ""
+      },
+      {
+        "session_id": "2cc9ffd2-9f9d-40a7-9f55-d802a460507a",
+        "app_id": "36e1b948-3a0a-4e71-80f3-625e61d6c832",
+        "attribute": {
+          "installation_id": "00000000-0000-0000-0000-000000000000",
+          "app_version": "0.8.0-SNAPSHOT.debug",
+          "app_build": "800",
+          "app_unique_id": "",
+          "measure_sdk_version": "",
+          "platform": "",
+          "thread_name": "",
+          "user_id": "",
+          "device_name": "emu64a",
+          "device_model": "sdk_gphone64_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "",
+          "device_is_foldable": false,
+          "device_is_physical": false,
+          "device_density_dpi": 0,
+          "device_width_px": 0,
+          "device_height_px": 0,
+          "device_density": 0,
+          "device_locale": "",
+          "os_name": "android",
+          "os_version": "33",
+          "os_page_size": 0,
+          "network_type": "",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "events": null,
+        "first_event_time": "2024-10-02T18:26:58.226Z",
+        "last_event_time": "2024-10-02T18:27:09.151Z",
+        "duration": 10925,
+        "matched_free_text": ""
+      },
+      {
+        "session_id": "1152c238-4583-49b7-93fa-0c73d6a3d5b1",
+        "app_id": "36e1b948-3a0a-4e71-80f3-625e61d6c832",
+        "attribute": {
+          "installation_id": "00000000-0000-0000-0000-000000000000",
+          "app_version": "0.8.0-SNAPSHOT.debug",
+          "app_build": "800",
+          "app_unique_id": "",
+          "measure_sdk_version": "",
+          "platform": "",
+          "thread_name": "",
+          "user_id": "",
+          "device_name": "emu64a",
+          "device_model": "sdk_gphone64_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "",
+          "device_is_foldable": false,
+          "device_is_physical": false,
+          "device_density_dpi": 0,
+          "device_width_px": 0,
+          "device_height_px": 0,
+          "device_density": 0,
+          "device_locale": "",
+          "os_name": "android",
+          "os_version": "33",
+          "os_page_size": 0,
+          "network_type": "",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "events": null,
+        "first_event_time": "2024-10-02T13:11:45.182Z",
+        "last_event_time": "2024-10-02T13:15:14.489Z",
+        "duration": 209307,
+        "matched_free_text": ""
+      },
+      {
+        "session_id": "6d132488-9f91-4f4e-9869-e80fc5f4a03c",
+        "app_id": "36e1b948-3a0a-4e71-80f3-625e61d6c832",
+        "attribute": {
+          "installation_id": "00000000-0000-0000-0000-000000000000",
+          "app_version": "0.8.0-SNAPSHOT.debug",
+          "app_build": "800",
+          "app_unique_id": "",
+          "measure_sdk_version": "",
+          "platform": "",
+          "thread_name": "",
+          "user_id": "",
+          "device_name": "emu64a",
+          "device_model": "sdk_gphone64_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "",
+          "device_is_foldable": false,
+          "device_is_physical": false,
+          "device_density_dpi": 0,
+          "device_width_px": 0,
+          "device_height_px": 0,
+          "device_density": 0,
+          "device_locale": "",
+          "os_name": "android",
+          "os_version": "33",
+          "os_page_size": 0,
+          "network_type": "",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "events": null,
+        "first_event_time": "2024-10-02T13:10:28.454Z",
+        "last_event_time": "2024-10-02T13:11:08.89Z",
+        "duration": 40436,
+        "matched_free_text": ""
+      },
+      {
+        "session_id": "5e6e1064-9eed-499f-b552-c2dc993b4792",
+        "app_id": "36e1b948-3a0a-4e71-80f3-625e61d6c832",
+        "attribute": {
+          "installation_id": "00000000-0000-0000-0000-000000000000",
+          "app_version": "0.7.0-SNAPSHOT.debug",
+          "app_build": "700",
+          "app_unique_id": "",
+          "measure_sdk_version": "",
+          "platform": "",
+          "thread_name": "",
+          "user_id": "",
+          "device_name": "emu64a16k",
+          "device_model": "sdk_gphone16k_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "",
+          "device_is_foldable": false,
+          "device_is_physical": false,
+          "device_density_dpi": 0,
+          "device_width_px": 0,
+          "device_height_px": 0,
+          "device_density": 0,
+          "device_locale": "",
+          "os_name": "android",
+          "os_version": "35",
+          "os_page_size": 0,
+          "network_type": "",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "events": null,
+        "first_event_time": "2024-09-23T10:07:08.236Z",
+        "last_event_time": "2024-09-23T10:07:13.063Z",
+        "duration": 4827,
+        "matched_free_text": ""
+      }
+    ]
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
 ### GET `/apps/:id/sessions/:id`
 
 Fetch an app's session replay.
