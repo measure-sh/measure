@@ -208,7 +208,7 @@ Fetch an app's issue journey map. Filter time range using `from` &amp; `to` quer
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -220,7 +220,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -323,7 +324,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -361,7 +362,7 @@ Fetch an app's health metrics. Filter time range using `from` &amp; `to` query s
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -375,7 +376,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -444,7 +446,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -477,7 +479,7 @@ Fetch an app's filters.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -489,7 +491,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -542,7 +545,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -580,7 +583,7 @@ Fetch an app's crash overview.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -592,7 +595,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -660,7 +664,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -697,7 +701,7 @@ Fetch an app's crash overview instances plot aggregated by date range & version.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -709,7 +713,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   [
@@ -751,7 +756,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -798,7 +803,7 @@ Fetch an app's crash detail.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -810,7 +815,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -993,7 +999,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -1037,7 +1043,7 @@ Fetch an app's crash detail instances aggregrated by date range & version.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -1049,7 +1055,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   [
@@ -1089,7 +1096,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -1134,7 +1141,7 @@ Fetch an app's crash journey map.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -1146,7 +1153,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -1230,7 +1238,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -1268,7 +1276,7 @@ Fetch an app's ANR overview.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -1280,7 +1288,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -1328,7 +1337,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -1365,7 +1374,7 @@ Fetch an app's ANR overview instances plot aggregated by date range & version.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -1377,7 +1386,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   [
@@ -1419,7 +1429,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -1466,7 +1476,7 @@ Fetch an app's ANR detail.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -1478,7 +1488,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -1694,7 +1705,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -1738,7 +1749,7 @@ Fetch an app's ANR detail instances aggregated by date range & version.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -1750,7 +1761,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   [
@@ -1781,7 +1793,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -1826,7 +1838,7 @@ Fetch an app's ANR journey map.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -1838,7 +1850,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -1931,7 +1944,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -1980,7 +1993,7 @@ Fetch an app's sessions by applying various optional filters.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -1992,7 +2005,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -2200,7 +2214,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -2212,6 +2226,7 @@ List of HTTP status codes for success and failures.
 | `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
 
 </details>
+
 ### GET `/apps/:id/sessions/:id`
 
 Fetch an app's session replay.
@@ -2230,7 +2245,7 @@ Fetch an app's session replay.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -2242,7 +2257,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+<details>
+  <summary>Click to expand</summary>
 
   ```json
   {
@@ -2764,7 +2780,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -2794,7 +2810,7 @@ Fetch an app's alert preferences for current user.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -2806,7 +2822,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -2840,7 +2857,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -2889,7 +2906,7 @@ Update an app's alert preferences for current user.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -2901,7 +2918,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -2924,7 +2942,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -2954,7 +2972,7 @@ Fetch an app's settings.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -2966,7 +2984,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -2989,7 +3008,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -3027,7 +3046,7 @@ Update an app's settings.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -3039,7 +3058,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -3062,7 +3082,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -3102,7 +3122,7 @@ Create a new team. Only owners of existing team can create new teams.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -3128,7 +3148,8 @@ Pass the name in `"name"` JSON property.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -3152,11 +3173,11 @@ Pass the name in `"name"` JSON property.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `201 Created`                    | Successful response, no errors.                                                                                        |
+| `201 Created`               | Successful response, no errors.                                                                                        |
 | `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
 | `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
 | `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
@@ -3178,7 +3199,7 @@ Fetch list of teams of access token holder.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -3190,7 +3211,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   [
@@ -3222,7 +3244,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -3256,7 +3278,7 @@ Fetch list of apps for a team
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -3268,7 +3290,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   [
@@ -3324,7 +3347,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -3359,7 +3382,7 @@ Fetch details of an app for a team
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -3371,7 +3394,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -3408,7 +3432,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -3451,7 +3475,7 @@ Create a new app for a team
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -3463,7 +3487,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -3500,7 +3525,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -3542,18 +3567,19 @@ Invite new members (both existing & non measure users) to a team
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
-| **Name**        | **Value**                        |
-| --------------- | -------------------------------- |
-| `Content-Type`  | application/json; charset=utf-8  |
+| **Name**       | **Value**                       |
+| -------------- | ------------------------------- |
+| `Content-Type` | application/json; charset=utf-8 |
 </details>
 
 #### Response Body
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -3576,7 +3602,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -3615,7 +3641,7 @@ Rename a team
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -3627,7 +3653,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -3650,7 +3677,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -3680,7 +3707,7 @@ Fetch list of team members for a team
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -3692,7 +3719,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   [
@@ -3730,7 +3758,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -3761,7 +3789,7 @@ Remove a member from a team
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -3773,7 +3801,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -3796,7 +3825,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -3835,7 +3864,7 @@ Change role of a member of a team
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -3847,7 +3876,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -3870,7 +3900,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -3903,7 +3933,7 @@ Fetch authorization details of access token holder for a team.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -3915,7 +3945,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -3979,7 +4010,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
