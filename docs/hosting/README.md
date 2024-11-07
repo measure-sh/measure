@@ -208,6 +208,8 @@ Visit `https://measure.yourcompany.com` to access your dashboard and sign in to 
 
 To upgrade to a specific or latest version of Measure, SSH to your VM instance first and run these commands.
 
+For certain target versions, you will need to run extra migration scripts. Check out our [Migration Guides](../hosting/migration-guides/README.md).
+
 ```sh
 # change to the directory you
 # had cloned to.
