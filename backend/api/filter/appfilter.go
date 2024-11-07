@@ -7,6 +7,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"time"
@@ -198,6 +199,10 @@ func (af *AppFilter) Validate() error {
 
 	if af.From.After(time.Now().UTC()) {
 		return fmt.Errorf("`from` cannot be later than now")
+	}
+
+	if af.Limit == 0 {
+		return errors.New("`limit` cannot be zero")
 	}
 
 	if af.Limit > MaxPaginationLimit {
