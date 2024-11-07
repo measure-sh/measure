@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add migration guide & script for next version (#1512)
 - (**backend**): Change postgres compose config (#1509)
 - (**backend**): Change index type in sessions table (#1505)
 - (**backend**): Add skip indexes for sessions table (#1492)
