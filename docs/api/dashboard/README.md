@@ -178,6 +178,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
 - [**GET `/apps/:id/anrGroups/:id/anrs`**](#get-appsidanrgroupsidanrs) - Fetch an app's ANR detail.
 - [**GET `/apps/:id/anrGroups/:id/plots/instances`**](#get-appsidanrgroupsidplotsinstances) - Fetch an app's ANR detail instances aggregated by date range & version.
 - [**GET `/apps/:id/anrGroups/:id/plots/journey`**](#get-appsidanrgroupsidplotsjourney) - Fetch an app's ANR journey map.
+- [**GET `/apps/:id/sessions`**](#get-appsidsessions) - Fetch an app's sessions by applying various optional filters.
 - [**GET `/apps/:id/sessions/:id`**](#get-appsidsessionsid) - Fetch an app's session replay.
 - [**GET `/apps/:id/alertPrefs`**](#get-appsidalertprefs) - Fetch an app's alert preferences for current user.
 - [**PATCH `/apps/:id/alertPrefs`**](#patch-appsidalertprefs) - Update an app's alert preferences for current user.
@@ -1950,6 +1951,25 @@ Fetch an app's sessions by applying various optional filters.
 #### Usage Notes
 
 - App's UUID must be passed in the URI
+- Accepted query parameters
+  - `from` (_optional_) - ISO8601 timestamp to include sessions after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include sessions before this time.
+  - `versions` (_optional_) - List of comma separated version identifier strings to return only matching sessions.
+  - `version_codes` (_optional_) - List of comma separated version codes to return only matching sessions.
+  - `crash` (_optional_) - Boolean true/false to control if only sessions containing at least 1 crash should be fetched.
+  - `anr` (_optional_) - Boolean true/false to control if only sessions containing at least 1 ANR should be fetched.
+  - `countries` (_optional_) - List of comma separated country identifier strings to return only matching sessions.
+  - `device_names` (_optional_) - List of comma separated device name identifier strings to return only matching sessions.
+  - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings to return only matching sessions.
+  - `locales` (_optional_) - List of comma separated device locale identifier strings to return only matching sessions.
+  - `network_providers` (_optional_) - List of comma separated network provider identifier strings to return only matching sessions.
+  - `network_types` (_optional_) - List of comma separated network type identifier strings to return only matching sessions.
+  - `network_generations` (_optional_) - List of comma separated network generation identifier strings to return only matching sessions.
+  - `free_text` (_optional_) - A sequence of characters used to filter sessions matching various criteria like user_id, even type, exception message and so on.
+  - `offset` (_optional_) - Number of items to skip when paginating. Use with `limit` parameter to control amount of items fetched.
+  - `limit` (_optional_) - Number of items to return. Used for pagination. Should be used along with `offset`.
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+- Pass `limit` and `offset` values to paginate results
 
 #### Authorization & Content Type
 
