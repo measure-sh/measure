@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :bug: Bug fixes
+
+- (**backend**): Use specific clickhouse image version (#1517)
+
+
 ### :books: Documentation
 
 - (**backend**): Fix typos and missing info (#1513)
