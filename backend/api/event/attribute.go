@@ -78,6 +78,14 @@ type Attribute struct {
 	// identifier.
 	DeviceLocale string `json:"device_locale"`
 
+	// DeviceLowPowerMode is true if low power mode
+	// is enabled.
+	DeviceLowPowerMode bool `json:"device_low_power_mode"`
+
+	// DeviceThermalThrottlingEnabled is true if device
+	// is running with thermal throttling enabled.
+	DeviceThermalThrottlingEnabled bool `json:"device_thermal_throttling_enabled"`
+
 	// OSName is the operating system's name
 	OSName string `json:"os_name"`
 
