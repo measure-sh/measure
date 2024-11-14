@@ -11,6 +11,7 @@ import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.DeviceAttributeProcessor
 import sh.measure.android.attributes.InstallationIdAttributeProcessor
 import sh.measure.android.attributes.NetworkStateAttributeProcessor
+import sh.measure.android.attributes.PowerStateAttributeProcessor
 import sh.measure.android.attributes.UserAttributeProcessor
 import sh.measure.android.attributes.UserDefinedAttribute
 import sh.measure.android.attributes.UserDefinedAttributeImpl
@@ -165,6 +166,11 @@ internal class MeasureInitializerImpl(
     private val networkStateProvider: NetworkStateProvider = NetworkStateProviderImpl(
         initialNetworkStateProvider = initialNetworkStateProvider,
     ),
+    override val powerStateProvider: PowerStateProvider = PowerStateProviderImpl(
+        logger = logger,
+        context = application,
+        systemServiceProvider = systemServiceProvider,
+    ),
     override val userDefinedAttribute: UserDefinedAttribute = UserDefinedAttributeImpl(
         logger,
         configProvider,
@@ -193,12 +199,16 @@ internal class MeasureInitializerImpl(
     private val networkStateAttributeProcessor: NetworkStateAttributeProcessor = NetworkStateAttributeProcessor(
         networkStateProvider = networkStateProvider,
     ),
+    private val powerStateAttributeProcessor: PowerStateAttributeProcessor = PowerStateAttributeProcessor(
+        powerStateProvider = powerStateProvider,
+    ),
     private val attributeProcessors: List<AttributeProcessor> = listOf(
         userAttributeProcessor,
         deviceAttributeProcessor,
         appAttributeProcessor,
         installationIdAttributeProcessor,
         networkStateAttributeProcessor,
+        powerStateAttributeProcessor,
     ),
     private val eventTransformer: EventTransformer = DefaultEventTransformer(
         configProvider = configProvider,
@@ -384,4 +394,5 @@ internal interface MeasureInitializer {
     val screenshotCollector: ScreenshotCollector
     val dataCleanupService: DataCleanupService
     val processInfoProvider: ProcessInfoProvider
+    val powerStateProvider: PowerStateProvider
 }

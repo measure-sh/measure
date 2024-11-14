@@ -22,4 +22,6 @@ internal object Attribute {
     const val NETWORK_PROVIDER_KEY = "network_provider"
     const val INSTALLATION_ID_KEY = "installation_id"
     const val USER_ID_KEY = "user_id"
+    const val DEVICE_LOW_POWER_ENABLED = "device_low_power_mode"
+    const val DEVICE_THERMAL_THROTTLING_ENABLED = "device_thermal_throttling_enabled"
 }

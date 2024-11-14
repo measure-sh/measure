@@ -11,6 +11,7 @@ import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.DeviceAttributeProcessor
 import sh.measure.android.attributes.InstallationIdAttributeProcessor
 import sh.measure.android.attributes.NetworkStateAttributeProcessor
+import sh.measure.android.attributes.PowerStateAttributeProcessor
 import sh.measure.android.attributes.UserAttributeProcessor
 import sh.measure.android.attributes.UserDefinedAttribute
 import sh.measure.android.attributes.UserDefinedAttributeImpl
@@ -190,12 +191,21 @@ internal class TestMeasureInitializer(
     private val networkStateAttributeProcessor: NetworkStateAttributeProcessor = NetworkStateAttributeProcessor(
         networkStateProvider = networkStateProvider,
     ),
+    override val powerStateProvider: PowerStateProvider = PowerStateProviderImpl(
+        logger = logger,
+        context = application,
+        systemServiceProvider = systemServiceProvider,
+    ),
+    private val powerStateAttributeProcessor: PowerStateAttributeProcessor = PowerStateAttributeProcessor(
+        powerStateProvider,
+    ),
     private val attributeProcessors: List<AttributeProcessor> = listOf(
         userAttributeProcessor,
         deviceAttributeProcessor,
         appAttributeProcessor,
         installationIdAttributeProcessor,
         networkStateAttributeProcessor,
+        powerStateAttributeProcessor,
     ),
     private val eventTransformer: EventTransformer = DefaultEventTransformer(
         configProvider = configProvider,
