@@ -669,6 +669,16 @@ Use the `memory_usage` type for memory usage of JVM applications.
 | native_free_heap  | uint64 | No       | Amount of free memory available in the native heap. Measured in kB.                                                           |
 | interval          | uint64 | No       | The interval between two consecutive readings. Measured in ms.                                                                |
 
+#### **`memory_usage_absolute`**
+
+Use the `memory_usage` type for absolute memory usage.
+
+| Field              | Type    | Optional | Description                                                         |
+| ------------------ | :------ | :------- | ------------------------------------------------------------------- |
+| `max_memory`       | uint64  | No       | Maximum size of memory available to the application, in kB.         |
+| `used_memory`      | uint64  | No       | Memory used by the application, in kB.                              |
+| `interval`         | uint64  | No       | The interval between two consecutive readings. Measured in ms.      |
+
 #### **`low_memory`**
 
 Use the `low_memory` type for a low memory event from the system.

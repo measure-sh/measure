@@ -16,13 +16,12 @@ final class MockEventProcessor: EventProcessor {
     var type: MeasureSDK.EventType?
     var attributes: MeasureSDK.Attributes?
 
-        func track<T>(data: T, // swiftlint:disable:this function_parameter_count
-                      timestamp: MeasureSDK.Number,
-                      type: MeasureSDK.EventType,
-                      attributes: MeasureSDK.Attributes?,
-                      sessionId: String?,
-                      attachments: [MeasureSDK.Attachment]?) where T: Codable {
-        print("MockEventProcessor track called.")
+    func track<T>(data: T, // swiftlint:disable:this function_parameter_count
+                  timestamp: MeasureSDK.Number,
+                  type: MeasureSDK.EventType,
+                  attributes: MeasureSDK.Attributes?,
+                  sessionId: String?,
+                  attachments: [MeasureSDK.Attachment]?) where T: Codable {
         self.data = data
         self.timestamp = timestamp
         self.type = type

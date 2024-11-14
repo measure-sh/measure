@@ -18,8 +18,8 @@ struct ClickData: Codable {
     let targetId: String?
     let width: Number?
     let height: Number?
-    let x: FloatNumber
-    let y: FloatNumber
+    let x: FloatNumber32
+    let y: FloatNumber32
     let touchDownTime: Number
     let touchUpTime: Number
 
@@ -40,8 +40,8 @@ struct LongClickData: Codable {
     let targetId: String?
     let width: Number?
     let height: Number?
-    let x: FloatNumber
-    let y: FloatNumber
+    let x: FloatNumber32
+    let y: FloatNumber32
     let touchDownTime: Number
     let touchUpTime: Number
 
@@ -60,10 +60,10 @@ struct LongClickData: Codable {
 struct ScrollData: Codable {
     let target: String?
     let targetId: String?
-    let x: FloatNumber
-    let y: FloatNumber
-    let endX: FloatNumber
-    let endY: FloatNumber
+    let x: FloatNumber32
+    let y: FloatNumber32
+    let endX: FloatNumber32
+    let endY: FloatNumber32
     let direction: Direction
     let touchDownTime: Number
     let touchUpTime: Number

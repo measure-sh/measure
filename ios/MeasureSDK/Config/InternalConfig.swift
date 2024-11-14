@@ -32,4 +32,10 @@ protocol InternalConfig {
 
     /// The maximum duration for a session. Used when the app comes to foreground, sessions which remain in foreground for more than this time will still continue. Defaults to 6 hours.
     var maxSessionDurationMs: Number { get }
+
+    /// The interval at which CPU related data is collected. Defaults to 3 seconds.
+    var cpuTrackingIntervalMs: UnsignedNumber { get }
+
+    /// The interval at which memory related data is collected. Defaults to 2 seconds.
+    var memoryTrackingIntervalMs: UnsignedNumber { get }
 }

@@ -94,6 +94,12 @@ final class MeasureInternal {
     private var lifecycleCollector: LifecycleCollector {
         return measureInitializer.lifecycleCollector
     }
+    private var cpuUsageCollector: CpuUsageCollector {
+        return measureInitializer.cpuUsageCollector
+    }
+    private var memoryUsageCollector: MemoryUsageCollector {
+        return measureInitializer.memoryUsageCollector
+    }
     private let lifecycleObserver: LifecycleObserver
 
     init(_ measureInitializer: MeasureInitializer) {
@@ -111,6 +117,8 @@ final class MeasureInternal {
         self.crashReportManager.enableCrashReporting()
         self.crashReportManager.trackException()
         self.lifecycleCollector.enable()
+        self.cpuUsageCollector.enable()
+        self.memoryUsageCollector.enable()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             if let window = UIApplication.shared.windows.first {
                 self.gestureCollector.enable(for: window)
@@ -123,6 +131,8 @@ final class MeasureInternal {
         self.sessionManager.applicationDidEnterBackground()
         self.periodicEventExporter.applicationDidEnterBackground()
         self.lifecycleCollector.applicationDidEnterBackground()
+        self.cpuUsageCollector.pause()
+        self.memoryUsageCollector.pause()
     }
 
     private func applicationWillEnterForeground() {
@@ -130,6 +140,8 @@ final class MeasureInternal {
         self.sessionManager.applicationWillEnterForeground()
         self.periodicEventExporter.applicationWillEnterForeground()
         self.lifecycleCollector.applicationWillEnterForeground()
+        self.cpuUsageCollector.resume()
+        self.memoryUsageCollector.resume()
     }
 
     private func applicationWillTerminate() {

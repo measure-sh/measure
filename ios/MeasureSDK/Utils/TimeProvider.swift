@@ -23,8 +23,8 @@ protocol TimeProvider {
 }
 
 /// Implementation of TimeProvider using system uptime and anchored epoch time.
-class BaseTimeProvider: TimeProvider {
-    let formatter: ISO8601DateFormatter
+final class BaseTimeProvider: TimeProvider {
+    private let formatter: ISO8601DateFormatter
     private let anchoredEpochTime: Number
     private let anchoredElapsedRealtime: Number
 

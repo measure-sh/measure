@@ -87,6 +87,9 @@
 		52A1A9622CA592A100461103 /* EventProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A1A9612CA592A100461103 /* EventProcessorTests.swift */; };
 		52A1A9642CA5A3E900461103 /* MockEventStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A1A9632CA5A3E900461103 /* MockEventStore.swift */; };
 		52A1A9662CA5AC9900461103 /* Attachment+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A1A9652CA5AC9900461103 /* Attachment+Extension.swift */; };
+		52A3C0772CDB732F00C8F047 /* CpuUsageCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A3C0732CDB732F00C8F047 /* CpuUsageCollector.swift */; };
+		52A3C0782CDB732F00C8F047 /* CpuUsageData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A3C0742CDB732F00C8F047 /* CpuUsageData.swift */; };
+		52A3C0902CDC73AB00C8F047 /* MemoryUsageCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A3C08F2CDC73AB00C8F047 /* MemoryUsageCollector.swift */; };
 		52A853372C983FFC00B2A39F /* CrashReportingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A853362C983FFC00B2A39F /* CrashReportingManager.swift */; };
 		52A8533A2C994B6900B2A39F /* ThreadDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A853392C994B6900B2A39F /* ThreadDetail.swift */; };
 		52A8533C2C994BCE00B2A39F /* StackFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A8533B2C994BCE00B2A39F /* StackFrame.swift */; };
@@ -169,6 +172,17 @@
 		52F3775C2CB41F5F006147E8 /* MeasureSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* MeasureSDK.framework */; };
 		52F3775D2CB41F5F006147E8 /* MeasureSDK.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* MeasureSDK.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		52F93B9E2CAE6B3C00168AB4 /* GestureTargetFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F93B9D2CAE6B3C00168AB4 /* GestureTargetFinder.swift */; };
+		52FA6A772CDF3CFC0091F089 /* MemoryUsageData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FA6A762CDF3CFC0091F089 /* MemoryUsageData.swift */; };
+		52FA6A7A2CDF76910091F089 /* MemoryUsageCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FA6A792CDF76910091F089 /* MemoryUsageCalculator.swift */; };
+		52FA6A7E2CDF810C0091F089 /* CpuUsageCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FA6A7D2CDF810C0091F089 /* CpuUsageCalculator.swift */; };
+		52FA6A802CE212320091F089 /* SysCtl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FA6A7F2CE212320091F089 /* SysCtl.swift */; };
+		52FA6A832CE21A060091F089 /* CpuUsageCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FA6A822CE21A060091F089 /* CpuUsageCollectorTests.swift */; };
+		52FA6A852CE21A830091F089 /* MockCpuUsageCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FA6A842CE21A830091F089 /* MockCpuUsageCalculator.swift */; };
+		52FA6A872CE21A980091F089 /* MockSysCtl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FA6A862CE21A980091F089 /* MockSysCtl.swift */; };
+		52FA6A892CE21E3D0091F089 /* MemoryUsageCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FA6A882CE21E3D0091F089 /* MemoryUsageCollectorTests.swift */; };
+		52FA6A8B2CE21EDF0091F089 /* MockMemoryUsageCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FA6A8A2CE21EDF0091F089 /* MockMemoryUsageCalculator.swift */; };
+		52FA6A8D2CE222030091F089 /* CpuUsageCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FA6A8C2CE222030091F089 /* CpuUsageCalculatorTests.swift */; };
+		52FA6A8F2CE222360091F089 /* MemoryUsageCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FA6A8E2CE222360091F089 /* MemoryUsageCalculatorTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -370,6 +384,9 @@
 		52A1A9612CA592A100461103 /* EventProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventProcessorTests.swift; sourceTree = "<group>"; };
 		52A1A9632CA5A3E900461103 /* MockEventStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockEventStore.swift; sourceTree = "<group>"; };
 		52A1A9652CA5AC9900461103 /* Attachment+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Attachment+Extension.swift"; sourceTree = "<group>"; };
+		52A3C0732CDB732F00C8F047 /* CpuUsageCollector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CpuUsageCollector.swift; sourceTree = "<group>"; };
+		52A3C0742CDB732F00C8F047 /* CpuUsageData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CpuUsageData.swift; sourceTree = "<group>"; };
+		52A3C08F2CDC73AB00C8F047 /* MemoryUsageCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryUsageCollector.swift; sourceTree = "<group>"; };
 		52A853362C983FFC00B2A39F /* CrashReportingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReportingManager.swift; sourceTree = "<group>"; };
 		52A853392C994B6900B2A39F /* ThreadDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreadDetail.swift; sourceTree = "<group>"; };
 		52A8533B2C994BCE00B2A39F /* StackFrame.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StackFrame.swift; sourceTree = "<group>"; };
@@ -448,6 +465,17 @@
 		52F377592CB41F0B006147E8 /* ObjcDetailViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjcDetailViewController.h; sourceTree = "<group>"; };
 		52F3775A2CB41F0B006147E8 /* ObjcDetailViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjcDetailViewController.m; sourceTree = "<group>"; };
 		52F93B9D2CAE6B3C00168AB4 /* GestureTargetFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureTargetFinder.swift; sourceTree = "<group>"; };
+		52FA6A762CDF3CFC0091F089 /* MemoryUsageData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryUsageData.swift; sourceTree = "<group>"; };
+		52FA6A792CDF76910091F089 /* MemoryUsageCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryUsageCalculator.swift; sourceTree = "<group>"; };
+		52FA6A7D2CDF810C0091F089 /* CpuUsageCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CpuUsageCalculator.swift; sourceTree = "<group>"; };
+		52FA6A7F2CE212320091F089 /* SysCtl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SysCtl.swift; sourceTree = "<group>"; };
+		52FA6A822CE21A060091F089 /* CpuUsageCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CpuUsageCollectorTests.swift; sourceTree = "<group>"; };
+		52FA6A842CE21A830091F089 /* MockCpuUsageCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockCpuUsageCalculator.swift; sourceTree = "<group>"; };
+		52FA6A862CE21A980091F089 /* MockSysCtl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockSysCtl.swift; sourceTree = "<group>"; };
+		52FA6A882CE21E3D0091F089 /* MemoryUsageCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryUsageCollectorTests.swift; sourceTree = "<group>"; };
+		52FA6A8A2CE21EDF0091F089 /* MockMemoryUsageCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockMemoryUsageCalculator.swift; sourceTree = "<group>"; };
+		52FA6A8C2CE222030091F089 /* CpuUsageCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CpuUsageCalculatorTests.swift; sourceTree = "<group>"; };
+		52FA6A8E2CE222360091F089 /* MemoryUsageCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryUsageCalculatorTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -591,6 +619,7 @@
 				5202BE5A2C89603E00A3496E /* MockConfigLoader.swift */,
 				5232877C2C861D48000EE268 /* MockConfigProvider.swift */,
 				52A1A93E2CA0868500461103 /* MockCoreDataManager.swift */,
+				52FA6A842CE21A830091F089 /* MockCpuUsageCalculator.swift */,
 				52A1A9522CA5756000461103 /* MockCrashDataPersistence.swift */,
 				52D3D74A2CC621C6004E404B /* MockEventExporter.swift */,
 				52A1A9582CA579A300461103 /* MockEventProcessor.swift */,
@@ -598,9 +627,11 @@
 				52D3D7482CC62128004E404B /* MockHeartbeat.swift */,
 				523287742C8619C4000EE268 /* MockIdProvider.swift */,
 				523287762C8619E0000EE268 /* MockLogger.swift */,
+				52FA6A8A2CE21EDF0091F089 /* MockMemoryUsageCalculator.swift */,
 				52D3D7422CC60608004E404B /* MockNetworkClient.swift */,
 				523287782C8619EF000EE268 /* MockRandomizer.swift */,
 				52A1A9502CA573C900461103 /* MockSessionManager.swift */,
+				52FA6A862CE21A980091F089 /* MockSysCtl.swift */,
 				52A1A95A2CA57BCD00461103 /* MockSystemCrashReporter.swift */,
 				5232877A2C861A14000EE268 /* MockTimeProvider.swift */,
 				5202BE562C89603400A3496E /* MockUserDefaultStorage.swift */,
@@ -653,6 +684,13 @@
 		524CC5BC2C6A4B11001AB506 /* MeasureSDK */ = {
 			isa = PBXGroup;
 			children = (
+				524CC5BD2C6A4B11001AB506 /* MeasureSDK.h */,
+				5202BE412C895FD600A3496E /* FrameworkInfo.swift */,
+				524CC5D92C6A4B48001AB506 /* Measure.swift */,
+				52CD91252C7C3D90000189BA /* MeasureInitializer.swift */,
+				52CD91232C7C3D0F000189BA /* MeasureInternal.swift */,
+				5229D16D2CCB533C00EFFE44 /* RecentSession.swift */,
+				528EAB882C804AA100CB1574 /* SessionManager.swift */,
 				5202BE382C895FC800A3496E /* Attribute */,
 				524CC5DA2C6A4B48001AB506 /* Config */,
 				524CC5D32C6A4B48001AB506 /* CoreData */,
@@ -660,15 +698,9 @@
 				5202BE782C8B117900A3496E /* Events */,
 				52A853382C994AD100B2A39F /* Exception */,
 				524576632CBFD18600B288E5 /* Exporter */,
-				5202BE412C895FD600A3496E /* FrameworkInfo.swift */,
 				52AE72002CABAE9000F2830A /* Gestures */,
 				52816B682CCE390800B160A4 /* Lifecycle */,
-				524CC5D92C6A4B48001AB506 /* Measure.swift */,
-				52CD91252C7C3D90000189BA /* MeasureInitializer.swift */,
-				52CD91232C7C3D0F000189BA /* MeasureInternal.swift */,
-				524CC5BD2C6A4B11001AB506 /* MeasureSDK.h */,
-				5229D16D2CCB533C00EFFE44 /* RecentSession.swift */,
-				528EAB882C804AA100CB1574 /* SessionManager.swift */,
+				52A3C0752CDB732F00C8F047 /* Performance */,
 				524CC5DB2C6A4B48001AB506 /* Utils */,
 				524CC5D52C6A4B48001AB506 /* XCDataModel */,
 			);
@@ -687,6 +719,7 @@
 				52F93BA32CB1996700168AB4 /* Gestures */,
 				5224ECE12C880F7400D1B1F7 /* Helper */,
 				523287712C861928000EE268 /* Mocks */,
+				52FA6A812CE219CC0091F089 /* Performance */,
 				523287722C86195E000EE268 /* SessionManagerTests.swift */,
 				5232876A2C85E277000EE268 /* Utils */,
 			);
@@ -752,6 +785,7 @@
 				52A1A9452CA1786A00461103 /* MeasureQueue.swift */,
 				528EAB972C845AF400CB1574 /* Randomizer.swift */,
 				52EB380B2C8C7334002D63EC /* SignPost.swift */,
+				52FA6A7F2CE212320091F089 /* SysCtl.swift */,
 				52CC63C42C9D714200F7CA0A /* SystemFileManager.swift */,
 				528EAB8E2C81B4C700CB1574 /* TimeProvider.swift */,
 				5202BE452C89600200A3496E /* UserDefaultStorage.swift */,
@@ -799,6 +833,19 @@
 				52A1A9612CA592A100461103 /* EventProcessorTests.swift */,
 			);
 			path = Event;
+			sourceTree = "<group>";
+		};
+		52A3C0752CDB732F00C8F047 /* Performance */ = {
+			isa = PBXGroup;
+			children = (
+				52FA6A7D2CDF810C0091F089 /* CpuUsageCalculator.swift */,
+				52A3C0732CDB732F00C8F047 /* CpuUsageCollector.swift */,
+				52A3C0742CDB732F00C8F047 /* CpuUsageData.swift */,
+				52FA6A792CDF76910091F089 /* MemoryUsageCalculator.swift */,
+				52A3C08F2CDC73AB00C8F047 /* MemoryUsageCollector.swift */,
+				52FA6A762CDF3CFC0091F089 /* MemoryUsageData.swift */,
+			);
+			path = Performance;
 			sourceTree = "<group>";
 		};
 		52A853382C994AD100B2A39F /* Exception */ = {
@@ -929,6 +976,17 @@
 				52C03C432CB3FB29002E3C36 /* GestureTargetFinderTests.swift */,
 			);
 			path = Gestures;
+			sourceTree = "<group>";
+		};
+		52FA6A812CE219CC0091F089 /* Performance */ = {
+			isa = PBXGroup;
+			children = (
+				52FA6A8C2CE222030091F089 /* CpuUsageCalculatorTests.swift */,
+				52FA6A822CE21A060091F089 /* CpuUsageCollectorTests.swift */,
+				52FA6A8E2CE222360091F089 /* MemoryUsageCalculatorTests.swift */,
+				52FA6A882CE21E3D0091F089 /* MemoryUsageCollectorTests.swift */,
+			);
+			path = Performance;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -1247,6 +1305,9 @@
 				5202BE3C2C895FC800A3496E /* ComputeOnceAttributeProcessor.swift in Sources */,
 				5202BE3D2C895FC800A3496E /* DeviceAttributeProcessor.swift in Sources */,
 				52BCF1DC2CB42026003102DF /* MeasureModel.xcdatamodeld in Sources */,
+				52A3C0772CDB732F00C8F047 /* CpuUsageCollector.swift in Sources */,
+				52FA6A772CDF3CFC0091F089 /* MemoryUsageData.swift in Sources */,
+				52FA6A7E2CDF810C0091F089 /* CpuUsageCalculator.swift in Sources */,
 				52D51A9E2CCFA917008F30A6 /* MSRViewController.m in Sources */,
 				52D51A5C2CCE77A5008F30A6 /* UIViewController+Extension.swift in Sources */,
 				5224ECE02C88057A00D1B1F7 /* FatalErrorUtil.swift in Sources */,
@@ -1275,6 +1336,7 @@
 				52A1A94A2CA3CF9B00461103 /* EventStore.swift in Sources */,
 				528EAB982C845AF400CB1574 /* Randomizer.swift in Sources */,
 				524CC5DF2C6A4B48001AB506 /* Measure.swift in Sources */,
+				52FA6A7A2CDF76910091F089 /* MemoryUsageCalculator.swift in Sources */,
 				524576672CBFEC3D00B288E5 /* HttpClient.swift in Sources */,
 				5245766D2CC0DF0200B288E5 /* Heartbeat.swift in Sources */,
 				5202BE3F2C895FC800A3496E /* NetworkStateAttributeProcessor.swift in Sources */,
@@ -1291,11 +1353,14 @@
 				52816B6A2CCE399B00B160A4 /* LifecycleCollector.swift in Sources */,
 				528EAB962C84553500CB1574 /* LifecycleObserver.swift in Sources */,
 				52AE72032CABAE9000F2830A /* GestureEvents.swift in Sources */,
+				52A3C0782CDB732F00C8F047 /* CpuUsageData.swift in Sources */,
 				5202BE7D2C8B117900A3496E /* EventType.swift in Sources */,
 				52A8533C2C994BCE00B2A39F /* StackFrame.swift in Sources */,
 				52CD911E2C7B397C000189BA /* BaseConfigProvider.swift in Sources */,
+				52FA6A802CE212320091F089 /* SysCtl.swift in Sources */,
 				52A853422C9983B900B2A39F /* CrashDataFormatter.swift in Sources */,
 				52A853372C983FFC00B2A39F /* CrashReportingManager.swift in Sources */,
+				52A3C0902CDC73AB00C8F047 /* MemoryUsageCollector.swift in Sources */,
 				52A1A9462CA1786A00461103 /* MeasureQueue.swift in Sources */,
 				52AE72092CABAEAB00F2830A /* NSObject+Extension.swift in Sources */,
 				52CD91202C7B39AE000189BA /* Config.swift in Sources */,
@@ -1311,6 +1376,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				52159E2D2CC8FAA500486F54 /* TimeProviderTests.swift in Sources */,
+				52FA6A8D2CE222030091F089 /* CpuUsageCalculatorTests.swift in Sources */,
 				52A1A9412CA087BA00461103 /* SessionStoreTests.swift in Sources */,
 				5202BE512C89601200A3496E /* InstallationIdAttributeProcessorTests.swift in Sources */,
 				52D3D7382CC404DA004E404B /* BatchStoreTests.swift in Sources */,
@@ -1326,6 +1392,7 @@
 				52CC63D02C9EAB8300F7CA0A /* CrashDataFormatterTests.swift in Sources */,
 				523287792C8619EF000EE268 /* MockRandomizer.swift in Sources */,
 				5202BE592C89603400A3496E /* MockAttributeProcessor.swift in Sources */,
+				52FA6A852CE21A830091F089 /* MockCpuUsageCalculator.swift in Sources */,
 				52C03C442CB3FB29002E3C36 /* GestureTargetFinderTests.swift in Sources */,
 				5202BE4F2C89601200A3496E /* AttributeProcessorTests.swift in Sources */,
 				52D3D73B2CC414A1004E404B /* BatchCreatorTests.swift in Sources */,
@@ -1344,18 +1411,23 @@
 				52CC63D72C9EC5FA00F7CA0A /* CrashReportingManagerTests.swift in Sources */,
 				52D3D7452CC6191B004E404B /* HeartbeatTests.swift in Sources */,
 				52BCF1DD2CB42383003102DF /* MeasureModel.xcdatamodeld in Sources */,
+				52FA6A8F2CE222360091F089 /* MemoryUsageCalculatorTests.swift in Sources */,
 				52159E292CC8091E00486F54 /* EventSerializerTests.swift in Sources */,
 				52159E2B2CC81A2D00486F54 /* TestDataGenerator.swift in Sources */,
 				5202BE552C89601A00A3496E /* BaseConfigProviderTests.swift in Sources */,
 				52A1A94F2CA52C8A00461103 /* EventStoreTests.swift in Sources */,
 				523287732C86195E000EE268 /* SessionManagerTests.swift in Sources */,
 				5202BE5B2C89603E00A3496E /* MockConfigLoader.swift in Sources */,
+				52FA6A892CE21E3D0091F089 /* MemoryUsageCollectorTests.swift in Sources */,
 				52A1A95B2CA57BCD00461103 /* MockSystemCrashReporter.swift in Sources */,
 				52D3D7472CC620AF004E404B /* PeriodicEventExporterTests.swift in Sources */,
 				523287692C85E07B000EE268 /* LifecycleObserverTests.swift in Sources */,
 				52D3D7492CC62128004E404B /* MockHeartbeat.swift in Sources */,
+				52FA6A872CE21A980091F089 /* MockSysCtl.swift in Sources */,
 				5232877D2C861D48000EE268 /* MockConfigProvider.swift in Sources */,
+				52FA6A8B2CE21EDF0091F089 /* MockMemoryUsageCalculator.swift in Sources */,
 				52A1A9512CA573C900461103 /* MockSessionManager.swift in Sources */,
+				52FA6A832CE21A060091F089 /* CpuUsageCollectorTests.swift in Sources */,
 				523287772C8619E0000EE268 /* MockLogger.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1621,7 +1693,6 @@
 					"@loader_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				MODULEMAP_FILE = "";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
 				OTHER_SWIFT_FLAGS = "-no-verify-emitted-module-interface -DINTERNAL_LOGGING";
@@ -1633,6 +1704,7 @@
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INCLUDE_PATHS = "";
 				SWIFT_INSTALL_OBJC_HEADER = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -1664,7 +1736,6 @@
 					"@loader_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				MODULEMAP_FILE = "";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
 				OTHER_SWIFT_FLAGS = "-no-verify-emitted-module-interface";
@@ -1676,6 +1747,7 @@
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INCLUDE_PATHS = "";
 				SWIFT_INSTALL_OBJC_HEADER = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "";
 				SWIFT_VERSION = 5.0;

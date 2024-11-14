@@ -81,6 +81,26 @@ struct EventSerializer {
                 }
             }
             return nil
+        case .cpuUsage:
+            if let cpuUsageData = event.cpuUsage {
+                do {
+                    let decodedData = try JSONDecoder().decode(CpuUsageData.self, from: cpuUsageData)
+                    return serialiseCpuUsageData(decodedData)
+                } catch {
+                    return nil
+                }
+            }
+            return nil
+        case .memoryUsageAbsolute:
+            if let memoryUsageData = event.memoryUsage {
+                do {
+                    let decodedData = try JSONDecoder().decode(MemoryUsageData.self, from: memoryUsageData)
+                    return serialiseMemoryUsageData(decodedData)
+                } catch {
+                    return nil
+                }
+            }
+            return nil
         case nil:
             return nil
         }
@@ -190,7 +210,7 @@ struct EventSerializer {
 
     private func serialiseApplicationLifecycleData(_ applicationLifecycleData: ApplicationLifecycleData) -> String {
         var result = "{"
-        result += "\"type\":\"\(applicationLifecycleData.type.rawValue)\","
+        result += "\"type\":\"\(applicationLifecycleData.type.rawValue)\""
         result += "}"
         return result
     }
@@ -198,7 +218,7 @@ struct EventSerializer {
     private func serialiseVCLifecycleData(_ lifecycleViewController: VCLifecycleData) -> String {
         var result = "{"
         result += "\"type\":\"\(lifecycleViewController.type)\","
-        result += "\"class_name\":\"\(lifecycleViewController.className)\","
+        result += "\"class_name\":\"\(lifecycleViewController.className)\""
         result += "}"
         return result
     }
@@ -206,7 +226,32 @@ struct EventSerializer {
     private func serialiseSwiftUILifecycleData(_ swiftUILifecycleData: SwiftUILifecycleData) -> String {
         var result = "{"
         result += "\"type\":\"\(swiftUILifecycleData.type.rawValue)\","
-        result += "\"view_name\":\"\(swiftUILifecycleData.viewName)\","
+        result += "\"view_name\":\"\(swiftUILifecycleData.viewName)\""
+        result += "}"
+        return result
+    }
+
+    private func serialiseCpuUsageData(_ cpuUsageData: CpuUsageData) -> String {
+        var result = "{"
+        result += "\"num_cores\":\"\(cpuUsageData.numCores)\","
+        result += "\"clock_speed\":\"\(cpuUsageData.clockSpeed)\","
+        result += "\"start_time\":\"\(cpuUsageData.startTime)\","
+        result += "\"uptime\":\"\(cpuUsageData.uptime)\","
+        result += "\"utime\":\"\(cpuUsageData.utime)\","
+        result += "\"cutime\":\"\(cpuUsageData.cutime)\","
+        result += "\"cstime\":\"\(cpuUsageData.cstime)\","
+        result += "\"stime\":\"\(cpuUsageData.stime)\","
+        result += "\"interval\":\"\(cpuUsageData.interval)\","
+        result += "\"percentage_usage\":\"\(cpuUsageData.percentageUsage)\""
+        result += "}"
+        return result
+    }
+
+    private func serialiseMemoryUsageData(_ memoryUsageData: MemoryUsageData) -> String {
+        var result = "{"
+        result += "\"interval\":\"\(memoryUsageData.interval)\","
+        result += "\"used_memory\":\"\(memoryUsageData.usedMemory)\","
+        result += "\"max_memory\":\"\(memoryUsageData.maxMemory)\""
         result += "}"
         return result
     }

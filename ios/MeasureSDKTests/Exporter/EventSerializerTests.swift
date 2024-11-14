@@ -51,10 +51,10 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             if let scrollDataDict = jsonDict?["gesture_scroll"] as? [String: Any] {
                 XCTAssertEqual(scrollDataDict["target"] as? String, "scrollview")
                 XCTAssertEqual(scrollDataDict["target_id"] as? String, "scroll_1")
-                XCTAssertEqual(scrollDataDict["x"] as? FloatNumber, 0.0)
-                XCTAssertEqual(scrollDataDict["y"] as? FloatNumber, 0.0)
-                XCTAssertEqual(scrollDataDict["end_x"] as? FloatNumber, 50.5)
-                XCTAssertEqual(scrollDataDict["end_y"] as? FloatNumber, 100.0)
+                XCTAssertEqual(scrollDataDict["x"] as? FloatNumber32, 0.0)
+                XCTAssertEqual(scrollDataDict["y"] as? FloatNumber32, 0.0)
+                XCTAssertEqual(scrollDataDict["end_x"] as? FloatNumber32, 50.5)
+                XCTAssertEqual(scrollDataDict["end_y"] as? FloatNumber32, 100.0)
                 XCTAssertEqual(scrollDataDict["direction"] as? String, "down")
                 XCTAssertEqual(scrollDataDict["touch_down_time"] as? Number, 100)
                 XCTAssertEqual(scrollDataDict["touch_up_time"] as? Number, 200)
@@ -104,8 +104,8 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             if let longClickDataDict = jsonDict?["gesture_long_click"] as? [String: Any] {
                 XCTAssertEqual(longClickDataDict["target"] as? String, "button")
                 XCTAssertEqual(longClickDataDict["target_id"] as? String, "button_1")
-                XCTAssertEqual(longClickDataDict["x"] as? FloatNumber, 100)
-                XCTAssertEqual(longClickDataDict["y"] as? FloatNumber, 50)
+                XCTAssertEqual(longClickDataDict["x"] as? FloatNumber32, 100)
+                XCTAssertEqual(longClickDataDict["y"] as? FloatNumber32, 50)
                 XCTAssertEqual(longClickDataDict["width"] as? Number, 10)
                 XCTAssertEqual(longClickDataDict["height"] as? Number, 20)
                 XCTAssertEqual(longClickDataDict["touch_down_time"] as? Number, 100)
@@ -158,8 +158,8 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
                 XCTAssertEqual(clickDataDict["target_id"] as? String, "button_1")
                 XCTAssertEqual(clickDataDict["width"] as? Number, 100)
                 XCTAssertEqual(clickDataDict["height"] as? Number, 50)
-                XCTAssertEqual(clickDataDict["x"] as? FloatNumber, 15.0)
-                XCTAssertEqual(clickDataDict["y"] as? FloatNumber, 25.0)
+                XCTAssertEqual(clickDataDict["x"] as? FloatNumber32, 15.0)
+                XCTAssertEqual(clickDataDict["y"] as? FloatNumber32, 25.0)
                 XCTAssertEqual(clickDataDict["touch_down_time"] as? Number, 100)
                 XCTAssertEqual(clickDataDict["touch_up_time"] as? Number, 150)
             } else {
@@ -419,4 +419,61 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             XCTFail("Failed to serialize SwiftUILifecycleData: \(error.localizedDescription)")
         }
     }
+
+    func testCpuUsageDataSerialization() {
+        let cpuUsageData = CpuUsageData(
+            numCores: 4,
+            clockSpeed: 2300,
+            startTime: 1609459200,
+            uptime: 3600,
+            utime: 500,
+            cutime: 200,
+            cstime: 100,
+            stime: 300,
+            interval: 1000,
+            percentageUsage: 75.5
+        )
+
+        do {
+            let jsonData = try JSONEncoder().encode(cpuUsageData)
+            if let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] {
+                XCTAssertEqual(jsonDict["num_cores"] as? Int, 4)
+                XCTAssertEqual(jsonDict["clock_speed"] as? Int, 2300)
+                XCTAssertEqual(jsonDict["start_time"] as? Int, 1609459200)
+                XCTAssertEqual(jsonDict["uptime"] as? Int, 3600)
+                XCTAssertEqual(jsonDict["utime"] as? Int, 500)
+                XCTAssertEqual(jsonDict["cutime"] as? Int, 200)
+                XCTAssertEqual(jsonDict["cstime"] as? Int, 100)
+                XCTAssertEqual(jsonDict["stime"] as? Int, 300)
+                XCTAssertEqual(jsonDict["interval"] as? Int, 1000)
+                XCTAssertEqual(jsonDict["percentage_usage"] as? Double, 75.5)
+            } else {
+                XCTFail("CpuUsageData JSON structure is invalid.")
+            }
+        } catch {
+            XCTFail("Failed to serialize CpuUsageData: \(error.localizedDescription)")
+        }
+    }
+
+    func testMemoryUsageDataSerialization() {
+        let memoryUsageData = MemoryUsageData(
+            maxMemory: 2000,
+            usedMemory: 512,
+            interval: 1024
+        )
+
+        do {
+            let jsonData = try JSONEncoder().encode(memoryUsageData)
+            if let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] {
+                XCTAssertEqual(jsonDict["max_memory"] as? UnsignedNumber, 2000)
+                XCTAssertEqual(jsonDict["used_memory"] as? FloatNumber64, 512.0)
+                XCTAssertEqual(jsonDict["interval"] as? UnsignedNumber, 1024)
+            } else {
+                XCTFail("MemoryUsageData JSON structure is invalid.")
+            }
+        } catch {
+            XCTFail("Failed to serialize MemoryUsageData: \(error.localizedDescription)")
+        }
+    }
+
 }

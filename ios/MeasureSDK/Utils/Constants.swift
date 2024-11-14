@@ -8,7 +8,9 @@
 import Foundation
 
 typealias Number = Int64
-typealias FloatNumber = Float32
+typealias UnsignedNumber = UInt64
+typealias FloatNumber32 = Float32
+typealias FloatNumber64 = Float64
 
 let logTag = "com.measure.sh"
 let cacheDirectoryName = "com.measure.sh"

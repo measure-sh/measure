@@ -21,6 +21,8 @@ struct EventEntity {
     let lifecycleApp: Data?
     let lifecycleViewController: Data?
     let lifecycleSwiftUI: Data?
+    let cpuUsage: Data?
+    let memoryUsage: Data?
     let userTriggered: Bool
     let attachmentSize: Number
     let timestampInMillis: Number
@@ -113,6 +115,28 @@ struct EventEntity {
             self.lifecycleSwiftUI = nil
         }
 
+        if let cpuUsage = event.data as? CpuUsageData {
+            do {
+                let data = try JSONEncoder().encode(cpuUsage)
+                self.cpuUsage = data
+            } catch {
+                self.cpuUsage = nil
+            }
+        } else {
+            self.cpuUsage = nil
+        }
+
+        if let memoryUsage = event.data as? MemoryUsageData {
+            do {
+                let data = try JSONEncoder().encode(memoryUsage)
+                self.memoryUsage = data
+            } catch {
+                self.memoryUsage = nil
+            }
+        } else {
+            self.memoryUsage = nil
+        }
+
         if let attributes = event.attributes {
             do {
                 let data = try JSONEncoder().encode(attributes)
@@ -148,7 +172,9 @@ struct EventEntity {
          batchId: String?,
          lifecycleApp: Data?,
          lifecycleViewController: Data?,
-         lifecycleSwiftUI: Data?) {
+         lifecycleSwiftUI: Data?,
+         cpuUsage: Data?,
+         memoryUsage: Data?) {
         self.id = id
         self.sessionId = sessionId
         self.timestamp = timestamp
@@ -166,6 +192,8 @@ struct EventEntity {
         self.lifecycleApp = lifecycleApp
         self.lifecycleViewController = lifecycleViewController
         self.lifecycleSwiftUI = lifecycleSwiftUI
+        self.cpuUsage = cpuUsage
+        self.memoryUsage = memoryUsage
     }
 
     func getEvent<T: Codable>() -> Event<T> { // swiftlint:disable:this cyclomatic_complexity function_body_length
@@ -224,6 +252,22 @@ struct EventEntity {
             if let lifecycleSwiftUIData = self.lifecycleSwiftUI {
                 do {
                     decodedData = try JSONDecoder().decode(T.self, from: lifecycleSwiftUIData)
+                } catch {
+                    decodedData = nil
+                }
+            }
+        case .cpuUsage:
+            if let cpuUsageData = self.cpuUsage {
+                do {
+                    decodedData = try JSONDecoder().decode(T.self, from: cpuUsageData)
+                } catch {
+                    decodedData = nil
+                }
+            }
+        case .memoryUsageAbsolute:
+            if let memoryUsageData = self.memoryUsage {
+                do {
+                    decodedData = try JSONDecoder().decode(T.self, from: memoryUsageData)
                 } catch {
                     decodedData = nil
                 }
