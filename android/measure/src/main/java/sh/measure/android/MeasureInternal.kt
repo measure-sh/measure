@@ -39,6 +39,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     private val userDefinedAttribute by lazy { measureInitializer.userDefinedAttribute }
     private val configProvider by lazy { measureInitializer.configProvider }
     private val dataCleanupService by lazy { measureInitializer.dataCleanupService }
+    private val powerStateProvider by lazy { measureInitializer.powerStateProvider }
 
     fun init() {
         logger.log(LogLevel.Debug, "Starting Measure SDK")
@@ -90,6 +91,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
         // session manager must be the first to be notified about app foreground to ensure that
         // new session ID (if created) is reflected in all events collected after the launch.
         sessionManager.onAppForeground()
+        powerStateProvider.register()
         cpuUsageCollector.resume()
         memoryUsageCollector.resume()
         periodicEventExporter.onAppForeground()
@@ -101,6 +103,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
         memoryUsageCollector.pause()
         periodicEventExporter.onAppBackground()
         dataCleanupService.clearStaleData()
+        powerStateProvider.unregister()
     }
 
     override fun onColdLaunch() {

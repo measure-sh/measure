@@ -3,9 +3,11 @@ package sh.measure.android.utils
 import android.app.ActivityManager
 import android.content.Context
 import android.net.ConnectivityManager
+import android.os.PowerManager
 import android.telephony.TelephonyManager
 
 internal interface SystemServiceProvider {
+    val powerManager: PowerManager?
     val connectivityManager: ConnectivityManager?
     val telephonyManager: TelephonyManager?
     val activityManager: ActivityManager?
@@ -22,5 +24,9 @@ internal class SystemServiceProviderImpl(private val context: Context) : SystemS
 
     override val telephonyManager: TelephonyManager? by lazy(mode = LazyThreadSafetyMode.NONE) {
         runCatching { context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager }.getOrNull()
+    }
+
+    override val powerManager: PowerManager? by lazy(mode = LazyThreadSafetyMode.NONE) {
+        runCatching { context.getSystemService(Context.POWER_SERVICE) as? PowerManager }.getOrNull()
     }
 }
