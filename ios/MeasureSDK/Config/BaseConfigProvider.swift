@@ -77,6 +77,14 @@ final class BaseConfigProvider: ConfigProvider {
         return getMergedConfig(\.scaledTouchSlop)
     }
 
+    var memoryTrackingIntervalMs: UnsignedNumber {
+        return getMergedConfig(\.memoryTrackingIntervalMs)
+    }
+
+    var cpuTrackingIntervalMs: UnsignedNumber {
+        return getMergedConfig(\.cpuTrackingIntervalMs)
+    }
+
     private func getMergedConfig<T>(_ keyPath: KeyPath<Config, T>) -> T {
         if let networkConfig = networkConfig {
             return networkConfig[keyPath: keyPath]

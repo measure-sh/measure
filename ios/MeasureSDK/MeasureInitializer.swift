@@ -41,6 +41,11 @@ protocol MeasureInitializer {
     var batchStore: BatchStore { get }
     var batchCreator: BatchCreator { get }
     var lifecycleCollector: LifecycleCollector { get }
+    var cpuUsageCollector: CpuUsageCollector { get }
+    var memoryUsageCollector: MemoryUsageCollector { get }
+    var cpuUsageCalculator: CpuUsageCalculator { get }
+    var memoryUsageCalculator: MemoryUsageCalculator { get }
+    var sysCtl: SysCtl { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -68,7 +73,13 @@ protocol MeasureInitializer {
 /// - `sessionStore`: `SessionStore` object that manages `Session` related operations
 /// - `eventStore`: `EventStore` object that manages `Event` related operations
 /// - `gestureCollector`: `GestureCollector` object is responsible for detecting and saving gesture related data.
+/// - `lifecycleCollector`: `LifecycleCollector` object is responsible for detecting and saving ViewController lifecycle events.
+/// - `cpuUsageCollector`: `CpuUsageCollector` object is responsible for detecting and saving CPU usage data.
+/// - `memoryUsageCollector`: `MemoryUsageCollector` object is responsible for detecting and saving memory usage data.
 /// - `gestureTargetFinder`: `GestureTargetFinder` object that determines which view is handling the gesture.
+/// - `cpuUsageCalculator`: `CpuUsageCalculator` object that generates CPU usage data.
+/// - `memoryUsageCalculator`: `MemoryUsageCalculator` object that generates memory usage data.
+/// - `sysCtl`: `SysCtl` object which provides sysctl functionalities.
 /// - `httpClient`: `HttpClient` object that handles HTTP requests.
 /// - `networkClient`: `NetworkClient` object is responsible for initializing the network configuration and executing API requests.
 /// - `heartbeat`: `Heartbeat` object that emits a pulse every 30 seconds.
@@ -109,6 +120,11 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let batchStore: BatchStore
     let batchCreator: BatchCreator
     let lifecycleCollector: LifecycleCollector
+    let cpuUsageCollector: CpuUsageCollector
+    let memoryUsageCollector: MemoryUsageCollector
+    let cpuUsageCalculator: CpuUsageCalculator
+    let memoryUsageCalculator: MemoryUsageCalculator
+    let sysCtl: SysCtl
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -195,6 +211,21 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.lifecycleCollector = BaseLifecycleCollector(eventProcessor: eventProcessor,
                                                          timeProvider: timeProvider,
                                                          logger: logger)
+        self.cpuUsageCalculator = BaseCpuUsageCalculator()
+        self.memoryUsageCalculator = BaseMemoryUsageCalculator()
+        self.sysCtl = BaseSysCtl()
+        self.cpuUsageCollector = BaseCpuUsageCollector(logger: logger,
+                                                       configProvider: configProvider,
+                                                       eventProcessor: eventProcessor,
+                                                       timeProvider: timeProvider,
+                                                       cpuUsageCalculator: cpuUsageCalculator,
+                                                       sysCtl: sysCtl)
+        self.memoryUsageCollector = BaseMemoryUsageCollector(logger: logger,
+                                                             configProvider: configProvider,
+                                                             eventProcessor: eventProcessor,
+                                                             timeProvider: timeProvider,
+                                                             memoryUsageCalculator: memoryUsageCalculator,
+                                                             sysCtl: sysCtl)
         self.client = client
     }
 }

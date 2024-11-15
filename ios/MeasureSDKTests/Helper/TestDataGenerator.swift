@@ -82,7 +82,9 @@ struct TestDataGenerator {
         batchId: String? = nil,
         lifecycleApp: Data? = nil,
         lifecycleViewController: Data? = nil,
-        lifecycleSwiftUI: Data? = nil
+        lifecycleSwiftUI: Data? = nil,
+        cpuUsage: Data? = nil,
+        memoryUsage: Data? = nil
     ) -> EventEntity {
         return EventEntity(
             id: id,
@@ -101,7 +103,9 @@ struct TestDataGenerator {
             batchId: batchId,
             lifecycleApp: lifecycleApp,
             lifecycleViewController: lifecycleViewController,
-            lifecycleSwiftUI: lifecycleSwiftUI
+            lifecycleSwiftUI: lifecycleSwiftUI,
+            cpuUsage: cpuUsage,
+            memoryUsage: memoryUsage
         )
     }
 

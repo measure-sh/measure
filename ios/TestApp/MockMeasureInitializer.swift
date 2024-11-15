@@ -40,6 +40,11 @@ final class MockMeasureInitializer: MeasureInitializer {
     let eventExporter: EventExporter
     let batchStore: BatchStore
     let batchCreator: BatchCreator
+    let cpuUsageCollector: CpuUsageCollector
+    let memoryUsageCollector: MemoryUsageCollector
+    let cpuUsageCalculator: CpuUsageCalculator
+    let memoryUsageCalculator: MemoryUsageCalculator
+    let sysCtl: SysCtl
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -126,6 +131,21 @@ final class MockMeasureInitializer: MeasureInitializer {
         self.lifecycleCollector = BaseLifecycleCollector(eventProcessor: eventProcessor,
                                                          timeProvider: timeProvider,
                                                          logger: logger)
+        self.cpuUsageCalculator = BaseCpuUsageCalculator()
+        self.memoryUsageCalculator = BaseMemoryUsageCalculator()
+        self.sysCtl = BaseSysCtl()
+        self.cpuUsageCollector = BaseCpuUsageCollector(logger: logger,
+                                                       configProvider: configProvider,
+                                                       eventProcessor: eventProcessor,
+                                                       timeProvider: timeProvider,
+                                                       cpuUsageCalculator: cpuUsageCalculator,
+                                                       sysCtl: sysCtl)
+        self.memoryUsageCollector = BaseMemoryUsageCollector(logger: logger,
+                                                             configProvider: configProvider,
+                                                             eventProcessor: eventProcessor,
+                                                             timeProvider: timeProvider,
+                                                             memoryUsageCalaculator: memoryUsageCalculator,
+                                                             sysCtl: sysCtl)
         self.client = client
     }
 }

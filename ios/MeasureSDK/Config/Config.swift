@@ -26,6 +26,8 @@ struct Config: InternalConfig, MeasureConfig {
     let maxEventsInBatch: Number
     let timeoutIntervalForRequest: TimeInterval
     let maxSessionDurationMs: Number
+    let cpuTrackingIntervalMs: UnsignedNumber
+    let memoryTrackingIntervalMs: UnsignedNumber
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging,
                   trackScreenshotOnCrash: Bool = DefaultConfig.trackScreenshotOnCrash,
@@ -41,5 +43,7 @@ struct Config: InternalConfig, MeasureConfig {
         self.scaledTouchSlop = 3.5 // 3.5 points
         self.maxAttachmentSizeInEventsBatchInBytes = 3_000_000 // 3 MB
         self.maxSessionDurationMs = 6 * 60 * 60 * 1000 // 6 hours
+        self.cpuTrackingIntervalMs = 3 * 1000 // 3 seconds
+        self.memoryTrackingIntervalMs = 2 * 1000 // 2 seconds
     }
 }

@@ -80,7 +80,9 @@ final class BaseEventStore: EventStore {
                                 batchId: eventOb.batchId,
                                 lifecycleApp: eventOb.lifecycleApp,
                                 lifecycleViewController: eventOb.lifecycleViewController,
-                                lifecycleSwiftUI: eventOb.lifecycleSwiftUI)
+                                lifecycleSwiftUI: eventOb.lifecycleSwiftUI,
+                                cpuUsage: eventOb.cpuUsage,
+                                memoryUsage: eventOb.memoryUsage)
                 }
             } catch {
                 guard let self = self else { return }
@@ -116,7 +118,9 @@ final class BaseEventStore: EventStore {
                                 batchId: eventOb.batchId,
                                 lifecycleApp: eventOb.lifecycleApp,
                                 lifecycleViewController: eventOb.lifecycleViewController,
-                                lifecycleSwiftUI: eventOb.lifecycleSwiftUI)
+                                lifecycleSwiftUI: eventOb.lifecycleSwiftUI,
+                                cpuUsage: eventOb.cpuUsage,
+                                memoryUsage: eventOb.memoryUsage)
                 }
             } catch {
                 guard let self = self else { return }
@@ -171,7 +175,9 @@ final class BaseEventStore: EventStore {
                                               batchId: eventOb.batchId,
                                               lifecycleApp: eventOb.lifecycleApp,
                                               lifecycleViewController: eventOb.lifecycleViewController,
-                                              lifecycleSwiftUI: eventOb.lifecycleSwiftUI))
+                                              lifecycleSwiftUI: eventOb.lifecycleSwiftUI,
+                                              cpuUsage: eventOb.cpuUsage,
+                                              memoryUsage: eventOb.memoryUsage))
                 }
             } catch {
                 guard let self = self else {

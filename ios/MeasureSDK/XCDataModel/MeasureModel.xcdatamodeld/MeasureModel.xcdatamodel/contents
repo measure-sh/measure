@@ -10,6 +10,7 @@
         <attribute name="attachmentSize" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="attributes" optional="YES" attributeType="Binary"/>
         <attribute name="batchId" optional="YES" attributeType="String"/>
+        <attribute name="cpuUsage" optional="YES" attributeType="Binary"/>
         <attribute name="exception" optional="YES" attributeType="Binary"/>
         <attribute name="gestureClick" optional="YES" attributeType="Binary"/>
         <attribute name="gestureLongClick" optional="YES" attributeType="Binary"/>
@@ -18,6 +19,7 @@
         <attribute name="lifecycleApp" optional="YES" attributeType="Binary"/>
         <attribute name="lifecycleSwiftUI" optional="YES" attributeType="Binary"/>
         <attribute name="lifecycleViewController" optional="YES" attributeType="Binary"/>
+        <attribute name="memoryUsage" optional="YES" attributeType="Binary"/>
         <attribute name="sessionId" attributeType="String" defaultValueString=""/>
         <attribute name="timestamp" attributeType="String"/>
         <attribute name="timestampInMillis" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>

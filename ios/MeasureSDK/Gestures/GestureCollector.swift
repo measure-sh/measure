@@ -65,8 +65,8 @@ final class BaseGestureCollector: GestureCollector {
                                  targetId: gestureTargetFinderData.targetId ?? targetId,
                                  width: width != 0 ? width : nil,
                                  height: height != 0 ? height : nil,
-                                 x: FloatNumber(x),
-                                 y: FloatNumber(y),
+                                 x: FloatNumber32(x),
+                                 y: FloatNumber32(y),
                                  touchDownTime: touchDownTime,
                                  touchUpTime: touchUpTime)
             eventProcessor.track(data: data, timestamp: timeProvider.now(), type: .gestureClick, attributes: nil, sessionId: nil, attachments: nil)
@@ -79,8 +79,8 @@ final class BaseGestureCollector: GestureCollector {
                                      targetId: gestureTargetFinderData.targetId ?? targetId,
                                      width: width != 0 ? width : nil,
                                      height: height != 0 ? height : nil,
-                                     x: FloatNumber(x),
-                                     y: FloatNumber(y),
+                                     x: FloatNumber32(x),
+                                     y: FloatNumber32(y),
                                      touchDownTime: touchDownTime,
                                      touchUpTime: touchUpTime)
             eventProcessor.track(data: data, timestamp: timeProvider.now(), type: .gestureLongClick, attributes: nil, sessionId: nil, attachments: nil)
@@ -90,10 +90,10 @@ final class BaseGestureCollector: GestureCollector {
             if let gestureTargetFinderData = gestureTargetFinder.findScrollable(startScrollPoint: startScrollPoint, endScrollPoint: endScrollPoint, window: window) {
                 let data = ScrollData(target: gestureTargetFinderData.target ?? target,
                                       targetId: gestureTargetFinderData.targetId ?? targetId,
-                                      x: FloatNumber(startX),
-                                      y: FloatNumber(startY),
-                                      endX: FloatNumber(endX),
-                                      endY: FloatNumber(endY),
+                                      x: FloatNumber32(startX),
+                                      y: FloatNumber32(startY),
+                                      endX: FloatNumber32(endX),
+                                      endY: FloatNumber32(endY),
                                       direction: direction,
                                       touchDownTime: touchDownTime,
                                       touchUpTime: touchUpTime)
