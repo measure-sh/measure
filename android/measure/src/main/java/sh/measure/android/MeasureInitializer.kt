@@ -175,10 +175,6 @@ internal class MeasureInitializerImpl(
         context = application,
         systemServiceProvider = systemServiceProvider,
     ),
-    override val userDefinedAttribute: UserDefinedAttribute = UserDefinedAttributeImpl(
-        logger,
-        configProvider,
-    ),
     override val userAttributeProcessor: UserAttributeProcessor = UserAttributeProcessor(
         logger,
         prefsStorage,

@@ -100,7 +100,7 @@ internal class CustomEventsCollectorImpl(
     ) {
         eventProcessor.track(
             data = CustomEventData(name),
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             type = EventType.CUSTOM,
             userDefinedAttributes = attributes,
             attachments = attachments,
