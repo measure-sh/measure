@@ -493,6 +493,9 @@ func (e eventreq) validate() error {
 		if err := e.events[i].Attribute.Validate(); err != nil {
 			return err
 		}
+		if err := e.events[i].UserDefinedAttribute.Validate(); err != nil {
+			return err
+		}
 
 		if e.hasAttachments() {
 			for j := range e.events[i].Attachments {
@@ -599,6 +602,9 @@ func (e eventreq) ingest(ctx context.Context) error {
 			Set(`attribute.network_type`, e.events[i].Attribute.NetworkType).
 			Set(`attribute.network_generation`, e.events[i].Attribute.NetworkGeneration).
 			Set(`attribute.network_provider`, e.events[i].Attribute.NetworkProvider).
+
+			// user defined attribute
+			Set(`user_defined_attribute`, e.events[i].UserDefinedAttribute.Parameterize()).
 
 			// attachments
 			Set(`attachments`, attachments)

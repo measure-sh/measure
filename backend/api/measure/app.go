@@ -2234,7 +2234,9 @@ func GetAppFilters(c *gin.Context) {
 	if err != nil {
 		msg := `id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -2248,14 +2250,20 @@ func GetAppFilters(c *gin.Context) {
 	if err := c.ShouldBindQuery(&af); err != nil {
 		msg := `failed to parse query parameters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
 		return
 	}
 
 	if err := af.Validate(); err != nil {
 		msg := "app filters request validation failed"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
 		return
 	}
 
@@ -2267,12 +2275,16 @@ func GetAppFilters(c *gin.Context) {
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if team == nil {
 		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -2281,7 +2293,9 @@ func GetAppFilters(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -2289,13 +2303,17 @@ func GetAppFilters(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	if !okTeam || !okApp {
 		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -2304,7 +2322,9 @@ func GetAppFilters(c *gin.Context) {
 	if err := af.GetGenericFilters(ctx, &fl); err != nil {
 		msg := `failed to query app filters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -2322,6 +2342,24 @@ func GetAppFilters(c *gin.Context) {
 		osVersions = append(osVersions, osVersion)
 	}
 
+	udAttrs := gin.H{
+		"operator_types": nil,
+		"key_types":      nil,
+	}
+
+	if af.UDAttrKeys {
+		if err := af.GetUserDefinedAttrKeys(ctx, &fl); err != nil {
+			msg := `failed to query user defined attribute keys`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+		udAttrs["operator_types"] = event.GetUDAttrsOpMap()
+		udAttrs["key_types"] = fl.UDKeyTypes
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"versions":             versions,
 		"os_versions":          osVersions,
@@ -2332,6 +2370,7 @@ func GetAppFilters(c *gin.Context) {
 		"locales":              fl.DeviceLocales,
 		"device_manufacturers": fl.DeviceManufacturers,
 		"device_names":         fl.DeviceNames,
+		"ud_attrs":             udAttrs,
 	})
 }
 
@@ -2357,6 +2396,8 @@ func GetCrashOverview(c *gin.Context) {
 		return
 	}
 
+	fmt.Println("ud expression raw:", af.UDExpressionRaw)
+
 	af.Expand()
 
 	msg := "crash overview request validation failed"
@@ -2364,6 +2405,10 @@ func GetCrashOverview(c *gin.Context) {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
 		return
+	}
+
+	if af.UDExpression != nil {
+		fmt.Println("ud expression:", af.UDExpression)
 	}
 
 	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {

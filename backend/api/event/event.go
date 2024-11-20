@@ -51,6 +51,9 @@ const (
 	maxNavigationFromChars                    = 128
 	maxNavigationSourceChars                  = 128
 	maxScreenViewNameChars                    = 128
+	maxUserDefAttrsCount                      = 100
+	maxUserDefAttrsKeyChars                   = 256
+	maxUserDefAttrsValsChars                  = 256
 )
 
 const TypeANR = "anr"
@@ -365,38 +368,39 @@ type ScreenView struct {
 }
 
 type EventField struct {
-	ID                uuid.UUID          `json:"id"`
-	IPv4              net.IP             `json:"inet_ipv4"`
-	IPv6              net.IP             `json:"inet_ipv6"`
-	CountryCode       string             `json:"inet_country_code"`
-	AppID             uuid.UUID          `json:"app_id"`
-	SessionID         uuid.UUID          `json:"session_id" binding:"required"`
-	Timestamp         time.Time          `json:"timestamp" binding:"required"`
-	Type              string             `json:"type" binding:"required"`
-	UserTriggered     bool               `json:"user_triggered" binding:"required"`
-	Attribute         Attribute          `json:"attribute" binding:"required"`
-	Attachments       []Attachment       `json:"attachments" binding:"required"`
-	ANR               *ANR               `json:"anr,omitempty"`
-	Exception         *Exception         `json:"exception,omitempty"`
-	AppExit           *AppExit           `json:"app_exit,omitempty"`
-	LogString         *LogString         `json:"string,omitempty"`
-	GestureLongClick  *GestureLongClick  `json:"gesture_long_click,omitempty"`
-	GestureScroll     *GestureScroll     `json:"gesture_scroll,omitempty"`
-	GestureClick      *GestureClick      `json:"gesture_click,omitempty"`
-	LifecycleActivity *LifecycleActivity `json:"lifecycle_activity,omitempty"`
-	LifecycleFragment *LifecycleFragment `json:"lifecycle_fragment,omitempty"`
-	LifecycleApp      *LifecycleApp      `json:"lifecycle_app,omitempty"`
-	ColdLaunch        *ColdLaunch        `json:"cold_launch,omitempty"`
-	WarmLaunch        *WarmLaunch        `json:"warm_launch,omitempty"`
-	HotLaunch         *HotLaunch         `json:"hot_launch,omitempty"`
-	NetworkChange     *NetworkChange     `json:"network_change,omitempty"`
-	Http              *Http              `json:"http,omitempty"`
-	MemoryUsage       *MemoryUsage       `json:"memory_usage,omitempty"`
-	LowMemory         *LowMemory         `json:"low_memory,omitempty"`
-	TrimMemory        *TrimMemory        `json:"trim_memory,omitempty"`
-	CPUUsage          *CPUUsage          `json:"cpu_usage,omitempty"`
-	Navigation        *Navigation        `json:"navigation,omitempty"`
-	ScreenView        *ScreenView        `json:"screen_view,omitempty"`
+	ID                   uuid.UUID          `json:"id"`
+	IPv4                 net.IP             `json:"inet_ipv4"`
+	IPv6                 net.IP             `json:"inet_ipv6"`
+	CountryCode          string             `json:"inet_country_code"`
+	AppID                uuid.UUID          `json:"app_id"`
+	SessionID            uuid.UUID          `json:"session_id" binding:"required"`
+	Timestamp            time.Time          `json:"timestamp" binding:"required"`
+	Type                 string             `json:"type" binding:"required"`
+	UserTriggered        bool               `json:"user_triggered" binding:"required"`
+	Attribute            Attribute          `json:"attribute" binding:"required"`
+	UserDefinedAttribute UDAttribute        `json:"user_defined_attribute" binding:"required"`
+	Attachments          []Attachment       `json:"attachments" binding:"required"`
+	ANR                  *ANR               `json:"anr,omitempty"`
+	Exception            *Exception         `json:"exception,omitempty"`
+	AppExit              *AppExit           `json:"app_exit,omitempty"`
+	LogString            *LogString         `json:"string,omitempty"`
+	GestureLongClick     *GestureLongClick  `json:"gesture_long_click,omitempty"`
+	GestureScroll        *GestureScroll     `json:"gesture_scroll,omitempty"`
+	GestureClick         *GestureClick      `json:"gesture_click,omitempty"`
+	LifecycleActivity    *LifecycleActivity `json:"lifecycle_activity,omitempty"`
+	LifecycleFragment    *LifecycleFragment `json:"lifecycle_fragment,omitempty"`
+	LifecycleApp         *LifecycleApp      `json:"lifecycle_app,omitempty"`
+	ColdLaunch           *ColdLaunch        `json:"cold_launch,omitempty"`
+	WarmLaunch           *WarmLaunch        `json:"warm_launch,omitempty"`
+	HotLaunch            *HotLaunch         `json:"hot_launch,omitempty"`
+	NetworkChange        *NetworkChange     `json:"network_change,omitempty"`
+	Http                 *Http              `json:"http,omitempty"`
+	MemoryUsage          *MemoryUsage       `json:"memory_usage,omitempty"`
+	LowMemory            *LowMemory         `json:"low_memory,omitempty"`
+	TrimMemory           *TrimMemory        `json:"trim_memory,omitempty"`
+	CPUUsage             *CPUUsage          `json:"cpu_usage,omitempty"`
+	Navigation           *Navigation        `json:"navigation,omitempty"`
+	ScreenView           *ScreenView        `json:"screen_view,omitempty"`
 }
 
 // Compute computes the most accurate cold launch timing
