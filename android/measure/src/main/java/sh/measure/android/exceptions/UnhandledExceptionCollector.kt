@@ -31,6 +31,11 @@ internal class UnhandledExceptionCollector(
         Thread.setDefaultUncaughtExceptionHandler(this)
     }
 
+    fun unregister() {
+        logger.log(LogLevel.Debug, "Unregistering exception handler")
+        Thread.setDefaultUncaughtExceptionHandler(originalHandler)
+    }
+
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
         logger.log(LogLevel.Debug, "Unhandled exception received")
         try {

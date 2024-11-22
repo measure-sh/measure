@@ -178,8 +178,6 @@ Add the following to your app's Application class `onCreate` method.
 Measure.init(context)
 ```
 
-
-
 If you wish to configure the SDK during initialization with a custom config use the overloaded function:
 
 ```kotlin
@@ -188,6 +186,24 @@ Measure.init(
         // override the default configuration here
     )
 )
+```
+
+By default, init also starts collection of events. To delay start to a different point in your app 
+use [configuration options](configuration-options.md#autostart).
+
+```kotlin
+Measure.init(
+  context, MeasureConfig(
+    // delay starting of collection
+    autoStart = false,
+  )
+)
+
+// Start collecting
+Measure.start()
+
+// Stop collecting
+Measure.stop()
 ```
 
 See all the [configuration options](configuration-options.md) available.

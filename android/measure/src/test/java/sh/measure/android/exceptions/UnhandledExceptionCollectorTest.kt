@@ -96,4 +96,30 @@ internal class UnhandledExceptionCollectorTest {
         // Then
         assertTrue(originalHandlerCalled)
     }
+
+    @Test
+    fun `UnhandledExceptionCollector calls the original handler when unregistered`() {
+        var originalHandlerCalled = false
+        Thread.setDefaultUncaughtExceptionHandler { _, _ ->
+            originalHandlerCalled = true
+        }
+        val collector = UnhandledExceptionCollector(
+            logger,
+            eventProcessor,
+            timeProvider,
+            processInfo,
+        )
+        collector.register()
+        collector.unregister()
+
+        // Given
+        val thread = Thread.currentThread()
+        val exception = RuntimeException("Test exception")
+
+        // When
+        collector.uncaughtException(thread, exception)
+
+        // Then
+        assertTrue(originalHandlerCalled)
+    }
 }

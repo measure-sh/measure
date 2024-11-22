@@ -48,6 +48,13 @@ internal class NativeBridgeImpl(private val logger: Logger) : NativeBridge {
      * @return true if ANR reporting was enabled successfully, false otherwise.
      */
     override fun enableAnrReporting(anrListener: AnrListener): Boolean {
+        if (this.anrListener != null) {
+            logger.log(
+                LogLevel.Warning,
+                "Attempt to enable ANR reporting when it's already enabled",
+            )
+            return true
+        }
         val success = try {
             enableAnrReportingInternal()
         } catch (e: Throwable) {
@@ -71,7 +78,15 @@ internal class NativeBridgeImpl(private val logger: Logger) : NativeBridge {
      * Disables ANR reporting and unregisters the [AnrListener].
      */
     override fun disableAnrReporting() {
+        if (anrListener == null) {
+            logger.log(
+                LogLevel.Warning,
+                "Attempt to disable ANR reporting when it's already disabled",
+            )
+            return
+        }
         anrListener = null
+        disableAnrReportingInternal()
     }
 
     private external fun enableAnrReportingInternal(): Boolean

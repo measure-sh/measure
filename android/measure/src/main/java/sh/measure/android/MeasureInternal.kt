@@ -1,8 +1,7 @@
 package sh.measure.android
 
 import android.os.Build
-import sh.measure.android.applaunch.ColdLaunchListener
-import sh.measure.android.lifecycle.ApplicationLifecycleStateListener
+import sh.measure.android.lifecycle.AppLifecycleListener
 import sh.measure.android.logger.LogLevel
 
 /**
@@ -12,14 +11,13 @@ import sh.measure.android.logger.LogLevel
  * dependencies required by them and ignore the rest. See [Measure.initForInstrumentationTest]
  * for more details.
  */
-internal class MeasureInternal(measureInitializer: MeasureInitializer) :
-    ApplicationLifecycleStateListener, ColdLaunchListener {
+internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLifecycleListener {
     val logger by lazy { measureInitializer.logger }
     val eventProcessor by lazy { measureInitializer.eventProcessor }
-    val sessionManager by lazy { measureInitializer.sessionManager }
     val timeProvider by lazy { measureInitializer.timeProvider }
     val httpEventCollector by lazy { measureInitializer.httpEventCollector }
     val processInfoProvider by lazy { measureInitializer.processInfoProvider }
+    private val sessionManager by lazy { measureInitializer.sessionManager }
     private val userTriggeredEventCollector by lazy { measureInitializer.userTriggeredEventCollector }
     private val resumedActivityProvider by lazy { measureInitializer.resumedActivityProvider }
     private val networkClient by lazy { measureInitializer.networkClient }
@@ -29,7 +27,9 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     private val cpuUsageCollector by lazy { measureInitializer.cpuUsageCollector }
     private val memoryUsageCollector by lazy { measureInitializer.memoryUsageCollector }
     private val componentCallbacksCollector by lazy { measureInitializer.componentCallbacksCollector }
-    private val lifecycleCollector by lazy { measureInitializer.lifecycleCollector }
+    private val appLifecycleManager by lazy { measureInitializer.appLifecycleManager }
+    private val activityLifecycleCollector by lazy { measureInitializer.activityLifecycleCollector }
+    private val appLifecycleCollector by lazy { measureInitializer.appLifecycleCollector }
     private val gestureCollector by lazy { measureInitializer.gestureCollector }
     private val appLaunchCollector by lazy { measureInitializer.appLaunchCollector }
     private val networkChangesCollector by lazy { measureInitializer.networkChangesCollector }
@@ -40,6 +40,8 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     private val configProvider by lazy { measureInitializer.configProvider }
     private val dataCleanupService by lazy { measureInitializer.dataCleanupService }
     private val powerStateProvider by lazy { measureInitializer.powerStateProvider }
+    private var isStarted: Boolean = false
+    private var startLock = Any()
 
     fun init() {
         logger.log(LogLevel.Debug, "Starting Measure SDK")
@@ -65,52 +67,82 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
             networkClient.init(baseUrl = it.url, apiKey = it.apiKey)
         }
         sessionManager.init()
-        registerCollectors()
         registerCallbacks()
+        registerAlwaysOnCollectors()
+        if (configProvider.autoStart) {
+            start()
+        }
+    }
+
+    fun start() {
+        synchronized(startLock) {
+            if (!isStarted) {
+                registerCollectors()
+                isStarted = true
+            }
+        }
+    }
+
+    fun stop() {
+        synchronized(startLock) {
+            if (isStarted) {
+                unregisterCollectors()
+                isStarted = false
+            }
+        }
+    }
+
+    private fun registerAlwaysOnCollectors() {
+        resumedActivityProvider.register()
+        appLaunchCollector.register()
+        appLifecycleManager.register()
     }
 
     private fun registerCallbacks() {
-        lifecycleCollector.setApplicationLifecycleStateListener(this)
-        appLaunchCollector.setColdLaunchListener(this)
+        appLifecycleManager.addListener(this)
     }
 
     private fun registerCollectors() {
-        resumedActivityProvider.register()
         unhandledExceptionCollector.register()
         anrCollector.register()
-        lifecycleCollector.register()
+        userTriggeredEventCollector.register()
+        activityLifecycleCollector.register()
+        appLifecycleCollector.register()
         cpuUsageCollector.register()
         memoryUsageCollector.register()
         componentCallbacksCollector.register()
         gestureCollector.register()
-        appLaunchCollector.register()
         networkChangesCollector.register()
+        httpEventCollector.register()
     }
 
     override fun onAppForeground() {
         // session manager must be the first to be notified about app foreground to ensure that
         // new session ID (if created) is reflected in all events collected after the launch.
         sessionManager.onAppForeground()
-        powerStateProvider.register()
-        cpuUsageCollector.resume()
-        memoryUsageCollector.resume()
-        periodicEventExporter.onAppForeground()
+        synchronized(startLock) {
+            if (isStarted) {
+                powerStateProvider.register()
+                cpuUsageCollector.resume()
+                memoryUsageCollector.resume()
+                periodicEventExporter.onAppForeground()
+            }
+        }
     }
 
     override fun onAppBackground() {
         sessionManager.onAppBackground()
-        cpuUsageCollector.pause()
-        memoryUsageCollector.pause()
-        periodicEventExporter.onAppBackground()
-        dataCleanupService.clearStaleData()
-        powerStateProvider.unregister()
-    }
-
-    override fun onColdLaunch() {
-        networkChangesCollector.register()
-        periodicEventExporter.onColdLaunch()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            appExitCollector.onColdLaunch()
+        synchronized(startLock) {
+            if (isStarted) {
+                cpuUsageCollector.pause()
+                memoryUsageCollector.pause()
+                periodicEventExporter.onAppBackground()
+                powerStateProvider.unregister()
+                dataCleanupService.clearStaleData()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    appExitCollector.collect()
+                }
+            }
         }
     }
 
@@ -158,5 +190,20 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) :
     fun clear() {
         userAttributeProcessor.clearUserId()
         userDefinedAttribute.clear()
+    }
+
+    private fun unregisterCollectors() {
+        unhandledExceptionCollector.unregister()
+        anrCollector.unregister()
+        activityLifecycleCollector.unregister()
+        appLifecycleCollector.register()
+        cpuUsageCollector.pause()
+        memoryUsageCollector.pause()
+        componentCallbacksCollector.unregister()
+        gestureCollector.unregister()
+        networkChangesCollector.unregister()
+        periodicEventExporter.unregister()
+        userTriggeredEventCollector.unregister()
+        httpEventCollector.unregister()
     }
 }

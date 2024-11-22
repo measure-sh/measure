@@ -238,13 +238,13 @@ internal class SessionManagerImpl(
     }
 
     private fun shouldMarkSessionForExport(): Boolean {
-        if (configProvider.sessionSamplingRate == 0.0f) {
+        if (configProvider.samplingRateForErrorFreeSessions == 0.0f) {
             return false
         }
-        if (configProvider.sessionSamplingRate == 1.0f) {
+        if (configProvider.samplingRateForErrorFreeSessions == 1.0f) {
             return true
         }
-        return randomizer.random() < configProvider.sessionSamplingRate
+        return randomizer.random() < configProvider.samplingRateForErrorFreeSessions
     }
 
     private fun <T> Event<T>.isUnhandledException(): Boolean {

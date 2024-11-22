@@ -13,6 +13,7 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.TimeProvider
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicBoolean
 
 internal abstract class OkHttpEventCollector : EventListener(), HttpEventCollector {
     open fun request(call: Call, request: Request) {}
@@ -24,11 +25,21 @@ internal class OkHttpEventCollectorImpl(
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
 ) : OkHttpEventCollector() {
+    private val enabled = AtomicBoolean(false)
     private val httpDataBuilders: MutableMap<String, HttpData.Builder> by lazy(
         LazyThreadSafetyMode.NONE,
     ) { mutableMapOf() }
 
+    override fun register() {
+        enabled.compareAndSet(false, true)
+    }
+
+    override fun unregister() {
+        enabled.compareAndSet(true, false)
+    }
+
     override fun callStart(call: Call) {
+        if (!enabled.get()) return
         val key = getIdentityHash(call)
         val request = call.request()
         val url = request.url.toString()

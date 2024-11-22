@@ -7,6 +7,7 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.never
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import sh.measure.android.SessionManager
 import sh.measure.android.events.EventProcessor
@@ -46,7 +47,7 @@ class AppExitCollectorTest {
         `when`(database.getSessionForAppExit(pid)).thenReturn(session)
 
         // When
-        appExitCollector.onColdLaunch()
+        appExitCollector.collect()
 
         // Then
         verify(eventProcessor).track(
@@ -70,7 +71,7 @@ class AppExitCollectorTest {
         `when`(database.getSessionForAppExit(2)).thenReturn(session2)
 
         // When
-        appExitCollector.onColdLaunch()
+        appExitCollector.collect()
 
         // Then
         verify(eventProcessor).track(
@@ -97,7 +98,7 @@ class AppExitCollectorTest {
         `when`(database.getSessionForAppExit(1)).thenReturn(session1)
 
         // When
-        appExitCollector.onColdLaunch()
+        appExitCollector.collect()
 
         // Then
         verify(sessionManager).markCrashedSession(session1.id)
@@ -113,7 +114,7 @@ class AppExitCollectorTest {
         `when`(database.getSessionForAppExit(1)).thenReturn(session1)
 
         // When
-        appExitCollector.onColdLaunch()
+        appExitCollector.collect()
 
         // Then
         verify(sessionManager).markCrashedSession(session1.id)
@@ -129,7 +130,7 @@ class AppExitCollectorTest {
         `when`(database.getSessionForAppExit(1)).thenReturn(session1)
 
         // When
-        appExitCollector.onColdLaunch()
+        appExitCollector.collect()
 
         // Then
         verify(sessionManager).markCrashedSession(session1.id)
@@ -145,7 +146,7 @@ class AppExitCollectorTest {
         `when`(database.getSessionForAppExit(1)).thenReturn(session1)
 
         // When
-        appExitCollector.onColdLaunch()
+        appExitCollector.collect()
 
         // Then
         verify(sessionManager, never()).markCrashedSession(any())
@@ -164,10 +165,34 @@ class AppExitCollectorTest {
         `when`(database.getSessionForAppExit(2)).thenReturn(session2)
 
         // When
-        appExitCollector.onColdLaunch()
+        appExitCollector.collect()
 
         // Then
         verify(sessionManager).clearAppExitSessionsBefore(session2.createdAt)
+    }
+
+    @Test
+    fun `tracks app exit only once`() {
+        // Given
+        val appExit = TestData.getAppExit()
+        val pid = 1
+        val pidToAppExit = pid to appExit
+        val appExits = mapOf(pidToAppExit)
+        appExitProvider.appExits = appExits
+        val session = getSession(pid)
+        `when`(database.getSessionForAppExit(pid)).thenReturn(session)
+
+        // When
+        appExitCollector.collect()
+        appExitCollector.collect()
+
+        // Then
+        verify(eventProcessor, times(1)).track(
+            appExit,
+            appExit.app_exit_time_ms,
+            EventType.APP_EXIT,
+            session.id,
+        )
     }
 
     private fun getSession(pid: Int, sessionId: String = "session-id-1", createdAt: Long = 98765) =

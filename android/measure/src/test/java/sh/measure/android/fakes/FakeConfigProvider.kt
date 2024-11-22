@@ -21,7 +21,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override var httpUrlBlocklist: List<String> = emptyList()
     override var httpUrlAllowlist: List<String> = emptyList()
     override var trackActivityIntentData: Boolean = false
-    override var sessionSamplingRate: Float = 1.0f
+    override var samplingRateForErrorFreeSessions: Float = 1.0f
     override var maxAttachmentSizeInEventsBatchInBytes: Int = 3
     override var eventsBatchingIntervalMs: Long = 30_000 // 30 seconds
     override var maxEventsInBatch: Int = 100
@@ -32,18 +32,20 @@ internal class FakeConfigProvider : ConfigProvider {
     override var maxUserDefinedAttributeKeyLength: Int = 64
     override var maxUserDefinedAttributeValueLength: Int = 256
     override var userDefinedAttributeKeyWithSpaces: Boolean = false
+    override val autoStart: Boolean = true
 
     var shouldTrackHttpBody = false
+
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         return shouldTrackHttpBody
     }
-
     var shouldTrackHttpUrl = false
+
     override fun shouldTrackHttpUrl(url: String): Boolean {
         return shouldTrackHttpUrl
     }
-
     var headerKeysToBlock = emptyList<String>()
+
     override fun shouldTrackHttpHeader(key: String): Boolean {
         return !headerKeysToBlock.any { key.contains(it, ignoreCase = true) }
     }

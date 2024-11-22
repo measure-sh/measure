@@ -9,7 +9,9 @@ import org.junit.After
 import org.junit.Assert
 import org.junit.Test
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.never
 import org.mockito.Mockito.times
+import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.verify
 import sh.measure.android.events.EventProcessor
@@ -18,7 +20,7 @@ import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.TestClock
 import java.net.ConnectException
 
-class OkHttpDataProcessorTest {
+class OkHttpEventCollectorTest {
     private val logger = NoopLogger()
     private val eventProcessor = mock<EventProcessor>()
     private val timeProvider = AndroidTimeProvider(TestClock.create())
@@ -42,11 +44,25 @@ class OkHttpDataProcessorTest {
     }
 
     @Test
+    fun `disables collection when unregistered`() {
+        val statusCode = 200
+        okHttpEventCollector.register()
+        okHttpEventCollector.unregister()
+
+        // When
+        simulateSuccessfulPostRequest(statusCode = statusCode)
+
+        // Then
+        verify(eventProcessor, never()).track(any<HttpData>(), any(), any())
+    }
+
+    @Test
     fun `event contains status code for a successful request`() {
         val statusCode = 200
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
         val typeCaptor = argumentCaptor<String>()
+        okHttpEventCollector.register()
 
         // When
         simulateSuccessfulPostRequest(statusCode = statusCode)
@@ -66,6 +82,7 @@ class OkHttpDataProcessorTest {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
         val typeCaptor = argumentCaptor<String>()
+        okHttpEventCollector.register()
 
         // When
         simulateSuccessfulPostRequest()
@@ -86,6 +103,7 @@ class OkHttpDataProcessorTest {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
         val typeCaptor = argumentCaptor<String>()
+        okHttpEventCollector.register()
 
         // When
         simulateSuccessfulPostRequest(url = url)
@@ -106,6 +124,7 @@ class OkHttpDataProcessorTest {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
         val typeCaptor = argumentCaptor<String>()
+        okHttpEventCollector.register()
 
         // When
         simulateSuccessfulPostRequest(requestBody = requestBody)
@@ -126,6 +145,7 @@ class OkHttpDataProcessorTest {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
         val typeCaptor = argumentCaptor<String>()
+        okHttpEventCollector.register()
 
         // When
         simulateSuccessfulPostRequest(requestBody = requestBody, client = clientWithoutInterceptor)
@@ -146,6 +166,7 @@ class OkHttpDataProcessorTest {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
         val typeCaptor = argumentCaptor<String>()
+        okHttpEventCollector.register()
 
         // When
         simulateSuccessfulPostRequest(responseBody = responseBody)
@@ -166,6 +187,7 @@ class OkHttpDataProcessorTest {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
         val typeCaptor = argumentCaptor<String>()
+        okHttpEventCollector.register()
 
         // When
         simulateSuccessfulPostRequest(
@@ -189,6 +211,7 @@ class OkHttpDataProcessorTest {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
         val typeCaptor = argumentCaptor<String>()
+        okHttpEventCollector.register()
 
         // When
         simulateSuccessfulPostRequest()
@@ -209,6 +232,7 @@ class OkHttpDataProcessorTest {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
         val typeCaptor = argumentCaptor<String>()
+        okHttpEventCollector.register()
 
         // When
         simulateSuccessfulPostRequest()
@@ -228,6 +252,7 @@ class OkHttpDataProcessorTest {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
         val typeCaptor = argumentCaptor<String>()
+        okHttpEventCollector.register()
 
         // When
         simulateSuccessfulPostRequest()
@@ -248,6 +273,7 @@ class OkHttpDataProcessorTest {
         val dataCaptor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
         val typeCaptor = argumentCaptor<String>()
+        okHttpEventCollector.register()
 
         // When
         simulateSuccessfulPostRequest()
@@ -268,6 +294,7 @@ class OkHttpDataProcessorTest {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
         val typeCaptor = argumentCaptor<String>()
+        okHttpEventCollector.register()
 
         // When
         try {
@@ -295,6 +322,7 @@ class OkHttpDataProcessorTest {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
         val typeCaptor = argumentCaptor<String>()
+        okHttpEventCollector.register()
 
         // When
         simulateSuccessfulPostRequest()
@@ -314,6 +342,7 @@ class OkHttpDataProcessorTest {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
         val typeCaptor = argumentCaptor<String>()
+        okHttpEventCollector.register()
 
         // When
         simulateConnectionFailed()
@@ -341,6 +370,7 @@ class OkHttpDataProcessorTest {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
         val typeCaptor = argumentCaptor<String>()
+        okHttpEventCollector.register()
 
         // When
         simulateConnectionFailed()

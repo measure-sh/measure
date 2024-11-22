@@ -56,7 +56,7 @@ class SessionManagerTest {
     @Before
     fun setup() {
         // forces "needs reporting" to be set to false
-        configProvider.sessionSamplingRate = 0.0f
+        configProvider.samplingRateForErrorFreeSessions = 0.0f
         randomizer.randomDouble = 0.0
     }
 

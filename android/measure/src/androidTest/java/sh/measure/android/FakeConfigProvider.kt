@@ -33,7 +33,7 @@ class FakeConfigProvider : ConfigProvider {
     override var httpUrlBlocklist: List<String> = emptyList()
     override var httpUrlAllowlist: List<String> = emptyList()
     override var trackActivityIntentData: Boolean = true
-    override var sessionSamplingRate: Float = 1f
+    override var samplingRateForErrorFreeSessions: Float = 1f
     override var maxAttachmentSizeInEventsBatchInBytes: Int = 1_000_000
     override var eventsBatchingIntervalMs: Long = 1_000_000
     override var maxEventsInBatch: Int = 1_000_000
@@ -48,4 +48,5 @@ class FakeConfigProvider : ConfigProvider {
     override var screenshotCompressionQuality: Int = 100
     override var eventTypeExportAllowList: List<String> = emptyList()
     override var maxEventsInDatabase: Int = 50000
+    override val autoStart: Boolean = true
 }

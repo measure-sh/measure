@@ -202,7 +202,7 @@ internal class EventProcessorImpl(
                                 onEventTracked(event)
                                 logger.log(
                                     LogLevel.Debug,
-                                    "Event processed: $type, ${event.sessionId}",
+                                    "Event processed: ${event.type}:${event.id}",
                                 )
                             })
                         } else {

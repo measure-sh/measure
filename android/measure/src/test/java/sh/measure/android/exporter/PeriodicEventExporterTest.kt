@@ -49,13 +49,10 @@ class PeriodicEventExporterTest {
     }
 
     @Test
-    fun `starts heartbeat on cold launch with a delay`() {
-        periodicEventExporter.onColdLaunch()
+    fun `stops heartbeat when unregistered`() {
+        periodicEventExporter.unregister()
 
-        verify(heartbeat, atMostOnce()).start(
-            configProvider.eventsBatchingIntervalMs,
-            configProvider.eventsBatchingIntervalMs,
-        )
+        verify(heartbeat).stop()
     }
 
     @Test

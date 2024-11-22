@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 internal interface PeriodicEventExporter {
     fun onAppForeground()
     fun onAppBackground()
-    fun onColdLaunch()
+    fun unregister()
 }
 
 /**
@@ -45,8 +45,8 @@ internal class PeriodicEventExporterImpl(
         heartbeat.start(intervalMs = configProvider.eventsBatchingIntervalMs)
     }
 
-    override fun onColdLaunch() {
-        heartbeat.start(intervalMs = configProvider.eventsBatchingIntervalMs)
+    override fun unregister() {
+        heartbeat.stop()
     }
 
     override fun onAppBackground() {

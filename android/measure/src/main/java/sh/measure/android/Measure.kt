@@ -7,13 +7,11 @@ import org.jetbrains.annotations.TestOnly
 import sh.measure.android.applaunch.LaunchState
 import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.Attachment
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.okhttp.OkHttpEventCollector
 import sh.measure.android.tracing.InternalTrace
-import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -30,10 +28,7 @@ object Measure {
 
     /**
      * Initializes the Measure SDK. The SDK must be initialized before using any of the other
-     * methods. It is recommended to initialize the SDK as early as possible in the application
-     * startup so that exceptions, ANRs and other events can be captured as early as possible.
-     *
-     * Initializing the SDK multiple times will have no effect.
+     * methods. It is recommended to call this function in Application onCreate.
      *
      * An optional [measureConfig] can be passed to configure the SDK. If not provided, the SDK
      * will use the default configuration. To understand the configuration options available
@@ -57,6 +52,29 @@ object Measure {
                     measure.init()
                 },
             )
+        }
+    }
+
+    /**
+     * Starts tracking.
+     *
+     * @see stop to stop tracking.
+     * @see MeasureConfig.autoStart to control whether the SDK should start on init or not.
+     */
+    fun start() {
+        if (isInitialized.get()) {
+            measure.start()
+        }
+    }
+
+    /**
+     * Stops tracking. Features like session replay, crash & ANR reporting will not work.
+     *
+     * @see start to start tracking.
+     */
+    fun stop() {
+        if (isInitialized.get()) {
+            measure.stop()
         }
     }
 
@@ -281,20 +299,6 @@ object Measure {
         }
     }
 
-    internal fun getEventProcessor(): EventProcessor? {
-        if (isInitialized.get()) {
-            return measure.eventProcessor
-        }
-        return null
-    }
-
-    internal fun getTimeProvider(): TimeProvider? {
-        if (isInitialized.get()) {
-            return measure.timeProvider
-        }
-        return null
-    }
-
     internal fun getOkHttpEventCollector(): OkHttpEventCollector? {
         if (isInitialized.get()) {
             return try {
@@ -354,8 +358,7 @@ object Measure {
 
     private fun storeProcessImportanceState() {
         try {
-            LaunchState.processImportanceOnInit =
-                measure.processInfoProvider.getProcessImportance()
+            LaunchState.processImportanceOnInit = measure.processInfoProvider.getProcessImportance()
         } catch (e: Throwable) {
             measure.logger.log(
                 LogLevel.Error,
