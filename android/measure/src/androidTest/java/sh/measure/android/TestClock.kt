@@ -1,7 +1,6 @@
 package sh.measure.android
 
 import sh.measure.android.utils.SystemClock
-import java.time.Duration
 import java.util.concurrent.TimeUnit
 
 internal class TestClock private constructor(private var currentEpochMillis: Long) :
@@ -10,8 +9,8 @@ internal class TestClock private constructor(private var currentEpochMillis: Lon
         this.currentEpochMillis = time
     }
 
-    fun advance(duration: Duration) {
-        advance(duration.toMillis(), TimeUnit.MILLISECONDS)
+    fun advance(time: Long) {
+        advance(time, TimeUnit.MILLISECONDS)
     }
 
     override fun epochTime(): Long {

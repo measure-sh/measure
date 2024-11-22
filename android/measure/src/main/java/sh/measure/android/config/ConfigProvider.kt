@@ -72,8 +72,8 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { httpUrlAllowlist }
     override val trackActivityIntentData: Boolean
         get() = getMergedConfig { trackActivityIntentData }
-    override val sessionSamplingRate: Float
-        get() = getMergedConfig { sessionSamplingRate }
+    override val samplingRateForErrorFreeSessions: Float
+        get() = getMergedConfig { samplingRateForErrorFreeSessions }
     override val eventsBatchingIntervalMs: Long
         get() = getMergedConfig { eventsBatchingIntervalMs }
     override val maxEventsInBatch: Int
@@ -92,6 +92,9 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { maxUserDefinedAttributeKeyLength }
     override val maxUserDefinedAttributeValueLength: Int
         get() = getMergedConfig { maxUserDefinedAttributeValueLength }
+    override val autoStart: Boolean
+        get() = getMergedConfig { autoStart }
+
     override val userDefinedAttributeKeyWithSpaces: Boolean
         get() = getMergedConfig { userDefinedAttributeKeyWithSpaces }
 

@@ -27,11 +27,12 @@ internal class ComponentCallbacksCollectorTest {
             mock(),
             eventProcessor,
             timeProvider,
-        ).apply { register() }
+        )
     }
 
     @Test
-    fun `ComponentCallbacksCollector tracks trim memory event`() {
+    fun `tracks trim memory event`() {
+        componentCallbacksCollector.register()
         testTrimMemoryEvent(TRIM_MEMORY_UI_HIDDEN, "TRIM_MEMORY_UI_HIDDEN")
         testTrimMemoryEvent(TRIM_MEMORY_RUNNING_MODERATE, "TRIM_MEMORY_RUNNING_MODERATE")
         testTrimMemoryEvent(TRIM_MEMORY_RUNNING_LOW, "TRIM_MEMORY_RUNNING_LOW")

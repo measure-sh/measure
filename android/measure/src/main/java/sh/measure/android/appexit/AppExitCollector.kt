@@ -13,6 +13,7 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.Database
 import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.atomic.AtomicBoolean
 
 internal class AppExitCollector(
     private val logger: Logger,
@@ -22,10 +23,14 @@ internal class AppExitCollector(
     private val eventProcessor: EventProcessor,
     private val sessionManager: SessionManager,
 ) {
+    // Prevents app exit from being processed multiple times
+    private val tracked = AtomicBoolean(false)
 
     @RequiresApi(Build.VERSION_CODES.R)
-    fun onColdLaunch() {
-        trackAppExits()
+    fun collect() {
+        if (!tracked.getAndSet(true)) {
+            trackAppExits()
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.R)

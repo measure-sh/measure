@@ -11,7 +11,7 @@ internal class NoopPeriodicEventExporter : PeriodicEventExporter {
         // No-op
     }
 
-    override fun onColdLaunch() {
+    override fun unregister() {
         // No-op
     }
 }

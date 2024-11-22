@@ -1,20 +1,21 @@
 package sh.measure.android.lifecycle
 
+import android.app.Application
 import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.Fragment
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import org.junit.Assert
+import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.atMostOnce
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
+import org.mockito.kotlin.any
 import org.mockito.kotlin.never
 import org.robolectric.Robolectric.buildActivity
-import org.robolectric.RuntimeEnvironment
 import org.robolectric.android.controller.ActivityController
 import sh.measure.android.TestLifecycleActivity
 import sh.measure.android.events.EventProcessor
@@ -23,27 +24,29 @@ import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.TestClock
 
 @RunWith(AndroidJUnit4::class)
-class LifecycleCollectorTest {
-
-    private lateinit var lifecycleCollector: LifecycleCollector
+class ActivityLifecycleCollectorTest {
     private val eventProcessor: EventProcessor = mock()
     private val timeProvider = AndroidTimeProvider(TestClock.create())
+    private val application = InstrumentationRegistry.getInstrumentation().context as Application
+    private val appLifecycleManager = AppLifecycleManager(application)
+    private var activityLifecycleCollector: ActivityLifecycleCollector = ActivityLifecycleCollector(
+        appLifecycleManager,
+        eventProcessor,
+        timeProvider,
+    )
     private lateinit var controller: ActivityController<TestLifecycleActivity>
 
     @Before
     fun setUp() {
-        lifecycleCollector = LifecycleCollector(
-            RuntimeEnvironment.getApplication(),
-            eventProcessor,
-            timeProvider,
-        ).apply { register() }
+        appLifecycleManager.register()
+        activityLifecycleCollector.register()
         controller = buildActivity(TestLifecycleActivity::class.java)
     }
 
     @Test
     fun `tracks activity onCreate event`() {
         controller.setup()
-        verify(eventProcessor, atMostOnce()).track(
+        verify(eventProcessor, times(1)).track(
             timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_ACTIVITY,
             data = ActivityLifecycleData(
@@ -81,7 +84,7 @@ class LifecycleCollectorTest {
     @Test
     fun `tracks activity onResume`() {
         controller.setup()
-        verify(eventProcessor, atMostOnce()).track(
+        verify(eventProcessor, times(1)).track(
             timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_ACTIVITY,
             data = ActivityLifecycleData(
@@ -94,7 +97,7 @@ class LifecycleCollectorTest {
     @Test
     fun `tracks activity onPause`() {
         controller.setup().pause()
-        verify(eventProcessor, atMostOnce()).track(
+        verify(eventProcessor, times(1)).track(
             timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_ACTIVITY,
             data = ActivityLifecycleData(
@@ -107,7 +110,7 @@ class LifecycleCollectorTest {
     @Test
     fun `tracks activity onDestroy`() {
         controller.setup().destroy()
-        verify(eventProcessor, atMostOnce()).track(
+        verify(eventProcessor, times(1)).track(
             timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_ACTIVITY,
             data = ActivityLifecycleData(
@@ -179,93 +182,19 @@ class LifecycleCollectorTest {
     }
 
     @Test
-    @Ignore("onDetached seems to not get called in tests")
-    fun `tracks fragment onDetached`() {
-    }
-
-    @Test
-    fun `tracks application background event when all activities are stopped`() {
-        controller.setup().stop()
-        verify(eventProcessor, atMostOnce()).track(
-            timestamp = timeProvider.now(),
-            type = EventType.LIFECYCLE_APP,
-            data = ApplicationLifecycleData(
-                type = AppLifecycleType.BACKGROUND,
-            ),
-        )
-    }
-
-    @Test
-    fun `tracks application background event when first activity starts`() {
+    fun `unregister clears callbacks and stops tracking`() {
         controller.setup()
-        verify(eventProcessor, atMostOnce()).track(
-            timestamp = timeProvider.now(),
-            type = EventType.LIFECYCLE_APP,
-            data = ApplicationLifecycleData(
-                type = AppLifecycleType.FOREGROUND,
-            ),
-        )
-    }
-
-    @Test
-    fun `does not trigger application lifecycle events on configuration change`() {
-        controller.setup().configurationChange()
-        verify(eventProcessor, atMostOnce()).track(
-            timestamp = timeProvider.now(),
-            type = EventType.LIFECYCLE_APP,
-            data = ApplicationLifecycleData(
-                type = AppLifecycleType.FOREGROUND,
-            ),
+        activityLifecycleCollector.unregister()
+        verify(eventProcessor, never()).track(
+            timestamp = any(),
+            type = any(),
+            data = any<ActivityLifecycleData>(),
         )
         verify(eventProcessor, never()).track(
-            timestamp = timeProvider.now(),
-            type = EventType.LIFECYCLE_APP,
-            data = ApplicationLifecycleData(
-                type = AppLifecycleType.BACKGROUND,
-            ),
+            timestamp = any(),
+            type = any(),
+            data = any<FragmentLifecycleData>(),
         )
-    }
-
-    @Test
-    fun `invokes onAppForeground when app comes to foreground`() {
-        var foreground = false
-        lifecycleCollector = LifecycleCollector(
-            RuntimeEnvironment.getApplication(),
-            eventProcessor,
-            timeProvider,
-        ).apply {
-            register()
-            setApplicationLifecycleStateListener(object : ApplicationLifecycleStateListener {
-                override fun onAppForeground() {
-                    foreground = true
-                }
-
-                override fun onAppBackground() {}
-            })
-        }
-        controller.setup()
-        Assert.assertTrue(foreground)
-    }
-
-    @Test
-    fun `invokes onAppBackground when app goes to background`() {
-        var background = false
-        lifecycleCollector = LifecycleCollector(
-            RuntimeEnvironment.getApplication(),
-            eventProcessor,
-            timeProvider,
-        ).apply {
-            register()
-            setApplicationLifecycleStateListener(object :
-                ApplicationLifecycleStateListener {
-                override fun onAppForeground() {}
-                override fun onAppBackground() {
-                    background = true
-                }
-            })
-        }
-        controller.setup().stop()
-        Assert.assertTrue(background)
     }
 }
 

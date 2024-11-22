@@ -22,9 +22,9 @@ internal interface LaunchCallbacks {
  */
 internal class LaunchTracker(
     private val logger: Logger,
-    private val callbacks: LaunchCallbacks,
 ) : ActivityLifecycleAdapter {
 
+    private var callbacks: LaunchCallbacks? = null
     private var coldLaunchComplete = false
     private var launchInProgress = false
 
@@ -38,6 +38,14 @@ internal class LaunchTracker(
     private val createdActivities = mutableMapOf<String, OnCreateRecord>()
     private val startedActivities = mutableListOf<String>()
     private val resumedActivities = mutableListOf<String>()
+
+    fun registerCallbacks(callbacks: LaunchCallbacks) {
+        this.callbacks = callbacks
+    }
+
+    fun unregisterCallbacks() {
+        this.callbacks = null
+    }
 
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
         val identityHash = Integer.toHexString(System.identityHashCode(activity))
@@ -106,7 +114,7 @@ internal class LaunchTracker(
                     when (val launchType = computeLaunchType(onCreateRecord)) {
                         "Cold" -> {
                             coldLaunchComplete = true
-                            callbacks.onColdLaunch(
+                            callbacks?.onColdLaunch(
                                 coldLaunchData = ColdLaunchData(
                                     process_start_uptime = LaunchState.processStartUptime,
                                     process_start_requested_uptime = LaunchState.processStartRequestedUptime,
@@ -121,7 +129,7 @@ internal class LaunchTracker(
 
                         "Hot" -> {
                             LaunchState.lastAppVisibleTime?.let {
-                                callbacks.onHotLaunch(
+                                callbacks?.onHotLaunch(
                                     HotLaunchData(
                                         app_visible_uptime = it,
                                         on_next_draw_uptime = onNextDrawUptime,
@@ -137,7 +145,7 @@ internal class LaunchTracker(
                         }
 
                         "Warm" -> {
-                            callbacks.onWarmLaunch(
+                            callbacks?.onWarmLaunch(
                                 WarmLaunchData(
                                     process_start_uptime = LaunchState.processStartUptime,
                                     process_start_requested_uptime = LaunchState.processStartRequestedUptime,
@@ -153,7 +161,7 @@ internal class LaunchTracker(
                         }
 
                         "Lukewarm" -> {
-                            callbacks.onWarmLaunch(
+                            callbacks?.onWarmLaunch(
                                 WarmLaunchData(
                                     process_start_uptime = LaunchState.processStartUptime,
                                     process_start_requested_uptime = LaunchState.processStartRequestedUptime,

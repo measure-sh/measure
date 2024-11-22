@@ -24,6 +24,10 @@ internal class ComponentCallbacksCollector(
         application.registerComponentCallbacks(this)
     }
 
+    fun unregister() {
+        application.unregisterComponentCallbacks(this)
+    }
+
     @Deprecated("Not called since API level 34")
     override fun onLowMemory() {
         // no-op

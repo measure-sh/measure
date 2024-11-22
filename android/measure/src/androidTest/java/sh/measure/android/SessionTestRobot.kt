@@ -14,7 +14,6 @@ import sh.measure.android.logger.AndroidLogger
 import sh.measure.android.storage.DatabaseImpl
 import sh.measure.android.storage.SessionsTable
 import sh.measure.android.utils.AndroidTimeProvider
-import java.time.Duration
 
 class SessionTestRobot {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
@@ -50,19 +49,19 @@ class SessionTestRobot {
     }
 
     fun incrementTimeBeyondLastEventThreshold() {
-        testClock.advance(Duration.ofMillis(configProvider.sessionEndLastEventThresholdMs + 1000))
+        testClock.advance(configProvider.sessionEndLastEventThresholdMs + 1000)
     }
 
     fun incrementTimeWithinSessionThreshold() {
-        testClock.advance(Duration.ofMillis(configProvider.sessionEndLastEventThresholdMs - 1000))
+        testClock.advance(configProvider.sessionEndLastEventThresholdMs - 1000)
     }
 
     fun incrementTimeBeyondMaxSessionDuration() {
-        testClock.advance(Duration.ofMillis(configProvider.maxSessionDurationMs + 100))
+        testClock.advance(configProvider.maxSessionDurationMs + 100)
     }
 
     fun moveAppToBackground() {
-        testClock.advance(Duration.ofMillis(1000))
+        testClock.advance(1000)
         device.pressHome()
         device.waitForIdle()
     }

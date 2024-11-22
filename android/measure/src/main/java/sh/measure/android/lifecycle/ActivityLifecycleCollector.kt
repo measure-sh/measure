@@ -1,43 +1,38 @@
 package sh.measure.android.lifecycle
 
 import android.app.Activity
-import android.app.Application
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.isClassAvailable
+import java.util.concurrent.atomic.AtomicBoolean
 
-internal interface ApplicationLifecycleStateListener {
-    fun onAppForeground()
-    fun onAppBackground()
-}
-
-/**
- * Tracks [Activity], Application and [Fragment] lifecycle events.
- */
-internal class LifecycleCollector(
-    private val application: Application,
+internal class ActivityLifecycleCollector(
+    private val appLifecycleManager: AppLifecycleManager,
     private val eventProcessor: EventProcessor,
     private val timeProvider: TimeProvider,
-) : ActivityLifecycleAdapter {
+) : ActivityLifecycleListener {
     private val fragmentLifecycleCollector by lazy {
         FragmentLifecycleCollector(eventProcessor, timeProvider)
     }
     private val androidXFragmentNavigationCollector by lazy {
         AndroidXFragmentNavigationCollector(eventProcessor, timeProvider)
     }
-    private val startedActivities = mutableSetOf<String>()
-    private var applicationLifecycleStateListener: ApplicationLifecycleStateListener? = null
+
+    private var isRegistered = AtomicBoolean(false)
 
     fun register() {
-        application.registerActivityLifecycleCallbacks(this)
+        if (!isRegistered.getAndSet(true)) {
+            appLifecycleManager.addListener(this)
+        }
     }
 
-    fun setApplicationLifecycleStateListener(listener: ApplicationLifecycleStateListener) {
-        applicationLifecycleStateListener = listener
+    fun unregister() {
+        if (isRegistered.getAndSet(false)) {
+            appLifecycleManager.removeListener(this)
+        }
     }
 
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
@@ -53,24 +48,6 @@ internal class LifecycleCollector(
                 intent = activity.intent.dataString,
             ),
         )
-    }
-
-    override fun onActivityStarted(activity: Activity) {
-        if (startedActivities.isEmpty()) {
-            // letting listeners know about app foreground before tracking the event
-            // session manager depends on this sequence to ensure that new session ID (if created)
-            // is reflected in all events collected after the launch.
-            applicationLifecycleStateListener?.onAppForeground()
-            eventProcessor.track(
-                timestamp = timeProvider.now(),
-                type = EventType.LIFECYCLE_APP,
-                data = ApplicationLifecycleData(
-                    type = AppLifecycleType.FOREGROUND,
-                ),
-            )
-        }
-        val hash = Integer.toHexString(System.identityHashCode(activity))
-        startedActivities.add(hash)
     }
 
     override fun onActivityResumed(activity: Activity) {
@@ -93,24 +70,6 @@ internal class LifecycleCollector(
                 class_name = activity.javaClass.name,
             ),
         )
-    }
-
-    override fun onActivityStopped(activity: Activity) {
-        val hash = Integer.toHexString(System.identityHashCode(activity))
-        startedActivities.remove(hash)
-        if (startedActivities.isEmpty()) {
-            eventProcessor.track(
-                timestamp = timeProvider.now(),
-                type = EventType.LIFECYCLE_APP,
-                data = ApplicationLifecycleData(
-                    type = AppLifecycleType.BACKGROUND,
-                ),
-            )
-            // letting listeners know about app background after tracking the event as
-            // this allows the event to be collected before any clean up is done
-            // due to the app moving to background.
-            applicationLifecycleStateListener?.onAppBackground()
-        }
     }
 
     override fun onActivityDestroyed(activity: Activity) {

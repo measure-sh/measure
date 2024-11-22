@@ -57,6 +57,7 @@ internal class NetworkChangesCollector(
     private val telephonyManager: TelephonyManager? by lazy(mode = LazyThreadSafetyMode.NONE) {
         systemServiceProvider.telephonyManager
     }
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     @SuppressLint("MissingPermission")
     fun register() {
@@ -64,7 +65,9 @@ internal class NetworkChangesCollector(
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.N -> {
                 if (hasPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
                     val connectivityManager = systemServiceProvider.connectivityManager ?: return
-                    connectivityManager.registerDefaultNetworkCallback(networkCallback())
+                    val networkCallback = networkCallback()
+                    this.networkCallback = networkCallback
+                    connectivityManager.registerDefaultNetworkCallback(networkCallback)
                 } else {
                     logger.log(
                         LogLevel.Info,
@@ -76,11 +79,13 @@ internal class NetworkChangesCollector(
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> {
                 val connectivityManager = systemServiceProvider.connectivityManager ?: return
                 if (hasPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
+                    val networkCallback = networkCallback()
+                    this.networkCallback = networkCallback
                     connectivityManager.registerNetworkCallback(
                         NetworkRequest.Builder().addTransportType(TRANSPORT_CELLULAR)
                             .addTransportType(TRANSPORT_WIFI).addTransportType(TRANSPORT_VPN)
                             .addCapability(NET_CAPABILITY_INTERNET).build(),
-                        networkCallback(),
+                        networkCallback,
                     )
                 } else {
                     logger.log(
@@ -97,6 +102,18 @@ internal class NetworkChangesCollector(
                 )
             }
         }
+    }
+
+    fun unregister() {
+        networkCallback?.let { callback ->
+            systemServiceProvider.connectivityManager?.unregisterNetworkCallback(callback)
+            networkCallback = null
+        }
+        currentNetworkType = NetworkType.UNKNOWN
+        currentNetworkGeneration = NetworkGeneration.UNKNOWN
+        networkStateProvider.setNetworkState(
+            NetworkState(NetworkType.UNKNOWN, NetworkGeneration.UNKNOWN, NetworkProvider.UNKNOWN),
+        )
     }
 
     @RequiresApi(Build.VERSION_CODES.M)

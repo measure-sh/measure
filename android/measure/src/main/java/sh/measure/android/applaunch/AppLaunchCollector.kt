@@ -7,10 +7,6 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.TimeProvider
 
-internal interface ColdLaunchListener {
-    fun onColdLaunch()
-}
-
 /**
  * Tracks cold, warm and hot launch.
  */
@@ -19,19 +15,17 @@ internal class AppLaunchCollector(
     private val application: Application,
     private val timeProvider: TimeProvider,
     private val eventProcessor: EventProcessor,
+    private val launchTracker: LaunchTracker,
 ) : LaunchCallbacks {
-
-    private var coldLaunchListener: ColdLaunchListener? = null
-
     fun register() {
         logger.log(LogLevel.Debug, "Registering AppLaunchCollector")
-        application.registerActivityLifecycleCallbacks(
-            LaunchTracker(logger, this),
-        )
+        application.registerActivityLifecycleCallbacks(launchTracker)
+        launchTracker.registerCallbacks(this)
     }
 
-    fun setColdLaunchListener(listener: ColdLaunchListener) {
-        coldLaunchListener = listener
+    fun unregister() {
+        application.unregisterActivityLifecycleCallbacks(launchTracker)
+        launchTracker.unregisterCallbacks()
     }
 
     override fun onColdLaunch(coldLaunchData: ColdLaunchData) {
@@ -46,7 +40,6 @@ internal class AppLaunchCollector(
             type = EventType.COLD_LAUNCH,
             data = coldLaunchData,
         )
-        coldLaunchListener?.onColdLaunch()
     }
 
     override fun onWarmLaunch(warmLaunchData: WarmLaunchData) {

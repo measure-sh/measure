@@ -6,6 +6,7 @@ import sh.measure.android.appexit.AppExitCollector
 import sh.measure.android.appexit.AppExitProvider
 import sh.measure.android.appexit.AppExitProviderImpl
 import sh.measure.android.applaunch.AppLaunchCollector
+import sh.measure.android.applaunch.LaunchTracker
 import sh.measure.android.attributes.AppAttributeProcessor
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.DeviceAttributeProcessor
@@ -39,7 +40,9 @@ import sh.measure.android.exporter.NetworkClient
 import sh.measure.android.exporter.NetworkClientImpl
 import sh.measure.android.exporter.PeriodicEventExporter
 import sh.measure.android.gestures.GestureCollector
-import sh.measure.android.lifecycle.LifecycleCollector
+import sh.measure.android.lifecycle.ActivityLifecycleCollector
+import sh.measure.android.lifecycle.AppLifecycleCollector
+import sh.measure.android.lifecycle.AppLifecycleManager
 import sh.measure.android.logger.AndroidLogger
 import sh.measure.android.logger.Logger
 import sh.measure.android.networkchange.InitialNetworkStateProvider
@@ -106,7 +109,7 @@ internal class TestMeasureInitializer(
             httpUrlBlocklist = inputConfig.httpUrlBlocklist,
             httpUrlAllowlist = inputConfig.httpUrlAllowlist,
             trackActivityIntentData = inputConfig.trackActivityIntentData,
-            sessionSamplingRate = inputConfig.sessionSamplingRate,
+            samplingRateForErrorFreeSessions = inputConfig.samplingRateForErrorFreeSessions,
         ),
         configLoader = ConfigLoaderImpl(),
     ),
@@ -313,21 +316,31 @@ internal class TestMeasureInitializer(
         timeProvider = timeProvider,
         eventProcessor = eventProcessor,
     ),
-    override val lifecycleCollector: LifecycleCollector = LifecycleCollector(
+    override val appLifecycleManager: AppLifecycleManager = AppLifecycleManager(
         application = application,
+    ),
+    override val activityLifecycleCollector: ActivityLifecycleCollector = ActivityLifecycleCollector(
         eventProcessor = eventProcessor,
         timeProvider = timeProvider,
+        appLifecycleManager = appLifecycleManager,
+    ),
+    override val appLifecycleCollector: AppLifecycleCollector = AppLifecycleCollector(
+        eventProcessor = eventProcessor,
+        timeProvider = timeProvider,
+        appLifecycleManager = appLifecycleManager,
     ),
     override val gestureCollector: GestureCollector = GestureCollector(
         logger = logger,
         eventProcessor = eventProcessor,
         timeProvider = timeProvider,
     ),
+    private val launchTracker: LaunchTracker = LaunchTracker(logger),
     override val appLaunchCollector: AppLaunchCollector = AppLaunchCollector(
         logger = logger,
         application = application,
         eventProcessor = eventProcessor,
         timeProvider = timeProvider,
+        launchTracker = launchTracker,
     ),
     override val networkChangesCollector: NetworkChangesCollector = NetworkChangesCollector(
         logger = logger,
