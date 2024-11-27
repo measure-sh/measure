@@ -305,23 +305,19 @@ func (u *UDExpression) Validate() (err error) {
 // qualified `where` expressions.
 func (u *UDExpression) Augment(stmt *sqlf.Stmt) {
 	if u.HasAnd() {
-		stmt.Where("(")
 		for i, andExpr := range u.And {
 			if i > 0 {
-				stmt.Where("and")
+				stmt.Clause("OR")
 			}
 			andExpr.Augment(stmt)
 		}
-		stmt.Where(")")
 	} else if u.HasOr() {
-		stmt.Where("(")
 		for i, orExpr := range u.Or {
 			if i > 0 {
-				stmt.Where("or")
+				stmt.Clause("OR")
 			}
 			orExpr.Augment(stmt)
 		}
-		stmt.Where(")")
 	} else if !u.Cmp.Empty() {
 		u.Cmp.Augment(stmt)
 	}
@@ -381,17 +377,42 @@ func (c *UDComparison) Augment(stmt *sqlf.Stmt) {
 	}
 
 	opSymbol := c.Op.Sql()
+	danglingExpr := hasExprClause(stmt)
+	exprFunc := stmt.Where
+
+	if danglingExpr {
+		exprFunc = stmt.Expr
+	}
 
 	// TODO: Figure out type casting of non-string values
 	// TODO: Figure out escaping % characters for `ilike` operator
 	switch c.Op {
 	case OpEq, OpNeq, OpGt, OpGte, OpLt, OpLte:
-		stmt.Where(fmt.Sprintf("key = ? and type = ? and value %s ?", opSymbol), c.Key, c.Type.String(), c.Value)
+		exprFunc(fmt.Sprintf("(key = ? AND type = ? AND value %s ?)", opSymbol), c.Key, c.Type.String(), c.Value)
 	case OpContains:
-		stmt.Where(fmt.Sprintf("key = ? and type = ? and value %s %%?%%", opSymbol), c.Key, c.Type.String(), c.Value)
+		exprFunc(fmt.Sprintf("(key = ? AND type = ? AND value %s %%?%%)", opSymbol), c.Key, c.Type.String(), c.Value)
 	case OpStartsWith:
-		stmt.Where(fmt.Sprintf("key = ? and type = ? and value %s ?%%", opSymbol), c.Key, c.Type.String(), c.Value)
+		exprFunc(fmt.Sprintf("(key = ? AND type = ? AND value %s ?%%)", opSymbol), c.Key, c.Type.String(), c.Value)
 	}
+}
+
+// endsWithAnd returns true if the statement
+// ends with a dangling "AND" keyword.
+func endsWithAnd(stmt *sqlf.Stmt) bool {
+	return strings.HasSuffix(strings.ToLower(stmt.String()), "and")
+}
+
+// endsWithOr returns true if the statement
+// ends with a dangling "OR" keyword.
+func endsWithOr(stmt *sqlf.Stmt) bool {
+	return strings.HasSuffix(strings.ToLower(stmt.String()), "or")
+}
+
+// hasExprClause returns true if the statement
+// ends with either a dangling "AND" or "OR"
+// keyword.
+func hasExprClause(stmt *sqlf.Stmt) bool {
+	return endsWithAnd(stmt) || endsWithOr(stmt)
 }
 
 // Validate validates the user defined comparison
@@ -407,11 +428,18 @@ func (c *UDComparison) Validate() (err error) {
 // UDAttribute represents user defined
 // attributes.
 //
-// User Defined Attributes are used in
-// various entities like event or span.
+// User Defined Attributes enter into
+// the system via events or spans.
 type UDAttribute struct {
 	rawAttrs map[string]any
 	keyTypes map[string]AttrType
+}
+
+// Empty returns true if user defined
+// attributes does not contain any keys
+// or attributes.
+func (u UDAttribute) Empty() bool {
+	return len(u.rawAttrs) == 0 && len(u.keyTypes) == 0
 }
 
 // MarshalJSON marshals UDAttribute type of user

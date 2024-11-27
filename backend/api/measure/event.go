@@ -493,8 +493,17 @@ func (e eventreq) validate() error {
 		if err := e.events[i].Attribute.Validate(); err != nil {
 			return err
 		}
-		if err := e.events[i].UserDefinedAttribute.Validate(); err != nil {
-			return err
+
+		// only process user defined attributes
+		// if the payload contains any.
+		//
+		// this check is super important to have
+		// because older SDKs won't ever send these
+		// attributes.
+		if !e.events[i].UserDefinedAttribute.Empty() {
+			if err := e.events[i].UserDefinedAttribute.Validate(); err != nil {
+				return err
+			}
 		}
 
 		if e.hasAttachments() {

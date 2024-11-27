@@ -257,10 +257,19 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 			Select("distinct id").
 			Clause("prewhere app_id = toUUID(?) and exception.fingerprint = ?", af.AppID, exceptionGroup.Fingerprint).
 			Where("type = ?", event.TypeException).
-			Where("exception.handled = ?", false).
-			GroupBy("id")
+			Where("exception.handled = ?", false)
 
 		defer eventDataStmt.Close()
+
+		if af.HasUDExpression() && !af.UDExpression.Empty() {
+			subQuery := sqlf.From("user_def_attrs").
+				Select("event_id id").
+				Where("app_id = toUUID(?)", af.AppID)
+			af.UDExpression.Augment(subQuery)
+			eventDataStmt.Clause("AND id in").SubQuery("(", ")", subQuery)
+		}
+
+		eventDataStmt.GroupBy("id")
 
 		if len(af.Versions) > 0 {
 			eventDataStmt.Where("attribute.app_version").In(af.Versions)
@@ -504,10 +513,19 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 			From("events").
 			Select("distinct id").
 			Clause("prewhere app_id = toUUID(?) and anr.fingerprint = ?", af.AppID, anrGroup.Fingerprint).
-			Where("type = ?", event.TypeANR).
-			GroupBy("id")
+			Where("type = ?", event.TypeANR)
 
 		defer eventDataStmt.Close()
+
+		if af.HasUDExpression() && !af.UDExpression.Empty() {
+			subQuery := sqlf.From("user_def_attrs").
+				Select("event_id id").
+				Where("app_id = toUUID(?)", af.AppID)
+			af.UDExpression.Augment(subQuery)
+			eventDataStmt.Clause("AND id in").SubQuery("(", ")", subQuery)
+		}
+
+		eventDataStmt.GroupBy("id")
 
 		if len(af.Versions) > 0 {
 			eventDataStmt.Where("attribute.app_version").In(af.Versions)
@@ -2405,10 +2423,6 @@ func GetCrashOverview(c *gin.Context) {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
 		return
-	}
-
-	if af.UDExpression != nil {
-		fmt.Println("ud expression:", af.UDExpression)
 	}
 
 	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {

@@ -260,7 +260,7 @@ func TestAugmentComparison(t *testing.T) {
 		defer stmt.Close()
 
 		cmpBoolEq.Augment(stmt)
-		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND key = ? and type = ? and value = ?"
+		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND (key = ? AND type = ? AND value = ?)"
 		expectedArgs := []any{true, "us_resident", "bool", "true"}
 		gotStmt := stmt.String()
 		gotArgs := stmt.Args()
@@ -283,7 +283,7 @@ func TestAugmentComparison(t *testing.T) {
 		defer stmt.Close()
 
 		cmpBoolNeq.Augment(stmt)
-		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND key = ? and type = ? and value != ?"
+		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND (key = ? AND type = ? AND value != ?)"
 		expectedArgs := []any{true, "us_resident", "bool", "false"}
 		gotStmt := stmt.String()
 		gotArgs := stmt.Args()
@@ -306,7 +306,7 @@ func TestAugmentComparison(t *testing.T) {
 		defer stmt.Close()
 
 		cmpInt64Gt.Augment(stmt)
-		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND key = ? and type = ? and value > ?"
+		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND (key = ? AND type = ? AND value > ?)"
 		expectedArgs := []any{true, "credit_balance", "int64", "1000"}
 		gotStmt := stmt.String()
 		gotArgs := stmt.Args()
@@ -329,7 +329,7 @@ func TestAugmentComparison(t *testing.T) {
 		defer stmt.Close()
 
 		cmpInt64Lt.Augment(stmt)
-		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND key = ? and type = ? and value < ?"
+		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND (key = ? AND type = ? AND value < ?)"
 		expectedArgs := []any{true, "credit_balance", "int64", "1000"}
 		gotStmt := stmt.String()
 		gotArgs := stmt.Args()
@@ -352,7 +352,7 @@ func TestAugmentComparison(t *testing.T) {
 		defer stmt.Close()
 
 		cmpFloat64Lt.Augment(stmt)
-		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND key = ? and type = ? and value < ?"
+		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND (key = ? AND type = ? AND value < ?)"
 		expectedArgs := []any{true, "invested_amount", "float64", "1000.00"}
 		gotStmt := stmt.String()
 		gotArgs := stmt.Args()
@@ -375,7 +375,7 @@ func TestAugmentComparison(t *testing.T) {
 		defer stmt.Close()
 
 		cmpFloat64Lte.Augment(stmt)
-		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND key = ? and type = ? and value <= ?"
+		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND (key = ? AND type = ? AND value <= ?)"
 		expectedArgs := []any{true, "invested_amount", "float64", "1000.00"}
 		gotStmt := stmt.String()
 		gotArgs := stmt.Args()
@@ -398,7 +398,7 @@ func TestAugmentComparison(t *testing.T) {
 		defer stmt.Close()
 
 		cmpFloat64Gt.Augment(stmt)
-		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND key = ? and type = ? and value > ?"
+		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND (key = ? AND type = ? AND value > ?)"
 		expectedArgs := []any{true, "invested_amount", "float64", "999.99"}
 		gotStmt := stmt.String()
 		gotArgs := stmt.Args()
@@ -421,7 +421,7 @@ func TestAugmentComparison(t *testing.T) {
 		defer stmt.Close()
 
 		cmpFloat64Gte.Augment(stmt)
-		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND key = ? and type = ? and value >= ?"
+		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND (key = ? AND type = ? AND value >= ?)"
 		expectedArgs := []any{true, "invested_amount", "float64", "1000.00"}
 		gotStmt := stmt.String()
 		gotArgs := stmt.Args()
@@ -444,7 +444,7 @@ func TestAugmentComparison(t *testing.T) {
 		defer stmt.Close()
 
 		cmpStringContains.Augment(stmt)
-		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND key = ? and type = ? and value ilike %?%"
+		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND (key = ? AND type = ? AND value ilike %?%)"
 		expectedArgs := []any{true, "preference", "string", "spicy"}
 		gotStmt := stmt.String()
 		gotArgs := stmt.Args()
@@ -467,7 +467,7 @@ func TestAugmentComparison(t *testing.T) {
 		defer stmt.Close()
 
 		cmpStringStartsWith.Augment(stmt)
-		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND key = ? and type = ? and value ilike ?%"
+		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND (key = ? AND type = ? AND value ilike ?%)"
 		expectedArgs := []any{true, "name", "string", "Dr"}
 		gotStmt := stmt.String()
 		gotArgs := stmt.Args()
@@ -490,6 +490,26 @@ func TestAugmentExpression(t *testing.T) {
 			Type:  AttrBool,
 			Op:    OpEq,
 			Value: "true",
+		},
+	}
+	exprAnd := UDExpression{
+		And: []UDExpression{
+			{
+				Cmp: UDComparison{
+					Key:   "username",
+					Type:  AttrString,
+					Op:    OpEq,
+					Value: "alice",
+				},
+			},
+			{
+				Cmp: UDComparison{
+					Key:   "premium_user",
+					Type:  AttrBool,
+					Op:    OpEq,
+					Value: "true",
+				},
+			},
 		},
 	}
 
@@ -525,9 +545,33 @@ func TestAugmentExpression(t *testing.T) {
 		defer stmt.Close()
 		exprNotEmpty.Augment(stmt)
 
-		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND key = ? and type = ? and value = ?"
+		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND (key = ? AND type = ? AND value = ?)"
 		gotStmt := stmt.String()
 		expectedArgs := []any{true, "us_resident", "bool", "true"}
+		gotArgs := stmt.Args()
+
+		if expectedStmt != gotStmt {
+			t.Errorf("Expected %q sql statement, got %q", expectedStmt, gotStmt)
+		}
+
+		if !reflect.DeepEqual(expectedArgs, gotArgs) {
+			t.Errorf("Expected %+#v args, got %+#v", expectedArgs, gotArgs)
+		}
+	}
+
+	{
+		stmt := sqlf.From("users").
+			Select("id").
+			Select("name").
+			Where("is_active = ?", true)
+
+		defer stmt.Close()
+		exprAnd.Augment(stmt)
+
+		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND (key = ? AND type = ? AND value = ?) OR (key = ? AND type = ? AND value = ?)"
+
+		gotStmt := stmt.String()
+		expectedArgs := []any{true, "username", "string", "alice", "premium_user", "bool", "true"}
 		gotArgs := stmt.Args()
 
 		if expectedStmt != gotStmt {

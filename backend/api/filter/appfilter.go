@@ -430,6 +430,12 @@ func (af *AppFilter) HasTimezone() bool {
 	return af.Timezone != ""
 }
 
+// HasUDExpression returns true if a user
+// defined expression was requested.
+func (af *AppFilter) HasUDExpression() bool {
+	return af.UDExpressionRaw != "" && af.UDExpression != nil
+}
+
 // LimitAbs returns the absolute value of limit
 func (af *AppFilter) LimitAbs() int {
 	if !af.HasPositiveLimit() {
