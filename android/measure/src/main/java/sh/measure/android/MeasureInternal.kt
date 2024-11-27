@@ -175,10 +175,6 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         customEventCollector.trackEvent(name, attributes, attachment)
     }
 
-    fun clear() {
-        userAttributeProcessor.clearUserId()
-    }
-
     private fun unregisterCollectors() {
         unhandledExceptionCollector.unregister()
         anrCollector.unregister()
