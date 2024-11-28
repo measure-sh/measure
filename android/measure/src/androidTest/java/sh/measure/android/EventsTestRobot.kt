@@ -10,6 +10,7 @@ import androidx.test.uiautomator.Direction
 import androidx.test.uiautomator.UiDevice
 import okhttp3.Headers
 import sh.measure.android.config.MeasureConfig
+import java.io.File
 
 /**
  * A helper class to interact with the app under test. This class abstracts how the user
@@ -115,6 +116,33 @@ class EventsTestRobot {
         Thread.getDefaultUncaughtExceptionHandler()!!.uncaughtException(
             Thread.currentThread(),
             RuntimeException("Test exception"),
+        )
+    }
+
+    fun trackCustomEvent() {
+        Measure.trackEvent(
+            "custom_event",
+            buildAttributes {
+                "custom_event_key" to "custom_event_value"
+            },
+        )
+    }
+
+    fun trackCustomEventWithAttachment(attachmentContent: String) {
+        val file = File.createTempFile("attachment", null).apply {
+            writeText(attachmentContent)
+        }
+        val attachment = MeasureAttachment(
+            name = "attachment_name",
+            type = "plain/text",
+            path = file.path,
+        )
+        Measure.trackEvent(
+            "custom_event",
+            attachment,
+            buildAttributes {
+                "custom_event_key" to "custom_event_value"
+            },
         )
     }
 }
