@@ -100,6 +100,9 @@ final class MeasureInternal {
     private var memoryUsageCollector: MemoryUsageCollector {
         return measureInitializer.memoryUsageCollector
     }
+    private var appLaunchCollector: AppLaunchCollector {
+        return measureInitializer.appLaunchCollector
+    }
     private let lifecycleObserver: LifecycleObserver
 
     init(_ measureInitializer: MeasureInitializer) {
@@ -108,6 +111,7 @@ final class MeasureInternal {
         self.logger.log(level: .info, message: "Starting Measure SDK", error: nil, data: nil)
         self.sessionManager.setPreviousSessionCrashed(crashReportManager.hasPendingCrashReport)
         self.sessionManager.start()
+        self.appLaunchCollector.enable()
         self.lifecycleObserver.applicationDidEnterBackground = applicationDidEnterBackground
         self.lifecycleObserver.applicationWillEnterForeground = applicationWillEnterForeground
         self.lifecycleObserver.applicationWillTerminate = applicationWillTerminate

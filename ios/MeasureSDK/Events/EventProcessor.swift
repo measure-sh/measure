@@ -21,24 +21,6 @@ protocol EventProcessor {
     )
 }
 
-extension EventProcessor {
-    func track<T: Codable>(
-        data: T,
-        timestamp: Number,
-        type: EventType,
-        attributes: Attributes? = nil,
-        sessionId: String? = nil,
-        attachments: [Attachment]? = nil
-    ) {
-        track(data: data,
-              timestamp: timestamp,
-              type: type,
-              attributes: attributes,
-              sessionId: sessionId,
-              attachments: attachments)
-    }
-}
-
 /// A concrete implementation of the `EventProcessor` protocol, responsible for tracking and
 /// processing events.
 final class BaseEventProcessor: EventProcessor {
