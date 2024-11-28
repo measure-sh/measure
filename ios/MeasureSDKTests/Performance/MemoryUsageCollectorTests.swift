@@ -30,7 +30,7 @@ final class MemoryUsageCollectorTests: XCTestCase {
             configProvider: mockConfigProvider,
             eventProcessor: mockEventProcessor,
             timeProvider: mockTimeProvider,
-            memoryUsageCalaculator: mockMemoryUsageCalculator,
+            memoryUsageCalculator: mockMemoryUsageCalculator,
             sysCtl: mockSysCtl
         )
     }

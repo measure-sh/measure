@@ -45,6 +45,7 @@ final class MockMeasureInitializer: MeasureInitializer {
     let cpuUsageCalculator: CpuUsageCalculator
     let memoryUsageCalculator: MemoryUsageCalculator
     let sysCtl: SysCtl
+    let appLaunchCollector: AppLaunchCollector
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -144,8 +145,15 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                              configProvider: configProvider,
                                                              eventProcessor: eventProcessor,
                                                              timeProvider: timeProvider,
-                                                             memoryUsageCalaculator: memoryUsageCalculator,
+                                                             memoryUsageCalculator: memoryUsageCalculator,
                                                              sysCtl: sysCtl)
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? AttributeConstants.unknown
+        self.appLaunchCollector = BaseAppLaunchCollector(logger: logger,
+                                                         timeProvider: timeProvider,
+                                                         eventProcessor: eventProcessor,
+                                                         sysCtl: sysCtl,
+                                                         userDefaultStorage: userDefaultStorage,
+                                                         currentAppVersion: appVersion)
         self.client = client
     }
 }

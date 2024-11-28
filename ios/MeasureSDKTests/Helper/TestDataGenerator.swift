@@ -84,7 +84,10 @@ struct TestDataGenerator {
         lifecycleViewController: Data? = nil,
         lifecycleSwiftUI: Data? = nil,
         cpuUsage: Data? = nil,
-        memoryUsage: Data? = nil
+        memoryUsage: Data? = nil,
+        coldLaunch: Data? = nil,
+        warmLaunch: Data? = nil,
+        hotLaunch: Data? = nil
     ) -> EventEntity {
         return EventEntity(
             id: id,
@@ -105,7 +108,10 @@ struct TestDataGenerator {
             lifecycleViewController: lifecycleViewController,
             lifecycleSwiftUI: lifecycleSwiftUI,
             cpuUsage: cpuUsage,
-            memoryUsage: memoryUsage
+            memoryUsage: memoryUsage,
+            coldLaunch: coldLaunch,
+            warmLaunch: warmLaunch,
+            hotLaunch: hotLaunch
         )
     }
 

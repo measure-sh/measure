@@ -46,6 +46,7 @@ protocol MeasureInitializer {
     var cpuUsageCalculator: CpuUsageCalculator { get }
     var memoryUsageCalculator: MemoryUsageCalculator { get }
     var sysCtl: SysCtl { get }
+    var appLaunchCollector: AppLaunchCollector { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -72,10 +73,11 @@ protocol MeasureInitializer {
 /// - `coreDataManager`: `CoreDataManager` object that generates and manages core data persistance and contexts
 /// - `sessionStore`: `SessionStore` object that manages `Session` related operations
 /// - `eventStore`: `EventStore` object that manages `Event` related operations
-/// - `gestureCollector`: `GestureCollector` object is responsible for detecting and saving gesture related data.
-/// - `lifecycleCollector`: `LifecycleCollector` object is responsible for detecting and saving ViewController lifecycle events.
-/// - `cpuUsageCollector`: `CpuUsageCollector` object is responsible for detecting and saving CPU usage data.
-/// - `memoryUsageCollector`: `MemoryUsageCollector` object is responsible for detecting and saving memory usage data.
+/// - `gestureCollector`: `GestureCollector` object which is responsible for detecting and saving gesture related data.
+/// - `lifecycleCollector`: `LifecycleCollector` object which is responsible for detecting and saving ViewController lifecycle events.
+/// - `cpuUsageCollector`: `CpuUsageCollector` object which is responsible for detecting and saving CPU usage data.
+/// - `memoryUsageCollector`: `MemoryUsageCollector` object which is responsible for detecting and saving memory usage data.
+/// - `appLaunchCollector`: `AppLaunchCollector` object which is responsible for detecting and saving launch related events.
 /// - `gestureTargetFinder`: `GestureTargetFinder` object that determines which view is handling the gesture.
 /// - `cpuUsageCalculator`: `CpuUsageCalculator` object that generates CPU usage data.
 /// - `memoryUsageCalculator`: `MemoryUsageCalculator` object that generates memory usage data.
@@ -125,6 +127,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let cpuUsageCalculator: CpuUsageCalculator
     let memoryUsageCalculator: MemoryUsageCalculator
     let sysCtl: SysCtl
+    let appLaunchCollector: AppLaunchCollector
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -226,6 +229,13 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                              timeProvider: timeProvider,
                                                              memoryUsageCalculator: memoryUsageCalculator,
                                                              sysCtl: sysCtl)
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? AttributeConstants.unknown
+        self.appLaunchCollector = BaseAppLaunchCollector(logger: logger,
+                                                         timeProvider: timeProvider,
+                                                         eventProcessor: eventProcessor,
+                                                         sysCtl: sysCtl,
+                                                         userDefaultStorage: userDefaultStorage,
+                                                         currentAppVersion: appVersion)
         self.client = client
     }
 }
