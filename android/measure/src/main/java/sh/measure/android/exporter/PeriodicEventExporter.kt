@@ -10,8 +10,9 @@ import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal interface PeriodicEventExporter {
-    fun onAppForeground()
-    fun onAppBackground()
+    fun register()
+    fun resume()
+    fun pause()
     fun unregister()
 }
 
@@ -41,7 +42,11 @@ internal class PeriodicEventExporterImpl(
         exportEvents()
     }
 
-    override fun onAppForeground() {
+    override fun register() {
+        heartbeat.start(intervalMs = configProvider.eventsBatchingIntervalMs)
+    }
+
+    override fun resume() {
         heartbeat.start(intervalMs = configProvider.eventsBatchingIntervalMs)
     }
 
@@ -49,7 +54,7 @@ internal class PeriodicEventExporterImpl(
         heartbeat.stop()
     }
 
-    override fun onAppBackground() {
+    override fun pause() {
         heartbeat.stop()
         exportEvents()
     }

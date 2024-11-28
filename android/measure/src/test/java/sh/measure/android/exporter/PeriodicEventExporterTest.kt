@@ -40,7 +40,7 @@ class PeriodicEventExporterTest {
 
     @Test
     fun `starts heartbeat when app comes to foreground with a delay`() {
-        periodicEventExporter.onAppForeground()
+        periodicEventExporter.resume()
 
         verify(heartbeat, atMostOnce()).start(
             configProvider.eventsBatchingIntervalMs,
@@ -57,7 +57,7 @@ class PeriodicEventExporterTest {
 
     @Test
     fun `stops heartbeat when app goes to background`() {
-        periodicEventExporter.onAppBackground()
+        periodicEventExporter.pause()
 
         verify(heartbeat, atMostOnce()).stop()
     }
@@ -71,7 +71,7 @@ class PeriodicEventExporterTest {
         batches[batch2.first] = batch2.second
         `when`(eventExporter.getExistingBatches()).thenReturn(batches)
 
-        periodicEventExporter.onAppBackground()
+        periodicEventExporter.pause()
 
         verify(eventExporter).export(batch1.first, batch1.second)
         verify(eventExporter).export(batch2.first, batch2.second)
@@ -92,7 +92,7 @@ class PeriodicEventExporterTest {
             ),
         ).thenReturn(HttpResponse.Error.ServerError(500))
 
-        periodicEventExporter.onAppBackground()
+        periodicEventExporter.pause()
 
         verify(eventExporter).export(batch1.first, batch1.second)
         verify(eventExporter, never()).export(batch2.first, batch2.second)
@@ -113,7 +113,7 @@ class PeriodicEventExporterTest {
             ),
         ).thenReturn(HttpResponse.Error.RateLimitError())
 
-        periodicEventExporter.onAppBackground()
+        periodicEventExporter.pause()
 
         verify(eventExporter).export(batch1.first, batch1.second)
         verify(eventExporter, never()).export(batch2.first, batch2.second)
@@ -129,7 +129,7 @@ class PeriodicEventExporterTest {
         )
 
         // When
-        periodicEventExporter.onAppBackground()
+        periodicEventExporter.pause()
 
         // Then
         verify(eventExporter).export("batchId", listOf("event1", "event2"))
@@ -146,7 +146,7 @@ class PeriodicEventExporterTest {
         testClock.advance(Duration.ofSeconds(29))
 
         // When
-        periodicEventExporter.onAppBackground()
+        periodicEventExporter.pause()
 
         // Then
         verify(eventExporter, never()).export(any<String>(), any<List<String>>())
@@ -163,7 +163,7 @@ class PeriodicEventExporterTest {
         // forcefully mark an export in progress
         periodicEventExporter.isExportInProgress.set(true)
 
-        periodicEventExporter.onAppBackground()
+        periodicEventExporter.pause()
 
         verify(eventExporter, never()).export(any(), any())
     }
