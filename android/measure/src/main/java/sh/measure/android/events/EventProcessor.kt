@@ -162,7 +162,7 @@ internal class EventProcessorImpl(
             onEventTracked(event)
             sessionManager.markCrashedSession(event.sessionId)
             exceptionExporter.export(event.sessionId)
-            logger.log(LogLevel.Debug, "Event processed: $type, ${event.sessionId}")
+            logger.log(LogLevel.Debug, "Event processed: $type, ${event.id}")
         } ?: logger.log(LogLevel.Debug, "Event dropped: $type")
     }
 
@@ -202,7 +202,7 @@ internal class EventProcessorImpl(
                                 onEventTracked(event)
                                 logger.log(
                                     LogLevel.Debug,
-                                    "Event processed: ${event.type}:${event.id}",
+                                    "Event processed: ${event.type}, ${event.id}",
                                 )
                             })
                         } else {

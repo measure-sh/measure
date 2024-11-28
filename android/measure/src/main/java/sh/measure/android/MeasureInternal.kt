@@ -3,6 +3,8 @@ package sh.measure.android
 import android.os.Build
 import sh.measure.android.lifecycle.AppLifecycleListener
 import sh.measure.android.logger.LogLevel
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 /**
  * Initializes the Measure SDK and hides the internal dependencies from public API.
@@ -41,7 +43,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     private val dataCleanupService by lazy { measureInitializer.dataCleanupService }
     private val powerStateProvider by lazy { measureInitializer.powerStateProvider }
     private var isStarted: Boolean = false
-    private var startLock = Any()
+    private var startLock = ReentrantLock()
 
     fun init() {
         logger.log(LogLevel.Debug, "Starting Measure SDK")
@@ -75,7 +77,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     }
 
     fun start() {
-        synchronized(startLock) {
+        startLock.withLock {
             if (!isStarted) {
                 registerCollectors()
                 isStarted = true
@@ -84,7 +86,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     }
 
     fun stop() {
-        synchronized(startLock) {
+        startLock.withLock {
             if (isStarted) {
                 unregisterCollectors()
                 isStarted = false
@@ -114,30 +116,34 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         gestureCollector.register()
         networkChangesCollector.register()
         httpEventCollector.register()
+        powerStateProvider.register()
+        periodicEventExporter.resume()
     }
 
     override fun onAppForeground() {
         // session manager must be the first to be notified about app foreground to ensure that
         // new session ID (if created) is reflected in all events collected after the launch.
         sessionManager.onAppForeground()
-        synchronized(startLock) {
+        startLock.withLock {
             if (isStarted) {
                 powerStateProvider.register()
+                networkChangesCollector.register()
                 cpuUsageCollector.resume()
                 memoryUsageCollector.resume()
-                periodicEventExporter.onAppForeground()
+                periodicEventExporter.resume()
             }
         }
     }
 
     override fun onAppBackground() {
         sessionManager.onAppBackground()
-        synchronized(startLock) {
+        startLock.withLock {
             if (isStarted) {
                 cpuUsageCollector.pause()
                 memoryUsageCollector.pause()
-                periodicEventExporter.onAppBackground()
+                periodicEventExporter.pause()
                 powerStateProvider.unregister()
+                networkChangesCollector.unregister()
                 dataCleanupService.clearStaleData()
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     appExitCollector.collect()
@@ -195,15 +201,16 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     private fun unregisterCollectors() {
         unhandledExceptionCollector.unregister()
         anrCollector.unregister()
+        userTriggeredEventCollector.unregister()
         activityLifecycleCollector.unregister()
-        appLifecycleCollector.register()
+        appLifecycleCollector.unregister()
         cpuUsageCollector.pause()
         memoryUsageCollector.pause()
         componentCallbacksCollector.unregister()
         gestureCollector.unregister()
         networkChangesCollector.unregister()
-        periodicEventExporter.unregister()
-        userTriggeredEventCollector.unregister()
         httpEventCollector.unregister()
+        powerStateProvider.unregister()
+        periodicEventExporter.unregister()
     }
 }

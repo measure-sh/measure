@@ -109,11 +109,6 @@ internal class NetworkChangesCollector(
             systemServiceProvider.connectivityManager?.unregisterNetworkCallback(callback)
             networkCallback = null
         }
-        currentNetworkType = NetworkType.UNKNOWN
-        currentNetworkGeneration = NetworkGeneration.UNKNOWN
-        networkStateProvider.setNetworkState(
-            NetworkState(NetworkType.UNKNOWN, NetworkGeneration.UNKNOWN, NetworkProvider.UNKNOWN),
-        )
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
