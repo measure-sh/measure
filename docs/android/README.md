@@ -4,10 +4,13 @@
 * [Quick reference](#quick-reference)
 * [Getting started](#getting-started)
 * [Custom events](#custom-events)
-  * [Handled exceptions](#handled-exceptions)
-  * [Navigation](#navigation)
+    * [Handled exceptions](#handled-exceptions)
+    * [Navigation](#navigation)
 * [Features](#features)
-* [Benchmarks](#benchmarks)
+* [Performance Impact](#performance-impact)
+    * [Benchmarks](#benchmarks)
+    * [Profiling](#profiling)
+    * [Implementation](#implementation)
 
 # Minimum requirements
 
@@ -22,7 +25,6 @@
 A quick reference to the entire public API for Measure Android SDK.
 
 <img src="https://github.com/user-attachments/assets/ff835b3b-2953-4920-b5fa-060761862cac" width="60%" alt="Cheatsheet">
-
 
 # Getting started
 
@@ -216,6 +218,7 @@ after the SDK is initialized:
 ```kotlin
 throw RuntimeException("This is a test crash")
 ```
+
 Reopen the app and launch the dashboard, you should see the crash report in the dashboard.
 
 > [!CAUTION]
@@ -283,22 +286,41 @@ or when there's been no activity for a 20-minute period. A single session can co
 foreground events; brief interruptions will not cause a new session to be created. This approach is helpful when reviewing 
 session replays, as it shows the app switching between background and foreground states within the same session.
 
-# Benchmarks
 
-Measure SDK has a set of benchmarks to measure the performance impact of the SDK on the app.
-These benchmarks are collected using macro-benchmark on a Pixel 4a device running Android 13 (API 33).
-Each benchmark is run 35 times. See the [android/benchmarks](../../android/benchmarks/README.md) for
-more details, and the raw results are available in the 
-[android/benchmarkData](../../android/benchmarks/README.md) folder.
+# Performance Impact
+
+## Benchmarks
+
+We benchmark the SDK's performance impact using a Pixel 4a running Android 13 (API 33). Each test runs 35 times using 
+macro-benchmark. For detailed methodology, see [android/benchmarks](../../android/benchmarks/README.md).
 
 > [!IMPORTANT]
 > Benchmark results are specific to the device and the app. It is recommended to run the benchmarks
 > for your app to get results specific to your app. These numbers are published to provide
 > a reference point and are used internally to detect any performance regressions.
 
-For v0.7.0, the following benchmarks are available.
+Benchmarks results for v0.7.0:
 
 * Adds 26.258ms-34.416ms to the app startup time (Time to Initial Display) for a simple app.
 * Takes 0.30ms to find the target view for every click/scroll gesture in a deep view hierarchy.
 * Takes 0.45ms to find the target composable for every click/scroll gesture in a deep composable
   hierarchy.
+
+## Profiling
+
+To measure the SDK's impact on your app, we've added traces to key areas of the code. These traces help you track 
+performance using [Macro Benchmark](https://developer.android.com/topic/performance/benchmarking/macrobenchmark-overview) 
+or by using [Perfetto](https://perfetto.dev/docs/quickstart/android-tracing) directly.
+
+* `msr-init` — time spent on main thread while initializing.
+* `msr-start` — time spent on main thread when `Measure.start` is called.
+* `msr-stop` — — time spent on main thread when `Measure.stop` is called.
+* `msr-track-event` — time spent in storing an event to local storage. Almost all of this time is spent _off_ the main
+  thread. 
+* `msr-click-getTarget` — time spent on main thread to find out the clicked view.
+* `msr-scroll-getTarget` — time spent on main thread to find out the scrolled view.
+
+## Implementation
+
+For details on data storage, syncing behavior, and threading, see
+our [Internal Documentation](../../android/docs/internal-documentation.md).

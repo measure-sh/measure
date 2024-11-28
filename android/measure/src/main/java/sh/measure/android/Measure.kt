@@ -63,7 +63,12 @@ object Measure {
      */
     fun start() {
         if (isInitialized.get()) {
-            measure.start()
+            InternalTrace.trace(
+                label = { "msr-start" },
+                block = {
+                    measure.start()
+                },
+            )
         }
     }
 
@@ -74,7 +79,12 @@ object Measure {
      */
     fun stop() {
         if (isInitialized.get()) {
-            measure.stop()
+            InternalTrace.trace(
+                label = { "msr-stop" },
+                block = {
+                    measure.stop()
+                },
+            )
         }
     }
 
