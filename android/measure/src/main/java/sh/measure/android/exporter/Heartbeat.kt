@@ -8,8 +8,6 @@ import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Future
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 
 internal interface HeartbeatListener {
     fun pulse()
@@ -28,8 +26,8 @@ internal class HeartbeatImpl(
     private val logger: Logger,
     private val scheduler: MeasureExecutorService,
 ) : Heartbeat {
+    @Volatile
     private var future: Future<*>? = null
-    private val lock = ReentrantLock()
 
     @VisibleForTesting
     internal val listeners = CopyOnWriteArrayList<HeartbeatListener>()
@@ -39,30 +37,26 @@ internal class HeartbeatImpl(
     }
 
     override fun start(intervalMs: Long, initialDelayMs: Long) {
-        lock.withLock {
-            if (future != null) {
-                return
-            }
-            try {
-                future = scheduler.scheduleAtFixedRate(
-                    {
-                        listeners.forEach(HeartbeatListener::pulse)
-                    },
-                    initialDelayMs,
-                    intervalMs,
-                    TimeUnit.MILLISECONDS,
-                )
-            } catch (e: RejectedExecutionException) {
-                logger.log(LogLevel.Error, "Failed to start ExportHeartbeat", e)
-                return
-            }
+        if (future != null) {
+            return
+        }
+        try {
+            future = scheduler.scheduleAtFixedRate(
+                {
+                    listeners.forEach(HeartbeatListener::pulse)
+                },
+                initialDelayMs,
+                intervalMs,
+                TimeUnit.MILLISECONDS,
+            )
+        } catch (e: RejectedExecutionException) {
+            logger.log(LogLevel.Error, "Failed to start ExportHeartbeat", e)
+            return
         }
     }
 
     override fun stop() {
-        lock.withLock {
-            future?.cancel(false)
-            future = null
-        }
+        future?.cancel(false)
+        future = null
     }
 }

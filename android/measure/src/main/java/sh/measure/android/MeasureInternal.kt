@@ -3,8 +3,6 @@ package sh.measure.android
 import android.os.Build
 import sh.measure.android.lifecycle.AppLifecycleListener
 import sh.measure.android.logger.LogLevel
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 
 /**
  * Initializes the Measure SDK and hides the internal dependencies from public API.
@@ -43,7 +41,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     private val dataCleanupService by lazy { measureInitializer.dataCleanupService }
     private val powerStateProvider by lazy { measureInitializer.powerStateProvider }
     private var isStarted: Boolean = false
-    private var startLock = ReentrantLock()
+    private var startLock = Any()
 
     fun init() {
         logger.log(LogLevel.Debug, "Starting Measure SDK")
@@ -77,7 +75,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     }
 
     fun start() {
-        startLock.withLock {
+        synchronized(startLock) {
             if (!isStarted) {
                 registerCollectors()
                 isStarted = true
@@ -86,7 +84,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     }
 
     fun stop() {
-        startLock.withLock {
+        synchronized(startLock) {
             if (isStarted) {
                 unregisterCollectors()
                 isStarted = false
@@ -124,7 +122,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         // session manager must be the first to be notified about app foreground to ensure that
         // new session ID (if created) is reflected in all events collected after the launch.
         sessionManager.onAppForeground()
-        startLock.withLock {
+        synchronized(startLock) {
             if (isStarted) {
                 powerStateProvider.register()
                 networkChangesCollector.register()
@@ -137,7 +135,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
 
     override fun onAppBackground() {
         sessionManager.onAppBackground()
-        startLock.withLock {
+        synchronized(startLock) {
             if (isStarted) {
                 cpuUsageCollector.pause()
                 memoryUsageCollector.pause()
