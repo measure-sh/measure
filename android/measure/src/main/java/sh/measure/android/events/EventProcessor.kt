@@ -175,12 +175,12 @@ internal class EventProcessorImpl(
         sessionId: String?,
         userTriggered: Boolean = false,
     ) {
-        InternalTrace.trace(
-            label = { "msr-track-event" },
-            block = {
-                val threadName = Thread.currentThread().name
-                try {
-                    ioExecutor.submit {
+        val threadName = Thread.currentThread().name
+        try {
+            ioExecutor.submit {
+                InternalTrace.trace(
+                    label = { "msr-track-event" },
+                    block = {
                         val event = createEvent(
                             data = data,
                             timestamp = timestamp,
@@ -208,16 +208,16 @@ internal class EventProcessorImpl(
                         } else {
                             logger.log(LogLevel.Debug, "Event dropped: $type")
                         }
-                    }
-                } catch (e: RejectedExecutionException) {
-                    logger.log(
-                        LogLevel.Error,
-                        "Failed to submit event processing task to executor",
-                        e,
-                    )
-                }
-            },
-        )
+                    },
+                )
+            }
+        } catch (e: RejectedExecutionException) {
+            logger.log(
+                LogLevel.Error,
+                "Failed to submit event processing task to executor",
+                e,
+            )
+        }
     }
 
     private fun <T> onEventTracked(event: Event<T>) {
