@@ -356,6 +356,14 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 		stmt.Where("device_name in ?", af.DeviceNames)
 	}
 
+	if af.HasUDExpression() && !af.UDExpression.Empty() {
+		subQuery := sqlf.From("user_def_attrs").
+			Select("distinct session_id").
+			Where("app_id = toUUID(?)", af.AppID)
+		af.UDExpression.Augment(subQuery)
+		stmt.Clause("AND session_id in").SubQuery("(", ")", subQuery)
+	}
+
 	applyGroupBy := af.Crash ||
 		af.ANR ||
 		af.HasCountries() ||
