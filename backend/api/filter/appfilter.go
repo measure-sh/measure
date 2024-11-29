@@ -173,6 +173,7 @@ type FilterList struct {
 	DeviceManufacturers []string          `json:"device_manufacturers"`
 	DeviceNames         []string          `json:"device_names"`
 	UDKeyTypes          []event.UDKeyType `json:"ud_keytypes"`
+	UDExpressionRaw     string            `json:"ud_expression"`
 }
 
 // Hash generates an MD5 hash of the FilterList struct.
@@ -333,6 +334,9 @@ func (af *AppFilter) Expand() {
 	}
 	if len(filters.NetworkGenerations) > 0 {
 		af.NetworkGenerations = filters.NetworkGenerations
+	}
+	if filters.UDExpressionRaw != "" {
+		af.UDExpressionRaw = filters.UDExpressionRaw
 	}
 }
 
