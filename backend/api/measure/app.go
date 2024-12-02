@@ -1857,7 +1857,15 @@ func GetAppJourney(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := "app journey request validation failed"
 
@@ -2105,7 +2113,15 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := `app metrics request validation failed`
 
@@ -2422,7 +2438,15 @@ func GetCrashOverview(c *gin.Context) {
 
 	fmt.Println("ud expression raw:", af.UDExpressionRaw)
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := "crash overview request validation failed"
 	if err := af.Validate(); err != nil {
@@ -2561,7 +2585,15 @@ func GetCrashOverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 	msg := `crash overview request validation failed`
 
 	if err := af.Validate(); err != nil {
@@ -2698,7 +2730,15 @@ func GetCrashDetailCrashes(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := "app filters request validation failed"
 	if err := af.Validate(); err != nil {
@@ -2840,7 +2880,15 @@ func GetCrashDetailPlotInstances(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := "app filters request validation failed"
 	if err := af.Validate(); err != nil {
@@ -2983,7 +3031,15 @@ func GetCrashDetailAttributeDistribution(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := "app filters request validation failed"
 	if err := af.Validate(); err != nil {
@@ -3096,7 +3152,15 @@ func GetCrashDetailPlotJourney(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := `crash detail journey plot request validation failed`
 	if err := af.Validate(); err != nil {
@@ -3288,7 +3352,15 @@ func GetANROverview(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := "anr overview request validation failed"
 	if err := af.Validate(); err != nil {
@@ -3410,7 +3482,15 @@ func GetANROverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := "ANR overview request validation failed"
 	if err := af.Validate(); err != nil {
@@ -3549,7 +3629,15 @@ func GetANRDetailANRs(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := "app filters request validation failed"
 	if err := af.Validate(); err != nil {
@@ -3691,7 +3779,15 @@ func GetANRDetailPlotInstances(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := "app filters request validation failed"
 	if err := af.Validate(); err != nil {
@@ -3828,7 +3924,15 @@ func GetANRDetailAttributeDistribution(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := "app filters request validation failed"
 	if err := af.Validate(); err != nil {
@@ -3941,7 +4045,15 @@ func GetANRDetailPlotJourney(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := `ANR detail journey plot request validation failed`
 	if err := af.Validate(); err != nil {
@@ -4180,7 +4292,15 @@ func GetSessionsOverview(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := "sessions overview request validation failed"
 	if err := af.Validate(); err != nil {
@@ -4290,7 +4410,15 @@ func GetSessionsOverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 	msg := `sessions overview request validation failed`
 
 	if err := af.Validate(); err != nil {
@@ -4896,12 +5024,15 @@ func RenameApp(c *gin.Context) {
 }
 
 func CreateShortFilters(c *gin.Context) {
+	ctx := c.Request.Context()
 	userId := c.GetString("userId")
 	appId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		msg := `app id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -4913,12 +5044,16 @@ func CreateShortFilters(c *gin.Context) {
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if team == nil {
 		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -4926,12 +5061,16 @@ func CreateShortFilters(c *gin.Context) {
 	if err != nil {
 		msg := `couldn't perform authorization checks`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if !ok {
 		msg := fmt.Sprintf(`you don't have permissions to create short filters in team [%s]`, team.ID.String())
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -4939,7 +5078,9 @@ func CreateShortFilters(c *gin.Context) {
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		msg := `failed to parse filters json payload`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -4947,11 +5088,22 @@ func CreateShortFilters(c *gin.Context) {
 	if err != nil {
 		msg := `failed to create generate filter hash`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
-	shortFilters.Create()
+	if err = shortFilters.Create(ctx); err != nil {
+		msg := `failed to create short code from filters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
 
-	c.JSON(http.StatusOK, gin.H{"filter_short_code": shortFilters.Code})
+	c.JSON(http.StatusOK, gin.H{
+		"filter_short_code": shortFilters.Code,
+	})
 }

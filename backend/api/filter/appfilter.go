@@ -4,6 +4,7 @@ import (
 	"backend/api/event"
 	"backend/api/pairs"
 	"backend/api/server"
+	"backend/api/text"
 	"context"
 	"crypto/md5"
 	"encoding/hex"
@@ -11,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -287,57 +289,104 @@ func (af *AppFilter) OSVersionPairs() (osVersions *pairs.Pairs[string, string], 
 	return
 }
 
-// Expand expands comma separated fields to slice
-// of strings
-func (af *AppFilter) Expand() {
-	// expand user defined attribute expression
-	// if af.UDExpressionRaw != "" {
-	// 	if err := af.parseUDExpression(); err != nil {
-	// 		fmt.Println(err)
-	// 	}
-	// }
+// Expand populates app filters by fetching stored filters
+// via short code if short code exists, otherwise splits, trims
+// and formats filters.
+func (af *AppFilter) Expand(ctx context.Context) (err error) {
+	if af.FilterShortCode != "" {
+		filters, err := GetFiltersFromCode(ctx, af.FilterShortCode, af.AppID)
+		if err != nil {
+			return err
+		}
 
-	filters, err := GetFiltersFromFilterShortCode(af.FilterShortCode, af.AppID)
-	if err != nil {
-		return
+		if len(filters.Versions) > 0 {
+			af.Versions = filters.Versions
+		}
+		if len(filters.VersionCodes) > 0 {
+			af.VersionCodes = filters.VersionCodes
+		}
+		if len(filters.OsNames) > 0 {
+			af.OsNames = filters.OsNames
+		}
+		if len(filters.OsVersions) > 0 {
+			af.OsVersions = filters.OsVersions
+		}
+		if len(filters.Countries) > 0 {
+			af.Countries = filters.Countries
+		}
+		if len(filters.DeviceNames) > 0 {
+			af.DeviceNames = filters.DeviceNames
+		}
+		if len(filters.DeviceManufacturers) > 0 {
+			af.DeviceManufacturers = filters.DeviceManufacturers
+		}
+		if len(filters.DeviceLocales) > 0 {
+			af.Locales = filters.DeviceLocales
+		}
+		if len(filters.NetworkProviders) > 0 {
+			af.NetworkProviders = filters.NetworkProviders
+		}
+		if len(filters.NetworkTypes) > 0 {
+			af.NetworkTypes = filters.NetworkTypes
+		}
+		if len(filters.NetworkGenerations) > 0 {
+			af.NetworkGenerations = filters.NetworkGenerations
+		}
+		if filters.UDExpressionRaw != "" {
+			af.UDExpressionRaw = filters.UDExpressionRaw
+		}
 	}
 
-	if len(filters.Versions) > 0 {
-		af.Versions = filters.Versions
+	// split and trim whitespace from each filter
+	if len(af.Versions) > 0 {
+		af.Versions = text.SplitTrimEmpty(af.Versions[0], ",")
 	}
-	if len(filters.VersionCodes) > 0 {
-		af.VersionCodes = filters.VersionCodes
+
+	if len(af.VersionCodes) > 0 {
+		af.VersionCodes = text.SplitTrimEmpty(af.VersionCodes[0], ",")
 	}
-	if len(filters.OsNames) > 0 {
-		af.OsNames = filters.OsNames
+
+	if len(af.OsNames) > 0 {
+		af.OsNames = text.SplitTrimEmpty(af.OsNames[0], ",")
 	}
-	if len(filters.OsVersions) > 0 {
-		af.OsVersions = filters.OsVersions
+
+	if len(af.OsVersions) > 0 {
+		af.OsVersions = text.SplitTrimEmpty(af.OsVersions[0], ",")
 	}
-	if len(filters.Countries) > 0 {
-		af.Countries = filters.Countries
+
+	if len(af.Countries) > 0 {
+		af.Countries = text.SplitTrimEmpty(af.Countries[0], ",")
 	}
-	if len(filters.DeviceNames) > 0 {
-		af.DeviceNames = filters.DeviceNames
+
+	if len(af.DeviceNames) > 0 {
+		af.DeviceNames = text.SplitTrimEmpty(af.DeviceNames[0], ",")
 	}
-	if len(filters.DeviceManufacturers) > 0 {
-		af.DeviceManufacturers = filters.DeviceManufacturers
+
+	if len(af.DeviceManufacturers) > 0 {
+		af.DeviceManufacturers = text.SplitTrimEmpty(af.DeviceManufacturers[0], ",")
 	}
-	if len(filters.DeviceLocales) > 0 {
-		af.Locales = filters.DeviceLocales
+
+	if len(af.Locales) > 0 {
+		af.Locales = text.SplitTrimEmpty(af.Locales[0], ",")
 	}
-	if len(filters.NetworkProviders) > 0 {
-		af.NetworkProviders = filters.NetworkProviders
+
+	if len(af.NetworkProviders) > 0 {
+		af.NetworkProviders = text.SplitTrimEmpty(af.NetworkProviders[0], ",")
 	}
-	if len(filters.NetworkTypes) > 0 {
-		af.NetworkTypes = filters.NetworkTypes
+
+	if len(af.NetworkTypes) > 0 {
+		af.NetworkTypes = text.SplitTrimEmpty(af.NetworkTypes[0], ",")
 	}
-	if len(filters.NetworkGenerations) > 0 {
-		af.NetworkGenerations = filters.NetworkGenerations
+
+	if len(af.NetworkGenerations) > 0 {
+		af.NetworkGenerations = text.SplitTrimEmpty(af.NetworkGenerations[0], ",")
 	}
-	if filters.UDExpressionRaw != "" {
-		af.UDExpressionRaw = filters.UDExpressionRaw
+
+	if len(af.UDExpressionRaw) > 0 {
+		af.UDExpressionRaw = strings.TrimSpace(af.UDExpressionRaw)
 	}
+
+	return
 }
 
 // parseUDExpression parses the raw user defined
