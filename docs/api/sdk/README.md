@@ -322,6 +322,7 @@ Events can optionally contain attributes defined by the SDK user. A `user_define
 
 - An event may contain a maximum of 100 user defined attributes.
 - Key names should not exceed 256 characters.
+- Key names must be unique in a user defined attribute key/value object.
 - Key names must only contain lowercase alphabets, numbers, underscores and hyphens.
 - Value can be regular JSON types. String, Boolean, Number.
 - String values should not exceed 256 characters.

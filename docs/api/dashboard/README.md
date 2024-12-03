@@ -466,8 +466,9 @@ Fetch an app's filters.
 #### Usage Notes
 
 - App's UUID must be passed in the URI
-- Pass `crash=1` as query string parameter to only return filters for unhandled exceptions
+- Pass `crash=1` as query string parameter to only return filters for crashes
 - Pass `anr=1` as query string parameter to only return filters for ANRs
+- Pass `ud_attr_keys=1` as query string parameter to return user defined attribute keys
 - If no query string parameters are passed, the API computes filters from all events
 
 #### Authorization & Content Type
@@ -496,36 +497,104 @@ These headers must be present in each request.
 
   ```json
   {
-    "versions": [
-      {
-        "code": "9400",
-        "name": "7.61"
-      },
-      {
-        "code": "9300",
-        "name": "7.60"
-      },
-      {
-        "code": "9200",
-        "name": "7.59"
-      }
-    ],
     "countries": [
       "bogon"
-    ],
-    "network_providers": null,
-    "network_types": [
-      "wifi"
-    ],
-    "network_generations": null,
-    "locales": [
-      "en-US"
     ],
     "device_manufacturers": [
       "Google"
     ],
     "device_names": [
-      "sunfish"
+      "emu64a",
+      "emu64a16k"
+    ],
+    "locales": [
+      "en-US"
+    ],
+    "network_generations": [
+      "3g",
+      "unknown"
+    ],
+    "network_providers": [
+      "T-Mobile",
+      "unknown"
+    ],
+    "network_types": [
+      "cellular",
+      "no_network",
+      "unknown",
+      "wifi"
+    ],
+    "os_versions": [
+      {
+        "name": "android",
+        "version": "35"
+      },
+      {
+        "name": "android",
+        "version": "33"
+      }
+    ],
+    "ud_attrs": {
+      "key_types": [
+        {
+          "key": "username",
+          "type": "string"
+        },
+        {
+          "key": "paid_user",
+          "type": "bool"
+        },
+        {
+          "key": "credit_balance",
+          "type": "int64"
+        },
+        {
+          "key": "latitude",
+          "type": "float64"
+        }
+      ],
+      "operator_types": {
+        "bool": [
+          "eq",
+          "neq"
+        ],
+        "float64": [
+          "eq",
+          "neq",
+          "gt",
+          "lt",
+          "gte",
+          "lte"
+        ],
+        "int64": [
+          "eq",
+          "neq",
+          "gt",
+          "lt",
+          "gte",
+          "lte"
+        ],
+        "string": [
+          "eq",
+          "neq",
+          "contains",
+          "startsWith"
+        ]
+      }
+    },
+    "versions": [
+      {
+        "code": "800",
+        "name": "0.8.0-SNAPSHOT.debug"
+      },
+      {
+        "code": "700",
+        "name": "0.7.0-SNAPSHOT.debug"
+      },
+      {
+        "code": "1",
+        "name": "1.0"
+      }
     ]
   }
   ```
@@ -573,6 +642,8 @@ Fetch an app's crash overview.
   - `version_codes` (_optional_) - List of comma separated version codes to return crash groups that have events matching the version code.
   - `key_id` (_optional_) - UUID of the last item. Used for keyset based pagination. Should be used along with `limit`.
   - `limit` (_optional_) - Number of items to return. Used for keyset based pagination. Should be used along with `key_id`. Negative values traverses backward along with `limit`.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
 
 #### Authorization & Content Type
 
@@ -690,6 +761,8 @@ Fetch an app's crash overview instances plot aggregated by date range & version.
   - `to` (_optional_) - End time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
   - `versions` (_optional_) - List of comma separated version identifier strings to return crash groups that have events matching the version.
   - `version_codes` (_optional_) - List of comma separated version codes to return crash groups that have events matching the version code.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
 - Both `from` and `to` **MUST** be present when specifyng date range.
 
 #### Authorization & Content Type
@@ -792,6 +865,8 @@ Fetch an app's crash detail.
   - `key_id` (_optional_) - UUID of the last item. Used for keyset based pagination. Should be used along with `key_timestamp` &amp; `limit`.
   - `key_timestamp` (_optional_) - ISO8601 timestamp of the last item. Used for keyset based pagination. Should be used along with `key_id` &amp; `limit`.
   - `limit` (_optional_) - Number of items to return. Used for keyset based pagination. Should be used along with `key_id` &amp; `key_timestamp`.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
 - For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
 
 #### Authorization &amp; Content Type
@@ -1032,6 +1107,8 @@ Fetch an app's crash detail instances aggregrated by date range & version.
   - `network_providers` (_optional_) - List of comma separated network provider identifier strings to return only matching crashes.
   - `network_types` (_optional_) - List of comma separated network type identifier strings to return only matching crashes.
   - `network_generations` (_optional_) - List of comma separated network generation identifier strings to return only matching crashes.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
 - For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
 
 #### Authorization &amp; Content Type
@@ -1266,6 +1343,8 @@ Fetch an app's ANR overview.
   - `version_codes` (_optional_) - List of comma separated version codes to return anr groups that have events matching the version code.
   - `key_id` (_optional_) - UUID of the last item. Used for keyset based pagination. Should be used along with `limit`.
   - `limit` (_optional_) - Number of items to return. Used for keyset based pagination. Should be used along with `key_id`. Negative values traverses backward along with `limit`.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
 
 #### Authorization & Content Type
 
@@ -1363,6 +1442,8 @@ Fetch an app's ANR overview instances plot aggregated by date range & version.
   - `to` (_optional_) - End time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
   - `versions` (_optional_) - List of comma separated version identifier strings to return crash groups that have events matching the version.
   - `version_codes` (_optional_) - List of comma separated version codes to return crash groups that have events matching the version code.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
 - Both `from` and `to` **MUST** be present when specifyng date range.
 
 #### Authorization & Content Type
@@ -1465,6 +1546,8 @@ Fetch an app's ANR detail.
   - `key_id` (_optional_) - UUID of the last item. Used for keyset based pagination. Should be used along with `key_timestamp` &amp; `limit`.
   - `key_timestamp` (_optional_) - ISO8601 timestamp of the last item. Used for keyset based pagination. Should be used along with `key_id` &amp; `limit`.
   - `limit` (_optional_) - Number of items to return. Used for keyset based pagination. Should be used along with `key_id` &amp; `key_timestamp`.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
 - For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
 
 #### Authorization &amp; Content Type
@@ -1738,6 +1821,8 @@ Fetch an app's ANR detail instances aggregated by date range & version.
   - `network_providers` (_optional_) - List of comma separated network provider identifier strings to return only matching crashes.
   - `network_types` (_optional_) - List of comma separated network type identifier strings to return only matching crashes.
   - `network_generations` (_optional_) - List of comma separated network generation identifier strings to return only matching crashes.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
 - For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
 
 #### Authorization &amp; Content Type
@@ -1981,6 +2066,8 @@ Fetch an app's sessions by applying various optional filters.
   - `free_text` (_optional_) - A sequence of characters used to filter sessions matching various criteria like user_id, even type, exception message and so on.
   - `offset` (_optional_) - Number of items to skip when paginating. Use with `limit` parameter to control amount of items fetched.
   - `limit` (_optional_) - Number of items to return. Used for pagination. Should be used along with `offset`.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
 - For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
 - Pass `limit` and `offset` values to paginate results
 
@@ -2381,6 +2468,12 @@ These headers must be present in each request.
       "OkHttp https://httpbin.org/...": [
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "OkHttp https://httpbin.org/...",
           "user_triggered": false,
           "url": "https://httpbin.org/",
@@ -2414,6 +2507,12 @@ These headers must be present in each request.
       "Thread-2": [
         {
           "event_type": "anr",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "title": "sh.measure.android.anr.AnrError@ExceptionDemoActivity.kt:66",
           "thread_name": "Thread-2",
           "stacktrace": "sh.measure.android.anr.AnrError: Application Not Responding for at least 5000 ms.\n\tat sh.measure.sample.ExceptionDemoActivity.deadLock$lambda$10(ExceptionDemoActivity.kt:66)\n\tat sh.measure.sample.ExceptionDemoActivity.$r8$lambda$G4MY09CRhRk9ettfD7HPDD_b1n4\n\tat sh.measure.sample.ExceptionDemoActivity$$ExternalSyntheticLambda0.run(R8$$SyntheticClass)\n\tat android.os.Handler.handleCallback(Handler.java:942)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)",
@@ -2433,6 +2532,12 @@ These headers must be present in each request.
       "main": [
         {
           "event_type": "lifecycle_activity",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "type": "created",
           "class_name": "sh.measure.sample.ExceptionDemoActivity",
@@ -2442,12 +2547,24 @@ These headers must be present in each request.
         },
         {
           "event_type": "lifecycle_app",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "type": "foreground",
           "timestamp": "2024-05-03T23:34:17.74Z"
         },
         {
           "event_type": "lifecycle_activity",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "type": "resumed",
           "class_name": "sh.measure.sample.ExceptionDemoActivity",
@@ -2457,12 +2574,24 @@ These headers must be present in each request.
         },
         {
           "event_type": "cold_launch",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "duration": 698,
           "timestamp": "2024-05-03T23:34:17.825Z"
         },
         {
           "event_type": "gesture_click",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "target": "com.google.android.material.button.MaterialButton",
           "target_id": "btn_okhttp",
@@ -2474,6 +2603,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "lifecycle_activity",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "type": "paused",
           "class_name": "sh.measure.sample.ExceptionDemoActivity",
@@ -2483,6 +2618,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "lifecycle_activity",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "type": "created",
           "class_name": "sh.measure.sample.OkHttpActivity",
@@ -2492,6 +2633,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "lifecycle_activity",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "type": "resumed",
           "class_name": "sh.measure.sample.OkHttpActivity",
@@ -2501,6 +2648,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "lifecycle_activity",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "type": "paused",
           "class_name": "sh.measure.sample.OkHttpActivity",
@@ -2510,6 +2663,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "lifecycle_activity",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "type": "resumed",
           "class_name": "sh.measure.sample.ExceptionDemoActivity",
@@ -2519,6 +2678,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "lifecycle_activity",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "type": "destroyed",
           "class_name": "sh.measure.sample.OkHttpActivity",
@@ -2528,6 +2693,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "gesture_click",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "target": "com.google.android.material.button.MaterialButton",
           "target_id": "btn_deadlock",
@@ -2541,6 +2712,12 @@ These headers must be present in each request.
       "msr-bg": [
         {
           "event_type": "app_exit",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-bg",
           "reason": "ANR",
           "importance": "FOREGROUND",
@@ -2553,6 +2730,12 @@ These headers must be present in each request.
       "msr-ee": [
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
@@ -2572,6 +2755,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
@@ -2591,6 +2780,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
@@ -2610,6 +2805,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
@@ -2629,6 +2830,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
@@ -2648,6 +2855,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
@@ -2667,6 +2880,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
@@ -2686,6 +2905,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
@@ -2705,6 +2930,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
@@ -2724,6 +2955,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
@@ -2743,6 +2980,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
