@@ -2544,8 +2544,6 @@ func GetCrashOverview(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("filter", af.UDExpressionRaw, af.UDExpression)
-
 	groups, err := app.GetExceptionGroupsWithFilter(ctx, &af)
 	if err != nil {
 		msg := "failed to get app's exception groups with filter"

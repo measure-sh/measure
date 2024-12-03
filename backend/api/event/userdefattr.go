@@ -367,25 +367,6 @@ func (c UDComparison) Empty() bool {
 	return c.Key == ""
 }
 
-// TypedValue provides the type casted version
-// of the user defined attribute value.
-func (c UDComparison) TypedValue() string {
-	switch c.Type {
-	default:
-		return c.Value
-		// return "value"
-	case AttrBool:
-		return fmt.Sprintf("toBool(%s)", c.Value)
-		// return "toBool(value)"
-	case AttrInt64:
-		return fmt.Sprintf("toInt64(%s)", c.Value)
-		// return "toInt64(value)"
-	case AttrFloat64:
-		return fmt.Sprintf("toFloat64(%s)", c.Value)
-		// return "toFloat64(value)"
-	}
-}
-
 // EscapedValue provides the escaped string
 // for use in LIKE or ILIKE SQL expressions.
 func (c UDComparison) EscapedValue() string {
@@ -410,13 +391,10 @@ func (c *UDComparison) Augment(stmt *sqlf.Stmt) {
 
 	switch c.Op {
 	case OpEq, OpNeq, OpGt, OpGte, OpLt, OpLte:
-		// exprFunc(fmt.Sprintf("(key = ? AND type = ? AND %s %s ?)", c.TypedValue(), opSymbol), c.Key, c.Type.String(), c.Value)
 		exprFunc(fmt.Sprintf("(key = ? AND type = ? AND value %s ?)", opSymbol), c.Key, c.Type.String(), c.Value)
 	case OpContains:
-		// exprFunc(fmt.Sprintf("(key = ? AND type = ? AND %s %s %%?%%)", c.TypedValue(), opSymbol), c.Key, c.Type.String(), c.EscapedValue())
 		exprFunc(fmt.Sprintf("(key = ? AND type = ? AND value %s %%?%%)", opSymbol), c.Key, c.Type.String(), c.EscapedValue())
 	case OpStartsWith:
-		// exprFunc(fmt.Sprintf("(key = ? AND type = ? AND %s %s ?%%)", c.TypedValue(), opSymbol), c.Key, c.Type.String(), c.EscapedValue())
 		exprFunc(fmt.Sprintf("(key = ? AND type = ? AND value %s ?%%)", opSymbol), c.Key, c.Type.String(), c.EscapedValue())
 	}
 }
