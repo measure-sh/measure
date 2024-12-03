@@ -1,8 +1,10 @@
 package filter
 
 import (
+	"backend/api/event"
 	"backend/api/pairs"
 	"backend/api/server"
+	"backend/api/text"
 	"context"
 	"crypto/md5"
 	"encoding/hex"
@@ -10,9 +12,11 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
 )
 
@@ -28,6 +32,15 @@ const MaxPaginationLimit = 1000
 // DefaultPaginationLimit is the number of items used
 // as default for paginating items.
 const DefaultPaginationLimit = 10
+
+// Operator represents a comparison operator
+// like `eq` for `equal` or `gte` for `greater
+// than or equal` used for filtering various
+// entities.
+type Operator struct {
+	Code string
+	Type event.AttrType
+}
 
 // AppFilter represents various app filtering
 // operations and its parameters to query app's
@@ -108,6 +121,19 @@ type AppFilter struct {
 	// consider ANR events.
 	ANR bool `form:"anr"`
 
+	// UDAttrKeys indicates a request to receive
+	// list of user defined attribute key &
+	// types.
+	UDAttrKeys bool `form:"ud_attr_keys"`
+
+	// UDExpressionRaw contains the raw user defined
+	// attribute expression as string.
+	UDExpressionRaw string `form:"ud_expression"`
+
+	// UDExpression contains the parsed user defined
+	// attribute expression.
+	UDExpression *event.UDExpression
+
 	// KeyID is the anchor point for keyset
 	// pagination.
 	KeyID string `form:"key_id"`
@@ -138,17 +164,19 @@ type AppFilter struct {
 // used in filtering operations of app's issue journey map,
 // metrics, exceptions and ANRs.
 type FilterList struct {
-	Versions            []string `json:"versions"`
-	VersionCodes        []string `json:"version_codes"`
-	OsNames             []string `json:"os_names"`
-	OsVersions          []string `json:"os_versions"`
-	Countries           []string `json:"countries"`
-	NetworkProviders    []string `json:"network_providers"`
-	NetworkTypes        []string `json:"network_types"`
-	NetworkGenerations  []string `json:"network_generations"`
-	DeviceLocales       []string `json:"locales"`
-	DeviceManufacturers []string `json:"device_manufacturers"`
-	DeviceNames         []string `json:"device_names"`
+	Versions            []string          `json:"versions"`
+	VersionCodes        []string          `json:"version_codes"`
+	OsNames             []string          `json:"os_names"`
+	OsVersions          []string          `json:"os_versions"`
+	Countries           []string          `json:"countries"`
+	NetworkProviders    []string          `json:"network_providers"`
+	NetworkTypes        []string          `json:"network_types"`
+	NetworkGenerations  []string          `json:"network_generations"`
+	DeviceLocales       []string          `json:"locales"`
+	DeviceManufacturers []string          `json:"device_manufacturers"`
+	DeviceNames         []string          `json:"device_names"`
+	UDKeyTypes          []event.UDKeyType `json:"ud_keytypes"`
+	UDExpressionRaw     string            `json:"ud_expression"`
 }
 
 // Hash generates an MD5 hash of the FilterList struct.
@@ -209,6 +237,16 @@ func (af *AppFilter) Validate() error {
 		return fmt.Errorf("`limit` cannot be more than %d", MaxPaginationLimit)
 	}
 
+	if af.UDExpressionRaw != "" {
+		if err := af.parseUDExpression(); err != nil {
+			return fmt.Errorf("`ud_expresssion` is invalid")
+		}
+
+		if err := af.UDExpression.Validate(); err != nil {
+			return fmt.Errorf("`ud_expression` is invalid. %s", err.Error())
+		}
+	}
+
 	return nil
 }
 
@@ -252,47 +290,120 @@ func (af *AppFilter) OSVersionPairs() (osVersions *pairs.Pairs[string, string], 
 	return
 }
 
-// Expand expands comma separated fields to slice
-// of strings
-func (af *AppFilter) Expand() {
-	filters, err := GetFiltersFromFilterShortCode(af.FilterShortCode, af.AppID)
-	if err != nil {
+// Expand populates app filters by fetching stored filters
+// via short code if short code exists, otherwise splits, trims
+// formats existing available filters.
+func (af *AppFilter) Expand(ctx context.Context) (err error) {
+	var filters *FilterList
+	if af.FilterShortCode != "" {
+		filters, err = GetFiltersFromCode(ctx, af.FilterShortCode, af.AppID)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return
+		}
+		// it's critical to set err to nil
+		err = nil
+	}
+
+	if filters != nil {
+		if len(filters.Versions) > 0 {
+			af.Versions = filters.Versions
+		}
+		if len(filters.VersionCodes) > 0 {
+			af.VersionCodes = filters.VersionCodes
+		}
+		if len(filters.OsNames) > 0 {
+			af.OsNames = filters.OsNames
+		}
+		if len(filters.OsVersions) > 0 {
+			af.OsVersions = filters.OsVersions
+		}
+		if len(filters.Countries) > 0 {
+			af.Countries = filters.Countries
+		}
+		if len(filters.DeviceNames) > 0 {
+			af.DeviceNames = filters.DeviceNames
+		}
+		if len(filters.DeviceManufacturers) > 0 {
+			af.DeviceManufacturers = filters.DeviceManufacturers
+		}
+		if len(filters.DeviceLocales) > 0 {
+			af.Locales = filters.DeviceLocales
+		}
+		if len(filters.NetworkProviders) > 0 {
+			af.NetworkProviders = filters.NetworkProviders
+		}
+		if len(filters.NetworkTypes) > 0 {
+			af.NetworkTypes = filters.NetworkTypes
+		}
+		if len(filters.NetworkGenerations) > 0 {
+			af.NetworkGenerations = filters.NetworkGenerations
+		}
+		if filters.UDExpressionRaw != "" {
+			af.UDExpressionRaw = filters.UDExpressionRaw
+		}
 		return
 	}
 
-	if len(filters.Versions) > 0 {
-		af.Versions = filters.Versions
+	// split and trim whitespace from each filter
+	if len(af.Versions) > 0 {
+		af.Versions = text.SplitTrimEmpty(af.Versions[0], ",")
 	}
-	if len(filters.VersionCodes) > 0 {
-		af.VersionCodes = filters.VersionCodes
+
+	if len(af.VersionCodes) > 0 {
+		af.VersionCodes = text.SplitTrimEmpty(af.VersionCodes[0], ",")
 	}
-	if len(filters.OsNames) > 0 {
-		af.OsNames = filters.OsNames
+
+	if len(af.OsNames) > 0 {
+		af.OsNames = text.SplitTrimEmpty(af.OsNames[0], ",")
 	}
-	if len(filters.OsVersions) > 0 {
-		af.OsVersions = filters.OsVersions
+
+	if len(af.OsVersions) > 0 {
+		af.OsVersions = text.SplitTrimEmpty(af.OsVersions[0], ",")
 	}
-	if len(filters.Countries) > 0 {
-		af.Countries = filters.Countries
+
+	if len(af.Countries) > 0 {
+		af.Countries = text.SplitTrimEmpty(af.Countries[0], ",")
 	}
-	if len(filters.DeviceNames) > 0 {
-		af.DeviceNames = filters.DeviceNames
+
+	if len(af.DeviceNames) > 0 {
+		af.DeviceNames = text.SplitTrimEmpty(af.DeviceNames[0], ",")
 	}
-	if len(filters.DeviceManufacturers) > 0 {
-		af.DeviceManufacturers = filters.DeviceManufacturers
+
+	if len(af.DeviceManufacturers) > 0 {
+		af.DeviceManufacturers = text.SplitTrimEmpty(af.DeviceManufacturers[0], ",")
 	}
-	if len(filters.DeviceLocales) > 0 {
-		af.Locales = filters.DeviceLocales
+
+	if len(af.Locales) > 0 {
+		af.Locales = text.SplitTrimEmpty(af.Locales[0], ",")
 	}
-	if len(filters.NetworkProviders) > 0 {
-		af.NetworkProviders = filters.NetworkProviders
+
+	if len(af.NetworkProviders) > 0 {
+		af.NetworkProviders = text.SplitTrimEmpty(af.NetworkProviders[0], ",")
 	}
-	if len(filters.NetworkTypes) > 0 {
-		af.NetworkTypes = filters.NetworkTypes
+
+	if len(af.NetworkTypes) > 0 {
+		af.NetworkTypes = text.SplitTrimEmpty(af.NetworkTypes[0], ",")
 	}
-	if len(filters.NetworkGenerations) > 0 {
-		af.NetworkGenerations = filters.NetworkGenerations
+
+	if len(af.NetworkGenerations) > 0 {
+		af.NetworkGenerations = text.SplitTrimEmpty(af.NetworkGenerations[0], ",")
 	}
+
+	if len(af.UDExpressionRaw) > 0 {
+		af.UDExpressionRaw = strings.TrimSpace(af.UDExpressionRaw)
+	}
+
+	return
+}
+
+// parseUDExpression parses the raw user defined
+// attribute expression value.
+func (af *AppFilter) parseUDExpression() (err error) {
+	af.UDExpression = &event.UDExpression{}
+	if err = json.Unmarshal([]byte(af.UDExpressionRaw), af.UDExpression); err != nil {
+		return
+	}
+	return
 }
 
 // HasTimeRange checks if the time values are
@@ -377,6 +488,12 @@ func (af *AppFilter) HasDeviceNames() bool {
 // is requested.
 func (af *AppFilter) HasTimezone() bool {
 	return af.Timezone != ""
+}
+
+// HasUDExpression returns true if a user
+// defined expression was requested.
+func (af *AppFilter) HasUDExpression() bool {
+	return af.UDExpressionRaw != "" && af.UDExpression != nil
 }
 
 // LimitAbs returns the absolute value of limit
@@ -468,6 +585,21 @@ func (af *AppFilter) GetGenericFilters(ctx context.Context, fl *FilterList) erro
 	fl.DeviceNames = append(fl.DeviceNames, deviceNames...)
 
 	return nil
+}
+
+// GetUserDefinedAttrKeys provides list of unique user defined
+// attribute keys and its data types by matching a subset of
+// filters.
+func (af *AppFilter) GetUserDefinedAttrKeys(ctx context.Context, fl *FilterList) (err error) {
+	if af.UDAttrKeys {
+		keytypes, err := af.getUDAttrKeys(ctx)
+		if err != nil {
+			return err
+		}
+		fl.UDKeyTypes = append(fl.UDKeyTypes, keytypes...)
+	}
+
+	return
 }
 
 // hasKeyID checks if key id is a valid non-empty
@@ -828,6 +960,44 @@ func (af *AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, 
 			return
 		}
 		deviceNames = append(deviceNames, name)
+	}
+
+	err = rows.Err()
+
+	return
+}
+
+// getUDAttrKeys finds distinct user defined attribute
+// key and its types.
+func (af *AppFilter) getUDAttrKeys(ctx context.Context) (keytypes []event.UDKeyType, err error) {
+	stmt := sqlf.From("user_def_attrs").
+		Select("distinct key").
+		Select("toString(type) type").
+		Clause("prewhere app_id = toUUID(?) and end_of_month <= ?", af.AppID, af.To).
+		OrderBy("key")
+
+	defer stmt.Close()
+
+	if af.Crash {
+		stmt.Where("exception = true")
+	}
+
+	if af.ANR {
+		stmt.Where("anr = true")
+	}
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		var keytype event.UDKeyType
+		if err = rows.Scan(&keytype.Key, &keytype.Type); err != nil {
+			return
+		}
+
+		keytypes = append(keytypes, keytype)
 	}
 
 	err = rows.Err()

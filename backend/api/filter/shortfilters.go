@@ -3,6 +3,7 @@ package filter
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,6 +11,8 @@ import (
 	"backend/api/server"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/leporo/sqlf"
 )
 
@@ -50,10 +53,17 @@ func NewShortFilters(appId uuid.UUID, filters FilterList) (*ShortFilters, error)
 	}, nil
 }
 
-func (shortFilters *ShortFilters) Create() error {
+// Create persists the filter shortcode in database
+// if it does not exist.
+func (shortFilters *ShortFilters) Create(ctx context.Context) error {
 	// If already exists, just return
-	_, err := GetFiltersFromFilterShortCode(shortFilters.Code, shortFilters.AppId)
-	if err == nil {
+	filters, err := GetFiltersFromCode(ctx, shortFilters.Code, shortFilters.AppId)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		fmt.Printf("Error fetching filters from filter short code %v: %v\n", shortFilters.Code, err)
+		return err
+	}
+
+	if filters != nil {
 		return nil
 	}
 
@@ -67,14 +77,20 @@ func (shortFilters *ShortFilters) Create() error {
 
 	_, err = server.Server.PgPool.Exec(context.Background(), stmt.String(), stmt.Args()...)
 	if err != nil {
+		// ignorel, if a short filter already exists
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
+			return nil
+		}
 		return err
 	}
 
 	return nil
 }
 
-// Returns filters for a given short code and appId. If it doesn't exist, returns an error
-func GetFiltersFromFilterShortCode(filterShortCode string, appId uuid.UUID) (*FilterList, error) {
+// GetFiltersFromCode returns filters for a given short
+// code and app id. Return an error, if a filter doesn't
+// exist.
+func GetFiltersFromCode(ctx context.Context, filterShortCode string, appId uuid.UUID) (*FilterList, error) {
 	var filters FilterList
 
 	stmt := sqlf.PostgreSQL.
@@ -82,12 +98,10 @@ func GetFiltersFromFilterShortCode(filterShortCode string, appId uuid.UUID) (*Fi
 		From("public.short_filters").
 		Where("code = ?", filterShortCode).
 		Where("app_id = ?", appId)
+
 	defer stmt.Close()
 
-	err := server.Server.PgPool.QueryRow(context.Background(), stmt.String(), stmt.Args()...).Scan(&filters)
-
-	if err != nil {
-		fmt.Printf("Error fetching filters from filter short code %v: %v\n", filterShortCode, err)
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&filters); err != nil {
 		return nil, err
 	}
 

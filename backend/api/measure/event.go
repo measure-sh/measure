@@ -494,6 +494,18 @@ func (e eventreq) validate() error {
 			return err
 		}
 
+		// only process user defined attributes
+		// if the payload contains any.
+		//
+		// this check is super important to have
+		// because older SDKs won't ever send these
+		// attributes.
+		if !e.events[i].UserDefinedAttribute.Empty() {
+			if err := e.events[i].UserDefinedAttribute.Validate(); err != nil {
+				return err
+			}
+		}
+
 		if e.hasAttachments() {
 			for j := range e.events[i].Attachments {
 				if err := e.events[i].Attachments[j].Validate(); err != nil {
@@ -601,6 +613,9 @@ func (e eventreq) ingest(ctx context.Context) error {
 			Set(`attribute.network_type`, e.events[i].Attribute.NetworkType).
 			Set(`attribute.network_generation`, e.events[i].Attribute.NetworkGeneration).
 			Set(`attribute.network_provider`, e.events[i].Attribute.NetworkProvider).
+
+			// user defined attribute
+			Set(`user_defined_attribute`, e.events[i].UserDefinedAttribute.Parameterize()).
 
 			// attachments
 			Set(`attachments`, attachments)
@@ -1078,8 +1093,18 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		Where("attribute.network_type in ?", af.NetworkTypes).
 		Where("attribute.network_provider in ?", af.NetworkProviders).
 		Where("attribute.network_generation in ?", af.NetworkGenerations).
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
-		GroupBy("id, type, timestamp, session_id, attribute.app_version, attribute.app_build, attribute.device_manufacturer, attribute.device_model, attribute.network_type, exceptions, threads, attachments")
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+	if af.HasUDExpression() && !af.UDExpression.Empty() {
+		subQuery := sqlf.From("user_def_attrs").
+			Select("event_id id").
+			Where("app_id = toUUID(?)", af.AppID).
+			Where("exception = true")
+		af.UDExpression.Augment(subQuery)
+		substmt.Clause("AND id in").SubQuery("(", ")", subQuery)
+	}
+
+	substmt.GroupBy("id, type, timestamp, session_id, attribute.app_version, attribute.app_build, attribute.device_manufacturer, attribute.device_model, attribute.network_type, exceptions, threads, attachments")
 
 	stmt := sqlf.New("with ? as page_size, ? as last_timestamp, ? as last_id select", pageSize, keyTimestamp, af.KeyID)
 
@@ -1187,9 +1212,9 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 		Select("round((1 - (exception_sessions / total_sessions)) * 100, 2) as crash_free_sessions").
 		Select("uniq(session_id) as total_sessions").
 		Select("uniqIf(session_id, type = ? and exception.handled = false) as exception_sessions", event.TypeException).
-		Clause("prewhere app_id = toUUID(?)", af.AppID).
-		GroupBy("app_version, datetime").
-		OrderBy("app_version, datetime")
+		Clause("prewhere app_id = toUUID(?)", af.AppID)
+
+	defer stmt.Close()
 
 	if len(af.Versions) > 0 {
 		stmt.Where("attribute.app_version in ?", af.Versions)
@@ -1239,7 +1264,17 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 		stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 	}
 
-	defer stmt.Close()
+	if af.HasUDExpression() && !af.UDExpression.Empty() {
+		subQuery := sqlf.From("user_def_attrs").
+			Select("event_id id").
+			Where("app_id = toUUID(?)", af.AppID).
+			Where("exception = true")
+		af.UDExpression.Augment(subQuery)
+		stmt.Clause("AND id in").SubQuery("(", ")", subQuery)
+	}
+
+	stmt.GroupBy("app_version, datetime").
+		OrderBy("app_version, datetime")
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -1327,8 +1362,18 @@ func GetANRsWithFilter(ctx context.Context, group *group.ANRGroup, af *filter.Ap
 		Where("attribute.network_type in ?", af.NetworkTypes).
 		Where("attribute.network_provider in ?", af.NetworkProviders).
 		Where("attribute.network_generation in ?", af.NetworkGenerations).
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
-		GroupBy("id, type, timestamp, session_id, attribute.app_version, attribute.app_build, attribute.device_manufacturer, attribute.device_model, attribute.network_type, exceptions, threads, attachments")
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+	if af.HasUDExpression() && !af.UDExpression.Empty() {
+		subQuery := sqlf.From("user_def_attrs").
+			Select("event_id id").
+			Where("app_id = toUUID(?)", af.AppID).
+			Where("anr = true")
+		af.UDExpression.Augment(subQuery)
+		substmt.Clause("AND id in").SubQuery("(", ")", subQuery)
+	}
+
+	substmt.GroupBy("id, type, timestamp, session_id, attribute.app_version, attribute.app_build, attribute.device_manufacturer, attribute.device_model, attribute.network_type, exceptions, threads, attachments")
 
 	stmt := sqlf.New("with ? as page_size, ? as last_timestamp, ? as last_id select", pageSize, keyTimestamp, af.KeyID)
 
@@ -1436,9 +1481,9 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 		Select("round((1 - (anr_sessions / total_sessions)) * 100, 2) as anr_free_sessions").
 		Select("uniq(session_id) as total_sessions").
 		Select("uniqIf(session_id, type = ?) as anr_sessions", event.TypeANR).
-		Clause("prewhere app_id = toUUID(?)", af.AppID).
-		GroupBy("app_version, datetime").
-		OrderBy("app_version, datetime")
+		Clause("prewhere app_id = toUUID(?)", af.AppID)
+
+	defer stmt.Close()
 
 	if len(af.Versions) > 0 {
 		stmt.Where("attribute.app_version in ?", af.Versions)
@@ -1488,7 +1533,17 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 		stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 	}
 
-	defer stmt.Close()
+	if af.HasUDExpression() && !af.UDExpression.Empty() {
+		subQuery := sqlf.From("user_def_attrs").
+			Select("event_id id").
+			Where("app_id = toUUID(?)", af.AppID).
+			Where("anr = true")
+		af.UDExpression.Augment(subQuery)
+		stmt.Clause("AND id in").SubQuery("(", ")", subQuery)
+	}
+
+	stmt.GroupBy("app_version, datetime").
+		OrderBy("app_version, datetime")
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -1547,6 +1602,8 @@ func GetIssuesAttributeDistribution(ctx context.Context, g group.IssueGroup, af 
 		GroupBy("locale").
 		GroupBy("device")
 
+	defer stmt.Close()
+
 	// Add filters as necessary
 	stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 	if len(af.Versions) > 0 {
@@ -1578,6 +1635,15 @@ func GetIssuesAttributeDistribution(ctx context.Context, g group.IssueGroup, af 
 	}
 	if len(af.DeviceNames) > 0 {
 		stmt.Where("attribute.device_name in ?", af.DeviceNames)
+	}
+
+	if af.HasUDExpression() && !af.UDExpression.Empty() {
+		subQuery := sqlf.From("user_def_attrs").
+			Select("event_id id").
+			Where("app_id = toUUID(?)", af.AppID).
+			Where(fmt.Sprintf("%s = true", groupType))
+		af.UDExpression.Augment(subQuery)
+		stmt.Clause("AND id in").SubQuery("(", ")", subQuery)
 	}
 
 	// Execute the query and parse results
@@ -1654,11 +1720,23 @@ func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build),')') as version").
 		Select("uniq(id) as instances").
-		Clause(fmt.Sprintf("prewhere app_id = toUUID(?) and %s.fingerprint = ?", groupType), af.AppID, fingerprint).
-		GroupBy("version, datetime").
-		OrderBy("version, datetime")
+		Clause(fmt.Sprintf("prewhere app_id = toUUID(?) and %s.fingerprint = ?", groupType), af.AppID, fingerprint)
+
+	defer stmt.Close()
 
 	stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+	if af.HasUDExpression() && !af.UDExpression.Empty() {
+		subQuery := sqlf.From("user_def_attrs").
+			Select("event_id id").
+			Where("app_id = toUUID(?)", af.AppID).
+			Where(fmt.Sprintf("%s = true", groupType))
+		af.UDExpression.Augment(subQuery)
+		stmt.Clause("AND id in").SubQuery("(", ")", subQuery)
+	}
+
+	stmt.GroupBy("version, datetime").
+		OrderBy("version, datetime")
 
 	if len(af.Versions) > 0 {
 		stmt.Where("attribute.app_version in ?", af.Versions)
@@ -1699,8 +1777,6 @@ func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter
 	if len(af.DeviceNames) > 0 {
 		stmt.Where(("attribute.device_name in ?"), af.DeviceNames)
 	}
-
-	defer stmt.Close()
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {

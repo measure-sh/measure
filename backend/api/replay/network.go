@@ -8,8 +8,9 @@ import (
 // NetworkChange represents network change events
 // suitable for session replay.
 type NetworkChange struct {
-	EventType  string `json:"event_type"`
-	ThreadName string `json:"thread_name"`
+	EventType   string             `json:"event_type"`
+	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
+	ThreadName  string             `json:"thread_name"`
 	*event.NetworkChange
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -29,9 +30,10 @@ func (nc NetworkChange) GetTimestamp() time.Time {
 // Http represents http events
 // suitable for session replay.
 type Http struct {
-	EventType     string `json:"event_type"`
-	ThreadName    string `json:"thread_name"`
-	UserTriggered bool   `json:"user_triggered"`
+	EventType     string             `json:"event_type"`
+	UDAttribute   *event.UDAttribute `json:"user_defined_attribute"`
+	ThreadName    string             `json:"thread_name"`
+	UserTriggered bool               `json:"user_triggered"`
 	*event.Http
 	Duration  time.Duration `json:"duration"`
 	Timestamp time.Time     `json:"timestamp"`
@@ -55,6 +57,7 @@ func ComputeNetworkChange(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		netChanges := NetworkChange{
 			event.Type,
+			&event.UserDefinedAttribute,
 			event.Attribute.ThreadName,
 			event.NetworkChange,
 			event.Timestamp,
@@ -73,6 +76,7 @@ func ComputeHttp(events []event.EventField) (result []ThreadGrouper) {
 		startTime := event.Http.StartTime
 		http := Http{
 			event.Type,
+			&event.UserDefinedAttribute,
 			event.Attribute.ThreadName,
 			event.UserTriggered,
 			event.Http,
