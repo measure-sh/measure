@@ -19,6 +19,7 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-1)
 - [References](#references)
   - [Attributes](#attributes)
+  - [User Defined Attributes](#user-defined-attributes)
   - [Attachments](#attachments)
   - [Events](#events)
   - [Event Types](#event-types)
@@ -156,7 +157,7 @@ To understand the shape of the multipart/form-data payload, take a look at this 
 --PieBoundary123456789012345678901234567
 Content-Disposition: form-data; name="event"
 
-{"type":"string","id":"233a2fbc-a0d1-4912-a92f-9e43e72afbc6","session_id":"633a2fbc-a0d1-4912-a92f-9e43e72afbc6","string":{"severity_text":"INFO","string":"This is a log from the Android logcat"},"timestamp":"2023-08-24T14:51:38.000000534Z","attribute":{"user_id":null,"installation_id":"322a2fbc-a0d1-1212-a92f-9e43e72afbc7","device_name":"sunfish","device_model":"SM-G950F","device_manufacturer":"samsung","device_type":"phone","device_is_foldable":true,"device_is_physical":false,"device_density_dpi":100,"device_width_px":480,"device_height_px":800,"device_density":2,"os_name":"android","os_version":"31","platform":"android","app_version":"1.0.1","app_build":"576358","app_unique_id":"com.example.app","network_type":"cellular","network_provider":"airtel","network_generation":"4g","measure_sdk_version":"0.0.1"},"attachments":[]}
+{"type":"string","id":"233a2fbc-a0d1-4912-a92f-9e43e72afbc6","session_id":"633a2fbc-a0d1-4912-a92f-9e43e72afbc6","string":{"severity_text":"INFO","string":"This is a log from the Android logcat"},"timestamp":"2023-08-24T14:51:38.000000534Z","attribute":{"user_id":null,"installation_id":"322a2fbc-a0d1-1212-a92f-9e43e72afbc7","device_name":"sunfish","device_model":"SM-G950F","device_manufacturer":"samsung","device_type":"phone","device_is_foldable":true,"device_is_physical":false,"device_density_dpi":100,"device_width_px":480,"device_height_px":800,"device_density":2,"os_name":"android","os_version":"31","platform":"android","app_version":"1.0.1","app_build":"576358","app_unique_id":"com.example.app","network_type":"cellular","network_provider":"airtel","network_generation":"4g","measure_sdk_version":"0.0.1"},"user_defined_attribute":{"username":"alice","paid_user":true,"credit_balance":12345,"latitude":30.2661403415387},"attachments":[]}
 --PieBoundary123456789012345678901234567
 Content-Disposition: form-data; name="event"
 
@@ -315,6 +316,41 @@ Events can contain the following attributes, some of which are mandatory.
 | `network_provider`    | string  | No       | Example: airtel, T-mobile or "unknown" if unavailable.                      |
 | `network_generation`  | string  | No       | One of:<br/>- 2g<br/>- 3g<br/>- 4g<br/>- 5g<br/>- unknown                   |
 
+### User Defined Attributes
+
+Events can optionally contain attributes defined by the SDK user. A `user_defined_attribute` is a JSON key/value pair object. There are some constraints you should be aware of.
+
+- An event may contain a maximum of 100 user defined attributes.
+- Key names should not exceed 256 characters.
+- Key names must only contain lowercase alphabets, numbers, underscores and hyphens.
+- Value can be regular JSON types. String, Boolean, Number.
+- String values should not exceed 256 characters.
+
+```jsonc
+{
+  "id": "1c8a5e51-4d7d-4b2c-9be8-1abb31d38f90",
+  "type": "gesture_click",
+  "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
+  "timestamp": "2023-08-24T14:51:41.000000534Z",
+  "user_triggered": false,
+  "gesture_click": {
+    // snip gesture_click fields
+  },
+  "attribute": {
+    // snip attributes fields
+  },
+  "user_defined_attribute": {
+    "username": "alice",
+    "paid_user": true,
+    "credit_balance": 12345,
+    "latitude": 30.2661403415387
+  },
+  "attachments": {
+    // snip attachment fields
+  }
+}
+```
+
 ### Attachments
 
 Attachments are arbitrary files associated with the session each having the following properties.
@@ -341,6 +377,9 @@ Event objects have the following shape. Additionally, each object must contain o
   },
   "attribute": {
     // snip attributes fields
+  },
+  "user_defined_attribute": {
+    // snip user defined attributes fields
   },
   "attachments": {
     // snip attachment fields
@@ -577,19 +616,19 @@ Use the `lifecycle_fragment` type for Android's fragment lifecycle events.
 
 Use the `lifecycle_view_controller` type for iOS ViewController lifecycle events.
 
-| Field             | Type   | Optional | Comment                                                                                    |
-| ----------------- | ------ | -------- | ------------------------------------------------------------------------------------------ |
-| `type`            | string | No       | One of the following:<br />- `loadView` <br />- `viewDidLoad`<br />- `viewWillAppear`<br />- `viewDidAppear`<br />- `viewWillDisappear`<br />- `viewDidDisappear` <br />- `didReceiveMemoryWarning` <br />- `initWithNibName` <br />- `initWithCoder` <br />- `vcDeinit` |
-| `class_name`      | string | No       | View Controller class name                                                                 |
+| Field        | Type   | Optional | Comment                                                                                                                                                                                                                                                                  |
+| ------------ | ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `type`       | string | No       | One of the following:<br />- `loadView` <br />- `viewDidLoad`<br />- `viewWillAppear`<br />- `viewDidAppear`<br />- `viewWillDisappear`<br />- `viewDidDisappear` <br />- `didReceiveMemoryWarning` <br />- `initWithNibName` <br />- `initWithCoder` <br />- `vcDeinit` |
+| `class_name` | string | No       | View Controller class name                                                                                                                                                                                                                                               |
 
 #### **`lifecycle_swift_ui`**
 
 Use the `lifecycle_swift_ui` type for iOS SwiftUI view lifecycle events.
 
-| Field             | Type   | Optional | Comment                                                                                    |
-| ----------------- | ------ | -------- | ------------------------------------------------------------------------------------------ |
-| `type`            | string | No       | One of the following:<br />- `on_appear`<br />- `on_disappear`                             |
-| `view_name`       | string | No       | SwiftUI View class name                                                                    |
+| Field       | Type   | Optional | Comment                                                        |
+| ----------- | ------ | -------- | -------------------------------------------------------------- |
+| `type`      | string | No       | One of the following:<br />- `on_appear`<br />- `on_disappear` |
+| `view_name` | string | No       | SwiftUI View class name                                        |
 
 #### **`lifecycle_app`**
 
