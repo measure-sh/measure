@@ -1870,7 +1870,11 @@ func GetAppJourney(c *gin.Context) {
 	if err := af.Expand(ctx); err != nil {
 		msg := `failed to expand filters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
 			"error":   msg,
 			"details": err.Error(),
 		})
@@ -2126,7 +2130,11 @@ func GetAppMetrics(c *gin.Context) {
 	if err := af.Expand(ctx); err != nil {
 		msg := `failed to expand filters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
 			"error":   msg,
 			"details": err.Error(),
 		})
@@ -2451,7 +2459,11 @@ func GetCrashOverview(c *gin.Context) {
 	if err := af.Expand(ctx); err != nil {
 		msg := `failed to expand filters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
 			"error":   msg,
 			"details": err.Error(),
 		})
@@ -2598,12 +2610,17 @@ func GetCrashOverviewPlotInstances(c *gin.Context) {
 	if err := af.Expand(ctx); err != nil {
 		msg := `failed to expand filters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
 			"error":   msg,
 			"details": err.Error(),
 		})
 		return
 	}
+
 	msg := `crash overview request validation failed`
 
 	if err := af.Validate(); err != nil {
@@ -2743,7 +2760,11 @@ func GetCrashDetailCrashes(c *gin.Context) {
 	if err := af.Expand(ctx); err != nil {
 		msg := `failed to expand filters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
 			"error":   msg,
 			"details": err.Error(),
 		})
@@ -2893,7 +2914,11 @@ func GetCrashDetailPlotInstances(c *gin.Context) {
 	if err := af.Expand(ctx); err != nil {
 		msg := `failed to expand filters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
 			"error":   msg,
 			"details": err.Error(),
 		})
@@ -3044,7 +3069,11 @@ func GetCrashDetailAttributeDistribution(c *gin.Context) {
 	if err := af.Expand(ctx); err != nil {
 		msg := `failed to expand filters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
 			"error":   msg,
 			"details": err.Error(),
 		})
@@ -3165,7 +3194,11 @@ func GetCrashDetailPlotJourney(c *gin.Context) {
 	if err := af.Expand(ctx); err != nil {
 		msg := `failed to expand filters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
 			"error":   msg,
 			"details": err.Error(),
 		})
@@ -3365,7 +3398,11 @@ func GetANROverview(c *gin.Context) {
 	if err := af.Expand(ctx); err != nil {
 		msg := `failed to expand filters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
 			"error":   msg,
 			"details": err.Error(),
 		})
@@ -3495,7 +3532,11 @@ func GetANROverviewPlotInstances(c *gin.Context) {
 	if err := af.Expand(ctx); err != nil {
 		msg := `failed to expand filters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
 			"error":   msg,
 			"details": err.Error(),
 		})
@@ -3642,7 +3683,11 @@ func GetANRDetailANRs(c *gin.Context) {
 	if err := af.Expand(ctx); err != nil {
 		msg := `failed to expand filters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
 			"error":   msg,
 			"details": err.Error(),
 		})
@@ -3792,7 +3837,11 @@ func GetANRDetailPlotInstances(c *gin.Context) {
 	if err := af.Expand(ctx); err != nil {
 		msg := `failed to expand filters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
 			"error":   msg,
 			"details": err.Error(),
 		})
@@ -3937,7 +3986,11 @@ func GetANRDetailAttributeDistribution(c *gin.Context) {
 	if err := af.Expand(ctx); err != nil {
 		msg := `failed to expand filters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
 			"error":   msg,
 			"details": err.Error(),
 		})
@@ -4058,7 +4111,11 @@ func GetANRDetailPlotJourney(c *gin.Context) {
 	if err := af.Expand(ctx); err != nil {
 		msg := `failed to expand filters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
 			"error":   msg,
 			"details": err.Error(),
 		})
@@ -4305,7 +4362,11 @@ func GetSessionsOverview(c *gin.Context) {
 	if err := af.Expand(ctx); err != nil {
 		msg := `failed to expand filters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
 			"error":   msg,
 			"details": err.Error(),
 		})
@@ -4423,12 +4484,17 @@ func GetSessionsOverviewPlotInstances(c *gin.Context) {
 	if err := af.Expand(ctx); err != nil {
 		msg := `failed to expand filters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
 			"error":   msg,
 			"details": err.Error(),
 		})
 		return
 	}
+
 	msg := `sessions overview request validation failed`
 
 	if err := af.Validate(); err != nil {

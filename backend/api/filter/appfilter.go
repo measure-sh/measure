@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx"
 	"github.com/leporo/sqlf"
 )
 
@@ -296,7 +295,7 @@ func (af *AppFilter) OSVersionPairs() (osVersions *pairs.Pairs[string, string], 
 func (af *AppFilter) Expand(ctx context.Context) (err error) {
 	if af.FilterShortCode != "" {
 		filters, err := GetFiltersFromCode(ctx, af.FilterShortCode, af.AppID)
-		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		if err != nil {
 			return err
 		}
 
