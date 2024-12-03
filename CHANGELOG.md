@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :sparkles: New features
+
+- (**backend**): Support user defined attributes (#1529)
+
+
 ### :hammer: Misc
 
 - (**backend**): Add sample sessions
