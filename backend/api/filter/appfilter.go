@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
 )
 
@@ -291,14 +292,19 @@ func (af *AppFilter) OSVersionPairs() (osVersions *pairs.Pairs[string, string], 
 
 // Expand populates app filters by fetching stored filters
 // via short code if short code exists, otherwise splits, trims
-// and formats filters.
+// formats existing available filters.
 func (af *AppFilter) Expand(ctx context.Context) (err error) {
+	var filters *FilterList
 	if af.FilterShortCode != "" {
-		filters, err := GetFiltersFromCode(ctx, af.FilterShortCode, af.AppID)
-		if err != nil {
-			return err
+		filters, err = GetFiltersFromCode(ctx, af.FilterShortCode, af.AppID)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return
 		}
+		// it's critical to set err to nil
+		err = nil
+	}
 
+	if filters != nil {
 		if len(filters.Versions) > 0 {
 			af.Versions = filters.Versions
 		}
@@ -335,8 +341,7 @@ func (af *AppFilter) Expand(ctx context.Context) (err error) {
 		if filters.UDExpressionRaw != "" {
 			af.UDExpressionRaw = filters.UDExpressionRaw
 		}
-
-		return nil
+		return
 	}
 
 	// split and trim whitespace from each filter

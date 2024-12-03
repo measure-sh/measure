@@ -57,9 +57,13 @@ func NewShortFilters(appId uuid.UUID, filters FilterList) (*ShortFilters, error)
 // if it does not exist.
 func (shortFilters *ShortFilters) Create(ctx context.Context) error {
 	// If already exists, just return
-	_, err := GetFiltersFromCode(ctx, shortFilters.Code, shortFilters.AppId)
-	if err == nil || errors.Is(err, pgx.ErrNoRows) {
+	filters, err := GetFiltersFromCode(ctx, shortFilters.Code, shortFilters.AppId)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		fmt.Printf("Error fetching filters from filter short code %v: %v\n", shortFilters.Code, err)
+		return err
+	}
+
+	if filters != nil {
 		return nil
 	}
 

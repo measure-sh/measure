@@ -5170,7 +5170,7 @@ func CreateShortFilters(c *gin.Context) {
 		return
 	}
 
-	if err = shortFilters.Create(ctx); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+	if err = shortFilters.Create(ctx); err != nil {
 		msg := `failed to create short code from filters`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
