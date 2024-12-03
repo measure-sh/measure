@@ -2454,8 +2454,6 @@ func GetCrashOverview(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("ud expression raw:", af.UDExpressionRaw)
-
 	if err := af.Expand(ctx); err != nil {
 		msg := `failed to expand filters`
 		fmt.Println(msg, err)
