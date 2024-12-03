@@ -12,10 +12,11 @@ var NominalColdLaunchThreshold = 30 * time.Second
 // ColdLaunch represents cold launch events
 // suitable for session replay.
 type ColdLaunch struct {
-	EventType  string        `json:"event_type"`
-	ThreadName string        `json:"thread_name"`
-	Duration   time.Duration `json:"duration"`
-	Timestamp  time.Time     `json:"timestamp"`
+	EventType   string             `json:"event_type"`
+	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
+	ThreadName  string             `json:"thread_name"`
+	Duration    time.Duration      `json:"duration"`
+	Timestamp   time.Time          `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
@@ -33,13 +34,14 @@ func (cl ColdLaunch) GetTimestamp() time.Time {
 // WarmLaunch represents warm launch events
 // suitable for session replay.
 type WarmLaunch struct {
-	EventType        string        `json:"event_type"`
-	ThreadName       string        `json:"thread_name"`
-	Duration         time.Duration `json:"duration"`
-	LaunchedActivity string        `json:"launched_activity"`
-	HasSavedState    bool          `json:"has_saved_state"`
-	IntentData       string        `json:"intent_data"`
-	Timestamp        time.Time     `json:"timestamp"`
+	EventType        string             `json:"event_type"`
+	UDAttribute      *event.UDAttribute `json:"user_defined_attribute"`
+	ThreadName       string             `json:"thread_name"`
+	Duration         time.Duration      `json:"duration"`
+	LaunchedActivity string             `json:"launched_activity"`
+	HasSavedState    bool               `json:"has_saved_state"`
+	IntentData       string             `json:"intent_data"`
+	Timestamp        time.Time          `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
@@ -57,13 +59,14 @@ func (wl WarmLaunch) GetTimestamp() time.Time {
 // HotLaunch represents hot launch events
 // suitable for session replay.
 type HotLaunch struct {
-	EventType        string        `json:"event_type"`
-	ThreadName       string        `json:"thread_name"`
-	Duration         time.Duration `json:"duration"`
-	LaunchedActivity string        `json:"launched_activity"`
-	HasSavedState    bool          `json:"has_saved_state"`
-	IntentData       string        `json:"intent_data"`
-	Timestamp        time.Time     `json:"timestamp"`
+	EventType        string             `json:"event_type"`
+	UDAttribute      *event.UDAttribute `json:"user_defined_attribute"`
+	ThreadName       string             `json:"thread_name"`
+	Duration         time.Duration      `json:"duration"`
+	LaunchedActivity string             `json:"launched_activity"`
+	HasSavedState    bool               `json:"has_saved_state"`
+	IntentData       string             `json:"intent_data"`
+	Timestamp        time.Time          `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
@@ -84,6 +87,7 @@ func ComputeColdLaunches(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		coldLaunches := ColdLaunch{
 			event.Type,
+			&event.UserDefinedAttribute,
 			event.Attribute.ThreadName,
 			event.ColdLaunch.Duration,
 			event.Timestamp,
@@ -100,6 +104,7 @@ func ComputeWarmLaunches(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		warmLaunches := WarmLaunch{
 			event.Type,
+			&event.UserDefinedAttribute,
 			event.Attribute.ThreadName,
 			event.WarmLaunch.Duration,
 			event.WarmLaunch.LaunchedActivity,
@@ -119,6 +124,7 @@ func ComputeHotLaunches(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		hotLaunches := HotLaunch{
 			event.Type,
+			&event.UserDefinedAttribute,
 			event.Attribute.ThreadName,
 			event.HotLaunch.Duration,
 			event.HotLaunch.LaunchedActivity,

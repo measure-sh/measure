@@ -14,6 +14,7 @@ import (
 // for session replay.
 type Exception struct {
 	EventType     string             `json:"event_type"`
+	UDAttribute   *event.UDAttribute `json:"user_defined_attribute"`
 	UserTriggered bool               `json:"user_triggered"`
 	GroupId       *uuid.UUID         `json:"group_id"`
 	Type          string             `json:"type"`
@@ -45,6 +46,7 @@ func (e Exception) GetTimestamp() time.Time {
 // for session replay.
 type ANR struct {
 	EventType   string             `json:"event_type"`
+	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
 	GroupId     *uuid.UUID         `json:"group_id"`
 	Type        string             `json:"type"`
 	Message     string             `json:"message"`
@@ -97,6 +99,7 @@ func ComputeExceptions(ctx context.Context, appId *uuid.UUID, events []event.Eve
 
 		exceptions := Exception{
 			event.Type,
+			&event.UserDefinedAttribute,
 			event.UserTriggered,
 			groupId,
 			event.Exception.GetType(),
@@ -142,6 +145,7 @@ func ComputeANRs(ctx context.Context, appId *uuid.UUID, events []event.EventFiel
 
 		anrs := ANR{
 			event.Type,
+			&event.UserDefinedAttribute,
 			groupId,
 			event.ANR.GetType(),
 			event.ANR.GetMessage(),

@@ -291,7 +291,6 @@ func (u *UDExpression) Validate() (err error) {
 
 	// validate each comparison expression
 	comparisons := u.getComparisons()
-	fmt.Println("comparisons", comparisons)
 	for _, cmp := range comparisons {
 		if err = cmp.Validate(); err != nil {
 			return
@@ -452,10 +451,11 @@ func (c *UDComparison) Validate() (err error) {
 }
 
 // UDAttribute represents user defined
-// attributes.
+// attributes in a convenient & usable
+// structure.
 //
-// User Defined Attributes enter into
-// the system via events or spans.
+// User Defined Attributes are related
+// to events or spans.
 type UDAttribute struct {
 	rawAttrs map[string]any
 	keyTypes map[string]AttrType
@@ -471,6 +471,33 @@ func (u UDAttribute) Empty() bool {
 // MarshalJSON marshals UDAttribute type of user
 // defined attributes to JSON.
 func (u UDAttribute) MarshalJSON() (data []byte, err error) {
+	for key, keytype := range u.keyTypes {
+		switch keytype {
+		case AttrBool:
+			strval := u.rawAttrs[key].(string)
+			value, err := strconv.ParseBool(strval)
+			if err != nil {
+				return nil, err
+			}
+			u.rawAttrs[key] = value
+		case AttrInt64:
+			strval := u.rawAttrs[key].(string)
+			value, err := strconv.ParseInt(strval, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			u.rawAttrs[key] = value
+		case AttrFloat64:
+			strval := u.rawAttrs[key].(string)
+			value, err := strconv.ParseFloat(strval, 64)
+			if err != nil {
+				return nil, err
+			}
+			u.rawAttrs[key] = value
+		case AttrString:
+			u.rawAttrs[key] = u.rawAttrs[key].(string)
+		}
+	}
 	return json.Marshal(u.rawAttrs)
 }
 
@@ -564,6 +591,32 @@ func (u *UDAttribute) Parameterize() (attr map[string]any) {
 	}
 
 	return
+}
+
+// Scan scans and stores user defined attribute
+// data coming from a database query result.
+func (u *UDAttribute) Scan(attrMap map[string][]any) {
+	for key, tuple := range attrMap {
+		intType := tuple[0]
+		if u.keyTypes == nil {
+			u.keyTypes = make(map[string]AttrType)
+		}
+		if u.rawAttrs == nil {
+			u.rawAttrs = make(map[string]any)
+		}
+		attrType := intType.(string)
+		switch attrType {
+		case AttrBool.String():
+			u.keyTypes[key] = AttrBool
+		case AttrString.String():
+			u.keyTypes[key] = AttrString
+		case AttrInt64.String():
+			u.keyTypes[key] = AttrInt64
+		case AttrFloat64.String():
+			u.keyTypes[key] = AttrFloat64
+		}
+		u.rawAttrs[key] = tuple[1]
+	}
 }
 
 // GetUDAttrsOpMap provides a type wise list of operators

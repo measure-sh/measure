@@ -1347,7 +1347,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`warm_launch.process_start_requested_uptime`,
 		`warm_launch.content_provider_attach_uptime`,
 		`warm_launch.on_next_draw_uptime`,
-		`warm_launch.launched_activity`,
+		`toString(warm_launch.launched_activity)`,
 		`warm_launch.has_saved_state`,
 		`warm_launch.intent_data`,
 		`warm_launch.duration`,
@@ -1405,6 +1405,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`toString(navigation.from)`,
 		`toString(navigation.source)`,
 		`toString(screen_view.name) `,
+		`user_defined_attribute`,
 	}
 
 	stmt := sqlf.From("default.events")
@@ -1454,6 +1455,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		var cpuUsage event.CPUUsage
 		var navigation event.Navigation
 		var screenView event.ScreenView
+		var userDefAttr map[string][]any
 
 		var coldLaunchDuration uint32
 		var warmLaunchDuration uint32
@@ -1660,10 +1662,18 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 
 			// screen view
 			&screenView.Name,
+
+			// user defined attributes
+			&userDefAttr,
 		}
 
 		if err := rows.Scan(dest...); err != nil {
 			return nil, err
+		}
+
+		// populate user defined attribute
+		if len(userDefAttr) > 0 {
+			ev.UserDefinedAttribute.Scan(userDefAttr)
 		}
 
 		switch ev.Type {
@@ -5094,7 +5104,7 @@ func CreateShortFilters(c *gin.Context) {
 		return
 	}
 
-	if err = shortFilters.Create(ctx); err != nil {
+	if err = shortFilters.Create(ctx); err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		msg := `failed to create short code from filters`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{

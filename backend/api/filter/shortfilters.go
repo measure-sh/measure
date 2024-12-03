@@ -3,6 +3,7 @@ package filter
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,6 +11,8 @@ import (
 	"backend/api/server"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/leporo/sqlf"
 )
 
@@ -55,7 +58,8 @@ func NewShortFilters(appId uuid.UUID, filters FilterList) (*ShortFilters, error)
 func (shortFilters *ShortFilters) Create(ctx context.Context) error {
 	// If already exists, just return
 	_, err := GetFiltersFromCode(ctx, shortFilters.Code, shortFilters.AppId)
-	if err == nil {
+	if err == nil || errors.Is(err, pgx.ErrNoRows) {
+		fmt.Printf("Error fetching filters from filter short code %v: %v\n", shortFilters.Code, err)
 		return nil
 	}
 
@@ -69,6 +73,10 @@ func (shortFilters *ShortFilters) Create(ctx context.Context) error {
 
 	_, err = server.Server.PgPool.Exec(context.Background(), stmt.String(), stmt.Args()...)
 	if err != nil {
+		// ignorel, if a short filter already exists
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
+			return nil
+		}
 		return err
 	}
 
@@ -90,7 +98,6 @@ func GetFiltersFromCode(ctx context.Context, filterShortCode string, appId uuid.
 	defer stmt.Close()
 
 	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&filters); err != nil {
-		fmt.Printf("Error fetching filters from filter short code %v: %v\n", filterShortCode, err)
 		return nil, err
 	}
 

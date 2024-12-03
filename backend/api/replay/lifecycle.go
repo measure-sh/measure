@@ -8,8 +8,9 @@ import (
 // LifecycleActivity represents lifecycle
 // activity events suitable for session replay.
 type LifecycleActivity struct {
-	EventType  string `json:"event_type"`
-	ThreadName string `json:"thread_name"`
+	EventType   string             `json:"event_type"`
+	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
+	ThreadName  string             `json:"thread_name"`
 	*event.LifecycleActivity
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -29,8 +30,9 @@ func (la LifecycleActivity) GetTimestamp() time.Time {
 // LifecycleFragment represents lifecycle
 // fragment events suitable for session replay.
 type LifecycleFragment struct {
-	EventType  string `json:"event_type"`
-	ThreadName string `json:"thread_name"`
+	EventType   string             `json:"event_type"`
+	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
+	ThreadName  string             `json:"thread_name"`
 	*event.LifecycleFragment
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -50,8 +52,9 @@ func (lf LifecycleFragment) GetTimestamp() time.Time {
 // LifecycleApp represents lifecycle
 // app events suitable for session replay.
 type LifecycleApp struct {
-	EventType  string `json:"event_type"`
-	ThreadName string `json:"thread_name"`
+	EventType   string             `json:"event_type"`
+	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
+	ThreadName  string             `json:"thread_name"`
 	*event.LifecycleApp
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -74,6 +77,7 @@ func ComputeLifecycleActivities(events []event.EventField) (result []ThreadGroup
 	for _, event := range events {
 		activities := LifecycleActivity{
 			event.Type,
+			&event.UserDefinedAttribute,
 			event.Attribute.ThreadName,
 			event.LifecycleActivity,
 			event.Timestamp,
@@ -90,6 +94,7 @@ func ComputeLifecycleFragments(events []event.EventField) (result []ThreadGroupe
 	for _, event := range events {
 		fragments := LifecycleFragment{
 			event.Type,
+			&event.UserDefinedAttribute,
 			event.Attribute.ThreadName,
 			event.LifecycleFragment,
 			event.Timestamp,
@@ -106,6 +111,7 @@ func ComputeLifecycleApps(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		apps := LifecycleApp{
 			event.Type,
+			&event.UserDefinedAttribute,
 			event.Attribute.ThreadName,
 			event.LifecycleApp,
 			event.Timestamp,

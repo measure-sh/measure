@@ -8,9 +8,10 @@ import (
 // Navigation represents navigation events suitable
 // for session replay.
 type Navigation struct {
-	EventType     string `json:"event_type"`
-	ThreadName    string `json:"thread_name"`
-	UserTriggered bool   `json:"user_triggered"`
+	EventType     string             `json:"event_type"`
+	UDAttribute   *event.UDAttribute `json:"user_defined_attribute"`
+	ThreadName    string             `json:"thread_name"`
+	UserTriggered bool               `json:"user_triggered"`
 	*event.Navigation
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -18,9 +19,10 @@ type Navigation struct {
 // ScreenView represents screen view events suitable
 // for session replay.
 type ScreenView struct {
-	EventType     string `json:"event_type"`
-	ThreadName    string `json:"thread_name"`
-	UserTriggered bool   `json:"user_triggered"`
+	EventType     string             `json:"event_type"`
+	UDAttribute   *event.UDAttribute `json:"user_defined_attribute"`
+	ThreadName    string             `json:"thread_name"`
+	UserTriggered bool               `json:"user_triggered"`
 	*event.ScreenView
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -43,6 +45,7 @@ func ComputeNavigation(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		navs := Navigation{
 			event.Type,
+			&event.UserDefinedAttribute,
 			event.Attribute.ThreadName,
 			event.UserTriggered,
 			event.Navigation,
@@ -60,6 +63,7 @@ func ComputeScreenViews(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		sv := ScreenView{
 			event.Type,
+			&event.UserDefinedAttribute,
 			event.Attribute.ThreadName,
 			event.UserTriggered,
 			event.ScreenView,
