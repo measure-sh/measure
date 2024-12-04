@@ -45,7 +45,7 @@ export default function SessionReplayEventDetails({
   function getAttachmentsFromEventDetails(): ReactNode {
     if (eventDetails.attachments !== undefined && eventDetails.attachments !== null && eventDetails.attachments.length > 0) {
       // Return screenshots for exceptions
-      if ((eventType === "exception" && eventDetails.user_triggered === false) || eventType === 'anr') {
+      if ((eventType === "exception" && eventDetails.user_triggered === false) || eventType === 'anr' || eventType === 'gesture_click') {
         return (
           <div className='flex flex-wrap gap-8 px-4 pt-4 items-center'>
             {eventDetails.attachments.map((attachment: {
