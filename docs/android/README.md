@@ -272,6 +272,7 @@ All the features supported by the Measure SDK are listed below.
 * [Network monitoring](features/feature_network_monitoring.md)
 * [Network changes](features/feature_network_changes.md)
 * [Gesture tracking](features/feature_gesture_tracking.md)
+* [Layout Snapshots](features/feature_layout_snapshots.md)
 * [Navigation & Lifecycle](features/feature_navigation_and_lifecycle.md)
 * [App launch](features/feature_app_launch.md)
 * [App exit info](features/feature_app_exit_info.md)
@@ -299,12 +300,10 @@ macro-benchmark. For detailed methodology, see [android/benchmarks](../../androi
 > for your app to get results specific to your app. These numbers are published to provide
 > a reference point and are used internally to detect any performance regressions.
 
-Benchmarks results for v0.7.0:
+Benchmarks results for v0.9.0:
 
 * Adds 26.258ms-34.416ms to the app startup time (Time to Initial Display) for a simple app.
-* Takes 0.30ms to find the target view for every click/scroll gesture in a deep view hierarchy.
-* Takes 0.45ms to find the target composable for every click/scroll gesture in a deep composable
-  hierarchy.
+* Adds 0.57ms for view-based layouts, and 0.65ms for compose based layouts to every gesture.
 
 ## Profiling
 
@@ -312,13 +311,13 @@ To measure the SDK's impact on your app, we've added traces to key areas of the 
 performance using [Macro Benchmark](https://developer.android.com/topic/performance/benchmarking/macrobenchmark-overview) 
 or by using [Perfetto](https://perfetto.dev/docs/quickstart/android-tracing) directly.
 
-* `msr-init` — time spent on main thread while initializing.
-* `msr-start` — time spent on main thread when `Measure.start` is called.
-* `msr-stop` — — time spent on main thread when `Measure.stop` is called.
-* `msr-track-event` — time spent in storing an event to local storage. Almost all of this time is spent _off_ the main
+* `msr-init` — time spent on the main thread while initializing.
+* `msr-start` — time spent on the main thread when `Measure.start` is called.
+* `msr-stop` — — time spent on the main thread when `Measure.stop` is called.
+* `msr-trackEvent` — time spent in storing an event to local storage. Almost all of this time is spent _off_ the main
   thread. 
-* `msr-click-getTarget` — time spent on main thread to find out the clicked view.
-* `msr-scroll-getTarget` — time spent on main thread to find out the scrolled view.
+* `msr-trackGesture` — time spent on the main thread to track a gesture.
+* `msr-generateSvgAttachment` — time spent on background thread to generate a SVG layout.
 
 ## Implementation
 

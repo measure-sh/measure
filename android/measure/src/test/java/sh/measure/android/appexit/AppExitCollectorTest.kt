@@ -54,7 +54,7 @@ class AppExitCollectorTest {
             appExit,
             appExit.app_exit_time_ms,
             EventType.APP_EXIT,
-            session.id,
+            sessionId = session.id,
         )
     }
 
@@ -78,13 +78,13 @@ class AppExitCollectorTest {
             appExit1,
             appExit1.app_exit_time_ms,
             EventType.APP_EXIT,
-            session1.id,
+            sessionId = session1.id,
         )
         verify(eventProcessor).track(
             appExit2,
             appExit2.app_exit_time_ms,
             EventType.APP_EXIT,
-            session2.id,
+            sessionId = session2.id,
         )
     }
 
@@ -191,7 +191,7 @@ class AppExitCollectorTest {
             appExit,
             appExit.app_exit_time_ms,
             EventType.APP_EXIT,
-            session.id,
+            sessionId = session.id,
         )
     }
 
