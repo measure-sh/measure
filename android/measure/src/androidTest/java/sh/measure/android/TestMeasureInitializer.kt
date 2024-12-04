@@ -40,6 +40,7 @@ import sh.measure.android.exporter.NetworkClient
 import sh.measure.android.exporter.NetworkClientImpl
 import sh.measure.android.exporter.PeriodicEventExporter
 import sh.measure.android.gestures.GestureCollector
+import sh.measure.android.layoutinspector.LayoutSnapshotThrottler
 import sh.measure.android.lifecycle.ActivityLifecycleCollector
 import sh.measure.android.lifecycle.AppLifecycleCollector
 import sh.measure.android.lifecycle.AppLifecycleManager
@@ -333,6 +334,8 @@ internal class TestMeasureInitializer(
         logger = logger,
         eventProcessor = eventProcessor,
         timeProvider = timeProvider,
+        defaultExecutor = executorServiceRegistry.defaultExecutor(),
+        layoutSnapshotThrottler = LayoutSnapshotThrottler(timeProvider),
     ),
     private val launchTracker: LaunchTracker = LaunchTracker(logger),
     override val appLaunchCollector: AppLaunchCollector = AppLaunchCollector(

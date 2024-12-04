@@ -2,6 +2,7 @@ package sh.measure.android.gestures
 
 import org.junit.Assert
 import org.junit.Test
+import sh.measure.android.layoutinspector.Node
 
 class ClickDataTest {
 
@@ -14,15 +15,17 @@ class ClickDataTest {
             touchUpTime = 0L,
             timestamp = 0L,
         )
-        val target = Target(
-            className = "android.widget.Button",
+        val target = Node(
             id = "button",
+            className = "android.widget.Button",
+            x = 10,
+            y = 20,
             width = 100,
             height = 50,
         )
-        val result = ClickData.fromDetectedGesture(
+        val result = ClickData.fromTargetNode(
             gesture = detectedGesture,
-            target = target,
+            node = target,
         )
         Assert.assertEquals(target.className, result.target)
         Assert.assertEquals(target.id, result.target_id)
@@ -45,15 +48,17 @@ internal class LongClickDataTest {
             touchUpTime = 0L,
             timestamp = 0L,
         )
-        val target = Target(
-            className = "android.widget.Button",
+        val target = Node(
             id = "button",
+            className = "android.widget.Button",
+            x = 10,
+            y = 20,
             width = 100,
             height = 50,
         )
-        val result = LongClickData.fromDetectedGesture(
+        val result = LongClickData.fromTargetNode(
             gesture = detectedGesture,
-            target = target,
+            node = target,
         )
         Assert.assertEquals(target.className, result.target)
         Assert.assertEquals(target.id, result.target_id)
@@ -79,18 +84,20 @@ internal class ScrollDataTest {
             direction = Direction.Up,
             timestamp = 0L,
         )
-        val target = Target(
-            className = "android.widget.ScrollView",
+        val node = Node(
             id = "scroll_view",
+            className = "android.widget.ScrollView",
+            x = 10,
+            y = 20,
             width = 100,
             height = 50,
         )
-        val result = ScrollData.fromDetectedGesture(
+        val result = ScrollData.fromTargetNode(
             gesture = detectedGesture,
-            target = target,
+            node = node,
         )
-        Assert.assertEquals(target.className, result.target)
-        Assert.assertEquals(target.id, result.target_id)
+        Assert.assertEquals(node.className, result.target)
+        Assert.assertEquals(node.id, result.target_id)
         Assert.assertEquals(detectedGesture.x, result.x)
         Assert.assertEquals(detectedGesture.y, result.y)
         Assert.assertEquals(detectedGesture.endX, result.end_x)
