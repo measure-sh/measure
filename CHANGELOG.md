@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- (**backend**): Document short filters api (#1552)
 - (**backend**): Document rename app api (#1547)
 
 ## [0.4.1] - 2024-11-11
