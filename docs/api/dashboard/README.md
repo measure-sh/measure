@@ -108,66 +108,72 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-19)
     - [Response Body](#response-body-19)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-19)
-- [Teams](#teams)
-  - [POST `/teams`](#post-teams)
-    - [Authorization \& Content Type](#authorization--content-type-20)
-    - [Request Body](#request-body-3)
+  - [POST `/apps/:id/shortFilters`](#post-appsidshortfilters)
     - [Usage Notes](#usage-notes-20)
+    - [Request body](#request-body-3)
+    - [Authorization \& Content Type](#authorization--content-type-20)
     - [Response Body](#response-body-20)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-20)
-  - [GET `/teams`](#get-teams)
+- [Teams](#teams)
+  - [POST `/teams`](#post-teams)
     - [Authorization \& Content Type](#authorization--content-type-21)
+    - [Request Body](#request-body-4)
+    - [Usage Notes](#usage-notes-21)
     - [Response Body](#response-body-21)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-21)
-  - [GET `/teams/:id/apps`](#get-teamsidapps)
-    - [Usage Notes](#usage-notes-21)
+  - [GET `/teams`](#get-teams)
     - [Authorization \& Content Type](#authorization--content-type-22)
     - [Response Body](#response-body-22)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-22)
-  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
+  - [GET `/teams/:id/apps`](#get-teamsidapps)
     - [Usage Notes](#usage-notes-22)
     - [Authorization \& Content Type](#authorization--content-type-23)
     - [Response Body](#response-body-23)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-23)
-  - [POST `/teams/:id/apps`](#post-teamsidapps)
+  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
     - [Usage Notes](#usage-notes-23)
-    - [Request body](#request-body-4)
     - [Authorization \& Content Type](#authorization--content-type-24)
     - [Response Body](#response-body-24)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-24)
-  - [POST `/auth/invite`](#post-authinvite)
+  - [POST `/teams/:id/apps`](#post-teamsidapps)
     - [Usage Notes](#usage-notes-24)
     - [Request body](#request-body-5)
     - [Authorization \& Content Type](#authorization--content-type-25)
     - [Response Body](#response-body-25)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-25)
-  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
+  - [POST `/auth/invite`](#post-authinvite)
     - [Usage Notes](#usage-notes-25)
     - [Request body](#request-body-6)
     - [Authorization \& Content Type](#authorization--content-type-26)
     - [Response Body](#response-body-26)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-26)
-  - [GET `/teams/:id/members`](#get-teamsidmembers)
+  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
     - [Usage Notes](#usage-notes-26)
+    - [Request body](#request-body-7)
     - [Authorization \& Content Type](#authorization--content-type-27)
     - [Response Body](#response-body-27)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-27)
-  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+  - [GET `/teams/:id/members`](#get-teamsidmembers)
     - [Usage Notes](#usage-notes-27)
     - [Authorization \& Content Type](#authorization--content-type-28)
     - [Response Body](#response-body-28)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-28)
-  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
     - [Usage Notes](#usage-notes-28)
-    - [Request body](#request-body-7)
     - [Authorization \& Content Type](#authorization--content-type-29)
     - [Response Body](#response-body-29)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-29)
-  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
     - [Usage Notes](#usage-notes-29)
+    - [Request body](#request-body-8)
     - [Authorization \& Content Type](#authorization--content-type-30)
     - [Response Body](#response-body-30)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-30)
+  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+    - [Usage Notes](#usage-notes-30)
+    - [Authorization \& Content Type](#authorization--content-type-31)
+    - [Response Body](#response-body-31)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-31)
 
 ## Apps
 
@@ -191,6 +197,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
 - [**PATCH `/apps/:id/rename`**](#patch-appsidrename) - Modify the name of an app.
 - [**GET `/apps/:id/settings`**](#get-appsidsettings) - Fetch an app's settings.
 - [**PATCH `/apps/:id/settings`**](#patch-appsidsettings) - Update an app's settings.
+- [**POST `/apps/:id/shortFilters`**](#post-appsidshortfilters) - Create a shortcode to represent a combination of various app filters.
 
 ### GET `/apps/:id/journey`
 
@@ -3388,6 +3395,95 @@ These headers must be present in each request.
   ```json
   {
     "ok" : "done"
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### POST `/apps/:id/shortFilters`
+
+Create a shortcode to represent a combination of various app filters.
+
+These shortcodes can then be used in other app APIs which accept different filters. Shortcodes are short-lived, they'll be automatically removed after an hour or so.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+
+#### Request body
+
+  ```json
+  {
+    "filters": {
+      "versions": ["1.0"],
+      "version_codes": ["1"],
+      "os_names": ["android"],
+      "os_versions": ["33"],
+      "countries": ["bogon"],
+      "network_providers": ["unknown"],
+      "network_types": ["wifi"],
+      "network_generations": ["unknown"],
+      "locales": ["en-US"],
+      "device_manufacturers": ["Google"],
+      "device_names": ["emu64a"],
+      "ud_expression": "{\"and\":[{\"cmp\":{\"key\":\"username\",\"type\":\"string\",\"op\":\"eq\",\"value\":\"alice\"}},{\"cmp\":{\"key\":\"premium_user\",\"type\":\"bool\",\"op\":\"eq\",\"value\":\"true\"}}]}"
+    }
+  }
+  ```
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "filter_short_code" : "86f379b7afd9836d0877eb5c8ff93538"
   }
   ```
 
