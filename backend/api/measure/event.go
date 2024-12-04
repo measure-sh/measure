@@ -1011,6 +1011,15 @@ func (e eventreq) ingest(ctx context.Context) error {
 			row.
 				Set(`screen_view.name`, nil)
 		}
+
+		// custom
+		if e.events[i].IsCustom() {
+			row.
+				Set(`custom.name`, e.events[i].Custom.Name)
+		} else {
+			row.
+				Set(`custom.name`, nil)
+		}
 	}
 
 	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), false, stmt.Args()...)

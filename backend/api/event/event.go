@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -54,8 +55,11 @@ const (
 	maxUserDefAttrsCount                      = 100
 	maxUserDefAttrsKeyChars                   = 256
 	maxUserDefAttrsValsChars                  = 256
+	maxCustomNameChars                        = 64
+	customNameKeyPattern                      = "^[a-zA-Z0-9_-]+$"
 )
 
+const TypeCustom = "custom"
 const TypeANR = "anr"
 const TypeException = "exception"
 const TypeAppExit = "app_exit"
@@ -367,6 +371,10 @@ type ScreenView struct {
 	Name string `json:"name" binding:"required"`
 }
 
+type Custom struct {
+	Name string `json:"name" binding:"required"`
+}
+
 type EventField struct {
 	ID                   uuid.UUID          `json:"id"`
 	IPv4                 net.IP             `json:"inet_ipv4"`
@@ -401,6 +409,7 @@ type EventField struct {
 	CPUUsage             *CPUUsage          `json:"cpu_usage,omitempty"`
 	Navigation           *Navigation        `json:"navigation,omitempty"`
 	ScreenView           *ScreenView        `json:"screen_view,omitempty"`
+	Custom               *Custom            `json:"custom,omitempty"`
 }
 
 // Compute computes the most accurate cold launch timing
@@ -458,7 +467,13 @@ func (e EventField) IsUnhandledException() bool {
 	return e.Type == TypeException && !e.Exception.Handled
 }
 
-// IsANR returns true for anr
+// IsCustom returns true for custom
+// event.
+func (e EventField) IsCustom() bool {
+	return e.Type == TypeCustom
+}
+
+// IsANR returns true for ANR
 // event.
 func (e EventField) IsANR() bool {
 	return e.Type == TypeANR
@@ -643,6 +658,7 @@ func (e *EventField) Validate() error {
 		TypeHotLaunch, TypeNetworkChange, TypeHttp,
 		TypeMemoryUsage, TypeLowMemory, TypeTrimMemory,
 		TypeCPUUsage, TypeNavigation, TypeScreenView,
+		TypeCustom,
 	}
 
 	if !slices.Contains(validTypes, e.Type) {
@@ -923,6 +939,17 @@ func (e *EventField) Validate() error {
 	if e.IsScreenView() {
 		if len(e.ScreenView.Name) > maxScreenViewNameChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `screen_view.name`, maxScreenViewNameChars)
+		}
+	}
+
+	if e.IsCustom() {
+		if len(e.Custom.Name) > maxCustomNameChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `custom.name`, maxTypeChars)
+		}
+
+		re := regexp.MustCompile(customNameKeyPattern)
+		if !re.MatchString(e.Custom.Name) {
+			return fmt.Errorf("%q custom event name must match this regular expression pattern %q", `custom.name`, customNameKeyPattern)
 		}
 	}
 
