@@ -14,6 +14,8 @@ internal class LayoutSnapshot(private val nodes: List<Node>) {
      * If a [targetNode] is provided, it will be highlighted in the visualization.
      *
      * @param targetNode Optional node to highlight in the SVG visualization
+     * @param width The width of the SVG to be generated.
+     * @param height The height of the SVG to be generated.
      * @return An [Attachment] containing the SVG data with MIME type set to LAYOUT_SNAPSHOT
      */
     fun generateSvgAttachment(targetNode: Node? = null, width: Int, height: Int): Attachment {

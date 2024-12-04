@@ -18,6 +18,7 @@ type GestureClick struct {
 	X           float32            `json:"x"`
 	Y           float32            `json:"y"`
 	Timestamp   time.Time          `json:"timestamp"`
+	Attachments []event.Attachment `json:"attachments"`
 }
 
 // GetThreadName provides the name of the thread
@@ -102,6 +103,7 @@ func ComputeGestureClicks(events []event.EventField) (result []ThreadGrouper) {
 			event.GestureClick.X,
 			event.GestureClick.Y,
 			event.Timestamp,
+			event.Attachments,
 		}
 		result = append(result, gestureClicks)
 	}
