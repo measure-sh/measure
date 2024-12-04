@@ -16,7 +16,7 @@ import (
 // attrKeyPattern defines the regular
 // expression pattern for validating
 // attribute keys.
-const attrKeyPattern = "^[a-z0-9_-]+$"
+const attrKeyPattern = "^[a-zA-Z0-9_-]+$"
 
 // maxAllowedDegree defines the maximum
 // nesting depth a recursive nested
@@ -509,7 +509,7 @@ func (u *UDAttribute) Validate() (err error) {
 		}
 
 		if !re.MatchString(k) {
-			return fmt.Errorf("user defined attribute keys must only contain lowercase alphabets, numbers, hyphens and underscores")
+			return fmt.Errorf("user defined attribute keys must only contain alphabets, numbers, hyphens and underscores")
 		}
 
 		switch value := v.(type) {

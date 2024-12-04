@@ -1406,6 +1406,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`toString(navigation.source)`,
 		`toString(screen_view.name) `,
 		`user_defined_attribute`,
+		`custom.name`,
 	}
 
 	stmt := sqlf.From("default.events")
@@ -1456,6 +1457,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		var navigation event.Navigation
 		var screenView event.ScreenView
 		var userDefAttr map[string][]any
+		var custom event.Custom
 
 		var coldLaunchDuration uint32
 		var warmLaunchDuration uint32
@@ -1665,6 +1667,9 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 
 			// user defined attributes
 			&userDefAttr,
+
+			// custom
+			&custom.Name,
 		}
 
 		if err := rows.Scan(dest...); err != nil {
@@ -1760,6 +1765,9 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			session.Events = append(session.Events, ev)
 		case event.TypeScreenView:
 			ev.ScreenView = &screenView
+			session.Events = append(session.Events, ev)
+		case event.TypeCustom:
+			ev.Custom = &custom
 			session.Events = append(session.Events, ev)
 		default:
 			continue
@@ -4727,6 +4735,7 @@ func GetSession(c *gin.Context) {
 		event.TypeANR,
 		event.TypeHttp,
 		event.TypeScreenView,
+		event.TypeCustom,
 	}
 
 	eventMap := session.EventsOfTypes(typeList...)
@@ -4765,6 +4774,13 @@ func GetSession(c *gin.Context) {
 		screenViews := replay.ComputeScreenViews(screenViewEvents)
 		threadedScreenViews := replay.GroupByThreads(screenViews)
 		threads.Organize(event.TypeScreenView, threadedScreenViews)
+	}
+
+	customEvents := eventMap[event.TypeCustom]
+	if len(customEvents) > 0 {
+		customs := replay.ComputeCustom(customEvents)
+		threadedCustoms := replay.GroupByThreads(customs)
+		threads.Organize(event.TypeCustom, threadedCustoms)
 	}
 
 	logEvents := eventMap[event.TypeString]
