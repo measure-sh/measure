@@ -20,7 +20,7 @@ import (
 )
 
 // attachmentTypes is a list of all valid attachment types.
-var attachmentTypes = []string{"screenshot", "android_method_trace"}
+var attachmentTypes = []string{"screenshot", "android_method_trace", "layout_snapshot"}
 
 type Attachment struct {
 	ID       uuid.UUID `json:"id"`
