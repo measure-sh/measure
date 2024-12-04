@@ -1,5 +1,6 @@
 package sh.measure.benchmark
 
+import android.os.SystemClock
 import androidx.benchmark.macro.ExperimentalMetricApi
 import androidx.benchmark.macro.StartupMode
 import androidx.benchmark.macro.TraceSectionMetric
@@ -12,27 +13,31 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class ComposeTargetFinderBenchmark {
+class ComposeClickBenchmark {
     @get:Rule
     val benchmarkRule = MacrobenchmarkRule()
 
     @OptIn(ExperimentalMetricApi::class)
     @Test
-    fun composeTargetFinderBenchmark() {
+    fun clickWithSnapshot() {
         benchmarkRule.measureRepeated(
             packageName = "sh.measure.test.benchmark",
             metrics = listOf(
                 TraceSectionMetric(
-                    sectionName = "msr-click-getTarget",
-                    mode = TraceSectionMetric.Mode.Sum,
+                    sectionName = "msr-trackGesture",
+                    mode = TraceSectionMetric.Mode.Average,
+                ), TraceSectionMetric(
+                    sectionName = "msr-generateSvgAttachment",
+                    mode = TraceSectionMetric.Mode.Average,
                 )
             ),
-            iterations = 50,
-            startupMode = StartupMode.WARM,
+            iterations = 30, startupMode = StartupMode.WARM,
             setupBlock = {
                 pressHome()
                 startActivityAndWait()
                 device.findObject(By.text("Compose Target Finder Benchmark")).click()
+                waitForSvgGenerationDelay()
+
                 device.waitForIdle()
             },
         ) {
@@ -40,8 +45,15 @@ class ComposeTargetFinderBenchmark {
                 val button = By.res("compose_button")
                 device.wait(Until.hasObject(button), 30_000)
                 device.findObject(button).click()
+                waitForSvgGenerationDelay()
                 device.waitForIdle()
             }
         }
+    }
+
+    // See [LayoutInspectionThrottler] which skips svg generation based on
+    // a delay. Adding the delay here to ensure SVG is generated for each repetition
+    private fun waitForSvgGenerationDelay() {
+        SystemClock.sleep(1000)
     }
 }

@@ -7,6 +7,7 @@ import android.os.Looper
 import android.util.Log
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
 import com.google.android.material.switchmaterial.SwitchMaterial
 import sh.measure.android.Measure
 import sh.measure.sample.fragments.AndroidXFragmentNavigationActivity
@@ -21,6 +22,7 @@ class ExceptionDemoActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, true)
         setContentView(R.layout.activity_exception_demo)
         findViewById<Button>(R.id.btn_single_exception).setOnClickListener {
             throw IOException("test of time")

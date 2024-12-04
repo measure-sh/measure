@@ -30,37 +30,11 @@ internal interface EventProcessor {
      * @param data The data to be tracked.
      * @param timestamp The timestamp of the event in milliseconds since epoch.
      * @param type The type of the event.
-     */
-    fun <T> track(
-        data: T,
-        timestamp: Long,
-        type: String,
-    )
-
-    /**
-     * Tracks an event with the given data, timestamp and type for a different session than the
-     * current one.
-     *
-     * @param data The data to be tracked.
-     * @param timestamp The timestamp of the event in milliseconds since epoch.
-     * @param type The type of the event.
-     * @param sessionId The session id for the session to track this event for.
-     */
-    fun <T> track(
-        data: T,
-        timestamp: Long,
-        type: String,
-        sessionId: String,
-    )
-
-    /**
-     * Tracks an event with the given data, timestamp, type, attributes and attachments.
-     *
-     * @param data The data to be tracked.
-     * @param timestamp The timestamp of the event in milliseconds since epoch.
-     * @param type The type of the event.
-     * @param attributes The attributes to be attached to the event.
-     * @param attachments The attachments to be attached to the event.
+     * @param attributes Optional attributes to be attached to the event.
+     * @param attachments Optional attachments to be attached to the event.
+     * @param threadName Optional thread name for the event.
+     * @param sessionId Optional session id for tracking events in a different session.
+     * @param userTriggered Optional flag indicating if this is a user-triggered event.
      */
     fun <T> track(
         data: T,
@@ -68,6 +42,9 @@ internal interface EventProcessor {
         type: String,
         attributes: MutableMap<String, Any?> = mutableMapOf(),
         attachments: MutableList<Attachment> = mutableListOf(),
+        threadName: String? = null,
+        sessionId: String? = null,
+        userTriggered: Boolean = false,
     )
 
     /**
@@ -103,28 +80,6 @@ internal class EventProcessorImpl(
     private val configProvider: ConfigProvider,
 ) : EventProcessor {
 
-    override fun <T> track(
-        data: T,
-        timestamp: Long,
-        type: String,
-    ) {
-        track(data, timestamp, type, mutableMapOf(), mutableListOf(), null)
-    }
-
-    override fun <T> track(data: T, timestamp: Long, type: String, sessionId: String) {
-        track(data, timestamp, type, mutableMapOf(), mutableListOf(), sessionId)
-    }
-
-    override fun <T> track(
-        data: T,
-        timestamp: Long,
-        type: String,
-        attributes: MutableMap<String, Any?>,
-        attachments: MutableList<Attachment>,
-    ) {
-        track(data, timestamp, type, attributes, attachments, null)
-    }
-
     override fun <T> trackUserTriggered(data: T, timestamp: Long, type: String) {
         track(
             data,
@@ -133,8 +88,64 @@ internal class EventProcessorImpl(
             mutableMapOf(),
             mutableListOf(),
             sessionId = null,
+            threadName = null,
             userTriggered = true,
         )
+    }
+
+    override fun <T> track(
+        data: T,
+        timestamp: Long,
+        type: String,
+        attributes: MutableMap<String, Any?>,
+        attachments: MutableList<Attachment>,
+        threadName: String?,
+        sessionId: String?,
+        userTriggered: Boolean,
+    ) {
+        val resolvedThreadName = threadName ?: Thread.currentThread().name
+        try {
+            ioExecutor.submit {
+                InternalTrace.trace(
+                    label = { "msr-trackEvent" },
+                    block = {
+                        val event = createEvent(
+                            data = data,
+                            timestamp = timestamp,
+                            type = type,
+                            attachments = attachments,
+                            attributes = attributes,
+                            userTriggered = userTriggered,
+                            sessionId = sessionId,
+                        )
+                        applyAttributes(event, resolvedThreadName)
+                        val transformedEvent = InternalTrace.trace(
+                            label = { "msr-transform-event" },
+                            block = { eventTransformer.transform(event) },
+                        )
+
+                        if (transformedEvent != null) {
+                            InternalTrace.trace(label = { "msr-store-event" }, block = {
+                                eventStore.store(event)
+                                onEventTracked(event)
+                                logger.log(
+                                    LogLevel.Debug,
+                                    "Event processed: ${event.type}, ${event.id}",
+                                )
+                            })
+                        } else {
+                            logger.log(LogLevel.Debug, "Event dropped: $type")
+                        }
+                    },
+                )
+            }
+        } catch (e: RejectedExecutionException) {
+            logger.log(
+                LogLevel.Error,
+                "Failed to submit event processing task to executor",
+                e,
+            )
+        }
     }
 
     override fun trackCrash(
@@ -164,60 +175,6 @@ internal class EventProcessorImpl(
             exceptionExporter.export(event.sessionId)
             logger.log(LogLevel.Debug, "Event processed: $type, ${event.id}")
         } ?: logger.log(LogLevel.Debug, "Event dropped: $type")
-    }
-
-    private fun <T> track(
-        data: T,
-        timestamp: Long,
-        type: String,
-        attributes: MutableMap<String, Any?>,
-        attachments: MutableList<Attachment>,
-        sessionId: String?,
-        userTriggered: Boolean = false,
-    ) {
-        val threadName = Thread.currentThread().name
-        try {
-            ioExecutor.submit {
-                InternalTrace.trace(
-                    label = { "msr-track-event" },
-                    block = {
-                        val event = createEvent(
-                            data = data,
-                            timestamp = timestamp,
-                            type = type,
-                            attachments = attachments,
-                            attributes = attributes,
-                            userTriggered = userTriggered,
-                            sessionId = sessionId,
-                        )
-                        applyAttributes(event, threadName)
-                        val transformedEvent = InternalTrace.trace(
-                            label = { "msr-transform-event" },
-                            block = { eventTransformer.transform(event) },
-                        )
-
-                        if (transformedEvent != null) {
-                            InternalTrace.trace(label = { "msr-store-event" }, block = {
-                                eventStore.store(event)
-                                onEventTracked(event)
-                                logger.log(
-                                    LogLevel.Debug,
-                                    "Event processed: ${event.type}, ${event.id}",
-                                )
-                            })
-                        } else {
-                            logger.log(LogLevel.Debug, "Event dropped: $type")
-                        }
-                    },
-                )
-            }
-        } catch (e: RejectedExecutionException) {
-            logger.log(
-                LogLevel.Error,
-                "Failed to submit event processing task to executor",
-                e,
-            )
-        }
     }
 
     private fun <T> onEventTracked(event: Event<T>) {

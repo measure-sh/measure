@@ -50,7 +50,7 @@ internal class AppExitCollector(
                             // the time at which the app exit actually occurred instead.
                             appExit.app_exit_time_ms,
                             EventType.APP_EXIT,
-                            session.id,
+                            sessionId = session.id,
                         )
                         logger.log(LogLevel.Debug, "Tracked app_exit: $appExit")
                         if (isReasonCrashOrAnr(appExit)) {

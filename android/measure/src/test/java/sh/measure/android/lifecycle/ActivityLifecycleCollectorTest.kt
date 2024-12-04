@@ -186,14 +186,25 @@ class ActivityLifecycleCollectorTest {
         controller.setup()
         activityLifecycleCollector.unregister()
         verify(eventProcessor, never()).track(
-            timestamp = any(),
-            type = any(),
             data = any<ActivityLifecycleData>(),
-        )
-        verify(eventProcessor, never()).track(
             timestamp = any(),
             type = any(),
+            attributes = any(),
+            attachments = any(),
+            threadName = any(),
+            sessionId = any(),
+            userTriggered = any(),
+        )
+
+        verify(eventProcessor, never()).track(
             data = any<FragmentLifecycleData>(),
+            timestamp = any(),
+            type = any(),
+            attributes = any(),
+            attachments = any(),
+            threadName = any(),
+            sessionId = any(),
+            userTriggered = any(),
         )
     }
 }

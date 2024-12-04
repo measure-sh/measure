@@ -1,0 +1,264 @@
+{
+    "context": {
+        "build": {
+            "brand": "google",
+            "device": "sunfish",
+            "fingerprint": "google/sunfish/sunfish:13/TQ3A.230805.001.S1/10786265:user/release-keys",
+            "id": "TQ3A.230805.001.S1",
+            "model": "Pixel 4a",
+            "type": "user",
+            "version": {
+                "codename": "REL",
+                "sdk": 33
+            }
+        },
+        "cpuCoreCount": 8,
+        "cpuLocked": true,
+        "cpuMaxFreqHz": 2208000000,
+        "memTotalBytes": 5865099264,
+        "sustainedPerformanceModeEnabled": false,
+        "artMainlineVersion": 350820460,
+        "osCodenameAbbreviated": "T",
+        "compilationMode": "verify"
+    },
+    "benchmarks": [
+        {
+            "name": "clickWithSnapshot",
+            "params": {},
+            "className": "sh.measure.benchmark.ComposeClickBenchmark",
+            "totalRunTimeNs": 255919372109,
+            "metrics": {
+                "msr-generateSvgAttachmentAverageMs": {
+                    "minimum": 0.7533336666666667,
+                    "maximum": 1.5693233333333334,
+                    "median": 0.8574915000000001,
+                    "runs": [
+                        1.5693233333333334,
+                        1.2386463333333333,
+                        0.975486,
+                        1.0596873333333334,
+                        1.033837,
+                        0.9662503333333333,
+                        0.9787849999999999,
+                        1.0265973333333334,
+                        0.9412156666666666,
+                        0.8858333333333334,
+                        0.8854513333333333,
+                        1.2601736666666665,
+                        0.8680206666666667,
+                        0.823576,
+                        0.8010419999999999,
+                        0.8603473333333334,
+                        0.8853993333333333,
+                        0.8341843333333333,
+                        0.762153,
+                        0.8445313333333333,
+                        0.8297566666666666,
+                        0.8283330000000001,
+                        0.7767883333333333,
+                        0.8459893333333333,
+                        0.7953823333333333,
+                        0.7943053333333333,
+                        0.8546356666666667,
+                        0.7718403333333334,
+                        0.8080376666666668,
+                        0.7533336666666667
+                    ]
+                },
+                "msr-trackGestureAverageMs": {
+                    "minimum": 0.17169299999999998,
+                    "maximum": 0.31619783333333334,
+                    "median": 0.19542091666666667,
+                    "runs": [
+                        0.31619783333333334,
+                        0.25790816666666666,
+                        0.19610233333333335,
+                        0.225243,
+                        0.20120649999999998,
+                        0.19243066666666667,
+                        0.20115433333333332,
+                        0.20349833333333334,
+                        0.19333333333333333,
+                        0.17439216666666668,
+                        0.17169299999999998,
+                        0.19832466666666668,
+                        0.19473949999999998,
+                        0.18517366666666668,
+                        0.18769066666666667,
+                        0.19884566666666667,
+                        0.19210066666666667,
+                        0.20410583333333332,
+                        0.20507816666666667,
+                        0.178064,
+                        0.20401049999999998,
+                        0.20340266666666665,
+                        0.1928385,
+                        0.1975955,
+                        0.18755200000000002,
+                        0.1841665,
+                        0.1946875,
+                        0.19826383333333333,
+                        0.193333,
+                        0.17625866666666667
+                    ]
+                }
+            },
+            "sampledMetrics": {},
+            "warmupIterations": 0,
+            "repeatIterations": 30,
+            "thermalThrottleSleepSeconds": 0,
+            "profilerOutputs": [
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 0",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter000_2024-12-03-08-12-00.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 1",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter001_2024-12-03-08-12-08.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 2",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter002_2024-12-03-08-12-16.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 3",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter003_2024-12-03-08-12-24.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 4",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter004_2024-12-03-08-12-32.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 5",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter005_2024-12-03-08-12-40.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 6",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter006_2024-12-03-08-12-48.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 7",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter007_2024-12-03-08-12-56.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 8",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter008_2024-12-03-08-13-05.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 9",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter009_2024-12-03-08-13-13.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 10",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter010_2024-12-03-08-13-21.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 11",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter011_2024-12-03-08-13-29.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 12",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter012_2024-12-03-08-13-37.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 13",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter013_2024-12-03-08-13-45.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 14",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter014_2024-12-03-08-13-53.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 15",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter015_2024-12-03-08-14-01.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 16",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter016_2024-12-03-08-14-09.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 17",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter017_2024-12-03-08-14-17.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 18",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter018_2024-12-03-08-14-25.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 19",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter019_2024-12-03-08-14-33.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 20",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter020_2024-12-03-08-14-41.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 21",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter021_2024-12-03-08-14-49.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 22",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter022_2024-12-03-08-14-57.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 23",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter023_2024-12-03-08-15-06.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 24",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter024_2024-12-03-08-15-14.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 25",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter025_2024-12-03-08-15-22.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 26",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter026_2024-12-03-08-15-30.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 27",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter027_2024-12-03-08-15-38.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 28",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter028_2024-12-03-08-15-46.perfetto-trace"
+                },
+                {
+                    "type": "PerfettoTrace",
+                    "label": "Trace Iteration 29",
+                    "filename": "ComposeClickBenchmark_clickWithSnapshot_iter029_2024-12-03-08-15-54.perfetto-trace"
+                }
+            ]
+        }
+    ]
+}
