@@ -1,0 +1,12 @@
+spec:
+  name: measure
+  services:
+  - name: msr-self-host-docker
+    git:
+      branch: one-click-deploy
+      repo_clone_url: https://github.com/measure-sh/measure
+    run_command: ./self-host/install.sh
+    instance_count: 1
+    autoscaling:
+      min_instance_count: 1
+      max_instance_count: 1
