@@ -19,6 +19,36 @@ export enum AppsApiStatus {
     Cancelled
 }
 
+export enum RootSpanNamesApiStatus {
+    Loading,
+    Success,
+    Error,
+    NoData,
+    Cancelled
+}
+
+export enum SpanMetricsPlotApiStatus {
+    Loading,
+    Success,
+    Error,
+    NoData,
+    Cancelled
+}
+
+export enum SpanInstancesApiStatus {
+    Loading,
+    Success,
+    Error,
+    Cancelled
+}
+
+export enum TraceApiStatus {
+    Loading,
+    Success,
+    Error,
+    Cancelled
+}
+
 export enum FiltersApiStatus {
     Loading,
     Success,
@@ -37,7 +67,8 @@ export enum SaveFiltersApiStatus {
 export enum FiltersApiType {
     All,
     Crash,
-    Anr
+    Anr,
+    Span
 }
 
 export enum JourneyApiStatus {
@@ -227,6 +258,12 @@ export enum SessionType {
     Issues = 'Crash & ANR Sessions'
 }
 
+export enum SpanStatus {
+    Unset = "Unset",
+    Ok = "Ok",
+    Error = "Error"
+}
+
 export const emptyTeam = { 'id': '', 'name': '' }
 
 export const emptyApp = {
@@ -351,6 +388,29 @@ export const emptySessionsOverviewResponse = {
             "os_name": "",
             "os_version": ""
         },
+    }[]
+}
+
+export const emptySpanInstancesResponse = {
+    "meta": {
+        "next": false,
+        "previous": false
+    },
+    "results": [] as {
+        "app_id": string,
+        "span_name": string,
+        "span_id": string,
+        "trace_id": string,
+        "status": number,
+        "start_time": string,
+        "end_time": string,
+        "duration": number,
+        "app_version": string,
+        "app_build": string,
+        "os_name": string,
+        "os_version": string,
+        "device_manufacturer": string,
+        "device_model": string
     }[]
 }
 
@@ -619,6 +679,40 @@ export const emptySessionReplay = {
     }
 }
 
+export const emptyTrace = {
+    "app_id": "",
+    "trace_id": "",
+    "session_id": "",
+    "user_id": "",
+    "start_time": "",
+    "end_time": "",
+    "duration": 0,
+    "app_version": "",
+    "os_version": "",
+    "device_model": "",
+    "device_manufacturer": "",
+    "network_type": "",
+    "spans":
+        [
+            {
+                "span_name": "",
+                "span_id": "",
+                "parent_id": "",
+                "status": 0,
+                "start_time": "",
+                "end_time": "",
+                "duration": 0,
+                "thread_name": "",
+                "checkpoints": [
+                    {
+                        "name": "",
+                        "timestamp": ""
+                    }
+                ]
+            }
+        ]
+}
+
 export const emptyAlertPrefs = {
     crash_rate_spike: {
         email: true
@@ -643,7 +737,9 @@ export const emptyUsage = [
             {
                 "month_year": "",
                 "event_count": 0,
-                "session_count": 0
+                "session_count": 0,
+                "trace_count": 0,
+                "span_count": 0,
             }
         ]
     }
@@ -750,6 +846,19 @@ async function applyGenericFiltersToUrl(url: string, filters: Filters, keyId: st
         searchParams.append('anr', '1')
     }
 
+    // Append span statuses if needed
+    if (filters.spanStatuses.length > 0) {
+        filters.spanStatuses.forEach((v) => {
+            if (v === SpanStatus.Unset) {
+                searchParams.append('span_statuses', "0")
+            } else if (v === SpanStatus.Ok) {
+                searchParams.append('span_statuses', "1")
+            } else if (v === SpanStatus.Error) {
+                searchParams.append('span_statuses', "2")
+            }
+        })
+    }
+
     // Append free text if present
     if (filters.freeText !== '') {
         searchParams.append('free_text', filters.freeText)
@@ -821,6 +930,97 @@ export const fetchAppsFromServer = async (teamId: string, router: AppRouterInsta
     }
 }
 
+export const fetchRootSpanNamesFromServer = async (selectedApp: typeof emptyApp, router: AppRouterInstance) => {
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+
+    try {
+        const res = await fetchMeasure(`${origin}/apps/${selectedApp.id}/spans/roots/names`);
+
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: RootSpanNamesApiStatus.Error, data: null }
+        }
+
+        const data = await res.json()
+
+        if (data.results === null) {
+            return { status: RootSpanNamesApiStatus.NoData, data: null }
+        }
+
+        return { status: RootSpanNamesApiStatus.Success, data: data }
+    } catch {
+        return { status: RootSpanNamesApiStatus.Cancelled, data: null }
+    }
+}
+
+export const fetchSpanInstancesFromServer = async (filters: Filters, limit: number, offset: number, router: AppRouterInstance) => {
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+
+    var url = `${origin}/apps/${filters.app.id}/spans/${filters.rootSpanName}/instances?`
+
+    url = await applyGenericFiltersToUrl(url, filters, null, null, limit, offset)
+
+    try {
+        const res = await fetchMeasure(url);
+
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: SpanInstancesApiStatus.Error, data: null }
+        }
+
+        const data = await res.json()
+
+        return { status: SpanInstancesApiStatus.Success, data: data }
+    } catch {
+        return { status: SpanInstancesApiStatus.Cancelled, data: null }
+    }
+}
+
+export const fetchSpanMetricsPlotFromServer = async (filters: Filters, router: AppRouterInstance) => {
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+
+    var url = `${origin}/apps/${filters.app.id}/spans/${filters.rootSpanName}/plot?`
+
+    url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
+
+    try {
+        const res = await fetchMeasure(url);
+
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: SpanMetricsPlotApiStatus.Error, data: null }
+        }
+
+        const data = await res.json()
+
+        if (data === null) {
+            return { status: SpanMetricsPlotApiStatus.NoData, data: null }
+        }
+
+        return { status: SpanMetricsPlotApiStatus.Success, data: data }
+    } catch {
+        return { status: SpanMetricsPlotApiStatus.Cancelled, data: null }
+    }
+}
+
+export const fetchTraceFromServer = async (appId: string, traceId: string, router: AppRouterInstance) => {
+    const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+
+    try {
+        const res = await fetchMeasure(`${origin}/apps/${appId}/traces/${traceId}`);
+        if (!res.ok) {
+            logoutIfAuthError(auth, router, res)
+            return { status: TraceApiStatus.Error, data: null }
+        }
+
+        const data = await res.json()
+
+        return { status: TraceApiStatus.Success, data: data }
+    } catch {
+        return { status: TraceApiStatus.Cancelled, data: null }
+    }
+}
+
 export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filtersApiType: FiltersApiType, router: AppRouterInstance) => {
     if (!selectedApp.onboarded) {
         return { status: FiltersApiStatus.NotOnboarded, data: null }
@@ -835,6 +1035,8 @@ export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filte
         url += '?crash=1'
     } else if (filtersApiType === FiltersApiType.Anr) {
         url += '?anr=1'
+    } else if (filtersApiType === FiltersApiType.Span) {
+        url += '?span=1'
     }
 
     try {

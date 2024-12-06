@@ -505,15 +505,12 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 
 	resultLen := len(sessions)
 
-	// set pagination next & previous
-	// flags
+	// Set pagination next & previous flags
 	if resultLen > af.Limit {
 		sessions = sessions[:resultLen-1]
 		next = true
-		if af.Offset >= af.Limit {
-			previous = true
-		}
-	} else if resultLen > 0 && resultLen <= af.Limit {
+	}
+	if af.Offset > 0 {
 		previous = true
 	}
 

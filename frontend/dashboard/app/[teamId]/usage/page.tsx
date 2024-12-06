@@ -15,6 +15,8 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     label: string;
     value: number;
     events: number;
+    traces: number;
+    spans: number;
   }
 
   const [fetchUsageApiStatus, setFetchUsageApiStatus] = useState(FetchUsageApiStatus.Loading);
@@ -41,7 +43,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     usage.forEach(app => {
       app.monthly_app_usage.forEach(u => {
         if (u.month_year === month) {
-          selectedMonthUsages.push({ id: app.app_id, label: app.app_name, value: u.session_count, events: u.event_count });
+          selectedMonthUsages.push({ id: app.app_id, label: app.app_name, value: u.session_count, events: u.event_count, traces: u.trace_count, spans: u.span_count });
         }
       });
     });
@@ -84,9 +86,13 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   const CenteredMetric = ({ centerX, centerY }) => {
     let totalSessions = 0
     let totalEvents = 0
+    let totalTraces = 0
+    let totalSpans = 0
     selectedMonthUsage!.forEach(appMonthlyUsage => {
       totalSessions += appMonthlyUsage.value
       totalEvents += appMonthlyUsage.events
+      totalTraces += appMonthlyUsage.traces
+      totalSpans += appMonthlyUsage.spans
     })
 
     return (
@@ -99,6 +105,8 @@ export default function Overview({ params }: { params: { teamId: string } }) {
       >
         <tspan className='text-2xl' x={centerX} dy="-0.7em">{totalSessions} Sessions</tspan>
         <tspan className='text-lg' x={centerX} dy="1.4em">{totalEvents} Events</tspan>
+        <tspan className='text-lg' x={centerX} dy="1.4em">{totalTraces} Traces</tspan>
+        <tspan className='text-lg' x={centerX} dy="1.4em">{totalSpans} Spans</tspan>
       </text>
     )
   }
@@ -147,6 +155,8 @@ export default function Overview({ params }: { params: { teamId: string } }) {
                     <div className='py-0.5' />
                     <p className='text-xs'>Sessions: {value}</p>
                     <p className='text-xs'>Events: {selectedMonthUsage?.find((i) => i.id === id)!.events}</p>
+                    <p className='text-xs'>Traces: {selectedMonthUsage?.find((i) => i.id === id)!.traces}</p>
+                    <p className='text-xs'>Spans: {selectedMonthUsage?.find((i) => i.id === id)!.spans}</p>
                   </div>
                 )
               }}

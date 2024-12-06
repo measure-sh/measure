@@ -58,7 +58,7 @@ func Scan(rootPath string) (apps *Apps, err error) {
 				if info.Size() < 1 {
 					return fmt.Errorf("%q has empty an events file. check %q", app.FullName(), rel)
 				}
-				app.EventFiles = append(app.EventFiles, path)
+				app.EventAndSpanFiles = append(app.EventAndSpanFiles, path)
 			}
 
 			mapping, err := filepath.Match("*/*/mapping.txt", rel)
