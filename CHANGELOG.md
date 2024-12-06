@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Support user defined attributes (#1529)
 
 
+### :bug: Bug fixes
+
+- (**frontend**): Don't update filters on selectedApp change
+
+
 ### :hammer: Misc
 
 - (**backend**): Add sample sessions
