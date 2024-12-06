@@ -133,6 +133,13 @@ type AppFilter struct {
 	// UDExpression contains the parsed user defined
 	// attribute expression.
 	UDExpression *event.UDExpression
+	// Span indicates the filtering should only
+	// consider spans.
+	Span bool `form:"span"`
+
+	// SpanStatuses represents the list of status of
+	// a span to be filtered on.
+	SpanStatuses []int8 `form:"span_statuses"`
 
 	// KeyID is the anchor point for keyset
 	// pagination.
@@ -244,6 +251,12 @@ func (af *AppFilter) Validate() error {
 
 		if err := af.UDExpression.Validate(); err != nil {
 			return fmt.Errorf("`ud_expression` is invalid. %s", err.Error())
+		}
+	}
+
+	for _, status := range af.SpanStatuses {
+		if status < 0 || status > 2 {
+			return fmt.Errorf("`span_statuses` values must be 0 (Unset), 1 (Ok) or 2 (Error)")
 		}
 	}
 
@@ -620,19 +633,26 @@ func (af *AppFilter) hasKeyTimestamp() bool {
 // Additionally, filters for `exception` and `anr` event
 // types.
 func (af *AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes []string, err error) {
+	var table_name string
+	if af.Span {
+		table_name = "span_filters"
+	} else {
+		table_name = "app_filters"
+	}
+
 	stmt := sqlf.
-		From("app_filters").
+		From(table_name).
 		Select("distinct toString(tupleElement(app_version, 1)) as version, toString(tupleElement(app_version, 2)) as code").
 		Where("app_id = toUUID(?)", af.AppID).
 		OrderBy("code desc, version")
 
 	defer stmt.Close()
 
-	if af.Crash {
+	if af.Crash && !af.Span {
 		stmt.Where("exception=true")
 	}
 
-	if af.ANR {
+	if af.ANR && !af.Span {
 		stmt.Where("anr=true")
 	}
 
@@ -661,8 +681,15 @@ func (af *AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getOsVersions(ctx context.Context) (osNames, osVersions []string, err error) {
+	var table_name string
+	if af.Span {
+		table_name = "span_filters"
+	} else {
+		table_name = "app_filters"
+	}
+
 	stmt := sqlf.
-		From("app_filters").
+		From(table_name).
 		Select("distinct toString(tupleElement(os_version, 1)) as name, toString(tupleElement(os_version, 2)) as version").
 		GroupBy("name, version").
 		OrderBy("version desc, name").
@@ -670,11 +697,11 @@ func (af *AppFilter) getOsVersions(ctx context.Context) (osNames, osVersions []s
 
 	defer stmt.Close()
 
-	if af.Crash {
+	if af.Crash && !af.Span {
 		stmt.Where("exception=true")
 	}
 
-	if af.ANR {
+	if af.ANR && !af.Span {
 		stmt.Where("anr=true")
 	}
 
@@ -703,18 +730,26 @@ func (af *AppFilter) getOsVersions(ctx context.Context) (osNames, osVersions []s
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getCountries(ctx context.Context) (countries []string, err error) {
-	stmt := sqlf.From("app_filters").
+	var table_name string
+	if af.Span {
+		table_name = "span_filters"
+	} else {
+		table_name = "app_filters"
+	}
+
+	stmt := sqlf.
+		From(table_name).
 		Select("distinct country_code").
 		Where("app_id = toUUID(?)", af.AppID).
 		OrderBy("country_code")
 
 	defer stmt.Close()
 
-	if af.Crash {
+	if af.Crash && !af.Span {
 		stmt.Where("exception=true")
 	}
 
-	if af.ANR {
+	if af.ANR && !af.Span {
 		stmt.Where("anr=true")
 	}
 
@@ -741,18 +776,26 @@ func (af *AppFilter) getCountries(ctx context.Context) (countries []string, err 
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getNetworkProviders(ctx context.Context) (networkProviders []string, err error) {
-	stmt := sqlf.From("app_filters").
+	var table_name string
+	if af.Span {
+		table_name = "span_filters"
+	} else {
+		table_name = "app_filters"
+	}
+
+	stmt := sqlf.
+		From(table_name).
 		Select("distinct network_provider").
 		OrderBy("network_provider").
 		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
 
-	if af.Crash {
+	if af.Crash && !af.Span {
 		stmt.Where("exception=true")
 	}
 
-	if af.ANR {
+	if af.ANR && !af.Span {
 		stmt.Where("anr=true")
 	}
 
@@ -779,18 +822,26 @@ func (af *AppFilter) getNetworkProviders(ctx context.Context) (networkProviders 
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getNetworkTypes(ctx context.Context) (networkTypes []string, err error) {
-	stmt := sqlf.From("app_filters").
+	var table_name string
+	if af.Span {
+		table_name = "span_filters"
+	} else {
+		table_name = "app_filters"
+	}
+
+	stmt := sqlf.
+		From(table_name).
 		Select("distinct network_type").
 		OrderBy("network_type").
 		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
 
-	if af.Crash {
+	if af.Crash && !af.Span {
 		stmt.Where("exception=true")
 	}
 
-	if af.ANR {
+	if af.ANR && !af.Span {
 		stmt.Where("anr=true")
 	}
 
@@ -817,18 +868,26 @@ func (af *AppFilter) getNetworkTypes(ctx context.Context) (networkTypes []string
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getNetworkGenerations(ctx context.Context) (networkGenerations []string, err error) {
-	stmt := sqlf.From("app_filters").
+	var table_name string
+	if af.Span {
+		table_name = "span_filters"
+	} else {
+		table_name = "app_filters"
+	}
+
+	stmt := sqlf.
+		From(table_name).
 		Select("distinct network_generation").
 		OrderBy("network_generation").
 		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
 
-	if af.Crash {
+	if af.Crash && !af.Span {
 		stmt.Where("exception=true")
 	}
 
-	if af.ANR {
+	if af.ANR && !af.Span {
 		stmt.Where("anr=true")
 	}
 
@@ -858,18 +917,26 @@ func (af *AppFilter) getNetworkGenerations(ctx context.Context) (networkGenerati
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getDeviceLocales(ctx context.Context) (deviceLocales []string, err error) {
-	stmt := sqlf.From("app_filters").
+	var table_name string
+	if af.Span {
+		table_name = "span_filters"
+	} else {
+		table_name = "app_filters"
+	}
+
+	stmt := sqlf.
+		From(table_name).
 		Select("distinct device_locale").
 		OrderBy("device_locale").
 		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
 
-	if af.Crash {
+	if af.Crash && !af.Span {
 		stmt.Where("exception=true")
 	}
 
-	if af.ANR {
+	if af.ANR && !af.Span {
 		stmt.Where("anr=true")
 	}
 
@@ -896,18 +963,26 @@ func (af *AppFilter) getDeviceLocales(ctx context.Context) (deviceLocales []stri
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getDeviceManufacturers(ctx context.Context) (deviceManufacturers []string, err error) {
-	stmt := sqlf.From("app_filters").
+	var table_name string
+	if af.Span {
+		table_name = "span_filters"
+	} else {
+		table_name = "app_filters"
+	}
+
+	stmt := sqlf.
+		From(table_name).
 		Select("distinct device_manufacturer").
 		OrderBy("device_manufacturer").
 		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
 
-	if af.Crash {
+	if af.Crash && !af.Span {
 		stmt.Where("exception=true")
 	}
 
-	if af.ANR {
+	if af.ANR && !af.Span {
 		stmt.Where("anr=true")
 	}
 
@@ -934,18 +1009,26 @@ func (af *AppFilter) getDeviceManufacturers(ctx context.Context) (deviceManufact
 //
 // Additionally, filters `exception` and `anr` event types.
 func (af *AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, err error) {
-	stmt := sqlf.From("app_filters").
+	var table_name string
+	if af.Span {
+		table_name = "span_filters"
+	} else {
+		table_name = "app_filters"
+	}
+
+	stmt := sqlf.
+		From(table_name).
 		Select("distinct device_name").
 		OrderBy("device_name").
 		Where("app_id = toUUID(?)", af.AppID)
 
 	defer stmt.Close()
 
-	if af.Crash {
+	if af.Crash && !af.Span {
 		stmt.Where("exception=true")
 	}
 
-	if af.ANR {
+	if af.ANR && !af.Span {
 		stmt.Where("anr=true")
 	}
 

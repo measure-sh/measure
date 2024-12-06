@@ -27,6 +27,10 @@ export default function DashboardLayout({
       title: 'ANRs',
     },
     {
+      hrefSuffix: 'traces',
+      title: 'Traces',
+    },
+    {
       hrefSuffix: 'sessions',
       title: 'Sessions',
     },

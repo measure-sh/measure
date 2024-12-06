@@ -110,6 +110,10 @@ func main() {
 		apps.PATCH(":id/settings", measure.UpdateAppSettings)
 		apps.PATCH(":id/rename", measure.RenameApp)
 		apps.POST(":id/shortFilters", measure.CreateShortFilters)
+		apps.GET(":id/spans/roots/names", measure.GetRootSpanNames)
+		apps.GET(":id/spans/:spanName/instances", measure.GetSpanInstances)
+		apps.GET(":id/spans/:spanName/plot", measure.GetSpanMetricsPlot)
+		apps.GET(":id/traces/:traceId", measure.GetTrace)
 	}
 
 	teams := r.Group("/teams", measure.ValidateAccessToken())

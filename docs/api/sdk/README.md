@@ -51,7 +51,7 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
 
 ## Resources
 
-- [**PUT `/events`**](#put-events) - Send a batch of events, attachments, metrics and traces via this endpoint.
+- [**PUT `/events`**](#put-events) - Send a batch of events, spans, attachments, metrics and traces via this endpoint.
 - [**PUT `/builds`**]() - Send build mappings and build sizes via this API.
 
 ### PUT `/events`
@@ -64,6 +64,7 @@ Ingests a batch of events, which can be of different types and can range across 
 - Each request must contain a unique UUIDv4 id, set as the header `msr-req-id`. If a request fails, the client must
   retry the same payload with the same `msr-req-id` to ensure idempotency.
 - Each event must contain a nanosecond precision `timestamp` - `"2023-08-24T14:51:38.000000534Z"`
+- Each event must contain a nanosecond precision `start_time` and `end_time` - `"2023-08-24T14:51:38.000000534Z"`
 - Each event must have the following mandatory attributes:
     - `installation_id`
     - `measure_sdk_version`
@@ -72,7 +73,22 @@ Ingests a batch of events, which can be of different types and can range across 
     - `app_version`
     - `app_build`
     - `app_unique_id`
-- At least 1 event must be present in the `events` array field. They must be one of the valid types, like `string`, `gesture_long_click` and so on.
+- Each span must have the following mandatory attributes:
+    - `span_name`
+    - `span_id`
+    - `trace_id`
+    - `session_id`
+    - `status`
+    - `start_time`
+    - `end_time`
+    - `attribute.installation_id`
+    - `attribute.app_unique_id`
+    - `attribute.app_version`
+    - `attribute.os_version`
+    - `attribute.platform`
+
+- At least 1 event must be present in the `events` array field or 1 span must be present in the `spans` array field. Both arrays must
+not be empty.
 - Successful response returns `202 Accepted`.
 - Response may contain a `Retry-After: 60` header. If present, the client should retry the same request after 60 seconds. Note, that value indicating number of seconds may change.
 - Idempotent based on `msr-req-id`. Previously seen requests matching by `msr-req-id` won't be re-processed.
@@ -171,6 +187,11 @@ Content-Disposition: form-data; name="event"
 --PieBoundary123456789012345678901234567
 Content-Disposition: form-data; name="blob-9e45a0bc-9277-468c-92f6-5eba2afc26e8"
 
+
+--PieBoundary123456789012345678901234567--
+Content-Disposition: form-data; name="span"
+
+{"name":"activity.onCreate","trace_id":"d71f3d909689859469a7d9b38e605d56","span_id":"9f1890db9aedb305","parent_id":null,"session_id":"a2768feb-59cd-433f-bf00-d36ab297eddb","start_time":"2024-11-18T14:14:40.54500000Z","end_time":"2024-11-18T14:14:40.62000000Z","duration":75,"status":0,"attributes":{"thread_name":"main","user_id":null,"device_name":"emu64a16k","device_model":"sdk_gphone16k_arm64","device_manufacturer":"Google","device_locale":"en-US","os_name":"android","os_version":"35","platform":"android","app_version":"0.9.0-SNAPSHOT.debug","app_build":"900","app_unique_id":"sh.measure.sample","measure_sdk_version":"0.9.0-SNAPSHOT","installation_id":"2ee2d03e-ed76-43e7-8d63-9e146f1df618","network_type":"wifi","network_generation":"unknown","network_provider":"unknown"},"checkpoints":[]}
 
 --PieBoundary123456789012345678901234567--
 ```

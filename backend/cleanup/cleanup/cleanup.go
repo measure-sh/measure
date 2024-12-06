@@ -28,6 +28,7 @@ type StaleData struct {
 	AppID         string       `json:"app_id"`
 	RetentionDate time.Time    `json:"retention_date"`
 	EventIDs      []string     `json:"event_ids"`
+	SpanIDs       []string     `json:"span_ids"`
 	Attachments   []Attachment `json:"attachments"`
 }
 
@@ -67,11 +68,27 @@ func DeleteStaleData(ctx context.Context) {
 				Where("timestamp < ?", st.RetentionDate)
 
 			if err := server.Server.ChPool.Exec(ctx, deleteStmt.String(), deleteStmt.Args()...); err != nil {
-				fmt.Printf("Failed to delete %v events from clickhouse for app_id: %v, err: %v\n", len(st.Attachments), st.AppID, err)
+				fmt.Printf("Failed to delete %v events from clickhouse for app_id: %v, err: %v\n", len(st.EventIDs), st.AppID, err)
 				return
 			}
 
 			fmt.Printf("Deleted %v events from clickhouse for app_id: %v\n", len(st.EventIDs), st.AppID)
+		}
+
+		// Delete spans from clickhouse
+		if len(st.SpanIDs) > 0 {
+			fmt.Printf("Deleting %v spans from clickhouse for app_id: %v\n", len(st.SpanIDs), st.AppID)
+
+			deleteStmt := sqlf.DeleteFrom("spans").
+				Where("app_id = ?", st.AppID).
+				Where("start_time < ?", st.RetentionDate)
+
+			if err := server.Server.ChPool.Exec(ctx, deleteStmt.String(), deleteStmt.Args()...); err != nil {
+				fmt.Printf("Failed to delete %v spans from clickhouse for app_id: %v, err: %v\n", len(st.SpanIDs), st.AppID, err)
+				return
+			}
+
+			fmt.Printf("Deleted %v spans from clickhouse for app_id: %v\n", len(st.SpanIDs), st.AppID)
 		}
 	}
 
@@ -122,13 +139,13 @@ func fetchStaleData(ctx context.Context) ([]StaleData, error) {
 		retentionDate := time.Now().UTC().AddDate(0, 0, -retentionPeriod)
 
 		// Fetch stale events from ClickHouse
-		fetchStmt := sqlf.Select("id").
+		fetchEventsStmt := sqlf.Select("id").
 			Select("attachments").
 			From("default.events").
 			Where("app_id = ?", appID).
 			Where("timestamp < ?", retentionDate)
 
-		eventRows, err := server.Server.ChPool.Query(ctx, fetchStmt.String(), fetchStmt.Args()...)
+		eventRows, err := server.Server.ChPool.Query(ctx, fetchEventsStmt.String(), fetchEventsStmt.Args()...)
 		if err != nil {
 			fmt.Printf("Failed to fetch stale events from ClickHouse: %v\n", err)
 			continue
@@ -159,10 +176,34 @@ func fetchStaleData(ctx context.Context) ([]StaleData, error) {
 			staleEventIDs = append(staleEventIDs, eventID)
 		}
 
+		// Fetch stale spans from ClickHouse
+		fetchSpansStmt := sqlf.Select("span_id").
+			From("spans").
+			Where("app_id = ?", appID).
+			Where("start_time < ?", retentionDate)
+
+		spanRows, err := server.Server.ChPool.Query(ctx, fetchSpansStmt.String(), fetchSpansStmt.Args()...)
+		if err != nil {
+			fmt.Printf("Failed to fetch stale spans from ClickHouse: %v\n", err)
+			continue
+		}
+
+		var staleSpanIDs []string
+		var spanID string
+		for spanRows.Next() {
+			if err := spanRows.Scan(&spanID); err != nil {
+				fmt.Printf("Failed to scan span ID: %v\n", err)
+				continue
+			}
+
+			staleSpanIDs = append(staleSpanIDs, spanID)
+		}
+
 		staleData = append(staleData, StaleData{
 			AppID:         appID,
 			RetentionDate: retentionDate,
 			EventIDs:      staleEventIDs,
+			SpanIDs:       staleSpanIDs,
 			Attachments:   staleAttachments,
 		})
 	}

@@ -114,66 +114,86 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-20)
     - [Response Body](#response-body-20)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-20)
-- [Teams](#teams)
-  - [POST `/teams`](#post-teams)
-    - [Authorization \& Content Type](#authorization--content-type-21)
-    - [Request Body](#request-body-4)
+  - [GET `/apps/:id/spans/roots/names`](#get-appsidspansrootsnames)
     - [Usage Notes](#usage-notes-21)
+    - [Authorization \& Content Type](#authorization--content-type-21)
     - [Response Body](#response-body-21)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-21)
-  - [GET `/teams`](#get-teams)
+  - [GET `/apps/:id/spans/:spanName/instances`](#get-appsidspanspannameinstances)
+    - [Usage Notes](#usage-notes-22)
     - [Authorization \& Content Type](#authorization--content-type-22)
     - [Response Body](#response-body-22)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-22)
-  - [GET `/teams/:id/apps`](#get-teamsidapps)
-    - [Usage Notes](#usage-notes-22)
+  - [GET `/apps/:id/spans/:spanName/plot`](#get-appsidspansspannameplot)
+    - [Usage Notes](#usage-notes-23)
     - [Authorization \& Content Type](#authorization--content-type-23)
     - [Response Body](#response-body-23)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-23)
-  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
-    - [Usage Notes](#usage-notes-23)
+  - [GET `/apps/:id/traces/:traceId`](#get-appsidtracestraceid)
+    - [Usage Notes](#usage-notes-24)
     - [Authorization \& Content Type](#authorization--content-type-24)
     - [Response Body](#response-body-24)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-24)
-  - [POST `/teams/:id/apps`](#post-teamsidapps)
-    - [Usage Notes](#usage-notes-24)
-    - [Request body](#request-body-5)
+- [Teams](#teams)
+  - [POST `/teams`](#post-teams)
     - [Authorization \& Content Type](#authorization--content-type-25)
+    - [Request Body](#request-body-4)
+    - [Usage Notes](#usage-notes-25)
     - [Response Body](#response-body-25)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-25)
-  - [POST `/auth/invite`](#post-authinvite)
-    - [Usage Notes](#usage-notes-25)
-    - [Request body](#request-body-6)
+  - [GET `/teams`](#get-teams)
     - [Authorization \& Content Type](#authorization--content-type-26)
     - [Response Body](#response-body-26)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-26)
-  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
+  - [GET `/teams/:id/apps`](#get-teamsidapps)
     - [Usage Notes](#usage-notes-26)
-    - [Request body](#request-body-7)
     - [Authorization \& Content Type](#authorization--content-type-27)
     - [Response Body](#response-body-27)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-27)
-  - [GET `/teams/:id/members`](#get-teamsidmembers)
+  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
     - [Usage Notes](#usage-notes-27)
     - [Authorization \& Content Type](#authorization--content-type-28)
     - [Response Body](#response-body-28)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-28)
-  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+  - [POST `/teams/:id/apps`](#post-teamsidapps)
     - [Usage Notes](#usage-notes-28)
+    - [Request body](#request-body-5)
     - [Authorization \& Content Type](#authorization--content-type-29)
     - [Response Body](#response-body-29)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-29)
-  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+  - [POST `/auth/invite`](#post-authinvite)
     - [Usage Notes](#usage-notes-29)
-    - [Request body](#request-body-8)
+    - [Request body](#request-body-30)
     - [Authorization \& Content Type](#authorization--content-type-30)
-    - [Response Body](#response-body-30)
+    - [Response Body](#response-body-26)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-30)
-  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
     - [Usage Notes](#usage-notes-30)
+    - [Request body](#request-body-7)
     - [Authorization \& Content Type](#authorization--content-type-31)
     - [Response Body](#response-body-31)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-31)
+  - [GET `/teams/:id/members`](#get-teamsidmembers)
+    - [Usage Notes](#usage-notes-31)
+    - [Authorization \& Content Type](#authorization--content-type-32)
+    - [Response Body](#response-body-32)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-32)
+  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+    - [Usage Notes](#usage-notes-32)
+    - [Authorization \& Content Type](#authorization--content-type-33)
+    - [Response Body](#response-body-33)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-33)
+  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+    - [Usage Notes](#usage-notes-33)
+    - [Request body](#request-body-8)
+    - [Authorization \& Content Type](#authorization--content-type-34)
+    - [Response Body](#response-body-34)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-34)
+  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+    - [Usage Notes](#usage-notes-34)
+    - [Authorization \& Content Type](#authorization--content-type-35)
+    - [Response Body](#response-body-35)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-35)
 
 ## Apps
 
@@ -198,6 +218,10 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
 - [**GET `/apps/:id/settings`**](#get-appsidsettings) - Fetch an app's settings.
 - [**PATCH `/apps/:id/settings`**](#patch-appsidsettings) - Update an app's settings.
 - [**POST `/apps/:id/shortFilters`**](#post-appsidshortfilters) - Create a shortcode to represent a combination of various app filters.
+- [**GET `/apps/:id/spans/roots/names`**](#get-appsidspansrootsnames) - Fetch an app's root span names list with optional filters.
+- [**GET `/apps/:id/spans/:spanName/instances`**](#get-appsidspanspannameinstances) - Fetch an span's list of instances with optional filters.
+- [**GET `/apps/:id/spans/:spanName/plot`**](#get-appsidspansspannameplot) - Fetch an span's metrics plot with optional filters.
+- [**GET `/apps/:id/traces/:traceId`**](#get-appsidtracestraceid) - Fetch a trace.
 
 ### GET `/apps/:id/journey`
 
@@ -3498,6 +3522,395 @@ These headers must be present in each request.
   ```
 
 #### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/spans/roots/names`
+
+Fetch an app's root span names list with optional filters.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {"results":["activity.onCreate","SampleApp.onCreate"]}
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/spans/:spanName/instances`
+
+Fetch an span's list of instances with optional filters.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Accepted query parameters
+  - `from` (_optional_) - ISO8601 timestamp to include sessions after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include sessions before this time.
+  - `versions` (_optional_) - List of comma separated version identifier strings to return only matching sessions.
+  - `version_codes` (_optional_) - List of comma separated version codes to return only matching sessions.
+  - `countries` (_optional_) - List of comma separated country identifier strings to return only matching sessions.
+  - `device_names` (_optional_) - List of comma separated device name identifier strings to return only matching sessions.
+  - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings to return only matching sessions.
+  - `locales` (_optional_) - List of comma separated device locale identifier strings to return only matching sessions.
+  - `network_providers` (_optional_) - List of comma separated network provider identifier strings to return only matching sessions.
+  - `network_types` (_optional_) - List of comma separated network type identifier strings to return only matching sessions.
+  - `network_generations` (_optional_) - List of comma separated network generation identifier strings to return only matching sessions.
+  - `offset` (_optional_) - Number of items to skip when paginating. Use with `limit` parameter to control amount of items fetched.
+  - `limit` (_optional_) - Number of items to return. Used for pagination. Should be used along with `offset`.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `span_statuses` (_optional_) - should be 0 (Unset), 1 (Ok) or 2 (Error). If multiple status are required, they should passed as multiple query params like `span_statuses=0&span_statuses=1&span_statuses=2`
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+- Pass `limit` and `offset` values to paginate results
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "meta": {
+        "next": false,
+        "previous": false
+    },
+    "results": [
+        {
+            "app_id": "e963e98a-aca9-4bab-bd62-70a74801384e",
+            "span_name": "activity.onCreate",
+            "span_id": "54b40eb484ade006",
+            "trace_id": "e0826847053bb9e539c9dc4d4da793ad",
+            "status": 0,
+            "start_time": "2024-11-18T14:14:55.491Z",
+            "end_time": "2024-11-18T14:14:55.573Z",
+            "duration": 82,
+            "app_version": "0.9.0-SNAPSHOT.debug",
+            "app_build": "900",
+            "os_name": "android",
+            "os_version": "35",
+            "device_model": "sdk_gphone16k_arm64",
+            "device_manufacturer": "Google"
+        },
+        {
+            "app_id": "e963e98a-aca9-4bab-bd62-70a74801384e",
+            "span_name": "activity.onCreate",
+            "span_id": "9f1890db9aedb305",
+            "trace_id": "d71f3d909689859469a7d9b38e605d56",
+            "status": 0,
+            "start_time": "2024-11-18T14:14:40.545Z",
+            "end_time": "2024-11-18T14:14:40.62Z",
+            "duration": 75,
+            "app_version": "0.9.0-SNAPSHOT.debug",
+            "app_build": "900",
+            "os_name": "android",
+            "os_version": "35",
+            "device_model": "sdk_gphone16k_arm64",
+            "device_manufacturer": "Google"
+        },
+        {
+            "app_id": "e963e98a-aca9-4bab-bd62-70a74801384e",
+            "span_name": "activity.onCreate",
+            "span_id": "0b227c80be4050d8",
+            "trace_id": "bba721b7bc78ae746e2c81a5e9e41e7a",
+            "status": 0,
+            "start_time": "2024-11-18T14:14:33.658Z",
+            "end_time": "2024-11-18T14:14:33.743Z",
+            "duration": 85,
+            "app_version": "0.9.0-SNAPSHOT.debug",
+            "app_build": "900",
+            "os_name": "android",
+            "os_version": "35",
+            "device_model": "sdk_gphone16k_arm64",
+            "device_manufacturer": "Google"
+        }
+    ]
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/spans/:spanName/plot`
+
+Fetch an span's metrics plot with optional filters.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Accepted query parameters
+  - `from` (_optional_) - ISO8601 timestamp to include sessions after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include sessions before this time.
+  - `versions` (_optional_) - List of comma separated version identifier strings to return only matching sessions.
+  - `version_codes` (_optional_) - List of comma separated version codes to return only matching sessions.
+  - `countries` (_optional_) - List of comma separated country identifier strings to return only matching sessions.
+  - `device_names` (_optional_) - List of comma separated device name identifier strings to return only matching sessions.
+  - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings to return only matching sessions.
+  - `locales` (_optional_) - List of comma separated device locale identifier strings to return only matching sessions.
+  - `network_providers` (_optional_) - List of comma separated network provider identifier strings to return only matching sessions.
+  - `network_types` (_optional_) - List of comma separated network type identifier strings to return only matching sessions.
+  - `network_generations` (_optional_) - List of comma separated network generation identifier strings to return only matching sessions.
+  - `offset` (_optional_) - Number of items to skip when paginating. Use with `limit` parameter to control amount of items fetched.
+  - `limit` (_optional_) - Number of items to return. Used for pagination. Should be used along with `offset`.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `span_statuses` (_optional_) - should be 0 (Unset), 1 (Ok) or 2 (Error). If multiple status are required, they should passed as multiple query params like `span_statuses=0&span_statuses=1&span_statuses=2`
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+- Pass `limit` and `offset` values to paginate results
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  [
+    {
+        "id": "0.9.0-SNAPSHOT.debug (900)",
+        "data": [
+            {
+                "datetime": "2024-11-18",
+                "p50": 82,
+                "p90": 85,
+                "p95": 85,
+                "p99": 85
+            }
+        ]
+    }
+  ]
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/traces/:traceId`
+
+Fetch a trace.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Trace Id must be passed in the URI
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "app_id": "e963e98a-aca9-4bab-bd62-70a74801384e",
+    "trace_id": "e0826847053bb9e539c9dc4d4da793ad",
+    "session_id": "9b33b3cd-2588-46b4-9b1e-19d7d2c462fa",
+    "user_id": "",
+    "start_time": "2024-11-18T14:14:55.491Z",
+    "end_time": "2024-11-18T14:14:55.573Z",
+    "duration": 82,
+    "app_version": "0.9.0-SNAPSHOT.debug(900)",
+    "os_version": "android 35",
+    "device_manufacturer": "Google",
+    "device_model": "sdk_gphone16k_arm64",
+    "network_type": "wifi",
+    "spans": [
+        {
+            "span_name": "activity.onCreate",
+            "span_id": "54b40eb484ade006",
+            "parent_id": "",
+            "status": 0,
+            "start_time": "2024-11-18T14:14:55.491Z",
+            "end_time": "2024-11-18T14:14:55.573Z",
+            "duration": 82,
+            "thread_name": "main",
+            "device_low_power_mode": false,
+            "device_thermal_throttling_enabled": false,
+            "checkpoints": []
+        }
+    ]
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
 
 List of HTTP status codes for success and failures.
 

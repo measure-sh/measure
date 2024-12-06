@@ -82,7 +82,7 @@ func deleteAllObjects(ctx context.Context, bucket *string, client *s3.Client) (e
 
 // rmEvents removes all data associated with
 // the apps in config.
-func rmEvents(ctx context.Context, c *config.Config) (err error) {
+func rmEventsAndSpans(ctx context.Context, c *config.Config) (err error) {
 	if dryRun {
 		return nil
 	}
@@ -151,6 +151,10 @@ func rmEvents(ctx context.Context, c *config.Config) (err error) {
 		return
 	}
 
+	if err = j.rmAppSpans(ctx); err != nil {
+		return
+	}
+
 	if err = j.rmAppFilters(ctx); err != nil {
 		return
 	}
@@ -200,7 +204,7 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 	attachmentsClient := j.getAttachmentsClient()
 	attachmentsBucket := aws.String(j.config.Storage["attachments_s3_bucket"])
 
-	fmt.Println("removing all builds, events and attachments")
+	fmt.Println("removing all builds, events, spans and attachments")
 	_, err = tx.Exec(ctx, "truncate table unhandled_exception_groups, anr_groups, build_mappings, build_sizes, event_reqs")
 	if err != nil {
 		return
@@ -223,6 +227,10 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 	}()
 
 	if err = chconn.Exec(ctx, "truncate table events;"); err != nil {
+		return
+	}
+
+	if err = chconn.Exec(ctx, "truncate table spans;"); err != nil {
 		return
 	}
 
@@ -446,6 +454,41 @@ func (j *janitor) rmAppEvents(ctx context.Context) (err error) {
 		}
 
 		if err := conn.Exec(ctx, deleteEvents, namedAppId); err != nil {
+			return err
+		}
+	}
+
+	return
+}
+
+// rmAppSpans removes spans
+// for apps in config.
+func (j *janitor) rmAppSpans(ctx context.Context) (err error) {
+	deleteSpans := `delete from spans where app_id = @app_id;`
+
+	dsn := j.config.Storage["clickhouse_dsn"]
+	opts, err := clickhouse.ParseDSN(dsn)
+	if err != nil {
+		return
+	}
+
+	conn, err := clickhouse.Open(opts)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			return
+		}
+	}()
+
+	fmt.Println("removing spans")
+
+	for i := range j.appIds {
+		namedAppId := clickhouse.Named("app_id", j.appIds[i])
+
+		if err := conn.Exec(ctx, deleteSpans, namedAppId); err != nil {
 			return err
 		}
 	}

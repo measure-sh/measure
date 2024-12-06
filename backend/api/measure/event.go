@@ -8,6 +8,7 @@ import (
 	"backend/api/inet"
 	"backend/api/numeric"
 	"backend/api/server"
+	"backend/api/span"
 	"backend/api/symbol"
 	"context"
 	"encoding/json"
@@ -66,6 +67,7 @@ type eventreq struct {
 	size                   int64
 	symbolicationAttempted int
 	events                 []event.EventField
+	spans                  []span.SpanField
 	attachments            map[uuid.UUID]*attachment
 }
 
@@ -152,8 +154,9 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 	}
 
 	events := form.Value["event"]
-	if len(events) < 1 {
-		return fmt.Errorf(`payload must contain at least 1 event`)
+	spans := form.Value["span"]
+	if len(events) < 1 && len(spans) < 1 {
+		return fmt.Errorf(`payload must contain at least 1 event or 1 span`)
 	}
 
 	for i := range events {
@@ -202,6 +205,21 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 		}
 
 		e.events = append(e.events, ev)
+	}
+
+	for i := range spans {
+		if spans[i] == "" {
+			return fmt.Errorf(`any span field must not be empty`)
+		}
+		var sp span.SpanField
+		bytes := []byte(spans[i])
+		if err := json.Unmarshal(bytes, &sp); err != nil {
+			return err
+		}
+		e.bumpSize(int64(len(bytes)))
+		sp.AppID = appId
+
+		e.spans = append(e.spans, sp)
 	}
 
 	for key, headers := range form.File {
@@ -258,6 +276,16 @@ func (e *eventreq) infuseInet(rawIP string) error {
 		}
 	}
 
+	for i := range e.spans {
+		if country != "" {
+			e.spans[i].Attributes.CountryCode = country
+		} else if inet.IsBogon(ip) {
+			e.spans[i].Attributes.CountryCode = "bogon"
+		} else {
+			e.spans[i].Attributes.CountryCode = "n/a"
+		}
+	}
+
 	return nil
 }
 
@@ -296,6 +324,7 @@ func (e eventreq) start(ctx context.Context) (err error) {
 func (e eventreq) end(ctx context.Context, tx *pgx.Tx) (err error) {
 	stmt := sqlf.PostgreSQL.Update(`public.event_reqs`).
 		Set(`event_count`, len(e.events)).
+		Set(`span_count`, len(e.spans)).
 		Set(`attachment_count`, len(e.attachments)).
 		Set(`session_count`, e.sessionCount()).
 		Set(`bytes_in`, e.size).
@@ -482,8 +511,8 @@ func (e eventreq) needsSymbolication() bool {
 // validate validates the integrity of each event
 // and corresponding attachments.
 func (e eventreq) validate() error {
-	if len(e.events) < 1 {
-		return fmt.Errorf(`payload must contain at least 1 event`)
+	if len(e.events) < 1 && len(e.spans) < 1 {
+		return fmt.Errorf(`payload must contain at least 1 event or 1 span`)
 	}
 
 	for i := range e.events {
@@ -515,6 +544,12 @@ func (e eventreq) validate() error {
 		}
 	}
 
+	for i := range e.spans {
+		if err := e.spans[i].Validate(); err != nil {
+			return err
+		}
+	}
+
 	if e.size >= int64(maxBatchSize) {
 		return fmt.Errorf(`payload cannot exceed maximum allowed size of %d`, maxBatchSize)
 	}
@@ -522,8 +557,12 @@ func (e eventreq) validate() error {
 	return nil
 }
 
-// ingest writes the events to database.
-func (e eventreq) ingest(ctx context.Context) error {
+// ingestEvents writes the events to database.
+func (e eventreq) ingestEvents(ctx context.Context) error {
+	if len(e.events) == 0 {
+		return nil
+	}
+
 	stmt := sqlf.InsertInto(`default.events`)
 	defer stmt.Close()
 
@@ -1025,6 +1064,53 @@ func (e eventreq) ingest(ctx context.Context) error {
 	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), false, stmt.Args()...)
 }
 
+// ingestSpans writes the spans to database.
+func (e eventreq) ingestSpans(ctx context.Context) error {
+	if len(e.spans) == 0 {
+		return nil
+	}
+
+	stmt := sqlf.InsertInto(`spans`)
+	defer stmt.Close()
+
+	for i := range e.spans {
+		appVersionTuple := fmt.Sprintf("('%s', '%s')", e.spans[i].Attributes.AppVersion, e.spans[i].Attributes.AppBuild)
+		osVersionTuple := fmt.Sprintf("('%s', '%s')", e.spans[i].Attributes.OSName, e.spans[i].Attributes.OSVersion)
+
+		stmt.NewRow().
+			Set(`app_id`, e.spans[i].AppID).
+			Set(`span_name`, e.spans[i].SpanName).
+			Set(`span_id`, e.spans[i].SpanID).
+			Set(`parent_id`, e.spans[i].ParentID).
+			Set(`trace_id`, e.spans[i].TraceID).
+			Set(`session_id`, e.spans[i].SessionID).
+			Set(`status`, e.spans[i].Status).
+			Set(`start_time`, e.spans[i].StartTime.Format(chrono.NanoTimeFormat)).
+			Set(`end_time`, e.spans[i].EndTime.Format(chrono.NanoTimeFormat)).
+			Set(`checkpoints`, e.spans[i].CheckPoints).
+			Set(`attribute.app_unique_id`, e.spans[i].Attributes.AppUniqueID).
+			Set(`attribute.installation_id`, e.spans[i].Attributes.InstallationID).
+			Set(`attribute.user_id`, e.spans[i].Attributes.UserID).
+			Set(`attribute.measure_sdk_version`, e.spans[i].Attributes.MeasureSDKVersion).
+			Set(`attribute.app_version`, appVersionTuple).
+			Set(`attribute.os_version`, osVersionTuple).
+			Set(`attribute.platform`, e.spans[i].Attributes.Platform).
+			Set(`attribute.thread_name`, e.spans[i].Attributes.ThreadName).
+			Set(`attribute.country_code`, e.spans[i].Attributes.CountryCode).
+			Set(`attribute.network_provider`, e.spans[i].Attributes.NetworkProvider).
+			Set(`attribute.network_type`, e.spans[i].Attributes.NetworkType).
+			Set(`attribute.network_generation`, e.spans[i].Attributes.NetworkGeneration).
+			Set(`attribute.device_name`, e.spans[i].Attributes.DeviceName).
+			Set(`attribute.device_model`, e.spans[i].Attributes.DeviceModel).
+			Set(`attribute.device_manufacturer`, e.spans[i].Attributes.DeviceManufacturer).
+			Set(`attribute.device_locale`, e.spans[i].Attributes.DeviceLocale).
+			Set(`attribute.device_low_power_mode`, e.spans[i].Attributes.LowPowerModeEnabled).
+			Set(`attribute.device_thermal_throttling_enabled`, e.spans[i].Attributes.ThermalThrottlingEnabled)
+	}
+
+	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), false, stmt.Args()...)
+}
+
 // sessionCount counts and provides the number of
 // sessions in event request.
 func (e eventreq) sessionCount() (count int) {
@@ -1033,6 +1119,12 @@ func (e eventreq) sessionCount() (count int) {
 	for i := range e.events {
 		if !slices.Contains(sessions, e.events[i].SessionID) {
 			sessions = append(sessions, e.events[i].SessionID)
+		}
+	}
+
+	for i := range e.spans {
+		if !slices.Contains(sessions, e.spans[i].SessionID) {
+			sessions = append(sessions, e.spans[i].SessionID)
 		}
 	}
 
@@ -1828,7 +1920,7 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
-	msg := `failed to parse events payload`
+	msg := `failed to parse event request payload`
 	eventReq := eventreq{
 		appId:       appId,
 		symbolicate: make(map[uuid.UUID]int),
@@ -1845,7 +1937,7 @@ func PutEvents(c *gin.Context) {
 	}
 
 	if err := eventReq.validate(); err != nil {
-		msg := `failed to validate events payload`
+		msg := `failed to validate event request payload`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   msg,
@@ -2030,7 +2122,7 @@ func PutEvents(c *gin.Context) {
 	})
 
 	if err != nil {
-		msg := `failed to ingest events, failed to acquire transaction`
+		msg := `failed to ingest event request, failed to acquire transaction`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
@@ -2040,8 +2132,17 @@ func PutEvents(c *gin.Context) {
 
 	defer tx.Rollback(ctx)
 
-	if err := eventReq.ingest(ctx); err != nil {
+	if err := eventReq.ingestEvents(ctx); err != nil {
 		msg := `failed to ingest events`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	if err := eventReq.ingestSpans(ctx); err != nil {
+		msg := `failed to ingest spans`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
@@ -2079,7 +2180,7 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
-	if !app.Onboarded {
+	if !app.Onboarded && len(eventReq.events) > 0 {
 		firstEvent := eventReq.events[0]
 		uniqueID := firstEvent.Attribute.AppUniqueID
 		platform := firstEvent.Attribute.Platform
@@ -2105,7 +2206,7 @@ func PutEvents(c *gin.Context) {
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		msg := `failed to ingest events`
+		msg := `failed to ingest event request`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
