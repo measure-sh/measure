@@ -23,6 +23,9 @@ struct EventEntity {
     let lifecycleSwiftUI: Data?
     let cpuUsage: Data?
     let memoryUsage: Data?
+    let coldLaunch: Data?
+    let warmLaunch: Data?
+    let hotLaunch: Data?
     let userTriggered: Bool
     let attachmentSize: Number
     let timestampInMillis: Number
@@ -137,6 +140,39 @@ struct EventEntity {
             self.memoryUsage = nil
         }
 
+        if let coldLaunch = event.data as? ColdLaunchData {
+            do {
+                let data = try JSONEncoder().encode(coldLaunch)
+                self.coldLaunch = data
+            } catch {
+                self.coldLaunch = nil
+            }
+        } else {
+            self.coldLaunch = nil
+        }
+
+        if let warmLaunch = event.data as? WarmLaunchData {
+            do {
+                let data = try JSONEncoder().encode(warmLaunch)
+                self.warmLaunch = data
+            } catch {
+                self.warmLaunch = nil
+            }
+        } else {
+            self.warmLaunch = nil
+        }
+
+        if let hotLaunch = event.data as? HotLaunchData {
+            do {
+                let data = try JSONEncoder().encode(hotLaunch)
+                self.hotLaunch = data
+            } catch {
+                self.hotLaunch = nil
+            }
+        } else {
+            self.hotLaunch = nil
+        }
+
         if let attributes = event.attributes {
             do {
                 let data = try JSONEncoder().encode(attributes)
@@ -174,7 +210,10 @@ struct EventEntity {
          lifecycleViewController: Data?,
          lifecycleSwiftUI: Data?,
          cpuUsage: Data?,
-         memoryUsage: Data?) {
+         memoryUsage: Data?,
+         coldLaunch: Data?,
+         warmLaunch: Data?,
+         hotLaunch: Data?) {
         self.id = id
         self.sessionId = sessionId
         self.timestamp = timestamp
@@ -194,6 +233,9 @@ struct EventEntity {
         self.lifecycleSwiftUI = lifecycleSwiftUI
         self.cpuUsage = cpuUsage
         self.memoryUsage = memoryUsage
+        self.coldLaunch = coldLaunch
+        self.warmLaunch = warmLaunch
+        self.hotLaunch = hotLaunch
     }
 
     func getEvent<T: Codable>() -> Event<T> { // swiftlint:disable:this cyclomatic_complexity function_body_length
@@ -268,6 +310,30 @@ struct EventEntity {
             if let memoryUsageData = self.memoryUsage {
                 do {
                     decodedData = try JSONDecoder().decode(T.self, from: memoryUsageData)
+                } catch {
+                    decodedData = nil
+                }
+            }
+        case .coldLaunch:
+            if let coldLaunchData = self.coldLaunch {
+                do {
+                    decodedData = try JSONDecoder().decode(T.self, from: coldLaunchData)
+                } catch {
+                    decodedData = nil
+                }
+            }
+        case .warmLaunch:
+            if let warmLaunchData = self.warmLaunch {
+                do {
+                    decodedData = try JSONDecoder().decode(T.self, from: warmLaunchData)
+                } catch {
+                    decodedData = nil
+                }
+            }
+        case .hotLaunch:
+            if let hotLaunchData = self.hotLaunch {
+                do {
+                    decodedData = try JSONDecoder().decode(T.self, from: hotLaunchData)
                 } catch {
                     decodedData = nil
                 }

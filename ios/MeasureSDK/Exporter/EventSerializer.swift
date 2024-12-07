@@ -101,6 +101,36 @@ struct EventSerializer {
                 }
             }
             return nil
+        case .coldLaunch:
+            if let coldLaunchData = event.coldLaunch {
+                do {
+                    let decodedData = try JSONDecoder().decode(ColdLaunchData.self, from: coldLaunchData)
+                    return serialiseColdLaunchData(decodedData)
+                } catch {
+                    return nil
+                }
+            }
+            return nil
+        case .warmLaunch:
+            if let warmLaunchData = event.warmLaunch {
+                do {
+                    let decodedData = try JSONDecoder().decode(WarmLaunchData.self, from: warmLaunchData)
+                    return serialiseWarmLaunchData(decodedData)
+                } catch {
+                    return nil
+                }
+            }
+            return nil
+        case .hotLaunch:
+            if let hotLaunchData = event.hotLaunch {
+                do {
+                    let decodedData = try JSONDecoder().decode(HotLaunchData.self, from: hotLaunchData)
+                    return serialiseHotLaunchData(decodedData)
+                } catch {
+                    return nil
+                }
+            }
+            return nil
         case nil:
             return nil
         }
@@ -233,25 +263,60 @@ struct EventSerializer {
 
     private func serialiseCpuUsageData(_ cpuUsageData: CpuUsageData) -> String {
         var result = "{"
-        result += "\"num_cores\":\"\(cpuUsageData.numCores)\","
-        result += "\"clock_speed\":\"\(cpuUsageData.clockSpeed)\","
-        result += "\"start_time\":\"\(cpuUsageData.startTime)\","
-        result += "\"uptime\":\"\(cpuUsageData.uptime)\","
-        result += "\"utime\":\"\(cpuUsageData.utime)\","
-        result += "\"cutime\":\"\(cpuUsageData.cutime)\","
-        result += "\"cstime\":\"\(cpuUsageData.cstime)\","
-        result += "\"stime\":\"\(cpuUsageData.stime)\","
-        result += "\"interval\":\"\(cpuUsageData.interval)\","
-        result += "\"percentage_usage\":\"\(cpuUsageData.percentageUsage)\""
+        result += "\"num_cores\":\(cpuUsageData.numCores),"
+        result += "\"clock_speed\":\(cpuUsageData.clockSpeed),"
+        result += "\"start_time\":\(cpuUsageData.startTime),"
+        result += "\"uptime\":\(cpuUsageData.uptime),"
+        result += "\"utime\":\(cpuUsageData.utime),"
+        result += "\"cutime\":\(cpuUsageData.cutime),"
+        result += "\"cstime\":\(cpuUsageData.cstime),"
+        result += "\"stime\":\(cpuUsageData.stime),"
+        result += "\"interval\":\(cpuUsageData.interval),"
+        result += "\"percentage_usage\":\(cpuUsageData.percentageUsage)"
         result += "}"
         return result
     }
 
     private func serialiseMemoryUsageData(_ memoryUsageData: MemoryUsageData) -> String {
         var result = "{"
-        result += "\"interval\":\"\(memoryUsageData.interval)\","
-        result += "\"used_memory\":\"\(memoryUsageData.usedMemory)\","
-        result += "\"max_memory\":\"\(memoryUsageData.maxMemory)\""
+        result += "\"interval\":\(memoryUsageData.interval),"
+        result += "\"used_memory\":\(memoryUsageData.usedMemory),"
+        result += "\"max_memory\":\(memoryUsageData.maxMemory)"
+        result += "}"
+        return result
+    }
+
+    private func serialiseColdLaunchData(_ coldLaunchData: ColdLaunchData) -> String {
+        var result = "{"
+        result += "\"process_start_uptime\":\(coldLaunchData.processStartUptime ?? 0),"
+        result += "\"process_start_requested_uptime\":\(coldLaunchData.processStartRequestedUptime ?? 0),"
+        result += "\"content_provider_attach_uptime\":\(coldLaunchData.contentProviderAttachUptime ?? 0),"
+        result += "\"on_next_draw_uptime\":\(coldLaunchData.onNextDrawUptime),"
+        result += "\"launched_activity\":\"\(coldLaunchData.launchedActivity)\","
+        result += "\"has_saved_state\":\(coldLaunchData.hasSavedState),"
+        result += "\"intent_data\":\"\(coldLaunchData.intentData ?? "")\""
+        result += "}"
+        return result
+    }
+
+    private func serialiseWarmLaunchData(_ warmLaunchData: WarmLaunchData) -> String {
+        var result = "{"
+        result += "\"app_visible_uptime\":\(warmLaunchData.appVisibleUptime ?? 0),"
+        result += "\"on_next_draw_uptime\":\(warmLaunchData.onNextDrawUptime),"
+        result += "\"launched_activity\":\"\(warmLaunchData.launchedActivity)\","
+        result += "\"has_saved_state\":\(warmLaunchData.hasSavedState),"
+        result += "\"intent_data\":\"\(warmLaunchData.intentData ?? "")\""
+        result += "}"
+        return result
+    }
+
+    private func serialiseHotLaunchData(_ hotLaunchData: HotLaunchData) -> String {
+        var result = "{"
+        result += "\"app_visible_uptime\":\(hotLaunchData.appVisibleUptime ?? 0),"
+        result += "\"on_next_draw_uptime\":\(hotLaunchData.onNextDrawUptime),"
+        result += "\"launched_activity\":\"\(hotLaunchData.launchedActivity)\","
+        result += "\"has_saved_state\":\(hotLaunchData.hasSavedState),"
+        result += "\"intent_data\":\"\(hotLaunchData.intentData ?? "")\""
         result += "}"
         return result
     }

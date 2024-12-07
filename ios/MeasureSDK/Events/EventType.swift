@@ -17,4 +17,7 @@ enum EventType: String, Codable {
     case lifecycleSwiftUI = "lifecycle_swift_ui"
     case cpuUsage = "cpu_usage"
     case memoryUsageAbsolute = "memory_usage_absolute"
+    case coldLaunch = "cold_launch"
+    case warmLaunch = "warm_launch"
+    case hotLaunch = "hot_launch"
 }

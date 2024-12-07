@@ -374,105 +374,352 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
     }
 
     func testApplicationLifecycleDataSerialization() {
-        let lifecycleData = ApplicationLifecycleData(type: .foreground)
+        let applicationLifecycleData = ApplicationLifecycleData(type: .foreground)
 
+        let event = Event(
+            id: "appLifecycleEventId",
+            sessionId: "sessionId",
+            timestamp: "2024-10-22T10:05:00Z",
+            timestampInMillis: 123456794,
+            type: .lifecycleApp,
+            data: applicationLifecycleData,
+            attachments: [],
+            attributes: TestDataGenerator.generateAttributes(),
+            userTriggered: false
+        )
+
+        let eventEntity = EventEntity(event)
+
+        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+            XCTFail("getSerialisedEvent cannot be nil")
+            return
+        }
+
+        let jsonData = Data(jsonString.utf8)
         do {
-            let jsonData = try JSONEncoder().encode(lifecycleData)
-            if let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] {
-                XCTAssertEqual(jsonDict["type"] as? String, "foreground")
+            let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
+
+            if let appLifecycleDataDict = jsonDict?["lifecycle_app"] as? [String: Any] {
+                XCTAssertEqual(appLifecycleDataDict["type"] as? String, "foreground")
             } else {
-                XCTFail("Application lifecycle data JSON structure is invalid.")
+                XCTFail("Application lifecycle data is not present in the serialized event.")
             }
         } catch {
-            XCTFail("Failed to serialize ApplicationLifecycleData: \(error.localizedDescription)")
+            XCTFail("Invalid JSON object: \(error.localizedDescription)")
         }
     }
 
     func testVCLifecycleDataSerialization() {
-        let lifecycleData = VCLifecycleData(type: VCLifecycleEventType.viewDidAppear.stringValue, className: "SampleViewController")
+        let vcLifecycleData = VCLifecycleData(type: "viewWillAppear", className: "ViewController")
 
+        let event = Event(
+            id: "vcLifecycleEventId",
+            sessionId: "sessionId",
+            timestamp: "2024-10-22T10:06:00Z",
+            timestampInMillis: 123456795,
+            type: .lifecycleViewController,
+            data: vcLifecycleData,
+            attachments: [],
+            attributes: TestDataGenerator.generateAttributes(),
+            userTriggered: false
+        )
+
+        let eventEntity = EventEntity(event)
+
+        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+            XCTFail("getSerialisedEvent cannot be nil")
+            return
+        }
+
+        let jsonData = Data(jsonString.utf8)
         do {
-            let jsonData = try JSONEncoder().encode(lifecycleData)
-            if let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] {
-                XCTAssertEqual(jsonDict["type"] as? String, "viewDidAppear")
-                XCTAssertEqual(jsonDict["className"] as? String, "SampleViewController")
+            let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
+
+            if let vcLifecycleDataDict = jsonDict?["lifecycle_view_controller"] as? [String: Any] {
+                XCTAssertEqual(vcLifecycleDataDict["type"] as? String, "viewWillAppear")
+                XCTAssertEqual(vcLifecycleDataDict["class_name"] as? String, "ViewController")
             } else {
-                XCTFail("VC lifecycle data JSON structure is invalid.")
+                XCTFail("ViewController lifecycle data is not present in the serialized event.")
             }
         } catch {
-            XCTFail("Failed to serialize VCLifecycleData: \(error.localizedDescription)")
+            XCTFail("Invalid JSON object: \(error.localizedDescription)")
         }
     }
 
     func testSwiftUILifecycleDataSerialization() {
-        let lifecycleData = SwiftUILifecycleData(type: .onAppear, viewName: "SampleView")
+        let swiftUILifecycleData = SwiftUILifecycleData(type: .onAppear, viewName: "ContentView")
 
+        let event = Event(
+            id: "swiftUILifecycleEventId",
+            sessionId: "sessionId",
+            timestamp: "2024-10-22T10:07:00Z",
+            timestampInMillis: 123456796,
+            type: .lifecycleSwiftUI,
+            data: swiftUILifecycleData,
+            attachments: [],
+            attributes: TestDataGenerator.generateAttributes(),
+            userTriggered: false
+        )
+
+        let eventEntity = EventEntity(event)
+
+        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+            XCTFail("getSerialisedEvent cannot be nil")
+            return
+        }
+
+        let jsonData = Data(jsonString.utf8)
         do {
-            let jsonData = try JSONEncoder().encode(lifecycleData)
-            if let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] {
-                XCTAssertEqual(jsonDict["type"] as? String, "on_appear")
-                XCTAssertEqual(jsonDict["viewName"] as? String, "SampleView")
+            let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
+
+            if let swiftUILifecycleDataDict = jsonDict?["lifecycle_swift_ui"] as? [String: Any] {
+                XCTAssertEqual(swiftUILifecycleDataDict["type"] as? String, "on_appear")
+                XCTAssertEqual(swiftUILifecycleDataDict["view_name"] as? String, "ContentView")
             } else {
-                XCTFail("SwiftUI lifecycle data JSON structure is invalid.")
+                XCTFail("SwiftUI lifecycle data is not present in the serialized event.")
             }
         } catch {
-            XCTFail("Failed to serialize SwiftUILifecycleData: \(error.localizedDescription)")
+            XCTFail("Invalid JSON object: \(error.localizedDescription)")
         }
     }
 
     func testCpuUsageDataSerialization() {
         let cpuUsageData = CpuUsageData(
             numCores: 4,
-            clockSpeed: 2300,
-            startTime: 1609459200,
-            uptime: 3600,
-            utime: 500,
-            cutime: 200,
-            cstime: 100,
-            stime: 300,
-            interval: 1000,
-            percentageUsage: 75.5
+            clockSpeed: 25,
+            startTime: 1234,
+            uptime: 5678,
+            utime: 30,
+            cutime: 15,
+            cstime: 10,
+            stime: 5,
+            interval: 100,
+            percentageUsage: 45.5
         )
 
+        let event = Event(
+            id: "cpuUsageEventId",
+            sessionId: "sessionId",
+            timestamp: "2024-10-22T10:08:00Z",
+            timestampInMillis: 123456797,
+            type: .cpuUsage,
+            data: cpuUsageData,
+            attachments: [],
+            attributes: TestDataGenerator.generateAttributes(),
+            userTriggered: false
+        )
+
+        let eventEntity = EventEntity(event)
+
+        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+            XCTFail("getSerialisedEvent cannot be nil")
+            return
+        }
+
+        let jsonData = Data(jsonString.utf8)
         do {
-            let jsonData = try JSONEncoder().encode(cpuUsageData)
-            if let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] {
-                XCTAssertEqual(jsonDict["num_cores"] as? Int, 4)
-                XCTAssertEqual(jsonDict["clock_speed"] as? Int, 2300)
-                XCTAssertEqual(jsonDict["start_time"] as? Int, 1609459200)
-                XCTAssertEqual(jsonDict["uptime"] as? Int, 3600)
-                XCTAssertEqual(jsonDict["utime"] as? Int, 500)
-                XCTAssertEqual(jsonDict["cutime"] as? Int, 200)
-                XCTAssertEqual(jsonDict["cstime"] as? Int, 100)
-                XCTAssertEqual(jsonDict["stime"] as? Int, 300)
-                XCTAssertEqual(jsonDict["interval"] as? Int, 1000)
-                XCTAssertEqual(jsonDict["percentage_usage"] as? Double, 75.5)
+            let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
+
+            if let cpuUsageDataDict = jsonDict?["cpu_usage"] as? [String: Any] {
+                XCTAssertEqual(cpuUsageDataDict["num_cores"] as? UInt8, 4)
+                XCTAssertEqual(cpuUsageDataDict["clock_speed"] as? UInt32, 25)
+                XCTAssertEqual(cpuUsageDataDict["start_time"] as? Int, 1234)
+                XCTAssertEqual(cpuUsageDataDict["uptime"] as? Int, 5678)
+                XCTAssertEqual(cpuUsageDataDict["utime"] as? Int, 30)
+                XCTAssertEqual(cpuUsageDataDict["cutime"] as? Int, 15)
+                XCTAssertEqual(cpuUsageDataDict["cstime"] as? Int, 10)
+                XCTAssertEqual(cpuUsageDataDict["stime"] as? Int, 5)
+                XCTAssertEqual(cpuUsageDataDict["interval"] as? UnsignedNumber, 100)
+                XCTAssertEqual(cpuUsageDataDict["percentage_usage"] as? FloatNumber64, 45.5)
             } else {
-                XCTFail("CpuUsageData JSON structure is invalid.")
+                XCTFail("CPU usage data is not present in the serialized event.")
             }
         } catch {
-            XCTFail("Failed to serialize CpuUsageData: \(error.localizedDescription)")
+            XCTFail("Invalid JSON object: \(error.localizedDescription)")
         }
     }
 
-    func testMemoryUsageDataSerialization() {
+    func testEventEntity_MemoryUsageDataSerialization() {
         let memoryUsageData = MemoryUsageData(
-            maxMemory: 2000,
-            usedMemory: 512,
-            interval: 1024
+            maxMemory: 4096,
+            usedMemory: 2048,
+            interval: 100
         )
 
+        let event = Event(
+            id: "memoryUsageEventId",
+            sessionId: "sessionId",
+            timestamp: "2024-10-22T10:09:00Z",
+            timestampInMillis: 123456798,
+            type: .memoryUsageAbsolute,
+            data: memoryUsageData,
+            attachments: [],
+            attributes: TestDataGenerator.generateAttributes(),
+            userTriggered: false
+        )
+
+        let eventEntity = EventEntity(event)
+
+        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+            XCTFail("getSerialisedEvent cannot be nil")
+            return
+        }
+
+        let jsonData = Data(jsonString.utf8)
         do {
-            let jsonData = try JSONEncoder().encode(memoryUsageData)
-            if let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] {
-                XCTAssertEqual(jsonDict["max_memory"] as? UnsignedNumber, 2000)
-                XCTAssertEqual(jsonDict["used_memory"] as? FloatNumber64, 512.0)
-                XCTAssertEqual(jsonDict["interval"] as? UnsignedNumber, 1024)
+            let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
+
+            if let memoryUsageDataDict = jsonDict?["memory_usage_absolute"] as? [String: Any] {
+                XCTAssertEqual(memoryUsageDataDict["interval"] as? UnsignedNumber, 100)
+                XCTAssertEqual(memoryUsageDataDict["used_memory"] as? UnsignedNumber, 2048)
+                XCTAssertEqual(memoryUsageDataDict["max_memory"] as? UnsignedNumber, 4096)
             } else {
-                XCTFail("MemoryUsageData JSON structure is invalid.")
+                XCTFail("Memory usage data is not present in the serialized event.")
             }
         } catch {
-            XCTFail("Failed to serialize MemoryUsageData: \(error.localizedDescription)")
+            XCTFail("Invalid JSON object: \(error.localizedDescription)")
+        }
+    }
+
+    func testHotLaunchDataSerialization() {
+        let hotLaunchData = HotLaunchData(
+            appVisibleUptime: 50,
+            onNextDrawUptime: 150,
+            launchedActivity: "DetailActivity",
+            hasSavedState: true,
+            intentData: "testIntentData"
+        )
+
+        let event = Event(
+            id: "hotLaunchEventId",
+            sessionId: "sessionId",
+            timestamp: "2024-10-22T10:02:00Z",
+            timestampInMillis: 123456791,
+            type: .hotLaunch,
+            data: hotLaunchData,
+            attachments: [],
+            attributes: TestDataGenerator.generateAttributes(),
+            userTriggered: false
+        )
+
+        let eventEntity = EventEntity(event)
+
+        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+            XCTFail("getSerialisedEvent cannot be nil")
+            return
+        }
+
+        let jsonData = Data(jsonString.utf8)
+        do {
+            let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
+
+            if let hotLaunchDataDict = jsonDict?["hot_launch"] as? [String: Any] {
+                XCTAssertEqual(hotLaunchDataDict["app_visible_uptime"] as? UnsignedNumber, 50)
+                XCTAssertEqual(hotLaunchDataDict["on_next_draw_uptime"] as? UnsignedNumber, 150)
+                XCTAssertEqual(hotLaunchDataDict["launched_activity"] as? String, "DetailActivity")
+                XCTAssertEqual(hotLaunchDataDict["has_saved_state"] as? Bool, true)
+                XCTAssertEqual(hotLaunchDataDict["intent_data"] as? String, "testIntentData")
+            } else {
+                XCTFail("Hot launch data is not present in the serialized event.")
+            }
+        } catch {
+            XCTFail("Invalid JSON object: \(error.localizedDescription)")
+        }
+    }
+
+    func testWarmLaunchDataSerialization() {
+        let warmLaunchData = WarmLaunchData(
+            appVisibleUptime: 100,
+            onNextDrawUptime: 200,
+            launchedActivity: "MainActivity",
+            hasSavedState: false,
+            intentData: "testIntentData"
+        )
+
+        let event = Event(
+            id: "warmLaunchEventId",
+            sessionId: "sessionId",
+            timestamp: "2024-10-22T10:03:00Z",
+            timestampInMillis: 123456792,
+            type: .warmLaunch,
+            data: warmLaunchData,
+            attachments: [],
+            attributes: TestDataGenerator.generateAttributes(),
+            userTriggered: false
+        )
+
+        let eventEntity = EventEntity(event)
+
+        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+            XCTFail("getSerialisedEvent cannot be nil")
+            return
+        }
+
+        let jsonData = Data(jsonString.utf8)
+        do {
+            let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
+
+            if let warmLaunchDataDict = jsonDict?["warm_launch"] as? [String: Any] {
+                XCTAssertEqual(warmLaunchDataDict["app_visible_uptime"] as? UnsignedNumber, 100)
+                XCTAssertEqual(warmLaunchDataDict["on_next_draw_uptime"] as? UnsignedNumber, 200)
+                XCTAssertEqual(warmLaunchDataDict["launched_activity"] as? String, "MainActivity")
+                XCTAssertEqual(warmLaunchDataDict["has_saved_state"] as? Bool, false)
+                XCTAssertEqual(warmLaunchDataDict["intent_data"] as? String, "testIntentData")
+            } else {
+                XCTFail("Warm launch data is not present in the serialized event.")
+            }
+        } catch {
+            XCTFail("Invalid JSON object: \(error.localizedDescription)")
+        }
+    }
+
+    func testColdLaunchDataSerialization() {
+        let coldLaunchData = ColdLaunchData(
+            processStartUptime: 100,
+            processStartRequestedUptime: 150,
+            contentProviderAttachUptime: 200,
+            onNextDrawUptime: 300,
+            launchedActivity: "MainActivity",
+            hasSavedState: true,
+            intentData: "testIntentData"
+        )
+
+        let event = Event(
+            id: "coldLaunchEventId",
+            sessionId: "sessionId",
+            timestamp: "2024-10-22T10:04:00Z",
+            timestampInMillis: 123456793,
+            type: .coldLaunch,
+            data: coldLaunchData,
+            attachments: [],
+            attributes: TestDataGenerator.generateAttributes(),
+            userTriggered: false
+        )
+
+        let eventEntity = EventEntity(event)
+
+        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+            XCTFail("getSerialisedEvent cannot be nil")
+            return
+        }
+
+        let jsonData = Data(jsonString.utf8)
+        do {
+            let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
+
+            if let coldLaunchDataDict = jsonDict?["cold_launch"] as? [String: Any] {
+                XCTAssertEqual(coldLaunchDataDict["process_start_uptime"] as? UnsignedNumber, 100)
+                XCTAssertEqual(coldLaunchDataDict["process_start_requested_uptime"] as? UnsignedNumber, 150)
+                XCTAssertEqual(coldLaunchDataDict["content_provider_attach_uptime"] as? UnsignedNumber, 200)
+                XCTAssertEqual(coldLaunchDataDict["on_next_draw_uptime"] as? UnsignedNumber, 300)
+                XCTAssertEqual(coldLaunchDataDict["launched_activity"] as? String, "MainActivity")
+                XCTAssertEqual(coldLaunchDataDict["has_saved_state"] as? Bool, true)
+                XCTAssertEqual(coldLaunchDataDict["intent_data"] as? String, "testIntentData")
+            } else {
+                XCTFail("Cold launch data is not present in the serialized event.")
+            }
+        } catch {
+            XCTFail("Invalid JSON object: \(error.localizedDescription)")
         }
     }
 
