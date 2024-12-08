@@ -1,6 +1,6 @@
 package sh.measure.android.okhttp
 
-import sh.measure.android.events.EventProcessor
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.isClassAvailable
@@ -11,12 +11,12 @@ import sh.measure.android.utils.isClassAvailable
  */
 internal class HttpEventCollectorFactory(
     private val logger: Logger,
-    private val eventProcessor: EventProcessor,
+    private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
 ) {
     fun create(): HttpEventCollector {
         return if (isClassAvailable("okhttp3.OkHttpClient")) {
-            OkHttpEventCollectorImpl(logger, eventProcessor, timeProvider)
+            OkHttpEventCollectorImpl(logger, signalProcessor, timeProvider)
         } else {
             NoOpHttpEventCollector()
         }

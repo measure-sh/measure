@@ -7,8 +7,8 @@ import okhttp3.Request
 import okhttp3.Response
 import okio.Buffer
 import okio.ByteString
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.TimeProvider
@@ -22,7 +22,7 @@ internal abstract class OkHttpEventCollector : EventListener(), HttpEventCollect
 
 internal class OkHttpEventCollectorImpl(
     private val logger: Logger,
-    private val eventProcessor: EventProcessor,
+    private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
 ) : OkHttpEventCollector() {
     private val enabled = AtomicBoolean(false)
@@ -112,7 +112,7 @@ internal class OkHttpEventCollectorImpl(
         }
         builder?.let {
             val httpEvent = it.build()
-            eventProcessor.track(
+            signalProcessor.track(
                 type = EventType.HTTP,
                 timestamp = timeProvider.now(),
                 data = httpEvent,

@@ -3,19 +3,19 @@ package sh.measure.android.lifecycle
 import android.content.Context
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.utils.TimeProvider
 
 /**
  * Tracks [Fragment] lifecycle events.
  */
 internal class FragmentLifecycleCollector(
-    private val eventProcessor: EventProcessor,
+    private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
 ) : FragmentLifecycleAdapter() {
     override fun onFragmentAttached(fm: FragmentManager, f: Fragment, context: Context) {
-        eventProcessor.track(
+        signalProcessor.track(
             type = EventType.LIFECYCLE_FRAGMENT,
             timestamp = timeProvider.now(),
             data = FragmentLifecycleData(
@@ -29,7 +29,7 @@ internal class FragmentLifecycleCollector(
     }
 
     override fun onFragmentResumed(fm: FragmentManager, f: Fragment) {
-        eventProcessor.track(
+        signalProcessor.track(
             type = EventType.LIFECYCLE_FRAGMENT,
             timestamp = timeProvider.now(),
             data = FragmentLifecycleData(
@@ -43,7 +43,7 @@ internal class FragmentLifecycleCollector(
     }
 
     override fun onFragmentPaused(fm: FragmentManager, f: Fragment) {
-        eventProcessor.track(
+        signalProcessor.track(
             type = EventType.LIFECYCLE_FRAGMENT,
             timestamp = timeProvider.now(),
             data = FragmentLifecycleData(
@@ -57,7 +57,7 @@ internal class FragmentLifecycleCollector(
     }
 
     override fun onFragmentDetached(fm: FragmentManager, f: Fragment) {
-        eventProcessor.track(
+        signalProcessor.track(
             type = EventType.LIFECYCLE_FRAGMENT,
             timestamp = timeProvider.now(),
             data = FragmentLifecycleData(
