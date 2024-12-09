@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Support custom events (#1554)
 - (**backend**): Support user defined attributes (#1529)
 
+- (**frontend**): Show user defined attrs in session timeline
+
 
 ### :bug: Bug fixes
 
