@@ -26,10 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Support layout_snapshot attachments for gesture click
 - (**backend**): Made span queries secure (#1566)
 - (**backend**): Add sample sessions
 - (**backend**): Ingest low power and thermal throttling attributes
 
+- (**frontend**): Support attachments for gesture click
 - (**frontend**): Truncate class names in session timeline event titles
 
 
