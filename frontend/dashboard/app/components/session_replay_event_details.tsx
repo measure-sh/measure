@@ -20,7 +20,7 @@ export default function SessionReplayEventDetails({
 
   function getBodyFromEventDetails(eventDetails: any): ReactNode {
     const entries = Object.entries(eventDetails).filter(([key]) => key !== "user_defined_attribute")
-    const userDefinedAttribute = Object.entries(eventDetails).find(([key]) => key === "user_defined_attribute")
+    const userDefinedAttributes = Object.entries(eventDetails).find(([key]) => key === "user_defined_attribute")?.[1]
     const keyStyle = "text-gray-400 w-1/3"
     const valueStyle = "w-2/3 pl-2"
 
@@ -48,9 +48,9 @@ export default function SessionReplayEventDetails({
           }
         })}
 
-        {userDefinedAttribute && (
+        {userDefinedAttributes !== undefined && userDefinedAttributes !== null && (
           <div key="user_defined_attribute">
-            {Object.entries(userDefinedAttribute[1]!).map(([attrKey, attrValue]) => (
+            {Object.entries(userDefinedAttributes).map(([attrKey, attrValue]) => (
               <div className="flex flex-row" key={attrKey}>
                 <p className={keyStyle}>{attrKey}</p>
                 <p className={valueStyle}>{attrValue?.toString()}</p>
