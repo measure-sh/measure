@@ -3,8 +3,8 @@ package sh.measure.android.anr
 import android.os.Looper
 import sh.measure.android.AnrListener
 import sh.measure.android.NativeBridge
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.exceptions.ExceptionFactory
 import sh.measure.android.logger.LogLevel
@@ -15,7 +15,7 @@ import sh.measure.android.utils.ProcessInfoProvider
 internal class AnrCollector(
     private val logger: Logger,
     private val processInfo: ProcessInfoProvider,
-    private val eventProcessor: EventProcessor,
+    private val signalProcessor: SignalProcessor,
     private val nativeBridge: NativeBridge,
     private val mainLooper: Looper = mainHandler.looper,
 ) : AnrListener {
@@ -32,7 +32,7 @@ internal class AnrCollector(
             timestamp,
             "Application Not Responding for at least 5s",
         )
-        eventProcessor.trackCrash(
+        signalProcessor.trackCrash(
             timestamp = anrError.timestamp,
             type = EventType.ANR,
             data = toMeasureException(anrError),
