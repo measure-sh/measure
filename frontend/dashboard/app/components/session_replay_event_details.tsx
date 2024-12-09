@@ -1,7 +1,7 @@
 'use client'
 
 import { ReactNode } from 'react'
-import Image from 'next/image';
+import Image from 'next/image'
 import Link from 'next/link'
 
 type SessionReplayEventDetailsProps = {
@@ -19,27 +19,47 @@ export default function SessionReplayEventDetails({
 }: SessionReplayEventDetailsProps) {
 
   function getBodyFromEventDetails(eventDetails: any): ReactNode {
-    const entries = Object.entries(eventDetails);
+    const entries = Object.entries(eventDetails).filter(([key]) => key !== "user_defined_attribute")
+    const userDefinedAttribute = Object.entries(eventDetails).find(([key]) => key === "user_defined_attribute")
     const keyStyle = "text-gray-400 w-1/3"
     const valueStyle = "w-2/3 pl-2"
-    return <div className='flex flex-col p-4 text-white w-full gap-1 text-sm'>
-      {entries.map(([key, value]): ReactNode => {
-        if (typeof value === 'object') {
-          return null
-        } else if (value === '' || value === null) {
-          return null
-        } else if (key === 'stacktrace') {
-          return <div className='flex flex-col' key={key}>
-            <p className={keyStyle}>{key}:</p>
-            <p className='w-full p-1 text-xs rounded-md'>{(value as string).replace(/\n/g, '\n\t')}</p></div>
-        } else {
-          return <div className='flex flex-row' key={key}>
-            <p className={keyStyle}>{key}</p>
-            <p className={valueStyle}> {value!.toString()}</p>
+
+    return (
+      <div className="flex flex-col p-4 text-white w-full gap-1 text-sm">
+        {entries.map(([key, value]) => {
+          if (key === "stacktrace" && typeof value === "string") {
+            return (
+              <div className="flex flex-col" key={key}>
+                <p className={keyStyle}>{key}:</p>
+                <p className="w-full p-1 text-xs rounded-md">
+                  {value.replace(/\n/g, "\n\t")}
+                </p>
+              </div>
+            )
+          } else if (value === "" || value === null || typeof value === "object") {
+            return null // Skip empty or invalid values
+          } else {
+            return (
+              <div className="flex flex-row" key={key}>
+                <p className={keyStyle}>{key}</p>
+                <p className={valueStyle}>{value?.toString()}</p>
+              </div>
+            )
+          }
+        })}
+
+        {userDefinedAttribute && (
+          <div key="user_defined_attribute">
+            {Object.entries(userDefinedAttribute[1]!).map(([attrKey, attrValue]) => (
+              <div className="flex flex-row" key={attrKey}>
+                <p className={keyStyle}>{attrKey}</p>
+                <p className={valueStyle}>{attrValue?.toString()}</p>
+              </div>
+            ))}
           </div>
-        }
-      })}
-    </div>
+        )}
+      </div>
+    )
   }
 
   function getAttachmentsFromEventDetails(): ReactNode {
