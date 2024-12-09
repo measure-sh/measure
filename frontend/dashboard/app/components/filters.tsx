@@ -323,7 +323,7 @@ const Filters: React.FC<FiltersProps> = ({
 
   useEffect(() => {
     // Don't try to fetch trace names if selected app is not yet set or if FilterType is not span
-    if (selectedApp.id === "" && filtersApiType === FiltersApiType.Span) {
+    if (selectedApp.id === "" || filtersApiType !== FiltersApiType.Span) {
       return
     }
 
