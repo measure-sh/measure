@@ -57,15 +57,18 @@ export default function SessionReplayEventCell({
     }
 
     if (eventType === "gesture_long_click") {
-      return 'Long Click: ' + eventDetails.target
+      const name = eventDetails.target.includes(".") ? eventDetails.target.split('.').pop()! : eventDetails.target
+      return 'Long Click: ' + name
     }
 
     if (eventType === "gesture_scroll") {
-      return 'Scroll: ' + eventDetails.target
+      const name = eventDetails.target.includes(".") ? eventDetails.target.split('.').pop()! : eventDetails.target
+      return 'Scroll: ' + name
     }
 
     if (eventType === "gesture_click") {
-      return 'Click: ' + eventDetails.target
+      const name = eventDetails.target.includes(".") ? eventDetails.target.split('.').pop()! : eventDetails.target
+      return 'Click: ' + name
     }
 
     if (eventType === "http") {
@@ -73,11 +76,13 @@ export default function SessionReplayEventCell({
     }
 
     if (eventType === "lifecycle_activity") {
-      return 'Activity ' + formatToCamelCase(eventDetails.type) + ': ' + eventDetails.class_name
+      const name = eventDetails.class_name.includes(".") ? eventDetails.class_name.split('.').pop()! : eventDetails.class_name
+      return 'Activity ' + formatToCamelCase(eventDetails.type) + ': ' + name
     }
 
     if (eventType === "lifecycle_fragment") {
-      return 'Fragment ' + formatToCamelCase(eventDetails.type) + ': ' + eventDetails.class_name
+      const name = eventDetails.class_name.includes(".") ? eventDetails.class_name.split('.').pop()! : eventDetails.class_name
+      return 'Fragment ' + formatToCamelCase(eventDetails.type) + ': ' + name
     }
 
     if (eventType === "lifecycle_app") {
