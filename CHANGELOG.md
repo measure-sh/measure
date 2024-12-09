@@ -30,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add sample sessions
 - (**backend**): Ingest low power and thermal throttling attributes
 
+- (**frontend**): Truncate class names in session timeline event titles
+
 
 ### :coffin: Removed
 
