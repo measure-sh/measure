@@ -353,7 +353,7 @@ func GetSpanInstancesWithFilter(ctx context.Context, spanName string, af *filter
 			return rootSpans, next, previous, err
 		}
 
-		stmt.Where(fmt.Sprintf("attribute.app_version in (%s)", selectedVersions.String()))
+		stmt.Where("attribute.app_version in (?)", selectedVersions.Parameterize())
 	}
 
 	if af.HasOSVersions() {
@@ -362,7 +362,7 @@ func GetSpanInstancesWithFilter(ctx context.Context, spanName string, af *filter
 			return rootSpans, next, previous, err
 		}
 
-		stmt.Where(fmt.Sprintf("attribute.os_version in (%s)", selectedOSVersions.String()))
+		stmt.Where("attribute.os_version in (?)", selectedOSVersions.Parameterize())
 	}
 
 	if af.HasCountries() {
@@ -452,7 +452,7 @@ func GetSpanMetricsPlotWithFilter(ctx context.Context, spanName string, af *filt
 			return nil, err
 		}
 
-		stmt.Where(fmt.Sprintf("app_version in (%s)", selectedVersions.String()))
+		stmt.Where("app_version in (?)", selectedVersions.Parameterize())
 	}
 
 	if af.HasOSVersions() {
@@ -461,7 +461,7 @@ func GetSpanMetricsPlotWithFilter(ctx context.Context, spanName string, af *filt
 			return nil, err
 		}
 
-		stmt.Where(fmt.Sprintf("os_version in (%s)", selectedOSVersions.String()))
+		stmt.Where("os_version in (?)", selectedOSVersions.Parameterize())
 	}
 
 	if af.HasCountries() {
