@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Filter versions and os versions securely (#1563)
 
+- (**frontend**): Handle empty user_defined_attrs in session timeline
 - (**frontend**): Don't update filters on selectedApp change
 
 
