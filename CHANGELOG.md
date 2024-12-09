@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Filter versions and os versions securely (#1563)
+
 - (**frontend**): Don't update filters on selectedApp change
 
 
