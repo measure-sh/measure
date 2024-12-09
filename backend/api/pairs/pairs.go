@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/ClickHouse/clickhouse-go/v2"
 )
 
 // Pairs is a tuple-like data structure
@@ -53,4 +55,19 @@ func (p Pairs[T, U]) String() string {
 	}
 
 	return b.String()
+}
+
+// Parameterize represents Pairs in a slice of clickhouse.GroupSet
+// for direct use in SQL queries.
+func (p Pairs[T, U]) Parameterize() (tuples []clickhouse.GroupSet) {
+	if len(p.first) == 0 {
+		return
+	}
+
+	for i := 0; i < len(p.first); i++ {
+		tuple := clickhouse.GroupSet{Value: []any{p.first[i], p.second[i]}}
+		tuples = append(tuples, tuple)
+	}
+
+	return
 }
