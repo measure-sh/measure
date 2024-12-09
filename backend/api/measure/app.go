@@ -706,16 +706,16 @@ func (a App) GetIssueFreeMetrics(
 	}
 
 	stmt := sqlf.From("app_metrics").
-		Select(fmt.Sprintf("uniqMergeIf(unique_sessions, app_version in (%s)) as selected_sessions", selectedVersions.String())).
-		Select(fmt.Sprintf("uniqMergeIf(unique_sessions, app_version not in (%s)) as unselected_sessions", selectedVersions.String())).
-		Select(fmt.Sprintf("uniqMergeIf(crash_sessions, app_version in (%s)) as selected_crash_sessions", selectedVersions.String())).
-		Select(fmt.Sprintf("uniqMergeIf(crash_sessions, app_version not in (%s)) as unselected_crash_sessions", selectedVersions.String())).
-		Select(fmt.Sprintf("uniqMergeIf(anr_sessions, app_version in (%s)) as selected_anr_sessions", selectedVersions.String())).
-		Select(fmt.Sprintf("uniqMergeIf(anr_sessions, app_version not in (%s)) as unselected_anr_sessions", selectedVersions.String())).
-		Select(fmt.Sprintf("uniqMergeIf(perceived_crash_sessions, app_version in (%s)) as selected_perceived_crash_sessions", selectedVersions.String())).
-		Select(fmt.Sprintf("uniqMergeIf(perceived_crash_sessions, app_version not in (%s)) as unselected_perceived_crash_sessions", selectedVersions.String())).
-		Select(fmt.Sprintf("uniqMergeIf(perceived_anr_sessions, app_version in (%s)) as selected_perceived_anr_sessions", selectedVersions.String())).
-		Select(fmt.Sprintf("uniqMergeIf(perceived_anr_sessions, app_version not in (%s)) as unselected_perceived_anr_sessions", selectedVersions.String())).
+		Select("uniqMergeIf(unique_sessions, app_version in (?)) as selected_sessions", selectedVersions.Parameterize()).
+		Select("uniqMergeIf(unique_sessions, app_version not in (?)) as unselected_sessions", selectedVersions.Parameterize()).
+		Select("uniqMergeIf(crash_sessions, app_version in (?)) as selected_crash_sessions", selectedVersions.Parameterize()).
+		Select("uniqMergeIf(crash_sessions, app_version not in (?)) as unselected_crash_sessions", selectedVersions.Parameterize()).
+		Select("uniqMergeIf(anr_sessions, app_version in (?)) as selected_anr_sessions", selectedVersions.Parameterize()).
+		Select("uniqMergeIf(anr_sessions, app_version not in (?)) as unselected_anr_sessions", selectedVersions.Parameterize()).
+		Select("uniqMergeIf(perceived_crash_sessions, app_version in (?)) as selected_perceived_crash_sessions", selectedVersions.Parameterize()).
+		Select("uniqMergeIf(perceived_crash_sessions, app_version not in (?)) as unselected_perceived_crash_sessions", selectedVersions.Parameterize()).
+		Select("uniqMergeIf(perceived_anr_sessions, app_version in (?)) as selected_perceived_anr_sessions", selectedVersions.Parameterize()).
+		Select("uniqMergeIf(perceived_anr_sessions, app_version not in (?)) as unselected_perceived_anr_sessions", selectedVersions.Parameterize()).
 		Where("app_id = toUUID(?)", af.AppID).
 		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
@@ -840,7 +840,7 @@ func (a App) GetAdoptionMetrics(ctx context.Context, af *filter.AppFilter) (adop
 	}
 
 	stmt := sqlf.From("app_metrics").
-		Select(fmt.Sprintf("uniqMergeIf(unique_sessions, app_version in (%s)) as selected_sessions", selectedVersions.String())).
+		Select("uniqMergeIf(unique_sessions, app_version in (?)) as selected_sessions", selectedVersions.Parameterize()).
 		Select("uniqMerge(unique_sessions) as all_sessions").
 		Select("round((selected_sessions / all_sessions) * 100, 2) as adoption").
 		Where("app_id = toUUID(?)", af.AppID).
@@ -867,18 +867,18 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 	selectedVersions, err := af.VersionPairs()
 
 	withStmt := sqlf.From("app_metrics").
-		Select(fmt.Sprintf("quantileMergeIf(0.95)(cold_launch_p95, app_version not in (%s)) as cold_launch_p95", selectedVersions.String())).
-		Select(fmt.Sprintf("quantileMergeIf(0.95)(warm_launch_p95, app_version not in (%s)) as warm_launch_p95", selectedVersions.String())).
-		Select(fmt.Sprintf("quantileMergeIf(0.95)(hot_launch_p95, app_version not in (%s)) as hot_launch_p95", selectedVersions.String())).
+		Select("quantileMergeIf(0.95)(cold_launch_p95, app_version not in (?)) as cold_launch_p95", selectedVersions.Parameterize()).
+		Select("quantileMergeIf(0.95)(warm_launch_p95, app_version not in (?)) as warm_launch_p95", selectedVersions.Parameterize()).
+		Select("quantileMergeIf(0.95)(hot_launch_p95, app_version not in (?)) as hot_launch_p95", selectedVersions.Parameterize()).
 		Where("app_id = toUUID(?)", af.AppID).
 		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
 	defer withStmt.Close()
 
 	stmt := sqlf.New(fmt.Sprintf("with (%s) as unselected select", withStmt.String()), withStmt.Args()...).
-		Select(fmt.Sprintf("round(quantileMergeIf(0.95)(cold_launch_p95, app_version in (%s)), 2) as selected_cold_launch_p95", selectedVersions.String())).
-		Select(fmt.Sprintf("round(quantileMergeIf(0.95)(warm_launch_p95, app_version in (%s)), 2) as selected_warm_launch_p95", selectedVersions.String())).
-		Select(fmt.Sprintf("round(quantileMergeIf(0.95)(hot_launch_p95, app_version in (%s)), 2) as selected_hot_launch_p95", selectedVersions.String())).
+		Select("round(quantileMergeIf(0.95)(cold_launch_p95, app_version in (?)), 2) as selected_cold_launch_p95", selectedVersions.Parameterize()).
+		Select("round(quantileMergeIf(0.95)(warm_launch_p95, app_version in (?)), 2) as selected_warm_launch_p95", selectedVersions.Parameterize()).
+		Select("round(quantileMergeIf(0.95)(hot_launch_p95, app_version in (?)), 2) as selected_hot_launch_p95", selectedVersions.Parameterize()).
 		Select("round((selected_cold_launch_p95 / unselected.cold_launch_p95), 2) as cold_delta").
 		Select("round((selected_warm_launch_p95 / unselected.warm_launch_p95), 2) as warm_delta").
 		Select("round((selected_hot_launch_p95 / unselected.hot_launch_p95), 2) as hot_delta").
@@ -2215,10 +2215,9 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	msg = `failed to fetch app metrics`
-
 	excludedVersions, err := af.GetExcludedVersions(ctx)
 	if err != nil {
+		msg := `failed to fetch excluded versions`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
@@ -2228,6 +2227,7 @@ func GetAppMetrics(c *gin.Context) {
 
 	adoption, err := app.GetAdoptionMetrics(ctx, &af)
 	if err != nil {
+		msg := `failed to fetch adoption metrics`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
@@ -2237,6 +2237,7 @@ func GetAppMetrics(c *gin.Context) {
 
 	crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err := app.GetIssueFreeMetrics(ctx, &af, excludedVersions)
 	if err != nil {
+		msg := `failed to fetch issue free metrics`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
@@ -2246,6 +2247,7 @@ func GetAppMetrics(c *gin.Context) {
 
 	launch, err := app.GetLaunchMetrics(ctx, &af)
 	if err != nil {
+		msg := `failed to fetch launch metrics`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
@@ -2257,6 +2259,7 @@ func GetAppMetrics(c *gin.Context) {
 	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 && !af.HasMultiVersions() {
 		sizes, err = app.GetSizeMetrics(ctx, &af, excludedVersions)
 		if err != nil {
+			msg := `failed to fetch size metrics`
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": msg,

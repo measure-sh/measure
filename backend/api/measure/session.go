@@ -147,7 +147,7 @@ func GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessio
 			return nil, err
 		}
 
-		base.Where(fmt.Sprintf("app_version in (%s)", selectedVersions.String()))
+		base.Where("app_version in (?)", selectedVersions.Parameterize())
 	}
 
 	if af.HasOSVersions() {
@@ -156,7 +156,7 @@ func GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessio
 			return nil, err
 		}
 
-		base.Where(fmt.Sprintf("os_version in (%s)", selectedOSVersions.String()))
+		base.Where("os_version in (?)", selectedOSVersions.Parameterize())
 	}
 
 	if af.HasCountries() {
@@ -316,7 +316,7 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 			return sessions, next, previous, err
 		}
 
-		stmt.Where(fmt.Sprintf("app_version in (%s)", selectedVersions.String()))
+		stmt.Where("app_version in (?)", selectedVersions.Parameterize())
 	}
 
 	if af.HasOSVersions() {
@@ -325,7 +325,7 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 			return sessions, next, previous, err
 		}
 
-		stmt.Where(fmt.Sprintf("os_version in (%s)", selectedOSVersions.String()))
+		stmt.Where("os_version in (?)", selectedOSVersions.Parameterize())
 	}
 
 	if af.HasCountries() {

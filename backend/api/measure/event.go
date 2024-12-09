@@ -1091,8 +1091,8 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		Select("attachments").
 		Select(fmt.Sprintf("row_number() over (order by timestamp %s, id) as row_num", order)).
 		Clause(prewhere, af.AppID, group.Fingerprint).
-		Where(fmt.Sprintf("(attribute.app_version, attribute.app_build) in (%s)", selectedVersions.String())).
-		Where(fmt.Sprintf("(attribute.os_name, attribute.os_version) in (%s)", selectedOSVersions.String())).
+		Where("(attribute.app_version, attribute.app_build) in (?)", selectedVersions.Parameterize()).
+		Where("(attribute.os_name, attribute.os_version) in (?)", selectedOSVersions.Parameterize()).
 		Where("type = ?", event.TypeException).
 		Where("exception.handled = false").
 		Where("inet.country_code in ?", af.Countries).
@@ -1361,8 +1361,8 @@ func GetANRsWithFilter(ctx context.Context, group *group.ANRGroup, af *filter.Ap
 		Select("attachments").
 		Select(fmt.Sprintf("row_number() over (order by timestamp %s, id) as row_num", order)).
 		Clause(prewhere, af.AppID, group.Fingerprint).
-		Where(fmt.Sprintf("(attribute.app_version, attribute.app_build) in (%s)", selectedVersions.String())).
-		Where(fmt.Sprintf("(attribute.os_name, attribute.os_version) in (%s)", selectedOSVersions.String())).
+		Where("(attribute.app_version, attribute.app_build) in (?)", selectedVersions.Parameterize()).
+		Where("(attribute.os_name, attribute.os_version) in (?)", selectedOSVersions.Parameterize()).
 		Where("type = ?", event.TypeANR).
 		Where("inet.country_code in ?", af.Countries).
 		Where("attribute.device_name in ?", af.DeviceNames).

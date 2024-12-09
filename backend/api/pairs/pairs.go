@@ -2,8 +2,8 @@ package pairs
 
 import (
 	"errors"
-	"fmt"
-	"strings"
+
+	"github.com/ClickHouse/clickhouse-go/v2"
 )
 
 // Pairs is a tuple-like data structure
@@ -34,23 +34,17 @@ func (p *Pairs[T, U]) Add(first T, second U) {
 	p.second = append(p.second, second)
 }
 
-// String returns a string representation of
-// a pairs.
-func (p Pairs[T, U]) String() string {
-	var b strings.Builder
-
-	// if there are no elements, return empty string
+// Parameterize represents Pairs in a slice of clickhouse.GroupSet
+// for direct use in SQL queries.
+func (p Pairs[T, U]) Parameterize() (tuples []clickhouse.GroupSet) {
 	if len(p.first) == 0 {
-		return ""
+		return
 	}
 
 	for i := 0; i < len(p.first); i++ {
-		b.WriteString(fmt.Sprintf("('%v','%v')", p.first[i], p.second[i]))
-		// add separator between pairs, except the last pair
-		if i < len(p.first)-1 {
-			b.WriteString(",")
-		}
+		tuple := clickhouse.GroupSet{Value: []any{p.first[i], p.second[i]}}
+		tuples = append(tuples, tuple)
 	}
 
-	return b.String()
+	return
 }
