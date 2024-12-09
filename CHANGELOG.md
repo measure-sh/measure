@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Made span queries secure (#1566)
 - (**backend**): Add sample sessions
 - (**backend**): Ingest low power and thermal throttling attributes
 
