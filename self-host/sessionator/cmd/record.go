@@ -48,7 +48,7 @@ var recordCmd = &cobra.Command{
 	Use:   "record",
 	Short: "Records events & builds",
 	Long: `Records events & builds to disk.
-	
+
 Structue of "session-data" directory once written:` + "\n" + DirTree() + "\n" + ValidNote(),
 	Run: func(cmd *cobra.Command, args []string) {
 		r := gin.Default()

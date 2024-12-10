@@ -646,6 +646,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			Set(`attribute.device_locale`, e.events[i].Attribute.DeviceLocale).
 			Set(`attribute.device_low_power_mode`, e.events[i].Attribute.DeviceLowPowerMode).
 			Set(`attribute.device_thermal_throttling_enabled`, e.events[i].Attribute.DeviceThermalThrottlingEnabled).
+			Set(`attribute.device_cpu_arch`, e.events[i].Attribute.DeviceCPUArch).
 			Set(`attribute.os_name`, e.events[i].Attribute.OSName).
 			Set(`attribute.os_version`, e.events[i].Attribute.OSVersion).
 			Set(`attribute.os_page_size`, e.events[i].Attribute.OSPageSize).
@@ -824,6 +825,28 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`lifecycle_fragment.tag`, nil)
 		}
 
+		// lifecycle view controller
+		if e.events[i].IsLifecycleViewController() {
+			row.
+				Set(`lifecycle_view_controller.type`, e.events[i].LifecycleViewController.Type).
+				Set(`lifecycle_view_controller.class_name`, e.events[i].LifecycleViewController.ClassName)
+		} else {
+			row.
+				Set(`lifecycle_view_controller.type`, nil).
+				Set(`lifecycle_view_controller.class_name`, nil)
+		}
+
+		// lifecycle swift ui
+		if e.events[i].IsLifecycleSwiftUI() {
+			row.
+				Set(`lifecycle_swift_ui.type`, e.events[i].LifecycleSwiftUI.Type).
+				Set(`lifecycle_swift_ui.class_name`, e.events[i].LifecycleSwiftUI.ClassName)
+		} else {
+			row.
+				Set(`lifecycle_swift_ui.type`, nil).
+				Set(`lifecycle_swift_ui.class_name`, nil)
+		}
+
 		// lifecycle app
 		if e.events[i].IsLifecycleApp() {
 			row.
@@ -971,6 +994,19 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`memory_usage.native_total_heap`, nil).
 				Set(`memory_usage.native_free_heap`, nil).
 				Set(`memory_usage.interval`, nil)
+		}
+
+		// memory usage absolute
+		if e.events[i].IsMemoryUsageAbs() {
+			row.
+				Set(`memory_usage_absolute.max_memory`, e.events[i].MemoryUsageAbs.MaxMemory).
+				Set(`memory_usage_absolute.used_memory`, e.events[i].MemoryUsageAbs.UsedMemory).
+				Set(`memory_usage.interval`, e.events[i].MemoryUsageAbs.Interval)
+		} else {
+			row.
+				Set(`memory_usage_absolute.max_memory`, nil).
+				Set(`memory_usage_absolute.used_memory`, nil).
+				Set(`memory_usage_absolute.interval`, nil)
 		}
 
 		// low memory

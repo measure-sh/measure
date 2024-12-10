@@ -86,6 +86,10 @@ type Attribute struct {
 	// is running with thermal throttling enabled.
 	DeviceThermalThrottlingEnabled bool `json:"device_thermal_throttling_enabled"`
 
+	// DeviceCPUArch describes the CPU architecture
+	// of the device if available.
+	DeviceCPUArch string `json:"device_cpu_arch"`
+
 	// OSName is the operating system's name
 	OSName string `json:"os_name"`
 
@@ -136,7 +140,14 @@ func (a Attribute) Validate() error {
 		maxNetworkGenerationChars  = 8
 		maxNetworkProviderChars    = 64
 		maxDeviceLocaleChars       = 64
+		maxDeviceCPUArchChars      = 16
 	)
+
+	switch a.Platform {
+	case platform.Android, platform.IOS:
+	default:
+		return fmt.Errorf(`%q does not contain a valid platform value`, `attribute.platform`)
+	}
 
 	if len(a.AppVersion) > maxAppVersionChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.app_version`, maxAppVersionChars)
@@ -152,9 +163,6 @@ func (a Attribute) Validate() error {
 	}
 	if len(a.MeasureSDKVersion) > maxMeasureSDKVersion {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.measure_sdk_version`, maxMeasureSDKVersion)
-	}
-	if a.Platform != platform.Android && a.Platform != platform.IOS {
-		return fmt.Errorf(`%q does not contain a valid platform value`, `attribute.platform`)
 	}
 	if len(a.ThreadName) > maxThreadNameChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.thread_name`, maxThreadNameChars)
@@ -176,6 +184,9 @@ func (a Attribute) Validate() error {
 	}
 	if len(a.DeviceLocale) > maxDeviceLocaleChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.device_locale`, maxDeviceLocaleChars)
+	}
+	if len(a.DeviceCPUArch) > maxDeviceCPUArchChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.device_cpu_arch`, maxDeviceCPUArchChars)
 	}
 	if len(a.OSName) > maxOSNameChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.os_name`, maxOSNameChars)
