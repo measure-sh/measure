@@ -31,7 +31,7 @@ export function formatMillisToHumanReadable(millis: number) {
   if (hours > 0) output += `${hours}h, `;
   if (minutes > 0) output += `${minutes}min, `;
   if (seconds > 0) output += `${seconds}s, `;
-  if (millis > 0) output += `${millis}ms`;
+  if (millis > 0) output += `${Math.round(millis)}ms`;
 
   return output.trim().replace(/,\s*$/, ''); // Remove trailing comma if any
 }
