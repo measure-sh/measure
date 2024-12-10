@@ -135,7 +135,7 @@ func ValidateFlags() bool {
 func IngestSerial(apps *app.Apps, origin string) {
 	startTime := time.Now()
 	eventURL := fmt.Sprintf("%s/events", origin)
-	mappingURL := fmt.Sprintf("%s/builds", origin)
+	buildURL := fmt.Sprintf("%s/builds", origin)
 	virtualizer := NewVirtualizer()
 
 	for _, app := range apps.Items {
@@ -149,7 +149,7 @@ func IngestSerial(apps *app.Apps, origin string) {
 		apiKey := configData.Apps[app.Name].ApiKey
 
 		fmt.Printf("Uploading build info...")
-		status, err := UploadBuild(mappingURL, apiKey, app)
+		status, err := UploadBuild(buildURL, apiKey, app)
 		if err != nil {
 			if status == "" {
 				status = err.Error()
@@ -196,7 +196,7 @@ func IngestSerial(apps *app.Apps, origin string) {
 func IngestParallel(apps *app.Apps, origin string) {
 	startTime := time.Now()
 	eventURL := fmt.Sprintf("%s/events", origin)
-	mappingURL := fmt.Sprintf("%s/builds", origin)
+	buildURL := fmt.Sprintf("%s/builds", origin)
 
 	var logResults = func(results *[]string) {
 		for _, result := range *results {
@@ -216,7 +216,7 @@ func IngestParallel(apps *app.Apps, origin string) {
 		apiKey := configData.Apps[app.Name].ApiKey
 
 		fmt.Printf("Uploading build info...")
-		status, err := UploadBuild(mappingURL, apiKey, app)
+		status, err := UploadBuild(buildURL, apiKey, app)
 		if err != nil {
 			if status == "" {
 				status = err.Error()
@@ -426,12 +426,12 @@ func prepareEventsAndSpans(eventAndSpanFile string, virtualizer *virtualizer) (d
 	}
 
 	if len(rawEvents) != len(fileData.Events) {
-		err = fmt.Errorf("mismatch found in number of events while preparing events request")
+		err = errors.New("mismatch found in number of events while preparing events request")
 		return
 	}
 
 	if len(rawSpans) != len(fileData.Spans) {
-		err = fmt.Errorf("mismatch found in number of spans while preparing spans request")
+		err = errors.New("mismatch found in number of spans while preparing spans request")
 		return
 	}
 

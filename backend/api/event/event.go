@@ -1,6 +1,7 @@
 package event
 
 import (
+	"backend/api/platform"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
@@ -36,6 +37,10 @@ const (
 	maxLifecycleActivityClassNameChars        = 128
 	maxLifecycleFragmentTypeChars             = 32
 	maxLifecycleFragmentClassNameChars        = 128
+	maxLifecycleViewControllerTypeChars       = 32
+	maxLifecycleViewControllerClassNameChars  = 128
+	maxLifecycleSwiftUITypeChars              = 32
+	maxLifecycleSwiftUIClassNameChars         = 128
 	maxLifecycleAppTypeChars                  = 32
 	maxColdLaunchLaunchedActivityChars        = 128
 	maxWarmLaunchLaunchedActivityChars        = 128
@@ -69,6 +74,8 @@ const TypeGestureClick = "gesture_click"
 const TypeGestureScroll = "gesture_scroll"
 const TypeLifecycleActivity = "lifecycle_activity"
 const TypeLifecycleFragment = "lifecycle_fragment"
+const TypeLifecycleViewController = "lifecycle_view_controller"
+const TypeLifecycleSwiftUI = "lifecycle_swift_ui"
 const TypeLifecycleApp = "lifecycle_app"
 const TypeColdLaunch = "cold_launch"
 const TypeWarmLaunch = "warm_launch"
@@ -76,6 +83,7 @@ const TypeHotLaunch = "hot_launch"
 const TypeNetworkChange = "network_change"
 const TypeHttp = "http"
 const TypeMemoryUsage = "memory_usage"
+const TypeMemoryUsageAbs = "memory_usage_absolute"
 const TypeLowMemory = "low_memory"
 const TypeTrimMemory = "trim_memory"
 const TypeCPUUsage = "cpu_usage"
@@ -104,6 +112,20 @@ const LifecycleFragmentTypeResumed = "resumed"
 const LifecycleFragmentTypePaused = "paused"
 const LifecycleFragmentTypeDetached = "detached"
 
+const LifecycleViewControllerTypeLoadView = "loadView"
+const LifecycleViewControllerTypeViewDidLoad = "viewDidLoad"
+const LifecycleViewControllerTypeViewWillAppear = "viewWillAppear"
+const LifecycleViewControllerTypeViewDidAppear = "viewDidAppear"
+const LifecycleViewControllerTypeViewWillDisappear = "viewWillDisappear"
+const LifecycleViewControllerTypeViewDidDisappear = "viewDidDisappear"
+const LifecycleViewControllerTypeDidReceiveMemoryWarning = "didReceiveMemoryWarning"
+const LifecycleViewControllerTypeInitWithDbName = "initWithDbName"
+const LifecycleViewControllerTypeInitWithCoder = "initWithCoder"
+const LifecycleViewControllerTypeVCDeinit = "vcDeinit"
+
+const LifecycleSwiftUITypeOnAppear = "on_appear"
+const LifecycleSwiftUITypeOnDisappear = "on_disappear"
+
 const LifecycleAppTypeBackground = "background"
 const LifecycleAppTypeForeground = "foreground"
 
@@ -114,6 +136,37 @@ const NominalColdLaunchThreshold = 30 * time.Second
 // NominalWarmLaunchThreshold defines the upper bound
 // of a nominal warm launch duration.
 const NominalWarmLaunchThreshold = 10 * time.Second
+
+// androidValidTypes defines a whitelist for all
+// valid android event types.
+var androidValidTypes = []string{
+	TypeANR, TypeException, TypeAppExit,
+	TypeGestureLongClick, TypeGestureScroll, TypeGestureClick,
+	TypeLifecycleActivity, TypeLifecycleFragment,
+	TypeLifecycleViewController, TypeLifecycleSwiftUI,
+	TypeLifecycleApp,
+	TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch,
+	TypeNetworkChange, TypeHttp,
+	TypeMemoryUsage, TypeMemoryUsageAbs, TypeLowMemory, TypeTrimMemory,
+	TypeCPUUsage, TypeNavigation, TypeScreenView,
+	TypeString,
+	TypeCustom,
+}
+
+// iOSValidTypes defines a whitelist for all
+// valid iOS event types.
+var iOSValidTypes = []string{
+	TypeException,
+	TypeGestureLongClick, TypeGestureScroll, TypeGestureClick,
+	TypeLifecycleViewController, TypeLifecycleSwiftUI,
+	TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch,
+	TypeNetworkChange, TypeHttp,
+	TypeMemoryUsageAbs,
+	TypeCPUUsage,
+	TypeScreenView,
+	TypeString,
+	TypeCustom,
+}
 
 // ValidLifecycleActivityTypes defines allowed
 // `lifecycle_activity.type` values.
@@ -138,6 +191,28 @@ var ValidLifecycleFragmentTypes = []string{
 var ValidLifecycleAppTypes = []string{
 	LifecycleAppTypeBackground,
 	LifecycleAppTypeForeground,
+}
+
+// ValidLifecycleViewControllerTypes defines allowed
+// `lifecycle_view_controller.type` values.
+var ValidLifecycleViewControllerTypes = []string{
+	LifecycleViewControllerTypeLoadView,
+	LifecycleViewControllerTypeViewDidLoad,
+	LifecycleViewControllerTypeViewWillAppear,
+	LifecycleViewControllerTypeViewDidAppear,
+	LifecycleViewControllerTypeViewWillDisappear,
+	LifecycleViewControllerTypeViewDidDisappear,
+	LifecycleViewControllerTypeDidReceiveMemoryWarning,
+	LifecycleViewControllerTypeInitWithDbName,
+	LifecycleViewControllerTypeInitWithCoder,
+	LifecycleViewControllerTypeVCDeinit,
+}
+
+// ValidLifecycleSwiftUITypes defines allowed
+// `lifecycle_swift_ui.type` values.
+var ValidLifecycleSwiftUITypes = []string{
+	LifecycleSwiftUITypeOnAppear,
+	LifecycleSwiftUITypeOnDisappear,
 }
 
 // ValidNetworkTypes defines allowed
@@ -263,6 +338,16 @@ type LifecycleFragment struct {
 	Tag            string `json:"tag"`
 }
 
+type LifecycleViewController struct {
+	Type      string `json:"type" binding:"required"`
+	ClassName string `json:"class_name" binding:"required"`
+}
+
+type LifecycleSwiftUI struct {
+	Type      string `json:"type" binding:"required"`
+	ClassName string `json:"class_name" binding:"required"`
+}
+
 type LifecycleApp struct {
 	Type string `json:"type" binding:"required"`
 }
@@ -334,6 +419,12 @@ type MemoryUsage struct {
 	Interval        uint64 `json:"interval" binding:"required"`
 }
 
+type MemoryUsageAbs struct {
+	MaxMemory  uint64 `json:"max_memory" binding:"required"`
+	UsedMemory uint64 `json:"used_memory" binding:"required"`
+	Interval   uint64 `json:"interval" binding:"required"`
+}
+
 type LowMemory struct {
 	JavaMaxHeap     uint64 `json:"java_max_heap" binding:"required"`
 	JavaTotalHeap   uint64 `json:"java_total_heap" binding:"required"`
@@ -376,40 +467,43 @@ type Custom struct {
 }
 
 type EventField struct {
-	ID                   uuid.UUID          `json:"id"`
-	IPv4                 net.IP             `json:"inet_ipv4"`
-	IPv6                 net.IP             `json:"inet_ipv6"`
-	CountryCode          string             `json:"inet_country_code"`
-	AppID                uuid.UUID          `json:"app_id"`
-	SessionID            uuid.UUID          `json:"session_id" binding:"required"`
-	Timestamp            time.Time          `json:"timestamp" binding:"required"`
-	Type                 string             `json:"type" binding:"required"`
-	UserTriggered        bool               `json:"user_triggered" binding:"required"`
-	Attribute            Attribute          `json:"attribute" binding:"required"`
-	UserDefinedAttribute UDAttribute        `json:"user_defined_attribute" binding:"required"`
-	Attachments          []Attachment       `json:"attachments" binding:"required"`
-	ANR                  *ANR               `json:"anr,omitempty"`
-	Exception            *Exception         `json:"exception,omitempty"`
-	AppExit              *AppExit           `json:"app_exit,omitempty"`
-	LogString            *LogString         `json:"string,omitempty"`
-	GestureLongClick     *GestureLongClick  `json:"gesture_long_click,omitempty"`
-	GestureScroll        *GestureScroll     `json:"gesture_scroll,omitempty"`
-	GestureClick         *GestureClick      `json:"gesture_click,omitempty"`
-	LifecycleActivity    *LifecycleActivity `json:"lifecycle_activity,omitempty"`
-	LifecycleFragment    *LifecycleFragment `json:"lifecycle_fragment,omitempty"`
-	LifecycleApp         *LifecycleApp      `json:"lifecycle_app,omitempty"`
-	ColdLaunch           *ColdLaunch        `json:"cold_launch,omitempty"`
-	WarmLaunch           *WarmLaunch        `json:"warm_launch,omitempty"`
-	HotLaunch            *HotLaunch         `json:"hot_launch,omitempty"`
-	NetworkChange        *NetworkChange     `json:"network_change,omitempty"`
-	Http                 *Http              `json:"http,omitempty"`
-	MemoryUsage          *MemoryUsage       `json:"memory_usage,omitempty"`
-	LowMemory            *LowMemory         `json:"low_memory,omitempty"`
-	TrimMemory           *TrimMemory        `json:"trim_memory,omitempty"`
-	CPUUsage             *CPUUsage          `json:"cpu_usage,omitempty"`
-	Navigation           *Navigation        `json:"navigation,omitempty"`
-	ScreenView           *ScreenView        `json:"screen_view,omitempty"`
-	Custom               *Custom            `json:"custom,omitempty"`
+	ID                      uuid.UUID                `json:"id"`
+	IPv4                    net.IP                   `json:"inet_ipv4"`
+	IPv6                    net.IP                   `json:"inet_ipv6"`
+	CountryCode             string                   `json:"inet_country_code"`
+	AppID                   uuid.UUID                `json:"app_id"`
+	SessionID               uuid.UUID                `json:"session_id" binding:"required"`
+	Timestamp               time.Time                `json:"timestamp" binding:"required"`
+	Type                    string                   `json:"type" binding:"required"`
+	UserTriggered           bool                     `json:"user_triggered" binding:"required"`
+	Attribute               Attribute                `json:"attribute" binding:"required"`
+	UserDefinedAttribute    UDAttribute              `json:"user_defined_attribute" binding:"required"`
+	Attachments             []Attachment             `json:"attachments" binding:"required"`
+	ANR                     *ANR                     `json:"anr,omitempty"`
+	Exception               *Exception               `json:"exception,omitempty"`
+	AppExit                 *AppExit                 `json:"app_exit,omitempty"`
+	LogString               *LogString               `json:"string,omitempty"`
+	GestureLongClick        *GestureLongClick        `json:"gesture_long_click,omitempty"`
+	GestureScroll           *GestureScroll           `json:"gesture_scroll,omitempty"`
+	GestureClick            *GestureClick            `json:"gesture_click,omitempty"`
+	LifecycleActivity       *LifecycleActivity       `json:"lifecycle_activity,omitempty"`
+	LifecycleFragment       *LifecycleFragment       `json:"lifecycle_fragment,omitempty"`
+	LifecycleViewController *LifecycleViewController `json:"lifecycle_view_controller,omitempty"`
+	LifecycleSwiftUI        *LifecycleSwiftUI        `json:"lifecycle_swift_ui,omitempty"`
+	LifecycleApp            *LifecycleApp            `json:"lifecycle_app,omitempty"`
+	ColdLaunch              *ColdLaunch              `json:"cold_launch,omitempty"`
+	WarmLaunch              *WarmLaunch              `json:"warm_launch,omitempty"`
+	HotLaunch               *HotLaunch               `json:"hot_launch,omitempty"`
+	NetworkChange           *NetworkChange           `json:"network_change,omitempty"`
+	Http                    *Http                    `json:"http,omitempty"`
+	MemoryUsage             *MemoryUsage             `json:"memory_usage,omitempty"`
+	MemoryUsageAbs          *MemoryUsageAbs          `json:"memory_usage_absolute,omitempty"`
+	LowMemory               *LowMemory               `json:"low_memory,omitempty"`
+	TrimMemory              *TrimMemory              `json:"trim_memory,omitempty"`
+	CPUUsage                *CPUUsage                `json:"cpu_usage,omitempty"`
+	Navigation              *Navigation              `json:"navigation,omitempty"`
+	ScreenView              *ScreenView              `json:"screen_view,omitempty"`
+	Custom                  *Custom                  `json:"custom,omitempty"`
 }
 
 // Compute computes the most accurate cold launch timing
@@ -521,6 +615,18 @@ func (e EventField) IsLifecycleFragment() bool {
 	return e.Type == TypeLifecycleFragment
 }
 
+// IsLifecycleViewController returns true for
+// lifecycle view controller event.
+func (e EventField) IsLifecycleViewController() bool {
+	return e.Type == TypeLifecycleViewController
+}
+
+// IsLifecycleSwiftUI returns true for lifecycle
+// swift ui event.
+func (e EventField) IsLifecycleSwiftUI() bool {
+	return e.Type == TypeLifecycleSwiftUI
+}
+
 // IsLifecycleApp returns true for
 // lifecycle app event.
 func (e EventField) IsLifecycleApp() bool {
@@ -560,6 +666,12 @@ func (e EventField) IsHttp() bool {
 // memory usage event.
 func (e EventField) IsMemoryUsage() bool {
 	return e.Type == TypeMemoryUsage
+}
+
+// IsMemoryUsageAbs returns true for
+// memory usage absolute event.
+func (e EventField) IsMemoryUsageAbs() bool {
+	return e.Type == TypeMemoryUsageAbs
 }
 
 // IsTrimMemory returns true for trim
@@ -650,19 +762,17 @@ func (e EventField) HasAttachments() bool {
 // Validate validates the event for data
 // integrity.
 func (e *EventField) Validate() error {
-	validTypes := []string{
-		TypeANR, TypeException, TypeAppExit,
-		TypeString, TypeGestureLongClick, TypeGestureScroll,
-		TypeGestureClick, TypeLifecycleActivity, TypeLifecycleFragment,
-		TypeLifecycleApp, TypeColdLaunch, TypeWarmLaunch,
-		TypeHotLaunch, TypeNetworkChange, TypeHttp,
-		TypeMemoryUsage, TypeLowMemory, TypeTrimMemory,
-		TypeCPUUsage, TypeNavigation, TypeScreenView,
-		TypeCustom,
-	}
-
-	if !slices.Contains(validTypes, e.Type) {
-		return fmt.Errorf(`%q is not a valid type`, `type`)
+	switch e.Attribute.Platform {
+	case platform.Android:
+		if !slices.Contains(androidValidTypes, e.Type) {
+			return fmt.Errorf(`%q is not a valid event type for Android`, e.Type)
+		}
+	case platform.IOS:
+		if !slices.Contains(iOSValidTypes, e.Type) {
+			return fmt.Errorf(`%q is not a valid event type for iOS`, e.Type)
+		}
+	default:
+		return fmt.Errorf(`%q is not a valid platform value`, e.Attribute.Platform)
 	}
 
 	if e.ID == uuid.Nil {
@@ -789,6 +899,36 @@ func (e *EventField) Validate() error {
 		}
 		if !slices.Contains(ValidLifecycleFragmentTypes, e.LifecycleFragment.Type) {
 			return fmt.Errorf(`%q contains invalid lifecycle fragment type`, `lifecycle_fragment.type`)
+		}
+	}
+
+	if e.IsLifecycleViewController() {
+		if e.LifecycleViewController.Type == "" || e.LifecycleViewController.ClassName == "" {
+			return fmt.Errorf(`%q and %q must not be empty`, `lifecycle_view_controller.type`, `lifecycle_view_controller.class_name`)
+		}
+		if len(e.LifecycleViewController.Type) > maxLifecycleViewControllerTypeChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_view_controller.type`, maxLifecycleViewControllerTypeChars)
+		}
+		if len(e.LifecycleViewController.ClassName) > maxLifecycleViewControllerClassNameChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_view_controller.class_name`, maxLifecycleViewControllerClassNameChars)
+		}
+		if !slices.Contains(ValidLifecycleViewControllerTypes, e.LifecycleViewController.Type) {
+			return fmt.Errorf(`%q contains invalid lifecycle view controller type %q`, `lifecycle_view_controller.type`, e.LifecycleViewController.Type)
+		}
+	}
+
+	if e.IsLifecycleSwiftUI() {
+		if e.LifecycleSwiftUI.Type == "" || e.LifecycleSwiftUI.ClassName == "" {
+			return fmt.Errorf(`%q and %q must not be empty`, `lifecycle_swift_ui.type`, `lifecycle_swift_ui.class_name`)
+		}
+		if len(e.LifecycleSwiftUI.Type) > maxLifecycleSwiftUITypeChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_swift_ui.type`, maxLifecycleSwiftUITypeChars)
+		}
+		if len(e.LifecycleSwiftUI.ClassName) > maxLifecycleSwiftUIClassNameChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_swift_ui.class_name`, maxLifecycleSwiftUIClassNameChars)
+		}
+		if !slices.Contains(ValidLifecycleSwiftUITypes, e.LifecycleSwiftUI.Type) {
+			return fmt.Errorf(`%q contains invalid lifecycle swift ui type %q`, `lifecycle_swift_ui.type`, e.LifecycleSwiftUI.Type)
 		}
 	}
 

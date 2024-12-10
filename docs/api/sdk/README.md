@@ -332,8 +332,8 @@ Events can contain the following attributes, some of which are mandatory.
 | `device_height_px`                  | uint16  | Yes      | Screen height                                                               |
 | `device_density`                    | float32 | Yes      | Device density                                                              |
 | `device_locale`                     | string  | Yes      | Locale based on RFC 5646, eg. en-US                                         |
-| `device_low_power_mode`             | string  | Yes      | `true` when low power mode is enabled                                       |
-| `device_thermal_throttling_enabled` | string  | Yes      | `true` when thermal throttling is enabled                                   |
+| `device_low_power_mode`             | bool    | Yes      | `true` when low power mode is enabled                                       |
+| `device_thermal_throttling_enabled` | bool    | Yes      | `true` when thermal throttling is enabled                                   |
 | `os_name`                           | string  | Yes      | Operating system name                                                       |
 | `os_version`                        | string  | Yes      | Operating system version                                                    |
 | `os_page_size`                      | uint8   | Yes      | Operating system memory page size                                           |
@@ -652,10 +652,10 @@ Use the `lifecycle_view_controller` type for iOS ViewController lifecycle events
 
 Use the `lifecycle_swift_ui` type for iOS SwiftUI view lifecycle events.
 
-| Field       | Type   | Optional | Comment                                                        |
-| ----------- | ------ | -------- | -------------------------------------------------------------- |
-| `type`      | string | No       | One of the following:<br />- `on_appear`<br />- `on_disappear` |
-| `view_name` | string | No       | SwiftUI View class name                                        |
+| Field        | Type   | Optional | Comment                                                        |
+| ------------ | ------ | -------- | -------------------------------------------------------------- |
+| `type`       | string | No       | One of the following:<br />- `on_appear`<br />- `on_disappear` |
+| `class_name` | string | No       | SwiftUI View class name                                        |
 
 #### **`lifecycle_app`**
 
