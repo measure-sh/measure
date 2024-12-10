@@ -159,6 +159,8 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 		return fmt.Errorf(`payload must contain at least 1 event or 1 span`)
 	}
 
+	dupeEventMap := make(map[uuid.UUID]struct{})
+
 	for i := range events {
 		if events[i] == "" {
 			return fmt.Errorf(`any event field must not be empty`)
@@ -168,6 +170,16 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 		if err := json.Unmarshal(bytes, &ev); err != nil {
 			return err
 		}
+
+		// discard batch if duplicate
+		// event ids found
+		_, ok := dupeEventMap[ev.ID]
+		if ok {
+			return fmt.Errorf("duplicate event id %q found, discarding batch", ev.ID)
+		} else {
+			dupeEventMap[ev.ID] = struct{}{}
+		}
+
 		e.bumpSize(int64(len(bytes)))
 		ev.AppID = appId
 
@@ -207,6 +219,8 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 		e.events = append(e.events, ev)
 	}
 
+	dupeSpanMap := make(map[string]struct{})
+
 	for i := range spans {
 		if spans[i] == "" {
 			return fmt.Errorf(`any span field must not be empty`)
@@ -216,6 +230,16 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 		if err := json.Unmarshal(bytes, &sp); err != nil {
 			return err
 		}
+
+		// discard batch if duplicate
+		// span ids found
+		_, ok := dupeSpanMap[sp.SpanID]
+		if ok {
+			return fmt.Errorf("duplicate span id %q found, discarding batch", sp.SpanID)
+		} else {
+			dupeSpanMap[sp.SpanID] = struct{}{}
+		}
+
 		e.bumpSize(int64(len(bytes)))
 		sp.AppID = appId
 
