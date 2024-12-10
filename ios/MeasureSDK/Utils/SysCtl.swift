@@ -11,6 +11,8 @@ protocol SysCtl {
     func getCpuCores() -> UInt8
     func getCpuFrequency() -> UInt32
     func getMaximumAvailableRam() -> UnsignedNumber
+    func getProcessStartTime() -> UnsignedNumber?
+    func getSystemBootTime() -> UnsignedNumber?
 }
 
 final class BaseSysCtl: SysCtl {
@@ -52,4 +54,32 @@ final class BaseSysCtl: SysCtl {
         }
         return 0
     }
+
+    func getProcessStartTime() -> UnsignedNumber? {
+        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()]
+        var procInfo = kinfo_proc()
+        var size = MemoryLayout.size(ofValue: procInfo)
+
+        let result = sysctl(&mib, UInt32(mib.count), &procInfo, &size, nil, 0)
+        guard result == 0 else {
+            return nil
+        }
+
+        let startTime = procInfo.kp_proc.p_un.__p_starttime
+        return UnsignedNumber(startTime.tv_sec) + UnsignedNumber(startTime.tv_usec) / 1_000_000
+    }
+
+    func getSystemBootTime() -> UnsignedNumber? {
+        var cmd = [CTL_KERN, KERN_BOOTTIME]
+        var bootTimeVal = timeval(tv_sec: 0, tv_usec: 0)
+        var size = MemoryLayout.size(ofValue: bootTimeVal)
+
+        let result = sysctl(&cmd, UInt32(cmd.count), &bootTimeVal, &size, nil, 0)
+        if result != 0 {
+            return nil
+        }
+
+        return UnsignedNumber(bootTimeVal.tv_sec) + UnsignedNumber(bootTimeVal.tv_usec) / 1_000_000
+    }
+
 }

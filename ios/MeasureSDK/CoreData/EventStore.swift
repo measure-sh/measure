@@ -43,6 +43,14 @@ final class BaseEventStore: EventStore {
             eventOb.gestureClick = event.gestureClick
             eventOb.gestureLongClick = event.gestureLongClick
             eventOb.gestureScroll = event.gestureScroll
+            eventOb.lifecycleApp = event.lifecycleApp
+            eventOb.lifecycleViewController = event.lifecycleViewController
+            eventOb.lifecycleSwiftUI = event.lifecycleSwiftUI
+            eventOb.cpuUsage = event.cpuUsage
+            eventOb.memoryUsage = event.memoryUsage
+            eventOb.coldLaunch = event.coldLaunch
+            eventOb.warmLaunch = event.warmLaunch
+            eventOb.hotLaunch = event.hotLaunch
 
             do {
                 try context.saveIfNeeded()
@@ -82,7 +90,10 @@ final class BaseEventStore: EventStore {
                                 lifecycleViewController: eventOb.lifecycleViewController,
                                 lifecycleSwiftUI: eventOb.lifecycleSwiftUI,
                                 cpuUsage: eventOb.cpuUsage,
-                                memoryUsage: eventOb.memoryUsage)
+                                memoryUsage: eventOb.memoryUsage,
+                                coldLaunch: eventOb.coldLaunch,
+                                warmLaunch: eventOb.warmLaunch,
+                                hotLaunch: eventOb.hotLaunch)
                 }
             } catch {
                 guard let self = self else { return }
@@ -120,7 +131,10 @@ final class BaseEventStore: EventStore {
                                 lifecycleViewController: eventOb.lifecycleViewController,
                                 lifecycleSwiftUI: eventOb.lifecycleSwiftUI,
                                 cpuUsage: eventOb.cpuUsage,
-                                memoryUsage: eventOb.memoryUsage)
+                                memoryUsage: eventOb.memoryUsage,
+                                coldLaunch: eventOb.coldLaunch,
+                                warmLaunch: eventOb.warmLaunch,
+                                hotLaunch: eventOb.hotLaunch)
                 }
             } catch {
                 guard let self = self else { return }
@@ -177,7 +191,10 @@ final class BaseEventStore: EventStore {
                                               lifecycleViewController: eventOb.lifecycleViewController,
                                               lifecycleSwiftUI: eventOb.lifecycleSwiftUI,
                                               cpuUsage: eventOb.cpuUsage,
-                                              memoryUsage: eventOb.memoryUsage))
+                                              memoryUsage: eventOb.memoryUsage,
+                                              coldLaunch: eventOb.coldLaunch,
+                                              warmLaunch: eventOb.warmLaunch,
+                                              hotLaunch: eventOb.hotLaunch))
                 }
             } catch {
                 guard let self = self else {

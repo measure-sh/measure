@@ -14,6 +14,7 @@ final class MockUserDefaultStorage: UserDefaultStorage {
     var timestamp: Number = 0
     var recentSessionId: String?
     var recentSession: RecentSession?
+    var launchData: LaunchData?
 
     func getInstallationId() -> String? {
         return installationId
@@ -47,5 +48,13 @@ final class MockUserDefaultStorage: UserDefaultStorage {
 
     func setRecentSessionCrashed() {
         self.recentSession?.crashed = true
+    }
+
+    func setRecentLaunchData(_ launchData: LaunchData) {
+        self.launchData = launchData
+    }
+
+    func getRecentLaunchData() -> LaunchData? {
+        return launchData
     }
 }
