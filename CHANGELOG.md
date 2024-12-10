@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Discard batch if it contains duplicate event or span ids (#1588)
 - (**backend**): Filter versions and os versions securely (#1563)
 
 - (**frontend**): Round millis to nearest int
