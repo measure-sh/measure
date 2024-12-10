@@ -198,6 +198,26 @@ func (s *SpanField) Validate() error {
 		return fmt.Errorf(`%q must be a valid ISO 8601 timestamp`, `end_time`)
 	}
 
+	if s.Attributes.InstallationID == uuid.Nil {
+		return fmt.Errorf(`%q must be a valid UUID`, `attribute.installation_id`)
+	}
+
+	if s.Attributes.MeasureSDKVersion == "" {
+		return fmt.Errorf(`%q must not be empty`, `attribute.measure_sdk_version`)
+	}
+
+	if s.Attributes.AppVersion == "" {
+		return fmt.Errorf(`%q must not be empty`, `attribute.app_version`)
+	}
+
+	if s.Attributes.AppBuild == "" {
+		return fmt.Errorf(`%q must not be empty`, `attribute.app_build`)
+	}
+
+	if s.Attributes.AppUniqueID == "" {
+		return fmt.Errorf(`%q must not be empty`, `attribute.app_unique_id`)
+	}
+
 	if len(s.Attributes.AppUniqueID) > maxAppUniqueIDChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attrubute.app_unique_id`, maxAppUniqueIDChars)
 	}
@@ -234,8 +254,10 @@ func (s *SpanField) Validate() error {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `platform`, maxPlatformChars)
 	}
 
-	if s.Attributes.Platform != platform.Android && s.Attributes.Platform != platform.IOS {
-		return fmt.Errorf(`%q does not contain a valid platform value`, `platform`)
+	switch s.Attributes.Platform {
+	case platform.Android, platform.IOS:
+	default:
+		return fmt.Errorf(`%q does not contain a valid platform value`, `attribute.platform`)
 	}
 
 	if len(s.Attributes.ThreadName) > maxThreadNameChars {
