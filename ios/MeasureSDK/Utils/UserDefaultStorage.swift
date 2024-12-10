@@ -15,6 +15,8 @@ protocol UserDefaultStorage {
     func getRecentSession() -> RecentSession?
     func setRecentSessionEventTime(_ timestamp: Number)
     func setRecentSession(_ recentSession: RecentSession)
+    func setRecentLaunchData(_ launchData: LaunchData)
+    func getRecentLaunchData() -> LaunchData?
 }
 
 final class BaseUserDefaultStorage: UserDefaultStorage {
@@ -70,5 +72,18 @@ final class BaseUserDefaultStorage: UserDefaultStorage {
             crashed: crashed,
             versionCode: versionCode
         )
+    }
+
+    func setRecentLaunchData(_ launchData: LaunchData) {
+        userDefaults.set(launchData.appVersion, forKey: recentLaunchAppVersion)
+        userDefaults.set(launchData.timeSinceLastBoot, forKey: recentLaunchTimeSinceLastBoot)
+    }
+
+    func getRecentLaunchData() -> LaunchData? {
+        guard let appVersion = userDefaults.string(forKey: recentLaunchAppVersion) else {
+            return nil
+        }
+        let timeSinceLastBoot = userDefaults.integer(forKey: recentLaunchTimeSinceLastBoot)
+        return LaunchData(appVersion: appVersion, timeSinceLastBoot: UnsignedNumber(timeSinceLastBoot))
     }
 }
