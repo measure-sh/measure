@@ -63,17 +63,19 @@ Ingests a batch of events, which can be of different types and can range across 
 - Maximum size of one request must not exceed **20 MiB**. This limit is includes the combination of events and blob data.
 - Each request must contain a unique UUIDv4 id, set as the header `msr-req-id`. If a request fails, the client must
   retry the same payload with the same `msr-req-id` to ensure idempotency.
-- Each event must contain a nanosecond precision `timestamp` - `"2023-08-24T14:51:38.000000534Z"`
-- Each event must contain a nanosecond precision `start_time` and `end_time` - `"2023-08-24T14:51:38.000000534Z"`
+- Each event must contain a nanosecond precision `timestamp` - `"2023-08-24T14:51:38.000000534Z"`.
+- Each request must not contain duplicate event ids.
+- Each request must not contain duplicate span ids.
+- Each span must contain a nanosecond precision `start_time` and `end_time` - `"2023-08-24T14:51:38.000000534Z"`.
 - Each event must have the following mandatory attributes:
-    - `installation_id`
-    - `measure_sdk_version`
-    - `thread_name`
-    - `platform`
-    - `app_version`
-    - `app_build`
-    - `app_unique_id`
-- Each span must have the following mandatory attributes:
+    - `attribute.installation_id`
+    - `attribute.measure_sdk_version`
+    - `attribute.thread_name`
+    - `attribute.platform`
+    - `attribute.app_version`
+    - `attribute.app_build`
+    - `attribute.app_unique_id`
+- Each span must have the following mandatory fields:
     - `span_name`
     - `span_id`
     - `trace_id`
@@ -82,10 +84,11 @@ Ingests a batch of events, which can be of different types and can range across 
     - `start_time`
     - `end_time`
     - `attribute.installation_id`
-    - `attribute.app_unique_id`
+    - `attribute.measure_sdk_version`
+    - `attribute.platform`
     - `attribute.app_version`
     - `attribute.os_version`
-    - `attribute.platform`
+    - `attribute.app_unique_id`
 
 - At least 1 event must be present in the `events` array field or 1 span must be present in the `spans` array field. Both arrays must
 not be empty.
@@ -345,11 +348,11 @@ Events can contain the following attributes, some of which are mandatory.
 
 Events can optionally contain attributes defined by the SDK user. A `user_defined_attribute` is a JSON key/value pair object. There are some constraints you should be aware of.
 
-- An event may contain a maximum of 100 user defined attributes.
+- An event may contain a maximum of 100 arbitrary user defined attributes.
 - Key names should not exceed 256 characters.
 - Key names must be unique in a user defined attribute key/value object.
 - Key names must only contain alphabets, numbers, underscores and hyphens.
-- Value can be regular JSON types. String, Boolean, Number.
+- Value can be regular String, Boolean or Number JSON types only.
 - String values should not exceed 256 characters.
 
 ```jsonc
