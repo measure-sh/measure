@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Remove unused code (#1545)
 
+- (**frontend**): Remove cursor pointer style
 - (**frontend**): Delete unused url filters code
 
 
