@@ -141,8 +141,8 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
 
   const buttonStyle = "block px-2 py-2 w-full truncate text-white bg-neutral-950 hover:text-black font-display text-left hover:bg-yellow-200 active:bg-yellow-300 outline-none focus:bg-yellow-200"
   const groupSelectButtonStyle = "text-white text-xs font-display rounded-md border border-white p-1 bg-neutral-950 hover:text-black hover:bg-yellow-200 hover:border-black focus-visible:bg-yellow-200 focus-visible:text-black focus-visible:border-black active:bg-yellow-300 outline-none"
-  const checkboxContainerStyle = "px-2 py-2 bg-neutral-950 truncate text-white hover:text-black hover:bg-yellow-200 font-display text-left"
-  const checkboxInputStyle = "appearance-none border-white rounded-sm font-display bg-neutral-950 checked:bg-neutral-950 checked:hover:bg-neutral-950 checked:focus:bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:ring-1 checked:ring-white"
+  const checkboxContainerStyle = "px-2 py-2 bg-neutral-950 cursor-pointer truncate text-white font-display text-left outline-none hover:text-black hover:bg-yellow-200 focus:text-black focus:bg-yellow-200 active:bg-yellow-300"
+  const checkboxInputStyle = "appearance-none pointer-events-none border-white rounded-sm font-display bg-neutral-950 checked:bg-neutral-950 checked:hover:bg-neutral-950 checked:focus:bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:ring-1 checked:ring-white"
   const searchInputStyle = "w-full bg-neutral-950 text-white text-sm border border-white rounded-md focus-visible:ring-yellow-300 py-2 px-4 font-sans placeholder:text-gray-400"
 
   return (
@@ -264,13 +264,29 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                   </button>
                 </div>}
                 {items.filter((item) => (item as string).toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((item) => (
-                  <div key={item as string} className={checkboxContainerStyle} role="menuitem">
+                  <div
+                    key={item as string}
+                    className={checkboxContainerStyle}
+                    role="menuitem"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      toggleCheckboxStringItem(item as string);
+                      (e.currentTarget as HTMLElement).blur()
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        toggleCheckboxStringItem(item as string)
+                      }
+                    }}
+                  >
                     <input
                       type="checkbox"
                       className={checkboxInputStyle}
                       value={item as string}
                       checked={(selected as string[]).includes(item as string)}
-                      onChange={() => { toggleCheckboxStringItem(item as string) }}
+                      readOnly
+                      tabIndex={-1}
                     />
                     <span className="ml-2">{item as string}</span>
                   </div>
@@ -299,13 +315,29 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                   </button>
                 </div>}
                 {items.filter((item) => (item as OsVersion).displayName.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((item, idx) => (
-                  <div key={`${idx}-${item as string}`} className={checkboxContainerStyle} role="menuitem">
+                  <div
+                    key={`${idx}-${item as string}`}
+                    className={checkboxContainerStyle}
+                    role="menuitem"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      toggleCheckboxOsVersionItem(item as OsVersion);
+                      (e.currentTarget as HTMLElement).blur()
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        toggleCheckboxOsVersionItem(item as OsVersion)
+                      }
+                    }}
+                  >
                     <input
                       type="checkbox"
                       className={checkboxInputStyle}
                       value={(item as OsVersion).displayName}
                       checked={isOsVersionSelected(item as OsVersion)}
-                      onChange={() => { toggleCheckboxOsVersionItem(item as OsVersion) }}
+                      readOnly
+                      tabIndex={-1}
                     />
                     <span className="ml-2">{(item as OsVersion).displayName}</span>
                   </div>
@@ -341,15 +373,31 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                   </button>
                 </div>}
                 {items.filter((item) => (item as AppVersion).displayName.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((item) => (
-                  <div key={(item as AppVersion).displayName} className={checkboxContainerStyle} role="menuitem">
+                  <div
+                    key={(item as AppVersion).displayName}
+                    className={checkboxContainerStyle}
+                    role="menuitem"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      toggleCheckboxAppVersionItem(item as AppVersion);
+                      (e.currentTarget as HTMLElement).blur()
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        toggleCheckboxAppVersionItem(item as AppVersion)
+                      }
+                    }}
+                  >
                     <input
                       type="checkbox"
                       className={checkboxInputStyle}
                       value={(item as AppVersion).displayName}
                       checked={isAppVersionSelected(item as AppVersion)}
-                      onChange={() => { toggleCheckboxAppVersionItem(item as AppVersion) }}
+                      readOnly
+                      tabIndex={-1}
                     />
-                    <span className="ml-2">{(item as AppVersion).displayName}</span>
+                    <span className="ml-2">{(item as OsVersion).displayName}</span>
                   </div>
                 ))}
               </div>}
