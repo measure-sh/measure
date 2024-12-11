@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -5275,7 +5276,17 @@ func GetSpanInstances(c *gin.Context) {
 		return
 	}
 
-	spanName := c.Param("spanName")
+	rawSpanName := c.Query("span_name")
+	if rawSpanName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing span_name query param"})
+		return
+	}
+
+	spanName, err := url.QueryUnescape(rawSpanName)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid span_name query param"})
+		return
+	}
 
 	af := filter.AppFilter{
 		AppID: id,
@@ -5397,7 +5408,17 @@ func GetSpanMetricsPlot(c *gin.Context) {
 		return
 	}
 
-	spanName := c.Param("spanName")
+	rawSpanName := c.Query("span_name")
+	if rawSpanName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing span_name query param"})
+		return
+	}
+
+	spanName, err := url.QueryUnescape(rawSpanName)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid span_name query param"})
+		return
+	}
 
 	af := filter.AppFilter{
 		AppID: id,

@@ -111,8 +111,8 @@ func main() {
 		apps.PATCH(":id/rename", measure.RenameApp)
 		apps.POST(":id/shortFilters", measure.CreateShortFilters)
 		apps.GET(":id/spans/roots/names", measure.GetRootSpanNames)
-		apps.GET(":id/spans/:spanName/instances", measure.GetSpanInstances)
-		apps.GET(":id/spans/:spanName/plot", measure.GetSpanMetricsPlot)
+		apps.GET(":id/spans/instances", measure.GetSpanInstances)
+		apps.GET(":id/spans/plot", measure.GetSpanMetricsPlot)
 		apps.GET(":id/traces/:traceId", measure.GetTrace)
 	}
 
