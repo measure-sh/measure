@@ -1137,6 +1137,17 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 		appVersionTuple := fmt.Sprintf("('%s', '%s')", e.spans[i].Attributes.AppVersion, e.spans[i].Attributes.AppBuild)
 		osVersionTuple := fmt.Sprintf("('%s', '%s')", e.spans[i].Attributes.OSName, e.spans[i].Attributes.OSVersion)
 
+		formattedCheckpoints := "["
+		for j, cp := range e.spans[i].CheckPoints {
+			timestamp := cp.Timestamp.Format(chrono.NanoTimeFormat)
+			formattedCheckpoints += fmt.Sprintf("('%s', '%s')", cp.Name, timestamp)
+
+			if j < len(e.spans[i].CheckPoints)-1 {
+				formattedCheckpoints += ", "
+			}
+		}
+		formattedCheckpoints += "]"
+
 		stmt.NewRow().
 			Set(`app_id`, e.spans[i].AppID).
 			Set(`span_name`, e.spans[i].SpanName).
@@ -1147,7 +1158,7 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 			Set(`status`, e.spans[i].Status).
 			Set(`start_time`, e.spans[i].StartTime.Format(chrono.NanoTimeFormat)).
 			Set(`end_time`, e.spans[i].EndTime.Format(chrono.NanoTimeFormat)).
-			Set(`checkpoints`, e.spans[i].CheckPoints).
+			Set(`checkpoints`, formattedCheckpoints).
 			Set(`attribute.app_unique_id`, e.spans[i].Attributes.AppUniqueID).
 			Set(`attribute.installation_id`, e.spans[i].Attributes.InstallationID).
 			Set(`attribute.user_id`, e.spans[i].Attributes.UserID).
