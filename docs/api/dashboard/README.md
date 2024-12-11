@@ -119,12 +119,12 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-21)
     - [Response Body](#response-body-21)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-21)
-  - [GET `/apps/:id/spans/:spanName/instances`](#get-appsidspanspannameinstances)
+  - [GET `/apps/:id/spans/instances`](#get-appsidspansinstances)
     - [Usage Notes](#usage-notes-22)
     - [Authorization \& Content Type](#authorization--content-type-22)
     - [Response Body](#response-body-22)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-22)
-  - [GET `/apps/:id/spans/:spanName/plot`](#get-appsidspansspannameplot)
+  - [GET `/apps/:id/spans/plot`](#get-appsidspansplot)
     - [Usage Notes](#usage-notes-23)
     - [Authorization \& Content Type](#authorization--content-type-23)
     - [Response Body](#response-body-23)
@@ -219,8 +219,8 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
 - [**PATCH `/apps/:id/settings`**](#patch-appsidsettings) - Update an app's settings.
 - [**POST `/apps/:id/shortFilters`**](#post-appsidshortfilters) - Create a shortcode to represent a combination of various app filters.
 - [**GET `/apps/:id/spans/roots/names`**](#get-appsidspansrootsnames) - Fetch an app's root span names list with optional filters.
-- [**GET `/apps/:id/spans/:spanName/instances`**](#get-appsidspanspannameinstances) - Fetch an span's list of instances with optional filters.
-- [**GET `/apps/:id/spans/:spanName/plot`**](#get-appsidspansspannameplot) - Fetch an span's metrics plot with optional filters.
+- [**GET `/apps/:id/spans/instances`**](#get-appsidspansinstances) - Fetch an span's list of instances with optional filters.
+- [**GET `/apps/:id/spans/plot`**](#get-appsidspansplot) - Fetch an span's metrics plot with optional filters.
 - [**GET `/apps/:id/traces/:traceId`**](#get-appsidtracestraceid) - Fetch a trace.
 
 ### GET `/apps/:id/journey`
@@ -3603,14 +3603,16 @@ List of HTTP status codes for success and failures.
 
 </details>
 
-### GET `/apps/:id/spans/:spanName/instances`
+### GET `/apps/:id/spans/instances`
 
 Fetch an span's list of instances with optional filters.
 
 #### Usage Notes
 
 - App's UUID must be passed in the URI
+- Span name for which instances list is being fetched must be passed as a query param
 - Accepted query parameters
+  - `span_name` (_required_) - Name of the span for which instances list is being fetched.
   - `from` (_optional_) - ISO8601 timestamp to include sessions after this time.
   - `to` (_optional_) - ISO8601 timestamp to include sessions before this time.
   - `versions` (_optional_) - List of comma separated version identifier strings to return only matching sessions.
@@ -3740,14 +3742,16 @@ List of HTTP status codes for success and failures.
 
 </details>
 
-### GET `/apps/:id/spans/:spanName/plot`
+### GET `/apps/:id/spans/plot`
 
 Fetch an span's metrics plot with optional filters.
 
 #### Usage Notes
 
 - App's UUID must be passed in the URI
+- Span name for which metrics plot is being fetched must be passed as a query param
 - Accepted query parameters
+  - `span_name` (_required_) - Name of the span for which metrics plot is being fetched.
   - `from` (_optional_) - ISO8601 timestamp to include sessions after this time.
   - `to` (_optional_) - ISO8601 timestamp to include sessions before this time.
   - `versions` (_optional_) - List of comma separated version identifier strings to return only matching sessions.

@@ -846,6 +846,11 @@ async function applyGenericFiltersToUrl(url: string, filters: Filters, keyId: st
         searchParams.append('anr', '1')
     }
 
+    // Append span name if needed
+    if (filters.rootSpanName !== "") {
+        searchParams.append('span_name', encodeURIComponent(filters.rootSpanName))
+    }
+
     // Append span statuses if needed
     if (filters.spanStatuses.length > 0) {
         filters.spanStatuses.forEach((v) => {
@@ -956,7 +961,7 @@ export const fetchRootSpanNamesFromServer = async (selectedApp: typeof emptyApp,
 export const fetchSpanInstancesFromServer = async (filters: Filters, limit: number, offset: number, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-    var url = `${origin}/apps/${filters.app.id}/spans/${filters.rootSpanName}/instances?`
+    var url = `${origin}/apps/${filters.app.id}/spans/instances?`
 
     url = await applyGenericFiltersToUrl(url, filters, null, null, limit, offset)
 
@@ -979,7 +984,7 @@ export const fetchSpanInstancesFromServer = async (filters: Filters, limit: numb
 export const fetchSpanMetricsPlotFromServer = async (filters: Filters, router: AppRouterInstance) => {
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-    var url = `${origin}/apps/${filters.app.id}/spans/${filters.rootSpanName}/plot?`
+    var url = `${origin}/apps/${filters.app.id}/spans/plot?`
 
     url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
 
