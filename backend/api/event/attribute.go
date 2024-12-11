@@ -149,6 +149,26 @@ func (a Attribute) Validate() error {
 		return fmt.Errorf(`%q does not contain a valid platform value`, `attribute.platform`)
 	}
 
+	if a.InstallationID == uuid.Nil {
+		return fmt.Errorf(`%q must not be empty`, `attribute.installation_id`)
+	}
+
+	if a.MeasureSDKVersion == "" {
+		return fmt.Errorf(`%q must not be empty`, `attribute.measure_sdk_version`)
+	}
+
+	if a.AppVersion == "" {
+		return fmt.Errorf(`%q must not be empty`, `attribute.app_version`)
+	}
+
+	if a.AppBuild == "" {
+		return fmt.Errorf(`%q must not be empty`, `attribute.app_build`)
+	}
+
+	if a.AppUniqueID == "" {
+		return fmt.Errorf(`%q must not be empty`, `attribute.app_unique_id`)
+	}
+
 	if len(a.AppVersion) > maxAppVersionChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.app_version`, maxAppVersionChars)
 	}
