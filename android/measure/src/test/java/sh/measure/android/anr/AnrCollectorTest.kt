@@ -9,8 +9,8 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import sh.measure.android.NativeBridge
 import sh.measure.android.events.Attachment
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.NoopLogger
@@ -18,11 +18,11 @@ import sh.measure.android.fakes.NoopLogger
 class AnrCollectorTest {
     private val logger = NoopLogger()
     private val processInfo = FakeProcessInfoProvider()
-    private val eventProcessor = mock<EventProcessor>()
+    private val signalProcessor = mock<SignalProcessor>()
     private val nativeBridge = mock<NativeBridge>()
     private val looper = mock<Looper>()
     private val anrCollector =
-        AnrCollector(logger, processInfo, eventProcessor, nativeBridge, looper)
+        AnrCollector(logger, processInfo, signalProcessor, nativeBridge, looper)
 
     @Test
     fun `register enables anr reporting and registers itself as listener`() {
@@ -56,7 +56,7 @@ class AnrCollectorTest {
 
         // the arguments must be in the same order as the method signature, otherwise
         // argumentCaptor will not capture the correct value and verify will fail.
-        verify(eventProcessor).trackCrash(
+        verify(signalProcessor).trackCrash(
             data = dataCaptor.capture(),
             timestamp = timestampCaptor.capture(),
             type = typeCaptor.capture(),

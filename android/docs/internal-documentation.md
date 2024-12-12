@@ -25,7 +25,7 @@ has been ignored for now.
 # Batching & export
 
 Events are sent to the server in batches at regular intervals (30s) while the app is in foreground and when the app 
-goes to background.   
+goes to background.
 
 * [Periodic batching and export](#periodic-batching-and-export)
 * [Exceptions and ANRs export](#exceptions-and-anrs-export)

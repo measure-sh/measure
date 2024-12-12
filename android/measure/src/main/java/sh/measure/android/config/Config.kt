@@ -14,6 +14,7 @@ internal data class Config(
     override val trackActivityIntentData: Boolean = DefaultConfig.TRACK_ACTIVITY_INTENT_DATA,
     override val samplingRateForErrorFreeSessions: Float = DefaultConfig.SESSION_SAMPLING_RATE,
     override val autoStart: Boolean = DefaultConfig.AUTO_START,
+    override val traceSamplingRate: Float = DefaultConfig.TRACE_SAMPLING_RATE,
 ) : InternalConfig, IMeasureConfig {
     override val screenshotMaskHexColor: String = "#222222"
     override val screenshotCompressionQuality: Int = 25
@@ -42,5 +43,8 @@ internal data class Config(
         EventType.LIFECYCLE_FRAGMENT,
         EventType.SCREEN_VIEW,
     )
-    override val maxEventsInDatabase: Int = 50_000
+    override val maxSignalsInDatabase: Int = 50_000
+    override val maxSpanNameLength: Int = 64
+    override val maxCheckpointNameLength: Int = 64
+    override val maxCheckpointsPerSpan: Int = 100
 }

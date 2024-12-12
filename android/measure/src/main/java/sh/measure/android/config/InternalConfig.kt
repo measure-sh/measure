@@ -76,9 +76,24 @@ internal interface InternalConfig {
     val eventTypeExportAllowList: List<String>
 
     /**
-     * The maximum number of events allowed in the database.
+     * The maximum number of (events + spans) allowed in the database.
      * If the number of events exceeds this limit, the oldest session is deleted everytime
      * cleanup is triggered until the total number of events is below this limit.
      */
-    val maxEventsInDatabase: Int
+    val maxSignalsInDatabase: Int
+
+    /**
+     * Max length of a span name. Defaults to 64.
+     */
+    val maxSpanNameLength: Int
+
+    /**
+     * Max length of a checkpoint name. Defaults to 64.
+     */
+    val maxCheckpointNameLength: Int
+
+    /**
+     * Max checkpoints per span. Defaults to 100.
+     */
+    val maxCheckpointsPerSpan: Int
 }

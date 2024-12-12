@@ -10,8 +10,8 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import sh.measure.android.SessionManager
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.fakes.FakeAppExitProvider
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
@@ -23,7 +23,7 @@ class AppExitCollectorTest {
     private val appExitProvider = FakeAppExitProvider()
     private val database = mock<Database>()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
-    private val eventProcessor = mock<EventProcessor>()
+    private val signalProcessor = mock<SignalProcessor>()
     private val sessionManager = mock<SessionManager>()
 
     private val appExitCollector = AppExitCollector(
@@ -31,7 +31,7 @@ class AppExitCollectorTest {
         appExitProvider,
         executorService,
         database,
-        eventProcessor,
+        signalProcessor,
         sessionManager,
     )
 
@@ -50,7 +50,7 @@ class AppExitCollectorTest {
         appExitCollector.collect()
 
         // Then
-        verify(eventProcessor).track(
+        verify(signalProcessor).track(
             appExit,
             appExit.app_exit_time_ms,
             EventType.APP_EXIT,
@@ -74,13 +74,13 @@ class AppExitCollectorTest {
         appExitCollector.collect()
 
         // Then
-        verify(eventProcessor).track(
+        verify(signalProcessor).track(
             appExit1,
             appExit1.app_exit_time_ms,
             EventType.APP_EXIT,
             sessionId = session1.id,
         )
-        verify(eventProcessor).track(
+        verify(signalProcessor).track(
             appExit2,
             appExit2.app_exit_time_ms,
             EventType.APP_EXIT,
@@ -187,7 +187,7 @@ class AppExitCollectorTest {
         appExitCollector.collect()
 
         // Then
-        verify(eventProcessor, times(1)).track(
+        verify(signalProcessor, times(1)).track(
             appExit,
             appExit.app_exit_time_ms,
             EventType.APP_EXIT,

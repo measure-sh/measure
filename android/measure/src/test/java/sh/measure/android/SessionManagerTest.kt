@@ -24,8 +24,8 @@ import sh.measure.android.storage.Database
 import sh.measure.android.storage.PrefsStorage
 import sh.measure.android.storage.SessionEntity
 import sh.measure.android.utils.AndroidTimeProvider
+import sh.measure.android.utils.IdProviderImpl
 import sh.measure.android.utils.TestClock
-import sh.measure.android.utils.UUIDProvider
 import java.time.Duration
 
 class SessionManagerTest {
@@ -33,13 +33,13 @@ class SessionManagerTest {
     private val logger = NoopLogger()
     private val database = mock<Database>()
     private val prefsStorage = mock<PrefsStorage>()
-    private val idProvider = UUIDProvider()
+    private val randomizer = FakeRandomizer()
+    private val idProvider = IdProviderImpl(randomizer)
     private val processInfo = FakeProcessInfoProvider()
     private val testClock = TestClock.create()
     private val timeProvider = AndroidTimeProvider(testClock)
     private val configProvider = FakeConfigProvider()
     private val packageInfoProvider = FakePackageInfoProvider()
-    private val randomizer = FakeRandomizer()
 
     private val sessionManager = SessionManagerImpl(
         logger = logger,
@@ -51,6 +51,7 @@ class SessionManagerTest {
         configProvider = configProvider,
         ioExecutor = executorService,
         packageInfoProvider = packageInfoProvider,
+        randomizer = randomizer,
     )
 
     @Before
@@ -81,7 +82,7 @@ class SessionManagerTest {
             SessionEntity(
                 sessionId,
                 processInfo.getPid(),
-                timeProvider.millisTime,
+                timeProvider.elapsedRealtime,
                 needsReporting = false,
                 crashed = false,
                 supportsAppExit = false,
@@ -202,7 +203,7 @@ class SessionManagerTest {
 
         // Then
         Mockito.verify(prefsStorage, times(1))
-            .setRecentSessionEventTime(timeProvider.millisTime)
+            .setRecentSessionEventTime(timeProvider.elapsedRealtime)
     }
 
     @Test
@@ -239,7 +240,7 @@ class SessionManagerTest {
     @Test
     fun `creates new session if elapsed time is zero due to device boot`() {
         // Given
-        val initialTime = timeProvider.millisTime
+        val initialTime = timeProvider.elapsedRealtime
         val previousSession = RecentSession(
             "previous-session-id",
             createdAt = initialTime - Duration.ofMinutes(3).toMillis(),
@@ -259,7 +260,7 @@ class SessionManagerTest {
     @Test
     fun `creates new session if app version changed since last session`() {
         // Given
-        val initialTime = timeProvider.millisTime
+        val initialTime = timeProvider.elapsedRealtime
         val previousSession = RecentSession(
             "previous-session-id",
             createdAt = initialTime - Duration.ofMinutes(3).toMillis(),

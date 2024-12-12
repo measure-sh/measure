@@ -17,7 +17,7 @@ internal interface TimeProvider {
      * Returns a time measurement with millisecond precision that can only be used to calculate
      * time intervals.
      */
-    val millisTime: Long
+    val elapsedRealtime: Long
 
     /**
      * Returns the current epoch timestamp in millis. This timestamp is calculated using
@@ -34,7 +34,7 @@ internal class AndroidTimeProvider(private val systemClock: SystemClock) : TimeP
     private val anchoredEpochTime = systemClock.epochTime()
     private val anchoredElapsedRealtime = systemClock.monotonicTimeSinceBoot()
 
-    override val millisTime
+    override val elapsedRealtime
         get() = systemClock.monotonicTimeSinceBoot()
 
     override fun now(): Long {

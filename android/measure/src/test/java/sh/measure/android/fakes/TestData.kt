@@ -10,6 +10,7 @@ import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.exceptions.ExceptionFactory
 import sh.measure.android.exporter.AttachmentPacket
 import sh.measure.android.exporter.EventPacket
+import sh.measure.android.exporter.SpanPacket
 import sh.measure.android.gestures.ClickData
 import sh.measure.android.gestures.LongClickData
 import sh.measure.android.gestures.ScrollData
@@ -19,6 +20,7 @@ import sh.measure.android.lifecycle.AppLifecycleType
 import sh.measure.android.lifecycle.ApplicationLifecycleData
 import sh.measure.android.lifecycle.FragmentLifecycleData
 import sh.measure.android.lifecycle.FragmentLifecycleType
+import sh.measure.android.logger.Logger
 import sh.measure.android.navigation.NavigationData
 import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.networkchange.NetworkChangeData
@@ -31,6 +33,15 @@ import sh.measure.android.storage.AttachmentEntity
 import sh.measure.android.storage.BatchEntity
 import sh.measure.android.storage.EventEntity
 import sh.measure.android.storage.SessionEntity
+import sh.measure.android.storage.SpanEntity
+import sh.measure.android.storage.toSpanEntity
+import sh.measure.android.tracing.Checkpoint
+import sh.measure.android.tracing.MsrSpan
+import sh.measure.android.tracing.SpanData
+import sh.measure.android.tracing.SpanProcessor
+import sh.measure.android.tracing.SpanStatus
+import sh.measure.android.utils.TimeProvider
+import sh.measure.android.utils.iso8601Timestamp
 
 internal object TestData {
 
@@ -318,15 +329,6 @@ internal object TestData {
         )
     }
 
-    fun getAttachmentPackets(eventEntity: EventEntity): List<AttachmentPacket> {
-        return eventEntity.attachmentEntities?.map {
-            AttachmentPacket(
-                id = it.id,
-                filePath = it.path,
-            )
-        } ?: emptyList()
-    }
-
     fun getAttachment(
         type: String = "type",
         name: String = "name",
@@ -404,11 +406,13 @@ internal object TestData {
     fun getEventBatchEntity(
         batchId: String = "batch-id",
         eventIds: List<String> = emptyList(),
+        spanIds: List<String> = emptyList(),
         createdAt: Long = 987654321L,
     ): BatchEntity {
         return BatchEntity(
             batchId = batchId,
             eventIds = eventIds,
+            spanIds = spanIds,
             createdAt = createdAt,
         )
     }
@@ -442,5 +446,116 @@ internal object TestData {
 
     fun getScreenViewData(): ScreenViewData {
         return ScreenViewData(name = "screen-name")
+    }
+
+    fun getSpanData(
+        name: String = "span-name",
+        traceId: String = "trace-id",
+        spanId: String = "span-id",
+        parentId: String? = "parent-id",
+        sessionId: String = "session-id",
+        startTime: Long = 1000L,
+        endTime: Long = 2000L,
+        duration: Long = 1000L,
+        status: SpanStatus = SpanStatus.Ok,
+        hasEnded: Boolean = true,
+        attributes: Map<String, Any?> = emptyMap(),
+        checkpoints: MutableList<Checkpoint> = mutableListOf(),
+        isSampled: Boolean = true,
+    ): SpanData {
+        return SpanData(
+            name = name,
+            traceId = traceId,
+            spanId = spanId,
+            parentId = parentId,
+            sessionId = sessionId,
+            startTime = startTime,
+            endTime = endTime,
+            duration = duration,
+            status = status,
+            hasEnded = hasEnded,
+            attributes = attributes,
+            checkpoints = checkpoints,
+            isSampled = isSampled,
+        )
+    }
+
+    fun getSpan(
+        logger: Logger,
+        timeProvider: TimeProvider,
+        spanProcessor: SpanProcessor,
+        name: String = "span-name",
+        spanId: String = "span-id",
+        traceId: String = "trace-id",
+        parentId: String? = null,
+        sessionId: String = "session-id",
+        startTime: Long = 987654321L,
+        isSampled: Boolean = true,
+    ): MsrSpan {
+        return MsrSpan(
+            logger,
+            timeProvider,
+            spanProcessor,
+            isSampled,
+            name,
+            spanId,
+            traceId,
+            parentId,
+            sessionId,
+            startTime,
+        )
+    }
+
+    fun getSpanEntity(
+        name: String = "span-name",
+        traceId: String = "trace-id",
+        spanId: String = "span-id",
+        parentId: String? = "parent-id",
+        sessionId: String = "session-id",
+        startTime: Long = 1000L,
+        endTime: Long = 2000L,
+        duration: Long = 1000L,
+        status: SpanStatus = SpanStatus.Ok,
+        hasEnded: Boolean = true,
+        attributes: Map<String, Any?> = emptyMap(),
+        checkpoints: MutableList<Checkpoint> = mutableListOf(),
+    ): SpanEntity {
+        return getSpanData(
+            name = name,
+            traceId = traceId,
+            spanId = spanId,
+            parentId = parentId,
+            sessionId = sessionId,
+            startTime = startTime,
+            endTime = endTime,
+            duration = duration,
+            status = status,
+            hasEnded = hasEnded,
+            attributes = attributes,
+            checkpoints = checkpoints,
+        ).toSpanEntity()
+    }
+
+    fun getSpanPacket(spanEntity: SpanEntity): SpanPacket {
+        return SpanPacket(
+            name = spanEntity.name,
+            traceId = spanEntity.traceId,
+            spanId = spanEntity.spanId,
+            parentId = spanEntity.parentId,
+            sessionId = spanEntity.sessionId,
+            startTime = spanEntity.startTime.iso8601Timestamp(),
+            endTime = spanEntity.endTime.iso8601Timestamp(),
+            duration = spanEntity.duration,
+            status = spanEntity.status.value,
+            serializedAttributes = spanEntity.serializedAttributes,
+            serializedCheckpoints = spanEntity.serializedCheckpoints,
+        )
+    }
+
+    fun getCheckpoint(): Checkpoint {
+        return Checkpoint(
+            name = "name",
+            timestamp = 98765432L,
+        )
     }
 }

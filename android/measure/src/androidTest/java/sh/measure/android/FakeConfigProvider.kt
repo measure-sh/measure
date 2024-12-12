@@ -34,6 +34,7 @@ class FakeConfigProvider : ConfigProvider {
     override var httpUrlAllowlist: List<String> = emptyList()
     override var trackActivityIntentData: Boolean = true
     override var samplingRateForErrorFreeSessions: Float = 1f
+    override val traceSamplingRate: Float = 1f
     override var maxAttachmentSizeInEventsBatchInBytes: Int = 1_000_000
     override var eventsBatchingIntervalMs: Long = 1_000_000
     override var maxEventsInBatch: Int = 1_000_000
@@ -47,6 +48,9 @@ class FakeConfigProvider : ConfigProvider {
     override var screenshotMaskHexColor: String = "#222222"
     override var screenshotCompressionQuality: Int = 100
     override var eventTypeExportAllowList: List<String> = emptyList()
-    override var maxEventsInDatabase: Int = 50000
     override val autoStart: Boolean = true
+    override var maxSignalsInDatabase: Int = 50000
+    override val maxSpanNameLength: Int = 64
+    override val maxCheckpointNameLength: Int = 64
+    override val maxCheckpointsPerSpan: Int = 100
 }

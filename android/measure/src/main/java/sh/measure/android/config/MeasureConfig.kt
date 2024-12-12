@@ -17,6 +17,7 @@ internal interface IMeasureConfig {
     val trackActivityIntentData: Boolean
     val samplingRateForErrorFreeSessions: Float
     val autoStart: Boolean
+    val traceSamplingRate: Float
 }
 
 /**
@@ -129,10 +130,24 @@ class MeasureConfig(
      * @see Measure.start to start the SDK.
      */
     override val autoStart: Boolean = DefaultConfig.AUTO_START,
+
+    /**
+     * Allows setting a sampling rate for traces. Defaults to 0.1.
+     *
+     * The sampling rate is a value between 0 and 1. For example, a value of `0.1` will export
+     * only 10% of all traces, a value of `0` will disable exporting of traces.
+     *
+     * Setting a value outside the range will throw an [IllegalArgumentException].
+     */
+    override val traceSamplingRate: Float = DefaultConfig.TRACE_SAMPLING_RATE,
 ) : IMeasureConfig {
     init {
         require(samplingRateForErrorFreeSessions in 0.0..1.0) {
             "session sampling rate must be between 0.0 and 1.0"
+        }
+
+        require(traceSamplingRate in 0.0..1.0) {
+            "Trace sampling rate must be between 0.0 and 1.0"
         }
     }
 }

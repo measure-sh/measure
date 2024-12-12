@@ -6,8 +6,8 @@ import android.app.ApplicationExitInfo.REASON_CRASH_NATIVE
 import android.os.Build
 import androidx.annotation.RequiresApi
 import sh.measure.android.SessionManager
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
@@ -20,7 +20,7 @@ internal class AppExitCollector(
     private val appExitProvider: AppExitProvider,
     private val ioExecutor: MeasureExecutorService,
     private val database: Database,
-    private val eventProcessor: EventProcessor,
+    private val signalProcessor: SignalProcessor,
     private val sessionManager: SessionManager,
 ) {
     // Prevents app exit from being processed multiple times
@@ -44,7 +44,7 @@ internal class AppExitCollector(
                     val appExit = it.value
                     val session = getSessionForAppExit(pid)
                     if (session != null) {
-                        eventProcessor.track(
+                        signalProcessor.track(
                             appExit,
                             // Current time is irrelevant for app exit, using
                             // the time at which the app exit actually occurred instead.

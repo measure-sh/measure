@@ -2,12 +2,13 @@ package sh.measure.android.storage
 
 internal object DbConstants {
     const val DATABASE_NAME = "measure.db"
-    const val DATABASE_VERSION = DbVersion.V2
+    const val DATABASE_VERSION = DbVersion.V3
 }
 
 internal object DbVersion {
     const val V1 = 1
     const val V2 = 2
+    const val V3 = 3
 }
 
 internal object EventTable {
@@ -36,9 +37,22 @@ internal object AttachmentTable {
     const val COL_NAME = "name"
 }
 
+internal object BatchesTable {
+    const val TABLE_NAME = "batches"
+    const val COL_BATCH_ID = "batch_id"
+    const val COL_CREATED_AT = "created_at"
+}
+
 internal object EventsBatchTable {
     const val TABLE_NAME = "events_batch"
     const val COL_EVENT_ID = "event_id"
+    const val COL_BATCH_ID = "batch_id"
+    const val COL_CREATED_AT = "created_at"
+}
+
+internal object SpansBatchTable {
+    const val TABLE_NAME = "spans_batch"
+    const val COL_SPAN_ID = "span_id"
     const val COL_BATCH_ID = "batch_id"
     const val COL_CREATED_AT = "created_at"
 }
@@ -62,6 +76,23 @@ internal object AppExitTable {
     const val COL_SESSION_ID = "session_id"
     const val COL_PID = "pid"
     const val COL_CREATED_AT = "created_at"
+}
+
+internal object SpansTable {
+    const val TABLE_NAME = "spans"
+    const val COL_NAME = "name"
+    const val COL_SESSION_ID = "session_id"
+    const val COL_SPAN_ID = "span_id"
+    const val COL_TRACE_ID = "trace_id"
+    const val COL_PARENT_ID = "parent_id"
+    const val COL_START_TIME = "start_time"
+    const val COL_END_TIME = "end_time"
+    const val COL_DURATION = "duration"
+    const val COL_STATUS = "status"
+    const val COL_SERIALIZED_ATTRS = "serialized_attrs"
+    const val COL_SERIALIZED_USER_DEFINED_ATTRS = "user_defined_attributes"
+    const val COL_SERIALIZED_SPAN_EVENTS = "serialized_span_events"
+    const val COL_SAMPLED = "sampled"
 }
 
 internal object UserDefinedAttributesTable {
@@ -110,6 +141,13 @@ internal object Sql {
         )
     """
 
+    const val CREATE_BATCHES_TABLE = """
+        CREATE TABLE IF NOT EXISTS ${BatchesTable.TABLE_NAME} (
+            ${BatchesTable.COL_BATCH_ID} TEXT PRIMARY KEY,
+            ${BatchesTable.COL_CREATED_AT} INTEGER NOT NULL
+        )
+    """
+
     const val CREATE_EVENTS_BATCH_TABLE = """
         CREATE TABLE IF NOT EXISTS ${EventsBatchTable.TABLE_NAME} (
             ${EventsBatchTable.COL_EVENT_ID} TEXT NOT NULL,
@@ -122,6 +160,16 @@ internal object Sql {
 
     const val CREATE_EVENTS_BATCH_EVENT_ID_INDEX = """
         CREATE INDEX IF NOT EXISTS events_batch_event_id_index ON ${EventsBatchTable.TABLE_NAME} (${EventsBatchTable.COL_EVENT_ID})
+    """
+
+    const val CREATE_SPANS_BATCH_TABLE = """
+        CREATE TABLE IF NOT EXISTS ${SpansBatchTable.TABLE_NAME} (
+            ${SpansBatchTable.COL_SPAN_ID} TEXT NOT NULL,
+            ${SpansBatchTable.COL_BATCH_ID} TEXT NOT NULL,
+            ${SpansBatchTable.COL_CREATED_AT} INTEGER NOT NULL,
+            PRIMARY KEY (${SpansBatchTable.COL_SPAN_ID}, ${SpansBatchTable.COL_BATCH_ID}),
+            FOREIGN KEY (${SpansBatchTable.COL_SPAN_ID}) REFERENCES ${SpansTable.TABLE_NAME}(${SpansTable.COL_SPAN_ID}) ON DELETE CASCADE
+        )
     """
 
     const val CREATE_SESSIONS_TABLE = """
@@ -141,6 +189,25 @@ internal object Sql {
             ${AppExitTable.COL_PID} INTEGER NOT NULL,
             ${AppExitTable.COL_CREATED_AT} INTEGER NOT NULL,
             PRIMARY KEY (${AppExitTable.COL_SESSION_ID}, ${AppExitTable.COL_PID})
+        )
+    """
+
+    const val CREATE_SPANS_TABLE = """
+        CREATE TABLE IF NOT EXISTS ${SpansTable.TABLE_NAME} (
+            ${SpansTable.COL_SPAN_ID} TEXT NOT NULL PRIMARY KEY,
+            ${SpansTable.COL_NAME} TEXT NOT NULL,
+            ${SpansTable.COL_SESSION_ID} TEXT NOT NULL,
+            ${SpansTable.COL_TRACE_ID} TEXT NOT NULL,
+            ${SpansTable.COL_PARENT_ID} TEXT,
+            ${SpansTable.COL_START_TIME} INTEGER NOT NULL,
+            ${SpansTable.COL_END_TIME} INTEGER NOT NULL,
+            ${SpansTable.COL_DURATION} INTEGER NOT NULL,
+            ${SpansTable.COL_STATUS} TEXT NOT NULL,
+            ${SpansTable.COL_SERIALIZED_ATTRS} TEXT,
+            ${SpansTable.COL_SERIALIZED_USER_DEFINED_ATTRS} TEXT,
+            ${SpansTable.COL_SERIALIZED_SPAN_EVENTS} TEXT,
+            ${SpansTable.COL_SAMPLED} INTEGER DEFAULT 0,
+            FOREIGN KEY (${SpansTable.COL_SESSION_ID}) REFERENCES ${SessionsTable.TABLE_NAME}(${SessionsTable.COL_SESSION_ID}) ON DELETE CASCADE
         )
     """
 
@@ -227,20 +294,25 @@ internal object Sql {
         }
     }
 
+    fun getSpansBatchQuery(spanCount: Int, ascending: Boolean): String {
+        return """
+            SELECT sp.${SpansTable.COL_SPAN_ID} 
+            FROM ${SpansTable.TABLE_NAME} sp
+            LEFT JOIN ${SpansBatchTable.TABLE_NAME} sb ON sp.${SpansTable.COL_SPAN_ID} = sb.${SpansBatchTable.COL_SPAN_ID}
+            JOIN ${SessionsTable.TABLE_NAME} s ON sp.${SpansTable.COL_SESSION_ID} = s.${SessionsTable.COL_SESSION_ID}
+            WHERE sb.${SpansBatchTable.COL_SPAN_ID} IS NULL
+            AND sp.${SpansTable.COL_SAMPLED} = 1
+            ORDER BY sp.${SpansTable.COL_END_TIME} ${if (ascending) "ASC" else "DESC"}
+            LIMIT $spanCount
+        """.trimIndent()
+    }
+
     fun getBatches(maxCount: Int): String {
         return """
-            WITH limited_batches AS (
-                SELECT DISTINCT ${EventsBatchTable.COL_BATCH_ID}
-                FROM ${EventsBatchTable.TABLE_NAME}
-                ORDER BY ${EventsBatchTable.COL_CREATED_AT} ASC
-                LIMIT $maxCount
-            )
-            SELECT 
-                ${EventsBatchTable.COL_EVENT_ID},
-                ${EventsBatchTable.COL_BATCH_ID}
-            FROM ${EventsBatchTable.TABLE_NAME}
-            WHERE ${EventsBatchTable.COL_BATCH_ID} IN (SELECT ${EventsBatchTable.COL_BATCH_ID} FROM limited_batches)
-            ORDER BY ${EventsBatchTable.COL_CREATED_AT} ASC
+            SELECT DISTINCT ${BatchesTable.COL_BATCH_ID}
+            FROM ${BatchesTable.TABLE_NAME}
+            ORDER BY ${BatchesTable.COL_CREATED_AT} ASC
+            LIMIT $maxCount
         """.trimIndent()
     }
 
@@ -261,6 +333,25 @@ internal object Sql {
                 ${EventTable.COL_ATTACHMENTS}
             FROM ${EventTable.TABLE_NAME}
             WHERE ${EventTable.COL_ID} IN (${eventIds.joinToString(", ") { "\'$it\'" }})
+        """.trimIndent()
+    }
+
+    fun getSpansForIds(spanIds: List<String>): String {
+        return """
+            SELECT 
+                ${SpansTable.COL_NAME},
+                ${SpansTable.COL_SESSION_ID},
+                ${SpansTable.COL_SPAN_ID},
+                ${SpansTable.COL_TRACE_ID},
+                ${SpansTable.COL_PARENT_ID},
+                ${SpansTable.COL_START_TIME},
+                ${SpansTable.COL_END_TIME},
+                ${SpansTable.COL_DURATION},
+                ${SpansTable.COL_STATUS},
+                ${SpansTable.COL_SERIALIZED_ATTRS},
+                ${SpansTable.COL_SERIALIZED_SPAN_EVENTS}
+            FROM ${SpansTable.TABLE_NAME}
+            WHERE ${SpansTable.COL_SPAN_ID} IN (${spanIds.joinToString(", ") { "\'$it\'" }})
         """.trimIndent()
     }
 
@@ -356,6 +447,13 @@ internal object Sql {
         """.trimIndent()
     }
 
+    fun getSpansCount(): String {
+        return """
+            SELECT COUNT(${SpansTable.COL_SPAN_ID}) AS count
+            FROM ${SpansTable.TABLE_NAME}
+        """.trimIndent()
+    }
+
     fun getSessionForAppExit(pid: Int): String {
         return """
             SELECT
@@ -365,6 +463,32 @@ internal object Sql {
             WHERE ${AppExitTable.COL_PID} = $pid 
             ORDER BY ${AppExitTable.COL_CREATED_AT} DESC
             LIMIT 1
+        """.trimIndent()
+    }
+
+    fun getBatchedEventIds(batchIds: List<String>): String {
+        return """
+            SELECT
+                ${EventsBatchTable.COL_EVENT_ID},
+                ${EventsBatchTable.COL_BATCH_ID}
+            FROM
+                ${EventsBatchTable.TABLE_NAME}
+            WHERE
+                ${EventsBatchTable.COL_BATCH_ID} 
+                IN (${batchIds.joinToString(", ") { "'$it'" }})
+        """.trimIndent()
+    }
+
+    fun getBatchedSpanIds(batchIds: List<String>): String {
+        return """
+            SELECT
+                ${SpansBatchTable.COL_SPAN_ID},
+                ${SpansBatchTable.COL_BATCH_ID}
+            FROM
+                ${SpansBatchTable.TABLE_NAME}
+            WHERE
+                ${SpansBatchTable.COL_BATCH_ID} 
+                IN (${batchIds.joinToString(", ") { "'$it'" }})
         """.trimIndent()
     }
 }

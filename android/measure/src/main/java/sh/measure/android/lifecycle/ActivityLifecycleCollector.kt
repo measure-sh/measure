@@ -3,22 +3,22 @@ package sh.measure.android.lifecycle
 import android.app.Activity
 import android.os.Bundle
 import androidx.fragment.app.FragmentActivity
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.isClassAvailable
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal class ActivityLifecycleCollector(
     private val appLifecycleManager: AppLifecycleManager,
-    private val eventProcessor: EventProcessor,
+    private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
 ) : ActivityLifecycleListener {
     private val fragmentLifecycleCollector by lazy {
-        FragmentLifecycleCollector(eventProcessor, timeProvider)
+        FragmentLifecycleCollector(signalProcessor, timeProvider)
     }
     private val androidXFragmentNavigationCollector by lazy {
-        AndroidXFragmentNavigationCollector(eventProcessor, timeProvider)
+        AndroidXFragmentNavigationCollector(signalProcessor, timeProvider)
     }
 
     private var isRegistered = AtomicBoolean(false)
@@ -38,7 +38,7 @@ internal class ActivityLifecycleCollector(
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
         registerFragmentLifecycleCollector(activity)
         registerAndroidXFragmentNavigationCollector(activity)
-        eventProcessor.track(
+        signalProcessor.track(
             timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_ACTIVITY,
             data = ActivityLifecycleData(
@@ -51,7 +51,7 @@ internal class ActivityLifecycleCollector(
     }
 
     override fun onActivityResumed(activity: Activity) {
-        eventProcessor.track(
+        signalProcessor.track(
             timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_ACTIVITY,
             data = ActivityLifecycleData(
@@ -62,7 +62,7 @@ internal class ActivityLifecycleCollector(
     }
 
     override fun onActivityPaused(activity: Activity) {
-        eventProcessor.track(
+        signalProcessor.track(
             timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_ACTIVITY,
             data = ActivityLifecycleData(
@@ -73,7 +73,7 @@ internal class ActivityLifecycleCollector(
     }
 
     override fun onActivityDestroyed(activity: Activity) {
-        eventProcessor.track(
+        signalProcessor.track(
             timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_ACTIVITY,
             data = ActivityLifecycleData(

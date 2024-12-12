@@ -9,8 +9,8 @@ import curtains.OnRootViewsChangedListener
 import curtains.OnTouchEventListener
 import curtains.phoneWindow
 import curtains.touchEventInterceptors
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.layoutinspector.LayoutInspector
 import sh.measure.android.layoutinspector.LayoutSnapshot
@@ -30,7 +30,7 @@ internal interface GestureListener {
 
 internal class GestureCollector(
     private val logger: Logger,
-    private val eventProcessor: EventProcessor,
+    private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
     private val defaultExecutor: MeasureExecutorService,
     private val layoutSnapshotThrottler: LayoutSnapshotThrottler,
@@ -156,7 +156,7 @@ internal class GestureCollector(
         try {
             defaultExecutor.submit {
                 val attachment = layoutSnapshot.generateSvgAttachment(targetNode, width, height)
-                eventProcessor.track(
+                signalProcessor.track(
                     timestamp = gesture.timestamp,
                     type = EventType.CLICK,
                     data = data,
@@ -165,7 +165,7 @@ internal class GestureCollector(
                 )
             }
         } catch (e: RejectedExecutionException) {
-            eventProcessor.track(
+            signalProcessor.track(
                 timestamp = gesture.timestamp,
                 type = EventType.CLICK,
                 data = data,
@@ -175,13 +175,13 @@ internal class GestureCollector(
     }
 
     private fun trackClick(gesture: DetectedGesture.Click, data: ClickData) {
-        eventProcessor.track(timestamp = gesture.timestamp, type = EventType.CLICK, data = data)
+        signalProcessor.track(timestamp = gesture.timestamp, type = EventType.CLICK, data = data)
     }
 
     private fun handleLongClick(gesture: DetectedGesture.LongClick, targetNode: Node) {
         val data = LongClickData.fromTargetNode(gesture, targetNode)
         listener?.onLongClick(data)
-        eventProcessor.track(
+        signalProcessor.track(
             timestamp = gesture.timestamp,
             type = EventType.LONG_CLICK,
             data = data,
@@ -191,7 +191,7 @@ internal class GestureCollector(
     private fun handleScroll(gesture: DetectedGesture.Scroll, targetNode: Node) {
         val data = ScrollData.fromTargetNode(gesture, targetNode)
         listener?.onScroll(data)
-        eventProcessor.track(
+        signalProcessor.track(
             timestamp = gesture.timestamp,
             type = EventType.SCROLL,
             data = data,

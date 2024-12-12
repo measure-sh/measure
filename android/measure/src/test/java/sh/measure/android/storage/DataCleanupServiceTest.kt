@@ -62,7 +62,7 @@ class DataCleanupServiceTest {
 
     @Test
     fun `given number of events in db exceed the max limit, deletes oldest session and events from database and file storage`() {
-        `when`(database.getEventsCount()).thenReturn(configProvider.maxEventsInDatabase + 1)
+        `when`(database.getEventsCount()).thenReturn(configProvider.maxSignalsInDatabase + 1)
         `when`(database.getOldestSession()).thenReturn("session1")
         `when`(database.getEventsForSessions(listOf("session1"))).thenReturn(listOf("event1"))
         `when`(database.getAttachmentsForEvents(listOf("event1"))).thenReturn(listOf("attachment1"))

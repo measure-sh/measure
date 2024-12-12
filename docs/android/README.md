@@ -4,13 +4,13 @@
 * [Quick reference](#quick-reference)
 * [Getting started](#getting-started)
 * [Custom events](#custom-events)
-    * [Handled exceptions](#handled-exceptions)
-    * [Navigation](#navigation)
+  * [Handled exceptions](#handled-exceptions)
+  * [Navigation](#navigation)
 * [Features](#features)
 * [Performance Impact](#performance-impact)
-    * [Benchmarks](#benchmarks)
-    * [Profiling](#profiling)
-    * [Implementation](#implementation)
+  * [Benchmarks](#benchmarks)
+  * [Profiling](#profiling)
+  * [Implementation](#implementation)
 
 # Minimum requirements
 
@@ -24,7 +24,7 @@
 
 A quick reference to the entire public API for Measure Android SDK.
 
-<img src="https://github.com/user-attachments/assets/ff835b3b-2953-4920-b5fa-060761862cac" width="60%" alt="Cheatsheet">
+![Cheatsheet](images/cheatsheet_v0.9.0.png)
 
 # Getting started
 
@@ -190,7 +190,7 @@ Measure.init(
 )
 ```
 
-By default, init also starts collection of events. To delay start to a different point in your app 
+By default, init also starts collection of events. To delay start to a different point in your app
 use [configuration options](configuration-options.md#autostart).
 
 ```kotlin
@@ -265,7 +265,7 @@ Measure.trackNavigationEvent(
 
 # Features
 
-All the features supported by the Measure SDK are listed below. 
+All the features supported by the Measure SDK are listed below.
 
 * [Crash tracking](features/feature_crash_tracking.md)
 * [ANR tracking](features/feature_anr_tracking.md)
@@ -282,9 +282,9 @@ All the features supported by the Measure SDK are listed below.
 
 # Session
 
-A session represents a continuous period of activity in the app. A new session begins when an app is launched for the first time, 
-or when there's been no activity for a 20-minute period. A single session can continue across multiple app background and 
-foreground events; brief interruptions will not cause a new session to be created. This approach is helpful when reviewing 
+A session represents a continuous period of activity in the app. A new session begins when an app is launched for the first time,
+or when there's been no activity for a 20-minute period. A single session can continue across multiple app background and
+foreground events; brief interruptions will not cause a new session to be created. This approach is helpful when reviewing
 session replays, as it shows the app switching between background and foreground states within the same session.
 
 
@@ -292,7 +292,7 @@ session replays, as it shows the app switching between background and foreground
 
 ## Benchmarks
 
-We benchmark the SDK's performance impact using a Pixel 4a running Android 13 (API 33). Each test runs 35 times using 
+We benchmark the SDK's performance impact using a Pixel 4a running Android 13 (API 33). Each test runs 35 times using
 macro-benchmark. For detailed methodology, see [android/benchmarks](../../android/benchmarks/README.md).
 
 > [!IMPORTANT]
@@ -307,8 +307,8 @@ Benchmarks results for v0.9.0:
 
 ## Profiling
 
-To measure the SDK's impact on your app, we've added traces to key areas of the code. These traces help you track 
-performance using [Macro Benchmark](https://developer.android.com/topic/performance/benchmarking/macrobenchmark-overview) 
+To measure the SDK's impact on your app, we've added traces to key areas of the code. These traces help you track
+performance using [Macro Benchmark](https://developer.android.com/topic/performance/benchmarking/macrobenchmark-overview)
 or by using [Perfetto](https://perfetto.dev/docs/quickstart/android-tracing) directly.
 
 * `msr-init` — time spent on the main thread while initializing.

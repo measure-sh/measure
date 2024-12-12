@@ -54,7 +54,7 @@ class BatchCreatorTest {
     }
 
     @Test
-    fun `returns null if no events to batch`() {
+    fun `returns null if no events and spans to batch`() {
         // Given
         `when`(
             database.getUnBatchedEventsWithAttachmentSize(
@@ -65,6 +65,14 @@ class BatchCreatorTest {
             ),
         ).thenReturn(
             LinkedHashMap(),
+        )
+        `when`(
+            database.getUnBatchedSpans(
+                spanCount = any(),
+                ascending = eq(true),
+            ),
+        ).thenReturn(
+            listOf(),
         )
 
         // When

@@ -6,8 +6,8 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.fakes.FakeMemoryReader
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.ImmediateExecutorService
@@ -19,13 +19,13 @@ import java.time.Duration
 internal class MemoryUsageCollectorTest {
     private val clock = TestClock.create()
     private val timeProvider = AndroidTimeProvider(clock)
-    private val eventProcessor = mock<EventProcessor>()
+    private val signalProcessor = mock<SignalProcessor>()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val memoryReader = FakeMemoryReader()
     private val processInfo = FakeProcessInfoProvider()
     private val memoryUsageCollector = MemoryUsageCollector(
         NoopLogger(),
-        eventProcessor,
+        signalProcessor,
         timeProvider,
         executorService,
         memoryReader,
@@ -35,7 +35,7 @@ internal class MemoryUsageCollectorTest {
     @Test
     fun `MemoryUsageCollector tracks memory usage`() {
         memoryUsageCollector.register()
-        verify(eventProcessor).track(
+        verify(signalProcessor).track(
             type = EventType.MEMORY_USAGE,
             timestamp = timeProvider.now(),
             data = MemoryUsageData(
@@ -70,7 +70,7 @@ internal class MemoryUsageCollectorTest {
 
     @Test
     fun `calculates interval between two events dynamically`() {
-        val initialTimeMillis = timeProvider.millisTime
+        val initialTimeMillis = timeProvider.elapsedRealtime
         memoryUsageCollector.previousMemoryUsageReadTimeMs = initialTimeMillis
         memoryUsageCollector.previousMemoryUsage = MemoryUsageData(
             java_max_heap = 0,
@@ -87,7 +87,7 @@ internal class MemoryUsageCollectorTest {
         clock.advance(advancedTime)
         memoryUsageCollector.register()
 
-        verify(eventProcessor).track(
+        verify(signalProcessor).track(
             type = EventType.MEMORY_USAGE,
             timestamp = timeProvider.now(),
             data = MemoryUsageData(

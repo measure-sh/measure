@@ -8,8 +8,8 @@ import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
@@ -22,7 +22,7 @@ import java.time.Duration
 
 internal class CpuUsageCollectorTest {
     private val logger = NoopLogger()
-    private val eventProcessor = mock<EventProcessor>()
+    private val signalProcessor = mock<SignalProcessor>()
     private val processInfo = FakeProcessInfoProvider()
     private val procProvider = mock<ProcProvider>()
     private val osSysConfProvider = mock<OsSysConfProvider>()
@@ -31,7 +31,7 @@ internal class CpuUsageCollectorTest {
     private val timeProvider = AndroidTimeProvider(testClock)
     private val cpuUsageCollector: CpuUsageCollector = CpuUsageCollector(
         logger,
-        eventProcessor,
+        signalProcessor,
         processInfo,
         timeProvider,
         executorService,
@@ -67,7 +67,7 @@ internal class CpuUsageCollectorTest {
         `when`(procProvider.getStatFile(processInfo.getPid())).thenReturn(file)
 
         cpuUsageCollector.register()
-        verify(eventProcessor).track(
+        verify(signalProcessor).track(
             type = EventType.CPU_USAGE,
             timestamp = timeProvider.now(),
             data = CpuUsageData(
@@ -187,7 +187,7 @@ internal class CpuUsageCollectorTest {
 
     @Test
     fun `CpuUsageCollector calculates interval dynamically`() {
-        val initialTimeMillis = timeProvider.millisTime
+        val initialTimeMillis = timeProvider.elapsedRealtime
         cpuUsageCollector.prevCpuUsageData = CpuUsageData(
             num_cores = 1,
             clock_speed = 100,
@@ -204,7 +204,7 @@ internal class CpuUsageCollectorTest {
         val advancedTime = Duration.ofMillis(15000)
         testClock.advance(advancedTime)
         cpuUsageCollector.register()
-        verify(eventProcessor).track(
+        verify(signalProcessor).track(
             type = EventType.CPU_USAGE,
             timestamp = timeProvider.now(),
             data = CpuUsageData(
