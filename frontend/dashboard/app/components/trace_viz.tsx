@@ -316,7 +316,7 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
         {/* span names column */}
         <div className='flex flex-col w-[300px] pl-2 overflow-x-auto select-none'>
           {trace.spans.filter((span) => span.visibility !== SpanVisibility.Hidden).map((span, index) => (
-            <div key={span.span_id} className={`flex flex-row items-center h-12 ${index % 2 === 0 ? 'bg-zinc-50' : ''} ${span.numberOfChildren! > 0 ? 'hover:bg-zinc-100' : ''}`} onClick={() => toggleSpanVisibility(span.span_id)} >
+            <div key={span.span_id} className={`flex flex-row items-center h-12 w-fit min-w-[300px] ${index % 2 === 0 ? 'bg-zinc-50' : ''} ${span.numberOfChildren! > 0 ? 'hover:bg-zinc-100' : ''}`} onClick={() => toggleSpanVisibility(span.span_id)} >
               {/* vertical connecting line */}
               {Array.from({ length: span.depth || 0 }).map((_, index) => (
                 <div key={span.span_id + index} className={`h-full w-[0.5px] ml-3.5 ${bgLineColorMap.get(span.span_id)}`} />
@@ -337,7 +337,7 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
               </div>
               <p className={`text-[10px] border py-0.1 px-1 ml-1 rounded-[2px] ${borderColorMap.get(span.span_id)}`}>{span.numberOfChildren!} </p>
               <p className={`text-xs mb-1 text-nowrap ml-2`}>{span.span_name}</p>
-              <p className={`text-[8px] ml-2 text-gray-400`}>{span.visibility === SpanVisibility.Expanded && span.numberOfChildren! > 0 ? "\u02c5" : span.visibility === SpanVisibility.Collapsed && span.numberOfChildren! > 0 ? "\u02c3" : ""}</p>
+              <p className={`text-[8px] ml-2 mr-2 text-gray-400`}>{span.visibility === SpanVisibility.Expanded && span.numberOfChildren! > 0 ? "\u02c5" : span.visibility === SpanVisibility.Collapsed && span.numberOfChildren! > 0 ? "\u02c3" : ""}</p>
             </div>
           ))}
         </div>
