@@ -2,8 +2,8 @@ package sh.measure.android.performance
 
 import android.system.OsConstants
 import androidx.annotation.VisibleForTesting
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
@@ -21,7 +21,7 @@ internal const val CPU_TRACKING_INTERVAL_MS = 3000L
 
 internal class CpuUsageCollector(
     private val logger: Logger,
-    private val eventProcessor: EventProcessor,
+    private val signalProcessor: SignalProcessor,
     private val processInfo: ProcessInfoProvider,
     private val timeProvider: TimeProvider,
     private val defaultExecutor: MeasureExecutorService,
@@ -66,7 +66,7 @@ internal class CpuUsageCollector(
         val numCores = osSysConfProvider.get(OsConstants._SC_NPROCESSORS_CONF).toInt()
         val clockSpeedHz = osSysConfProvider.get(OsConstants._SC_CLK_TCK)
         if (clockSpeedHz <= 0L || numCores <= 0L) return
-        val uptime = timeProvider.millisTime
+        val uptime = timeProvider.elapsedRealtime
         val percentageCpuUsage =
             getPercentageCpuUsage(utime, stime, cutime, cstime, uptime, numCores, clockSpeedHz)
         val interval = getInterval(uptime)
@@ -86,7 +86,7 @@ internal class CpuUsageCollector(
             // do not track the event if the usage is the same as the previous one.
             return
         }
-        eventProcessor.track(
+        signalProcessor.track(
             type = EventType.CPU_USAGE,
             timestamp = timeProvider.now(),
             data = cpuUsageData,

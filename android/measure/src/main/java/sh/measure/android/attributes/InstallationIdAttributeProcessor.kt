@@ -16,7 +16,7 @@ internal class InstallationIdAttributeProcessor(
     override fun computeAttributes(): Map<String, Any?> {
         val installationId = prefsStorage.getInstallationId()
         if (installationId == null) {
-            val newInstallationId = idProvider.createId()
+            val newInstallationId = idProvider.uuid()
             prefsStorage.setInstallationId(newInstallationId)
             return mapOf(Attribute.INSTALLATION_ID_KEY to newInstallationId)
         }

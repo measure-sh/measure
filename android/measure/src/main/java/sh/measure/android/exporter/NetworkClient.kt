@@ -11,6 +11,7 @@ internal interface NetworkClient {
         batchId: String,
         eventPackets: List<EventPacket>,
         attachmentPackets: List<AttachmentPacket>,
+        spanPackets: List<SpanPacket>,
     ): HttpResponse
 }
 
@@ -41,6 +42,7 @@ internal class NetworkClientImpl(
         batchId: String,
         eventPackets: List<EventPacket>,
         attachmentPackets: List<AttachmentPacket>,
+        spanPackets: List<SpanPacket>,
     ): HttpResponse {
         if (!isInitialized()) {
             // Handling this case as a HTTP response to make error handling consistent
@@ -50,7 +52,7 @@ internal class NetworkClientImpl(
         }
 
         val headers = createHeaders(batchId)
-        val multipartData = prepareMultipartData(eventPackets, attachmentPackets)
+        val multipartData = prepareMultipartData(eventPackets, attachmentPackets, spanPackets)
 
         return try {
             val response =
@@ -94,6 +96,7 @@ internal class NetworkClientImpl(
     private fun prepareMultipartData(
         eventPackets: List<EventPacket>,
         attachmentPackets: List<AttachmentPacket>,
+        spanPackets: List<SpanPacket>,
     ): List<MultipartData> {
         val events = eventPackets.mapNotNull {
             multipartDataFactory.createFromEventPacket(it)
@@ -101,7 +104,10 @@ internal class NetworkClientImpl(
         val attachments = attachmentPackets.mapNotNull {
             multipartDataFactory.createFromAttachmentPacket(it)
         }
-        return events + attachments
+        val spans = spanPackets.map {
+            multipartDataFactory.createFromSpanPacket(it)
+        }
+        return events + attachments + spans
     }
 
     private fun handleResponse(response: HttpResponse): HttpResponse {

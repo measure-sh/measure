@@ -8,6 +8,7 @@ import sh.measure.android.config.ScreenshotMaskLevel
 class SampleApp : Application() {
     override fun onCreate() {
         super.onCreate()
+        val startTime = Measure.getCurrentTime()
         Measure.init(
             this, MeasureConfig(
                 enableLogging = true,
@@ -22,18 +23,12 @@ class SampleApp : Application() {
                 trackActivityIntentData = true,
                 httpUrlBlocklist = listOf("http://localhost:8080"),
                 samplingRateForErrorFreeSessions = 1f,
-                autoStart = false,
+                autoStart = true,
+                traceSamplingRate = 1.0f,
             )
         )
-        Measure.setUserId("sample-user-sd")
-        Measure.clearUserId()
-        Measure.trackScreenView("screen-name")
-        Measure.trackHandledException(RuntimeException("sample-handled-exception"))
-        /*
-        Measure.putAttribute("sample-key-1", 123)
-        Measure.putAttribute("sample-key-2", 123.45)
-        Measure.putAttribute("sample-key-3", "sample-value")
-        Measure.putAttribute("sample-key-4", true)
-        */
+        val appOnCreateSpan = Measure.startSpan("SampleApp.onCreate", timestamp = startTime)
+        Measure.startSpan("Measure.init", timestamp = startTime).setParent(appOnCreateSpan).end()
+        appOnCreateSpan.end()
     }
 }

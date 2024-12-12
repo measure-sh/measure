@@ -9,7 +9,7 @@ import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 
-internal interface PeriodicEventExporter {
+internal interface PeriodicExporter {
     fun register()
     fun resume()
     fun pause()
@@ -20,14 +20,14 @@ internal interface PeriodicEventExporter {
  * Periodic event exporter that batches events to be exported periodically. Batches are attempted
  * to be created at a fixed interval or when the app goes to the background.
  */
-internal class PeriodicEventExporterImpl(
+internal class PeriodicExporterImpl(
     private val logger: Logger,
     private val configProvider: ConfigProvider,
     private val exportExecutor: MeasureExecutorService,
     private val timeProvider: TimeProvider,
     private val heartbeat: Heartbeat,
-    private val eventExporter: EventExporter,
-) : PeriodicEventExporter, HeartbeatListener {
+    private val exporter: Exporter,
+) : PeriodicExporter, HeartbeatListener {
     @VisibleForTesting
     internal val isExportInProgress = AtomicBoolean(false)
 
@@ -83,7 +83,7 @@ internal class PeriodicEventExporterImpl(
     }
 
     private fun processBatches() {
-        val batches = eventExporter.getExistingBatches()
+        val batches = exporter.getExistingBatches()
         if (batches.isNotEmpty()) {
             processExistingBatches(batches)
         } else {
@@ -91,9 +91,9 @@ internal class PeriodicEventExporterImpl(
         }
     }
 
-    private fun processExistingBatches(batches: LinkedHashMap<String, MutableList<String>>) {
+    private fun processExistingBatches(batches: List<Batch>) {
         for (batch in batches) {
-            val response = eventExporter.export(batchId = batch.key, eventIds = batch.value)
+            val response = exporter.export(batch)
             if (response is HttpResponse.Error.RateLimitError || response is HttpResponse.Error.ServerError) {
                 // stop processing the rest of the batches if one of them fails
                 // this is to avoid the case where we keep trying even if the server is
@@ -104,10 +104,10 @@ internal class PeriodicEventExporterImpl(
     }
 
     private fun processNewBatchIfTimeElapsed() {
-        if (timeProvider.millisTime - lastBatchCreationTimeMs >= configProvider.eventsBatchingIntervalMs) {
-            eventExporter.createBatch()?.let { result ->
-                lastBatchCreationTimeMs = timeProvider.millisTime
-                eventExporter.export(result.batchId, result.eventIds)
+        if (timeProvider.elapsedRealtime - lastBatchCreationTimeMs >= configProvider.eventsBatchingIntervalMs) {
+            exporter.createBatch()?.let { batch ->
+                lastBatchCreationTimeMs = timeProvider.elapsedRealtime
+                exporter.export(batch)
             }
         } else {
             logger.log(LogLevel.Debug, "Skipping batch creation as interval hasn't elapsed")

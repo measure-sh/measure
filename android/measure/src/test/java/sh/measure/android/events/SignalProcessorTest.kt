@@ -13,9 +13,9 @@ import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.exporter.ExceptionExporter
 import sh.measure.android.fakes.FakeConfigProvider
-import sh.measure.android.fakes.FakeEventStore
 import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakeSessionManager
+import sh.measure.android.fakes.FakeSignalStore
 import sh.measure.android.fakes.FakeUserDefinedAttribute
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
@@ -26,11 +26,11 @@ import sh.measure.android.screenshot.Screenshot
 import sh.measure.android.screenshot.ScreenshotCollector
 import sh.measure.android.utils.iso8601Timestamp
 
-internal class EventProcessorTest {
+internal class SignalProcessorTest {
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val idProvider = FakeIdProvider()
     private val sessionManager = FakeSessionManager()
-    private val eventStore = FakeEventStore()
+    private val signalStore = FakeSignalStore()
     private val exceptionExporter = mock<ExceptionExporter>()
     private val screenshotCollector = mock<ScreenshotCollector>()
     private val configProvider = FakeConfigProvider()
@@ -39,10 +39,10 @@ internal class EventProcessorTest {
     }
     private val userDefinedAttribute = FakeUserDefinedAttribute()
 
-    private val eventProcessor = EventProcessorImpl(
+    private val signalProcessor = SignalProcessorImpl(
         logger = NoopLogger(),
         ioExecutor = executorService,
-        eventStore = eventStore,
+        signalStore = signalStore,
         idProvider = idProvider,
         sessionManager = sessionManager,
         attributeProcessors = emptyList(),
@@ -66,7 +66,7 @@ internal class EventProcessorTest {
         val type = EventType.EXCEPTION
 
         // When
-        eventProcessor.track(
+        signalProcessor.track(
             data = exceptionData,
             timestamp = timestamp,
             type = type,
@@ -79,8 +79,8 @@ internal class EventProcessorTest {
             sessionId = sessionManager.getSessionId(),
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 
-        assertEquals(1, eventStore.trackedEvents.size)
-        assertEquals(expectedEvent, eventStore.trackedEvents.first())
+        assertEquals(1, signalStore.trackedEvents.size)
+        assertEquals(expectedEvent, signalStore.trackedEvents.first())
     }
 
     @Test
@@ -92,7 +92,7 @@ internal class EventProcessorTest {
         val attachments = mutableListOf(TestData.getAttachment())
 
         // When
-        eventProcessor.track(
+        signalProcessor.track(
             data = exceptionData,
             timestamp = timestamp,
             type = type,
@@ -107,8 +107,8 @@ internal class EventProcessorTest {
             attachments = attachments,
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 
-        assertEquals(1, eventStore.trackedEvents.size)
-        assertEquals(expectedEvent, eventStore.trackedEvents.first())
+        assertEquals(1, signalStore.trackedEvents.size)
+        assertEquals(expectedEvent, signalStore.trackedEvents.first())
     }
 
     @Test
@@ -120,7 +120,7 @@ internal class EventProcessorTest {
         val attributes: MutableMap<String, Any?> = mutableMapOf("key" to "value")
 
         // When
-        eventProcessor.track(
+        signalProcessor.track(
             data = exceptionData,
             timestamp = timestamp,
             type = type,
@@ -135,8 +135,8 @@ internal class EventProcessorTest {
             attributes = attributes,
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 
-        assertEquals(1, eventStore.trackedEvents.size)
-        assertEquals(expectedEvent, eventStore.trackedEvents.first())
+        assertEquals(1, signalStore.trackedEvents.size)
+        assertEquals(expectedEvent, signalStore.trackedEvents.first())
     }
 
     @Test
@@ -150,10 +150,10 @@ internal class EventProcessorTest {
                 attributes["key"] = "value"
             }
         }
-        val eventProcessor = EventProcessorImpl(
+        val signalProcessor = SignalProcessorImpl(
             logger = NoopLogger(),
             ioExecutor = executorService,
-            eventStore = eventStore,
+            signalStore = signalStore,
             idProvider = idProvider,
             sessionManager = sessionManager,
             attributeProcessors = listOf(attributeProcessor),
@@ -165,7 +165,7 @@ internal class EventProcessorTest {
         )
 
         // When
-        eventProcessor.track(
+        signalProcessor.track(
             data = exceptionData,
             timestamp = timestamp,
             type = type,
@@ -179,8 +179,8 @@ internal class EventProcessorTest {
             attributes = mutableMapOf("key" to "value"),
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 
-        assertEquals(1, eventStore.trackedEvents.size)
-        assertEquals(expectedEvent, eventStore.trackedEvents.first())
+        assertEquals(1, signalStore.trackedEvents.size)
+        assertEquals(expectedEvent, signalStore.trackedEvents.first())
     }
 
     @Test
@@ -191,7 +191,7 @@ internal class EventProcessorTest {
         val type = EventType.EXCEPTION
 
         // When
-        eventProcessor.trackCrash(
+        signalProcessor.trackCrash(
             data = exceptionData,
             timestamp = timestamp,
             type = type,
@@ -199,7 +199,7 @@ internal class EventProcessorTest {
 
         // Then
         assertEquals(sessionManager.getSessionId(), sessionManager.crashedSession)
-        assertEquals(1, eventStore.trackedEvents.size)
+        assertEquals(1, signalStore.trackedEvents.size)
         verify(exceptionExporter).export(sessionManager.getSessionId())
     }
 
@@ -211,7 +211,7 @@ internal class EventProcessorTest {
         val type = EventType.ANR
 
         // When
-        eventProcessor.trackCrash(
+        signalProcessor.trackCrash(
             data = exceptionData,
             timestamp = timestamp,
             type = type,
@@ -219,7 +219,7 @@ internal class EventProcessorTest {
 
         // Then
         assertEquals(sessionManager.getSessionId(), sessionManager.crashedSession)
-        assertEquals(1, eventStore.trackedEvents.size)
+        assertEquals(1, signalStore.trackedEvents.size)
         verify(exceptionExporter).export(sessionManager.getSessionId())
     }
 
@@ -234,15 +234,15 @@ internal class EventProcessorTest {
         `when`(screenshotCollector.takeScreenshot()).thenReturn(screenshot)
 
         // When
-        eventProcessor.trackCrash(
+        signalProcessor.trackCrash(
             data = exceptionData,
             timestamp = timestamp,
             type = type,
         )
 
         // Then
-        assertEquals(1, eventStore.trackedEvents.size)
-        val attachments = eventStore.trackedEvents.first().attachments
+        assertEquals(1, signalStore.trackedEvents.size)
+        val attachments = signalStore.trackedEvents.first().attachments
         assertEquals(1, attachments.size)
         assertEquals("screenshot.png", attachments.first().name)
         assertTrue(screenshot.data.contentEquals(attachments.first().bytes))
@@ -257,15 +257,15 @@ internal class EventProcessorTest {
         configProvider.trackScreenshotOnCrash = false
 
         // When
-        eventProcessor.track(
+        signalProcessor.track(
             data = exceptionData,
             timestamp = timestamp,
             type = type,
         )
 
         // Then
-        assertEquals(1, eventStore.trackedEvents.size)
-        val attachments = eventStore.trackedEvents.first().attachments
+        assertEquals(1, signalStore.trackedEvents.size)
+        val attachments = signalStore.trackedEvents.first().attachments
         assertEquals(0, attachments.size)
     }
 
@@ -278,15 +278,15 @@ internal class EventProcessorTest {
         configProvider.trackScreenshotOnCrash = true
 
         // When
-        eventProcessor.track(
+        signalProcessor.track(
             data = exceptionData,
             timestamp = timestamp,
             type = type,
         )
 
         // Then
-        assertEquals(1, eventStore.trackedEvents.size)
-        val attachments = eventStore.trackedEvents.first().attachments
+        assertEquals(1, signalStore.trackedEvents.size)
+        val attachments = signalStore.trackedEvents.first().attachments
         assertEquals(0, attachments.size)
     }
 
@@ -299,15 +299,15 @@ internal class EventProcessorTest {
         configProvider.trackScreenshotOnCrash = false
 
         // When
-        eventProcessor.track(
+        signalProcessor.track(
             data = exceptionData,
             timestamp = timestamp,
             type = type,
         )
 
         // Then
-        assertEquals(1, eventStore.trackedEvents.size)
-        val attachments = eventStore.trackedEvents.first().attachments
+        assertEquals(1, signalStore.trackedEvents.size)
+        val attachments = signalStore.trackedEvents.first().attachments
         assertEquals(0, attachments.size)
     }
 
@@ -321,10 +321,10 @@ internal class EventProcessorTest {
         val eventTransformer = object : EventTransformer {
             override fun <T> transform(event: Event<T>): Event<T>? = null
         }
-        val eventProcessor = EventProcessorImpl(
+        val signalProcessor = SignalProcessorImpl(
             logger = NoopLogger(),
             ioExecutor = executorService,
-            eventStore = eventStore,
+            signalStore = signalStore,
             idProvider = idProvider,
             sessionManager = sessionManager,
             attributeProcessors = emptyList(),
@@ -336,26 +336,25 @@ internal class EventProcessorTest {
         )
 
         // When
-        eventProcessor.track(
+        signalProcessor.track(
             data = exceptionData,
             timestamp = timestamp,
             type = type,
         )
-        eventProcessor.track(
+        signalProcessor.track(
             data = "data",
             timestamp = timestamp,
             type = EventType.STRING,
         )
 
         // Then
-        assertEquals(0, eventStore.trackedEvents.size)
+        assertEquals(0, signalStore.trackedEvents.size)
     }
 
     @Test
     fun `given transformer modifies event, then stores modified event`() {
         // Given
-        val activityLifecycleData =
-            TestData.getActivityLifecycleData(intent = "intent-data")
+        val activityLifecycleData = TestData.getActivityLifecycleData(intent = "intent-data")
         val timestamp = 9856564654L
         val type = EventType.LIFECYCLE_ACTIVITY
 
@@ -366,10 +365,10 @@ internal class EventProcessorTest {
                 return event
             }
         }
-        val eventProcessor = EventProcessorImpl(
+        val signalProcessor = SignalProcessorImpl(
             logger = NoopLogger(),
             ioExecutor = executorService,
-            eventStore = eventStore,
+            signalStore = signalStore,
             idProvider = idProvider,
             sessionManager = sessionManager,
             attributeProcessors = emptyList(),
@@ -381,16 +380,16 @@ internal class EventProcessorTest {
         )
 
         // When
-        eventProcessor.track(
+        signalProcessor.track(
             data = activityLifecycleData,
             timestamp = timestamp,
             type = type,
         )
 
         // Then
-        assertEquals(1, eventStore.trackedEvents.size)
+        assertEquals(1, signalStore.trackedEvents.size)
         // verify intent data is dropped from the event
-        assertNull((eventStore.trackedEvents.first().data as ActivityLifecycleData).intent)
+        assertNull((signalStore.trackedEvents.first().data as ActivityLifecycleData).intent)
     }
 
     @Test
@@ -406,14 +405,14 @@ internal class EventProcessorTest {
             userTriggered = true,
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 
-        eventProcessor.trackUserTriggered(
+        signalProcessor.trackUserTriggered(
             data = data,
             timestamp = timestamp,
             type = eventType,
         )
 
-        assertEquals(1, eventStore.trackedEvents.size)
-        assertEquals(expectedEvent, eventStore.trackedEvents.first())
+        assertEquals(1, signalStore.trackedEvents.size)
+        assertEquals(expectedEvent, signalStore.trackedEvents.first())
     }
 
     @Test
@@ -430,13 +429,13 @@ internal class EventProcessorTest {
             userDefinedAttributes = mapOf("key" to "value"),
         ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
 
-        eventProcessor.track(
+        signalProcessor.track(
             data = data,
             timestamp = timestamp,
             type = eventType,
         )
 
-        assertEquals(expectedEvent, eventStore.trackedEvents.first())
+        assertEquals(expectedEvent, signalStore.trackedEvents.first())
     }
 
     @Test
@@ -447,7 +446,7 @@ internal class EventProcessorTest {
         val type = EventType.EXCEPTION
 
         // When
-        eventProcessor.trackCrash(
+        signalProcessor.trackCrash(
             data = exceptionData,
             timestamp = timestamp,
             type = type,
@@ -465,7 +464,7 @@ internal class EventProcessorTest {
         val type = EventType.SCREEN_VIEW
 
         // When
-        eventProcessor.track(
+        signalProcessor.track(
             data = data,
             timestamp = timestamp,
             type = type,
@@ -473,5 +472,15 @@ internal class EventProcessorTest {
 
         // Then
         assertTrue(sessionManager.onEventTracked)
+    }
+
+    @Test
+    fun `trackSpan stores span`() {
+        // When
+        val spanData = TestData.getSpanData()
+        signalProcessor.trackSpan(spanData)
+
+        // Then
+        assertTrue(signalStore.trackedSpans.contains(spanData))
     }
 }

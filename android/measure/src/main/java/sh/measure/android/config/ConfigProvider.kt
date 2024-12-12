@@ -58,8 +58,8 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { screenshotCompressionQuality }
     override val eventTypeExportAllowList: List<String>
         get() = getMergedConfig { eventTypeExportAllowList }
-    override val maxEventsInDatabase: Int
-        get() = getMergedConfig { maxEventsInDatabase }
+    override val maxSignalsInDatabase: Int
+        get() = getMergedConfig { maxSignalsInDatabase }
     override val trackHttpHeaders: Boolean
         get() = getMergedConfig { trackHttpHeaders }
     override val trackHttpBody: Boolean
@@ -74,6 +74,8 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { trackActivityIntentData }
     override val samplingRateForErrorFreeSessions: Float
         get() = getMergedConfig { samplingRateForErrorFreeSessions }
+    override val traceSamplingRate: Float
+        get() = getMergedConfig { traceSamplingRate }
     override val eventsBatchingIntervalMs: Long
         get() = getMergedConfig { eventsBatchingIntervalMs }
     override val maxEventsInBatch: Int
@@ -97,6 +99,12 @@ internal class ConfigProviderImpl(
 
     override val userDefinedAttributeKeyWithSpaces: Boolean
         get() = getMergedConfig { userDefinedAttributeKeyWithSpaces }
+    override val maxSpanNameLength: Int
+        get() = getMergedConfig { maxSpanNameLength }
+    override val maxCheckpointNameLength: Int
+        get() = getMergedConfig { maxCheckpointNameLength }
+    override val maxCheckpointsPerSpan: Int
+        get() = getMergedConfig { maxCheckpointsPerSpan }
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         if (!trackHttpBody) {

@@ -6,8 +6,8 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.utils.AndroidTimeProvider
@@ -18,7 +18,7 @@ internal class UnhandledExceptionCollectorTest {
     private var originalDefaultHandler: Thread.UncaughtExceptionHandler? = null
     private val logger = NoopLogger()
     private val timeProvider = AndroidTimeProvider(TestClock.create())
-    private val eventProcessor = mock<EventProcessor>()
+    private val signalProcessor = mock<SignalProcessor>()
     private val processInfo = FakeProcessInfoProvider()
 
     @Before
@@ -31,7 +31,7 @@ internal class UnhandledExceptionCollectorTest {
         // When
         val collector = UnhandledExceptionCollector(
             logger,
-            eventProcessor,
+            signalProcessor,
             timeProvider,
             processInfo,
         ).apply { register() }
@@ -45,7 +45,7 @@ internal class UnhandledExceptionCollectorTest {
     fun `UnhandledExceptionCollector tracks uncaught exceptions`() {
         val collector = UnhandledExceptionCollector(
             logger,
-            eventProcessor,
+            signalProcessor,
             timeProvider,
             processInfo,
         ).apply { register() }
@@ -64,7 +64,7 @@ internal class UnhandledExceptionCollectorTest {
         collector.uncaughtException(thread, exception)
 
         // Then
-        verify(eventProcessor).trackCrash(
+        verify(signalProcessor).trackCrash(
             timestamp = timeProvider.now(),
             type = EventType.EXCEPTION,
             data = expectedException,
@@ -81,7 +81,7 @@ internal class UnhandledExceptionCollectorTest {
         }
         val collector = UnhandledExceptionCollector(
             logger,
-            eventProcessor,
+            signalProcessor,
             timeProvider,
             processInfo,
         ).apply { register() }
@@ -105,7 +105,7 @@ internal class UnhandledExceptionCollectorTest {
         }
         val collector = UnhandledExceptionCollector(
             logger,
-            eventProcessor,
+            signalProcessor,
             timeProvider,
             processInfo,
         )

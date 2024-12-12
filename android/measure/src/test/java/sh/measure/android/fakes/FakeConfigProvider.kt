@@ -14,7 +14,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override var screenshotMaskHexColor: String = "#222222"
     override var screenshotCompressionQuality: Int = 25
     override val eventTypeExportAllowList: List<String> = emptyList()
-    override val maxEventsInDatabase: Int = 50_000
+    override val maxSignalsInDatabase: Int = 50_000
     override var trackHttpHeaders: Boolean = false
     override var trackHttpBody: Boolean = false
     override var httpHeadersBlocklist: List<String> = emptyList()
@@ -33,6 +33,10 @@ internal class FakeConfigProvider : ConfigProvider {
     override var maxUserDefinedAttributeValueLength: Int = 256
     override var userDefinedAttributeKeyWithSpaces: Boolean = false
     override val autoStart: Boolean = true
+    override val traceSamplingRate: Float = 1.0f
+    override val maxSpanNameLength: Int = 64
+    override val maxCheckpointNameLength: Int = 64
+    override val maxCheckpointsPerSpan: Int = 100
 
     var shouldTrackHttpBody = false
 

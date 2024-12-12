@@ -15,7 +15,6 @@ import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.PackageInfoProvider
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.Randomizer
-import sh.measure.android.utils.RandomizerImpl
 import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.RejectedExecutionException
 
@@ -81,7 +80,7 @@ internal class SessionManagerImpl(
     private val timeProvider: TimeProvider,
     private val configProvider: ConfigProvider,
     private val packageInfoProvider: PackageInfoProvider,
-    private val randomizer: Randomizer = RandomizerImpl(),
+    private val randomizer: Randomizer,
 ) : SessionManager {
     private var currentSession: RecentSession? = null
     private var appBackgroundTime: Long = 0
@@ -133,7 +132,7 @@ internal class SessionManagerImpl(
     }
 
     override fun onAppBackground() {
-        appBackgroundTime = timeProvider.millisTime
+        appBackgroundTime = timeProvider.elapsedRealtime
     }
 
     override fun clearAppExitSessionsBefore(timestamp: Long) {
@@ -145,7 +144,7 @@ internal class SessionManagerImpl(
     }
 
     private fun createNewSession(): RecentSession {
-        val newSessionId = idProvider.createId()
+        val newSessionId = idProvider.uuid()
         val needsReporting = shouldMarkSessionForExport()
         val createdAt = timeProvider.now()
         val session = RecentSession(

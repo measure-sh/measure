@@ -13,6 +13,7 @@ internal object DbMigrations {
                 for (version in oldVersion + 1..newVersion) {
                     when (version) {
                         DbVersion.V2 -> migrateToV2(db)
+                        DbVersion.V3 -> migrateToV3(db)
                         else -> logger.log(
                             LogLevel.Warning,
                             "No migration found for version $version",
@@ -37,6 +38,21 @@ internal object DbMigrations {
             SELECT ${SessionsTable.COL_SESSION_ID}, ${SessionsTable.COL_PID}, ${SessionsTable.COL_CREATED_AT}
             FROM ${SessionsTable.TABLE_NAME}
             WHERE ${SessionsTable.COL_APP_EXIT_TRACKED} = 0;
+            """.trimIndent(),
+        )
+    }
+
+    private fun migrateToV3(db: SQLiteDatabase) {
+        db.execSQL(Sql.CREATE_SPANS_TABLE)
+        db.execSQL(Sql.CREATE_BATCHES_TABLE)
+        db.execSQL(Sql.CREATE_SPANS_BATCH_TABLE)
+        db.execSQL(
+            """
+               INSERT INTO ${BatchesTable.TABLE_NAME}
+                    (${BatchesTable.COL_BATCH_ID}, ${BatchesTable.COL_CREATED_AT})
+                SELECT DISTINCT ${EventsBatchTable.COL_BATCH_ID}, MIN(${EventsBatchTable.COL_CREATED_AT})
+                FROM ${EventsBatchTable.TABLE_NAME}
+                GROUP BY ${EventsBatchTable.COL_BATCH_ID}
             """.trimIndent(),
         )
     }

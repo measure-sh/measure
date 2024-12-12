@@ -9,7 +9,13 @@ internal class FakeRandomizer : Randomizer {
             require(value in 0.0..1.0)
         }
 
+    var randomLong: Long = 100L
+
     override fun random(): Double {
         return randomDouble
+    }
+
+    override fun nextLong(): Long {
+        return randomLong
     }
 }

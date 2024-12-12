@@ -14,7 +14,7 @@ import org.mockito.kotlin.verify
 class MeasureOkHttpApplicationInterceptorTest {
     private lateinit var mockWebServer: MockWebServer
     private lateinit var client: OkHttpClient
-    private val eventProcessor = mock<OkHttpEventCollector>()
+    private val eventCollector = mock<OkHttpEventCollector>()
 
     @Before
     fun setUp() {
@@ -22,7 +22,7 @@ class MeasureOkHttpApplicationInterceptorTest {
             start()
         }
         client = OkHttpClient.Builder()
-            .addInterceptor(MeasureOkHttpApplicationInterceptor(eventProcessor))
+            .addInterceptor(MeasureOkHttpApplicationInterceptor(eventCollector))
             .build()
     }
 
@@ -41,8 +41,8 @@ class MeasureOkHttpApplicationInterceptorTest {
         val call = client.newCall(request)
         val response = call.execute()
 
-        verify(eventProcessor).request(call, request)
-        verify(eventProcessor).response(call, request, response)
+        verify(eventCollector).request(call, request)
+        verify(eventCollector).response(call, request, response)
     }
 
     @Test
@@ -57,7 +57,7 @@ class MeasureOkHttpApplicationInterceptorTest {
         } catch (e: Exception) {
             // Ignore the exception
         }
-        verify(eventProcessor).request(call, request)
-        Mockito.verifyNoMoreInteractions(eventProcessor)
+        verify(eventCollector).request(call, request)
+        Mockito.verifyNoMoreInteractions(eventCollector)
     }
 }

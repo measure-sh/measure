@@ -5,6 +5,9 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import sh.measure.android.Measure
+import sh.measure.android.tracing.Span
+import sh.measure.android.tracing.SpanStatus
 import java.util.concurrent.TimeUnit
 
 class OkHttpActivity : AppCompatActivity() {
@@ -21,16 +24,28 @@ class OkHttpActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_second)
 
-        okHttpClient.newCall(
-            okhttp3.Request.Builder().url("https://httpbin.org/").get().build()
-        ).enqueue(object : okhttp3.Callback {
-            override fun onFailure(call: okhttp3.Call, e: java.io.IOException) {
-                Log.e("OkHttpActivity", "onFailure", e)
-            }
+        val httpSpan = Measure.startSpan("http")
+        try {
+            okHttpClient.newCall(
+                okhttp3.Request.Builder().url("https://httpbin.org/")
+                    .header(
+                        Measure.getTraceParentHeaderKey(),
+                        Measure.getTraceParentHeaderValue(httpSpan),
+                    )
+                    .get().build()
+            ).enqueue(object : okhttp3.Callback {
+                override fun onFailure(call: okhttp3.Call, e: java.io.IOException) {
+                    Log.e("OkHttpActivity", "onFailure", e)
+                    httpSpan.setStatus(SpanStatus.Error).end()
+                }
 
-            override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
-                Log.i("OkHttpActivity", "onResponse")
-            }
-        })
+                override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+                    Log.i("OkHttpActivity", "onResponse")
+                    httpSpan.setStatus(SpanStatus.Ok).end()
+                }
+            })
+        } catch (e: IllegalStateException) {
+            httpSpan.setStatus(SpanStatus.Error).end()
+        }
     }
 }

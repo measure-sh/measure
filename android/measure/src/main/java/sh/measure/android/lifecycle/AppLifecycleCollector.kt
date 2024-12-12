@@ -1,13 +1,13 @@
 package sh.measure.android.lifecycle
 
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal class AppLifecycleCollector(
     private val appLifecycleManager: AppLifecycleManager,
-    private val eventProcessor: EventProcessor,
+    private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
 ) : AppLifecycleListener {
     private var isRegistered = AtomicBoolean(false)
@@ -25,7 +25,7 @@ internal class AppLifecycleCollector(
     }
 
     override fun onAppForeground() {
-        eventProcessor.track(
+        signalProcessor.track(
             ApplicationLifecycleData(AppLifecycleType.FOREGROUND),
             timeProvider.now(),
             EventType.LIFECYCLE_APP,
@@ -33,7 +33,7 @@ internal class AppLifecycleCollector(
     }
 
     override fun onAppBackground() {
-        eventProcessor.track(
+        signalProcessor.track(
             ApplicationLifecycleData(AppLifecycleType.BACKGROUND),
             timeProvider.now(),
             EventType.LIFECYCLE_APP,

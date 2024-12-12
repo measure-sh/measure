@@ -27,17 +27,17 @@ internal class AndroidTimeProviderTest {
     @Test
     fun `millisTime returns time based on clock`() {
         val timeProvider = AndroidTimeProvider(clock)
-        Assert.assertEquals(timeProvider.millisTime, clock.epochTime())
+        Assert.assertEquals(timeProvider.elapsedRealtime, clock.epochTime())
         // increment time
         clock.advance(Duration.ofMillis(1234))
-        Assert.assertEquals(timeProvider.millisTime, 1234L)
+        Assert.assertEquals(timeProvider.elapsedRealtime, 1234L)
 
         // decrement time
         clock.advance(Duration.ofMillis(-1234))
-        Assert.assertEquals(timeProvider.millisTime, 0L)
+        Assert.assertEquals(timeProvider.elapsedRealtime, 0L)
 
         // increment time
         clock.advance(Duration.ofMillis(5678))
-        Assert.assertEquals(timeProvider.millisTime, 5678)
+        Assert.assertEquals(timeProvider.elapsedRealtime, 5678)
     }
 }

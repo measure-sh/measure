@@ -23,7 +23,7 @@ class InstallationIdAttributeProcessorTest {
     @Test
     fun `given installation ID is not set, then creates, stores and returns installation ID in shared preferences`() {
         val installationIdKey = "installation_id"
-        val installationId = idProvider.createId()
+        val installationId = idProvider.uuid()
         `when`(prefsStorage.getInstallationId()).thenReturn(null)
         val event = TestData.getExceptionData().toEvent(type = EventType.EXCEPTION)
 
@@ -38,7 +38,7 @@ class InstallationIdAttributeProcessorTest {
     @Test
     fun `given installation ID is already set, then returns the stored installation ID`() {
         val installationIdKey = "installation_id"
-        val installationId = idProvider.createId()
+        val installationId = idProvider.uuid()
         `when`(prefsStorage.getInstallationId()).thenReturn(installationId)
         val event = TestData.getExceptionData().toEvent(type = EventType.EXCEPTION)
 

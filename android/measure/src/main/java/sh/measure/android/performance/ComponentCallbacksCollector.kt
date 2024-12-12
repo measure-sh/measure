@@ -10,13 +10,13 @@ import android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW
 import android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE
 import android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN
 import android.content.res.Configuration
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.utils.TimeProvider
 
 internal class ComponentCallbacksCollector(
     private val application: Application,
-    private val eventProcessor: EventProcessor,
+    private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
 ) : ComponentCallbacks2 {
 
@@ -44,7 +44,7 @@ internal class ComponentCallbacksCollector(
             TRIM_MEMORY_COMPLETE -> TrimMemoryData(level = "TRIM_MEMORY_COMPLETE")
             else -> TrimMemoryData(level = "TRIM_MEMORY_UNKNOWN")
         }
-        eventProcessor.track(
+        signalProcessor.track(
             timestamp = timeProvider.now(),
             type = EventType.TRIM_MEMORY,
             data = trimMemoryData,

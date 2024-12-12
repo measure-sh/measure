@@ -7,22 +7,23 @@ import android.os.Looper
 import android.util.Log
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.WindowCompat
 import com.google.android.material.switchmaterial.SwitchMaterial
 import sh.measure.android.Measure
+import sh.measure.android.tracing.SpanStatus
 import sh.measure.sample.fragments.AndroidXFragmentNavigationActivity
 import sh.measure.sample.fragments.FragmentNavigationActivity
 import sh.measure.sample.fragments.NestedFragmentActivity
 import sh.measure.sample.screenshot.ComposeScreenshotActivity
 import sh.measure.sample.screenshot.ViewScreenshotActivity
 import java.io.IOException
+import kotlin.concurrent.thread
 
 class ExceptionDemoActivity : AppCompatActivity() {
     private val _mutex = Any()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        WindowCompat.setDecorFitsSystemWindows(window, true)
+        val span = Measure.startSpan("activity.onCreate")
         setContentView(R.layout.activity_exception_demo)
         findViewById<Button>(R.id.btn_single_exception).setOnClickListener {
             throw IOException("test of time")
@@ -72,8 +73,30 @@ class ExceptionDemoActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btn_fragment_androidx_navigation).setOnClickListener {
             startActivity(Intent(this, AndroidXFragmentNavigationActivity::class.java))
         }
+        val spanButton = findViewById<Button>(R.id.btn_generate_span)
+        spanButton.setOnClickListener {
+            spanButton.isEnabled = false
+            thread {
+                val rootSpan = Measure.startSpan("root")
+                val startTime = Measure.getCurrentTime()
+                Thread.sleep(1000)
+                val interestsSpan = Measure.startSpan("screen.interests").setParent(rootSpan)
+                Thread.sleep(1000)
+                val forYou = Measure.startSpan("screen.for_you").setParent(rootSpan)
+                Thread.sleep(1000)
+                interestsSpan.end()
+                Thread.sleep(1000)
+                forYou.end()
+                Measure.startSpan("http", timestamp = startTime).setParent(rootSpan).end()
+                Measure.startSpan("screen.main", timestamp = startTime).setParent(rootSpan).end()
+                rootSpan.end()
+                runOnUiThread {
+                    spanButton.isEnabled = true
+                }
+            }
+        }
         val switch = findViewById<SwitchMaterial>(R.id.btn_sdk_switch)
-        switch.isChecked = false
+        switch.isChecked = true
         switch.setOnCheckedChangeListener { _, isChecked ->
             when (isChecked) {
                 true -> {
@@ -85,6 +108,7 @@ class ExceptionDemoActivity : AppCompatActivity() {
                 }
             }
         }
+        span.setStatus(SpanStatus.Ok).end()
     }
 
     private fun infiniteLoop() {
