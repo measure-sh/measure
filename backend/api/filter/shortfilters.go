@@ -2,6 +2,8 @@ package filter
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,7 +27,22 @@ type ShortFilters struct {
 }
 
 type ShortFiltersPayload struct {
+	AppID   uuid.UUID
 	Filters FilterList `json:"filters"`
+}
+
+// Hash generates an MD5 hash of the FilterList struct.
+func (p *ShortFiltersPayload) Hash() (string, error) {
+	data, err := json.Marshal(p)
+	if err != nil {
+		return "", err
+	}
+
+	// Compute MD5 hash
+	md5Hash := md5.Sum(data)
+
+	// Convert hash to hex string
+	return hex.EncodeToString(md5Hash[:]), nil
 }
 
 func (shortFilters *ShortFilters) MarshalJSON() ([]byte, error) {
@@ -38,18 +55,20 @@ func (shortFilters *ShortFilters) MarshalJSON() ([]byte, error) {
 	return json.Marshal(apiMap)
 }
 
-func NewShortFilters(appId uuid.UUID, filters FilterList) (*ShortFilters, error) {
-	hash, err := filters.Hash()
+func NewShortFilters(payload ShortFiltersPayload) (*ShortFilters, error) {
+	hash, err := payload.Hash()
 	if err != nil {
 		return nil, err
 	}
 
+	now := time.Now()
+
 	return &ShortFilters{
 		Code:      hash,
-		AppId:     appId,
-		Filters:   filters,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		AppId:     payload.AppID,
+		Filters:   payload.Filters,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}, nil
 }
 
@@ -75,9 +94,10 @@ func (shortFilters *ShortFilters) Create(ctx context.Context) error {
 		Set("updated_at", shortFilters.UpdatedAt)
 	defer stmt.Close()
 
-	_, err = server.Server.PgPool.Exec(context.Background(), stmt.String(), stmt.Args()...)
+	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
-		// ignorel, if a short filter already exists
+		// ignore, if a short filter already exists
+		// and a primary key violation occurs
 		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
 			return nil
 		}

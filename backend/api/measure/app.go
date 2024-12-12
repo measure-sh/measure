@@ -5180,9 +5180,12 @@ func CreateShortFilters(c *gin.Context) {
 		return
 	}
 
-	shortFilters, err := filter.NewShortFilters(appId, payload.Filters)
+	// embed app id in filter payload
+	payload.AppID = appId
+
+	shortFilters, err := filter.NewShortFilters(payload)
 	if err != nil {
-		msg := `failed to create generate filter hash`
+		msg := `failed to create filter hash`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": msg,
