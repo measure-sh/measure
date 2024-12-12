@@ -38,7 +38,7 @@ const (
 	maxLifecycleFragmentTypeChars             = 32
 	maxLifecycleFragmentClassNameChars        = 128
 	maxLifecycleViewControllerTypeChars       = 32
-	maxLifecycleViewControllerClassNameChars  = 128
+	maxLifecycleViewControllerClassNameChars  = 256
 	maxLifecycleSwiftUITypeChars              = 32
 	maxLifecycleSwiftUIClassNameChars         = 128
 	maxLifecycleAppTypeChars                  = 32
@@ -159,6 +159,7 @@ var iOSValidTypes = []string{
 	TypeException,
 	TypeGestureLongClick, TypeGestureScroll, TypeGestureClick,
 	TypeLifecycleViewController, TypeLifecycleSwiftUI,
+	TypeLifecycleApp,
 	TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch,
 	TypeNetworkChange, TypeHttp,
 	TypeMemoryUsageAbs,

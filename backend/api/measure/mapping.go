@@ -211,7 +211,7 @@ type BuildSize struct {
 	VersionName string `form:"version_name" binding:"required"`
 	VersionCode string `form:"version_code" binding:"required"`
 	BuildSize   int    `form:"build_size" binding:"required_with=BuildType,gt=100"`
-	BuildType   string `form:"build_type" binding:"required_with=BuildSize,oneof=aab apk"`
+	BuildType   string `form:"build_type" binding:"required_with=BuildSize,oneof=aab apk ipa"`
 	CreatedAt   chrono.ISOTime
 }
 
