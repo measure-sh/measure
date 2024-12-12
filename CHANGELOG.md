@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Discard batch if it contains duplicate event or span ids (#1588)
 - (**backend**): Filter versions and os versions securely (#1563)
 
+- (**frontend**): Retain overflowing span name bg color
 - (**frontend**): Round millis to nearest int
 - (**frontend**): Fix root span names api call
 - (**frontend**): Handle empty user_defined_attrs in session timeline
