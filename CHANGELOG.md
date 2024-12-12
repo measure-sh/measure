@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Handle checkpoint parsing in GetTrace
 - (**backend**): Unexpected shortcodes gets created sometimes (#1603)
 - (**backend**): Improve ios support (#1599)
 - (**backend**): Format checkpoints for ingestion
