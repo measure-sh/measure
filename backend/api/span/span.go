@@ -577,15 +577,26 @@ func GetTrace(ctx context.Context, traceId string) (trace TraceDisplay, err erro
 	spans := []SpanField{}
 
 	for rows.Next() {
+		var rawCheckpoints [][]interface{}
 		span := SpanField{}
 
-		if err = rows.Scan(&span.AppID, &span.TraceID, &span.SessionID, &span.Attributes.UserID, &span.SpanID, &span.SpanName, &span.ParentID, &span.StartTime, &span.EndTime, &span.Status, &span.CheckPoints, &span.Attributes.AppVersion, &span.Attributes.AppBuild, &span.Attributes.OSName, &span.Attributes.OSVersion, &span.Attributes.DeviceManufacturer, &span.Attributes.DeviceModel, &span.Attributes.NetworkType, &span.Attributes.ThreadName, &span.Attributes.LowPowerModeEnabled, &span.Attributes.ThermalThrottlingEnabled); err != nil {
+		if err = rows.Scan(&span.AppID, &span.TraceID, &span.SessionID, &span.Attributes.UserID, &span.SpanID, &span.SpanName, &span.ParentID, &span.StartTime, &span.EndTime, &span.Status, &rawCheckpoints, &span.Attributes.AppVersion, &span.Attributes.AppBuild, &span.Attributes.OSName, &span.Attributes.OSVersion, &span.Attributes.DeviceManufacturer, &span.Attributes.DeviceModel, &span.Attributes.NetworkType, &span.Attributes.ThreadName, &span.Attributes.LowPowerModeEnabled, &span.Attributes.ThermalThrottlingEnabled); err != nil {
 			fmt.Println(err)
 			return
 		}
 
 		if err = rows.Err(); err != nil {
 			return
+		}
+
+		// Map rawCheckpoints into CheckPointField
+		for _, cp := range rawCheckpoints {
+			name, _ := cp[0].(string)
+			timestamp, _ := cp[1].(time.Time)
+			span.CheckPoints = append(span.CheckPoints, CheckPointField{
+				Name:      name,
+				Timestamp: timestamp,
+			})
 		}
 
 		spans = append(spans, span)
