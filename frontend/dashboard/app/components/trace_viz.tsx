@@ -345,37 +345,48 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
         {/* spans column */}
         <div className='flex flex-col w-[800px] select-none'>
           {trace.spans.filter((span) => span.visibility !== SpanVisibility.Hidden).map((span, spanIndex) => (
-            <div key={span.span_id} className={`w-full ${spanIndex % 2 === 0 ? 'bg-zinc-50' : ''}`}>
-              {/* span */}
-              <div style={{
-                marginLeft: `${span.leftOffset}px`,
-                width: `${span.width}px`,
-              }}
-                className={`h-6 mt-2 ${bgSpanColorMap.get(span.span_id)} ${span === selectedSpan ? "bg-neutral-800 hover:bg-neutral-950 text-white" : ""} select-none`}
-                onClick={() => {
-                  if (selectedSpan === undefined || selectedSpan !== span) {
-                    setSelectedSpan(span)
-                  } else {
-                    setSelectedSpan(undefined)
-                    setSelectedCheckpoint(undefined)
-                  }
+            <div key={span.span_id} className={`w-full h-12 ${spanIndex % 2 === 0 ? 'bg-zinc-50' : ''}`}>
+              {/* span and duration container */}
+              <div>
+
+                {/* duration */}
+                <p className={`text-xs mt-1 pr-1 overflow-x-auto`}
+                  style={{
+                    marginLeft: `${span.leftOffset}px`,
+                  }}>
+                  {span.duration}ms
+                </p>
+
+                {/* span */}
+                <div style={{
+                  marginLeft: `${span.leftOffset}px`,
+                  width: `${span.width}px`,
                 }}
-              >
-                <p className={`text-xs pl-2 py-1`}>{span.duration}ms</p>
+                  className={`h-3 mt-1 ${bgSpanColorMap.get(span.span_id)} ${span === selectedSpan ? "bg-neutral-800 hover:bg-neutral-950" : ""} select-none`}
+                  onClick={() => {
+                    if (selectedSpan === undefined || selectedSpan !== span) {
+                      setSelectedSpan(span)
+                    } else {
+                      setSelectedSpan(undefined)
+                      setSelectedCheckpoint(undefined)
+                    }
+                  }}
+                >
+                </div>
               </div>
 
               {/* checkpoints */}
               <div style={{
                 marginLeft: `${span.leftOffset}px`,
                 width: `${span.width}px`,
-              }} className="relative h-2 mb-2">
+              }} className="relative">
                 {span.checkpoints.map((checkpoint, _) => (
                   <div
                     key={span.span_id + checkpoint.name}
                     style={{
                       left: `${checkpoint.leftOffset}px`,
                       top: '0px'
-                    }} className={`w-0.5 h-2 rounded-full absolute mt-1 ${bgCheckPointColorMap.get(span.span_id)} ${checkpoint === selectedCheckpoint ? "bg-neutral-800 hover:bg-neutral-950" : ""}`}
+                    }} className={`w-0.5 h-2 rounded-full absolute mt-0.5 mb-0.5 ${bgCheckPointColorMap.get(span.span_id)} ${checkpoint === selectedCheckpoint ? "bg-neutral-800 hover:bg-neutral-950" : ""}`}
                     onClick={() => {
                       if (selectedCheckpoint === undefined) {
                         setSelectedSpan(span)
