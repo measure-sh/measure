@@ -6,8 +6,6 @@ import (
 	"backend/api/server"
 	"backend/api/text"
 	"context"
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -186,20 +184,6 @@ type FilterList struct {
 	UDExpressionRaw     string            `json:"ud_expression"`
 }
 
-// Hash generates an MD5 hash of the FilterList struct.
-func (f *FilterList) Hash() (string, error) {
-	data, err := json.Marshal(f)
-	if err != nil {
-		return "", err
-	}
-
-	// Compute MD5 hash
-	md5Hash := md5.Sum(data)
-
-	// Convert hash to hex string
-	return hex.EncodeToString(md5Hash[:]), nil
-}
-
 // Versions represents a list of
 // (version, code) pairs.
 type Versions struct {
@@ -313,6 +297,7 @@ func (af *AppFilter) Expand(ctx context.Context) (err error) {
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return
 		}
+
 		// it's critical to set err to nil
 		err = nil
 	}
