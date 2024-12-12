@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Improve ios support (#1599)
 - (**backend**): Format checkpoints for ingestion
 - (**backend**): Make span name query param
 - (**backend**): Validate required event & span attributes (#1590)
