@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -46,6 +47,9 @@ var ValidNetworkGenerations = []string{
 }
 
 const (
+	maxSpanNameChars           = 64
+	maxCheckpointNameChars     = 64
+	maxNumberOfCheckpoints     = 100
 	maxThreadNameChars         = 128
 	maxUserIDChars             = 128
 	maxDeviceNameChars         = 32
@@ -171,7 +175,11 @@ func (s *SpanField) Validate() error {
 	}
 
 	if s.SpanName == "" {
-		return fmt.Errorf(`%q must be empty`, `span_name`)
+		return fmt.Errorf(`%q must not be empty`, `span_name`)
+	}
+
+	if len(s.SpanName) > maxSpanNameChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `span_name`, maxSpanNameChars)
 	}
 
 	if s.SpanID == "" {
@@ -196,6 +204,18 @@ func (s *SpanField) Validate() error {
 
 	if s.EndTime.IsZero() {
 		return fmt.Errorf(`%q must be a valid ISO 8601 timestamp`, `end_time`)
+	}
+
+	if len(s.CheckPoints) > maxNumberOfCheckpoints {
+		return fmt.Errorf(`%q exceeds maximum allowed length of %d`, `checkpoints`, maxNumberOfCheckpoints)
+	}
+
+	if len(s.CheckPoints) > 0 {
+		for _, cp := range s.CheckPoints {
+			if len(cp.Name) > maxCheckpointNameChars {
+				return fmt.Errorf(`checkpoint name %v exceeds maximum allowed characters of %d`, cp.Name, maxNumberOfCheckpoints)
+			}
+		}
 	}
 
 	if s.Attributes.InstallationID == uuid.Nil {
@@ -591,7 +611,8 @@ func GetTrace(ctx context.Context, traceId string) (trace TraceDisplay, err erro
 
 		// Map rawCheckpoints into CheckPointField
 		for _, cp := range rawCheckpoints {
-			name, _ := cp[0].(string)
+			rawName, _ := cp[0].(string)
+			name := strings.ReplaceAll(rawName, "\u0000", "")
 			timestamp, _ := cp[1].(time.Time)
 			span.CheckPoints = append(span.CheckPoints, CheckPointField{
 				Name:      name,
