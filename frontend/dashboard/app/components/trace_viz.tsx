@@ -30,7 +30,7 @@ interface Span {
   leftOffset?: number
   width?: number
   visibility?: SpanVisibility
-  checkpoints: Checkpoint[]
+  checkpoints: Checkpoint[] | null
 }
 
 interface Trace {
@@ -139,7 +139,7 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
     span.width = (span.duration / inputTrace.duration) * vizWidth - margin * 2
     span.visibility = SpanVisibility.Expanded
 
-    span.checkpoints.forEach((c) => {
+    span.checkpoints?.forEach((c) => {
       const checkPointTime = DateTime.fromISO(c.timestamp)
       c.leftOffset = (checkPointTime.diff(traceStartTime).milliseconds / inputTrace.duration) * vizWidth + margin - span.leftOffset!
     })
@@ -149,12 +149,12 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
     const children = childrenMap.get(span.span_id) || []
     span.numberOfChildren = children.length
     children
-      .sort((a, b) => b.duration - a.duration)
+      .sort((a, b) => DateTime.fromISO(a.start_time).toMillis() - DateTime.fromISO(b.start_time).toMillis())
       .forEach(child => addSpanAndChildren(child, depth + 1))
   }
 
   rootSpans
-    .sort((a, b) => b.duration - a.duration)
+    .sort((a, b) => DateTime.fromISO(a.start_time).toMillis() - DateTime.fromISO(b.start_time).toMillis())
     .forEach(rootSpan => addSpanAndChildren(rootSpan, 1))
 
   inputTrace.spans = orderedSpans
@@ -291,9 +291,9 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
             </div>
             <div className='flex flex-row mt-1'>
               <p className={keyStyle}>Checkpoints</p>
-              <p className={`${valueStyle}`}>{selectedSpan.checkpoints.length > 0 ? ": " : ": []"}</p>
+              <p className={`${valueStyle}`}>{selectedSpan.checkpoints !== null && selectedSpan.checkpoints.length > 0 ? ": " : ": []"}</p>
             </div>
-            {selectedSpan.checkpoints.map((checkpoint, _) => (
+            {selectedSpan.checkpoints?.map((checkpoint, _) => (
               <div className={`flex flex-col mt-1 p-1 pl-4 ${selectedCheckpoint === checkpoint ? "bg-neutral-950" : "hover:bg-neutral-950"}`}
                 key={checkpoint.name}
                 onClick={() => setSelectedCheckpoint(checkpoint)}>
@@ -380,7 +380,7 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
                 marginLeft: `${span.leftOffset}px`,
                 width: `${span.width}px`,
               }} className="relative">
-                {span.checkpoints.map((checkpoint, _) => (
+                {span.checkpoints?.map((checkpoint, _) => (
                   <div
                     key={span.span_id + checkpoint.name}
                     style={{
