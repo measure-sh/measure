@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add span limits
 - (**backend**): Revert deletion of session data with spans
 - (**backend**): Support layout_snapshot attachments for gesture click
 - (**backend**): Made span queries secure (#1566)
