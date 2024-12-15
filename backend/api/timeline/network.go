@@ -1,4 +1,4 @@
-package replay
+package timeline
 
 import (
 	"backend/api/event"
@@ -6,7 +6,7 @@ import (
 )
 
 // NetworkChange represents network change events
-// suitable for session replay.
+// suitable for session timeline.
 type NetworkChange struct {
 	EventType   string             `json:"event_type"`
 	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
@@ -28,7 +28,7 @@ func (nc NetworkChange) GetTimestamp() time.Time {
 }
 
 // Http represents http events
-// suitable for session replay.
+// suitable for session timeline.
 type Http struct {
 	EventType     string             `json:"event_type"`
 	UDAttribute   *event.UDAttribute `json:"user_defined_attribute"`
@@ -52,7 +52,7 @@ func (h Http) GetTimestamp() time.Time {
 }
 
 // ComputeNetworkChange computes network change
-// events for session replay.
+// events for session timeline.
 func ComputeNetworkChange(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		netChanges := NetworkChange{
@@ -69,7 +69,7 @@ func ComputeNetworkChange(events []event.EventField) (result []ThreadGrouper) {
 }
 
 // ComputeHttp computes the http
-// events for session replay.
+// events for session timeline.
 func ComputeHttp(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		endTime := event.Http.EndTime

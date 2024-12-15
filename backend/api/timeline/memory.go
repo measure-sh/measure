@@ -1,4 +1,4 @@
-package replay
+package timeline
 
 import (
 	"backend/api/event"
@@ -6,14 +6,21 @@ import (
 )
 
 // MemoryUsage represents memory usage
-// events suitable for session replay.
+// events suitable for session timeline.
 type MemoryUsage struct {
 	*event.MemoryUsage
 	Timestamp time.Time `json:"timestamp"`
 }
 
+// MemoryUsageAbs represents absolute
+// memory usage suitable for session timeline.
+type MemoryUsageAbs struct {
+	*event.MemoryUsageAbs
+	Timestamp time.Time `json:"timestamp"`
+}
+
 // TrimMemory represents trim memory events
-// suitable for session replay.
+// suitable for session timeline.
 type TrimMemory struct {
 	EventType   string             `json:"event_type"`
 	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
@@ -35,7 +42,7 @@ func (tm TrimMemory) GetTimestamp() time.Time {
 }
 
 // LowMemory represents low memory events
-// suitable for session replay.
+// suitable for session timeline.
 type LowMemory struct {
 	EventType   string             `json:"event_type"`
 	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
@@ -57,7 +64,7 @@ func (lm LowMemory) GetTimestamp() time.Time {
 }
 
 // ComputeMemoryUsage computes memory usage events
-// for session replay.
+// for session timeline.
 func ComputeMemoryUsage(events []event.EventField) (result []MemoryUsage) {
 	for _, event := range events {
 		usage := MemoryUsage{
@@ -70,8 +77,22 @@ func ComputeMemoryUsage(events []event.EventField) (result []MemoryUsage) {
 	return
 }
 
+// ComputeMemoryUsageAbs computes absolute memory
+// usage events for session timeline.
+func ComputeMemoryUsageAbs(events []event.EventField) (result []MemoryUsageAbs) {
+	for _, event := range events {
+		usage := MemoryUsageAbs{
+			event.MemoryUsageAbs,
+			event.Timestamp,
+		}
+
+		result = append(result, usage)
+	}
+	return
+}
+
 // ComputeTrimMemories computes trim memory events
-// for session replay.
+// for session timeline.
 func ComputeTrimMemories(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		memories := TrimMemory{
@@ -88,7 +109,7 @@ func ComputeTrimMemories(events []event.EventField) (result []ThreadGrouper) {
 }
 
 // ComputeLowMemories computes low memory events
-// for session replay.
+// for session timeline.
 func ComputeLowMemories(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		lowMemories := LowMemory{

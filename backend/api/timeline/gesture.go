@@ -1,4 +1,4 @@
-package replay
+package timeline
 
 import (
 	"backend/api/event"
@@ -6,7 +6,7 @@ import (
 )
 
 // GestureClick represents click events suitable
-// for session replay.
+// for session timeline.
 type GestureClick struct {
 	EventType   string             `json:"event_type"`
 	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
@@ -34,7 +34,7 @@ func (gc GestureClick) GetTimestamp() time.Time {
 }
 
 // GestureLongClick represents long press events
-// suitable for session replay.
+// suitable for session timeline.
 type GestureLongClick struct {
 	EventType   string             `json:"event_type"`
 	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
@@ -61,7 +61,7 @@ func (glc GestureLongClick) GetTimestamp() time.Time {
 }
 
 // GestureScroll represents scroll gesture events
-// suitable for session replay.
+// suitable for session timeline.
 type GestureScroll struct {
 	EventType   string             `json:"event_type"`
 	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
@@ -89,7 +89,7 @@ func (gs GestureScroll) GetTimestamp() time.Time {
 }
 
 // ComputeGestureClicks computes click gestures
-// for session replay.
+// for session timeline.
 func ComputeGestureClicks(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		gestureClicks := GestureClick{
@@ -112,7 +112,7 @@ func ComputeGestureClicks(events []event.EventField) (result []ThreadGrouper) {
 }
 
 // ComputeGestureLongClicks computes long click gestures
-// for session replay.
+// for session timeline.
 func ComputeGestureLongClicks(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		gestureLongClicks := GestureLongClick{
@@ -134,7 +134,7 @@ func ComputeGestureLongClicks(events []event.EventField) (result []ThreadGrouper
 }
 
 // ComputeGestureScrolls computes scroll gestures
-// for session replay.
+// for session timeline.
 func ComputeGestureScrolls(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		gestureScrolls := GestureScroll{

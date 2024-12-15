@@ -1,10 +1,10 @@
-// Package replay provides capabilities & functionalities
-// for session replay.
-package replay
+// Package timeline provides capabilities & functionalities
+// for session timeline.
+package timeline
 
 /*
 This package holds types and computational logic suited
-for session replay functionality. Here's a high-level
+for session timeline functionality. Here's a high-level
 breakdown of each.
 
 - **cpu**: operations related to app's cpu usage
@@ -19,14 +19,14 @@ breakdown of each.
 - **exit** - operations related to app's stop timings and events
 
 Additionally, this package also contains glue code to massage the
-shape of session replay objects.
+shape of session timeline objects.
 
 Example:
 
 ```go
 import {
 	"backend/api/event"
-	"backend/api/replay"
+	"backend/api/timeline"
 	"fmt"
 }
 
@@ -44,11 +44,11 @@ func main() {
 	}
 
 	// perform compute
-	gestureClicks := replay.ComputeGestureClicks(clickEvents)
+	gestureClicks := timeline.ComputeGestureClicks(clickEvents)
 
 	// organize events by thread
-	gcThreads := replay.GroupByThreads(gestureClicks)
-	threads := make(replay.Threads)
+	gcThreads := timeline.GroupByThreads(gestureClicks)
+	threads := make(timeline.Threads)
 	threads.Organize(event.TypeGestureClick, gcThreads)
 
 	fmt.Println("threads", threads)
