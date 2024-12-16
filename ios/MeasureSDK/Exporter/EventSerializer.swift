@@ -256,7 +256,7 @@ struct EventSerializer {
     private func serialiseSwiftUILifecycleData(_ swiftUILifecycleData: SwiftUILifecycleData) -> String {
         var result = "{"
         result += "\"type\":\"\(swiftUILifecycleData.type.rawValue)\","
-        result += "\"view_name\":\"\(swiftUILifecycleData.viewName)\""
+        result += "\"class_name\":\"\(swiftUILifecycleData.className)\""
         result += "}"
         return result
     }

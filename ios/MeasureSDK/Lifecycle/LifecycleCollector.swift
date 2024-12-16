@@ -62,8 +62,8 @@ class BaseLifecycleCollector: LifecycleCollector {
                              attachments: nil)
     }
 
-    func processSwiftUILifecycleEvent(_ swiftUILifecycleType: SwiftUILifecycleType, for viewName: String) {
-        eventProcessor.track(data: SwiftUILifecycleData(type: swiftUILifecycleType, viewName: viewName),
+    func processSwiftUILifecycleEvent(_ swiftUILifecycleType: SwiftUILifecycleType, for className: String) {
+        eventProcessor.track(data: SwiftUILifecycleData(type: swiftUILifecycleType, className: className),
                              timestamp: timeProvider.now(),
                              type: .lifecycleSwiftUI,
                              attributes: nil,
