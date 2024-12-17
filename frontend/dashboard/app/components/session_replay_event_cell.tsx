@@ -44,6 +44,10 @@ export default function SessionReplayEventCell({
       return "bg-cyan-300"
     }
 
+    if (eventType === "custom") {
+      return "bg-purple-300"
+    }
+
     return "bg-indigo-300"
   }
 
@@ -119,6 +123,10 @@ export default function SessionReplayEventCell({
 
     if (eventType === "screen_view") {
       return 'Screen View: ' + eventDetails.name
+    }
+
+    if (eventType === "custom") {
+      return eventDetails.name
     }
 
     return eventType
