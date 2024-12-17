@@ -1,4 +1,4 @@
-package replay
+package timeline
 
 import (
 	"backend/api/event"
@@ -11,7 +11,7 @@ import (
 )
 
 // Exception represents exception events suitable
-// for session replay.
+// for session timeline.
 type Exception struct {
 	EventType     string             `json:"event_type"`
 	UDAttribute   *event.UDAttribute `json:"user_defined_attribute"`
@@ -43,7 +43,7 @@ func (e Exception) GetTimestamp() time.Time {
 }
 
 // ANR represents anr events suitable
-// for session replay.
+// for session timeline.
 type ANR struct {
 	EventType   string             `json:"event_type"`
 	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
@@ -73,7 +73,7 @@ func (a ANR) GetTimestamp() time.Time {
 }
 
 // ComputeExceptions computes exceptions
-// for session replay.
+// for session timeline.
 func ComputeExceptions(ctx context.Context, appId *uuid.UUID, events []event.EventField) (result []ThreadGrouper, err error) {
 	for _, event := range events {
 
@@ -121,7 +121,7 @@ func ComputeExceptions(ctx context.Context, appId *uuid.UUID, events []event.Eve
 }
 
 // ComputeANR computes anrs
-// for session replay.
+// for session timeline.
 func ComputeANRs(ctx context.Context, appId *uuid.UUID, events []event.EventField) (result []ThreadGrouper, err error) {
 	for _, event := range events {
 

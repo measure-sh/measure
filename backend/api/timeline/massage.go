@@ -1,4 +1,4 @@
-package replay
+package timeline
 
 import (
 	"slices"
@@ -13,7 +13,7 @@ type ThreadGrouper interface {
 }
 
 // Threads is the shape for events grouped by
-// threads as expected for session replay.
+// threads as expected for session timeline.
 type Threads map[string][]ThreadGrouper
 
 // Organize organizes a slice of event by event
@@ -45,7 +45,7 @@ func (t *Threads) Sort() {
 }
 
 // GroupByThreads groups events by the thread name
-// as needed for session replay.
+// as needed for session timeline.
 func GroupByThreads(events []ThreadGrouper) (result map[string][]ThreadGrouper) {
 	result = make(map[string][]ThreadGrouper)
 	for i := range events {

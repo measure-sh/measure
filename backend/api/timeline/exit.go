@@ -1,4 +1,4 @@
-package replay
+package timeline
 
 import (
 	"backend/api/event"
@@ -6,7 +6,7 @@ import (
 )
 
 // AppExit represents app exit events
-// suitable for session replay.
+// suitable for session timeline.
 type AppExit struct {
 	EventType   string             `json:"event_type"`
 	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
@@ -28,7 +28,7 @@ func (ae AppExit) GetTimestamp() time.Time {
 }
 
 // ComputeAppExits computes app exit
-// events for session replay.
+// events for session timeline.
 func ComputeAppExits(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		appExits := AppExit{

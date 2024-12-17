@@ -1,4 +1,4 @@
-package replay
+package timeline
 
 import (
 	"backend/api/event"
@@ -28,7 +28,7 @@ func (c Custom) GetTimestamp() time.Time {
 }
 
 // ComputeCustom computes custom events
-// for session replay.
+// for session timeline.
 func ComputeCustom(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		navs := Custom{

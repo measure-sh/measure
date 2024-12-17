@@ -1,4 +1,4 @@
-package replay
+package timeline
 
 import (
 	"backend/api/event"
@@ -6,7 +6,7 @@ import (
 )
 
 // LogString represents log events suitable
-// for session replay.
+// for session timeline.
 type LogString struct {
 	EventType   string             `json:"event_type"`
 	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
@@ -28,7 +28,7 @@ func (ls LogString) GetTimestamp() time.Time {
 }
 
 // ComputeLogString computes logging events
-// for session replay.
+// for session timeline.
 func ComputeLogString(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		logs := LogString{
