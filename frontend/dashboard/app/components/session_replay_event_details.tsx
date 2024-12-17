@@ -51,7 +51,7 @@ export default function SessionReplayEventDetails({
         {userDefinedAttributes !== undefined && userDefinedAttributes !== null && (
           <div key="user_defined_attribute">
             {Object.entries(userDefinedAttributes).map(([attrKey, attrValue]) => (
-              <div className="flex flex-row" key={attrKey}>
+              <div className="flex flex-row py-1" key={attrKey}>
                 <p className={keyStyle}>{attrKey}</p>
                 <p className={valueStyle}>{attrValue?.toString()}</p>
               </div>
