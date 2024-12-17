@@ -74,7 +74,7 @@ final class BaseEventProcessor: EventProcessor {
         attachments: [Attachment]?,
         sessionId: String?
     ) {
-        let threadName = ((Thread.current.name?.isEmpty) != nil) ? "unknown" : Thread.current.name
+        let threadName = OperationQueue.current?.underlyingQueue?.label ?? "unknown"
         let event = createEvent(
             data: data,
             timestamp: timestamp,
