@@ -635,6 +635,14 @@ export const emptySessionReplay = {
             "timestamp": ""
         }
     ],
+    "memory_usage_absolute": [
+        {
+            "max_memory": 0,
+            "used_memory": 0,
+            "interval": 0,
+            "timestamp": ""
+        }
+    ],
     "session_id": "",
     "threads": {
         "main": [
