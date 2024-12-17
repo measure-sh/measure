@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Ios session timeline (#1624)
 - (**backend**): Support ios event ingestion (#1587)
 - (**backend**): Add span support
 - (**backend**): Support custom events (#1554)
