@@ -49,7 +49,7 @@ import MeasureSDK
     func createTableHeaderView() -> UIView {
         let headerView = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: 150))
 
-        let buttonTitles = ["SwiftUI Controller", "Swift Controller", "Objc Controller", "Collection Controller", "System Controls"]
+        let buttonTitles = ["SwiftUI Controller", "Objc Controller", "Collection Controller", "System Controls"]
 
         // Create vertical stack views to hold two buttons each
         let verticalStackView1 = UIStackView()
@@ -103,15 +103,12 @@ import MeasureSDK
             let hostingController = UIHostingController(rootView: swiftUIView)
             self.navigationController?.pushViewController(hostingController, animated: true)
         case 1:
-            let controller = ViewController()
-            self.navigationController?.pushViewController(controller, animated: true)
-        case 2:
             let controller = ObjcDetailViewController()
             self.navigationController?.pushViewController(controller, animated: true)
-        case 3:
+        case 2:
             let controller = CollectionViewController()
             self.navigationController?.pushViewController(controller, animated: true)
-        case 4:
+        case 3:
             if let controller = self.storyboard?.instantiateViewController(withIdentifier: "ControlsViewController") {
                 self.navigationController?.pushViewController(controller, animated: true)
             }

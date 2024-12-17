@@ -5,6 +5,7 @@
 //  Created by Adwin Ross on 27/09/24.
 //
 
+import MeasureSDK
 import SwiftUI
 import UIKit
 
@@ -27,34 +28,19 @@ struct SwiftUIDetailViewController: View {
     ]
 
     var body: some View {
-        NavigationView {
-            VStack {
-                headerView
-
-                List(crashTypes, id: \.self) { crashType in
-                    Text(crashType)
-                        .onTapGesture {
-                            triggerCrash(type: crashType)
-                        }
+        MsrMoniterView("DetailListView") {
+            NavigationView {
+                VStack {
+                    List(crashTypes, id: \.self) { crashType in
+                        Text(crashType)
+                            .onTapGesture {
+                                triggerCrash(type: crashType)
+                            }
+                    }
+                    .navigationBarTitle("SwiftUI View Controller", displayMode: .inline)
                 }
-                .navigationBarTitle("SwiftUI View Controller", displayMode: .inline)
             }
         }
-    }
-
-    var headerView: some View {
-        HStack(spacing: 10) {
-            Button("Swift Controller") {
-                pushViewController(ViewController())
-            }
-            .frame(maxWidth: .infinity)
-
-            Button("ObjC Controller") {
-                pushViewController(ObjcDetailViewController())
-            }
-            .frame(maxWidth: .infinity)
-        }
-        .padding()
     }
 
     // MARK: - Crash Triggers
