@@ -85,6 +85,7 @@ final class BaseEventProcessor: EventProcessor {
             sessionId: sessionId
         )
         event.attributes?.threadName = threadName
+        event.attributes?.deviceLowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
         event.appendAttributes(self.attributeProcessors)
         if let attributes = event.attributes {
             self.crashDataPersistence.attribute = attributes

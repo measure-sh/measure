@@ -54,6 +54,9 @@ struct Attributes: Codable {
     var appBuild: String = ""
     var measureSdkVersion: String = ""
     var appUniqueId: String = ""
+    var deviceThermalThrottlingEnabled: Bool?
+    var deviceLowPowerMode: Bool?
+    var osPageSize: UInt8?
 
     enum CodingKeys: String, CodingKey {
         case threadName = "thread_name"
@@ -81,5 +84,8 @@ struct Attributes: Codable {
         case appBuild = "app_build"
         case measureSdkVersion = "measure_sdk_version"
         case appUniqueId = "app_unique_id"
+        case osPageSize = "os_page_size"
+        case deviceThermalThrottlingEnabled = "device_thermal_throttling_enabled"
+        case deviceLowPowerMode = "device_low_power_mode"
     }
 }

@@ -351,6 +351,7 @@ struct EventSerializer {
                     result += "\"app_version\":\"\(decodedAttributes?.appVersion ?? "")\","
                     result += "\"app_build\":\"\(decodedAttributes?.appBuild ?? "")\","
                     result += "\"measure_sdk_version\":\"\(decodedAttributes?.measureSdkVersion ?? "")\","
+                    result += "\"device_low_power_mode\":\"\(decodedAttributes?.deviceLowPowerMode ?? false)\","
                     result += "\"app_unique_id\":\"\(decodedAttributes?.appUniqueId ?? "")\""
                     result += "}"
                 return result
