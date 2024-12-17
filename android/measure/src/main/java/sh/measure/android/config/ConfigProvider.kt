@@ -90,21 +90,24 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { maxSessionDurationMs }
     override val maxAttachmentSizeInEventsBatchInBytes: Int
         get() = getMergedConfig { maxAttachmentSizeInEventsBatchInBytes }
+    override val maxEventNameLength: Int
+        get() = getMergedConfig { maxEventNameLength }
     override val maxUserDefinedAttributeKeyLength: Int
         get() = getMergedConfig { maxUserDefinedAttributeKeyLength }
     override val maxUserDefinedAttributeValueLength: Int
         get() = getMergedConfig { maxUserDefinedAttributeValueLength }
     override val autoStart: Boolean
         get() = getMergedConfig { autoStart }
-
-    override val userDefinedAttributeKeyWithSpaces: Boolean
-        get() = getMergedConfig { userDefinedAttributeKeyWithSpaces }
     override val maxSpanNameLength: Int
         get() = getMergedConfig { maxSpanNameLength }
     override val maxCheckpointNameLength: Int
         get() = getMergedConfig { maxCheckpointNameLength }
     override val maxCheckpointsPerSpan: Int
         get() = getMergedConfig { maxCheckpointsPerSpan }
+    override val customEventNameRegex: String
+        get() = getMergedConfig { customEventNameRegex }
+    override val maxUserDefinedAttributesPerEvent: Int
+        get() = getMergedConfig { maxUserDefinedAttributesPerEvent }
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         if (!trackHttpBody) {
