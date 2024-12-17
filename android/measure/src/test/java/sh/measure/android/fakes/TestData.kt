@@ -4,6 +4,7 @@ import sh.measure.android.appexit.AppExit
 import sh.measure.android.applaunch.ColdLaunchData
 import sh.measure.android.applaunch.HotLaunchData
 import sh.measure.android.applaunch.WarmLaunchData
+import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.events.Attachment
 import sh.measure.android.events.Event
 import sh.measure.android.exceptions.ExceptionData
@@ -80,7 +81,7 @@ internal object TestData {
         attachments: MutableList<Attachment> = mutableListOf(),
         attributes: MutableMap<String, Any?> = mutableMapOf(),
         userTriggered: Boolean = false,
-        userDefinedAttributes: Map<String, Any?> = emptyMap(),
+        userDefinedAttributes: Map<String, AttributeValue> = emptyMap(),
     ): Event<T> {
         return Event(
             id = id,

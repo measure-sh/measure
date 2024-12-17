@@ -9,6 +9,7 @@ import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.switchmaterial.SwitchMaterial
 import sh.measure.android.Measure
+import sh.measure.android.attributes.AttributesBuilder
 import sh.measure.android.tracing.SpanStatus
 import sh.measure.sample.fragments.AndroidXFragmentNavigationActivity
 import sh.measure.sample.fragments.FragmentNavigationActivity
@@ -26,7 +27,13 @@ class ExceptionDemoActivity : AppCompatActivity() {
         val span = Measure.startSpan("activity.onCreate")
         setContentView(R.layout.activity_exception_demo)
         findViewById<Button>(R.id.btn_single_exception).setOnClickListener {
-            throw IOException("test of time")
+            val attributes = AttributesBuilder().put(
+                "string",
+                "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in"
+            ).put("integer", Int.MAX_VALUE).put("long", Long.MAX_VALUE)
+                .put("double", Double.MAX_VALUE).put("float", Float.MAX_VALUE).put("boolean", false)
+                .build()
+            Measure.trackEvent(name = "button-click", attributes = attributes)
         }
         findViewById<Button>(R.id.btn_chained_exception).setOnClickListener {
             throw IOException("This is a test exception").initCause(

@@ -15,13 +15,12 @@ import sh.measure.android.attributes.NetworkStateAttributeProcessor
 import sh.measure.android.attributes.PowerStateAttributeProcessor
 import sh.measure.android.attributes.SpanDeviceAttributeProcessor
 import sh.measure.android.attributes.UserAttributeProcessor
-import sh.measure.android.attributes.UserDefinedAttribute
-import sh.measure.android.attributes.UserDefinedAttributeImpl
 import sh.measure.android.config.Config
 import sh.measure.android.config.ConfigLoaderImpl
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.ConfigProviderImpl
 import sh.measure.android.config.MeasureConfig
+import sh.measure.android.events.CustomEventCollector
 import sh.measure.android.events.DefaultEventTransformer
 import sh.measure.android.events.EventTransformer
 import sh.measure.android.events.SignalProcessor
@@ -188,12 +187,6 @@ internal class MeasureInitializerImpl(
         context = application,
         systemServiceProvider = systemServiceProvider,
     ),
-    override val userDefinedAttribute: UserDefinedAttribute = UserDefinedAttributeImpl(
-        logger,
-        configProvider,
-        database,
-        executorServiceRegistry.ioExecutor(),
-    ),
     override val userAttributeProcessor: UserAttributeProcessor = UserAttributeProcessor(
         logger,
         prefsStorage,
@@ -278,7 +271,6 @@ internal class MeasureInitializerImpl(
         screenshotCollector = screenshotCollector,
         eventTransformer = eventTransformer,
         configProvider = configProvider,
-        userDefinedAttribute = userDefinedAttribute,
     ),
     override val userTriggeredEventCollector: UserTriggeredEventCollector = UserTriggeredEventCollectorImpl(
         signalProcessor = signalProcessor,
@@ -419,6 +411,12 @@ internal class MeasureInitializerImpl(
     override val spanCollector: SpanCollector = SpanCollector(
         tracer = tracer,
     ),
+    override val customEventCollector: CustomEventCollector = CustomEventCollector(
+        logger = logger,
+        configProvider = configProvider,
+        signalProcessor = signalProcessor,
+        timeProvider = timeProvider,
+    ),
 ) : MeasureInitializer
 
 internal interface MeasureInitializer {
@@ -446,10 +444,10 @@ internal interface MeasureInitializer {
     val networkChangesCollector: NetworkChangesCollector
     val periodicExporter: PeriodicExporter
     val userAttributeProcessor: UserAttributeProcessor
-    val userDefinedAttribute: UserDefinedAttribute
     val screenshotCollector: ScreenshotCollector
     val dataCleanupService: DataCleanupService
     val processInfoProvider: ProcessInfoProvider
     val powerStateProvider: PowerStateProvider
     val spanCollector: SpanCollector
+    val customEventCollector: CustomEventCollector
 }

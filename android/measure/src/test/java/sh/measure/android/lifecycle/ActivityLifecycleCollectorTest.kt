@@ -195,6 +195,7 @@ class ActivityLifecycleCollectorTest {
             threadName = any(),
             sessionId = any(),
             userTriggered = any(),
+            userDefinedAttributes = any(),
         )
     }
 }
