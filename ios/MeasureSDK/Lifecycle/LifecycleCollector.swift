@@ -54,12 +54,28 @@ class BaseLifecycleCollector: LifecycleCollector {
     func processControllerLifecycleEvent(_ vcLifecycleType: VCLifecycleEventType, for viewController: UIViewController) {
         let className = String(describing: type(of: viewController))
 
-        eventProcessor.track(data: VCLifecycleData(type: vcLifecycleType.stringValue, className: className),
-                             timestamp: timeProvider.now(),
-                             type: .lifecycleViewController,
-                             attributes: nil,
-                             sessionId: nil,
-                             attachments: nil)
+        // Define the list of excluded class names
+        let excludedClassNames = [
+            "UIHostingController",
+            "UIKitNavigationController",
+            "NavigationStackHostingController",
+            "NotifyingMulticolumnSplitViewController",
+            "StyleContextSplitViewNavigationController"
+        ]
+
+        // Check if the class name contains any of the excluded substrings
+        let shouldTrackEvent = !excludedClassNames.contains { className.contains($0) }
+
+        if shouldTrackEvent {
+            eventProcessor.track(
+                data: VCLifecycleData(type: vcLifecycleType.stringValue, className: className),
+                timestamp: timeProvider.now(),
+                type: .lifecycleViewController,
+                attributes: nil,
+                sessionId: nil,
+                attachments: nil
+            )
+        }
     }
 
     func processSwiftUILifecycleEvent(_ swiftUILifecycleType: SwiftUILifecycleType, for className: String) {
