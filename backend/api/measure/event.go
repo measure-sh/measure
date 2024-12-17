@@ -1025,7 +1025,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			row.
 				Set(`memory_usage_absolute.max_memory`, e.events[i].MemoryUsageAbs.MaxMemory).
 				Set(`memory_usage_absolute.used_memory`, e.events[i].MemoryUsageAbs.UsedMemory).
-				Set(`memory_usage.interval`, e.events[i].MemoryUsageAbs.Interval)
+				Set(`memory_usage_absolute.interval`, e.events[i].MemoryUsageAbs.Interval)
 		} else {
 			row.
 				Set(`memory_usage_absolute.max_memory`, nil).
