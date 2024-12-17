@@ -141,6 +141,27 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
     }
   ] : null
 
+  const memoryAbsData = sessionReplay.memory_usage_absolute != null ? [
+    {
+      id: 'Max Memory',
+      data: sessionReplay.memory_usage_absolute
+        .filter(item => isWithinEventTimeRange(item.timestamp))
+        .map(item => ({
+          x: formatTimestampToChartFormat(item.timestamp),
+          y: item.max_memory
+        }))
+    },
+    {
+      id: 'Used Memory',
+      data: sessionReplay.memory_usage_absolute
+        .filter(item => isWithinEventTimeRange(item.timestamp))
+        .map(item => ({
+          x: formatTimestampToChartFormat(item.timestamp),
+          y: item.used_memory
+        }))
+    },
+  ] : null
+
   const seekBarIndicatorOffset = 90
   const [seekBarValue, setSeekBarValue] = useState(0)
   const eventRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -242,7 +263,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
   return (
     <div className="flex flex-col w-[1100px] font-sans text-black">
       {/* Graphs container */}
-      {(cpuData != null || memoryData != null) &&
+      {(cpuData != null || memoryData != null || memoryAbsData != null) &&
         <div className="relative"
           ref={graphContainerRef}
         >
@@ -281,7 +302,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
                   tickSize: 1,
                   tickPadding: 5,
                   tickValues: 5,
-                  legend: 'Memory in MB',
+                  legend: 'Memory in KB',
                   legendOffset: -80,
                   legendPosition: 'middle'
                 }}
@@ -293,7 +314,62 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
                       <div className="flex flex-col items-left px-4 py-1" key={point.id}>
                         <p>Time: {formatChartFormatTimestampToHumanReadable(point.data.xFormatted.toString())}</p>
                         <div className="py-0.5" />
-                        <p>{point.serieId}: {point.data.y.toString()} MB</p>
+                        <p>{point.serieId}: {point.data.y.toString()} KB</p>
+                      </div>
+                    </div>
+                  )
+                }}
+              />
+            </div>
+          }
+          {/* Memory Absolute line */}
+          {memoryAbsData != null &&
+            <div className="select-none">
+              <LineCanvas
+                width={1100}
+                height={200}
+                data={memoryAbsData}
+                curve="monotoneX"
+                crosshairType="cross"
+                margin={{ top: 40, right: 0, bottom: 80, left: 90 }}
+                xFormat='time:%Y-%m-%d %H:%M:%S:%L %p'
+                xScale={{
+                  format: '%Y-%m-%d %I:%M:%S:%L %p',
+                  precision: 'second',
+                  type: 'time',
+                  min: DateTime.fromISO(events[0].timestamp).toLocal().toJSDate(),
+                  max: DateTime.fromISO(events[events.length - 1].timestamp).toLocal().toJSDate(),
+                  useUTC: false
+                }}
+                yScale={{
+                  type: 'linear',
+                  min: 0,
+                  max: 'auto'
+                }}
+                axisTop={null}
+                axisRight={null}
+                axisBottom={{
+                  format: '%-I:%M:%S %p',
+                  legendPosition: 'middle',
+                  tickRotation: 45
+                }}
+                axisLeft={{
+                  tickSize: 1,
+                  tickPadding: 5,
+                  tickValues: 5,
+                  legend: 'Memory in KB',
+                  legendOffset: -80,
+                  legendPosition: 'middle'
+                }}
+                colors={{ scheme: 'nivo' }}
+                tooltip={({ point }) => {
+                  return (
+                    <div className='bg-neutral-950 text-white flex flex-row items-center p-2 text-xs'>
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: point.serieColor }} />
+                      <div className="flex flex-col items-left px-4 py-1" key={point.id}>
+                        <p>Time: {formatChartFormatTimestampToHumanReadable(point.data.xFormatted.toString())}</p>
+                        <div className="py-0.5" />
+                        <p>{point.serieId}: {point.data.y.toString()} KB</p>
                       </div>
                     </div>
                   )
