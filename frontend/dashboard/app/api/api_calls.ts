@@ -1035,10 +1035,6 @@ export const fetchTraceFromServer = async (appId: string, traceId: string, route
 }
 
 export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filtersApiType: FiltersApiType, router: AppRouterInstance) => {
-    if (!selectedApp.onboarded) {
-        return { status: FiltersApiStatus.NotOnboarded, data: null }
-    }
-
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
     let url = `${origin}/apps/${selectedApp.id}/filters`
@@ -1063,7 +1059,11 @@ export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filte
         const data = await res.json()
 
         if (data.versions === null) {
-            return { status: FiltersApiStatus.NoData, data: null }
+            if (!selectedApp.onboarded) {
+                return { status: FiltersApiStatus.NotOnboarded, data: null }
+            } else {
+                return { status: FiltersApiStatus.NoData, data: null }
+            }
         }
 
         return { status: FiltersApiStatus.Success, data: data }
