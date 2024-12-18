@@ -216,6 +216,14 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         return spanCollector.getTraceParentHeaderKey()
     }
 
+    fun getSessionId(): String? {
+        return try {
+            sessionManager.getSessionId()
+        } catch (e: IllegalArgumentException) {
+            return null
+        }
+    }
+
     private fun unregisterCollectors() {
         unhandledExceptionCollector.unregister()
         anrCollector.unregister()

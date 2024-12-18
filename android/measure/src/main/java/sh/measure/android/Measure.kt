@@ -415,6 +415,23 @@ object Measure {
         }
     }
 
+    /**
+     * Returns the session ID for the current session, or null if the SDK has not been initialized.
+     *
+     * A session represents a continuous period of activity in the app. A new session begins
+     * when an app is launched for the first time, or when there's been no activity for a
+     * 20-minute period. A single session can continue across multiple app background and
+     * foreground events; brief interruptions will not cause a new session to be created.
+     *
+     * @return session ID if the SDK is initialized, null otherwise.
+     */
+    fun getSessionId(): String? {
+        if (isInitialized.get()) {
+            return measure.getSessionId()
+        }
+        return null
+    }
+
     internal fun getOkHttpEventCollector(): OkHttpEventCollector? {
         if (isInitialized.get()) {
             return try {

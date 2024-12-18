@@ -47,6 +47,11 @@ struct ApplicationLifecycleData: Codable {
 struct VCLifecycleData: Codable {
     let type: String
     let className: String
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case className = "class_name"
+    }
 }
 
 enum SwiftUILifecycleType: String, Codable {
@@ -56,5 +61,10 @@ enum SwiftUILifecycleType: String, Codable {
 
 struct SwiftUILifecycleData: Codable {
     let type: SwiftUILifecycleType
-    let viewName: String
+    let className: String
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case className = "class_name"
+    }
 }

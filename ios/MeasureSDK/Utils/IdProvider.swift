@@ -15,6 +15,6 @@ protocol IdProvider {
 /// UUID provider
 final class UUIDProvider: IdProvider {
     func createId() -> String {
-        return UUID().uuidString
+        return UUID().uuidString.lowercased()
     }
 }
