@@ -287,6 +287,12 @@ or when there's been no activity for a 20-minute period. A single session can co
 foreground events; brief interruptions will not cause a new session to be created. This approach is helpful when reviewing
 session replays, as it shows the app switching between background and foreground states within the same session.
 
+The current session can be retrived by using `getSessionId` method.
+
+```kotlin
+val sessionId = Measure.getSessionId()
+```
+
 
 # Performance Impact
 
