@@ -911,25 +911,52 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 // and issue events involved in forming
 // an implicit navigational journey.
 func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts filter.JourneyOpts) (events []event.EventField, err error) {
-	whereVals := []any{
-		event.TypeLifecycleActivity,
-		[]string{
-			event.LifecycleActivityTypeCreated,
-			event.LifecycleActivityTypeResumed,
-		},
-		event.TypeLifecycleFragment,
-		[]string{
-			event.LifecycleFragmentTypeAttached,
-			event.LifecycleFragmentTypeResumed,
-		},
+	whereVals := []any{}
+
+	switch a.Platform {
+	case platform.Android:
+		whereVals = append(
+			whereVals,
+			event.TypeLifecycleActivity,
+			[]string{
+				event.LifecycleActivityTypeCreated,
+				event.LifecycleActivityTypeResumed,
+			},
+			event.TypeLifecycleFragment,
+			[]string{
+				event.LifecycleFragmentTypeAttached,
+				event.LifecycleFragmentTypeResumed,
+			},
+		)
+	case platform.IOS:
+		whereVals = append(
+			whereVals,
+			event.TypeLifecycleViewController,
+			[]string{
+				event.LifecycleViewControllerTypeViewDidLoad,
+				event.LifecycleViewControllerTypeViewDidAppear,
+			},
+			event.TypeLifecycleSwiftUI,
+			[]string{
+				event.LifecycleSwiftUITypeOnAppear,
+			},
+		)
 	}
 
 	if opts.All {
-		whereVals = append(whereVals, event.TypeException, false, event.TypeANR)
+		switch a.Platform {
+		case platform.Android:
+			whereVals = append(whereVals, event.TypeException, false, event.TypeANR)
+		case platform.IOS:
+			whereVals = append(whereVals, event.TypeException, false)
+		}
 	} else if opts.Exceptions {
 		whereVals = append(whereVals, event.TypeException, false)
 	} else if opts.ANRs {
-		whereVals = append(whereVals, event.TypeANR)
+		switch a.Platform {
+		case platform.Android:
+			whereVals = append(whereVals, event.TypeANR)
+		}
 	}
 
 	stmt := sqlf.
@@ -938,14 +965,25 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		Select(`toString(type)`).
 		Select(`timestamp`).
 		Select(`session_id`).
-		Select(`toString(lifecycle_activity.type)`).
-		Select(`toString(lifecycle_activity.class_name)`).
-		Select(`toString(lifecycle_fragment.type)`).
-		Select(`toString(lifecycle_fragment.class_name)`).
-		Select(`toString(lifecycle_fragment.parent_activity)`).
-		Select(`toString(lifecycle_fragment.parent_fragment)`).
-		Where(`app_id = ?`, a.ID).
+		Where(`app_id = toUUID(?)`, a.ID).
 		Where("`timestamp` >= ? and `timestamp` <= ?", af.From, af.To)
+
+	switch a.Platform {
+	case platform.Android:
+		stmt.
+			Select(`toString(lifecycle_activity.type)`).
+			Select(`toString(lifecycle_activity.class_name)`).
+			Select(`toString(lifecycle_fragment.type)`).
+			Select(`toString(lifecycle_fragment.class_name)`).
+			Select(`toString(lifecycle_fragment.parent_activity)`).
+			Select(`toString(lifecycle_fragment.parent_fragment)`)
+	case platform.IOS:
+		stmt.
+			Select(`toString(lifecycle_view_controller.type)`).
+			Select(`toString(lifecycle_view_controller.class_name)`).
+			Select(`toString(lifecycle_swift_ui.type)`).
+			Select(`toString(lifecycle_swift_ui.class_name)`)
+	}
 
 	if len(af.Versions) > 0 {
 		stmt.Where("`attribute.app_version` in ?", af.Versions)
@@ -956,11 +994,19 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 	}
 
 	if opts.All {
-		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or ((type = ? and `exception.handled` = ?) or type = ?))", whereVals...)
+		switch a.Platform {
+		case platform.Android:
+			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or ((type = ? and `exception.handled` = ?) or type = ?))", whereVals...)
+		case platform.IOS:
+			stmt.Where("((type = ? and `lifecycle_view_controller.type` in ?) or (type = ? and `lifecycle_swift_ui.type` in ?) or (type = ? and `exception.handled` = ?))", whereVals...)
+		}
 	} else if opts.Exceptions {
 		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ? and `exception.handled` = ?))", whereVals...)
 	} else if opts.ANRs {
-		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?))", whereVals...)
+		switch a.Platform {
+		case platform.Android:
+			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?))", whereVals...)
+		}
 	}
 
 	if len(af.OsNames) > 0 {
@@ -1016,18 +1062,37 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		var lifecycleFragmentClassName string
 		var lifecycleFragmentParentActivity string
 		var lifecycleFragmentParentFragment string
+		var lifecycleViewControllerType string
+		var lifecycleViewControllerClassName string
+		var lifecycleSwiftUIType string
+		var lifecycleSwiftUIClassName string
 
 		dest := []any{
 			&ev.ID,
 			&ev.Type,
 			&ev.Timestamp,
 			&ev.SessionID,
-			&lifecycleActivityType,
-			&lifecycleActivityClassName,
-			&lifecycleFragmentType,
-			&lifecycleFragmentClassName,
-			&lifecycleFragmentParentActivity,
-			&lifecycleFragmentParentFragment,
+		}
+
+		switch a.Platform {
+		case platform.Android:
+			dest = append(
+				dest,
+				&lifecycleActivityType,
+				&lifecycleActivityClassName,
+				&lifecycleFragmentType,
+				&lifecycleFragmentClassName,
+				&lifecycleFragmentParentActivity,
+				&lifecycleFragmentParentFragment,
+			)
+		case platform.IOS:
+			dest = append(
+				dest,
+				&lifecycleViewControllerType,
+				&lifecycleViewControllerClassName,
+				&lifecycleSwiftUIType,
+				&lifecycleSwiftUIClassName,
+			)
 		}
 
 		if err := rows.Scan(dest...); err != nil {
@@ -1045,6 +1110,16 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 				ClassName:      lifecycleFragmentClassName,
 				ParentActivity: lifecycleFragmentParentActivity,
 				ParentFragment: lifecycleFragmentParentFragment,
+			}
+		} else if ev.IsLifecycleViewController() {
+			ev.LifecycleViewController = &event.LifecycleViewController{
+				Type:      lifecycleViewControllerType,
+				ClassName: lifecycleViewControllerClassName,
+			}
+		} else if ev.IsLifecycleSwiftUI() {
+			ev.LifecycleSwiftUI = &event.LifecycleSwiftUI{
+				Type:      lifecycleSwiftUIType,
+				ClassName: lifecycleSwiftUIClassName,
 			}
 		} else if ev.IsException() {
 			ev.Exception = &event.Exception{}
@@ -1988,17 +2063,25 @@ func GetAppJourney(c *gin.Context) {
 		ID: &id,
 	}
 
-	team, err := app.getTeam(ctx)
-	if err != nil {
-		msg := "failed to get team from app id"
+	if err := app.Populate(ctx); err != nil {
+		msg := `failed to fetch app details`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		status := http.StatusInternalServerError
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+			msg = fmt.Sprintf(`app with id %q does not exist`, app.ID)
+		}
+
+		c.JSON(status, gin.H{
+			"error": msg,
+		})
+
 		return
 	}
-	if team == nil {
-		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
+
+	team := &Team{
+		ID: &app.TeamId,
 	}
 
 	userId := c.GetString("userId")
@@ -2043,57 +2126,12 @@ func GetAppJourney(c *gin.Context) {
 		if journeyEvents[i].IsUnhandledException() {
 			issueEvents = append(issueEvents, journeyEvents[i])
 		}
-		if journeyEvents[i].IsANR() {
+		if app.Platform == platform.Android && journeyEvents[i].IsANR() {
 			issueEvents = append(issueEvents, journeyEvents[i])
 		}
 	}
 
-	journeyAndroid := journey.NewJourneyAndroid(journeyEvents, &journey.Options{
-		BiGraph: af.BiGraph,
-	})
-
-	if err := journeyAndroid.SetNodeExceptionGroups(func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error) {
-		// do not hit database if no event ids
-		// to query
-		if len(eventIds) == 0 {
-			return
-		}
-
-		exceptionGroups, err = group.GetExceptionGroupsFromExceptionIds(ctx, &af, eventIds)
-		if err != nil {
-			return
-		}
-
-		return
-	}); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	if err := journeyAndroid.SetNodeANRGroups(func(eventIds []uuid.UUID) (anrGroups []group.ANRGroup, err error) {
-		// do not hit database if no event ids
-		// to query
-		if len(eventIds) == 0 {
-			return
-		}
-
-		anrGroups, err = group.GetANRGroupsFromANRIds(ctx, &af, eventIds)
-		if err != nil {
-			return
-		}
-
-		return
-	}); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
+	var journeyGraph journey.Journey
 	type Link struct {
 		Source string `json:"source"`
 		Target string `json:"target"`
@@ -2114,60 +2152,176 @@ func GetAppJourney(c *gin.Context) {
 	var nodes []Node
 	var links []Link
 
-	for v := range journeyAndroid.Graph.Order() {
-		journeyAndroid.Graph.Visit(v, func(w int, c int64) bool {
-			var link Link
-			link.Source = journeyAndroid.GetNodeName(v)
-			link.Target = journeyAndroid.GetNodeName(w)
-			link.Value = journeyAndroid.GetEdgeSessionCount(v, w)
-			links = append(links, link)
-			return false
+	switch app.Platform {
+	case platform.Android:
+		journeyGraph = journey.NewJourneyAndroid(journeyEvents, &journey.Options{
+			BiGraph: af.BiGraph,
+		})
+	case platform.IOS:
+		journeyGraph = journey.NewJourneyiOS(journeyEvents, &journey.Options{
+			BiGraph: af.BiGraph,
 		})
 	}
 
-	for _, v := range journeyAndroid.GetNodeVertices() {
-		var node Node
-		name := journeyAndroid.GetNodeName(v)
-		exceptionGroups := journeyAndroid.GetNodeExceptionGroups(name)
-		crashes := []Issue{}
-
-		for i := range exceptionGroups {
-			issue := Issue{
-				ID:    exceptionGroups[i].ID,
-				Title: exceptionGroups[i].GetDisplayTitle(),
-				Count: journeyAndroid.GetNodeExceptionCount(v, exceptionGroups[i].ID),
+	switch j := journeyGraph.(type) {
+	case *journey.JourneyAndroid:
+		if err := j.SetNodeExceptionGroups(func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error) {
+			// do not hit database if no event ids
+			// to query
+			if len(eventIds) == 0 {
+				return
 			}
-			crashes = append(crashes, issue)
-		}
 
-		// crashes are shown in descending order
-		sort.Slice(crashes, func(i, j int) bool {
-			return crashes[i].Count > crashes[j].Count
-		})
-
-		anrGroups := journeyAndroid.GetNodeANRGroups(name)
-		anrs := []Issue{}
-
-		for i := range anrGroups {
-			issue := Issue{
-				ID:    anrGroups[i].ID,
-				Title: anrGroups[i].GetDisplayTitle(),
-				Count: journeyAndroid.GetNodeANRCount(v, anrGroups[i].ID),
+			exceptionGroups, err = group.GetExceptionGroupsFromExceptionIds(ctx, &af, eventIds)
+			if err != nil {
+				return
 			}
-			anrs = append(anrs, issue)
+
+			return
+		}); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
 		}
 
-		// ANRs are shown in descending order
-		sort.Slice(anrs, func(i, j int) bool {
-			return anrs[i].Count > anrs[j].Count
-		})
+		if err := j.SetNodeANRGroups(func(eventIds []uuid.UUID) (anrGroups []group.ANRGroup, err error) {
+			// do not hit database if no event ids
+			// to query
+			if len(eventIds) == 0 {
+				return
+			}
 
-		node.ID = name
-		node.Issues = gin.H{
-			"crashes": crashes,
-			"anrs":    anrs,
+			anrGroups, err = group.GetANRGroupsFromANRIds(ctx, &af, eventIds)
+			if err != nil {
+				return
+			}
+
+			return
+		}); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
 		}
-		nodes = append(nodes, node)
+
+		for v := range j.Graph.Order() {
+			j.Graph.Visit(v, func(w int, c int64) bool {
+				var link Link
+				link.Source = j.GetNodeName(v)
+				link.Target = j.GetNodeName(w)
+				link.Value = j.GetEdgeSessionCount(v, w)
+				links = append(links, link)
+				return false
+			})
+		}
+
+		for _, v := range j.GetNodeVertices() {
+			var node Node
+			name := j.GetNodeName(v)
+			exceptionGroups := j.GetNodeExceptionGroups(name)
+			crashes := []Issue{}
+
+			for i := range exceptionGroups {
+				issue := Issue{
+					ID:    exceptionGroups[i].ID,
+					Title: exceptionGroups[i].GetDisplayTitle(),
+					Count: j.GetNodeExceptionCount(v, exceptionGroups[i].ID),
+				}
+				crashes = append(crashes, issue)
+			}
+
+			// crashes are shown in descending order
+			sort.Slice(crashes, func(i, j int) bool {
+				return crashes[i].Count > crashes[j].Count
+			})
+
+			anrGroups := j.GetNodeANRGroups(name)
+			anrs := []Issue{}
+
+			for i := range anrGroups {
+				issue := Issue{
+					ID:    anrGroups[i].ID,
+					Title: anrGroups[i].GetDisplayTitle(),
+					Count: j.GetNodeANRCount(v, anrGroups[i].ID),
+				}
+				anrs = append(anrs, issue)
+			}
+
+			// ANRs are shown in descending order
+			sort.Slice(anrs, func(i, j int) bool {
+				return anrs[i].Count > anrs[j].Count
+			})
+
+			node.ID = name
+			node.Issues = gin.H{
+				"crashes": crashes,
+				"anrs":    anrs,
+			}
+			nodes = append(nodes, node)
+		}
+	case *journey.JourneyiOS:
+		if err := j.SetNodeExceptionGroups(func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error) {
+			// do not hit database if no event ids
+			// to query
+			if len(eventIds) == 0 {
+				return
+			}
+
+			exceptionGroups, err = group.GetExceptionGroupsFromExceptionIds(ctx, &af, eventIds)
+			if err != nil {
+				return
+			}
+
+			return
+		}); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+
+		for v := range j.Graph.Order() {
+			j.Graph.Visit(v, func(w int, c int64) bool {
+				var link Link
+				link.Source = j.GetNodeName(v)
+				link.Target = j.GetNodeName(w)
+				link.Value = j.GetEdgeSessionCount(v, w)
+				links = append(links, link)
+				return false
+			})
+		}
+
+		for _, v := range j.GetNodeVertices() {
+			var node Node
+			name := j.GetNodeName(v)
+			exceptionGroups := j.GetNodeExceptionGroups(name)
+			crashes := []Issue{}
+
+			for i := range exceptionGroups {
+				issue := Issue{
+					ID:    exceptionGroups[i].ID,
+					Title: exceptionGroups[i].GetDisplayTitle(),
+					Count: j.GetNodeExceptionCount(v, exceptionGroups[i].ID),
+				}
+				crashes = append(crashes, issue)
+			}
+
+			// crashes are shown in descending order
+			sort.Slice(crashes, func(i, j int) bool {
+				return crashes[i].Count > crashes[j].Count
+			})
+
+			node.ID = name
+			node.Issues = gin.H{
+				"crashes": crashes,
+				"anrs":    []Issue{},
+			}
+			nodes = append(nodes, node)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
