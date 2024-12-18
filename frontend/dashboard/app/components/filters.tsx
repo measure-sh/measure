@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { formatDateToHumanReadableDateTime, formatIsoDateForDateTimeInputField, isValidTimestamp } from "../utils/time_utils";
 import { useEffect, useState } from "react";
 import { AppVersion, AppsApiStatus, FiltersApiStatus, FiltersApiType, OsVersion, SessionType, RootSpanNamesApiStatus, emptyApp, fetchAppsFromServer, fetchFiltersFromServer, fetchRootSpanNamesFromServer, SpanStatus } from "../api/api_calls";
@@ -299,6 +299,7 @@ const Filters: React.FC<FiltersProps> = ({
     setSelectedDeviceManufacturers(defaultFilters.deviceManufacturers)
     setSelectedDeviceNames(defaultFilters.deviceNames)
     setSelectedFreeText(defaultFilters.freeText)
+    setSelectedSpanStatuses(defaultFilters.spanStatuses)
   }
 
   const getRootSpanNames = async () => {
@@ -510,7 +511,6 @@ const Filters: React.FC<FiltersProps> = ({
       {appsApiStatus === AppsApiStatus.Success && ((filtersApiType === FiltersApiType.Span && rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) || filtersApiType !== FiltersApiType.Span) && filtersApiStatus === FiltersApiStatus.Success &&
         <div>
           <div className="flex flex-wrap gap-8 items-center">
-            {/* only show app selector if appId is not provided */}
             {showAppSelector && <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={apps.map((e) => e.name)} initialSelected={selectedApp.name} onChangeSelected={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} />}
 
             {filtersApiType === FiltersApiType.Span && <DropdownSelect title="Trace Name" type={DropdownSelectType.SingleString} items={rootSpanNames} initialSelected={selectedRootSpanName} onChangeSelected={(item) => setSelectedRootSpanName(item as string)} />}
